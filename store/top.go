@@ -9,7 +9,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb/internal/store"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 // Version represents a version of the value.
@@ -245,7 +245,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 		whereClause = "WHERE " + strings.Join(conditions, " AND ")
 	}
 	var commits []CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
-	errE := store.RetryTransaction(ctx, s.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, s.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		commits = make([]CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], 0, MaxPageLength)
 
@@ -258,7 +258,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 				ORDER BY cl."seq" ASC
 				LIMIT `+maxPageLengthStr, arguments...)
 		if err != nil {
-			return store.WithPgxError(err)
+			return internalStore.WithPgxError(err)
 		}
 		var seq int64
 		var name *string
@@ -287,7 +287,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 			return nil
 		})
 		if err != nil {
-			return store.WithPgxError(err)
+			return internalStore.WithPgxError(err)
 		}
 		return nil
 	})

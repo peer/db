@@ -16,7 +16,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
-	internal "gitlab.com/peerdb/peerdb/internal/store"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 const undeterminedLanguage = "und"
@@ -934,7 +934,7 @@ func (v *convertVisitor) VisitUnknown(claim *document.UnknownClaim) (document.Vi
 // For those whose property has an inverse property, a reverse relation claim is added to
 // the search document.
 func (c *Converter) FromDocument(
-	ctx context.Context, doc *document.D, inverseRelations []internal.InverseRelation,
+	ctx context.Context, doc *document.D, inverseRelations []internalStore.InverseRelation,
 ) (*Document, errors.E) {
 	v := &convertVisitor{
 		ctx:       ctx,
@@ -989,10 +989,10 @@ func inverseRelationClaimID(target, source, claim identifier.Identifier) identif
 //
 // For each relation claim in the document, it records an InverseRelation entry keyed
 // by the target document ID.
-func OutgoingInverseRelations(doc *document.D) map[identifier.Identifier][]internal.InverseRelation {
-	result := make(map[identifier.Identifier][]internal.InverseRelation)
+func OutgoingInverseRelations(doc *document.D) map[identifier.Identifier][]internalStore.InverseRelation {
+	result := make(map[identifier.Identifier][]internalStore.InverseRelation)
 	for _, claim := range document.GetAllClaimsOfTypeWithConfidence[*document.RelationClaim](doc, document.LowConfidence) {
-		result[claim.To.ID] = append(result[claim.To.ID], internal.InverseRelation{
+		result[claim.To.ID] = append(result[claim.To.ID], internalStore.InverseRelation{
 			Claim:      claim.ID,
 			Source:     doc.ID,
 			Prop:       claim.Prop.ID,

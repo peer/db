@@ -20,7 +20,7 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
-	internal "gitlab.com/peerdb/peerdb/internal/store"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -132,7 +132,7 @@ func (w *worker) getBridge(schema, prefix string) (bridgeJob, errors.E) { //noli
 // It saves progress in a PostgreSQL table so it resumes from where it left off on restart.
 type Bridge struct {
 	// Store is the store to read documents from.
-	Store *store.Store[json.RawMessage, *internal.DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes]
+	Store *store.Store[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, document.Changes]
 
 	// ESClient is the ElasticSearch client.
 	ESClient *elastic.Client
@@ -157,7 +157,7 @@ type Bridge struct {
 // Init creates the bridge progress table and registers a NOTIFY handler on the shared listener
 // so that WaitUntilCaughtUp is notified immediately when the bridge seq advances.
 func (b *Bridge) Init(
-	ctx context.Context, dbpool *pgxpool.Pool, listener *internal.Listener, schema string,
+	ctx context.Context, dbpool *pgxpool.Pool, listener *internalStore.Listener, schema string,
 	riverClient *river.Client[pgx.Tx], workers *river.Workers,
 ) errors.E {
 	if b.dbpool != nil {
@@ -167,7 +167,7 @@ func (b *Bridge) Init(
 	b.schema = schema
 	b.riverClient = riverClient
 
-	errE := internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `
 			-- "Bridge" table tracks the last commit seq successfully indexed to ElasticSearch.
 			CREATE TABLE "`+b.Store.Prefix+`Bridge" (
@@ -214,13 +214,13 @@ func (b *Bridge) Init(
 			CREATE TRIGGER "`+b.Store.Prefix+`BridgeInverseRelationsNotAllowed" BEFORE UPDATE OR TRUNCATE ON "`+b.Store.Prefix+`BridgeInverseRelations"
 				FOR EACH STATEMENT EXECUTE FUNCTION "`+b.Store.Prefix+`DoNotAllow"();
 		`)
-		return internal.WithPgxError(err)
+		return internalStore.WithPgxError(err)
 	})
 	if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 		switch pgError.Code {
-		case internal.ErrorCodeDuplicateTable:
+		case internalStore.ErrorCodeDuplicateTable:
 			// Nothing.
-		case internal.ErrorCodeDuplicateFunction:
+		case internalStore.ErrorCodeDuplicateFunction:
 			// Nothing.
 		default:
 			return errE
@@ -324,7 +324,7 @@ func (b *Bridge) HandleBacklog(
 	}
 }
 
-// HandlingReady implements internal.Handler interface.
+// HandlingReady implements internalStore.Handler interface.
 func (b *Bridge) HandlingReady(ctx context.Context, channel string) errors.E {
 	switch channel {
 	case b.Store.Prefix + "BridgeSeq":
@@ -397,8 +397,8 @@ func (b *Bridge) handleBridgeInverseRelationsMinSeq(notification *pgconn.Notific
 // updates the in-memory state, and broadcasts to any goroutines waiting in WaitUntilCaughtUp.
 func (b *Bridge) fixBridgeInverseRelationsMinSeq(ctx context.Context) errors.E {
 	var minSeq *int64
-	errE := internal.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
-		return internal.WithPgxError(
+	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		return internalStore.WithPgxError(
 			tx.QueryRow(ctx, `SELECT MIN("seq") FROM "`+b.Store.Prefix+`BridgeInverseRelations"`).Scan(&minSeq),
 		)
 	})
@@ -545,9 +545,9 @@ func (b *Bridge) Start(ctx context.Context, converter *Converter) {
 func (b *Bridge) WaitUntilCaughtUp(ctx context.Context) errors.E {
 	// Find the current maximum seq in CommitLog.
 	var maxSeq int64
-	errE := internal.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		err := tx.QueryRow(ctx, `SELECT COALESCE(MAX("seq"), 0) FROM "`+b.Store.Prefix+`CommitLog"`).Scan(&maxSeq)
-		return internal.WithPgxError(err)
+		return internalStore.WithPgxError(err)
 	})
 	if errE != nil {
 		return errE
@@ -647,8 +647,8 @@ func (b *Bridge) run(ctx context.Context) errors.E {
 // inverse relations that should be removed from the document's metadata.
 func (b *Bridge) indexCommit(
 	ctx context.Context,
-	committed store.CommittedChangesets[json.RawMessage, *internal.DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes],
-) (map[identifier.Identifier][]internal.InverseRelation, map[identifier.Identifier][]internal.InverseRelation, errors.E) {
+	committed store.CommittedChangesets[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, document.Changes],
+) (map[identifier.Identifier][]internalStore.InverseRelation, map[identifier.Identifier][]internalStore.InverseRelation, errors.E) {
 	// Reconstruct changesets with the store so we can query them.
 	c, errE := committed.WithStore(ctx, b.Store)
 	if errE != nil {
@@ -660,8 +660,8 @@ func (b *Bridge) indexCommit(
 	bulkService := b.ESClient.Bulk()
 
 	// Collect inverse relations from all processed documents.
-	addedInverseRelations := map[identifier.Identifier][]internal.InverseRelation{}
-	removedInverseRelations := map[identifier.Identifier][]internal.InverseRelation{}
+	addedInverseRelations := map[identifier.Identifier][]internalStore.InverseRelation{}
+	removedInverseRelations := map[identifier.Identifier][]internalStore.InverseRelation{}
 
 	for _, cs := range c.Changesets {
 		var after *identifier.Identifier
@@ -677,11 +677,11 @@ func (b *Bridge) indexCommit(
 				// Fetch document at the change version.
 				deleted := false
 				data, metadata, _, parentChangesets, errE := b.Store.Get(ctx, change.ID, change.Version)
-				var currentOutgoing map[identifier.Identifier][]internal.InverseRelation
+				var currentOutgoing map[identifier.Identifier][]internalStore.InverseRelation
 				if errors.Is(errE, store.ErrValueDeleted) {
 					// Deleted at this version: no outgoing relations.
 					deleted = true
-					currentOutgoing = map[identifier.Identifier][]internal.InverseRelation{}
+					currentOutgoing = map[identifier.Identifier][]internalStore.InverseRelation{}
 				} else if errE != nil {
 					errors.Details(errE)["seq"] = committed.Seq
 					errors.Details(errE)["view"] = committed.View.Name()
@@ -700,7 +700,7 @@ func (b *Bridge) indexCommit(
 				}
 
 				// Fetch document at parent change versions.
-				parentOutgoing := map[identifier.Identifier][]internal.InverseRelation{}
+				parentOutgoing := map[identifier.Identifier][]internalStore.InverseRelation{}
 				for _, pv := range parentChangesets {
 					parentData, _, _, _, errE := b.Store.Get(ctx, change.ID, pv)
 					if errors.Is(errE, store.ErrValueDeleted) {
@@ -799,23 +799,23 @@ func (b *Bridge) indexCommit(
 // removed and added) if any of its fields (target, property, confidence) differ,
 // even if the claim ID stays the same.
 func diffOutgoingInverseRelations(
-	current, parent map[identifier.Identifier][]internal.InverseRelation,
-) (map[identifier.Identifier][]internal.InverseRelation, map[identifier.Identifier][]internal.InverseRelation) {
-	currentSet := make(map[internal.InverseRelation]bool)
+	current, parent map[identifier.Identifier][]internalStore.InverseRelation,
+) (map[identifier.Identifier][]internalStore.InverseRelation, map[identifier.Identifier][]internalStore.InverseRelation) {
+	currentSet := make(map[internalStore.InverseRelation]bool)
 	for _, irs := range current {
 		for _, ir := range irs {
 			currentSet[ir] = true
 		}
 	}
 
-	parentSet := make(map[internal.InverseRelation]bool)
+	parentSet := make(map[internalStore.InverseRelation]bool)
 	for _, irs := range parent {
 		for _, ir := range irs {
 			parentSet[ir] = true
 		}
 	}
 
-	added := map[identifier.Identifier][]internal.InverseRelation{}
+	added := map[identifier.Identifier][]internalStore.InverseRelation{}
 	for targetID, irs := range current {
 		for _, ir := range irs {
 			if !parentSet[ir] {
@@ -824,7 +824,7 @@ func diffOutgoingInverseRelations(
 		}
 	}
 
-	removed := map[identifier.Identifier][]internal.InverseRelation{}
+	removed := map[identifier.Identifier][]internalStore.InverseRelation{}
 	for targetID, irs := range parent {
 		for _, ir := range irs {
 			if !currentSet[ir] {
@@ -838,7 +838,7 @@ func diffOutgoingInverseRelations(
 
 // convertDocument unmarshals data into a document.D and calls the converter's
 // FromDocument with inverse relations from metadata.
-func (b *Bridge) convertDocument(ctx context.Context, data json.RawMessage, metadata *internal.DocumentMetadata) (*Document, errors.E) {
+func (b *Bridge) convertDocument(ctx context.Context, data json.RawMessage, metadata *internalStore.DocumentMetadata) (*Document, errors.E) {
 	var doc document.D
 	errE := x.UnmarshalWithoutUnknownFields(data, &doc)
 	if errE != nil {
@@ -848,7 +848,7 @@ func (b *Bridge) convertDocument(ctx context.Context, data json.RawMessage, meta
 	return b.converter.FromDocument(ctx, &doc, metadata.InverseRelations)
 }
 
-func (b *Bridge) outgoingInverseRelations(data json.RawMessage) (map[identifier.Identifier][]internal.InverseRelation, errors.E) {
+func (b *Bridge) outgoingInverseRelations(data json.RawMessage) (map[identifier.Identifier][]internalStore.InverseRelation, errors.E) {
 	var doc document.D
 	errE := x.UnmarshalWithoutUnknownFields(data, &doc)
 	if errE != nil {
@@ -861,9 +861,9 @@ func (b *Bridge) outgoingInverseRelations(data json.RawMessage) (map[identifier.
 // getSeq reads the current last-indexed seq from the bridge table.
 func (b *Bridge) getSeq(ctx context.Context) (int64, errors.E) {
 	var seq int64
-	errE := internal.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		err := tx.QueryRow(ctx, `SELECT "seq" FROM "`+b.Store.Prefix+`Bridge"`).Scan(&seq)
-		return internal.WithPgxError(err)
+		return internalStore.WithPgxError(err)
 	})
 	return seq, errE
 }
@@ -872,17 +872,17 @@ func (b *Bridge) getSeq(ctx context.Context) (int64, errors.E) {
 type preparedUpdate struct {
 	id       identifier.Identifier
 	version  store.Version
-	metadata *internal.DocumentMetadata
+	metadata *internalStore.DocumentMetadata
 }
 
 // updateSeq advances the bridge table to seq and updates document metadata with
 // inverse relations, all in a single transaction.
 func (b *Bridge) updateSeq(
 	ctx context.Context, seq int64,
-	addedInverseRelations, removedInverseRelations map[identifier.Identifier][]internal.InverseRelation,
+	addedInverseRelations, removedInverseRelations map[identifier.Identifier][]internalStore.InverseRelation,
 ) errors.E {
 	// TODO: How to get MetricDatabaseRetries inside RetryTransaction to be incremented at every loop here?
-	for range internal.MaxRetries {
+	for range internalStore.MaxRetries {
 		// Collect all affected document IDs from both added and removed maps.
 		affectedDocs := make(map[identifier.Identifier]bool)
 		for docID, irs := range addedInverseRelations {
@@ -925,7 +925,7 @@ func (b *Bridge) updateSeq(
 		// of Bridge seq triggers the BridgeSeq notification. Since notifications are
 		// delivered in order within a transaction and processed sequentially by the listener,
 		// waitForInverseRelationsMinSeq sees the correct value before waitForLastSeq returns.
-		errE := internal.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 			for _, u := range updates {
 				_, errE := b.Store.UpdateExistingMetadata(ctx, u.id, u.version, u.metadata)
 				if errE != nil {
@@ -941,7 +941,7 @@ func (b *Bridge) updateSeq(
 							ON CONFLICT ("id", "seq") DO NOTHING
 					`, u.id.String(), seq)
 					if err != nil {
-						return internal.WithPgxError(err)
+						return internalStore.WithPgxError(err)
 					}
 				}
 
@@ -958,7 +958,7 @@ func (b *Bridge) updateSeq(
 			// Advance the bridge seq last, so its notification arrives after BridgeInverseRelationsMinSeq.
 			_, err := tx.Exec(ctx, `UPDATE "`+b.Store.Prefix+`Bridge" SET "seq" = $1 WHERE "seq" < $1`, seq)
 			if err != nil {
-				return internal.WithPgxError(err)
+				return internalStore.WithPgxError(err)
 			}
 
 			return nil
@@ -970,7 +970,7 @@ func (b *Bridge) updateSeq(
 		return errE
 	}
 
-	return errors.WithStack(internal.ErrMaxRetriesReached)
+	return errors.WithStack(internalStore.ErrMaxRetriesReached)
 }
 
 func (b *Bridge) runIndexInverseRelations(ctx context.Context, _ *river.Job[jobArgs]) errors.E {
@@ -979,12 +979,12 @@ func (b *Bridge) runIndexInverseRelations(ctx context.Context, _ *river.Job[jobA
 		// GROUP BY collapses multiple entries for the same document (from different commits).
 		var docIDStr string
 		var maxSeq int64
-		errE := internal.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 			// TODO: Maybe make the query pick ID randomly (order by random)?
 			//       So if we allow for multiple jobs to run in parallel (currently we have single worker queue for these jobs),
 			//       they would not all work on the same document ID. On the other hand, maybe we should pick document IDs based on
 			//       their minimal seq (or minimal MAX(seq)) so that they are processed in approximate order of how their commits were done.
-			return internal.WithPgxError(tx.QueryRow(ctx, `
+			return internalStore.WithPgxError(tx.QueryRow(ctx, `
 				SELECT "id", MAX("seq") FROM "`+b.Store.Prefix+`BridgeInverseRelations"
 					GROUP BY "id" LIMIT 1
 			`).Scan(&docIDStr, &maxSeq))
@@ -1009,11 +1009,11 @@ func (b *Bridge) runIndexInverseRelations(ctx context.Context, _ *river.Job[jobA
 
 		// Remove entries for this document up to the seq we observed.
 		// Entries with a higher seq (added during our processing) are kept for later re-indexing.
-		errE = internal.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		errE = internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 			_, err := tx.Exec(ctx, `
 				DELETE FROM "`+b.Store.Prefix+`BridgeInverseRelations" WHERE "id" = $1 AND "seq" <= $2
 			`, docIDStr, maxSeq)
-			return internal.WithPgxError(err)
+			return internalStore.WithPgxError(err)
 		})
 		if errE != nil {
 			return errE

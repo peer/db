@@ -11,7 +11,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
-	internal "gitlab.com/peerdb/peerdb/internal/store"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -19,17 +19,17 @@ import (
 // GetDocument returns the document at the given version.
 func (b *B) GetDocument(
 	ctx context.Context, id identifier.Identifier, version store.Version,
-) (json.RawMessage, *internal.DocumentMetadata, store.Version, []store.Version, errors.E) {
+) (json.RawMessage, *internalStore.DocumentMetadata, store.Version, []store.Version, errors.E) {
 	return b.documents.Get(ctx, id, version)
 }
 
 // GetDocumentLatest returns the latest version of the document.
-func (b *B) GetDocumentLatest(ctx context.Context, id identifier.Identifier) (json.RawMessage, *internal.DocumentMetadata, store.Version, []store.Version, errors.E) {
+func (b *B) GetDocumentLatest(ctx context.Context, id identifier.Identifier) (json.RawMessage, *internalStore.DocumentMetadata, store.Version, []store.Version, errors.E) {
 	return b.documents.GetLatest(ctx, id)
 }
 
 // GetDocumentLatestDoc returns the latest version of the document as document.D.
-func (b *B) GetDocumentLatestDoc(ctx context.Context, id identifier.Identifier) (*document.D, *internal.DocumentMetadata, store.Version, []store.Version, errors.E) {
+func (b *B) GetDocumentLatestDoc(ctx context.Context, id identifier.Identifier) (*document.D, *internalStore.DocumentMetadata, store.Version, []store.Version, errors.E) {
 	data, metadata, version, parentChangesets, errE := b.documents.GetLatest(ctx, id)
 	var doc *document.D
 	if data != nil {
@@ -54,10 +54,10 @@ func (b *B) InsertDocument(ctx context.Context, id identifier.Identifier, doc *d
 		return errE
 	}
 
-	_, errE = b.documents.Insert(ctx, id, documentJSON, &internal.DocumentMetadata{
-		At:               internal.Time(time.Now().UTC()),
+	_, errE = b.documents.Insert(ctx, id, documentJSON, &internalStore.DocumentMetadata{
+		At:               internalStore.Time(time.Now().UTC()),
 		InverseRelations: nil,
-	}, &internal.NoMetadata{})
+	}, &internalStore.NoMetadata{})
 	return errE
 }
 
@@ -70,7 +70,7 @@ func (b *B) BeginDocumentEdit(ctx context.Context, id identifier.Identifier) (id
 	}
 
 	session, errE := b.coordinator.Begin(ctx, &DocumentBeginMetadata{
-		At:       internal.Time(time.Now().UTC()),
+		At:       internalStore.Time(time.Now().UTC()),
 		Document: id,
 		Version: store.Version{
 			Changeset: version.Changeset,
@@ -104,7 +104,7 @@ func (b *B) AppendDocumentChange(ctx context.Context, session identifier.Identif
 	}
 
 	return b.coordinator.Append(ctx, session, data, &documentChangeMetadata{
-		At: internal.Time(time.Now().UTC()),
+		At: internalStore.Time(time.Now().UTC()),
 	}, &seqNo)
 }
 
@@ -122,7 +122,7 @@ func (b *B) GetDocumentChange(ctx context.Context, session identifier.Identifier
 // EndDocumentEdit ends an edit session, committing or discarding its changes.
 func (b *B) EndDocumentEdit(ctx context.Context, session identifier.Identifier, discard bool) errors.E {
 	return b.coordinator.End(ctx, session, &documentEndMetadata{
-		At:        internal.Time(time.Now().UTC()),
+		At:        internalStore.Time(time.Now().UTC()),
 		Discarded: discard,
 	})
 }

@@ -8,7 +8,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb/internal/store"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 const (
@@ -214,7 +214,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 	var metadata Metadata
 	var version Version
 	var parentChangesets []Version
-	errE := store.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		data = *new(Data)
 		metadata = *new(Metadata)
@@ -256,13 +256,13 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 					AND "depth"=0
 		`, arguments...).Scan(&changeset, &revision, &data, &dataIsNull, &metadata, &parentChangesetsString)
 		if err != nil {
-			errE := store.WithPgxError(err)
+			errE := internalStore.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
 				// TODO: Is there a better way to check without doing another query?
 				var exists bool
 				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+v.store.Prefix+`CurrentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 				if err != nil {
-					return errors.Join(errE, store.WithPgxError(err))
+					return errors.Join(errE, internalStore.WithPgxError(err))
 				} else if !exists {
 					return errors.WrapWith(errE, ErrViewNotFound)
 				}
@@ -323,7 +323,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 	var metadata Metadata
 	var resolved Version
 	var parentChangesets []Version
-	errE := store.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		data = *new(Data)
 		metadata = *new(Metadata)
@@ -360,13 +360,13 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 				`+revisionCondition,
 			arguments...).Scan(&revision, &data, &dataIsNull, &metadata, &parentChangesetsString)
 		if err != nil {
-			errE := store.WithPgxError(err)
+			errE := internalStore.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
 				// TODO: Is there a better way to check without doing another query?
 				var exists bool
 				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+v.store.Prefix+`CurrentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 				if err != nil {
-					return errors.Join(errE, store.WithPgxError(err))
+					return errors.Join(errE, internalStore.WithPgxError(err))
 				} else if !exists {
 					return errors.WrapWith(errE, ErrViewNotFound)
 				}
@@ -410,7 +410,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		afterCondition = `WHERE EXISTS (SELECT 1 FROM "viewPath" JOIN "` + v.store.Prefix + `CommittedValues" USING ("view") WHERE "id"=$2) AND "id">$2`
 	}
 	var values []identifier.Identifier
-	errE := store.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		values = make([]identifier.Identifier, 0, MaxPageLength)
 
@@ -426,7 +426,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 				ORDER BY "id"
 				LIMIT `+maxPageLengthStr, arguments...)
 		if err != nil {
-			return store.WithPgxError(err)
+			return internalStore.WithPgxError(err)
 		}
 		var i string
 		_, err = pgx.ForEachRow(rows, []any{&i}, func() error {
@@ -434,14 +434,14 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			return nil
 		})
 		if err != nil {
-			return store.WithPgxError(err)
+			return internalStore.WithPgxError(err)
 		}
 		if len(values) == 0 {
 			// TODO: Is there a better way to check without doing another query?
 			var exists bool
 			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+v.store.Prefix+`CurrentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 			if err != nil {
-				return store.WithPgxError(err)
+				return internalStore.WithPgxError(err)
 			} else if !exists {
 				return errors.WithStack(ErrViewNotFound)
 			}
@@ -454,7 +454,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 					SELECT 1 FROM "viewPath" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view") WHERE "id"=$2
 				)`, arguments...).Scan(&exists)
 				if err != nil {
-					return store.WithPgxError(err)
+					return internalStore.WithPgxError(err)
 				} else if !exists {
 					return errors.WithStack(ErrValueNotFound)
 				}
@@ -493,7 +493,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		v.name, id.String(),
 	}
 	var changesets []identifier.Identifier
-	errE := store.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		changesets = make([]identifier.Identifier, 0, MaxPageLength)
 
@@ -530,7 +530,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 				ORDER BY "depth" ASC
 				LIMIT `+maxPageLengthStr, arguments...)
 		if err != nil {
-			return store.WithPgxError(err)
+			return internalStore.WithPgxError(err)
 		}
 		var i string
 		_, err = pgx.ForEachRow(rows, []any{&i}, func() error {
@@ -538,14 +538,14 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			return nil
 		})
 		if err != nil {
-			return store.WithPgxError(err)
+			return internalStore.WithPgxError(err)
 		}
 		if len(changesets) == 0 {
 			// TODO: Is there a better way to check without doing another query?
 			var exists bool
 			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+v.store.Prefix+`CurrentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 			if err != nil {
-				return store.WithPgxError(err)
+				return internalStore.WithPgxError(err)
 			} else if !exists {
 				return errors.WithStack(ErrViewNotFound)
 			}
@@ -569,7 +569,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		v.name, id.String(), after.String(),
 	}
 	var changesets []identifier.Identifier
-	errE := store.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		changesets = make([]identifier.Identifier, 0, MaxPageLength)
 
@@ -622,7 +622,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 					"changeset" ASC
 				LIMIT `+maxPageLengthStr, arguments...)
 		if err != nil {
-			return store.WithPgxError(err)
+			return internalStore.WithPgxError(err)
 		}
 		var i string
 		_, err = pgx.ForEachRow(rows, []any{&i}, func() error {
@@ -630,14 +630,14 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			return nil
 		})
 		if err != nil {
-			return store.WithPgxError(err)
+			return internalStore.WithPgxError(err)
 		}
 		if len(changesets) == 0 {
 			// TODO: Is there a better way to check without doing another query?
 			var exists bool
 			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+v.store.Prefix+`CurrentViews" WHERE "name"=$1)`, v.name).Scan(&exists)
 			if err != nil {
-				return store.WithPgxError(err)
+				return internalStore.WithPgxError(err)
 			} else if !exists {
 				return errors.WithStack(ErrViewNotFound)
 			}
@@ -651,7 +651,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 				)
 			`, v.name, id.String()).Scan(&exists)
 			if err != nil {
-				return store.WithPgxError(err)
+				return internalStore.WithPgxError(err)
 			} else if !exists {
 				return errors.WithStack(ErrValueNotFound)
 			}
@@ -676,7 +676,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 				)
 			`, arguments...).Scan(&exists)
 			if err != nil {
-				return store.WithPgxError(err)
+				return internalStore.WithPgxError(err)
 			} else if !exists {
 				return errors.WithStack(ErrChangesetNotFound)
 			}
@@ -712,17 +712,17 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 	arguments := []any{
 		identifier.New().String(), name, metadata, v.name,
 	}
-	errE := store.RetryTransaction(ctx, v.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, v.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		res, err := tx.Exec(ctx, `
 			INSERT INTO "`+v.store.Prefix+`Views" SELECT $1, 1, $2, array_prepend($1, "path"), $3
 				FROM "`+v.store.Prefix+`CurrentViews" JOIN "`+v.store.Prefix+`Views" USING ("view", "revision")
 				WHERE "`+v.store.Prefix+`CurrentViews"."name"=$4;
 		`, arguments...)
 		if err != nil {
-			errE := store.WithPgxError(err)
+			errE := internalStore.WithPgxError(err)
 			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code { //nolint:gocritic
-				case store.ErrorCodeUniqueViolation:
+				case internalStore.ErrorCodeUniqueViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
 			}
@@ -750,14 +750,14 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 	arguments := []any{
 		v.name, metadata,
 	}
-	errE := store.RetryTransaction(ctx, v.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, v.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		res, err := tx.Exec(ctx, `
 			INSERT INTO "`+v.store.Prefix+`Views" SELECT "view", "revision"+1, NULL, "path", $2
 				FROM "`+v.store.Prefix+`CurrentViews" JOIN "`+v.store.Prefix+`Views" USING ("view", "revision")
 				WHERE "`+v.store.Prefix+`CurrentViews"."name"=$1;
 		`, arguments...)
 		if err != nil {
-			return store.WithPgxError(err)
+			return internalStore.WithPgxError(err)
 		}
 		if res.RowsAffected() == 0 {
 			return errors.WithStack(ErrViewNotFound)
@@ -778,7 +778,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 	ctx context.Context, id identifier.Identifier, version Version, metadata Metadata,
 ) (Version, errors.E) {
 	var newVersion Version
-	errE := store.RetryTransaction(ctx, v.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, v.store.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		newVersion = Version{}
 
@@ -792,7 +792,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 				WHERE "changeset"=$1 AND "id"=$2 AND "revision"=$3
 		`, version.Changeset.String(), id.String(), version.Revision, metadata)
 		if err != nil {
-			errE := store.WithPgxError(err)
+			errE := internalStore.WithPgxError(err)
 			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeChangesetNotFound:

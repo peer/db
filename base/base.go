@@ -22,8 +22,8 @@ import (
 
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/search"
-	internal "gitlab.com/peerdb/peerdb/internal/store"
+	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -44,16 +44,16 @@ type B struct {
 	LanguagePriority map[string][]string
 
 	// Data type for Store is on purpose not document.D so that we can serve it directly without doing first JSON unmarshal just to marshal it again immediately.
-	documents   *store.Store[json.RawMessage, *internal.DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes]
+	documents   *store.Store[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, document.Changes]
 	coordinator *coordinator.Coordinator[json.RawMessage, *documentChangeMetadata, *DocumentBeginMetadata, *documentEndMetadata, *documentCompleteData, *documentCompleteMetadata]
 	files       *storage.Storage
-	bridge      *search.Bridge
+	bridge      *internalSearch.Bridge
 }
 
 // Init initializes the base.
 func (b *B) Init(
 	ctx context.Context,
-	dbpool *pgxpool.Pool, listener *internal.Listener,
+	dbpool *pgxpool.Pool, listener *internalStore.Listener,
 	esClient *elastic.Client,
 	riverClient *river.Client[pgx.Tx], workers *river.Workers,
 ) errors.E {
@@ -61,7 +61,7 @@ func (b *B) Init(
 		return errors.New("already initialized")
 	}
 
-	documents := &store.Store[json.RawMessage, *internal.DocumentMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, document.Changes]{
+	documents := &store.Store[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, document.Changes]{
 		Prefix:        "docs",
 		DataType:      "jsonb",
 		MetadataType:  "jsonb",
@@ -96,7 +96,7 @@ func (b *B) Init(
 		return errE
 	}
 
-	bridge := &search.Bridge{
+	bridge := &internalSearch.Bridge{
 		Store:    documents,
 		ESClient: esClient,
 		Index:    b.Index,
@@ -121,7 +121,7 @@ func (b *B) Init(
 //
 // You have to call this or PopulateAndStart for each base after Init.
 func (b *B) Start(ctx context.Context, documents []*document.D) errors.E {
-	converter, errE := search.NewConverter(
+	converter, errE := internalSearch.NewConverter(
 		documents, documents, b.LanguagePriority,
 		func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
 			doc, _, _, _, errE := b.GetDocumentLatestDoc(ctx, id)

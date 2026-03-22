@@ -14,7 +14,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
-	internal "gitlab.com/peerdb/peerdb/internal/store"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/search"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -35,7 +35,7 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 
 	// We validate the "s" parameter.
 	if req.Form.Has("s") {
-		m := metrics.Duration(internal.MetricSearchSession).Start()
+		m := metrics.Duration(internalStore.MetricSearchSession).Start()
 		_, errE = search.GetSessionFromID(ctx, req.Form.Get("s"))
 		m.Stop()
 		if errors.Is(errE, search.ErrNotFound) {
@@ -70,7 +70,7 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 
 	site := waf.MustGetSite[*Site](req.Context())
 
-	m := metrics.Duration(internal.MetricDatabase).Start()
+	m := metrics.Duration(internalStore.MetricDatabase).Start()
 	// TODO: Add API to store to just check if the value exists.
 	if reqVersion != nil {
 		_, _, _, _, errE = site.Base.GetDocument(ctx, id, *reqVersion)
@@ -120,7 +120,7 @@ func (s *Service) DocumentGetGetAPI(w http.ResponseWriter, req *http.Request, pa
 	var dataJSON json.RawMessage
 	var version store.Version
 
-	m := metrics.Duration(internal.MetricDatabase).Start()
+	m := metrics.Duration(internalStore.MetricDatabase).Start()
 	if reqVersion != nil {
 		version = *reqVersion
 		dataJSON, _, _, _, errE = site.Base.GetDocument(ctx, id, *reqVersion)

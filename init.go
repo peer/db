@@ -9,9 +9,9 @@ import (
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 
-	"gitlab.com/peerdb/peerdb/internal/base"
-	"gitlab.com/peerdb/peerdb/internal/search"
-	"gitlab.com/peerdb/peerdb/internal/store"
+	internalBase "gitlab.com/peerdb/peerdb/internal/base"
+	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 // WithFallbackDBContext returns context with fallback context values which are used
@@ -36,7 +36,7 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 	ctx = WithFallbackDBContext(ctx, s.Schema, "init")
 	ctx = logger.With().Str("schema", s.Schema).Str("index", s.Index).Logger().WithContext(ctx)
 
-	b, riverClient, onShutdown, errE := base.InitAndStartComponents(ctx, logger, dbpool, esClient, s.Schema, s.Index, s.LanguagePriority)
+	b, riverClient, onShutdown, errE := internalBase.InitAndStartComponents(ctx, logger, dbpool, esClient, s.Schema, s.Index, s.LanguagePriority)
 	if errE != nil {
 		return onShutdown, errE
 	}
@@ -90,7 +90,7 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 		var errE errors.E
 		// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
 		// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
-		dbpool, errE = store.InitPostgres(
+		dbpool, errE = internalStore.InitPostgres(
 			context.WithoutCancel(ctx),
 			string(globals.Postgres.URL),
 			globals.Logger,
@@ -106,7 +106,7 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 	// Initialize for the first time.
 	if esClient == nil {
 		var errE errors.E
-		esClient, errE = search.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic.URL)
+		esClient, errE = internalSearch.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic.URL)
 		if errE != nil {
 			return onShutdownF, errE
 		}

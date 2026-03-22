@@ -18,7 +18,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
-	internal "gitlab.com/peerdb/peerdb/internal/store"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -44,19 +44,19 @@ func TestTop(t *testing.T) {
 		t.Run(dataType, func(t *testing.T) {
 			t.Parallel()
 
-			testTop(t, testCase[*internal.TestData, *internal.TestMetadata, *internal.TestPatch]{
-				InsertData:      &internal.TestData{Data: 123, Patch: false},
-				InsertMetadata:  &internal.TestMetadata{Metadata: "foobar"},
-				UpdateData:      &internal.TestData{Data: 123, Patch: true},
-				UpdateMetadata:  &internal.TestMetadata{Metadata: "zoofoo"},
-				UpdatePatch:     &internal.TestPatch{Patch: true},
-				ReplaceData:     &internal.TestData{Data: 345, Patch: false},
-				ReplaceMetadata: &internal.TestMetadata{Metadata: "another"},
+			testTop(t, testCase[*internalStore.TestData, *internalStore.TestMetadata, *internalStore.TestPatch]{
+				InsertData:      &internalStore.TestData{Data: 123, Patch: false},
+				InsertMetadata:  &internalStore.TestMetadata{Metadata: "foobar"},
+				UpdateData:      &internalStore.TestData{Data: 123, Patch: true},
+				UpdateMetadata:  &internalStore.TestMetadata{Metadata: "zoofoo"},
+				UpdatePatch:     &internalStore.TestPatch{Patch: true},
+				ReplaceData:     &internalStore.TestData{Data: 345, Patch: false},
+				ReplaceMetadata: &internalStore.TestMetadata{Metadata: "another"},
 				DeleteData:      nil,
-				DeleteMetadata:  &internal.TestMetadata{Metadata: "admin"},
-				CommitMetadata:  &internal.TestMetadata{Metadata: "commit"},
-				NoPatches:       []*internal.TestPatch{},
-				UpdatePatches:   []*internal.TestPatch{{Patch: true}},
+				DeleteMetadata:  &internalStore.TestMetadata{Metadata: "admin"},
+				CommitMetadata:  &internalStore.TestMetadata{Metadata: "commit"},
+				NoPatches:       []*internalStore.TestPatch{},
+				UpdatePatches:   []*internalStore.TestPatch{{Patch: true}},
 			}, dataType)
 
 			testTop(t, testCase[json.RawMessage, json.RawMessage, json.RawMessage]{
@@ -75,18 +75,18 @@ func TestTop(t *testing.T) {
 			}, dataType)
 
 			testTop(t, testCase[*json.RawMessage, *json.RawMessage, *json.RawMessage]{
-				InsertData:      internal.ToRawMessagePtr(`{"data": 123}`),
-				InsertMetadata:  internal.ToRawMessagePtr(`{"metadata": "foobar"}`),
-				UpdateData:      internal.ToRawMessagePtr(`{"data": 123, "patch": true}`),
-				UpdateMetadata:  internal.ToRawMessagePtr(`{"metadata": "zoofoo"}`),
-				UpdatePatch:     internal.ToRawMessagePtr(`{"patch": true}`),
-				ReplaceData:     internal.ToRawMessagePtr(`{"data": 345}`),
-				ReplaceMetadata: internal.ToRawMessagePtr(`{"metadata": "another"}`),
+				InsertData:      internalStore.ToRawMessagePtr(`{"data": 123}`),
+				InsertMetadata:  internalStore.ToRawMessagePtr(`{"metadata": "foobar"}`),
+				UpdateData:      internalStore.ToRawMessagePtr(`{"data": 123, "patch": true}`),
+				UpdateMetadata:  internalStore.ToRawMessagePtr(`{"metadata": "zoofoo"}`),
+				UpdatePatch:     internalStore.ToRawMessagePtr(`{"patch": true}`),
+				ReplaceData:     internalStore.ToRawMessagePtr(`{"data": 345}`),
+				ReplaceMetadata: internalStore.ToRawMessagePtr(`{"metadata": "another"}`),
 				DeleteData:      nil,
-				DeleteMetadata:  internal.ToRawMessagePtr(`{"metadata": "admin"}`),
-				CommitMetadata:  internal.ToRawMessagePtr(`{"metadata": "commit"}`),
+				DeleteMetadata:  internalStore.ToRawMessagePtr(`{"metadata": "admin"}`),
+				CommitMetadata:  internalStore.ToRawMessagePtr(`{"metadata": "commit"}`),
 				NoPatches:       []*json.RawMessage{},
-				UpdatePatches:   []*json.RawMessage{internal.ToRawMessagePtr(`{"patch": true}`)},
+				UpdatePatches:   []*json.RawMessage{internalStore.ToRawMessagePtr(`{"patch": true}`)},
 			}, dataType)
 
 			testTop(t, testCase[[]byte, []byte, store.None]{
@@ -111,7 +111,7 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	t *testing.T, dataType string,
 ) (
 	context.Context, *store.Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
-	*internal.LockableSlice[store.CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]],
+	*internalStore.LockableSlice[store.CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]],
 ) {
 	t.Helper()
 
@@ -127,18 +127,18 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	schema := "s" + strings.ToLower(identifier.New().String())
 	prefix := identifier.New().String() + "_"
 
-	dbpool, errE := internal.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
+	dbpool, errE := internalStore.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
 		return schema, "tests"
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 	t.Cleanup(dbpool.Close)
 
-	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		return internal.EnsureSchema(ctx, tx, schema)
+	errE = internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		return internalStore.EnsureSchema(ctx, tx, schema)
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	listener := internal.NewListener(dbpool)
+	listener := internalStore.NewListener(dbpool)
 
 	s := &store.Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
 		Prefix:       prefix,
@@ -153,7 +153,7 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	errE = listener.Start(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	channelContents := new(internal.LockableSlice[store.CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]])
+	channelContents := new(internalStore.LockableSlice[store.CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]])
 
 	go func() {
 		for {
@@ -606,13 +606,13 @@ func TestListPagination(t *testing.T) {
 
 	for i := range 6000 {
 		newID := identifier.New()
-		_, errE = changeset.Insert(ctx, newID, internal.DummyData, internal.DummyData)
+		_, errE = changeset.Insert(ctx, newID, internalStore.DummyData, internalStore.DummyData)
 		require.NoError(t, errE, "%d % -+#.1v", i, errE)
 
 		ids = append(ids, newID)
 	}
 
-	_, errE = s.Commit(ctx, changeset, internal.DummyData)
+	_, errE = s.Commit(ctx, changeset, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	page1, errE := s.List(ctx, nil)
@@ -703,7 +703,7 @@ func TestChangesPagination(t *testing.T) {
 	changesets := []identifier.Identifier{}
 
 	newID := identifier.New()
-	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
+	version, errE := s.Insert(ctx, newID, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	changesets = append(changesets, version.Changeset)
 
@@ -712,14 +712,14 @@ func TestChangesPagination(t *testing.T) {
 		changeset, errE = s.Begin(ctx)
 		require.NoError(t, errE, "% -+#.1v", errE)
 
-		version, errE = changeset.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData)
+		version, errE = changeset.Update(ctx, newID, version.Changeset, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 		require.NoError(t, errE, "%d % -+#.1v", i, errE)
 
 		changesets = append(changesets, version.Changeset)
 	}
 
 	// We commit only once (the last changeset in the chain) for test to run faster.
-	committed, errE := s.Commit(ctx, changeset, internal.DummyData)
+	committed, errE := s.Commit(ctx, changeset, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Len(t, committed, 6000)
 
@@ -785,33 +785,33 @@ func TestTwoChangesToSameValueInOneChangeset(t *testing.T) {
 	changeset, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	newVersion, errE := changeset.Insert(ctx, newID, internal.DummyData, internal.DummyData)
+	newVersion, errE := changeset.Insert(ctx, newID, internalStore.DummyData, internalStore.DummyData)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(1), newVersion.Revision)
 	}
 
-	_, errE = changeset.Insert(ctx, newID, internal.DummyData, internal.DummyData)
+	_, errE = changeset.Insert(ctx, newID, internalStore.DummyData, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 
-	_, errE = s.Commit(ctx, changeset, internal.DummyData)
+	_, errE = s.Commit(ctx, changeset, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	changeset, errE = s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset.Update(ctx, newID, newVersion.Changeset, internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = changeset.Update(ctx, newID, newVersion.Changeset, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset.Delete(ctx, newID, newVersion.Changeset, internal.DummyData)
+	_, errE = changeset.Delete(ctx, newID, newVersion.Changeset, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 
-	_, errE = changeset.Update(ctx, newID, newVersion.Changeset, internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = changeset.Update(ctx, newID, newVersion.Changeset, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 
-	_, errE = changeset.Merge(ctx, newID, []identifier.Identifier{newVersion.Changeset}, internal.DummyData, []json.RawMessage{internal.DummyData}, internal.DummyData)
+	_, errE = changeset.Merge(ctx, newID, []identifier.Identifier{newVersion.Changeset}, internalStore.DummyData, []json.RawMessage{internalStore.DummyData}, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 
-	_, errE = changeset.Replace(ctx, newID, newVersion.Changeset, internal.DummyData, internal.DummyData)
+	_, errE = changeset.Replace(ctx, newID, newVersion.Changeset, internalStore.DummyData, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 }
 
@@ -822,7 +822,7 @@ func TestCycles(t *testing.T) {
 
 	newID := identifier.New()
 
-	newVersion, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
+	newVersion, errE := s.Insert(ctx, newID, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(1), newVersion.Revision)
 	}
@@ -831,18 +831,18 @@ func TestCycles(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// We use changeset.ID() for parent changeset, to try to make a zero length cycle.
-	_, errE = changeset.Update(ctx, newID, changeset.ID(), internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = changeset.Update(ctx, newID, changeset.ID(), internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	// This is not possible for two reasons:
 	// Every changeset can have only one change per value ID.
 	// Parent changeset must contain a change for the same value ID - fails here.
 	assert.ErrorIs(t, errE, store.ErrParentInvalid)
 
 	// Some insert, to make changeset exist.
-	_, errE = changeset.Insert(ctx, identifier.New(), internal.DummyData, internal.DummyData)
+	_, errE = changeset.Insert(ctx, identifier.New(), internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// We use changeset.ID() for parent changeset, to try to make a zero length cycle.
-	_, errE = changeset.Update(ctx, newID, changeset.ID(), internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = changeset.Update(ctx, newID, changeset.ID(), internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	// This is not possible for two reasons:
 	// Every changeset can have only one change per value ID - fails here.
 	// Parent changeset must contain a change for the same value ID.
@@ -866,22 +866,22 @@ func TestInterdependentChangesets(t *testing.T) {
 	changeset1, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset1.Insert(ctx, secondID, internal.DummyData, internal.DummyData)
+	_, errE = changeset1.Insert(ctx, secondID, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	changeset2, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset2.Update(ctx, secondID, changeset1.ID(), internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = changeset2.Update(ctx, secondID, changeset1.ID(), internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset2.Insert(ctx, newID, internal.DummyData, internal.DummyData)
+	_, errE = changeset2.Insert(ctx, newID, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset1.Update(ctx, newID, changeset2.ID(), internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = changeset1.Update(ctx, newID, changeset2.ID(), internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	changesets, errE := s.Commit(ctx, changeset1, internal.DummyData)
+	changesets, errE := s.Commit(ctx, changeset1, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(
 		t,
@@ -897,7 +897,7 @@ func TestGetCurrent(t *testing.T) {
 
 	newID := identifier.New()
 
-	_, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE := s.Insert(ctx, newID, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	v, errE := s.View(ctx, "notexist")
@@ -917,7 +917,7 @@ func TestGet(t *testing.T) {
 
 	newID := identifier.New()
 
-	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
+	version, errE := s.Insert(ctx, newID, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	v, errE := s.View(ctx, "notexist")
@@ -946,18 +946,18 @@ func TestMultipleViews(t *testing.T) {
 
 	newID := identifier.New()
 
-	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
+	version, errE := s.Insert(ctx, newID, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	mainView, errE := s.View(ctx, store.MainView)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// We create another (child) view.
-	v, errE := mainView.Create(ctx, "second", internal.DummyData)
+	v, errE := mainView.Create(ctx, "second", internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// We update the value in the second (child view).
-	updated, errE := v.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData, internal.DummyData)
+	updated, errE := v.Update(ctx, newID, version.Changeset, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The version in the main view should be what was there before.
@@ -994,7 +994,7 @@ func TestMultipleViews(t *testing.T) {
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 
 	// We update the value in the main view.
-	updated2, errE := s.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData, internal.DummyData)
+	updated2, errE := s.Update(ctx, newID, version.Changeset, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The version in the main view should now be updated.
@@ -1035,14 +1035,14 @@ func TestMultipleViews(t *testing.T) {
 	// because that would introduce two versions of the same value.
 	changeset, errE := s.Changeset(ctx, updated2.Changeset)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = changeset.Commit(ctx, v, internal.DummyData)
+	_, errE = changeset.Commit(ctx, v, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 
 	// Committing from the second (child) view into the main view should not be possible
 	// because that would introduce two versions of the same value.
 	changeset, errE = s.Changeset(ctx, updated.Changeset)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = changeset.Commit(ctx, mainView, internal.DummyData)
+	_, errE = changeset.Commit(ctx, mainView, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 
 	// But we can merge into the main view.
@@ -1050,10 +1050,10 @@ func TestMultipleViews(t *testing.T) {
 		ctx,
 		newID,
 		[]identifier.Identifier{updated2.Changeset, updated.Changeset},
-		internal.DummyData,
-		[]json.RawMessage{internal.DummyData, internal.DummyData},
-		internal.DummyData,
-		internal.DummyData,
+		internalStore.DummyData,
+		[]json.RawMessage{internalStore.DummyData, internalStore.DummyData},
+		internalStore.DummyData,
+		internalStore.DummyData,
 	)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -1092,7 +1092,7 @@ func TestMultipleViews(t *testing.T) {
 	// We can now commit the merged changeset into the second (child) view.
 	changeset, errE = s.Changeset(ctx, merged.Changeset)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = changeset.Commit(ctx, v, internal.DummyData)
+	_, errE = changeset.Commit(ctx, v, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The version in the second (child) view should now be merged.
@@ -1120,18 +1120,18 @@ func TestChangeAcrossViews(t *testing.T) {
 
 	newID := identifier.New()
 
-	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
+	version, errE := s.Insert(ctx, newID, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	mainView, errE := s.View(ctx, store.MainView)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// We create another (child) view.
-	v, errE := mainView.Create(ctx, "second", internal.DummyData)
+	v, errE := mainView.Create(ctx, "second", internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// We update the value in the second (child view).
-	updated, errE := v.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData, internal.DummyData)
+	updated, errE := v.Update(ctx, newID, version.Changeset, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The version in the main view should be what was there before.
@@ -1169,7 +1169,7 @@ func TestChangeAcrossViews(t *testing.T) {
 
 	// We update the value in the main view by using the change from the second (child) view.
 	// This should commit two changesets to the main view.
-	updated2, errE := s.Update(ctx, newID, updated.Changeset, internal.DummyData, internal.DummyData, internal.DummyData, internal.DummyData)
+	updated2, errE := s.Update(ctx, newID, updated.Changeset, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The version in the main view should now be updated.
@@ -1216,7 +1216,7 @@ func TestChangeAcrossViews(t *testing.T) {
 	// We can explicitly update the second (child) view with the new changeset from the main view.
 	changeset, errE := s.Changeset(ctx, updated2.Changeset)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = changeset.Commit(ctx, v, internal.DummyData)
+	_, errE = changeset.Commit(ctx, v, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The version in the second (child) view should now be updated.
@@ -1244,25 +1244,25 @@ func TestView(t *testing.T) {
 	v, errE := s.View(ctx, store.MainView)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	v2, errE := v.Create(ctx, "child", internal.DummyData)
+	v2, errE := v.Create(ctx, "child", internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = v.Create(ctx, "child", internal.DummyData)
+	_, errE = v.Create(ctx, "child", internalStore.DummyData)
 	require.ErrorIs(t, errE, store.ErrConflict)
 
-	errE = v2.Release(ctx, internal.DummyData)
+	errE = v2.Release(ctx, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = v.Create(ctx, "child", internal.DummyData)
+	_, errE = v.Create(ctx, "child", internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	v, errE = s.View(ctx, "notexist")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = v.Create(ctx, "child2", internal.DummyData)
+	_, errE = v.Create(ctx, "child2", internalStore.DummyData)
 	require.ErrorIs(t, errE, store.ErrViewNotFound)
 
-	errE = v.Release(ctx, internal.DummyData)
+	errE = v.Release(ctx, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 }
 
@@ -1273,20 +1273,20 @@ func TestDuplicateValues(t *testing.T) {
 
 	newID := identifier.New()
 
-	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
+	version, errE := s.Insert(ctx, newID, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Inserting another value with same ID should error when using top-level methods
 	// which auto-commit to original view.
-	_, errE = s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = s.Insert(ctx, newID, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 
-	_, errE = s.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = s.Update(ctx, newID, version.Changeset, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Updating an old value should error when using top-level methods
 	// which auto-commit to original view.
-	_, errE = s.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = s.Update(ctx, newID, version.Changeset, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
 }
 
@@ -1300,10 +1300,10 @@ func TestDiscardAfterCommit(t *testing.T) {
 	changeset, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset.Insert(ctx, newID, internal.DummyData, internal.DummyData)
+	_, errE = changeset.Insert(ctx, newID, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = s.Commit(ctx, changeset, internal.DummyData)
+	_, errE = s.Commit(ctx, changeset, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = changeset.Discard(ctx)
@@ -1318,7 +1318,7 @@ func TestEmptyChangeset(t *testing.T) {
 	changeset, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = s.Commit(ctx, changeset, internal.DummyData)
+	_, errE = s.Commit(ctx, changeset, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrChangesetNotFound)
 
 	errE = changeset.Discard(ctx)
@@ -1338,13 +1338,13 @@ func TestDiscardInUseChangeset(t *testing.T) {
 	changeset, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset.Insert(ctx, newID, internal.DummyData, internal.DummyData)
+	_, errE = changeset.Insert(ctx, newID, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	changeset2, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset2.Update(ctx, newID, changeset.ID(), internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = changeset2.Update(ctx, newID, changeset.ID(), internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = changeset.Discard(ctx)
@@ -1401,34 +1401,34 @@ func TestMultiplePathsToSameChangeset(t *testing.T) {
 
 	newID := identifier.New()
 
-	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
+	version, errE := s.Insert(ctx, newID, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	changesetA, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changesetA.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = changesetA.Update(ctx, newID, version.Changeset, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	changesetB1, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changesetB1.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = changesetB1.Update(ctx, newID, version.Changeset, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	changesetB2, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changesetB2.Update(ctx, newID, changesetB1.ID(), internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = changesetB2.Update(ctx, newID, changesetB1.ID(), internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	merged, errE := s.Merge(
 		ctx, newID,
 		[]identifier.Identifier{changesetA.ID(), changesetB2.ID()},
-		internal.DummyData,
-		[]json.RawMessage{internal.DummyData, internal.DummyData},
-		internal.DummyData,
-		internal.DummyData,
+		internalStore.DummyData,
+		[]json.RawMessage{internalStore.DummyData, internalStore.DummyData},
+		internalStore.DummyData,
+		internalStore.DummyData,
 	)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -1451,28 +1451,28 @@ func TestMultiplePathsSameLengthToSameChangeset(t *testing.T) {
 
 	newID := identifier.New()
 
-	version, errE := s.Insert(ctx, newID, internal.DummyData, internal.DummyData, internal.DummyData)
+	version, errE := s.Insert(ctx, newID, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	changesetA, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changesetA.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = changesetA.Update(ctx, newID, version.Changeset, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	changesetB, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changesetB.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = changesetB.Update(ctx, newID, version.Changeset, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	merged, errE := s.Merge(
 		ctx, newID,
 		[]identifier.Identifier{changesetA.ID(), changesetB.ID()},
-		internal.DummyData,
-		[]json.RawMessage{internal.DummyData, internal.DummyData},
-		internal.DummyData,
-		internal.DummyData,
+		internalStore.DummyData,
+		[]json.RawMessage{internalStore.DummyData, internalStore.DummyData},
+		internalStore.DummyData,
+		internalStore.DummyData,
 	)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -1492,7 +1492,7 @@ func TestErrors(t *testing.T) {
 
 	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
-	anotherVersion, errE := s.Insert(ctx, identifier.New(), internal.DummyData, internal.DummyData, internal.DummyData)
+	anotherVersion, errE := s.Insert(ctx, identifier.New(), internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	newID := identifier.New()
@@ -1500,38 +1500,38 @@ func TestErrors(t *testing.T) {
 	changeset, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	version, errE := changeset.Insert(ctx, newID, internal.DummyData, internal.DummyData)
+	version, errE := changeset.Insert(ctx, newID, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	v, errE := s.View(ctx, "unknown")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset.Commit(ctx, v, internal.DummyData)
+	_, errE = changeset.Commit(ctx, v, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 
-	_, errE = s.Commit(ctx, changeset, internal.DummyData)
+	_, errE = s.Commit(ctx, changeset, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = s.Commit(ctx, changeset, internal.DummyData)
+	_, errE = s.Commit(ctx, changeset, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrAlreadyCommitted)
 
-	_, errE = changeset.Insert(ctx, identifier.New(), internal.DummyData, internal.DummyData)
+	_, errE = changeset.Insert(ctx, identifier.New(), internalStore.DummyData, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrAlreadyCommitted)
 
-	_, errE = changeset.Update(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = changeset.Update(ctx, newID, version.Changeset, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrAlreadyCommitted)
 
-	_, errE = changeset.Merge(ctx, newID, []identifier.Identifier{version.Changeset}, internal.DummyData, []json.RawMessage{internal.DummyData}, internal.DummyData)
+	_, errE = changeset.Merge(ctx, newID, []identifier.Identifier{version.Changeset}, internalStore.DummyData, []json.RawMessage{internalStore.DummyData}, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrAlreadyCommitted)
 
-	_, errE = changeset.Replace(ctx, newID, version.Changeset, internal.DummyData, internal.DummyData)
+	_, errE = changeset.Replace(ctx, newID, version.Changeset, internalStore.DummyData, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrAlreadyCommitted)
 
-	_, errE = changeset.Delete(ctx, newID, version.Changeset, internal.DummyData)
+	_, errE = changeset.Delete(ctx, newID, version.Changeset, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrAlreadyCommitted)
 
 	// The number of parent changesets have to match the number of patches.
-	_, errE = s.Merge(ctx, newID, []identifier.Identifier{version.Changeset}, internal.DummyData, nil, internal.DummyData, internal.DummyData)
+	_, errE = s.Merge(ctx, newID, []identifier.Identifier{version.Changeset}, internalStore.DummyData, nil, internalStore.DummyData, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrParentInvalid)
 
 	// The parent has to exist.
@@ -1539,10 +1539,10 @@ func TestErrors(t *testing.T) {
 		ctx,
 		newID,
 		[]identifier.Identifier{identifier.New()},
-		internal.DummyData,
-		[]json.RawMessage{internal.DummyData},
-		internal.DummyData,
-		internal.DummyData,
+		internalStore.DummyData,
+		[]json.RawMessage{internalStore.DummyData},
+		internalStore.DummyData,
+		internalStore.DummyData,
 	)
 	assert.ErrorIs(t, errE, store.ErrParentInvalid)
 
@@ -1551,27 +1551,27 @@ func TestErrors(t *testing.T) {
 		ctx,
 		newID,
 		[]identifier.Identifier{anotherVersion.Changeset},
-		internal.DummyData,
-		[]json.RawMessage{internal.DummyData},
-		internal.DummyData,
-		internal.DummyData,
+		internalStore.DummyData,
+		[]json.RawMessage{internalStore.DummyData},
+		internalStore.DummyData,
+		internalStore.DummyData,
 	)
 	assert.ErrorIs(t, errE, store.ErrParentInvalid)
 
 	// The parent has to exist.
-	_, errE = s.Replace(ctx, newID, identifier.New(), internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = s.Replace(ctx, newID, identifier.New(), internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrParentInvalid)
 
 	// The parent changeset has to contain a change for newID.
-	_, errE = s.Replace(ctx, newID, anotherVersion.Changeset, internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = s.Replace(ctx, newID, anotherVersion.Changeset, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrParentInvalid)
 
 	// The parent has to exist.
-	_, errE = s.Delete(ctx, newID, identifier.New(), internal.DummyData, internal.DummyData)
+	_, errE = s.Delete(ctx, newID, identifier.New(), internalStore.DummyData, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrParentInvalid)
 
 	// The parent changeset has to contain a change for newID.
-	_, errE = s.Delete(ctx, newID, anotherVersion.Changeset, internal.DummyData, internal.DummyData)
+	_, errE = s.Delete(ctx, newID, anotherVersion.Changeset, internalStore.DummyData, internalStore.DummyData)
 	assert.ErrorIs(t, errE, store.ErrParentInvalid)
 
 	changeset, errE = s.Changeset(ctx, identifier.New())
@@ -1592,33 +1592,33 @@ func TestParallelChange(t *testing.T) {
 	changeset, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset.Insert(ctx, firstID, internal.DummyData, internal.DummyData)
+	_, errE = changeset.Insert(ctx, firstID, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset.Insert(ctx, secondID, internal.DummyData, internal.DummyData)
+	_, errE = changeset.Insert(ctx, secondID, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = s.Commit(ctx, changeset, internal.DummyData)
+	_, errE = s.Commit(ctx, changeset, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	changeset1, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset1.Update(ctx, firstID, changeset.ID(), internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = changeset1.Update(ctx, firstID, changeset.ID(), internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	changeset2, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset2.Update(ctx, secondID, changeset.ID(), internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = changeset2.Update(ctx, secondID, changeset.ID(), internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// No error because both changesets are changing different values from the same parent changeset.
 
-	_, errE = s.Commit(ctx, changeset1, internal.DummyData)
+	_, errE = s.Commit(ctx, changeset1, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = s.Commit(ctx, changeset2, internal.DummyData)
+	_, errE = s.Commit(ctx, changeset2, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 }
 
@@ -1630,7 +1630,7 @@ func TestCommittedOrdering(t *testing.T) {
 	const n = 10
 	for range n {
 		id := identifier.New()
-		_, errE := s.Insert(ctx, id, internal.DummyData, internal.DummyData, internal.DummyData)
+		_, errE := s.Insert(ctx, id, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 		require.NoError(t, errE, "% -+#.1v", errE)
 	}
 
@@ -1658,21 +1658,21 @@ func TestCommittedSeqSameForCommit(t *testing.T) {
 	changeset1, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset1.Insert(ctx, firstID, internal.DummyData, internal.DummyData)
+	_, errE = changeset1.Insert(ctx, firstID, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	secondID := identifier.New()
 	changeset2, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset2.Update(ctx, firstID, changeset1.ID(), internal.DummyData, internal.DummyData, internal.DummyData)
+	_, errE = changeset2.Update(ctx, firstID, changeset1.ID(), internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = changeset2.Insert(ctx, secondID, internal.DummyData, internal.DummyData)
+	_, errE = changeset2.Insert(ctx, secondID, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Committing changeset2 also commits changeset1 (its uncommitted ancestor).
-	committed, errE := s.Commit(ctx, changeset2, internal.DummyData)
+	committed, errE := s.Commit(ctx, changeset2, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Len(t, committed, 2)
 
@@ -1697,11 +1697,11 @@ func TestCommitLog(t *testing.T) {
 
 	// Make two separate commits.
 	id1 := identifier.New()
-	v1, errE := s.Insert(ctx, id1, internal.DummyData, internal.DummyData, internal.DummyData)
+	v1, errE := s.Insert(ctx, id1, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	id2 := identifier.New()
-	v2, errE := s.Insert(ctx, id2, internal.DummyData, internal.DummyData, internal.DummyData)
+	v2, errE := s.Insert(ctx, id2, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Get all entries.
@@ -1748,12 +1748,12 @@ func TestCommitLog(t *testing.T) {
 	cs, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	id3 := identifier.New()
-	_, errE = cs.Insert(ctx, id3, internal.DummyData, internal.DummyData)
+	_, errE = cs.Insert(ctx, id3, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	id4 := identifier.New()
-	_, errE = cs.Insert(ctx, id4, internal.DummyData, internal.DummyData)
+	_, errE = cs.Insert(ctx, id4, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Commit(ctx, cs, internal.DummyData)
+	_, errE = s.Commit(ctx, cs, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	all, errE := s.CommitLog(ctx, nil, nil)
@@ -1775,17 +1775,17 @@ func TestCommitLogViewFilter(t *testing.T) {
 
 	// Commit to main view.
 	idMain := identifier.New()
-	vMain, errE := s.Insert(ctx, idMain, internal.DummyData, internal.DummyData, internal.DummyData)
+	vMain, errE := s.Insert(ctx, idMain, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Create a child view and commit to it.
 	mainView, errE := s.View(ctx, store.MainView)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	childView, errE := mainView.Create(ctx, "child", internal.DummyData)
+	childView, errE := mainView.Create(ctx, "child", internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	idChild := identifier.New()
-	vChild, errE := childView.Insert(ctx, idChild, internal.DummyData, internal.DummyData, internal.DummyData)
+	vChild, errE := childView.Insert(ctx, idChild, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// All commits visible without filter.
@@ -1814,7 +1814,7 @@ func TestCommitLogViewFilter(t *testing.T) {
 	}
 
 	// Release the "child" name — the view is now unnamed.
-	errE = childView.Release(ctx, internal.DummyData)
+	errE = childView.Release(ctx, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// After release, filtering by "child" returns nothing (no view currently has that name).
@@ -1833,12 +1833,12 @@ func TestCommitLogViewFilter(t *testing.T) {
 	}
 
 	// Re-register the "child" name on a brand-new view (simulates a rename to a new view).
-	newChildView, errE := mainView.Create(ctx, "child", internal.DummyData)
+	newChildView, errE := mainView.Create(ctx, "child", internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Commit to the new "child" view.
 	idChild2 := identifier.New()
-	vChild2, errE := newChildView.Insert(ctx, idChild2, internal.DummyData, internal.DummyData, internal.DummyData)
+	vChild2, errE := newChildView.Insert(ctx, idChild2, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Filtering by "child" now returns only the new commit — old commits are still unnamed.
@@ -1865,18 +1865,18 @@ func TestNotifyRecovery(t *testing.T) {
 	schema := "s" + strings.ToLower(identifier.New().String())
 	prefix := identifier.New().String() + "_"
 
-	dbpool, errE := internal.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
+	dbpool, errE := internalStore.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
 		return schema, "tests"
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 	t.Cleanup(dbpool.Close)
 
-	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		return internal.EnsureSchema(ctx, tx, schema)
+	errE = internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		return internalStore.EnsureSchema(ctx, tx, schema)
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	listener := internal.NewListener(dbpool)
+	listener := internalStore.NewListener(dbpool)
 
 	s := &store.Store[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]{
 		Prefix:        prefix,
@@ -2090,18 +2090,18 @@ func TestGetRevisionZeroView(t *testing.T) {
 
 	id := identifier.New()
 
-	version, errE := s.Insert(ctx, id, internal.DummyData, internal.DummyData, internal.DummyData)
+	version, errE := s.Insert(ctx, id, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	mainView, errE := s.View(ctx, store.MainView)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// We create another (child) view.
-	v, errE := mainView.Create(ctx, "second", internal.DummyData)
+	v, errE := mainView.Create(ctx, "second", internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// We update the value in the second (child view).
-	updated, errE := v.Update(ctx, id, version.Changeset, internal.DummyData, internal.DummyData, internal.DummyData, internal.DummyData)
+	updated, errE := v.Update(ctx, id, version.Changeset, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData, internalStore.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Get with Revision 0 on the child view should return the updated version.

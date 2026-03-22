@@ -12,8 +12,8 @@ import (
 	"gitlab.com/tozd/go/errors"
 
 	"gitlab.com/peerdb/peerdb/base"
-	"gitlab.com/peerdb/peerdb/internal/search"
-	"gitlab.com/peerdb/peerdb/internal/store"
+	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 // InitAndStartComponents initializes and starts Base components.
@@ -21,21 +21,21 @@ func InitAndStartComponents(
 	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client,
 	schema, index string, languagePriority map[string][]string,
 ) (*base.B, *river.Client[pgx.Tx], func(), errors.E) {
-	errE := search.EnsureIndex(ctx, esClient, index)
+	errE := internalSearch.EnsureIndex(ctx, esClient, index)
 	if errE != nil {
 		return nil, nil, nil, errE
 	}
 
-	errE = store.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		return store.EnsureSchema(ctx, tx, schema)
+	errE = internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		return internalStore.EnsureSchema(ctx, tx, schema)
 	})
 	if errE != nil {
 		return nil, nil, nil, errE
 	}
 
-	listener := store.NewListener(dbpool)
+	listener := internalStore.NewListener(dbpool)
 
-	riverClient, workers, errE := store.NewRiver(ctx, logger, dbpool, schema)
+	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, dbpool, schema)
 	if errE != nil {
 		return nil, nil, nil, errE
 	}

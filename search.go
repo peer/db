@@ -10,7 +10,7 @@ import (
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
-	"gitlab.com/peerdb/peerdb/internal/store"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/search"
 )
 
@@ -158,7 +158,7 @@ func (s *Service) SearchGetGet(w http.ResponseWriter, req *http.Request, params 
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
-	m := metrics.Duration(store.MetricSearchSession).Start()
+	m := metrics.Duration(internalStore.MetricSearchSession).Start()
 	_, errE := search.GetSessionFromID(ctx, params["id"])
 	m.Stop()
 	if errors.Is(errE, search.ErrNotFound) {
@@ -179,7 +179,7 @@ func (s *Service) SearchGetGetAPI(w http.ResponseWriter, req *http.Request, para
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
-	m := metrics.Duration(store.MetricSearchSession).Start()
+	m := metrics.Duration(internalStore.MetricSearchSession).Start()
 	searchSession, errE := search.GetSessionFromID(ctx, params["id"])
 	m.Stop()
 	if errors.Is(errE, search.ErrNotFound) {
@@ -198,7 +198,7 @@ func (s *Service) SearchFiltersGetAPI(w http.ResponseWriter, req *http.Request, 
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
-	m := metrics.Duration(store.MetricSearchSession).Start()
+	m := metrics.Duration(internalStore.MetricSearchSession).Start()
 	searchSession, errE := search.GetSessionFromID(ctx, params["id"])
 	m.Stop()
 	if errors.Is(errE, search.ErrNotFound) {
@@ -228,7 +228,7 @@ func (s *Service) SearchResultsGetAPI(w http.ResponseWriter, req *http.Request, 
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
-	m := metrics.Duration(store.MetricSearchSession).Start()
+	m := metrics.Duration(internalStore.MetricSearchSession).Start()
 	searchSession, errE := search.GetSessionFromID(ctx, params["id"])
 	m.Stop()
 	if errors.Is(errE, search.ErrNotFound) {
@@ -311,7 +311,7 @@ func (s *Service) SearchCreatePostAPI(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	m := metrics.Duration(store.MetricSearchSession).Start()
+	m := metrics.Duration(internalStore.MetricSearchSession).Start()
 	errE = search.CreateSession(ctx, &searchSession)
 	m.Stop()
 	if errors.Is(errE, search.ErrValidationFailed) {
@@ -349,7 +349,7 @@ func (s *Service) SearchUpdatePostAPI(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	m := metrics.Duration(store.MetricSearchSession).Start()
+	m := metrics.Duration(internalStore.MetricSearchSession).Start()
 	errE = search.UpdateSession(ctx, &searchSession)
 	m.Stop()
 	if errors.Is(errE, search.ErrNotFound) {

@@ -12,7 +12,7 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
-	internal "gitlab.com/peerdb/peerdb/internal/store"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -30,11 +30,11 @@ func (b *B) InsertOrReplaceDocument(ctx context.Context, doc *document.D) errors
 	if errE != nil {
 		return errE
 	}
-	newMetadata := &internal.DocumentMetadata{
-		At:               internal.Time(time.Now().UTC()),
+	newMetadata := &internalStore.DocumentMetadata{
+		At:               internalStore.Time(time.Now().UTC()),
 		InverseRelations: nil,
 	}
-	_, errE = b.documents.Insert(ctx, doc.ID, data, newMetadata, &internal.NoMetadata{})
+	_, errE = b.documents.Insert(ctx, doc.ID, data, newMetadata, &internalStore.NoMetadata{})
 	if errors.Is(errE, store.ErrConflict) {
 		_, oldMetadata, version, _, errE := b.documents.GetLatest(ctx, doc.ID)
 		if errE != nil {
@@ -42,7 +42,7 @@ func (b *B) InsertOrReplaceDocument(ctx context.Context, doc *document.D) errors
 		}
 		newMetadata.CarryOver(oldMetadata)
 		// TODO: What to do once we have document melding and target document got melded into some other document?
-		_, errE = b.documents.Replace(ctx, doc.ID, version.Changeset, data, newMetadata, &internal.NoMetadata{})
+		_, errE = b.documents.Replace(ctx, doc.ID, version.Changeset, data, newMetadata, &internalStore.NoMetadata{})
 		return errE
 	}
 	return errE
@@ -60,20 +60,20 @@ func (b *B) InsertOrReplaceFile(ctx context.Context, id identifier.Identifier, d
 	}
 
 	metadata := &storage.FileMetadata{
-		At:        internal.Time(time.Now().UTC()),
+		At:        internalStore.Time(time.Now().UTC()),
 		Size:      int64(len(data)),
 		MediaType: mediaType,
 		Filename:  filename,
 		Etag:      x.ComputeEtag(data),
 	}
 
-	_, errE := b.files.Store().Insert(ctx, id, data, metadata, &internal.NoMetadata{})
+	_, errE := b.files.Store().Insert(ctx, id, data, metadata, &internalStore.NoMetadata{})
 	if errors.Is(errE, store.ErrConflict) {
 		_, _, version, _, errE := b.files.Store().GetLatest(ctx, id)
 		if errE != nil {
 			return errE
 		}
-		_, errE = b.files.Store().Replace(ctx, id, version.Changeset, data, metadata, &internal.NoMetadata{})
+		_, errE = b.files.Store().Replace(ctx, id, version.Changeset, data, metadata, &internalStore.NoMetadata{})
 		return errE
 	}
 	return errE

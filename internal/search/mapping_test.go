@@ -7,13 +7,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/x"
 
-	"gitlab.com/peerdb/peerdb/internal/search"
+	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 )
 
 func TestMapping(t *testing.T) {
 	t.Parallel()
 
-	data, errE := search.Mapping()
+	data, errE := internalSearch.Mapping()
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotEmpty(t, data)
 
@@ -30,7 +30,7 @@ func TestMapping(t *testing.T) {
 func TestMappingContainsClaimTypes(t *testing.T) {
 	t.Parallel()
 
-	data, errE := search.Mapping()
+	data, errE := internalSearch.Mapping()
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	var parsed map[string]any
@@ -55,7 +55,7 @@ func TestMappingContainsClaimTypes(t *testing.T) {
 func TestMappingContainsAnalyzers(t *testing.T) {
 	t.Parallel()
 
-	data, errE := search.Mapping()
+	data, errE := internalSearch.Mapping()
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	var parsed map[string]any
@@ -83,7 +83,7 @@ func TestMappingContainsAnalyzers(t *testing.T) {
 func TestMappingIsIndented(t *testing.T) {
 	t.Parallel()
 
-	data, errE := search.Mapping()
+	data, errE := internalSearch.Mapping()
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	str := string(data)
@@ -96,7 +96,7 @@ func TestMappingIsIndented(t *testing.T) {
 func TestMappingNestedRelation(t *testing.T) {
 	t.Parallel()
 
-	data, errE := search.Mapping()
+	data, errE := internalSearch.Mapping()
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	var parsed map[string]any
@@ -125,7 +125,7 @@ func TestMappingNestedRelation(t *testing.T) {
 func TestMappingDynamicDisabled(t *testing.T) {
 	t.Parallel()
 
-	data, errE := search.Mapping()
+	data, errE := internalSearch.Mapping()
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	var parsed map[string]any
@@ -140,7 +140,7 @@ func TestMappingDynamicDisabled(t *testing.T) {
 func TestMappingSourceDisabled(t *testing.T) {
 	t.Parallel()
 
-	data, errE := search.Mapping()
+	data, errE := internalSearch.Mapping()
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	var parsed map[string]any

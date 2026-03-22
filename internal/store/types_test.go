@@ -7,7 +7,7 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/store"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 func TestAddAppendsNew(t *testing.T) {
@@ -17,8 +17,8 @@ func TestAddAppendsNew(t *testing.T) {
 	claim1 := identifier.New()
 	prop1 := identifier.New()
 
-	m := &store.DocumentMetadata{}
-	m.AddInverseRelations([]store.InverseRelation{
+	m := &internalStore.DocumentMetadata{}
+	m.AddInverseRelations([]internalStore.InverseRelation{
 		{Claim: claim1, Source: sourceA, Prop: prop1, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 	})
 
@@ -36,13 +36,13 @@ func TestAddAppendsToExisting(t *testing.T) {
 	propA := identifier.New()
 	propB := identifier.New()
 
-	m := &store.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []store.InverseRelation{
+	m := &internalStore.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []internalStore.InverseRelation{
 			{Claim: claimA, Source: sourceA, Prop: propA, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 		},
 	}
 
-	m.AddInverseRelations([]store.InverseRelation{
+	m.AddInverseRelations([]internalStore.InverseRelation{
 		{Claim: claimB, Source: sourceB, Prop: propB, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 	})
 
@@ -54,8 +54,8 @@ func TestAddAppendsToExisting(t *testing.T) {
 func TestAddEmpty(t *testing.T) {
 	t.Parallel()
 
-	m := &store.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []store.InverseRelation{
+	m := &internalStore.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []internalStore.InverseRelation{
 			{Claim: identifier.New(), Source: identifier.New(), Prop: identifier.New(), Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 		},
 	}
@@ -63,7 +63,7 @@ func TestAddEmpty(t *testing.T) {
 	m.AddInverseRelations(nil)
 	assert.Len(t, m.InverseRelations, 1)
 
-	m.AddInverseRelations([]store.InverseRelation{})
+	m.AddInverseRelations([]internalStore.InverseRelation{})
 	assert.Len(t, m.InverseRelations, 1)
 }
 
@@ -74,14 +74,14 @@ func TestAddSkipsDuplicateClaimID(t *testing.T) {
 	claim1 := identifier.New()
 	prop1 := identifier.New()
 
-	m := &store.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []store.InverseRelation{
+	m := &internalStore.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []internalStore.InverseRelation{
 			{Claim: claim1, Source: sourceA, Prop: prop1, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 		},
 	}
 
 	// Adding the same claim again should be a no-op.
-	m.AddInverseRelations([]store.InverseRelation{
+	m.AddInverseRelations([]internalStore.InverseRelation{
 		{Claim: claim1, Source: sourceA, Prop: prop1, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 	})
 
@@ -96,9 +96,9 @@ func TestAddIdempotentOnRetry(t *testing.T) {
 	claim2 := identifier.New()
 	prop1 := identifier.New()
 
-	m := &store.DocumentMetadata{}
+	m := &internalStore.DocumentMetadata{}
 
-	relations := []store.InverseRelation{
+	relations := []internalStore.InverseRelation{
 		{Claim: claim1, Source: sourceA, Prop: prop1, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 		{Claim: claim2, Source: sourceA, Prop: prop1, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 	}
@@ -120,14 +120,14 @@ func TestAddMixedNewAndExisting(t *testing.T) {
 	claim2 := identifier.New()
 	prop1 := identifier.New()
 
-	m := &store.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []store.InverseRelation{
+	m := &internalStore.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []internalStore.InverseRelation{
 			{Claim: claim1, Source: sourceA, Prop: prop1, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 		},
 	}
 
 	// Add a mix of existing and new claims.
-	m.AddInverseRelations([]store.InverseRelation{
+	m.AddInverseRelations([]internalStore.InverseRelation{
 		{Claim: claim1, Source: sourceA, Prop: prop1, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 		{Claim: claim2, Source: sourceA, Prop: prop1, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 	})
@@ -146,15 +146,15 @@ func TestRemoveByClaimID(t *testing.T) {
 	claimB := identifier.New()
 	propA := identifier.New()
 
-	m := &store.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []store.InverseRelation{
+	m := &internalStore.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []internalStore.InverseRelation{
 			{Claim: claimA, Source: sourceA, Prop: propA, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 			{Claim: claimB, Source: sourceA, Prop: propA, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 		},
 	}
 
 	// Remove only claimA.
-	m.RemoveInverseRelations([]store.InverseRelation{
+	m.RemoveInverseRelations([]internalStore.InverseRelation{
 		{Claim: claimA, Source: sourceA, Prop: propA, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 	})
 
@@ -169,13 +169,13 @@ func TestRemoveAllSetsNil(t *testing.T) {
 	claimA := identifier.New()
 	propA := identifier.New()
 
-	m := &store.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []store.InverseRelation{
+	m := &internalStore.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []internalStore.InverseRelation{
 			{Claim: claimA, Source: sourceA, Prop: propA, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 		},
 	}
 
-	m.RemoveInverseRelations([]store.InverseRelation{
+	m.RemoveInverseRelations([]internalStore.InverseRelation{
 		{Claim: claimA, Source: sourceA, Prop: propA, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 	})
 
@@ -185,8 +185,8 @@ func TestRemoveAllSetsNil(t *testing.T) {
 func TestRemoveFromEmpty(t *testing.T) {
 	t.Parallel()
 
-	m := &store.DocumentMetadata{}
-	m.RemoveInverseRelations([]store.InverseRelation{
+	m := &internalStore.DocumentMetadata{}
+	m.RemoveInverseRelations([]internalStore.InverseRelation{
 		{Claim: identifier.New(), Source: identifier.New(), Prop: identifier.New(), Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 	})
 
@@ -197,8 +197,8 @@ func TestRemoveEmpty(t *testing.T) {
 	t.Parallel()
 
 	claimA := identifier.New()
-	m := &store.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []store.InverseRelation{
+	m := &internalStore.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []internalStore.InverseRelation{
 			{Claim: claimA, Source: identifier.New(), Prop: identifier.New(), Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 		},
 	}
@@ -206,7 +206,7 @@ func TestRemoveEmpty(t *testing.T) {
 	m.RemoveInverseRelations(nil)
 	assert.Len(t, m.InverseRelations, 1)
 
-	m.RemoveInverseRelations([]store.InverseRelation{})
+	m.RemoveInverseRelations([]internalStore.InverseRelation{})
 	assert.Len(t, m.InverseRelations, 1)
 }
 
@@ -220,15 +220,15 @@ func TestRemovePreservesOtherSources(t *testing.T) {
 	propA := identifier.New()
 	propB := identifier.New()
 
-	m := &store.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []store.InverseRelation{
+	m := &internalStore.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []internalStore.InverseRelation{
 			{Claim: claimA, Source: sourceA, Prop: propA, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 			{Claim: claimB, Source: sourceB, Prop: propB, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 		},
 	}
 
 	// Remove only sourceA's claim.
-	m.RemoveInverseRelations([]store.InverseRelation{
+	m.RemoveInverseRelations([]internalStore.InverseRelation{
 		{Claim: claimA, Source: sourceA, Prop: propA, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 	})
 
@@ -245,24 +245,24 @@ func TestAddThenRemove(t *testing.T) {
 	claimB := identifier.New()
 	propA := identifier.New()
 
-	m := &store.DocumentMetadata{}
+	m := &internalStore.DocumentMetadata{}
 
 	// Add two claims.
-	m.AddInverseRelations([]store.InverseRelation{
+	m.AddInverseRelations([]internalStore.InverseRelation{
 		{Claim: claimA, Source: sourceA, Prop: propA, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 		{Claim: claimB, Source: sourceA, Prop: propA, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 	})
 	assert.Len(t, m.InverseRelations, 2)
 
 	// Remove one.
-	m.RemoveInverseRelations([]store.InverseRelation{
+	m.RemoveInverseRelations([]internalStore.InverseRelation{
 		{Claim: claimA, Source: sourceA, Prop: propA, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 	})
 	assert.Len(t, m.InverseRelations, 1)
 	assert.Equal(t, claimB, m.InverseRelations[0].Claim)
 
 	// Remove the other.
-	m.RemoveInverseRelations([]store.InverseRelation{
+	m.RemoveInverseRelations([]internalStore.InverseRelation{
 		{Claim: claimB, Source: sourceA, Prop: propA, Target: identifier.Identifier{}, Confidence: document.HighConfidence},
 	})
 	assert.Nil(t, m.InverseRelations)
@@ -278,17 +278,17 @@ func TestAddSameClaimIDDifferentSources(t *testing.T) {
 	targetX := identifier.New()
 	prop1 := identifier.New()
 
-	m := &store.DocumentMetadata{}
+	m := &internalStore.DocumentMetadata{}
 
 	// Add from source A.
-	m.AddInverseRelations([]store.InverseRelation{
+	m.AddInverseRelations([]internalStore.InverseRelation{
 		{Claim: sharedClaimID, Source: sourceA, Prop: prop1, Target: targetX, Confidence: document.HighConfidence},
 	})
 	assert.Len(t, m.InverseRelations, 1)
 
 	// Add from source B with the same claim ID but different source.
 	// Should not be deduplicated because the (source, claim) pair differs.
-	m.AddInverseRelations([]store.InverseRelation{
+	m.AddInverseRelations([]internalStore.InverseRelation{
 		{Claim: sharedClaimID, Source: sourceB, Prop: prop1, Target: targetX, Confidence: document.HighConfidence},
 	})
 	assert.Len(t, m.InverseRelations, 2)
@@ -302,14 +302,14 @@ func TestAddSameClaimIDSameSourceIdempotent(t *testing.T) {
 	claim1 := identifier.New()
 	prop1 := identifier.New()
 
-	m := &store.DocumentMetadata{}
+	m := &internalStore.DocumentMetadata{}
 
-	ir := store.InverseRelation{Claim: claim1, Source: sourceA, Prop: prop1, Target: targetX, Confidence: document.HighConfidence}
+	ir := internalStore.InverseRelation{Claim: claim1, Source: sourceA, Prop: prop1, Target: targetX, Confidence: document.HighConfidence}
 
-	m.AddInverseRelations([]store.InverseRelation{ir})
+	m.AddInverseRelations([]internalStore.InverseRelation{ir})
 	assert.Len(t, m.InverseRelations, 1)
 
 	// Adding the exact same relation again should be deduplicated.
-	m.AddInverseRelations([]store.InverseRelation{ir})
+	m.AddInverseRelations([]internalStore.InverseRelation{ir})
 	assert.Len(t, m.InverseRelations, 1)
 }

@@ -14,7 +14,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
-	internal "gitlab.com/peerdb/peerdb/internal/store"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -22,7 +22,7 @@ import (
 func initDatabase(t *testing.T) (
 	context.Context,
 	*storage.Storage,
-	*internal.LockableSlice[store.CommittedChangesets[[]byte, *storage.FileMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, store.None]],
+	*internalStore.LockableSlice[store.CommittedChangesets[[]byte, *storage.FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, store.None]],
 ) {
 	t.Helper()
 
@@ -38,20 +38,20 @@ func initDatabase(t *testing.T) (
 	schema := "s" + strings.ToLower(identifier.New().String())
 	prefix := identifier.New().String() + "_"
 
-	dbpool, errE := internal.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
+	dbpool, errE := internalStore.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
 		return schema, "tests"
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 	t.Cleanup(dbpool.Close)
 
-	errE = internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		return internal.EnsureSchema(ctx, tx, schema)
+	errE = internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		return internalStore.EnsureSchema(ctx, tx, schema)
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	listener := internal.NewListener(dbpool)
+	listener := internalStore.NewListener(dbpool)
 
-	riverClient, workers, errE := internal.NewRiver(ctx, logger, dbpool, schema)
+	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, dbpool, schema)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	s := &storage.Storage{
@@ -73,8 +73,8 @@ func initDatabase(t *testing.T) (
 	errE = listener.Start(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	channelContents := new(internal.LockableSlice[store.CommittedChangesets[
-		[]byte, *storage.FileMetadata, *internal.NoMetadata, *internal.NoMetadata, *internal.NoMetadata, store.None,
+	channelContents := new(internalStore.LockableSlice[store.CommittedChangesets[
+		[]byte, *storage.FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, store.None,
 	]])
 
 	go func() {

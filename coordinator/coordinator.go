@@ -16,7 +16,7 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
-	internal "gitlab.com/peerdb/peerdb/internal/store"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -229,7 +229,7 @@ type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteDa
 //
 // A non-nil listener is required when the Appended or Changed channel is set.
 func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) Init(
-	ctx context.Context, dbpool *pgxpool.Pool, listener *internal.Listener, schema string,
+	ctx context.Context, dbpool *pgxpool.Pool, listener *internalStore.Listener, schema string,
 	riverClient *river.Client[pgx.Tx], workers *river.Workers,
 ) errors.E {
 	if c.dbpool != nil {
@@ -244,7 +244,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	}
 
 	// TODO: Use schema management/migration instead.
-	errE := internal.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `
 			CREATE TABLE "`+c.Prefix+`Sessions" (
 				-- ID of the session.
@@ -331,18 +331,18 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 			$$;
 		`)
 		if err != nil {
-			return internal.WithPgxError(err)
+			return internalStore.WithPgxError(err)
 		}
 
 		return nil
 	})
 	if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 		switch pgError.Code {
-		case internal.ErrorCodeUniqueViolation:
+		case internalStore.ErrorCodeUniqueViolation:
 			// Nothing.
-		case internal.ErrorCodeDuplicateFunction:
+		case internalStore.ErrorCodeDuplicateFunction:
 			// Nothing.
-		case internal.ErrorCodeDuplicateTable:
+		case internalStore.ErrorCodeDuplicateTable:
 			// Nothing.
 		default:
 			return errE
@@ -408,9 +408,9 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	arguments := []any{
 		session.String(), metadata,
 	}
-	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `INSERT INTO "`+c.Prefix+`Sessions" VALUES ($1, $2, NULL, NULL)`, arguments...)
-		return internal.WithPgxError(err)
+		return internalStore.WithPgxError(err)
 	})
 	if errE != nil {
 		return identifier.Identifier{}, errE
@@ -429,10 +429,10 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) End(
 	ctx context.Context, session identifier.Identifier, metadata EndMetadata,
 ) errors.E {
-	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `SELECT "`+c.Prefix+`EndSession"($1, $2)`, session.String(), metadata)
 		if err != nil {
-			errE := internal.WithPgxError(err)
+			errE := internalStore.WithPgxError(err)
 			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeSessionNotFound:
@@ -479,7 +479,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 		}
 	}
 
-	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		metadata, errE := c.CompleteSessionTx(ctx, tx, session, data)
 		if errE != nil {
 			return errE
@@ -487,7 +487,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 
 		_, err := tx.Exec(ctx, `SELECT "`+c.Prefix+`CompleteSession"($1, $2)`, session.String(), metadata)
 		if err != nil {
-			errE := internal.WithPgxError(err)
+			errE := internalStore.WithPgxError(err)
 			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeSessionNotFound:
@@ -529,13 +529,13 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 		session.String(), metadata, data, expectedOperation,
 	}
 	var operation int64
-	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		operation = 0
 
 		err := tx.QueryRow(ctx, `SELECT "`+c.Prefix+`AppendOperation"($1, $2, $3, $4)`, arguments...).Scan(&operation)
 		if err != nil {
-			errE := internal.WithPgxError(err)
+			errE := internalStore.WithPgxError(err)
 			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code {
 				case errorCodeSessionNotFound:
@@ -575,7 +575,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 		beforeCondition = `AND EXISTS (SELECT 1 FROM "` + c.Prefix + `Operations" WHERE "session"=$1 AND "operation"=$2) AND "operation"<$2`
 	}
 	var operations []int64
-	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		operations = make([]int64, 0, MaxPageLength)
 
@@ -587,7 +587,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 				ORDER BY "operation" DESC
 				LIMIT `+maxPageLengthStr, arguments...)
 		if err != nil {
-			return internal.WithPgxError(err)
+			return internalStore.WithPgxError(err)
 		}
 		var o int64
 		_, err = pgx.ForEachRow(rows, []any{&o}, func() error {
@@ -595,7 +595,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 			return nil
 		})
 		if err != nil {
-			return internal.WithPgxError(err)
+			return internalStore.WithPgxError(err)
 		}
 		if len(operations) == 0 {
 			// TODO: Is there a better way to check without doing another query?
@@ -605,7 +605,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 				if errors.Is(err, pgx.ErrNoRows) {
 					return errors.WithStack(ErrSessionNotFound)
 				}
-				return internal.WithPgxError(err)
+				return internalStore.WithPgxError(err)
 			} else if sessionCompleted {
 				return errors.WithStack(ErrAlreadyCompleted)
 			}
@@ -613,7 +613,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 				var exists bool
 				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+c.Prefix+`Operations" WHERE "session"=$1 AND "operation"=$2)`, arguments...).Scan(&exists)
 				if err != nil {
-					return internal.WithPgxError(err)
+					return internalStore.WithPgxError(err)
 				} else if !exists {
 					return errors.WithStack(ErrOperationNotFound)
 				}
@@ -647,7 +647,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	}
 	var data Data
 	var metadata OperationMetadata
-	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		data = *new(Data)
 		metadata = *new(OperationMetadata)
@@ -658,7 +658,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 				WHERE "session"=$1 AND "operation"=$2
 		`, arguments...).Scan(&data, &metadata)
 		if err != nil {
-			errE := internal.WithPgxError(err)
+			errE := internalStore.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
 				// TODO: Is there a better way to check without doing another query?
 				var sessionCompleted bool
@@ -667,7 +667,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 					if errors.Is(err, pgx.ErrNoRows) {
 						return errors.WrapWith(errE, ErrSessionNotFound)
 					}
-					return errors.Join(errE, internal.WithPgxError(err))
+					return errors.Join(errE, internalStore.WithPgxError(err))
 				} else if sessionCompleted {
 					return errors.WrapWith(errE, ErrAlreadyCompleted)
 				}
@@ -697,7 +697,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 		session.String(), operation,
 	}
 	var metadata OperationMetadata
-	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		metadata = *new(OperationMetadata)
 
@@ -707,7 +707,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 				WHERE "session"=$1 AND "operation"=$2
 		`, arguments...).Scan(&metadata)
 		if err != nil {
-			errE := internal.WithPgxError(err)
+			errE := internalStore.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
 				// TODO: Is there a better way to check without doing another query?
 				var sessionCompleted bool
@@ -716,7 +716,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 					if errors.Is(err, pgx.ErrNoRows) {
 						return errors.WrapWith(errE, ErrSessionNotFound)
 					}
-					return errors.Join(errE, internal.WithPgxError(err))
+					return errors.Join(errE, internalStore.WithPgxError(err))
 				} else if sessionCompleted {
 					return errors.WrapWith(errE, ErrAlreadyCompleted)
 				}
@@ -747,7 +747,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	var beginMetadata BeginMetadata
 	var endMetadata EndMetadata
 	var completeMetadata CompleteMetadata
-	errE := internal.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		beginMetadata = *new(BeginMetadata)
 		endMetadata = *new(EndMetadata)
@@ -759,7 +759,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 				WHERE "session"=$1
 		`, arguments...).Scan(&beginMetadata, &endMetadata, &completeMetadata)
 		if err != nil {
-			errE := internal.WithPgxError(err)
+			errE := internalStore.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
 				return errors.WrapWith(errE, ErrSessionNotFound)
 			}
@@ -820,7 +820,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	return nil
 }
 
-// HandlingReady implements internal.Handler interface.
+// HandlingReady implements internalStore.Handler interface.
 func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) HandlingReady(ctx context.Context, channel string) errors.E {
 	switch channel {
 	case c.Prefix + "OperationAppended":
