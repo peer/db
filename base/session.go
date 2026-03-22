@@ -18,7 +18,7 @@ import (
 
 // DocumentBeginMetadata contains metadata captured at the beginning of document edit session.
 type DocumentBeginMetadata struct {
-	At       internalStore.Time         `json:"at"`
+	At       internalStore.Time    `json:"at"`
 	Document identifier.Identifier `json:"document"`
 	Version  store.Version         `json:"version"`
 }
@@ -26,7 +26,7 @@ type DocumentBeginMetadata struct {
 // documentEndMetadata contains metadata captured at the end of document edit session.
 type documentEndMetadata struct {
 	At        internalStore.Time `json:"at"`
-	Discarded bool          `json:"discarded,omitempty"`
+	Discarded bool               `json:"discarded,omitempty"`
 }
 
 // documentCompleteData contains JSON serialized document with metadata to be
@@ -82,6 +82,18 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 
 	// changesList is sorted from newest to oldest change, but we want the opposite as we have forward patches.
 	slices.Reverse(changesList)
+
+	// If there are no changes, treat the session as discarded.
+	if len(changesList) == 0 {
+		return &documentCompleteData{
+			BeginMetadata: beginMetadata,
+			EndMetadata:   endMetadata,
+			Changes:       nil,
+			Doc:           nil,
+			ParentVersion: store.Version{},
+			Metadata:      nil,
+		}, nil
+	}
 
 	changes := make(document.Changes, 0, len(changesList))
 	for _, ch := range changesList {
@@ -151,7 +163,9 @@ func (b *B) completeDocumentSessionTx(
 	_ identifier.Identifier,
 	data *documentCompleteData,
 ) (*documentCompleteMetadata, errors.E) {
-	if data.EndMetadata.Discarded {
+	// No changes to commit: either the session was explicitly discarded or
+	// it was ended without any changes (treated the same way).
+	if data.Doc == nil {
 		return &documentCompleteMetadata{
 			Changeset: nil,
 			Time:      time.Since(time.Time(data.EndMetadata.At)).Milliseconds(),

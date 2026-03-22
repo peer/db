@@ -841,7 +841,7 @@ func TestFileUploadDiscard(t *testing.T) {
 
 	// File should not be available.
 	_, _, errE = b.GetFile(ctx, session)
-	assert.Error(t, errE, "file should not exist after discarded upload")
+	assert.EqualError(t, errE, "value not found")
 }
 
 func TestGetDocument(t *testing.T) {
@@ -1151,7 +1151,7 @@ func TestAppendDocumentChangeToEndedSession(t *testing.T) {
 
 	// Trying to append after ending should fail.
 	_, errE = b.AppendDocumentChange(ctx, session, []byte(`{}`), 1)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "change type not supported")
 
 	// Trying to end again should fail.
 	errE = b.EndDocumentEdit(ctx, session, false)
@@ -1177,7 +1177,7 @@ func TestStartInvalidLanguagePriority(t *testing.T) {
 
 	// Start with invalid language priority should fail.
 	errE := b.Start(ctx, nil)
-	assert.Error(t, errE, "Start with invalid language priority should fail")
+	assert.EqualError(t, errE, "unsupported language in priority key")
 }
 
 func TestAppendDocumentChangeWithBadBase(t *testing.T) {
@@ -1209,7 +1209,7 @@ func TestAppendDocumentChangeWithBadBase(t *testing.T) {
 		},
 	})
 	_, errE = b.AppendDocumentChange(ctx, session, changeJSON, 1)
-	assert.Error(t, errE, "AppendDocumentChange should fail with wrong base")
+	assert.EqualError(t, errE, "invalid base")
 
 	// Discard the session.
 	errE = b.EndDocumentEdit(ctx, session, true)
@@ -1270,7 +1270,7 @@ func TestAppendDocumentChangeWithInvalidJSON(t *testing.T) {
 
 	// Append invalid change data.
 	_, errE = b.AppendDocumentChange(ctx, session, []byte(`{"type":"invalid"}`), 1)
-	assert.Error(t, errE, "AppendDocumentChange should fail with invalid change JSON")
+	assert.EqualError(t, errE, "change type not supported")
 
 	// Discard the session.
 	errE = b.EndDocumentEdit(ctx, session, true)
@@ -1299,4 +1299,36 @@ func TestListDocumentChangesEmpty(t *testing.T) {
 	// End session (discard since no changes).
 	errE = b.EndDocumentEdit(ctx, session, true)
 	require.NoError(t, errE, "% -+#.1v", errE)
+}
+
+func TestEndDocumentEditEmptyNoDiscard(t *testing.T) {
+	t.Parallel()
+
+	ctx, b := initBase(t)
+
+	// Create a document and begin edit without appending changes.
+	doc := newDoc()
+	docID := doc.ID
+	errE := b.InsertOrReplaceDocument(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Get initial version.
+	_, _, version, _, errE := b.GetDocumentLatest(ctx, docID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	session, _, errE := b.BeginDocumentEdit(ctx, docID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// End session without discard but with no changes.
+	errE = b.EndDocumentEdit(ctx, session, false)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Session should be ended now.
+	_, errE = b.GetDocumentEditSession(ctx, session)
+	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
+
+	// Document version should not change (empty changes behave like discard).
+	_, _, newVersion, _, errE := b.GetDocumentLatest(ctx, docID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, version, newVersion, "document version should not change with empty changes")
 }
