@@ -199,15 +199,16 @@ func TestAmountUnmarshalJSONInvalid(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
-		json string
+		name   string
+		json   string
+		errMsg string
 	}{
-		{"invalid format", `"abc"`},
-		{"empty string", `""`},
-		{"not a string", `42`},
-		{"null", `null`},
-		{"leading dot", `".5"`},
-		{"plus sign", `"+1"`},
+		{"invalid format", `"abc"`, "unable to parse amount"},
+		{"empty string", `""`, "unable to parse amount"},
+		{"not a string", `42`, "json: cannot unmarshal number into Go value of type string"},
+		{"null", `null`, "unable to parse amount"},
+		{"leading dot", `".5"`, "unable to parse amount"},
+		{"plus sign", `"+1"`, "unable to parse amount"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -215,7 +216,7 @@ func TestAmountUnmarshalJSONInvalid(t *testing.T) {
 
 			var a document.Amount
 			err := x.UnmarshalWithoutUnknownFields([]byte(tc.json), &a)
-			assert.Error(t, err)
+			assert.EqualError(t, err, tc.errMsg)
 		})
 	}
 }
@@ -266,7 +267,7 @@ func TestAmountUnmarshalText(t *testing.T) {
 
 		var a document.Amount
 		err := a.UnmarshalText([]byte("abc"))
-		assert.Error(t, err)
+		assert.EqualError(t, err, "unable to parse amount")
 	})
 }
 

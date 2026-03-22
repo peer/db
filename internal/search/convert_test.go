@@ -1221,7 +1221,7 @@ func TestGetDisplayStringsNotFound(t *testing.T) {
 
 	ctx := t.Context()
 	_, errE := c.getDisplayStrings(ctx, identifier.New())
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestNewConverter(t *testing.T) {
@@ -1303,7 +1303,7 @@ func TestConvertIdentifierGetDocumentError(t *testing.T) {
 		Value:     "Q42",
 	}
 	_, errE := c.convertIdentifier(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertString(t *testing.T) {
@@ -1713,8 +1713,7 @@ func TestConvertAmountIntervalMissingFromPrecision(t *testing.T) {
 		ToPrecision: &toPrec,
 	}
 	_, _, errE := c.convertAmountInterval(ctx, claim)
-	assert.Error(t, errE)
-	assert.Contains(t, errE.Error(), "missing from precision")
+	assert.EqualError(t, errE, "missing from precision in claim")
 }
 
 func TestConvertAmountIntervalMissingToPrecision(t *testing.T) {
@@ -1738,8 +1737,7 @@ func TestConvertAmountIntervalMissingToPrecision(t *testing.T) {
 		To:            &toAmount,
 	}
 	_, _, errE := c.convertAmountInterval(ctx, claim)
-	assert.Error(t, errE)
-	assert.Contains(t, errE.Error(), "missing to precision")
+	assert.EqualError(t, errE, "missing to precision in claim")
 }
 
 func TestConvertAmountIntervalFromUnknownMissingToPrecision(t *testing.T) {
@@ -1756,8 +1754,7 @@ func TestConvertAmountIntervalFromUnknownMissingToPrecision(t *testing.T) {
 		To:            &toAmount,
 	}
 	_, _, errE := c.convertAmountInterval(ctx, claim)
-	assert.Error(t, errE)
-	assert.Contains(t, errE.Error(), "missing to precision")
+	assert.EqualError(t, errE, "missing to precision in claim")
 }
 
 func TestConvertAmountIntervalToUnknownMissingFromPrecision(t *testing.T) {
@@ -1774,8 +1771,7 @@ func TestConvertAmountIntervalToUnknownMissingFromPrecision(t *testing.T) {
 		ToIsUnknown: true,
 	}
 	_, _, errE := c.convertAmountInterval(ctx, claim)
-	assert.Error(t, errE)
-	assert.Contains(t, errE.Error(), "missing from precision")
+	assert.EqualError(t, errE, "missing from precision in claim")
 }
 
 func TestConvertTime(t *testing.T) {
@@ -2040,8 +2036,7 @@ func TestConvertTimeIntervalMissingFromPrecision(t *testing.T) {
 		ToPrecision: &toPrec,
 	}
 	_, _, errE := c.convertTimeInterval(ctx, claim)
-	assert.Error(t, errE)
-	assert.Contains(t, errE.Error(), "missing from precision")
+	assert.EqualError(t, errE, "missing from precision in claim")
 }
 
 func TestConvertTimeIntervalMissingToPrecision(t *testing.T) {
@@ -2065,8 +2060,7 @@ func TestConvertTimeIntervalMissingToPrecision(t *testing.T) {
 		To:            &toTS,
 	}
 	_, _, errE := c.convertTimeInterval(ctx, claim)
-	assert.Error(t, errE)
-	assert.Contains(t, errE.Error(), "missing to precision")
+	assert.EqualError(t, errE, "missing to precision in claim")
 }
 
 func TestConvertTimeIntervalFromUnknownMissingToPrecision(t *testing.T) {
@@ -2083,8 +2077,7 @@ func TestConvertTimeIntervalFromUnknownMissingToPrecision(t *testing.T) {
 		To:            &toTS,
 	}
 	_, _, errE := c.convertTimeInterval(ctx, claim)
-	assert.Error(t, errE)
-	assert.Contains(t, errE.Error(), "missing to precision")
+	assert.EqualError(t, errE, "missing to precision in claim")
 }
 
 func TestConvertTimeIntervalToUnknownMissingFromPrecision(t *testing.T) {
@@ -2101,8 +2094,7 @@ func TestConvertTimeIntervalToUnknownMissingFromPrecision(t *testing.T) {
 		ToIsUnknown: true,
 	}
 	_, _, errE := c.convertTimeInterval(ctx, claim)
-	assert.Error(t, errE)
-	assert.Contains(t, errE.Error(), "missing from precision")
+	assert.EqualError(t, errE, "missing from precision in claim")
 }
 
 func TestConvertReference(t *testing.T) {
@@ -2788,7 +2780,7 @@ func TestFromDocumentVisitorError(t *testing.T) {
 	}
 
 	_, errE := c.FromDocument(ctx, doc, nil)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestFromDocumentStringError(t *testing.T) {
@@ -2811,7 +2803,7 @@ func TestFromDocumentStringError(t *testing.T) {
 	}
 
 	_, errE := c.FromDocument(ctx, doc, nil)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestFromDocumentHTMLError(t *testing.T) {
@@ -2834,7 +2826,7 @@ func TestFromDocumentHTMLError(t *testing.T) {
 	}
 
 	_, errE := c.FromDocument(ctx, doc, nil)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestFromDocumentAmountError(t *testing.T) {
@@ -2858,7 +2850,7 @@ func TestFromDocumentAmountError(t *testing.T) {
 	}
 
 	_, errE := c.FromDocument(ctx, doc, nil)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestFromDocumentAmountIntervalError(t *testing.T) {
@@ -2888,7 +2880,7 @@ func TestFromDocumentAmountIntervalError(t *testing.T) {
 	}
 
 	_, errE := c.FromDocument(ctx, doc, nil)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestFromDocumentTimeError(t *testing.T) {
@@ -2912,7 +2904,7 @@ func TestFromDocumentTimeError(t *testing.T) {
 	}
 
 	_, errE := c.FromDocument(ctx, doc, nil)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestFromDocumentTimeIntervalError(t *testing.T) {
@@ -2942,7 +2934,7 @@ func TestFromDocumentTimeIntervalError(t *testing.T) {
 	}
 
 	_, errE := c.FromDocument(ctx, doc, nil)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestFromDocumentReferenceError(t *testing.T) {
@@ -2965,7 +2957,7 @@ func TestFromDocumentReferenceError(t *testing.T) {
 	}
 
 	_, errE := c.FromDocument(ctx, doc, nil)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestFromDocumentRelationError(t *testing.T) {
@@ -2988,7 +2980,7 @@ func TestFromDocumentRelationError(t *testing.T) {
 	}
 
 	_, errE := c.FromDocument(ctx, doc, nil)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestFromDocumentHasError(t *testing.T) {
@@ -3010,7 +3002,7 @@ func TestFromDocumentHasError(t *testing.T) {
 	}
 
 	_, errE := c.FromDocument(ctx, doc, nil)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestFromDocumentNoneError(t *testing.T) {
@@ -3032,7 +3024,7 @@ func TestFromDocumentNoneError(t *testing.T) {
 	}
 
 	_, errE := c.FromDocument(ctx, doc, nil)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestFromDocumentUnknownError(t *testing.T) {
@@ -3054,7 +3046,7 @@ func TestFromDocumentUnknownError(t *testing.T) {
 	}
 
 	_, errE := c.FromDocument(ctx, doc, nil)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestGetDisplayStringsMakeDisplayError(t *testing.T) {
@@ -3100,7 +3092,7 @@ func TestConvertStringPropagationError(t *testing.T) {
 		String:    "hello",
 	}
 	_, errE := c.convertString(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertHTMLPropagationError(t *testing.T) {
@@ -3123,7 +3115,7 @@ func TestConvertHTMLPropagationError(t *testing.T) {
 		HTML:      "<p>test</p>",
 	}
 	_, errE := c.convertHTML(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertAmountInvalidAmount(t *testing.T) {
@@ -3143,7 +3135,7 @@ func TestConvertAmountInvalidAmount(t *testing.T) {
 		Precision: 1,
 	}
 	_, errE := c.convertAmount(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "unable to parse amount")
 }
 
 func TestConvertAmountPropagationError(t *testing.T) {
@@ -3167,7 +3159,7 @@ func TestConvertAmountPropagationError(t *testing.T) {
 		Precision: 1,
 	}
 	_, errE := c.convertAmount(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertAmountIntervalPropagationError(t *testing.T) {
@@ -3197,7 +3189,7 @@ func TestConvertAmountIntervalPropagationError(t *testing.T) {
 		ToPrecision:   &toPrec,
 	}
 	_, _, errE := c.convertAmountInterval(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertAmountIntervalInvalidFromAmount(t *testing.T) {
@@ -3219,7 +3211,7 @@ func TestConvertAmountIntervalInvalidFromAmount(t *testing.T) {
 		ToPrecision:   &toPrec,
 	}
 	_, _, errE := c.convertAmountInterval(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "unable to parse amount")
 }
 
 func TestConvertAmountIntervalInvalidToAmount(t *testing.T) {
@@ -3245,7 +3237,7 @@ func TestConvertAmountIntervalInvalidToAmount(t *testing.T) {
 		ToPrecision:   &toPrec,
 	}
 	_, _, errE := c.convertAmountInterval(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "unable to parse amount")
 }
 
 func TestConvertTimePropagationError(t *testing.T) {
@@ -3269,7 +3261,7 @@ func TestConvertTimePropagationError(t *testing.T) {
 		Precision: document.TimePrecisionDay,
 	}
 	_, errE := c.convertTime(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertTimeInvalidTimestamp(t *testing.T) {
@@ -3289,7 +3281,7 @@ func TestConvertTimeInvalidTimestamp(t *testing.T) {
 		Precision: document.TimePrecisionDay,
 	}
 	_, errE := c.convertTime(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "unable to parse timestamp")
 }
 
 func TestConvertTimeIntervalPropagationError(t *testing.T) {
@@ -3319,7 +3311,7 @@ func TestConvertTimeIntervalPropagationError(t *testing.T) {
 		ToPrecision:   &toPrec,
 	}
 	_, _, errE := c.convertTimeInterval(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertTimeIntervalInvalidFromTimestamp(t *testing.T) {
@@ -3341,7 +3333,7 @@ func TestConvertTimeIntervalInvalidFromTimestamp(t *testing.T) {
 		ToPrecision:   &toPrec,
 	}
 	_, _, errE := c.convertTimeInterval(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "unable to parse timestamp")
 }
 
 func TestConvertTimeIntervalInvalidToTimestamp(t *testing.T) {
@@ -3367,7 +3359,7 @@ func TestConvertTimeIntervalInvalidToTimestamp(t *testing.T) {
 		ToPrecision:   &toPrec,
 	}
 	_, _, errE := c.convertTimeInterval(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "unable to parse timestamp")
 }
 
 func TestConvertRelationMetaPropError(t *testing.T) {
@@ -3396,7 +3388,7 @@ func TestConvertRelationMetaPropError(t *testing.T) {
 		To:        document.Reference{ID: testTargetDocID},
 	}
 	_, errE := c.convertRelation(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertRelationMetaToError(t *testing.T) {
@@ -3424,7 +3416,7 @@ func TestConvertRelationMetaToError(t *testing.T) {
 		To:        document.Reference{ID: testTargetDocID},
 	}
 	_, errE := c.convertRelation(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertRelationToDisplayError(t *testing.T) {
@@ -3444,7 +3436,7 @@ func TestConvertRelationToDisplayError(t *testing.T) {
 		To:        document.Reference{ID: testTargetDocID},
 	}
 	_, errE := c.convertRelation(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertHasMetaPropError(t *testing.T) {
@@ -3468,7 +3460,7 @@ func TestConvertHasMetaPropError(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 	}
 	_, errE := c.convertHas(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertHasMetaToError(t *testing.T) {
@@ -3495,7 +3487,7 @@ func TestConvertHasMetaToError(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 	}
 	_, errE := c.convertHas(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertHasPropagationError(t *testing.T) {
@@ -3517,7 +3509,7 @@ func TestConvertHasPropagationError(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 	}
 	_, errE := c.convertHas(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertRelationPropagationPropError(t *testing.T) {
@@ -3542,7 +3534,7 @@ func TestConvertRelationPropagationPropError(t *testing.T) {
 		To:        document.Reference{ID: testTargetDocID},
 	}
 	_, errE := c.convertRelation(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertReferencePropagationError(t *testing.T) {
@@ -3565,7 +3557,7 @@ func TestConvertReferencePropagationError(t *testing.T) {
 		IRI:       "https://example.com",
 	}
 	_, errE := c.convertReference(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertNonePropagationError(t *testing.T) {
@@ -3587,7 +3579,7 @@ func TestConvertNonePropagationError(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 	}
 	_, errE := c.convertNone(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertUnknownPropagationError(t *testing.T) {
@@ -3609,7 +3601,7 @@ func TestConvertUnknownPropagationError(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 	}
 	_, errE := c.convertUnknown(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertAmountIntervalFromUnknownToError(t *testing.T) {
@@ -3630,7 +3622,7 @@ func TestConvertAmountIntervalFromUnknownToError(t *testing.T) {
 		ToPrecision:   &toPrec,
 	}
 	_, _, errE := c.convertAmountInterval(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertAmountIntervalToUnknownFromError(t *testing.T) {
@@ -3650,7 +3642,7 @@ func TestConvertAmountIntervalToUnknownFromError(t *testing.T) {
 		ToIsUnknown:   true,
 	}
 	_, _, errE := c.convertAmountInterval(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertTimeIntervalFromUnknownToError(t *testing.T) {
@@ -3669,7 +3661,7 @@ func TestConvertTimeIntervalFromUnknownToError(t *testing.T) {
 		ToPrecision:   &toPrec,
 	}
 	_, _, errE := c.convertTimeInterval(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 func TestConvertTimeIntervalToUnknownFromError(t *testing.T) {
@@ -3688,7 +3680,7 @@ func TestConvertTimeIntervalToUnknownFromError(t *testing.T) {
 		ToIsUnknown:   true,
 	}
 	_, _, errE := c.convertTimeInterval(ctx, claim)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "document not found")
 }
 
 // makeClassDocWithTemplate creates a class document with an INSTANCE_OF PROPERTY
@@ -3866,6 +3858,7 @@ func TestMakeDisplayStringsWithInvalidTemplate(t *testing.T) {
 	ctx := t.Context()
 	_, errE := c.makeDisplayStrings(ctx, doc)
 	assert.Error(t, errE)
+	// Go template parsing error has an unpredictable format, so we use assert.Contains here instead of assert.EqualError.
 	assert.Contains(t, errE.Error(), "function \"invalid\" not defined")
 }
 
@@ -4322,22 +4315,19 @@ func TestValidateLanguagePriority(t *testing.T) {
 	errE = validateLanguagePriority(map[string][]string{
 		"xx": {"en"},
 	})
-	assert.Error(t, errE)
-	assert.Contains(t, errE.Error(), "unsupported language in priority key")
+	assert.EqualError(t, errE, "unsupported language in priority key")
 
 	// Unsupported language in fallback.
 	errE = validateLanguagePriority(map[string][]string{
 		"en": {"xx"},
 	})
-	assert.Error(t, errE)
-	assert.Contains(t, errE.Error(), "unsupported language in priority fallback")
+	assert.EqualError(t, errE, "unsupported language in priority fallback")
 
 	// Language as its own fallback.
 	errE = validateLanguagePriority(map[string][]string{
 		"en": {"sl", "en"},
 	})
-	assert.Error(t, errE)
-	assert.Contains(t, errE.Error(), "language cannot be its own fallback")
+	assert.EqualError(t, errE, "language cannot be its own fallback")
 }
 
 func TestNewConverterValidation(t *testing.T) {
@@ -4354,7 +4344,7 @@ func TestNewConverterValidation(t *testing.T) {
 
 	// Invalid priority.
 	c, errE = NewConverter(nil, nil, map[string][]string{"xx": {"en"}}, getDocument)
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "unsupported language in priority key")
 	assert.Nil(t, c)
 }
 

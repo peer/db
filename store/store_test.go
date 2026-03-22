@@ -1973,15 +1973,15 @@ func TestUpdateExistingMetadata(t *testing.T) {
 	data, metadata, version, parentChangesets, errE := s.GetLatest(ctx, id)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, newVersion, version)
-	assert.JSONEq(t, `{"data": "original"}`, string(data))
-	assert.JSONEq(t, `{"meta": "v2"}`, string(metadata))
+	assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
+	assert.Equal(t, json.RawMessage(`{"meta": "v2"}`), metadata) //nolint:testifylint
 	assert.Empty(t, parentChangesets)
 
 	// Old version should still have original metadata.
 	data, metadata, resolvedVersion, parentChangesets, errE := s.Get(ctx, id, insertVersion)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.JSONEq(t, `{"data": "original"}`, string(data))
-	assert.JSONEq(t, `{"meta": "v1"}`, string(metadata))
+	assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
+	assert.Equal(t, json.RawMessage(`{"meta": "v1"}`), metadata) //nolint:testifylint
 	assert.Equal(t, insertVersion, resolvedVersion)
 	assert.Empty(t, parentChangesets)
 }
@@ -2005,8 +2005,8 @@ func TestGetRevisionZero(t *testing.T) {
 		Revision:  0,
 	})
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
-		assert.JSONEq(t, `{"data": "original"}`, string(data))
-		assert.JSONEq(t, `{"meta": "v1"}`, string(metadata))
+		assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
+		assert.Equal(t, json.RawMessage(`{"meta": "v1"}`), metadata) //nolint:testifylint
 		assert.Equal(t, insertVersion, resolvedVersion)
 		assert.Empty(t, parentChangesets)
 	}
@@ -2024,8 +2024,8 @@ func TestGetRevisionZero(t *testing.T) {
 		Revision:  0,
 	})
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
-		assert.JSONEq(t, `{"data": "original"}`, string(data))
-		assert.JSONEq(t, `{"meta": "v2"}`, string(metadata))
+		assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
+		assert.Equal(t, json.RawMessage(`{"meta": "v2"}`), metadata) //nolint:testifylint
 		assert.Equal(t, newVersion, resolvedVersion)
 		assert.Empty(t, parentChangesets)
 	}
@@ -2033,8 +2033,8 @@ func TestGetRevisionZero(t *testing.T) {
 	// Get with explicit Revision 1 should still return the old metadata.
 	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, id, insertVersion)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
-		assert.JSONEq(t, `{"data": "original"}`, string(data))
-		assert.JSONEq(t, `{"meta": "v1"}`, string(metadata))
+		assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
+		assert.Equal(t, json.RawMessage(`{"meta": "v1"}`), metadata) //nolint:testifylint
 		assert.Equal(t, insertVersion, resolvedVersion)
 		assert.Empty(t, parentChangesets)
 	}
@@ -2042,8 +2042,8 @@ func TestGetRevisionZero(t *testing.T) {
 	// Get with explicit Revision 2 should return the new metadata.
 	data, metadata, resolvedVersion, parentChangesets, errE = s.Get(ctx, id, newVersion)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
-		assert.JSONEq(t, `{"data": "original"}`, string(data))
-		assert.JSONEq(t, `{"meta": "v2"}`, string(metadata))
+		assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
+		assert.Equal(t, json.RawMessage(`{"meta": "v2"}`), metadata) //nolint:testifylint
 		assert.Equal(t, newVersion, resolvedVersion)
 		assert.Empty(t, parentChangesets)
 	}
@@ -2061,8 +2061,8 @@ func TestGetRevisionZero(t *testing.T) {
 		Revision:  0,
 	})
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
-		assert.JSONEq(t, `{"data": "updated"}`, string(data))
-		assert.JSONEq(t, `{"meta": "u1"}`, string(metadata))
+		assert.Equal(t, json.RawMessage(`{"data": "updated"}`), data) //nolint:testifylint
+		assert.Equal(t, json.RawMessage(`{"meta": "u1"}`), metadata) //nolint:testifylint
 		assert.Equal(t, updateVersion, resolvedVersion)
 		assert.Equal(t, []store.Version{{Changeset: newVersion.Changeset, Revision: 0}}, parentChangesets)
 	}
@@ -2073,8 +2073,8 @@ func TestGetRevisionZero(t *testing.T) {
 		Revision:  0,
 	})
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
-		assert.JSONEq(t, `{"data": "original"}`, string(data))
-		assert.JSONEq(t, `{"meta": "v2"}`, string(metadata))
+		assert.Equal(t, json.RawMessage(`{"data": "original"}`), data) //nolint:testifylint
+		assert.Equal(t, json.RawMessage(`{"meta": "v2"}`), metadata) //nolint:testifylint
 		assert.Equal(t, newVersion, resolvedVersion)
 		assert.Empty(t, parentChangesets)
 	}

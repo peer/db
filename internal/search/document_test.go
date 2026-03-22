@@ -44,8 +44,7 @@ func TestRangeFloatValidate(t *testing.T) {
 			LessThan:           &lt,
 		}
 		errE := r.Validate()
-		assert.Error(t, errE)
-		assert.Contains(t, errE.Error(), "both greater than and greater than or equal")
+		assert.EqualError(t, errE, "both greater than and greater than or equal are set")
 	})
 
 	t.Run("both lt and lte", func(t *testing.T) {
@@ -59,8 +58,7 @@ func TestRangeFloatValidate(t *testing.T) {
 			LessThanOrEqual:    &lte,
 		}
 		errE := r.Validate()
-		assert.Error(t, errE)
-		assert.Contains(t, errE.Error(), "both less than and less than or equal")
+		assert.EqualError(t, errE, "both less than and less than or equal are set")
 	})
 
 	t.Run("no lower bound", func(t *testing.T) {
@@ -70,8 +68,7 @@ func TestRangeFloatValidate(t *testing.T) {
 			LessThan: &lt,
 		}
 		errE := r.Validate()
-		assert.Error(t, errE)
-		assert.Contains(t, errE.Error(), "greater than bound is required")
+		assert.EqualError(t, errE, "greater than bound is required")
 	})
 
 	t.Run("no upper bound", func(t *testing.T) {
@@ -81,15 +78,14 @@ func TestRangeFloatValidate(t *testing.T) {
 			GreaterThanOrEqual: &gte,
 		}
 		errE := r.Validate()
-		assert.Error(t, errE)
-		assert.Contains(t, errE.Error(), "less than bound is required")
+		assert.EqualError(t, errE, "less than bound is required")
 	})
 
 	t.Run("empty range", func(t *testing.T) {
 		t.Parallel()
 		r := internalSearch.RangeFloat{}
 		errE := r.Validate()
-		assert.Error(t, errE)
+		assert.EqualError(t, errE, "greater than bound is required")
 	})
 }
 
@@ -129,8 +125,7 @@ func TestRangeIntValidate(t *testing.T) {
 			LessThan:           &lt,
 		}
 		errE := r.Validate()
-		assert.Error(t, errE)
-		assert.Contains(t, errE.Error(), "both greater than and greater than or equal")
+		assert.EqualError(t, errE, "both greater than and greater than or equal are set")
 	})
 
 	t.Run("both lt and lte", func(t *testing.T) {
@@ -144,8 +139,7 @@ func TestRangeIntValidate(t *testing.T) {
 			LessThanOrEqual:    &lte,
 		}
 		errE := r.Validate()
-		assert.Error(t, errE)
-		assert.Contains(t, errE.Error(), "both less than and less than or equal")
+		assert.EqualError(t, errE, "both less than and less than or equal are set")
 	})
 
 	t.Run("no lower bound", func(t *testing.T) {
@@ -155,8 +149,7 @@ func TestRangeIntValidate(t *testing.T) {
 			LessThan: &lt,
 		}
 		errE := r.Validate()
-		assert.Error(t, errE)
-		assert.Contains(t, errE.Error(), "greater than bound is required")
+		assert.EqualError(t, errE, "greater than bound is required")
 	})
 
 	t.Run("no upper bound", func(t *testing.T) {
@@ -166,14 +159,13 @@ func TestRangeIntValidate(t *testing.T) {
 			GreaterThanOrEqual: &gte,
 		}
 		errE := r.Validate()
-		assert.Error(t, errE)
-		assert.Contains(t, errE.Error(), "less than bound is required")
+		assert.EqualError(t, errE, "less than bound is required")
 	})
 
 	t.Run("empty range", func(t *testing.T) {
 		t.Parallel()
 		r := internalSearch.RangeInt{}
 		errE := r.Validate()
-		assert.Error(t, errE)
+		assert.EqualError(t, errE, "greater than bound is required")
 	})
 }

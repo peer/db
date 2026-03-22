@@ -23,14 +23,14 @@ import (
 
 type beginMetadata struct {
 	At        internalStore.Time `json:"at"`
-	Size      int64         `json:"size"`
-	MediaType string        `json:"mediaType"`
-	Filename  string        `json:"filename,omitempty"`
+	Size      int64              `json:"size"`
+	MediaType string             `json:"mediaType"`
+	Filename  string             `json:"filename,omitempty"`
 }
 
 type endMetadata struct {
 	At        internalStore.Time `json:"at"`
-	Discarded bool          `json:"discarded,omitempty"`
+	Discarded bool               `json:"discarded,omitempty"`
 }
 
 type completeData struct {
@@ -49,8 +49,8 @@ type completeMetadata struct {
 
 type chunkMetadata struct {
 	At     internalStore.Time `json:"at"`
-	Start  int64         `json:"start"`
-	Length int64         `json:"length"`
+	Start  int64              `json:"start"`
+	Length int64              `json:"length"`
 }
 
 type chunk struct {
@@ -68,10 +68,10 @@ type chunkPos struct {
 // FileMetadata contains metadata about a stored file.
 type FileMetadata struct {
 	At        internalStore.Time `json:"at"`
-	Size      int64         `json:"size"`
-	MediaType string        `json:"mediaType"`
-	Filename  string        `json:"filename,omitempty"`
-	Etag      string        `json:"etag"`
+	Size      int64              `json:"size"`
+	MediaType string             `json:"mediaType"`
+	Filename  string             `json:"filename,omitempty"`
+	Etag      string             `json:"etag"`
 }
 
 // Storage provides file storage operations.

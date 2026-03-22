@@ -51,10 +51,10 @@ func TestTimeValidate(t *testing.T) {
 
 	// Invalid: out-of-range precision.
 	errE = core.Time{Precision: document.TimePrecisionNanosecond + 1}.Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "unknown precision")
 
 	errE = core.Time{Precision: document.TimePrecisionGigaYears - 1}.Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "unknown precision")
 }
 
 func TestAmountValidateFloat32(t *testing.T) {
@@ -66,19 +66,19 @@ func TestAmountValidateFloat32(t *testing.T) {
 
 	// Invalid: infinite amount.
 	errE = core.Amount[float32]{Amount: float32(math.Inf(1)), Precision: 0.1}.Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "amount must be a finite number")
 
 	// Invalid: NaN amount.
 	errE = core.Amount[float32]{Amount: float32(math.NaN()), Precision: 0.1}.Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "amount must be a finite number")
 
 	// Invalid: infinite precision.
 	errE = core.Amount[float32]{Amount: 1.0, Precision: float32(math.Inf(-1))}.Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "precision must be a finite number")
 
 	// Invalid: NaN precision.
 	errE = core.Amount[float32]{Amount: 1.0, Precision: float32(math.NaN())}.Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "precision must be a finite number")
 
 	// Invalid: negative precision.
 	errE = core.Amount[float32]{Amount: 1.0, Precision: -0.1}.Validate()
@@ -94,19 +94,19 @@ func TestAmountValidateFloat64(t *testing.T) {
 
 	// Invalid: infinite amount.
 	errE = core.Amount[float64]{Amount: math.Inf(1), Precision: 0.1}.Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "amount must be a finite number")
 
 	// Invalid: NaN amount.
 	errE = core.Amount[float64]{Amount: math.NaN(), Precision: 0.1}.Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "amount must be a finite number")
 
 	// Invalid: infinite precision.
 	errE = core.Amount[float64]{Amount: 1.0, Precision: math.Inf(-1)}.Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "precision must be a finite number")
 
 	// Invalid: NaN precision.
 	errE = core.Amount[float64]{Amount: 1.0, Precision: math.NaN()}.Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "precision must be a finite number")
 
 	// Invalid: negative precision.
 	errE = core.Amount[float64]{Amount: 1.0, Precision: -0.1}.Validate()
@@ -161,45 +161,45 @@ func TestIntervalValidate(t *testing.T) {
 
 	// Invalid: multiple FromIs* set simultaneously.
 	errE = (&core.Interval[core.Amount[int]]{FromIsOpen: true, FromIsUnknown: true}).Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "only one of FromIsOpen, FromIsUnknown, FromIsNone can be set")
 
 	errE = (&core.Interval[core.Amount[int]]{FromIsOpen: true, FromIsNone: true}).Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "only one of FromIsOpen, FromIsUnknown, FromIsNone can be set")
 
 	errE = (&core.Interval[core.Amount[int]]{FromIsUnknown: true, FromIsNone: true}).Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "only one of FromIsOpen, FromIsUnknown, FromIsNone can be set")
 
 	// Invalid: From set with FromIsUnknown or FromIsNone.
 	errE = (&core.Interval[core.Amount[int]]{From: &from, FromIsUnknown: true}).Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "From must not be set when FromIsUnknown or FromIsNone is true")
 
 	errE = (&core.Interval[core.Amount[int]]{From: &from, FromIsNone: true}).Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "From must not be set when FromIsUnknown or FromIsNone is true")
 
 	// Invalid: multiple ToIs* set simultaneously.
 	errE = (&core.Interval[core.Amount[int]]{ToIsClosed: true, ToIsUnknown: true}).Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
 
 	errE = (&core.Interval[core.Amount[int]]{ToIsClosed: true, ToIsNone: true}).Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
 
 	errE = (&core.Interval[core.Amount[int]]{ToIsUnknown: true, ToIsNone: true}).Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
 
 	// Invalid: To set with ToIsUnknown or ToIsNone.
 	errE = (&core.Interval[core.Amount[int]]{To: &to, ToIsUnknown: true}).Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "To must not be set when ToIsUnknown or ToIsNone is true")
 
 	errE = (&core.Interval[core.Amount[int]]{To: &to, ToIsNone: true}).Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "To must not be set when ToIsUnknown or ToIsNone is true")
 
 	// Bound validation is propagated for From.
 	invalidFrom := core.Amount[float64]{Amount: math.Inf(1)}
 	errE = (&core.Interval[core.Amount[float64]]{From: &invalidFrom}).Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "amount must be a finite number")
 
 	// Bound validation is propagated for To.
 	invalidTo := core.Amount[float64]{Amount: math.NaN()}
 	errE = (&core.Interval[core.Amount[float64]]{To: &invalidTo}).Validate()
-	assert.Error(t, errE)
+	assert.EqualError(t, errE, "amount must be a finite number")
 }

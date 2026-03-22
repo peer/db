@@ -2917,8 +2917,7 @@ func TestCoreClaimValidateInvalidConfidence(t *testing.T) {
 				Prop:      document.Reference{ID: identifier.New()},
 			}
 			errE := claim.Validate()
-			assert.Error(t, errE)
-			assert.ErrorContains(t, errE, "confidence out of range")
+			assert.EqualError(t, errE, "confidence out of range [-1, 1]")
 		})
 	}
 }
@@ -2949,8 +2948,7 @@ func TestCoreClaimAddDuplicateID(t *testing.T) {
 		Prop:      document.Reference{ID: identifier.New()},
 		String:    "duplicate",
 	})
-	assert.Error(t, errE)
-	assert.ErrorContains(t, errE, "claim with ID already exists")
+	assert.EqualError(t, errE, "claim with ID already exists")
 }
 
 // TestCoreClaimValidateWithInvalidMeta tests CoreClaim.Validate with invalid meta claims.
@@ -2975,8 +2973,7 @@ func TestCoreClaimValidateWithInvalidMeta(t *testing.T) {
 	}
 
 	errE := claim.Validate()
-	assert.Error(t, errE)
-	assert.ErrorContains(t, errE, "empty string")
+	assert.EqualError(t, errE, "empty string")
 }
 
 // TestClaimTypesGetWithAllTypes tests ClaimTypes.Get across all claim types.
