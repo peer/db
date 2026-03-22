@@ -1976,7 +1976,7 @@ func TestChangesValidateError(t *testing.T) {
 	changes := document.Changes{
 		document.AddClaimChange{ //nolint:exhaustruct
 			ID:   identifier.New(),
-			Base: []string{"TqtRsbk7rTKviW3TJapTim", "0"},
+			Base: []string{"TqtRsbk7rTKviW3TJapTim", "1"},
 			Patch: document.HasClaimPatch{
 				Confidence: &conf,
 				Prop:       &prop,
