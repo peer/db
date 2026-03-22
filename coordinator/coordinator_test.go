@@ -127,10 +127,13 @@ func initDatabase[Data, Metadata any](
 	schema := "s" + strings.ToLower(identifier.New().String())
 	prefix := identifier.New().String() + "_"
 
-	dbpool, errE := internalStore.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
+	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
+	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
+	dbpool, errE := internalStore.InitPostgres(context.WithoutCancel(ctx), os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
 		return schema, "tests"
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
+	t.Cleanup(dbpool.Close)
 
 	errE = internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		return internalStore.EnsureSchema(ctx, tx, schema)
@@ -511,10 +514,13 @@ func TestNotifyRecovery(t *testing.T) {
 	schema := "s" + strings.ToLower(identifier.New().String())
 	prefix := identifier.New().String() + "_"
 
-	dbpool, errE := internalStore.InitPostgres(ctx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
+	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
+	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
+	dbpool, errE := internalStore.InitPostgres(context.WithoutCancel(ctx), os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
 		return schema, "tests"
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
+	t.Cleanup(dbpool.Close)
 
 	errE = internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		return internalStore.EnsureSchema(ctx, tx, schema)
