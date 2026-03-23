@@ -3,6 +3,8 @@ package search
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"sync"
 	"time"
 
@@ -58,10 +60,6 @@ type AmountFilter struct {
 
 // Valid validates the AmountFilter to ensure it has a valid configuration.
 func (f AmountFilter) Valid() errors.E {
-	// TODO: Why is f.Unit a pointer and can be nil at all?
-	if f.Unit == nil {
-		return errors.New("unit has to be set")
-	}
 	if f.Gte == nil && f.Lte == nil && !f.None {
 		return errors.New("gte, lte, or none has to be set")
 	}
@@ -177,6 +175,7 @@ func (f Filters) ToQuery() elastic.Query { //nolint:ireturn
 		for _, filter := range f.Or {
 			boolQuery.Should(filter.ToQuery())
 		}
+		boolQuery.MinimumShouldMatch("1")
 		return boolQuery
 	}
 	if f.Not != nil {
@@ -340,11 +339,12 @@ func documentTextSearchQuery(searchQuery, defaultOperator string) elastic.Query 
 			bq.Should(elastic.NewNestedQuery(f.Prefix, q))
 		}
 		// Search string and HTML claims across all supported languages.
+		// Languages are sorted for deterministic query generation.
 		for _, f := range []field{
 			{"claims.string", "string"},
 			{"claims.html", "html"},
 		} {
-			for lang := range internalSearch.SupportedLanguages {
+			for _, lang := range slices.Sorted(maps.Keys(internalSearch.SupportedLanguages)) {
 				q := elastic.NewSimpleQueryStringQuery(searchQuery).Field(f.Prefix + "." + f.Field + "." + lang).DefaultOperator(defaultOperator)
 				bq.Should(elastic.NewNestedQuery(f.Prefix, q))
 			}

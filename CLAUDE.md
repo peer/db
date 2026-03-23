@@ -212,7 +212,6 @@ Elasticsearch query builder with session-based filtering.
 - `RelFilter`: Filter by relation claims
 - `AmountFilter`: Filter by numeric ranges
 - `TimeFilter`: Filter by time ranges
-- `StringFilter`: Text search on string/text claims
 
 **Limits**: Max 1000 search results per query
 
