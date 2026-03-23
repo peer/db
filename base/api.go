@@ -55,6 +55,62 @@ func (b *B) GetDocumentLatestDoc(ctx context.Context, id identifier.Identifier) 
 	return doc, metadata, version, parentChangesets, errE
 }
 
+// GetDocumentChanges returns up to MaxPageLength changes of the document changeset,
+// ordered by document ID, after optional document ID, to support keyset pagination.
+func (b *B) GetDocumentChanges(
+	ctx context.Context, changesetID identifier.Identifier, after *identifier.Identifier,
+) ([]store.Change, errors.E) {
+	changeset, errE := b.documents.Changeset(ctx, changesetID)
+	if errE != nil {
+		return nil, errE
+	}
+	return changeset.Changes(ctx, after)
+}
+
+// GetDocumentFromChangeset returns the document at the given revision in the changeset as raw JSON.
+//
+// If revision is 0, the latest revision is returned.
+//
+// If the document has been deleted in the changeset, it returns ErrValueDeleted,
+// but other returned values are valid as well..
+func (b *B) GetDocumentFromChangeset(
+	ctx context.Context, changesetID, id identifier.Identifier, revision int64,
+) (json.RawMessage, *internalStore.DocumentMetadata, store.Version, []store.Version, errors.E) {
+	changeset, errE := b.documents.Changeset(ctx, changesetID)
+	if errE != nil {
+		return nil, nil, store.Version{}, nil, errE
+	}
+	return changeset.Get(ctx, id, revision)
+}
+
+// GetFileChangesetChanges returns up to MaxPageLength changes of the file changeset,
+// ordered by file ID, after optional file ID, to support keyset pagination.
+func (b *B) GetFileChangesetChanges(
+	ctx context.Context, changesetID identifier.Identifier, after *identifier.Identifier,
+) ([]store.Change, errors.E) {
+	changeset, errE := b.files.Store().Changeset(ctx, changesetID)
+	if errE != nil {
+		return nil, errE
+	}
+	return changeset.Changes(ctx, after)
+}
+
+// GetFileFromChangeset returns the file at the given revision in the changeset.
+//
+// If revision is 0, the latest revision is returned.
+//
+// If the file has been deleted in the changeset, it returns ErrValueDeleted,
+// but other returned values are valid as well.
+func (b *B) GetFileFromChangeset(
+	ctx context.Context, changesetID, id identifier.Identifier, revision int64,
+) ([]byte, *storage.FileMetadata, store.Version, []store.Version, errors.E) {
+	changeset, errE := b.files.Store().Changeset(ctx, changesetID)
+	if errE != nil {
+		return nil, nil, store.Version{}, nil, errE
+	}
+	return changeset.Get(ctx, id, revision)
+}
+
 // InsertDocument inserts a new document.
 //
 // Document with same ID cannot yet exist in the base.

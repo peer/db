@@ -2,6 +2,7 @@ package peerdb
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"net/url"
@@ -73,7 +74,7 @@ func (s *Service) StorageUploadChunkPostAPI(w http.ResponseWriter, req *http.Req
 
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
-		s.BadRequestWithError(w, req, errE)
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
 		return
 	}
 
@@ -131,7 +132,7 @@ func (s *Service) StorageListChunksGetAPI(w http.ResponseWriter, req *http.Reque
 
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
-		s.BadRequestWithError(w, req, errE)
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
 		return
 	}
 
@@ -163,7 +164,7 @@ func (s *Service) StorageGetChunkGetAPI(w http.ResponseWriter, req *http.Request
 
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
-		s.BadRequestWithError(w, req, errE)
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
 		return
 	}
 
@@ -204,7 +205,7 @@ func (s *Service) StorageEndUploadPostAPI(w http.ResponseWriter, req *http.Reque
 
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
-		s.BadRequestWithError(w, req, errE)
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
 		return
 	}
 
@@ -244,7 +245,7 @@ func (s *Service) StorageDiscardUploadPostAPI(w http.ResponseWriter, req *http.R
 
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
-		s.BadRequestWithError(w, req, errE)
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
 		return
 	}
 
@@ -278,7 +279,7 @@ func (s *Service) StorageUploadGetAPI(w http.ResponseWriter, req *http.Request, 
 
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
-		s.BadRequestWithError(w, req, errE)
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
 		return
 	}
 
@@ -344,6 +345,57 @@ func (s *Service) StorageGetGet(w http.ResponseWriter, req *http.Request, params
 	}
 
 	if errors.Is(errE, store.ErrValueNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	w.Header().Set("Content-Type", metadata.MediaType)
+	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Etag", metadata.Etag)
+	w.Header().Set("Version", version.String())
+	if metadata.Filename != "" {
+		w.Header().Set("Content-Disposition", `inline; filename*=UTF-8''`+url.PathEscape(metadata.Filename))
+	}
+
+	http.ServeContent(w, req, "", time.Time(metadata.At), bytes.NewReader(data))
+}
+
+// StorageChangesGetAPI handles GET requests to list changes in a file changeset.
+func (s *Service) StorageChangesGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	s.changesetChangesGetAPI(w, req, params, func(ctx context.Context, changesetID identifier.Identifier, after *identifier.Identifier) ([]store.Change, errors.E) {
+		return waf.MustGetSite[*Site](ctx).Base.GetFileChangesetChanges(ctx, changesetID, after)
+	})
+}
+
+// StorageChangesGetGet handles GET requests to retrieve a file from a changeset.
+func (s *Service) StorageChangesGetGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	ctx := req.Context()
+
+	changesetID, errE := identifier.MaybeString(params["changeset"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"changeset" is not a valid identifier`))
+		return
+	}
+
+	id, errE := identifier.MaybeString(params["id"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
+		return
+	}
+
+	site := waf.MustGetSite[*Site](ctx)
+
+	// Revision 0 means latest revision.
+	data, metadata, version, _, errE := site.Base.GetFileFromChangeset(ctx, changesetID, id, 0)
+	if errors.Is(errE, store.ErrValueNotFound) {
+		// This includes ErrValueDeleted, too.
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, store.ErrChangesetNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
 	} else if errE != nil {

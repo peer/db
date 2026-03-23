@@ -6,7 +6,7 @@ import (
 	"gitlab.com/tozd/waf"
 )
 
-func (s *Service) setRoutes() {
+func (s *Service) setRoutes() { //nolint:maintidx
 	s.Routes = map[string]waf.Route{
 		"Home": {
 			RouteOptions: waf.RouteOptions{
@@ -199,6 +199,22 @@ func (s *Service) setRoutes() {
 				},
 			},
 		},
+		"DocumentChanges": {
+			Path: "/d/changes/:changeset",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.DocumentChangesGetAPI,
+				},
+			},
+		},
+		"DocumentChangesGet": {
+			Path: "/d/changes/:changeset/:id",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.DocumentChangesGetGetAPI,
+				},
+			},
+		},
 		"StorageBeginUpload": {
 			Path: "/f/beginUpload",
 			API: waf.RouteOptions{
@@ -255,13 +271,29 @@ func (s *Service) setRoutes() {
 				},
 			},
 		},
+		"StorageChanges": {
+			Path: "/f/changes/:changeset",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.StorageChangesGetAPI,
+				},
+			},
+		},
+		"StorageChangesGet": {
+			Path: "/f/changes/:changeset/:id",
+			RouteOptions: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.StorageChangesGetGet,
+				},
+			},
+		},
 		"StorageGet": {
+			Path: "/f/:id",
 			RouteOptions: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{
 					http.MethodGet: s.StorageGetGet,
 				},
 			},
-			Path: "/f/:id",
 		},
 	}
 

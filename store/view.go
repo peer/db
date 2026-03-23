@@ -364,7 +364,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 		parentChangesets = nil
 
 		var dataIsNull bool
-		var revision int64
+		var resolvedRevision int64
 		var parentChangesetsString []string
 		err := tx.QueryRow(ctx, `
 			WITH "viewPath" AS (
@@ -391,7 +391,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 				WHERE "id"=$2
 					AND "changeset"=$3
 				`+revisionCondition,
-			arguments...).Scan(&revision, &data, &dataIsNull, &metadata, &parentChangesetsString)
+			arguments...).Scan(&resolvedRevision, &data, &dataIsNull, &metadata, &parentChangesetsString)
 		if err != nil {
 			errE := internalStore.WithPgxError(err)
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -408,7 +408,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			return errE
 		}
 		resolved.Changeset = version.Changeset
-		resolved.Revision = revision
+		resolved.Revision = resolvedRevision
 		for _, s := range parentChangesetsString {
 			parentChangesets = append(parentChangesets, Version{Changeset: identifier.String(s), Revision: 0})
 		}
@@ -725,10 +725,6 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 	}
 	return changesets, errE
 }
-
-// TODO: Add a method which returns a requested change in full, including the patch and that it does not return an error if the change is for deletion.
-//       Maybe Changeset should have Get which returns Change (without validating anything) which can then have methods to return different things.
-//       Add to View.Get docstring that to get values of any changeset, you should then go through Changeset and not View.
 
 // TODO: Support also name-less views (like the View but has to store view ID instead).
 

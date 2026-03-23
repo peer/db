@@ -515,3 +515,73 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	}
 	return changes, errE
 }
+
+// TODO: Add a method which returns patches for a requested change.
+
+// Get returns the data and metadata for the value at the given version in this changeset.
+//
+// If revision is 0, the value with the latest revision is returned
+// and returned version contains this revision number.
+//
+// If value has been deleted at a given version, ErrValueDeleted error is returned,
+// but other returned values are valid as well.
+func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Get( //nolint:ireturn
+	ctx context.Context, id identifier.Identifier, revision int64,
+) (Data, Metadata, Version, []Version, errors.E) {
+	arguments := []any{
+		id.String(), c.String(),
+	}
+	revisionCondition := ""
+	if revision > 0 {
+		arguments = append(arguments, revision)
+		revisionCondition = `AND "revision"=$3`
+	} else {
+		revisionCondition = `ORDER BY "revision" DESC LIMIT 1`
+	}
+	var data Data
+	var metadata Metadata
+	var resolved Version
+	var parentChangesets []Version
+	errE := internalStore.RetryTransaction(ctx, c.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		data = *new(Data)
+		metadata = *new(Metadata)
+		resolved = Version{}
+		parentChangesets = nil
+
+		var dataIsNull bool
+		var resolvedRevision int64
+		var parentChangesetsString []string
+		err := tx.QueryRow(ctx, `
+			SELECT "revision", "data", "data" IS NULL, "metadata", "parentChangesets"
+				FROM "`+c.store.Prefix+`Changes"
+				WHERE "id"=$1 AND "changeset"=$2
+				`+revisionCondition,
+			arguments...).Scan(&resolvedRevision, &data, &dataIsNull, &metadata, &parentChangesetsString)
+		if err != nil {
+			errE := internalStore.WithPgxError(err)
+			if errors.Is(err, pgx.ErrNoRows) {
+				return errors.WrapWith(errE, ErrValueNotFound)
+			}
+			return errE
+		}
+		resolved.Changeset = c.id
+		resolved.Revision = resolvedRevision
+		for _, s := range parentChangesetsString {
+			parentChangesets = append(parentChangesets, Version{Changeset: identifier.String(s), Revision: 0})
+		}
+		if dataIsNull {
+			// We return an error because this method is asking for a particular version of the value
+			// but the value does not exist anymore at this version. Other returned values are valid though.
+			return errors.WithStack(ErrValueDeleted)
+		}
+		return nil
+	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["id"] = id.String()
+		details["changeset"] = c.String()
+		details["revision"] = revision
+	}
+	return data, metadata, resolved, parentChangesets, errE
+}

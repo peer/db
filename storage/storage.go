@@ -169,6 +169,7 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 		}, nil
 	}
 
+	// TODO: Support more than 5000 chunks.
 	chunksList, errE := s.ListChunks(ctx, session)
 	if errE != nil {
 		return nil, errE
@@ -388,6 +389,7 @@ func (s *Storage) validateChunks(ctx context.Context, session identifier.Identif
 		return errE
 	}
 
+	// TODO: Support more than 5000 chunks.
 	chunksList, errE := s.ListChunks(ctx, session)
 	if errE != nil {
 		return errE

@@ -1,6 +1,7 @@
 package peerdb
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -80,6 +81,7 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 	m.Stop()
 
 	if errors.Is(errE, store.ErrValueNotFound) {
+		// This includes ErrValueDeleted, too.
 		s.NotFoundWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -129,6 +131,7 @@ func (s *Service) DocumentGetGetAPI(w http.ResponseWriter, req *http.Request, pa
 	m.Stop()
 
 	if errors.Is(errE, store.ErrValueNotFound) {
+		// This includes ErrValueDeleted, too.
 		s.NotFoundWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -197,7 +200,7 @@ func (s *Service) DocumentBeginEditPostAPI(w http.ResponseWriter, req *http.Requ
 
 	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
-		s.BadRequestWithError(w, req, errE)
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
 	}
 
@@ -228,7 +231,7 @@ func (s *Service) DocumentSaveChangePostAPI(w http.ResponseWriter, req *http.Req
 
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
-		s.BadRequestWithError(w, req, errE)
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
 		return
 	}
 
@@ -286,7 +289,7 @@ func (s *Service) DocumentListChangesGetAPI(w http.ResponseWriter, req *http.Req
 
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
-		s.BadRequestWithError(w, req, errE)
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
 		return
 	}
 
@@ -314,7 +317,7 @@ func (s *Service) DocumentGetChangeGetAPI(w http.ResponseWriter, req *http.Reque
 
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
-		s.BadRequestWithError(w, req, errE)
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
 		return
 	}
 
@@ -362,7 +365,7 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
-		s.BadRequestWithError(w, req, errE)
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
 		return
 	}
 
@@ -483,4 +486,87 @@ func (s *Service) DocumentEditGetAPI(w http.ResponseWriter, req *http.Request, p
 	} else {
 		s.WriteJSON(w, req, `{"active":true}`, nil)
 	}
+}
+
+// changesetChangesGetAPI is a shared helper for listing changes in a changeset.
+func (s *Service) changesetChangesGetAPI(
+	w http.ResponseWriter, req *http.Request, params waf.Params,
+	getChanges func(ctx context.Context, changesetID identifier.Identifier, after *identifier.Identifier) ([]store.Change, errors.E),
+) {
+	ctx := req.Context()
+
+	changesetID, errE := identifier.MaybeString(params["changeset"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"changeset" is not a valid identifier`))
+		return
+	}
+
+	var after *identifier.Identifier
+	if req.Form.Has("after") {
+		a, errE := identifier.MaybeString(req.Form.Get("after"))
+		if errE != nil {
+			s.BadRequestWithError(w, req, errors.WithMessage(errE, `"after" is not a valid identifier`))
+			return
+		}
+		after = &a
+	}
+
+	changes, errE := getChanges(ctx, changesetID, after)
+	if errors.Is(errE, store.ErrChangesetNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, store.ErrValueNotFound) {
+		// This happens when "after" is not found.
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.WriteJSON(w, req, changes, nil)
+}
+
+// DocumentChangesGetAPI handles GET requests to list changes in a document changeset.
+func (s *Service) DocumentChangesGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	s.changesetChangesGetAPI(w, req, params, func(ctx context.Context, changesetID identifier.Identifier, after *identifier.Identifier) ([]store.Change, errors.E) {
+		return waf.MustGetSite[*Site](ctx).Base.GetDocumentChanges(ctx, changesetID, after)
+	})
+}
+
+// DocumentChangesGetGetAPI handles GET requests to retrieve a document from a changeset.
+func (s *Service) DocumentChangesGetGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	ctx := req.Context()
+
+	changesetID, errE := identifier.MaybeString(params["changeset"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"changeset" is not a valid identifier`))
+		return
+	}
+
+	id, errE := identifier.MaybeString(params["id"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
+		return
+	}
+
+	site := waf.MustGetSite[*Site](ctx)
+
+	// Revision 0 means latest revision.
+	dataJSON, _, version, _, errE := site.Base.GetDocumentFromChangeset(ctx, changesetID, id, 0)
+	if errors.Is(errE, store.ErrValueNotFound) {
+		// This includes ErrValueDeleted, too.
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, store.ErrChangesetNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	w.Header().Set("Version", version.String())
+
+	s.WriteJSON(w, req, dataJSON, nil)
 }
