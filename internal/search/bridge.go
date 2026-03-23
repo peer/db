@@ -86,6 +86,8 @@ type worker struct {
 
 // Work implements river.Worker interface.
 func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
+	ctx = internalStore.WithFallbackDBContext(ctx, job.Args.Schema, "bridge")
+
 	c, errE := w.getBridge(job.Args.Schema, job.Args.Prefix)
 	if errE != nil {
 		return errE

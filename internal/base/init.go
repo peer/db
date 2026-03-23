@@ -52,7 +52,7 @@ func InitAndStartComponents(
 
 	// Now that everything is initialized, we can start the river client.
 	// It will be stopped when ctx is cancelled.
-	err := riverClient.Start(ctx)
+	err := riverClient.Start(internalStore.WithFallbackDBContext(ctx, schema, "river"))
 	if err != nil {
 		return nil, nil, nil, errors.WithStack(err)
 	}
@@ -63,5 +63,5 @@ func InitAndStartComponents(
 	}
 
 	// After that, we can start the listener.
-	return b, riverClient, onShutdown, listener.Start(ctx)
+	return b, riverClient, onShutdown, listener.Start(internalStore.WithFallbackDBContext(ctx, schema, "listener"))
 }

@@ -47,9 +47,10 @@ var (
 )
 
 type jobArgs struct {
-	Schema  string                `json:"schema"`
-	Prefix  string                `json:"prefix"`
-	Session identifier.Identifier `json:"session"`
+	Schema    string                `json:"schema"`
+	Prefix    string                `json:"prefix"`
+	Session   identifier.Identifier `json:"session"`
+	RequestID string                `json:"requestId"`
 }
 
 // Kind implements river.JobArgs interface.
@@ -63,6 +64,8 @@ type worker struct {
 
 // Work implements river.Worker interface.
 func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
+	ctx = internalStore.WithFallbackDBContext(ctx, job.Args.Schema, job.Args.RequestID)
+
 	c, errE := w.getCoordinator(job.Args.Schema, job.Args.Prefix)
 	if errE != nil {
 		return errE
@@ -450,9 +453,10 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 
 		// We submit a job to the worker to call CompleteSession and CompleteSessionTx and complete the session.
 		_, err = c.riverClient.InsertTx(ctx, tx, jobArgs{
-			Schema:  c.schema,
-			Prefix:  c.Prefix,
-			Session: session,
+			Schema:    c.schema,
+			Prefix:    c.Prefix,
+			Session:   session,
+			RequestID: internalStore.MustGetRequestID(ctx),
 		}, nil)
 		return errors.WithStack(err)
 	})

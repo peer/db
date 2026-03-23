@@ -45,6 +45,8 @@ func initBaseInfra(t *testing.T, languagePriority map[string][]string) (context.
 	schema := "s" + strings.ToLower(identifier.New().String())
 	index := schema
 
+	ctx = internalStore.WithFallbackDBContext(ctx, schema, "tests")
+
 	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
 	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
 	dbpool, errE := internalStore.InitPostgres(context.WithoutCancel(ctx), os.Getenv("POSTGRES"), logger, func(_ context.Context) (string, string) {

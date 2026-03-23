@@ -14,15 +14,6 @@ import (
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
-// WithFallbackDBContext returns context with fallback context values which are used
-// to set schema and application name on PostgreSQL connections when it is not part
-// of the request.
-func WithFallbackDBContext(ctx context.Context, schema, name string) context.Context {
-	ctx = context.WithValue(ctx, schemaContextKey, schema)
-	ctx = context.WithValue(ctx, requestIDContextKey, name)
-	return ctx
-}
-
 // init initializes the store, coordinator, storage, and bridge for a specific site.
 //
 // It can be called multiple times. In that case it will not initialize again if
@@ -94,7 +85,7 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 			context.WithoutCancel(ctx),
 			string(globals.Postgres.URL),
 			globals.Logger,
-			getRequestWithFallback(globals.Logger),
+			getRequestWithFallback(),
 		)
 		if errE != nil {
 			return nil, errE

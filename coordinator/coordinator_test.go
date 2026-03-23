@@ -127,6 +127,8 @@ func initDatabase[Data, Metadata any](
 	schema := "s" + strings.ToLower(identifier.New().String())
 	prefix := identifier.New().String() + "_"
 
+	ctx = internalStore.WithFallbackDBContext(ctx, schema, "tests")
+
 	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
 	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
 	dbpool, errE := internalStore.InitPostgres(context.WithoutCancel(ctx), os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
@@ -513,6 +515,8 @@ func TestNotifyRecovery(t *testing.T) {
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 	schema := "s" + strings.ToLower(identifier.New().String())
 	prefix := identifier.New().String() + "_"
+
+	ctx = internalStore.WithFallbackDBContext(ctx, schema, "tests")
 
 	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
 	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
