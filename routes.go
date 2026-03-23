@@ -307,5 +307,13 @@ func (s *Service) setRoutes() { //nolint:maintidx
 				},
 			},
 		}
+		s.Routes["DebugIndexed"] = waf.Route{
+			Path: "/debug/indexed/:id",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.DebugIndexedGetAPI,
+				},
+			},
+		}
 	}
 }

@@ -50,6 +50,11 @@ type B struct {
 	bridge      *internalSearch.Bridge
 }
 
+// Bridge returns the underlying Bridge instance.
+func (b *B) Bridge() *internalSearch.Bridge {
+	return b.bridge
+}
+
 // Init initializes the base.
 func (b *B) Init(
 	ctx context.Context,

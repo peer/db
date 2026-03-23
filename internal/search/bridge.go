@@ -160,6 +160,11 @@ type Bridge struct {
 	inverseRelationsMinSeq int64
 }
 
+// Converter returns the underlying Converter instance.
+func (b *Bridge) Converter() *Converter {
+	return b.converter
+}
+
 // Init creates the bridge progress table and registers a NOTIFY handler on the shared listener
 // so that WaitUntilCaughtUp is notified immediately when the bridge seq advances.
 func (b *Bridge) Init(

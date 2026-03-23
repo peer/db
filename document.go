@@ -92,16 +92,18 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 	s.HomeGet(w, req, nil)
 }
 
-// DocumentGetGetAPI is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
-// It supports compression based on accepted content encoding and range requests.
-func (s *Service) DocumentGetGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// documentGetData is a shared helper that validates the document ID and version parameters,
+// retrieves the document from the store, and returns the raw JSON data and metadata.
+func (s *Service) documentGetData(
+	w http.ResponseWriter, req *http.Request, params waf.Params,
+) (_ json.RawMessage, _ *internalStore.DocumentMetadata, _ store.Version, handled bool) {
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
 	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
-		return
+		return nil, nil, store.Version{}, true
 	}
 
 	// We do not check the "s" parameter because the expectation is that
@@ -112,7 +114,7 @@ func (s *Service) DocumentGetGetAPI(w http.ResponseWriter, req *http.Request, pa
 		v, errE := store.VersionFromString(req.Form.Get("version"))
 		if errE != nil {
 			s.BadRequestWithError(w, req, errE)
-			return
+			return nil, nil, store.Version{}, true
 		}
 		reqVersion = &v
 	}
@@ -120,22 +122,34 @@ func (s *Service) DocumentGetGetAPI(w http.ResponseWriter, req *http.Request, pa
 	site := waf.MustGetSite[*Site](req.Context())
 
 	var dataJSON json.RawMessage
+	var metadata *internalStore.DocumentMetadata
 	var version store.Version
 
 	m := metrics.Duration(internalStore.MetricDatabase).Start()
 	if reqVersion != nil {
-		dataJSON, _, version, _, errE = site.Base.GetDocument(ctx, id, *reqVersion)
+		dataJSON, metadata, version, _, errE = site.Base.GetDocument(ctx, id, *reqVersion)
 	} else {
-		dataJSON, _, version, _, errE = site.Base.GetDocumentLatest(ctx, id)
+		dataJSON, metadata, version, _, errE = site.Base.GetDocumentLatest(ctx, id)
 	}
 	m.Stop()
 
 	if errors.Is(errE, store.ErrValueNotFound) {
 		// This includes ErrValueDeleted, too.
 		s.NotFoundWithError(w, req, errE)
-		return
+		return nil, nil, store.Version{}, true
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
+		return nil, nil, store.Version{}, true
+	}
+
+	return dataJSON, metadata, version, false
+}
+
+// DocumentGetGetAPI is a GET/HEAD HTTP request handler which returns a document given its ID as a parameter.
+// It supports compression based on accepted content encoding and range requests.
+func (s *Service) DocumentGetGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	dataJSON, _, version, handled := s.documentGetData(w, req, params)
+	if handled {
 		return
 	}
 
