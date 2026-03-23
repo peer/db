@@ -270,7 +270,15 @@ func (s *Storage) completeStorageSessionTx(ctx context.Context, _ pgx.Tx, sessio
 		// Primary session was provided. We use it to obtain a changeset ID and then insert
 		// the file into the changeset with that changeset ID, but we do NOT commit the changeset.
 		changesetID, errE := s.PrimaryCoordinator.ChangesetID(ctx, *data.EndMetadata.PrimarySession)
-		if errE != nil {
+		if errors.Is(errE, coordinator.ErrAlreadyEnded) || errors.Is(errE, coordinator.ErrAlreadyCompleted) {
+			// The primary session has already ended or completed. We discard the file upload.
+			return &CompleteMetadata{
+				Discarded: true,
+				ID:        nil,
+				Chunks:    0,
+				Time:      time.Since(time.Time(data.EndMetadata.At)).Milliseconds(),
+			}, nil
+		} else if errE != nil {
 			return nil, errE
 		}
 		changeset, errE := s.store.Changeset(ctx, changesetID)

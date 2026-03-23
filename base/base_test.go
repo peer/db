@@ -1553,6 +1553,15 @@ func TestFileUploadDuringDocumentEdit(t *testing.T) {
 	// Verify file metadata Base is recorded and file ID is derivable from it.
 	assert.Equal(t, expectedBase, metadata.Base)
 	assert.Equal(t, expectedFileID, identifier.From(metadata.Base...))
+
+	// Verify the file is also accessible through the changeset.
+	changesetBase := append(append([]string{}, doc.Base...), "SESSION", session.String())
+	changesetID := identifier.From(changesetBase...)
+	changesetData, changesetMetadata, changesetVersion, _, errE := b.GetFileFromChangeset(ctx, changesetID, expectedFileID, 0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, fileData, changesetData)
+	assert.Equal(t, "edit-file.txt", changesetMetadata.Filename)
+	assert.Equal(t, changesetID, changesetVersion.Changeset)
 }
 
 func TestFileUploadDuringDocumentEditDiscard(t *testing.T) {
@@ -1633,6 +1642,87 @@ func TestEndEditDocumentUploadEndedSession(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.EndEditDocumentUpload(ctx, uploadSession, session)
+	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
+
+	// The file upload itself can still be discarded.
+	errE = b.DiscardUpload(ctx, uploadSession)
+	require.NoError(t, errE, "% -+#.1v", errE)
+}
+
+func TestFileUploadCompletionAfterEditSessionDiscard(t *testing.T) {
+	t.Parallel()
+
+	ctx, b := initBase(t)
+
+	// Create a document.
+	doc := newDoc()
+	docID := doc.ID
+	errE := b.InsertOrReplaceDocument(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Begin document edit session.
+	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Begin a file upload as part of the document edit session.
+	fileBase := append(append([]string{}, doc.Base...), "FILE", identifier.New().String())
+	fileData := []byte("upload before session ends")
+	uploadSession, errE := b.BeginUploadNew(ctx, fileBase, int64(len(fileData)), "text/plain", "late-file.txt")
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.UploadChunk(ctx, uploadSession, fileData, 0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// End the upload linked to the document edit session.
+	// This succeeds because the edit session is still active.
+	errE = b.EndEditDocumentUpload(ctx, uploadSession, session)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Now discard the document edit session.
+	errE = b.EndEditDocument(ctx, session, true)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Wait for document edit session to complete as discarded.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, sessionEnded, completeMetadata, errE := b.GetEditDocumentSession(ctx, session)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		assert.True(c, sessionEnded)
+		if assert.NotNil(c, completeMetadata) {
+			assert.True(c, completeMetadata.Discarded)
+		}
+	}, 30*time.Second, 100*time.Millisecond)
+
+	// Wait for the upload session to complete. With the document session already discarded,
+	// the upload completion either:
+	// a) Ran before the document session discard: inserted the file into the changeset
+	//    (completeMetadata has Discarded=false with an ID, but the changeset was later discarded).
+	// b) Ran after the document session discard: found the primary session already ended
+	//    and completed as discarded (completeMetadata has Discarded=true).
+	// In both cases the file is never committed to the main view.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, completeMetadata, errE := b.GetUploadSession(ctx, uploadSession)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		assert.NotNil(c, completeMetadata)
+	}, 30*time.Second, 100*time.Millisecond)
+
+	// The file should not be in the main view.
+	expectedBase := append(append([]string{}, fileBase...), "STORAGE", uploadSession.String())
+	expectedFileID := identifier.From(expectedBase...)
+	_, _, _, _, errE = b.GetFileLatest(ctx, expectedFileID) //nolint:dogsled
+	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+
+	// The file should not be accessible through the changeset either (changeset was discarded).
+	changesetBase := append(append([]string{}, doc.Base...), "SESSION", session.String())
+	changesetID := identifier.From(changesetBase...)
+	_, _, _, _, errE = b.GetFileFromChangeset(ctx, changesetID, expectedFileID, 0) //nolint:dogsled
+	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+
+	// Discarding the upload session should return ErrAlreadyEnded since it was already ended.
+	errE = b.DiscardUpload(ctx, uploadSession)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 }
 
