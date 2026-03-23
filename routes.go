@@ -48,8 +48,16 @@ func (s *Service) setRoutes() { //nolint:maintidx
 				},
 			},
 		},
-		"SearchAmountFilter": {
+		"SearchAmountFilterWithUnit": {
 			Path: "/s/filters/:id/amount/:prop/:unit",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.SearchAmountFilterGetAPI,
+				},
+			},
+		},
+		"SearchAmountFilter": {
+			Path: "/s/filters/:id/amount/:prop",
 			API: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{
 					http.MethodGet: s.SearchAmountFilterGetAPI,
@@ -61,14 +69,6 @@ func (s *Service) setRoutes() { //nolint:maintidx
 			API: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{
 					http.MethodGet: s.SearchTimeFilterGetAPI,
-				},
-			},
-		},
-		"SearchStringFilter": {
-			Path: "/s/filters/:id/string/:prop",
-			API: waf.RouteOptions{
-				Handlers: map[string]waf.Handler{
-					http.MethodGet: s.SearchStringFilterGetAPI,
 				},
 			},
 		},

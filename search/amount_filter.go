@@ -1,207 +1,46 @@
-// Package search provides search functionality including filters and result handling.
 package search
 
 import (
 	"context"
-	"math"
 	"strconv"
-	"time"
 
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
-	"gitlab.com/tozd/waf"
-
-	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/store"
 )
 
-const (
-	histogramBins = 100
-)
-
-//nolint:tagliatelle
-type minMaxAmountAggregations struct {
-	Filter struct {
-		Count int64 `json:"doc_count"`
-		Min   struct {
-			Value float64 `json:"value"`
-		} `json:"min"`
-		Max struct {
-			Value float64 `json:"value"`
-		} `json:"max"`
-		Discrete struct {
-			Value float64 `json:"value"`
-		} `json:"discrete"`
-	} `json:"filter"`
-}
-
-//nolint:tagliatelle
-type histogramAmountAggregations struct {
-	Filter struct {
-		Hist struct {
-			Buckets []struct {
-				Key  float64 `json:"key"`
-				Docs struct {
-					Count int64 `json:"doc_count"`
-				} `json:"docs"`
-			} `json:"buckets"`
-		} `json:"hist"`
-	} `json:"filter"`
-}
-
-// HistogramAmountResult represents count for a single amount bucket in an amount filter.
-type HistogramAmountResult struct {
-	Min   float64 `json:"min"`
-	Count int64   `json:"count"`
+// amountUnitFilter returns a query that matches the unit field.
+// If unit is provided, it matches the exact value. If nil, it matches documents where unit does not exist.
+func amountUnitFilter(unit *identifier.Identifier) elastic.Query { //nolint:ireturn
+	if unit != nil {
+		return elastic.NewTermQuery("claims.amount.unit", *unit)
+	}
+	return elastic.NewBoolQuery().MustNot(elastic.NewExistsQuery("claims.amount.unit"))
 }
 
 // AmountFilterGet retrieves amount filter data for search results.
 func AmountFilterGet(
-	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier, unit string,
-) ([]HistogramAmountResult, map[string]interface{}, errors.E) {
-	metrics := waf.MustGetMetrics(ctx)
-
-	if !document.ValidAmountUnit(unit) {
-		return nil, nil, errors.Errorf(`%w: "unit" is not a valid unit`, ErrValidationFailed)
-	}
-	if unit == "@" {
-		return nil, nil, errors.Errorf(`%w: "unit" cannot be "@"`, ErrValidationFailed)
-	}
-
-	m := metrics.Duration(store.MetricSearchSession).Start()
-	searchSession, errE := GetSession(ctx, id)
-	m.Stop()
-	if errE != nil {
-		return nil, nil, errE
-	}
-
-	query := searchSession.ToQuery()
-
-	minMaxSearchService, _ := getSearchService()
-	minMaxAggregation := elastic.NewNestedAggregation().Path("claims.amount").SubAggregation(
-		"filter",
-		elastic.NewFilterAggregation().Filter(
-			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("claims.amount.prop.id", prop),
-			).Must(
-				elastic.NewTermQuery("claims.amount.unit", unit),
-			),
-		).SubAggregation(
-			"min",
-			elastic.NewMinAggregation().Field("claims.amount.amount"),
-		).SubAggregation(
-			"max",
-			elastic.NewMaxAggregation().Field("claims.amount.amount"),
-		).SubAggregation(
-			"discrete",
-			// We want to know if all values are discrete (integers). They are if the sum is zero.
-			elastic.NewSumAggregation().Script(
-				// TODO: Use a runtime field.
-				//       See: https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-aggregations-metrics-cardinality-aggregation.html#_script_4
-				elastic.NewScript("return Math.abs(doc['claims.amount.amount'].value - Math.floor(doc['claims.amount.amount'].value))"),
-			),
-		),
+	ctx context.Context, getSearchService func() (*elastic.SearchService, int64, int64), id, prop identifier.Identifier, unit *identifier.Identifier,
+) ([]HistogramResult[float64], map[string]interface{}, errors.E) {
+	filter := elastic.NewBoolQuery().Must(
+		elastic.NewTermQuery("claims.amount.prop", prop),
+		amountUnitFilter(unit),
 	)
-	minMaxSearchService = minMaxSearchService.Size(0).Query(query).Aggregation("minMax", minMaxAggregation)
-
-	m = metrics.Duration(store.MetricElasticSearch1).Start()
-	res, err := minMaxSearchService.Do(ctx)
-	m.Stop()
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
-	}
-	metrics.Duration(store.MetricElasticSearchInternal1).Duration = time.Duration(res.TookInMillis) * time.Millisecond
-
-	m = metrics.Duration(store.MetricJSONUnmarshal1).Start()
-	var minMax minMaxAmountAggregations
-	errE = x.Unmarshal(res.Aggregations["minMax"], &minMax)
-	m.Stop()
-	if errE != nil {
-		return nil, nil, errE
-	}
-
-	var minValue, interval float64
-	if minMax.Filter.Count == 0 {
-		return make([]HistogramAmountResult, 0), map[string]interface{}{
-			"total": 0,
-		}, nil
-	} else if minMax.Filter.Min.Value == minMax.Filter.Max.Value {
-		minValue = minMax.Filter.Min.Value
-		interval = math.Nextafter(minMax.Filter.Min.Value, minMax.Filter.Min.Value+1)
-	} else if minMax.Filter.Discrete.Value == 0 && minMax.Filter.Max.Value-minMax.Filter.Min.Value < histogramBins {
-		// A special case when there is less than histogramBins of discrete values. In this case we do
-		// not want to sample empty bins between values (but prefer to draw wider lines in a histogram).
-		minValue = minMax.Filter.Min.Value
-		interval = 1
-	} else {
-		minValue = minMax.Filter.Min.Value
-		maxValue := math.Nextafter(minMax.Filter.Max.Value, minMax.Filter.Max.Value+1)
-		interval = (maxValue - minValue) / histogramBins
-		interval2 := (minMax.Filter.Max.Value - minMax.Filter.Min.Value) / float64(histogramBins)
-		if interval == interval2 {
-			interval = math.Nextafter(interval2, interval2+1)
-		}
-	}
-
-	histogramSearchService, _ := getSearchService()
-	histogramAggregation := elastic.NewNestedAggregation().Path("claims.amount").SubAggregation(
-		"filter",
-		elastic.NewFilterAggregation().Filter(
-			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("claims.amount.prop.id", prop),
-			).Must(
-				elastic.NewTermQuery("claims.amount.unit", unit),
-			),
-		).SubAggregation(
-			"hist",
-			elastic.NewHistogramAggregation().Field("claims.amount.amount").Offset(minValue).Interval(interval).SubAggregation(
-				"docs",
-				elastic.NewReverseNestedAggregation(),
-			),
-		),
+	return histogramFilterGet(
+		ctx, getSearchService, id,
+		"claims.amount", filter,
+		"claims.amount.from", "claims.amount.to", "claims.amount.range",
+		func(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) },
+		func(from, to float64) (map[string]histogramRange[float64], string) {
+			interval := (to - from) / float64(histogramBins)
+			ranges := make(map[string]histogramRange[float64], histogramBins)
+			for i := range histogramBins {
+				ranges[strconv.Itoa(i)] = histogramRange[float64]{
+					From: from + float64(i)*interval,
+					To:   from + float64(i+1)*interval,
+				}
+			}
+			return ranges, strconv.FormatFloat(interval, 'f', -1, 64)
+		},
 	)
-	histogramSearchService = histogramSearchService.Size(0).Query(query).Aggregation("histogram", histogramAggregation)
-
-	m = metrics.Duration(store.MetricElasticSearch2).Start()
-	res, err = histogramSearchService.Do(ctx)
-	m.Stop()
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
-	}
-	metrics.Duration(store.MetricElasticSearchInternal2).Duration = time.Duration(res.TookInMillis) * time.Millisecond
-
-	m = metrics.Duration(store.MetricJSONUnmarshal2).Start()
-	var histogram histogramAmountAggregations
-	errE = x.Unmarshal(res.Aggregations["histogram"], &histogram)
-	m.Stop()
-	if errE != nil {
-		return nil, nil, errE
-	}
-
-	results := make([]HistogramAmountResult, len(histogram.Filter.Hist.Buckets))
-	for i, bucket := range histogram.Filter.Hist.Buckets {
-		results[i] = HistogramAmountResult{
-			Min:   bucket.Key,
-			Count: bucket.Docs.Count,
-		}
-	}
-
-	total := strconv.Itoa(len(results))
-	intervalString := strconv.FormatFloat(interval, 'f', -1, 64)
-	minString := strconv.FormatFloat(minMax.Filter.Min.Value, 'f', -1, 64)
-	maxString := strconv.FormatFloat(minMax.Filter.Max.Value, 'f', -1, 64)
-
-	metadata := map[string]interface{}{
-		"total": total,
-		"min":   minString,
-		"max":   maxString,
-	}
-
-	if minMax.Filter.Min.Value != minMax.Filter.Max.Value {
-		metadata["interval"] = intervalString
-	}
-
-	return results, metadata, nil
 }

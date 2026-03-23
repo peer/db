@@ -11,7 +11,7 @@ import (
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
-	"gitlab.com/peerdb/peerdb/internal/store"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 type filteredTermAggregations struct {
@@ -25,14 +25,12 @@ type RelFilterResult struct {
 }
 
 // RelFilterGet retrieves relation filter data for search results.
-//
-//nolint:dupl
 func RelFilterGet(
-	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier,
+	ctx context.Context, getSearchService func() (*elastic.SearchService, int64, int64), id, prop identifier.Identifier,
 ) ([]RelFilterResult, map[string]interface{}, errors.E) {
 	metrics := waf.MustGetMetrics(ctx)
 
-	m := metrics.Duration(store.MetricSearchSession).Start()
+	m := metrics.Duration(internalStore.MetricSearchSession).Start()
 	searchSession, errE := GetSession(ctx, id)
 	m.Stop()
 	if errE != nil {
@@ -41,14 +39,14 @@ func RelFilterGet(
 
 	query := searchSession.ToQuery()
 
-	searchService, _ := getSearchService()
+	searchService, _, _ := getSearchService()
 	aggregation := elastic.NewNestedAggregation().Path("claims.rel").SubAggregation(
 		"filter",
 		elastic.NewFilterAggregation().Filter(
-			elastic.NewTermQuery("claims.rel.prop.id", prop),
+			elastic.NewTermQuery("claims.rel.prop", prop),
 		).SubAggregation(
 			"props",
-			elastic.NewTermsAggregation().Field("claims.rel.to.id").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
+			elastic.NewTermsAggregation().Field("claims.rel.to").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
 				"docs",
 				elastic.NewReverseNestedAggregation(),
 			),
@@ -57,20 +55,20 @@ func RelFilterGet(
 			// Cardinality aggregation returns the count of all buckets. 40000 is the maximum precision threshold,
 			// so we use it to get the most accurate approximation. For now we didn't notice any performance issues
 			// at data scale PeerDB is currently being used with, but in the future we might want to make this configurable.
-			elastic.NewCardinalityAggregation().Field("claims.rel.to.id").PrecisionThreshold(40000), //nolint:mnd
+			elastic.NewCardinalityAggregation().Field("claims.rel.to").PrecisionThreshold(40000), //nolint:mnd
 		),
 	)
 	searchService = searchService.Size(0).Query(query).Aggregation("rel", aggregation)
 
-	m = metrics.Duration(store.MetricElasticSearch).Start()
+	m = metrics.Duration(internalStore.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	metrics.Duration(store.MetricElasticSearchInternal).Duration = time.Duration(res.TookInMillis) * time.Millisecond
+	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
-	m = metrics.Duration(store.MetricJSONUnmarshal).Start()
+	m = metrics.Duration(internalStore.MetricJSONUnmarshal).Start()
 	var rel filteredTermAggregations
 	errE = x.Unmarshal(res.Aggregations["rel"], &rel)
 	m.Stop()

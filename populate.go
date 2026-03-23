@@ -139,6 +139,7 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 			RiverClient:      nil,
 			initialized:      false,
 			propertiesTotal:  0,
+			unitsTotal:       0,
 		}}
 	}
 

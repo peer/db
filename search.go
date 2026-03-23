@@ -14,7 +14,7 @@ import (
 	"gitlab.com/peerdb/peerdb/search"
 )
 
-func (s *Service) getSearchService(req *http.Request) (*elastic.SearchService, int64) {
+func (s *Service) getSearchService(req *http.Request) (*elastic.SearchService, int64, int64) {
 	ctx := req.Context()
 
 	site := waf.MustGetSite[*Site](ctx)
@@ -22,11 +22,11 @@ func (s *Service) getSearchService(req *http.Request) (*elastic.SearchService, i
 	// We set TrackTotalHits to true to always get exact number of results. For now we didn't notice any performance
 	// issues at data scale PeerDB is currently being used with, but in the future we might want to make this configurable.
 	return site.ESClient.Search(site.Index).FetchSource(false).Preference(getHost(req.RemoteAddr)).
-		Header("X-Opaque-ID", waf.MustRequestID(ctx).String()).TrackTotalHits(true).AllowPartialSearchResults(false), site.propertiesTotal
+		Header("X-Opaque-ID", waf.MustRequestID(ctx).String()).TrackTotalHits(true).AllowPartialSearchResults(false), site.propertiesTotal, site.unitsTotal
 }
 
-func (s *Service) getSearchServiceClosure(req *http.Request) func() (*elastic.SearchService, int64) {
-	return func() (*elastic.SearchService, int64) {
+func (s *Service) getSearchServiceClosure(req *http.Request) func() (*elastic.SearchService, int64, int64) {
+	return func() (*elastic.SearchService, int64, int64) {
 		return s.getSearchService(req)
 	}
 }
@@ -45,7 +45,17 @@ func (s *Service) SearchAmountFilterGetAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	data, metadata, errE := search.AmountFilterGet(req.Context(), s.getSearchServiceClosure(req), id, prop, params["unit"])
+	var unit *identifier.Identifier
+	if unitStr, ok := params["unit"]; ok {
+		u, errE := identifier.MaybeString(unitStr)
+		if errE != nil {
+			s.BadRequestWithError(w, req, errors.WithMessage(errE, `"unit" is not a valid identifier`))
+			return
+		}
+		unit = &u
+	}
+
+	data, metadata, errE := search.AmountFilterGet(req.Context(), s.getSearchServiceClosure(req), id, prop, unit)
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -77,37 +87,6 @@ func (s *Service) SearchRelFilterGetAPI(w http.ResponseWriter, req *http.Request
 	}
 
 	data, metadata, errE := search.RelFilterGet(req.Context(), s.getSearchServiceClosure(req), id, prop)
-	if errors.Is(errE, search.ErrNotFound) {
-		s.NotFoundWithError(w, req, errE)
-		return
-	} else if errors.Is(errE, search.ErrValidationFailed) {
-		s.BadRequestWithError(w, req, errE)
-		return
-	} else if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
-		return
-	}
-
-	s.WriteJSON(w, req, data, metadata)
-}
-
-// SearchStringFilterGetAPI handles GET requests for string filter search endpoints.
-//
-//nolint:dupl
-func (s *Service) SearchStringFilterGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	id, errE := identifier.MaybeString(params["id"])
-	if errE != nil {
-		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
-		return
-	}
-
-	prop, errE := identifier.MaybeString(params["prop"])
-	if errE != nil {
-		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"prop" is not a valid identifier`))
-		return
-	}
-
-	data, metadata, errE := search.StringFilterGet(req.Context(), s.getSearchServiceClosure(req), id, prop)
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return

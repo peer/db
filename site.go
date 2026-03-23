@@ -46,8 +46,9 @@ type Site struct {
 
 	initialized bool
 
-	// TODO: How to keep propertiesTotal in sync with the number of properties available, if they are added or removed after initialization?
+	// TODO: How to keep propertiesTotal and unitsTotal in sync with the number of properties and units available, if they are added or removed after initialization?
 	propertiesTotal int64
+	unitsTotal      int64
 }
 
 // Decode implements kong.MapperValue to decode Site from JSON/YAML configuration.
@@ -164,11 +165,22 @@ func (s *Site) updatePropertiesTotal(_ context.Context, documents []*document.D)
 	return nil
 }
 
+func (s *Site) updateUnitsTotal(_ context.Context, documents []*document.D) errors.E {
+	// TODO: Limit really only to units.
+	s.unitsTotal = int64(len(documents))
+	return nil
+}
+
 // Start starts the base for the site.
 //
 // You have to call this or PopulateAndStart for each site after Init.
 func (s *Site) Start(ctx context.Context, documents []*document.D) errors.E {
 	errE := s.updatePropertiesTotal(ctx, documents)
+	if errE != nil {
+		return errE
+	}
+
+	errE = s.updateUnitsTotal(ctx, documents)
 	if errE != nil {
 		return errE
 	}
@@ -182,6 +194,11 @@ func (s *Site) Start(ctx context.Context, documents []*document.D) errors.E {
 // You have to call this or Start for each site after Init.
 func (s *Site) PopulateAndStart(ctx context.Context, documents []*document.D, progress func(doc *document.D)) errors.E {
 	errE := s.updatePropertiesTotal(ctx, documents)
+	if errE != nil {
+		return errE
+	}
+
+	errE = s.updateUnitsTotal(ctx, documents)
 	if errE != nil {
 		return errE
 	}

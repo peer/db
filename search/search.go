@@ -11,8 +11,8 @@ import (
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
-	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/store"
+	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 const (
@@ -49,11 +49,11 @@ func (f RelFilter) Valid() errors.E {
 
 // AmountFilter represents a filter for amount claims.
 type AmountFilter struct {
-	Prop identifier.Identifier `json:"prop"`
-	Unit *document.AmountUnit  `json:"unit,omitempty"`
-	Gte  *float64              `json:"gte,omitempty"`
-	Lte  *float64              `json:"lte,omitempty"`
-	None bool                  `json:"none,omitempty"`
+	Prop identifier.Identifier  `json:"prop"`
+	Unit *identifier.Identifier `json:"unit,omitempty"`
+	Gte  *float64               `json:"gte,omitempty"`
+	Lte  *float64               `json:"lte,omitempty"`
+	None bool                   `json:"none,omitempty"`
 }
 
 // Valid validates the AmountFilter to ensure it has a valid configuration.
@@ -77,8 +77,8 @@ func (f AmountFilter) Valid() errors.E {
 // TimeFilter represents a filter for time claims.
 type TimeFilter struct {
 	Prop identifier.Identifier `json:"prop"`
-	Gte  *document.Timestamp   `json:"gte,omitempty"`
-	Lte  *document.Timestamp   `json:"lte,omitempty"`
+	Gte  *int64                `json:"gte,omitempty"`
+	Lte  *int64                `json:"lte,omitempty"`
 	None bool                  `json:"none,omitempty"`
 }
 
@@ -96,24 +96,6 @@ func (f TimeFilter) Valid() errors.E {
 	return nil
 }
 
-// StringFilter represents a filter for string claims.
-type StringFilter struct {
-	Prop identifier.Identifier `json:"prop"`
-	Str  string                `json:"str,omitempty"`
-	None bool                  `json:"none,omitempty"`
-}
-
-// Valid validates the StringFilter to ensure it has a valid configuration.
-func (f StringFilter) Valid() errors.E {
-	if f.Str == "" && !f.None {
-		return errors.New("str or none has to be set")
-	}
-	if f.Str != "" && f.None {
-		return errors.New("str and none cannot be both set")
-	}
-	return nil
-}
-
 // Filters represents a collection of search filters.
 type Filters struct {
 	And    []Filters     `json:"and,omitempty"`
@@ -122,7 +104,6 @@ type Filters struct {
 	Rel    *RelFilter    `json:"rel,omitempty"`
 	Amount *AmountFilter `json:"amount,omitempty"`
 	Time   *TimeFilter   `json:"time,omitempty"`
-	Str    *StringFilter `json:"str,omitempty"`
 }
 
 // Valid validates the Filters to ensure it has a valid configuration.
@@ -174,13 +155,6 @@ func (f Filters) Valid() errors.E {
 			return err
 		}
 	}
-	if f.Str != nil {
-		nonEmpty++
-		err := f.Str.Valid()
-		if err != nil {
-			return err
-		}
-	}
 	if nonEmpty > 1 {
 		return errors.New("only one clause can be set")
 	} else if nonEmpty == 0 {
@@ -214,14 +188,14 @@ func (f Filters) ToQuery() elastic.Query { //nolint:ireturn
 		if f.Rel.None {
 			return elastic.NewBoolQuery().MustNot(
 				elastic.NewNestedQuery("claims.rel",
-					elastic.NewTermQuery("claims.rel.prop.id", f.Rel.Prop),
+					elastic.NewTermQuery("claims.rel.prop", f.Rel.Prop),
 				),
 			)
 		}
 		return elastic.NewNestedQuery("claims.rel",
 			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("claims.rel.prop.id", f.Rel.Prop),
-				elastic.NewTermQuery("claims.rel.to.id", f.Rel.Value),
+				elastic.NewTermQuery("claims.rel.prop", f.Rel.Prop),
+				elastic.NewTermQuery("claims.rel.to", f.Rel.Value),
 			),
 		)
 	}
@@ -229,62 +203,47 @@ func (f Filters) ToQuery() elastic.Query { //nolint:ireturn
 		if f.Amount.None {
 			return elastic.NewBoolQuery().MustNot(
 				elastic.NewNestedQuery("claims.amount",
-					elastic.NewBoolQuery().Must(
-						elastic.NewTermQuery("claims.amount.prop.id", f.Amount.Prop),
-						elastic.NewTermQuery("claims.amount.unit", *f.Amount.Unit),
-					),
+					elastic.NewTermQuery("claims.amount.prop", f.Amount.Prop),
 				),
 			)
 		}
-		r := elastic.NewRangeQuery("claims.amount.amount")
+		r := elastic.NewRangeQuery("claims.amount.range")
 		if f.Amount.Lte != nil {
 			r.Lte(*f.Amount.Lte)
 		}
 		if f.Amount.Gte != nil {
 			r.Gte(*f.Amount.Gte)
 		}
+		must := []elastic.Query{
+			elastic.NewTermQuery("claims.amount.prop", f.Amount.Prop),
+			r,
+		}
+		if f.Amount.Unit != nil {
+			must = append(must, elastic.NewTermQuery("claims.amount.unit", f.Amount.Unit))
+		}
 		return elastic.NewNestedQuery("claims.amount",
-			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("claims.amount.prop.id", f.Amount.Prop),
-				elastic.NewTermQuery("claims.amount.unit", *f.Amount.Unit),
-				r,
-			),
+			elastic.NewBoolQuery().Must(must...),
 		)
 	}
 	if f.Time != nil {
 		if f.Time.None {
 			return elastic.NewBoolQuery().MustNot(
 				elastic.NewNestedQuery("claims.time",
-					elastic.NewTermQuery("claims.time.prop.id", f.Time.Prop),
+					elastic.NewTermQuery("claims.time.prop", f.Time.Prop),
 				),
 			)
 		}
-		r := elastic.NewRangeQuery("claims.time.timestamp")
+		r := elastic.NewRangeQuery("claims.time.range")
 		if f.Time.Lte != nil {
-			r.Lte(f.Time.Lte.String())
+			r.Lte(*f.Time.Lte)
 		}
 		if f.Time.Gte != nil {
-			r.Gte(f.Time.Gte.String())
+			r.Gte(*f.Time.Gte)
 		}
 		return elastic.NewNestedQuery("claims.time",
 			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("claims.time.prop.id", f.Time.Prop),
+				elastic.NewTermQuery("claims.time.prop", f.Time.Prop),
 				r,
-			),
-		)
-	}
-	if f.Str != nil {
-		if f.Str.None {
-			return elastic.NewBoolQuery().MustNot(
-				elastic.NewNestedQuery("claims.string",
-					elastic.NewTermQuery("claims.string.prop.id", f.Str.Prop),
-				),
-			)
-		}
-		return elastic.NewNestedQuery("claims.string",
-			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("claims.string.prop.id", f.Str.Prop),
-				elastic.NewTermQuery("claims.string.string", f.Str.Str),
 			),
 		)
 	}
@@ -311,6 +270,7 @@ func (s *Session) Validate(_ context.Context, existing *Session) errors.E {
 			errors.Details(errE)["id"] = *s.ID
 			return errE
 		}
+		// TODO: Compute ID using identifier.From and store what was used to compute it.
 		id := identifier.New()
 		s.ID = &id
 	} else if s.ID == nil {
@@ -371,15 +331,23 @@ func documentTextSearchQuery(searchQuery, defaultOperator string) elastic.Query 
 
 	if searchQuery != "" {
 		bq.Should(elastic.NewTermQuery("id", searchQuery))
-		for _, field := range []field{
-			{"claims.id", "id"},
+		for _, f := range []field{
+			{"claims.id", "value"},
 			{"claims.ref", "iri"},
-			{"claims.text", "html.en"},
-			{"claims.string", "string"},
 		} {
 			// TODO: Can we use simple query for keyword fields? Which analyzer is used?
-			q := elastic.NewSimpleQueryStringQuery(searchQuery).Field(field.Prefix + "." + field.Field).DefaultOperator(defaultOperator)
-			bq.Should(elastic.NewNestedQuery(field.Prefix, q))
+			q := elastic.NewSimpleQueryStringQuery(searchQuery).Field(f.Prefix + "." + f.Field).DefaultOperator(defaultOperator)
+			bq.Should(elastic.NewNestedQuery(f.Prefix, q))
+		}
+		// Search string and HTML claims across all supported languages.
+		for _, f := range []field{
+			{"claims.string", "string"},
+			{"claims.html", "html"},
+		} {
+			for lang := range internalSearch.SupportedLanguages {
+				q := elastic.NewSimpleQueryStringQuery(searchQuery).Field(f.Prefix + "." + f.Field + "." + lang).DefaultOperator(defaultOperator)
+				bq.Should(elastic.NewNestedQuery(f.Prefix, q))
+			}
 		}
 	}
 
@@ -478,22 +446,24 @@ type Result struct {
 }
 
 // ResultsGet retrieves search results for a given search session.
-func ResultsGet(ctx context.Context, getSearchService func() (*elastic.SearchService, int64), searchSession *Session) ([]Result, map[string]interface{}, errors.E) {
+func ResultsGet(
+	ctx context.Context, getSearchService func() (*elastic.SearchService, int64, int64), searchSession *Session,
+) ([]Result, map[string]interface{}, errors.E) {
 	metrics := waf.MustGetMetrics(ctx)
 
 	query := searchSession.ToQuery()
 
-	searchService, _ := getSearchService()
+	searchService, _, _ := getSearchService()
 
 	searchService = searchService.From(0).Size(MaxResultsCount).Query(query)
 
-	m := metrics.Duration(store.MetricElasticSearch).Start()
+	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	metrics.Duration(store.MetricElasticSearchInternal).Duration = time.Duration(res.TookInMillis) * time.Millisecond
+	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
 	results := make([]Result, len(res.Hits.Hits))
 	for i, hit := range res.Hits.Hits {

@@ -11,8 +11,7 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/waf"
 
-	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/store"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 //nolint:tagliatelle
@@ -31,20 +30,18 @@ type termAggregations struct {
 }
 
 //nolint:tagliatelle
-type filteredMultiTermAggregations struct {
-	Filter struct {
-		Props struct {
-			Buckets []struct {
-				Key  []string `json:"key"`
-				Docs struct {
-					Count int64 `json:"doc_count"`
-				} `json:"docs"`
-			} `json:"buckets"`
-		} `json:"props"`
-		Total struct {
-			Value int64 `json:"value"`
-		} `json:"total"`
-	} `json:"filter"`
+type multiTermAggregations struct {
+	Props struct {
+		Buckets []struct {
+			Key  []string `json:"key"`
+			Docs struct {
+				Count int64 `json:"doc_count"`
+			} `json:"docs"`
+		} `json:"buckets"`
+	} `json:"props"`
+	Total struct {
+		Value int64 `json:"value"`
+	} `json:"total"`
 }
 
 // FilterResult describes an available filter as an union of possible fields for each supported filter type.
@@ -57,16 +54,16 @@ type FilterResult struct {
 
 // FiltersGet retrieves all available filters for the current search.
 func FiltersGet(
-	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), searchSession *Session,
+	ctx context.Context, getSearchService func() (*elastic.SearchService, int64, int64), searchSession *Session,
 ) ([]FilterResult, map[string]interface{}, errors.E) {
 	metrics := waf.MustGetMetrics(ctx)
 
 	query := searchSession.ToQuery()
 
-	searchService, propertiesTotal := getSearchService()
+	searchService, propertiesTotal, unitsTotal := getSearchService()
 	relAggregation := elastic.NewNestedAggregation().Path("claims.rel").SubAggregation(
 		"props",
-		elastic.NewTermsAggregation().Field("claims.rel.prop.id").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
+		elastic.NewTermsAggregation().Field("claims.rel.prop").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
 			"docs",
 			elastic.NewReverseNestedAggregation(),
 		),
@@ -74,33 +71,35 @@ func FiltersGet(
 		"total",
 		// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
 		// so we set precision threshold to twice as much to try to always get precise counts.
-		elastic.NewCardinalityAggregation().Field("claims.rel.prop.id").PrecisionThreshold(2*propertiesTotal), //nolint:mnd
+		elastic.NewCardinalityAggregation().Field("claims.rel.prop").PrecisionThreshold(2*propertiesTotal), //nolint:mnd
 	)
 	amountAggregation := elastic.NewNestedAggregation().Path("claims.amount").SubAggregation(
-		"filter",
-		elastic.NewFilterAggregation().Filter(
-			elastic.NewBoolQuery().MustNot(elastic.NewTermQuery("claims.amount.unit", "@")),
-		).SubAggregation(
-			"props",
-			elastic.NewMultiTermsAggregation().Terms("claims.amount.prop.id", "claims.amount.unit").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
-				"docs",
-				elastic.NewReverseNestedAggregation(),
-			),
-		).SubAggregation(
-			"total",
-			// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal*AmountUnitsTotal,
-			// so we set precision threshold to twice as much to try to always get precise counts.
-			// TODO: Use a runtime field.
-			//       See: https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-aggregations-metrics-cardinality-aggregation.html#_script_4
-			elastic.NewCardinalityAggregation().Script(
-				// We use "|" as separator because this is used by ElasticSearch in "key_as_string" as well.
-				elastic.NewScript("return doc['claims.amount.prop.id'].value + '|' + doc['claims.amount.unit'].value"),
-			).PrecisionThreshold(2*propertiesTotal*int64(document.AmountUnitsTotal)),
+		"props",
+		elastic.NewMultiTermsAggregation().MultiTerms(
+			elastic.MultiTerm{Field: "claims.amount.prop", Missing: nil},
+			// Units are document IDs, so valid units can never be string "__missing__".
+			elastic.MultiTerm{Field: "claims.amount.unit", Missing: "__missing__"},
+		).Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
+			"docs",
+			elastic.NewReverseNestedAggregation(),
 		),
+	).SubAggregation(
+		"total",
+		// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal*unitsTotal,
+		// so we set precision threshold to twice as much to try to always get precise counts.
+		// TODO: Use a runtime field.
+		//       See: https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-aggregations-metrics-cardinality-aggregation.html#_script_4
+		elastic.NewCardinalityAggregation().Script(
+			// We use "|" as separator because this is used by ElasticSearch in "key_as_string" as well.
+			// When unit is missing, "__missing__" is used as placeholder.
+			elastic.NewScript(
+				`return doc['claims.amount.prop'].value + '|' + (doc['claims.amount.unit'].size() > 0 ? doc['claims.amount.unit'].value : '__missing__')`,
+			),
+		).PrecisionThreshold(2*propertiesTotal*unitsTotal),
 	)
 	timeAggregation := elastic.NewNestedAggregation().Path("claims.time").SubAggregation(
 		"props",
-		elastic.NewTermsAggregation().Field("claims.time.prop.id").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
+		elastic.NewTermsAggregation().Field("claims.time.prop").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
 			"docs",
 			elastic.NewReverseNestedAggregation(),
 		),
@@ -108,42 +107,29 @@ func FiltersGet(
 		"total",
 		// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
 		// so we set precision threshold to twice as much to try to always get precise counts.
-		elastic.NewCardinalityAggregation().Field("claims.time.prop.id").PrecisionThreshold(2*propertiesTotal), //nolint:mnd
-	)
-	stringAggregation := elastic.NewNestedAggregation().Path("claims.string").SubAggregation(
-		"props",
-		elastic.NewTermsAggregation().Field("claims.string.prop.id").Size(MaxResultsCount).OrderByAggregation("docs", false).SubAggregation(
-			"docs",
-			elastic.NewReverseNestedAggregation(),
-		),
-	).SubAggregation(
-		"total",
-		// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
-		// so we set precision threshold to twice as much to try to always get precise counts.
-		elastic.NewCardinalityAggregation().Field("claims.string.prop.id").PrecisionThreshold(2*propertiesTotal), //nolint:mnd
+		elastic.NewCardinalityAggregation().Field("claims.time.prop").PrecisionThreshold(2*propertiesTotal), //nolint:mnd
 	)
 	searchService = searchService.Size(0).Query(query).
 		Aggregation("rel", relAggregation).
 		Aggregation("amount", amountAggregation).
-		Aggregation("time", timeAggregation).
-		Aggregation("string", stringAggregation)
+		Aggregation("time", timeAggregation)
 
-	m := metrics.Duration(store.MetricElasticSearch).Start()
+	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	metrics.Duration(store.MetricElasticSearchInternal).Duration = time.Duration(res.TookInMillis) * time.Millisecond
+	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.TookInMillis) * time.Millisecond
 
-	m = metrics.Duration(store.MetricJSONUnmarshal).Start()
+	m = metrics.Duration(internalStore.MetricJSONUnmarshal).Start()
 	var rel termAggregations
 	errE := x.Unmarshal(res.Aggregations["rel"], &rel)
 	if errE != nil {
 		m.Stop()
 		return nil, nil, errE
 	}
-	var amount filteredMultiTermAggregations
+	var amount multiTermAggregations
 	errE = x.Unmarshal(res.Aggregations["amount"], &amount)
 	if errE != nil {
 		m.Stop()
@@ -155,15 +141,9 @@ func FiltersGet(
 		m.Stop()
 		return nil, nil, errE
 	}
-	var str termAggregations
-	errE = x.Unmarshal(res.Aggregations["string"], &str)
-	if errE != nil {
-		m.Stop()
-		return nil, nil, errE
-	}
 	m.Stop()
 
-	results := make([]FilterResult, len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+len(str.Props.Buckets))
+	results := make([]FilterResult, len(rel.Props.Buckets)+len(amount.Props.Buckets)+len(timeA.Props.Buckets))
 	for i, bucket := range rel.Props.Buckets {
 		results[i] = FilterResult{
 			ID:    bucket.Key,
@@ -172,27 +152,23 @@ func FiltersGet(
 			Unit:  "",
 		}
 	}
-	for i, bucket := range amount.Filter.Props.Buckets {
+	for i, bucket := range amount.Props.Buckets {
+		unit := bucket.Key[1]
+		if unit == "__missing__" {
+			unit = ""
+		}
 		results[len(rel.Props.Buckets)+i] = FilterResult{
 			ID:    bucket.Key[0],
 			Count: bucket.Docs.Count,
 			Type:  "amount",
-			Unit:  bucket.Key[1],
+			Unit:  unit,
 		}
 	}
 	for i, bucket := range timeA.Props.Buckets {
-		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+i] = FilterResult{
+		results[len(rel.Props.Buckets)+len(amount.Props.Buckets)+i] = FilterResult{
 			ID:    bucket.Key,
 			Count: bucket.Docs.Count,
 			Type:  "time",
-			Unit:  "",
-		}
-	}
-	for i, bucket := range str.Props.Buckets {
-		results[len(rel.Props.Buckets)+len(amount.Filter.Props.Buckets)+len(timeA.Props.Buckets)+i] = FilterResult{
-			ID:    bucket.Key,
-			Count: bucket.Docs.Count,
-			Type:  "string",
 			Unit:  "",
 		}
 	}
@@ -216,16 +192,13 @@ func FiltersGet(
 	if int64(len(rel.Props.Buckets)) > rel.Total.Value {
 		rel.Total.Value = int64(len(rel.Props.Buckets))
 	}
-	if int64(len(amount.Filter.Props.Buckets)) > amount.Filter.Total.Value {
-		amount.Filter.Total.Value = int64(len(amount.Filter.Props.Buckets))
+	if int64(len(amount.Props.Buckets)) > amount.Total.Value {
+		amount.Total.Value = int64(len(amount.Props.Buckets))
 	}
 	if int64(len(timeA.Props.Buckets)) > timeA.Total.Value {
 		timeA.Total.Value = int64(len(timeA.Props.Buckets))
 	}
-	if int64(len(str.Props.Buckets)) > str.Total.Value {
-		str.Total.Value = int64(len(str.Props.Buckets))
-	}
-	total := strconv.FormatInt(rel.Total.Value+amount.Filter.Total.Value+timeA.Total.Value+str.Total.Value, 10)
+	total := strconv.FormatInt(rel.Total.Value+amount.Total.Value+timeA.Total.Value, 10)
 
 	return results, map[string]interface{}{
 		"total": total,

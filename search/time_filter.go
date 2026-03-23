@@ -2,172 +2,35 @@ package search
 
 import (
 	"context"
-	"fmt"
+	"math"
 	"strconv"
-	"time"
 
 	"github.com/olivere/elastic/v7"
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
-	"gitlab.com/tozd/waf"
-
-	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/store"
 )
-
-//nolint:tagliatelle
-type minMaxTimeAggregations struct {
-	Filter struct {
-		Count int64 `json:"doc_count"`
-		Min   struct {
-			Value document.Timestamp `json:"value_as_string"`
-		} `json:"min"`
-		Max struct {
-			Value document.Timestamp `json:"value_as_string"`
-		} `json:"max"`
-	} `json:"filter"`
-}
-
-//nolint:tagliatelle
-type histogramTimeAggregations struct {
-	Filter struct {
-		Hist struct {
-			Buckets []struct {
-				Key  document.Timestamp `json:"key_as_string"`
-				Docs struct {
-					Count int64 `json:"doc_count"`
-				} `json:"docs"`
-			} `json:"buckets"`
-		} `json:"hist"`
-	} `json:"filter"`
-}
-
-// HistogramTimeResult represents count for a single time bucket in a time filter.
-type HistogramTimeResult struct {
-	Min   document.Timestamp `json:"min"`
-	Count int64              `json:"count"`
-}
 
 // TimeFilterGet retrieves time filter data for search results.
 func TimeFilterGet(
-	ctx context.Context, getSearchService func() (*elastic.SearchService, int64), id, prop identifier.Identifier,
-) ([]HistogramTimeResult, map[string]interface{}, errors.E) {
-	metrics := waf.MustGetMetrics(ctx)
-
-	m := metrics.Duration(store.MetricSearchSession).Start()
-	searchSession, errE := GetSession(ctx, id)
-	m.Stop()
-	if errE != nil {
-		return nil, nil, errE
-	}
-
-	query := searchSession.ToQuery()
-
-	minMaxSearchService, _ := getSearchService()
-	minMaxAggregation := elastic.NewNestedAggregation().Path("claims.time").SubAggregation(
-		"filter",
-		elastic.NewFilterAggregation().Filter(
-			elastic.NewTermQuery("claims.time.prop.id", prop),
-		).SubAggregation(
-			"min",
-			elastic.NewMinAggregation().Field("claims.time.timestamp"),
-		).SubAggregation(
-			"max",
-			elastic.NewMaxAggregation().Field("claims.time.timestamp"),
-		),
+	ctx context.Context, getSearchService func() (*elastic.SearchService, int64, int64), id, prop identifier.Identifier,
+) ([]HistogramResult[int64], map[string]interface{}, errors.E) {
+	filter := elastic.NewTermQuery("claims.time.prop", prop)
+	return histogramFilterGet(
+		ctx, getSearchService, id,
+		"claims.time", filter,
+		"claims.time.from", "claims.time.to", "claims.time.range",
+		func(v int64) string { return strconv.FormatInt(v, 10) },
+		func(from, to int64) (map[string]histogramRange[int64], string) {
+			interval := int64(math.Ceil(float64(to-from) / float64(histogramBins)))
+			bins := int(math.Ceil(float64(to-from) / float64(interval)))
+			ranges := make(map[string]histogramRange[int64], bins)
+			for i := range bins {
+				ranges[strconv.Itoa(i)] = histogramRange[int64]{
+					From: from + int64(i)*interval,
+					To:   from + int64(i+1)*interval,
+				}
+			}
+			return ranges, strconv.FormatInt(interval, 10)
+		},
 	)
-	minMaxSearchService = minMaxSearchService.Size(0).Query(query).Aggregation("minMax", minMaxAggregation)
-
-	m = metrics.Duration(store.MetricElasticSearch1).Start()
-	res, err := minMaxSearchService.Do(ctx)
-	m.Stop()
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
-	}
-	metrics.Duration(store.MetricElasticSearchInternal1).Duration = time.Duration(res.TookInMillis) * time.Millisecond
-
-	m = metrics.Duration(store.MetricJSONUnmarshal1).Start()
-	var minMax minMaxTimeAggregations
-	errE = x.Unmarshal(res.Aggregations["minMax"], &minMax)
-	m.Stop()
-	if errE != nil {
-		return nil, nil, errE
-	}
-
-	// We use int64 and not time.Duration because it cannot hold durations we need.
-	// time.Duration stores durations as nanosecond, but we want seconds here.
-	// See: https://github.com/elastic/elasticsearch/issues/83101
-	var minValue, interval int64
-	if minMax.Filter.Count == 0 {
-		return make([]HistogramTimeResult, 0), map[string]interface{}{
-			"total": 0,
-		}, nil
-	} else if minMax.Filter.Min.Value == minMax.Filter.Max.Value {
-		minValue = time.Time(minMax.Filter.Min.Value).Unix()
-		interval = 1
-	} else {
-		minValue = time.Time(minMax.Filter.Min.Value).Unix()
-		maxValue := time.Time(minMax.Filter.Max.Value).Unix() + 1
-		interval = (maxValue - minValue) / histogramBins
-		interval2 := (time.Time(minMax.Filter.Max.Value).Unix() - minValue) / histogramBins
-		if interval == interval2 {
-			interval = interval2 + 1
-		}
-	}
-
-	offsetString := fmt.Sprintf("%ds", minValue)
-	intervalString := fmt.Sprintf("%ds", interval)
-	histogramSearchService, _ := getSearchService()
-	histogramAggregation := elastic.NewNestedAggregation().Path("claims.time").SubAggregation(
-		"filter",
-		elastic.NewFilterAggregation().Filter(
-			elastic.NewTermQuery("claims.time.prop.id", prop),
-		).SubAggregation(
-			"hist",
-			elastic.NewDateHistogramAggregation().Field("claims.time.timestamp").Offset(offsetString).FixedInterval(intervalString).SubAggregation(
-				"docs",
-				elastic.NewReverseNestedAggregation(),
-			),
-		),
-	)
-	histogramSearchService = histogramSearchService.Size(0).Query(query).Aggregation("histogram", histogramAggregation)
-
-	m = metrics.Duration(store.MetricElasticSearch2).Start()
-	res, err = histogramSearchService.Do(ctx)
-	m.Stop()
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
-	}
-	metrics.Duration(store.MetricElasticSearchInternal2).Duration = time.Duration(res.TookInMillis) * time.Millisecond
-
-	m = metrics.Duration(store.MetricJSONUnmarshal2).Start()
-	var histogram histogramTimeAggregations
-	errE = x.Unmarshal(res.Aggregations["histogram"], &histogram)
-	m.Stop()
-	if errE != nil {
-		return nil, nil, errE
-	}
-
-	results := make([]HistogramTimeResult, len(histogram.Filter.Hist.Buckets))
-	for i, bucket := range histogram.Filter.Hist.Buckets {
-		results[i] = HistogramTimeResult{
-			Min:   bucket.Key,
-			Count: bucket.Docs.Count,
-		}
-	}
-
-	total := strconv.Itoa(len(results))
-
-	metadata := map[string]interface{}{
-		"total": total,
-		"min":   minMax.Filter.Min.Value.String(),
-		"max":   minMax.Filter.Max.Value.String(),
-	}
-
-	if minMax.Filter.Min.Value != minMax.Filter.Max.Value {
-		metadata["interval"] = intervalString
-	}
-
-	return results, metadata, nil
 }
