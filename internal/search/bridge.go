@@ -912,6 +912,8 @@ func (b *Bridge) updateSeq(
 				// TODO: We should handle the "not exist yet" case better.
 				//       We could every time a new document is inserted make a background job which would run an ES query to
 				//       find all relations pointing to it and update metadata new document's metadata and then re-index it.
+				//       Or, we can index the metadata column in PostgreSQL and then query that to obtain current inverse
+				//       relations inside a PostgreSQL transaction.
 				continue
 			} else if errors.Is(errE, store.ErrValueDeleted) {
 				// Document does not exist anymore, skip.
