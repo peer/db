@@ -122,8 +122,7 @@ func (s *Service) DocumentGetGetAPI(w http.ResponseWriter, req *http.Request, pa
 
 	m := metrics.Duration(internalStore.MetricDatabase).Start()
 	if reqVersion != nil {
-		version = *reqVersion
-		dataJSON, _, _, _, errE = site.Base.GetDocument(ctx, id, *reqVersion)
+		dataJSON, _, version, _, errE = site.Base.GetDocument(ctx, id, *reqVersion)
 	} else {
 		dataJSON, _, version, _, errE = site.Base.GetDocumentLatest(ctx, id)
 	}

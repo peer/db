@@ -310,18 +310,39 @@ func (s *Service) StorageUploadGetAPI(w http.ResponseWriter, req *http.Request, 
 }
 
 // StorageGetGet handles GET requests to retrieve a stored file by its ID.
+//
+// An optional "version" query parameter can be used to retrieve a specific version.
 func (s *Service) StorageGetGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
 	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
-		s.BadRequestWithError(w, req, errE)
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
 		return
+	}
+
+	var reqVersion *store.Version
+	if req.Form.Has("version") {
+		v, errE := store.VersionFromString(req.Form.Get("version"))
+		if errE != nil {
+			s.BadRequestWithError(w, req, errE)
+			return
+		}
+		reqVersion = &v
 	}
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	data, metadata, _, _, errE := site.Base.GetFileLatest(ctx, id)
+	var data []byte
+	var metadata *storage.FileMetadata
+	var version store.Version
+
+	if reqVersion != nil {
+		data, metadata, version, _, errE = site.Base.GetFile(ctx, id, *reqVersion)
+	} else {
+		data, metadata, version, _, errE = site.Base.GetFileLatest(ctx, id)
+	}
+
 	if errors.Is(errE, store.ErrValueNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -334,6 +355,7 @@ func (s *Service) StorageGetGet(w http.ResponseWriter, req *http.Request, params
 	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Etag", metadata.Etag)
+	w.Header().Set("Version", version.String())
 	if metadata.Filename != "" {
 		w.Header().Set("Content-Disposition", `inline; filename*=UTF-8''`+url.PathEscape(metadata.Filename))
 	}

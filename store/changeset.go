@@ -26,7 +26,7 @@ type Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 
 // ID of this changeset.
 //
-// Each changeset has an immutable randomly generated ID.
+// Each changeset has an immutable ID.
 func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) ID() identifier.Identifier {
 	return c.id
 }

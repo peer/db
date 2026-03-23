@@ -226,6 +226,17 @@ func (b *B) GetUploadSession(ctx context.Context, session identifier.Identifier)
 	return endMetadata != nil, completeMetadata, errE
 }
 
+// GetFile returns a stored file at the given version.
+//
+// It returns also file metadata, the version of the file (if requested version
+// has 0 for revision, a file with the latest revision is returned and returned version
+// contains this revision number), and parent changesets of the file at this version.
+func (b *B) GetFile(
+	ctx context.Context, id identifier.Identifier, version store.Version,
+) ([]byte, *storage.FileMetadata, store.Version, []store.Version, errors.E) {
+	return b.files.Store().Get(ctx, id, version)
+}
+
 // GetFileLatest returns the latest version of a stored file.
 //
 // It returns also file metadata, the version of the file, and parent
