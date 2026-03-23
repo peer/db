@@ -52,7 +52,10 @@ func (s *Service) StorageBeginUploadPostAPI(w http.ResponseWriter, req *http.Req
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	session, errE := site.Base.BeginUpload(ctx, payload.Size, payload.MediaType, payload.Filename)
+	// TODO: Support configuring base and not just use the domain.
+	base := []string{site.Domain}
+
+	session, errE := site.Base.BeginUploadNew(ctx, base, payload.Size, payload.MediaType, payload.Filename)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -269,8 +272,45 @@ func (s *Service) StorageDiscardUploadPostAPI(w http.ResponseWriter, req *http.R
 	s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
 }
 
-// StorageGet handles GET requests to retrieve a stored file by its ID.
-func (s *Service) StorageGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
+// StorageUploadGetAPI handles GET requests to retrieve the status of a file upload session.
+func (s *Service) StorageUploadGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	ctx := req.Context()
+
+	session, errE := identifier.MaybeString(params["session"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+
+	site := waf.MustGetSite[*Site](ctx)
+
+	sessionEnded, completeMetadata, errE := site.Base.GetUploadSession(ctx, session)
+	if errors.Is(errE, coordinator.ErrSessionNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	if completeMetadata != nil {
+		s.WriteJSON(w, req, struct {
+			*storage.CompleteMetadata
+
+			Active bool `json:"active"`
+		}{
+			CompleteMetadata: completeMetadata,
+			Active:           false,
+		}, nil)
+	} else if sessionEnded {
+		s.WriteJSON(w, req, `{"active":false}`, nil)
+	} else {
+		s.WriteJSON(w, req, `{"active":true}`, nil)
+	}
+}
+
+// StorageGetGet handles GET requests to retrieve a stored file by its ID.
+func (s *Service) StorageGetGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
 	id, errE := identifier.MaybeString(params["id"])
@@ -281,7 +321,7 @@ func (s *Service) StorageGet(w http.ResponseWriter, req *http.Request, params wa
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	data, metadata, errE := site.Base.GetFile(ctx, id)
+	data, metadata, _, _, errE := site.Base.GetFileLatest(ctx, id)
 	if errors.Is(errE, store.ErrValueNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return

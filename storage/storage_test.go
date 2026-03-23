@@ -23,7 +23,7 @@ func initDatabase(t *testing.T) (
 	context.Context,
 	*storage.Storage,
 	*internalStore.LockableSlice[store.CommittedChangesets[
-		[]byte, *storage.FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, store.None,
+		[]byte, *storage.FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, store.None,
 	]],
 ) {
 	t.Helper()
@@ -59,8 +59,9 @@ func initDatabase(t *testing.T) (
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	s := &storage.Storage{
-		Schema: schema,
-		Prefix: prefix,
+		Schema:             schema,
+		Prefix:             prefix,
+		PrimaryCoordinator: nil,
 	}
 
 	errE = s.Init(ctx, dbpool, listener, riverClient, workers)
@@ -78,7 +79,7 @@ func initDatabase(t *testing.T) (
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	channelContents := new(internalStore.LockableSlice[store.CommittedChangesets[
-		[]byte, *storage.FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, store.None,
+		[]byte, *storage.FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, store.None,
 	]])
 
 	go func() {
@@ -102,7 +103,8 @@ func TestHappyPath(t *testing.T) {
 
 	ctx, s, channelContents := initDatabase(t)
 
-	session, errE := s.BeginUpload(ctx, 10, "text/plain", "test.txt")
+	fileBase := []string{"test", "happypath"}
+	session, errE := s.BeginUploadNew(ctx, fileBase, 10, "text/plain", "test.txt")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = s.UploadChunk(ctx, session, []byte("foo"), 0)
@@ -141,7 +143,7 @@ func TestHappyPath(t *testing.T) {
 	assert.Equal(t, int64(2), start)
 	assert.Equal(t, int64(3), length)
 
-	errE = s.EndUpload(ctx, session)
+	errE = s.EndUpload(ctx, session, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
@@ -155,14 +157,21 @@ func TestHappyPath(t *testing.T) {
 				changes, errE := committed.Changesets[0].Changes(ctx, nil)
 				if assert.NoError(t, errE, "% -+#.1v", errE) {
 					if assert.Len(t, changes, 1) {
-						assert.Equal(t, session, changes[0].ID)
+						// The file ID is derived from base + "STORAGE" + session.
+						expectedBase := append(append([]string{}, fileBase...), "STORAGE", session.String())
+						expectedFileID := identifier.From(expectedBase...)
+						assert.Equal(t, expectedFileID, changes[0].ID)
 					}
 				}
 			}
 		}
 	}
 
-	data, metadata, _, _, errE := s.Store().GetLatest(ctx, session)
+	// The file ID is derived from base + "STORAGE" + session.
+	expectedBase := append(append([]string{}, fileBase...), "STORAGE", session.String())
+	expectedFileID := identifier.From(expectedBase...)
+
+	data, metadata, _, _, errE := s.Store().GetLatest(ctx, expectedFileID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []byte("bafooqrxzy"), data)
 
@@ -171,6 +180,16 @@ func TestHappyPath(t *testing.T) {
 	assert.Equal(t, "text/plain", metadata.MediaType)
 	assert.Equal(t, "test.txt", metadata.Filename)
 	assert.Equal(t, `"pToAccwccTt9AbUHM5VQIeF7QsgW0Dv5Ka-eZS5O22Y"`, metadata.Etag)
+
+	// Verify file metadata Base is recorded and file ID is derivable from it.
+	assert.Equal(t, expectedBase, metadata.Base)
+	assert.Equal(t, expectedFileID, identifier.From(metadata.Base...))
+
+	// Verify changeset ID is derivable from its base.
+	_, _, version, _, errE := s.Store().GetLatest(ctx, expectedFileID) //nolint:dogsled
+	require.NoError(t, errE, "% -+#.1v", errE)
+	changesetBase := append(append([]string{}, expectedBase...), "SESSION", session.String())
+	assert.Equal(t, identifier.From(changesetBase...), version.Changeset)
 }
 
 func TestErrors(t *testing.T) {
@@ -178,7 +197,8 @@ func TestErrors(t *testing.T) {
 
 	ctx, s, _ := initDatabase(t)
 
-	session, errE := s.BeginUpload(ctx, 10, "text/plain", "test.txt")
+	fileBase := []string{"test", "errors"}
+	session, errE := s.BeginUploadNew(ctx, fileBase, 10, "text/plain", "test.txt")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = s.UploadChunk(ctx, session, []byte("foo"), 0)
@@ -187,13 +207,13 @@ func TestErrors(t *testing.T) {
 	errE = s.UploadChunk(ctx, session, []byte("bar"), 5)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = s.EndUpload(ctx, session)
+	errE = s.EndUpload(ctx, session, nil)
 	assert.ErrorContains(t, errE, "gap between chunks")
 
 	errE = s.UploadChunk(ctx, session, []byte("zy"), 3)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = s.EndUpload(ctx, session)
+	errE = s.EndUpload(ctx, session, nil)
 	assert.ErrorContains(t, errE, "chunks smaller than file")
 
 	errE = s.UploadChunk(ctx, session, []byte("large"), 8)

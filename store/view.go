@@ -17,6 +17,14 @@ const (
 	maxPageLengthStr = "5000"
 )
 
+// ChangesetID is an interface for a changeset ID from commit metadata.
+//
+// It is used with auto-committing methods on View and Store to control
+// the ID of the changeset made.
+type ChangesetID interface {
+	ChangesetID() identifier.Identifier
+}
+
 // View is not a snapshot of the database but a dynamic named view of a
 // set of committed changesets forming a set of values with their history of changes.
 //
@@ -73,7 +81,12 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Insert( //nolint:nonamedreturns
 	ctx context.Context, id identifier.Identifier, value Data, metadata Metadata, commitMetadata CommitMetadata,
 ) (_ Version, errE errors.E) {
-	changeset, errE := v.store.Begin(ctx)
+	var changeset Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
+	if c, ok := any(commitMetadata).(ChangesetID); ok {
+		changeset, errE = v.store.Changeset(ctx, c.ChangesetID())
+	} else {
+		changeset, errE = v.store.Begin(ctx)
+	}
 	if errE != nil {
 		return Version{}, errE
 	}
@@ -98,7 +111,12 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Replace( //nolint:nonamedreturns
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, metadata Metadata, commitMetadata CommitMetadata,
 ) (_ Version, errE errors.E) {
-	changeset, errE := v.store.Begin(ctx)
+	var changeset Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
+	if c, ok := any(commitMetadata).(ChangesetID); ok {
+		changeset, errE = v.store.Changeset(ctx, c.ChangesetID())
+	} else {
+		changeset, errE = v.store.Begin(ctx)
+	}
 	if errE != nil {
 		return Version{}, errE
 	}
@@ -121,7 +139,12 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Update( //nolint:nonamedreturns
 	ctx context.Context, id, parentChangeset identifier.Identifier, value Data, patch Patch, metadata Metadata, commitMetadata CommitMetadata,
 ) (_ Version, errE errors.E) {
-	changeset, errE := v.store.Begin(ctx)
+	var changeset Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
+	if c, ok := any(commitMetadata).(ChangesetID); ok {
+		changeset, errE = v.store.Changeset(ctx, c.ChangesetID())
+	} else {
+		changeset, errE = v.store.Begin(ctx)
+	}
 	if errE != nil {
 		return Version{}, errE
 	}
@@ -144,7 +167,12 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Merge( //nolint:nonamedreturns
 	ctx context.Context, id identifier.Identifier, parentChangesets []identifier.Identifier, value Data, patches []Patch, metadata Metadata, commitMetadata CommitMetadata,
 ) (_ Version, errE errors.E) {
-	changeset, errE := v.store.Begin(ctx)
+	var changeset Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
+	if c, ok := any(commitMetadata).(ChangesetID); ok {
+		changeset, errE = v.store.Changeset(ctx, c.ChangesetID())
+	} else {
+		changeset, errE = v.store.Begin(ctx)
+	}
 	if errE != nil {
 		return Version{}, errE
 	}
@@ -167,7 +195,12 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Delete( //nolint:nonamedreturns
 	ctx context.Context, id, parentChangeset identifier.Identifier, metadata Metadata, commitMetadata CommitMetadata,
 ) (_ Version, errE errors.E) {
-	changeset, errE := v.store.Begin(ctx)
+	var changeset Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
+	if c, ok := any(commitMetadata).(ChangesetID); ok {
+		changeset, errE = v.store.Changeset(ctx, c.ChangesetID())
+	} else {
+		changeset, errE = v.store.Begin(ctx)
+	}
 	if errE != nil {
 		return Version{}, errE
 	}

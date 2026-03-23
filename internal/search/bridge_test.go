@@ -25,6 +25,13 @@ import (
 	"gitlab.com/peerdb/peerdb/store"
 )
 
+// dummyCommitMetadata returns a CommitMetadata with a unique base for testing.
+func dummyCommitMetadata() *internalStore.CommitMetadata {
+	return &internalStore.CommitMetadata{
+		Base: []string{"test", identifier.New().String()},
+	}
+}
+
 // dummyMetadata returns a minimal DocumentMetadata for testing.
 func dummyMetadata() *internalStore.DocumentMetadata {
 	return &internalStore.DocumentMetadata{
@@ -58,7 +65,7 @@ func newTestBridgeConverter(t *testing.T) *internalSearch.Converter {
 
 func initBridge(t *testing.T) (
 	context.Context,
-	*store.Store[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, document.Changes],
+	*store.Store[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, document.Changes],
 	*internalSearch.Bridge, *elastic.Client,
 ) {
 	t.Helper()
@@ -109,7 +116,11 @@ func initBridge(t *testing.T) (
 	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, dbpool, schema)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	s := &store.Store[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, document.Changes]{
+	s := &store.Store[
+		json.RawMessage, *internalStore.DocumentMetadata,
+		*internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata,
+		document.Changes,
+	]{
 		Prefix:        prefix,
 		DataType:      "jsonb",
 		MetadataType:  "jsonb",
@@ -166,11 +177,11 @@ func TestBridgeRealTime(t *testing.T) {
 	id2 := identifier.New()
 	id3 := identifier.New()
 
-	_, errE := s.Insert(ctx, id1, makeDocJSON(t, id1), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE := s.Insert(ctx, id1, makeDocJSON(t, id1), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, id2, makeDocJSON(t, id2), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, id2, makeDocJSON(t, id2), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, id3, makeDocJSON(t, id3), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, id3, makeDocJSON(t, id3), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for bridge to catch up and force ES to make documents searchable.
@@ -188,7 +199,7 @@ func TestBridgeRealTime(t *testing.T) {
 	// Update doc1.
 	_, _, v1, _, errE := s.GetLatest(ctx, id1) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Replace(ctx, id1, v1.Changeset, makeDocJSON(t, id1), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Replace(ctx, id1, v1.Changeset, makeDocJSON(t, id1), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.WaitUntilCaughtUp(ctx)
@@ -210,9 +221,9 @@ func TestBridgeCatchUp(t *testing.T) {
 	id1 := identifier.New()
 	id2 := identifier.New()
 
-	_, errE := s.Insert(ctx, id1, makeDocJSON(t, id1), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE := s.Insert(ctx, id1, makeDocJSON(t, id1), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, id2, makeDocJSON(t, id2), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, id2, makeDocJSON(t, id2), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Bridge seq should still be 0 — nothing indexed yet.
@@ -244,7 +255,7 @@ func TestBridgeDeletedDocument(t *testing.T) {
 	id := identifier.New()
 
 	// Insert then delete a document.
-	v, errE := s.Insert(ctx, id, makeDocJSON(t, id), dummyMetadata(), &internalStore.NoMetadata{})
+	v, errE := s.Insert(ctx, id, makeDocJSON(t, id), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.WaitUntilCaughtUp(ctx)
@@ -255,7 +266,7 @@ func TestBridgeDeletedDocument(t *testing.T) {
 
 	assert.True(t, docExists(t, ctx, esClient, b.Index, id.String()), "document should exist before delete")
 
-	_, errE = s.Delete(ctx, id, v.Changeset, dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Delete(ctx, id, v.Changeset, dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.WaitUntilCaughtUp(ctx)
@@ -278,7 +289,7 @@ func TestBridgeSeqAdvancement(t *testing.T) {
 	// Make several commits and verify the bridge table seq advances correctly.
 	for range 5 {
 		id := identifier.New()
-		_, errE := s.Insert(ctx, id, makeDocJSON(t, id), dummyMetadata(), &internalStore.NoMetadata{})
+		_, errE := s.Insert(ctx, id, makeDocJSON(t, id), dummyMetadata(), dummyCommitMetadata())
 		require.NoError(t, errE, "% -+#.1v", errE)
 	}
 
@@ -307,9 +318,9 @@ func TestBridgeNotifyRecovery(t *testing.T) {
 	// Insert initial documents and wait for the bridge to catch up.
 	id1 := identifier.New()
 	id2 := identifier.New()
-	_, errE := s.Insert(ctx, id1, makeDocJSON(t, id1), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE := s.Insert(ctx, id1, makeDocJSON(t, id1), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, id2, makeDocJSON(t, id2), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, id2, makeDocJSON(t, id2), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.WaitUntilCaughtUp(ctx)
@@ -325,9 +336,9 @@ func TestBridgeNotifyRecovery(t *testing.T) {
 	// real-time channel but must be recovered via the catch-up phase on bridge restart.
 	id3 := identifier.New()
 	id4 := identifier.New()
-	_, errE = s.Insert(ctx, id3, makeDocJSON(t, id3), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, id3, makeDocJSON(t, id3), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, id4, makeDocJSON(t, id4), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, id4, makeDocJSON(t, id4), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.WaitUntilCaughtUp(ctx)
@@ -353,10 +364,10 @@ func TestBridgeStaleDataNotIndexed(t *testing.T) {
 	id := identifier.New()
 
 	// Insert initial data and immediately replace before starting the bridge.
-	v, errE := s.Insert(ctx, id, makeDocJSON(t, id), dummyMetadata(), &internalStore.NoMetadata{})
+	v, errE := s.Insert(ctx, id, makeDocJSON(t, id), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = s.Replace(ctx, id, v.Changeset, makeDocJSON(t, id), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Replace(ctx, id, v.Changeset, makeDocJSON(t, id), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Now start the bridge. It should catch up and index the latest version.
@@ -430,7 +441,7 @@ func makeDocWithRelationJSON(t *testing.T, docID, propID, targetID identifier.Id
 // propX has inversePropertyOf propY. The getDocument callback fetches from the store.
 func makeConverterWithInverse(
 	t *testing.T, propX, propY identifier.Identifier,
-	s *store.Store[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, document.Changes],
+	s *store.Store[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, document.Changes],
 ) *internalSearch.Converter {
 	t.Helper()
 
@@ -520,17 +531,17 @@ func TestBridgeInverseRelationReindexing(t *testing.T) {
 	b.Start(ctx, converter)
 
 	// Insert property documents into the store so getDocument can find them.
-	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Insert document A with a relation A --X--> B, and document B (empty).
 	docA := identifier.New()
 	docB := identifier.New()
-	_, errE = s.Insert(ctx, docB, makeDocJSON(t, docB), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, docB, makeDocJSON(t, docB), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, docA, makeDocWithRelationJSON(t, docA, propX, docB), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, docA, makeDocWithRelationJSON(t, docA, propX, docB), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for the bridge to index the initial commits.
@@ -576,18 +587,18 @@ func TestBridgeInverseRelationMutual(t *testing.T) {
 	b.Start(ctx, converter)
 
 	// Insert property documents.
-	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Insert A --X--> B and B --X--> A in the same commit won't work with the store API
 	// (each Insert is its own commit). So insert them as separate commits.
 	docA := identifier.New()
 	docB := identifier.New()
-	_, errE = s.Insert(ctx, docA, makeDocWithRelationJSON(t, docA, propX, docB), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, docA, makeDocWithRelationJSON(t, docA, propX, docB), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, docB, makeDocWithRelationJSON(t, docB, propX, docA), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, docB, makeDocWithRelationJSON(t, docB, propX, docA), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.WaitUntilCaughtUp(ctx)
@@ -627,20 +638,20 @@ func TestBridgeInverseRelationMultipleSources(t *testing.T) {
 	b.Start(ctx, converter)
 
 	// Insert property documents.
-	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	docA := identifier.New()
 	docB := identifier.New()
 	docC := identifier.New()
 
-	_, errE = s.Insert(ctx, docB, makeDocJSON(t, docB), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, docB, makeDocJSON(t, docB), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, docA, makeDocWithRelationJSON(t, docA, propX, docB), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, docA, makeDocWithRelationJSON(t, docA, propX, docB), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, docC, makeDocWithRelationJSON(t, docC, propX, docB), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, docC, makeDocWithRelationJSON(t, docC, propX, docB), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.WaitUntilCaughtUp(ctx)
@@ -674,17 +685,17 @@ func TestBridgeInverseRelationRemoval(t *testing.T) {
 	b.Start(ctx, converter)
 
 	// Insert property documents.
-	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Insert document B (empty) and document A with relation A --X--> B.
 	docA := identifier.New()
 	docB := identifier.New()
-	_, errE = s.Insert(ctx, docB, makeDocJSON(t, docB), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, docB, makeDocJSON(t, docB), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, docA, makeDocWithRelationJSON(t, docA, propX, docB), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, docA, makeDocWithRelationJSON(t, docA, propX, docB), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.WaitUntilCaughtUp(ctx)
@@ -703,7 +714,7 @@ func TestBridgeInverseRelationRemoval(t *testing.T) {
 	// Now replace A with a document that has no relations.
 	_, _, latestA, _, errE := s.GetLatest(ctx, docA) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Replace(ctx, docA, latestA.Changeset, makeDocJSON(t, docA), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Replace(ctx, docA, latestA.Changeset, makeDocJSON(t, docA), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.WaitUntilCaughtUp(ctx)
@@ -744,20 +755,20 @@ func TestBridgeInverseRelationChange(t *testing.T) {
 	b.Start(ctx, converter)
 
 	// Insert property documents.
-	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Insert documents B and C (empty), then A with relation A --X--> B.
 	docA := identifier.New()
 	docB := identifier.New()
 	docC := identifier.New()
-	_, errE = s.Insert(ctx, docB, makeDocJSON(t, docB), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, docB, makeDocJSON(t, docB), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, docC, makeDocJSON(t, docC), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, docC, makeDocJSON(t, docC), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Insert(ctx, docA, makeDocWithRelationJSON(t, docA, propX, docB), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Insert(ctx, docA, makeDocWithRelationJSON(t, docA, propX, docB), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.WaitUntilCaughtUp(ctx)
@@ -776,7 +787,7 @@ func TestBridgeInverseRelationChange(t *testing.T) {
 	// Replace A to point to C instead of B.
 	_, _, latestA, _, errE := s.GetLatest(ctx, docA) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Replace(ctx, docA, latestA.Changeset, makeDocWithRelationJSON(t, docA, propX, docC), dummyMetadata(), &internalStore.NoMetadata{})
+	_, errE = s.Replace(ctx, docA, latestA.Changeset, makeDocWithRelationJSON(t, docA, propX, docC), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.WaitUntilCaughtUp(ctx)

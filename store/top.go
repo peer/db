@@ -33,9 +33,8 @@ func (v *Version) String() string {
 func VersionFromString(text string) (Version, errors.E) {
 	changesetStr, revisionStr, ok := strings.Cut(text, "-")
 	if !ok {
-		errE := errors.New("invalid version string")
-		errors.Details(errE)["value"] = text
-		return Version{}, errE
+		// Revision is optional. If not provided, we set it to "0" which means the latest revision.
+		revisionStr = "0"
 	}
 	changeset, errE := identifier.MaybeString(changesetStr)
 	if errE != nil {
@@ -43,7 +42,14 @@ func VersionFromString(text string) (Version, errors.E) {
 	}
 	revision, err := strconv.ParseInt(revisionStr, 10, 64)
 	if err != nil {
-		return Version{}, errors.WithStack(err)
+		errE := errors.WithStack(err)
+		errors.Details(errE)["revision"] = revisionStr
+		return Version{}, errE
+	}
+	if revision < 0 {
+		errE := errors.New("invalid version revision")
+		errors.Details(errE)["revision"] = revision
+		return Version{}, errE
 	}
 	return Version{
 		Changeset: changeset,
@@ -169,7 +175,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 	}, nil
 }
 
-// Begin starts a new changeset.
+// Begin starts a new changeset with random ID.
 func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Begin(
 	ctx context.Context,
 ) (Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], errors.E) {

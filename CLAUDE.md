@@ -162,7 +162,7 @@ Manages append-only logs for real-time collaboration sessions.
 - Pagination (max 5000 operations per page)
 - PostgreSQL-backed with JSONB columns
 
-**PeerDB usage**: Tracks document editing sessions with conflict detection.
+**PeerDB usage**: Tracks document edit sessions with conflict detection.
 
 #### 3. **Document Schema** (`document/`)
 

@@ -231,6 +231,14 @@ func (s *Service) setRoutes() {
 				},
 			},
 		},
+		"StorageUpload": {
+			Path: "/f/upload/:session",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.StorageUploadGetAPI,
+				},
+			},
+		},
 		"StorageEndUpload": {
 			Path: "/f/endUpload/:session",
 			API: waf.RouteOptions{
@@ -250,7 +258,7 @@ func (s *Service) setRoutes() {
 		"StorageGet": {
 			RouteOptions: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{
-					http.MethodGet: s.StorageGet,
+					http.MethodGet: s.StorageGetGet,
 				},
 			},
 			Path: "/f/:id",

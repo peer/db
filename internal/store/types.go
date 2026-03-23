@@ -65,6 +65,19 @@ type DocumentMetadata struct {
 	InverseRelations []InverseRelation `json:"inverseRelations,omitempty"`
 }
 
+// CommitMetadata contains metadata about a commit.
+type CommitMetadata struct {
+	Base []string `json:"base,omitempty"`
+}
+
+// ChangesetID implements store.ChangesetID interface.
+func (c *CommitMetadata) ChangesetID() identifier.Identifier {
+	if len(c.Base) == 0 {
+		panic(errors.New("base is empty"))
+	}
+	return identifier.From(c.Base...)
+}
+
 // inverseRelationKey identifies an inverse relation by its source document and claim ID.
 // We validate that claim IDs are unique per source document but we do not validate that
 // they are unique globally, so both fields are needed to cover all cases.

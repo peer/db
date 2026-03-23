@@ -155,9 +155,11 @@ func TestInsertOrReplaceDocument(t *testing.T) {
 	errE := b.InsertOrReplaceDocument(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Verify it exists.
+	// Verify it exists and changeset ID for FIRST insert is derivable.
 	_, _, version1, _, errE := b.GetDocumentLatest(ctx, docID) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
+	expectedFirstChangeset := identifier.From(append(append([]string{}, doc.Base...), "CHANGESET", "FIRST")...)
+	assert.Equal(t, expectedFirstChangeset, version1.Changeset)
 
 	// Replace with modified document.
 	doc.Claims = &document.ClaimTypes{
@@ -173,10 +175,14 @@ func TestInsertOrReplaceDocument(t *testing.T) {
 	errE = b.InsertOrReplaceDocument(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Verify the document was replaced (new version).
+	// Verify the document was replaced and changeset ID for REPLACE is derivable.
 	_, _, version2, _, errE := b.GetDocumentLatest(ctx, docID) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.NotEqual(t, version1, version2)
+	expectedReplaceChangeset := identifier.From(
+		append(append([]string{}, doc.Base...), "CHANGESET", "REPLACE", version1.Changeset.String())...,
+	)
+	assert.Equal(t, expectedReplaceChangeset, version2.Changeset)
 }
 
 func TestInsertOrReplaceDocumentCarriesOverMetadata(t *testing.T) {
@@ -249,29 +255,50 @@ func TestInsertOrReplaceFile(t *testing.T) {
 
 	ctx, b := initBase(t)
 
-	fileID := identifier.New()
+	fileBase := []string{"test", identifier.New().String()}
 	data := []byte("hello world")
 
 	// Insert.
-	errE := b.InsertOrReplaceFile(ctx, fileID, data, "test.txt")
+	fileID, errE := b.InsertOrReplaceFile(ctx, fileBase, data, "test.txt")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Verify it exists.
-	fileData, metadata, errE := b.GetFile(ctx, fileID)
+	// Verify file ID is derived from base.
+	assert.Equal(t, identifier.From(fileBase...), fileID)
+
+	// Verify it exists and changeset ID for FIRST is derivable.
+	fileData, metadata, fileVersion1, _, errE := b.GetFileLatest(ctx, fileID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, data, fileData)
 	assert.Equal(t, "test.txt", metadata.Filename)
 
+	// Verify file metadata Base is recorded.
+	assert.Equal(t, fileBase, metadata.Base)
+	assert.Equal(t, fileID, identifier.From(metadata.Base...))
+
+	// Verify changeset ID for FIRST insert is derivable.
+	expectedFirstChangeset := identifier.From(append(append([]string{}, fileBase...), "CHANGESET", "FIRST")...)
+	assert.Equal(t, expectedFirstChangeset, fileVersion1.Changeset)
+
 	// Replace with new content.
 	newData := []byte("updated content")
-	errE = b.InsertOrReplaceFile(ctx, fileID, newData, "test2.txt")
+	fileID2, errE := b.InsertOrReplaceFile(ctx, fileBase, newData, "test2.txt")
 	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, fileID, fileID2)
 
-	// Verify it was replaced.
-	fileData, metadata, errE = b.GetFile(ctx, fileID)
+	// Verify it was replaced and changeset ID for REPLACE is derivable.
+	fileData, metadata, fileVersion2, _, errE := b.GetFileLatest(ctx, fileID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, newData, fileData)
 	assert.Equal(t, "test2.txt", metadata.Filename)
+
+	// Verify file metadata Base is still recorded after replace.
+	assert.Equal(t, fileBase, metadata.Base)
+
+	// Verify changeset ID for REPLACE is derivable.
+	expectedReplaceChangeset := identifier.From(
+		append(append([]string{}, fileBase...), "CHANGESET", "REPLACE", fileVersion1.Changeset.String())...,
+	)
+	assert.Equal(t, expectedReplaceChangeset, fileVersion2.Changeset)
 }
 
 // marshalChange marshals a single document change to JSON for use with AppendDocumentChange.
@@ -325,18 +352,20 @@ func TestDocumentEditSession(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Begin edit session.
-	session, version, errE := b.BeginDocumentEdit(ctx, docID)
+	session, version, errE := b.BeginEditDocumentLatest(ctx, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Verify session is active.
-	beginMetadata, errE := b.GetDocumentEditSession(ctx, session)
+	documentID, sessionEnded, completeMetadata, errE := b.GetEditDocumentSession(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, docID, beginMetadata.Document)
+	assert.Equal(t, docID, documentID)
+	assert.False(t, sessionEnded)
+	assert.Nil(t, completeMetadata)
 
 	// Create a change that adds a string claim.
 	confidence := document.HighConfidence
 	propID := identifier.New()
-	changeBase := []string{docID.String(), "SESSION", session.String(), "1"}
+	changeBase := append(append([]string{}, doc.Base...), "SESSION", session.String(), "1")
 	claimID := identifier.From(changeBase...)
 
 	addChange := document.AddClaimChange{ //nolint:exhaustruct
@@ -354,6 +383,9 @@ func TestDocumentEditSession(t *testing.T) {
 	_, errE = b.AppendDocumentChange(ctx, session, changeJSON, seqNo)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
+	// Verify claim ID is derivable from its base.
+	assert.Equal(t, claimID, identifier.From(changeBase...))
+
 	// List changes.
 	changes, errE := b.ListDocumentChanges(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -365,12 +397,15 @@ func TestDocumentEditSession(t *testing.T) {
 	assert.NotEmpty(t, changeData)
 
 	// End session (commit).
-	errE = b.EndDocumentEdit(ctx, session, false)
+	errE = b.EndEditDocument(ctx, session, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Session should be ended now.
-	_, errE = b.GetDocumentEditSession(ctx, session)
-	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
+	// Session should be ended now but not yet completed.
+	documentID2, sessionEnded2, completeMetadata2, errE2 := b.GetEditDocumentSession(ctx, session)
+	require.NoError(t, errE2, "% -+#.1v", errE2)
+	assert.Equal(t, docID, documentID2)
+	assert.True(t, sessionEnded2)
+	// Complete metadata may or may not be available yet (async).
 
 	// Wait for async completion to update the document.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -381,12 +416,35 @@ func TestDocumentEditSession(t *testing.T) {
 		assert.NotEqual(c, version, newVersion, "document version should change after session completes")
 	}, 30*time.Second, 100*time.Millisecond)
 
+	// After completion, GetEditDocumentSession should return complete metadata.
+	documentID3, sessionEnded3, completeMetadata3, errE3 := b.GetEditDocumentSession(ctx, session)
+	require.NoError(t, errE3, "% -+#.1v", errE3)
+	assert.Equal(t, docID, documentID3)
+	assert.True(t, sessionEnded3)
+	if assert.NotNil(t, completeMetadata3) {
+		assert.False(t, completeMetadata3.Discarded)
+		assert.NotNil(t, completeMetadata3.Changeset)
+	}
+
 	// Verify the document has the new claim.
-	updatedDoc, _, _, _, errE := b.GetDocumentLatestDoc(ctx, docID) //nolint:dogsled
+	updatedDoc, _, newVersion, _, errE := b.GetDocumentLatestDoc(ctx, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotNil(t, updatedDoc.Claims)
 	require.Len(t, updatedDoc.Claims.String, 1)
 	assert.Equal(t, "test value", updatedDoc.Claims.String[0].String)
+
+	// Verify changeset ID is derived from doc Base + "SESSION" + session.
+	expectedChangesetBase := append(append([]string{}, doc.Base...), "SESSION", session.String())
+	expectedChangesetID := identifier.From(expectedChangesetBase...)
+	assert.Equal(t, expectedChangesetID, newVersion.Changeset)
+
+	// Verify claim ID is derivable from its base.
+	assert.Equal(t, claimID, updatedDoc.Claims.String[0].ID)
+	assert.Equal(t, identifier.From(changeBase...), updatedDoc.Claims.String[0].ID)
+
+	// Verify complete metadata changeset matches the document version.
+	_ = completeMetadata2
+	assert.Equal(t, newVersion.Changeset, *completeMetadata3.Changeset)
 }
 
 func TestDocumentEditSessionDiscard(t *testing.T) {
@@ -401,13 +459,13 @@ func TestDocumentEditSessionDiscard(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Begin edit session.
-	session, version, errE := b.BeginDocumentEdit(ctx, docID)
+	session, version, errE := b.BeginEditDocumentLatest(ctx, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Add a change.
 	confidence := document.HighConfidence
 	propID := identifier.New()
-	changeBase := []string{docID.String(), "SESSION", session.String(), "1"}
+	changeBase := append(append([]string{}, doc.Base...), "SESSION", session.String(), "1")
 	claimID := identifier.From(changeBase...)
 	changeJSON := marshalChange(t, document.AddClaimChange{ //nolint:exhaustruct
 		ID:   claimID,
@@ -423,14 +481,24 @@ func TestDocumentEditSessionDiscard(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Discard the session.
-	errE = b.EndDocumentEdit(ctx, session, true)
+	errE = b.EndEditDocument(ctx, session, true)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Wait for async completion to run, then verify document is unchanged.
-	time.Sleep(500 * time.Millisecond)
+	// Wait for async completion using GetEditDocumentSession.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		documentID, sessionEnded, completeMetadata, errE := b.GetEditDocumentSession(ctx, session)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		assert.Equal(c, docID, documentID)
+		assert.True(c, sessionEnded)
+		if assert.NotNil(c, completeMetadata) {
+			assert.True(c, completeMetadata.Discarded)
+			assert.Nil(c, completeMetadata.Changeset)
+		}
+	}, 30*time.Second, 100*time.Millisecond)
 
-	// TODO: We should record that job completed in session metadata and check it here.
-
+	// Verify document is unchanged.
 	_, _, versionAfter, _, errE := b.GetDocumentLatest(ctx, docID) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, version, versionAfter, "document version should not change after discarded session")
@@ -485,13 +553,13 @@ func TestDocumentEditSessionCarriesOverMetadata(t *testing.T) {
 	}, 30*time.Second, 100*time.Millisecond)
 
 	// Begin edit session for docB.
-	session, versionB, errE := b.BeginDocumentEdit(ctx, docB)
+	session, versionB, errE := b.BeginEditDocumentLatest(ctx, docB)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Add a string claim to docB through the edit session.
 	confidence := document.HighConfidence
 	propID := identifier.New()
-	changeBase := []string{docB.String(), "SESSION", session.String(), "1"}
+	changeBase := append(append([]string{}, docBDoc.Base...), "SESSION", session.String(), "1")
 	claimID := identifier.From(changeBase...)
 	changeJSON := marshalChange(t, document.AddClaimChange{ //nolint:exhaustruct
 		ID:   claimID,
@@ -507,7 +575,7 @@ func TestDocumentEditSessionCarriesOverMetadata(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// End session (commit).
-	errE = b.EndDocumentEdit(ctx, session, false)
+	errE = b.EndEditDocument(ctx, session, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for async completion to update the document.
@@ -551,7 +619,7 @@ func TestDocumentEditSessionMetadataChangedDuringEdit(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Begin edit session for docB BEFORE any inverse relations exist.
-	session, versionB, errE := b.BeginDocumentEdit(ctx, docB)
+	session, versionB, errE := b.BeginEditDocumentLatest(ctx, docB)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Now insert docA with relation A --X--> B, which causes the bridge to update
@@ -588,10 +656,10 @@ func TestDocumentEditSessionMetadataChangedDuringEdit(t *testing.T) {
 	assert.Greater(t, versionBAfterBridge.Revision, versionB.Revision, "revision should have been bumped by bridge")
 
 	// Now append a change to the session and end it. The session should still succeed
-	// because BeginDocumentEdit sets Revision to 0, allowing metadata-only updates.
+	// because BeginEditDocumentLatest sets Revision to 0, allowing metadata-only updates.
 	confidence := document.HighConfidence
 	propID := identifier.New()
-	changeBase := []string{docB.String(), "SESSION", session.String(), "1"}
+	changeBase := append(append([]string{}, docBDoc.Base...), "SESSION", session.String(), "1")
 	claimID := identifier.From(changeBase...)
 	changeJSON := marshalChange(t, document.AddClaimChange{ //nolint:exhaustruct
 		ID:   claimID,
@@ -607,7 +675,7 @@ func TestDocumentEditSessionMetadataChangedDuringEdit(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// End session (commit). This should NOT fail despite metadata revision change.
-	errE = b.EndDocumentEdit(ctx, session, false)
+	errE = b.EndEditDocument(ctx, session, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for async completion.
@@ -665,11 +733,11 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	assert.True(t, docExists(ctx, t, esClient, b.Index, docB.String()), "docB should exist in ES")
 
 	// Add a relation from docA to docB via edit session.
-	session, versionA, errE := b.BeginDocumentEdit(ctx, docA)
+	session, versionA, errE := b.BeginEditDocumentLatest(ctx, docA)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	confidence := document.HighConfidence
-	changeBase := []string{docA.String(), "SESSION", session.String(), "1"}
+	changeBase := append(append([]string{}, docADoc.Base...), "SESSION", session.String(), "1")
 	claimID := identifier.From(changeBase...)
 	changeJSON := marshalChange(t, document.AddClaimChange{ //nolint:exhaustruct
 		ID:   claimID,
@@ -684,7 +752,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	_, errE = b.AppendDocumentChange(ctx, session, changeJSON, seqNo)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.EndDocumentEdit(ctx, session, false)
+	errE = b.EndEditDocument(ctx, session, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for session completion and ES indexing.
@@ -720,7 +788,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	}, 30*time.Second, 100*time.Millisecond)
 
 	// Now remove the relation from docA via another edit session.
-	session2, versionA2, errE := b.BeginDocumentEdit(ctx, docA)
+	session2, versionA2, errE := b.BeginEditDocumentLatest(ctx, docA)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	removeChangeJSON := marshalChange(t, document.RemoveClaimChange{
@@ -730,7 +798,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	_, errE = b.AppendDocumentChange(ctx, session2, removeChangeJSON, seqNo)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.EndDocumentEdit(ctx, session2, false)
+	errE = b.EndEditDocument(ctx, session2, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for session completion.
@@ -781,8 +849,10 @@ func TestFileUpload(t *testing.T) {
 
 	data := []byte("hello world, this is a test file")
 
+	fileBase := []string{"test", identifier.New().String()}
+
 	// Begin upload.
-	session, errE := b.BeginUpload(ctx, int64(len(data)), "text/plain", "test.txt")
+	session, errE := b.BeginUploadNew(ctx, fileBase, int64(len(data)), "text/plain", "test.txt")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Upload in two chunks.
@@ -807,9 +877,11 @@ func TestFileUpload(t *testing.T) {
 	errE = b.EndUpload(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Wait for the file to become available.
+	// Wait for the file to become available. File ID is derived from base + "STORAGE" + session.
+	expectedBase := append(append([]string{}, fileBase...), "STORAGE", session.String())
+	expectedFileID := identifier.From(expectedBase...)
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		fileData, metadata, errE := b.GetFile(ctx, session)
+		fileData, metadata, _, _, errE := b.GetFileLatest(ctx, expectedFileID)
 		if !assert.NoError(c, errE, "% -+#.1v", errE) {
 			return
 		}
@@ -817,6 +889,9 @@ func TestFileUpload(t *testing.T) {
 		assert.Equal(c, "test.txt", metadata.Filename)
 		assert.Equal(c, "text/plain", metadata.MediaType)
 		assert.Equal(c, int64(len(data)), metadata.Size)
+		// Verify file metadata Base is recorded and file ID is derivable from it.
+		assert.Equal(c, expectedBase, metadata.Base)
+		assert.Equal(c, expectedFileID, identifier.From(metadata.Base...))
 	}, 30*time.Second, 100*time.Millisecond)
 }
 
@@ -827,8 +902,10 @@ func TestFileUploadDiscard(t *testing.T) {
 
 	data := []byte("should be discarded")
 
+	fileBase := []string{"test", identifier.New().String()}
+
 	// Begin upload.
-	session, errE := b.BeginUpload(ctx, int64(len(data)), "text/plain", "discard.txt")
+	session, errE := b.BeginUploadNew(ctx, fileBase, int64(len(data)), "text/plain", "discard.txt")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Upload a chunk.
@@ -839,8 +916,22 @@ func TestFileUploadDiscard(t *testing.T) {
 	errE = b.DiscardUpload(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
+	// Wait for completion and verify it is marked as discarded.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, completeMetadata, errE := b.GetUploadSession(ctx, session)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		if assert.NotNil(c, completeMetadata) {
+			assert.True(c, completeMetadata.Discarded)
+			assert.Nil(c, completeMetadata.ID)
+		}
+	}, 30*time.Second, 100*time.Millisecond)
+
 	// File should not be available.
-	_, _, errE = b.GetFile(ctx, session)
+	expectedBase := append(append([]string{}, fileBase...), "STORAGE", session.String())
+	expectedFileID := identifier.From(expectedBase...)
+	_, _, _, _, errE = b.GetFileLatest(ctx, expectedFileID) //nolint:dogsled
 	assert.EqualError(t, errE, "value not found")
 }
 
@@ -853,7 +944,7 @@ func TestGetDocument(t *testing.T) {
 	docID := doc.ID
 
 	// Insert.
-	errE := b.InsertDocument(ctx, docID, doc)
+	errE := b.InsertDocument(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// GetDocumentLatest.
@@ -896,7 +987,7 @@ func TestInsertDocument(t *testing.T) {
 		},
 	}
 
-	errE := b.InsertDocument(ctx, docID, doc)
+	errE := b.InsertDocument(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Verify the document content.
@@ -919,13 +1010,13 @@ func TestDocumentEditSessionMultipleChanges(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Begin edit session.
-	session, version, errE := b.BeginDocumentEdit(ctx, docID)
+	session, version, errE := b.BeginEditDocumentLatest(ctx, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Add first claim (operation 0).
 	confidence := document.HighConfidence
 	propID1 := identifier.New()
-	changeBase0 := []string{docID.String(), "SESSION", session.String(), "1"}
+	changeBase0 := append(append([]string{}, doc.Base...), "SESSION", session.String(), "1")
 	claimID0 := identifier.From(changeBase0...)
 	changeJSON := marshalChange(t, document.AddClaimChange{ //nolint:exhaustruct
 		ID:   claimID0,
@@ -942,7 +1033,7 @@ func TestDocumentEditSessionMultipleChanges(t *testing.T) {
 
 	// Add second claim (operation 1).
 	propID2 := identifier.New()
-	changeBase1 := []string{docID.String(), "SESSION", session.String(), "2"}
+	changeBase1 := append(append([]string{}, doc.Base...), "SESSION", session.String(), "2")
 	claimID1 := identifier.From(changeBase1...)
 	changeJSON = marshalChange(t, document.AddClaimChange{ //nolint:exhaustruct
 		ID:   claimID1,
@@ -963,7 +1054,7 @@ func TestDocumentEditSessionMultipleChanges(t *testing.T) {
 	assert.Len(t, changes, 2)
 
 	// End session.
-	errE = b.EndDocumentEdit(ctx, session, false)
+	errE = b.EndEditDocument(ctx, session, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for completion.
@@ -975,14 +1066,26 @@ func TestDocumentEditSessionMultipleChanges(t *testing.T) {
 		assert.NotEqual(c, version, newVersion)
 	}, 30*time.Second, 100*time.Millisecond)
 
-	// Verify both claims exist.
-	updatedDoc, _, _, _, errE := b.GetDocumentLatestDoc(ctx, docID) //nolint:dogsled
+	// Verify both claims exist and their IDs are derivable from their bases.
+	updatedDoc, _, newVersion, _, errE := b.GetDocumentLatestDoc(ctx, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotNil(t, updatedDoc.Claims)
 	require.Len(t, updatedDoc.Claims.String, 2)
 	stringValues := []string{updatedDoc.Claims.String[0].String, updatedDoc.Claims.String[1].String}
 	assert.Contains(t, stringValues, "first")
 	assert.Contains(t, stringValues, "second")
+
+	// Verify changeset ID is derived from doc Base + "SESSION" + session.
+	expectedChangesetBase := append(append([]string{}, doc.Base...), "SESSION", session.String())
+	assert.Equal(t, identifier.From(expectedChangesetBase...), newVersion.Changeset)
+
+	// Verify each stored claim ID matches its derivation base.
+	storedClaimIDs := map[identifier.Identifier]bool{
+		updatedDoc.Claims.String[0].ID: true,
+		updatedDoc.Claims.String[1].ID: true,
+	}
+	assert.True(t, storedClaimIDs[claimID0], "first claim ID should match derivation")
+	assert.True(t, storedClaimIDs[claimID1], "second claim ID should match derivation")
 }
 
 func TestDocumentEditSessionSequential(t *testing.T) {
@@ -997,12 +1100,12 @@ func TestDocumentEditSessionSequential(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// First edit session: add a string claim.
-	session1, version1, errE := b.BeginDocumentEdit(ctx, docID)
+	session1, version1, errE := b.BeginEditDocumentLatest(ctx, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	confidence := document.HighConfidence
 	propID1 := identifier.New()
-	changeBase1 := []string{docID.String(), "SESSION", session1.String(), "1"}
+	changeBase1 := append(append([]string{}, doc.Base...), "SESSION", session1.String(), "1")
 	claimID1 := identifier.From(changeBase1...)
 	changeJSON := marshalChange(t, document.AddClaimChange{ //nolint:exhaustruct
 		ID:   claimID1,
@@ -1016,7 +1119,7 @@ func TestDocumentEditSessionSequential(t *testing.T) {
 	_, errE = b.AppendDocumentChange(ctx, session1, changeJSON, 1)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.EndDocumentEdit(ctx, session1, false)
+	errE = b.EndEditDocument(ctx, session1, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for first session to complete.
@@ -1037,13 +1140,20 @@ func TestDocumentEditSessionSequential(t *testing.T) {
 	// The first edit created a new changeset from the initial one.
 	assert.NotEqual(t, version1.Changeset, version2.Changeset)
 
+	// Verify changeset ID for first session is derived from doc Base + "SESSION" + session1.
+	expectedChangeset1 := identifier.From(append(append([]string{}, doc.Base...), "SESSION", session1.String())...)
+	assert.Equal(t, expectedChangeset1, version2.Changeset)
+
+	// Verify claim ID from first session is stored correctly.
+	assert.Equal(t, claimID1, docAfter1.Claims.String[0].ID)
+
 	// Second edit session: add another string claim.
-	session2, version2Again, errE := b.BeginDocumentEdit(ctx, docID)
+	session2, version2Again, errE := b.BeginEditDocumentLatest(ctx, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, version2.Changeset, version2Again.Changeset, "BeginDocumentEdit should return the latest version")
+	assert.Equal(t, version2.Changeset, version2Again.Changeset, "BeginEditDocumentLatest should return the latest version")
 
 	propID2 := identifier.New()
-	changeBase2 := []string{docID.String(), "SESSION", session2.String(), "1"}
+	changeBase2 := append(append([]string{}, doc.Base...), "SESSION", session2.String(), "1")
 	claimID2 := identifier.From(changeBase2...)
 	changeJSON = marshalChange(t, document.AddClaimChange{ //nolint:exhaustruct
 		ID:   claimID2,
@@ -1057,7 +1167,7 @@ func TestDocumentEditSessionSequential(t *testing.T) {
 	_, errE = b.AppendDocumentChange(ctx, session2, changeJSON, 1)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.EndDocumentEdit(ctx, session2, false)
+	errE = b.EndEditDocument(ctx, session2, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for second session to complete.
@@ -1078,10 +1188,26 @@ func TestDocumentEditSessionSequential(t *testing.T) {
 	assert.Contains(t, stringValues, "from session 1")
 	assert.Contains(t, stringValues, "from session 2")
 
+	// Verify changeset ID for second session is derived from doc Base + "SESSION" + session2.
+	expectedChangeset2 := identifier.From(append(append([]string{}, doc.Base...), "SESSION", session2.String())...)
+	assert.Equal(t, expectedChangeset2, version3.Changeset)
+
+	// Verify claim IDs from both sessions are stored correctly.
+	storedClaimIDs := map[identifier.Identifier]bool{
+		docAfter2.Claims.String[0].ID: true,
+		docAfter2.Claims.String[1].ID: true,
+	}
+	assert.True(t, storedClaimIDs[claimID1], "claim from session 1 should be stored")
+	assert.True(t, storedClaimIDs[claimID2], "claim from session 2 should be stored")
+
 	// Verify the history: three distinct changesets.
 	assert.NotEqual(t, version1.Changeset, version2.Changeset)
 	assert.NotEqual(t, version2.Changeset, version3.Changeset)
 	assert.NotEqual(t, version1.Changeset, version3.Changeset)
+
+	// Verify initial changeset is derivable from doc Base + "CHANGESET" + "FIRST".
+	expectedFirstChangeset := identifier.From(append(append([]string{}, doc.Base...), "CHANGESET", "FIRST")...)
+	assert.Equal(t, expectedFirstChangeset, version1.Changeset)
 
 	// The latest version should have the previous version as a parent changeset.
 	require.NotEmpty(t, parentChangesets2)
@@ -1092,13 +1218,13 @@ func TestDocumentEditSessionSequential(t *testing.T) {
 	assert.Equal(t, version1.Changeset, parentChangesets1[0].Changeset, "parent of version2 should be version1")
 }
 
-func TestGetDocumentEditSessionNotFound(t *testing.T) {
+func TestGetEditDocumentSessionNotFound(t *testing.T) {
 	t.Parallel()
 
 	ctx, b := initBase(t)
 
 	// Getting a non-existent session should return an error.
-	_, errE := b.GetDocumentEditSession(ctx, identifier.New())
+	_, _, _, errE := b.GetEditDocumentSession(ctx, identifier.New()) //nolint:dogsled
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 }
 
@@ -1107,14 +1233,14 @@ func TestInsertOrReplaceFileDetectsMediaType(t *testing.T) {
 
 	ctx, b := initBase(t)
 
-	fileID := identifier.New()
+	fileBase := []string{"test", identifier.New().String()}
 	data := []byte("some binary data")
 
 	// Use a filename with no recognizable extension so mime detection by content is used.
-	errE := b.InsertOrReplaceFile(ctx, fileID, data, "noext")
+	fileID, errE := b.InsertOrReplaceFile(ctx, fileBase, data, "noext")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, metadata, errE := b.GetFile(ctx, fileID)
+	_, metadata, _, _, errE := b.GetFileLatest(ctx, fileID) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, "noext", metadata.Filename)
 	// Should have detected a media type (content-based detection).
@@ -1142,11 +1268,11 @@ func TestAppendDocumentChangeToEndedSession(t *testing.T) {
 	errE := b.InsertOrReplaceDocument(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	session, _, errE := b.BeginDocumentEdit(ctx, docID)
+	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// End session immediately (discard).
-	errE = b.EndDocumentEdit(ctx, session, true)
+	errE = b.EndEditDocument(ctx, session, true)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Trying to append after ending should fail.
@@ -1154,17 +1280,17 @@ func TestAppendDocumentChangeToEndedSession(t *testing.T) {
 	assert.EqualError(t, errE, "change type not supported")
 
 	// Trying to end again should fail.
-	errE = b.EndDocumentEdit(ctx, session, false)
+	errE = b.EndEditDocument(ctx, session, false)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 }
 
-func TestBeginDocumentEditNotFound(t *testing.T) {
+func TestBeginEditDocumentLatestNotFound(t *testing.T) {
 	t.Parallel()
 
 	ctx, b := initBase(t)
 
 	// Trying to begin edit for a non-existent document should fail.
-	_, _, errE := b.BeginDocumentEdit(ctx, identifier.New())
+	_, _, errE := b.BeginEditDocumentLatest(ctx, identifier.New())
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
 }
 
@@ -1191,7 +1317,7 @@ func TestAppendDocumentChangeWithBadBase(t *testing.T) {
 	errE := b.InsertOrReplaceDocument(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	session, _, errE := b.BeginDocumentEdit(ctx, docID)
+	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Append a change with wrong base.
@@ -1212,7 +1338,7 @@ func TestAppendDocumentChangeWithBadBase(t *testing.T) {
 	assert.EqualError(t, errE, "invalid base")
 
 	// Discard the session.
-	errE = b.EndDocumentEdit(ctx, session, true)
+	errE = b.EndEditDocument(ctx, session, true)
 	require.NoError(t, errE, "% -+#.1v", errE)
 }
 
@@ -1227,7 +1353,7 @@ func TestDocumentEditSessionCompletionWithApplyError(t *testing.T) {
 	errE := b.InsertOrReplaceDocument(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	session, version, errE := b.BeginDocumentEdit(ctx, docID)
+	session, version, errE := b.BeginEditDocumentLatest(ctx, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Append a RemoveClaimChange for a non-existent claim.
@@ -1240,7 +1366,7 @@ func TestDocumentEditSessionCompletionWithApplyError(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// End session. The async completion will fail during Apply.
-	errE = b.EndDocumentEdit(ctx, session, false)
+	errE = b.EndEditDocument(ctx, session, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for the River job to attempt and fail.
@@ -1265,7 +1391,7 @@ func TestAppendDocumentChangeWithInvalidJSON(t *testing.T) {
 	errE := b.InsertOrReplaceDocument(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	session, _, errE := b.BeginDocumentEdit(ctx, docID)
+	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Append invalid change data.
@@ -1273,7 +1399,7 @@ func TestAppendDocumentChangeWithInvalidJSON(t *testing.T) {
 	assert.EqualError(t, errE, "change type not supported")
 
 	// Discard the session.
-	errE = b.EndDocumentEdit(ctx, session, true)
+	errE = b.EndEditDocument(ctx, session, true)
 	require.NoError(t, errE, "% -+#.1v", errE)
 }
 
@@ -1288,7 +1414,7 @@ func TestListDocumentChangesEmpty(t *testing.T) {
 	errE := b.InsertOrReplaceDocument(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	session, _, errE := b.BeginDocumentEdit(ctx, docID)
+	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// List changes should return empty list.
@@ -1297,11 +1423,11 @@ func TestListDocumentChangesEmpty(t *testing.T) {
 	assert.Empty(t, changes)
 
 	// End session (discard since no changes).
-	errE = b.EndDocumentEdit(ctx, session, true)
+	errE = b.EndEditDocument(ctx, session, true)
 	require.NoError(t, errE, "% -+#.1v", errE)
 }
 
-func TestEndDocumentEditEmptyNoDiscard(t *testing.T) {
+func TestEndEditDocumentEmptyNoDiscard(t *testing.T) {
 	t.Parallel()
 
 	ctx, b := initBase(t)
@@ -1316,19 +1442,332 @@ func TestEndDocumentEditEmptyNoDiscard(t *testing.T) {
 	_, _, version, _, errE := b.GetDocumentLatest(ctx, docID) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	session, _, errE := b.BeginDocumentEdit(ctx, docID)
+	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// End session without discard but with no changes.
-	errE = b.EndDocumentEdit(ctx, session, false)
+	errE = b.EndEditDocument(ctx, session, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Session should be ended now.
-	_, errE = b.GetDocumentEditSession(ctx, session)
-	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
+	_, sessionEnded, _, errE := b.GetEditDocumentSession(ctx, session)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.True(t, sessionEnded)
+
+	// Wait for completion and verify it is treated as discarded (no changes).
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		documentID, sessionEnded, completeMetadata, errE := b.GetEditDocumentSession(ctx, session)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		assert.Equal(c, docID, documentID)
+		assert.True(c, sessionEnded)
+		if assert.NotNil(c, completeMetadata) {
+			// Empty changes are treated as discard.
+			assert.True(c, completeMetadata.Discarded)
+			assert.Nil(c, completeMetadata.Changeset)
+		}
+	}, 30*time.Second, 100*time.Millisecond)
 
 	// Document version should not change (empty changes behave like discard).
 	_, _, newVersion, _, errE := b.GetDocumentLatest(ctx, docID) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, version, newVersion, "document version should not change with empty changes")
+}
+
+func TestFileUploadDuringDocumentEdit(t *testing.T) {
+	t.Parallel()
+
+	ctx, b := initBase(t)
+
+	// Create a document.
+	doc := newDoc()
+	docID := doc.ID
+	errE := b.InsertOrReplaceDocument(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Begin document edit session.
+	session, version, errE := b.BeginEditDocumentLatest(ctx, docID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Begin a file upload as part of the document edit session.
+	fileBase := append(append([]string{}, doc.Base...), "FILE", identifier.New().String())
+	fileData := []byte("file content during edit")
+	uploadSession, errE := b.BeginUploadNew(ctx, fileBase, int64(len(fileData)), "text/plain", "edit-file.txt")
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Upload the file data.
+	errE = b.UploadChunk(ctx, uploadSession, fileData, 0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// End the upload linked to the document edit session.
+	errE = b.EndEditDocumentUpload(ctx, uploadSession, session)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Wait for the upload session to complete (file inserted into changeset but not committed).
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, completeMetadata, errE := b.GetUploadSession(ctx, uploadSession)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		assert.NotNil(c, completeMetadata)
+	}, 30*time.Second, 100*time.Millisecond)
+
+	// Add a change to the document.
+	confidence := document.HighConfidence
+	propID := identifier.New()
+	changeBase := append(append([]string{}, doc.Base...), "SESSION", session.String(), "1")
+	claimID := identifier.From(changeBase...)
+	changeJSON := marshalChange(t, document.AddClaimChange{ //nolint:exhaustruct
+		ID:   claimID,
+		Base: changeBase,
+		Patch: document.StringClaimPatch{
+			Confidence: &confidence,
+			Prop:       &propID,
+			String:     "with file",
+		},
+	})
+	_, errE = b.AppendDocumentChange(ctx, session, changeJSON, 1)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// End document edit session (commit).
+	errE = b.EndEditDocument(ctx, session, false)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Wait for document edit session to complete.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, _, newVersion, _, errE := b.GetDocumentLatest(ctx, docID)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		assert.NotEqual(c, version.Changeset, newVersion.Changeset)
+	}, 30*time.Second, 100*time.Millisecond)
+
+	// Verify the file is now available (committed by the document session).
+	expectedBase := append(append([]string{}, fileBase...), "STORAGE", uploadSession.String())
+	expectedFileID := identifier.From(expectedBase...)
+	data, metadata, _, _, errE := b.GetFileLatest(ctx, expectedFileID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, fileData, data)
+	assert.Equal(t, "edit-file.txt", metadata.Filename)
+	// Verify file metadata Base is recorded and file ID is derivable from it.
+	assert.Equal(t, expectedBase, metadata.Base)
+	assert.Equal(t, expectedFileID, identifier.From(metadata.Base...))
+}
+
+func TestFileUploadDuringDocumentEditDiscard(t *testing.T) {
+	t.Parallel()
+
+	ctx, b := initBase(t)
+
+	// Create a document.
+	doc := newDoc()
+	docID := doc.ID
+	errE := b.InsertOrReplaceDocument(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Begin document edit session.
+	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Upload a file as part of the document edit session.
+	fileBase := append(append([]string{}, doc.Base...), "FILE", identifier.New().String())
+	fileData := []byte("file to be discarded")
+	uploadSession, errE := b.BeginUploadNew(ctx, fileBase, int64(len(fileData)), "text/plain", "discarded-file.txt")
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.UploadChunk(ctx, uploadSession, fileData, 0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.EndEditDocumentUpload(ctx, uploadSession, session)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Discard the document edit session (no document changes).
+	errE = b.EndEditDocument(ctx, session, true)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Wait for document edit session completion.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, sessionEnded, completeMetadata, errE := b.GetEditDocumentSession(ctx, session)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		assert.True(c, sessionEnded)
+		if assert.NotNil(c, completeMetadata) {
+			assert.True(c, completeMetadata.Discarded)
+		}
+	}, 30*time.Second, 100*time.Millisecond)
+
+	// The file should NOT be available because the session was discarded.
+	expectedBase := append(append([]string{}, fileBase...), "STORAGE", uploadSession.String())
+	expectedFileID := identifier.From(expectedBase...)
+	_, _, _, _, errE = b.GetFileLatest(ctx, expectedFileID) //nolint:dogsled
+	assert.ErrorIs(t, errE, store.ErrValueNotFound)
+}
+
+func TestEndEditDocumentUploadEndedSession(t *testing.T) {
+	t.Parallel()
+
+	ctx, b := initBase(t)
+
+	// Create a document.
+	doc := newDoc()
+	docID := doc.ID
+	errE := b.InsertOrReplaceDocument(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Begin and end document edit session.
+	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.EndEditDocument(ctx, session, true)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Try to end a file upload with the ended document session.
+	fileBase := append(append([]string{}, doc.Base...), "FILE", identifier.New().String())
+	fileData := []byte("should fail")
+	uploadSession, errE := b.BeginUploadNew(ctx, fileBase, int64(len(fileData)), "text/plain", "fail.txt")
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.UploadChunk(ctx, uploadSession, fileData, 0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.EndEditDocumentUpload(ctx, uploadSession, session)
+	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
+}
+
+func TestDocumentIDDerivation(t *testing.T) {
+	t.Parallel()
+
+	ctx, b := initBase(t)
+
+	// Create and insert a document.
+	doc := newDoc()
+	docID := doc.ID
+	errE := b.InsertOrReplaceDocument(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Verify document ID is derived from its Base.
+	assert.Equal(t, identifier.From(doc.Base...), docID)
+
+	// Verify Base has domain as first element.
+	assert.Equal(t, "test", doc.Base[0])
+
+	// Retrieve document and verify Base is preserved.
+	result, _, version, _, errE := b.GetDocumentLatestDoc(ctx, docID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, doc.Base, result.Base)
+	assert.Equal(t, docID, identifier.From(result.Base...))
+
+	// Verify changeset ID is derived from base.
+	// For InsertOrReplaceDocument, the first changeset base is doc.Base + "CHANGESET" + "FIRST".
+	expectedChangesetBase := append(append([]string{}, doc.Base...), "CHANGESET", "FIRST")
+	expectedChangesetID := identifier.From(expectedChangesetBase...)
+	assert.Equal(t, expectedChangesetID, version.Changeset)
+}
+
+func TestGetUploadSession(t *testing.T) {
+	t.Parallel()
+
+	ctx, b := initBase(t)
+
+	fileBase := []string{"test", identifier.New().String()}
+	data := []byte("upload session test")
+
+	// Begin upload.
+	session, errE := b.BeginUploadNew(ctx, fileBase, int64(len(data)), "text/plain", "session-test.txt")
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Session should not be ended yet.
+	ended, completeMetadata, errE := b.GetUploadSession(ctx, session)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.False(t, ended)
+	assert.Nil(t, completeMetadata)
+
+	// Upload data and end.
+	errE = b.UploadChunk(ctx, session, data, 0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.EndUpload(ctx, session)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Session should be ended.
+	ended, _, errE = b.GetUploadSession(ctx, session)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.True(t, ended)
+
+	// Wait for completion.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, completeMetadata, errE := b.GetUploadSession(ctx, session)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		if assert.NotNil(c, completeMetadata) {
+			assert.False(c, completeMetadata.Discarded)
+			assert.NotNil(c, completeMetadata.ID)
+			// Verify the file ID is derivable from file metadata base.
+			expectedBase := append(append([]string{}, fileBase...), "STORAGE", session.String())
+			assert.Equal(c, identifier.From(expectedBase...), *completeMetadata.ID)
+		}
+	}, 30*time.Second, 100*time.Millisecond)
+}
+
+func TestGetEditDocumentSessionCompleted(t *testing.T) {
+	t.Parallel()
+
+	ctx, b := initBase(t)
+
+	// Create a document.
+	doc := newDoc()
+	docID := doc.ID
+	errE := b.InsertOrReplaceDocument(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Begin edit session.
+	session, version, errE := b.BeginEditDocumentLatest(ctx, docID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Add a change.
+	confidence := document.HighConfidence
+	propID := identifier.New()
+	changeBase := append(append([]string{}, doc.Base...), "SESSION", session.String(), "1")
+	claimID := identifier.From(changeBase...)
+	changeJSON := marshalChange(t, document.AddClaimChange{ //nolint:exhaustruct
+		ID:   claimID,
+		Base: changeBase,
+		Patch: document.StringClaimPatch{
+			Confidence: &confidence,
+			Prop:       &propID,
+			String:     "completion test",
+		},
+	})
+	_, errE = b.AppendDocumentChange(ctx, session, changeJSON, 1)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// End session.
+	errE = b.EndEditDocument(ctx, session, false)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Wait for completion and verify complete metadata.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		documentID, sessionEnded, completeMetadata, errE := b.GetEditDocumentSession(ctx, session)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		assert.Equal(c, docID, documentID)
+		assert.True(c, sessionEnded)
+		if assert.NotNil(c, completeMetadata) {
+			assert.False(c, completeMetadata.Discarded)
+			assert.NotNil(c, completeMetadata.Changeset)
+			// Verify changeset ID is derived from base.
+			expectedChangesetBase := append(append([]string{}, doc.Base...), "SESSION", session.String())
+			expectedChangesetID := identifier.From(expectedChangesetBase...)
+			assert.Equal(c, expectedChangesetID, *completeMetadata.Changeset)
+		}
+	}, 30*time.Second, 100*time.Millisecond)
+
+	// Verify document was updated.
+	_, _, newVersion, _, errE := b.GetDocumentLatest(ctx, docID) //nolint:dogsled
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.NotEqual(t, version.Changeset, newVersion.Changeset)
 }

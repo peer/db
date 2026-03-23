@@ -12,6 +12,7 @@ import (
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
+	"gitlab.com/peerdb/peerdb/base"
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
@@ -40,15 +41,14 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 		m.Stop()
 		if errors.Is(errE, search.ErrNotFound) {
 			// Session not found, so we redirect to the URL without "s".
-			path, err := s.Reverse("DocumentGet", waf.Params{"id": id.String()}, url.Values{"tab": req.Form["tab"]})
-			if err != nil {
-				s.InternalServerErrorWithError(w, req, err)
+			path, errE := s.Reverse("DocumentGet", waf.Params{"id": id.String()}, url.Values{"tab": req.Form["tab"]})
+			if errE != nil {
+				s.InternalServerErrorWithError(w, req, errE)
 				return
 			}
 			// TODO: Should we already do the query, to warm up store cache?
 			//       Maybe we should cache response ourselves so that we do not hit store twice?
-			w.Header().Set("Location", path)
-			w.WriteHeader(http.StatusSeeOther)
+			s.TemporaryRedirectGetMethod(w, req, path)
 			return
 		} else if errE != nil {
 			s.InternalServerErrorWithError(w, req, errE)
@@ -175,7 +175,7 @@ func (s *Service) DocumentCreatePostAPI(w http.ResponseWriter, req *http.Request
 		},
 	}
 
-	errE = site.Base.InsertDocument(ctx, id, doc)
+	errE = site.Base.InsertDocument(ctx, doc)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -211,7 +211,7 @@ func (s *Service) DocumentBeginEditPostAPI(w http.ResponseWriter, req *http.Requ
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	session, version, errE := site.Base.BeginDocumentEdit(ctx, id)
+	session, version, errE := site.Base.BeginEditDocumentLatest(ctx, id)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -376,7 +376,7 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 
 	site := waf.MustGetSite[*Site](ctx)
 
-	errE = site.Base.EndDocumentEdit(ctx, session, discard)
+	errE = site.Base.EndEditDocument(ctx, session, discard)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -409,11 +409,8 @@ func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, para
 
 	site := waf.MustGetSite[*Site](req.Context())
 
-	beginMetadata, errE := site.Base.GetDocumentEditSession(ctx, session)
+	documentID, _, completeMetadata, errE := site.Base.GetEditDocumentSession(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
-		s.NotFoundWithError(w, req, errE)
-		return
-	} else if errors.Is(errE, coordinator.ErrAlreadyEnded) {
 		s.NotFoundWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -421,9 +418,19 @@ func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, para
 		return
 	}
 
-	if beginMetadata.Document != id {
+	if documentID != id {
 		// TODO: Should we redirect to the correct ID?
 		s.NotFoundWithError(w, req, errors.New(`"session" does not match "id"`))
+		return
+	}
+
+	if completeMetadata != nil {
+		path, errE := s.Reverse("DocumentGet", waf.Params{"id": id.String()}, nil)
+		if errE != nil {
+			s.InternalServerErrorWithError(w, req, errE)
+			return
+		}
+		s.TemporaryRedirectGetMethod(w, req, path)
 		return
 	}
 
@@ -448,11 +455,8 @@ func (s *Service) DocumentEditGetAPI(w http.ResponseWriter, req *http.Request, p
 
 	site := waf.MustGetSite[*Site](req.Context())
 
-	beginMetadata, errE := site.Base.GetDocumentEditSession(ctx, session)
+	documentID, sessionEnded, completeMetadata, errE := site.Base.GetEditDocumentSession(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
-		s.NotFoundWithError(w, req, errE)
-		return
-	} else if errors.Is(errE, coordinator.ErrAlreadyEnded) {
 		s.NotFoundWithError(w, req, errE)
 		return
 	} else if errE != nil {
@@ -460,11 +464,24 @@ func (s *Service) DocumentEditGetAPI(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	if beginMetadata.Document != id {
+	if documentID != id {
 		// TODO: Should we redirect to the correct ID?
 		s.NotFoundWithError(w, req, errors.New(`"session" does not match "id"`))
 		return
 	}
 
-	s.WriteJSON(w, req, beginMetadata, nil)
+	if sessionEnded {
+		s.WriteJSON(w, req, `{"active":false}`, nil)
+	} else if completeMetadata != nil {
+		s.WriteJSON(w, req, struct {
+			*base.DocumentCompleteMetadata
+
+			Active bool `json:"active"`
+		}{
+			DocumentCompleteMetadata: completeMetadata,
+			Active:                   false,
+		}, nil)
+	} else {
+		s.WriteJSON(w, req, `{"active":true}`, nil)
+	}
 }

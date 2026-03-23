@@ -4,6 +4,7 @@ import (
 	"context"
 	"mime"
 	"path/filepath"
+	"slices"
 	"time"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -30,28 +31,43 @@ func (b *B) InsertOrReplaceDocument(ctx context.Context, doc *document.D) errors
 	if errE != nil {
 		return errE
 	}
-	newMetadata := &internalStore.DocumentMetadata{
+
+	metadata := &internalStore.DocumentMetadata{
 		At:               internalStore.Time(time.Now().UTC()),
 		InverseRelations: nil,
 	}
-	_, errE = b.documents.Insert(ctx, doc.ID, data, newMetadata, &internalStore.NoMetadata{})
-	if errors.Is(errE, store.ErrConflict) {
+
+	// Each doc.Id has to be unique, so each doc.Base is unique as well.
+	changesetBase := slices.Clone(doc.Base)
+	changesetBase = append(changesetBase, "CHANGESET", "FIRST")
+	_, errE = b.documents.Insert(ctx, doc.ID, data, metadata, &internalStore.CommitMetadata{
+		Base: changesetBase,
+	})
+	// If commit with ID from changesetBase already exists, this means that also the doc
+	// with its ID already exist. So we replace the doc.
+	if errors.Is(errE, store.ErrAlreadyCommitted) {
 		_, oldMetadata, version, _, errE := b.documents.GetLatest(ctx, doc.ID)
 		if errE != nil {
 			return errE
 		}
-		newMetadata.CarryOver(oldMetadata)
+		metadata.CarryOver(oldMetadata)
+		changesetBase := slices.Clone(doc.Base)
+		changesetBase = append(changesetBase, "CHANGESET", "REPLACE", version.Changeset.String())
 		// TODO: What to do once we have document melding and target document got melded into some other document?
-		_, errE = b.documents.Replace(ctx, doc.ID, version.Changeset, data, newMetadata, &internalStore.NoMetadata{})
+		_, errE = b.documents.Replace(ctx, doc.ID, version.Changeset, data, metadata, &internalStore.CommitMetadata{
+			Base: changesetBase,
+		})
 		return errE
 	}
 	return errE
 }
 
-// InsertOrReplaceFile inserts or replaces the file based on the ID.
+// InsertOrReplaceFile inserts or replaces the file based on the ID computed from base.
 //
 // It is useful for bulk importing data where you do not care about metadata and history tracking.
-func (b *B) InsertOrReplaceFile(ctx context.Context, id identifier.Identifier, data []byte, filename string) errors.E {
+func (b *B) InsertOrReplaceFile(ctx context.Context, base []string, data []byte, filename string) (identifier.Identifier, errors.E) {
+	id := identifier.From(base...)
+
 	mediaType := mime.TypeByExtension(filepath.Ext(filename))
 	if mediaType == "" {
 		// Unable to determine media type by extension. Try to detect it by content.
@@ -61,22 +77,34 @@ func (b *B) InsertOrReplaceFile(ctx context.Context, id identifier.Identifier, d
 
 	metadata := &storage.FileMetadata{
 		At:        internalStore.Time(time.Now().UTC()),
+		Base:      base,
 		Size:      int64(len(data)),
 		MediaType: mediaType,
 		Filename:  filename,
 		Etag:      x.ComputeEtag(data),
 	}
 
-	_, errE := b.files.Store().Insert(ctx, id, data, metadata, &internalStore.NoMetadata{})
-	if errors.Is(errE, store.ErrConflict) {
+	// Each base is unique.
+	changesetBase := slices.Clone(base)
+	changesetBase = append(changesetBase, "CHANGESET", "FIRST")
+	_, errE := b.files.Store().Insert(ctx, id, data, metadata, &internalStore.CommitMetadata{
+		Base: changesetBase,
+	})
+	// If commit with ID from changesetBase already exists, this means that also the file
+	// with its ID already exist. So we replace the file.
+	if errors.Is(errE, store.ErrAlreadyCommitted) {
 		_, _, version, _, errE := b.files.Store().GetLatest(ctx, id)
 		if errE != nil {
-			return errE
+			return id, errE
 		}
-		_, errE = b.files.Store().Replace(ctx, id, version.Changeset, data, metadata, &internalStore.NoMetadata{})
-		return errE
+		changesetBase := slices.Clone(base)
+		changesetBase = append(changesetBase, "CHANGESET", "REPLACE", version.Changeset.String())
+		_, errE = b.files.Store().Replace(ctx, id, version.Changeset, data, metadata, &internalStore.CommitMetadata{
+			Base: changesetBase,
+		})
+		return id, errE
 	}
-	return errE
+	return id, errE
 }
 
 // WaitUntilCaughtUp blocks until the base has indexed all currently committed documents.

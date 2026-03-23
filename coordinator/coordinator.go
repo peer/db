@@ -78,6 +78,10 @@ func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
 			return river.JobCancel(errE) //nolint:wrapcheck
 		} else if errors.Is(errE, ErrAlreadyCompleted) {
 			return river.JobCancel(errE) //nolint:wrapcheck
+		} else if errors.Is(errE, ErrAlreadyEnded) {
+			// This one is not returned from the coordinator itself, but can still be returned by
+			// CompleteSession and CompleteSessionTx implementations.
+			return river.JobCancel(errE) //nolint:wrapcheck
 		} else if errors.Is(errE, store.ErrViewNotFound) {
 			return river.JobCancel(errE) //nolint:wrapcheck
 		} else if errors.Is(errE, store.ErrValueNotFound) {

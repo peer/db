@@ -44,8 +44,8 @@ type B struct {
 	LanguagePriority map[string][]string
 
 	// Data type for Store is on purpose not document.D so that we can serve it directly without doing first JSON unmarshal just to marshal it again immediately.
-	documents   *store.Store[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, document.Changes]
-	coordinator *coordinator.Coordinator[json.RawMessage, *documentChangeMetadata, *DocumentBeginMetadata, *documentEndMetadata, *documentCompleteData, *documentCompleteMetadata]
+	documents   *store.Store[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, document.Changes]
+	coordinator *coordinator.Coordinator[json.RawMessage, *documentChangeMetadata, *DocumentBeginMetadata, *documentEndMetadata, *documentCompleteData, *DocumentCompleteMetadata]
 	files       *storage.Storage
 	bridge      *internalSearch.Bridge
 }
@@ -62,7 +62,7 @@ func (b *B) Init(
 	}
 
 	documents := &store.Store[
-		json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, document.Changes,
+		json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, document.Changes,
 	]{
 		Prefix:        "docs",
 		DataType:      "jsonb",
@@ -75,7 +75,7 @@ func (b *B) Init(
 		return errE
 	}
 
-	c := &coordinator.Coordinator[json.RawMessage, *documentChangeMetadata, *DocumentBeginMetadata, *documentEndMetadata, *documentCompleteData, *documentCompleteMetadata]{
+	c := &coordinator.Coordinator[json.RawMessage, *documentChangeMetadata, *DocumentBeginMetadata, *documentEndMetadata, *documentCompleteData, *DocumentCompleteMetadata]{
 		Prefix:            "docs",
 		DataType:          "jsonb",
 		MetadataType:      "jsonb",
@@ -89,8 +89,9 @@ func (b *B) Init(
 	}
 
 	files := &storage.Storage{
-		Schema: b.Schema,
-		Prefix: "files",
+		Schema:             b.Schema,
+		Prefix:             "files",
+		PrimaryCoordinator: &primaryCoordinator{Coordinator: c},
 	}
 	// We do not use the underlying store's Committed channel here so we pass nil as listener.
 	errE = files.Init(ctx, dbpool, nil, riverClient, workers)

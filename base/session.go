@@ -11,6 +11,7 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/store"
@@ -18,9 +19,10 @@ import (
 
 // DocumentBeginMetadata contains metadata captured at the beginning of document edit session.
 type DocumentBeginMetadata struct {
-	At       internalStore.Time    `json:"at"`
-	Document identifier.Identifier `json:"document"`
-	Version  store.Version         `json:"version"`
+	At         internalStore.Time    `json:"at"`
+	DocumentID identifier.Identifier `json:"documentId"`
+	Base       []string              `json:"base"`
+	Version    store.Version         `json:"version"`
 }
 
 // documentEndMetadata contains metadata captured at the end of document edit session.
@@ -35,7 +37,7 @@ type documentCompleteData struct {
 	BeginMetadata *DocumentBeginMetadata
 	EndMetadata   *documentEndMetadata
 	Changes       document.Changes
-	Doc           json.RawMessage
+	Document      json.RawMessage
 	// ParentVersion is the resolved version (with actual revision) of the parent document
 	// at which metadata was fetched and changes were validated.
 	ParentVersion store.Version
@@ -44,8 +46,10 @@ type documentCompleteData struct {
 	Metadata *internalStore.DocumentMetadata
 }
 
-// documentCompleteMetadata contains metadata captured when document edit session completes.
-type documentCompleteMetadata struct {
+// DocumentCompleteMetadata contains metadata captured when document edit session completes.
+type DocumentCompleteMetadata struct {
+	Discarded bool `json:"discarded,omitempty"`
+
 	Changeset *identifier.Identifier `json:"changeset,omitempty"`
 
 	// Processing time in milliseconds.
@@ -68,7 +72,7 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 			BeginMetadata: beginMetadata,
 			EndMetadata:   endMetadata,
 			Changes:       nil,
-			Doc:           nil,
+			Document:      nil,
 			ParentVersion: store.Version{},
 			Metadata:      nil,
 		}, nil
@@ -89,7 +93,7 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 			BeginMetadata: beginMetadata,
 			EndMetadata:   endMetadata,
 			Changes:       nil,
-			Doc:           nil,
+			Document:      nil,
 			ParentVersion: store.Version{},
 			Metadata:      nil,
 		}, nil
@@ -112,7 +116,7 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 
 	// Version has Revision 0, so Get returns the latest revision for the changeset,
 	// picking up any metadata updates made by the system (e.g., bridge) since the session began.
-	docJSON, oldMetadata, resolvedVersion, _, errE := b.documents.Get(ctx, beginMetadata.Document, beginMetadata.Version)
+	docJSON, oldMetadata, resolvedVersion, _, errE := b.documents.Get(ctx, beginMetadata.DocumentID, beginMetadata.Version)
 	if errE != nil {
 		return nil, errE
 	}
@@ -123,7 +127,11 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 		return nil, errE
 	}
 
-	base := []string{doc.ID.String(), "SESSION", session.String()}
+	// doc.Base should be equal to beginMetadata.Base.
+	// We use doc.Base here on purpose, to validate that use of
+	// beginMetadata.Base in AppendDocumentChange matches.
+	base := slices.Clone(doc.Base)
+	base = append(base, "SESSION", session.String())
 
 	errE = changes.Validate(base)
 	if errE != nil {
@@ -151,7 +159,7 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 		BeginMetadata: beginMetadata,
 		EndMetadata:   endMetadata,
 		Changes:       changes,
-		Doc:           docJSON,
+		Document:      docJSON,
 		ParentVersion: resolvedVersion,
 		Metadata:      newMetadata,
 	}, nil
@@ -160,13 +168,33 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 func (b *B) completeDocumentSessionTx(
 	ctx context.Context,
 	_ pgx.Tx,
-	_ identifier.Identifier,
+	session identifier.Identifier,
 	data *documentCompleteData,
-) (*documentCompleteMetadata, errors.E) {
+) (*DocumentCompleteMetadata, errors.E) {
+	// BeginMetadata.Base is the same as doc.Base.
+	changesetBase := slices.Clone(data.BeginMetadata.Base)
+	changesetBase = append(changesetBase, "SESSION", session.String())
+
+	changesetID := identifier.From(changesetBase...)
+	changeset, errE := b.files.Store().Changeset(ctx, changesetID)
+	if errE != nil {
+		return nil, errE
+	}
+
 	// No changes to commit: either the session was explicitly discarded or
 	// it was ended without any changes (treated the same way).
-	if data.Doc == nil {
-		return &documentCompleteMetadata{
+	if data.Document == nil {
+		// There might be files uploaded into a changeset in file storage store.
+		// We discard the changeset here to remove them.
+		// Discarding an empty (or an already discarded) changeset is not an error,
+		// so this should not error if no file uploads were made into the document edit session.
+		errE := changeset.Discard(ctx)
+		if errE != nil {
+			return nil, errE
+		}
+
+		return &DocumentCompleteMetadata{
+			Discarded: true,
 			Changeset: nil,
 			Time:      time.Since(time.Time(data.EndMetadata.At)).Milliseconds(),
 		}, nil
@@ -175,13 +203,51 @@ func (b *B) completeDocumentSessionTx(
 	// We do not have to use the "tx" parameter because we access the transaction through ctx.
 	// We use the parent version's changeset so the update is based on the same version (with actual revision)
 	// at which metadata was fetched and changes were validated in completeDocumentSession.
-	version, errE := b.documents.Update(ctx, data.BeginMetadata.Document, data.ParentVersion.Changeset, data.Doc, data.Changes, data.Metadata, &internalStore.NoMetadata{})
+	commitMetadata := &internalStore.CommitMetadata{
+		Base: changesetBase,
+	}
+	version, errE := b.documents.Update(
+		ctx, data.BeginMetadata.DocumentID, data.ParentVersion.Changeset,
+		data.Document, data.Changes, data.Metadata, commitMetadata,
+	)
 	if errE != nil {
 		return nil, errE
 	}
 
-	return &documentCompleteMetadata{
+	// There might be files uploaded into a changeset in file storage store.
+	// We commit the changeset here to persist them.
+	_, errE = b.files.Store().Commit(ctx, changeset, commitMetadata)
+	if errE != nil && !errors.Is(errE, store.ErrChangesetNotFound) {
+		// ErrChangesetNotFound is fine. It means no file uploads were made into the document edit session.
+		return nil, errE
+	}
+
+	return &DocumentCompleteMetadata{
+		Discarded: false,
 		Changeset: &version.Changeset,
 		Time:      time.Since(time.Time(data.EndMetadata.At)).Milliseconds(),
 	}, nil
+}
+
+type primaryCoordinator struct {
+	*coordinator.Coordinator[json.RawMessage, *documentChangeMetadata, *DocumentBeginMetadata, *documentEndMetadata, *documentCompleteData, *DocumentCompleteMetadata]
+}
+
+// ChangesetID implements storage.PrimaryCoordinator interface.
+func (p *primaryCoordinator) ChangesetID(ctx context.Context, session identifier.Identifier) (identifier.Identifier, errors.E) {
+	// This check runs inside a transaction.
+	beginMetadata, endMetadata, completeMetadata, errE := p.Get(ctx, session)
+	if errE != nil {
+		return identifier.Identifier{}, errE
+	} else if endMetadata != nil {
+		return identifier.Identifier{}, errors.WithStack(coordinator.ErrAlreadyEnded)
+	} else if completeMetadata != nil {
+		return identifier.Identifier{}, errors.WithStack(coordinator.ErrAlreadyCompleted)
+	}
+
+	// Here we use changeset base for ending a document session.
+	changesetBase := slices.Clone(beginMetadata.Base)
+	changesetBase = append(changesetBase, "SESSION", session.String())
+
+	return identifier.From(changesetBase...), nil
 }

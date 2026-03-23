@@ -23,14 +23,16 @@ import (
 
 type beginMetadata struct {
 	At        internalStore.Time `json:"at"`
+	Base      []string           `json:"base"`
 	Size      int64              `json:"size"`
 	MediaType string             `json:"mediaType"`
 	Filename  string             `json:"filename,omitempty"`
 }
 
 type endMetadata struct {
-	At        internalStore.Time `json:"at"`
-	Discarded bool               `json:"discarded,omitempty"`
+	At             internalStore.Time     `json:"at"`
+	PrimarySession *identifier.Identifier `json:"primarySession,omitempty"`
+	Discarded      bool                   `json:"discarded,omitempty"`
 }
 
 type completeData struct {
@@ -40,7 +42,12 @@ type completeData struct {
 	Chunks       int64
 }
 
-type completeMetadata struct {
+// CompleteMetadata contains metadata captured when file upload session completes.
+type CompleteMetadata struct {
+	Discarded bool `json:"discarded,omitempty"`
+
+	ID *identifier.Identifier `json:"id,omitempty"`
+
 	Chunks int64 `json:"chunks,omitempty"`
 
 	// Processing time in milliseconds.
@@ -68,10 +75,19 @@ type chunkPos struct {
 // FileMetadata contains metadata about a stored file.
 type FileMetadata struct {
 	At        internalStore.Time `json:"at"`
+	Base      []string           `json:"base"`
 	Size      int64              `json:"size"`
 	MediaType string             `json:"mediaType"`
 	Filename  string             `json:"filename,omitempty"`
 	Etag      string             `json:"etag"`
+}
+
+// PrimaryCoordinator is an interface enabling uploading files into
+// changesets managed by the primary session coordinator.
+type PrimaryCoordinator interface {
+	// ChangesetID is run inside a transaction and should return the ID of the changeset
+	// to upload the file into based on the session ID in the primary coordinator.
+	ChangesetID(ctx context.Context, session identifier.Identifier) (identifier.Identifier, errors.E)
 }
 
 // Storage provides file storage operations.
@@ -82,8 +98,12 @@ type Storage struct {
 	// Prefix to use when initializing PostgreSQL objects used by this storage.
 	Prefix string
 
-	store       *store.Store[[]byte, *FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, store.None]
-	coordinator *coordinator.Coordinator[[]byte, *chunkMetadata, *beginMetadata, *endMetadata, *completeData, *completeMetadata]
+	// PrimaryCoordinator can be set to the primary session coordinator which allows one to
+	// upload files into changesets managed by the primary session coordinator.
+	PrimaryCoordinator PrimaryCoordinator
+
+	store       *store.Store[[]byte, *FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, store.None]
+	coordinator *coordinator.Coordinator[[]byte, *chunkMetadata, *beginMetadata, *endMetadata, *completeData, *CompleteMetadata]
 }
 
 // Init initializes the Storage.
@@ -94,7 +114,7 @@ func (s *Storage) Init(
 		return errors.New("already initialized")
 	}
 
-	storageStore := &store.Store[[]byte, *FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, store.None]{
+	storageStore := &store.Store[[]byte, *FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, store.None]{
 		Prefix:       s.Prefix,
 		DataType:     "bytea",
 		MetadataType: "jsonb",
@@ -105,7 +125,7 @@ func (s *Storage) Init(
 		return errE
 	}
 
-	storageCoordinator := &coordinator.Coordinator[[]byte, *chunkMetadata, *beginMetadata, *endMetadata, *completeData, *completeMetadata]{
+	storageCoordinator := &coordinator.Coordinator[[]byte, *chunkMetadata, *beginMetadata, *endMetadata, *completeData, *CompleteMetadata]{
 		Prefix:            s.Prefix,
 		DataType:          "bytea",
 		MetadataType:      "jsonb",
@@ -125,8 +145,13 @@ func (s *Storage) Init(
 }
 
 // Store returns the underlying store.Store instance.
-func (s *Storage) Store() *store.Store[[]byte, *FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, store.None] {
+func (s *Storage) Store() *store.Store[[]byte, *FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, store.None] {
 	return s.store
+}
+
+// Coordinator returns the underlying coordinator.Coordinator instance.
+func (s *Storage) Coordinator() *coordinator.Coordinator[[]byte, *chunkMetadata, *beginMetadata, *endMetadata, *completeData, *CompleteMetadata] {
+	return s.coordinator
 }
 
 func (s *Storage) completeStorageSession(ctx context.Context, session identifier.Identifier) (*completeData, errors.E) {
@@ -209,8 +234,12 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 		return nil, errE
 	}
 
+	base := slices.Clone(beginMetadata.Base)
+	base = append(base, "STORAGE", session.String())
+
 	metadata := &FileMetadata{
 		At:        endMetadata.At,
+		Base:      base,
 		Size:      beginMetadata.Size,
 		MediaType: beginMetadata.MediaType,
 		Filename:  beginMetadata.Filename,
@@ -225,30 +254,60 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 	}, nil
 }
 
-func (s *Storage) completeStorageSessionTx(ctx context.Context, _ pgx.Tx, session identifier.Identifier, data *completeData) (*completeMetadata, errors.E) {
+func (s *Storage) completeStorageSessionTx(ctx context.Context, _ pgx.Tx, session identifier.Identifier, data *completeData) (*CompleteMetadata, errors.E) {
 	if data.EndMetadata.Discarded {
-		return &completeMetadata{
-			Chunks: 0,
-			Time:   time.Since(time.Time(data.EndMetadata.At)).Milliseconds(),
+		return &CompleteMetadata{
+			Discarded: true,
+			ID:        nil,
+			Chunks:    0,
+			Time:      time.Since(time.Time(data.EndMetadata.At)).Milliseconds(),
 		}, nil
 	}
 
-	// We do not have to use the "tx" parameter because we access the transaction through ctx.
-	_, errE := s.store.Insert(ctx, session, data.Buffer, data.FileMetadata, &internalStore.NoMetadata{})
-	if errE != nil {
-		return nil, errE
+	id := identifier.From(data.FileMetadata.Base...)
+	if data.EndMetadata.PrimarySession != nil {
+		// Primary session was provided. We use it to obtain a changeset ID and then insert
+		// the file into the changeset with that changeset ID, but we do NOT commit the changeset.
+		changesetID, errE := s.PrimaryCoordinator.ChangesetID(ctx, *data.EndMetadata.PrimarySession)
+		if errE != nil {
+			return nil, errE
+		}
+		changeset, errE := s.store.Changeset(ctx, changesetID)
+		if errE != nil {
+			return nil, errE
+		}
+		_, errE = changeset.Insert(ctx, id, data.Buffer, data.FileMetadata)
+		if errE != nil {
+			return nil, errE
+		}
+	} else {
+		// Changeset base was not provided, so we construct one from the file base.
+		// That is the same construction we use for changeset base for ending a document session.
+		changesetBase := slices.Clone(data.FileMetadata.Base)
+		changesetBase = append(changesetBase, "SESSION", session.String())
+
+		// We do not have to use the "tx" parameter because we access the transaction through ctx.
+		_, errE := s.store.Insert(ctx, id, data.Buffer, data.FileMetadata, &internalStore.CommitMetadata{
+			Base: changesetBase,
+		})
+		if errE != nil {
+			return nil, errE
+		}
 	}
 
-	return &completeMetadata{
-		Chunks: data.Chunks,
-		Time:   time.Since(time.Time(data.EndMetadata.At)).Milliseconds(),
+	return &CompleteMetadata{
+		Discarded: false,
+		ID:        &id,
+		Chunks:    data.Chunks,
+		Time:      time.Since(time.Time(data.EndMetadata.At)).Milliseconds(),
 	}, nil
 }
 
-// BeginUpload starts a new file upload session.
-func (s *Storage) BeginUpload(ctx context.Context, size int64, mediaType, filename string) (identifier.Identifier, errors.E) {
+// BeginUploadNew starts a new file upload session.
+func (s *Storage) BeginUploadNew(ctx context.Context, base []string, size int64, mediaType, filename string) (identifier.Identifier, errors.E) {
 	metadata := &beginMetadata{
 		At:        internalStore.Time(time.Now().UTC()),
+		Base:      base,
 		Size:      size,
 		MediaType: mediaType,
 		Filename:  filename,
@@ -300,7 +359,13 @@ func (s *Storage) GetChunk(ctx context.Context, session identifier.Identifier, c
 }
 
 // EndUpload finalizes an upload session and assembles the file.
-func (s *Storage) EndUpload(ctx context.Context, session identifier.Identifier) errors.E {
+//
+// It returns the ID of the file.
+func (s *Storage) EndUpload(ctx context.Context, session identifier.Identifier, primarySession *identifier.Identifier) errors.E {
+	if primarySession != nil && s.PrimaryCoordinator == nil {
+		return errors.New("primary session coordinator not set")
+	}
+
 	// Validate chunks before ending the session so that errors are returned synchronously
 	// and the session remains active for user to attempt to fix any error.
 	errE := s.validateChunks(ctx, session)
@@ -309,8 +374,9 @@ func (s *Storage) EndUpload(ctx context.Context, session identifier.Identifier) 
 	}
 
 	metadata := &endMetadata{
-		At:        internalStore.Time(time.Now().UTC()),
-		Discarded: false,
+		At:             internalStore.Time(time.Now().UTC()),
+		PrimarySession: primarySession,
+		Discarded:      false,
 	}
 	return s.coordinator.End(ctx, session, metadata)
 }
@@ -388,8 +454,9 @@ func (s *Storage) validateChunks(ctx context.Context, session identifier.Identif
 // DiscardUpload discards an upload session without saving the file.
 func (s *Storage) DiscardUpload(ctx context.Context, session identifier.Identifier) errors.E {
 	metadata := &endMetadata{
-		At:        internalStore.Time(time.Now().UTC()),
-		Discarded: true,
+		At:             internalStore.Time(time.Now().UTC()),
+		PrimarySession: nil,
+		Discarded:      true,
 	}
 	return s.coordinator.End(ctx, session, metadata)
 }

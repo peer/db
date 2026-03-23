@@ -132,7 +132,11 @@ func (w *worker) getBridge(schema, prefix string) (bridgeJob, errors.E) { //noli
 // It saves progress in a PostgreSQL table so it resumes from where it left off on restart.
 type Bridge struct {
 	// Store is the store to read documents from.
-	Store *store.Store[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, document.Changes]
+	Store *store.Store[
+		json.RawMessage, *internalStore.DocumentMetadata,
+		*internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata,
+		document.Changes,
+	]
 
 	// ESClient is the ElasticSearch client.
 	ESClient *elastic.Client
@@ -648,7 +652,7 @@ func (b *Bridge) run(ctx context.Context) errors.E {
 func (b *Bridge) indexCommit(
 	ctx context.Context,
 	committed store.CommittedChangesets[
-		json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, document.Changes,
+		json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, document.Changes,
 	],
 ) (map[identifier.Identifier][]internalStore.InverseRelation, map[identifier.Identifier][]internalStore.InverseRelation, errors.E) {
 	// Reconstruct changesets with the store so we can query them.
