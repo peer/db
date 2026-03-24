@@ -56,7 +56,7 @@ type FilterResult struct {
 func FiltersGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64, int64), searchSession *Session,
 ) ([]FilterResult, map[string]interface{}, errors.E) {
-	metrics := waf.MustGetMetrics(ctx)
+	metrics, _ := waf.GetMetrics(ctx)
 
 	query := searchSession.ToQuery()
 

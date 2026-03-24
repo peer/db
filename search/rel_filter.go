@@ -28,7 +28,7 @@ type RelFilterResult struct {
 func RelFilterGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64, int64), id, prop identifier.Identifier,
 ) ([]RelFilterResult, map[string]interface{}, errors.E) {
-	metrics := waf.MustGetMetrics(ctx)
+	metrics, _ := waf.GetMetrics(ctx)
 
 	m := metrics.Duration(internalStore.MetricSearchSession).Start()
 	searchSession, errE := GetSession(ctx, id)

@@ -59,15 +59,16 @@ type AmountFilter struct {
 }
 
 // Valid validates the AmountFilter to ensure it has a valid configuration.
+// Both gte and lte must be set together, or none must be true.
 func (f AmountFilter) Valid() errors.E {
 	if f.Gte == nil && f.Lte == nil && !f.None {
-		return errors.New("gte, lte, or none has to be set")
+		return errors.New("both gte and lte or none has to be set")
 	}
-	if f.Gte != nil && f.None {
-		return errors.New("gte and none cannot be both set")
+	if (f.Gte != nil || f.Lte != nil) && f.None {
+		return errors.New("gte/lte and none cannot be both set")
 	}
-	if f.Lte != nil && f.None {
-		return errors.New("lte and none cannot be both set")
+	if (f.Gte == nil) != (f.Lte == nil) {
+		return errors.New("both gte and lte must be set together")
 	}
 	return nil
 }
@@ -81,15 +82,16 @@ type TimeFilter struct {
 }
 
 // Valid validates the TimeFilter to ensure it has a valid configuration.
+// Both gte and lte must be set together, or none must be true.
 func (f TimeFilter) Valid() errors.E {
 	if f.Gte == nil && f.Lte == nil && !f.None {
-		return errors.New("gte, lte, or none has to be set")
+		return errors.New("both gte and lte or none has to be set")
 	}
-	if f.Gte != nil && f.None {
-		return errors.New("gte and none cannot be both set")
+	if (f.Gte != nil || f.Lte != nil) && f.None {
+		return errors.New("gte/lte and none cannot be both set")
 	}
-	if f.Lte != nil && f.None {
-		return errors.New("lte and none cannot be both set")
+	if (f.Gte == nil) != (f.Lte == nil) {
+		return errors.New("both gte and lte must be set together")
 	}
 	return nil
 }
@@ -206,13 +208,7 @@ func (f Filters) ToQuery() elastic.Query { //nolint:ireturn
 				),
 			)
 		}
-		r := elastic.NewRangeQuery("claims.amount.range")
-		if f.Amount.Lte != nil {
-			r.Lte(*f.Amount.Lte)
-		}
-		if f.Amount.Gte != nil {
-			r.Gte(*f.Amount.Gte)
-		}
+		r := elastic.NewRangeQuery("claims.amount.range").Gte(*f.Amount.Gte).Lte(*f.Amount.Lte)
 		must := []elastic.Query{
 			elastic.NewTermQuery("claims.amount.prop", f.Amount.Prop),
 			r,
@@ -232,13 +228,7 @@ func (f Filters) ToQuery() elastic.Query { //nolint:ireturn
 				),
 			)
 		}
-		r := elastic.NewRangeQuery("claims.time.range")
-		if f.Time.Lte != nil {
-			r.Lte(*f.Time.Lte)
-		}
-		if f.Time.Gte != nil {
-			r.Gte(*f.Time.Gte)
-		}
+		r := elastic.NewRangeQuery("claims.time.range").Gte(*f.Time.Gte).Lte(*f.Time.Lte)
 		return elastic.NewNestedQuery("claims.time",
 			elastic.NewBoolQuery().Must(
 				elastic.NewTermQuery("claims.time.prop", f.Time.Prop),
@@ -449,7 +439,7 @@ type Result struct {
 func ResultsGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64, int64), searchSession *Session,
 ) ([]Result, map[string]interface{}, errors.E) {
-	metrics := waf.MustGetMetrics(ctx)
+	metrics, _ := waf.GetMetrics(ctx)
 
 	query := searchSession.ToQuery()
 

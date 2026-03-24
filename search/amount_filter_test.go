@@ -1,0 +1,419 @@
+package search_test
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gitlab.com/tozd/identifier"
+
+	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
+	"gitlab.com/peerdb/peerdb/search"
+)
+
+// assertIntervalPrefix checks that the interval metadata string starts with the expected prefix.
+func assertIntervalPrefix(t *testing.T, expected string, metadata map[string]any) {
+	t.Helper()
+	interval, ok := metadata["interval"].(string)
+	require.True(t, ok, "interval metadata should be a string")
+	assert.True(t, strings.HasPrefix(interval, expected), "interval %q should start with %q", interval, expected)
+}
+
+func TestAmountFilterGetIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	amountProp := identifier.From("amountProp")
+	unitID := identifier.From("unit")
+
+	ten := 10.0
+	fifty := 50.0
+	ninety := 90.0
+
+	for _, tc := range []struct {
+		id    string
+		value *float64
+	}{
+		{"amountDoc1", &ten},
+		{"amountDoc2", &fifty},
+		{"amountDoc3", &ninety},
+	} {
+		indexDocument(t, ctx, esClient, index, internalSearch.Document{
+			ID: identifier.From(tc.id),
+			Claims: internalSearch.ClaimTypes{
+				Identifier: nil, String: nil, HTML: nil,
+				Amount: internalSearch.AmountClaims{{
+					Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
+					Range: internalSearch.RangeFloat{
+						GreaterThan: nil, GreaterThanOrEqual: tc.value, LessThan: nil, LessThanOrEqual: tc.value,
+					},
+					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
+				}},
+				Time: nil, Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+			},
+		})
+	}
+	refreshIndex(t, ctx, esClient, index)
+
+	session := &search.Session{ID: nil, Version: 0, View: "", Query: "", Filters: nil}
+	createSession(t, ctx, session)
+
+	results, metadata, errE := search.AmountFilterGet(ctx, getSearchService, *session.ID, amountProp, &unitID)
+	require.NoError(t, errE)
+
+	assert.Equal(t, "10", metadata["from"])
+	assert.Equal(t, "90", metadata["to"])
+	assertIntervalPrefix(t, "0.8", metadata)
+	assert.Equal(t, "100", metadata["total"])
+	require.Len(t, results, 100)
+
+	// Verify total count across all histogram bins equals 3.
+	var totalCount int64
+	for _, r := range results {
+		totalCount += r.Count
+	}
+	assert.Equal(t, int64(3), totalCount)
+
+	// Verify the three non-zero buckets.
+	// Value 10 -> bucket [0].
+	assert.InDelta(t, 10.0, results[0].From, 1e-10)
+	assert.Equal(t, int64(1), results[0].Count)
+	// Value 50 -> bucket [49].
+	assert.InDelta(t, 49.2, results[49].From, 1e-10)
+	assert.Equal(t, int64(1), results[49].Count)
+	// Value 90 -> bucket [99].
+	assert.InDelta(t, 89.2, results[99].From, 1e-10)
+	assert.Equal(t, int64(1), results[99].Count)
+}
+
+func TestAmountFilterGetSameValuesIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	amountProp := identifier.From("amountProp")
+	unitID := identifier.From("unit")
+	fortyTwo := 42.0
+
+	for i := range 2 {
+		indexDocument(t, ctx, esClient, index, internalSearch.Document{
+			ID: identifier.From("sameDoc", string(rune('0'+i))),
+			Claims: internalSearch.ClaimTypes{
+				Identifier: nil, String: nil, HTML: nil,
+				Amount: internalSearch.AmountClaims{{
+					Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
+					Range: internalSearch.RangeFloat{
+						GreaterThan: nil, GreaterThanOrEqual: &fortyTwo, LessThan: nil, LessThanOrEqual: &fortyTwo,
+					},
+					From: &fortyTwo, FromDisplay: "", To: &fortyTwo, ToDisplay: "",
+				}},
+				Time: nil, Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+			},
+		})
+	}
+	refreshIndex(t, ctx, esClient, index)
+
+	session := &search.Session{ID: nil, Version: 0, View: "", Query: "", Filters: nil}
+	createSession(t, ctx, session)
+
+	results, metadata, errE := search.AmountFilterGet(ctx, getSearchService, *session.ID, amountProp, &unitID)
+	require.NoError(t, errE)
+
+	// All values the same -> single bucket.
+	assert.Equal(t, "1", metadata["total"])
+	assert.Equal(t, "42", metadata["from"])
+	assert.Equal(t, "42", metadata["to"])
+	assert.Equal(t, []search.HistogramResult{{From: 42.0, Count: 2}}, results)
+}
+
+func TestAmountFilterGetEmptyIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	_, getSearchService, _ := initES(t)
+
+	amountProp := identifier.From("amountProp")
+	unitID := identifier.From("unit")
+
+	session := &search.Session{ID: nil, Version: 0, View: "", Query: "", Filters: nil}
+	createSession(t, ctx, session)
+
+	results, metadata, errE := search.AmountFilterGet(ctx, getSearchService, *session.ID, amountProp, &unitID)
+	require.NoError(t, errE)
+	assert.Equal(t, []search.HistogramResult{}, results)
+	assert.Equal(t, 0, metadata["total"])
+}
+
+func TestAmountFilterGetWithoutUnitIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	amountProp := identifier.From("amountProp")
+	twentyFive := 25.0
+
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		ID: identifier.From("noUnitDoc"),
+		Claims: internalSearch.ClaimTypes{
+			Identifier: nil, String: nil, HTML: nil,
+			Amount: internalSearch.AmountClaims{{
+				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: nil,
+				Range: internalSearch.RangeFloat{
+					GreaterThan: nil, GreaterThanOrEqual: &twentyFive, LessThan: nil, LessThanOrEqual: &twentyFive,
+				},
+				From: &twentyFive, FromDisplay: "", To: &twentyFive, ToDisplay: "",
+			}},
+			Time: nil, Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+		},
+	})
+	refreshIndex(t, ctx, esClient, index)
+
+	session := &search.Session{ID: nil, Version: 0, View: "", Query: "", Filters: nil}
+	createSession(t, ctx, session)
+
+	results, metadata, errE := search.AmountFilterGet(ctx, getSearchService, *session.ID, amountProp, nil)
+	require.NoError(t, errE)
+	assert.Equal(t, "1", metadata["total"])
+	assert.Equal(t, "25", metadata["from"])
+	assert.Equal(t, "25", metadata["to"])
+	assert.Equal(t, []search.HistogramResult{{From: 25.0, Count: 1}}, results)
+}
+
+func TestAmountFilterGetGapIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	amountProp := identifier.From("amountProp")
+	unitID := identifier.From("unit")
+
+	// Two values very close together (0 and 1) and one far away (100).
+	// This creates a large gap in the middle with empty buckets.
+	zero := 0.0
+	one := 1.0
+	hundred := 100.0
+
+	for _, tc := range []struct {
+		id    string
+		value *float64
+	}{
+		{"gapDoc1", &zero},
+		{"gapDoc2", &one},
+		{"gapDoc3", &hundred},
+	} {
+		indexDocument(t, ctx, esClient, index, internalSearch.Document{
+			ID: identifier.From(tc.id),
+			Claims: internalSearch.ClaimTypes{
+				Identifier: nil, String: nil, HTML: nil,
+				Amount: internalSearch.AmountClaims{{
+					Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
+					Range: internalSearch.RangeFloat{
+						GreaterThan: nil, GreaterThanOrEqual: tc.value, LessThan: nil, LessThanOrEqual: tc.value,
+					},
+					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
+				}},
+				Time: nil, Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+			},
+		})
+	}
+	refreshIndex(t, ctx, esClient, index)
+
+	session := &search.Session{ID: nil, Version: 0, View: "", Query: "", Filters: nil}
+	createSession(t, ctx, session)
+
+	results, metadata, errE := search.AmountFilterGet(ctx, getSearchService, *session.ID, amountProp, &unitID)
+	require.NoError(t, errE)
+
+	assert.Equal(t, "0", metadata["from"])
+	assert.Equal(t, "100", metadata["to"])
+	assertIntervalPrefix(t, "1.000000000000000", metadata)
+	assert.Equal(t, "100", metadata["total"])
+	require.Len(t, results, 100)
+
+	// Total count = 3.
+	var totalCount int64
+	for _, r := range results {
+		totalCount += r.Count
+	}
+	assert.Equal(t, int64(3), totalCount)
+
+	// Values 0 and 1 both fall in bucket [0] because interval > 1.
+	assert.InDelta(t, 0.0, results[0].From, 1e-10)
+	assert.Equal(t, int64(2), results[0].Count)
+
+	// All buckets from index 1 to 98 should be empty (the gap).
+	for i := 1; i < 99; i++ {
+		assert.Equal(t, int64(0), results[i].Count, "bucket %d should be empty", i)
+	}
+
+	// Value 100 falls in bucket [99].
+	assert.InDelta(t, 99.0, results[99].From, 1e-10)
+	assert.Equal(t, int64(1), results[99].Count)
+}
+
+func TestAmountFilterGetExtendedBoundsIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	amountProp := identifier.From("amountProp")
+	unitID := identifier.From("unit")
+
+	// Two values at 40 and 60. Session filter range [0, 100] is wider than data,
+	// so the histogram should extend to cover the full session range.
+	forty := 40.0
+	sixty := 60.0
+
+	for _, tc := range []struct {
+		id    string
+		value *float64
+	}{
+		{"extDoc1", &forty},
+		{"extDoc2", &sixty},
+	} {
+		indexDocument(t, ctx, esClient, index, internalSearch.Document{
+			ID: identifier.From(tc.id),
+			Claims: internalSearch.ClaimTypes{
+				Identifier: nil, String: nil, HTML: nil,
+				Amount: internalSearch.AmountClaims{{
+					Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
+					Range: internalSearch.RangeFloat{
+						GreaterThan: nil, GreaterThanOrEqual: tc.value, LessThan: nil, LessThanOrEqual: tc.value,
+					},
+					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
+				}},
+				Time: nil, Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+			},
+		})
+	}
+	refreshIndex(t, ctx, esClient, index)
+
+	// Session filter with wider range [0, 100] than data [40, 60].
+	gte := 0.0
+	lte := 100.0
+	session := &search.Session{
+		ID: nil, Version: 0, View: "", Query: "",
+		Filters: &search.Filters{
+			And: nil, Or: nil, Not: nil, Rel: nil,
+			Amount: &search.AmountFilter{
+				Prop: amountProp, Unit: &unitID, Gte: &gte, Lte: &lte, None: false,
+			},
+			Time: nil,
+		},
+	}
+	createSession(t, ctx, session)
+
+	results, metadata, errE := search.AmountFilterGet(ctx, getSearchService, *session.ID, amountProp, &unitID)
+	require.NoError(t, errE)
+
+	// Histogram uses session bounds [0, 100], not data bounds [40, 60].
+	assert.Equal(t, "0", metadata["from"])
+	assert.Equal(t, "100", metadata["to"])
+	assertIntervalPrefix(t, "1.000000000000000", metadata)
+	assert.Equal(t, "100", metadata["total"])
+	require.Len(t, results, 100)
+
+	// Verify all 100 buckets: From values increase by ~1.0 from 0, counts are 0
+	// except bucket [39] (value 40) and [59] (value 60).
+	for i, r := range results {
+		assert.InDelta(t, float64(i), r.From, 1e-10, "bucket %d From", i)
+		switch i {
+		case 39:
+			assert.Equal(t, int64(1), r.Count, "bucket %d Count (value 40)", i)
+		case 59:
+			assert.Equal(t, int64(1), r.Count, "bucket %d Count (value 60)", i)
+		default:
+			assert.Equal(t, int64(0), r.Count, "bucket %d Count", i)
+		}
+	}
+}
+
+func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	amountProp := identifier.From("amountProp")
+	unitID := identifier.From("unit")
+
+	// Two amount intervals: [0, 20] and [80, 100].
+	zero := 0.0
+	twenty := 20.0
+	eighty := 80.0
+	hundred := 100.0
+
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		ID: identifier.From("hardDoc1"),
+		Claims: internalSearch.ClaimTypes{
+			Identifier: nil, String: nil, HTML: nil,
+			Amount: internalSearch.AmountClaims{{
+				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
+				Range: internalSearch.RangeFloat{
+					GreaterThan: nil, GreaterThanOrEqual: &zero, LessThan: nil, LessThanOrEqual: &twenty,
+				},
+				From: &zero, FromDisplay: "", To: &twenty, ToDisplay: "",
+			}},
+			Time: nil, Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+		},
+	})
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		ID: identifier.From("hardDoc2"),
+		Claims: internalSearch.ClaimTypes{
+			Identifier: nil, String: nil, HTML: nil,
+			Amount: internalSearch.AmountClaims{{
+				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
+				Range: internalSearch.RangeFloat{
+					GreaterThan: nil, GreaterThanOrEqual: &eighty, LessThan: nil, LessThanOrEqual: &hundred,
+				},
+				From: &eighty, FromDisplay: "", To: &hundred, ToDisplay: "",
+			}},
+			Time: nil, Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+		},
+	})
+	refreshIndex(t, ctx, esClient, index)
+
+	// Search session filters amounts between 10 and 90.
+	// Both documents match because their ranges overlap [10, 90].
+	gte := 10.0
+	lte := 90.0
+	session := &search.Session{
+		ID: nil, Version: 0, View: "", Query: "",
+		Filters: &search.Filters{
+			And: nil, Or: nil, Not: nil, Rel: nil,
+			Amount: &search.AmountFilter{
+				Prop: amountProp, Unit: &unitID, Gte: &gte, Lte: &lte, None: false,
+			},
+			Time: nil,
+		},
+	}
+	createSession(t, ctx, session)
+
+	results, metadata, errE := search.AmountFilterGet(ctx, getSearchService, *session.ID, amountProp, &unitID)
+	require.NoError(t, errE)
+
+	// The session filter provides bounds [10, 90], so the histogram uses those
+	// instead of the data range [0, 100].
+	assert.Equal(t, "10", metadata["from"])
+	assert.Equal(t, "90", metadata["to"])
+
+	// Both documents are counted because their ranges overlap [10, 90].
+	var totalCount int64
+	for _, r := range results {
+		totalCount += r.Count
+	}
+	assert.Equal(t, int64(2), totalCount)
+
+	// TODO: Without hard_bounds in ES, the offset alignment creates extra buckets
+	//       outside [10, 90], so we get more than 100 buckets. Once hard_bounds is
+	//       supported, the histogram should have exactly 100 buckets and the first
+	//       bucket should start at exactly 10.
+	assert.Greater(t, len(results), 100)
+}

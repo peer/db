@@ -10,27 +10,74 @@ import (
 	"gitlab.com/tozd/identifier"
 )
 
+// findTimeBounds walks the Filters tree looking for a TimeFilter matching the given prop.
+// It returns the Gte and Lte bounds (converted to float64) if found.
+func findTimeBounds(filters *Filters, prop identifier.Identifier) (*float64, *float64) {
+	if filters == nil {
+		return nil, nil
+	}
+
+	if filters.Time != nil && !filters.Time.None && filters.Time.Prop == prop {
+		f := float64(*filters.Time.Gte)
+		t := float64(*filters.Time.Lte)
+		return &f, &t
+	}
+
+	// TODO: This is not really correct. We should do intersection of bounds here.
+	for i := range filters.And {
+		f, t := findTimeBounds(&filters.And[i], prop)
+		if f != nil || t != nil {
+			return f, t
+		}
+	}
+	// TODO: This is not really correct. We should do union of bounds here.
+	for i := range filters.Or {
+		f, t := findTimeBounds(&filters.Or[i], prop)
+		if f != nil || t != nil {
+			return f, t
+		}
+	}
+	// TODO: This is not really correct. We should do negation of bounds here.
+	if filters.Not != nil {
+		f, t := findTimeBounds(filters.Not, prop)
+		if f != nil || t != nil {
+			return f, t
+		}
+	}
+
+	return nil, nil
+}
+
 // TimeFilterGet retrieves time filter data for search results.
 func TimeFilterGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64, int64), id, prop identifier.Identifier,
-) ([]HistogramResult[int64], map[string]interface{}, errors.E) {
+) ([]HistogramResult, map[string]interface{}, errors.E) {
 	filter := elastic.NewTermQuery("claims.time.prop", prop)
 	return histogramFilterGet(
 		ctx, getSearchService, id,
 		"claims.time", filter,
-		"claims.time.from", "claims.time.to", "claims.time.range",
-		func(v int64) string { return strconv.FormatInt(v, 10) },
-		func(from, to int64) (map[string]histogramRange[int64], string) {
-			interval := int64(math.Ceil(float64(to-from) / float64(histogramBins)))
-			bins := int(math.Ceil(float64(to-from) / float64(interval)))
-			ranges := make(map[string]histogramRange[int64], bins)
-			for i := range bins {
-				ranges[strconv.Itoa(i)] = histogramRange[int64]{
-					From: from + int64(i)*interval,
-					To:   from + int64(i+1)*interval,
-				}
+		"claims.time.from", "claims.time.to",
+		func(v float64) string { return strconv.FormatInt(int64(v), 10) },
+		func(from, to float64) (float64, float64, string) {
+			// Bins are intervals [from, to). So for upperBound we want the next value after "to".
+			// Because "to" is really an integer, we do + 1 here.
+			upperBound := to + 1
+			// We want integer-sized intervals, so we round up to the next integer.
+			interval := math.Ceil((upperBound - from) / float64(histogramBins))
+			interval2 := math.Ceil((to - from) / float64(histogramBins))
+			if interval == interval2 {
+				// The difference between upperBound and "to" was too small so the interval does not represent it.
+				// Let's increase the interval to the next value to make sure "to" falls inside the last bin
+				// and is not moved into its own bin.
+				// We want integer-sized intervals, so we + 1 here.
+				interval++
 			}
-			return ranges, strconv.FormatInt(interval, 10)
+			// Extended bounds include both endpoints, interval [min, max], so we return "to" as the upper bound
+			// (to not include the upperBound which we used to compute the interval).
+			return interval, to, strconv.FormatInt(int64(interval), 10)
+		},
+		func(session *Session) (*float64, *float64) {
+			return findTimeBounds(session.Filters, prop)
 		},
 	)
 }
