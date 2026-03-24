@@ -347,16 +347,111 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 	assert.Equal(t, "1000", metadata["from"])
 	assert.Equal(t, "9000", metadata["to"])
 
-	// Both documents are counted because their ranges overlap [1000, 9000].
+	// With hard_bounds, the histogram is clipped to [1000, 9000].
+	assert.Equal(t, "80", metadata["interval"])
+	assert.Equal(t, "101", metadata["total"])
+	require.Len(t, results, 101)
+
+	// Doc [0,2000] overlaps bins 0-12 (From 1000 to 1960), doc [8000,10000] overlaps bins 87-100 (From 7960 to 9000).
+	// Total count = 13 + 14 = 27.
 	var totalCount int64
-	for _, r := range results {
+	for i, r := range results {
+		assert.InDelta(t, 1000.0+float64(i)*80.0, r.From, 1e-10, "bucket %d From", i)
+		totalCount += r.Count
+		switch {
+		case i <= 12:
+			assert.Equal(t, int64(1), r.Count, "bucket %d Count (from doc [0,2000])", i)
+		case i >= 87:
+			assert.Equal(t, int64(1), r.Count, "bucket %d Count (from doc [8000,10000])", i)
+		default:
+			assert.Equal(t, int64(0), r.Count, "bucket %d Count", i)
+		}
+	}
+	assert.Equal(t, int64(27), totalCount)
+}
+
+func TestTimeFilterGetWideRangeIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	timeProp := identifier.From("timeProp")
+
+	// Doc1: point value at 500.
+	t500 := int64(500)
+	// Doc2: wide range [2000, 8000] — spans many histogram bins.
+	t2000 := int64(2000)
+	t8000 := int64(8000)
+	// Doc3: point value at 9500.
+	t9500 := int64(9500)
+
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		ID: identifier.From("wideTimeDoc1"),
+		Claims: internalSearch.ClaimTypes{
+			Identifier: nil, String: nil, HTML: nil, Amount: nil,
+			Time: internalSearch.TimeClaims{{
+				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
+				Range: internalSearch.RangeInt{
+					GreaterThan: nil, GreaterThanOrEqual: &t500, LessThan: nil, LessThanOrEqual: &t500,
+				},
+				From: &t500, FromDisplay: "", To: &t500, ToDisplay: "",
+			}},
+			Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+		},
+	})
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		ID: identifier.From("wideTimeDoc2"),
+		Claims: internalSearch.ClaimTypes{
+			Identifier: nil, String: nil, HTML: nil, Amount: nil,
+			Time: internalSearch.TimeClaims{{
+				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
+				Range: internalSearch.RangeInt{
+					GreaterThan: nil, GreaterThanOrEqual: &t2000, LessThan: nil, LessThanOrEqual: &t8000,
+				},
+				From: &t2000, FromDisplay: "", To: &t8000, ToDisplay: "",
+			}},
+			Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+		},
+	})
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		ID: identifier.From("wideTimeDoc3"),
+		Claims: internalSearch.ClaimTypes{
+			Identifier: nil, String: nil, HTML: nil, Amount: nil,
+			Time: internalSearch.TimeClaims{{
+				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
+				Range: internalSearch.RangeInt{
+					GreaterThan: nil, GreaterThanOrEqual: &t9500, LessThan: nil, LessThanOrEqual: &t9500,
+				},
+				From: &t9500, FromDisplay: "", To: &t9500, ToDisplay: "",
+			}},
+			Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+		},
+	})
+	refreshIndex(t, ctx, esClient, index)
+
+	session := &search.Session{ID: nil, Version: 0, View: "", Query: "", Filters: nil}
+	createSession(t, ctx, session)
+
+	results, metadata, errE := search.TimeFilterGet(ctx, getSearchService, *session.ID, timeProp)
+	require.NoError(t, errE)
+
+	assert.Equal(t, "500", metadata["from"])
+	assert.Equal(t, "9500", metadata["to"])
+	assert.Equal(t, "90", metadata["interval"])
+
+	// The wide-range document [2000, 8000] is counted in every bucket it overlaps.
+	// Point value 500 -> bucket[0] (count 1), point value 9500 -> last bucket (count 1).
+	// Wide range [2000, 8000] overlaps many buckets in the middle.
+	// Total count = 70 (1 + 68 range buckets + 1).
+	var totalCount int64
+	for i, r := range results {
+		assert.InDelta(t, 500.0+float64(i)*90.0, r.From, 1e-10, "bucket %d From", i)
 		totalCount += r.Count
 	}
-	assert.Equal(t, int64(2), totalCount)
+	assert.Equal(t, int64(70), totalCount)
 
-	// TODO: Without hard_bounds in ES, the offset alignment creates extra buckets
-	//       outside [1000, 9000], so we get more than 100 buckets. Once hard_bounds is
-	//       supported, the histogram should have ~100 buckets and the first bucket
-	//       should start at exactly 1000.
-	assert.Greater(t, len(results), 100)
+	// First and last buckets have the point values.
+	assert.Equal(t, int64(1), results[0].Count)
+	assert.Equal(t, int64(1), results[len(results)-1].Count)
 }

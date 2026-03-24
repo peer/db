@@ -72,7 +72,7 @@ func TimeFilterGet(
 	return histogramFilterGet(
 		ctx, getSearchService, id,
 		"claims.time", filter,
-		"claims.time.from", "claims.time.to",
+		"claims.time.from", "claims.time.to", "claims.time.range",
 		timeFormatValue,
 		timeComputeInterval,
 		func(session *Session) (*float64, *float64) {

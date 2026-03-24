@@ -103,7 +103,7 @@ func AmountFilterGet(
 	return histogramFilterGet(
 		ctx, getSearchService, id,
 		"claims.amount", filter,
-		"claims.amount.from", "claims.amount.to",
+		"claims.amount.from", "claims.amount.to", "claims.amount.range",
 		amountFormatValue,
 		amountComputeInterval,
 		func(session *Session) (*float64, *float64) {

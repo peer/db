@@ -140,7 +140,7 @@ func histogramFilterGet(
 	id identifier.Identifier,
 	nestedPath string,
 	filter types.QueryVariant,
-	fromField, toField string,
+	fromField, toField, rangeField string,
 	formatValue func(float64) string,
 	computeInterval func(from, to float64) (float64, float64, string),
 	extractBounds func(session *Session) (from, to *float64),
@@ -249,13 +249,13 @@ func histogramFilterGet(
 		offset += interval
 	}
 
-	// TODO: Set "hard bounds".
 	histAgg := esdsl.NewAggregations().
 		Histogram(esdsl.NewHistogramAggregation().
-			Field(fromField).
+			Field(rangeField).
 			Interval(types.Float64(interval)).
 			Offset(types.Float64(offset)).
-			ExtendedBounds(esdsl.NewExtendedBoundsdouble().Min(types.Float64(minValue)).Max(types.Float64(upperBound)))).
+			ExtendedBounds(esdsl.NewExtendedBoundsdouble().Min(types.Float64(minValue)).Max(types.Float64(upperBound))).
+			HardBounds(esdsl.NewExtendedBoundsdouble().Min(types.Float64(minValue)).Max(types.Float64(upperBound)))).
 		AddAggregation("docs", esdsl.NewAggregations().
 			ReverseNested(esdsl.NewReverseNestedAggregation()))
 
