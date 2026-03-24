@@ -54,25 +54,25 @@ func TestTimeFilterGetIntegration(t *testing.T) {
 	results, metadata, errE := search.TimeFilterGet(ctx, getSearchService, *session.ID, timeProp)
 	require.NoError(t, errE)
 
-	// Histogram: interval = 81, 99 buckets.
+	// Histogram: interval = 80 (largest integer giving >= 100 bins), 101 buckets.
 	assert.Equal(t, "1000", metadata["from"])
 	assert.Equal(t, "9000", metadata["to"])
-	assert.Equal(t, "81", metadata["interval"])
-	assert.Equal(t, "99", metadata["total"])
-	require.Len(t, results, 99)
+	assert.Equal(t, "80", metadata["interval"])
+	assert.Equal(t, "101", metadata["total"])
+	require.Len(t, results, 101)
 
-	// Verify all 99 buckets: From values are exact integers at 1000 + i*81.
-	// Value 1000 -> bucket[0], value 5000 -> bucket[49] (From=4969), value 9000 -> bucket[98] (From=8938).
+	// Verify all 101 buckets: From values are exact integers at 1000 + i*80.
+	// Value 1000 -> bucket[0], value 5000 -> bucket[50], value 9000 -> bucket[100].
 	var totalCount int64
 	for i, r := range results {
-		assert.InDelta(t, 1000.0+float64(i)*81.0, r.From, 1e-10, "bucket %d From", i)
+		assert.InDelta(t, 1000.0+float64(i)*80.0, r.From, 1e-10, "bucket %d From", i)
 		totalCount += r.Count
 		switch i {
 		case 0:
 			assert.Equal(t, int64(1), r.Count, "bucket %d Count (value 1000)", i)
-		case 49:
+		case 50:
 			assert.Equal(t, int64(1), r.Count, "bucket %d Count (value 5000)", i)
-		case 98:
+		case 100:
 			assert.Equal(t, int64(1), r.Count, "bucket %d Count (value 9000)", i)
 		default:
 			assert.Equal(t, int64(0), r.Count, "bucket %d Count", i)
@@ -165,22 +165,22 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 	results, metadata, errE := search.TimeFilterGet(ctx, getSearchService, *session.ID, timeProp)
 	require.NoError(t, errE)
 
-	// Histogram: interval = 11, 91 buckets.
+	// Histogram: interval = 10 (largest integer giving >= 100 bins), 101 buckets.
 	assert.Equal(t, "-500", metadata["from"])
 	assert.Equal(t, "500", metadata["to"])
-	assert.Equal(t, "11", metadata["interval"])
-	assert.Equal(t, "91", metadata["total"])
-	require.Len(t, results, 91)
+	assert.Equal(t, "10", metadata["interval"])
+	assert.Equal(t, "101", metadata["total"])
+	require.Len(t, results, 101)
 
-	// Verify all 91 buckets: value -500 in bucket [0], value 500 in bucket [90] (From=490).
+	// Verify all 101 buckets: value -500 in bucket [0], value 500 in bucket [100].
 	var totalCount int64
 	for i, r := range results {
-		assert.InDelta(t, -500.0+float64(i)*11.0, r.From, 1e-10, "bucket %d From", i)
+		assert.InDelta(t, -500.0+float64(i)*10.0, r.From, 1e-10, "bucket %d From", i)
 		totalCount += r.Count
 		switch i {
 		case 0:
 			assert.Equal(t, int64(1), r.Count, "bucket %d Count (value -500)", i)
-		case 90:
+		case 100:
 			assert.Equal(t, int64(1), r.Count, "bucket %d Count (value 500)", i)
 		default:
 			assert.Equal(t, int64(0), r.Count, "bucket %d Count", i)

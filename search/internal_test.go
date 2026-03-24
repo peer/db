@@ -61,11 +61,9 @@ func TestAmountComputeInterval(t *testing.T) {
 		{Name: "0_to_100", From: 0, To: 100, WantInterval: 1.0000000000000002, WantUpperBound: 100, WantIntervalStr: "1.0000000000000002", WantBins: 100},
 		{Name: "10_to_90", From: 10, To: 90, WantInterval: 0.8000000000000002, WantUpperBound: 90, WantIntervalStr: "0.8000000000000002", WantBins: 100},
 		{Name: "0_to_1", From: 0, To: 1, WantInterval: 0.010000000000000002, WantUpperBound: 1, WantIntervalStr: "0.010000000000000002", WantBins: 100},
-		//nolint:lll
 		{Name: "0_to_1000000", From: 0, To: 1000000, WantInterval: 10000.000000000002, WantUpperBound: 1000000, WantIntervalStr: "10000.000000000002", WantBins: 100},
 		{Name: "-100_to_100", From: -100, To: 100, WantInterval: 2.0000000000000004, WantUpperBound: 100, WantIntervalStr: "2.0000000000000004", WantBins: 100},
 		{Name: "-1_to_0", From: -1, To: 0, WantInterval: 0.010000000000000002, WantUpperBound: 0, WantIntervalStr: "0.010000000000000002", WantBins: 100},
-		//nolint:lll
 		{Name: "0.5_to_1.5", From: 0.5, To: 1.5, WantInterval: 0.010000000000000002, WantUpperBound: 1.5, WantIntervalStr: "0.010000000000000002", WantBins: 100},
 		{Name: "40_to_60", From: 40, To: 60, WantInterval: 0.20000000000000007, WantUpperBound: 60, WantIntervalStr: "0.20000000000000007", WantBins: 100},
 	}
@@ -105,16 +103,16 @@ func TestTimeComputeInterval(t *testing.T) {
 		WantIntervalStr string
 		WantBins        int
 	}{
-		{Name: "1000_to_9000", From: 1000, To: 9000, WantInterval: 81, WantUpperBound: 9000, WantIntervalStr: "81", WantBins: 99},
+		{Name: "1000_to_9000", From: 1000, To: 9000, WantInterval: 80, WantUpperBound: 9000, WantIntervalStr: "80", WantBins: 101},
 		{Name: "0_to_10000", From: 0, To: 10000, WantInterval: 101, WantUpperBound: 10000, WantIntervalStr: "101", WantBins: 100},
-		{Name: "-500_to_500", From: -500, To: 500, WantInterval: 11, WantUpperBound: 500, WantIntervalStr: "11", WantBins: 91},
-		{Name: "0_to_100", From: 0, To: 100, WantInterval: 2, WantUpperBound: 100, WantIntervalStr: "2", WantBins: 51},
-		{Name: "0_to_99", From: 0, To: 99, WantInterval: 2, WantUpperBound: 99, WantIntervalStr: "2", WantBins: 50},
-		{Name: "0_to_1000", From: 0, To: 1000, WantInterval: 11, WantUpperBound: 1000, WantIntervalStr: "11", WantBins: 91},
-		{Name: "0_to_10", From: 0, To: 10, WantInterval: 2, WantUpperBound: 10, WantIntervalStr: "2", WantBins: 6},
-		{Name: "-1000_to_1000", From: -1000, To: 1000, WantInterval: 21, WantUpperBound: 1000, WantIntervalStr: "21", WantBins: 96},
-		{Name: "0_to_1000000", From: 0, To: 1000000, WantInterval: 10001, WantUpperBound: 1000000, WantIntervalStr: "10001", WantBins: 100},
-		{Name: "0_to_1", From: 0, To: 1, WantInterval: 2, WantUpperBound: 1, WantIntervalStr: "2", WantBins: 1},
+		{Name: "-500_to_500", From: -500, To: 500, WantInterval: 10, WantUpperBound: 500, WantIntervalStr: "10", WantBins: 101},
+		{Name: "0_to_100", From: 0, To: 100, WantInterval: 1, WantUpperBound: 100, WantIntervalStr: "1", WantBins: 101},
+		{Name: "0_to_99", From: 0, To: 99, WantInterval: 1, WantUpperBound: 99, WantIntervalStr: "1", WantBins: 100},
+		{Name: "0_to_1000", From: 0, To: 1000, WantInterval: 10, WantUpperBound: 1000, WantIntervalStr: "10", WantBins: 101},
+		{Name: "0_to_10", From: 0, To: 10, WantInterval: 1, WantUpperBound: 10, WantIntervalStr: "1", WantBins: 11},
+		{Name: "-1000_to_1000", From: -1000, To: 1000, WantInterval: 20, WantUpperBound: 1000, WantIntervalStr: "20", WantBins: 101},
+		{Name: "0_to_1000000", From: 0, To: 1000000, WantInterval: 10101, WantUpperBound: 1000000, WantIntervalStr: "10101", WantBins: 100},
+		{Name: "0_to_1", From: 0, To: 1, WantInterval: 1, WantUpperBound: 1, WantIntervalStr: "1", WantBins: 2},
 	}
 
 	for _, tt := range tests {
@@ -125,17 +123,17 @@ func TestTimeComputeInterval(t *testing.T) {
 			assert.Equal(t, tt.WantUpperBound, upperBound) //nolint:testifylint
 			assert.Equal(t, tt.WantIntervalStr, intervalStr)
 
-			// Key invariant: from + histogramBins*interval > to.
-			// This ensures "to" falls inside the last bin, not in an extra bin.
-			assert.Greater(t, tt.From+float64(histogramBins)*interval, tt.To)
+			// Key invariant: bins >= histogramBins when possible (interval > 1).
+			// When interval == 1 and range is small, fewer bins are acceptable.
+			bins := int(math.Floor((tt.To-tt.From)/interval)) + 1
+			assert.Equal(t, tt.WantBins, bins)
+			if interval > 1 {
+				assert.GreaterOrEqual(t, bins, histogramBins)
+			}
 
 			// Interval must be a positive integer.
 			assert.Equal(t, interval, math.Trunc(interval)) //nolint:testifylint
 			assert.Greater(t, interval, 0.0)
-
-			// Verify expected number of bins: floor((to - from) / interval) + 1.
-			bins := int(math.Floor((tt.To-tt.From)/interval)) + 1
-			assert.Equal(t, tt.WantBins, bins)
 		})
 	}
 }
