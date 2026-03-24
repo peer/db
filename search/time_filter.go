@@ -48,6 +48,33 @@ func findTimeBounds(filters *Filters, prop identifier.Identifier) (*float64, *fl
 	return nil, nil
 }
 
+// timeFormatValue formats a float64 time value as an integer string.
+func timeFormatValue(v float64) string {
+	return strconv.FormatInt(int64(math.Round(v)), 10)
+}
+
+// timeComputeInterval computes the histogram interval for time (integer) values.
+// It ensures that the max value falls inside the last bucket by widening the range
+// by 1 (since values are integers) and using integer-sized intervals.
+func timeComputeInterval(from, to float64) (float64, float64, string) {
+	// Bins are intervals [from, to). So for upperBound we want the next value after "to".
+	// Because "to" is really an integer, we do + 1 here.
+	upperBound := to + 1
+	// We want integer-sized intervals, so we round up to the next integer.
+	interval := math.Ceil((upperBound - from) / float64(histogramBins))
+	interval2 := math.Ceil((to - from) / float64(histogramBins))
+	if interval == interval2 {
+		// The difference between upperBound and "to" was too small so the interval does not represent it.
+		// Let's increase the interval to the next value to make sure "to" falls inside the last bin
+		// and is not moved into its own bin.
+		// We want integer-sized intervals, so we + 1 here.
+		interval++
+	}
+	// Extended bounds include both endpoints, interval [min, max], so we return "to" as the upper bound
+	// (to not include the upperBound which we used to compute the interval).
+	return interval, to, strconv.FormatInt(int64(math.Round(interval)), 10)
+}
+
 // TimeFilterGet retrieves time filter data for search results.
 func TimeFilterGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64, int64), id, prop identifier.Identifier,
@@ -57,25 +84,8 @@ func TimeFilterGet(
 		ctx, getSearchService, id,
 		"claims.time", filter,
 		"claims.time.from", "claims.time.to",
-		func(v float64) string { return strconv.FormatInt(int64(v), 10) },
-		func(from, to float64) (float64, float64, string) {
-			// Bins are intervals [from, to). So for upperBound we want the next value after "to".
-			// Because "to" is really an integer, we do + 1 here.
-			upperBound := to + 1
-			// We want integer-sized intervals, so we round up to the next integer.
-			interval := math.Ceil((upperBound - from) / float64(histogramBins))
-			interval2 := math.Ceil((to - from) / float64(histogramBins))
-			if interval == interval2 {
-				// The difference between upperBound and "to" was too small so the interval does not represent it.
-				// Let's increase the interval to the next value to make sure "to" falls inside the last bin
-				// and is not moved into its own bin.
-				// We want integer-sized intervals, so we + 1 here.
-				interval++
-			}
-			// Extended bounds include both endpoints, interval [min, max], so we return "to" as the upper bound
-			// (to not include the upperBound which we used to compute the interval).
-			return interval, to, strconv.FormatInt(int64(interval), 10)
-		},
+		timeFormatValue,
+		timeComputeInterval,
 		func(session *Session) (*float64, *float64) {
 			return findTimeBounds(session.Filters, prop)
 		},

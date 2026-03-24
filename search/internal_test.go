@@ -1,6 +1,7 @@
 package search
 
 import (
+	"math"
 	"testing"
 
 	"github.com/olivere/elastic/v7"
@@ -44,6 +45,100 @@ func TestDocumentTextSearchQuery(t *testing.T) {
 		expected := `{"bool":{"should":[{"term":{"id":"hello"}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"and","fields":["claims.id.value"],"query":"hello"}}}},{"nested":{"path":"claims.ref","query":{"simple_query_string":{"default_operator":"and","fields":["claims.ref.iri"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"and","fields":["claims.string.string.en"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"and","fields":["claims.string.string.pt"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"and","fields":["claims.string.string.sl"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"and","fields":["claims.string.string.und"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"and","fields":["claims.html.html.en"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"and","fields":["claims.html.html.pt"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"and","fields":["claims.html.html.sl"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"and","fields":["claims.html.html.und"],"query":"hello"}}}}]}}`
 		assert.Equal(t, expected, got)
 	})
+}
+
+func TestAmountComputeInterval(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		Name            string
+		From            float64
+		To              float64
+		WantInterval    float64
+		WantUpperBound  float64
+		WantIntervalStr string
+		WantBins        int
+	}{
+		{Name: "0_to_100", From: 0, To: 100, WantInterval: 1.0000000000000002, WantUpperBound: 100, WantIntervalStr: "1.0000000000000002", WantBins: 100},
+		{Name: "10_to_90", From: 10, To: 90, WantInterval: 0.8000000000000002, WantUpperBound: 90, WantIntervalStr: "0.8000000000000002", WantBins: 100},
+		{Name: "0_to_1", From: 0, To: 1, WantInterval: 0.010000000000000002, WantUpperBound: 1, WantIntervalStr: "0.010000000000000002", WantBins: 100},
+		//nolint:lll
+		{Name: "0_to_1000000", From: 0, To: 1000000, WantInterval: 10000.000000000002, WantUpperBound: 1000000, WantIntervalStr: "10000.000000000002", WantBins: 100},
+		{Name: "-100_to_100", From: -100, To: 100, WantInterval: 2.0000000000000004, WantUpperBound: 100, WantIntervalStr: "2.0000000000000004", WantBins: 100},
+		{Name: "-1_to_0", From: -1, To: 0, WantInterval: 0.010000000000000002, WantUpperBound: 0, WantIntervalStr: "0.010000000000000002", WantBins: 100},
+		//nolint:lll
+		{Name: "0.5_to_1.5", From: 0.5, To: 1.5, WantInterval: 0.010000000000000002, WantUpperBound: 1.5, WantIntervalStr: "0.010000000000000002", WantBins: 100},
+		{Name: "40_to_60", From: 40, To: 60, WantInterval: 0.20000000000000007, WantUpperBound: 60, WantIntervalStr: "0.20000000000000007", WantBins: 100},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			t.Parallel()
+			interval, upperBound, intervalStr := amountComputeInterval(tt.From, tt.To)
+			assert.Equal(t, tt.WantInterval, interval)     //nolint:testifylint
+			assert.Equal(t, tt.WantUpperBound, upperBound) //nolint:testifylint
+			assert.Equal(t, tt.WantIntervalStr, intervalStr)
+
+			// Key invariant: from + histogramBins*interval > to.
+			// This ensures "to" falls inside the last bin, not in a 101st bin.
+			assert.Greater(t, tt.From+float64(histogramBins)*interval, tt.To)
+
+			// The interval should produce exactly histogramBins buckets:
+			// from + (histogramBins-1)*interval <= to.
+			assert.LessOrEqual(t, tt.From+float64(histogramBins-1)*interval, tt.To)
+
+			// Verify expected number of bins: floor((to - from) / interval) + 1.
+			bins := int(math.Floor((tt.To-tt.From)/interval)) + 1
+			assert.Equal(t, tt.WantBins, bins)
+		})
+	}
+}
+
+func TestTimeComputeInterval(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		Name            string
+		From            float64
+		To              float64
+		WantInterval    float64
+		WantUpperBound  float64
+		WantIntervalStr string
+		WantBins        int
+	}{
+		{Name: "1000_to_9000", From: 1000, To: 9000, WantInterval: 81, WantUpperBound: 9000, WantIntervalStr: "81", WantBins: 99},
+		{Name: "0_to_10000", From: 0, To: 10000, WantInterval: 101, WantUpperBound: 10000, WantIntervalStr: "101", WantBins: 100},
+		{Name: "-500_to_500", From: -500, To: 500, WantInterval: 11, WantUpperBound: 500, WantIntervalStr: "11", WantBins: 91},
+		{Name: "0_to_100", From: 0, To: 100, WantInterval: 2, WantUpperBound: 100, WantIntervalStr: "2", WantBins: 51},
+		{Name: "0_to_99", From: 0, To: 99, WantInterval: 2, WantUpperBound: 99, WantIntervalStr: "2", WantBins: 50},
+		{Name: "0_to_1000", From: 0, To: 1000, WantInterval: 11, WantUpperBound: 1000, WantIntervalStr: "11", WantBins: 91},
+		{Name: "0_to_10", From: 0, To: 10, WantInterval: 2, WantUpperBound: 10, WantIntervalStr: "2", WantBins: 6},
+		{Name: "-1000_to_1000", From: -1000, To: 1000, WantInterval: 21, WantUpperBound: 1000, WantIntervalStr: "21", WantBins: 96},
+		{Name: "0_to_1000000", From: 0, To: 1000000, WantInterval: 10001, WantUpperBound: 1000000, WantIntervalStr: "10001", WantBins: 100},
+		{Name: "0_to_1", From: 0, To: 1, WantInterval: 2, WantUpperBound: 1, WantIntervalStr: "2", WantBins: 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			t.Parallel()
+			interval, upperBound, intervalStr := timeComputeInterval(tt.From, tt.To)
+			assert.Equal(t, tt.WantInterval, interval)     //nolint:testifylint
+			assert.Equal(t, tt.WantUpperBound, upperBound) //nolint:testifylint
+			assert.Equal(t, tt.WantIntervalStr, intervalStr)
+
+			// Key invariant: from + histogramBins*interval > to.
+			// This ensures "to" falls inside the last bin, not in an extra bin.
+			assert.Greater(t, tt.From+float64(histogramBins)*interval, tt.To)
+
+			// Interval must be a positive integer.
+			assert.Equal(t, interval, math.Trunc(interval)) //nolint:testifylint
+			assert.Greater(t, interval, 0.0)
+
+			// Verify expected number of bins: floor((to - from) / interval) + 1.
+			bins := int(math.Floor((tt.To-tt.From)/interval)) + 1
+			assert.Equal(t, tt.WantBins, bins)
+		})
+	}
 }
 
 func TestAmountUnitFilter(t *testing.T) {

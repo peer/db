@@ -66,6 +66,30 @@ func matchUnit(a, b *identifier.Identifier) bool {
 	return *a == *b
 }
 
+// amountFormatValue formats a float64 amount value as a string.
+func amountFormatValue(v float64) string {
+	return strconv.FormatFloat(v, 'f', -1, 64)
+}
+
+// amountComputeInterval computes the histogram interval for amount values.
+// It ensures that exactly histogramBins buckets are produced by slightly widening
+// the interval so that the max value falls inside the last bucket, not in a 101st bucket.
+func amountComputeInterval(from, to float64) (float64, float64, string) {
+	// Bins are intervals [from, to). So for upperBound we want the next value after "to".
+	upperBound := math.Nextafter(to, to+1)
+	interval := (upperBound - from) / float64(histogramBins)
+	interval2 := (to - from) / float64(histogramBins)
+	if interval == interval2 {
+		// The difference between upperBound and "to" was too small so the interval does not represent it.
+		// Let's increase the interval to the next value to make sure "to" falls inside the last bin
+		// and is not moved into its own bin.
+		interval = math.Nextafter(interval, interval+1)
+	}
+	// Extended bounds include both endpoints, interval [min, max], so we return "to" as the upper bound
+	// (to not include the upperBound which we used to compute the interval).
+	return interval, to, strconv.FormatFloat(interval, 'f', -1, 64)
+}
+
 // AmountFilterGet retrieves amount filter data for search results.
 func AmountFilterGet(
 	ctx context.Context, getSearchService func() (*elastic.SearchService, int64, int64), id, prop identifier.Identifier, unit *identifier.Identifier,
@@ -78,22 +102,8 @@ func AmountFilterGet(
 		ctx, getSearchService, id,
 		"claims.amount", filter,
 		"claims.amount.from", "claims.amount.to",
-		func(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) },
-		func(from, to float64) (float64, float64, string) {
-			// Bins are intervals [from, to). So for upperBound we want the next value after "to".
-			upperBound := math.Nextafter(to, to+1)
-			interval := (upperBound - from) / float64(histogramBins)
-			interval2 := (to - from) / float64(histogramBins)
-			if interval == interval2 {
-				// The difference between upperBound and "to" was too small so the interval does not represent it.
-				// Let's increase the interval to the next value to make sure "to" falls inside the last bin
-				// and is not moved into its own bin.
-				interval = math.Nextafter(interval, interval+1)
-			}
-			// Extended bounds include both endpoints, interval [min, max], so we return "to" as the upper bound
-			// (to not include the upperBound which we used to compute the interval).
-			return interval, to, strconv.FormatFloat(interval, 'f', -1, 64)
-		},
+		amountFormatValue,
+		amountComputeInterval,
 		func(session *Session) (*float64, *float64) {
 			return findAmountBounds(session.Filters, prop, unit)
 		},
