@@ -78,14 +78,14 @@ func amountFormatValue(v float64) string {
 // the interval so that the max value falls inside the last bucket, not in a 101st bucket.
 func amountComputeInterval(from, to float64) (float64, float64, string) {
 	// Bins are intervals [from, to). So for upperBound we want the next value after "to".
-	upperBound := math.Nextafter(to, to+1)
+	upperBound := math.Nextafter(to, math.Inf(1))
 	interval := (upperBound - from) / float64(histogramBins)
 	interval2 := (to - from) / float64(histogramBins)
 	if interval == interval2 {
 		// The difference between upperBound and "to" was too small so the interval does not represent it.
 		// Let's increase the interval to the next value to make sure "to" falls inside the last bin
 		// and is not moved into its own bin.
-		interval = math.Nextafter(interval, interval+1)
+		interval = math.Nextafter(interval, math.Inf(1))
 	}
 	// Extended bounds include both endpoints, interval [min, max], so we return "to" as the upper bound
 	// (to not include the upperBound which we used to compute the interval).

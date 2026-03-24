@@ -2,6 +2,7 @@ package search
 
 import (
 	"math"
+	"math/big"
 	"testing"
 
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
@@ -134,6 +135,77 @@ func TestTimeComputeInterval(t *testing.T) {
 			// Interval must be a positive integer.
 			assert.Equal(t, interval, math.Trunc(interval)) //nolint:testifylint
 			assert.Greater(t, interval, 0.0)
+		})
+	}
+}
+
+// float64ToBigInt converts a float64 to a big.Int using big.Float for exact comparison.
+func float64ToBigInt(f float64) *big.Int {
+	bf := new(big.Float).SetFloat64(f)
+	bi, _ := bf.Int(nil)
+	return bi
+}
+
+func TestInt64ToFloat64Floor(t *testing.T) { //nolint:dupl
+	t.Parallel()
+
+	tests := []struct {
+		Name  string
+		Input int64
+	}{
+		{Name: "zero", Input: 0},
+		{Name: "one", Input: 1},
+		{Name: "negative", Input: -1},
+		{Name: "small", Input: 1000},
+		{Name: "max_exact", Input: 1 << 53},         // Largest int64 exactly representable as float64.
+		{Name: "max_exact_plus1", Input: 1<<53 + 1}, // Not exactly representable.
+		{Name: "large", Input: 1<<53 + 100},         // Not exactly representable.
+		{Name: "neg_large", Input: -(1<<53 + 100)},  // Not exactly representable, negative.
+		{Name: "max_int64", Input: math.MaxInt64},   // Far beyond float64 precision.
+		{Name: "min_int64", Input: math.MinInt64},   // Far beyond float64 precision.
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			t.Parallel()
+			f := int64ToFloat64Floor(tt.Input)
+			// Use big.Int to compare without lossy int64->float64 conversion.
+			// The float64 value (as exact integer) must be <= the original int64.
+			inputBig := big.NewInt(tt.Input)
+			resultBig := float64ToBigInt(f)
+			assert.LessOrEqual(t, resultBig.Cmp(inputBig), 0, "float64(%v) = %v should be <= %v", f, resultBig, inputBig)
+		})
+	}
+}
+
+func TestInt64ToFloat64Ceil(t *testing.T) { //nolint:dupl
+	t.Parallel()
+
+	tests := []struct {
+		Name  string
+		Input int64
+	}{
+		{Name: "zero", Input: 0},
+		{Name: "one", Input: 1},
+		{Name: "negative", Input: -1},
+		{Name: "small", Input: 1000},
+		{Name: "max_exact", Input: 1 << 53},
+		{Name: "max_exact_plus1", Input: 1<<53 + 1},
+		{Name: "large", Input: 1<<53 + 100},
+		{Name: "neg_large", Input: -(1<<53 + 100)},
+		{Name: "max_int64", Input: math.MaxInt64},
+		{Name: "min_int64", Input: math.MinInt64},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			t.Parallel()
+			f := int64ToFloat64Ceil(tt.Input)
+			// Use big.Int to compare without lossy int64->float64 conversion.
+			// The float64 value (as exact integer) must be >= the original int64.
+			inputBig := big.NewInt(tt.Input)
+			resultBig := float64ToBigInt(f)
+			assert.GreaterOrEqual(t, resultBig.Cmp(inputBig), 0, "float64(%v) = %v should be >= %v", f, resultBig, inputBig)
 		})
 	}
 }

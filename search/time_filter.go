@@ -3,6 +3,7 @@ package search
 import (
 	"context"
 	"math"
+	"math/big"
 	"strconv"
 
 	"github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
@@ -11,16 +12,40 @@ import (
 	"gitlab.com/tozd/identifier"
 )
 
+// int64ToFloat64Floor converts an int64 to float64, rounding toward negative infinity
+// if the value cannot be represented exactly. This is appropriate for lower bounds.
+func int64ToFloat64Floor(v int64) float64 {
+	f := float64(v)
+	// Compare using big.Float to avoid int64 overflow when converting back.
+	if new(big.Float).SetFloat64(f).Cmp(new(big.Float).SetInt64(v)) > 0 {
+		f = math.Nextafter(f, math.Inf(-1))
+	}
+	return f
+}
+
+// int64ToFloat64Ceil converts an int64 to float64, rounding toward positive infinity
+// if the value cannot be represented exactly. This is appropriate for upper bounds.
+func int64ToFloat64Ceil(v int64) float64 {
+	f := float64(v)
+	// Compare using big.Float to avoid int64 overflow when converting back.
+	if new(big.Float).SetFloat64(f).Cmp(new(big.Float).SetInt64(v)) < 0 {
+		f = math.Nextafter(f, math.Inf(1))
+	}
+	return f
+}
+
 // findTimeBounds walks the Filters tree looking for a TimeFilter matching the given prop.
-// It returns the Gte and Lte bounds (converted to float64) if found.
+// It returns the Gte and Lte bounds (converted to float64) if found. The lower bound
+// is converted rounding down and the upper bound rounding up to ensure the float64 range
+// contains the original int64 range.
 func findTimeBounds(filters *Filters, prop identifier.Identifier) (*float64, *float64) {
 	if filters == nil {
 		return nil, nil
 	}
 
 	if filters.Time != nil && !filters.Time.None && filters.Time.Prop == prop {
-		f := float64(*filters.Time.Gte)
-		t := float64(*filters.Time.Lte)
+		f := int64ToFloat64Floor(*filters.Time.Gte)
+		t := int64ToFloat64Ceil(*filters.Time.Lte)
 		return &f, &t
 	}
 
