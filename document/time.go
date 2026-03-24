@@ -520,7 +520,7 @@ func NewTimestamp(t time.Time, precision TimePrecision, location *time.Location)
 	t = t.In(location)
 	w := 4
 	year, month, day := t.Date()
-	// Truncate year to the required precision multiple (e.g. decade → nearest 10).
+	// Truncate year to the required precision multiple (e.g. decade -> nearest 10).
 	// Go's integer division truncates toward zero, which is consistent with the
 	// year%multiple==0 divisibility check used in Time().
 	if mult := int(yearPrecisionMultiple(precision)); mult != 1 {

@@ -415,35 +415,35 @@ func TestNewTimestampYearTruncation(t *testing.T) {
 		expected  string
 	}{
 		// Decade precision: truncate toward zero.
-		{"decade 1925→1920", 1925, document.TimePrecisionTenYears, "1920"},
-		{"decade 1920→1920", 1920, document.TimePrecisionTenYears, "1920"},
-		{"decade 1929→1920", 1929, document.TimePrecisionTenYears, "1920"},
-		{"decade 1930→1930", 1930, document.TimePrecisionTenYears, "1930"},
-		{"decade -1925→-1920", -1925, document.TimePrecisionTenYears, "-1920"},
-		{"decade -1920→-1920", -1920, document.TimePrecisionTenYears, "-1920"},
-		{"decade -1929→-1920", -1929, document.TimePrecisionTenYears, "-1920"},
-		{"decade -1930→-1930", -1930, document.TimePrecisionTenYears, "-1930"},
-		{"decade 5→0", 5, document.TimePrecisionTenYears, "0000"},
-		{"decade -5→0", -5, document.TimePrecisionTenYears, "0000"},
+		{"decade 1925->1920", 1925, document.TimePrecisionTenYears, "1920"},
+		{"decade 1920->1920", 1920, document.TimePrecisionTenYears, "1920"},
+		{"decade 1929->1920", 1929, document.TimePrecisionTenYears, "1920"},
+		{"decade 1930->1930", 1930, document.TimePrecisionTenYears, "1930"},
+		{"decade -1925->-1920", -1925, document.TimePrecisionTenYears, "-1920"},
+		{"decade -1920->-1920", -1920, document.TimePrecisionTenYears, "-1920"},
+		{"decade -1929->-1920", -1929, document.TimePrecisionTenYears, "-1920"},
+		{"decade -1930->-1930", -1930, document.TimePrecisionTenYears, "-1930"},
+		{"decade 5->0", 5, document.TimePrecisionTenYears, "0000"},
+		{"decade -5->0", -5, document.TimePrecisionTenYears, "0000"},
 		// Century precision.
-		{"century 1925→1900", 1925, document.TimePrecisionHundredYears, "1900"},
-		{"century 1900→1900", 1900, document.TimePrecisionHundredYears, "1900"},
-		{"century 1999→1900", 1999, document.TimePrecisionHundredYears, "1900"},
-		{"century -1925→-1900", -1925, document.TimePrecisionHundredYears, "-1900"},
+		{"century 1925->1900", 1925, document.TimePrecisionHundredYears, "1900"},
+		{"century 1900->1900", 1900, document.TimePrecisionHundredYears, "1900"},
+		{"century 1999->1900", 1999, document.TimePrecisionHundredYears, "1900"},
+		{"century -1925->-1900", -1925, document.TimePrecisionHundredYears, "-1900"},
 		// Kilo-year precision.
-		{"kilo 1500→1000", 1500, document.TimePrecisionKiloYears, "1000"},
-		{"kilo 2025→2000", 2025, document.TimePrecisionKiloYears, "2000"},
-		{"kilo -1500→-1000", -1500, document.TimePrecisionKiloYears, "-1000"},
+		{"kilo 1500->1000", 1500, document.TimePrecisionKiloYears, "1000"},
+		{"kilo 2025->2000", 2025, document.TimePrecisionKiloYears, "2000"},
+		{"kilo -1500->-1000", -1500, document.TimePrecisionKiloYears, "-1000"},
 		// Mega-year precision.
-		{"mega 2025→0", 2025, document.TimePrecisionMegaYears, "0000"},
-		{"mega 1500000→1000000", 1500000, document.TimePrecisionMegaYears, "1000000"},
+		{"mega 2025->0", 2025, document.TimePrecisionMegaYears, "0000"},
+		{"mega 1500000->1000000", 1500000, document.TimePrecisionMegaYears, "1000000"},
 		// Giga-year precision.
-		{"giga 2025→0", 2025, document.TimePrecisionGigaYears, "0000"},
-		{"giga 1500000000→1000000000", 1500000000, document.TimePrecisionGigaYears, "1000000000"},
-		{"giga -1500000000→-1000000000", -1500000000, document.TimePrecisionGigaYears, "-1000000000"},
+		{"giga 2025->0", 2025, document.TimePrecisionGigaYears, "0000"},
+		{"giga 1500000000->1000000000", 1500000000, document.TimePrecisionGigaYears, "1000000000"},
+		{"giga -1500000000->-1000000000", -1500000000, document.TimePrecisionGigaYears, "-1000000000"},
 		// Year precision: no truncation.
-		{"year 1925→1925", 1925, document.TimePrecisionYear, "1925"},
-		{"year -1925→-1925", -1925, document.TimePrecisionYear, "-1925"},
+		{"year 1925->1925", 1925, document.TimePrecisionYear, "1925"},
+		{"year -1925->-1925", -1925, document.TimePrecisionYear, "-1925"},
 	}
 
 	for _, tc := range tests {
