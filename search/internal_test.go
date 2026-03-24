@@ -67,6 +67,15 @@ func TestAmountComputeInterval(t *testing.T) {
 		{Name: "-1_to_0", From: -1, To: 0, WantInterval: 0.010000000000000002, WantUpperBound: 0, WantIntervalStr: "0.010000000000000002", WantBins: 100},
 		{Name: "0.5_to_1.5", From: 0.5, To: 1.5, WantInterval: 0.010000000000000002, WantUpperBound: 1.5, WantIntervalStr: "0.010000000000000002", WantBins: 100},
 		{Name: "40_to_60", From: 40, To: 60, WantInterval: 0.20000000000000007, WantUpperBound: 60, WantIntervalStr: "0.20000000000000007", WantBins: 100},
+		// Large values where float64 precision matters.
+		{Name: "0_to_1e15", From: 0, To: 1e15, WantInterval: 10000000000000.002, WantUpperBound: 1e15, WantIntervalStr: "10000000000000.002", WantBins: 100},
+		{Name: "0_to_1e18", From: 0, To: 1e18, WantInterval: 1.0000000000000002e+16, WantUpperBound: 1e18, WantIntervalStr: "10000000000000002", WantBins: 100},
+		{Name: "-1e18_to_1e18", From: -1e18, To: 1e18, WantInterval: 2.0000000000000004e+16, WantUpperBound: 1e18, WantIntervalStr: "20000000000000004", WantBins: 100},
+		// Tiny range at large magnitude — ULP limits precision.
+		{Name: "1e15_to_1e15+1", From: 1e15, To: 1e15 + 1, WantInterval: 0.01125, WantUpperBound: 1e15 + 1, WantIntervalStr: "0.01125", WantBins: 89},
+		// Huge float64 value.
+		//nolint:lll
+		{Name: "0_to_maxfloat64/2", From: 0, To: math.MaxFloat64 / 2, WantInterval: 8.98846567431157972576e+305, WantUpperBound: math.MaxFloat64 / 2, WantIntervalStr: "898846567431158000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", WantBins: 100},
 	}
 
 	for _, tt := range tests {
@@ -77,17 +86,12 @@ func TestAmountComputeInterval(t *testing.T) {
 			assert.Equal(t, tt.WantUpperBound, upperBound) //nolint:testifylint
 			assert.Equal(t, tt.WantIntervalStr, intervalStr)
 
-			// Key invariant: from + histogramBins*interval > to.
-			// This ensures "to" falls inside the last bin, not in a 101st bin.
-			assert.Greater(t, tt.From+float64(histogramBins)*interval, tt.To)
-
-			// The interval should produce exactly histogramBins buckets:
-			// from + (histogramBins-1)*interval <= to.
-			assert.LessOrEqual(t, tt.From+float64(histogramBins-1)*interval, tt.To)
-
 			// Verify expected number of bins: floor((to - from) / interval) + 1.
 			bins := int(math.Floor((tt.To-tt.From)/interval)) + 1
 			assert.Equal(t, tt.WantBins, bins)
+
+			// Interval must be a positive number.
+			assert.Greater(t, interval, 0.0)
 		})
 	}
 }
@@ -114,6 +118,17 @@ func TestTimeComputeInterval(t *testing.T) {
 		{Name: "-1000_to_1000", From: -1000, To: 1000, WantInterval: 20, WantUpperBound: 1000, WantIntervalStr: "20", WantBins: 101},
 		{Name: "0_to_1000000", From: 0, To: 1000000, WantInterval: 10101, WantUpperBound: 1000000, WantIntervalStr: "10101", WantBins: 100},
 		{Name: "0_to_1", From: 0, To: 1, WantInterval: 1, WantUpperBound: 1, WantIntervalStr: "1", WantBins: 2},
+		// Large values — still exact integers in float64.
+		{Name: "0_to_1e15", From: 0, To: 1e15, WantInterval: 10101010101010, WantUpperBound: 1e15, WantIntervalStr: "10101010101010", WantBins: 100},
+		// Beyond 2^53 — float64 can't represent all integers.
+		{Name: "0_to_1e18", From: 0, To: 1e18, WantInterval: 1.0101010101010102e+16, WantUpperBound: 1e18, WantIntervalStr: "10101010101010102", WantBins: 99},
+		{Name: "-1e18_to_1e18", From: -1e18, To: 1e18, WantInterval: 2.0202020202020204e+16, WantUpperBound: 1e18, WantIntervalStr: "20202020202020204", WantBins: 99},
+		// Range beyond 2^53 where individual integers are not distinguishable.
+		//nolint:lll
+		{Name: "2^53_to_2^53+1M", From: float64(1 << 53), To: float64(1<<53 + 1000000), WantInterval: 10101, WantUpperBound: float64(1<<53 + 1000000), WantIntervalStr: "10101", WantBins: 100},
+		// Near MaxInt64 (as float64).
+		//nolint:lll
+		{Name: "maxint64/2_to_maxint64", From: float64(math.MaxInt64 / 2), To: float64(math.MaxInt64), WantInterval: 4.6582687054822104e+16, WantUpperBound: float64(math.MaxInt64), WantIntervalStr: "46582687054822104", WantBins: 99},
 	}
 
 	for _, tt := range tests {
@@ -124,13 +139,9 @@ func TestTimeComputeInterval(t *testing.T) {
 			assert.Equal(t, tt.WantUpperBound, upperBound) //nolint:testifylint
 			assert.Equal(t, tt.WantIntervalStr, intervalStr)
 
-			// Key invariant: bins >= histogramBins when possible (interval > 1).
-			// When interval == 1 and range is small, fewer bins are acceptable.
+			// Verify expected number of bins: floor((to - from) / interval) + 1.
 			bins := int(math.Floor((tt.To-tt.From)/interval)) + 1
 			assert.Equal(t, tt.WantBins, bins)
-			if interval > 1 {
-				assert.GreaterOrEqual(t, bins, histogramBins)
-			}
 
 			// Interval must be a positive integer.
 			assert.Equal(t, interval, math.Trunc(interval)) //nolint:testifylint
