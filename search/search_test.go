@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/olivere/elastic/v7"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/x"
@@ -13,12 +13,10 @@ import (
 	"gitlab.com/peerdb/peerdb/search"
 )
 
-// queryJSON serializes an elastic query to a JSON string for comparison.
-func queryJSON(t *testing.T, q elastic.Query) string {
+// queryJSON serializes a types.QueryVariant to a JSON string for comparison.
+func queryJSON(t *testing.T, q types.QueryVariant) string {
 	t.Helper()
-	src, err := q.Source()
-	require.NoError(t, err)
-	data, errE := x.Marshal(src)
+	data, errE := x.MarshalWithoutEscapeHTML(q.QueryCaster())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	return string(data)
 }
@@ -446,13 +444,13 @@ func TestFiltersToQuery(t *testing.T) {
 			Name:    "RelValue",
 			Filters: search.Filters{And: nil, Or: nil, Not: nil, Rel: relFilter, Amount: nil, Time: nil},
 			//nolint:lll
-			Want: `{"nested":{"path":"claims.rel","query":{"bool":{"must":[{"term":{"claims.rel.prop":"Vg7NV61DJJ5HS2nheTZrQE"}},{"term":{"claims.rel.to":"SM5iogb5kamoWQ2S65rzHz"}}]}}}}`,
+			Want: `{"nested":{"path":"claims.rel","query":{"bool":{"must":[{"term":{"claims.rel.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.rel.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}}`,
 		},
 		{
 			Name:    "RelNone",
 			Filters: search.Filters{And: nil, Or: nil, Not: nil, Rel: relNoneFilter, Amount: nil, Time: nil},
 
-			Want: `{"bool":{"must_not":{"nested":{"path":"claims.rel","query":{"term":{"claims.rel.prop":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}}`,
+			Want: `{"bool":{"must_not":[{"nested":{"path":"claims.rel","query":{"term":{"claims.rel.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
 		},
 		{
 			Name: "AmountGteLteUnit",
@@ -462,7 +460,7 @@ func TestFiltersToQuery(t *testing.T) {
 				Time:   nil,
 			},
 			//nolint:lll
-			Want: `{"nested":{"path":"claims.amount","query":{"bool":{"must":[{"term":{"claims.amount.prop":"Vg7NV61DJJ5HS2nheTZrQE"}},{"range":{"claims.amount.range":{"from":1,"include_lower":true,"include_upper":true,"to":10}}},{"term":{"claims.amount.unit":"7xgMSp3wauK811A8Fwk3rY"}}]}}}}`,
+			Want: `{"nested":{"path":"claims.amount","query":{"bool":{"must":[{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.amount.range":{"gte":1,"lte":10}}},{"term":{"claims.amount.unit":{"value":"7xgMSp3wauK811A8Fwk3rY"}}}]}}}}`,
 		},
 		{
 			Name: "AmountNone",
@@ -472,7 +470,7 @@ func TestFiltersToQuery(t *testing.T) {
 				Time:   nil,
 			},
 
-			Want: `{"bool":{"must_not":{"nested":{"path":"claims.amount","query":{"term":{"claims.amount.prop":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}}`,
+			Want: `{"bool":{"must_not":[{"nested":{"path":"claims.amount","query":{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
 		},
 		{
 			Name: "AmountGteLteNoUnit",
@@ -482,7 +480,7 @@ func TestFiltersToQuery(t *testing.T) {
 				Time:   nil,
 			},
 			//nolint:lll
-			Want: `{"nested":{"path":"claims.amount","query":{"bool":{"must":[{"term":{"claims.amount.prop":"Vg7NV61DJJ5HS2nheTZrQE"}},{"range":{"claims.amount.range":{"from":1,"include_lower":true,"include_upper":true,"to":10}}}]}}}}`,
+			Want: `{"nested":{"path":"claims.amount","query":{"bool":{"must":[{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.amount.range":{"gte":1,"lte":10}}}]}}}}`,
 		},
 		{
 			Name: "TimeGteLte",
@@ -491,7 +489,7 @@ func TestFiltersToQuery(t *testing.T) {
 				Time: &search.TimeFilter{Prop: prop, Gte: &gteTime, Lte: &lteTime, None: false},
 			},
 			//nolint:lll
-			Want: `{"nested":{"path":"claims.time","query":{"bool":{"must":[{"term":{"claims.time.prop":"Vg7NV61DJJ5HS2nheTZrQE"}},{"range":{"claims.time.range":{"from":1000,"include_lower":true,"include_upper":true,"to":2000}}}]}}}}`,
+			Want: `{"nested":{"path":"claims.time","query":{"bool":{"must":[{"term":{"claims.time.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.time.range":{"gte":1000,"lte":2000}}}]}}}}`,
 		},
 		{
 			Name: "TimeNone",
@@ -500,7 +498,7 @@ func TestFiltersToQuery(t *testing.T) {
 				Time: &search.TimeFilter{Prop: prop, Gte: nil, Lte: nil, None: true},
 			},
 
-			Want: `{"bool":{"must_not":{"nested":{"path":"claims.time","query":{"term":{"claims.time.prop":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}}`,
+			Want: `{"bool":{"must_not":[{"nested":{"path":"claims.time","query":{"term":{"claims.time.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
 		},
 		{
 			Name: "And",
@@ -516,7 +514,7 @@ func TestFiltersToQuery(t *testing.T) {
 				Or: nil, Not: nil, Rel: nil, Amount: nil, Time: nil,
 			},
 			//nolint:lll
-			Want: `{"bool":{"must":[{"nested":{"path":"claims.rel","query":{"bool":{"must":[{"term":{"claims.rel.prop":"Vg7NV61DJJ5HS2nheTZrQE"}},{"term":{"claims.rel.to":"SM5iogb5kamoWQ2S65rzHz"}}]}}}},{"nested":{"path":"claims.amount","query":{"bool":{"must":[{"term":{"claims.amount.prop":"Vg7NV61DJJ5HS2nheTZrQE"}},{"range":{"claims.amount.range":{"from":1,"include_lower":true,"include_upper":true,"to":10}}}]}}}}]}}`,
+			Want: `{"bool":{"must":[{"nested":{"path":"claims.rel","query":{"bool":{"must":[{"term":{"claims.rel.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.rel.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}},{"nested":{"path":"claims.amount","query":{"bool":{"must":[{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.amount.range":{"gte":1,"lte":10}}}]}}}}]}}`,
 		},
 		{
 			Name: "Or",
@@ -532,7 +530,7 @@ func TestFiltersToQuery(t *testing.T) {
 				Not: nil, Rel: nil, Amount: nil, Time: nil,
 			},
 			//nolint:lll
-			Want: `{"bool":{"minimum_should_match":"1","should":[{"nested":{"path":"claims.rel","query":{"bool":{"must":[{"term":{"claims.rel.prop":"Vg7NV61DJJ5HS2nheTZrQE"}},{"term":{"claims.rel.to":"SM5iogb5kamoWQ2S65rzHz"}}]}}}},{"nested":{"path":"claims.time","query":{"bool":{"must":[{"term":{"claims.time.prop":"Vg7NV61DJJ5HS2nheTZrQE"}},{"range":{"claims.time.range":{"from":1000,"include_lower":true,"include_upper":true,"to":2000}}}]}}}}]}}`,
+			Want: `{"bool":{"minimum_should_match":1,"should":[{"nested":{"path":"claims.rel","query":{"bool":{"must":[{"term":{"claims.rel.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.rel.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}},{"nested":{"path":"claims.time","query":{"bool":{"must":[{"term":{"claims.time.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.time.range":{"gte":1000,"lte":2000}}}]}}}}]}}`,
 		},
 		{
 			Name: "Not",
@@ -542,7 +540,7 @@ func TestFiltersToQuery(t *testing.T) {
 				Rel: nil, Amount: nil, Time: nil,
 			},
 			//nolint:lll
-			Want: `{"bool":{"must_not":{"nested":{"path":"claims.rel","query":{"bool":{"must":[{"term":{"claims.rel.prop":"Vg7NV61DJJ5HS2nheTZrQE"}},{"term":{"claims.rel.to":"SM5iogb5kamoWQ2S65rzHz"}}]}}}}}}`,
+			Want: `{"bool":{"must_not":[{"nested":{"path":"claims.rel","query":{"bool":{"must":[{"term":{"claims.rel.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.rel.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}}]}}`,
 		},
 	}
 
@@ -716,7 +714,7 @@ func TestSessionToQuery(t *testing.T) {
 			Name:    "QueryOnly",
 			Session: &search.Session{ID: nil, Version: 0, View: "", Query: "hello", Filters: nil},
 			//nolint:lll
-			Want: `{"bool":{"must":{"bool":{"should":[{"term":{"id":"hello"}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.value"],"query":"hello"}}}},{"nested":{"path":"claims.ref","query":{"simple_query_string":{"default_operator":"or","fields":["claims.ref.iri"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.en"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.pt"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.sl"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.und"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.en"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.pt"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.sl"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.und"],"query":"hello"}}}}]}}}}`,
+			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.value"],"query":"hello"}}}},{"nested":{"path":"claims.ref","query":{"simple_query_string":{"default_operator":"or","fields":["claims.ref.iri"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.en"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.pt"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.sl"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.und"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.en"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.pt"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.sl"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.und"],"query":"hello"}}}}]}}]}}`,
 		},
 		{
 			Name:    "Empty",
@@ -733,7 +731,7 @@ func TestSessionToQuery(t *testing.T) {
 				},
 			},
 			//nolint:lll
-			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":"hello"}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.value"],"query":"hello"}}}},{"nested":{"path":"claims.ref","query":{"simple_query_string":{"default_operator":"or","fields":["claims.ref.iri"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.en"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.pt"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.sl"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.und"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.en"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.pt"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.sl"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.und"],"query":"hello"}}}}]}},{"nested":{"path":"claims.rel","query":{"bool":{"must":[{"term":{"claims.rel.prop":"Vg7NV61DJJ5HS2nheTZrQE"}},{"term":{"claims.rel.to":"SM5iogb5kamoWQ2S65rzHz"}}]}}}}]}}`,
+			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.value"],"query":"hello"}}}},{"nested":{"path":"claims.ref","query":{"simple_query_string":{"default_operator":"or","fields":["claims.ref.iri"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.en"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.pt"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.sl"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.und"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.en"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.pt"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.sl"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.und"],"query":"hello"}}}}]}},{"nested":{"path":"claims.rel","query":{"bool":{"must":[{"term":{"claims.rel.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.rel.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}}]}}`,
 		},
 	}
 
@@ -943,17 +941,17 @@ func TestJSONSerialization(t *testing.T) {
 	t.Run("FilterResult", func(t *testing.T) {
 		t.Parallel()
 		fr := search.FilterResult{ID: "test-id", Count: 42, Type: "rel", Unit: ""}
-		data, errE := x.Marshal(fr)
+		data, errE := x.MarshalWithoutEscapeHTML(fr)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		var decoded search.FilterResult
-		errE = x.Unmarshal(data, &decoded)
+		errE = x.UnmarshalWithoutUnknownFields(data, &decoded)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		assert.Equal(t, fr, decoded)
 
 		fr.Unit = "kg"
-		data, errE = x.Marshal(fr)
+		data, errE = x.MarshalWithoutEscapeHTML(fr)
 		require.NoError(t, errE, "% -+#.1v", errE)
-		errE = x.Unmarshal(data, &decoded)
+		errE = x.UnmarshalWithoutUnknownFields(data, &decoded)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		assert.Equal(t, fr, decoded)
 	})
@@ -961,10 +959,10 @@ func TestJSONSerialization(t *testing.T) {
 	t.Run("RelFilterResult", func(t *testing.T) {
 		t.Parallel()
 		rfr := search.RelFilterResult{ID: "test-id", Count: 10}
-		data, errE := x.Marshal(rfr)
+		data, errE := x.MarshalWithoutEscapeHTML(rfr)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		var decoded search.RelFilterResult
-		errE = x.Unmarshal(data, &decoded)
+		errE = x.UnmarshalWithoutUnknownFields(data, &decoded)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		assert.Equal(t, rfr, decoded)
 	})
@@ -972,10 +970,10 @@ func TestJSONSerialization(t *testing.T) {
 	t.Run("HistogramResult", func(t *testing.T) {
 		t.Parallel()
 		hr := search.HistogramResult{From: 1.5, Count: 20}
-		data, errE := x.Marshal(hr)
+		data, errE := x.MarshalWithoutEscapeHTML(hr)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		var decoded search.HistogramResult
-		errE = x.Unmarshal(data, &decoded)
+		errE = x.UnmarshalWithoutUnknownFields(data, &decoded)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		assert.Equal(t, hr, decoded)
 	})
@@ -983,10 +981,10 @@ func TestJSONSerialization(t *testing.T) {
 	t.Run("Result", func(t *testing.T) {
 		t.Parallel()
 		r := search.Result{ID: "doc-123"}
-		data, errE := x.Marshal(r)
+		data, errE := x.MarshalWithoutEscapeHTML(r)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		var decoded search.Result
-		errE = x.Unmarshal(data, &decoded)
+		errE = x.UnmarshalWithoutUnknownFields(data, &decoded)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		assert.Equal(t, r, decoded)
 	})
@@ -1003,10 +1001,10 @@ func TestJSONSerialization(t *testing.T) {
 				Rel: &search.RelFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
 			},
 		}
-		data, errE := x.Marshal(s)
+		data, errE := x.MarshalWithoutEscapeHTML(s)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		var decoded search.Session
-		errE = x.Unmarshal(data, &decoded)
+		errE = x.UnmarshalWithoutUnknownFields(data, &decoded)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		assert.Equal(t, s.Query, decoded.Query)
 		assert.Equal(t, *s.ID, *decoded.ID)
@@ -1016,10 +1014,10 @@ func TestJSONSerialization(t *testing.T) {
 		t.Parallel()
 		id := identifier.From("prop")
 		ref := search.SessionRef{ID: id, Version: 7}
-		data, errE := x.Marshal(ref)
+		data, errE := x.MarshalWithoutEscapeHTML(ref)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		var decoded search.SessionRef
-		errE = x.Unmarshal(data, &decoded)
+		errE = x.UnmarshalWithoutUnknownFields(data, &decoded)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		assert.Equal(t, ref, decoded)
 	})

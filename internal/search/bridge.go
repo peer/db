@@ -9,10 +9,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/elastic/go-elasticsearch/v9"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/operationtype"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/olivere/elastic/v7"
 	"github.com/riverqueue/river"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
@@ -29,8 +31,8 @@ const bridgeRetryDelay = 5 * time.Second
 var errCommittedChannelClosed = errors.Base("committed channel is closed")
 
 type bulkError struct {
-	ID    string                `json:"id"`
-	Error *elastic.ErrorDetails `json:"error,omitempty"`
+	ID    string            `json:"id,omitempty"`
+	Error *types.ErrorCause `json:"error,omitempty"`
 }
 
 type bridgeJob interface {
@@ -141,7 +143,7 @@ type Bridge struct {
 	]
 
 	// ESClient is the ElasticSearch client.
-	ESClient *elastic.Client
+	ESClient *elasticsearch.TypedClient
 
 	// Index is the ElasticSearch index name.
 	Index string
@@ -670,6 +672,7 @@ func (b *Bridge) indexCommit(
 		return nil, nil, errE
 	}
 
+	numActions := 0
 	bulkService := b.ESClient.Bulk()
 
 	// Collect inverse relations from all processed documents.
@@ -748,7 +751,12 @@ func (b *Bridge) indexCommit(
 				}
 
 				if deleted {
-					bulkService.Add(elastic.NewBulkDeleteRequest().Index(b.Index).Id(change.ID.String()))
+					id := change.ID.String()
+					err := bulkService.DeleteOp(types.DeleteOperation{Index_: &b.Index, Id_: &id}) //nolint:exhaustruct
+					if err != nil {
+						return nil, nil, errors.WithStack(err)
+					}
+					numActions++
 				} else {
 					// TODO: Use also information about the view so that documents are searchable by view as well.
 					searchDoc, errE := b.convertDocument(ctx, data, metadata)
@@ -759,7 +767,12 @@ func (b *Bridge) indexCommit(
 						errors.Details(errE)["doc"] = change.ID.String()
 						return nil, nil, errE
 					}
-					bulkService.Add(elastic.NewBulkIndexRequest().Index(b.Index).Id(change.ID.String()).Doc(searchDoc))
+					id := change.ID.String()
+					err := bulkService.IndexOp(types.IndexOperation{Index_: &b.Index, Id_: &id}, searchDoc) //nolint:exhaustruct
+					if err != nil {
+						return nil, nil, errors.WithStack(err)
+					}
+					numActions++
 				}
 			}
 			if len(page) < store.MaxPageLength {
@@ -769,7 +782,7 @@ func (b *Bridge) indexCommit(
 		}
 	}
 
-	if bulkService.NumberOfActions() == 0 {
+	if numActions == 0 {
 		return nil, nil, nil
 	}
 
@@ -787,11 +800,15 @@ func (b *Bridge) indexCommit(
 			// Deleting a document that does not exist in ES is not an error.
 			// This can happen when indexCommit is retried after the bulk request
 			// succeeded but updateSeq failed.
-			if action == "delete" && result.Status == 404 {
+			if action == operationtype.Delete && result.Status == 404 {
 				continue
 			}
+			id := ""
+			if result.Id_ != nil {
+				id = *result.Id_
+			}
 			bulkErrors = append(bulkErrors, bulkError{
-				ID:    result.Id,
+				ID:    id,
 				Error: result.Error,
 			})
 		}
@@ -800,6 +817,7 @@ func (b *Bridge) indexCommit(
 		errE := errors.New("bulk indexing had failures")
 		errors.Details(errE)["seq"] = committed.Seq
 		errors.Details(errE)["view"] = committed.View.Name()
+		// We do not name this field "errors" to not confuse go-errors package which tries to parse it as joined errors.
 		errors.Details(errE)["esErrors"] = bulkErrors
 		return nil, nil, errE
 	}
@@ -1062,7 +1080,7 @@ func (b *Bridge) indexDocument(ctx context.Context, docID identifier.Identifier)
 		return errE
 	}
 
-	_, err := b.ESClient.Index().Index(b.Index).Id(docID.String()).BodyJson(searchDoc).Do(ctx)
+	_, err := b.ESClient.Index(b.Index).Id(docID.String()).Request(searchDoc).Do(ctx)
 	if err != nil {
 		return errors.WithStack(err)
 	}

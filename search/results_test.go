@@ -4,7 +4,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/olivere/elastic/v7"
+	essearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/identifier"
@@ -103,9 +104,9 @@ func TestResultsGetIntegration(t *testing.T) {
 	assert.Equal(t, int64(3), metadata["total"])
 
 	// Verify all expected IDs are present (order is unspecified for empty query).
-	gotIDs := make([]string, len(results))
-	for i, r := range results {
-		gotIDs[i] = r.ID
+	gotIDs := make([]string, 0, len(results))
+	for _, r := range results {
+		gotIDs = append(gotIDs, r.ID)
 	}
 	sort.Strings(gotIDs)
 	expectedIDs := []string{doc1ID.String(), doc2ID.String(), doc3ID.String()}
@@ -791,9 +792,9 @@ func TestResultsGetWithBoolFiltersIntegration(t *testing.T) {
 	assert.Len(t, results, 3)
 
 	// Verify all expected IDs are present (order is unspecified).
-	gotIDs := make([]string, len(results))
-	for i, r := range results {
-		gotIDs[i] = r.ID
+	gotIDs := make([]string, 0, len(results))
+	for _, r := range results {
+		gotIDs = append(gotIDs, r.ID)
 	}
 	sort.Strings(gotIDs)
 	expectedIDs := []string{doc1ID.String(), doc2ID.String(), doc3ID.String()}
@@ -857,8 +858,8 @@ func TestResultsGetTotalGteIntegration(t *testing.T) {
 	})
 	refreshIndex(t, ctx, esClient, index)
 
-	getSearchServiceTracked := func() (*elastic.SearchService, int64, int64) {
-		return esClient.Search().Index(index).TrackTotalHits(true), 100, 10
+	getSearchServiceTracked := func() (*essearch.Search, int64, int64) {
+		return esClient.Search().Index(index).TrackTotalHits(esdsl.NewTrackHits().Bool(true)), 100, 10
 	}
 
 	session := &search.Session{
@@ -903,8 +904,8 @@ func TestResultsGetTotalGteRelationIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	// Set TrackTotalHits to 1 so ES returns "gte" relation when there are more than 1 hit.
-	getSearchServiceLimited := func() (*elastic.SearchService, int64, int64) {
-		return esClient.Search().Index(index).TrackTotalHits(1), 100, 10
+	getSearchServiceLimited := func() (*essearch.Search, int64, int64) {
+		return esClient.Search().Index(index).TrackTotalHits(esdsl.NewTrackHits().Int(1)), 100, 10
 	}
 
 	session := &search.Session{

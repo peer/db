@@ -7,8 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/elastic/go-elasticsearch/v9"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/hashicorp/go-cleanhttp"
-	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +28,7 @@ import (
 // initBaseInfra initializes the base infrastructure (PostgreSQL, Elasticsearch, River)
 // without populating core documents. Callers must call populateBase or b.PopulateAndStart
 // to insert documents and start the base.
-func initBaseInfra(t *testing.T, languagePriority map[string][]string) (context.Context, *base.B, *elastic.Client) {
+func initBaseInfra(t *testing.T, languagePriority map[string][]string) (context.Context, *base.B, *elasticsearch.TypedClient) {
 	t.Helper()
 
 	if os.Getenv("ELASTIC") == "" {
@@ -60,7 +61,7 @@ func initBaseInfra(t *testing.T, languagePriority map[string][]string) (context.
 
 	t.Cleanup(func() {
 		// We do not use t.Context() because we want an active context, not a canceled one.
-		_, err := esClient.DeleteIndex(index).Do(context.Background())
+		_, err := esClient.Indices.Delete(index).IgnoreUnavailable(true).Do(context.Background())
 		require.NoError(t, err)
 	})
 
@@ -93,7 +94,7 @@ func initBase(t *testing.T) (context.Context, *base.B) {
 	return ctx, b
 }
 
-func initBaseWithES(t *testing.T) (context.Context, *base.B, *elastic.Client) {
+func initBaseWithES(t *testing.T) (context.Context, *base.B, *elasticsearch.TypedClient) {
 	t.Helper()
 
 	ctx, b, esClient := initBaseInfra(t, nil)
@@ -312,34 +313,33 @@ func marshalChange(t *testing.T, change document.Change) []byte {
 }
 
 // docExists checks if a document exists in the Elasticsearch index.
-func docExists(ctx context.Context, t *testing.T, esClient *elastic.Client, index, id string) bool {
+func docExists(ctx context.Context, t *testing.T, esClient *elasticsearch.TypedClient, index, id string) bool {
 	t.Helper()
-	resp, err := esClient.Get().Index(index).Id(id).Do(ctx)
+	exists, err := esClient.Exists(index, id).IsSuccess(ctx)
 	if err != nil {
-		if elastic.IsNotFound(err) {
-			return false
-		}
 		t.Fatalf("unexpected ES error: %v", err)
 	}
-	return resp.Found
+	return exists
 }
 
 // docHasRelation checks if an ES document has a nested relation claim with the given prop and target.
-func docHasRelation(ctx context.Context, t *testing.T, esClient *elastic.Client, index string, docID, propID, targetID identifier.Identifier) bool {
+func docHasRelation(ctx context.Context, t *testing.T, esClient *elasticsearch.TypedClient, index string, docID, propID, targetID identifier.Identifier) bool {
 	t.Helper()
-	boolQuery := elastic.NewBoolQuery().Must(
-		elastic.NewTermQuery("claims.rel.prop", propID.String()),
-		elastic.NewTermQuery("claims.rel.to", targetID.String()),
-	)
-	query := elastic.NewBoolQuery().Must(
-		elastic.NewTermQuery("id", docID.String()),
-		elastic.NewNestedQuery("claims.rel", boolQuery),
+	nestedQuery := esdsl.NewNestedQuery(
+		esdsl.NewBoolQuery().Must(
+			esdsl.NewTermQuery("claims.rel.prop", esdsl.NewFieldValue().String(propID.String())),
+			esdsl.NewTermQuery("claims.rel.to", esdsl.NewFieldValue().String(targetID.String())),
+		),
+	).Path("claims.rel")
+	query := esdsl.NewBoolQuery().Must(
+		esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(docID.String())),
+		nestedQuery,
 	)
 	res, err := esClient.Search().Index(index).Query(query).Size(1).Do(ctx)
 	if err != nil {
 		t.Fatalf("ES search error: %v", err)
 	}
-	return res.Hits.TotalHits.Value > 0
+	return res.Hits.Total.Value > 0
 }
 
 func TestDocumentEditSession(t *testing.T) {
@@ -727,7 +727,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	errE = b.WaitUntilCaughtUp(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, err := esClient.Refresh(b.Index).Do(ctx)
+	_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 	require.NoError(t, err)
 
 	// Both documents should be in ES.
@@ -771,7 +771,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 
 	// Verify the relation A --X--> B is indexed in ES.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, err := esClient.Refresh(b.Index).Do(ctx)
+		_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 		if !assert.NoError(c, err) {
 			return
 		}
@@ -781,7 +781,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 
 	// Verify docB gets inverse relation B --Y--> A.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, err := esClient.Refresh(b.Index).Do(ctx)
+		_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 		if !assert.NoError(c, err) {
 			return
 		}
@@ -817,7 +817,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 
 	// Verify the relation is removed from ES.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, err := esClient.Refresh(b.Index).Do(ctx)
+		_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 		if !assert.NoError(c, err) {
 			return
 		}
@@ -835,7 +835,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	}, 30*time.Second, 100*time.Millisecond)
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, err := esClient.Refresh(b.Index).Do(ctx)
+		_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 		if !assert.NoError(c, err) {
 			return
 		}

@@ -784,9 +784,9 @@ func TestConvertRelationMultipleHierarchies(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Target + classParent + partParent = 3 claims.
 	require.Len(t, result, 3)
-	toIDs := make([]identifier.Identifier, len(result))
-	for i, r := range result {
-		toIDs[i] = r.To
+	toIDs := make([]identifier.Identifier, 0, len(result))
+	for _, r := range result {
+		toIDs = append(toIDs, r.To)
 	}
 	assert.Contains(t, toIDs, target)
 	assert.Contains(t, toIDs, classParent)
@@ -851,9 +851,9 @@ func TestConvertRelationOverlappingAncestors(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Target + sharedAncestor (deduplicated) = 2 claims.
 	require.Len(t, result, 2)
-	toIDs := make([]identifier.Identifier, len(result))
-	for i, r := range result {
-		toIDs[i] = r.To
+	toIDs := make([]identifier.Identifier, 0, len(result))
+	for _, r := range result {
+		toIDs = append(toIDs, r.To)
 	}
 	assert.Contains(t, toIDs, target)
 	assert.Contains(t, toIDs, sharedAncestor)
@@ -2262,9 +2262,9 @@ func TestConvertRelationWithClassMutualCycle(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Target classA + ancestor classB, no duplicates.
 	require.Len(t, result, 2)
-	toIDs := make([]identifier.Identifier, len(result))
-	for i, r := range result {
-		toIDs[i] = r.To
+	toIDs := make([]identifier.Identifier, 0, len(result))
+	for _, r := range result {
+		toIDs = append(toIDs, r.To)
 	}
 	assert.Contains(t, toIDs, classA)
 	assert.Contains(t, toIDs, classB)
@@ -2330,9 +2330,9 @@ func TestConvertRelationWithPropertyMutualCycle(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// propA (direct) + propB (ancestor), no duplicates.
 	require.Len(t, result, 2)
-	propIDs := make([]identifier.Identifier, len(result))
-	for i, r := range result {
-		propIDs[i] = r.Prop
+	propIDs := make([]identifier.Identifier, 0, len(result))
+	for _, r := range result {
+		propIDs = append(propIDs, r.Prop)
 	}
 	assert.Contains(t, propIDs, propA)
 	assert.Contains(t, propIDs, propB)
@@ -2366,9 +2366,9 @@ func TestConvertStringWithPropertyCycle(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// propA (direct) + propB (ancestor), no duplicates.
 	require.Len(t, result, 2)
-	propIDs := make([]identifier.Identifier, len(result))
-	for i, r := range result {
-		propIDs[i] = r.Prop
+	propIDs := make([]identifier.Identifier, 0, len(result))
+	for _, r := range result {
+		propIDs = append(propIDs, r.Prop)
 	}
 	assert.Contains(t, propIDs, propA)
 	assert.Contains(t, propIDs, propB)

@@ -4,7 +4,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/olivere/elastic/v7"
+	essearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
@@ -14,19 +15,23 @@ import (
 	"gitlab.com/peerdb/peerdb/search"
 )
 
-func (s *Service) getSearchService(req *http.Request) (*elastic.SearchService, int64, int64) {
+func (s *Service) getSearchService(req *http.Request) (*essearch.Search, int64, int64) {
 	ctx := req.Context()
 
 	site := waf.MustGetSite[*Site](ctx)
 
 	// We set TrackTotalHits to true to always get exact number of results. For now we didn't notice any performance
 	// issues at data scale PeerDB is currently being used with, but in the future we might want to make this configurable.
-	return site.ESClient.Search(site.Index).FetchSource(false).Preference(getHost(req.RemoteAddr)).
-		Header("X-Opaque-ID", waf.MustRequestID(ctx).String()).TrackTotalHits(true).AllowPartialSearchResults(false), site.propertiesTotal, site.unitsTotal
+	return site.ESClient.Search().Index(site.Index).
+		Source_(esdsl.NewSourceConfig().Bool(false)).
+		Preference(getHost(req.RemoteAddr)).
+		Header("X-Opaque-ID", waf.MustRequestID(ctx).String()).
+		TrackTotalHits(esdsl.NewTrackHits().Bool(true)).
+		AllowPartialSearchResults(false), site.propertiesTotal, site.unitsTotal
 }
 
-func (s *Service) getSearchServiceClosure(req *http.Request) func() (*elastic.SearchService, int64, int64) {
-	return func() (*elastic.SearchService, int64, int64) {
+func (s *Service) getSearchServiceClosure(req *http.Request) func() (*essearch.Search, int64, int64) {
+	return func() (*essearch.Search, int64, int64) {
 		return s.getSearchService(req)
 	}
 }

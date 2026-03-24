@@ -6,9 +6,12 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
+	"github.com/elastic/go-elasticsearch/v9"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/sortorder"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/olivere/elastic/v7"
 	"github.com/riverqueue/river"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
@@ -39,10 +42,10 @@ type Site struct {
 
 	LanguagePriority map[string][]string `json:"languagePriority,omitempty" yaml:"languagePriority,omitempty"`
 
-	Base        *base.B               `json:"-" yaml:"-"`
-	DBPool      *pgxpool.Pool         `json:"-" yaml:"-"`
-	ESClient    *elastic.Client       `json:"-" yaml:"-"`
-	RiverClient *river.Client[pgx.Tx] `json:"-" yaml:"-"`
+	Base        *base.B                    `json:"-" yaml:"-"`
+	DBPool      *pgxpool.Pool              `json:"-" yaml:"-"`
+	ESClient    *elasticsearch.TypedClient `json:"-" yaml:"-"`
+	RiverClient *river.Client[pgx.Tx]      `json:"-" yaml:"-"`
 
 	initialized bool
 
@@ -83,12 +86,23 @@ var (
 	instanceOfPropID = identifier.From(core.Namespace, "INSTANCE_OF").String()
 )
 
+// rawFieldValue wraps a types.FieldValue so it satisfies types.FieldValueVariant.
+//
+// See: https://github.com/elastic/go-elasticsearch/issues/1328
+type rawFieldValue struct {
+	v types.FieldValue
+}
+
+func (r *rawFieldValue) FieldValueCaster() *types.FieldValue {
+	return &r.v
+}
+
 func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifier) ([]identifier.Identifier, errors.E) {
-	boolQuery := elastic.NewBoolQuery().Must(
-		elastic.NewTermQuery("claims.rel.prop", instanceOfPropID),
-		elastic.NewTermQuery("claims.rel.to", classID),
+	boolQuery := esdsl.NewBoolQuery().Must(
+		esdsl.NewTermQuery("claims.rel.prop", esdsl.NewFieldValue().String(instanceOfPropID)),
+		esdsl.NewTermQuery("claims.rel.to", esdsl.NewFieldValue().String(classID.String())),
 	)
-	query := elastic.NewNestedQuery("claims.rel", boolQuery)
+	query := esdsl.NewNestedQuery(boolQuery).Path("claims.rel")
 
 	pit, err := s.ESClient.OpenPointInTime(s.Index).KeepAlive("1m").Do(ctx)
 	if err != nil {
@@ -97,21 +111,25 @@ func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifi
 	pitID := pit.Id
 
 	defer func() {
-		_, _ = s.ESClient.ClosePointInTime(pitID).Do(ctx)
+		_, _ = s.ESClient.ClosePointInTime().Id(pitID).Do(ctx)
 	}()
 
 	var allIDs []identifier.Identifier
-	var searchAfter []interface{}
+	var searchAfter []types.FieldValue
 
 	for {
-		searchService := s.ESClient.Search().FetchSource(false).AllowPartialSearchResults(false).
+		searchService := s.ESClient.Search().Source_(esdsl.NewSourceConfig().Bool(false)).AllowPartialSearchResults(false).
 			Query(query).
 			Size(fetchDocumentIDsPageSize).
-			PointInTime(elastic.NewPointInTimeWithKeepAlive(pitID, "1m")).
-			Sort("_shard_doc", true)
+			Pit(esdsl.NewPointInTimeReference().Id(pitID).KeepAlive(esdsl.NewDuration().String("1m"))).
+			Sort(esdsl.NewSortOptions().AddSortOption("_shard_doc", esdsl.NewFieldSort(sortorder.Asc)))
 
 		if searchAfter != nil {
-			searchService = searchService.SearchAfter(searchAfter...)
+			args := make([]types.FieldValueVariant, 0, len(searchAfter))
+			for _, v := range searchAfter {
+				args = append(args, &rawFieldValue{v})
+			}
+			searchService = searchService.SearchAfter(args...)
 		}
 
 		res, err := searchService.Do(ctx)
@@ -122,7 +140,10 @@ func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifi
 		hits := res.Hits.Hits
 
 		for _, hit := range hits {
-			id, errE := identifier.MaybeString(hit.Id)
+			if hit.Id_ == nil {
+				return nil, errors.New("hit has no ID")
+			}
+			id, errE := identifier.MaybeString(*hit.Id_)
 			if errE != nil {
 				return nil, errE
 			}

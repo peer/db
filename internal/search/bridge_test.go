@@ -8,9 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/elastic/go-elasticsearch/v9"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jackc/pgx/v5"
-	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -66,7 +67,7 @@ func newTestBridgeConverter(t *testing.T) *internalSearch.Converter {
 func initBridge(t *testing.T) (
 	context.Context,
 	*store.Store[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, document.Changes],
-	*internalSearch.Bridge, *elastic.Client,
+	*internalSearch.Bridge, *elasticsearch.TypedClient,
 ) {
 	t.Helper()
 
@@ -101,7 +102,7 @@ func initBridge(t *testing.T) (
 
 	t.Cleanup(func() {
 		// We do not use t.Context() because we want an active context, not a canceled one.
-		_, err := esClient.DeleteIndex(index).Do(context.Background())
+		_, err := esClient.Indices.Delete(index).IgnoreUnavailable(true).Do(context.Background())
 		require.NoError(t, err)
 	})
 
@@ -155,16 +156,13 @@ func initBridge(t *testing.T) (
 }
 
 // docExists returns true if the document with the given ID exists in Elasticsearch.
-func docExists(t *testing.T, ctx context.Context, esClient *elastic.Client, index, id string) bool { //nolint:revive
+func docExists(t *testing.T, ctx context.Context, esClient *elasticsearch.TypedClient, index, id string) bool { //nolint:revive
 	t.Helper()
-	resp, err := esClient.Get().Index(index).Id(id).Do(ctx)
+	exists, err := esClient.Exists(index, id).IsSuccess(ctx)
 	if err != nil {
-		if elastic.IsNotFound(err) {
-			return false
-		}
 		t.Fatalf("unexpected ES error: %v", err)
 	}
-	return resp.Found
+	return exists
 }
 
 func TestBridgeRealTime(t *testing.T) {
@@ -190,7 +188,7 @@ func TestBridgeRealTime(t *testing.T) {
 	errE = b.WaitUntilCaughtUp(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, err := esClient.Refresh(b.Index).Do(ctx)
+	_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 	require.NoError(t, err)
 
 	// All three documents should now be in search.
@@ -207,7 +205,7 @@ func TestBridgeRealTime(t *testing.T) {
 	errE = b.WaitUntilCaughtUp(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, err = esClient.Refresh(b.Index).Do(ctx)
+	_, err = esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 	require.NoError(t, err)
 
 	// The bridge always indexes the latest version, even if an older commit triggered it.
@@ -239,7 +237,7 @@ func TestBridgeCatchUp(t *testing.T) {
 	errE = b.WaitUntilCaughtUp(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, err := esClient.Refresh(b.Index).Do(ctx)
+	_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 	require.NoError(t, err)
 
 	// Both documents should be in ES despite being committed before Start.
@@ -263,7 +261,7 @@ func TestBridgeDeletedDocument(t *testing.T) {
 	errE = b.WaitUntilCaughtUp(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, err := esClient.Refresh(b.Index).Do(ctx)
+	_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 	require.NoError(t, err)
 
 	assert.True(t, docExists(t, ctx, esClient, b.Index, id.String()), "document should exist before delete")
@@ -274,7 +272,7 @@ func TestBridgeDeletedDocument(t *testing.T) {
 	errE = b.WaitUntilCaughtUp(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, err = esClient.Refresh(b.Index).Do(ctx)
+	_, err = esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 	require.NoError(t, err)
 
 	// After deletion the bridge issues a bulk delete, so the document is removed from search.
@@ -346,7 +344,7 @@ func TestBridgeNotifyRecovery(t *testing.T) {
 	errE = b.WaitUntilCaughtUp(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, err = esClient.Refresh(b.Index).Do(ctx)
+	_, err = esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 	require.NoError(t, err)
 
 	// All four documents must be indexed, including those inserted after the simulated reconnection.
@@ -378,7 +376,7 @@ func TestBridgeStaleDataNotIndexed(t *testing.T) {
 	errE = b.WaitUntilCaughtUp(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, err := esClient.Refresh(b.Index).Do(ctx)
+	_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 	require.NoError(t, err)
 
 	// The document in ES should exist — the bridge calls GetLatest so it always indexes the latest version.
@@ -501,22 +499,24 @@ func makeConverterWithInverse(
 }
 
 // docHasRelation checks if an ES document has a nested relation claim with the given prop and target.
-func docHasRelation(ctx context.Context, t *testing.T, esClient *elastic.Client, index string, docID, propID, targetID identifier.Identifier) bool {
+func docHasRelation(ctx context.Context, t *testing.T, esClient *elasticsearch.TypedClient, index string, docID, propID, targetID identifier.Identifier) bool {
 	t.Helper()
 
-	boolQuery := elastic.NewBoolQuery().Must(
-		elastic.NewTermQuery("claims.rel.prop", propID.String()),
-		elastic.NewTermQuery("claims.rel.to", targetID.String()),
-	)
-	query := elastic.NewBoolQuery().Must(
-		elastic.NewTermQuery("id", docID.String()),
-		elastic.NewNestedQuery("claims.rel", boolQuery),
+	nestedQuery := esdsl.NewNestedQuery(
+		esdsl.NewBoolQuery().Must(
+			esdsl.NewTermQuery("claims.rel.prop", esdsl.NewFieldValue().String(propID.String())),
+			esdsl.NewTermQuery("claims.rel.to", esdsl.NewFieldValue().String(targetID.String())),
+		),
+	).Path("claims.rel")
+	query := esdsl.NewBoolQuery().Must(
+		esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(docID.String())),
+		nestedQuery,
 	)
 	res, err := esClient.Search().Index(index).Query(query).Size(1).Do(ctx)
 	if err != nil {
 		t.Fatalf("ES search error: %v", err)
 	}
-	return res.Hits.TotalHits.Value > 0
+	return res.Hits.Total.Value > 0
 }
 
 func TestBridgeInverseRelationReindexing(t *testing.T) {
@@ -561,7 +561,7 @@ func TestBridgeInverseRelationReindexing(t *testing.T) {
 
 	// Wait for the River job to re-index document B with the inverse relation.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, err := esClient.Refresh(b.Index).Do(ctx)
+		_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 		if !assert.NoError(c, err) {
 			return
 		}
@@ -608,7 +608,7 @@ func TestBridgeInverseRelationMutual(t *testing.T) {
 
 	// Both documents should eventually have both forward and inverse relations.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, err := esClient.Refresh(b.Index).Do(ctx)
+		_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 		if !assert.NoError(c, err) {
 			return
 		}
@@ -661,7 +661,7 @@ func TestBridgeInverseRelationMultipleSources(t *testing.T) {
 
 	// B should eventually have both inverse relations.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, err := esClient.Refresh(b.Index).Do(ctx)
+		_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 		if !assert.NoError(c, err) {
 			return
 		}
@@ -705,7 +705,7 @@ func TestBridgeInverseRelationRemoval(t *testing.T) {
 
 	// Wait for docB to have the inverse relation.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, err := esClient.Refresh(b.Index).Do(ctx)
+		_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 		if !assert.NoError(c, err) {
 			return
 		}
@@ -733,7 +733,7 @@ func TestBridgeInverseRelationRemoval(t *testing.T) {
 
 	// Verify in ES that docB no longer has the inverse relation.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, err := esClient.Refresh(b.Index).Do(ctx)
+		_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 		if !assert.NoError(c, err) {
 			return
 		}
@@ -778,7 +778,7 @@ func TestBridgeInverseRelationChange(t *testing.T) {
 
 	// Wait for docB to have the inverse relation.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, err := esClient.Refresh(b.Index).Do(ctx)
+		_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 		if !assert.NoError(c, err) {
 			return
 		}
@@ -797,7 +797,7 @@ func TestBridgeInverseRelationChange(t *testing.T) {
 
 	// Wait for docC to gain and docB to lose the inverse relation.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		_, err := esClient.Refresh(b.Index).Do(ctx)
+		_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 		if !assert.NoError(c, err) {
 			return
 		}

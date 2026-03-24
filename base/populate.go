@@ -98,7 +98,7 @@ func (b *B) PopulateAndStart(ctx context.Context, documents []*document.D, progr
 		return errE
 	}
 
-	_, err := b.bridge.ESClient.Refresh(b.bridge.Index).Do(ctx)
+	_, err := b.bridge.ESClient.Indices.Refresh().Index(b.bridge.Index).Do(ctx)
 	if err != nil {
 		return errors.WithStack(err)
 	}

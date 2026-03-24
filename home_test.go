@@ -200,11 +200,11 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		// We do not use t.Context() because we want an active context, not a canceled one.
 		ctx := context.Background()
 		if len(globals.Sites) == 0 {
-			_, err = cleanupESClient.DeleteIndex(globals.Elastic.Index).Do(ctx)
+			_, err = cleanupESClient.Indices.Delete(globals.Elastic.Index).IgnoreUnavailable(true).Do(ctx)
 			require.NoError(t, err)
 		} else {
 			for _, site := range globals.Sites {
-				_, err = cleanupESClient.DeleteIndex(site.Index).Do(ctx)
+				_, err = cleanupESClient.Indices.Delete(site.Index).IgnoreUnavailable(true).Do(ctx)
 				require.NoError(t, err)
 			}
 		}

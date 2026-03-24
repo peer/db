@@ -3,13 +3,15 @@ package search
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"strconv"
 	"time"
 
-	"github.com/olivere/elastic/v7"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
@@ -20,45 +22,111 @@ const (
 	histogramBins = 100
 )
 
-// minMaxAggregations is the response structure for min/max aggregations.
-// ES min/max always returns float64 values even for long fields.
-//
-//nolint:tagliatelle
-type minMaxAggregations struct {
-	Filter struct {
-		Min struct {
-			Value float64 `json:"value"`
-		} `json:"min"`
-		Max struct {
-			Value float64 `json:"value"`
-		} `json:"max"`
-		Docs struct {
-			Count int64 `json:"doc_count"`
-		} `json:"docs"`
-	} `json:"filter"`
-}
-
-// histogramAggregations is the response structure for histogram aggregations.
-// Histogram bucket keys are always float64 in JSON.
-//
-//nolint:tagliatelle
-type histogramAggregations struct {
-	Filter struct {
-		Hist struct {
-			Buckets []struct {
-				Key  float64 `json:"key"`
-				Docs struct {
-					Count int64 `json:"doc_count"`
-				} `json:"docs"`
-			} `json:"buckets"`
-		} `json:"hist"`
-	} `json:"filter"`
-}
-
 // HistogramResult represents count for a single bucket in a filter histogram.
 type HistogramResult struct {
 	From  float64 `json:"from"`
 	Count int64   `json:"count"`
+}
+
+// aggAs extracts a typed aggregation from a map of aggregations.
+func aggAs[T any](aggs map[string]types.Aggregate, key string) (*T, errors.E) {
+	raw, ok := aggs[key]
+	if !ok {
+		errE := errors.New("aggregation not found")
+		errors.Details(errE)["key"] = key
+		return nil, errE
+	}
+	typed, ok := raw.(*T)
+	if !ok {
+		errE := errors.New("unexpected aggregation type")
+		errors.Details(errE)["key"] = key
+		errors.Details(errE)["type"] = fmt.Sprintf("%T", raw)
+		return nil, errE
+	}
+	return typed, nil
+}
+
+// parseMinMax extracts doc count, min, and max values from a nested->filter aggregation result.
+func parseMinMax(aggs map[string]types.Aggregate, key string) (int64, float64, float64, errors.E) {
+	nested, errE := aggAs[types.NestedAggregate](aggs, key)
+	if errE != nil {
+		return 0, 0, 0, errE
+	}
+	filter, errE := aggAs[types.FilterAggregate](nested.Aggregations, "filter")
+	if errE != nil {
+		return 0, 0, 0, errE
+	}
+	docs, errE := aggAs[types.ReverseNestedAggregate](filter.Aggregations, "docs")
+	if errE != nil {
+		return 0, 0, 0, errE
+	}
+	minAgg, errE := aggAs[types.MinAggregate](filter.Aggregations, "min")
+	if errE != nil {
+		return 0, 0, 0, errE
+	}
+	maxAgg, errE := aggAs[types.MaxAggregate](filter.Aggregations, "max")
+	if errE != nil {
+		return 0, 0, 0, errE
+	}
+	var minVal, maxVal float64
+	if minAgg.Value != nil {
+		minVal = float64(*minAgg.Value)
+	}
+	if maxAgg.Value != nil {
+		maxVal = float64(*maxAgg.Value)
+	}
+	return docs.DocCount, minVal, maxVal, nil
+}
+
+// parseCountOnly extracts doc count from a nested->filter->docs aggregation result.
+func parseCountOnly(aggs map[string]types.Aggregate, key string) (int64, errors.E) {
+	nested, errE := aggAs[types.NestedAggregate](aggs, key)
+	if errE != nil {
+		return 0, errE
+	}
+	filter, errE := aggAs[types.FilterAggregate](nested.Aggregations, "filter")
+	if errE != nil {
+		return 0, errE
+	}
+	docs, errE := aggAs[types.ReverseNestedAggregate](filter.Aggregations, "docs")
+	if errE != nil {
+		return 0, errE
+	}
+	return docs.DocCount, nil
+}
+
+// parseHistogramBuckets extracts histogram bucket results from a nested->filter->hist aggregation.
+func parseHistogramBuckets(aggs map[string]types.Aggregate, key string) ([]HistogramResult, errors.E) {
+	nested, errE := aggAs[types.NestedAggregate](aggs, key)
+	if errE != nil {
+		return nil, errE
+	}
+	filter, errE := aggAs[types.FilterAggregate](nested.Aggregations, "filter")
+	if errE != nil {
+		return nil, errE
+	}
+	histAgg, errE := aggAs[types.HistogramAggregate](filter.Aggregations, "hist")
+	if errE != nil {
+		return nil, errE
+	}
+	buckets, ok := histAgg.Buckets.([]types.HistogramBucket)
+	if !ok {
+		errE := errors.New("unexpected bucket type for histogram")
+		errors.Details(errE)["type"] = fmt.Sprintf("%T", histAgg.Buckets)
+		return nil, errE
+	}
+	results := make([]HistogramResult, 0, len(buckets))
+	for _, bucket := range buckets {
+		bucketDocs, errE := aggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
+		if errE != nil {
+			return nil, errE
+		}
+		results = append(results, HistogramResult{
+			From:  float64(bucket.Key),
+			Count: bucketDocs.DocCount,
+		})
+	}
+	return results, nil
 }
 
 // histogramFilterGet retrieves histogram filter data for search results.
@@ -68,10 +136,10 @@ type HistogramResult struct {
 // "hard bounds" (session range narrower than data) and "extended bounds" (session range wider than data).
 func histogramFilterGet(
 	ctx context.Context,
-	getSearchService func() (*elastic.SearchService, int64, int64),
+	getSearchService func() (*search.Search, int64, int64),
 	id identifier.Identifier,
 	nestedPath string,
-	filter elastic.Query,
+	filter types.QueryVariant,
 	fromField, toField string,
 	formatValue func(float64) string,
 	computeInterval func(from, to float64) (float64, float64, string),
@@ -101,14 +169,13 @@ func histogramFilterGet(
 		// We still need to know if there are any matching documents.
 		// Run a count-only aggregation.
 		countSearchService, _, _ := getSearchService()
-		countAggregation := elastic.NewNestedAggregation().Path(nestedPath).SubAggregation(
-			"filter",
-			elastic.NewFilterAggregation().Filter(filter).SubAggregation(
-				"docs",
-				elastic.NewReverseNestedAggregation(),
-			),
-		)
-		countSearchService = countSearchService.Size(0).Query(query).Aggregation("count", countAggregation)
+		countAggregation := esdsl.NewAggregations().
+			Nested(esdsl.NewNestedAggregation().Path(nestedPath)).
+			AddAggregation("filter", esdsl.NewAggregations().
+				Filter(filter).
+				AddAggregation("docs", esdsl.NewAggregations().
+					ReverseNested(esdsl.NewReverseNestedAggregation())))
+		countSearchService = countSearchService.Size(0).Query(query).AddAggregation("count", countAggregation)
 
 		m = metrics.Duration(internalStore.MetricElasticSearch1).Start()
 		res, err := countSearchService.Do(ctx)
@@ -116,37 +183,30 @@ func histogramFilterGet(
 		if err != nil {
 			return nil, nil, errors.WithStack(err)
 		}
-		metrics.Duration(internalStore.MetricElasticSearchInternal1).Duration = time.Duration(res.TookInMillis) * time.Millisecond
+		metrics.Duration(internalStore.MetricElasticSearchInternal1).Duration = time.Duration(res.Took) * time.Millisecond
 
-		var countResult minMaxAggregations
-		m = metrics.Duration(internalStore.MetricJSONUnmarshal1).Start()
-		errE = x.Unmarshal(res.Aggregations["count"], &countResult)
-		m.Stop()
+		var errE errors.E
+		docCount, errE = parseCountOnly(res.Aggregations, "count")
 		if errE != nil {
 			return nil, nil, errE
 		}
-
-		docCount = countResult.Filter.Docs.Count
 		// Use session bounds directly.
 		minValue = *sessionFrom
 		maxValue = *sessionTo
 	} else {
 		// Run min/max aggregation to determine data range and doc count.
 		minMaxSearchService, _, _ := getSearchService()
-		minMaxAggregation := elastic.NewNestedAggregation().Path(nestedPath).SubAggregation(
-			"filter",
-			elastic.NewFilterAggregation().Filter(filter).SubAggregation(
-				"min",
-				elastic.NewMinAggregation().Field(fromField),
-			).SubAggregation(
-				"max",
-				elastic.NewMaxAggregation().Field(toField),
-			).SubAggregation(
-				"docs",
-				elastic.NewReverseNestedAggregation(),
-			),
-		)
-		minMaxSearchService = minMaxSearchService.Size(0).Query(query).Aggregation("minMax", minMaxAggregation)
+		minMaxAggregation := esdsl.NewAggregations().
+			Nested(esdsl.NewNestedAggregation().Path(nestedPath)).
+			AddAggregation("filter", esdsl.NewAggregations().
+				Filter(filter).
+				AddAggregation("min", esdsl.NewAggregations().
+					Min(esdsl.NewMinAggregation().Field(fromField))).
+				AddAggregation("max", esdsl.NewAggregations().
+					Max(esdsl.NewMaxAggregation().Field(toField))).
+				AddAggregation("docs", esdsl.NewAggregations().
+					ReverseNested(esdsl.NewReverseNestedAggregation())))
+		minMaxSearchService = minMaxSearchService.Size(0).Query(query).AddAggregation("minMax", minMaxAggregation)
 
 		m = metrics.Duration(internalStore.MetricElasticSearch1).Start()
 		res, err := minMaxSearchService.Do(ctx)
@@ -154,19 +214,13 @@ func histogramFilterGet(
 		if err != nil {
 			return nil, nil, errors.WithStack(err)
 		}
-		metrics.Duration(internalStore.MetricElasticSearchInternal1).Duration = time.Duration(res.TookInMillis) * time.Millisecond
+		metrics.Duration(internalStore.MetricElasticSearchInternal1).Duration = time.Duration(res.Took) * time.Millisecond
 
-		m = metrics.Duration(internalStore.MetricJSONUnmarshal1).Start()
-		var minMax minMaxAggregations
-		errE = x.Unmarshal(res.Aggregations["minMax"], &minMax)
-		m.Stop()
+		var errE errors.E
+		docCount, minValue, maxValue, errE = parseMinMax(res.Aggregations, "minMax")
 		if errE != nil {
 			return nil, nil, errE
 		}
-
-		docCount = minMax.Filter.Docs.Count
-		minValue = minMax.Filter.Min.Value
-		maxValue = minMax.Filter.Max.Value
 	}
 
 	if docCount == 0 {
@@ -196,20 +250,23 @@ func histogramFilterGet(
 	}
 
 	// TODO: Set "hard bounds".
-	histAgg := elastic.NewHistogramAggregation().
-		Field(fromField).
-		Interval(interval).
-		Offset(offset).
-		ExtendedBounds(minValue, upperBound).
-		SubAggregation("docs", elastic.NewReverseNestedAggregation())
+	histAgg := esdsl.NewAggregations().
+		Histogram(esdsl.NewHistogramAggregation().
+			Field(fromField).
+			Interval(types.Float64(interval)).
+			Offset(types.Float64(offset)).
+			ExtendedBounds(esdsl.NewExtendedBoundsdouble().Min(types.Float64(minValue)).Max(types.Float64(upperBound)))).
+		AddAggregation("docs", esdsl.NewAggregations().
+			ReverseNested(esdsl.NewReverseNestedAggregation()))
 
 	// Second query: histogram.
 	histogramSearchService, _, _ := getSearchService()
-	histogramAggregation := elastic.NewNestedAggregation().Path(nestedPath).SubAggregation(
-		"filter",
-		elastic.NewFilterAggregation().Filter(filter).SubAggregation("hist", histAgg),
-	)
-	histogramSearchService = histogramSearchService.Size(0).Query(query).Aggregation("histogram", histogramAggregation)
+	histogramAggregation := esdsl.NewAggregations().
+		Nested(esdsl.NewNestedAggregation().Path(nestedPath)).
+		AddAggregation("filter", esdsl.NewAggregations().
+			Filter(filter).
+			AddAggregation("hist", histAgg))
+	histogramSearchService = histogramSearchService.Size(0).Query(query).AddAggregation("histogram", histogramAggregation)
 
 	m = metrics.Duration(internalStore.MetricElasticSearch2).Start()
 	res, err := histogramSearchService.Do(ctx)
@@ -217,22 +274,11 @@ func histogramFilterGet(
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	metrics.Duration(internalStore.MetricElasticSearchInternal2).Duration = time.Duration(res.TookInMillis) * time.Millisecond
+	metrics.Duration(internalStore.MetricElasticSearchInternal2).Duration = time.Duration(res.Took) * time.Millisecond
 
-	m = metrics.Duration(internalStore.MetricJSONUnmarshal2).Start()
-	var histogram histogramAggregations
-	errE = x.Unmarshal(res.Aggregations["histogram"], &histogram)
-	m.Stop()
+	results, errE := parseHistogramBuckets(res.Aggregations, "histogram")
 	if errE != nil {
 		return nil, nil, errE
-	}
-
-	results := make([]HistogramResult, len(histogram.Filter.Hist.Buckets))
-	for i, bucket := range histogram.Filter.Hist.Buckets {
-		results[i] = HistogramResult{
-			From:  bucket.Key,
-			Count: bucket.Docs.Count,
-		}
 	}
 
 	total := strconv.Itoa(len(results))

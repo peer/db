@@ -4,9 +4,9 @@ package base
 import (
 	"context"
 
+	"github.com/elastic/go-elasticsearch/v9"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/olivere/elastic/v7"
 	"github.com/riverqueue/river"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
@@ -18,7 +18,7 @@ import (
 
 // InitAndStartComponents initializes and starts Base components.
 func InitAndStartComponents(
-	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client,
+	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elasticsearch.TypedClient,
 	schema, index string, languagePriority map[string][]string,
 ) (*base.B, *river.Client[pgx.Tx], func(), errors.E) {
 	errE := internalSearch.EnsureIndex(ctx, esClient, index)

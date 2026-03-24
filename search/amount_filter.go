@@ -5,18 +5,20 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/olivere/elastic/v7"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 )
 
 // amountUnitFilter returns a query that matches the unit field.
 // If unit is provided, it matches the exact value. If nil, it matches documents where unit does not exist.
-func amountUnitFilter(unit *identifier.Identifier) elastic.Query { //nolint:ireturn
+func amountUnitFilter(unit *identifier.Identifier) types.QueryVariant { //nolint:ireturn
 	if unit != nil {
-		return elastic.NewTermQuery("claims.amount.unit", *unit)
+		return esdsl.NewTermQuery("claims.amount.unit", esdsl.NewFieldValue().String(unit.String()))
 	}
-	return elastic.NewBoolQuery().MustNot(elastic.NewExistsQuery("claims.amount.unit"))
+	return esdsl.NewBoolQuery().MustNot(esdsl.NewExistsQuery().Field("claims.amount.unit"))
 }
 
 // findAmountBounds walks the Filters tree looking for an AmountFilter matching the given prop and unit.
@@ -92,10 +94,10 @@ func amountComputeInterval(from, to float64) (float64, float64, string) {
 
 // AmountFilterGet retrieves amount filter data for search results.
 func AmountFilterGet(
-	ctx context.Context, getSearchService func() (*elastic.SearchService, int64, int64), id, prop identifier.Identifier, unit *identifier.Identifier,
+	ctx context.Context, getSearchService func() (*search.Search, int64, int64), id, prop identifier.Identifier, unit *identifier.Identifier,
 ) ([]HistogramResult, map[string]interface{}, errors.E) {
-	filter := elastic.NewBoolQuery().Must(
-		elastic.NewTermQuery("claims.amount.prop", prop),
+	filter := esdsl.NewBoolQuery().Must(
+		esdsl.NewTermQuery("claims.amount.prop", esdsl.NewFieldValue().String(prop.String())),
 		amountUnitFilter(unit),
 	)
 	return histogramFilterGet(

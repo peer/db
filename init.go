@@ -3,9 +3,9 @@ package peerdb
 import (
 	"context"
 
+	"github.com/elastic/go-elasticsearch/v9"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/olivere/elastic/v7"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 
@@ -18,7 +18,7 @@ import (
 //
 // It can be called multiple times. In that case it will not initialize again if
 // the site has already been initialized.
-func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elastic.Client) (func(), errors.E) {
+func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elasticsearch.TypedClient) (func(), errors.E) {
 	if s.initialized {
 		return nil, nil //nolint:nilnil
 	}
@@ -52,7 +52,7 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 // base for each site.
 func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 	var dbpool *pgxpool.Pool
-	var esClient *elastic.Client
+	var esClient *elasticsearch.TypedClient
 
 	// First we check if any site have them initialized already.
 	for _, site := range globals.Sites {

@@ -5,7 +5,8 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/olivere/elastic/v7"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 )
@@ -77,9 +78,9 @@ func timeComputeInterval(from, to float64) (float64, float64, string) {
 
 // TimeFilterGet retrieves time filter data for search results.
 func TimeFilterGet(
-	ctx context.Context, getSearchService func() (*elastic.SearchService, int64, int64), id, prop identifier.Identifier,
+	ctx context.Context, getSearchService func() (*search.Search, int64, int64), id, prop identifier.Identifier,
 ) ([]HistogramResult, map[string]interface{}, errors.E) {
-	filter := elastic.NewTermQuery("claims.time.prop", prop)
+	filter := esdsl.NewTermQuery("claims.time.prop", esdsl.NewFieldValue().String(prop.String()))
 	return histogramFilterGet(
 		ctx, getSearchService, id,
 		"claims.time", filter,

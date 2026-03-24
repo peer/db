@@ -8,7 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/olivere/elastic/v7"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/operator"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/totalhitsrelation"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
@@ -164,77 +168,76 @@ func (f Filters) Valid() errors.E {
 }
 
 // ToQuery converts the Filters to an ElasticSearch query.
-func (f Filters) ToQuery() elastic.Query { //nolint:ireturn
+func (f Filters) ToQuery() types.QueryVariant { //nolint:ireturn
 	if len(f.And) > 0 {
-		boolQuery := elastic.NewBoolQuery()
+		musts := make([]types.QueryVariant, 0, len(f.And))
 		for _, filter := range f.And {
-			boolQuery.Must(filter.ToQuery())
+			musts = append(musts, filter.ToQuery())
 		}
-		return boolQuery
+		return esdsl.NewBoolQuery().Must(musts...)
 	}
 	if len(f.Or) > 0 {
-		boolQuery := elastic.NewBoolQuery()
+		shoulds := make([]types.QueryVariant, 0, len(f.Or))
 		for _, filter := range f.Or {
-			boolQuery.Should(filter.ToQuery())
+			shoulds = append(shoulds, filter.ToQuery())
 		}
-		boolQuery.MinimumShouldMatch("1")
-		return boolQuery
+		return esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
 	}
 	if f.Not != nil {
-		boolQuery := elastic.NewBoolQuery()
+		boolQuery := esdsl.NewBoolQuery()
 		boolQuery.MustNot(f.Not.ToQuery())
 		return boolQuery
 	}
 	if f.Rel != nil {
 		if f.Rel.None {
-			return elastic.NewBoolQuery().MustNot(
-				elastic.NewNestedQuery("claims.rel",
-					elastic.NewTermQuery("claims.rel.prop", f.Rel.Prop),
-				),
+			return esdsl.NewBoolQuery().MustNot(
+				esdsl.NewNestedQuery(
+					esdsl.NewTermQuery("claims.rel.prop", esdsl.NewFieldValue().String(f.Rel.Prop.String())),
+				).Path("claims.rel"),
 			)
 		}
-		return elastic.NewNestedQuery("claims.rel",
-			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("claims.rel.prop", f.Rel.Prop),
-				elastic.NewTermQuery("claims.rel.to", f.Rel.Value),
+		return esdsl.NewNestedQuery(
+			esdsl.NewBoolQuery().Must(
+				esdsl.NewTermQuery("claims.rel.prop", esdsl.NewFieldValue().String(f.Rel.Prop.String())),
+				esdsl.NewTermQuery("claims.rel.to", esdsl.NewFieldValue().String(f.Rel.Value.String())),
 			),
-		)
+		).Path("claims.rel")
 	}
 	if f.Amount != nil {
 		if f.Amount.None {
-			return elastic.NewBoolQuery().MustNot(
-				elastic.NewNestedQuery("claims.amount",
-					elastic.NewTermQuery("claims.amount.prop", f.Amount.Prop),
-				),
+			return esdsl.NewBoolQuery().MustNot(
+				esdsl.NewNestedQuery(
+					esdsl.NewTermQuery("claims.amount.prop", esdsl.NewFieldValue().String(f.Amount.Prop.String())),
+				).Path("claims.amount"),
 			)
 		}
-		r := elastic.NewRangeQuery("claims.amount.range").Gte(*f.Amount.Gte).Lte(*f.Amount.Lte)
-		must := []elastic.Query{
-			elastic.NewTermQuery("claims.amount.prop", f.Amount.Prop),
+		r := esdsl.NewNumberRangeQuery("claims.amount.range").Gte(types.Float64(*f.Amount.Gte)).Lte(types.Float64(*f.Amount.Lte))
+		must := []types.QueryVariant{
+			esdsl.NewTermQuery("claims.amount.prop", esdsl.NewFieldValue().String(f.Amount.Prop.String())),
 			r,
 		}
 		if f.Amount.Unit != nil {
-			must = append(must, elastic.NewTermQuery("claims.amount.unit", f.Amount.Unit))
+			must = append(must, esdsl.NewTermQuery("claims.amount.unit", esdsl.NewFieldValue().String(f.Amount.Unit.String())))
 		}
-		return elastic.NewNestedQuery("claims.amount",
-			elastic.NewBoolQuery().Must(must...),
-		)
+		return esdsl.NewNestedQuery(
+			esdsl.NewBoolQuery().Must(must...),
+		).Path("claims.amount")
 	}
 	if f.Time != nil {
 		if f.Time.None {
-			return elastic.NewBoolQuery().MustNot(
-				elastic.NewNestedQuery("claims.time",
-					elastic.NewTermQuery("claims.time.prop", f.Time.Prop),
-				),
+			return esdsl.NewBoolQuery().MustNot(
+				esdsl.NewNestedQuery(
+					esdsl.NewTermQuery("claims.time.prop", esdsl.NewFieldValue().String(f.Time.Prop.String())),
+				).Path("claims.time"),
 			)
 		}
-		r := elastic.NewRangeQuery("claims.time.range").Gte(*f.Time.Gte).Lte(*f.Time.Lte)
-		return elastic.NewNestedQuery("claims.time",
-			elastic.NewBoolQuery().Must(
-				elastic.NewTermQuery("claims.time.prop", f.Time.Prop),
+		r := esdsl.NewNumberRangeQuery("claims.time.range").Gte(types.Float64(*f.Time.Gte)).Lte(types.Float64(*f.Time.Lte))
+		return esdsl.NewNestedQuery(
+			esdsl.NewBoolQuery().Must(
+				esdsl.NewTermQuery("claims.time.prop", esdsl.NewFieldValue().String(f.Time.Prop.String())),
 				r,
 			),
-		)
+		).Path("claims.time")
 	}
 	panic(errors.New("invalid filters"))
 }
@@ -315,33 +318,35 @@ func (s *Session) Ref() SessionRef {
 	return SessionRef{ID: *s.ID, Version: s.Version}
 }
 
-func documentTextSearchQuery(searchQuery, defaultOperator string) elastic.Query { //nolint:ireturn
-	bq := elastic.NewBoolQuery()
+func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operator) types.QueryVariant { //nolint:ireturn
+	if searchQuery == "" {
+		return esdsl.NewBoolQuery()
+	}
 
-	if searchQuery != "" {
-		bq.Should(elastic.NewTermQuery("id", searchQuery))
-		for _, f := range []field{
-			{"claims.id", "value"},
-			{"claims.ref", "iri"},
-		} {
-			// TODO: Can we use simple query for keyword fields? Which analyzer is used?
-			q := elastic.NewSimpleQueryStringQuery(searchQuery).Field(f.Prefix + "." + f.Field).DefaultOperator(defaultOperator)
-			bq.Should(elastic.NewNestedQuery(f.Prefix, q))
-		}
-		// Search string and HTML claims across all supported languages.
-		// Languages are sorted for deterministic query generation.
-		for _, f := range []field{
-			{"claims.string", "string"},
-			{"claims.html", "html"},
-		} {
-			for _, lang := range slices.Sorted(maps.Keys(internalSearch.SupportedLanguages)) {
-				q := elastic.NewSimpleQueryStringQuery(searchQuery).Field(f.Prefix + "." + f.Field + "." + lang).DefaultOperator(defaultOperator)
-				bq.Should(elastic.NewNestedQuery(f.Prefix, q))
-			}
+	shoulds := []types.QueryVariant{
+		esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(searchQuery)),
+	}
+	for _, f := range []field{
+		{"claims.id", "value"},
+		{"claims.ref", "iri"},
+	} {
+		// TODO: Can we use simple query for keyword fields? Which analyzer is used?
+		q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(f.Prefix + "." + f.Field).DefaultOperator(defaultOperator)
+		shoulds = append(shoulds, esdsl.NewNestedQuery(q).Path(f.Prefix))
+	}
+	// Search string and HTML claims across all supported languages.
+	// Languages are sorted for deterministic query generation.
+	for _, f := range []field{
+		{"claims.string", "string"},
+		{"claims.html", "html"},
+	} {
+		for _, lang := range slices.Sorted(maps.Keys(internalSearch.SupportedLanguages)) {
+			q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(f.Prefix + "." + f.Field + "." + lang).DefaultOperator(defaultOperator)
+			shoulds = append(shoulds, esdsl.NewNestedQuery(q).Path(f.Prefix))
 		}
 	}
 
-	return bq
+	return esdsl.NewBoolQuery().Should(shoulds...)
 }
 
 // ToQuery converts the Session to an ElasticSearch query.
@@ -349,18 +354,18 @@ func documentTextSearchQuery(searchQuery, defaultOperator string) elastic.Query 
 // TODO: Determine which operator should be the default?
 // TODO: Make sure right analyzers are used for all fields.
 // TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
-func (s *Session) ToQuery() elastic.Query { //nolint:ireturn
-	boolQuery := elastic.NewBoolQuery()
+func (s *Session) ToQuery() types.QueryVariant { //nolint:ireturn
+	var musts []types.QueryVariant
 
 	if s.Query != "" {
-		boolQuery.Must(documentTextSearchQuery(s.Query, "OR"))
+		musts = append(musts, documentTextSearchQuery(s.Query, operator.Or))
 	}
 
 	if s.Filters != nil {
-		boolQuery.Must(s.Filters.ToQuery())
+		musts = append(musts, s.Filters.ToQuery())
 	}
 
-	return boolQuery
+	return esdsl.NewBoolQuery().Must(musts...)
 }
 
 // TODO: Use a database instead.
@@ -437,7 +442,7 @@ type Result struct {
 
 // ResultsGet retrieves search results for a given search session.
 func ResultsGet(
-	ctx context.Context, getSearchService func() (*elastic.SearchService, int64, int64), searchSession *Session,
+	ctx context.Context, getSearchService func() (*search.Search, int64, int64), searchSession *Session,
 ) ([]Result, map[string]interface{}, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
@@ -453,19 +458,19 @@ func ResultsGet(
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.TookInMillis) * time.Millisecond
+	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
 
-	results := make([]Result, len(res.Hits.Hits))
-	for i, hit := range res.Hits.Hits {
-		results[i] = Result{ID: hit.Id}
+	results := make([]Result, 0, len(res.Hits.Hits))
+	for _, hit := range res.Hits.Hits {
+		results = append(results, Result{ID: *hit.Id_})
 	}
 
 	// Total is a string or a number.
 	var total interface{}
-	if res.Hits.TotalHits.Relation == "gte" {
-		total = fmt.Sprintf("%d+", res.Hits.TotalHits.Value)
+	if res.Hits.Total.Relation == totalhitsrelation.Gte {
+		total = fmt.Sprintf("%d+", res.Hits.Total.Value)
 	} else {
-		total = res.Hits.TotalHits.Value
+		total = res.Hits.Total.Value
 	}
 
 	return results, map[string]interface{}{

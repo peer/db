@@ -13,9 +13,9 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/elastic/go-elasticsearch/v9"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/olivere/elastic/v7"
 	"github.com/riverqueue/river"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
@@ -59,7 +59,7 @@ func (b *B) Bridge() *internalSearch.Bridge {
 func (b *B) Init(
 	ctx context.Context,
 	dbpool *pgxpool.Pool, listener *internalStore.Listener,
-	esClient *elastic.Client,
+	esClient *elasticsearch.TypedClient,
 	riverClient *river.Client[pgx.Tx], workers *river.Workers,
 ) errors.E {
 	if b.documents != nil {
