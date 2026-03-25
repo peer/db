@@ -22,7 +22,7 @@ import (
 
 const undeterminedLanguage = "und"
 
-// Well-known property and class IDs computed from the core namespace.
+// Well-known IDs computed from the core namespace.
 //
 //nolint:gochecknoglobals
 var (

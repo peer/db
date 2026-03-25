@@ -116,7 +116,7 @@ func newDoc() *document.D {
 	}
 }
 
-// Well-known IDs for inverse relation tests.
+// Well-known IDs computed from the core namespace.
 //
 //nolint:gochecknoglobals
 var (

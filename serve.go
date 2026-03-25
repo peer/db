@@ -145,6 +145,14 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 	return service, onShutdown, nil
 }
 
+// Well-known IDs computed from the core namespace.
+//
+//nolint:gochecknoglobals
+var (
+	propertyClassID = identifier.From(core.Namespace, "PROPERTY")
+	languageClassID = identifier.From(core.Namespace, "LANGUAGE")
+)
+
 // Prepare prepares the HTTP service for serving.
 func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Handler, errors.E) {
 	// Construct the main handler for the service using the router.
@@ -157,11 +165,11 @@ func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Hand
 	for _, site := range service.Sites {
 		siteCtx := WithFallbackDBContext(ctx, site.Schema, "prepare")
 
-		documents, errE := site.fetchDocuments(siteCtx, identifier.From(core.Namespace, "PROPERTY"))
+		documents, errE := site.fetchDocuments(siteCtx, propertyClassID)
 		if errE != nil {
 			return nil, errE
 		}
-		languages, errE := site.fetchDocuments(siteCtx, identifier.From(core.Namespace, "LANGUAGE"))
+		languages, errE := site.fetchDocuments(siteCtx, languageClassID)
 		if errE != nil {
 			return nil, errE
 		}

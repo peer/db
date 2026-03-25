@@ -375,7 +375,7 @@ func TestBridgeStaleDataNotIndexed(t *testing.T) {
 	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, id.String()), "document should be in ES")
 }
 
-// Well-known IDs for inverse relation tests.
+// Well-known IDs computed from the core namespace.
 //
 //nolint:gochecknoglobals
 var (

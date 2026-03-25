@@ -151,6 +151,61 @@ func GetClaimsOfTypeWithConfidence[T Claim](claims Claims, propID identifier.Ide
 	return result
 }
 
+// Well-known IDs computed from the core namespace.
+//
+//nolint:gochecknoglobals
+var (
+	// coreNamespace must match core.Namespace. We cannot import core here due to import cycle.
+	coreNamespace     = "core.peerdb.org"
+	listPropID        = identifier.From(coreNamespace, "LIST")
+	orderInListPropID = identifier.From(coreNamespace, "ORDER_IN_LIST")
+)
+
+// GetClaimsListsOfType groups claims of the concrete type T matching the given property ID
+// by their LIST meta-claim and sorts within each list by the ORDER_IN_LIST meta-claim.
+// Returns a slice of lists, where each list is a slice of claims sorted by order.
+//
+// Because Go does not support generic interface methods, this is a top-level function.
+func GetClaimsListsOfType[T Claim](claims Claims, propID identifier.Identifier) [][]T {
+	all := GetClaimsOfType[T](claims, propID)
+	if len(all) == 0 {
+		return nil
+	}
+
+	type entry struct {
+		claim T
+		order float64
+	}
+
+	claimsPerList := map[string][]entry{}
+	for _, c := range all {
+		listID := "none"
+		if listClaim := GetBestClaimOfType[*IdentifierClaim](Claim(c), listPropID); listClaim != nil {
+			listID = listClaim.ID.String()
+		}
+		order := math.MaxFloat64
+		if orderClaim := GetBestClaimOfType[*AmountClaim](Claim(c), orderInListPropID); orderClaim != nil {
+			if f, errE := orderClaim.Amount.Float64(0); errE == nil {
+				order = f
+			}
+		}
+		claimsPerList[listID] = append(claimsPerList[listID], entry{claim: c, order: order})
+	}
+
+	result := make([][]T, 0, len(claimsPerList))
+	for _, entries := range claimsPerList {
+		slices.SortFunc(entries, func(a, b entry) int {
+			return cmp.Compare(a.order, b.order)
+		})
+		list := make([]T, 0, len(entries))
+		for _, e := range entries {
+			list = append(list, e.claim)
+		}
+		result = append(result, list)
+	}
+	return result
+}
+
 // CoreDocument contains the core fields present in all PeerDB documents.
 type CoreDocument struct {
 	ID   identifier.Identifier `json:"id"`

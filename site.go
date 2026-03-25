@@ -81,9 +81,11 @@ func (s *Site) Decode(ctx *kong.DecodeContext) error {
 
 const fetchDocumentIDsPageSize = 5000
 
+// Well-known IDs computed from the core namespace.
+//
 //nolint:gochecknoglobals
 var (
-	instanceOfPropID = identifier.From(core.Namespace, "INSTANCE_OF").String()
+	instanceOfPropID = identifier.From(core.Namespace, "INSTANCE_OF")
 )
 
 // rawFieldValue wraps a types.FieldValue so it satisfies types.FieldValueVariant.
@@ -99,7 +101,7 @@ func (r *rawFieldValue) FieldValueCaster() *types.FieldValue {
 
 func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifier) ([]identifier.Identifier, errors.E) {
 	boolQuery := esdsl.NewBoolQuery().Must(
-		esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(instanceOfPropID)),
+		esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(instanceOfPropID.String())),
 		esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(classID.String())),
 	)
 	query := esdsl.NewNestedQuery(boolQuery).Path("claims.ref")
