@@ -9,14 +9,14 @@ import (
 
 	"gitlab.com/tozd/identifier"
 
-	internalStore "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/testutils"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
 // testCommitMetadata implements store.ChangesetID so that auto-committing
 // view methods use the caller-supplied changeset ID.
 type testCommitMetadata struct {
-	internalStore.TestMetadata
+	testutils.TestMetadata
 
 	ID identifier.Identifier
 }
@@ -30,22 +30,22 @@ func TestChangesetIDInsert(t *testing.T) {
 	t.Parallel()
 
 	ctx, s, channelContents := initDatabase[
-		*internalStore.TestData, *internalStore.TestMetadata, *internalStore.TestMetadata,
-		*internalStore.TestMetadata, *testCommitMetadata, *internalStore.TestPatch,
+		*testutils.TestData, *testutils.TestMetadata, *testutils.TestMetadata,
+		*testutils.TestMetadata, *testCommitMetadata, *testutils.TestPatch,
 	](t, "jsonb")
 
 	expectedID := identifier.New()
 	changesetID := identifier.New()
 
 	commitMeta := &testCommitMetadata{
-		TestMetadata: internalStore.TestMetadata{Metadata: "commit"},
+		TestMetadata: testutils.TestMetadata{Metadata: "commit"},
 		ID:           changesetID,
 	}
 
 	insertVersion, errE := s.Insert(
 		ctx, expectedID,
-		&internalStore.TestData{Data: 1, Patch: false},
-		&internalStore.TestMetadata{Metadata: "m"},
+		&testutils.TestData{Data: 1, Patch: false},
+		&testutils.TestMetadata{Metadata: "m"},
 		commitMeta,
 	)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -75,8 +75,8 @@ func TestChangesetIDReplace(t *testing.T) {
 	t.Parallel()
 
 	ctx, s, _ := initDatabase[
-		*internalStore.TestData, *internalStore.TestMetadata, *internalStore.TestMetadata,
-		*internalStore.TestMetadata, *testCommitMetadata, *internalStore.TestPatch,
+		*testutils.TestData, *testutils.TestMetadata, *testutils.TestMetadata,
+		*testutils.TestMetadata, *testCommitMetadata, *testutils.TestPatch,
 	](t, "jsonb")
 
 	expectedID := identifier.New()
@@ -85,10 +85,10 @@ func TestChangesetIDReplace(t *testing.T) {
 	// Insert first.
 	insertVersion, errE := s.Insert(
 		ctx, expectedID,
-		&internalStore.TestData{Data: 1, Patch: false},
-		&internalStore.TestMetadata{Metadata: "m"},
+		&testutils.TestData{Data: 1, Patch: false},
+		&testutils.TestMetadata{Metadata: "m"},
 		&testCommitMetadata{
-			TestMetadata: internalStore.TestMetadata{Metadata: "insert"},
+			TestMetadata: testutils.TestMetadata{Metadata: "insert"},
 			ID:           insertChangesetID,
 		},
 	)
@@ -99,10 +99,10 @@ func TestChangesetIDReplace(t *testing.T) {
 	replaceChangesetID := identifier.New()
 	replaceVersion, errE := s.Replace(
 		ctx, expectedID, insertVersion.Changeset,
-		&internalStore.TestData{Data: 2, Patch: false},
-		&internalStore.TestMetadata{Metadata: "m2"},
+		&testutils.TestData{Data: 2, Patch: false},
+		&testutils.TestMetadata{Metadata: "m2"},
 		&testCommitMetadata{
-			TestMetadata: internalStore.TestMetadata{Metadata: "replace"},
+			TestMetadata: testutils.TestMetadata{Metadata: "replace"},
 			ID:           replaceChangesetID,
 		},
 	)
@@ -125,8 +125,8 @@ func TestChangesetIDUpdate(t *testing.T) {
 	t.Parallel()
 
 	ctx, s, _ := initDatabase[
-		*internalStore.TestData, *internalStore.TestMetadata, *internalStore.TestMetadata,
-		*internalStore.TestMetadata, *testCommitMetadata, *internalStore.TestPatch,
+		*testutils.TestData, *testutils.TestMetadata, *testutils.TestMetadata,
+		*testutils.TestMetadata, *testCommitMetadata, *testutils.TestPatch,
 	](t, "jsonb")
 
 	expectedID := identifier.New()
@@ -134,10 +134,10 @@ func TestChangesetIDUpdate(t *testing.T) {
 
 	insertVersion, errE := s.Insert(
 		ctx, expectedID,
-		&internalStore.TestData{Data: 1, Patch: false},
-		&internalStore.TestMetadata{Metadata: "m"},
+		&testutils.TestData{Data: 1, Patch: false},
+		&testutils.TestMetadata{Metadata: "m"},
 		&testCommitMetadata{
-			TestMetadata: internalStore.TestMetadata{Metadata: "insert"},
+			TestMetadata: testutils.TestMetadata{Metadata: "insert"},
 			ID:           insertChangesetID,
 		},
 	)
@@ -147,11 +147,11 @@ func TestChangesetIDUpdate(t *testing.T) {
 	updateChangesetID := identifier.New()
 	updateVersion, errE := s.Update(
 		ctx, expectedID, insertVersion.Changeset,
-		&internalStore.TestData{Data: 1, Patch: true},
-		&internalStore.TestPatch{Patch: true},
-		&internalStore.TestMetadata{Metadata: "m2"},
+		&testutils.TestData{Data: 1, Patch: true},
+		&testutils.TestPatch{Patch: true},
+		&testutils.TestMetadata{Metadata: "m2"},
 		&testCommitMetadata{
-			TestMetadata: internalStore.TestMetadata{Metadata: "update"},
+			TestMetadata: testutils.TestMetadata{Metadata: "update"},
 			ID:           updateChangesetID,
 		},
 	)
@@ -164,8 +164,8 @@ func TestChangesetIDMerge(t *testing.T) {
 	t.Parallel()
 
 	ctx, s, _ := initDatabase[
-		*internalStore.TestData, *internalStore.TestMetadata, *internalStore.TestMetadata,
-		*internalStore.TestMetadata, *testCommitMetadata, *internalStore.TestPatch,
+		*testutils.TestData, *testutils.TestMetadata, *testutils.TestMetadata,
+		*testutils.TestMetadata, *testCommitMetadata, *testutils.TestPatch,
 	](t, "jsonb")
 
 	expectedID := identifier.New()
@@ -173,10 +173,10 @@ func TestChangesetIDMerge(t *testing.T) {
 	// Insert.
 	insertVersion, errE := s.Insert(
 		ctx, expectedID,
-		&internalStore.TestData{Data: 1, Patch: false},
-		&internalStore.TestMetadata{Metadata: "m"},
+		&testutils.TestData{Data: 1, Patch: false},
+		&testutils.TestMetadata{Metadata: "m"},
 		&testCommitMetadata{
-			TestMetadata: internalStore.TestMetadata{Metadata: "insert"},
+			TestMetadata: testutils.TestMetadata{Metadata: "insert"},
 			ID:           identifier.New(),
 		},
 	)
@@ -188,9 +188,9 @@ func TestChangesetIDMerge(t *testing.T) {
 
 	_, errE = changesetA.Update(
 		ctx, expectedID, insertVersion.Changeset,
-		&internalStore.TestData{Data: 2, Patch: true},
-		&internalStore.TestPatch{Patch: true},
-		&internalStore.TestMetadata{Metadata: "b1"},
+		&testutils.TestData{Data: 2, Patch: true},
+		&testutils.TestPatch{Patch: true},
+		&testutils.TestMetadata{Metadata: "b1"},
 	)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -199,9 +199,9 @@ func TestChangesetIDMerge(t *testing.T) {
 
 	_, errE = changesetB.Update(
 		ctx, expectedID, insertVersion.Changeset,
-		&internalStore.TestData{Data: 3, Patch: true},
-		&internalStore.TestPatch{Patch: true},
-		&internalStore.TestMetadata{Metadata: "b2"},
+		&testutils.TestData{Data: 3, Patch: true},
+		&testutils.TestPatch{Patch: true},
+		&testutils.TestMetadata{Metadata: "b2"},
 	)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -210,11 +210,11 @@ func TestChangesetIDMerge(t *testing.T) {
 	mergeVersion, errE := s.Merge(
 		ctx, expectedID,
 		[]identifier.Identifier{changesetA.ID(), changesetB.ID()},
-		&internalStore.TestData{Data: 4, Patch: false},
-		[]*internalStore.TestPatch{{Patch: true}, {Patch: true}},
-		&internalStore.TestMetadata{Metadata: "merged"},
+		&testutils.TestData{Data: 4, Patch: false},
+		[]*testutils.TestPatch{{Patch: true}, {Patch: true}},
+		&testutils.TestMetadata{Metadata: "merged"},
 		&testCommitMetadata{
-			TestMetadata: internalStore.TestMetadata{Metadata: "merge"},
+			TestMetadata: testutils.TestMetadata{Metadata: "merge"},
 			ID:           mergeChangesetID,
 		},
 	)
@@ -232,18 +232,18 @@ func TestChangesetIDDelete(t *testing.T) {
 	t.Parallel()
 
 	ctx, s, _ := initDatabase[
-		*internalStore.TestData, *internalStore.TestMetadata, *internalStore.TestMetadata,
-		*internalStore.TestMetadata, *testCommitMetadata, *internalStore.TestPatch,
+		*testutils.TestData, *testutils.TestMetadata, *testutils.TestMetadata,
+		*testutils.TestMetadata, *testCommitMetadata, *testutils.TestPatch,
 	](t, "jsonb")
 
 	expectedID := identifier.New()
 
 	insertVersion, errE := s.Insert(
 		ctx, expectedID,
-		&internalStore.TestData{Data: 1, Patch: false},
-		&internalStore.TestMetadata{Metadata: "m"},
+		&testutils.TestData{Data: 1, Patch: false},
+		&testutils.TestMetadata{Metadata: "m"},
 		&testCommitMetadata{
-			TestMetadata: internalStore.TestMetadata{Metadata: "insert"},
+			TestMetadata: testutils.TestMetadata{Metadata: "insert"},
 			ID:           identifier.New(),
 		},
 	)
@@ -253,9 +253,9 @@ func TestChangesetIDDelete(t *testing.T) {
 	deleteChangesetID := identifier.New()
 	deleteVersion, errE := s.Delete(
 		ctx, expectedID, insertVersion.Changeset,
-		&internalStore.TestMetadata{Metadata: "del"},
+		&testutils.TestMetadata{Metadata: "del"},
 		&testCommitMetadata{
-			TestMetadata: internalStore.TestMetadata{Metadata: "delete"},
+			TestMetadata: testutils.TestMetadata{Metadata: "delete"},
 			ID:           deleteChangesetID,
 		},
 	)
@@ -274,17 +274,17 @@ func TestChangesetIDWithoutInterface(t *testing.T) {
 	t.Parallel()
 
 	ctx, s, _ := initDatabase[
-		*internalStore.TestData, *internalStore.TestMetadata, *internalStore.TestMetadata,
-		*internalStore.TestMetadata, *internalStore.TestMetadata, *internalStore.TestPatch,
+		*testutils.TestData, *testutils.TestMetadata, *testutils.TestMetadata,
+		*testutils.TestMetadata, *testutils.TestMetadata, *testutils.TestPatch,
 	](t, "jsonb")
 
 	expectedID := identifier.New()
 
 	insertVersion, errE := s.Insert(
 		ctx, expectedID,
-		&internalStore.TestData{Data: 1, Patch: false},
-		&internalStore.TestMetadata{Metadata: "m"},
-		&internalStore.TestMetadata{Metadata: "commit"},
+		&testutils.TestData{Data: 1, Patch: false},
+		&testutils.TestMetadata{Metadata: "m"},
+		&testutils.TestMetadata{Metadata: "commit"},
 	)
 	require.NoError(t, errE, "% -+#.1v", errE)
 

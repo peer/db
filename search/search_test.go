@@ -4,22 +4,14 @@ import (
 	"context"
 	"testing"
 
-	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/internal/testutils"
 	"gitlab.com/peerdb/peerdb/search"
 )
-
-// queryJSON serializes a types.QueryVariant to a JSON string for comparison.
-func queryJSON(t *testing.T, q types.QueryVariant) string {
-	t.Helper()
-	data, errE := x.MarshalWithoutEscapeHTML(q.QueryCaster())
-	require.NoError(t, errE, "% -+#.1v", errE)
-	return string(data)
-}
 
 func TestRelFilterValid(t *testing.T) {
 	t.Parallel()
@@ -548,7 +540,7 @@ func TestFiltersToQuery(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
 			q := tt.Filters.ToQuery()
-			assert.Equal(t, tt.Want, queryJSON(t, q))
+			assert.Equal(t, tt.Want, testutils.QueryJSON(t, q))
 		})
 	}
 }
@@ -739,7 +731,7 @@ func TestSessionToQuery(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
 			q := tt.Session.ToQuery()
-			assert.Equal(t, tt.Want, queryJSON(t, q))
+			assert.Equal(t, tt.Want, testutils.QueryJSON(t, q))
 		})
 	}
 }

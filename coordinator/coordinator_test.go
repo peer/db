@@ -18,6 +18,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/coordinator"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/testutils"
 )
 
 type testCase[Data, Metadata any] struct {
@@ -42,19 +43,19 @@ func TestHappyPath(t *testing.T) {
 		t.Run(dataType, func(t *testing.T) {
 			t.Parallel()
 
-			testHappyPath(t, testCase[*internalStore.TestData, *internalStore.TestMetadata]{
-				BeginMetadata:    &internalStore.TestMetadata{Metadata: "begin"},
-				Append1Data:      &internalStore.TestData{Data: 123, Patch: false},
-				Append1Metadata:  &internalStore.TestMetadata{Metadata: "append1"},
+			testHappyPath(t, testCase[*testutils.TestData, *testutils.TestMetadata]{
+				BeginMetadata:    &testutils.TestMetadata{Metadata: "begin"},
+				Append1Data:      &testutils.TestData{Data: 123, Patch: false},
+				Append1Metadata:  &testutils.TestMetadata{Metadata: "append1"},
 				Append2Data:      nil,
-				Append2Metadata:  &internalStore.TestMetadata{Metadata: "append2"},
-				Append3Data:      &internalStore.TestData{Data: 345, Patch: false},
-				Append3Metadata:  &internalStore.TestMetadata{Metadata: "append3"},
+				Append2Metadata:  &testutils.TestMetadata{Metadata: "append2"},
+				Append3Data:      &testutils.TestData{Data: 345, Patch: false},
+				Append3Metadata:  &testutils.TestMetadata{Metadata: "append3"},
 				Append4Data:      nil,
-				Append4Metadata:  &internalStore.TestMetadata{Metadata: "append4"},
-				EndMetadata:      &internalStore.TestMetadata{Metadata: "end"},
-				CompleteData:     &internalStore.TestMetadata{Metadata: "data"},
-				CompleteMetadata: &internalStore.TestMetadata{Metadata: "complete"},
+				Append4Metadata:  &testutils.TestMetadata{Metadata: "append4"},
+				EndMetadata:      &testutils.TestMetadata{Metadata: "end"},
+				CompleteData:     &testutils.TestMetadata{Metadata: "data"},
+				CompleteMetadata: &testutils.TestMetadata{Metadata: "complete"},
 			}, dataType)
 
 			testHappyPath(t, testCase[json.RawMessage, json.RawMessage]{
@@ -73,18 +74,18 @@ func TestHappyPath(t *testing.T) {
 			}, dataType)
 
 			testHappyPath(t, testCase[*json.RawMessage, *json.RawMessage]{
-				BeginMetadata:    internalStore.ToRawMessagePtr(`{"metadata": "begin"}`),
-				Append1Data:      internalStore.ToRawMessagePtr(`{"data": 123}`),
-				Append1Metadata:  internalStore.ToRawMessagePtr(`{"metadata": "append1"}`),
+				BeginMetadata:    testutils.ToRawMessagePtr(`{"metadata": "begin"}`),
+				Append1Data:      testutils.ToRawMessagePtr(`{"data": 123}`),
+				Append1Metadata:  testutils.ToRawMessagePtr(`{"metadata": "append1"}`),
 				Append2Data:      nil,
-				Append2Metadata:  internalStore.ToRawMessagePtr(`{"metadata": "append2"}`),
-				Append3Data:      internalStore.ToRawMessagePtr(`{"data": 345}`),
-				Append3Metadata:  internalStore.ToRawMessagePtr(`{"metadata": "append3"}`),
+				Append2Metadata:  testutils.ToRawMessagePtr(`{"metadata": "append2"}`),
+				Append3Data:      testutils.ToRawMessagePtr(`{"data": 345}`),
+				Append3Metadata:  testutils.ToRawMessagePtr(`{"metadata": "append3"}`),
 				Append4Data:      nil,
-				Append4Metadata:  internalStore.ToRawMessagePtr(`{"metadata": "append4"}`),
-				EndMetadata:      internalStore.ToRawMessagePtr(`{"metadata": "end"}`),
-				CompleteData:     internalStore.ToRawMessagePtr(`{"metadata": "data"}`),
-				CompleteMetadata: internalStore.ToRawMessagePtr(`{"metadata": "complete"}`),
+				Append4Metadata:  testutils.ToRawMessagePtr(`{"metadata": "append4"}`),
+				EndMetadata:      testutils.ToRawMessagePtr(`{"metadata": "end"}`),
+				CompleteData:     testutils.ToRawMessagePtr(`{"metadata": "data"}`),
+				CompleteMetadata: testutils.ToRawMessagePtr(`{"metadata": "complete"}`),
 			}, dataType)
 
 			testHappyPath(t, testCase[[]byte, []byte]{
@@ -112,8 +113,8 @@ func initDatabase[Data, Metadata any](
 ) (
 	context.Context,
 	*coordinator.Coordinator[Data, Metadata, Metadata, Metadata, Metadata, Metadata],
-	*internalStore.LockableSlice[coordinator.OperationAppended],
-	*internalStore.LockableSlice[coordinator.SessionStateChanged],
+	*testutils.LockableSlice[coordinator.OperationAppended],
+	*testutils.LockableSlice[coordinator.SessionStateChanged],
 ) {
 	t.Helper()
 
@@ -171,7 +172,7 @@ func initDatabase[Data, Metadata any](
 	errE = listener.Start(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	appendedChannelContents := new(internalStore.LockableSlice[coordinator.OperationAppended])
+	appendedChannelContents := new(testutils.LockableSlice[coordinator.OperationAppended])
 
 	go func() {
 		for {
@@ -187,7 +188,7 @@ func initDatabase[Data, Metadata any](
 		}
 	}()
 
-	changedChannelContents := new(internalStore.LockableSlice[coordinator.SessionStateChanged])
+	changedChannelContents := new(testutils.LockableSlice[coordinator.SessionStateChanged])
 
 	go func() {
 		for {
@@ -209,7 +210,7 @@ func initDatabase[Data, Metadata any](
 func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata], dataType string) {
 	t.Helper()
 
-	completedSessions := new(internalStore.LockableSlice[identifier.Identifier])
+	completedSessions := new(testutils.LockableSlice[identifier.Identifier])
 	ctx, c, appendedChannelContents, changedChannelContents := initDatabase[Data, Metadata](
 		t, dataType,
 		func(_ context.Context, _ identifier.Identifier) (Metadata, errors.E) {
@@ -364,21 +365,21 @@ func TestErrors(t *testing.T) {
 		t, "jsonb",
 		nil,
 		func(_ context.Context, _ identifier.Identifier, _ json.RawMessage) (json.RawMessage, errors.E) {
-			return internalStore.DummyData, nil
+			return testutils.DummyData, nil
 		},
 	)
 
 	_, _, _, errE := c.Get(ctx, identifier.New()) //nolint:dogsled
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 
-	errE = c.End(ctx, identifier.New(), internalStore.DummyData)
+	errE = c.End(ctx, identifier.New(), testutils.DummyData)
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 
-	_, errE = c.Append(ctx, identifier.New(), internalStore.DummyData, internalStore.DummyData, nil)
+	_, errE = c.Append(ctx, identifier.New(), testutils.DummyData, testutils.DummyData, nil)
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 
 	operation := int64(1)
-	_, errE = c.Append(ctx, identifier.New(), internalStore.DummyData, internalStore.DummyData, &operation)
+	_, errE = c.Append(ctx, identifier.New(), testutils.DummyData, testutils.DummyData, &operation)
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 
 	_, _, errE = c.GetData(ctx, identifier.New(), 1)
@@ -387,14 +388,14 @@ func TestErrors(t *testing.T) {
 	_, errE = c.GetMetadata(ctx, identifier.New(), 1)
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 
-	session, errE := c.Begin(ctx, internalStore.DummyData)
+	session, errE := c.Begin(ctx, testutils.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	i, errE := c.Append(ctx, session, internalStore.DummyData, internalStore.DummyData, &operation)
+	i, errE := c.Append(ctx, session, testutils.DummyData, testutils.DummyData, &operation)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(1), i)
 
-	_, errE = c.Append(ctx, session, internalStore.DummyData, internalStore.DummyData, &operation)
+	_, errE = c.Append(ctx, session, testutils.DummyData, testutils.DummyData, &operation)
 	assert.ErrorIs(t, errE, coordinator.ErrConflict)
 
 	_, _, errE = c.GetData(ctx, session, 2)
@@ -403,14 +404,14 @@ func TestErrors(t *testing.T) {
 	_, errE = c.GetMetadata(ctx, session, 2)
 	assert.ErrorIs(t, errE, coordinator.ErrOperationNotFound)
 
-	errE = c.End(ctx, session, internalStore.DummyData)
+	errE = c.End(ctx, session, testutils.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = c.Append(ctx, session, internalStore.DummyData, internalStore.DummyData, nil)
+	_, errE = c.Append(ctx, session, testutils.DummyData, testutils.DummyData, nil)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
 	operation = 2
-	_, errE = c.Append(ctx, session, internalStore.DummyData, internalStore.DummyData, &operation)
+	_, errE = c.Append(ctx, session, testutils.DummyData, testutils.DummyData, &operation)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
 	// Operations are still accessible after End and before Complete (only deleted after Complete).
@@ -421,7 +422,7 @@ func TestErrors(t *testing.T) {
 	_, errE = c.GetMetadata(ctx, session, 1)
 	assert.True(t, errE == nil || errors.Is(errE, coordinator.ErrAlreadyCompleted), "% -+#.1v", errE)
 
-	errE = c.End(ctx, session, internalStore.DummyData)
+	errE = c.End(ctx, session, testutils.DummyData)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
 	ops, errE := c.List(ctx, session, nil)
@@ -452,17 +453,17 @@ func TestListPagination(t *testing.T) {
 		t, "jsonb",
 		nil,
 		func(_ context.Context, _ identifier.Identifier, _ json.RawMessage) (json.RawMessage, errors.E) {
-			return internalStore.DummyData, nil
+			return testutils.DummyData, nil
 		},
 	)
 
 	operations := []int64{}
 
-	session, errE := c.Begin(ctx, internalStore.DummyData)
+	session, errE := c.Begin(ctx, testutils.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	for i := range 6000 {
-		o, errE := c.Append(ctx, session, internalStore.DummyData, internalStore.DummyData, nil)
+		o, errE := c.Append(ctx, session, testutils.DummyData, testutils.DummyData, nil)
 		require.NoError(t, errE, "%d % -+#.1v", i, errE)
 
 		operations = append(operations, o)

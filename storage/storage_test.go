@@ -15,6 +15,7 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/testutils"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -22,7 +23,7 @@ import (
 func initDatabase(t *testing.T) (
 	context.Context,
 	*storage.Storage,
-	*internalStore.LockableSlice[store.CommittedChangesets[
+	*testutils.LockableSlice[store.CommittedChangesets[
 		[]byte, *storage.FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, store.None,
 	]],
 ) {
@@ -80,7 +81,7 @@ func initDatabase(t *testing.T) (
 	errE = listener.Start(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	channelContents := new(internalStore.LockableSlice[store.CommittedChangesets[
+	channelContents := new(testutils.LockableSlice[store.CommittedChangesets[
 		[]byte, *storage.FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, store.None,
 	]])
 

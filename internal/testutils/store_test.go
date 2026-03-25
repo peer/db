@@ -1,4 +1,4 @@
-package store_test
+package testutils_test
 
 import (
 	"encoding/json"
@@ -9,17 +9,17 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	internalStore "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/testutils"
 )
 
 func TestTestDataScanBytesAndBytesValue(t *testing.T) {
 	t.Parallel()
 
-	original := internalStore.TestData{Data: 42, Patch: true}
+	original := testutils.TestData{Data: 42, Patch: true}
 	b, err := original.BytesValue()
 	require.NoError(t, err)
 
-	var decoded internalStore.TestData
+	var decoded testutils.TestData
 	err = decoded.ScanBytes(b)
 	require.NoError(t, err)
 	assert.Equal(t, original, decoded)
@@ -28,12 +28,12 @@ func TestTestDataScanBytesAndBytesValue(t *testing.T) {
 func TestTestDataScanTextAndTextValue(t *testing.T) {
 	t.Parallel()
 
-	original := internalStore.TestData{Data: 99, Patch: false}
+	original := testutils.TestData{Data: 99, Patch: false}
 	tv, err := original.TextValue()
 	require.NoError(t, err)
 	assert.True(t, tv.Valid)
 
-	var decoded internalStore.TestData
+	var decoded testutils.TestData
 	err = decoded.ScanText(tv)
 	require.NoError(t, err)
 	assert.Equal(t, original, decoded)
@@ -42,11 +42,11 @@ func TestTestDataScanTextAndTextValue(t *testing.T) {
 func TestTestMetadataScanBytesAndBytesValue(t *testing.T) {
 	t.Parallel()
 
-	original := internalStore.TestMetadata{Metadata: "hello"}
+	original := testutils.TestMetadata{Metadata: "hello"}
 	b, err := original.BytesValue()
 	require.NoError(t, err)
 
-	var decoded internalStore.TestMetadata
+	var decoded testutils.TestMetadata
 	err = decoded.ScanBytes(b)
 	require.NoError(t, err)
 	assert.Equal(t, original, decoded)
@@ -55,12 +55,12 @@ func TestTestMetadataScanBytesAndBytesValue(t *testing.T) {
 func TestTestMetadataScanTextAndTextValue(t *testing.T) {
 	t.Parallel()
 
-	original := internalStore.TestMetadata{Metadata: "world"}
+	original := testutils.TestMetadata{Metadata: "world"}
 	tv, err := original.TextValue()
 	require.NoError(t, err)
 	assert.True(t, tv.Valid)
 
-	var decoded internalStore.TestMetadata
+	var decoded testutils.TestMetadata
 	err = decoded.ScanText(tv)
 	require.NoError(t, err)
 	assert.Equal(t, original, decoded)
@@ -69,11 +69,11 @@ func TestTestMetadataScanTextAndTextValue(t *testing.T) {
 func TestTestPatchScanBytesAndBytesValue(t *testing.T) {
 	t.Parallel()
 
-	original := internalStore.TestPatch{Patch: true}
+	original := testutils.TestPatch{Patch: true}
 	b, err := original.BytesValue()
 	require.NoError(t, err)
 
-	var decoded internalStore.TestPatch
+	var decoded testutils.TestPatch
 	err = decoded.ScanBytes(b)
 	require.NoError(t, err)
 	assert.Equal(t, original, decoded)
@@ -82,12 +82,12 @@ func TestTestPatchScanBytesAndBytesValue(t *testing.T) {
 func TestTestPatchScanTextAndTextValue(t *testing.T) {
 	t.Parallel()
 
-	original := internalStore.TestPatch{Patch: false}
+	original := testutils.TestPatch{Patch: false}
 	tv, err := original.TextValue()
 	require.NoError(t, err)
 	assert.True(t, tv.Valid)
 
-	var decoded internalStore.TestPatch
+	var decoded testutils.TestPatch
 	err = decoded.ScanText(tv)
 	require.NoError(t, err)
 	assert.Equal(t, original, decoded)
@@ -96,7 +96,7 @@ func TestTestPatchScanTextAndTextValue(t *testing.T) {
 func TestTestDataScanTextInvalidJSON(t *testing.T) {
 	t.Parallel()
 
-	var decoded internalStore.TestData
+	var decoded testutils.TestData
 	err := decoded.ScanText(pgtype.Text{String: "not json", Valid: true})
 	assert.EqualError(t, err, "invalid character 'o' in literal null (expecting 'u')")
 }
@@ -104,7 +104,7 @@ func TestTestDataScanTextInvalidJSON(t *testing.T) {
 func TestTestMetadataScanBytesInvalidJSON(t *testing.T) {
 	t.Parallel()
 
-	var decoded internalStore.TestMetadata
+	var decoded testutils.TestMetadata
 	err := decoded.ScanBytes([]byte("not json"))
 	assert.EqualError(t, err, "invalid character 'o' in literal null (expecting 'u')")
 }
@@ -112,7 +112,7 @@ func TestTestMetadataScanBytesInvalidJSON(t *testing.T) {
 func TestTestPatchScanBytesInvalidJSON(t *testing.T) {
 	t.Parallel()
 
-	var decoded internalStore.TestPatch
+	var decoded testutils.TestPatch
 	err := decoded.ScanBytes([]byte("{invalid"))
 	assert.EqualError(t, err, "invalid character 'i' looking for beginning of object key string")
 }
@@ -120,7 +120,7 @@ func TestTestPatchScanBytesInvalidJSON(t *testing.T) {
 func TestToRawMessagePtr(t *testing.T) {
 	t.Parallel()
 
-	result := internalStore.ToRawMessagePtr(`{"key":"value"}`)
+	result := testutils.ToRawMessagePtr(`{"key":"value"}`)
 	require.NotNil(t, result)
 	assert.Equal(t, json.RawMessage(`{"key":"value"}`), *result) //nolint:testifylint
 }
@@ -128,13 +128,13 @@ func TestToRawMessagePtr(t *testing.T) {
 func TestDummyData(t *testing.T) {
 	t.Parallel()
 
-	assert.Equal(t, []byte(`{}`), internalStore.DummyData)
+	assert.Equal(t, []byte(`{}`), testutils.DummyData)
 }
 
 func TestLockableSliceAppendAndLen(t *testing.T) {
 	t.Parallel()
 
-	ls := new(internalStore.LockableSlice[int])
+	ls := new(testutils.LockableSlice[int])
 	assert.Equal(t, 0, ls.Len())
 
 	ls.Append(1)
@@ -146,7 +146,7 @@ func TestLockableSliceAppendAndLen(t *testing.T) {
 func TestLockableSlicePrune(t *testing.T) {
 	t.Parallel()
 
-	ls := new(internalStore.LockableSlice[string])
+	ls := new(testutils.LockableSlice[string])
 	ls.Append("a")
 	ls.Append("b")
 
@@ -162,7 +162,7 @@ func TestLockableSlicePrune(t *testing.T) {
 func TestLockableSliceConcurrent(t *testing.T) {
 	t.Parallel()
 
-	ls := new(internalStore.LockableSlice[int])
+	ls := new(testutils.LockableSlice[int])
 	var wg sync.WaitGroup
 
 	for i := range 100 {

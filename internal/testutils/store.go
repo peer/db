@@ -1,4 +1,5 @@
-package store
+// Package testutils provides shared test helpers and types used across packages.
+package testutils
 
 import (
 	"encoding/json"

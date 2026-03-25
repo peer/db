@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v9"
-	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -22,6 +21,7 @@ import (
 	internalBase "gitlab.com/peerdb/peerdb/internal/base"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/testutils"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -313,34 +313,6 @@ func marshalChange(t *testing.T, change document.Change) []byte {
 }
 
 // docExists checks if a document exists in the Elasticsearch index.
-func docExists(ctx context.Context, t *testing.T, esClient *elasticsearch.TypedClient, index, id string) bool {
-	t.Helper()
-	exists, err := esClient.Exists(index, id).IsSuccess(ctx)
-	if err != nil {
-		t.Fatalf("unexpected ES error: %v", err)
-	}
-	return exists
-}
-
-// docHasRelation checks if an ES document has a nested relation claim with the given prop and target.
-func docHasRelation(ctx context.Context, t *testing.T, esClient *elasticsearch.TypedClient, index string, docID, propID, targetID identifier.Identifier) bool {
-	t.Helper()
-	nestedQuery := esdsl.NewNestedQuery(
-		esdsl.NewBoolQuery().Must(
-			esdsl.NewTermQuery("claims.rel.prop", esdsl.NewFieldValue().String(propID.String())),
-			esdsl.NewTermQuery("claims.rel.to", esdsl.NewFieldValue().String(targetID.String())),
-		),
-	).Path("claims.rel")
-	query := esdsl.NewBoolQuery().Must(
-		esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(docID.String())),
-		nestedQuery,
-	)
-	res, err := esClient.Search().Index(index).Query(query).Size(1).Do(ctx)
-	if err != nil {
-		t.Fatalf("ES search error: %v", err)
-	}
-	return res.Hits.Total.Value > 0
-}
 
 func TestDocumentEditSession(t *testing.T) {
 	t.Parallel()
@@ -731,8 +703,8 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	require.NoError(t, err)
 
 	// Both documents should be in ES.
-	assert.True(t, docExists(ctx, t, esClient, b.Index, docA.String()), "docA should exist in ES")
-	assert.True(t, docExists(ctx, t, esClient, b.Index, docB.String()), "docB should exist in ES")
+	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, docA.String()), "docA should exist in ES")
+	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, docB.String()), "docB should exist in ES")
 
 	// Add a relation from docA to docB via edit session.
 	session, versionA, errE := b.BeginEditDocumentLatest(ctx, docA)
@@ -775,7 +747,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 		if !assert.NoError(c, err) {
 			return
 		}
-		assert.True(c, docHasRelation(ctx, t, esClient, b.Index, docA, propX, docB),
+		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docA, propX, docB),
 			"docA should have relation A --X--> B in ES")
 	}, 30*time.Second, 100*time.Millisecond)
 
@@ -785,7 +757,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 		if !assert.NoError(c, err) {
 			return
 		}
-		assert.True(c, docHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
 			"docB should have inverse relation B --Y--> A in ES")
 	}, 30*time.Second, 100*time.Millisecond)
 
@@ -821,7 +793,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 		if !assert.NoError(c, err) {
 			return
 		}
-		assert.False(c, docHasRelation(ctx, t, esClient, b.Index, docA, propX, docB),
+		assert.False(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docA, propX, docB),
 			"docA should no longer have relation A --X--> B in ES")
 	}, 30*time.Second, 100*time.Millisecond)
 
@@ -839,7 +811,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 		if !assert.NoError(c, err) {
 			return
 		}
-		assert.False(c, docHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+		assert.False(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
 			"docB should no longer have inverse relation B --Y--> A in ES")
 	}, 30*time.Second, 100*time.Millisecond)
 }

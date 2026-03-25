@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v9"
-	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog"
@@ -23,6 +22,7 @@ import (
 	"gitlab.com/peerdb/peerdb/document"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/internal/testutils"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -156,14 +156,6 @@ func initBridge(t *testing.T) (
 }
 
 // docExists returns true if the document with the given ID exists in Elasticsearch.
-func docExists(t *testing.T, ctx context.Context, esClient *elasticsearch.TypedClient, index, id string) bool { //nolint:revive
-	t.Helper()
-	exists, err := esClient.Exists(index, id).IsSuccess(ctx)
-	if err != nil {
-		t.Fatalf("unexpected ES error: %v", err)
-	}
-	return exists
-}
 
 func TestBridgeRealTime(t *testing.T) {
 	t.Parallel()
@@ -192,9 +184,9 @@ func TestBridgeRealTime(t *testing.T) {
 	require.NoError(t, err)
 
 	// All three documents should now be in search.
-	assert.True(t, docExists(t, ctx, esClient, b.Index, id1.String()), "doc1 should exist in ES")
-	assert.True(t, docExists(t, ctx, esClient, b.Index, id2.String()), "doc2 should exist in ES")
-	assert.True(t, docExists(t, ctx, esClient, b.Index, id3.String()), "doc3 should exist in ES")
+	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, id1.String()), "doc1 should exist in ES")
+	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, id2.String()), "doc2 should exist in ES")
+	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, id3.String()), "doc3 should exist in ES")
 
 	// Update doc1.
 	_, _, v1, _, errE := s.GetLatest(ctx, id1) //nolint:dogsled
@@ -209,7 +201,7 @@ func TestBridgeRealTime(t *testing.T) {
 	require.NoError(t, err)
 
 	// The bridge always indexes the latest version, even if an older commit triggered it.
-	assert.True(t, docExists(t, ctx, esClient, b.Index, id1.String()), "doc1 should still exist after update")
+	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, id1.String()), "doc1 should still exist after update")
 }
 
 func TestBridgeCatchUp(t *testing.T) {
@@ -241,8 +233,8 @@ func TestBridgeCatchUp(t *testing.T) {
 	require.NoError(t, err)
 
 	// Both documents should be in ES despite being committed before Start.
-	assert.True(t, docExists(t, ctx, esClient, b.Index, id1.String()), "catchup doc1 should be in ES after catch-up")
-	assert.True(t, docExists(t, ctx, esClient, b.Index, id2.String()), "catchup doc2 should be in ES after catch-up")
+	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, id1.String()), "catchup doc1 should be in ES after catch-up")
+	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, id2.String()), "catchup doc2 should be in ES after catch-up")
 }
 
 func TestBridgeDeletedDocument(t *testing.T) {
@@ -264,7 +256,7 @@ func TestBridgeDeletedDocument(t *testing.T) {
 	_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 	require.NoError(t, err)
 
-	assert.True(t, docExists(t, ctx, esClient, b.Index, id.String()), "document should exist before delete")
+	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, id.String()), "document should exist before delete")
 
 	_, errE = s.Delete(ctx, id, v.Changeset, dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -276,7 +268,7 @@ func TestBridgeDeletedDocument(t *testing.T) {
 	require.NoError(t, err)
 
 	// After deletion the bridge issues a bulk delete, so the document is removed from search.
-	assert.False(t, docExists(t, ctx, esClient, b.Index, id.String()), "document should be removed from ES after delete")
+	assert.False(t, testutils.DocExists(ctx, t, esClient, b.Index, id.String()), "document should be removed from ES after delete")
 }
 
 func TestBridgeSeqAdvancement(t *testing.T) {
@@ -348,10 +340,10 @@ func TestBridgeNotifyRecovery(t *testing.T) {
 	require.NoError(t, err)
 
 	// All four documents must be indexed, including those inserted after the simulated reconnection.
-	assert.True(t, docExists(t, ctx, esClient, b.Index, id1.String()), "initial doc1 should be in ES")
-	assert.True(t, docExists(t, ctx, esClient, b.Index, id2.String()), "initial doc2 should be in ES")
-	assert.True(t, docExists(t, ctx, esClient, b.Index, id3.String()), "recovery doc3 should be in ES")
-	assert.True(t, docExists(t, ctx, esClient, b.Index, id4.String()), "recovery doc4 should be in ES")
+	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, id1.String()), "initial doc1 should be in ES")
+	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, id2.String()), "initial doc2 should be in ES")
+	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, id3.String()), "recovery doc3 should be in ES")
+	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, id4.String()), "recovery doc4 should be in ES")
 }
 
 func TestBridgeStaleDataNotIndexed(t *testing.T) {
@@ -380,7 +372,7 @@ func TestBridgeStaleDataNotIndexed(t *testing.T) {
 	require.NoError(t, err)
 
 	// The document in ES should exist — the bridge calls GetLatest so it always indexes the latest version.
-	assert.True(t, docExists(t, ctx, esClient, b.Index, id.String()), "document should be in ES")
+	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, id.String()), "document should be in ES")
 }
 
 // Well-known IDs for inverse relation tests.
@@ -498,27 +490,6 @@ func makeConverterWithInverse(
 	return c
 }
 
-// docHasRelation checks if an ES document has a nested relation claim with the given prop and target.
-func docHasRelation(ctx context.Context, t *testing.T, esClient *elasticsearch.TypedClient, index string, docID, propID, targetID identifier.Identifier) bool {
-	t.Helper()
-
-	nestedQuery := esdsl.NewNestedQuery(
-		esdsl.NewBoolQuery().Must(
-			esdsl.NewTermQuery("claims.rel.prop", esdsl.NewFieldValue().String(propID.String())),
-			esdsl.NewTermQuery("claims.rel.to", esdsl.NewFieldValue().String(targetID.String())),
-		),
-	).Path("claims.rel")
-	query := esdsl.NewBoolQuery().Must(
-		esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(docID.String())),
-		nestedQuery,
-	)
-	res, err := esClient.Search().Index(index).Query(query).Size(1).Do(ctx)
-	if err != nil {
-		t.Fatalf("ES search error: %v", err)
-	}
-	return res.Hits.Total.Value > 0
-}
-
 func TestBridgeInverseRelationReindexing(t *testing.T) {
 	t.Parallel()
 
@@ -565,12 +536,12 @@ func TestBridgeInverseRelationReindexing(t *testing.T) {
 		if !assert.NoError(c, err) {
 			return
 		}
-		assert.True(c, docHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
 			"docB should have inverse relation B --Y--> A")
 	}, 10*time.Second, 100*time.Millisecond)
 
 	// Doc A should have the forward relation A --X--> B.
-	assert.True(t, docHasRelation(ctx, t, esClient, b.Index, docA, propX, docB),
+	assert.True(t, testutils.DocHasRelation(ctx, t, esClient, b.Index, docA, propX, docB),
 		"docA should have forward relation A --X--> B")
 }
 
@@ -613,14 +584,14 @@ func TestBridgeInverseRelationMutual(t *testing.T) {
 			return
 		}
 		// A should have forward A --X--> B and inverse A --Y--> B (from B --X--> A).
-		assert.True(c, docHasRelation(ctx, t, esClient, b.Index, docA, propX, docB),
+		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docA, propX, docB),
 			"docA should have forward A --X--> B")
-		assert.True(c, docHasRelation(ctx, t, esClient, b.Index, docA, propY, docB),
+		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docA, propY, docB),
 			"docA should have inverse A --Y--> B")
 		// B should have forward B --X--> A and inverse B --Y--> A (from A --X--> B).
-		assert.True(c, docHasRelation(ctx, t, esClient, b.Index, docB, propX, docA),
+		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propX, docA),
 			"docB should have forward B --X--> A")
-		assert.True(c, docHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
 			"docB should have inverse B --Y--> A")
 	}, 10*time.Second, 100*time.Millisecond)
 }
@@ -665,9 +636,9 @@ func TestBridgeInverseRelationMultipleSources(t *testing.T) {
 		if !assert.NoError(c, err) {
 			return
 		}
-		assert.True(c, docHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
 			"docB should have inverse B --Y--> A")
-		assert.True(c, docHasRelation(ctx, t, esClient, b.Index, docB, propY, docC),
+		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docC),
 			"docB should have inverse B --Y--> C")
 	}, 10*time.Second, 100*time.Millisecond)
 }
@@ -709,7 +680,7 @@ func TestBridgeInverseRelationRemoval(t *testing.T) {
 		if !assert.NoError(c, err) {
 			return
 		}
-		assert.True(c, docHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
 			"docB should have inverse B --Y--> A")
 	}, 10*time.Second, 100*time.Millisecond)
 
@@ -737,7 +708,7 @@ func TestBridgeInverseRelationRemoval(t *testing.T) {
 		if !assert.NoError(c, err) {
 			return
 		}
-		assert.False(c, docHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+		assert.False(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
 			"docB should no longer have inverse B --Y--> A")
 	}, 10*time.Second, 100*time.Millisecond)
 }
@@ -782,7 +753,7 @@ func TestBridgeInverseRelationChange(t *testing.T) {
 		if !assert.NoError(c, err) {
 			return
 		}
-		assert.True(c, docHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
 			"docB should have inverse B --Y--> A")
 	}, 10*time.Second, 100*time.Millisecond)
 
@@ -802,10 +773,10 @@ func TestBridgeInverseRelationChange(t *testing.T) {
 			return
 		}
 		// C should have the inverse relation.
-		assert.True(c, docHasRelation(ctx, t, esClient, b.Index, docC, propY, docA),
+		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docC, propY, docA),
 			"docC should have inverse C --Y--> A")
 		// B should no longer have the inverse relation.
-		assert.False(c, docHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+		assert.False(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
 			"docB should no longer have inverse B --Y--> A")
 	}, 10*time.Second, 100*time.Millisecond)
 

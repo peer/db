@@ -5,28 +5,19 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/operator"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
-)
 
-// queryJSON converts a types.QueryVariant to a compact JSON string for golden comparisons.
-func queryJSON(t *testing.T, q types.QueryVariant) string {
-	t.Helper()
-	data, errE := x.MarshalWithoutEscapeHTML(q.QueryCaster())
-	require.NoError(t, errE, "% -+#.1v", errE)
-	return string(data)
-}
+	"gitlab.com/peerdb/peerdb/internal/testutils"
+)
 
 func TestDocumentTextSearchQuery(t *testing.T) {
 	t.Parallel()
 
 	t.Run("NonEmpty", func(t *testing.T) {
 		t.Parallel()
-		got := queryJSON(t, documentTextSearchQuery("hello", operator.Or))
+		got := testutils.QueryJSON(t, documentTextSearchQuery("hello", operator.Or))
 		//nolint:lll
 		expected := `{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.value"],"query":"hello"}}}},{"nested":{"path":"claims.ref","query":{"simple_query_string":{"default_operator":"or","fields":["claims.ref.iri"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.en"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.pt"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.sl"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.und"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.en"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.pt"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.sl"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.und"],"query":"hello"}}}}]}}`
 		assert.Equal(t, expected, got)
@@ -34,13 +25,13 @@ func TestDocumentTextSearchQuery(t *testing.T) {
 
 	t.Run("Empty", func(t *testing.T) {
 		t.Parallel()
-		got := queryJSON(t, documentTextSearchQuery("", operator.Or))
+		got := testutils.QueryJSON(t, documentTextSearchQuery("", operator.Or))
 		assert.Equal(t, `{"bool":{}}`, got) //nolint:testifylint
 	})
 
 	t.Run("ANDOperator", func(t *testing.T) {
 		t.Parallel()
-		got := queryJSON(t, documentTextSearchQuery("hello", operator.And))
+		got := testutils.QueryJSON(t, documentTextSearchQuery("hello", operator.And))
 		//nolint:lll
 		expected := `{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"and","fields":["claims.id.value"],"query":"hello"}}}},{"nested":{"path":"claims.ref","query":{"simple_query_string":{"default_operator":"and","fields":["claims.ref.iri"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"and","fields":["claims.string.string.en"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"and","fields":["claims.string.string.pt"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"and","fields":["claims.string.string.sl"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"and","fields":["claims.string.string.und"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"and","fields":["claims.html.html.en"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"and","fields":["claims.html.html.pt"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"and","fields":["claims.html.html.sl"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"and","fields":["claims.html.html.und"],"query":"hello"}}}}]}}`
 		assert.Equal(t, expected, got)
@@ -227,13 +218,13 @@ func TestAmountUnitFilter(t *testing.T) {
 	t.Run("WithUnit", func(t *testing.T) {
 		t.Parallel()
 		unit := identifier.From("unit")
-		got := queryJSON(t, amountUnitFilter(&unit))
+		got := testutils.QueryJSON(t, amountUnitFilter(&unit))
 		assert.Equal(t, `{"term":{"claims.amount.unit":{"value":"7xgMSp3wauK811A8Fwk3rY"}}}`, got) //nolint:testifylint
 	})
 
 	t.Run("WithoutUnit", func(t *testing.T) {
 		t.Parallel()
-		got := queryJSON(t, amountUnitFilter(nil))
+		got := testutils.QueryJSON(t, amountUnitFilter(nil))
 		assert.Equal(t, `{"bool":{"must_not":[{"exists":{"field":"claims.amount.unit"}}]}}`, got) //nolint:testifylint
 	})
 }
