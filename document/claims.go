@@ -183,7 +183,7 @@ func GetClaimsListsOfType[T Claim](claims Claims, propID identifier.Identifier) 
 
 	claimsPerList := map[string][]entry{}
 	for _, c := range all {
-		listID := "none"
+		listID := "none" //nolint:goconst
 		if listClaim := GetBestClaimOfType[*IdentifierClaim](Claim(c), listPropID); listClaim != nil {
 			listID = listClaim.Value
 		}
