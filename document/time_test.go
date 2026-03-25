@@ -513,3 +513,179 @@ func TestNewTimestampRoundTrip(t *testing.T) {
 		})
 	}
 }
+
+// TestTimestampMarshalText tests Timestamp.MarshalText.
+func TestTimestampMarshalText(t *testing.T) {
+	t.Parallel()
+
+	ts := document.Timestamp("2025-03-17 10:30:00")
+	text, err := ts.MarshalText()
+	require.NoError(t, err)
+	assert.Equal(t, []byte("2025-03-17 10:30:00"), text)
+
+	var ts2 document.Timestamp
+	err = ts2.UnmarshalText(text)
+	require.NoError(t, err)
+	assert.Equal(t, ts, ts2)
+}
+
+// TestTimePrecisionMarshalText tests TimePrecision.MarshalText.
+func TestTimePrecisionMarshalText(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		precision document.TimePrecision
+		expected  string
+	}{
+		{document.TimePrecisionYear, "y"},
+		{document.TimePrecisionDay, "d"},
+		{document.TimePrecisionNanosecond, "ns"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.expected, func(t *testing.T) {
+			t.Parallel()
+
+			text, err := test.precision.MarshalText()
+			require.NoError(t, err)
+			assert.Equal(t, []byte(test.expected), text)
+		})
+	}
+}
+
+// TestTimestampLeapYear tests leap year handling in Timestamp.Time via isLeap and daysIn.
+func TestTimestampLeapYear(t *testing.T) {
+	t.Parallel()
+
+	// Feb 29 in a 400-year leap (year 2000).
+	ts := document.Timestamp("2000-02-29")
+	errE := ts.Validate(document.TimePrecisionDay)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Feb 29 in a regular quadrennial leap year (2004).
+	ts = document.Timestamp("2004-02-29")
+	errE = ts.Validate(document.TimePrecisionDay)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Feb 29 in a century non-leap year (1900).
+	ts = document.Timestamp("1900-02-29")
+	errE = ts.Validate(document.TimePrecisionDay)
+	assert.EqualError(t, errE, "day out of range")
+
+	// Feb 28 in a non-leap year is valid.
+	ts = document.Timestamp("2001-02-28")
+	errE = ts.Validate(document.TimePrecisionDay)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Feb 29 in a non-leap year (2001) is invalid.
+	ts = document.Timestamp("2001-02-29")
+	errE = ts.Validate(document.TimePrecisionDay)
+	assert.EqualError(t, errE, "day out of range")
+}
+
+// TestTimestampValidateExtraCases tests additional Timestamp.Validate branches.
+func TestTimestampValidateExtraCases(t *testing.T) {
+	t.Parallel()
+
+	// "day not allowed for precision": month precision with non-zero day.
+	errE := document.Timestamp("2025-03-15").Validate(document.TimePrecisionMonth)
+	assert.EqualError(t, errE, "day not allowed for precision")
+
+	// "hours and minutes not allowed for precision": day precision with hours present.
+	errE = document.Timestamp("2025-03-15 10:00").Validate(document.TimePrecisionDay)
+	assert.EqualError(t, errE, "hours and minutes not allowed for precision")
+
+	// "seconds not allowed for precision": minute precision with seconds present.
+	errE = document.Timestamp("2025-03-15 10:30:45").Validate(document.TimePrecisionMinute)
+	assert.EqualError(t, errE, "seconds not allowed for precision")
+
+	// "subseconds not allowed for precision": second precision with subseconds present.
+	errE = document.Timestamp("2025-03-15 10:30:45.123").Validate(document.TimePrecisionSecond)
+	assert.EqualError(t, errE, "subseconds not allowed for precision")
+}
+
+// TestTimePrecisionStringDefault tests TimePrecision.String for an unknown precision.
+func TestTimePrecisionStringDefault(t *testing.T) {
+	t.Parallel()
+
+	p := document.TimePrecision(999)
+	s := p.String()
+	assert.Equal(t, "[999]", s)
+}
+
+// TestTimePrecisionUnmarshalTextUnknown tests TimePrecision.UnmarshalText with an unknown string.
+func TestTimePrecisionUnmarshalTextUnknown(t *testing.T) {
+	t.Parallel()
+
+	var p document.TimePrecision
+	errE := p.UnmarshalText([]byte("xyz"))
+	assert.EqualError(t, errE, "unknown time precision")
+}
+
+// TestTimestampTimeNilLocation tests that Timestamp.Time with a nil location defaults to UTC.
+func TestTimestampTimeNilLocation(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		timestamp string
+		precision document.TimePrecision
+	}{
+		{"year", "2025", document.TimePrecisionYear},
+		{"month", "2025-06-00", document.TimePrecisionMonth},
+		{"day", "2025-06-15", document.TimePrecisionDay},
+		{"hour", "2025-06-15 12:00", document.TimePrecisionHour},
+		{"minute", "2025-06-15 12:30", document.TimePrecisionMinute},
+		{"second", "2025-06-15 12:30:45", document.TimePrecisionSecond},
+		{"millisecond", "2025-06-15 12:30:45.123", document.TimePrecisionMillisecond},
+		{"microsecond", "2025-06-15 12:30:45.123456", document.TimePrecisionMicrosecond},
+		{"nanosecond", "2025-06-15 12:30:45.123456789", document.TimePrecisionNanosecond},
+		{"negative year", "-2025-03-15 10:30:45", document.TimePrecisionSecond},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ts := document.Timestamp(tc.timestamp)
+
+			tNil, errE := ts.Time(tc.precision, nil)
+			require.NoError(t, errE, "% -+#.1v", errE)
+
+			tUTC, errE := ts.Time(tc.precision, time.UTC)
+			require.NoError(t, errE, "% -+#.1v", errE)
+
+			// nil location must behave identically to time.UTC.
+			assert.True(t, tNil.Equal(tUTC), "expected %v, got %v", tUTC, tNil)
+			assert.Equal(t, tUTC.Location(), tNil.Location())
+		})
+	}
+}
+
+// TestTimestampUnmarshalErrors tests error paths in Timestamp.UnmarshalText and UnmarshalJSON.
+func TestTimestampUnmarshalErrors(t *testing.T) {
+	t.Parallel()
+
+	t.Run("unmarshal_text_invalid", func(t *testing.T) {
+		t.Parallel()
+		var ts document.Timestamp
+		err := ts.UnmarshalText([]byte("not-a-timestamp"))
+		assert.EqualError(t, err, "unable to parse timestamp")
+	})
+
+	t.Run("unmarshal_json_non_string", func(t *testing.T) {
+		t.Parallel()
+		var ts document.Timestamp
+		err := ts.UnmarshalJSON([]byte("123"))
+		assert.EqualError(t, err, "json: cannot unmarshal number into Go value of type string")
+	})
+}
+
+// TestTimePrecisionUnmarshalJSONBadJSON tests TimePrecision.UnmarshalJSON with non-string JSON.
+func TestTimePrecisionUnmarshalJSONBadJSON(t *testing.T) {
+	t.Parallel()
+
+	var p document.TimePrecision
+	err := p.UnmarshalJSON([]byte("123"))
+	assert.EqualError(t, err, "json: cannot unmarshal number into Go value of type string")
+}
