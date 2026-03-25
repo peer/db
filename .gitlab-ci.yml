@@ -70,6 +70,7 @@ test_go:
     - (cd /go; go install gotest.tools/gotestsum@v1.13.0)
     - (cd /go; go install github.com/boumenot/gocover-cobertura@v1.4.0)
     - go version
+    - wget --spider "http://elasticsearch:9200/_cluster/health?wait_for_status=yellow&timeout=120s"
 
   script:
     - make test-ci
