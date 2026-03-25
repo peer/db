@@ -486,9 +486,7 @@ func (s *Service) DocumentEditGetAPI(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	if sessionEnded {
-		s.WriteJSON(w, req, `{"active":false}`, nil)
-	} else if completeMetadata != nil {
+	if completeMetadata != nil {
 		s.WriteJSON(w, req, struct {
 			*base.DocumentCompleteMetadata
 
@@ -497,6 +495,8 @@ func (s *Service) DocumentEditGetAPI(w http.ResponseWriter, req *http.Request, p
 			DocumentCompleteMetadata: completeMetadata,
 			Active:                   false,
 		}, nil)
+	} else if sessionEnded {
+		s.WriteJSON(w, req, `{"active":false}`, nil)
 	} else {
 		s.WriteJSON(w, req, `{"active":true}`, nil)
 	}
