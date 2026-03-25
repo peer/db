@@ -1,5 +1,14 @@
 {
-  "decisions": {},
+  "decisions": {
+    "1115382|picomatch": {
+      "decision": "ignore",
+      "madeAt": 1774479597424
+    },
+    "1115394|picomatch": {
+      "decision": "ignore",
+      "madeAt": 1774479603019
+    }
+  },
   "rules": {},
   "version": 1
 }
