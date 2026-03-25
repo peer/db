@@ -475,8 +475,8 @@ export function useAmountHistogramValues(
 ): {
   results: DeepReadonly<Ref<HistogramAmountResult[]>>
   total: DeepReadonly<Ref<number | null>>
-  min: DeepReadonly<Ref<number | null>>
-  max: DeepReadonly<Ref<number | null>>
+  from: DeepReadonly<Ref<number | null>>
+  to: DeepReadonly<Ref<number | null>>
   interval: DeepReadonly<Ref<number | null>>
   error: DeepReadonly<Ref<string | null>>
   url: DeepReadonly<Ref<string | null>>
@@ -486,15 +486,15 @@ export function useAmountHistogramValues(
 
   const _results = ref<HistogramAmountResult[]>([])
   const _total = ref<number | null>(null)
-  const _min = ref<number | null>(null)
-  const _max = ref<number | null>(null)
+  const _from = ref<number | null>(null)
+  const _to = ref<number | null>(null)
   const _interval = ref<number | null>(null)
   const _error = ref<string | null>(null)
   const _url = ref<string | null>(null)
   const results = process.env.NODE_ENV !== "production" ? readonly(_results) : _results
   const total = process.env.NODE_ENV !== "production" ? readonly(_total) : _total
-  const min = process.env.NODE_ENV !== "production" ? readonly(_min) : _min
-  const max = process.env.NODE_ENV !== "production" ? readonly(_max) : _max
+  const from = process.env.NODE_ENV !== "production" ? readonly(_from) : _from
+  const to = process.env.NODE_ENV !== "production" ? readonly(_to) : _to
   const interval = process.env.NODE_ENV !== "production" ? readonly(_interval) : _interval
   const error = process.env.NODE_ENV !== "production" ? readonly(_error) : _error
   const url = process.env.NODE_ENV !== "production" ? readonly(_url) : _url
@@ -545,8 +545,8 @@ export function useAmountHistogramValues(
       if (!newURL) {
         _results.value = []
         _total.value = null
-        _min.value = null
-        _max.value = null
+        _from.value = null
+        _to.value = null
         _interval.value = null
         return
       }
@@ -563,8 +563,8 @@ export function useAmountHistogramValues(
         console.error("useAmountHistogramValues", newURL, err)
         _results.value = []
         _total.value = null
-        _min.value = null
-        _max.value = null
+        _from.value = null
+        _to.value = null
         _interval.value = null
         // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         _error.value = `${err}`
@@ -575,8 +575,8 @@ export function useAmountHistogramValues(
       }
       _results.value = data.results as HistogramAmountResult[]
       _total.value = data.total
-      _min.value = data.min != null ? parseFloat(data.min) : null
-      _max.value = data.max != null ? parseFloat(data.max) : null
+      _from.value = data.from != null ? parseFloat(data.from) : null
+      _to.value = data.to != null ? parseFloat(data.to) : null
       _interval.value = data.interval != null ? parseFloat(data.interval) : null
     },
     {
@@ -587,8 +587,8 @@ export function useAmountHistogramValues(
   return {
     results,
     total,
-    min,
-    max,
+    from,
+    to,
     interval,
     error,
     url,
@@ -603,8 +603,8 @@ export function useTimeHistogramValues(
 ): {
   results: DeepReadonly<Ref<HistogramTimeResult[]>>
   total: DeepReadonly<Ref<number | null>>
-  min: DeepReadonly<Ref<number | null>>
-  max: DeepReadonly<Ref<number | null>>
+  from: DeepReadonly<Ref<number | null>>
+  to: DeepReadonly<Ref<number | null>>
   interval: DeepReadonly<Ref<number | null>>
   error: DeepReadonly<Ref<string | null>>
   url: DeepReadonly<Ref<string | null>>
@@ -614,15 +614,15 @@ export function useTimeHistogramValues(
 
   const _results = ref<HistogramTimeResult[]>([])
   const _total = ref<number | null>(null)
-  const _min = ref<number | null>(null)
-  const _max = ref<number | null>(null)
+  const _from = ref<number | null>(null)
+  const _to = ref<number | null>(null)
   const _interval = ref<number | null>(null)
   const _error = ref<string | null>(null)
   const _url = ref<string | null>(null)
   const results = process.env.NODE_ENV !== "production" ? readonly(_results) : _results
   const total = process.env.NODE_ENV !== "production" ? readonly(_total) : _total
-  const min = process.env.NODE_ENV !== "production" ? readonly(_min) : _min
-  const max = process.env.NODE_ENV !== "production" ? readonly(_max) : _max
+  const from = process.env.NODE_ENV !== "production" ? readonly(_from) : _from
+  const to = process.env.NODE_ENV !== "production" ? readonly(_to) : _to
   const interval = process.env.NODE_ENV !== "production" ? readonly(_interval) : _interval
   const error = process.env.NODE_ENV !== "production" ? readonly(_error) : _error
   const url = process.env.NODE_ENV !== "production" ? readonly(_url) : _url
@@ -667,8 +667,8 @@ export function useTimeHistogramValues(
       if (!newURL) {
         _results.value = []
         _total.value = null
-        _min.value = null
-        _max.value = null
+        _from.value = null
+        _to.value = null
         _interval.value = null
         return
       }
@@ -685,8 +685,8 @@ export function useTimeHistogramValues(
         console.error("useTimeHistogramValues", newURL, err)
         _results.value = []
         _total.value = null
-        _min.value = null
-        _max.value = null
+        _from.value = null
+        _to.value = null
         _interval.value = null
         // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         _error.value = `${err}`
@@ -697,8 +697,8 @@ export function useTimeHistogramValues(
       }
       _results.value = data.results as HistogramTimeResult[]
       _total.value = data.total
-      _min.value = data.min != null ? parseFloat(data.min) : null
-      _max.value = data.max != null ? parseFloat(data.max) : null
+      _from.value = data.from != null ? parseFloat(data.from) : null
+      _to.value = data.to != null ? parseFloat(data.to) : null
       _interval.value = data.interval != null ? parseFloat(data.interval) : null
     },
     {
@@ -709,8 +709,8 @@ export function useTimeHistogramValues(
   return {
     results,
     total,
-    min,
-    max,
+    from,
+    to,
     interval,
     error,
     url,
@@ -743,8 +743,8 @@ async function getHistogramValues<T extends HistogramAmountResult | HistogramTim
 ): Promise<{
   results: T[]
   total: number
-  min?: string
-  max?: string
+  from?: string
+  to?: string
   interval?: string
 }> {
   const { doc, metadata } = await getURL(url, el, abortSignal, progress)
@@ -759,18 +759,18 @@ async function getHistogramValues<T extends HistogramAmountResult | HistogramTim
   const res = { results: doc, total: total } as {
     results: T[]
     total: number
-    min?: string
-    max?: string
+    from?: string
+    to?: string
     interval?: string
   }
-  if ("min" in metadata) {
-    res.min = metadata["min"] as string
+  if ("from" in metadata) {
+    res.from = String(metadata["from"])
   }
-  if ("max" in metadata) {
-    res.max = metadata["max"] as string
+  if ("to" in metadata) {
+    res.to = String(metadata["to"])
   }
   if ("interval" in metadata) {
-    res.interval = metadata["interval"] as string
+    res.interval = String(metadata["interval"])
   }
 
   return res

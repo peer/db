@@ -39,8 +39,8 @@ onBeforeUnmount(() => {
 const progress = injectProgress()
 const {
   results,
-  min,
-  max,
+  from,
+  to,
   error,
   url: resultsUrl,
 } = useTimeHistogramValues(
@@ -99,17 +99,17 @@ watchEffect((onCleanup) => {
     slider.destroy()
     slider = null
   }
-  // When sliderEl exists we know that min and max is set as well, and that min != max.
+  // When sliderEl exists we know that from and to is set as well, and that from != to.
   // Still, we check it here to satisfy type checking.
-  if (min.value === null || max.value === null || min.value === max.value) {
+  if (from.value === null || to.value === null || from.value === to.value) {
     return
   }
   const gte = props.state === null || props.state === NONE ? null : (props.state as { gte?: number; lte?: number }).gte
   const lte = props.state === null || props.state === NONE ? null : (props.state as { gte?: number; lte?: number }).lte
-  const rangeMin = gte == null ? min.value : Math.max(gte, min.value)
-  const rangeMax = lte == null ? max.value : Math.min(lte, max.value)
-  const rangeStart = gte == null ? min.value : gte
-  const rangeEnd = lte == null ? max.value : lte
+  const rangeMin = gte == null ? from.value : Math.max(gte, from.value)
+  const rangeMax = lte == null ? to.value : Math.min(lte, to.value)
+  const rangeStart = gte == null ? from.value : gte
+  const rangeEnd = lte == null ? to.value : lte
   if (!slider && sliderEl.value) {
     slider = noUiSlider.create(sliderEl.value, {
       start: [rangeStart, rangeEnd],
@@ -181,7 +181,7 @@ onBeforeUnmount(() => {
       <li v-if="error">
         <i class="pd-timefiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
-      <li v-else-if="min === null || max === null" class="animate-pulse">
+      <li v-else-if="from === null || to === null" class="animate-pulse">
         <div class="my-1.5 grid grid-cols-10 items-end gap-x-1" :style="`aspect-ratio: ${chartWidth - 1} / ${chartHeight}`">
           <div v-for="(h, i) in loadingShortHeights(result.id, 10)" :key="i" class="w-auto rounded-sm bg-slate-200" :class="h"></div>
         </div>
@@ -191,7 +191,7 @@ onBeforeUnmount(() => {
         </div>
         <div class="my-1.5 h-2 rounded-sm bg-slate-200"></div>
       </li>
-      <li v-else-if="min !== max">
+      <li v-else-if="from !== to">
         <!-- We subtract 1 from chartWidth because we subtract 1 from bar width, so there would be a gap after the last one. -->
         <svg :viewBox="`0 0 ${chartWidth - 1} ${chartHeight}`">
           <!-- We subtract 1 from bar width to have a gap between bars. -->
@@ -206,10 +206,10 @@ onBeforeUnmount(() => {
         </svg>
         <div class="flex flex-row justify-between gap-x-1">
           <div>
-            {{ formatTime(min) }}
+            {{ formatTime(from) }}
           </div>
           <div>
-            {{ formatTime(max) }}
+            {{ formatTime(to) }}
           </div>
         </div>
         <div ref="sliderEl"></div>
@@ -219,7 +219,7 @@ onBeforeUnmount(() => {
         <div class="my-1 leading-none">{{ formatTime(results[0].from) }}</div>
         <div class="my-1 leading-none">({{ results[0].count }})</div>
       </li>
-      <li v-if="result.count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="error ? 'mt-0' : min === null || max === null ? 'mt-3' : 'mt-4'">
+      <li v-if="result.count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="error ? 'mt-0' : from === null || to === null ? 'mt-3' : 'mt-4'">
         <CheckBox :id="'time/' + result.id + '/none'" v-model="noneState" :progress="updateProgress" class="my-1 self-center" />
         <label :for="'time/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
           ><i>{{ t("common.values.none") }}</i></label
