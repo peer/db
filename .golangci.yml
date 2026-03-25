@@ -20,6 +20,9 @@ linters:
       check-type-assertions: true
     exhaustruct:
       allow-empty: true
+    goconst:
+      ignore-string-values:
+        - "test"
     gocritic:
       disabled-checks:
         - ifElseChain
