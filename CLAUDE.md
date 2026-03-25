@@ -13,7 +13,8 @@ Key features:
 
 - **Versioned document store** with full change history
 - **Real-time collaboration** with conflict detection
-- **Claims-based document schema** supporting 12 claim types (identifiers, strings, HTML, amounts, time, links, references, etc.)
+- **Claims-based document schema** supporting 12 claim types (identifiers, strings, HTML, amounts, time, links,
+  references, etc.)
 - **Adaptive search UI** that automatically adjusts to data and provides relevant filters
 - **Multi-site support** with separate schemas and indices per site
 
