@@ -1193,17 +1193,17 @@ func TestGetClaimsListsOfType(t *testing.T) {
 	listProp := identifier.From("core.peerdb.org", "LIST")
 	orderProp := identifier.From("core.peerdb.org", "ORDER_IN_LIST")
 
-	ct := &document.ClaimTypes{ //nolint:exhaustruct
+	ct := &document.ClaimTypes{
 		String: document.StringClaims{
 			{
 				CoreClaim: document.CoreClaim{
 					ID: identifier.New(), Confidence: 1.0,
-					Meta: &document.ClaimTypes{ //nolint:exhaustruct
+					Meta: &document.ClaimTypes{
 						Identifier: document.IdentifierClaims{
-							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: listProp}, Value: listA.String()}, //nolint:exhaustruct
+							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: listProp}, Value: listA.String()},
 						},
 						Amount: document.AmountClaims{
-							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: orderProp}, Amount: "2", Precision: 1}, //nolint:exhaustruct
+							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: orderProp}, Amount: "2", Precision: 1},
 						},
 					},
 				},
@@ -1213,12 +1213,12 @@ func TestGetClaimsListsOfType(t *testing.T) {
 			{
 				CoreClaim: document.CoreClaim{
 					ID: identifier.New(), Confidence: 1.0,
-					Meta: &document.ClaimTypes{ //nolint:exhaustruct
+					Meta: &document.ClaimTypes{
 						Identifier: document.IdentifierClaims{
-							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: listProp}, Value: listA.String()}, //nolint:exhaustruct
+							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: listProp}, Value: listA.String()},
 						},
 						Amount: document.AmountClaims{
-							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: orderProp}, Amount: "1", Precision: 1}, //nolint:exhaustruct
+							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: orderProp}, Amount: "1", Precision: 1},
 						},
 					},
 				},
@@ -1228,12 +1228,12 @@ func TestGetClaimsListsOfType(t *testing.T) {
 			{
 				CoreClaim: document.CoreClaim{
 					ID: identifier.New(), Confidence: 1.0,
-					Meta: &document.ClaimTypes{ //nolint:exhaustruct
+					Meta: &document.ClaimTypes{
 						Identifier: document.IdentifierClaims{
-							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: listProp}, Value: listB.String()}, //nolint:exhaustruct
+							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: listProp}, Value: listB.String()},
 						},
 						Amount: document.AmountClaims{
-							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: orderProp}, Amount: "1", Precision: 1}, //nolint:exhaustruct
+							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: orderProp}, Amount: "1", Precision: 1},
 						},
 					},
 				},
@@ -1272,15 +1272,15 @@ func TestGetClaimsListsOfTypeNoList(t *testing.T) {
 
 	prop := identifier.New()
 
-	ct := &document.ClaimTypes{ //nolint:exhaustruct
+	ct := &document.ClaimTypes{
 		String: document.StringClaims{
 			{
-				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, //nolint:exhaustruct
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
 				Prop:      document.Reference{ID: prop},
 				String:    "no-list-1",
 			},
 			{
-				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 0.8}, //nolint:exhaustruct
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 0.8},
 				Prop:      document.Reference{ID: prop},
 				String:    "no-list-2",
 			},
@@ -1301,7 +1301,7 @@ func TestGetClaimsListsOfTypeEmpty(t *testing.T) {
 	t.Parallel()
 
 	prop := identifier.New()
-	ct := &document.ClaimTypes{} //nolint:exhaustruct
+	ct := &document.ClaimTypes{}
 
 	lists := document.GetClaimsListsOfType[*document.StringClaim](ct, prop)
 	assert.Nil(t, lists)
