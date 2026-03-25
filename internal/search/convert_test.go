@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/core"
@@ -1797,8 +1798,8 @@ func TestConvertTime(t *testing.T) {
 	require.NotNil(t, result[0].From)
 	require.NotNil(t, result[0].To)
 	// From should be start of day, To should be start of next day.
-	fromTime := time.Unix(*result[0].From, 0).UTC()
-	toTime := time.Unix(*result[0].To, 0).UTC()
+	fromTime := x.TimeFromFloat64(*result[0].From).UTC()
+	toTime := x.TimeFromFloat64(*result[0].To).UTC()
 	assert.Equal(t, 2024, fromTime.Year())
 	assert.Equal(t, time.January, fromTime.Month())
 	assert.Equal(t, 15, fromTime.Day())
@@ -1893,7 +1894,7 @@ func TestConvertTimeIntervalFromNone(t *testing.T) {
 	require.Len(t, timeClaims, 1)
 	assert.Empty(t, unknownClaims)
 	assert.Nil(t, timeClaims[0].From)
-	assert.Equal(t, int64(math.MinInt64), *timeClaims[0].Range.GreaterThanOrEqual)
+	assert.Equal(t, -math.MaxFloat64, *timeClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
 }
 
 func TestConvertTimeIntervalToNone(t *testing.T) {
@@ -1920,7 +1921,7 @@ func TestConvertTimeIntervalToNone(t *testing.T) {
 	require.Len(t, timeClaims, 1)
 	assert.Empty(t, unknownClaims)
 	assert.Nil(t, timeClaims[0].To)
-	assert.Equal(t, int64(math.MaxInt64), *timeClaims[0].Range.LessThanOrEqual)
+	assert.Equal(t, math.MaxFloat64, *timeClaims[0].Range.LessThanOrEqual) //nolint:testifylint
 }
 
 func TestConvertTimeIntervalFromUnknownWithTo(t *testing.T) {

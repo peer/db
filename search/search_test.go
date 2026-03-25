@@ -120,8 +120,8 @@ func TestTimeFilterValid(t *testing.T) {
 	t.Parallel()
 
 	prop := identifier.From("prop")
-	gte := int64(1000)
-	lte := int64(2000)
+	gte := float64(1000)
+	lte := float64(2000)
 
 	tests := []struct {
 		Name    string
@@ -180,8 +180,8 @@ func TestFiltersValid(t *testing.T) {
 	value := identifier.From("value")
 	gte := 1.0
 	lte := 10.0
-	gteTime := int64(1000)
-	lteTime := int64(2000)
+	gteTime := float64(1000)
+	lteTime := float64(2000)
 
 	tests := []struct {
 		Name    string
@@ -421,8 +421,8 @@ func TestFiltersToQuery(t *testing.T) {
 	unit := identifier.From("unit")
 	gte := 1.0
 	lte := 10.0
-	gteTime := int64(1000)
-	lteTime := int64(2000)
+	gteTime := float64(1000)
+	lteTime := float64(2000)
 
 	relFilter := &search.RelFilter{Prop: prop, Value: &value, None: false}
 	relNoneFilter := &search.RelFilter{Prop: prop, Value: nil, None: true}

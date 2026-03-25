@@ -135,53 +135,18 @@ type AmountClaim struct {
 	ToDisplay   string                 `json:"toDisplay,omitempty"`
 }
 
-// RangeInt represents a numeric range.
-//
-// Exactly one of GreaterThan or GreaterThanOrEqual must be set.
-// Exactly one of LessThan or LessThanOrEqual must be set.
-type RangeInt struct {
-	GreaterThan        *int64 `json:"gt,omitempty"`
-	GreaterThanOrEqual *int64 `json:"gte,omitempty"`
-	LessThan           *int64 `json:"lt,omitempty"`
-	LessThanOrEqual    *int64 `json:"lte,omitempty"`
-}
-
-// Validate checks that the range is valid.
-func (r RangeInt) Validate() errors.E {
-	if r.GreaterThan != nil && r.GreaterThanOrEqual != nil {
-		errE := errors.New("both greater than and greater than or equal are set")
-		errors.Details(errE)["range"] = r
-		return errE
-	}
-	if r.LessThan != nil && r.LessThanOrEqual != nil {
-		errE := errors.New("both less than and less than or equal are set")
-		errors.Details(errE)["range"] = r
-		return errE
-	}
-	if r.GreaterThan == nil && r.GreaterThanOrEqual == nil {
-		errE := errors.New("greater than bound is required")
-		errors.Details(errE)["range"] = r
-		return errE
-	}
-	if r.LessThan == nil && r.LessThanOrEqual == nil {
-		errE := errors.New("less than bound is required")
-		errors.Details(errE)["range"] = r
-		return errE
-	}
-	return nil
-}
-
 // TimeClaim represents a claim for timestamp.
 //
 // For search, we index timestamps as both ranges and boundaries.
+// Timestamps are stored as float64 seconds since Unix epoch.
 type TimeClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
 	PropNaming  map[string][]string   `json:"propNaming"`
-	Range       RangeInt              `json:"range"`
-	From        *int64                `json:"from,omitempty"`
+	Range       RangeFloat            `json:"range"`
+	From        *float64              `json:"from,omitempty"`
 	FromDisplay string                `json:"fromDisplay,omitempty"`
-	To          *int64                `json:"to,omitempty"`
+	To          *float64              `json:"to,omitempty"`
 	ToDisplay   string                `json:"toDisplay,omitempty"`
 }
 

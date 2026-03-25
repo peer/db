@@ -69,6 +69,20 @@ func daysIn(month, year int) int {
 	return 30 + int((month+month>>3)&1) //nolint:mnd,unconvert
 }
 
+// Float64 returns the float64 representation of a Timestamp,
+// as seconds since the Unix epoch.
+//
+// Passing 0 for precision skips checks for precision.
+//
+// It location is nil, UTC is used.
+func (t Timestamp) Float64(precision TimePrecision, location *time.Location) (float64, errors.E) {
+	tm, errE := t.Time(precision, location)
+	if errE != nil {
+		return 0, errE
+	}
+	return x.TimeToFloat64(tm), nil
+}
+
 // Time returns the time.Time representation of a Timestamp.
 //
 // Passing 0 for precision skips checks for precision.

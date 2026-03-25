@@ -462,8 +462,8 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 	doc2ID := identifier.From("doc2")
 	doc3ID := identifier.From("doc3")
 
-	t1000 := int64(1000)
-	t2000 := int64(2000)
+	t1000 := float64(1000)
+	t2000 := float64(2000)
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
 		ID: doc1ID,
@@ -476,7 +476,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 				Prop:        timeProp,
 				PropDisplay: nil,
 				PropNaming:  nil,
-				Range: internalSearch.RangeInt{
+				Range: internalSearch.RangeFloat{
 					GreaterThan:        nil,
 					GreaterThanOrEqual: &t1000,
 					LessThan:           nil,
@@ -505,7 +505,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 				Prop:        timeProp,
 				PropDisplay: nil,
 				PropNaming:  nil,
-				Range: internalSearch.RangeInt{
+				Range: internalSearch.RangeFloat{
 					GreaterThan:        nil,
 					GreaterThanOrEqual: &t2000,
 					LessThan:           nil,
@@ -541,8 +541,8 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	// Filter: time in [1500, 10000] — matches doc2 (2000) but not doc1 (1000).
-	gte := int64(1500)
-	lteBig := int64(10000)
+	gte := float64(1500)
+	lteBig := float64(10000)
 	session := &search.Session{
 		ID:      nil,
 		Version: 0,

@@ -141,8 +141,6 @@ func histogramFilterGet(
 	nestedPath string,
 	filter types.QueryVariant,
 	fromField, toField, rangeField string,
-	formatValue func(float64) string,
-	computeInterval func(from, to float64) (float64, float64, string),
 	extractBounds func(session *Session) (from, to *float64),
 ) ([]HistogramResult, map[string]interface{}, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
@@ -157,8 +155,6 @@ func histogramFilterGet(
 	query := searchSession.ToQuery()
 
 	// Extract optional bounds from the search session's filters.
-	// We use float64 bounds even if we could sometimes use int64 bounds so that we stay
-	// compatible with the minMax aggregation which uses only float64.
 	sessionFrom, sessionTo := extractBounds(searchSession)
 
 	var docCount int64
@@ -231,7 +227,7 @@ func histogramFilterGet(
 
 	// Bounds are the same, return a single bucket.
 	if minValue == maxValue {
-		valString := formatValue(minValue)
+		valString := strconv.FormatFloat(minValue, 'f', -1, 64)
 		return []HistogramResult{{From: minValue, Count: docCount}}, map[string]interface{}{
 			"total": "1",
 			"from":  valString,
@@ -285,8 +281,8 @@ func histogramFilterGet(
 
 	metadata := map[string]interface{}{
 		"total":    total,
-		"from":     formatValue(minValue),
-		"to":       formatValue(maxValue),
+		"from":     strconv.FormatFloat(minValue, 'f', -1, 64),
+		"to":       strconv.FormatFloat(maxValue, 'f', -1, 64),
 		"interval": intervalString,
 	}
 

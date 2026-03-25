@@ -320,13 +320,13 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			{
 				"range",
 				`{
-					"type": "long_range"
+					"type": "double_range"
 				}`,
 			},
 			{
 				"from",
 				`{
-					"type": "long"
+					"type": "double"
 				}`,
 			},
 			{
@@ -341,7 +341,7 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			{
 				"to",
 				`{
-					"type": "long"
+					"type": "double"
 				}`,
 			},
 			{

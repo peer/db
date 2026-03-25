@@ -22,7 +22,7 @@ func amountUnitFilter(unit *identifier.Identifier) types.QueryVariant { //nolint
 }
 
 // findAmountBounds walks the Filters tree looking for an AmountFilter matching the given prop and unit.
-// It returns the Gte and Lte bounds if found. It searches And, Or, and Not recursively.
+// It returns the Gte and Lte bounds if found.
 func findAmountBounds(filters *Filters, prop identifier.Identifier, unit *identifier.Identifier) (*float64, *float64) {
 	if filters == nil {
 		return nil, nil
@@ -68,15 +68,11 @@ func matchUnit(a, b *identifier.Identifier) bool {
 	return *a == *b
 }
 
-// amountFormatValue formats a float64 amount value as a string.
-func amountFormatValue(v float64) string {
-	return strconv.FormatFloat(v, 'f', -1, 64)
-}
-
-// amountComputeInterval computes the histogram interval for amount values.
+// computeInterval computes the histogram interval.
+//
 // It ensures that exactly histogramBins buckets are produced by slightly widening
 // the interval so that the max value falls inside the last bucket, not in a 101st bucket.
-func amountComputeInterval(from, to float64) (float64, float64, string) {
+func computeInterval(from, to float64) (float64, float64, string) {
 	// Bins are intervals [from, to). So for upperBound we want the next value after "to".
 	upperBound := math.Nextafter(to, math.Inf(1))
 	interval := (upperBound - from) / float64(histogramBins)
@@ -104,8 +100,6 @@ func AmountFilterGet(
 		ctx, getSearchService, id,
 		"claims.amount", filter,
 		"claims.amount.from", "claims.amount.to", "claims.amount.range",
-		amountFormatValue,
-		amountComputeInterval,
 		func(session *Session) (*float64, *float64) {
 			return findAmountBounds(session.Filters, prop, unit)
 		},

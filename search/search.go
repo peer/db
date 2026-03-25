@@ -78,10 +78,12 @@ func (f AmountFilter) Valid() errors.E {
 }
 
 // TimeFilter represents a filter for time claims.
+//
+// Gte and Lte are in seconds since Unix epoch.
 type TimeFilter struct {
 	Prop identifier.Identifier `json:"prop"`
-	Gte  *int64                `json:"gte,omitempty"`
-	Lte  *int64                `json:"lte,omitempty"`
+	Gte  *float64              `json:"gte,omitempty"`
+	Lte  *float64              `json:"lte,omitempty"`
 	None bool                  `json:"none,omitempty"`
 }
 

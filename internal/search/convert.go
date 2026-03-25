@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/core"
@@ -1263,11 +1264,11 @@ func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) 
 		return nil, errE
 	}
 
-	from := t.Unix()
-	to := addPrecision(t, claim.Precision).Unix()
+	from := x.TimeToFloat64(t)
+	to := x.TimeToFloat64(addPrecision(t, claim.Precision))
 	display := claim.Timestamp.String()
 
-	rangeInt := RangeInt{ //nolint:exhaustruct
+	rangeFloat := RangeFloat{ //nolint:exhaustruct
 		GreaterThanOrEqual: &from,
 		LessThan:           &to,
 	}
@@ -1284,7 +1285,7 @@ func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) 
 			Prop:        pid,
 			PropDisplay: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
-			Range:       rangeInt,
+			Range:       rangeFloat,
 			From:        &from,
 			FromDisplay: display,
 			To:          &to,
@@ -1296,13 +1297,13 @@ func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) 
 
 func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.TimeIntervalClaim) ([]TimeClaim, []UnknownClaim, errors.E) { //nolint:cyclop
 	var (
-		rangeInt    RangeInt
-		from, to    *int64
+		rangeFloat  RangeFloat
+		from, to    *float64
 		fromDisplay string
 		toDisplay   string
 	)
 
-	switch { //nolint:dupl
+	switch {
 	case claim.From != nil:
 		if claim.FromPrecision == nil {
 			errE := errors.New("missing from precision in claim")
@@ -1315,20 +1316,20 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
-		f := tm.Unix()
+		f := x.TimeToFloat64(tm)
 		from = &f
 		fromDisplay = claim.From.String()
 		if claim.FromIsOpen {
-			rangeInt.GreaterThan = &f
+			rangeFloat.GreaterThan = &f
 		} else {
-			rangeInt.GreaterThanOrEqual = &f
+			rangeFloat.GreaterThanOrEqual = &f
 		}
 	case claim.FromIsNone:
 		// We cannot search by the exact bound (we know that it does not exist),
 		// so we leave from and fromDisplay empty.
 		// But we want to find it always when we search by range.
-		f := int64(math.MinInt64)
-		rangeInt.GreaterThanOrEqual = &f
+		f := -math.MaxFloat64
+		rangeFloat.GreaterThanOrEqual = &f
 	case claim.FromIsUnknown && claim.To != nil:
 		if claim.ToPrecision == nil {
 			errE := errors.New("missing to precision in claim")
@@ -1357,7 +1358,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		return nil, claims, errE
 	}
 
-	switch { //nolint:dupl
+	switch {
 	case claim.To != nil:
 		if claim.ToPrecision == nil {
 			errE := errors.New("missing to precision in claim")
@@ -1370,20 +1371,20 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
-		t := tm.Unix()
+		t := x.TimeToFloat64(tm)
 		to = &t
 		toDisplay = claim.To.String()
 		if claim.ToIsClosed {
-			rangeInt.LessThanOrEqual = &t
+			rangeFloat.LessThanOrEqual = &t
 		} else {
-			rangeInt.LessThan = &t
+			rangeFloat.LessThan = &t
 		}
 	case claim.ToIsNone:
 		// We cannot search by the exact bound (we know that it does not exist),
 		// so we leave to and toDisplay empty.
 		// But we want to find it always when we search by range.
-		t := int64(math.MaxInt64)
-		rangeInt.LessThanOrEqual = &t
+		t := math.MaxFloat64
+		rangeFloat.LessThanOrEqual = &t
 	case claim.ToIsUnknown && claim.From != nil:
 		if claim.FromPrecision == nil {
 			errE := errors.New("missing from precision in claim")
@@ -1412,7 +1413,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 	}
 
 	// Sanity check.
-	errE := rangeInt.Validate()
+	errE := rangeFloat.Validate()
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
 		return nil, nil, errE
@@ -1430,7 +1431,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 			Prop:        pid,
 			PropDisplay: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
-			Range:       rangeInt,
+			Range:       rangeFloat,
 			From:        from,
 			FromDisplay: fromDisplay,
 			To:          to,

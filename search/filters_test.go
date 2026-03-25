@@ -26,8 +26,8 @@ func TestFiltersGetIntegration(t *testing.T) {
 
 	ten := 10.0
 	twenty := 20.0
-	t1000 := int64(1000)
-	t2000 := int64(2000)
+	t1000 := float64(1000)
+	t2000 := float64(2000)
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:dupl
 		ID: identifier.From("filterDoc1"),
@@ -55,7 +55,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 				Prop:        timeProp,
 				PropDisplay: nil,
 				PropNaming:  nil,
-				Range: internalSearch.RangeInt{
+				Range: internalSearch.RangeFloat{
 					GreaterThan:        nil,
 					GreaterThanOrEqual: &t1000,
 					LessThan:           nil,
@@ -109,7 +109,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 				Prop:        timeProp,
 				PropDisplay: nil,
 				PropNaming:  nil,
-				Range: internalSearch.RangeInt{
+				Range: internalSearch.RangeFloat{
 					GreaterThan:        nil,
 					GreaterThanOrEqual: &t2000,
 					LessThan:           nil,
