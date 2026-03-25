@@ -41,7 +41,7 @@ test_go:
   image: golang:1.25-alpine3.22
 
   services:
-    - name: elasticsearch:7.16.3
+    - name: "$CI_REGISTRY_IMAGE/elastic/$ELASTIC_VERSION:latest"
       alias: elasticsearch
       variables:
         network.bind_host: 0.0.0.0
