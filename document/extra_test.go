@@ -3193,3 +3193,127 @@ func TestRemoveByIDMetaClaim(t *testing.T) {
 	meta := doc.GetByID(metaID)
 	assert.Nil(t, meta)
 }
+
+// TestGetClaimsListsOfType tests grouping claims by LIST and sorting by ORDER_IN_LIST.
+func TestGetClaimsListsOfType(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+	listA := identifier.New()
+	listB := identifier.New()
+	listProp := identifier.From("core.peerdb.org", "LIST")
+	orderProp := identifier.From("core.peerdb.org", "ORDER_IN_LIST")
+
+	ct := &document.ClaimTypes{ //nolint:exhaustruct
+		String: document.StringClaims{
+			{
+				CoreClaim: document.CoreClaim{
+					ID: identifier.New(), Confidence: 1.0,
+					Meta: &document.ClaimTypes{ //nolint:exhaustruct
+						Identifier: document.IdentifierClaims{
+							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: listProp}, Value: listA.String()}, //nolint:exhaustruct
+						},
+						Amount: document.AmountClaims{
+							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: orderProp}, Amount: "2", Precision: 1}, //nolint:exhaustruct
+						},
+					},
+				},
+				Prop:   document.Reference{ID: prop},
+				String: "a2",
+			},
+			{
+				CoreClaim: document.CoreClaim{
+					ID: identifier.New(), Confidence: 1.0,
+					Meta: &document.ClaimTypes{ //nolint:exhaustruct
+						Identifier: document.IdentifierClaims{
+							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: listProp}, Value: listA.String()}, //nolint:exhaustruct
+						},
+						Amount: document.AmountClaims{
+							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: orderProp}, Amount: "1", Precision: 1}, //nolint:exhaustruct
+						},
+					},
+				},
+				Prop:   document.Reference{ID: prop},
+				String: "a1",
+			},
+			{
+				CoreClaim: document.CoreClaim{
+					ID: identifier.New(), Confidence: 1.0,
+					Meta: &document.ClaimTypes{ //nolint:exhaustruct
+						Identifier: document.IdentifierClaims{
+							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: listProp}, Value: listB.String()}, //nolint:exhaustruct
+						},
+						Amount: document.AmountClaims{
+							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: orderProp}, Amount: "1", Precision: 1}, //nolint:exhaustruct
+						},
+					},
+				},
+				Prop:   document.Reference{ID: prop},
+				String: "b1",
+			},
+		},
+	}
+
+	lists := document.GetClaimsListsOfType[*document.StringClaim](ct, prop)
+	require.Len(t, lists, 2)
+
+	// Find list A and list B (order of lists is not guaranteed).
+	var listAClaims, listBClaims []*document.StringClaim
+	for _, list := range lists {
+		if len(list) == 2 {
+			listAClaims = list
+		} else {
+			listBClaims = list
+		}
+	}
+
+	// List A should have two claims sorted by order: "a1" (order 1), "a2" (order 2).
+	require.Len(t, listAClaims, 2)
+	assert.Equal(t, "a1", listAClaims[0].String)
+	assert.Equal(t, "a2", listAClaims[1].String)
+
+	// List B should have one claim: "b1".
+	require.Len(t, listBClaims, 1)
+	assert.Equal(t, "b1", listBClaims[0].String)
+}
+
+// TestGetClaimsListsOfTypeNoList tests claims without LIST meta-claims.
+func TestGetClaimsListsOfTypeNoList(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+
+	ct := &document.ClaimTypes{ //nolint:exhaustruct
+		String: document.StringClaims{
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, //nolint:exhaustruct
+				Prop:      document.Reference{ID: prop},
+				String:    "no-list-1",
+			},
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 0.8}, //nolint:exhaustruct
+				Prop:      document.Reference{ID: prop},
+				String:    "no-list-2",
+			},
+		},
+	}
+
+	// All claims without LIST meta should be grouped into one list keyed "none".
+	lists := document.GetClaimsListsOfType[*document.StringClaim](ct, prop)
+	require.Len(t, lists, 1)
+	require.Len(t, lists[0], 2)
+	// Without ORDER_IN_LIST, order is MaxFloat64 for all, so original order is preserved.
+	assert.Equal(t, "no-list-1", lists[0][0].String)
+	assert.Equal(t, "no-list-2", lists[0][1].String)
+}
+
+// TestGetClaimsListsOfTypeEmpty tests with no matching claims.
+func TestGetClaimsListsOfTypeEmpty(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+	ct := &document.ClaimTypes{} //nolint:exhaustruct
+
+	lists := document.GetClaimsListsOfType[*document.StringClaim](ct, prop)
+	assert.Nil(t, lists)
+}

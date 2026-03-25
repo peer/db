@@ -181,7 +181,7 @@ func GetClaimsListsOfType[T Claim](claims Claims, propID identifier.Identifier) 
 	for _, c := range all {
 		listID := "none"
 		if listClaim := GetBestClaimOfType[*IdentifierClaim](Claim(c), listPropID); listClaim != nil {
-			listID = listClaim.ID.String()
+			listID = listClaim.Value
 		}
 		order := math.MaxFloat64
 		if orderClaim := GetBestClaimOfType[*AmountClaim](Claim(c), orderInListPropID); orderClaim != nil {
