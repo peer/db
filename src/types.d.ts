@@ -200,6 +200,12 @@ export type StorageUploadStatus = {
   discarded?: boolean
 }
 
+export type DocumentEditStatus = {
+  active: boolean
+  changeset?: string
+  discarded?: boolean
+}
+
 export type DocumentCreateResponse = {
   id: string
 }

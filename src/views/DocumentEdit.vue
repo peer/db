@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { TimePrecision } from "@/document"
-import type { DocumentBeginMetadata, DocumentEndEditResponse } from "@/types"
+import type { DocumentBeginMetadata, DocumentEditStatus, DocumentEndEditResponse } from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { CheckIcon } from "@heroicons/vue/20/solid"
@@ -58,6 +58,7 @@ const router = useRouter()
 const saveProgress = injectProgress()
 
 const abortController = new AbortController()
+let pollingTimer: ReturnType<typeof setInterval> | null = null
 
 onBeforeUnmount(() => {
   abortController.abort()
@@ -67,6 +68,9 @@ const _doc = ref<D | null>(null)
 const doc = process.env.NODE_ENV !== "production" ? readonly(_doc) : _doc
 
 let latestChange = 0
+
+// Poll interval in milliseconds.
+const pollInterval = 1000
 
 async function loadAndSubscribe() {
   const { doc: beginMetadata } = await getURL<DocumentBeginMetadata>(
@@ -105,7 +109,7 @@ async function loadAndSubscribe() {
 
   // TODO: Use websocket to watch for new changes.
   let running = false
-  const timer = setInterval(() => {
+  pollingTimer = setInterval(() => {
     ;(async () => {
       if (running) {
         return
@@ -151,8 +155,13 @@ async function loadAndSubscribe() {
       // TODO: Show error state to the user.
       console.error("loadAndSubscribe interval", error)
     })
-  }, 1000)
-  abortController.signal.addEventListener("abort", () => clearTimeout(timer))
+  }, pollInterval)
+  abortController.signal.addEventListener("abort", () => {
+    if (pollingTimer !== null) {
+      clearInterval(pollingTimer)
+      pollingTimer = null
+    }
+  })
 }
 loadAndSubscribe().catch((error) => {
   // TODO: Show error state to the user.
@@ -164,6 +173,12 @@ const docName = computed(() => getName(doc.value?.claims))
 async function onSave() {
   if (abortController.signal.aborted) {
     return
+  }
+
+  // Stop polling for changes before ending the session.
+  if (pollingTimer !== null) {
+    clearInterval(pollingTimer)
+    pollingTimer = null
   }
 
   saveProgress.value += 1
@@ -182,6 +197,29 @@ async function onSave() {
     if (abortController.signal.aborted) {
       return
     }
+
+    // Poll until the session is fully completed (document committed).
+    const editStatusURL = router.apiResolve({
+      name: "DocumentEdit",
+      params: {
+        id: props.id,
+        session: props.session,
+      },
+    }).href
+    while (true) {
+      await new Promise((resolve) => setTimeout(resolve, pollInterval))
+      if (abortController.signal.aborted) {
+        return
+      }
+      const { doc: status } = await getURLDirect<DocumentEditStatus>(editStatusURL, abortController.signal, null)
+      if (abortController.signal.aborted) {
+        return
+      }
+      if (status.changeset || status.discarded) {
+        break
+      }
+    }
+
     deleteFromCache(
       router.apiResolve({
         name: "DocumentGet",
