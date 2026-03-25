@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance, DeepReadonly } from "vue"
 
-import type { PeerDBDocument } from "@/document"
+import type { D } from "@/document"
 import type { ClientSearchSession, FilterResult, FiltersState, FilterStateChange, Result, ViewType } from "@/types"
 
 import { LocalScope } from "@all1ndev/vue-local-scope"
@@ -13,6 +13,7 @@ import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
+import { getClaimsOfTypeWithConfidence } from "@/document"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
@@ -20,7 +21,7 @@ import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import { injectProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search"
 import { useTruncationTracking } from "@/truncation"
-import { encodeQuery, getClaimsOfTypeWithConfidence, getName, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils"
+import { encodeQuery, getName, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils"
 import { useVisibilityTracking } from "@/visibility"
 
 const props = defineProps<{
@@ -79,7 +80,7 @@ const {
 } = useLimitResults(filtersResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
 
 function supportedFilter(filter: FilterResult) {
-  return filter.type === "rel" || filter.type === "amount" || filter.type === "time" || filter.type === "string"
+  return filter.type === "ref" || filter.type === "amount" || filter.type === "time"
 }
 
 const rowColspan = computed(() => {
@@ -187,7 +188,7 @@ onBeforeUnmount(() => {
   window.removeEventListener("scroll", onScroll)
 })
 
-const WithPeerDBDocument = WithDocument<PeerDBDocument>
+const WithDocumentD = WithDocument<D>
 
 const { track: trackTruncation, truncated } = useTruncationTracking()
 
@@ -226,8 +227,7 @@ function getButtonTitle(resultId: string): string {
 }
 
 const isFilterActive = (filter: FilterResult) => {
-  const filterType = filter.type === "string" ? "str" : filter.type
-  return !!props.filtersState?.[filterType]?.[filter.id]
+  return !!props.filtersState?.[filter.type]?.[filter.id]
 }
 
 const activeFilter = ref<FilterResult | null>(null)
@@ -287,7 +287,7 @@ function onCloseFilterModal() {
             <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
               <th v-if="supportedFilter(filter)" class="text-start">
                 <!-- <div class="flex flex-row items-center justify-between"> -->
-                <WithPeerDBDocument :id="filter.id" name="DocumentGet">
+                <WithDocumentD :id="filter.id" name="DocumentGet">
                   <template #default="{ doc, url }">
                     <Button
                       :data-url="url"
@@ -302,7 +302,7 @@ function onCloseFilterModal() {
                   <template #loading="{ url }">
                     <div class="pd-withdocument-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(filter.id)]" />
                   </template>
-                </WithPeerDBDocument>
+                </WithDocumentD>
               </th>
             </template>
           </tr>
@@ -311,7 +311,7 @@ function onCloseFilterModal() {
         <!-- Results -->
         <tbody class="divide-y divide-gray-200">
           <template v-for="(result, index) in limitedSearchResults" :key="result.id">
-            <WithPeerDBDocument :id="result.id" name="DocumentGet">
+            <WithDocumentD :id="result.id" name="DocumentGet">
               <template #default="{ doc, url }">
                 <tr :id="`result-${result.id}`" :ref="track(result.id)" class="odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="flex items-center justify-between gap-1 p-2">
@@ -414,7 +414,7 @@ function onCloseFilterModal() {
                   </td>
                 </tr>
               </template>
-            </WithPeerDBDocument>
+            </WithDocumentD>
           </template>
         </tbody>
       </table>

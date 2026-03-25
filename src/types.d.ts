@@ -3,23 +3,17 @@ import type { Component } from "vue"
 
 import type { NONE } from "@/symbols"
 
-type TranslatableHTMLString = Record<string, string>
-
-type AmountUnit = "@" | "1" | "/" | "kg/kg" | "kg" | "kg/m³" | "m" | "m²" | "m/s" | "V" | "W" | "Pa" | "C" | "J" | "°C" | "rad" | "Hz" | "$" | "B" | "px" | "s" | "dB"
-
-type TimePrecision = "G" | "100M" | "10M" | "M" | "100k" | "10k" | "k" | "100y" | "10y" | "y" | "m" | "d" | "h" | "min" | "s"
-
-export type RelSearchResult = {
+export type RefSearchResult = {
   id: string
   count: number
-  type: "rel"
+  type: "ref"
 }
 
 export type AmountSearchResult = {
   id: string
   count: number
   type: "amount"
-  unit: AmountUnit
+  unit?: string
 }
 
 export type TimeSearchResult = {
@@ -28,78 +22,57 @@ export type TimeSearchResult = {
   type: "time"
 }
 
-export type StringSearchResult = {
-  id: string
-  count: number
-  type: "string"
-}
-
-export type FilterResult = RelSearchResult | AmountSearchResult | TimeSearchResult | StringSearchResult
+export type FilterResult = RefSearchResult | AmountSearchResult | TimeSearchResult
 
 export type Result = {
   id: string
 }
 
-export type RelFilterResult = {
+export type RefFilterResult = {
   id: string
   count: number
 }
 
 export type HistogramAmountResult = {
-  min: number
+  from: number
   count: number
 }
 
 export type HistogramTimeResult = {
-  min: string
+  from: number
   count: number
 }
 
-export type StringFilterResult = {
-  str: string
-  count: number
-}
-
-export type RelFilter = {
+export type RefFilter = {
   prop: string
   value: string
 }
 
-export type RelNoneFilter = {
+export type RefNoneFilter = {
   prop: string
   none: true
 }
 
 export type AmountFilter = {
   prop: string
-  unit: AmountUnit
+  unit?: string
   gte?: number
   lte?: number
 }
 
 export type AmountNoneFilter = {
   prop: string
-  unit: AmountUnit
+  unit?: string
   none: true
 }
 
 export type TimeFilter = {
   prop: string
-  gte?: string
-  lte?: string
+  gte?: number
+  lte?: number
 }
 
 export type TimeNoneFilter = {
-  prop: string
-  none: true
-}
-
-export type StringFilter = {
-  prop: string
-  str: string
-}
-
-export type StringNoneFilter = {
   prop: string
   none: true
 }
@@ -114,36 +87,32 @@ export type Filters =
   | {
       not: Filters
     }
-  | { rel: RelFilter | RelNoneFilter }
+  | { ref: RefFilter | RefNoneFilter }
   | { amount: AmountFilter | AmountNoneFilter }
   | { time: TimeFilter | TimeNoneFilter }
-  | { str: StringFilter | StringNoneFilter }
 
-export type RelFilterState = (string | typeof NONE)[]
+export type RefFilterState = (string | typeof NONE)[]
 
 export type AmountFilterState = null | typeof NONE | { gte?: number; lte?: number }
 
-export type TimeFilterState = null | typeof NONE | { gte?: string; lte?: string }
-
-export type StringFilterState = (string | typeof NONE)[]
+export type TimeFilterState = null | typeof NONE | { gte?: number; lte?: number }
 
 export type FiltersState = {
-  rel: Record<string, RelFilterState>
+  ref: Record<string, RefFilterState>
   amount: Record<string, AmountFilterState>
   time: Record<string, TimeFilterState>
-  str: Record<string, StringFilterState>
 }
 
-export type RelFilterStateChange = {
-  type: "rel"
+export type RefFilterStateChange = {
+  type: "ref"
   id: string
-  value: RelFilterState
+  value: RefFilterState
 }
 
 export type AmountFilterStateChange = {
   type: "amount"
   id: string
-  unit: AmountUnit
+  unit?: string
   value: AmountFilterState
 }
 
@@ -153,13 +122,7 @@ export type TimeFilterStateChange = {
   value: TimeFilterState
 }
 
-export type StringFilterStateChange = {
-  type: "string"
-  id: string
-  value: StringFilterState
-}
-
-export type FilterStateChange = RelFilterStateChange | AmountFilterStateChange | TimeFilterStateChange | StringFilterStateChange
+export type FilterStateChange = RefFilterStateChange | AmountFilterStateChange | TimeFilterStateChange
 
 export type ServerSearchSession = {
   id: string
@@ -229,6 +192,12 @@ export type StorageBeginUploadRequest = {
 
 export type StorageBeginUploadResponse = {
   session: string
+}
+
+export type StorageUploadStatus = {
+  active: boolean
+  id?: string
+  discarded?: boolean
 }
 
 export type DocumentCreateResponse = {

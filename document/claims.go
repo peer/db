@@ -110,6 +110,7 @@ func GetAllClaimsOfType[T Claim](claims Claims) []T {
 // If confidence is 0, it defaults to LowConfidence.
 //
 // Because Go does not support generic interface methods, this is a top-level function.
+// TODO: Support also negation claims (i.e., those with negative confidence).
 func GetAllClaimsOfTypeWithConfidence[T Claim](claims Claims, confidence Confidence) []T {
 	if confidence == 0 {
 		confidence = LowConfidence
@@ -134,6 +135,7 @@ func GetAllClaimsOfTypeWithConfidence[T Claim](claims Claims, confidence Confide
 // If confidence is 0, it defaults to LowConfidence.
 //
 // Because Go does not support generic interface methods, this is a top-level function.
+// TODO: Support also negation claims (i.e., those with negative confidence).
 func GetClaimsOfTypeWithConfidence[T Claim](claims Claims, propID identifier.Identifier, confidence Confidence) []T {
 	if confidence == 0 {
 		confidence = LowConfidence
@@ -166,6 +168,8 @@ var (
 // Returns a slice of lists, where each list is a slice of claims sorted by order.
 //
 // Because Go does not support generic interface methods, this is a top-level function.
+// TODO: Handle sub-lists. Children lists should be nested and not just added as additional lists to the list of lists.
+// TODO: Sort lists between themselves by (average) confidence?
 func GetClaimsListsOfType[T Claim](claims Claims, propID identifier.Identifier) [][]T {
 	all := GetClaimsOfType[T](claims, propID)
 	if len(all) == 0 {
@@ -204,29 +208,6 @@ func GetClaimsListsOfType[T Claim](claims Claims, propID identifier.Identifier) 
 		result = append(result, list)
 	}
 	return result
-}
-
-// CoreDocument contains the core fields present in all PeerDB documents.
-type CoreDocument struct {
-	ID   identifier.Identifier `json:"id"`
-	Base []string              `json:"base"`
-}
-
-// GetID returns the document's identifier.
-func (d CoreDocument) GetID() identifier.Identifier {
-	return d.ID
-}
-
-// Validate checks that the document has a valid identifier.
-func (d CoreDocument) Validate() errors.E {
-	expectedID := identifier.From(d.Base...)
-	if d.ID != expectedID {
-		errE := errors.New("invalid ID")
-		errors.Details(errE)["id"] = d.ID.String()
-		errors.Details(errE)["expected"] = expectedID.String()
-		return errE
-	}
-	return nil
 }
 
 // ClaimTypes organizes claims by their type.

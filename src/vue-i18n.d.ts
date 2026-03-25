@@ -110,17 +110,10 @@ declare module "vue-i18n" {
         collapseRow: string
         moreColumns: string
       }
-      claimvalue: {
-        ClaimValueFile: {
-          filePreview: string
-        }
-      }
     }
     views: {
       DocumentGet: {
         tabs: {
-          article: string
-          file: string
           allProperties: string
         }
       }
@@ -128,29 +121,25 @@ declare module "vue-i18n" {
         addClaim: string
         claimTypes: {
           identifier: string
-          reference: string
-          text: string
           string: string
+          html: string
           amount: string
-          amountRange: string
-          relation: string
-          file: string
-          noValue: string
-          unknownValue: string
+          amountInterval: string
           time: string
-          timeRange: string
+          timeInterval: string
+          link: string
+          reference: string
+          has: string
+          none: string
+          unknown: string
         }
         labels: {
           iri: string
-          text: string
+          html: string
           string: string
           amount: string
-          lower: string
-          upper: string
+          from: string
           to: string
-          mediaType: string
-          url: string
-          previewUrl: string
         }
       }
     }

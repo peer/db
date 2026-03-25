@@ -11,7 +11,7 @@ import { deleteFromCache, getURL, getURLDirect, postJSON } from "@/api"
 import Button from "@/components/Button.vue"
 import InputText from "@/components/InputText.vue"
 import InputTime from "@/components/InputTime.vue"
-import { AddClaimChange, changeFrom, idAtChange, PeerDBDocument, RemoveClaimChange } from "@/document"
+import { AddClaimChange, changeFrom, D, RemoveClaimChange } from "@/document"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
@@ -24,21 +24,21 @@ const props = defineProps<{
   session: string
 }>()
 
-const claimTypes: ("id" | "ref" | "text" | "string" | "amount" | "amountRange" | "rel" | "file" | "none" | "unknown" | "time" | "timeRange")[] = [
+const claimTypes: ("id" | "string" | "html" | "amount" | "amountInterval" | "time" | "timeInterval" | "link" | "ref" | "has" | "none" | "unknown")[] = [
   "id",
-  "ref",
-  "text",
   "string",
+  "html",
   "amount",
-  "amountRange",
-  "rel",
-  "file",
+  "amountInterval",
+  "time",
+  "timeInterval",
+  "link",
+  "ref",
+  "has",
   "none",
   "unknown",
-  "time",
-  "timeRange",
 ]
-const claimType = ref<"id" | "ref" | "text" | "string" | "amount" | "amountRange" | "rel" | "file" | "none" | "unknown" | "time" | "timeRange">("id")
+const claimType = ref<"id" | "string" | "html" | "amount" | "amountInterval" | "time" | "timeInterval" | "link" | "ref" | "has" | "none" | "unknown">("id")
 const claimProp = ref("")
 const claimValue = ref("")
 
@@ -53,7 +53,7 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-const _doc = ref<PeerDBDocument | null>(null)
+const _doc = ref<D | null>(null)
 const doc = process.env.NODE_ENV !== "production" ? readonly(_doc) : _doc
 
 let latestChange = 0
@@ -91,7 +91,7 @@ async function loadAndSubscribe() {
     return
   }
 
-  _doc.value = new PeerDBDocument(initialDoc)
+  _doc.value = new D(initialDoc)
 
   // TODO: Use websocket to watch for new changes.
   let running = false
@@ -132,7 +132,7 @@ async function loadAndSubscribe() {
             return
           }
           const change = changeFrom(changeDoc)
-          change.Apply(_doc.value!, idAtChange(props.session, latestChange + 1))
+          await change.Apply(_doc.value!)
         }
       } finally {
         running = false
@@ -218,9 +218,7 @@ async function onAddClaim() {
           prop: claimProp.value,
           value: claimValue.value,
           iri: claimValue.value,
-          html: {
-            en: claimValue.value,
-          },
+          html: claimValue.value,
           string: claimValue.value,
           amount: claimValue.value,
           to: claimValue.value,
@@ -327,15 +325,11 @@ function onChangeTab(index: number) {
             >
             <Tab
               class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >{{ t("views.DocumentEdit.claimTypes.reference") }}</Tab
-            >
-            <Tab
-              class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >{{ t("views.DocumentEdit.claimTypes.text") }}</Tab
-            >
-            <Tab
-              class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
               >{{ t("views.DocumentEdit.claimTypes.string") }}</Tab
+            >
+            <Tab
+              class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >{{ t("views.DocumentEdit.claimTypes.html") }}</Tab
             >
             <Tab
               class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
@@ -343,23 +337,7 @@ function onChangeTab(index: number) {
             >
             <Tab
               class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >{{ t("views.DocumentEdit.claimTypes.amountRange") }}</Tab
-            >
-            <Tab
-              class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >{{ t("views.DocumentEdit.claimTypes.relation") }}</Tab
-            >
-            <Tab
-              class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >{{ t("views.DocumentEdit.claimTypes.file") }}</Tab
-            >
-            <Tab
-              class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >{{ t("views.DocumentEdit.claimTypes.noValue") }}</Tab
-            >
-            <Tab
-              class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >{{ t("views.DocumentEdit.claimTypes.unknownValue") }}</Tab
+              >{{ t("views.DocumentEdit.claimTypes.amountInterval") }}</Tab
             >
             <Tab
               class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
@@ -367,7 +345,27 @@ function onChangeTab(index: number) {
             >
             <Tab
               class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-              >{{ t("views.DocumentEdit.claimTypes.timeRange") }}</Tab
+              >{{ t("views.DocumentEdit.claimTypes.timeInterval") }}</Tab
+            >
+            <Tab
+              class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >{{ t("views.DocumentEdit.claimTypes.link") }}</Tab
+            >
+            <Tab
+              class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >{{ t("views.DocumentEdit.claimTypes.reference") }}</Tab
+            >
+            <Tab
+              class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >{{ t("views.DocumentEdit.claimTypes.has") }}</Tab
+            >
+            <Tab
+              class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >{{ t("views.DocumentEdit.claimTypes.none") }}</Tab
+            >
+            <Tab
+              class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+              >{{ t("views.DocumentEdit.claimTypes.unknown") }}</Tab
             >
           </TabList>
           <TabPanels>
@@ -379,22 +377,16 @@ function onChangeTab(index: number) {
               <InputText id="identifier-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="reference-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-              <InputText id="reference-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
-              <label for="reference-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.iri") }}</label>
-              <InputText id="reference-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
-            </TabPanel>
-            <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="text-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-              <InputText id="text-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
-              <label for="text-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.text") }}</label>
-              <InputText id="text-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
-            </TabPanel>
-            <TabPanel tabindex="-1" class="flex flex-col">
               <label for="string-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
               <InputText id="string-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
               <label for="string-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.string") }}</label>
               <InputText id="string-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
+            </TabPanel>
+            <TabPanel tabindex="-1" class="flex flex-col">
+              <label for="html-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+              <InputText id="html-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
+              <label for="html-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.html") }}</label>
+              <InputText id="html-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="amount-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
@@ -403,28 +395,43 @@ function onChangeTab(index: number) {
               <InputText id="amount-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="amountRange-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-              <InputText id="amountRange-property" class="min-w-0 flex-auto grow" />
-              <label for="amountRange-lower" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.lower") }}</label>
-              <InputText id="amountRange-lower" class="min-w-0 flex-auto grow" />
-              <label for="amountRange-upper" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.upper") }}</label>
-              <InputText id="amountRange-upper" class="min-w-0 flex-auto grow" />
+              <label for="amountInterval-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+              <InputText id="amountInterval-property" class="min-w-0 flex-auto grow" />
+              <label for="amountInterval-from" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.from") }}</label>
+              <InputText id="amountInterval-from" class="min-w-0 flex-auto grow" />
+              <label for="amountInterval-to" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.to") }}</label>
+              <InputText id="amountInterval-to" class="min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="relation-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-              <InputText id="relation-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
-              <label for="relation-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.to") }}</label>
-              <InputText id="relation-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
+              <label for="time-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+              <InputText id="time-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
+              <InputTime v-model="claimValue" class="mt-4 min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="file-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-              <InputText id="file-property" class="min-w-0 flex-auto grow" />
-              <label for="file-mediaType" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.mediaType") }}</label>
-              <InputText id="file-mediaType" class="min-w-0 flex-auto grow" />
-              <label for="file-url" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.url") }}</label>
-              <InputText id="file-url" class="min-w-0 flex-auto grow" />
-              <label for="file-preview" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.previewUrl") }}</label>
-              <InputText id="file-preview" class="min-w-0 flex-auto grow" />
+              <label for="timeInterval-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+              <InputText id="timeInterval-property" class="min-w-0 flex-auto grow" />
+              <InputTime class="mt-4 min-w-0 flex-auto grow">
+                <template #timestamp-label>{{ t("views.DocumentEdit.labels.from") }}</template>
+              </InputTime>
+              <InputTime class="mt-4 min-w-0 flex-auto grow">
+                <template #timestamp-label>{{ t("views.DocumentEdit.labels.to") }}</template>
+              </InputTime>
+            </TabPanel>
+            <TabPanel tabindex="-1" class="flex flex-col">
+              <label for="link-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+              <InputText id="link-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
+              <label for="link-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.iri") }}</label>
+              <InputText id="link-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
+            </TabPanel>
+            <TabPanel tabindex="-1" class="flex flex-col">
+              <label for="reference-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+              <InputText id="reference-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
+              <label for="reference-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.to") }}</label>
+              <InputText id="reference-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
+            </TabPanel>
+            <TabPanel tabindex="-1" class="flex flex-col">
+              <label for="has-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+              <InputText id="has-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="none-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
@@ -433,21 +440,6 @@ function onChangeTab(index: number) {
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="unknown-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
               <InputText id="unknown-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
-            </TabPanel>
-            <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="time-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-              <InputText id="time-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
-              <InputTime v-model="claimValue" class="mt-4 min-w-0 flex-auto grow" />
-            </TabPanel>
-            <TabPanel tabindex="-1" class="flex flex-col">
-              <label for="timeRange-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-              <InputText id="timeRange-property" class="min-w-0 flex-auto grow" />
-              <InputTime class="mt-4 min-w-0 flex-auto grow">
-                <template #timestamp-label>{{ t("views.DocumentEdit.labels.lower") }}</template>
-              </InputTime>
-              <InputTime class="mt-4 min-w-0 flex-auto grow">
-                <template #timestamp-label>{{ t("views.DocumentEdit.labels.upper") }}</template>
-              </InputTime>
             </TabPanel>
           </TabPanels>
         </TabGroup>

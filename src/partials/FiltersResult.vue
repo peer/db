@@ -1,24 +1,12 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type {
-  AmountFilterState,
-  AmountSearchResult,
-  AmountUnit,
-  ClientSearchSession,
-  FilterResult,
-  FiltersState,
-  FilterStateChange,
-  RelFilterState,
-  StringFilterState,
-  TimeFilterState,
-} from "@/types"
+import type { AmountFilterState, AmountSearchResult, ClientSearchSession, FilterResult, FiltersState, FilterStateChange, RefFilterState, TimeFilterState } from "@/types"
 
 import { onBeforeUnmount } from "vue"
 
 import AmountFiltersResult from "@/partials/AmountFiltersResult.vue"
-import RelFiltersResult from "@/partials/RelFiltersResult.vue"
-import StringFiltersResult from "@/partials/StringFiltersResult.vue"
+import RefFiltersResult from "@/partials/RefFiltersResult.vue"
 import TimeFiltersResult from "@/partials/TimeFiltersResult.vue"
 
 defineProps<{
@@ -44,15 +32,15 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-function onRelFiltersStateUpdate(id: string, value: RelFilterState) {
+function onRefFiltersStateUpdate(id: string, value: RefFilterState) {
   if (abortController.signal.aborted) {
     return
   }
 
-  $emit("filterChange", { type: "rel", id, value })
+  $emit("filterChange", { type: "ref", id, value })
 }
 
-function onAmountFiltersStateUpdate(id: string, unit: AmountUnit, value: AmountFilterState) {
+function onAmountFiltersStateUpdate(id: string, unit: string | undefined, value: AmountFilterState) {
   if (abortController.signal.aborted) {
     return
   }
@@ -68,26 +56,25 @@ function onTimeFiltersStateUpdate(id: string, value: TimeFilterState) {
   $emit("filterChange", { type: "time", id, value })
 }
 
-function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
-  if (abortController.signal.aborted) {
-    return
+function amountFilterKey(id: string, unit?: string): string {
+  if (unit) {
+    return `${id}/${unit}`
   }
-
-  $emit("filterChange", { type: "string", id, value })
+  return id
 }
 </script>
 
 <template>
-  <RelFiltersResult
-    v-if="result.type === 'rel'"
+  <RefFiltersResult
+    v-if="result.type === 'ref'"
     class="pd-filterresult"
     :search-session="searchSession"
     :search-total="searchTotal"
     :result="result"
-    :state="filtersState.rel[result.id] ?? []"
+    :state="filtersState.ref[result.id] ?? []"
     :update-progress="updateSearchSessionProgress"
     v-bind="$attrs"
-    @update:state="(v) => onRelFiltersStateUpdate(result.id, v)"
+    @update:state="(v) => onRefFiltersStateUpdate(result.id, v)"
   />
 
   <AmountFiltersResult
@@ -96,7 +83,7 @@ function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
     :search-session="searchSession"
     :search-total="searchTotal"
     :result="result"
-    :state="filtersState.amount[`${result.id}/${result.unit}`] ?? null"
+    :state="filtersState.amount[amountFilterKey(result.id, (result as AmountSearchResult).unit)] ?? null"
     :update-progress="updateSearchSessionProgress"
     v-bind="$attrs"
     @update:state="(v) => onAmountFiltersStateUpdate(result.id, (result as AmountSearchResult).unit, v)"
@@ -112,17 +99,5 @@ function onStringFiltersStateUpdate(id: string, value: StringFilterState) {
     :update-progress="updateSearchSessionProgress"
     v-bind="$attrs"
     @update:state="(v) => onTimeFiltersStateUpdate(result.id, v)"
-  />
-
-  <StringFiltersResult
-    v-if="result.type === 'string'"
-    class="pd-filterresult"
-    :search-session="searchSession"
-    :search-total="searchTotal"
-    :result="result"
-    :state="filtersState.str[result.id] ?? []"
-    :update-progress="updateSearchSessionProgress"
-    v-bind="$attrs"
-    @update:state="(v) => onStringFiltersStateUpdate(result.id, v)"
   />
 </template>

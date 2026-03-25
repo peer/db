@@ -7,16 +7,16 @@ import { useI18n } from "vue-i18n"
 import Button from "@/components/Button.vue"
 import { ClaimTypes } from "@/document"
 import ClaimValueAmount from "@/partials/claimvalue/ClaimValueAmount.vue"
-import ClaimValueAmountRange from "@/partials/claimvalue/ClaimValueAmountRange.vue"
-import ClaimValueFile from "@/partials/claimvalue/ClaimValueFile.vue"
+import ClaimValueAmountInterval from "@/partials/claimvalue/ClaimValueAmountInterval.vue"
+import ClaimValueHas from "@/partials/claimvalue/ClaimValueHas.vue"
+import ClaimValueHtml from "@/partials/claimvalue/ClaimValueHtml.vue"
 import ClaimValueId from "@/partials/claimvalue/ClaimValueId.vue"
+import ClaimValueLink from "@/partials/claimvalue/ClaimValueLink.vue"
 import ClaimValueNone from "@/partials/claimvalue/ClaimValueNone.vue"
 import ClaimValueRef from "@/partials/claimvalue/ClaimValueRef.vue"
-import ClaimValueRel from "@/partials/claimvalue/ClaimValueRel.vue"
 import ClaimValueString from "@/partials/claimvalue/ClaimValueString.vue"
-import ClaimValueText from "@/partials/claimvalue/ClaimValueText.vue"
 import ClaimValueTime from "@/partials/claimvalue/ClaimValueTime.vue"
-import ClaimValueTimeRange from "@/partials/claimvalue/ClaimValueTimeRange.vue"
+import ClaimValueTimeInterval from "@/partials/claimvalue/ClaimValueTimeInterval.vue"
 import ClaimValueUnknown from "@/partials/claimvalue/ClaimValueUnknown.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 
@@ -80,38 +80,6 @@ function onRemove(id: string) {
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
   </template>
-  <template v-for="claim in claims.ref" :key="claim.id">
-    <tr>
-      <td
-        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
-        :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
-        :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
-        ><DocumentRefInline :id="claim.prop.id"
-      /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueRef :claim="claim" /></td>
-      <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
-        <Button type="button" class="px-3.5 py-1" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
-        <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
-      </td>
-    </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
-  </template>
-  <template v-for="claim in claims.text" :key="claim.id">
-    <tr>
-      <td
-        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
-        :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
-        :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
-        ><DocumentRefInline :id="claim.prop.id"
-      /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueText :claim="claim" /></td>
-      <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
-        <Button type="button" class="px-3.5 py-1" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
-        <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
-      </td>
-    </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
-  </template>
   <template v-for="claim in claims.string" :key="claim.id">
     <tr>
       <td
@@ -121,6 +89,22 @@ function onRemove(id: string) {
         ><DocumentRefInline :id="claim.prop.id"
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueString :claim="claim" /></td>
+      <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
+        <Button type="button" class="px-3.5 py-1" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
+      </td>
+    </tr>
+    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
+  </template>
+  <template v-for="claim in claims.html" :key="claim.id">
+    <tr>
+      <td
+        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
+        :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
+        :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
+        ><DocumentRefInline :id="claim.prop.id"
+      /></td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueHtml :claim="claim" /></td>
       <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="px-3.5 py-1" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
         <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
@@ -144,7 +128,7 @@ function onRemove(id: string) {
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
   </template>
-  <template v-for="claim in claims.amountRange" :key="claim.id">
+  <template v-for="claim in claims.amountInterval" :key="claim.id">
     <tr>
       <td
         class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
@@ -152,7 +136,9 @@ function onRemove(id: string) {
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><DocumentRefInline :id="claim.prop.id"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueAmountRange :claim="claim" /></td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
+        ><ClaimValueAmountInterval :claim="claim"
+      /></td>
       <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="px-3.5 py-1" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
         <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
@@ -160,7 +146,7 @@ function onRemove(id: string) {
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
   </template>
-  <template v-for="claim in claims.rel" :key="claim.id">
+  <template v-for="claim in claims.time" :key="claim.id">
     <tr>
       <td
         class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
@@ -168,7 +154,7 @@ function onRemove(id: string) {
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><DocumentRefInline :id="claim.prop.id"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueRel :claim="claim" /></td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueTime :claim="claim" /></td>
       <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="px-3.5 py-1" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
         <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
@@ -176,7 +162,7 @@ function onRemove(id: string) {
     </tr>
     <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
   </template>
-  <template v-for="claim in claims.file" :key="claim.id">
+  <template v-for="claim in claims.timeInterval" :key="claim.id">
     <tr>
       <td
         class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
@@ -184,7 +170,55 @@ function onRemove(id: string) {
         :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
         ><DocumentRefInline :id="claim.prop.id"
       /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueFile :claim="claim" /></td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueTimeInterval :claim="claim" /></td>
+      <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
+        <Button type="button" class="px-3.5 py-1" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
+      </td>
+    </tr>
+    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
+  </template>
+  <template v-for="claim in claims.link" :key="claim.id">
+    <tr>
+      <td
+        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
+        :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
+        :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
+        ><DocumentRefInline :id="claim.prop.id"
+      /></td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueLink :claim="claim" /></td>
+      <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
+        <Button type="button" class="px-3.5 py-1" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
+      </td>
+    </tr>
+    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
+  </template>
+  <template v-for="claim in claims.ref" :key="claim.id">
+    <tr>
+      <td
+        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
+        :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
+        :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
+        ><DocumentRefInline :id="claim.prop.id"
+      /></td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueRef :claim="claim" /></td>
+      <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
+        <Button type="button" class="px-3.5 py-1" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
+      </td>
+    </tr>
+    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
+  </template>
+  <template v-for="claim in claims.has" :key="claim.id">
+    <tr>
+      <td
+        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
+        :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
+        :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
+        ><DocumentRefInline :id="claim.prop.id"
+      /></td>
+      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueHas :claim="claim" /></td>
       <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="px-3.5 py-1" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
         <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
@@ -217,38 +251,6 @@ function onRemove(id: string) {
         ><DocumentRefInline :id="claim.prop.id"
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueUnknown :claim="claim" /></td>
-      <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
-        <Button type="button" class="px-3.5 py-1" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
-        <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
-      </td>
-    </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
-  </template>
-  <template v-for="claim in claims.time" :key="claim.id">
-    <tr>
-      <td
-        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
-        :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
-        :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
-        ><DocumentRefInline :id="claim.prop.id"
-      /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueTime :claim="claim" /></td>
-      <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
-        <Button type="button" class="px-3.5 py-1" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
-        <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
-      </td>
-    </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
-  </template>
-  <template v-for="claim in claims.timeRange" :key="claim.id">
-    <tr>
-      <td
-        class="border-r border-slate-200 py-1 pr-2 align-top whitespace-nowrap"
-        :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"
-        :style="{ 'padding-left': 0.5 + level * 0.75 + 'rem' }"
-        ><DocumentRefInline :id="claim.prop.id"
-      /></td>
-      <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueTimeRange :claim="claim" /></td>
       <td v-if="editable" class="ml-2 flex flex-row gap-1" :class="{ 'text-sm': level > 0 }">
         <Button type="button" class="px-3.5 py-1" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
         <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>

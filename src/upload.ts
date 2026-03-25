@@ -1,13 +1,16 @@
 import type { Ref } from "vue"
 import type { Router } from "vue-router"
 
-import type { StorageBeginUploadRequest, StorageBeginUploadResponse } from "@/types"
+import type { StorageBeginUploadRequest, StorageBeginUploadResponse, StorageUploadStatus } from "@/types"
 
-import { postBlob, postJSON } from "@/api"
+import { getURLDirect, postBlob, postJSON } from "@/api"
 import { encodeQuery } from "@/utils"
 
 // 10 MB.
 const maxPayloadSize = 10 << 20
+
+// Poll interval in milliseconds.
+const pollInterval = 1000
 
 export async function uploadFile(router: Router, file: File, abortSignal: AbortSignal, progress: Ref<number>): Promise<string> {
   // TODO: If abortSignal is aborted, we should attempt to discard the upload (with fetch's keepalive set).
@@ -61,5 +64,29 @@ export async function uploadFile(router: Router, file: File, abortSignal: AbortS
   if (abortSignal.aborted) {
     return ""
   }
-  return beginUploadResponse.session
+
+  // Poll for completion.
+  const uploadStatusURL = router.apiResolve({
+    name: "StorageUpload",
+    params: {
+      session: beginUploadResponse.session,
+    },
+  }).href
+
+  while (true) {
+    await new Promise((resolve) => setTimeout(resolve, pollInterval))
+    if (abortSignal.aborted) {
+      return ""
+    }
+    const { doc: status } = await getURLDirect<StorageUploadStatus>(uploadStatusURL, abortSignal, null)
+    if (abortSignal.aborted) {
+      return ""
+    }
+    if (status.id) {
+      return status.id
+    }
+    if (status.discarded) {
+      throw new Error("upload session was discarded")
+    }
+  }
 }

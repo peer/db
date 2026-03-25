@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PeerDBDocument } from "@/document"
+import type { D } from "@/document"
 
 import { useI18n } from "vue-i18n"
 
@@ -17,11 +17,11 @@ defineOptions({
 
 const { t } = useI18n()
 
-const WithPeerDBDocument = WithDocument<PeerDBDocument>
+const WithDocumentD = WithDocument<D>
 </script>
 
 <template>
-  <WithPeerDBDocument v-if="id" :id="id" name="DocumentGet">
+  <WithDocumentD v-if="id" :id="id" name="DocumentGet">
     <template #default="{ doc, url }">
       <RouterLink
         :to="{ name: 'DocumentGet', params: { id } }"
@@ -34,5 +34,5 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
     <template #loading="{ url }">
       <div class="pd-documentrefinline-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(id)]" />
     </template>
-  </WithPeerDBDocument>
+  </WithDocumentD>
 </template>

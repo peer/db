@@ -1,13 +1,14 @@
 import type { DeepReadonly, Ref } from "vue"
 
-import type { Claim, ClaimTypeName, ClaimTypes } from "@/document"
-import type { AmountUnit, Mutable, QueryValues, QueryValuesWithOptional, Required } from "@/types"
+import type { ClaimTypes } from "@/document"
+import type { Mutable, QueryValues, QueryValuesWithOptional } from "@/types"
 
 import { prng_alea } from "esm-seedrandom"
 import { cloneDeep, isEqual } from "lodash-es"
 import { onBeforeUnmount, onMounted, readonly, ref, toRaw, watch, watchEffect } from "vue"
 
-import { CORE_NAME, CORE_TITLE, DESCRIPTION, LIST, NAME, ORDER, RAZUME_LAST_NAME } from "@/props"
+import { NAME, TITLE } from "@/core"
+import { getBestClaimOfType } from "@/document"
 import { fromDate, hour, minute, second, toDate } from "@/time"
 
 // If the last increase would be equal or less than this number, just skip to the end.
@@ -15,32 +16,21 @@ const SKIP_TO_END = 2
 
 const timeRegex = /^([+-]?\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/
 
-// TODO: Improve by using size prefixes for some units (e.g., KB).
-//       Both for large and small numbers (e.g., micro gram).
-export function formatValue(amount: number, unit: AmountUnit): string {
-  let res = parseFloat(amount.toFixed(5)).toString()
-  if (unit !== "1") {
-    res += " " + unit
-  }
-  return res
+export function formatValue(amount: number): string {
+  return parseFloat(amount.toFixed(5)).toString()
 }
 
-// TODO: Improve by using size prefixes for some units (e.g., KB).
-//       Both for large and small numbers (e.g., micro gram).
-export function formatRange(lower: number, upper: number, unit: AmountUnit): string {
-  const l = parseFloat(lower.toFixed(5)).toString()
-  const u = parseFloat(lower.toFixed(5)).toString()
-  let res = l + "–" + u
-  if (unit !== "1") {
-    res += " " + unit
-  }
-  return res
+export function formatTime(seconds: number): string {
+  // TODO: Support also nanoseconds.
+  return secondsToTimestamp(BigInt(Math.round(seconds)))
 }
 
-export function formatTime(seconds: bigint): string {
-  return secondsToTimestamp(seconds)
+export function parseTime(value: string): number {
+  return Number(timestampToSeconds(value))
 }
 
+// TODO: Support also nanoseconds.
+// TODO: Return float.
 export function timestampToSeconds(value: string): bigint {
   const match = timeRegex.exec(value)
   if (!match) {
@@ -103,115 +93,15 @@ export function bigIntMax(a: bigint, b: bigint): bigint {
   return b
 }
 
-export function getBestClaim(claimTypes: DeepReadonly<ClaimTypes> | undefined | null, propertyId: string | string[]): DeepReadonly<Claim> | null {
-  if (!Array.isArray(propertyId)) {
-    propertyId = [propertyId]
-  }
-  const claims: DeepReadonly<Claim>[] = []
-  for (const claim of claimTypes?.AllClaims() ?? []) {
-    if (propertyId.includes(claim.prop.id)) {
-      claims.push(claim)
-    }
-  }
-  claims.sort((a, b) => b.confidence - a.confidence)
-  if (claims.length > 0) {
-    return claims[0]
-  }
-  return null
-}
-
-export function getClaimsOfType<K extends ClaimTypeName>(
-  claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
-  claimType: K,
-  propertyId: string | string[],
-): Required<DeepReadonly<ClaimTypes>>[K][number][] {
-  if (!claimTypes) return []
-  if (!Array.isArray(propertyId)) {
-    propertyId = [propertyId]
-  }
-  const claims = []
-  for (const claim of claimTypes[claimType] ?? []) {
-    if (propertyId.includes(claim.prop.id)) {
-      claims.push(claim)
-    }
-  }
-  claims.sort((a, b) => b.confidence - a.confidence)
-  return claims
-}
-
-export function getBestClaimOfType<K extends ClaimTypeName>(
-  claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
-  claimType: K,
-  propertyId: string | string[],
-): Required<DeepReadonly<ClaimTypes>>[K][number] | null {
-  const claims = getClaimsOfType(claimTypes, claimType, propertyId)
-  if (claims.length > 0) {
-    return claims[0]
-  }
-  return null
-}
-
-const LOW_CONFIDENCE = 0.5
-
-// TODO: Support also negation claims (i.e., those with negative confidence).
-export function getClaimsOfTypeWithConfidence<K extends ClaimTypeName>(
-  claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
-  claimType: K,
-  propertyId: string | string[],
-  confidence: number = LOW_CONFIDENCE,
-): Required<DeepReadonly<ClaimTypes>>[K][number][] {
-  const claims = getClaimsOfType(claimTypes, claimType, propertyId)
-  return claims.filter((claim) => claim.confidence >= confidence)
-}
-
-// TODO: Handle sub-lists. Children lists should be nested and not just added as additional lists to the list of lists.
-// TODO: Sort lists between themselves by (average) confidence?
-export function getClaimsListsOfType<K extends ClaimTypeName>(
-  claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
-  claimType: K,
-  propertyId: string | string[],
-): Required<DeepReadonly<ClaimTypes>>[K][number][][] {
-  const claims = getClaimsOfType(claimTypes, claimType, propertyId)
-  const claimsPerList: Record<string, [Required<DeepReadonly<ClaimTypes>>[K][number], number][]> = {}
-  for (const claim of claims) {
-    const list = getBestClaimOfType(claim.meta, "id", LIST)?.id || "none"
-    const order = getBestClaimOfType(claim.meta, "amount", ORDER)?.amount ?? Number.MAX_VALUE
-    if (!(list in claimsPerList)) {
-      claimsPerList[list] = []
-    }
-    claimsPerList[list].push([claim, order])
-  }
-  const res = []
-  for (const c of Object.values(claimsPerList)) {
-    res.push(c.sort(([c1, o1], [c2, o2]) => o1 - o2).map(([c, o]) => c))
-  }
-  return res
-}
-
 export function getName(claimTypes: DeepReadonly<ClaimTypes> | undefined | null): string | null {
-  let claim = getBestClaimOfType(claimTypes, "text", NAME)
-  if (claim) {
-    return claim.html.en
-  }
-
-  const name = getBestClaimOfType(claimTypes, "string", CORE_NAME)
-  const lastName = getBestClaimOfType(claimTypes, "string", RAZUME_LAST_NAME)
-  if (name && lastName) {
-    return `${name.string} ${lastName.string}`
-  }
-
+  const name = getBestClaimOfType(claimTypes, "string", NAME)
   if (name) {
     return name.string
   }
 
-  const title = getBestClaimOfType(claimTypes, "string", CORE_TITLE)
+  const title = getBestClaimOfType(claimTypes, "string", TITLE)
   if (title) {
     return title.string
-  }
-
-  claim = getBestClaimOfType(claimTypes, "text", DESCRIPTION)
-  if (claim) {
-    return claim.html.en
   }
 
   return null

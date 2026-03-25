@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type { PeerDBDocument } from "@/document"
-import type { ClientSearchSession, RelFilterState, RelSearchResult } from "@/types"
+import type { D } from "@/document"
+import type { ClientSearchSession, RefFilterState, RefSearchResult } from "@/types"
 
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 import { computed, onBeforeUnmount, toRef, useTemplateRef } from "vue"
@@ -13,19 +13,19 @@ import CheckBox from "@/components/CheckBox.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import { injectProgress } from "@/progress"
-import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, NONE, useRelFilterValues } from "@/search"
+import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, NONE, useRefFilterValues } from "@/search"
 import { equals, getName, loadingWidth, useInitialLoad, useLimitResults } from "@/utils"
 
 const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
   searchTotal: number
-  result: RelSearchResult
-  state: RelFilterState
+  result: RefSearchResult
+  state: RefFilterState
   updateProgress: number
 }>()
 
 const emit = defineEmits<{
-  "update:state": [state: RelFilterState]
+  "update:state": [state: RefFilterState]
 }>()
 
 const { t } = useI18n()
@@ -44,7 +44,7 @@ const {
   total,
   error,
   url: resultsUrl,
-} = useRelFilterValues(
+} = useRefFilterValues(
   toRef(() => props.searchSession),
   toRef(() => props.result),
   el,
@@ -69,10 +69,10 @@ const limitedResultsWithNone = computed(() => {
 })
 
 const checkboxState = computed({
-  get(): RelFilterState {
+  get(): RefFilterState {
     return props.state
   },
-  set(value: RelFilterState) {
+  set(value: RefFilterState) {
     if (abortController.signal.aborted) {
       return
     }
@@ -87,18 +87,18 @@ const checkboxState = computed({
   },
 })
 
-const WithPeerDBDocument = WithDocument<PeerDBDocument>
+const WithDocumentD = WithDocument<D>
 </script>
 
 <template>
-  <div class="pd-relfiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
+  <div class="pd-reffiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div class="flex items-baseline gap-x-1">
       <DocumentRefInline :id="result.id" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
     </div>
     <ul ref="el">
       <li v-if="error">
-        <i class="pd-relfiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
+        <i class="pd-reffiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
       <template v-else-if="total === null">
         <li v-for="i in 3" :key="i" class="flex animate-pulse items-baseline gap-x-1">
@@ -110,11 +110,11 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
       <template v-else>
         <li v-for="res in limitedResultsWithNone" :key="'id' in res ? res.id : NONE" class="flex items-baseline gap-x-1">
           <template v-if="'id' in res && (res.count != searchTotal || state.includes(res.id))">
-            <CheckBox :id="'rel/' + result.id + '/' + res.id" v-model="checkboxState" :progress="updateProgress" :value="res.id" class="my-1 self-center" />
-            <WithPeerDBDocument :id="res.id" name="DocumentGet">
+            <CheckBox :id="'ref/' + result.id + '/' + res.id" v-model="checkboxState" :progress="updateProgress" :value="res.id" class="my-1 self-center" />
+            <WithDocumentD :id="res.id" name="DocumentGet">
               <template #default="{ doc, url }">
                 <label
-                  :for="'rel/' + result.id + '/' + res.id"
+                  :for="'ref/' + result.id + '/' + res.id"
                   class="my-1 leading-none"
                   :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
                   :data-url="url"
@@ -124,8 +124,8 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
               <template #loading="{ url }">
                 <div class="pd-withdocument-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>
               </template>
-            </WithPeerDBDocument>
-            <label :for="'rel/' + result.id + '/' + res.id" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            </WithDocumentD>
+            <label :for="'ref/' + result.id + '/' + res.id" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
               >({{ res.count }})</label
             >
             <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link"
@@ -134,25 +134,25 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
           </template>
           <template v-else-if="'id' in res && res.count == searchTotal">
             <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
-            <WithPeerDBDocument :id="res.id" name="DocumentGet">
+            <WithDocumentD :id="res.id" name="DocumentGet">
               <template #default="{ doc, url }">
                 <div class="my-1 inline-block leading-none" :data-url="url" v-html="getName(doc.claims) || `<i>${t('common.values.noName')}</i>`"></div>
               </template>
               <template #loading="{ url }">
                 <div class="pd-withdocument-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>
               </template>
-            </WithPeerDBDocument>
+            </WithDocumentD>
             <div class="my-1 inline-block leading-none">({{ res.count }})</div>
             <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link"
               ><ArrowTopRightOnSquareIcon :alt="t('common.icons.link')" class="inline size-5 align-text-top"
             /></RouterLink>
           </template>
           <template v-else-if="!('id' in res)">
-            <CheckBox :id="'rel/' + result.id + '/none'" v-model="checkboxState" :progress="updateProgress" value="__NONE__" class="my-1 self-center" />
-            <label :for="'rel/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            <CheckBox :id="'ref/' + result.id + '/none'" v-model="checkboxState" :progress="updateProgress" value="__NONE__" class="my-1 self-center" />
+            <label :for="'ref/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
               ><i>{{ t("common.values.none") }}</i></label
             >
-            <label :for="'rel/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            <label :for="'ref/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
               >({{ res.count }})</label
             >
           </template>

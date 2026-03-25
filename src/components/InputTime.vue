@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { NamedValue } from "vue-i18n"
 
-import type { TimePrecision } from "@/types"
+import type { TimePrecision } from "@/document"
 
 import { daysIn } from "@/time"
 
@@ -35,6 +35,7 @@ const matchToHour = (s: string) => s.match(HOUR_RE)
 const matchToMinute = (s: string) => s.match(MINUTE_RE)
 const matchToSecond = (s: string) => s.match(SECOND_RE)
 
+// TODO: Add "ms" | "us" | "ns".
 const timePrecisionOptions = ["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"] as const
 export const PRECISION_RANK = new Map<TimePrecision, number>(timePrecisionOptions.map((p, i) => [p, i]))
 

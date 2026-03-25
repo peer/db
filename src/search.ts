@@ -4,7 +4,6 @@ import type { Router } from "vue-router"
 import type {
   AmountFilter,
   AmountSearchResult,
-  AmountUnit,
   ClientSearchSession,
   CreateSearchSessionRequest,
   FilterResult,
@@ -12,15 +11,12 @@ import type {
   FiltersState,
   HistogramAmountResult,
   HistogramTimeResult,
-  RelFilter,
-  RelFilterResult,
-  RelSearchResult,
+  RefFilter,
+  RefFilterResult,
+  RefSearchResult,
   Result,
   SearchSessionRef,
   ServerSearchSession,
-  StringFilter,
-  StringFilterResult,
-  StringSearchResult,
   TimeFilter,
   TimeSearchResult,
   ViewType,
@@ -31,7 +27,7 @@ import { useRoute, useRouter } from "vue-router"
 
 import { getURL, getURLDirect, postJSON } from "@/api"
 import { NONE } from "@/symbols"
-import { anySignal, encodeQuery, timestampToSeconds } from "@/utils"
+import { anySignal, encodeQuery } from "@/utils"
 
 export { NONE } from "@/symbols"
 
@@ -43,30 +39,29 @@ function filtersStateToFilters(filters: FiltersState | DeepReadonly<FiltersState
     and: [],
   }
   if (filters) {
-    for (const [prop, values] of Object.entries(filters.rel)) {
+    for (const [prop, values] of Object.entries(filters.ref)) {
       // TODO: Support also OR between values.
       for (const value of values) {
         if (value === NONE) {
-          f.and.push({ rel: { prop, none: true } })
+          f.and.push({ ref: { prop, none: true } })
         } else {
-          f.and.push({ rel: { prop, value } })
+          f.and.push({ ref: { prop, value } })
         }
       }
     }
-    for (const [path, value] of Object.entries(filters.amount)) {
+    for (const [key, value] of Object.entries(filters.amount)) {
       if (!value) {
         continue
       }
-      const segments = path.split("/")
-      if (segments.length !== 2) {
-        throw new Error(`invalid amount filter path: ${path}`)
-      }
-      const [prop, unit] = segments
+      // Key format is "prop" or "prop/unit".
+      const slashIndex = key.indexOf("/")
+      const prop = slashIndex === -1 ? key : key.substring(0, slashIndex)
+      const unit = slashIndex === -1 ? undefined : key.substring(slashIndex + 1)
       // TODO: Support also OR between value and none.
       if (value === NONE) {
-        f.and.push({ amount: { prop, unit: unit as AmountUnit, none: true } })
+        f.and.push({ amount: { prop, unit, none: true } })
       } else {
-        f.and.push({ amount: { prop, unit: unit as AmountUnit, ...value } })
+        f.and.push({ amount: { prop, unit, ...value } })
       }
     }
     for (const [prop, value] of Object.entries(filters.time)) {
@@ -78,16 +73,6 @@ function filtersStateToFilters(filters: FiltersState | DeepReadonly<FiltersState
         f.and.push({ time: { prop, none: true } })
       } else {
         f.and.push({ time: { prop, ...value } })
-      }
-    }
-    for (const [prop, strings] of Object.entries(filters.str)) {
-      // TODO: Support also OR between values.
-      for (const str of strings) {
-        if (str === NONE) {
-          f.and.push({ str: { prop, none: true } })
-        } else {
-          f.and.push({ str: { prop, str } })
-        }
       }
     }
   }
@@ -109,25 +94,32 @@ function clientToServerSearchSession(searchSession: ClientSearchSession | DeepRe
   return s
 }
 
+function amountFilterKey(prop: string, unit?: string): string {
+  if (unit) {
+    return `${prop}/${unit}`
+  }
+  return prop
+}
+
 function filtersToFiltersState(filters: Filters): FiltersState {
   if ("and" in filters) {
-    const state: FiltersState = { rel: {}, amount: {}, time: {}, str: {} }
+    const state: FiltersState = { ref: {}, amount: {}, time: {} }
     for (const filter of filters.and) {
       const s = filtersToFiltersState(filter)
-      for (const [prop, values] of Object.entries(s.rel)) {
+      for (const [prop, values] of Object.entries(s.ref)) {
         for (const v of values) {
-          if (!state.rel[prop]) {
-            state.rel[prop] = [v]
-          } else if (!state.rel[prop].includes(v)) {
-            state.rel[prop].push(v)
+          if (!state.ref[prop]) {
+            state.ref[prop] = [v]
+          } else if (!state.ref[prop].includes(v)) {
+            state.ref[prop].push(v)
           }
         }
       }
-      for (const [prop, value] of Object.entries(s.amount)) {
-        if (!state.amount[prop]) {
-          state.amount[prop] = value
+      for (const [key, value] of Object.entries(s.amount)) {
+        if (!state.amount[key]) {
+          state.amount[key] = value
         } else {
-          throw new Error(`duplicate filter for the same amount property "${prop}"`)
+          throw new Error(`duplicate filter for the same amount property "${key}"`)
         }
       }
       for (const [prop, value] of Object.entries(s.time)) {
@@ -135,15 +127,6 @@ function filtersToFiltersState(filters: Filters): FiltersState {
           state.time[prop] = value
         } else {
           throw new Error(`duplicate filter for the same time property "${prop}"`)
-        }
-      }
-      for (const [prop, strings] of Object.entries(s.str)) {
-        for (const str of strings) {
-          if (!state.str[prop]) {
-            state.str[prop] = [str]
-          } else if (!state.str[prop].includes(str)) {
-            state.str[prop].push(str)
-          }
         }
       }
     }
@@ -155,92 +138,66 @@ function filtersToFiltersState(filters: Filters): FiltersState {
   if ("or" in filters) {
     throw new Error(`or filter unsupported`)
   }
-  if ("rel" in filters) {
-    if ("none" in filters.rel && filters.rel.none) {
+  if ("ref" in filters) {
+    if ("none" in filters.ref && filters.ref.none) {
       return {
-        rel: {
-          [filters.rel.prop]: [NONE],
+        ref: {
+          [filters.ref.prop]: [NONE],
         },
         amount: {},
         time: {},
-        str: {},
       }
     } else {
       return {
-        rel: {
-          [filters.rel.prop]: [(filters.rel as RelFilter).value],
+        ref: {
+          [filters.ref.prop]: [(filters.ref as RefFilter).value],
         },
         amount: {},
         time: {},
-        str: {},
       }
     }
   }
   if ("amount" in filters) {
+    const key = amountFilterKey(filters.amount.prop, filters.amount.unit)
     if ("none" in filters.amount && filters.amount.none) {
       return {
-        rel: {},
+        ref: {},
         amount: {
-          [`${filters.amount.prop}/${filters.amount.unit}`]: NONE,
+          [key]: NONE,
         },
         time: {},
-        str: {},
       }
     } else {
       return {
-        rel: {},
+        ref: {},
         amount: {
-          [`${filters.amount.prop}/${filters.amount.unit}`]: {
+          [key]: {
             gte: (filters.amount as AmountFilter).gte,
             lte: (filters.amount as AmountFilter).lte,
           },
         },
         time: {},
-        str: {},
       }
     }
   }
   if ("time" in filters) {
     if ("none" in filters.time && filters.time.none) {
       return {
-        rel: {},
+        ref: {},
         amount: {},
         time: {
           [filters.time.prop]: NONE,
         },
-        str: {},
       }
     } else {
       return {
-        rel: {},
+        ref: {},
         amount: {},
         time: {
           [filters.time.prop]: {
             gte: (filters.time as TimeFilter).gte,
             lte: (filters.time as TimeFilter).lte,
           },
-        },
-        str: {},
-      }
-    }
-  }
-  if ("str" in filters) {
-    if ("none" in filters.str && filters.str.none) {
-      return {
-        rel: {},
-        amount: {},
-        time: {},
-        str: {
-          [filters.str.prop]: [NONE],
-        },
-      }
-    } else {
-      return {
-        rel: {},
-        amount: {},
-        time: {},
-        str: {
-          [filters.str.prop]: [(filters.str as StringFilter).str],
         },
       }
     }
@@ -377,7 +334,7 @@ export function useFilters(
   })
 }
 
-function useSearchResults<T extends Result | FilterResult | RelSearchResult>(
+function useSearchResults<T extends Result | FilterResult | RefSearchResult>(
   el: Ref<Element | null>,
   progress: Ref<number>,
   getURL: () => string | null,
@@ -473,27 +430,27 @@ function useSearchResults<T extends Result | FilterResult | RelSearchResult>(
   }
 }
 
-export function useRelFilterValues(
+export function useRefFilterValues(
   searchSessionRef: Ref<SearchSessionRef>,
-  result: Ref<RelSearchResult>,
+  result: Ref<RefSearchResult>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
-  results: DeepReadonly<Ref<RelFilterResult[]>>
+  results: DeepReadonly<Ref<RefFilterResult[]>>
   total: DeepReadonly<Ref<number | null>>
   error: DeepReadonly<Ref<string | null>>
   url: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
 
-  return useSearchResults<RelSearchResult>(el, progress, () => {
+  return useSearchResults<RefSearchResult>(el, progress, () => {
     const r = result.value
     if (!r.id || !r.type) {
       return null
     }
-    if (r.type === "rel") {
+    if (r.type === "ref") {
       return router.apiResolve({
-        name: "SearchRelFilter",
+        name: "SearchRefFilter",
         params: {
           id: searchSessionRef.value.id,
           prop: r.id,
@@ -553,16 +510,18 @@ export function useAmountHistogramValues(
         return null
       }
       if (r.type === "amount") {
-        if (!r.unit) {
-          throw new Error(`property "${r.id}" is missing unit`)
+        const routeParams: Record<string, string> = {
+          id: searchSessionRef.value.id,
+          prop: r.id,
+        }
+        let routeName = "SearchAmountFilter"
+        if (r.unit) {
+          routeParams.unit = r.unit
+          routeName = "SearchAmountFilterWithUnit"
         }
         return router.apiResolve({
-          name: "SearchAmountFilter",
-          params: {
-            id: searchSessionRef.value.id,
-            prop: r.id,
-            unit: r.unit,
-          },
+          name: routeName,
+          params: routeParams,
           // TODO: Implement proper versioning.
           //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
           //       but the backend does not really use the parameter and always returns the latest version.
@@ -644,8 +603,8 @@ export function useTimeHistogramValues(
 ): {
   results: DeepReadonly<Ref<HistogramTimeResult[]>>
   total: DeepReadonly<Ref<number | null>>
-  min: DeepReadonly<Ref<bigint | null>>
-  max: DeepReadonly<Ref<bigint | null>>
+  min: DeepReadonly<Ref<number | null>>
+  max: DeepReadonly<Ref<number | null>>
   interval: DeepReadonly<Ref<number | null>>
   error: DeepReadonly<Ref<string | null>>
   url: DeepReadonly<Ref<string | null>>
@@ -655,8 +614,8 @@ export function useTimeHistogramValues(
 
   const _results = ref<HistogramTimeResult[]>([])
   const _total = ref<number | null>(null)
-  const _min = ref<bigint | null>(null)
-  const _max = ref<bigint | null>(null)
+  const _min = ref<number | null>(null)
+  const _max = ref<number | null>(null)
   const _interval = ref<number | null>(null)
   const _error = ref<string | null>(null)
   const _url = ref<string | null>(null)
@@ -738,8 +697,8 @@ export function useTimeHistogramValues(
       }
       _results.value = data.results as HistogramTimeResult[]
       _total.value = data.total
-      _min.value = data.min != null ? timestampToSeconds(data.min) : null
-      _max.value = data.max != null ? timestampToSeconds(data.max) : null
+      _min.value = data.min != null ? parseFloat(data.min) : null
+      _max.value = data.max != null ? parseFloat(data.max) : null
       _interval.value = data.interval != null ? parseFloat(data.interval) : null
     },
     {
@@ -758,108 +717,7 @@ export function useTimeHistogramValues(
   }
 }
 
-export function useStringFilterValues(
-  searchSessionRef: Ref<SearchSessionRef>,
-  result: Ref<StringSearchResult>,
-  el: Ref<Element | null>,
-  progress: Ref<number>,
-): {
-  results: DeepReadonly<Ref<StringFilterResult[]>>
-  total: DeepReadonly<Ref<number | null>>
-  error: DeepReadonly<Ref<string | null>>
-  url: DeepReadonly<Ref<string | null>>
-} {
-  const router = useRouter()
-  const route = useRoute()
-
-  const _results = ref<StringFilterResult[]>([])
-  const _total = ref<number | null>(null)
-  const _error = ref<string | null>(null)
-  const _url = ref<string | null>(null)
-  const results = process.env.NODE_ENV !== "production" ? readonly(_results) : _results
-  const total = process.env.NODE_ENV !== "production" ? readonly(_total) : _total
-  const error = process.env.NODE_ENV !== "production" ? readonly(_error) : _error
-  const url = process.env.NODE_ENV !== "production" ? readonly(_url) : _url
-
-  const mainController = new AbortController()
-  onBeforeUnmount(() => mainController.abort())
-
-  const initialRouteName = route.name
-  watch(
-    () => {
-      const r = result.value
-      if (!r.id || !r.type) {
-        return null
-      }
-      if (r.type === "string") {
-        return router.apiResolve({
-          name: "SearchStringFilter",
-          params: {
-            id: searchSessionRef.value.id,
-            prop: r.id,
-          },
-          // TODO: Implement proper versioning.
-          //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
-          //       but the backend does not really use the parameter and always returns the latest version.
-          query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
-        }).href
-      } else {
-        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-        throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
-      }
-    },
-    async (newURL, oldURL, onCleanup) => {
-      // Watch can continue to run for some time after the route changes.
-      if (initialRouteName !== route.name) {
-        return
-      }
-      _url.value = newURL || null
-
-      // We want to eagerly remove any error.
-      _error.value = null
-
-      if (!newURL) {
-        _results.value = []
-        _total.value = null
-        return
-      }
-      const controller = new AbortController()
-      onCleanup(() => controller.abort())
-      const signal = anySignal(mainController.signal, controller.signal)
-      let data
-      try {
-        data = await getStringValues<StringFilterResult>(newURL, el, signal, progress)
-      } catch (err) {
-        if (signal.aborted) {
-          return
-        }
-        console.error("useStringFilterValues", newURL, err)
-        _results.value = []
-        _total.value = null
-        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-        _error.value = `${err}`
-        return
-      }
-      if (signal.aborted) {
-        return
-      }
-      _results.value = data.results
-      _total.value = data.total
-    },
-    {
-      immediate: true,
-    },
-  )
-
-  return {
-    results,
-    total,
-    error,
-    url,
-  }
-}
-
-async function getSearchResults<T extends Result | FilterResult | RelSearchResult>(
+async function getSearchResults<T extends Result | FilterResult | RefSearchResult>(
   url: string,
   el: Ref<Element | null> | null,
   abortSignal: AbortSignal,
@@ -913,32 +771,6 @@ async function getHistogramValues<T extends HistogramAmountResult | HistogramTim
   }
   if ("interval" in metadata) {
     res.interval = metadata["interval"] as string
-  }
-
-  return res
-}
-
-async function getStringValues<T extends StringFilterResult>(
-  url: string,
-  el: Ref<Element | null> | null,
-  abortSignal: AbortSignal,
-  progress: Ref<number>,
-): Promise<{
-  results: T[]
-  total: number
-}> {
-  const { doc, metadata } = await getURL(url, el, abortSignal, progress)
-  if (abortSignal.aborted) {
-    return { results: [], total: 0 }
-  }
-
-  if (!("total" in metadata)) {
-    throw new Error(`"total" metadata is missing`)
-  }
-  const total = metadata["total"] as number
-  const res = { results: doc, total: total } as {
-    results: T[]
-    total: number
   }
 
   return res

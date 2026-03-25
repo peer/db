@@ -98,18 +98,11 @@
       "expandRow": "Razširi vrstico",
       "collapseRow": "Skrči vrstico",
       "moreColumns": "Več stolpcev"
-    },
-    "claimvalue": {
-      "ClaimValueFile": {
-        "filePreview": "Predogled datoteke"
-      }
     }
   },
   "views": {
     "DocumentGet": {
       "tabs": {
-        "article": "Članek",
-        "file": "Datoteka",
         "allProperties": "Vse lastnosti"
       }
     },
@@ -117,29 +110,25 @@
       "addClaim": "Dodaj trditev",
       "claimTypes": {
         "identifier": "Identifikator",
-        "reference": "Referenca",
-        "text": "Besedilo",
         "string": "Enostavno besedilo",
+        "html": "HTML",
         "amount": "Količina",
-        "amountRange": "Obseg količine",
-        "relation": "Relacija",
-        "file": "Datoteka",
-        "noValue": "Brez vrednosti",
-        "unknownValue": "Neznana vrednost",
+        "amountInterval": "Interval količine",
         "time": "Datum-čas",
-        "timeRange": "Obdobje"
+        "timeInterval": "Časovni interval",
+        "link": "Povezava",
+        "reference": "Referenca",
+        "has": "Ima",
+        "none": "Brez vrednosti",
+        "unknown": "Neznana vrednost"
       },
       "labels": {
         "iri": "IRI",
-        "text": "Besedilo",
+        "html": "HTML",
         "string": "Enostavno besedilo",
         "amount": "Količina",
-        "lower": "Spodnja",
-        "upper": "Zgornja",
-        "to": "Do",
-        "mediaType": "Vrsta medija",
-        "url": "URL",
-        "previewUrl": "URL predogleda"
+        "from": "Od",
+        "to": "Do"
       }
     }
   }

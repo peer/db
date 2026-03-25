@@ -12,7 +12,7 @@ import CheckBox from "@/components/CheckBox.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import { injectProgress } from "@/progress"
 import { NONE, useAmountHistogramValues } from "@/search"
-import { equals, formatValue, loadingShortHeights, useInitialLoad } from "@/utils"
+import { equals, loadingShortHeights, useInitialLoad } from "@/utils"
 
 const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
@@ -126,7 +126,7 @@ watchEffect((onCleanup) => {
       behaviour: "snap",
       format: {
         to: (value: number): string => {
-          return formatValue(value, props.result.unit)
+          return parseFloat(value.toFixed(5)).toString()
         },
         from: (value: string): number => {
           return parseFloat(value)
@@ -206,29 +206,29 @@ onBeforeUnmount(() => {
         </svg>
         <div class="flex flex-row justify-between gap-x-1">
           <div>
-            {{ formatValue(min, result.unit) }}
+            {{ min }}
           </div>
           <div>
-            {{ formatValue(max, result.unit) }}
+            {{ max }}
           </div>
         </div>
         <div ref="sliderEl"></div>
       </li>
       <li v-else-if="results.length === 1" class="flex items-baseline gap-x-1">
         <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
-        <div class="my-1 leading-none">{{ formatValue(results[0].min, result.unit) }}</div>
+        <div class="my-1 leading-none">{{ results[0].from }}</div>
         <div class="my-1 leading-none">({{ results[0].count }})</div>
       </li>
       <li v-if="result.count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="error ? 'mt-0' : min === null || max === null ? 'mt-3' : 'mt-4'">
-        <CheckBox :id="'amount/' + result.id + '/' + result.unit + '/none'" v-model="noneState" :progress="updateProgress" class="my-1 self-center" />
+        <CheckBox :id="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'" v-model="noneState" :progress="updateProgress" class="my-1 self-center" />
         <label
-          :for="'amount/' + result.id + '/' + result.unit + '/none'"
+          :for="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'"
           class="my-1 leading-none"
           :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
           ><i>{{ t("common.values.none") }}</i></label
         >
         <label
-          :for="'amount/' + result.id + '/' + result.unit + '/none'"
+          :for="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'"
           class="my-1 leading-none"
           :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
           >({{ searchTotal - result.count }})</label

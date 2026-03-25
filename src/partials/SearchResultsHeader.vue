@@ -47,7 +47,7 @@ function countFilters(): number {
   }
 
   let n = 0
-  for (const values of Object.values(props.searchSession.filters.rel)) {
+  for (const values of Object.values(props.searchSession.filters.ref)) {
     n += values.length
   }
   for (const value of Object.values(props.searchSession.filters.amount)) {
@@ -59,9 +59,6 @@ function countFilters(): number {
     if (value) {
       n++
     }
-  }
-  for (const values of Object.values(props.searchSession.filters.str)) {
-    n += values.length
   }
   return n
 }

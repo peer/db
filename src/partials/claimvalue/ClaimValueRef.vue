@@ -3,11 +3,13 @@ import type { DeepReadonly } from "vue"
 
 import type { ReferenceClaim } from "@/document"
 
+import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+
 defineProps<{
   claim: ReferenceClaim | DeepReadonly<ReferenceClaim> | null
 }>()
 </script>
 
 <template>
-  <a v-if="claim" :href="claim.iri" class="link break-all">{{ claim.iri }}</a>
+  <DocumentRefInline :id="claim?.to.id || null" />
 </template>

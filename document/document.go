@@ -7,6 +7,29 @@ import (
 	"gitlab.com/tozd/identifier"
 )
 
+// CoreDocument contains the core fields present in all PeerDB documents.
+type CoreDocument struct {
+	ID   identifier.Identifier `json:"id"`
+	Base []string              `json:"base"`
+}
+
+// GetID returns the document's identifier.
+func (d CoreDocument) GetID() identifier.Identifier {
+	return d.ID
+}
+
+// Validate checks that the document has a valid identifier.
+func (d CoreDocument) Validate() errors.E {
+	expectedID := identifier.From(d.Base...)
+	if d.ID != expectedID {
+		errE := errors.New("invalid ID")
+		errors.Details(errE)["id"] = d.ID.String()
+		errors.Details(errE)["expected"] = expectedID.String()
+		return errE
+	}
+	return nil
+}
+
 // D represents a PeerDB document.
 //
 //nolint:recvcheck

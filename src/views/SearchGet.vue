@@ -8,8 +8,7 @@ import type {
   DocumentCreateResponse,
   FiltersState,
   FilterStateChange,
-  RelFilterState,
-  StringFilterState,
+  RefFilterState,
   TimeFilterState,
   ViewType,
 } from "@/types"
@@ -21,7 +20,6 @@ import { useRouter } from "vue-router"
 
 import { postJSON } from "@/api"
 import Button from "@/components/Button.vue"
-import { AddClaimChange } from "@/document"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
@@ -30,7 +28,7 @@ import SearchResultsTable from "@/partials/SearchResultsTable.vue"
 import { injectMainProgress, localProgress } from "@/progress"
 import { updateSearchSession, useSearch, useSearchSession } from "@/search"
 import { uploadFile } from "@/upload"
-import { clone, encodeQuery } from "@/utils"
+import { clone } from "@/utils"
 
 const props = defineProps<{
   id: string
@@ -69,12 +67,12 @@ const { results: searchResults, total: searchTotal, moreThanTotal: searchMoreTha
 const updateSearchSessionProgress = localProgress(mainProgress)
 
 // A non-read-only version of filters state so that we can modify it as necessary.
-const filtersState = ref<FiltersState>({ rel: {}, amount: {}, time: {}, str: {} })
+const filtersState = ref<FiltersState>({ ref: {}, amount: {}, time: {} })
 // We keep it in sync with upstream version.
 watchEffect((onCleanup) => {
   // We copy to make a read-only value mutable.
   if (searchSession.value === null || !searchSession.value.filters) {
-    filtersState.value = { rel: {}, amount: {}, time: {}, str: {} }
+    filtersState.value = { ref: {}, amount: {}, time: {} }
   } else {
     filtersState.value = clone(searchSession.value.filters)
   }
@@ -111,21 +109,22 @@ async function onFiltersStateUpdate(updatedFilters: FiltersState) {
   await onSearchSessionUpdate({ ...searchSession.value!, filters: updatedFilters })
 }
 
-async function onRelFiltersStateUpdate(id: string, state: RelFilterState) {
+async function onRefFiltersStateUpdate(id: string, state: RefFilterState) {
   // Checking abortController is done inside onSearchSessionUpdate.
 
   const updatedFilters = { ...filtersState.value }
-  updatedFilters.rel = { ...updatedFilters.rel }
-  updatedFilters.rel[id] = state
+  updatedFilters.ref = { ...updatedFilters.ref }
+  updatedFilters.ref[id] = state
   await onFiltersStateUpdate(updatedFilters)
 }
 
-async function onAmountFiltersStateUpdate(id: string, unit: string, state: AmountFilterState) {
+async function onAmountFiltersStateUpdate(id: string, unit: string | undefined, state: AmountFilterState) {
   // Checking abortController is done inside onSearchSessionUpdate.
 
   const updatedFilters = { ...filtersState.value }
   updatedFilters.amount = { ...updatedFilters.amount }
-  updatedFilters.amount[`${id}/${unit}`] = state
+  const key = unit ? `${id}/${unit}` : id
+  updatedFilters.amount[key] = state
   await onFiltersStateUpdate(updatedFilters)
 }
 
@@ -135,15 +134,6 @@ async function onTimeFiltersStateUpdate(id: string, state: TimeFilterState) {
   const updatedFilters = { ...filtersState.value }
   updatedFilters.time = { ...updatedFilters.time }
   updatedFilters.time[id] = state
-  await onFiltersStateUpdate(updatedFilters)
-}
-
-async function onStringFiltersStateUpdate(id: string, state: StringFilterState) {
-  // Checking abortController is done inside onSearchSessionUpdate.
-
-  const updatedFilters = { ...filtersState.value }
-  updatedFilters.str = { ...updatedFilters.str }
-  updatedFilters.str[id] = state
   await onFiltersStateUpdate(updatedFilters)
 }
 
@@ -218,149 +208,10 @@ async function onChange() {
         return
       }
 
-      const createResponse = await postJSON<DocumentCreateResponse>(
-        router.apiResolve({
-          name: "DocumentCreate",
-        }).href,
-        {},
-        abortController.signal,
-        uploadProgress,
-      )
-      if (abortController.signal.aborted) {
-        return
-      }
-
-      const editResponse = await postJSON<DocumentBeginEditResponse>(
-        router.apiResolve({
-          name: "DocumentBeginEdit",
-          params: {
-            id: createResponse.id,
-          },
-        }).href,
-        {},
-        abortController.signal,
-        uploadProgress,
-      )
-      if (abortController.signal.aborted) {
-        return
-      }
-
-      await postJSON(
-        router.apiResolve({
-          name: "DocumentSaveChange",
-          params: {
-            session: editResponse.session,
-          },
-          query: encodeQuery({ change: String(1) }),
-        }).href,
-        new AddClaimChange({
-          patch: {
-            type: "rel",
-            prop: "CAfaL1ZZs6L4uyFdrJZ2wN", // TYPE.
-            to: "7m6uUqF9ZnimT4sw3W8zdg", // FILE.
-          },
-        }),
-        abortController.signal,
-        null,
-      )
-      if (abortController.signal.aborted) {
-        return
-      }
-
-      await postJSON(
-        router.apiResolve({
-          name: "DocumentSaveChange",
-          params: {
-            session: editResponse.session,
-          },
-          query: encodeQuery({ change: String(2) }),
-        }).href,
-        new AddClaimChange({
-          patch: {
-            type: "string",
-            prop: "GUjybqSkBqwfUTZNTw4vWE", // MEDIA_TYPE.
-            string: file.type || "application/octet-stream",
-          },
-        }),
-        abortController.signal,
-        null,
-      )
-      if (abortController.signal.aborted) {
-        return
-      }
-
-      await postJSON(
-        router.apiResolve({
-          name: "DocumentSaveChange",
-          params: {
-            session: editResponse.session,
-          },
-          query: encodeQuery({ change: String(3) }),
-        }).href,
-        new AddClaimChange({
-          patch: {
-            type: "ref",
-            prop: "9tssq1syFPE7S7vYEDTPiF", // FILE_URL.
-            iri: router.resolve({
-              name: "StorageGet",
-              params: {
-                id: fileId,
-              },
-            }).href,
-          },
-        }),
-        abortController.signal,
-        null,
-      )
-      if (abortController.signal.aborted) {
-        return
-      }
-
-      if (file.name) {
-        await postJSON(
-          router.apiResolve({
-            name: "DocumentSaveChange",
-            params: {
-              session: editResponse.session,
-            },
-            query: encodeQuery({ change: String(4) }),
-          }).href,
-          new AddClaimChange({
-            patch: {
-              type: "text",
-              prop: "CjZig63YSyvb2KdyCL3XTg", // NAME.
-              html: {
-                en: file.name,
-              },
-            },
-          }),
-          abortController.signal,
-          null,
-        )
-        if (abortController.signal.aborted) {
-          return
-        }
-      }
-
-      await postJSON(
-        router.apiResolve({
-          name: "DocumentEndEdit",
-          params: {
-            session: editResponse.session,
-          },
-        }).href,
-        {},
-        abortController.signal,
-        null,
-      )
-      if (abortController.signal.aborted) {
-        return
-      }
-
       await router.push({
-        name: "DocumentGet",
+        name: "StorageGet",
         params: {
-          id: createResponse.id,
+          id: fileId,
         },
       })
     } catch (err) {
@@ -383,8 +234,8 @@ function onFilterChange(change: FilterStateChange) {
   // Checking abortController is done inside onSearchSessionUpdate.
 
   switch (change.type) {
-    case "rel": {
-      return onRelFiltersStateUpdate(change.id, change.value)
+    case "ref": {
+      return onRefFiltersStateUpdate(change.id, change.value)
     }
 
     case "amount": {
@@ -393,10 +244,6 @@ function onFilterChange(change: FilterStateChange) {
 
     case "time": {
       return onTimeFiltersStateUpdate(change.id, change.value)
-    }
-
-    case "string": {
-      return onStringFiltersStateUpdate(change.id, change.value)
     }
   }
 }

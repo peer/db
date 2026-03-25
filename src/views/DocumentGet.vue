@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ComponentExposed } from "vue-component-type-helpers"
 
-import type { PeerDBDocument } from "@/document"
+import type { D } from "@/document"
 import type { DocumentBeginEditResponse } from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
@@ -20,9 +20,8 @@ import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
 import { injectProgress } from "@/progress"
-import { ARTICLE, FILE_URL, MEDIA_TYPE } from "@/props"
 import { useSearch, useSearchSession } from "@/search"
-import { encodeQuery, getBestClaimOfType, getName, loadingLongWidth } from "@/utils"
+import { encodeQuery, getName, loadingLongWidth } from "@/utils"
 
 const props = defineProps<{
   id: string
@@ -43,8 +42,8 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-const WithPeerDBDocument = WithDocument<PeerDBDocument>
-const withDocument = ref<ComponentExposed<typeof WithPeerDBDocument> | null>(null)
+const WithDocumentD = WithDocument<D>
+const withDocument = ref<ComponentExposed<typeof WithDocumentD> | null>(null)
 
 const { searchSession, error: searchSessionError } = useSearchSession(
   toRef(() => {
@@ -112,17 +111,6 @@ function afterClick() {
 }
 
 const docName = computed(() => getName(withDocument.value?.doc?.claims))
-const article = computed(() => getBestClaimOfType(withDocument.value?.doc?.claims, "text", ARTICLE))
-const file = computed(() => {
-  const f = {
-    url: getBestClaimOfType(withDocument.value?.doc?.claims, "ref", FILE_URL)?.iri,
-    mediaType: getBestClaimOfType(withDocument.value?.doc?.claims, "string", MEDIA_TYPE)?.string,
-  }
-  if (f.url && f.mediaType) {
-    return f
-  }
-  return null
-})
 
 async function onEdit() {
   if (abortController.signal.aborted) {
@@ -201,7 +189,7 @@ async function onEdit() {
   </Teleport>
   <div ref="el" class="pd-documentget mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4" :data-url="withDocument?.url">
     <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
-      <WithPeerDBDocument :id="id" ref="withDocument" name="DocumentGet">
+      <WithDocumentD :id="id" ref="withDocument" name="DocumentGet">
         <template #default="{ doc }">
           <!--
             TODO: Fix how hover interacts with focused tab.
@@ -210,16 +198,6 @@ async function onEdit() {
           <TabGroup>
             <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100">
               <Tab
-                v-if="article"
-                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-                >{{ t("views.DocumentGet.tabs.article") }}</Tab
-              >
-              <Tab
-                v-if="file"
-                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl-md focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-                >{{ t("views.DocumentGet.tabs.file") }}</Tab
-              >
-              <Tab
                 class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
                 >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
               >
@@ -227,15 +205,6 @@ async function onEdit() {
             <h1 class="mb-4 text-4xl font-bold drop-shadow-xs" v-html="docName || `<i>${t('common.values.noName')}</i>`"></h1>
             <TabPanels>
               <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
-              <TabPanel v-if="article" tabindex="-1">
-                <!-- eslint-disable-next-line vue/no-v-html -->
-                <div class="prose max-w-none prose-slate" v-html="article.html.en"></div>
-              </TabPanel>
-              <TabPanel v-if="file" tabindex="-1">
-                <template v-if="file.mediaType?.startsWith('image/')">
-                  <a :href="file.url"><img :src="file.url" /></a>
-                </template>
-              </TabPanel>
               <TabPanel tabindex="-1">
                 <table class="w-full table-auto border-collapse">
                   <thead>
@@ -268,7 +237,7 @@ async function onEdit() {
         <template #error>
           <i class="pd-documentget-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
         </template>
-      </WithPeerDBDocument>
+      </WithDocumentD>
     </div>
   </div>
   <Teleport to="footer">

@@ -98,18 +98,11 @@
       "expandRow": "Expand row",
       "collapseRow": "Collapse row",
       "moreColumns": "More columns"
-    },
-    "claimvalue": {
-      "ClaimValueFile": {
-        "filePreview": "File preview"
-      }
     }
   },
   "views": {
     "DocumentGet": {
       "tabs": {
-        "article": "Article",
-        "file": "File",
         "allProperties": "All properties"
       }
     },
@@ -117,29 +110,25 @@
       "addClaim": "Add claim",
       "claimTypes": {
         "identifier": "Identifier",
-        "reference": "Reference",
-        "text": "Text",
         "string": "String",
+        "html": "HTML",
         "amount": "Amount",
-        "amountRange": "Amount range",
-        "relation": "Relation",
-        "file": "File",
-        "noValue": "No value",
-        "unknownValue": "Unknown value",
+        "amountInterval": "Amount interval",
         "time": "Timestamp",
-        "timeRange": "Time range"
+        "timeInterval": "Time interval",
+        "link": "Link",
+        "reference": "Reference",
+        "has": "Has",
+        "none": "None",
+        "unknown": "Unknown"
       },
       "labels": {
         "iri": "IRI",
-        "text": "Text",
+        "html": "HTML",
         "string": "String",
         "amount": "Amount",
-        "lower": "Lower",
-        "upper": "Upper",
-        "to": "To",
-        "mediaType": "Media type",
-        "url": "URL",
-        "previewUrl": "Preview URL"
+        "from": "From",
+        "to": "To"
       }
     }
   }

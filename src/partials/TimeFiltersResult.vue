@@ -12,7 +12,7 @@ import CheckBox from "@/components/CheckBox.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import { injectProgress } from "@/progress"
 import { NONE, useTimeHistogramValues } from "@/search"
-import { bigIntMax, equals, formatTime, loadingShortHeights, secondsToTimestamp, timestampToSeconds, useInitialLoad } from "@/utils"
+import { equals, formatTime, loadingShortHeights, parseTime, useInitialLoad } from "@/utils"
 
 const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
@@ -57,8 +57,8 @@ function onSliderChange(values: (number | string)[], handle: number, unencoded: 
   }
 
   const updatedState = {
-    gte: values[0] as string,
-    lte: values[1] as string,
+    gte: unencoded[0],
+    lte: unencoded[1],
   }
   if (!equals(props.state, updatedState)) {
     emit("update:state", updatedState)
@@ -91,11 +91,7 @@ const maxCount = computed(() => {
   return Math.max(...results.value.map((r) => r.count))
 })
 
-const maxSafeInteger = BigInt(Number.MAX_SAFE_INTEGER)
-const scale = 1024n
-
 let slider: API | null = null
-let scaledRange = false
 const sliderEl = useTemplateRef<HTMLElement>("sliderEl")
 
 watchEffect((onCleanup) => {
@@ -108,34 +104,12 @@ watchEffect((onCleanup) => {
   if (min.value === null || max.value === null || min.value === max.value) {
     return
   }
-  const gte = props.state === null || props.state === NONE ? null : (props.state as { gte?: string; lte?: string }).gte
-  const lte = props.state === null || props.state === NONE ? null : (props.state as { gte?: string; lte?: string }).lte
-  const bigIntRangeMin = gte == null ? min.value : bigIntMax(timestampToSeconds(gte), min.value)
-  const bigIntRangeMax = lte == null ? max.value : bigIntMax(timestampToSeconds(lte), max.value)
-  let rangeMin, rangeMax
-  if (bigIntRangeMax - bigIntRangeMin > maxSafeInteger) {
-    const scaledMin = bigIntRangeMin / scale
-    const scaledMax = bigIntRangeMax / scale
-    if (scaledMax - scaledMin > maxSafeInteger) {
-      throw new Error(`scaling not enough for range [${bigIntRangeMin}, ${bigIntRangeMax}]`)
-    }
-    rangeMin = Number(scaledMin)
-    rangeMax = Number(scaledMax)
-    if (bigIntRangeMax % scale !== 0n) {
-      // We round up.
-      rangeMax++
-    }
-    scaledRange = true
-  } else {
-    rangeMin = Number(bigIntRangeMin)
-    rangeMax = Number(bigIntRangeMax)
-    scaledRange = false
-  }
-  // rangeStart and rangeEnd are strings because noUiSlider otherwise converts the number
-  // to a string using String and tries to parse it with timestampToSeconds.
-  // Now it just tries to parse it with timestampToSeconds.
-  const rangeStart = gte == null ? secondsToTimestamp(min.value) : gte
-  const rangeEnd = lte == null ? secondsToTimestamp(max.value) : lte
+  const gte = props.state === null || props.state === NONE ? null : (props.state as { gte?: number; lte?: number }).gte
+  const lte = props.state === null || props.state === NONE ? null : (props.state as { gte?: number; lte?: number }).lte
+  const rangeMin = gte == null ? min.value : Math.max(gte, min.value)
+  const rangeMax = lte == null ? max.value : Math.min(lte, max.value)
+  const rangeStart = gte == null ? min.value : gte
+  const rangeEnd = lte == null ? max.value : lte
   if (!slider && sliderEl.value) {
     slider = noUiSlider.create(sliderEl.value, {
       start: [rangeStart, rangeEnd],
@@ -152,21 +126,10 @@ watchEffect((onCleanup) => {
       behaviour: "snap",
       format: {
         to: (value: number): string => {
-          let v = BigInt(Math.round(value))
-          if (scaledRange) {
-            v *= scale
-          }
-          return secondsToTimestamp(v)
+          return formatTime(value)
         },
         from: (value: string): number => {
-          let s = timestampToSeconds(value)
-          if (scaledRange) {
-            s /= scale
-            if (s > maxSafeInteger) {
-              throw new Error(`scaling not enough for timestamp "${value}"`)
-            }
-          }
-          return Number(s)
+          return parseTime(value)
         },
       },
     })
@@ -253,7 +216,7 @@ onBeforeUnmount(() => {
       </li>
       <li v-else-if="results.length === 1" class="flex items-baseline gap-x-1">
         <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
-        <div class="my-1 leading-none">{{ formatTime(timestampToSeconds(results[0].min)) }}</div>
+        <div class="my-1 leading-none">{{ formatTime(results[0].from) }}</div>
         <div class="my-1 leading-none">({{ results[0].count }})</div>
       </li>
       <li v-if="result.count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="error ? 'mt-0' : min === null || max === null ? 'mt-3' : 'mt-4'">

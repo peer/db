@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type { UnknownValueClaim } from "@/document"
+import type { UnknownClaim } from "@/document"
 
 import { useI18n } from "vue-i18n"
 
 defineProps<{
-  claim: UnknownValueClaim | DeepReadonly<UnknownValueClaim> | null
+  claim: UnknownClaim | DeepReadonly<UnknownClaim> | null
 }>()
 
 const { t } = useI18n()

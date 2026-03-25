@@ -1,37 +1,16 @@
 <script setup lang="ts">
 import type { ComponentExposed } from "vue-component-type-helpers"
 
-import type { PeerDBDocument } from "@/document"
+import type { D } from "@/document"
 import type { Result } from "@/types"
 
 import { computed, ref } from "vue"
 import { useI18n } from "vue-i18n"
 
 import WithDocument from "@/components/WithDocument.vue"
-import {
-  CATEGORY,
-  CLASSIFICATION,
-  COPYRIGHT_STATUS,
-  CORE_INSTANCE_OF,
-  CORE_SUBCLASS_OF,
-  DEPARTMENT,
-  DESCRIPTION,
-  GENDER,
-  INGREDIENTS,
-  INSTANCE_OF,
-  LABEL,
-  MEDIAWIKI_MEDIA_TYPE,
-  MEDIA_TYPE,
-  MEDIUM,
-  NAME,
-  NATIONALITY,
-  ORIGINAL_CATALOG_DESCRIPTION,
-  PREVIEW_URL,
-  SUBCLASS_OF,
-  TITLE,
-  TYPE,
-} from "@/props"
-import { encodeQuery, getBestClaimOfType, getClaimsListsOfType, getClaimsOfType, getName, loadingLongWidth, loadingWidth } from "@/utils"
+import { DESCRIPTION, INSTANCE_OF, SUBCLASS_OF } from "@/core"
+import { getBestClaimOfType, getClaimsOfType } from "@/document"
+import { encodeQuery, getName, loadingLongWidth, loadingWidth } from "@/utils"
 
 defineProps<{
   searchSessionId: string
@@ -40,47 +19,24 @@ defineProps<{
 
 const { t } = useI18n()
 
-const WithPeerDBDocument = WithDocument<PeerDBDocument>
-const withDocument = ref<ComponentExposed<typeof WithPeerDBDocument> | null>(null)
+const WithDocumentD = WithDocument<D>
+const withDocument = ref<ComponentExposed<typeof WithDocumentD> | null>(null)
 
 const docName = computed(() => getName(withDocument.value?.doc?.claims))
 // TODO: Do not hard-code properties?
 const description = computed(() => {
-  const props = [INGREDIENTS, ORIGINAL_CATALOG_DESCRIPTION, TITLE]
-  if (getBestClaimOfType(withDocument.value?.doc?.claims, "text", NAME)) {
-    // If DESCRIPTION is not already used in getName, then we use it here.
-    props.push(DESCRIPTION)
-  }
-  return getBestClaimOfType(withDocument.value?.doc?.claims, "text", props)?.html.en || ""
+  return getBestClaimOfType(withDocument.value?.doc?.claims, "html", DESCRIPTION)?.html || ""
 })
 // TODO: Do not hard-code properties?
 const tags = computed(() => {
   return [
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", TYPE).map((c) => ({ id: c.to.id })),
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", INSTANCE_OF).map((c) => ({ id: c.to.id })),
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", SUBCLASS_OF).map((c) => ({ id: c.to.id })),
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", CORE_INSTANCE_OF).map((c) => ({ id: c.to.id })),
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", CORE_SUBCLASS_OF).map((c) => ({ id: c.to.id })),
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", LABEL).map((c) => ({ id: c.to.id })),
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "string", DEPARTMENT).map((c) => ({ string: c.string })),
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "string", CLASSIFICATION).map((c) => ({ string: c.string })),
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "string", MEDIUM).map((c) => ({ string: c.string })),
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "string", NATIONALITY).map((c) => ({ string: c.string })),
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "string", GENDER).map((c) => ({ string: c.string })),
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "string", MEDIAWIKI_MEDIA_TYPE).map((c) => ({ string: c.string })),
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "string", MEDIA_TYPE).map((c) => ({ string: c.string })),
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "rel", COPYRIGHT_STATUS).map((c) => ({ id: c.to.id })),
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "string", CATEGORY).map((c) => ({ string: c.string })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "ref", INSTANCE_OF).map((c) => ({ id: c.to.id })),
+    ...getClaimsOfType(withDocument.value?.doc?.claims, "ref", SUBCLASS_OF).map((c) => ({ id: c.to.id })),
   ]
 })
 const previewFiles = computed(() => {
-  // TODO: Sort files by group by properties (e.g., "image" first) and then sort inside groups by confidence.
-  return [
-    ...getClaimsListsOfType(withDocument.value?.doc?.claims, "ref", PREVIEW_URL)
-      .flat(1)
-      .map((c) => c.iri),
-    ...[...(withDocument.value?.doc?.claims?.file || [])].flatMap((c) => c.preview ?? []),
-  ]
+  // TODO: Return image files.
+  return [] as string[]
 })
 const rowsCount = computed(() => {
   let r = 1
@@ -123,7 +79,7 @@ const rowSpan = computed(() => {
 
 <template>
   <div :id="`result-${result.id}`" class="pd-searchresult rounded-sm border border-gray-200 bg-white p-4 shadow-sm" :data-url="withDocument?.url">
-    <WithPeerDBDocument :id="result.id" ref="withDocument" name="DocumentGet">
+    <WithDocumentD :id="result.id" ref="withDocument" name="DocumentGet">
       <template #default="{ doc: resultDoc }">
         <div class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
           <h2 class="text-xl leading-none">
@@ -134,9 +90,8 @@ const rowSpan = computed(() => {
             ></RouterLink>
           </h2>
           <ul v-if="tags.length" class="-mt-3 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
-            <template v-for="tag of tags" :key="'id' in tag ? tag.id : tag.string">
-              <li v-if="'string' in tag" class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs">{{ tag.string }}</li>
-              <WithPeerDBDocument v-else-if="'id' in tag" :id="tag.id" name="DocumentGet">
+            <template v-for="tag of tags" :key="tag.id">
+              <WithDocumentD :id="tag.id" name="DocumentGet">
                 <template #default="{ doc, url }">
                   <li
                     class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs"
@@ -147,7 +102,7 @@ const rowSpan = computed(() => {
                 <template #loading="{ url }">
                   <li class="pd-withdocument-loading h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(tag.id)]"></li>
                 </template>
-              </WithPeerDBDocument>
+              </WithDocumentD>
             </template>
           </ul>
           <div v-if="previewFiles.length" :class="`w-full sm:order-first ${rowSpan}`">
@@ -175,6 +130,6 @@ const rowSpan = computed(() => {
       <template #error>
         <i class="pd-withdocument-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </template>
-    </WithPeerDBDocument>
+    </WithDocumentD>
   </div>
 </template>
