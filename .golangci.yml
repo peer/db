@@ -22,7 +22,7 @@ linters:
       allow-empty: true
     goconst:
       ignore-string-values:
-        - "test"
+        - "none"
     gocritic:
       disabled-checks:
         - ifElseChain
