@@ -155,10 +155,10 @@ func ClaimPatchUnmarshalJSON(data json.RawMessage) (ClaimPatch, errors.E) { //no
 		return claimPatchUnmarshalJSON[TimeClaimPatch](data)
 	case "timeInterval":
 		return claimPatchUnmarshalJSON[TimeIntervalClaimPatch](data)
+	case "link":
+		return claimPatchUnmarshalJSON[LinkClaimPatch](data)
 	case "ref":
 		return claimPatchUnmarshalJSON[ReferenceClaimPatch](data)
-	case "rel":
-		return claimPatchUnmarshalJSON[RelationClaimPatch](data)
 	case "has":
 		return claimPatchUnmarshalJSON[HasClaimPatch](data)
 	case "none":
@@ -175,8 +175,8 @@ func ClaimPatchUnmarshalJSON(data json.RawMessage) (ClaimPatch, errors.E) { //no
 // ClaimPatchMarshalJSON marshals a ClaimPatch to JSON bytes.
 func ClaimPatchMarshalJSON(patch ClaimPatch) ([]byte, errors.E) {
 	switch patch.(type) {
-	case IdentifierClaimPatch, StringClaimPatch, HTMLClaimPatch, ReferenceClaimPatch, AmountClaimPatch, AmountIntervalClaimPatch,
-		TimeClaimPatch, TimeIntervalClaimPatch, RelationClaimPatch, HasClaimPatch, NoneClaimPatch, UnknownClaimPatch:
+	case IdentifierClaimPatch, StringClaimPatch, HTMLClaimPatch, LinkClaimPatch, AmountClaimPatch, AmountIntervalClaimPatch,
+		TimeClaimPatch, TimeIntervalClaimPatch, ReferenceClaimPatch, HasClaimPatch, NoneClaimPatch, UnknownClaimPatch:
 	default:
 		errE := errors.New("patch type not supported")
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", patch)
@@ -211,8 +211,8 @@ var (
 	_ ClaimPatch = AmountIntervalClaimPatch{}
 	_ ClaimPatch = TimeClaimPatch{}
 	_ ClaimPatch = TimeIntervalClaimPatch{}
+	_ ClaimPatch = LinkClaimPatch{}
 	_ ClaimPatch = ReferenceClaimPatch{}
-	_ ClaimPatch = RelationClaimPatch{}
 	_ ClaimPatch = HasClaimPatch{}
 	_ ClaimPatch = NoneClaimPatch{}
 	_ ClaimPatch = UnknownClaimPatch{}
@@ -1220,22 +1220,22 @@ func (p TimeIntervalClaimPatch) MarshalJSON() ([]byte, error) {
 	return x.MarshalWithoutEscapeHTML(t)
 }
 
-// ReferenceClaimPatch represents a patch for a reference claim.
+// LinkClaimPatch represents a patch for a link claim.
 //
 //nolint:recvcheck
-type ReferenceClaimPatch struct {
+type LinkClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
 	IRI        string                 `exhaustruct:"optional" json:"iri,omitempty"`
 }
 
-// New creates a new reference claim from the patch.
-func (p ReferenceClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
+// New creates a new link claim from the patch.
+func (p LinkClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil || len(p.IRI) == 0 {
 		return nil, errors.New("incomplete patch")
 	}
 
-	c := &ReferenceClaim{
+	c := &LinkClaim{
 		CoreClaim: CoreClaim{
 			ID:         id,
 			Confidence: *p.Confidence,
@@ -1249,9 +1249,102 @@ func (p ReferenceClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { /
 	return c, c.Validate()
 }
 
+// Apply applies the patch to an existing link claim.
+func (p LinkClaimPatch) Apply(claim Claim) errors.E {
+	if p.Confidence == nil && p.Prop == nil && len(p.IRI) == 0 {
+		return errors.New("empty patch")
+	}
+
+	c, ok := claim.(*LinkClaim)
+	if !ok {
+		return errors.New("not link claim")
+	}
+
+	if p.Confidence != nil {
+		c.Confidence = *p.Confidence
+	}
+	if p.Prop != nil {
+		c.Prop.ID = *p.Prop
+	}
+	if len(p.IRI) > 0 {
+		c.IRI = p.IRI
+	}
+
+	return c.Validate()
+}
+
+// UnmarshalJSON unmarshals a link claim patch from JSON.
+func (p *LinkClaimPatch) UnmarshalJSON(data []byte) error {
+	// We define a new type to not recurse into this same UnmarshalJSON.
+	type P LinkClaimPatch
+	var t struct {
+		P
+
+		Type string `json:"type"`
+	}
+	errE := x.UnmarshalWithoutUnknownFields(data, &t)
+	if errE != nil {
+		return errE
+	}
+	if t.Type != "link" {
+		errE := errors.New("invalid type")
+		errors.Details(errE)["type"] = t.Type
+		return errE
+	}
+	*p = LinkClaimPatch(t.P)
+	return nil
+}
+
+// MarshalJSON marshals a link claim patch to JSON.
+func (p LinkClaimPatch) MarshalJSON() ([]byte, error) {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type P LinkClaimPatch
+	t := struct {
+		P
+
+		Type string `json:"type"`
+	}{
+		P: P(p),
+
+		Type: "link",
+	}
+	return x.MarshalWithoutEscapeHTML(t)
+}
+
+// ReferenceClaimPatch represents a patch for a reference claim.
+//
+//nolint:recvcheck
+type ReferenceClaimPatch struct {
+	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
+	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
+	To         *identifier.Identifier `exhaustruct:"optional" json:"to,omitempty"`
+}
+
+// New creates a new reference claim from the patch.
+func (p ReferenceClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
+	if p.Confidence == nil || p.Prop == nil || p.To == nil {
+		return nil, errors.New("incomplete patch")
+	}
+
+	c := &ReferenceClaim{
+		CoreClaim: CoreClaim{
+			ID:         id,
+			Confidence: *p.Confidence,
+		},
+		Prop: Reference{
+			ID: *p.Prop,
+		},
+		To: Reference{
+			ID: *p.To,
+		},
+	}
+
+	return c, c.Validate()
+}
+
 // Apply applies the patch to an existing reference claim.
 func (p ReferenceClaimPatch) Apply(claim Claim) errors.E {
-	if p.Confidence == nil && p.Prop == nil && len(p.IRI) == 0 {
+	if p.Confidence == nil && p.Prop == nil && p.To == nil {
 		return errors.New("empty patch")
 	}
 
@@ -1266,8 +1359,8 @@ func (p ReferenceClaimPatch) Apply(claim Claim) errors.E {
 	if p.Prop != nil {
 		c.Prop.ID = *p.Prop
 	}
-	if len(p.IRI) > 0 {
-		c.IRI = p.IRI
+	if p.To != nil {
+		c.To.ID = *p.To
 	}
 
 	return c.Validate()
@@ -1307,99 +1400,6 @@ func (p ReferenceClaimPatch) MarshalJSON() ([]byte, error) {
 		P: P(p),
 
 		Type: "ref",
-	}
-	return x.MarshalWithoutEscapeHTML(t)
-}
-
-// RelationClaimPatch represents a patch for a relation claim.
-//
-//nolint:recvcheck
-type RelationClaimPatch struct {
-	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
-	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
-	To         *identifier.Identifier `exhaustruct:"optional" json:"to,omitempty"`
-}
-
-// New creates a new relation claim from the patch.
-func (p RelationClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
-	if p.Confidence == nil || p.Prop == nil || p.To == nil {
-		return nil, errors.New("incomplete patch")
-	}
-
-	c := &RelationClaim{
-		CoreClaim: CoreClaim{
-			ID:         id,
-			Confidence: *p.Confidence,
-		},
-		Prop: Reference{
-			ID: *p.Prop,
-		},
-		To: Reference{
-			ID: *p.To,
-		},
-	}
-
-	return c, c.Validate()
-}
-
-// Apply applies the patch to an existing relation claim.
-func (p RelationClaimPatch) Apply(claim Claim) errors.E {
-	if p.Confidence == nil && p.Prop == nil && p.To == nil {
-		return errors.New("empty patch")
-	}
-
-	c, ok := claim.(*RelationClaim)
-	if !ok {
-		return errors.New("not relation claim")
-	}
-
-	if p.Confidence != nil {
-		c.Confidence = *p.Confidence
-	}
-	if p.Prop != nil {
-		c.Prop.ID = *p.Prop
-	}
-	if p.To != nil {
-		c.To.ID = *p.To
-	}
-
-	return c.Validate()
-}
-
-// UnmarshalJSON unmarshals a relation claim patch from JSON.
-func (p *RelationClaimPatch) UnmarshalJSON(data []byte) error {
-	// We define a new type to not recurse into this same UnmarshalJSON.
-	type P RelationClaimPatch
-	var t struct {
-		P
-
-		Type string `json:"type"`
-	}
-	errE := x.UnmarshalWithoutUnknownFields(data, &t)
-	if errE != nil {
-		return errE
-	}
-	if t.Type != "rel" {
-		errE := errors.New("invalid type")
-		errors.Details(errE)["type"] = t.Type
-		return errE
-	}
-	*p = RelationClaimPatch(t.P)
-	return nil
-}
-
-// MarshalJSON marshals a relation claim patch to JSON.
-func (p RelationClaimPatch) MarshalJSON() ([]byte, error) {
-	// We define a new type to not recurse into this same MarshalJSON.
-	type P RelationClaimPatch
-	t := struct {
-		P
-
-		Type string `json:"type"`
-	}{
-		P: P(p),
-
-		Type: "rel",
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }

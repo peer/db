@@ -283,8 +283,8 @@ func TestDocumentWithAllClaimTypes(t *testing.T) {
 		To:            &toTS,
 		ToPrecision:   &toPrec,
 	}
-	refClaim := &document.ReferenceClaim{CoreClaim: newCore(), Prop: ref, IRI: "https://example.com"}
-	relClaim := &document.RelationClaim{CoreClaim: newCore(), Prop: ref, To: ref}
+	linkClaim := &document.LinkClaim{CoreClaim: newCore(), Prop: ref, IRI: "https://example.com"}
+	refClaim := &document.ReferenceClaim{CoreClaim: newCore(), Prop: ref, To: ref}
 	hasClaim := &document.HasClaim{CoreClaim: newCore(), Prop: ref}
 	noneClaim := &document.NoneClaim{CoreClaim: newCore(), Prop: ref}
 	unknownClaim := &document.UnknownClaim{CoreClaim: newCore(), Prop: ref}
@@ -293,7 +293,7 @@ func TestDocumentWithAllClaimTypes(t *testing.T) {
 
 	for _, c := range []document.Claim{
 		idClaim, strClaim, htmlClaim, amtClaim, amtIntervalClaim,
-		timeClaim, timeIntervalClaim, refClaim, relClaim, hasClaim, noneClaim, unknownClaim,
+		timeClaim, timeIntervalClaim, linkClaim, refClaim, hasClaim, noneClaim, unknownClaim,
 	} {
 		errE := doc.Add(c)
 		require.NoError(t, errE, "% -+#.1v", errE)
@@ -328,8 +328,8 @@ func TestDocumentWithAllClaimTypes(t *testing.T) {
 	assert.Equal(t, amtIntervalClaim, doc.GetByID(amtIntervalClaim.ID))
 	assert.Equal(t, timeClaim, doc.GetByID(timeClaim.ID))
 	assert.Equal(t, timeIntervalClaim, doc.GetByID(timeIntervalClaim.ID))
+	assert.Equal(t, linkClaim, doc.GetByID(linkClaim.ID))
 	assert.Equal(t, refClaim, doc.GetByID(refClaim.ID))
-	assert.Equal(t, relClaim, doc.GetByID(relClaim.ID))
 	assert.Equal(t, hasClaim, doc.GetByID(hasClaim.ID))
 	assert.Equal(t, noneClaim, doc.GetByID(noneClaim.ID))
 	assert.Equal(t, unknownClaim, doc.GetByID(unknownClaim.ID))
@@ -464,7 +464,7 @@ func TestGetAllClaimsOfType(t *testing.T) {
 	assert.Equal(t, "<p>html</p>", htmls[0].HTML)
 
 	// A type with no claims returns nil.
-	assert.Nil(t, document.GetAllClaimsOfType[*document.RelationClaim](doc))
+	assert.Nil(t, document.GetAllClaimsOfType[*document.ReferenceClaim](doc))
 }
 
 // TestGetAllClaimsOfTypeNilClaims tests GetAllClaimsOfType on a nil ClaimTypes.
@@ -548,7 +548,7 @@ func TestGetAllClaimsOfTypeWithConfidenceNilClaims(t *testing.T) {
 	t.Parallel()
 
 	var claims *document.ClaimTypes
-	assert.Empty(t, document.GetAllClaimsOfTypeWithConfidence[*document.RelationClaim](claims, document.LowConfidence))
+	assert.Empty(t, document.GetAllClaimsOfTypeWithConfidence[*document.ReferenceClaim](claims, document.LowConfidence))
 }
 
 // TestDocumentMergeFrom tests D.MergeFrom merging claims from multiple documents.
@@ -655,14 +655,14 @@ func TestClaimValidations(t *testing.T) {
 		require.NoError(t, c.Validate())
 	})
 
-	t.Run("ReferenceClaim/empty", func(t *testing.T) {
+	t.Run("LinkClaim/empty", func(t *testing.T) {
 		t.Parallel()
-		c := &document.ReferenceClaim{CoreClaim: core, Prop: ref, IRI: ""}
+		c := &document.LinkClaim{CoreClaim: core, Prop: ref, IRI: ""}
 		assert.EqualError(t, c.Validate(), "empty IRI")
 	})
-	t.Run("ReferenceClaim/valid", func(t *testing.T) {
+	t.Run("LinkClaim/valid", func(t *testing.T) {
 		t.Parallel()
-		c := &document.ReferenceClaim{CoreClaim: core, Prop: ref, IRI: "https://example.com"}
+		c := &document.LinkClaim{CoreClaim: core, Prop: ref, IRI: "https://example.com"}
 		require.NoError(t, c.Validate(), "% -+#.1v")
 	})
 
@@ -1031,15 +1031,15 @@ func TestTimeClaimPatch(t *testing.T) {
 	assert.Equal(t, newTS, c.Timestamp)
 }
 
-// TestReferenceClaimPatch tests ReferenceClaimPatch New, Apply, and JSON roundtrip.
-func TestReferenceClaimPatch(t *testing.T) { //nolint:dupl
+// TestLinkClaimPatch tests LinkClaimPatch New, Apply, and JSON roundtrip.
+func TestLinkClaimPatch(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
 	prop := identifier.New()
 	confidence := document.Confidence(1.0)
 	iri := "https://example.com/resource"
 
-	p := document.ReferenceClaimPatch{
+	p := document.LinkClaimPatch{
 		Confidence: &confidence,
 		Prop:       &prop,
 		IRI:        iri,
@@ -1049,9 +1049,49 @@ func TestReferenceClaimPatch(t *testing.T) { //nolint:dupl
 	claim, errE := p.New(identifier.From("test", "0"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	c, ok := claim.(*document.ReferenceClaim)
+	c, ok := claim.(*document.LinkClaim)
 	require.True(t, ok)
 	assert.Equal(t, iri, c.IRI)
+
+	// Test JSON roundtrip.
+	out, errE := x.MarshalWithoutEscapeHTML(p)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Contains(t, string(out), `"type":"link"`)
+
+	var p2 document.LinkClaimPatch
+	errE = x.UnmarshalWithoutUnknownFields(out, &p2)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, p, p2)
+
+	// Test Apply updates the IRI.
+	newIRI := "https://example.org/other"
+	applyPatch := document.LinkClaimPatch{IRI: newIRI}
+	errE = applyPatch.Apply(claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, newIRI, c.IRI)
+}
+
+// TestReferenceClaimPatch tests ReferenceClaimPatch New, Apply, and JSON roundtrip.
+func TestReferenceClaimPatch(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+	target := identifier.New()
+	confidence := document.Confidence(1.0)
+
+	p := document.ReferenceClaimPatch{
+		Confidence: &confidence,
+		Prop:       &prop,
+		To:         &target,
+	}
+
+	// Test New.
+	claim, errE := p.New(identifier.From("test", "0"))
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	c, ok := claim.(*document.ReferenceClaim)
+	require.True(t, ok)
+	assert.Equal(t, target, c.To.ID)
 
 	// Test JSON roundtrip.
 	out, errE := x.MarshalWithoutEscapeHTML(p)
@@ -1063,49 +1103,9 @@ func TestReferenceClaimPatch(t *testing.T) { //nolint:dupl
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, p, p2)
 
-	// Test Apply updates the IRI.
-	newIRI := "https://example.org/other"
-	applyPatch := document.ReferenceClaimPatch{IRI: newIRI}
-	errE = applyPatch.Apply(claim)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, newIRI, c.IRI)
-}
-
-// TestRelationClaimPatch tests RelationClaimPatch New, Apply, and JSON roundtrip.
-func TestRelationClaimPatch(t *testing.T) {
-	t.Parallel()
-
-	prop := identifier.New()
-	target := identifier.New()
-	confidence := document.Confidence(1.0)
-
-	p := document.RelationClaimPatch{
-		Confidence: &confidence,
-		Prop:       &prop,
-		To:         &target,
-	}
-
-	// Test New.
-	claim, errE := p.New(identifier.From("test", "0"))
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	c, ok := claim.(*document.RelationClaim)
-	require.True(t, ok)
-	assert.Equal(t, target, c.To.ID)
-
-	// Test JSON roundtrip.
-	out, errE := x.MarshalWithoutEscapeHTML(p)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Contains(t, string(out), `"type":"rel"`)
-
-	var p2 document.RelationClaimPatch
-	errE = x.UnmarshalWithoutUnknownFields(out, &p2)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, p, p2)
-
 	// Test Apply updates the target.
 	newTarget := identifier.New()
-	applyPatch := document.RelationClaimPatch{To: &newTarget}
+	applyPatch := document.ReferenceClaimPatch{To: &newTarget}
 	errE = applyPatch.Apply(claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, newTarget, c.To.ID)
@@ -1365,8 +1365,8 @@ func TestClaimPatchMarshalUnmarshalJSON(t *testing.T) {
 	patches := []document.ClaimPatch{
 		document.StringClaimPatch{Confidence: &conf, Prop: &prop, String: "test"},
 		document.HTMLClaimPatch{Confidence: &conf, Prop: &prop, HTML: "<p>html</p>"},
-		document.ReferenceClaimPatch{Confidence: &conf, Prop: &prop, IRI: "https://example.com"},
-		document.RelationClaimPatch{Confidence: &conf, Prop: &prop, To: &prop},
+		document.LinkClaimPatch{Confidence: &conf, Prop: &prop, IRI: "https://example.com"},
+		document.ReferenceClaimPatch{Confidence: &conf, Prop: &prop, To: &prop},
 		document.HasClaimPatch{Confidence: &conf, Prop: &prop},
 		document.NoneClaimPatch{Confidence: &conf, Prop: &prop},
 		document.UnknownClaimPatch{Confidence: &conf, Prop: &prop},
@@ -1565,14 +1565,14 @@ func TestAllChangePatchTypesViaChanges(t *testing.T) {
 		document.AddClaimChange{ //nolint:exhaustruct
 			ID:   makeID(6),
 			Base: makeBase(6),
-			Patch: document.ReferenceClaimPatch{
+			Patch: document.LinkClaimPatch{
 				Confidence: &conf, Prop: &prop, IRI: "https://example.com",
 			},
 		},
 		document.AddClaimChange{ //nolint:exhaustruct
 			ID:   makeID(7),
 			Base: makeBase(7),
-			Patch: document.RelationClaimPatch{
+			Patch: document.ReferenceClaimPatch{
 				Confidence: &conf, Prop: &prop, To: &target,
 			},
 		},
@@ -1649,15 +1649,15 @@ func TestPatchNewIncomplete(t *testing.T) {
 		_, errE := p.New(identifier.From("base", "0"))
 		assert.EqualError(t, errE, "incomplete patch")
 	})
-	t.Run("ReferenceClaimPatch", func(t *testing.T) {
+	t.Run("LinkClaimPatch", func(t *testing.T) {
 		t.Parallel()
-		p := document.ReferenceClaimPatch{}
+		p := document.LinkClaimPatch{}
 		_, errE := p.New(identifier.From("base", "0"))
 		assert.EqualError(t, errE, "incomplete patch")
 	})
-	t.Run("RelationClaimPatch", func(t *testing.T) {
+	t.Run("ReferenceClaimPatch", func(t *testing.T) {
 		t.Parallel()
-		p := document.RelationClaimPatch{}
+		p := document.ReferenceClaimPatch{}
 		_, errE := p.New(identifier.From("base", "0"))
 		assert.EqualError(t, errE, "incomplete patch")
 	})
@@ -1708,15 +1708,15 @@ func TestPatchApplyWrongType(t *testing.T) {
 		p := document.TimeClaimPatch{Timestamp: &ts}
 		assert.EqualError(t, p.Apply(wrongClaim), "not time claim")
 	})
+	t.Run("LinkClaimPatch", func(t *testing.T) {
+		t.Parallel()
+		p := document.LinkClaimPatch{IRI: "https://example.com"}
+		assert.EqualError(t, p.Apply(wrongClaim), "not link claim")
+	})
 	t.Run("ReferenceClaimPatch", func(t *testing.T) {
 		t.Parallel()
-		p := document.ReferenceClaimPatch{IRI: "https://example.com"}
+		p := document.ReferenceClaimPatch{To: &prop}
 		assert.EqualError(t, p.Apply(wrongClaim), "not reference claim")
-	})
-	t.Run("RelationClaimPatch", func(t *testing.T) {
-		t.Parallel()
-		p := document.RelationClaimPatch{To: &prop}
-		assert.EqualError(t, p.Apply(wrongClaim), "not relation claim")
 	})
 	t.Run("HasClaimPatch", func(t *testing.T) {
 		t.Parallel()
@@ -1857,7 +1857,7 @@ func TestPatchApplyEmptyPatch(t *testing.T) {
 		}
 	}
 	makeRefClaim := func() document.Claim {
-		return &document.ReferenceClaim{
+		return &document.LinkClaim{
 			CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
 			Prop:      document.Reference{ID: prop},
 			IRI:       "https://example.com",
@@ -1876,9 +1876,9 @@ func TestPatchApplyEmptyPatch(t *testing.T) {
 		t.Parallel()
 		assert.EqualError(t, document.TimeClaimPatch{}.Apply(makeTimeClaim()), "empty patch")
 	})
-	t.Run("ReferenceClaimPatch/empty", func(t *testing.T) {
+	t.Run("LinkClaimPatch/empty", func(t *testing.T) {
 		t.Parallel()
-		assert.EqualError(t, document.ReferenceClaimPatch{}.Apply(makeRefClaim()), "empty patch")
+		assert.EqualError(t, document.LinkClaimPatch{}.Apply(makeRefClaim()), "empty patch")
 	})
 }
 
@@ -2193,14 +2193,14 @@ func TestPatchUnmarshalJSONWrongType(t *testing.T) {
 		var p document.TimeIntervalClaimPatch
 		assert.EqualError(t, x.UnmarshalWithoutUnknownFields([]byte(`{"type":"unknown"}`), &p), "invalid type")
 	})
+	t.Run("LinkClaimPatch", func(t *testing.T) {
+		t.Parallel()
+		var p document.LinkClaimPatch
+		assert.EqualError(t, x.UnmarshalWithoutUnknownFields([]byte(`{"type":"rel"}`), &p), "invalid type")
+	})
 	t.Run("ReferenceClaimPatch", func(t *testing.T) {
 		t.Parallel()
 		var p document.ReferenceClaimPatch
-		assert.EqualError(t, x.UnmarshalWithoutUnknownFields([]byte(`{"type":"rel"}`), &p), "invalid type")
-	})
-	t.Run("RelationClaimPatch", func(t *testing.T) {
-		t.Parallel()
-		var p document.RelationClaimPatch
 		assert.EqualError(t, x.UnmarshalWithoutUnknownFields([]byte(`{"type":"has"}`), &p), "invalid type")
 	})
 	t.Run("HasClaimPatch", func(t *testing.T) {
@@ -2602,14 +2602,14 @@ func TestTimePrecisionUnmarshalJSONBadJSON(t *testing.T) {
 	assert.EqualError(t, err, "json: cannot unmarshal number into Go value of type string")
 }
 
-// TestReferenceClaimPatchApplyConfidenceOnly tests that ReferenceClaimPatch.Apply accepts a confidence-only patch.
-func TestReferenceClaimPatchApplyConfidenceOnly(t *testing.T) {
+// TestLinkClaimPatchApplyConfidenceOnly tests that LinkClaimPatch.Apply accepts a confidence-only patch.
+func TestLinkClaimPatchApplyConfidenceOnly(t *testing.T) {
 	t.Parallel()
 
 	prop := identifier.New()
 	confidence := document.HighConfidence
 
-	fullPatch := document.ReferenceClaimPatch{
+	fullPatch := document.LinkClaimPatch{
 		Confidence: &confidence,
 		Prop:       &prop,
 		IRI:        "https://example.com",
@@ -2618,7 +2618,7 @@ func TestReferenceClaimPatchApplyConfidenceOnly(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	newConfidence := document.LowConfidence
-	confidenceOnlyPatch := document.ReferenceClaimPatch{
+	confidenceOnlyPatch := document.LinkClaimPatch{
 		Confidence: &newConfidence,
 	}
 	errE = confidenceOnlyPatch.Apply(claim)
@@ -3016,14 +3016,14 @@ func TestClaimTypesGetWithAllTypes(t *testing.T) {
 				ToIsUnknown: true,
 			},
 		},
-		Reference: document.ReferenceClaims{
+		Link: document.LinkClaims{
 			{
 				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
 				Prop:      document.Reference{ID: prop},
 				IRI:       "https://example.com",
 			},
 		},
-		Relation: document.RelationClaims{
+		Reference: document.ReferenceClaims{
 			{
 				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
 				Prop:      document.Reference{ID: prop},

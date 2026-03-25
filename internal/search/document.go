@@ -23,8 +23,8 @@ type ClaimTypes struct {
 	HTML       HTMLClaims       `json:"html,omitempty"`
 	Amount     AmountClaims     `json:"amount,omitempty"`
 	Time       TimeClaims       `json:"time,omitempty"`
+	Link       LinkClaims       `json:"link,omitempty"`
 	Reference  ReferenceClaims  `json:"ref,omitempty"`
-	Relation   RelationClaims   `json:"rel,omitempty"`
 	Has        HasClaims        `json:"has,omitempty"`
 	None       NoneClaims       `json:"none,omitempty"`
 	Unknown    UnknownClaims    `json:"unknown,omitempty"`
@@ -44,10 +44,10 @@ type (
 	AmountClaims = []AmountClaim
 	// TimeClaims is a slice of TimeClaim.
 	TimeClaims = []TimeClaim
+	// LinkClaims is a slice of LinkClaim.
+	LinkClaims = []LinkClaim
 	// ReferenceClaims is a slice of ReferenceClaim.
 	ReferenceClaims = []ReferenceClaim
-	// RelationClaims is a slice of RelationClaim.
-	RelationClaims = []RelationClaim
 	// HasClaims is a slice of HasClaim.
 	HasClaims = []HasClaim
 	// NoneClaims is a slice of NoneClaim.
@@ -150,16 +150,16 @@ type TimeClaim struct {
 	ToDisplay   string                `json:"toDisplay,omitempty"`
 }
 
-// ReferenceClaim represents a claim with an IRI (Internationalized Resource Identifier) value.
-type ReferenceClaim struct {
+// LinkClaim represents a claim with an IRI (Internationalized Resource Identifier) value.
+type LinkClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
 	PropNaming  map[string][]string   `json:"propNaming"`
 	IRI         string                `json:"iri"`
 }
 
-// NestedRelationClaim represents a nested relation claim.
-type NestedRelationClaim struct {
+// NestedReferenceClaim represents a nested reference claim.
+type NestedReferenceClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
 	PropNaming  map[string][]string   `json:"propNaming"`
@@ -168,10 +168,10 @@ type NestedRelationClaim struct {
 	ToNaming    map[string][]string   `json:"toNaming"`
 }
 
-// RelationClaim represents a claim that relates this document to another document.
+// ReferenceClaim represents a claim that relates this document to another document.
 //
 // In addition, it supports a limited set of nested claims.
-type RelationClaim struct {
+type ReferenceClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
 	PropNaming  map[string][]string   `json:"propNaming"`
@@ -190,7 +190,7 @@ type RelationClaim struct {
 	ToDisplayPath map[string][]string `json:"toDisplayPath,omitempty"`
 
 	// Nested claims.
-	Relation []NestedRelationClaim `json:"rel,omitempty"`
+	Reference []NestedReferenceClaim `json:"ref,omitempty"`
 }
 
 // HasClaim represents a claim with just a property.
@@ -202,7 +202,7 @@ type HasClaim struct {
 	PropNaming  map[string][]string   `json:"propNaming"`
 
 	// Nested claims.
-	Relation []NestedRelationClaim `json:"rel,omitempty"`
+	Reference []NestedReferenceClaim `json:"ref,omitempty"`
 }
 
 // NoneClaim represents a claim that explicitly states no value exists for a property.

@@ -388,13 +388,13 @@ var (
 func makePropertyDocJSON(t *testing.T, id identifier.Identifier, inverseOf *identifier.Identifier) json.RawMessage {
 	t.Helper()
 	claims := &document.ClaimTypes{}
-	claims.Relation = append(claims.Relation, document.RelationClaim{
+	claims.Reference = append(claims.Reference, document.ReferenceClaim{
 		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
 		Prop:      document.Reference{ID: testInstanceOfPropID},
 		To:        document.Reference{ID: testPropertyClassID},
 	})
 	if inverseOf != nil {
-		claims.Relation = append(claims.Relation, document.RelationClaim{
+		claims.Reference = append(claims.Reference, document.ReferenceClaim{
 			CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
 			Prop:      document.Reference{ID: testInversePropertyOfPropI},
 			To:        document.Reference{ID: *inverseOf},
@@ -415,7 +415,7 @@ func makeDocWithRelationJSON(t *testing.T, docID, propID, targetID identifier.Id
 	doc := document.D{
 		CoreDocument: document.CoreDocument{ID: docID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
-			Relation: []document.RelationClaim{
+			Reference: []document.ReferenceClaim{
 				{
 					CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
 					Prop:      document.Reference{ID: propID},
@@ -440,7 +440,7 @@ func makeConverterWithInverse(
 	propXDoc := &document.D{
 		CoreDocument: document.CoreDocument{ID: propX}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
-			Relation: []document.RelationClaim{
+			Reference: []document.ReferenceClaim{
 				{
 					CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
 					Prop:      document.Reference{ID: testInstanceOfPropID},
@@ -457,7 +457,7 @@ func makeConverterWithInverse(
 	propYDoc := &document.D{
 		CoreDocument: document.CoreDocument{ID: propY}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
-			Relation: []document.RelationClaim{
+			Reference: []document.ReferenceClaim{
 				{
 					CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
 					Prop:      document.Reference{ID: testInstanceOfPropID},
@@ -536,12 +536,12 @@ func TestBridgeInverseRelationReindexing(t *testing.T) {
 		if !assert.NoError(c, err) {
 			return
 		}
-		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docB, propY, docA),
 			"docB should have inverse relation B --Y--> A")
 	}, 10*time.Second, 100*time.Millisecond)
 
 	// Doc A should have the forward relation A --X--> B.
-	assert.True(t, testutils.DocHasRelation(ctx, t, esClient, b.Index, docA, propX, docB),
+	assert.True(t, testutils.DocHasReference(ctx, t, esClient, b.Index, docA, propX, docB),
 		"docA should have forward relation A --X--> B")
 }
 
@@ -584,14 +584,14 @@ func TestBridgeInverseRelationMutual(t *testing.T) {
 			return
 		}
 		// A should have forward A --X--> B and inverse A --Y--> B (from B --X--> A).
-		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docA, propX, docB),
+		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docA, propX, docB),
 			"docA should have forward A --X--> B")
-		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docA, propY, docB),
+		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docA, propY, docB),
 			"docA should have inverse A --Y--> B")
 		// B should have forward B --X--> A and inverse B --Y--> A (from A --X--> B).
-		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propX, docA),
+		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docB, propX, docA),
 			"docB should have forward B --X--> A")
-		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docB, propY, docA),
 			"docB should have inverse B --Y--> A")
 	}, 10*time.Second, 100*time.Millisecond)
 }
@@ -636,9 +636,9 @@ func TestBridgeInverseRelationMultipleSources(t *testing.T) {
 		if !assert.NoError(c, err) {
 			return
 		}
-		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docB, propY, docA),
 			"docB should have inverse B --Y--> A")
-		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docC),
+		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docB, propY, docC),
 			"docB should have inverse B --Y--> C")
 	}, 10*time.Second, 100*time.Millisecond)
 }
@@ -680,7 +680,7 @@ func TestBridgeInverseRelationRemoval(t *testing.T) {
 		if !assert.NoError(c, err) {
 			return
 		}
-		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docB, propY, docA),
 			"docB should have inverse B --Y--> A")
 	}, 10*time.Second, 100*time.Millisecond)
 
@@ -708,7 +708,7 @@ func TestBridgeInverseRelationRemoval(t *testing.T) {
 		if !assert.NoError(c, err) {
 			return
 		}
-		assert.False(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+		assert.False(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docB, propY, docA),
 			"docB should no longer have inverse B --Y--> A")
 	}, 10*time.Second, 100*time.Millisecond)
 }
@@ -753,7 +753,7 @@ func TestBridgeInverseRelationChange(t *testing.T) {
 		if !assert.NoError(c, err) {
 			return
 		}
-		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docB, propY, docA),
 			"docB should have inverse B --Y--> A")
 	}, 10*time.Second, 100*time.Millisecond)
 
@@ -773,10 +773,10 @@ func TestBridgeInverseRelationChange(t *testing.T) {
 			return
 		}
 		// C should have the inverse relation.
-		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docC, propY, docA),
+		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docC, propY, docA),
 			"docC should have inverse C --Y--> A")
 		// B should no longer have the inverse relation.
-		assert.False(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+		assert.False(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docB, propY, docA),
 			"docB should no longer have inverse B --Y--> A")
 	}, 10*time.Second, 100*time.Millisecond)
 

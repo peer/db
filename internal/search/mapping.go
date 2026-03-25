@@ -144,7 +144,7 @@ const propDisplay = `{
 
 // We currently have display and naming fields which enable us to search and sort by them if we need that.
 // We currently do not plan to group by them, so we do not have "toPath" or "toDisplayPath" fields.
-const nestedRel = `{
+const nestedRef = `{
 	"type": "nested",
 	"properties": {
 		"prop": ` + relationID + `,
@@ -356,7 +356,7 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		},
 	},
 	{
-		"ref",
+		"link",
 		[]field{
 			{
 				"prop",
@@ -382,7 +382,7 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		},
 	},
 	{
-		"rel",
+		"ref",
 		[]field{
 			{
 				"prop",
@@ -417,8 +417,8 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 				displayPath,
 			},
 			{
-				"rel",
-				nestedRel,
+				"ref",
+				nestedRef,
 			},
 		},
 	},
@@ -438,8 +438,8 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 				multiLanguageString,
 			},
 			{
-				"rel",
-				nestedRel,
+				"ref",
+				nestedRef,
 			},
 		},
 	},

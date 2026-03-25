@@ -13,7 +13,7 @@ Key features:
 
 - **Versioned document store** with full change history
 - **Real-time collaboration** with conflict detection
-- **Claims-based document schema** supporting 12 claim types (identifiers, text, relations, amounts, time, etc.)
+- **Claims-based document schema** supporting 12 claim types (identifiers, strings, HTML, amounts, time, links, references, etc.)
 - **Adaptive search UI** that automatically adjusts to data and provides relevant filters
 - **Multi-site support** with separate schemas and indices per site
 
@@ -175,8 +175,8 @@ Claims-based document system supporting 12 claim types:
 - **AmountIntervalClaim**: Numeric intervals with bounds
 - **TimeClaim**: Timestamps with precision
 - **TimeIntervalClaim**: Time intervals with bounds
-- **ReferenceClaim**: URL/IRI references
-- **RelationClaim**: Relationships to other documents
+- **LinkClaim**: URL/IRI links
+- **ReferenceClaim**: Relationships to other documents
 - **HasClaim**: Property-only claim (can hold nested claims via meta)
 - **NoneClaim**: Explicitly states no value exists
 - **UnknownClaim**: Value exists but is unknown
@@ -209,7 +209,7 @@ Elasticsearch query builder with session-based filtering.
 
 **Filter types**:
 
-- `RelFilter`: Filter by relation claims
+- `RefFilter`: Filter by reference claims
 - `AmountFilter`: Filter by numeric ranges
 - `TimeFilter`: Filter by time ranges
 

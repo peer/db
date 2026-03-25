@@ -1002,7 +1002,7 @@ func makeClaim(
 		refID := identifier.From(ref.ID...)
 
 		claimID := newClaimID(idPath, propertyID, claims)
-		return &document.RelationClaim{
+		return &document.ReferenceClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
 				Confidence: confidence,
@@ -1366,7 +1366,7 @@ func makeClaim(
 		}
 
 		claimID := newClaimID(idPath, propertyID, claims)
-		return &document.ReferenceClaim{
+		return &document.LinkClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         claimID,
 				Confidence: confidence,
@@ -1585,7 +1585,7 @@ func makeClaim(
 		}
 
 		if typeTag == typeIRI {
-			return &document.ReferenceClaim{
+			return &document.LinkClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         claimID,
 					Confidence: confidence,

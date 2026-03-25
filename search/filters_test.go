@@ -18,8 +18,8 @@ func TestFiltersGetIntegration(t *testing.T) {
 	ctx := t.Context()
 	esClient, getSearchService, index := initES(t)
 
-	relProp := identifier.From("relProp")
-	relTarget := identifier.From("relTarget")
+	refProp := identifier.From("refProp")
+	refTarget := identifier.From("refTarget")
 	amountProp := identifier.From("amountProp")
 	unitID := identifier.From("unitID")
 	timeProp := identifier.From("timeProp")
@@ -66,17 +66,17 @@ func TestFiltersGetIntegration(t *testing.T) {
 				To:          &t1000,
 				ToDisplay:   "",
 			}},
-			Reference: nil,
-			Relation: internalSearch.RelationClaims{{
-				Prop:          relProp,
+			Link: nil,
+			Reference: internalSearch.ReferenceClaims{{
+				Prop:          refProp,
 				PropDisplay:   nil,
 				PropNaming:    nil,
-				To:            relTarget,
+				To:            refTarget,
 				ToDisplay:     nil,
 				ToNaming:      nil,
 				ToPath:        nil,
 				ToDisplayPath: nil,
-				Relation:      nil,
+				Reference:     nil,
 			}},
 			Has:     nil,
 			None:    nil,
@@ -120,17 +120,17 @@ func TestFiltersGetIntegration(t *testing.T) {
 				To:          &t2000,
 				ToDisplay:   "",
 			}},
-			Reference: nil,
-			Relation: internalSearch.RelationClaims{{
-				Prop:          relProp,
+			Link: nil,
+			Reference: internalSearch.ReferenceClaims{{
+				Prop:          refProp,
 				PropDisplay:   nil,
 				PropNaming:    nil,
-				To:            relTarget,
+				To:            refTarget,
 				ToDisplay:     nil,
 				ToNaming:      nil,
 				ToPath:        nil,
 				ToDisplayPath: nil,
-				Relation:      nil,
+				Reference:     nil,
 			}},
 			Has:     nil,
 			None:    nil,
@@ -166,7 +166,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 		types[fr.Type] = true
 		assert.Equal(t, int64(2), fr.Count)
 	}
-	assert.True(t, types["rel"])
+	assert.True(t, types["ref"])
 	assert.True(t, types["amount"])
 	assert.True(t, types["time"])
 
@@ -175,7 +175,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 	for _, fr := range filterResults {
 		ids[fr.Type] = fr.ID
 	}
-	assert.Equal(t, relProp.String(), ids["rel"])
+	assert.Equal(t, refProp.String(), ids["ref"])
 	assert.Equal(t, amountProp.String(), ids["amount"])
 	assert.Equal(t, timeProp.String(), ids["time"])
 }
@@ -186,8 +186,8 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 	ctx := t.Context()
 	esClient, getSearchService, index := initES(t)
 
-	relProp := identifier.From("relProp")
-	relTarget := identifier.From("relTarget")
+	refProp := identifier.From("refProp")
+	refTarget := identifier.From("refTarget")
 	stringProp := identifier.From("stringProp")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -200,20 +200,20 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 				PropNaming:  nil,
 				String:      map[string]string{"en": "searchable text"},
 			}},
-			HTML:      nil,
-			Amount:    nil,
-			Time:      nil,
-			Reference: nil,
-			Relation: internalSearch.RelationClaims{{
-				Prop:          relProp,
+			HTML:   nil,
+			Amount: nil,
+			Time:   nil,
+			Link:   nil,
+			Reference: internalSearch.ReferenceClaims{{
+				Prop:          refProp,
 				PropDisplay:   nil,
 				PropNaming:    nil,
-				To:            relTarget,
+				To:            refTarget,
 				ToDisplay:     nil,
 				ToNaming:      nil,
 				ToPath:        nil,
 				ToDisplayPath: nil,
-				Relation:      nil,
+				Reference:     nil,
 			}},
 			Has:     nil,
 			None:    nil,
@@ -230,20 +230,20 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 				PropNaming:  nil,
 				String:      map[string]string{"en": "other content"},
 			}},
-			HTML:      nil,
-			Amount:    nil,
-			Time:      nil,
-			Reference: nil,
-			Relation: internalSearch.RelationClaims{{
-				Prop:          relProp,
+			HTML:   nil,
+			Amount: nil,
+			Time:   nil,
+			Link:   nil,
+			Reference: internalSearch.ReferenceClaims{{
+				Prop:          refProp,
 				PropDisplay:   nil,
 				PropNaming:    nil,
-				To:            relTarget,
+				To:            refTarget,
 				ToDisplay:     nil,
 				ToNaming:      nil,
 				ToPath:        nil,
 				ToDisplayPath: nil,
-				Relation:      nil,
+				Reference:     nil,
 			}},
 			Has:     nil,
 			None:    nil,
@@ -266,7 +266,7 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 
 	// With query "searchable", only 1 doc matches, so rel filter should have count 1.
 	for _, fr := range filterResults {
-		if fr.Type == "rel" && fr.ID == relProp.String() {
+		if fr.Type == "ref" && fr.ID == refProp.String() {
 			assert.Equal(t, int64(1), fr.Count)
 		}
 	}
@@ -304,8 +304,8 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 				ToDisplay:   "",
 			}},
 			Time:      nil,
+			Link:      nil,
 			Reference: nil,
-			Relation:  nil,
 			Has:       nil,
 			None:      nil,
 			Unknown:   nil,

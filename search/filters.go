@@ -95,17 +95,17 @@ func FiltersGet(
 	query := searchSession.ToQuery()
 
 	searchService, propertiesTotal, unitsTotal := getSearchService()
-	relAggregation := esdsl.NewAggregations().
-		Nested(esdsl.NewNestedAggregation().Path("claims.rel")).
+	refAggregation := esdsl.NewAggregations().
+		Nested(esdsl.NewNestedAggregation().Path("claims.ref")).
 		AddAggregation("props", esdsl.NewAggregations().
-			Terms(esdsl.NewTermsAggregation().Field("claims.rel.prop").Size(MaxResultsCount).
+			Terms(esdsl.NewTermsAggregation().Field("claims.ref.prop").Size(MaxResultsCount).
 				Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
 			AddAggregation("docs", esdsl.NewAggregations().
 				ReverseNested(esdsl.NewReverseNestedAggregation()))).
 		AddAggregation("total", esdsl.NewAggregations().
 			// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
 			// so we set precision threshold to twice as much to try to always get precise counts.
-			Cardinality(esdsl.NewCardinalityAggregation().Field("claims.rel.prop").PrecisionThreshold(int(2*propertiesTotal)))) //nolint:mnd
+			Cardinality(esdsl.NewCardinalityAggregation().Field("claims.ref.prop").PrecisionThreshold(int(2*propertiesTotal)))) //nolint:mnd
 	amountAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.amount")).
 		AddAggregation("props", esdsl.NewAggregations().
@@ -140,7 +140,7 @@ func FiltersGet(
 			// so we set precision threshold to twice as much to try to always get precise counts.
 			Cardinality(esdsl.NewCardinalityAggregation().Field("claims.time.prop").PrecisionThreshold(int(2*propertiesTotal)))) //nolint:mnd
 	searchService = searchService.Size(0).Query(query).
-		AddAggregation("rel", relAggregation).
+		AddAggregation("ref", refAggregation).
 		AddAggregation("amount", amountAggregation).
 		AddAggregation("time", timeAggregation)
 
@@ -152,22 +152,22 @@ func FiltersGet(
 	}
 	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
 
-	// Parse rel aggregation.
-	relNested, errE := aggAs[types.NestedAggregate](res.Aggregations, "rel")
+	// Parse ref aggregation.
+	refNested, errE := aggAs[types.NestedAggregate](res.Aggregations, "ref")
 	if errE != nil {
 		return nil, nil, errE
 	}
-	relTerms, errE := aggAs[types.StringTermsAggregate](relNested.Aggregations, "props")
+	refTerms, errE := aggAs[types.StringTermsAggregate](refNested.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
-	relBuckets, ok := relTerms.Buckets.([]types.StringTermsBucket)
+	refBuckets, ok := refTerms.Buckets.([]types.StringTermsBucket)
 	if !ok {
-		errE := errors.New("unexpected bucket type for rel")
-		errors.Details(errE)["type"] = fmt.Sprintf("%T", relTerms.Buckets)
+		errE := errors.New("unexpected bucket type for ref")
+		errors.Details(errE)["type"] = fmt.Sprintf("%T", refTerms.Buckets)
 		return nil, nil, errE
 	}
-	relTotal, errE := aggAs[types.CardinalityAggregate](relNested.Aggregations, "total")
+	refTotal, errE := aggAs[types.CardinalityAggregate](refNested.Aggregations, "total")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -212,7 +212,7 @@ func FiltersGet(
 		return nil, nil, errE
 	}
 
-	relResults, errE := parseStringTermsBuckets(relBuckets, "rel")
+	refResults, errE := parseStringTermsBuckets(refBuckets, "ref")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -225,8 +225,8 @@ func FiltersGet(
 		return nil, nil, errE
 	}
 
-	results := make([]FilterResult, 0, len(relResults)+len(amountResults)+len(timeResults))
-	results = append(results, relResults...)
+	results := make([]FilterResult, 0, len(refResults)+len(amountResults)+len(timeResults))
+	results = append(results, refResults...)
 	results = append(results, amountResults...)
 	results = append(results, timeResults...)
 
@@ -246,11 +246,11 @@ func FiltersGet(
 
 	// Cardinality count is approximate, so we make sure the total is sane.
 	// See: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html#_counts_are_approximate
-	relTotalValue := relTotal.Value
+	refTotalValue := refTotal.Value
 	amountTotalValue := amountTotal.Value
 	timeTotalValue := timeTotal.Value
-	if int64(len(relBuckets)) > relTotalValue {
-		relTotalValue = int64(len(relBuckets))
+	if int64(len(refBuckets)) > refTotalValue {
+		refTotalValue = int64(len(refBuckets))
 	}
 	if int64(len(amountBuckets)) > amountTotalValue {
 		amountTotalValue = int64(len(amountBuckets))
@@ -258,7 +258,7 @@ func FiltersGet(
 	if int64(len(timeBuckets)) > timeTotalValue {
 		timeTotalValue = int64(len(timeBuckets))
 	}
-	total := strconv.FormatInt(relTotalValue+amountTotalValue+timeTotalValue, 10)
+	total := strconv.FormatInt(refTotalValue+amountTotalValue+timeTotalValue, 10)
 
 	return results, map[string]interface{}{
 		"total": total,

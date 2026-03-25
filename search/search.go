@@ -35,15 +35,15 @@ const (
 	ViewTable ViewType = "table"
 )
 
-// RelFilter represents a filter for relation claims.
-type RelFilter struct {
+// RefFilter represents a filter for reference claims.
+type RefFilter struct {
 	Prop  identifier.Identifier  `json:"prop"`
 	Value *identifier.Identifier `json:"value,omitempty"`
 	None  bool                   `json:"none,omitempty"`
 }
 
-// Valid validates the RelFilter to ensure it has a valid configuration.
-func (f RelFilter) Valid() errors.E {
+// Valid validates the RefFilter to ensure it has a valid configuration.
+func (f RefFilter) Valid() errors.E {
 	if f.Value == nil && !f.None {
 		return errors.New("value or none has to be set")
 	}
@@ -107,7 +107,7 @@ type Filters struct {
 	And    []Filters     `json:"and,omitempty"`
 	Or     []Filters     `json:"or,omitempty"`
 	Not    *Filters      `json:"not,omitempty"`
-	Rel    *RelFilter    `json:"rel,omitempty"`
+	Ref    *RefFilter    `json:"ref,omitempty"`
 	Amount *AmountFilter `json:"amount,omitempty"`
 	Time   *TimeFilter   `json:"time,omitempty"`
 }
@@ -140,9 +140,9 @@ func (f Filters) Valid() errors.E {
 			return err
 		}
 	}
-	if f.Rel != nil {
+	if f.Ref != nil {
 		nonEmpty++
-		err := f.Rel.Valid()
+		err := f.Ref.Valid()
 		if err != nil {
 			return err
 		}
@@ -190,20 +190,20 @@ func (f Filters) ToQuery() types.QueryVariant { //nolint:ireturn
 		boolQuery.MustNot(f.Not.ToQuery())
 		return boolQuery
 	}
-	if f.Rel != nil {
-		if f.Rel.None {
+	if f.Ref != nil {
+		if f.Ref.None {
 			return esdsl.NewBoolQuery().MustNot(
 				esdsl.NewNestedQuery(
-					esdsl.NewTermQuery("claims.rel.prop", esdsl.NewFieldValue().String(f.Rel.Prop.String())),
-				).Path("claims.rel"),
+					esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(f.Ref.Prop.String())),
+				).Path("claims.ref"),
 			)
 		}
 		return esdsl.NewNestedQuery(
 			esdsl.NewBoolQuery().Must(
-				esdsl.NewTermQuery("claims.rel.prop", esdsl.NewFieldValue().String(f.Rel.Prop.String())),
-				esdsl.NewTermQuery("claims.rel.to", esdsl.NewFieldValue().String(f.Rel.Value.String())),
+				esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(f.Ref.Prop.String())),
+				esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(f.Ref.Value.String())),
 			),
-		).Path("claims.rel")
+		).Path("claims.ref")
 	}
 	if f.Amount != nil {
 		if f.Amount.None {
@@ -330,7 +330,7 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 	}
 	for _, f := range []field{
 		{"claims.id", "value"},
-		{"claims.ref", "iri"},
+		{"claims.link", "iri"},
 	} {
 		// TODO: Can we use simple query for keyword fields? Which analyzer is used?
 		q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(f.Prefix + "." + f.Field).DefaultOperator(defaultOperator)

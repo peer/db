@@ -48,8 +48,8 @@ var (
 	_ Claim = (*AmountIntervalClaim)(nil)
 	_ Claim = (*TimeClaim)(nil)
 	_ Claim = (*TimeIntervalClaim)(nil)
+	_ Claim = (*LinkClaim)(nil)
 	_ Claim = (*ReferenceClaim)(nil)
-	_ Claim = (*RelationClaim)(nil)
 	_ Claim = (*HasClaim)(nil)
 	_ Claim = (*NoneClaim)(nil)
 	_ Claim = (*UnknownClaim)(nil)
@@ -183,8 +183,8 @@ type ClaimTypes struct {
 	AmountInterval AmountIntervalClaims `exhaustruct:"optional" json:"amountInterval,omitempty"`
 	Time           TimeClaims           `exhaustruct:"optional" json:"time,omitempty"`
 	TimeInterval   TimeIntervalClaims   `exhaustruct:"optional" json:"timeInterval,omitempty"`
+	Link           LinkClaims           `exhaustruct:"optional" json:"link,omitempty"`
 	Reference      ReferenceClaims      `exhaustruct:"optional" json:"ref,omitempty"`
-	Relation       RelationClaims       `exhaustruct:"optional" json:"rel,omitempty"`
 	Has            HasClaims            `exhaustruct:"optional" json:"has,omitempty"`
 	None           NoneClaims           `exhaustruct:"optional" json:"none,omitempty"`
 	Unknown        UnknownClaims        `exhaustruct:"optional" json:"unknown,omitempty"`
@@ -222,10 +222,10 @@ func (c *ClaimTypes) Add(claim Claim) errors.E {
 		c.Time = append(c.Time, *cl)
 	case *TimeIntervalClaim:
 		c.TimeInterval = append(c.TimeInterval, *cl)
+	case *LinkClaim:
+		c.Link = append(c.Link, *cl)
 	case *ReferenceClaim:
 		c.Reference = append(c.Reference, *cl)
-	case *RelationClaim:
-		c.Relation = append(c.Relation, *cl)
 	case *HasClaim:
 		c.Has = append(c.Has, *cl)
 	case *NoneClaim:
@@ -300,8 +300,8 @@ func (c *ClaimTypes) Size() int {
 	s += len(c.AmountInterval)
 	s += len(c.Time)
 	s += len(c.TimeInterval)
+	s += len(c.Link)
 	s += len(c.Reference)
-	s += len(c.Relation)
 	s += len(c.Has)
 	s += len(c.None)
 	s += len(c.Unknown)
@@ -356,10 +356,10 @@ type (
 	TimeClaims = []TimeClaim
 	// TimeIntervalClaims is a slice of TimeIntervalClaim.
 	TimeIntervalClaims = []TimeIntervalClaim
+	// LinkClaims is a slice of LinkClaim.
+	LinkClaims = []LinkClaim
 	// ReferenceClaims is a slice of ReferenceClaim.
 	ReferenceClaims = []ReferenceClaim
-	// RelationClaims is a slice of RelationClaim.
-	RelationClaims = []RelationClaim
 	// HasClaims is a slice of HasClaim.
 	HasClaims = []HasClaim
 	// NoneClaims is a slice of NoneClaim.
@@ -813,16 +813,16 @@ func (c *TimeIntervalClaim) Validate() errors.E {
 	return nil
 }
 
-// ReferenceClaim represents a claim with an IRI (Internationalized Resource Identifier) value.
-type ReferenceClaim struct {
+// LinkClaim represents a claim with an IRI (Internationalized Resource Identifier) value.
+type LinkClaim struct {
 	CoreClaim
 
 	Prop Reference `json:"prop"`
 	IRI  string    `json:"iri"`
 }
 
-// Validate checks that the reference claim has a non-empty IRI and valid confidence.
-func (c *ReferenceClaim) Validate() errors.E {
+// Validate checks that the link claim has a non-empty IRI and valid confidence.
+func (c *LinkClaim) Validate() errors.E {
 	errE := c.CoreClaim.Validate()
 	if errE != nil {
 		return errE
@@ -834,8 +834,8 @@ func (c *ReferenceClaim) Validate() errors.E {
 	return nil
 }
 
-// RelationClaim represents a claim that relates this document to another document.
-type RelationClaim struct {
+// ReferenceClaim represents a claim that relates this document to another document.
+type ReferenceClaim struct {
 	CoreClaim
 
 	Prop Reference `json:"prop"`

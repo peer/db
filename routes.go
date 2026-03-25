@@ -40,11 +40,11 @@ func (s *Service) setRoutes() { //nolint:maintidx
 				},
 			},
 		},
-		"SearchRelFilter": {
-			Path: "/s/filters/:id/rel/:prop",
+		"SearchRefFilter": {
+			Path: "/s/filters/:id/ref/:prop",
 			API: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{
-					http.MethodGet: s.SearchRelFilterGetAPI,
+					http.MethodGet: s.SearchRefFilterGetAPI,
 				},
 			},
 		},

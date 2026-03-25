@@ -28,8 +28,8 @@ type Visitor interface { //nolint:interfacebloat
 	VisitAmountInterval(claim *AmountIntervalClaim) (VisitResult, errors.E)
 	VisitTime(claim *TimeClaim) (VisitResult, errors.E)
 	VisitTimeInterval(claim *TimeIntervalClaim) (VisitResult, errors.E)
+	VisitLink(claim *LinkClaim) (VisitResult, errors.E)
 	VisitReference(claim *ReferenceClaim) (VisitResult, errors.E)
-	VisitRelation(claim *RelationClaim) (VisitResult, errors.E)
 	VisitHas(claim *HasClaim) (VisitResult, errors.E)
 	VisitNone(claim *NoneClaim) (VisitResult, errors.E)
 	VisitUnknown(claim *UnknownClaim) (VisitResult, errors.E)
@@ -234,6 +234,33 @@ func (c *ClaimTypes) Visit(visitor Visitor) errors.E { //nolint:maintidx
 
 	stopping = false
 	k = 0
+	for i := range c.Link {
+		var keep VisitResult
+		if !stopping {
+			keep, err = visitor.VisitLink(&c.Link[i])
+			if err != nil {
+				return err
+			}
+		}
+		if stopping || keep == Keep || keep == KeepAndStop {
+			if i != k {
+				c.Link[k] = c.Link[i]
+			}
+			k++
+		}
+		if keep == KeepAndStop || keep == DropAndStop {
+			stopping = true
+		}
+	}
+	if len(c.Link) != k {
+		c.Link = c.Link[:k]
+	}
+	if stopping {
+		return nil
+	}
+
+	stopping = false
+	k = 0
 	for i := range c.Reference {
 		var keep VisitResult
 		if !stopping {
@@ -254,33 +281,6 @@ func (c *ClaimTypes) Visit(visitor Visitor) errors.E { //nolint:maintidx
 	}
 	if len(c.Reference) != k {
 		c.Reference = c.Reference[:k]
-	}
-	if stopping {
-		return nil
-	}
-
-	stopping = false
-	k = 0
-	for i := range c.Relation {
-		var keep VisitResult
-		if !stopping {
-			keep, err = visitor.VisitRelation(&c.Relation[i])
-			if err != nil {
-				return err
-			}
-		}
-		if stopping || keep == Keep || keep == KeepAndStop {
-			if i != k {
-				c.Relation[k] = c.Relation[i]
-			}
-			k++
-		}
-		if keep == KeepAndStop || keep == DropAndStop {
-			stopping = true
-		}
-	}
-	if len(c.Relation) != k {
-		c.Relation = c.Relation[:k]
 	}
 	if stopping {
 		return nil
@@ -470,8 +470,8 @@ func (v *GetByIDVisitor) VisitTimeInterval(claim *TimeIntervalClaim) (VisitResul
 	return Keep, errE
 }
 
-// VisitReference visits a reference claim and checks if its ID matches the target ID.
-func (v *GetByIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
+// VisitLink visits a link claim and checks if its ID matches the target ID.
+func (v *GetByIDVisitor) VisitLink(claim *LinkClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
 		return v.Action, nil
@@ -483,8 +483,8 @@ func (v *GetByIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, err
 	return Keep, errE
 }
 
-// VisitRelation visits a relation claim and checks if its ID matches the target ID.
-func (v *GetByIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
+// VisitReference visits a reference claim and checks if its ID matches the target ID.
+func (v *GetByIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
 	if claim.ID == v.ID {
 		v.Result = claim
 		return v.Action, nil
@@ -607,8 +607,8 @@ func (v *GetByPropIDVisitor) VisitTimeInterval(claim *TimeIntervalClaim) (VisitR
 	return Keep, nil
 }
 
-// VisitReference visits a reference claim and checks if its property ID matches the target.
-func (v *GetByPropIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
+// VisitLink visits a link claim and checks if its property ID matches the target.
+func (v *GetByPropIDVisitor) VisitLink(claim *LinkClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
@@ -616,8 +616,8 @@ func (v *GetByPropIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult,
 	return Keep, nil
 }
 
-// VisitRelation visits a relation claim and checks if its property ID matches the target.
-func (v *GetByPropIDVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
+// VisitReference visits a reference claim and checks if its property ID matches the target.
+func (v *GetByPropIDVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
 	if claim.Prop.ID == v.ID {
 		v.Result = append(v.Result, claim)
 		return v.Action, nil
@@ -703,13 +703,13 @@ func (v *AllClaimsVisitor) VisitTimeInterval(claim *TimeIntervalClaim) (VisitRes
 	return v.visit(claim)
 }
 
-// VisitReference calls yield with the reference claim.
-func (v *AllClaimsVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
+// VisitLink calls yield with the link claim.
+func (v *AllClaimsVisitor) VisitLink(claim *LinkClaim) (VisitResult, errors.E) {
 	return v.visit(claim)
 }
 
-// VisitRelation calls yield with the relation claim.
-func (v *AllClaimsVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
+// VisitReference calls yield with the reference claim.
+func (v *AllClaimsVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
 	return v.visit(claim)
 }
 
@@ -792,13 +792,13 @@ func (v *AllClaimsWithMetaVisitor) VisitTimeInterval(claim *TimeIntervalClaim) (
 	return v.visit(claim)
 }
 
-// VisitReference calls yield with the reference claim.
-func (v *AllClaimsWithMetaVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
+// VisitLink calls yield with the link claim.
+func (v *AllClaimsWithMetaVisitor) VisitLink(claim *LinkClaim) (VisitResult, errors.E) {
 	return v.visit(claim)
 }
 
-// VisitRelation calls yield with the relation claim.
-func (v *AllClaimsWithMetaVisitor) VisitRelation(claim *RelationClaim) (VisitResult, errors.E) {
+// VisitReference calls yield with the reference claim.
+func (v *AllClaimsWithMetaVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
 	return v.visit(claim)
 }
 

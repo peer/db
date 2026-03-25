@@ -354,7 +354,7 @@ func TestDocuments_RawHTMLTextClaimWithSurroundingText(t *testing.T) {
 	assert.Equal(t, identifier.From("test", "doc1", "RAW_HTML", "0"), doc.Claims.HTML[3].ID)
 }
 
-func TestDocuments_ReferenceClaim(t *testing.T) { //nolint:dupl
+func TestDocuments_LinkClaim(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
 	mnemonics := createMnemonics()
@@ -373,16 +373,16 @@ func TestDocuments_ReferenceClaim(t *testing.T) { //nolint:dupl
 	doc := results[0]
 
 	// Homepage + 2 Links + PlainIRI.
-	require.Len(t, doc.Claims.Reference, 4)
+	require.Len(t, doc.Claims.Link, 4)
 
-	assert.Equal(t, "https://example.com", doc.Claims.Reference[0].IRI)
-	assert.Equal(t, identifier.From("test", "doc1", "HOMEPAGE", "0"), doc.Claims.Reference[0].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "LINKS", "0"), doc.Claims.Reference[1].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "LINKS", "1"), doc.Claims.Reference[2].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "PLAIN_IRI", "0"), doc.Claims.Reference[3].ID)
+	assert.Equal(t, "https://example.com", doc.Claims.Link[0].IRI)
+	assert.Equal(t, identifier.From("test", "doc1", "HOMEPAGE", "0"), doc.Claims.Link[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "LINKS", "0"), doc.Claims.Link[1].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "LINKS", "1"), doc.Claims.Link[2].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "PLAIN_IRI", "0"), doc.Claims.Link[3].ID)
 }
 
-func TestDocuments_RelationClaim(t *testing.T) {
+func TestDocuments_ReferenceClaim(t *testing.T) {
 	t.Parallel()
 
 	mnemonics := createMnemonics()
@@ -403,13 +403,13 @@ func TestDocuments_RelationClaim(t *testing.T) {
 	doc := results[0]
 
 	// Parent + 2 Children = 3.
-	require.Len(t, doc.Claims.Relation, 3)
+	require.Len(t, doc.Claims.Reference, 3)
 
 	expectedParentID := identifier.From("parent", "id")
-	assert.Equal(t, expectedParentID, doc.Claims.Relation[0].To.ID)
-	assert.Equal(t, identifier.From("test", "doc1", "PARENT", "0"), doc.Claims.Relation[0].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "CHILDREN", "0"), doc.Claims.Relation[1].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "CHILDREN", "1"), doc.Claims.Relation[2].ID)
+	assert.Equal(t, expectedParentID, doc.Claims.Reference[0].To.ID)
+	assert.Equal(t, identifier.From("test", "doc1", "PARENT", "0"), doc.Claims.Reference[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "CHILDREN", "0"), doc.Claims.Reference[1].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "CHILDREN", "1"), doc.Claims.Reference[2].ID)
 }
 
 func TestDocuments_TimeClaim(t *testing.T) {
@@ -1046,8 +1046,8 @@ func TestDocuments_NestedWithoutValue(t *testing.T) {
 	require.NotNil(t, hasClaim.Meta)
 
 	// Should have 1 Relation and 1 TimeRange as meta claims.
-	assert.Len(t, hasClaim.Meta.Relation, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "LOCATION", "0"), hasClaim.Meta.Relation[0].ID)
+	assert.Len(t, hasClaim.Meta.Reference, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "LOCATION", "0"), hasClaim.Meta.Reference[0].ID)
 	assert.Len(t, hasClaim.Meta.TimeInterval, 1)
 	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "PERIOD", "0"), hasClaim.Meta.TimeInterval[0].ID)
 }
@@ -1093,7 +1093,7 @@ func TestDocuments_NilPointer(t *testing.T) {
 	doc := results[0]
 
 	// Nil pointer should be skipped.
-	assert.Empty(t, doc.Claims.Relation)
+	assert.Empty(t, doc.Claims.Reference)
 }
 
 func TestDocuments_NonNilPointer(t *testing.T) {
@@ -1114,8 +1114,8 @@ func TestDocuments_NonNilPointer(t *testing.T) {
 	doc := results[0]
 
 	// Non-nil pointer should create claim.
-	require.Len(t, doc.Claims.Relation, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "OPTIONAL", "0"), doc.Claims.Relation[0].ID)
+	require.Len(t, doc.Claims.Reference, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "OPTIONAL", "0"), doc.Claims.Reference[0].ID)
 }
 
 func TestDocuments_EmptyRef(t *testing.T) {
@@ -1360,11 +1360,11 @@ func TestDocuments_EmbeddedProperties(t *testing.T) {
 	assert.Equal(t, identifier.From("test", "doc1", "EXTRA", "0"), doc.Claims.String[1].ID)
 
 	// Should have Author as relation claim.
-	require.Len(t, doc.Claims.Relation, 1)
+	require.Len(t, doc.Claims.Reference, 1)
 
 	expectedAuthorID := identifier.From("author", "1")
-	assert.Equal(t, expectedAuthorID, doc.Claims.Relation[0].To.ID)
-	assert.Equal(t, identifier.From("test", "doc1", "HAS_AUTHOR", "0"), doc.Claims.Relation[0].ID)
+	assert.Equal(t, expectedAuthorID, doc.Claims.Reference[0].To.ID)
+	assert.Equal(t, identifier.From("test", "doc1", "HAS_AUTHOR", "0"), doc.Claims.Reference[0].ID)
 }
 
 func TestDocuments_EmbeddedLikeCore(t *testing.T) {
@@ -1419,11 +1419,11 @@ func TestDocuments_EmbeddedLikeCore(t *testing.T) {
 	assert.Equal(t, identifier.From("test", "PROP", "MNEMONIC", "0"), doc.Claims.String[1].ID)
 
 	// Should have 1 relation claim (InstanceOf).
-	require.Len(t, doc.Claims.Relation, 1)
+	require.Len(t, doc.Claims.Reference, 1)
 
 	expectedInstanceOf := identifier.From("core", "PROPERTY")
-	assert.Equal(t, expectedInstanceOf, doc.Claims.Relation[0].To.ID)
-	assert.Equal(t, identifier.From("test", "PROP", "INSTANCE_OF", "0"), doc.Claims.Relation[0].ID)
+	assert.Equal(t, expectedInstanceOf, doc.Claims.Reference[0].To.ID)
+	assert.Equal(t, identifier.From("test", "PROP", "INSTANCE_OF", "0"), doc.Claims.Reference[0].ID)
 }
 
 func TestDocuments_MultipleEmbeddedSameLevel(t *testing.T) {
@@ -1586,9 +1586,9 @@ func TestDocuments_MultipleFieldsSameProperty(t *testing.T) {
 	doc := results[0]
 
 	// Should have 2 relation claims (Author[0] and Artist[0]).
-	require.Len(t, doc.Claims.Relation, 2)
-	assert.Equal(t, identifier.From("test", "doc1", "HAS_AUTHOR", "0"), doc.Claims.Relation[0].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "HAS_ARTIST", "0"), doc.Claims.Relation[1].ID)
+	require.Len(t, doc.Claims.Reference, 2)
+	assert.Equal(t, identifier.From("test", "doc1", "HAS_AUTHOR", "0"), doc.Claims.Reference[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "HAS_ARTIST", "0"), doc.Claims.Reference[1].ID)
 
 	// Should have 2 unknown value claims (AuthorHasUnknown and ArtistHasUnknown).
 	require.Len(t, doc.Claims.Unknown, 2)
@@ -1782,11 +1782,11 @@ func TestDocuments_CoreIRIWithoutTag(t *testing.T) {
 
 	doc := results[0]
 
-	// Without iri tag, should still be ReferenceClaim.
-	require.Len(t, doc.Claims.Reference, 1)
+	// Without iri tag, should still be LinkClaim.
+	require.Len(t, doc.Claims.Link, 1)
 
-	assert.Equal(t, "https://example.com", doc.Claims.Reference[0].IRI)
-	assert.Equal(t, identifier.From("test", "doc1", "PLAIN_IRI", "0"), doc.Claims.Reference[0].ID)
+	assert.Equal(t, "https://example.com", doc.Claims.Link[0].IRI)
+	assert.Equal(t, identifier.From("test", "doc1", "PLAIN_IRI", "0"), doc.Claims.Link[0].ID)
 }
 
 func TestDocuments_ZeroTimeSkipped(t *testing.T) {
@@ -1951,16 +1951,16 @@ func TestDocuments_PointerToRefInValue(t *testing.T) {
 	doc := results[0]
 
 	// Should have 1 relation claim.
-	require.Len(t, doc.Claims.Relation, 1)
+	require.Len(t, doc.Claims.Reference, 1)
 
 	expectedRefID := identifier.From("target", "1")
-	assert.Equal(t, expectedRefID, doc.Claims.Relation[0].To.ID)
-	assert.Equal(t, identifier.From("test", "doc1", "TARGET", "0"), doc.Claims.Relation[0].ID)
+	assert.Equal(t, expectedRefID, doc.Claims.Reference[0].To.ID)
+	assert.Equal(t, identifier.From("test", "doc1", "TARGET", "0"), doc.Claims.Reference[0].ID)
 
 	// Should have meta claim (Note).
-	require.NotNil(t, doc.Claims.Relation[0].Meta)
-	assert.Len(t, doc.Claims.Relation[0].Meta.String, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "TARGET", "0", "NOTE", "0"), doc.Claims.Relation[0].Meta.String[0].ID)
+	require.NotNil(t, doc.Claims.Reference[0].Meta)
+	assert.Len(t, doc.Claims.Reference[0].Meta.String, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "TARGET", "0", "NOTE", "0"), doc.Claims.Reference[0].Meta.String[0].ID)
 }
 
 func TestDocuments_HTMLEscaping(t *testing.T) {
@@ -2361,10 +2361,10 @@ func TestDocuments_ValueFieldWithIRITag(t *testing.T) { //nolint:dupl
 	doc := results[0]
 
 	// Should have 1 reference claim.
-	require.Len(t, doc.Claims.Reference, 1)
+	require.Len(t, doc.Claims.Link, 1)
 
-	assert.Equal(t, "https://example.com", doc.Claims.Reference[0].IRI)
-	assert.Equal(t, identifier.From("test", "doc1", "LINK", "0"), doc.Claims.Reference[0].ID)
+	assert.Equal(t, "https://example.com", doc.Claims.Link[0].IRI)
+	assert.Equal(t, identifier.From("test", "doc1", "LINK", "0"), doc.Claims.Link[0].ID)
 }
 
 func TestDocuments_ValueFieldUnsupportedSlice(t *testing.T) {
@@ -2601,8 +2601,8 @@ func TestDocuments_StructWithoutValueField(t *testing.T) {
 	require.NotNil(t, hasClaim.Meta)
 
 	// Should have Location and Note as meta claims.
-	assert.Len(t, hasClaim.Meta.Relation, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "LOCATION", "0"), hasClaim.Meta.Relation[0].ID)
+	assert.Len(t, hasClaim.Meta.Reference, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "LOCATION", "0"), hasClaim.Meta.Reference[0].ID)
 	assert.Len(t, hasClaim.Meta.String, 1)
 	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "NOTE", "0"), hasClaim.Meta.String[0].ID)
 }
@@ -4204,7 +4204,7 @@ func TestDocuments_CardinalityValidation_PointerCanBeZeroOrOne(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	require.Len(t, doc.Claims.Relation, 1)
+	require.Len(t, doc.Claims.Reference, 1)
 }
 
 func TestDocuments_CardinalityValidation_PointerWithNone(t *testing.T) {
@@ -6941,7 +6941,7 @@ func TestDocuments_ConfidenceOnBoolField(t *testing.T) {
 func TestDocuments_ConfidenceOnRefField(t *testing.T) {
 	t.Parallel()
 
-	// Test that confidence tag works on core.Ref fields (RelationClaim).
+	// Test that confidence tag works on core.Ref fields (ReferenceClaim).
 	type DocWithRefConfidence struct {
 		ID     []string `                 documentid:""`
 		Parent core.Ref `confidence:"0.6"               property:"PARENT"`
@@ -6959,8 +6959,8 @@ func TestDocuments_ConfidenceOnRefField(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	doc := results[0]
-	require.Len(t, doc.Claims.Relation, 1)
-	assert.Equal(t, document.Confidence(0.6), doc.Claims.Relation[0].Confidence) //nolint:testifylint
+	require.Len(t, doc.Claims.Reference, 1)
+	assert.Equal(t, document.Confidence(0.6), doc.Claims.Reference[0].Confidence) //nolint:testifylint
 }
 
 func TestDocuments_ConfidenceOnAmountField(t *testing.T) {

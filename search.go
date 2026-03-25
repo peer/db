@@ -75,10 +75,10 @@ func (s *Service) SearchAmountFilterGetAPI(w http.ResponseWriter, req *http.Requ
 	s.WriteJSON(w, req, data, metadata)
 }
 
-// SearchRelFilterGetAPI handles GET requests for relation filter search endpoints.
+// SearchRefFilterGetAPI handles GET requests for reference filter search endpoints.
 //
 //nolint:dupl
-func (s *Service) SearchRelFilterGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
+func (s *Service) SearchRefFilterGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
@@ -91,7 +91,7 @@ func (s *Service) SearchRelFilterGetAPI(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	data, metadata, errE := search.RelFilterGet(req.Context(), s.getSearchServiceClosure(req), id, prop)
+	data, metadata, errE := search.RefFilterGet(req.Context(), s.getSearchServiceClosure(req), id, prop)
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return

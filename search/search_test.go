@@ -13,7 +13,7 @@ import (
 	"gitlab.com/peerdb/peerdb/search"
 )
 
-func TestRelFilterValid(t *testing.T) {
+func TestRefFilterValid(t *testing.T) {
 	t.Parallel()
 
 	prop := identifier.From("prop")
@@ -21,27 +21,27 @@ func TestRelFilterValid(t *testing.T) {
 
 	tests := []struct {
 		Name    string
-		Filter  search.RelFilter
+		Filter  search.RefFilter
 		WantErr string
 	}{
 		{
 			Name:    "ValueSet",
-			Filter:  search.RelFilter{Prop: prop, Value: &value, None: false},
+			Filter:  search.RefFilter{Prop: prop, Value: &value, None: false},
 			WantErr: "",
 		},
 		{
 			Name:    "NoneSet",
-			Filter:  search.RelFilter{Prop: prop, Value: nil, None: true},
+			Filter:  search.RefFilter{Prop: prop, Value: nil, None: true},
 			WantErr: "",
 		},
 		{
 			Name:    "NeitherSet",
-			Filter:  search.RelFilter{Prop: prop, Value: nil, None: false},
+			Filter:  search.RefFilter{Prop: prop, Value: nil, None: false},
 			WantErr: "value or none has to be set",
 		},
 		{
 			Name:    "BothSet",
-			Filter:  search.RelFilter{Prop: prop, Value: &value, None: true},
+			Filter:  search.RefFilter{Prop: prop, Value: &value, None: true},
 			WantErr: "value and none cannot be both set",
 		},
 	}
@@ -189,17 +189,17 @@ func TestFiltersValid(t *testing.T) {
 		WantErr string
 	}{
 		{
-			Name: "RelFilter",
+			Name: "RefFilter",
 			Filters: search.Filters{
 				And: nil, Or: nil, Not: nil,
-				Rel: &search.RelFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
+				Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
 			},
 			WantErr: "",
 		},
 		{
 			Name: "AmountFilter",
 			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil, Rel: nil,
+				And: nil, Or: nil, Not: nil, Ref: nil,
 				Amount: &search.AmountFilter{Prop: prop, Unit: nil, Gte: &gte, Lte: &lte, None: false}, Time: nil,
 			},
 			WantErr: "",
@@ -207,7 +207,7 @@ func TestFiltersValid(t *testing.T) {
 		{
 			Name: "TimeFilter",
 			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil, Rel: nil, Amount: nil,
+				And: nil, Or: nil, Not: nil, Ref: nil, Amount: nil,
 				Time: &search.TimeFilter{Prop: prop, Gte: &gteTime, Lte: &lteTime, None: false},
 			},
 			WantErr: "",
@@ -218,15 +218,15 @@ func TestFiltersValid(t *testing.T) {
 				And: []search.Filters{
 					{
 						And: nil, Or: nil, Not: nil,
-						Rel: &search.RelFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
+						Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
 					},
 					{
-						And: nil, Or: nil, Not: nil, Rel: nil,
+						And: nil, Or: nil, Not: nil, Ref: nil,
 						Amount: &search.AmountFilter{Prop: prop, Unit: nil, Gte: &gte, Lte: &lte, None: false},
 						Time:   nil,
 					},
 				},
-				Or: nil, Not: nil, Rel: nil, Amount: nil, Time: nil,
+				Or: nil, Not: nil, Ref: nil, Amount: nil, Time: nil,
 			},
 			WantErr: "",
 		},
@@ -237,14 +237,14 @@ func TestFiltersValid(t *testing.T) {
 				Or: []search.Filters{
 					{
 						And: nil, Or: nil, Not: nil,
-						Rel: &search.RelFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
+						Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
 					},
 					{
-						And: nil, Or: nil, Not: nil, Rel: nil, Amount: nil,
+						And: nil, Or: nil, Not: nil, Ref: nil, Amount: nil,
 						Time: &search.TimeFilter{Prop: prop, Gte: &gteTime, Lte: &lteTime, None: false},
 					},
 				},
-				Not: nil, Rel: nil, Amount: nil, Time: nil,
+				Not: nil, Ref: nil, Amount: nil, Time: nil,
 			},
 			WantErr: "",
 		},
@@ -254,22 +254,22 @@ func TestFiltersValid(t *testing.T) {
 				And: nil, Or: nil,
 				Not: &search.Filters{
 					And: nil, Or: nil, Not: nil,
-					Rel: &search.RelFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
+					Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
 				},
-				Rel: nil, Amount: nil, Time: nil,
+				Ref: nil, Amount: nil, Time: nil,
 			},
 			WantErr: "",
 		},
 		{
 			Name:    "NoClause",
-			Filters: search.Filters{And: nil, Or: nil, Not: nil, Rel: nil, Amount: nil, Time: nil},
+			Filters: search.Filters{And: nil, Or: nil, Not: nil, Ref: nil, Amount: nil, Time: nil},
 			WantErr: "no clause is set",
 		},
 		{
 			Name: "MultipleClausesRelAndAmount",
 			Filters: search.Filters{
 				And: nil, Or: nil, Not: nil,
-				Rel:    &search.RelFilter{Prop: prop, Value: &value, None: false},
+				Ref:    &search.RefFilter{Prop: prop, Value: &value, None: false},
 				Amount: &search.AmountFilter{Prop: prop, Unit: nil, Gte: &gte, Lte: &lte, None: false},
 				Time:   nil,
 			},
@@ -281,16 +281,16 @@ func TestFiltersValid(t *testing.T) {
 				And: []search.Filters{
 					{
 						And: nil, Or: nil, Not: nil,
-						Rel: &search.RelFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
+						Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
 					},
 				},
 				Or: []search.Filters{
 					{
 						And: nil, Or: nil, Not: nil,
-						Rel: &search.RelFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
+						Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
 					},
 				},
-				Not: nil, Rel: nil, Amount: nil, Time: nil,
+				Not: nil, Ref: nil, Amount: nil, Time: nil,
 			},
 			WantErr: "only one clause can be set",
 		},
@@ -300,10 +300,10 @@ func TestFiltersValid(t *testing.T) {
 				And: []search.Filters{
 					{
 						And: nil, Or: nil, Not: nil,
-						Rel: &search.RelFilter{Prop: prop, Value: nil, None: false}, Amount: nil, Time: nil,
+						Ref: &search.RefFilter{Prop: prop, Value: nil, None: false}, Amount: nil, Time: nil,
 					},
 				},
-				Or: nil, Not: nil, Rel: nil, Amount: nil, Time: nil,
+				Or: nil, Not: nil, Ref: nil, Amount: nil, Time: nil,
 			},
 			WantErr: "value or none has to be set",
 		},
@@ -314,10 +314,10 @@ func TestFiltersValid(t *testing.T) {
 				Or: []search.Filters{
 					{
 						And: nil, Or: nil, Not: nil,
-						Rel: &search.RelFilter{Prop: prop, Value: nil, None: false}, Amount: nil, Time: nil,
+						Ref: &search.RefFilter{Prop: prop, Value: nil, None: false}, Amount: nil, Time: nil,
 					},
 				},
-				Not: nil, Rel: nil, Amount: nil, Time: nil,
+				Not: nil, Ref: nil, Amount: nil, Time: nil,
 			},
 			WantErr: "value or none has to be set",
 		},
@@ -327,24 +327,24 @@ func TestFiltersValid(t *testing.T) {
 				And: nil, Or: nil,
 				Not: &search.Filters{
 					And: nil, Or: nil, Not: nil,
-					Rel: &search.RelFilter{Prop: prop, Value: nil, None: false}, Amount: nil, Time: nil,
+					Ref: &search.RefFilter{Prop: prop, Value: nil, None: false}, Amount: nil, Time: nil,
 				},
-				Rel: nil, Amount: nil, Time: nil,
+				Ref: nil, Amount: nil, Time: nil,
 			},
 			WantErr: "value or none has to be set",
 		},
 		{
-			Name: "InvalidRelFilter",
+			Name: "InvalidRefFilter",
 			Filters: search.Filters{
 				And: nil, Or: nil, Not: nil,
-				Rel: &search.RelFilter{Prop: prop, Value: nil, None: false}, Amount: nil, Time: nil,
+				Ref: &search.RefFilter{Prop: prop, Value: nil, None: false}, Amount: nil, Time: nil,
 			},
 			WantErr: "value or none has to be set",
 		},
 		{
 			Name: "InvalidAmountFilter",
 			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil, Rel: nil,
+				And: nil, Or: nil, Not: nil, Ref: nil,
 				Amount: &search.AmountFilter{Prop: prop, Unit: nil, Gte: nil, Lte: nil, None: false}, Time: nil,
 			},
 			WantErr: "both gte and lte or none has to be set",
@@ -352,20 +352,20 @@ func TestFiltersValid(t *testing.T) {
 		{
 			Name: "InvalidTimeFilter",
 			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil, Rel: nil, Amount: nil,
+				And: nil, Or: nil, Not: nil, Ref: nil, Amount: nil,
 				Time: &search.TimeFilter{Prop: prop, Gte: nil, Lte: nil, None: false},
 			},
 			WantErr: "both gte and lte or none has to be set",
 		},
 		{
-			Name: "NotAndRelFilter",
+			Name: "NotAndRefFilter",
 			Filters: search.Filters{
 				And: nil, Or: nil,
 				Not: &search.Filters{
 					And: nil, Or: nil, Not: nil,
-					Rel: &search.RelFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
+					Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
 				},
-				Rel:    &search.RelFilter{Prop: prop, Value: &value, None: false},
+				Ref:    &search.RefFilter{Prop: prop, Value: &value, None: false},
 				Amount: nil, Time: nil,
 			},
 			WantErr: "only one clause can be set",
@@ -376,23 +376,23 @@ func TestFiltersValid(t *testing.T) {
 				And: []search.Filters{
 					{
 						And: nil, Or: nil, Not: nil,
-						Rel: &search.RelFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
+						Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
 					},
 				},
 				Or: nil,
 				Not: &search.Filters{
 					And: nil, Or: nil, Not: nil,
-					Rel: &search.RelFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
+					Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
 				},
-				Rel: nil, Amount: nil, Time: nil,
+				Ref: nil, Amount: nil, Time: nil,
 			},
 			WantErr: "only one clause can be set",
 		},
 		{
-			Name: "TimeAndRelFilter",
+			Name: "TimeAndRefFilter",
 			Filters: search.Filters{
 				And: nil, Or: nil, Not: nil,
-				Rel:    &search.RelFilter{Prop: prop, Value: &value, None: false},
+				Ref:    &search.RefFilter{Prop: prop, Value: &value, None: false},
 				Amount: nil,
 				Time:   &search.TimeFilter{Prop: prop, Gte: &gteTime, Lte: &lteTime, None: false},
 			},
@@ -424,8 +424,8 @@ func TestFiltersToQuery(t *testing.T) {
 	gteTime := float64(1000)
 	lteTime := float64(2000)
 
-	relFilter := &search.RelFilter{Prop: prop, Value: &value, None: false}
-	relNoneFilter := &search.RelFilter{Prop: prop, Value: nil, None: true}
+	refFilter := &search.RefFilter{Prop: prop, Value: &value, None: false}
+	refNoneFilter := &search.RefFilter{Prop: prop, Value: nil, None: true}
 
 	tests := []struct {
 		Name    string
@@ -434,20 +434,20 @@ func TestFiltersToQuery(t *testing.T) {
 	}{
 		{
 			Name:    "RelValue",
-			Filters: search.Filters{And: nil, Or: nil, Not: nil, Rel: relFilter, Amount: nil, Time: nil},
+			Filters: search.Filters{And: nil, Or: nil, Not: nil, Ref: refFilter, Amount: nil, Time: nil},
 			//nolint:lll
-			Want: `{"nested":{"path":"claims.rel","query":{"bool":{"must":[{"term":{"claims.rel.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.rel.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}}`,
+			Want: `{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}}`,
 		},
 		{
 			Name:    "RelNone",
-			Filters: search.Filters{And: nil, Or: nil, Not: nil, Rel: relNoneFilter, Amount: nil, Time: nil},
+			Filters: search.Filters{And: nil, Or: nil, Not: nil, Ref: refNoneFilter, Amount: nil, Time: nil},
 
-			Want: `{"bool":{"must_not":[{"nested":{"path":"claims.rel","query":{"term":{"claims.rel.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
+			Want: `{"bool":{"must_not":[{"nested":{"path":"claims.ref","query":{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
 		},
 		{
 			Name: "AmountGteLteUnit",
 			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil, Rel: nil,
+				And: nil, Or: nil, Not: nil, Ref: nil,
 				Amount: &search.AmountFilter{Prop: prop, Unit: &unit, Gte: &gte, Lte: &lte, None: false},
 				Time:   nil,
 			},
@@ -457,7 +457,7 @@ func TestFiltersToQuery(t *testing.T) {
 		{
 			Name: "AmountNone",
 			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil, Rel: nil,
+				And: nil, Or: nil, Not: nil, Ref: nil,
 				Amount: &search.AmountFilter{Prop: prop, Unit: nil, Gte: nil, Lte: nil, None: true},
 				Time:   nil,
 			},
@@ -467,7 +467,7 @@ func TestFiltersToQuery(t *testing.T) {
 		{
 			Name: "AmountGteLteNoUnit",
 			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil, Rel: nil,
+				And: nil, Or: nil, Not: nil, Ref: nil,
 				Amount: &search.AmountFilter{Prop: prop, Unit: nil, Gte: &gte, Lte: &lte, None: false},
 				Time:   nil,
 			},
@@ -477,7 +477,7 @@ func TestFiltersToQuery(t *testing.T) {
 		{
 			Name: "TimeGteLte",
 			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil, Rel: nil, Amount: nil,
+				And: nil, Or: nil, Not: nil, Ref: nil, Amount: nil,
 				Time: &search.TimeFilter{Prop: prop, Gte: &gteTime, Lte: &lteTime, None: false},
 			},
 			//nolint:lll
@@ -486,7 +486,7 @@ func TestFiltersToQuery(t *testing.T) {
 		{
 			Name: "TimeNone",
 			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil, Rel: nil, Amount: nil,
+				And: nil, Or: nil, Not: nil, Ref: nil, Amount: nil,
 				Time: &search.TimeFilter{Prop: prop, Gte: nil, Lte: nil, None: true},
 			},
 
@@ -496,43 +496,43 @@ func TestFiltersToQuery(t *testing.T) {
 			Name: "And",
 			Filters: search.Filters{
 				And: []search.Filters{
-					{And: nil, Or: nil, Not: nil, Rel: relFilter, Amount: nil, Time: nil},
+					{And: nil, Or: nil, Not: nil, Ref: refFilter, Amount: nil, Time: nil},
 					{
-						And: nil, Or: nil, Not: nil, Rel: nil,
+						And: nil, Or: nil, Not: nil, Ref: nil,
 						Amount: &search.AmountFilter{Prop: prop, Unit: nil, Gte: &gte, Lte: &lte, None: false},
 						Time:   nil,
 					},
 				},
-				Or: nil, Not: nil, Rel: nil, Amount: nil, Time: nil,
+				Or: nil, Not: nil, Ref: nil, Amount: nil, Time: nil,
 			},
 			//nolint:lll
-			Want: `{"bool":{"must":[{"nested":{"path":"claims.rel","query":{"bool":{"must":[{"term":{"claims.rel.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.rel.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}},{"nested":{"path":"claims.amount","query":{"bool":{"must":[{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.amount.range":{"gte":1,"lte":10}}}]}}}}]}}`,
+			Want: `{"bool":{"must":[{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}},{"nested":{"path":"claims.amount","query":{"bool":{"must":[{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.amount.range":{"gte":1,"lte":10}}}]}}}}]}}`,
 		},
 		{
 			Name: "Or",
 			Filters: search.Filters{
 				And: nil,
 				Or: []search.Filters{
-					{And: nil, Or: nil, Not: nil, Rel: relFilter, Amount: nil, Time: nil},
+					{And: nil, Or: nil, Not: nil, Ref: refFilter, Amount: nil, Time: nil},
 					{
-						And: nil, Or: nil, Not: nil, Rel: nil, Amount: nil,
+						And: nil, Or: nil, Not: nil, Ref: nil, Amount: nil,
 						Time: &search.TimeFilter{Prop: prop, Gte: &gteTime, Lte: &lteTime, None: false},
 					},
 				},
-				Not: nil, Rel: nil, Amount: nil, Time: nil,
+				Not: nil, Ref: nil, Amount: nil, Time: nil,
 			},
 			//nolint:lll
-			Want: `{"bool":{"minimum_should_match":1,"should":[{"nested":{"path":"claims.rel","query":{"bool":{"must":[{"term":{"claims.rel.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.rel.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}},{"nested":{"path":"claims.time","query":{"bool":{"must":[{"term":{"claims.time.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.time.range":{"gte":1000,"lte":2000}}}]}}}}]}}`,
+			Want: `{"bool":{"minimum_should_match":1,"should":[{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}},{"nested":{"path":"claims.time","query":{"bool":{"must":[{"term":{"claims.time.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.time.range":{"gte":1000,"lte":2000}}}]}}}}]}}`,
 		},
 		{
 			Name: "Not",
 			Filters: search.Filters{
 				And: nil, Or: nil,
-				Not: &search.Filters{And: nil, Or: nil, Not: nil, Rel: relFilter, Amount: nil, Time: nil},
-				Rel: nil, Amount: nil, Time: nil,
+				Not: &search.Filters{And: nil, Or: nil, Not: nil, Ref: refFilter, Amount: nil, Time: nil},
+				Ref: nil, Amount: nil, Time: nil,
 			},
 			//nolint:lll
-			Want: `{"bool":{"must_not":[{"nested":{"path":"claims.rel","query":{"bool":{"must":[{"term":{"claims.rel.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.rel.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}}]}}`,
+			Want: `{"bool":{"must_not":[{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}}]}}`,
 		},
 	}
 
@@ -549,7 +549,7 @@ func TestFiltersToQueryPanicsOnInvalid(t *testing.T) {
 	t.Parallel()
 
 	assert.Panics(t, func() {
-		f := search.Filters{And: nil, Or: nil, Not: nil, Rel: nil, Amount: nil, Time: nil}
+		f := search.Filters{And: nil, Or: nil, Not: nil, Ref: nil, Amount: nil, Time: nil}
 		f.ToQuery()
 	})
 }
@@ -650,7 +650,7 @@ func TestSessionValidate(t *testing.T) {
 			ID: nil, Version: 0, View: "", Query: "test",
 			Filters: &search.Filters{
 				And: nil, Or: nil, Not: nil,
-				Rel: &search.RelFilter{Prop: prop, Value: nil, None: false}, Amount: nil, Time: nil,
+				Ref: &search.RefFilter{Prop: prop, Value: nil, None: false}, Amount: nil, Time: nil,
 			},
 		}
 		err := s.Validate(ctx, nil)
@@ -666,7 +666,7 @@ func TestSessionValidate(t *testing.T) {
 			ID: nil, Version: 0, View: "", Query: "test",
 			Filters: &search.Filters{
 				And: nil, Or: nil, Not: nil,
-				Rel: &search.RelFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
+				Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
 			},
 		}
 		err := s.Validate(ctx, nil)
@@ -706,7 +706,7 @@ func TestSessionToQuery(t *testing.T) {
 			Name:    "QueryOnly",
 			Session: &search.Session{ID: nil, Version: 0, View: "", Query: "hello", Filters: nil},
 			//nolint:lll
-			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.value"],"query":"hello"}}}},{"nested":{"path":"claims.ref","query":{"simple_query_string":{"default_operator":"or","fields":["claims.ref.iri"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.en"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.pt"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.sl"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.und"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.en"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.pt"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.sl"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.und"],"query":"hello"}}}}]}}]}}`,
+			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.value"],"query":"hello"}}}},{"nested":{"path":"claims.link","query":{"simple_query_string":{"default_operator":"or","fields":["claims.link.iri"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.en"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.pt"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.sl"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.und"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.en"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.pt"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.sl"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.und"],"query":"hello"}}}}]}}]}}`,
 		},
 		{
 			Name:    "Empty",
@@ -719,11 +719,11 @@ func TestSessionToQuery(t *testing.T) {
 				ID: nil, Version: 0, View: "", Query: "hello",
 				Filters: &search.Filters{
 					And: nil, Or: nil, Not: nil,
-					Rel: &search.RelFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
+					Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
 				},
 			},
 			//nolint:lll
-			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.value"],"query":"hello"}}}},{"nested":{"path":"claims.ref","query":{"simple_query_string":{"default_operator":"or","fields":["claims.ref.iri"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.en"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.pt"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.sl"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.und"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.en"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.pt"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.sl"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.und"],"query":"hello"}}}}]}},{"nested":{"path":"claims.rel","query":{"bool":{"must":[{"term":{"claims.rel.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.rel.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}}]}}`,
+			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.value"],"query":"hello"}}}},{"nested":{"path":"claims.link","query":{"simple_query_string":{"default_operator":"or","fields":["claims.link.iri"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.en"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.pt"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.sl"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.und"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.en"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.pt"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.sl"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.und"],"query":"hello"}}}}]}},{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}}]}}`,
 		},
 	}
 
@@ -889,7 +889,7 @@ func TestCreateAndUpdateSessionRoundTrip(t *testing.T) {
 		ID: &id, Version: 0, View: search.ViewTable, Query: "updated",
 		Filters: &search.Filters{
 			And: nil, Or: nil, Not: nil,
-			Rel: &search.RelFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
+			Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
 		},
 	}
 	errE = search.UpdateSession(ctx, s2)
@@ -932,7 +932,7 @@ func TestJSONSerialization(t *testing.T) {
 
 	t.Run("FilterResult", func(t *testing.T) {
 		t.Parallel()
-		fr := search.FilterResult{ID: "test-id", Count: 42, Type: "rel", Unit: ""}
+		fr := search.FilterResult{ID: "test-id", Count: 42, Type: "ref", Unit: ""}
 		data, errE := x.MarshalWithoutEscapeHTML(fr)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		var decoded search.FilterResult
@@ -948,12 +948,12 @@ func TestJSONSerialization(t *testing.T) {
 		assert.Equal(t, fr, decoded)
 	})
 
-	t.Run("RelFilterResult", func(t *testing.T) {
+	t.Run("RefFilterResult", func(t *testing.T) {
 		t.Parallel()
-		rfr := search.RelFilterResult{ID: "test-id", Count: 10}
+		rfr := search.RefFilterResult{ID: "test-id", Count: 10}
 		data, errE := x.MarshalWithoutEscapeHTML(rfr)
 		require.NoError(t, errE, "% -+#.1v", errE)
-		var decoded search.RelFilterResult
+		var decoded search.RefFilterResult
 		errE = x.UnmarshalWithoutUnknownFields(data, &decoded)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		assert.Equal(t, rfr, decoded)
@@ -990,7 +990,7 @@ func TestJSONSerialization(t *testing.T) {
 			ID: &id, Version: 3, View: search.ViewTable, Query: "test query",
 			Filters: &search.Filters{
 				And: nil, Or: nil, Not: nil,
-				Rel: &search.RelFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
+				Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
 			},
 		}
 		data, errE := x.MarshalWithoutEscapeHTML(s)

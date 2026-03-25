@@ -195,10 +195,10 @@ func (c *Converter) getFallbackLanguages(lang string) []string {
 	return nil
 }
 
-// isInstanceOf returns true if the document has an INSTANCE_OF relation claim
+// isInstanceOf returns true if the document has an INSTANCE_OF reference claim
 // pointing to the given class ID.
 func isInstanceOf(doc *document.D, classID identifier.Identifier) bool {
-	for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.RelationClaim](doc, instanceOfPropID, document.LowConfidence) {
+	for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](doc, instanceOfPropID, document.LowConfidence) {
 		if rel.To.ID == classID {
 			return true
 		}
@@ -207,7 +207,7 @@ func isInstanceOf(doc *document.D, classID identifier.Identifier) bool {
 }
 
 // buildPropertyHierarchy computes transitive descendants and ancestors for each property
-// based on SUBPROPERTY_OF relation claims. Only documents that are instances of PROPERTY
+// based on SUBPROPERTY_OF reference claims. Only documents that are instances of PROPERTY
 // are considered.
 func (c *Converter) buildPropertyHierarchy(properties []*document.D) {
 	// Build parent -> children and child -> parents maps.
@@ -218,7 +218,7 @@ func (c *Converter) buildPropertyHierarchy(properties []*document.D) {
 		if !isInstanceOf(prop, propertyClassID) {
 			continue
 		}
-		for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.RelationClaim](prop, subpropertyOfPropID, document.LowConfidence) {
+		for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](prop, subpropertyOfPropID, document.LowConfidence) {
 			parentChildren[rel.To.ID] = append(parentChildren[rel.To.ID], prop.ID)
 			childParents[prop.ID] = append(childParents[prop.ID], rel.To.ID)
 		}
@@ -329,7 +329,7 @@ func (c *Converter) buildInverseProperties(properties []*document.D) {
 		if !isInstanceOf(prop, propertyClassID) {
 			continue
 		}
-		for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.RelationClaim](prop, inversePropertyOfPropID, document.LowConfidence) {
+		for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](prop, inversePropertyOfPropID, document.LowConfidence) {
 			if !slices.Contains(c.inverseProperties[prop.ID], rel.To.ID) {
 				c.inverseProperties[prop.ID] = append(c.inverseProperties[prop.ID], rel.To.ID)
 			}
@@ -380,7 +380,7 @@ func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Ident
 	var displayPaths map[identifier.Identifier]map[string][]string
 	idStr := id.String()
 	for _, hierProp := range c.valueHierarchyProperties {
-		rels := document.GetClaimsOfTypeWithConfidence[*document.RelationClaim](doc, hierProp, document.LowConfidence)
+		rels := document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](doc, hierProp, document.LowConfidence)
 		if len(rels) == 0 {
 			continue
 		}
@@ -574,7 +574,7 @@ func (c *Converter) displayLabelTemplate(ctx context.Context, doc *document.D) (
 	var bestTemplate string
 	var bestConfidence document.Confidence
 
-	for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.RelationClaim](doc, instanceOfPropID, document.LowConfidence) {
+	for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](doc, instanceOfPropID, document.LowConfidence) {
 		classDoc, errE := c.getDocument(ctx, rel.To.ID)
 		if errE != nil {
 			return "", errE
@@ -655,12 +655,12 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 			}
 			return ac.Amount.String(), nil
 		},
-		// bestRelationDoc follows the best relation claim for a property ID and returns the target document.
-		"bestRelationDoc": func(propID identifier.Identifier, doc *document.D) (*document.D, error) {
+		// bestReferenceDoc follows the best reference claim for a property ID and returns the target document.
+		"bestReferenceDoc": func(propID identifier.Identifier, doc *document.D) (*document.D, error) {
 			if doc == nil {
 				return nil, nil
 			}
-			rc := document.GetBestClaimOfType[*document.RelationClaim](doc, propID)
+			rc := document.GetBestClaimOfType[*document.ReferenceClaim](doc, propID)
 			if rc == nil {
 				return nil, nil
 			}
@@ -724,12 +724,12 @@ func (c *Converter) namingStrings(doc *document.D) map[string][]string {
 	return result
 }
 
-// extractInLanguages extracts language codes from a claim's meta IN_LANGUAGE relations.
+// extractInLanguages extracts language codes from a claim's meta IN_LANGUAGE references.
 // A claim can be in multiple languages, so all matching codes are returned.
 // Returns ["und"] if no languages are specified or none can be resolved to
 // supported languages.
 func (c *Converter) extractInLanguages(meta *document.ClaimTypes) []string {
-	rels := document.GetClaimsOfTypeWithConfidence[*document.RelationClaim](meta, inLanguagePropID, document.LowConfidence)
+	rels := document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](meta, inLanguagePropID, document.LowConfidence)
 	var codes []string
 	for _, rel := range rels {
 		if code, ok := c.languageCodes[rel.To.ID]; ok && SupportedLanguages[code] {
@@ -742,9 +742,9 @@ func (c *Converter) extractInLanguages(meta *document.ClaimTypes) []string {
 	return codes
 }
 
-// extractInUnit extracts the unit identifier from a claim's meta IN_UNIT relation.
+// extractInUnit extracts the unit identifier from a claim's meta IN_UNIT reference.
 func (c *Converter) extractInUnit(meta *document.ClaimTypes) *identifier.Identifier {
-	if rel := document.GetBestClaimOfType[*document.RelationClaim](meta, inUnitPropID); rel != nil {
+	if rel := document.GetBestClaimOfType[*document.ReferenceClaim](meta, inUnitPropID); rel != nil {
 		return &rel.To.ID
 	}
 	return nil
@@ -863,6 +863,19 @@ func (v *convertVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) (d
 	return document.Keep, nil
 }
 
+// VisitLink converts a link claim to search link claims.
+func (v *convertVisitor) VisitLink(claim *document.LinkClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	claims, errE := v.converter.convertLink(v.ctx, claim)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	v.result.Claims.Link = append(v.result.Claims.Link, claims...)
+	return document.Keep, nil
+}
+
 // VisitReference converts a reference claim to search reference claims.
 func (v *convertVisitor) VisitReference(claim *document.ReferenceClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
@@ -873,19 +886,6 @@ func (v *convertVisitor) VisitReference(claim *document.ReferenceClaim) (documen
 		return document.Keep, errE
 	}
 	v.result.Claims.Reference = append(v.result.Claims.Reference, claims...)
-	return document.Keep, nil
-}
-
-// VisitRelation converts a relation claim to search relation claims.
-func (v *convertVisitor) VisitRelation(claim *document.RelationClaim) (document.VisitResult, errors.E) {
-	if claim.GetConfidence() < document.LowConfidence {
-		return document.Keep, nil
-	}
-	claims, errE := v.converter.convertRelation(v.ctx, claim)
-	if errE != nil {
-		return document.Keep, errE
-	}
-	v.result.Claims.Relation = append(v.result.Claims.Relation, claims...)
 
 	return document.Keep, nil
 }
@@ -931,8 +931,8 @@ func (v *convertVisitor) VisitUnknown(claim *document.UnknownClaim) (document.Vi
 
 // FromDocument converts a document.D to a search Document.
 //
-// inverseRelations contains relation claims from other documents that point to this document.
-// For those whose property has an inverse property, a reverse relation claim is added to
+// inverseRelations contains reference claims from other documents that point to this document.
+// For those whose property has an inverse property, a reverse reference claim is added to
 // the search document.
 func (c *Converter) FromDocument(
 	ctx context.Context, doc *document.D, inverseRelations []internalStore.InverseRelation,
@@ -958,11 +958,11 @@ func (c *Converter) FromDocument(
 			// Property has no inverse, skip.
 			continue
 		}
-		// Create a synthetic relation claim for each inverse property pointing back to the source document.
+		// Create a synthetic reference claim for each inverse property pointing back to the source document.
 		for _, inversePropID := range inversePropIDs {
-			claims, errE := c.convertRelation(ctx, &document.RelationClaim{
+			claims, errE := c.convertReference(ctx, &document.ReferenceClaim{
 				CoreClaim: document.CoreClaim{
-					ID:         inverseRelationClaimID(doc.ID, ir.Source, ir.Claim),
+					ID:         inverseReferenceClaimID(doc.ID, ir.Source, ir.Claim),
 					Confidence: ir.Confidence,
 				},
 				Prop: document.Reference{ID: inversePropID},
@@ -971,28 +971,28 @@ func (c *Converter) FromDocument(
 			if errE != nil {
 				return nil, errE
 			}
-			v.result.Claims.Relation = append(v.result.Claims.Relation, claims...)
+			v.result.Claims.Reference = append(v.result.Claims.Reference, claims...)
 		}
 	}
 
 	return v.result, nil
 }
 
-// inverseRelationClaimID computes an unique claim ID for a synthetic inverse relation claim.
+// inverseReferenceClaimID computes an unique claim ID for a synthetic inverse reference claim.
 //
 // It uses source document ID and source claim ID to avoid collisions between claims from
 // different source documents that might share the same claim ID.
-func inverseRelationClaimID(target, source, claim identifier.Identifier) identifier.Identifier {
+func inverseReferenceClaimID(target, source, claim identifier.Identifier) identifier.Identifier {
 	return identifier.From(target.String(), "INVERSE_RELATION", source.String(), claim.String())
 }
 
 // OutgoingInverseRelations extracts the outgoing inverse relations from a document.
 //
-// For each relation claim in the document, it records an InverseRelation entry keyed
+// For each reference claim in the document, it records an InverseRelation entry keyed
 // by the target document ID.
 func OutgoingInverseRelations(doc *document.D) map[identifier.Identifier][]internalStore.InverseRelation {
 	result := make(map[identifier.Identifier][]internalStore.InverseRelation)
-	for _, claim := range document.GetAllClaimsOfTypeWithConfidence[*document.RelationClaim](doc, document.LowConfidence) {
+	for _, claim := range document.GetAllClaimsOfTypeWithConfidence[*document.ReferenceClaim](doc, document.LowConfidence) {
 		result[claim.To.ID] = append(result[claim.To.ID], internalStore.InverseRelation{
 			Claim:      claim.ID,
 			Source:     doc.ID,
@@ -1441,16 +1441,16 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 	return result, nil, nil
 }
 
-func (c *Converter) convertReference(ctx context.Context, claim *document.ReferenceClaim) ([]ReferenceClaim, errors.E) {
+func (c *Converter) convertLink(ctx context.Context, claim *document.LinkClaim) ([]LinkClaim, errors.E) {
 	props := c.propagateProp(claim.Prop.ID)
-	result := make([]ReferenceClaim, 0, len(props))
+	result := make([]LinkClaim, 0, len(props))
 	for _, pid := range props {
 		propDisplay, errE := c.getDisplayStrings(ctx, pid)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 			return nil, errE
 		}
-		result = append(result, ReferenceClaim{
+		result = append(result, LinkClaim{
 			Prop:        pid,
 			PropDisplay: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
@@ -1460,10 +1460,10 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 	return result, nil
 }
 
-func (c *Converter) convertRelation(ctx context.Context, claim *document.RelationClaim) ([]RelationClaim, errors.E) {
-	// Convert meta relation claims to nested search relation claims.
-	metaRelations := document.GetAllClaimsOfTypeWithConfidence[*document.RelationClaim](claim.Meta, document.LowConfidence)
-	nested := make([]NestedRelationClaim, 0, len(metaRelations))
+func (c *Converter) convertReference(ctx context.Context, claim *document.ReferenceClaim) ([]ReferenceClaim, errors.E) {
+	// Convert meta reference claims to nested search reference claims.
+	metaRelations := document.GetAllClaimsOfTypeWithConfidence[*document.ReferenceClaim](claim.Meta, document.LowConfidence)
+	nested := make([]NestedReferenceClaim, 0, len(metaRelations))
 	for _, mr := range metaRelations {
 		mrPropDisplay, errE := c.getDisplayStrings(ctx, mr.Prop.ID)
 		if errE != nil {
@@ -1475,7 +1475,7 @@ func (c *Converter) convertRelation(ctx context.Context, claim *document.Relatio
 			errors.Details(errE)["claim"] = claim
 			return nil, errE
 		}
-		nested = append(nested, NestedRelationClaim{
+		nested = append(nested, NestedReferenceClaim{
 			Prop:        mr.Prop.ID,
 			PropDisplay: mrPropDisplay.Display,
 			PropNaming:  mrPropDisplay.Naming,
@@ -1505,7 +1505,7 @@ func (c *Converter) convertRelation(ctx context.Context, claim *document.Relatio
 		}
 	}
 
-	result := make([]RelationClaim, 0, len(propIDs)*len(targetIDs))
+	result := make([]ReferenceClaim, 0, len(propIDs)*len(targetIDs))
 	for _, pid := range propIDs {
 		propDisplay, errE := c.getDisplayStrings(ctx, pid)
 		if errE != nil {
@@ -1526,7 +1526,7 @@ func (c *Converter) convertRelation(ctx context.Context, claim *document.Relatio
 			}
 			// Collect hierarchy paths across all value hierarchy types.
 			toPath, toDisplayPath := tidInfo.CollectHierarchyPaths()
-			result = append(result, RelationClaim{
+			result = append(result, ReferenceClaim{
 				Prop:          pid,
 				PropDisplay:   propDisplay.Display,
 				PropNaming:    propDisplay.Naming,
@@ -1535,7 +1535,7 @@ func (c *Converter) convertRelation(ctx context.Context, claim *document.Relatio
 				ToNaming:      tidInfo.Display.Naming,
 				ToPath:        toPath,
 				ToDisplayPath: toDisplayPath,
-				Relation:      nested,
+				Reference:     nested,
 			})
 		}
 	}
@@ -1543,9 +1543,9 @@ func (c *Converter) convertRelation(ctx context.Context, claim *document.Relatio
 }
 
 func (c *Converter) convertHas(ctx context.Context, claim *document.HasClaim) ([]HasClaim, errors.E) {
-	// Convert meta relation claims to nested search relation claims.
-	metaRelations := document.GetAllClaimsOfTypeWithConfidence[*document.RelationClaim](claim.Meta, document.LowConfidence)
-	nested := make([]NestedRelationClaim, 0, len(metaRelations))
+	// Convert meta reference claims to nested search reference claims.
+	metaRelations := document.GetAllClaimsOfTypeWithConfidence[*document.ReferenceClaim](claim.Meta, document.LowConfidence)
+	nested := make([]NestedReferenceClaim, 0, len(metaRelations))
 	for _, mr := range metaRelations {
 		mrPropDisplay, errE := c.getDisplayStrings(ctx, mr.Prop.ID)
 		if errE != nil {
@@ -1557,7 +1557,7 @@ func (c *Converter) convertHas(ctx context.Context, claim *document.HasClaim) ([
 			errors.Details(errE)["claim"] = claim
 			return nil, errE
 		}
-		nested = append(nested, NestedRelationClaim{
+		nested = append(nested, NestedReferenceClaim{
 			Prop:        mr.Prop.ID,
 			PropDisplay: mrPropDisplay.Display,
 			PropNaming:  mrPropDisplay.Naming,
@@ -1579,7 +1579,7 @@ func (c *Converter) convertHas(ctx context.Context, claim *document.HasClaim) ([
 			Prop:        pid,
 			PropDisplay: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
-			Relation:    nested,
+			Reference:   nested,
 		})
 	}
 	return result, nil

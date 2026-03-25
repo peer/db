@@ -39,8 +39,8 @@ func TestResultsGetIntegration(t *testing.T) {
 			HTML:      nil,
 			Amount:    nil,
 			Time:      nil,
+			Link:      nil,
 			Reference: nil,
-			Relation:  nil,
 			Has:       nil,
 			None:      nil,
 			Unknown:   nil,
@@ -59,8 +59,8 @@ func TestResultsGetIntegration(t *testing.T) {
 			HTML:      nil,
 			Amount:    nil,
 			Time:      nil,
+			Link:      nil,
 			Reference: nil,
-			Relation:  nil,
 			Has:       nil,
 			None:      nil,
 			Unknown:   nil,
@@ -79,8 +79,8 @@ func TestResultsGetIntegration(t *testing.T) {
 			HTML:      nil,
 			Amount:    nil,
 			Time:      nil,
+			Link:      nil,
 			Reference: nil,
-			Relation:  nil,
 			Has:       nil,
 			None:      nil,
 			Unknown:   nil,
@@ -169,14 +169,14 @@ func TestResultsGetIntegration(t *testing.T) {
 	assert.Equal(t, int64(0), metadata["total"])
 }
 
-func TestResultsGetWithRelFilterIntegration(t *testing.T) {
+func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
 	esClient, getSearchService, index := initES(t)
 
-	relProp := identifier.From("relProp")
-	relTarget := identifier.From("relTarget")
+	refProp := identifier.From("refProp")
+	refTarget := identifier.From("refTarget")
 	doc1ID := identifier.From("doc1")
 	doc2ID := identifier.From("doc2")
 
@@ -188,17 +188,17 @@ func TestResultsGetWithRelFilterIntegration(t *testing.T) {
 			HTML:       nil,
 			Amount:     nil,
 			Time:       nil,
-			Reference:  nil,
-			Relation: internalSearch.RelationClaims{{
-				Prop:          relProp,
+			Link:       nil,
+			Reference: internalSearch.ReferenceClaims{{
+				Prop:          refProp,
 				PropDisplay:   nil,
 				PropNaming:    nil,
-				To:            relTarget,
+				To:            refTarget,
 				ToDisplay:     nil,
 				ToNaming:      nil,
 				ToPath:        nil,
 				ToDisplayPath: nil,
-				Relation:      nil,
+				Reference:     nil,
 			}},
 			Has:     nil,
 			None:    nil,
@@ -213,8 +213,8 @@ func TestResultsGetWithRelFilterIntegration(t *testing.T) {
 			HTML:       nil,
 			Amount:     nil,
 			Time:       nil,
+			Link:       nil,
 			Reference:  nil,
-			Relation:   nil,
 			Has:        nil,
 			None:       nil,
 			Unknown:    nil,
@@ -232,9 +232,9 @@ func TestResultsGetWithRelFilterIntegration(t *testing.T) {
 			And: nil,
 			Or:  nil,
 			Not: nil,
-			Rel: &search.RelFilter{
-				Prop:  relProp,
-				Value: &relTarget,
+			Ref: &search.RefFilter{
+				Prop:  refProp,
+				Value: &refTarget,
 				None:  false,
 			},
 			Amount: nil,
@@ -257,8 +257,8 @@ func TestResultsGetWithRelFilterIntegration(t *testing.T) {
 			And: nil,
 			Or:  nil,
 			Not: nil,
-			Rel: &search.RelFilter{
-				Prop:  relProp,
+			Ref: &search.RefFilter{
+				Prop:  refProp,
 				Value: nil,
 				None:  true,
 			},
@@ -311,8 +311,8 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 				ToDisplay:   "",
 			}},
 			Time:      nil,
+			Link:      nil,
 			Reference: nil,
-			Relation:  nil,
 			Has:       nil,
 			None:      nil,
 			Unknown:   nil,
@@ -341,8 +341,8 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 				ToDisplay:   "",
 			}},
 			Time:      nil,
+			Link:      nil,
 			Reference: nil,
-			Relation:  nil,
 			Has:       nil,
 			None:      nil,
 			Unknown:   nil,
@@ -356,8 +356,8 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 			HTML:       nil,
 			Amount:     nil,
 			Time:       nil,
+			Link:       nil,
 			Reference:  nil,
-			Relation:   nil,
 			Has:        nil,
 			None:       nil,
 			Unknown:    nil,
@@ -377,7 +377,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 			And: nil,
 			Or:  nil,
 			Not: nil,
-			Rel: nil,
+			Ref: nil,
 			Amount: &search.AmountFilter{
 				Prop: amountProp,
 				Unit: &unitID,
@@ -406,7 +406,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 			And: nil,
 			Or:  nil,
 			Not: nil,
-			Rel: nil,
+			Ref: nil,
 			Amount: &search.AmountFilter{
 				Prop: amountProp,
 				Unit: &unitID,
@@ -433,7 +433,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 			And: nil,
 			Or:  nil,
 			Not: nil,
-			Rel: nil,
+			Ref: nil,
 			Amount: &search.AmountFilter{
 				Prop: amountProp,
 				Unit: nil,
@@ -487,8 +487,8 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 				To:          &t1000,
 				ToDisplay:   "",
 			}},
+			Link:      nil,
 			Reference: nil,
-			Relation:  nil,
 			Has:       nil,
 			None:      nil,
 			Unknown:   nil,
@@ -516,8 +516,8 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 				To:          &t2000,
 				ToDisplay:   "",
 			}},
+			Link:      nil,
 			Reference: nil,
-			Relation:  nil,
 			Has:       nil,
 			None:      nil,
 			Unknown:   nil,
@@ -531,8 +531,8 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 			HTML:       nil,
 			Amount:     nil,
 			Time:       nil,
+			Link:       nil,
 			Reference:  nil,
-			Relation:   nil,
 			Has:        nil,
 			None:       nil,
 			Unknown:    nil,
@@ -552,7 +552,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 			And:    nil,
 			Or:     nil,
 			Not:    nil,
-			Rel:    nil,
+			Ref:    nil,
 			Amount: nil,
 			Time: &search.TimeFilter{
 				Prop: timeProp,
@@ -578,7 +578,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 			And:    nil,
 			Or:     nil,
 			Not:    nil,
-			Rel:    nil,
+			Ref:    nil,
 			Amount: nil,
 			Time: &search.TimeFilter{
 				Prop: timeProp,
@@ -601,10 +601,10 @@ func TestResultsGetWithBoolFiltersIntegration(t *testing.T) {
 	ctx := t.Context()
 	esClient, getSearchService, index := initES(t)
 
-	relProp1 := identifier.From("relProp1")
-	relTarget1 := identifier.From("relTarget1")
-	relProp2 := identifier.From("relProp2")
-	relTarget2 := identifier.From("relTarget2")
+	refProp1 := identifier.From("refProp1")
+	refTarget1 := identifier.From("refTarget1")
+	refProp2 := identifier.From("refProp2")
+	refTarget2 := identifier.From("refTarget2")
 	doc1ID := identifier.From("doc1")
 	doc2ID := identifier.From("doc2")
 	doc3ID := identifier.From("doc3")
@@ -617,17 +617,17 @@ func TestResultsGetWithBoolFiltersIntegration(t *testing.T) {
 			HTML:       nil,
 			Amount:     nil,
 			Time:       nil,
-			Reference:  nil,
-			Relation: internalSearch.RelationClaims{{
-				Prop:          relProp1,
+			Link:       nil,
+			Reference: internalSearch.ReferenceClaims{{
+				Prop:          refProp1,
 				PropDisplay:   nil,
 				PropNaming:    nil,
-				To:            relTarget1,
+				To:            refTarget1,
 				ToDisplay:     nil,
 				ToNaming:      nil,
 				ToPath:        nil,
 				ToDisplayPath: nil,
-				Relation:      nil,
+				Reference:     nil,
 			}},
 			Has:     nil,
 			None:    nil,
@@ -642,17 +642,17 @@ func TestResultsGetWithBoolFiltersIntegration(t *testing.T) {
 			HTML:       nil,
 			Amount:     nil,
 			Time:       nil,
-			Reference:  nil,
-			Relation: internalSearch.RelationClaims{{
-				Prop:          relProp2,
+			Link:       nil,
+			Reference: internalSearch.ReferenceClaims{{
+				Prop:          refProp2,
 				PropDisplay:   nil,
 				PropNaming:    nil,
-				To:            relTarget2,
+				To:            refTarget2,
 				ToDisplay:     nil,
 				ToNaming:      nil,
 				ToPath:        nil,
 				ToDisplayPath: nil,
-				Relation:      nil,
+				Reference:     nil,
 			}},
 			Has:     nil,
 			None:    nil,
@@ -667,29 +667,29 @@ func TestResultsGetWithBoolFiltersIntegration(t *testing.T) {
 			HTML:       nil,
 			Amount:     nil,
 			Time:       nil,
-			Reference:  nil,
-			Relation: internalSearch.RelationClaims{
+			Link:       nil,
+			Reference: internalSearch.ReferenceClaims{
 				{
-					Prop:          relProp1,
+					Prop:          refProp1,
 					PropDisplay:   nil,
 					PropNaming:    nil,
-					To:            relTarget1,
+					To:            refTarget1,
 					ToDisplay:     nil,
 					ToNaming:      nil,
 					ToPath:        nil,
 					ToDisplayPath: nil,
-					Relation:      nil,
+					Reference:     nil,
 				},
 				{
-					Prop:          relProp2,
+					Prop:          refProp2,
 					PropDisplay:   nil,
 					PropNaming:    nil,
-					To:            relTarget2,
+					To:            refTarget2,
 					ToDisplay:     nil,
 					ToNaming:      nil,
 					ToPath:        nil,
 					ToDisplayPath: nil,
-					Relation:      nil,
+					Reference:     nil,
 				},
 			},
 			Has:     nil,
@@ -711,9 +711,9 @@ func TestResultsGetWithBoolFiltersIntegration(t *testing.T) {
 					And: nil,
 					Or:  nil,
 					Not: nil,
-					Rel: &search.RelFilter{
-						Prop:  relProp1,
-						Value: &relTarget1,
+					Ref: &search.RefFilter{
+						Prop:  refProp1,
+						Value: &refTarget1,
 						None:  false,
 					},
 					Amount: nil,
@@ -723,9 +723,9 @@ func TestResultsGetWithBoolFiltersIntegration(t *testing.T) {
 					And: nil,
 					Or:  nil,
 					Not: nil,
-					Rel: &search.RelFilter{
-						Prop:  relProp2,
-						Value: &relTarget2,
+					Ref: &search.RefFilter{
+						Prop:  refProp2,
+						Value: &refTarget2,
 						None:  false,
 					},
 					Amount: nil,
@@ -734,7 +734,7 @@ func TestResultsGetWithBoolFiltersIntegration(t *testing.T) {
 			},
 			Or:     nil,
 			Not:    nil,
-			Rel:    nil,
+			Ref:    nil,
 			Amount: nil,
 			Time:   nil,
 		},
@@ -758,9 +758,9 @@ func TestResultsGetWithBoolFiltersIntegration(t *testing.T) {
 					And: nil,
 					Or:  nil,
 					Not: nil,
-					Rel: &search.RelFilter{
-						Prop:  relProp1,
-						Value: &relTarget1,
+					Ref: &search.RefFilter{
+						Prop:  refProp1,
+						Value: &refTarget1,
 						None:  false,
 					},
 					Amount: nil,
@@ -770,9 +770,9 @@ func TestResultsGetWithBoolFiltersIntegration(t *testing.T) {
 					And: nil,
 					Or:  nil,
 					Not: nil,
-					Rel: &search.RelFilter{
-						Prop:  relProp2,
-						Value: &relTarget2,
+					Ref: &search.RefFilter{
+						Prop:  refProp2,
+						Value: &refTarget2,
 						None:  false,
 					},
 					Amount: nil,
@@ -780,7 +780,7 @@ func TestResultsGetWithBoolFiltersIntegration(t *testing.T) {
 				},
 			},
 			Not:    nil,
-			Rel:    nil,
+			Ref:    nil,
 			Amount: nil,
 			Time:   nil,
 		},
@@ -814,15 +814,15 @@ func TestResultsGetWithBoolFiltersIntegration(t *testing.T) {
 				And: nil,
 				Or:  nil,
 				Not: nil,
-				Rel: &search.RelFilter{
-					Prop:  relProp1,
-					Value: &relTarget1,
+				Ref: &search.RefFilter{
+					Prop:  refProp1,
+					Value: &refTarget1,
 					None:  false,
 				},
 				Amount: nil,
 				Time:   nil,
 			},
-			Rel:    nil,
+			Ref:    nil,
 			Amount: nil,
 			Time:   nil,
 		},
@@ -849,8 +849,8 @@ func TestResultsGetTotalGteIntegration(t *testing.T) {
 			HTML:       nil,
 			Amount:     nil,
 			Time:       nil,
+			Link:       nil,
 			Reference:  nil,
-			Relation:   nil,
 			Has:        nil,
 			None:       nil,
 			Unknown:    nil,
@@ -893,8 +893,8 @@ func TestResultsGetTotalGteRelationIntegration(t *testing.T) {
 				HTML:       nil,
 				Amount:     nil,
 				Time:       nil,
+				Link:       nil,
 				Reference:  nil,
-				Relation:   nil,
 				Has:        nil,
 				None:       nil,
 				Unknown:    nil,

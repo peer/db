@@ -128,13 +128,13 @@ var (
 func makePropertyDoc(t *testing.T, id identifier.Identifier, base []string, inverseOf *identifier.Identifier) *document.D {
 	t.Helper()
 	claims := &document.ClaimTypes{}
-	claims.Relation = append(claims.Relation, document.RelationClaim{
+	claims.Reference = append(claims.Reference, document.ReferenceClaim{
 		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
 		Prop:      document.Reference{ID: testInstanceOfPropID},
 		To:        document.Reference{ID: testPropertyClassID},
 	})
 	if inverseOf != nil {
-		claims.Relation = append(claims.Relation, document.RelationClaim{
+		claims.Reference = append(claims.Reference, document.ReferenceClaim{
 			CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
 			Prop:      document.Reference{ID: testInversePropertyOfPropID},
 			To:        document.Reference{ID: *inverseOf},
@@ -209,7 +209,7 @@ func TestInsertOrReplaceDocumentCarriesOverMetadata(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	docADoc.Claims = &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
 				Prop:      document.Reference{ID: propX},
@@ -503,7 +503,7 @@ func TestDocumentEditSessionCarriesOverMetadata(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	docADoc.Claims = &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
 				Prop:      document.Reference{ID: propX},
@@ -600,7 +600,7 @@ func TestDocumentEditSessionMetadataChangedDuringEdit(t *testing.T) {
 	// docB's metadata (adding inverse relations), bumping its revision DURING the edit session.
 	docADoc := newDoc()
 	docADoc.Claims = &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
 				Prop:      document.Reference{ID: propX},
@@ -716,7 +716,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	changeJSON := marshalChange(t, document.AddClaimChange{ //nolint:exhaustruct
 		ID:   claimID,
 		Base: changeBase,
-		Patch: document.RelationClaimPatch{
+		Patch: document.ReferenceClaimPatch{
 			Confidence: &confidence,
 			Prop:       &propX,
 			To:         &docB,
@@ -747,7 +747,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 		if !assert.NoError(c, err) {
 			return
 		}
-		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docA, propX, docB),
+		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docA, propX, docB),
 			"docA should have relation A --X--> B in ES")
 	}, 30*time.Second, 100*time.Millisecond)
 
@@ -757,7 +757,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 		if !assert.NoError(c, err) {
 			return
 		}
-		assert.True(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docB, propY, docA),
 			"docB should have inverse relation B --Y--> A in ES")
 	}, 30*time.Second, 100*time.Millisecond)
 
@@ -793,7 +793,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 		if !assert.NoError(c, err) {
 			return
 		}
-		assert.False(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docA, propX, docB),
+		assert.False(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docA, propX, docB),
 			"docA should no longer have relation A --X--> B in ES")
 	}, 30*time.Second, 100*time.Millisecond)
 
@@ -811,7 +811,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 		if !assert.NoError(c, err) {
 			return
 		}
-		assert.False(c, testutils.DocHasRelation(ctx, t, esClient, b.Index, docB, propY, docA),
+		assert.False(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docB, propY, docA),
 			"docB should no longer have inverse relation B --Y--> A in ES")
 	}, 30*time.Second, 100*time.Millisecond)
 }

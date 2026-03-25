@@ -46,7 +46,7 @@ func TestMappingContainsClaimTypes(t *testing.T) {
 	claimProps, ok := claims["properties"].(map[string]any)
 	require.True(t, ok)
 
-	expectedTypes := []string{"id", "string", "html", "amount", "time", "ref", "rel", "has", "none", "unknown"}
+	expectedTypes := []string{"id", "string", "html", "amount", "time", "link", "ref", "has", "none", "unknown"}
 	for _, ct := range expectedTypes {
 		assert.Contains(t, claimProps, ct, "missing claim type: %s", ct)
 	}
@@ -93,7 +93,7 @@ func TestMappingIsIndented(t *testing.T) {
 	assert.Contains(t, str, "  ")
 }
 
-func TestMappingNestedRelation(t *testing.T) {
+func TestMappingNestedReference(t *testing.T) {
 	t.Parallel()
 
 	data, errE := internalSearch.Mapping()
@@ -112,14 +112,14 @@ func TestMappingNestedRelation(t *testing.T) {
 	claimProps, ok := claims["properties"].(map[string]any)
 	require.True(t, ok)
 
-	// Check that rel claim type has nested rel field.
-	relClaim, ok := claimProps["rel"].(map[string]any)
+	// Check that ref claim type has nested ref field.
+	refClaim, ok := claimProps["ref"].(map[string]any)
 	require.True(t, ok)
-	relProps, ok := relClaim["properties"].(map[string]any)
+	refProps, ok := refClaim["properties"].(map[string]any)
 	require.True(t, ok)
-	nestedRel, ok := relProps["rel"].(map[string]any)
+	nestedRef, ok := refProps["ref"].(map[string]any)
 	require.True(t, ok)
-	assert.Equal(t, "nested", nestedRel["type"])
+	assert.Equal(t, "nested", nestedRef["type"])
 }
 
 func TestMappingDynamicDisabled(t *testing.T) {

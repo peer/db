@@ -42,7 +42,7 @@ func TestTimeFilterGetIntegration(t *testing.T) {
 					},
 					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
 				}},
-				Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+				Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
 			},
 		})
 	}
@@ -100,7 +100,7 @@ func TestTimeFilterGetSameValuesIntegration(t *testing.T) {
 					},
 					From: &t5000, FromDisplay: "", To: &t5000, ToDisplay: "",
 				}},
-				Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+				Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
 			},
 		})
 	}
@@ -138,7 +138,7 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 				},
 				From: &tNeg500, FromDisplay: "", To: &tNeg500, ToDisplay: "",
 			}},
-			Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+			Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -152,7 +152,7 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 				},
 				From: &t500, FromDisplay: "", To: &t500, ToDisplay: "",
 			}},
-			Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+			Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -234,7 +234,7 @@ func TestTimeFilterGetExtendedBoundsIntegration(t *testing.T) {
 					},
 					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
 				}},
-				Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+				Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
 			},
 		})
 	}
@@ -246,7 +246,7 @@ func TestTimeFilterGetExtendedBoundsIntegration(t *testing.T) {
 	session := &search.Session{
 		ID: nil, Version: 0, View: "", Query: "",
 		Filters: &search.Filters{
-			And: nil, Or: nil, Not: nil, Rel: nil, Amount: nil,
+			And: nil, Or: nil, Not: nil, Ref: nil, Amount: nil,
 			Time: &search.TimeFilter{Prop: timeProp, Gte: &gte, Lte: &lte, None: false},
 		},
 	}
@@ -303,7 +303,7 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 				},
 				From: &t0, FromDisplay: "", To: &t2000, ToDisplay: "",
 			}},
-			Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+			Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -317,7 +317,7 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 				},
 				From: &t8000, FromDisplay: "", To: &t10000, ToDisplay: "",
 			}},
-			Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+			Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -329,7 +329,7 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 	session := &search.Session{
 		ID: nil, Version: 0, View: "", Query: "",
 		Filters: &search.Filters{
-			And: nil, Or: nil, Not: nil, Rel: nil, Amount: nil,
+			And: nil, Or: nil, Not: nil, Ref: nil, Amount: nil,
 			Time: &search.TimeFilter{Prop: timeProp, Gte: &gte, Lte: &lte, None: false},
 		},
 	}
@@ -390,7 +390,7 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 				},
 				From: &t500, FromDisplay: "", To: &t500, ToDisplay: "",
 			}},
-			Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+			Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -404,7 +404,7 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 				},
 				From: &t2000, FromDisplay: "", To: &t8000, ToDisplay: "",
 			}},
-			Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+			Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -418,7 +418,7 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 				},
 				From: &t9500, FromDisplay: "", To: &t9500, ToDisplay: "",
 			}},
-			Reference: nil, Relation: nil, Has: nil, None: nil, Unknown: nil,
+			Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)

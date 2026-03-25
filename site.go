@@ -99,10 +99,10 @@ func (r *rawFieldValue) FieldValueCaster() *types.FieldValue {
 
 func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifier) ([]identifier.Identifier, errors.E) {
 	boolQuery := esdsl.NewBoolQuery().Must(
-		esdsl.NewTermQuery("claims.rel.prop", esdsl.NewFieldValue().String(instanceOfPropID)),
-		esdsl.NewTermQuery("claims.rel.to", esdsl.NewFieldValue().String(classID.String())),
+		esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(instanceOfPropID)),
+		esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(classID.String())),
 	)
-	query := esdsl.NewNestedQuery(boolQuery).Path("claims.rel")
+	query := esdsl.NewNestedQuery(boolQuery).Path("claims.ref")
 
 	pit, err := s.ESClient.OpenPointInTime(s.Index).KeepAlive("1m").Do(ctx)
 	if err != nil {

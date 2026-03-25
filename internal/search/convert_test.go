@@ -54,20 +54,20 @@ func makePropertyDoc(id identifier.Identifier, subpropertyOf *identifier.Identif
 func makePropertyDocFull(id identifier.Identifier, subpropertyOf, inversePropertyOf *identifier.Identifier) *document.D {
 	claims := &document.ClaimTypes{}
 	// INSTANCE_OF -> PROPERTY.
-	claims.Relation = append(claims.Relation, document.RelationClaim{
+	claims.Reference = append(claims.Reference, document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: instanceOfPropID},
 		To:        document.Reference{ID: propertyClassID},
 	})
 	if subpropertyOf != nil {
-		claims.Relation = append(claims.Relation, document.RelationClaim{
+		claims.Reference = append(claims.Reference, document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 			Prop:      document.Reference{ID: subpropertyOfPropID},
 			To:        document.Reference{ID: *subpropertyOf},
 		})
 	}
 	if inversePropertyOf != nil {
-		claims.Relation = append(claims.Relation, document.RelationClaim{
+		claims.Reference = append(claims.Reference, document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 			Prop:      document.Reference{ID: inversePropertyOfPropID},
 			To:        document.Reference{ID: *inversePropertyOf},
@@ -90,7 +90,7 @@ func makeHierarchyDoc(id identifier.Identifier, name string, hierProp identifier
 		String:    name,
 	})
 	if parentID != nil {
-		claims.Relation = append(claims.Relation, document.RelationClaim{
+		claims.Reference = append(claims.Reference, document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 			Prop:      document.Reference{ID: hierProp},
 			To:        document.Reference{ID: *parentID},
@@ -107,7 +107,7 @@ func makeHierarchyDoc(id identifier.Identifier, name string, hierProp identifier
 // makeLanguageDoc creates a language document (instance of LANGUAGE class) with a CODE identifier.
 func makeLanguageDoc(id identifier.Identifier, code string) *document.D {
 	claims := &document.ClaimTypes{}
-	claims.Relation = append(claims.Relation, document.RelationClaim{
+	claims.Reference = append(claims.Reference, document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: instanceOfPropID},
 		To:        document.Reference{ID: languageClassID},
@@ -244,7 +244,7 @@ func TestBuildPropertyHierarchySkipsNonProperty(t *testing.T) {
 	notProp := &document.D{
 		CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
-			Relation: []document.RelationClaim{
+			Reference: []document.ReferenceClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 					Prop:      document.Reference{ID: subpropertyOfPropID},
@@ -360,13 +360,13 @@ func TestGetDocumentInfoMultiplePaths(t *testing.T) {
 		Prop:      document.Reference{ID: namingPropID},
 		String:    "Leaf",
 	})
-	childClaims.Relation = append(childClaims.Relation,
-		document.RelationClaim{
+	childClaims.Reference = append(childClaims.Reference,
+		document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 			Prop:      document.Reference{ID: subclassOfPropID},
 			To:        document.Reference{ID: parentA},
 		},
-		document.RelationClaim{
+		document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 			Prop:      document.Reference{ID: subclassOfPropID},
 			To:        document.Reference{ID: parentB},
@@ -565,13 +565,13 @@ func TestGetDocumentInfoMultipleHierarchies(t *testing.T) {
 		Prop:      document.Reference{ID: namingPropID},
 		String:    "Child",
 	})
-	childClaims.Relation = append(childClaims.Relation,
-		document.RelationClaim{
+	childClaims.Reference = append(childClaims.Reference,
+		document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 			Prop:      document.Reference{ID: subclassOfPropID},
 			To:        document.Reference{ID: classParent},
 		},
-		document.RelationClaim{
+		document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 			Prop:      document.Reference{ID: partOfPropID},
 			To:        document.Reference{ID: partParent},
@@ -624,13 +624,13 @@ func TestGetDocumentInfoOverlappingHierarchies(t *testing.T) {
 		Prop:      document.Reference{ID: namingPropID},
 		String:    "Child",
 	})
-	childClaims.Relation = append(childClaims.Relation,
-		document.RelationClaim{
+	childClaims.Reference = append(childClaims.Reference,
+		document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 			Prop:      document.Reference{ID: subclassOfPropID},
 			To:        document.Reference{ID: sharedParent},
 		},
-		document.RelationClaim{
+		document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 			Prop:      document.Reference{ID: partOfPropID},
 			To:        document.Reference{ID: sharedParent},
@@ -747,13 +747,13 @@ func TestConvertRelationMultipleHierarchies(t *testing.T) {
 		Prop:      document.Reference{ID: namingPropID},
 		String:    "Target",
 	})
-	targetClaims.Relation = append(targetClaims.Relation,
-		document.RelationClaim{
+	targetClaims.Reference = append(targetClaims.Reference,
+		document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 			Prop:      document.Reference{ID: subclassOfPropID},
 			To:        document.Reference{ID: classParent},
 		},
-		document.RelationClaim{
+		document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 			Prop:      document.Reference{ID: partOfPropID},
 			To:        document.Reference{ID: partParent},
@@ -776,12 +776,12 @@ func TestConvertRelationMultipleHierarchies(t *testing.T) {
 	c := newTestConverter(t, properties, nil, extraDocs)
 
 	ctx := t.Context()
-	claim := &document.RelationClaim{
+	claim := &document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: target},
 	}
-	result, errE := c.convertRelation(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Target + classParent + partParent = 3 claims.
 	require.Len(t, result, 3)
@@ -816,13 +816,13 @@ func TestConvertRelationOverlappingAncestors(t *testing.T) {
 		Prop:      document.Reference{ID: namingPropID},
 		String:    "Target",
 	})
-	targetClaims.Relation = append(targetClaims.Relation,
-		document.RelationClaim{
+	targetClaims.Reference = append(targetClaims.Reference,
+		document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 			Prop:      document.Reference{ID: subclassOfPropID},
 			To:        document.Reference{ID: sharedAncestor},
 		},
-		document.RelationClaim{
+		document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 			Prop:      document.Reference{ID: partOfPropID},
 			To:        document.Reference{ID: sharedAncestor},
@@ -843,12 +843,12 @@ func TestConvertRelationOverlappingAncestors(t *testing.T) {
 	c := newTestConverter(t, properties, nil, extraDocs)
 
 	ctx := t.Context()
-	claim := &document.RelationClaim{
+	claim := &document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: target},
 	}
-	result, errE := c.convertRelation(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Target + sharedAncestor (deduplicated) = 2 claims.
 	require.Len(t, result, 2)
@@ -926,7 +926,7 @@ func TestExtractInLanguages(t *testing.T) {
 
 	// Meta with IN_LANGUAGE relation to a known language.
 	meta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: inLanguagePropID},
@@ -944,7 +944,7 @@ func TestExtractInLanguages(t *testing.T) {
 	// Meta with unknown language.
 	unknownLangID := identifier.New()
 	metaUnknown := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: inLanguagePropID},
@@ -968,7 +968,7 @@ func TestExtractInLanguagesUnsupportedLanguage(t *testing.T) {
 	}
 
 	meta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: inLanguagePropID},
@@ -993,7 +993,7 @@ func TestExtractInLanguagesMultiple(t *testing.T) {
 	}
 
 	meta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: inLanguagePropID},
@@ -1019,7 +1019,7 @@ func TestExtractInUnit(t *testing.T) {
 
 	// Meta with IN_UNIT relation.
 	meta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: inUnitPropID},
@@ -1343,7 +1343,7 @@ func TestConvertStringWithLanguage(t *testing.T) {
 
 	ctx := t.Context()
 	meta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: inLanguagePropID},
@@ -1399,7 +1399,7 @@ func TestConvertHTMLWithLanguage(t *testing.T) {
 
 	ctx := t.Context()
 	meta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: inLanguagePropID},
@@ -1457,7 +1457,7 @@ func TestConvertAmountWithUnit(t *testing.T) {
 
 	ctx := t.Context()
 	meta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: inUnitPropID},
@@ -2108,12 +2108,12 @@ func TestConvertReference(t *testing.T) {
 	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	claim := &document.ReferenceClaim{
+	claim := &document.LinkClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: testPropID},
 		IRI:       "https://example.com",
 	}
-	result, errE := c.convertReference(ctx, claim)
+	result, errE := c.convertLink(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
 	assert.Equal(t, "https://example.com", result[0].IRI)
@@ -2131,12 +2131,12 @@ func TestConvertRelation(t *testing.T) {
 	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	claim := &document.RelationClaim{
+	claim := &document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
-	result, errE := c.convertRelation(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
 	assert.Equal(t, testPropID, result[0].Prop)
@@ -2166,18 +2166,18 @@ func TestConvertRelationWithClassAncestors(t *testing.T) {
 	c := newTestConverter(t, properties, nil, extraDocs)
 
 	ctx := t.Context()
-	claim := &document.RelationClaim{
+	claim := &document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
-	result, errE := c.convertRelation(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Should produce claims for both target and parent class.
 	require.Len(t, result, 2)
 
 	// Find the claim for the target and the claim for the parent.
-	var targetClaim, parentClaim RelationClaim
+	var targetClaim, parentClaim ReferenceClaim
 	for _, r := range result {
 		if r.To == testTargetDocID {
 			targetClaim = r
@@ -2218,13 +2218,13 @@ func TestConvertRelationWithClassSelfCycle(t *testing.T) {
 	c := newTestConverter(t, properties, nil, extraDocs)
 
 	ctx := t.Context()
-	claim := &document.RelationClaim{
+	claim := &document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
 	// Self-reference excluded, so only one result claim.
-	result, errE := c.convertRelation(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
 	assert.Equal(t, testTargetDocID, result[0].To)
@@ -2254,12 +2254,12 @@ func TestConvertRelationWithClassMutualCycle(t *testing.T) {
 	c := newTestConverter(t, properties, nil, extraDocs)
 
 	ctx := t.Context()
-	claim := &document.RelationClaim{
+	claim := &document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: classA},
 	}
-	result, errE := c.convertRelation(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Target classA + ancestor classB, no duplicates.
 	require.Len(t, result, 2)
@@ -2288,12 +2288,12 @@ func TestConvertRelationWithPropertySelfCycle(t *testing.T) {
 	c.buildPropertyHierarchy([]*document.D{propADoc})
 
 	ctx := t.Context()
-	claim := &document.RelationClaim{
+	claim := &document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: propA},
 		To:        document.Reference{ID: testTargetDocID},
 	}
-	result, errE := c.convertRelation(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Self-cycle excluded: only one claim with propA, no duplicate.
 	require.Len(t, result, 1)
@@ -2322,12 +2322,12 @@ func TestConvertRelationWithPropertyMutualCycle(t *testing.T) {
 	c.buildPropertyHierarchy([]*document.D{propADoc, propBDoc})
 
 	ctx := t.Context()
-	claim := &document.RelationClaim{
+	claim := &document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: propA},
 		To:        document.Reference{ID: testTargetDocID},
 	}
-	result, errE := c.convertRelation(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// propA (direct) + propB (ancestor), no duplicates.
 	require.Len(t, result, 2)
@@ -2394,7 +2394,7 @@ func TestConvertRelationWithMetaRelations(t *testing.T) {
 
 	ctx := t.Context()
 	meta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: metaPropID},
@@ -2402,17 +2402,17 @@ func TestConvertRelationWithMetaRelations(t *testing.T) {
 			},
 		},
 	}
-	claim := &document.RelationClaim{
+	claim := &document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, meta),
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
-	result, errE := c.convertRelation(ctx, claim)
+	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
-	require.Len(t, result[0].Relation, 1)
-	assert.Equal(t, metaPropID, result[0].Relation[0].Prop)
-	assert.Equal(t, metaTargetID, result[0].Relation[0].To)
+	require.Len(t, result[0].Reference, 1)
+	assert.Equal(t, metaPropID, result[0].Reference[0].Prop)
+	assert.Equal(t, metaTargetID, result[0].Reference[0].To)
 }
 
 func TestConvertHas(t *testing.T) {
@@ -2452,7 +2452,7 @@ func TestConvertHasWithMetaRelations(t *testing.T) {
 
 	ctx := t.Context()
 	meta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: metaPropID},
@@ -2467,7 +2467,7 @@ func TestConvertHasWithMetaRelations(t *testing.T) {
 	result, errE := c.convertHas(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
-	require.Len(t, result[0].Relation, 1)
+	require.Len(t, result[0].Reference, 1)
 }
 
 func TestConvertNone(t *testing.T) {
@@ -2635,14 +2635,14 @@ func makeDocWithAllClaimTypes(t *testing.T, confidence document.Confidence) *doc
 					ToPrecision:   &toTSPrec,
 				},
 			},
-			Reference: []document.ReferenceClaim{
+			Link: []document.LinkClaim{
 				{
 					CoreClaim: makeCoreClaim(confidence, nil),
 					Prop:      document.Reference{ID: testPropID},
 					IRI:       "https://example.com",
 				},
 			},
-			Relation: []document.RelationClaim{
+			Reference: []document.ReferenceClaim{
 				{
 					CoreClaim: makeCoreClaim(confidence, nil),
 					Prop:      document.Reference{ID: testPropID},
@@ -2709,8 +2709,8 @@ func TestFromDocumentAllClaimTypesConfidence(t *testing.T) {
 			assert.Len(t, result.Claims.Amount, 2*tt.expected)
 			// Time + TimeInterval each contribute one claim.
 			assert.Len(t, result.Claims.Time, 2*tt.expected)
+			assert.Len(t, result.Claims.Link, tt.expected)
 			assert.Len(t, result.Claims.Reference, tt.expected)
-			assert.Len(t, result.Claims.Relation, tt.expected)
 			assert.Len(t, result.Claims.Has, tt.expected)
 			assert.Len(t, result.Claims.None, tt.expected)
 			assert.Len(t, result.Claims.Unknown, tt.expected)
@@ -2947,7 +2947,7 @@ func TestFromDocumentReferenceError(t *testing.T) {
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
-			Reference: []document.ReferenceClaim{
+			Link: []document.LinkClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 					Prop:      document.Reference{ID: identifier.New()},
@@ -2970,7 +2970,7 @@ func TestFromDocumentRelationError(t *testing.T) {
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
-			Relation: []document.RelationClaim{
+			Reference: []document.ReferenceClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 					Prop:      document.Reference{ID: identifier.New()},
@@ -3375,7 +3375,7 @@ func TestConvertRelationMetaPropError(t *testing.T) {
 
 	ctx := t.Context()
 	meta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: identifier.New()}, // Unknown prop.
@@ -3383,12 +3383,12 @@ func TestConvertRelationMetaPropError(t *testing.T) {
 			},
 		},
 	}
-	claim := &document.RelationClaim{
+	claim := &document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, meta),
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
-	_, errE := c.convertRelation(ctx, claim)
+	_, errE := c.convertReference(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -3403,7 +3403,7 @@ func TestConvertRelationMetaToError(t *testing.T) {
 
 	ctx := t.Context()
 	meta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: testPropID2},
@@ -3411,12 +3411,12 @@ func TestConvertRelationMetaToError(t *testing.T) {
 			},
 		},
 	}
-	claim := &document.RelationClaim{
+	claim := &document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, meta),
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
-	_, errE := c.convertRelation(ctx, claim)
+	_, errE := c.convertReference(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -3431,12 +3431,12 @@ func TestConvertRelationToDisplayError(t *testing.T) {
 	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	claim := &document.RelationClaim{
+	claim := &document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
-	_, errE := c.convertRelation(ctx, claim)
+	_, errE := c.convertReference(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -3448,7 +3448,7 @@ func TestConvertHasMetaPropError(t *testing.T) {
 
 	ctx := t.Context()
 	meta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: identifier.New()}, // Unknown prop.
@@ -3475,7 +3475,7 @@ func TestConvertHasMetaToError(t *testing.T) {
 
 	ctx := t.Context()
 	meta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: testPropID2},
@@ -3529,12 +3529,12 @@ func TestConvertRelationPropagationPropError(t *testing.T) {
 	}
 
 	ctx := t.Context()
-	claim := &document.RelationClaim{
+	claim := &document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
-	_, errE := c.convertRelation(ctx, claim)
+	_, errE := c.convertReference(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -3552,12 +3552,12 @@ func TestConvertReferencePropagationError(t *testing.T) {
 	}
 
 	ctx := t.Context()
-	claim := &document.ReferenceClaim{
+	claim := &document.LinkClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: testPropID},
 		IRI:       "https://example.com",
 	}
-	_, errE := c.convertReference(ctx, claim)
+	_, errE := c.convertLink(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -3688,7 +3688,7 @@ func TestConvertTimeIntervalToUnknownFromError(t *testing.T) {
 // and a DISPLAY_LABEL_TEMPLATE claim.
 func makeClassDocWithTemplate(id identifier.Identifier, tmpl string) *document.D {
 	claims := &document.ClaimTypes{}
-	claims.Relation = append(claims.Relation, document.RelationClaim{
+	claims.Reference = append(claims.Reference, document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: instanceOfPropID},
 		To:        document.Reference{ID: propertyClassID},
@@ -3709,7 +3709,7 @@ func addInstanceOf(doc *document.D, classID identifier.Identifier, confidence do
 	if doc.Claims == nil {
 		doc.Claims = &document.ClaimTypes{}
 	}
-	doc.Claims.Relation = append(doc.Claims.Relation, document.RelationClaim{
+	doc.Claims.Reference = append(doc.Claims.Reference, document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(confidence, nil),
 		Prop:      document.Reference{ID: instanceOfPropID},
 		To:        document.Reference{ID: classID},
@@ -3885,7 +3885,7 @@ func TestMakeDisplayStringsTemplateAllLanguages(t *testing.T) {
 	}
 
 	enMeta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: inLanguagePropID},
@@ -3894,7 +3894,7 @@ func TestMakeDisplayStringsTemplateAllLanguages(t *testing.T) {
 		},
 	}
 	slMeta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: inLanguagePropID},
@@ -3962,7 +3962,7 @@ func TestMakeDisplayStringsTemplateRelationTraversal(t *testing.T) {
 		},
 	}
 	classDoc := makeClassDocWithTemplate(classID,
-		`{{bestString `+idTmpl(shortNamePropID)+` .}} ({{bestRelationDoc `+idTmpl(parentRelPropID)+` . | bestAmountString `+idTmpl(yearPropID)+`}})`,
+		`{{bestString `+idTmpl(shortNamePropID)+` .}} ({{bestReferenceDoc `+idTmpl(parentRelPropID)+` . | bestAmountString `+idTmpl(yearPropID)+`}})`,
 	)
 
 	extraDocs := map[identifier.Identifier]*document.D{
@@ -3991,7 +3991,7 @@ func TestMakeDisplayStringsTemplateRelationTraversal(t *testing.T) {
 					String:    "US",
 				},
 			},
-			Relation: []document.RelationClaim{
+			Reference: []document.ReferenceClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 					Prop:      document.Reference{ID: parentRelPropID},
@@ -4066,7 +4066,7 @@ func TestTemplateBestStringLanguageFallback(t *testing.T) {
 	}
 
 	enMeta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: inLanguagePropID},
@@ -4153,7 +4153,7 @@ func TestTemplateNilDoc(t *testing.T) {
 	yearPropID := identifier.New()
 	classID := identifier.New()
 	classDoc := makeClassDocWithTemplate(classID,
-		`Year: {{bestRelationDoc `+idTmpl(parentRelPropID)+` . | bestAmountString `+idTmpl(yearPropID)+`}}`,
+		`Year: {{bestReferenceDoc `+idTmpl(parentRelPropID)+` . | bestAmountString `+idTmpl(yearPropID)+`}}`,
 	)
 
 	extraDocs := map[identifier.Identifier]*document.D{
@@ -4166,7 +4166,7 @@ func TestTemplateNilDoc(t *testing.T) {
 	c.languageCodes = map[identifier.Identifier]string{}
 
 	// Template tries to follow a non-existent relation.
-	// bestRelationDoc returns nil, bestAmountString handles nil doc gracefully.
+	// bestReferenceDoc returns nil, bestAmountString handles nil doc gracefully.
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
@@ -4390,7 +4390,7 @@ func TestGetDocumentInfoWithLanguagePriority(t *testing.T) {
 	slLangID := identifier.New()
 
 	enMeta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: inLanguagePropID},
@@ -4399,7 +4399,7 @@ func TestGetDocumentInfoWithLanguagePriority(t *testing.T) {
 		},
 	}
 	slMeta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: inLanguagePropID},
@@ -4464,7 +4464,7 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 	slLangID := identifier.New()
 
 	enMeta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: inLanguagePropID},
@@ -4473,7 +4473,7 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 		},
 	}
 	slMeta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: inLanguagePropID},
@@ -4522,7 +4522,7 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 					String:    "Child SL",
 				},
 			},
-			Relation: []document.RelationClaim{
+			Reference: []document.ReferenceClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 					Prop:      document.Reference{ID: subclassOfPropID},
@@ -4573,7 +4573,7 @@ func TestDisplayPathsEmptyAppend(t *testing.T) {
 	enLangID := identifier.New()
 
 	enMeta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: inLanguagePropID},
@@ -4617,7 +4617,7 @@ func TestDisplayPathsEmptyAppend(t *testing.T) {
 					String:    "Child UND",
 				},
 			},
-			Relation: []document.RelationClaim{
+			Reference: []document.ReferenceClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 					Prop:      document.Reference{ID: subclassOfPropID},
@@ -4663,7 +4663,7 @@ func TestBestStringLanguagePriority(t *testing.T) {
 	classDoc := makeClassDocWithTemplate(classID, `{{bestString `+idTmpl(namePropID)+` .}}`)
 
 	enMeta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: inLanguagePropID},
@@ -4672,7 +4672,7 @@ func TestBestStringLanguagePriority(t *testing.T) {
 		},
 	}
 	slMeta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: inLanguagePropID},
@@ -4681,7 +4681,7 @@ func TestBestStringLanguagePriority(t *testing.T) {
 		},
 	}
 	ptMeta := &document.ClaimTypes{
-		Relation: []document.RelationClaim{
+		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: inLanguagePropID},
@@ -4812,7 +4812,7 @@ func TestBuildInversePropertiesSkipsNonProperties(t *testing.T) {
 
 	// A document that is NOT a property (no INSTANCE_OF -> PROPERTY) but has inversePropertyOf.
 	claims := &document.ClaimTypes{}
-	claims.Relation = append(claims.Relation, document.RelationClaim{
+	claims.Reference = append(claims.Reference, document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: inversePropertyOfPropID},
 		To:        document.Reference{ID: propB},
@@ -4835,7 +4835,7 @@ func TestOutgoingInverseRelations(t *testing.T) {
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
-			Relation: []document.RelationClaim{
+			Reference: []document.ReferenceClaim{
 				{
 					CoreClaim: document.CoreClaim{
 						ID:         claimID,
@@ -4867,8 +4867,8 @@ func TestInverseRelationClaimIDDeterministic(t *testing.T) {
 	source := identifier.New()
 	claim := identifier.New()
 
-	id1 := inverseRelationClaimID(target, source, claim)
-	id2 := inverseRelationClaimID(target, source, claim)
+	id1 := inverseReferenceClaimID(target, source, claim)
+	id2 := inverseReferenceClaimID(target, source, claim)
 
 	assert.Equal(t, id1, id2)
 }
@@ -4881,8 +4881,8 @@ func TestInverseRelationClaimIDDiffersPerSource(t *testing.T) {
 	sourceB := identifier.New()
 	claim := identifier.New()
 
-	idA := inverseRelationClaimID(target, sourceA, claim)
-	idB := inverseRelationClaimID(target, sourceB, claim)
+	idA := inverseReferenceClaimID(target, sourceA, claim)
+	idB := inverseReferenceClaimID(target, sourceB, claim)
 
 	assert.NotEqual(t, idA, idB)
 }
@@ -4941,8 +4941,8 @@ func TestFromDocumentIncomingInverseRelation(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have a reverse relation claim with property Y pointing to source document.
-	require.Len(t, result.Claims.Relation, 1)
-	rel := result.Claims.Relation[0]
+	require.Len(t, result.Claims.Reference, 1)
+	rel := result.Claims.Reference[0]
 	assert.Equal(t, propY, rel.Prop)
 	assert.Equal(t, sourceDocID, rel.To)
 }
@@ -4977,7 +4977,7 @@ func TestFromDocumentIncomingInverseRelationNoInverse(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// No inverse property, so no relation claims should be added.
-	assert.Empty(t, result.Claims.Relation)
+	assert.Empty(t, result.Claims.Reference)
 }
 
 func TestFromDocumentIncomingInverseRelationMultipleInverses(t *testing.T) {
@@ -5020,16 +5020,16 @@ func TestFromDocumentIncomingInverseRelationMultipleInverses(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have two reverse relation claims: one for A and one for C.
-	require.Len(t, result.Claims.Relation, 2)
+	require.Len(t, result.Claims.Reference, 2)
 	relProps := map[identifier.Identifier]bool{
-		result.Claims.Relation[0].Prop: true,
-		result.Claims.Relation[1].Prop: true,
+		result.Claims.Reference[0].Prop: true,
+		result.Claims.Reference[1].Prop: true,
 	}
 	assert.True(t, relProps[propA], "expected reverse claim with property A")
 	assert.True(t, relProps[propC], "expected reverse claim with property C")
 	// Both should point to the source document.
-	assert.Equal(t, sourceDocID, result.Claims.Relation[0].To)
-	assert.Equal(t, sourceDocID, result.Claims.Relation[1].To)
+	assert.Equal(t, sourceDocID, result.Claims.Reference[0].To)
+	assert.Equal(t, sourceDocID, result.Claims.Reference[1].To)
 }
 
 func TestFromDocumentIncomingInverseRelationBidirectional(t *testing.T) {
@@ -5071,9 +5071,9 @@ func TestFromDocumentIncomingInverseRelationBidirectional(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should produce a reverse claim with property B.
-	require.Len(t, result.Claims.Relation, 1)
-	assert.Equal(t, propB, result.Claims.Relation[0].Prop)
-	assert.Equal(t, sourceDocID, result.Claims.Relation[0].To)
+	require.Len(t, result.Claims.Reference, 1)
+	assert.Equal(t, propB, result.Claims.Reference[0].Prop)
+	assert.Equal(t, sourceDocID, result.Claims.Reference[0].To)
 }
 
 func TestDiffOutgoingInverseRelationsBothEmpty(t *testing.T) {
