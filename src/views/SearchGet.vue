@@ -28,7 +28,7 @@ import SearchResultsTable from "@/partials/SearchResultsTable.vue"
 import { injectMainProgress, localProgress } from "@/progress"
 import { updateSearchSession, useSearch, useSearchSession } from "@/search"
 import { uploadFile } from "@/upload"
-import { clone } from "@/utils"
+import { clone, redirectServerSide } from "@/utils"
 
 const props = defineProps<{
   id: string
@@ -208,12 +208,7 @@ async function onChange() {
         return
       }
 
-      await router.push({
-        name: "StorageGet",
-        params: {
-          id: fileId,
-        },
-      })
+      redirectServerSide(router.resolve({ name: "StorageGet", params: { id: fileId } }).href, false, mainProgress)
     } catch (err) {
       if (abortController.signal.aborted) {
         return

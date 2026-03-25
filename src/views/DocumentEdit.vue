@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import type { TimePrecision } from "@/document"
 import type { DocumentBeginMetadata, DocumentEndEditResponse } from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { CheckIcon } from "@heroicons/vue/20/solid"
+import { Identifier } from "@tozd/identifier"
 import { computed, onBeforeUnmount, readonly, ref } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
@@ -41,6 +43,14 @@ const claimTypes: ("id" | "string" | "html" | "amount" | "amountInterval" | "tim
 const claimType = ref<"id" | "string" | "html" | "amount" | "amountInterval" | "time" | "timeInterval" | "link" | "ref" | "has" | "none" | "unknown">("id")
 const claimProp = ref("")
 const claimValue = ref("")
+const claimAmountPrecision = ref("")
+const claimTimePrecision = ref<TimePrecision>("y")
+const claimFrom = ref("")
+const claimFromAmountPrecision = ref("")
+const claimFromTimePrecision = ref<TimePrecision>("y")
+const claimTo = ref("")
+const claimToAmountPrecision = ref("")
+const claimToTimePrecision = ref<TimePrecision>("y")
 
 const { t } = useI18n()
 const router = useRouter()
@@ -197,6 +207,55 @@ async function onSave() {
   }
 }
 
+async function makeAddClaimChange(changeIndex: number, patch: object) {
+  const changeBase = [..._doc.value!.base, "SESSION", props.session, String(changeIndex)]
+  const claimID = (await Identifier.from(...changeBase)).toString()
+  return new AddClaimChange({
+    id: claimID,
+    base: changeBase,
+    patch,
+  })
+}
+
+function makePatch(): object {
+  const shared = { type: claimType.value, confidence: 1.0, prop: claimProp.value }
+  switch (claimType.value) {
+    case "id":
+      return { ...shared, value: claimValue.value }
+    case "string":
+      return { ...shared, string: claimValue.value }
+    case "html":
+      return { ...shared, html: claimValue.value }
+    case "amount":
+      return { ...shared, amount: claimValue.value, precision: parseFloat(claimAmountPrecision.value) }
+    case "amountInterval":
+      return {
+        ...shared,
+        ...(claimFrom.value ? { from: claimFrom.value, fromPrecision: parseFloat(claimFromAmountPrecision.value) } : {}),
+        ...(claimTo.value ? { to: claimTo.value, toPrecision: parseFloat(claimToAmountPrecision.value) } : {}),
+      }
+    case "time":
+      return { ...shared, timestamp: claimValue.value, precision: claimTimePrecision.value }
+    case "timeInterval":
+      return {
+        ...shared,
+        ...(claimFrom.value ? { from: claimFrom.value, fromPrecision: claimFromTimePrecision.value } : {}),
+        ...(claimTo.value ? { to: claimTo.value, toPrecision: claimToTimePrecision.value } : {}),
+      }
+    case "link":
+      return { ...shared, iri: claimValue.value }
+    case "ref":
+      return { ...shared, to: claimValue.value }
+    case "has":
+    case "none":
+    case "unknown":
+      return shared
+    default:
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      throw new Error(`unsupported claim type: ${claimType.value}`)
+  }
+}
+
 async function onAddClaim() {
   if (abortController.signal.aborted) {
     return
@@ -211,20 +270,7 @@ async function onAddClaim() {
         },
         query: encodeQuery({ change: String(latestChange + 1) }),
       }).href,
-      new AddClaimChange({
-        patch: {
-          // TODO: Make more specific for each patch.
-          type: claimType.value,
-          prop: claimProp.value,
-          value: claimValue.value,
-          iri: claimValue.value,
-          html: claimValue.value,
-          string: claimValue.value,
-          amount: claimValue.value,
-          to: claimValue.value,
-          timestamp: claimValue.value,
-        },
-      }),
+      await makeAddClaimChange(latestChange + 1, makePatch()),
       abortController.signal,
       null,
     )
@@ -393,27 +439,33 @@ function onChangeTab(index: number) {
               <InputText id="amount-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
               <label for="amount-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.amount") }}</label>
               <InputText id="amount-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
+              <label for="amount-precision" class="mt-4 mb-1">{{ t("common.labels.precision") }}</label>
+              <InputText id="amount-precision" v-model="claimAmountPrecision" class="min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="amountInterval-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-              <InputText id="amountInterval-property" class="min-w-0 flex-auto grow" />
+              <InputText id="amountInterval-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
               <label for="amountInterval-from" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.from") }}</label>
-              <InputText id="amountInterval-from" class="min-w-0 flex-auto grow" />
+              <InputText id="amountInterval-from" v-model="claimFrom" class="min-w-0 flex-auto grow" />
+              <label for="amountInterval-fromPrecision" class="mt-4 mb-1">{{ t("common.labels.precision") }}</label>
+              <InputText id="amountInterval-fromPrecision" v-model="claimFromAmountPrecision" class="min-w-0 flex-auto grow" />
               <label for="amountInterval-to" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.to") }}</label>
-              <InputText id="amountInterval-to" class="min-w-0 flex-auto grow" />
+              <InputText id="amountInterval-to" v-model="claimTo" class="min-w-0 flex-auto grow" />
+              <label for="amountInterval-toPrecision" class="mt-4 mb-1">{{ t("common.labels.precision") }}</label>
+              <InputText id="amountInterval-toPrecision" v-model="claimToAmountPrecision" class="min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="time-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
               <InputText id="time-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
-              <InputTime v-model="claimValue" class="mt-4 min-w-0 flex-auto grow" />
+              <InputTime v-model="claimValue" v-model:precision="claimTimePrecision" class="mt-4 min-w-0 flex-auto grow" />
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">
               <label for="timeInterval-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-              <InputText id="timeInterval-property" class="min-w-0 flex-auto grow" />
-              <InputTime class="mt-4 min-w-0 flex-auto grow">
+              <InputText id="timeInterval-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
+              <InputTime v-model="claimFrom" v-model:precision="claimFromTimePrecision" class="mt-4 min-w-0 flex-auto grow">
                 <template #timestamp-label>{{ t("views.DocumentEdit.labels.from") }}</template>
               </InputTime>
-              <InputTime class="mt-4 min-w-0 flex-auto grow">
+              <InputTime v-model="claimTo" v-model:precision="claimToTimePrecision" class="mt-4 min-w-0 flex-auto grow">
                 <template #timestamp-label>{{ t("views.DocumentEdit.labels.to") }}</template>
               </InputTime>
             </TabPanel>
