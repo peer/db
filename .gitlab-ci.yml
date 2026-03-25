@@ -40,6 +40,9 @@ test_go:
 
   image: golang:1.25-alpine3.22
 
+  tags:
+    - saas-linux-2xlarge-amd64
+
   services:
     - name: "$CI_REGISTRY_IMAGE/elastic/$ELASTIC_VERSION:latest"
       alias: elasticsearch
@@ -118,6 +121,9 @@ lint_go:
   stage: test
 
   image: golang:1.25-alpine3.22
+
+  tags:
+    - saas-linux-2xlarge-amd64
 
   before_script:
     - apk --update add make bash gcc musl-dev git
