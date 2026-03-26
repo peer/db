@@ -118,19 +118,19 @@ func GetWebData[T any](ctx context.Context, httpClient *http.Client, url string,
 
 // GetRobotsTxt fetches and parses the robots.txt file from a URL's domain.
 func GetRobotsTxt(ctx context.Context, httpClient *http.Client, u string) (*robotstxt.RobotsData, errors.E) {
-	url, err := url.Parse(u)
+	parsedURL, err := url.Parse(u)
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["url"] = u
 		return nil, errE
 	}
-	url.Path = "/robots.txt"
-	url.RawPath = ""
-	url.RawQuery = ""
-	url.ForceQuery = false
-	url.Fragment = ""
-	url.RawFragment = ""
-	u = url.String()
+	parsedURL.Path = "/robots.txt"
+	parsedURL.RawPath = ""
+	parsedURL.RawQuery = ""
+	parsedURL.ForceQuery = false
+	parsedURL.Fragment = ""
+	parsedURL.RawFragment = ""
+	u = parsedURL.String()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {

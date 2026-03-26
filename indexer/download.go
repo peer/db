@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -243,13 +244,23 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *http.Client, 
 	return r.size, nil
 }
 
-func getPathAndURL(cacheDir, url string) (string, string) {
-	_ = os.MkdirAll(cacheDir, 0o755) //nolint:mnd,gosec
-	_, err := os.Stat(url)
-	if errors.Is(err, fs.ErrNotExist) {
-		return filepath.Join(cacheDir, x.SafeFilename(path.Base(url))), url
+func getPathAndURL(cacheDir, u string) (string, string, errors.E) {
+	if cacheDir == "" {
+		return u, u, nil
 	}
-	return url, url
+	_, err := os.Stat(u)
+	if errors.Is(err, fs.ErrNotExist) {
+		_ = os.MkdirAll(cacheDir, 0o755) //nolint:mnd,gosec
+		parsedURL, err := url.Parse(u)
+		if err != nil {
+			errE := errors.WithStack(err)
+			errors.Details(errE)["url"] = u
+			return "", "", errE
+		}
+		p := path.Join(parsedURL.Host, parsedURL.Path, parsedURL.RawQuery)
+		return filepath.Join(cacheDir, x.SafeFilename(p)), u, nil
+	}
+	return u, u, nil
 }
 
 // CachedDownload downloads the file from the URL to the cache directory and returns a reader for
@@ -260,10 +271,13 @@ func getPathAndURL(cacheDir, url string) (string, string) {
 // It should be used only once at a time for a given URL, otherwise the file might be incomplete.
 func CachedDownload(ctx context.Context, httpClient *http.Client, logger zerolog.Logger, cacheDir, url string) (io.ReadCloser, int64, errors.E) {
 	// If url points to a local file, cachedPath is set to url.
-	cachedPath, url := getPathAndURL(cacheDir, url)
+	cachedPath, url, errE := getPathAndURL(cacheDir, url)
+	if errE != nil {
+		return nil, 0, errE
+	}
 
 	// Then try to create the cached file.
-	cachedWriteFile, err := os.OpenFile(filepath.Clean(cachedPath), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644) //nolint:mnd,gosec
+	cachedWriteFile, err := os.OpenFile(cachedPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644) //nolint:mnd,gosec
 	if err != nil {
 		if errors.Is(err, fs.ErrExist) {
 			// The simple code path: the cached file already exist.
@@ -272,7 +286,7 @@ func CachedDownload(ctx context.Context, httpClient *http.Client, logger zerolog
 			// x.NewRetryableResponse to make sure that downloading is transparently retried and we
 			// attempt to delete the file if it has not been downloaded fully for any reason.
 			// TODO: But it might be that the file exists because it is being downloaded in parallel so this would return incomplete file.
-			cachedReadFile, err := os.Open(filepath.Clean(cachedPath))
+			cachedReadFile, err := os.Open(cachedPath) //nolint:gosec
 			if err != nil {
 				return nil, 0, errors.WithStack(err)
 			}
@@ -297,7 +311,7 @@ func CachedDownload(ctx context.Context, httpClient *http.Client, logger zerolog
 		return nil, 0, errors.WithStack(err)
 	}
 
-	cachedReadFile, err := os.Open(filepath.Clean(cachedPath))
+	cachedReadFile, err := os.Open(cachedPath)
 	if err != nil {
 		cachedWriteFile.Close() //nolint:errcheck,gosec
 		_ = os.Remove(cachedPath)
