@@ -4,9 +4,11 @@ import siteContext from "@/context"
 import { useNavbar } from "@/navbar"
 import LanguageSwitcher from "@/partials/LanguageSwitcher.vue"
 import { injectMainProgress } from "@/progress"
+import { getNavbarComponents } from "@/registry/navbar"
 
 const { attrs: navbarAttrs } = useNavbar()
 
+const navbarComponents = getNavbarComponents()
 const mainProgress = injectMainProgress()
 </script>
 
@@ -33,7 +35,9 @@ const mainProgress = injectMainProgress()
           class="pd-navbar-logo h-10 group-focus:ring-2 group-focus:ring-primary-500 group-focus:ring-offset-1"
         />
       </RouterLink>
-      <slot />
+      <slot name="start" />
+      <component :is="c" v-for="(c, i) in navbarComponents" :key="i" />
+      <slot name="end" />
       <LanguageSwitcher />
     </div>
   </div>

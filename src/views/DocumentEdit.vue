@@ -378,11 +378,15 @@ function onChangeTab(index: number) {
 <template>
   <Teleport to="header">
     <NavBar>
-      <NavBarSearch />
-      <Button :progress="saveProgress" type="button" primary class="px-3.5" @click.prevent="onSave">
-        <CheckIcon class="size-5 sm:hidden" :alt="t('common.buttons.save')" />
-        <span class="hidden sm:inline">{{ t("common.buttons.save") }}</span>
-      </Button>
+      <template #start>
+        <NavBarSearch />
+      </template>
+      <template #end>
+        <Button :progress="saveProgress" type="button" primary class="px-3.5" @click.prevent="onSave">
+          <CheckIcon class="size-5 sm:hidden" :alt="t('common.buttons.save')" />
+          <span class="hidden sm:inline">{{ t("common.buttons.save") }}</span>
+        </Button>
+      </template>
     </NavBar>
   </Teleport>
   <div class="pd-documentedit mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">

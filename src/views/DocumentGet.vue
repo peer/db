@@ -156,36 +156,40 @@ async function onEdit() {
 <template>
   <Teleport to="header">
     <NavBar>
-      <div v-if="searchSession !== null" class="flex grow gap-x-1 sm:gap-x-4">
-        <InputTextLink class="max-w-xl grow" :to="{ name: 'SearchGet', params: { id: searchSession.id }, query: encodeQuery({ at: id }) }" :after-click="afterClick">
-          {{ searchSession.query }}
-        </InputTextLink>
-        <div class="grid grid-cols-2 gap-x-1">
-          <ButtonLink
-            primary
-            class="px-3.5"
-            :disabled="!prevNext.previous"
-            :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: encodeQuery({ s: searchSession.id }) }"
-          >
-            <ChevronLeftIcon class="size-5 sm:hidden" :alt="t('common.buttons.prev')" />
-            <span class="hidden sm:inline">{{ t("common.buttons.prev") }}</span>
-          </ButtonLink>
-          <ButtonLink
-            primary
-            class="px-3.5"
-            :disabled="!prevNext.next"
-            :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: encodeQuery({ s: searchSession.id }) }"
-          >
-            <ChevronRightIcon class="size-5 sm:hidden" :alt="t('common.buttons.next')" />
-            <span class="hidden sm:inline">{{ t("common.buttons.next") }}</span>
-          </ButtonLink>
+      <template #start>
+        <div v-if="searchSession !== null" class="flex grow gap-x-1 sm:gap-x-4">
+          <InputTextLink class="max-w-xl grow" :to="{ name: 'SearchGet', params: { id: searchSession.id }, query: encodeQuery({ at: id }) }" :after-click="afterClick">
+            {{ searchSession.query }}
+          </InputTextLink>
+          <div class="grid grid-cols-2 gap-x-1">
+            <ButtonLink
+              primary
+              class="px-3.5"
+              :disabled="!prevNext.previous"
+              :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: encodeQuery({ s: searchSession.id }) }"
+            >
+              <ChevronLeftIcon class="size-5 sm:hidden" :alt="t('common.buttons.prev')" />
+              <span class="hidden sm:inline">{{ t("common.buttons.prev") }}</span>
+            </ButtonLink>
+            <ButtonLink
+              primary
+              class="px-3.5"
+              :disabled="!prevNext.next"
+              :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: encodeQuery({ s: searchSession.id }) }"
+            >
+              <ChevronRightIcon class="size-5 sm:hidden" :alt="t('common.buttons.next')" />
+              <span class="hidden sm:inline">{{ t("common.buttons.next") }}</span>
+            </ButtonLink>
+          </div>
         </div>
-      </div>
-      <NavBarSearch v-else />
-      <Button v-if="siteContext.features.editButtons" :progress="editProgress" type="button" primary class="px-3.5" @click.prevent="onEdit">
-        <PencilIcon class="size-5 sm:hidden" :alt="t('common.buttons.edit')" />
-        <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
-      </Button>
+        <NavBarSearch v-else />
+      </template>
+      <template #end>
+        <Button v-if="siteContext.features.editButtons" :progress="editProgress" type="button" primary class="px-3.5" @click.prevent="onEdit">
+          <PencilIcon class="size-5 sm:hidden" :alt="t('common.buttons.edit')" />
+          <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
+        </Button>
+      </template>
     </NavBar>
   </Teleport>
   <div ref="el" class="pd-documentget mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4" :data-url="withDocument?.url">
