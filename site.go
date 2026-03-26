@@ -32,8 +32,8 @@ type Build struct {
 
 // SiteFeatures contains enabled feature flags.
 type SiteFeatures struct {
-	SearchResultsTable  bool `json:"searchResultsTable,omitempty"`
-	CreateUploadButtons bool `json:"createUploadButtons,omitempty"`
+	SearchResultsTable  bool `json:"searchResultsTable,omitempty"  yaml:"searchResultsTable,omitempty"`
+	CreateUploadButtons bool `json:"createUploadButtons,omitempty" yaml:"createUploadButtons,omitempty"`
 }
 
 // Site represents a single site in the PeerDB application with its configuration and state.

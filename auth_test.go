@@ -122,6 +122,7 @@ func TestBasicAuthWithSiteContext(t *testing.T) {
 						Schema:           "",
 						Title:            tt.siteTitle,
 						LanguagePriority: nil,
+						Features:         peerdb.SiteFeatures{},
 						Base:             nil,
 						DBPool:           nil,
 						ESClient:         nil,
