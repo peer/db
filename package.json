@@ -35,6 +35,22 @@
       "types": "./lib/views/*.d.ts",
       "import": "./lib/views/*.js"
     },
+    "./core": {
+      "types": "./lib/core/index.d.ts",
+      "import": "./lib/core/index.js"
+    },
+    "./core/*": {
+      "types": "./lib/core/*.d.ts",
+      "import": "./lib/core/*.js"
+    },
+    "./document": {
+      "types": "./lib/document/index.d.ts",
+      "import": "./lib/document/index.js"
+    },
+    "./document/*": {
+      "types": "./lib/document/*.d.ts",
+      "import": "./lib/document/*.js"
+    },
     "./locales/*": {
       "import": "./lib/locales/*.js"
     },
