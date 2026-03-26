@@ -30,6 +30,12 @@ type Build struct {
 	Revision       string `json:"revision,omitempty"`
 }
 
+// SiteFeatures contains enabled feature flags.
+type SiteFeatures struct {
+	SearchResultsTable  bool `json:"searchResultsTable,omitempty"`
+	CreateUploadButtons bool `json:"createUploadButtons,omitempty"`
+}
+
 // Site represents a single site in the PeerDB application with its configuration and state.
 type Site struct {
 	waf.Site `yaml:",inline"`
@@ -41,6 +47,8 @@ type Site struct {
 	Title  string `json:"title,omitempty"  yaml:"title,omitempty"`
 
 	LanguagePriority map[string][]string `json:"languagePriority,omitempty" yaml:"languagePriority,omitempty"`
+
+	Features SiteFeatures `json:"features" yaml:"features"`
 
 	Base        *base.B                    `json:"-" yaml:"-"`
 	DBPool      *pgxpool.Pool              `json:"-" yaml:"-"`

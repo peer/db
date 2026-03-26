@@ -20,6 +20,7 @@ import { useRouter } from "vue-router"
 
 import { postJSON } from "@/api"
 import Button from "@/components/Button.vue"
+import siteContext from "@/context"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
@@ -260,15 +261,17 @@ async function onViewChange(view: ViewType) {
   <Teleport to="header">
     <NavBar>
       <NavBarSearch :search-session="searchSession" :update-search-session-progress="updateSearchSessionProgress" @query-change="onQueryChange" />
-      <Button :progress="createProgress" type="button" primary class="px-3.5" @click.prevent="onCreate">
-        <PlusIcon class="size-5 sm:hidden" :alt="t('common.buttons.create')" />
-        <span class="hidden sm:inline">{{ t("common.buttons.create") }}</span>
-      </Button>
-      <input ref="upload" type="file" class="hidden" @change="onChange" />
-      <Button :progress="uploadProgress" type="button" primary class="px-3.5" @click.prevent="onUpload">
-        <ArrowUpTrayIcon class="size-5 sm:hidden" :alt="t('common.buttons.upload')" />
-        <span class="hidden sm:inline">{{ t("common.buttons.upload") }}</span>
-      </Button>
+      <template v-if="siteContext.features.createUploadButtons">
+        <Button :progress="createProgress" type="button" primary class="px-3.5" @click.prevent="onCreate">
+          <PlusIcon class="size-5 sm:hidden" :alt="t('common.buttons.create')" />
+          <span class="hidden sm:inline">{{ t("common.buttons.create") }}</span>
+        </Button>
+        <input ref="upload" type="file" class="hidden" @change="onChange" />
+        <Button :progress="uploadProgress" type="button" primary class="px-3.5" @click.prevent="onUpload">
+          <ArrowUpTrayIcon class="size-5 sm:hidden" :alt="t('common.buttons.upload')" />
+          <span class="hidden sm:inline">{{ t("common.buttons.upload") }}</span>
+        </Button>
+      </template>
     </NavBar>
   </Teleport>
   <div ref="searchEl" class="pd-searchget mt-12 w-full border-t border-transparent sm:mt-[4.5rem]" :data-url="searchURL">

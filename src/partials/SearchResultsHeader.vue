@@ -7,6 +7,7 @@ import { Bars4Icon, TableCellsIcon } from "@heroicons/vue/24/solid"
 import { useI18n } from "vue-i18n"
 
 import SelectButton from "@/components/SelectButton.vue"
+import siteContext from "@/context"
 
 const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
@@ -94,6 +95,12 @@ function countFilters(): number {
       </template>
     </div>
 
-    <SelectButton :model-value="searchSession.view" :options="selectButtonOptions" class="shrink-0" @update:model-value="(v) => $emit('viewChange', v)" />
+    <SelectButton
+      v-if="siteContext.features.searchResultsTable"
+      :model-value="searchSession.view"
+      :options="selectButtonOptions"
+      class="shrink-0"
+      @update:model-value="(v) => $emit('viewChange', v)"
+    />
   </div>
 </template>

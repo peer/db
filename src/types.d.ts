@@ -160,6 +160,13 @@ export type SiteContext = {
   }
   index: string
   title: string
+  languagePriority: {
+    [language: string]: string[]
+  }
+  features: {
+    searchResultsTable?: boolean
+    createUploadButtons?: boolean
+  }
 }
 
 export type RouteOptions = {
