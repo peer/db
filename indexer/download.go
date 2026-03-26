@@ -24,6 +24,7 @@ import (
 type downloadingReader struct {
 	Path      string
 	URL       string
+	Header    http.Header
 	WriteFile *os.File
 	ReadFile  *os.File
 
@@ -108,6 +109,13 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *http.Client, 
 			return 0, errors.WithStack(err)
 		}
 
+		// We have to disable compression so that we can obtain Content-Length header which Go otherwise removes on compressed responses.
+		req.Header.Set("Accept-Encoding", "identity")
+
+		for key, value := range r.Header {
+			req.Header[key] = value
+		}
+
 		resp, errE := x.NewRetryableResponse(retryableClient, req)
 		if errE != nil {
 			r.WriteFile.Close() //nolint:errcheck,gosec
@@ -126,6 +134,13 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *http.Client, 
 			r.ReadFile.Close()  //nolint:errcheck,gosec
 			_ = os.Remove(r.Path)
 			return 0, errors.WithStack(err)
+		}
+
+		// We have to disable compression so that we can obtain Content-Length header which Go otherwise removes on compressed responses.
+		req.Header.Set("Accept-Encoding", "identity")
+
+		for key, value := range r.Header {
+			req.Header[key] = value
 		}
 
 		resp, err := httpClient.Do(req)
@@ -269,7 +284,7 @@ func getPathAndURL(cacheDir, u string) (string, string, errors.E) {
 // The returned reader can be read from while download is in progress and the file is being written.
 //
 // It should be used only once at a time for a given URL, otherwise the file might be incomplete.
-func CachedDownload(ctx context.Context, httpClient *http.Client, logger zerolog.Logger, cacheDir, url string) (io.ReadCloser, int64, errors.E) {
+func CachedDownload(ctx context.Context, httpClient *http.Client, logger zerolog.Logger, cacheDir, url string, header http.Header) (io.ReadCloser, int64, errors.E) {
 	// If url points to a local file, cachedPath is set to url.
 	cachedPath, url, errE := getPathAndURL(cacheDir, url)
 	if errE != nil {
@@ -321,6 +336,7 @@ func CachedDownload(ctx context.Context, httpClient *http.Client, logger zerolog
 	reader := &downloadingReader{
 		Path:       cachedPath,
 		URL:        url,
+		Header:     header,
 		WriteFile:  cachedWriteFile,
 		ReadFile:   cachedReadFile,
 		read:       0,
