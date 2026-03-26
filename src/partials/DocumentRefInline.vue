@@ -4,7 +4,7 @@ import type { D } from "@/document"
 import { useI18n } from "vue-i18n"
 
 import WithDocument from "@/components/WithDocument.vue"
-import { getName, loadingWidth } from "@/utils"
+import { getDisplayLabel, loadingWidth } from "@/utils"
 
 defineProps<{
   id: string | null
@@ -28,7 +28,7 @@ const WithDocumentD = WithDocument<D>
         :data-url="url"
         v-bind="$attrs"
         class="link"
-        v-html="getName(doc.claims) || `<i>${t('common.values.noName')}</i>`"
+        v-html="getDisplayLabel(doc.claims) || `<i>${t('common.values.noName')}</i>`"
       />
     </template>
     <template #loading="{ url }">

@@ -21,7 +21,7 @@ import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
 import { injectProgress } from "@/progress"
 import { useSearch, useSearchSession } from "@/search"
-import { encodeQuery, getName, loadingLongWidth } from "@/utils"
+import { encodeQuery, getDisplayLabel, loadingLongWidth } from "@/utils"
 
 const props = defineProps<{
   id: string
@@ -110,7 +110,7 @@ function afterClick() {
   document.getElementById("search-input-text")?.focus()
 }
 
-const docName = computed(() => getName(withDocument.value?.doc?.claims))
+const docName = computed(() => getDisplayLabel(withDocument.value?.doc?.claims))
 
 async function onEdit() {
   if (abortController.signal.aborted) {

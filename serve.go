@@ -156,13 +156,6 @@ var (
 
 // Prepare prepares the HTTP service for serving.
 func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Handler, errors.E) {
-	// Construct the main handler for the service using the router.
-	router := new(waf.Router)
-	handler, errE := service.RouteWith(router)
-	if errE != nil {
-		return nil, errE
-	}
-
 	for _, site := range service.Sites {
 		siteCtx := WithFallbackDBContext(ctx, site.Schema, "prepare")
 
@@ -185,7 +178,9 @@ func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Hand
 		c.Server.Logger.Info().Str("domain", site.Domain).Str("index", site.Index).Str("schema", site.Schema).Msg("serving")
 	}
 
-	return handler, nil
+	// Construct the main handler for the service using the router.
+	router := new(waf.Router)
+	return service.RouteWith(router)
 }
 
 // Run starts the HTTP server and serves the PeerDB application.

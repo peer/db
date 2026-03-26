@@ -46,7 +46,8 @@ type Site struct {
 	Schema string `json:"schema,omitempty" yaml:"schema,omitempty"`
 	Title  string `json:"title,omitempty"  yaml:"title,omitempty"`
 
-	LanguagePriority map[string][]string `json:"languagePriority,omitempty" yaml:"languagePriority,omitempty"`
+	LanguagePriority map[string][]string            `json:"languagePriority,omitempty" yaml:"languagePriority,omitempty"`
+	LanguageCodes    map[identifier.Identifier]string `json:"languageCodes,omitempty"    yaml:"-"`
 
 	Features SiteFeatures `json:"features" yaml:"features"`
 
@@ -216,7 +217,14 @@ func (s *Site) Start(ctx context.Context, documents []*document.D) errors.E {
 		return errE
 	}
 
-	return s.Base.Start(ctx, documents)
+	errE = s.Base.Start(ctx, documents)
+	if errE != nil {
+		return errE
+	}
+
+	s.LanguageCodes = s.Base.Bridge().Converter().LanguageCodes()
+
+	return nil
 }
 
 // PopulateAndStart for the site: inserts the given documents into the store, starts the base,
@@ -234,5 +242,12 @@ func (s *Site) PopulateAndStart(ctx context.Context, documents []*document.D, pr
 		return errE
 	}
 
-	return s.Base.PopulateAndStart(ctx, documents, progress)
+	errE = s.Base.PopulateAndStart(ctx, documents, progress)
+	if errE != nil {
+		return errE
+	}
+
+	s.LanguageCodes = s.Base.Bridge().Converter().LanguageCodes()
+
+	return nil
 }

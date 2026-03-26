@@ -7,8 +7,10 @@ import { prng_alea } from "esm-seedrandom"
 import { cloneDeep, isEqual } from "lodash-es"
 import { onBeforeUnmount, onMounted, readonly, ref, toRaw, watch, watchEffect } from "vue"
 
-import { NAME, TITLE } from "@/core"
-import { getBestClaimOfType } from "@/document"
+import siteContext from "@/context"
+import { IN_LANGUAGE, NAME, TITLE } from "@/core"
+import { getClaimsOfTypeWithConfidence } from "@/document"
+import { i18n } from "@/i18n"
 import { fromDate, hour, minute, second, toDate } from "@/time"
 
 // If the last increase would be equal or less than this number, just skip to the end.
@@ -93,17 +95,80 @@ export function bigIntMax(a: bigint, b: bigint): bigint {
   return b
 }
 
-export function getName(claimTypes: DeepReadonly<ClaimTypes> | undefined | null): string | null {
-  const name = getBestClaimOfType(claimTypes, "string", NAME)
-  if (name) {
-    return name.string
-  }
+// NAMING_PROPERTIES lists the properties considered for display labels.
+// This matches the backend's naming properties (sub-properties of NAMING).
+// TODO: Derive this dynamically from the property hierarchy instead of hard-coding.
+const NAMING_PROPERTIES = [NAME, TITLE]
 
-  const title = getBestClaimOfType(claimTypes, "string", TITLE)
-  if (title) {
-    return title.string
-  }
+// Undetermined language code for claims without a specific language.
+const UNDETERMINED_LANGUAGE = "und"
 
+// extractClaimLanguages extracts language codes from a claim's meta IN_LANGUAGE references.
+// Returns [UNDETERMINED_LANGUAGE] if no languages are specified or none can be resolved.
+function extractClaimLanguages(meta: DeepReadonly<ClaimTypes> | undefined | null): string[] {
+  const refs = getClaimsOfTypeWithConfidence(meta, "ref", IN_LANGUAGE)
+  const supportedLanguages = siteContext.languagePriority
+  const codes: string[] = []
+  for (const ref of refs) {
+    const code = siteContext.languageCodes[ref.to.id]
+    if (code && code in supportedLanguages) {
+      codes.push(code)
+    }
+  }
+  if (codes.length === 0) {
+    return [UNDETERMINED_LANGUAGE]
+  }
+  return codes
+}
+
+// getFallbackLanguages returns the fallback language chain for a given language.
+// If the language has an entry in languagePriority, that entry is used.
+// Otherwise, the fallback is the undetermined language (unless the language is itself undetermined).
+function getFallbackLanguages(lang: string): string[] {
+  const fallbacks = siteContext.languagePriority[lang]
+  if (fallbacks) {
+    return fallbacks
+  }
+  if (lang !== UNDETERMINED_LANGUAGE) {
+    return [UNDETERMINED_LANGUAGE]
+  }
+  return []
+}
+
+// namingStrings collects all naming display strings per language for the given claims.
+// It groups string claims for NAMING_PROPERTIES by language and sorts by decreasing confidence.
+function namingStrings(claimTypes: DeepReadonly<ClaimTypes> | undefined | null): Record<string, string[]> {
+  const claims: Record<string, { confidence: number; value: string }[]> = {}
+  for (const claim of getClaimsOfTypeWithConfidence(claimTypes, "string", NAMING_PROPERTIES)) {
+    for (const lang of extractClaimLanguages(claim.meta)) {
+      if (!claims[lang]) {
+        claims[lang] = []
+      }
+      claims[lang].push({ confidence: claim.confidence, value: claim.string })
+    }
+  }
+  const result: Record<string, string[]> = {}
+  for (const lang in claims) {
+    // Sort by decreasing confidence.
+    claims[lang].sort((a, b) => b.confidence - a.confidence)
+    result[lang] = claims[lang].map((c) => c.value)
+  }
+  return result
+}
+
+// getDisplayLabel returns the display label for a document's claims, using the
+// current locale and language fallback chain. This matches how makeDisplayStrings
+// (without template) works in the backend.
+export function getDisplayLabel(claimTypes: DeepReadonly<ClaimTypes> | undefined | null): string | null {
+  const naming = namingStrings(claimTypes)
+  const lang = i18n.global.locale.value
+  const chain = [lang, ...getFallbackLanguages(lang)]
+  for (const tryLang of chain) {
+    const strs = naming[tryLang]
+    if (strs && strs.length > 0 && strs[0]) {
+      return strs[0]
+    }
+  }
   return null
 }
 

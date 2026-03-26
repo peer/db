@@ -21,7 +21,7 @@ import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import { injectProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search"
 import { useTruncationTracking } from "@/truncation"
-import { encodeQuery, getName, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils"
+import { encodeQuery, getDisplayLabel, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils"
 import { useVisibilityTracking } from "@/visibility"
 
 const props = defineProps<{
@@ -295,7 +295,7 @@ function onCloseFilterModal() {
                       @click.prevent="onOpenFilterModal(filter)"
                     >
                       <!-- We need a span to be able to use v-html. -->
-                      <span class="truncate" v-html="getName(doc.claims) || `<i>${t('common.values.noName')}</i>`" />
+                      <span class="truncate" v-html="getDisplayLabel(doc.claims) || `<i>${t('common.values.noName')}</i>`" />
                       <FunnelIcon class="size-5" :class="isFilterActive(filter) ? '' : 'text-primary-300'" />
                     </Button>
                   </template>

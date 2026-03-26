@@ -163,6 +163,9 @@ export type SiteContext = {
   languagePriority: {
     [language: string]: string[]
   }
+  languageCodes: {
+    [documentId: string]: string
+  }
   features: {
     searchResultsTable?: boolean
     createUploadButtons?: boolean

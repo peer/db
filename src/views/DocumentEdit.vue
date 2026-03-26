@@ -20,7 +20,7 @@ import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
 import { injectProgress } from "@/progress"
-import { encodeQuery, getName } from "@/utils"
+import { encodeQuery, getDisplayLabel } from "@/utils"
 
 const props = defineProps<{
   id: string
@@ -169,7 +169,7 @@ loadAndSubscribe().catch((error) => {
   console.error("loadAndSubscribe", error)
 })
 
-const docName = computed(() => getName(doc.value?.claims))
+const docName = computed(() => getDisplayLabel(doc.value?.claims))
 
 async function onSave() {
   if (abortController.signal.aborted) {

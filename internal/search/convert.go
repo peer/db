@@ -301,6 +301,12 @@ func (c *Converter) buildNamingProperties() {
 	}
 }
 
+// LanguageCodes returns the language codes map which maps language document IDs
+// to primary language subtags (e.g., "en").
+func (c *Converter) LanguageCodes() map[identifier.Identifier]string {
+	return c.languageCodes
+}
+
 // buildLanguageCodes extracts language codes from language documents.
 // Only language documents (those with INSTANCE_OF -> LANGUAGE) need to be passed,
 // but the method still filters by INSTANCE_OF for safety.
@@ -314,7 +320,9 @@ func (c *Converter) buildLanguageCodes(allDocuments []*document.D) {
 		ids := document.GetClaimsOfTypeWithConfidence[*document.IdentifierClaim](doc, codePropID, document.LowConfidence)
 		if len(ids) > 0 {
 			code, _, _ := strings.Cut(ids[0].Value, "-")
-			c.languageCodes[doc.ID] = code
+			if SupportedLanguages[code] {
+				c.languageCodes[doc.ID] = code
+			}
 		}
 	}
 }
