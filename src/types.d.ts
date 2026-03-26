@@ -162,6 +162,7 @@ export type SiteContext = {
   languagePriority: {
     [language: string]: string[]
   }
+  defaultLanguage?: string
   languageCodes: {
     [documentId: string]: string
   }

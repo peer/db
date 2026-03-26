@@ -105,6 +105,8 @@ func setMaxConnections(systemIdentifier string, maxConnections int32) *semaphore
 // It returns the pool and a cleanup function that closes the pool and releases the reserved connections.
 // The caller must call the cleanup function when the pool is no longer needed.
 // Do not call just dbpool.Close.
+//
+//nolint:maintidx
 func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger, getRequest func(context.Context) (string, string)) (*pgxpool.Pool, func(), errors.E) {
 	dbconfig, err := pgxpool.ParseConfig(strings.TrimSpace(databaseURI))
 	if err != nil {

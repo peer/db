@@ -2,6 +2,7 @@
 import ProgressBar from "@/components/ProgressBar.vue"
 import siteContext from "@/context"
 import { useNavbar } from "@/navbar"
+import LanguageSwitcher from "@/partials/LanguageSwitcher.vue"
 import { injectMainProgress } from "@/progress"
 
 const { attrs: navbarAttrs } = useNavbar()
@@ -33,6 +34,7 @@ const mainProgress = injectMainProgress()
         />
       </RouterLink>
       <slot />
+      <LanguageSwitcher />
     </div>
   </div>
 </template>

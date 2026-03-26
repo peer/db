@@ -133,6 +133,7 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 			Schema:           globals.Postgres.Schema,
 			Title:            "",
 			LanguagePriority: nil,
+			DefaultLanguage:  "",
 			LanguageCodes:    nil,
 			Features:         SiteFeatures{},
 			Base:             nil,

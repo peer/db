@@ -47,6 +47,7 @@ type Site struct {
 	Title  string `json:"title,omitempty" yaml:"title,omitempty"`
 
 	LanguagePriority map[string][]string              `json:"languagePriority,omitempty" yaml:"languagePriority,omitempty"`
+	DefaultLanguage  string                           `json:"defaultLanguage,omitempty"  yaml:"defaultLanguage,omitempty"`
 	LanguageCodes    map[identifier.Identifier]string `json:"languageCodes,omitempty"    yaml:"-"`
 
 	Features SiteFeatures `json:"features" yaml:"features"`
@@ -203,6 +204,21 @@ func (s *Site) updateUnitsTotal(_ context.Context, documents []*document.D) erro
 	return nil
 }
 
+func (s *Site) validateDefaultLanguage() errors.E {
+	if s.DefaultLanguage == "" {
+		if len(s.LanguagePriority) < 1 {
+			return nil
+		}
+		return errors.New("default language is required when more than one language is enabled")
+	}
+	if _, ok := s.LanguagePriority[s.DefaultLanguage]; !ok {
+		errE := errors.New("default language is not enabled")
+		errors.Details(errE)["language"] = s.DefaultLanguage
+		return errE
+	}
+	return nil
+}
+
 // Start starts the base for the site.
 //
 // You have to call this or PopulateAndStart for each site after Init.
@@ -213,6 +229,11 @@ func (s *Site) Start(ctx context.Context, documents []*document.D) errors.E {
 	}
 
 	errE = s.updateUnitsTotal(ctx, documents)
+	if errE != nil {
+		return errE
+	}
+
+	errE = s.validateDefaultLanguage()
 	if errE != nil {
 		return errE
 	}
@@ -238,6 +259,11 @@ func (s *Site) PopulateAndStart(ctx context.Context, documents []*document.D, pr
 	}
 
 	errE = s.updateUnitsTotal(ctx, documents)
+	if errE != nil {
+		return errE
+	}
+
+	errE = s.validateDefaultLanguage()
 	if errE != nil {
 		return errE
 	}
