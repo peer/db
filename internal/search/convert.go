@@ -318,8 +318,8 @@ func (c *Converter) buildLanguageCodes(allDocuments []*document.D) {
 		}
 		// Extract the CODE identifier claim and use the primary language subtag.
 		ids := document.GetClaimsOfTypeWithConfidence[*document.IdentifierClaim](doc, codePropID, document.LowConfidence)
-		if len(ids) > 0 {
-			code, _, _ := strings.Cut(ids[0].Value, "-")
+		for _, id := range ids {
+			code, _, _ := strings.Cut(id.Value, "-")
 			if SupportedLanguages[code] {
 				c.languageCodes[doc.ID] = code
 			}
