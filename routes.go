@@ -72,6 +72,14 @@ func (s *Service) setRoutes() { //nolint:maintidx
 				},
 			},
 		},
+		"SearchShortcut": {
+			RouteOptions: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.SearchShortcutGet,
+				},
+			},
+			Path: "/s",
+		},
 		"SearchCreate": {
 			Path: "/s/create",
 			API: waf.RouteOptions{
