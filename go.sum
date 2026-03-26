@@ -295,8 +295,8 @@ gitlab.com/tozd/go/zerolog v0.11.2 h1:DkLdoryCBDwTDnfq8JrHwAsKqWXMixnNiWe6XCx9xu
 gitlab.com/tozd/go/zerolog v0.11.2/go.mod h1:Dw5ScQB0E4Hou7JSWYj89XGhoW2Gl+3ntnncDZFRRCo=
 gitlab.com/tozd/identifier v0.8.1 h1:GZw2FCrjCmCaUA+VKmBYFQQTSQ1XYz5VjM4njicKNo8=
 gitlab.com/tozd/identifier v0.8.1/go.mod h1:Rdf6KMUKO3OxjKoNYvlPxEqxNKyNfuXc67uc/2d4VeY=
-gitlab.com/tozd/waf v0.22.0 h1:QyEJJHqhhLWAZMiPrOvCNwSyOB5/NRmCq4VZD0U4y3E=
-gitlab.com/tozd/waf v0.22.0/go.mod h1:fCh6lZ4oN/iN0VG9GsGPd0qpRkmoShsTpiV7arbAzS4=
+gitlab.com/tozd/waf v0.22.1-0.20260326000050-e98811a2f69f h1:s84PJcudKovJbP1Imu3Cu+ohz3THwnEhynnO9jtf/sY=
+gitlab.com/tozd/waf v0.22.1-0.20260326000050-e98811a2f69f/go.mod h1:TXqA2AbAB8W9W8b53BGSx6wMGIKC7Fa4iX8kmXYHMDY=
 go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=
 go.opentelemetry.io/auto/sdk v1.1.0/go.mod h1:3wSPjt5PWp2RhlCcmmOial7AvC4DQqZb7a7wCow3W8A=
 go.opentelemetry.io/otel v1.35.0 h1:xKWKPxrxB6OtMCbmMY021CqC45J+3Onta9MqjhnusiQ=
