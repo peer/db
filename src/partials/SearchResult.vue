@@ -11,6 +11,7 @@ import { useI18n } from "vue-i18n"
 import WithDocument from "@/components/WithDocument.vue"
 import { DESCRIPTION, INSTANCE_OF, SUBCLASS_OF } from "@/core"
 import { getBestClaimOfType, getClaimsOfType } from "@/document"
+import { getSearchResultComponents } from "@/registry/search-result"
 import { encodeQuery, getDisplayLabel, loadingLongWidth, loadingWidth } from "@/utils"
 
 defineProps<{
@@ -34,6 +35,19 @@ const tags = computed(() => {
     ...getClaimsOfType(withDocument.value?.doc?.claims, "ref", INSTANCE_OF).map((c) => ({ id: c.to.id })),
     ...getClaimsOfType(withDocument.value?.doc?.claims, "ref", SUBCLASS_OF).map((c) => ({ id: c.to.id })),
   ]
+})
+const searchResultComponents = getSearchResultComponents()
+const customResultComponent = computed(() => {
+  const doc = withDocument.value?.doc
+  if (!doc?.claims) return null
+  const refs = getClaimsOfType(doc.claims, "ref", INSTANCE_OF)
+  for (const ref of refs) {
+    const comp = searchResultComponents.value.get(ref.to.id)
+    if (comp) {
+      return comp
+    }
+  }
+  return null
 })
 const previewFiles = computed(() => {
   // TODO: Return image files.
@@ -82,7 +96,8 @@ const rowSpan = computed(() => {
   <div :id="`result-${result.id}`" class="pd-searchresult rounded-sm border border-gray-200 bg-white p-4 shadow-sm" :data-url="withDocument?.url">
     <WithDocumentD :id="result.id" ref="withDocument" name="DocumentGet">
       <template #default="{ doc: resultDoc }">
-        <div class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
+        <component :is="customResultComponent" v-if="customResultComponent" :doc="resultDoc" :search-session-id="searchSessionId" />
+        <div v-else class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
           <h2 class="text-xl leading-none">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link">
               <template v-if="displayLabel">{{ displayLabel }}</template>
