@@ -9,5 +9,6 @@ defineProps<{
 </script>
 
 <template>
+  <!-- eslint-disable-next-line vue/no-v-html -->
   <div v-if="claim" class="prose max-w-none prose-slate" v-html="claim.html"></div>
 </template>

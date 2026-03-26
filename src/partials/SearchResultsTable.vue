@@ -294,8 +294,14 @@ function onCloseFilterModal() {
                       class="flex w-full max-w-[400px] flex-row items-center justify-between gap-x-1 border-none p-2 leading-none shadow-none"
                       @click.prevent="onOpenFilterModal(filter)"
                     >
-                      <!-- We need a span to be able to use v-html. -->
-                      <span class="truncate" v-html="getDisplayLabel(doc.claims, locale) || `<i>${t('common.values.noName')}</i>`" />
+                      <span class="truncate">
+                        <LocalScope v-slot="{ displayLabel }" :display-label="getDisplayLabel(doc.claims, locale)">
+                          <template v-if="displayLabel">{{ displayLabel }}</template>
+                          <template v-else
+                            ><i>{{ t("common.values.noName") }}</i></template
+                          >
+                        </LocalScope>
+                      </span>
                       <FunnelIcon class="size-5" :class="isFilterActive(filter) ? '' : 'text-primary-300'" />
                     </Button>
                   </template>

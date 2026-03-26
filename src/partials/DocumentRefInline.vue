@@ -1,14 +1,21 @@
 <script setup lang="ts">
 import type { D } from "@/document"
 
+import { LocalScope } from "@all1ndev/vue-local-scope"
 import { useI18n } from "vue-i18n"
 
 import WithDocument from "@/components/WithDocument.vue"
 import { getDisplayLabel, loadingWidth } from "@/utils"
 
-defineProps<{
-  id: string | null
-}>()
+withDefaults(
+  defineProps<{
+    id: string | null
+    link?: boolean
+  }>(),
+  {
+    link: true,
+  },
+)
 
 // We want all fallthrough attributes to be passed to the link element.
 defineOptions({
@@ -23,13 +30,20 @@ const WithDocumentD = WithDocument<D>
 <template>
   <WithDocumentD v-if="id" :id="id" name="DocumentGet">
     <template #default="{ doc, url }">
-      <RouterLink
-        :to="{ name: 'DocumentGet', params: { id } }"
-        :data-url="url"
-        v-bind="$attrs"
-        class="link"
-        v-html="getDisplayLabel(doc.claims, locale) || `<i>${t('common.values.noName')}</i>`"
-      />
+      <LocalScope v-slot="{ displayLabel }" :display-label="getDisplayLabel(doc.claims, locale)">
+        <RouterLink v-if="link" :to="{ name: 'DocumentGet', params: { id } }" :data-url="url" v-bind="$attrs" class="link">
+          <template v-if="displayLabel">{{ displayLabel }}</template>
+          <template v-else
+            ><i>{{ t("common.values.noName") }}</i></template
+          >
+        </RouterLink>
+        <span v-else :data-url="url" v-bind="$attrs">
+          <template v-if="displayLabel">{{ displayLabel }}</template>
+          <template v-else
+            ><i>{{ t("common.values.noName") }}</i></template
+          >
+        </span>
+      </LocalScope>
     </template>
     <template #loading="{ url }">
       <div class="pd-documentrefinline-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(id)]" />

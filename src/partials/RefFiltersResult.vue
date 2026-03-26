@@ -4,6 +4,7 @@ import type { DeepReadonly } from "vue"
 import type { D } from "@/document"
 import type { ClientSearchSession, RefFilterState, RefSearchResult } from "@/types"
 
+import { LocalScope } from "@all1ndev/vue-local-scope"
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 import { computed, onBeforeUnmount, toRef, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
@@ -118,8 +119,14 @@ const WithDocumentD = WithDocument<D>
                   class="my-1 leading-none"
                   :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
                   :data-url="url"
-                  v-html="getDisplayLabel(doc.claims, locale) || `<i>${t('common.values.noName')}</i>`"
-                ></label>
+                >
+                  <LocalScope v-slot="{ displayLabel }" :display-label="getDisplayLabel(doc.claims, locale)">
+                    <template v-if="displayLabel">{{ displayLabel }}</template>
+                    <template v-else
+                      ><i>{{ t("common.values.noName") }}</i></template
+                    >
+                  </LocalScope>
+                </label>
               </template>
               <template #loading="{ url }">
                 <div class="pd-withdocument-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>
@@ -136,7 +143,14 @@ const WithDocumentD = WithDocument<D>
             <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
             <WithDocumentD :id="res.id" name="DocumentGet">
               <template #default="{ doc, url }">
-                <div class="my-1 inline-block leading-none" :data-url="url" v-html="getDisplayLabel(doc.claims, locale) || `<i>${t('common.values.noName')}</i>`"></div>
+                <div class="my-1 inline-block leading-none" :data-url="url">
+                  <LocalScope v-slot="{ displayLabel }" :display-label="getDisplayLabel(doc.claims, locale)">
+                    <template v-if="displayLabel">{{ displayLabel }}</template>
+                    <template v-else
+                      ><i>{{ t("common.values.noName") }}</i></template
+                    >
+                  </LocalScope>
+                </div>
               </template>
               <template #loading="{ url }">
                 <div class="pd-withdocument-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>

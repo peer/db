@@ -4,6 +4,7 @@ import type { ComponentExposed } from "vue-component-type-helpers"
 import type { D } from "@/document"
 import type { Result } from "@/types"
 
+import { LocalScope } from "@all1ndev/vue-local-scope"
 import { computed, ref } from "vue"
 import { useI18n } from "vue-i18n"
 
@@ -22,7 +23,7 @@ const { t, locale } = useI18n({ useScope: "global" })
 const WithDocumentD = WithDocument<D>
 const withDocument = ref<ComponentExposed<typeof WithDocumentD> | null>(null)
 
-const docName = computed(() => getDisplayLabel(withDocument.value?.doc?.claims, locale.value))
+const displayLabel = computed(() => getDisplayLabel(withDocument.value?.doc?.claims, locale.value))
 // TODO: Do not hard-code properties?
 const description = computed(() => {
   return getBestClaimOfType(withDocument.value?.doc?.claims, "html", DESCRIPTION)?.html || ""
@@ -83,21 +84,25 @@ const rowSpan = computed(() => {
       <template #default="{ doc: resultDoc }">
         <div class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
           <h2 class="text-xl leading-none">
-            <RouterLink
-              :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }"
-              class="link"
-              v-html="docName || `<i>${t('common.values.noName')}</i>`"
-            ></RouterLink>
+            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link">
+              <template v-if="displayLabel">{{ displayLabel }}</template>
+              <template v-else
+                ><i>{{ t("common.values.noName") }}</i></template
+              >
+            </RouterLink>
           </h2>
           <ul v-if="tags.length" class="-mt-3 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
             <template v-for="tag of tags" :key="tag.id">
               <WithDocumentD :id="tag.id" name="DocumentGet">
                 <template #default="{ doc, url }">
-                  <li
-                    class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs"
-                    :data-url="url"
-                    v-html="getDisplayLabel(doc.claims, locale) || `<i>${t('common.values.noName')}</i>`"
-                  ></li>
+                  <li class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
+                    <LocalScope v-slot="{ displayLabel }" :display-label="getDisplayLabel(doc.claims, locale)">
+                      <template v-if="displayLabel">{{ displayLabel }}</template>
+                      <template v-else
+                        ><i>{{ t("common.values.noName") }}</i></template
+                      >
+                    </LocalScope>
+                  </li>
                 </template>
                 <template #loading="{ url }">
                   <li class="pd-withdocument-loading h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(tag.id)]"></li>

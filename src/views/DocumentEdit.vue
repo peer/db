@@ -169,7 +169,7 @@ loadAndSubscribe().catch((error) => {
   console.error("loadAndSubscribe", error)
 })
 
-const docName = computed(() => getDisplayLabel(doc.value?.claims, locale.value))
+const displayLabel = computed(() => getDisplayLabel(doc.value?.claims, locale.value))
 
 async function onSave() {
   if (abortController.signal.aborted) {
@@ -392,7 +392,12 @@ function onChangeTab(index: number) {
   <div class="pd-documentedit mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
     <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <template v-if="doc">
-        <h1 class="mb-4 text-4xl font-bold drop-shadow-xs" v-html="docName || `<i>${t('common.values.noName')}</i>`"></h1>
+        <h1 class="mb-4 text-4xl font-bold drop-shadow-xs">
+          <template v-if="displayLabel">{{ displayLabel }}</template>
+          <template v-else
+            ><i>{{ t("common.values.noName") }}</i></template
+          >
+        </h1>
         <table class="w-full table-auto border-collapse">
           <thead>
             <tr>

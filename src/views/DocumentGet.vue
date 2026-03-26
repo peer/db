@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Component, Raw } from "vue"
 import type { ComponentExposed } from "vue-component-type-helpers"
 
 import type { D } from "@/document"
@@ -16,11 +17,15 @@ import ButtonLink from "@/components/ButtonLink.vue"
 import InputTextLink from "@/components/InputTextLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import siteContext from "@/context"
+import { INSTANCE_OF } from "@/core"
+import { getClaimsOfType } from "@/document"
+import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
 import { injectProgress } from "@/progress"
+import { getDocumentComponents } from "@/registry/document"
 import { useSearch, useSearchSession } from "@/search"
 import { encodeQuery, getDisplayLabel, loadingLongWidth } from "@/utils"
 
@@ -111,7 +116,22 @@ function afterClick() {
   document.getElementById("search-input-text")?.focus()
 }
 
-const docName = computed(() => getDisplayLabel(withDocument.value?.doc?.claims, locale.value))
+const displayLabel = computed(() => getDisplayLabel(withDocument.value?.doc?.claims, locale.value))
+
+const documentComponents = getDocumentComponents()
+const documentTabs = computed(() => {
+  const doc = withDocument.value?.doc
+  if (!doc?.claims) return []
+  const refs = getClaimsOfType(doc.claims, "ref", INSTANCE_OF)
+  const tabs: { component: Raw<Component>; id: string }[] = []
+  for (const ref of refs) {
+    const component = documentComponents.value.get(ref.to.id)
+    if (component) {
+      tabs.push({ component, id: ref.to.id })
+    }
+  }
+  return tabs
+})
 
 async function onEdit() {
   if (abortController.signal.aborted) {
@@ -203,13 +223,27 @@ async function onEdit() {
           <TabGroup>
             <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100">
               <Tab
+                v-for="documentTab in documentTabs"
+                :key="documentTab.id"
+                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                ><DocumentRefInline :id="documentTab.id" :link="false"
+              /></Tab>
+              <Tab
                 class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
                 >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
               >
             </TabList>
-            <h1 class="mb-4 text-4xl font-bold drop-shadow-xs" v-html="docName || `<i>${t('common.values.noName')}</i>`"></h1>
+            <h1 class="mb-4 text-4xl font-bold drop-shadow-xs">
+              <template v-if="displayLabel">{{ displayLabel }}</template>
+              <template v-else
+                ><i>{{ t("common.values.noName") }}</i></template
+              >
+            </h1>
             <TabPanels>
               <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
+              <TabPanel v-for="documentTab in documentTabs" :key="documentTab.id" tabindex="-1">
+                <component :is="documentTab.component" :doc="doc" />
+              </TabPanel>
               <TabPanel tabindex="-1">
                 <table class="w-full table-auto border-collapse">
                   <thead>
