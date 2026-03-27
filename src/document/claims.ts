@@ -3,7 +3,10 @@ import type { DeepReadonly } from "vue"
 import type { Amount, Confidence, Reference, TimePrecision, Timestamp } from "@/document/types"
 import type { Constructee, Constructor, Required } from "@/types"
 
-import { LIST, ORDER_IN_LIST } from "@/core"
+import { i18n } from "@/i18n"
+
+import siteContext from "@/context"
+import { IN_LANGUAGE, LIST, ORDER_IN_LIST } from "@/core"
 import { LowConfidence } from "@/document/confidence"
 
 // VALID_TIME_PRECISIONS is the set of valid TimePrecision values.
@@ -703,7 +706,7 @@ export type Claim = Constructee<(typeof CLAIM_TYPES_MAP)[ClaimTypeName]>
 // ClaimForType extracts the claim class for a given claim type name.
 export type ClaimForType<T extends ClaimTypeName> = Constructee<(typeof CLAIM_TYPES_MAP)[T]>
 
-// GetClaimsOfType returns all claims of a given type for the specified property ID(s),
+// getClaimsOfType returns all claims of a given type for the specified property ID(s),
 // sorted by decreasing confidence.
 export function getClaimsOfType<K extends ClaimTypeName>(
   claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
@@ -724,7 +727,7 @@ export function getClaimsOfType<K extends ClaimTypeName>(
   return claims
 }
 
-// GetBestClaimOfType returns the highest-confidence claim of a given type for the
+// getBestClaimOfType returns the highest-confidence claim of a given type for the
 // specified property ID(s), or null if none found.
 export function getBestClaimOfType<K extends ClaimTypeName>(
   claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
@@ -738,7 +741,7 @@ export function getBestClaimOfType<K extends ClaimTypeName>(
   return null
 }
 
-// GetAllClaimsOfType returns all claims of a given type across all properties,
+// getAllClaimsOfType returns all claims of a given type across all properties,
 // sorted by decreasing confidence.
 export function getAllClaimsOfType<K extends ClaimTypeName>(
   claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
@@ -750,7 +753,7 @@ export function getAllClaimsOfType<K extends ClaimTypeName>(
   return claims
 }
 
-// GetClaimsOfTypeWithConfidence returns claims of a given type for the specified
+// getClaimsOfTypeWithConfidence returns claims of a given type for the specified
 // property ID(s), filtered by minimum confidence, sorted by decreasing confidence.
 // TODO: Support also negation claims (i.e., those with negative confidence).
 export function getClaimsOfTypeWithConfidence<K extends ClaimTypeName>(
@@ -763,7 +766,7 @@ export function getClaimsOfTypeWithConfidence<K extends ClaimTypeName>(
   return claims.filter((claim) => claim.confidence >= confidence)
 }
 
-// GetAllClaimsOfTypeWithConfidence returns all claims of a given type across all
+// getAllClaimsOfTypeWithConfidence returns all claims of a given type across all
 // properties, filtered by minimum confidence, sorted by decreasing confidence.
 // TODO: Support also negation claims (i.e., those with negative confidence).
 export function getAllClaimsOfTypeWithConfidence<K extends ClaimTypeName>(
@@ -775,7 +778,7 @@ export function getAllClaimsOfTypeWithConfidence<K extends ClaimTypeName>(
   return claims.filter((claim) => claim.confidence >= confidence)
 }
 
-// GetClaimsListsOfType groups claims by their LIST meta-claim and sorts within
+// getClaimsListsOfType groups claims by their LIST meta-claim and sorts within
 // each list by the ORDER_IN_LIST meta-claim. Returns an array of lists, where each
 // list is an array of claims sorted by order.
 // TODO: Handle sub-lists. Children lists should be nested and not just added as additional lists to the list of lists.
@@ -800,4 +803,89 @@ export function getClaimsListsOfType<K extends ClaimTypeName>(
     res.push(c.sort(([_c1, o1], [_c2, o2]) => o1 - o2).map(([cl]) => cl))
   }
   return res
+}
+
+// Undetermined language code for claims without a specific language.
+export const UNDETERMINED_LANGUAGE = "und"
+
+// extractClaimLanguages extracts language codes from a claim's meta IN_LANGUAGE references.
+// Returns [UNDETERMINED_LANGUAGE] if no languages are specified or none can be resolved.
+function extractClaimLanguages(meta: DeepReadonly<ClaimTypes> | undefined | null): string[] {
+  const refs = getClaimsOfTypeWithConfidence(meta, "ref", IN_LANGUAGE)
+  const supportedLanguages = siteContext.languagePriority
+  const codes: string[] = []
+  for (const ref of refs) {
+    const code = siteContext.languageCodes[ref.to.id]
+    if (code && code in supportedLanguages) {
+      codes.push(code)
+    }
+  }
+  if (codes.length === 0) {
+    return [UNDETERMINED_LANGUAGE]
+  }
+  return codes
+}
+
+// getClaimsAndLanguageOfTypeWithConfidence returns claims of a given type for the specified
+// property ID(s), filtered by minimum confidence, sorted by decreasing confidence,
+// grouped by language.
+export function getClaimsAndLanguageOfTypeWithConfidence<K extends ClaimTypeName>(
+  claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
+  claimType: K,
+  propertyId: string | string[],
+  confidence: Confidence = LowConfidence,
+): Record<string, Required<DeepReadonly<ClaimTypes>>[K][number][]> {
+  const claims: Record<string, { confidence: number; value: Required<DeepReadonly<ClaimTypes>>[K][number] }[]> = {}
+  for (const claim of getClaimsOfTypeWithConfidence(claimTypes, claimType, propertyId, confidence)) {
+    for (const lang of extractClaimLanguages(claim.meta)) {
+      if (!claims[lang]) {
+        claims[lang] = []
+      }
+      claims[lang].push({ confidence: claim.confidence, value: claim })
+    }
+  }
+  const result: Record<string, Required<DeepReadonly<ClaimTypes>>[K][number][]> = {}
+  for (const lang in claims) {
+    // Sort by decreasing confidence.
+    claims[lang].sort((a, b) => b.confidence - a.confidence)
+    result[lang] = claims[lang].map((c) => c.value)
+  }
+  return result
+}
+
+// getFallbackLanguages returns the fallback language chain for a given language.
+// If the language has an entry in languagePriority, that entry is used.
+// Otherwise, the fallback is the undetermined language (unless the language is itself undetermined).
+function getFallbackLanguages(lang: string): string[] {
+  const fallbacks = siteContext.languagePriority[lang]
+  if (fallbacks) {
+    return fallbacks
+  }
+  if (lang !== UNDETERMINED_LANGUAGE) {
+    return [UNDETERMINED_LANGUAGE]
+  }
+  return []
+}
+
+export function selectClaimsByCurrentLanguage<K extends ClaimTypeName>(
+  claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
+  claimType: K,
+  propertyId: string | string[],
+  selector: (claims: Required<DeepReadonly<ClaimTypes>>[K][number][]) => Required<DeepReadonly<ClaimTypes>>[K][number] | null,
+  confidence: Confidence = LowConfidence,
+): Required<DeepReadonly<ClaimTypes>>[K][number] | null {
+  const claimsWithLanguage = getClaimsAndLanguageOfTypeWithConfidence(claimTypes, claimType, propertyId, confidence)
+  const lang = i18n.global.locale.value
+  const chain = [lang, ...getFallbackLanguages(lang)]
+  for (const tryLang of chain) {
+    const claims = claimsWithLanguage[tryLang]
+    if (!claims) {
+      continue
+    }
+    const claim = selector(claims)
+    if (claim) {
+      return claim
+    }
+  }
+  return null
 }
