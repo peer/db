@@ -34,7 +34,6 @@ variables:
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic"
   FF_SCRIPT_SECTIONS: 1
   FF_TIMESTAMPS: 1
-  CI_DEBUG_SERVICES: "true"
 
 test_go:
   stage: test
