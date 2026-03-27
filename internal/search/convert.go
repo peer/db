@@ -288,9 +288,7 @@ func (c *Converter) discoverValueHierarchyProperties() {
 // NAMING or transitive sub-properties of NAMING.
 func (c *Converter) buildNamingProperties() {
 	c.namingProperties = []identifier.Identifier{namingPropID}
-	for _, desc := range c.propertyDescendants[namingPropID] {
-		c.namingProperties = append(c.namingProperties, desc)
-	}
+	c.namingProperties = append(c.namingProperties, c.propertyDescendants[namingPropID]...)
 }
 
 // LanguageCodes returns the language codes map which maps language document IDs

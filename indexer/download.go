@@ -326,7 +326,7 @@ func CachedDownload(ctx context.Context, httpClient *http.Client, logger zerolog
 		return nil, 0, errors.WithStack(err)
 	}
 
-	cachedReadFile, err := os.Open(cachedPath)
+	cachedReadFile, err := os.Open(cachedPath) //nolint:gosec
 	if err != nil {
 		cachedWriteFile.Close() //nolint:errcheck,gosec
 		_ = os.Remove(cachedPath)

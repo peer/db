@@ -147,7 +147,6 @@ async function loadAndSubscribe() {
             return
           }
           const change = changeFrom(changeDoc)
-          // eslint-disable-next-line
           await change.Apply(_doc.value!)
         }
       } finally {
