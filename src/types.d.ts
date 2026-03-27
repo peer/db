@@ -168,7 +168,7 @@ export type SiteContext = {
   }
   features: {
     searchResultsTable?: boolean
-    createUploadButtons?: boolean
+    editButtons?: boolean
   }
 }
 

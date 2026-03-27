@@ -15,6 +15,7 @@ import Button from "@/components/Button.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
 import InputTextLink from "@/components/InputTextLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
+import siteContext from "@/context"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
@@ -181,7 +182,7 @@ async function onEdit() {
         </div>
       </div>
       <NavBarSearch v-else />
-      <Button :progress="editProgress" type="button" primary class="px-3.5" @click.prevent="onEdit">
+      <Button v-if="siteContext.features.editButtons" :progress="editProgress" type="button" primary class="px-3.5" @click.prevent="onEdit">
         <PencilIcon class="size-5 sm:hidden" :alt="t('common.buttons.edit')" />
         <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
       </Button>
