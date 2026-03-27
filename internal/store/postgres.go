@@ -153,14 +153,14 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 	dbconfig.ConnConfig.RuntimeParams["idle_in_transaction_session_timeout"] = strconv.FormatInt(idleInTransactionSessionTimeout.Milliseconds(), 10)
 	dbconfig.ConnConfig.RuntimeParams["statement_timeout"] = strconv.FormatInt(statementTimeout.Milliseconds(), 10)
 
+	systemConnection.Lock()
+	defer systemConnection.Unlock()
+
 	conn, err := pgx.ConnectConfig(ctx, dbconfig.ConnConfig)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
 	defer conn.Close(ctx) //nolint:errcheck
-
-	systemConnection.Lock()
-	defer systemConnection.Unlock()
 
 	var systemIdentifier string
 	err = conn.QueryRow(ctx, `SELECT system_identifier FROM pg_control_system()`).Scan(&systemIdentifier)
