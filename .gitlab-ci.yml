@@ -53,10 +53,10 @@ test_go:
         xpack.security.enabled: false
         ingest.geoip.downloader.enabled: false
         cluster.routing.allocation.disk.watermark.flood_stage: "100%"
+        ES_LOG_STYLE: file
     - name: registry.gitlab.com/tozd/docker/postgresql:18
       alias: postgres
       variables:
-        LOG_TO_STDOUT: 1
         PGSQL_ROLE_1_USERNAME: test
         PGSQL_ROLE_1_PASSWORD: test
         PGSQL_DB_1_NAME: test
@@ -75,6 +75,10 @@ test_go:
   script:
     - make test-ci
 
+  after_script:
+    - docker cp elasticsearch:/usr/share/elasticsearch/logs elasticsearch-logs
+    - docker cp postgres:/var/log/postgresql postgresql-logs
+
   artifacts:
     when: always
     reports:
@@ -86,6 +90,8 @@ test_go:
       - tests.xml
       - coverage.html
       - coverage.xml
+      - elasticsearch-logs
+      - postgresql-logs
     expire_in: never
 
   coverage: '/coverage: \d+\.\d+% of statements/'
