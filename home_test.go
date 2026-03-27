@@ -27,6 +27,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 //go:embed public
@@ -211,7 +212,8 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		}
 	})
 
-	service, onShutdown, errE := serve.Init(t.Context(), globals, testFiles)
+	dbCtx := internalStore.WithMaxDBPoolConnections(t.Context(), internalStore.TestMaxDBPoolConnections)
+	service, onShutdown, errE := serve.Init(dbCtx, globals, testFiles)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	t.Cleanup(func() {

@@ -100,37 +100,42 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 	}
 	defer conn.Close(ctx) //nolint:errcheck
 
-	var maxConnectionsStr string
-	err = conn.QueryRow(ctx, `SHOW max_connections`).Scan(&maxConnectionsStr)
-	if err != nil {
-		return nil, WithPgxError(err)
-	}
-	maxConnections, err := strconv.Atoi(maxConnectionsStr)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
+	// Allow overriding the maximum number of pool connections via context.
+	if maxConns, _ := ctx.Value(maxDBPoolConnectionsContextKey).(int32); maxConns > 0 {
+		dbconfig.MaxConns = maxConns
+	} else {
+		var maxConnectionsStr string
+		err = conn.QueryRow(ctx, `SHOW max_connections`).Scan(&maxConnectionsStr)
+		if err != nil {
+			return nil, WithPgxError(err)
+		}
+		maxConnections, err := strconv.Atoi(maxConnectionsStr)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
 
-	var reservedConnectionsStr string
-	err = conn.QueryRow(ctx, `SHOW reserved_connections`).Scan(&reservedConnectionsStr)
-	if err != nil {
-		return nil, WithPgxError(err)
-	}
-	reservedConnections, err := strconv.Atoi(reservedConnectionsStr)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
+		var reservedConnectionsStr string
+		err = conn.QueryRow(ctx, `SHOW reserved_connections`).Scan(&reservedConnectionsStr)
+		if err != nil {
+			return nil, WithPgxError(err)
+		}
+		reservedConnections, err := strconv.Atoi(reservedConnectionsStr)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
 
-	var superuserReservedConnectionsStr string
-	err = conn.QueryRow(ctx, `SHOW superuser_reserved_connections`).Scan(&superuserReservedConnectionsStr)
-	if err != nil {
-		return nil, WithPgxError(err)
-	}
-	superuserReservedConnections, err := strconv.Atoi(superuserReservedConnectionsStr)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
+		var superuserReservedConnectionsStr string
+		err = conn.QueryRow(ctx, `SHOW superuser_reserved_connections`).Scan(&superuserReservedConnectionsStr)
+		if err != nil {
+			return nil, WithPgxError(err)
+		}
+		superuserReservedConnections, err := strconv.Atoi(superuserReservedConnectionsStr)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
 
-	dbconfig.MaxConns = int32(maxConnections - reservedConnections - superuserReservedConnections) //nolint:gosec
+		dbconfig.MaxConns = int32(maxConnections - reservedConnections - superuserReservedConnections) //nolint:gosec
+	}
 
 	logger.Info().
 		Str("serverVersion", conn.PgConn().ParameterStatus("server_version")).

@@ -24,6 +24,21 @@ var schemaContextKey = &contextKey{"schema"} //nolint:gochecknoglobals
 // when it is not part of the request.
 var requestIDContextKey = &contextKey{"request-id"} //nolint:gochecknoglobals
 
+// maxDBPoolConnectionsContextKey allows overriding the maximum number of
+// connections in the database pool.
+var maxDBPoolConnectionsContextKey = &contextKey{"maxDBPoolConnections"} //nolint:gochecknoglobals
+
+// TestMaxDBPoolConnections is the maximum number of connections to use
+// in test database pools to prevent exhausting PostgreSQL connections
+// when multiple tests run in parallel.
+const TestMaxDBPoolConnections int32 = 10
+
+// WithMaxDBPoolConnections returns context with an override for the maximum
+// number of connections in the database pool.
+func WithMaxDBPoolConnections(ctx context.Context, maxConns int32) context.Context {
+	return context.WithValue(ctx, maxDBPoolConnectionsContextKey, maxConns)
+}
+
 // WithFallbackDBContext returns context with fallback context values which are used
 // to set schema and application name on PostgreSQL connections when it is not part
 // of the request.

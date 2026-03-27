@@ -132,7 +132,8 @@ func initDatabase[Data, Metadata any](
 
 	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
 	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
-	dbpool, errE := internalStore.InitPostgres(context.WithoutCancel(ctx), os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
+	dbCtx := internalStore.WithMaxDBPoolConnections(context.WithoutCancel(ctx), internalStore.TestMaxDBPoolConnections)
+	dbpool, errE := internalStore.InitPostgres(dbCtx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
 		return schema, "tests"
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -521,7 +522,8 @@ func TestNotifyRecovery(t *testing.T) {
 
 	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
 	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
-	dbpool, errE := internalStore.InitPostgres(context.WithoutCancel(ctx), os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
+	dbCtx := internalStore.WithMaxDBPoolConnections(context.WithoutCancel(ctx), internalStore.TestMaxDBPoolConnections)
+	dbpool, errE := internalStore.InitPostgres(dbCtx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
 		return schema, "tests"
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
