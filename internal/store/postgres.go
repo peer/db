@@ -23,6 +23,9 @@ const (
 	statementTimeout                = 10 * time.Second
 
 	initialApplicationName = "peerdb"
+
+	// Number of connections which are left unused by all pools together for every system.
+	reservedConnections = 5
 )
 
 //nolint:gochecknoglobals
@@ -36,6 +39,9 @@ var (
 	// of this process (which maybe is not true, but in that case one should restart the process).
 	maxConnectionsMap = map[string]int32{}
 	connectionsMu     sync.RWMutex
+	// We allow only one system connection (a connection used in InitPostgres) at any given time,
+	// regardless of the target system.
+	systemConnection sync.Mutex
 )
 
 // Standard error codes.
@@ -87,7 +93,9 @@ func setMaxConnections(systemIdentifier string, maxConnections int32) *semaphore
 		return connectionsCountMap[systemIdentifier]
 	}
 
-	connectionsCountMap[systemIdentifier] = semaphore.NewWeighted(int64(maxConnections))
+	// We subtract reservedConnections from max connections because we want to keep some slots always available
+	// to others. One of those reserved connections we use for the system connection in InitPostgres.
+	connectionsCountMap[systemIdentifier] = semaphore.NewWeighted(int64(maxConnections) - reservedConnections)
 	maxConnectionsMap[systemIdentifier] = maxConnections
 	return connectionsCountMap[systemIdentifier]
 }
@@ -146,6 +154,9 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 		return nil, errors.WithStack(err)
 	}
 	defer conn.Close(ctx) //nolint:errcheck
+
+	systemConnection.Lock()
+	defer systemConnection.Unlock()
 
 	var systemIdentifier string
 	err = conn.QueryRow(ctx, `SELECT system_identifier FROM pg_control_system()`).Scan(&systemIdentifier)
@@ -217,6 +228,10 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 
 	dbconfig.PrepareConn = func(ctx context.Context, conn *pgx.Conn) (bool, error) {
 		schema, requestID := getRequest(ctx)
+
+		if schema == "" {
+			return false, errors.New("schema is not set")
+		}
 
 		_, err := conn.Exec(ctx, fmt.Sprintf(`SET application_name TO '%s/%s/%s'`, initialApplicationName, schema, requestID))
 		if err != nil {

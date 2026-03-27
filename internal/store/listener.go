@@ -28,35 +28,59 @@ type Listener struct {
 
 	handlers map[string]Handler
 	started  bool
+
+	// conn is the current pool connection used by the listener.
+	// It is set in Connect and released in Connect (on reconnect)
+	// and after Listen returns (for final cleanup).
+	conn *pgxpool.Conn
 }
 
 // NewListener creates a Listener configured to acquire connections from the pool.
 //
 // Register handlers with listener.Handle before calling Start.
 func NewListener(dbpool *pgxpool.Pool) *Listener {
-	return &Listener{
-		Listener: &pgxlisten.Listener{
-			Connect: func(ctx context.Context) (*pgx.Conn, error) {
-				// TODO: Measure how many re-connections have to be made to the database and abort if it is too much.
-				//       The goal is that if this is happening too often, we should terminate the whole process and let the
-				//       process supervisor decide what to do about instability of connections (it is probably not a local thing).
-				conn, err := dbpool.Acquire(ctx)
-				if err != nil {
-					return nil, errors.WithStack(err)
-				}
-				// Hijack detaches the connection from the pool so pgxlisten manages its lifetime.
-				return conn.Hijack(), nil
-			},
-			LogError: func(ctx context.Context, err error) {
-				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-					return
-				}
-				zerolog.Ctx(ctx).Error().Err(err).Msg("NOTIFY listener error")
-			},
-			ReconnectDelay: listenerReconnectDelay,
-		},
+	l := &Listener{
+		Listener: nil,
 		handlers: nil,
 		started:  false,
+		conn:     nil,
+	}
+	l.Listener = &pgxlisten.Listener{
+		Connect: func(ctx context.Context) (*pgx.Conn, error) {
+			// TODO: Measure how many re-connections have to be made to the database and abort if it is too much.
+			//       The goal is that if this is happening too often, we should terminate the whole process and let the
+			//       process supervisor decide what to do about instability of connections (it is probably not a local thing).
+
+			// Release previous connection on reconnect. pgxlisten has already closed the underlying
+			// connection, so Release will notice it is dead and destroy it for the pool to recreate it.
+			l.releaseConn()
+
+			var err error
+			l.conn, err = dbpool.Acquire(ctx)
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
+			// We do not hijack the connection because we want to prevent the pool from making a new connection
+			// while this one is in use, so that the max connections limit of the pool is also the limit on number
+			// of total connections we are making against the database.
+			return l.conn.Conn(), nil
+		},
+		LogError: func(ctx context.Context, err error) {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return
+			}
+			zerolog.Ctx(ctx).Error().Err(err).Msg("NOTIFY listener error")
+		},
+		ReconnectDelay: listenerReconnectDelay,
+	}
+	return l
+}
+
+// releaseConn releases the current pool connection, if any.
+func (l *Listener) releaseConn() {
+	if l.conn != nil {
+		l.conn.Release()
+		l.conn = nil
 	}
 }
 
@@ -72,6 +96,8 @@ func (l *Listener) Start(ctx context.Context) errors.E {
 	l.started = true
 
 	go func() {
+		defer l.releaseConn()
+
 		err := l.Listen(ctx)
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) || ctx.Err() != nil {
 			// We are stopping.
