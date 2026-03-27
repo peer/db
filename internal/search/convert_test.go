@@ -669,9 +669,9 @@ func TestBuildNamingProperties(t *testing.T) {
 	c.buildPropertyHierarchy([]*document.D{namingDoc, subNaming})
 	c.buildNamingProperties()
 
-	assert.True(t, c.namingProperties[namingPropID])
-	assert.True(t, c.namingProperties[testPropID])
-	assert.False(t, c.namingProperties[testPropID2])
+	assert.Contains(t, c.namingProperties, namingPropID)
+	assert.Contains(t, c.namingProperties, testPropID)
+	assert.NotContains(t, c.namingProperties, testPropID2)
 }
 
 func TestDiscoverValueHierarchyProperties(t *testing.T) {
@@ -1064,10 +1064,8 @@ func TestNamingStrings(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
-		namingProperties: map[identifier.Identifier]bool{
-			namingPropID: true,
-		},
-		languageCodes: map[identifier.Identifier]string{},
+		namingProperties: []identifier.Identifier{namingPropID},
+		languageCodes:    map[identifier.Identifier]string{},
 	}
 
 	doc := makeNamingDoc(testDocID, "Test Document")
@@ -1080,10 +1078,8 @@ func TestNamingStringsEmpty(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
-		namingProperties: map[identifier.Identifier]bool{
-			namingPropID: true,
-		},
-		languageCodes: map[identifier.Identifier]string{},
+		namingProperties: []identifier.Identifier{namingPropID},
+		languageCodes:    map[identifier.Identifier]string{},
 	}
 
 	// Document with no naming strings.
@@ -1098,10 +1094,8 @@ func TestNamingStringsSorted(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
-		namingProperties: map[identifier.Identifier]bool{
-			namingPropID: true,
-		},
-		languageCodes: map[identifier.Identifier]string{},
+		namingProperties: []identifier.Identifier{namingPropID},
+		languageCodes:    map[identifier.Identifier]string{},
 	}
 
 	// Two naming strings with different confidences.
@@ -1133,10 +1127,8 @@ func TestMakeDisplayStrings(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
-		namingProperties: map[identifier.Identifier]bool{
-			namingPropID: true,
-		},
-		languageCodes: map[identifier.Identifier]string{},
+		namingProperties: []identifier.Identifier{namingPropID},
+		languageCodes:    map[identifier.Identifier]string{},
 	}
 
 	// Two naming strings: first becomes Display, Naming contains all strings.
@@ -1170,10 +1162,8 @@ func TestMakeDisplayStringsSanitizesNullBytes(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
-		namingProperties: map[identifier.Identifier]bool{
-			namingPropID: true,
-		},
-		languageCodes: map[identifier.Identifier]string{},
+		namingProperties: []identifier.Identifier{namingPropID},
+		languageCodes:    map[identifier.Identifier]string{},
 	}
 
 	// Naming string with null byte should have it stripped.
@@ -1235,8 +1225,8 @@ func TestNewConverter(t *testing.T) {
 	extraDocs := map[identifier.Identifier]*document.D{}
 	c := newTestConverter(t, []*document.D{namingDoc, subProp}, []*document.D{langDoc}, extraDocs)
 
-	assert.True(t, c.namingProperties[namingPropID])
-	assert.True(t, c.namingProperties[testPropID])
+	assert.Contains(t, c.namingProperties, namingPropID)
+	assert.Contains(t, c.namingProperties, testPropID)
 	assert.Equal(t, "en", c.languageCodes[testLangDocID])
 	assert.NotNil(t, c.documentInfoCache)
 }
@@ -3794,9 +3784,7 @@ func TestMakeDisplayStringsWithTemplate(t *testing.T) {
 		classID: classDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
-	c.namingProperties = map[identifier.Identifier]bool{
-		namingPropID: true,
-	}
+	c.namingProperties = []identifier.Identifier{namingPropID}
 
 	// Document with INSTANCE_OF class and naming + short name claims.
 	doc := &document.D{
@@ -3837,9 +3825,7 @@ func TestMakeDisplayStringsWithInvalidTemplate(t *testing.T) {
 		classID: classDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
-	c.namingProperties = map[identifier.Identifier]bool{
-		namingPropID: true,
-	}
+	c.namingProperties = []identifier.Identifier{namingPropID}
 
 	// Template with invalid syntax should return an error.
 	doc := &document.D{
@@ -3880,9 +3866,7 @@ func TestMakeDisplayStringsTemplateAllLanguages(t *testing.T) {
 		classID: classDoc,
 	}
 	c := newTestConverter(t, nil, languages, extraDocs)
-	c.namingProperties = map[identifier.Identifier]bool{
-		namingPropID: true,
-	}
+	c.namingProperties = []identifier.Identifier{namingPropID}
 
 	enMeta := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
@@ -3971,9 +3955,7 @@ func TestMakeDisplayStringsTemplateRelationTraversal(t *testing.T) {
 	}
 
 	c := newTestConverter(t, nil, nil, extraDocs)
-	c.namingProperties = map[identifier.Identifier]bool{
-		namingPropID: true,
-	}
+	c.namingProperties = []identifier.Identifier{namingPropID}
 	c.languageCodes = map[identifier.Identifier]string{}
 
 	doc := &document.D{
@@ -4020,9 +4002,7 @@ func TestMakeDisplayStringsTemplateOnlyNoNaming(t *testing.T) {
 		classID: classDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
-	c.namingProperties = map[identifier.Identifier]bool{
-		namingPropID: true,
-	}
+	c.namingProperties = []identifier.Identifier{namingPropID}
 
 	// Document with template (via class) but no naming strings.
 	doc := &document.D{
@@ -4061,9 +4041,7 @@ func TestTemplateBestStringLanguageFallback(t *testing.T) {
 		classID: classDoc,
 	}
 	c := newTestConverter(t, nil, languages, extraDocs)
-	c.namingProperties = map[identifier.Identifier]bool{
-		namingPropID: true,
-	}
+	c.namingProperties = []identifier.Identifier{namingPropID}
 
 	enMeta := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
@@ -4115,9 +4093,7 @@ func TestTemplateBestIdentifier(t *testing.T) {
 		classID: classDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
-	c.namingProperties = map[identifier.Identifier]bool{
-		namingPropID: true,
-	}
+	c.namingProperties = []identifier.Identifier{namingPropID}
 
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
@@ -4160,9 +4136,7 @@ func TestTemplateNilDoc(t *testing.T) {
 		classID: classDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
-	c.namingProperties = map[identifier.Identifier]bool{
-		namingPropID: true,
-	}
+	c.namingProperties = []identifier.Identifier{namingPropID}
 	c.languageCodes = map[identifier.Identifier]string{}
 
 	// Template tries to follow a non-existent relation.
@@ -4199,9 +4173,7 @@ func TestTemplateBestTimeString(t *testing.T) {
 		classID: classDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
-	c.namingProperties = map[identifier.Identifier]bool{
-		namingPropID: true,
-	}
+	c.namingProperties = []identifier.Identifier{namingPropID}
 
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
@@ -4257,9 +4229,7 @@ func TestTemplateGetDocumentByMnemonic(t *testing.T) {
 		classID:    classDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
-	c.namingProperties = map[identifier.Identifier]bool{
-		namingPropID: true,
-	}
+	c.namingProperties = []identifier.Identifier{namingPropID}
 	c.languageCodes = map[identifier.Identifier]string{}
 
 	doc := &document.D{
@@ -4347,40 +4317,6 @@ func TestNewConverterValidation(t *testing.T) {
 	c, errE = NewConverter(nil, nil, map[string][]string{"xx": {"en"}}, getDocument)
 	assert.EqualError(t, errE, "unsupported language in priority key")
 	assert.Nil(t, c)
-}
-
-func TestGetFallbackLanguages(t *testing.T) {
-	t.Parallel()
-
-	// With priority set.
-	c := &Converter{ //nolint:exhaustruct
-		languagePriority: map[string][]string{
-			"en": {"sl", "und"},
-			"sl": {"en"},
-			"pt": {},
-		},
-	}
-
-	// Language with explicit fallbacks.
-	assert.Equal(t, []string{"sl", "und"}, c.getFallbackLanguages("en"))
-	assert.Equal(t, []string{"en"}, c.getFallbackLanguages("sl"))
-
-	// Language with empty fallback list: no fallback at all.
-	assert.Empty(t, c.getFallbackLanguages("pt"))
-
-	// Language not in priority: fallback to "und".
-	// (Using a hypothetical supported language not in priority.)
-	assert.Equal(t, []string{"und"}, c.getFallbackLanguages("fr"))
-
-	// "und" not in priority: no fallback (it's already undetermined).
-	assert.Nil(t, c.getFallbackLanguages("und"))
-
-	// With nil priority.
-	c2 := &Converter{ //nolint:exhaustruct
-		languagePriority: nil,
-	}
-	assert.Equal(t, []string{"und"}, c2.getFallbackLanguages("en"))
-	assert.Nil(t, c2.getFallbackLanguages("und"))
 }
 
 func TestGetDocumentInfoWithLanguagePriority(t *testing.T) {
@@ -4703,9 +4639,7 @@ func TestBestStringLanguagePriority(t *testing.T) {
 		"pt": {"sl", "und"},
 	}
 	c := newTestConverterWithPriority(t, nil, languages, extraDocs, priority)
-	c.namingProperties = map[identifier.Identifier]bool{
-		namingPropID: true,
-	}
+	c.namingProperties = []identifier.Identifier{namingPropID}
 
 	// Document with template (via class). NAME only exists in "sl".
 	doc := &document.D{

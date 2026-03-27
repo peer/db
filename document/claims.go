@@ -153,12 +153,117 @@ func GetClaimsOfTypeWithConfidence[T Claim](claims Claims, propID identifier.Ide
 	return result
 }
 
+// UndeterminedLanguage is the language code used for claims without a specific language.
+const UndeterminedLanguage = "und"
+
+// extractClaimLanguages extracts language codes from a claim's IN_LANGUAGE references.
+//
+// It maps language document IDs to codes using languageCodes, and checks that the code
+// is a key in languagePriority (i.e., an enabled language).
+//
+// Returns UndeterminedLanguage if no languages are specified or none can be resolved.
+func extractClaimLanguages(claims Claims, languageCodes map[identifier.Identifier]string, languagePriority map[string][]string) []string {
+	refs := GetClaimsOfTypeWithConfidence[*ReferenceClaim](claims, inLanguagePropID, LowConfidence)
+	var codes []string
+	for _, rel := range refs {
+		if code, ok := languageCodes[rel.To.ID]; ok {
+			if _, ok := languagePriority[code]; ok {
+				codes = append(codes, code)
+			}
+		}
+	}
+	if len(codes) == 0 {
+		return []string{UndeterminedLanguage}
+	}
+	return codes
+}
+
+// GetClaimsAndLanguageOfTypeWithConfidence returns claims of a given type for the specified
+// property IDs, filtered by minimum confidence, sorted by decreasing confidence,
+// grouped by language. Languages are extracted from each claim's IN_LANGUAGE meta
+// references using languageCodes to map language document IDs to codes. Only languages
+// that are keys in languagePriority are considered supported.
+//
+// Because Go does not support generic interface methods, this is a top-level function.
+func GetClaimsAndLanguageOfTypeWithConfidence[T Claim](
+	claims Claims, propIDs []identifier.Identifier, confidence Confidence,
+	languageCodes map[identifier.Identifier]string, languagePriority map[string][]string,
+) map[string][]T {
+	grouped := map[string][]T{}
+	for _, propID := range propIDs {
+		for _, c := range GetClaimsOfTypeWithConfidence[T](claims, propID, confidence) {
+			for _, lang := range extractClaimLanguages(c, languageCodes, languagePriority) {
+				grouped[lang] = append(grouped[lang], c)
+			}
+		}
+	}
+	if len(grouped) == 0 {
+		return nil
+	}
+	for lang, entries := range grouped {
+		// Sort by decreasing confidence.
+		slices.SortFunc(entries, func(a, b T) int {
+			return cmp.Compare(b.GetConfidence(), a.GetConfidence())
+		})
+		// Store it back.
+		grouped[lang] = entries
+	}
+	return grouped
+}
+
+// getFallbackLanguages returns the fallback language chain for a given language.
+//
+// If the language has an entry in languagePriority, that entry is used.
+// Otherwise, the fallback is the undetermined language (unless the language is itself undetermined).
+func getFallbackLanguages(lang string, languagePriority map[string][]string) []string {
+	if languagePriority != nil {
+		if fallbacks, ok := languagePriority[lang]; ok {
+			return fallbacks
+		}
+	}
+	// Default: try undetermined language, unless lang is already undetermined.
+	if lang != UndeterminedLanguage {
+		return []string{UndeterminedLanguage}
+	}
+	return nil
+}
+
+// SelectClaimsByLanguage selects claims of a given type for the specified property IDs,
+// filtered by minimum confidence, using the language fallback chain. It returns the
+// first set of claims (grouped by language) for which the selector returns true,
+// walking the language chain in order. Returns nil if no language produces a match.
+//
+// Because Go does not support generic interface methods, this is a top-level function.
+func SelectClaimsByLanguage[T Claim](
+	claims Claims,
+	propIDs []identifier.Identifier,
+	language string,
+	selector func(claims []T) bool,
+	confidence Confidence,
+	languageCodes map[identifier.Identifier]string,
+	languagePriority map[string][]string,
+) []T {
+	claimsByLanguage := GetClaimsAndLanguageOfTypeWithConfidence[T](claims, propIDs, confidence, languageCodes, languagePriority)
+	chain := append([]string{language}, getFallbackLanguages(language, languagePriority)...)
+	for _, tryLang := range chain {
+		langClaims := claimsByLanguage[tryLang]
+		if langClaims == nil {
+			continue
+		}
+		if selector(langClaims) {
+			return langClaims
+		}
+	}
+	return nil
+}
+
 // Well-known IDs computed from the core namespace.
 //
 //nolint:gochecknoglobals
 var (
 	// coreNamespace must match core.Namespace. We cannot import core here due to import cycle.
 	coreNamespace     = "core.peerdb.org"
+	inLanguagePropID  = identifier.From(coreNamespace, "IN_LANGUAGE")
 	listPropID        = identifier.From(coreNamespace, "LIST")
 	orderInListPropID = identifier.From(coreNamespace, "ORDER_IN_LIST")
 )

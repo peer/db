@@ -803,18 +803,21 @@ export function getClaimsListsOfType<K extends ClaimTypeName>(
   return res
 }
 
-// Undetermined language code for claims without a specific language.
+// UNDETERMINED_LANGUAGE is the language code used for claims without a specific language.
 export const UNDETERMINED_LANGUAGE = "und"
 
 // extractClaimLanguages extracts language codes from a claim's meta IN_LANGUAGE references.
+//
+// It maps language document IDs to codes using languageCodes, and checks that the code
+// is a key in languagePriority (i.e., an enabled language).
+//
 // Returns [UNDETERMINED_LANGUAGE] if no languages are specified or none can be resolved.
 function extractClaimLanguages(meta: DeepReadonly<ClaimTypes> | undefined | null): string[] {
   const refs = getClaimsOfTypeWithConfidence(meta, "ref", IN_LANGUAGE)
-  const supportedLanguages = siteContext.languagePriority
   const codes: string[] = []
   for (const ref of refs) {
     const code = siteContext.languageCodes[ref.to.id]
-    if (code && code in supportedLanguages) {
+    if (code && code in siteContext.languagePriority) {
       codes.push(code)
     }
   }
@@ -833,25 +836,26 @@ export function getClaimsAndLanguageOfTypeWithConfidence<K extends ClaimTypeName
   propertyId: string | string[],
   confidence: Confidence = LowConfidence,
 ): Record<string, Required<DeepReadonly<ClaimTypes>>[K][number][]> {
-  const claims: Record<string, { confidence: number; value: Required<DeepReadonly<ClaimTypes>>[K][number] }[]> = {}
+  const grouped: Record<string, { confidence: number; value: Required<DeepReadonly<ClaimTypes>>[K][number] }[]> = {}
   for (const claim of getClaimsOfTypeWithConfidence(claimTypes, claimType, propertyId, confidence)) {
     for (const lang of extractClaimLanguages(claim.meta)) {
-      if (!claims[lang]) {
-        claims[lang] = []
+      if (!grouped[lang]) {
+        grouped[lang] = []
       }
-      claims[lang].push({ confidence: claim.confidence, value: claim })
+      grouped[lang].push({ confidence: claim.confidence, value: claim })
     }
   }
   const result: Record<string, Required<DeepReadonly<ClaimTypes>>[K][number][]> = {}
-  for (const lang in claims) {
+  for (const lang in grouped) {
     // Sort by decreasing confidence.
-    claims[lang].sort((a, b) => b.confidence - a.confidence)
-    result[lang] = claims[lang].map((c) => c.value)
+    grouped[lang].sort((a, b) => b.confidence - a.confidence)
+    result[lang] = grouped[lang].map((c) => c.value)
   }
   return result
 }
 
 // getFallbackLanguages returns the fallback language chain for a given language.
+//
 // If the language has an entry in languagePriority, that entry is used.
 // Otherwise, the fallback is the undetermined language (unless the language is itself undetermined).
 function getFallbackLanguages(lang: string): string[] {
@@ -859,12 +863,17 @@ function getFallbackLanguages(lang: string): string[] {
   if (fallbacks) {
     return fallbacks
   }
+  // Default: try undetermined language, unless lang is already undetermined.
   if (lang !== UNDETERMINED_LANGUAGE) {
     return [UNDETERMINED_LANGUAGE]
   }
   return []
 }
 
+// selectClaimsByLanguage selects claims of a given type for the specified property IDs,
+// filtered by minimum confidence, using the language fallback chain. It returns the
+// first set of claims (grouped by language) for which the selector returns true,
+// walking the language chain in order. Returns null if no language produces a match.
 export function selectClaimsByLanguage<K extends ClaimTypeName>(
   claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
   claimType: K,
@@ -873,10 +882,10 @@ export function selectClaimsByLanguage<K extends ClaimTypeName>(
   selector: (claims: Required<DeepReadonly<ClaimTypes>>[K][number][]) => boolean,
   confidence: Confidence = LowConfidence,
 ): Required<DeepReadonly<ClaimTypes>>[K][number][] | null {
-  const claimsWithLanguage = getClaimsAndLanguageOfTypeWithConfidence(claimTypes, claimType, propertyId, confidence)
+  const claimsByLanguage = getClaimsAndLanguageOfTypeWithConfidence(claimTypes, claimType, propertyId, confidence)
   const chain = [language, ...getFallbackLanguages(language)]
   for (const tryLang of chain) {
-    const claims = claimsWithLanguage[tryLang]
+    const claims = claimsByLanguage[tryLang]
     if (!claims) {
       continue
     }

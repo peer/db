@@ -2,7 +2,6 @@ package search
 
 import (
 	"bytes"
-	"cmp"
 	"context"
 	"math"
 	"slices"
@@ -19,8 +18,6 @@ import (
 	"gitlab.com/peerdb/peerdb/document"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
-
-const undeterminedLanguage = "und"
 
 // Well-known IDs computed from the core namespace.
 //
@@ -96,7 +93,7 @@ type Converter struct {
 	// (sub-properties of SUBENTITY_OF, excluding INSTANCE_OF and SUBPROPERTY_OF).
 	valueHierarchyProperties []identifier.Identifier
 	// namingProperties is the set of property IDs that are NAMING or sub-properties of NAMING.
-	namingProperties map[identifier.Identifier]bool
+	namingProperties []identifier.Identifier
 	// languageCodes maps language document ID to primary language subtag (e.g., "en").
 	languageCodes map[identifier.Identifier]string
 	// inverseProperties maps a property ID to all its inverse property IDs.
@@ -132,6 +129,20 @@ func NewConverter(
 	if errE != nil {
 		return nil, errE
 	}
+	// Ensure all supported languages are keys in languagePriority, matching the
+	// frontend pattern where languagePriority keys define the set of enabled
+	// languages. On the backend, we enable all supported languages.
+	// Languages without explicit fallbacks get default fallback behavior.
+	fullPriority := make(map[string][]string, len(SupportedLanguages))
+	for lang := range SupportedLanguages {
+		if fallbacks, ok := languagePriority[lang]; ok {
+			fullPriority[lang] = fallbacks
+		} else if lang != document.UndeterminedLanguage {
+			fullPriority[lang] = []string{document.UndeterminedLanguage}
+		} else {
+			fullPriority[lang] = nil
+		}
+	}
 	c := &Converter{
 		propertyDescendants:      nil,
 		propertyAncestors:        nil,
@@ -139,7 +150,7 @@ func NewConverter(
 		namingProperties:         nil,
 		inverseProperties:        nil,
 		languageCodes:            nil,
-		languagePriority:         languagePriority,
+		languagePriority:         fullPriority,
 		getDocument:              getDocument,
 		documentInfoCache:        make(map[identifier.Identifier]documentInfo),
 		documentInfoMu:           sync.RWMutex{},
@@ -173,24 +184,6 @@ func validateLanguagePriority(priority map[string][]string) errors.E {
 				return errE
 			}
 		}
-	}
-	return nil
-}
-
-// getFallbackLanguages returns the fallback language chain for a given language.
-// If the language has an entry in languagePriority, that entry is used.
-// If the language has no entry, the fallback is just the undetermined language
-// (unless the language is itself undetermined).
-func (c *Converter) getFallbackLanguages(lang string) []string {
-	if c.languagePriority != nil {
-		fallbacks, ok := c.languagePriority[lang]
-		if ok {
-			return fallbacks
-		}
-	}
-	// Default: try undetermined language, unless lang is already undetermined.
-	if lang != undeterminedLanguage {
-		return []string{undeterminedLanguage}
 	}
 	return nil
 }
@@ -294,10 +287,9 @@ func (c *Converter) discoverValueHierarchyProperties() {
 // buildNamingProperties computes the set of all properties that are
 // NAMING or transitive sub-properties of NAMING.
 func (c *Converter) buildNamingProperties() {
-	c.namingProperties = make(map[identifier.Identifier]bool)
-	c.namingProperties[namingPropID] = true
+	c.namingProperties = []identifier.Identifier{namingPropID}
 	for _, desc := range c.propertyDescendants[namingPropID] {
-		c.namingProperties[desc] = true
+		c.namingProperties = append(c.namingProperties, desc)
 	}
 }
 
@@ -388,15 +380,15 @@ func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Ident
 	var displayPaths map[identifier.Identifier]map[string][]string
 	idStr := id.String()
 	for _, hierProp := range c.valueHierarchyProperties {
-		rels := document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](doc, hierProp, document.LowConfidence)
-		if len(rels) == 0 {
+		refs := document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](doc, hierProp, document.LowConfidence)
+		if len(refs) == 0 {
 			continue
 		}
 		seen := map[identifier.Identifier]bool{id: true} // Exclude self to avoid duplicates.
 		var hierAncestors []identifier.Identifier
 		var hierIDPaths []string
 		hierDisplayPaths := map[string][]string{}
-		for _, rel := range rels {
+		for _, rel := range refs {
 			parentID := rel.To.ID
 			if seen[parentID] {
 				continue
@@ -533,22 +525,22 @@ func (c *Converter) makeDisplayStrings(ctx context.Context, doc *document.D) (di
 		}
 
 		// No template. Search naming strings in the fallback chain.
-		chain := append([]string{lang}, c.getFallbackLanguages(lang)...)
-		for _, tryLang := range chain {
-			strs := result.Naming[tryLang]
-			if len(strs) == 0 {
-				continue
-			}
-			str := sanitizeDisplayString(strs[0])
-			if str != "" {
-				// We do not store an empty string into the map. But we still read it out as
-				// an empty string when needed (reading a zero value from the map).
-				result.Display[lang] = str
-				// Here we are done only if we found a non-empty string.
-				// There should be no empty strings in Naming, and none with null bytes either.
+		// Both here and in namingProperties we traverse naming claims, so we traverse it twice, but we do that
+		// so that code here matches the implementation on the frontend and that it is easier to compare with it.
+		selected := document.SelectClaimsByLanguage[*document.StringClaim](
+			doc, c.namingProperties, lang,
+			func(claims []*document.StringClaim) bool {
+				// Here we want only a non-empty string (after sanitization).
 				// So if we got an empty string here, we ignore it and continue searching.
-				break
-			}
+				return len(claims) > 0 && sanitizeDisplayString(claims[0].String) != ""
+			},
+			document.LowConfidence, c.languageCodes, c.languagePriority,
+		)
+		if len(selected) > 0 {
+			// This cannot be an empty string here because we already checked for it above.
+			// We do not store an empty string into the map. But we still read it out as
+			// an empty string when needed (reading a zero value from the map).
+			result.Display[lang] = sanitizeDisplayString(selected[0].String)
 		}
 	}
 
@@ -635,20 +627,16 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 			if doc == nil {
 				return "", nil
 			}
-			claims := document.GetClaimsOfTypeWithConfidence[*document.StringClaim](doc, propID, document.LowConfidence)
-			// First pass: look for the requested language.
-			for _, sc := range claims {
-				if slices.Contains(c.extractInLanguages(sc.Meta), lang) {
-					return sc.String, nil
-				}
-			}
-			// Fallback passes using language priority chain.
-			for _, fb := range c.getFallbackLanguages(lang) {
-				for _, sc := range claims {
-					if slices.Contains(c.extractInLanguages(sc.Meta), fb) {
-						return sc.String, nil
-					}
-				}
+			selected := document.SelectClaimsByLanguage[*document.StringClaim](
+				doc, []identifier.Identifier{propID}, lang,
+				func(claims []*document.StringClaim) bool {
+					// Here we are fine with empty strings.
+					return len(claims) > 0
+				},
+				document.LowConfidence, c.languageCodes, c.languagePriority,
+			)
+			if len(selected) > 0 {
+				return selected[0].String, nil
 			}
 			return "", nil
 		},
@@ -707,45 +695,39 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 // It collects string claims whose property is NAMING or any sub-property of NAMING
 // (NAME, SHORT_NAME, ALTERNATIVE_NAME, TITLE, CODE, MNEMONIC, etc.).
 func (c *Converter) namingStrings(doc *document.D) map[string][]string {
-	claims := make(map[string][]*document.StringClaim)
-	for propID := range c.namingProperties {
-		for _, sc := range document.GetClaimsOfTypeWithConfidence[*document.StringClaim](doc, propID, document.LowConfidence) {
-			for _, lang := range c.extractInLanguages(sc.Meta) {
-				claims[lang] = append(claims[lang], sc)
-			}
-		}
-	}
-	if len(claims) == 0 {
+	claimsByLang := document.GetClaimsAndLanguageOfTypeWithConfidence[*document.StringClaim](
+		doc, c.namingProperties, document.LowConfidence, c.languageCodes, c.languagePriority,
+	)
+	if len(claimsByLang) == 0 {
 		return nil
 	}
-	result := make(map[string][]string)
-	for lang := range claims {
-		slices.SortFunc(claims[lang], func(a, b *document.StringClaim) int {
-			// Reverse order: higher confidence first.
-			return cmp.Compare(b.GetConfidence(), a.GetConfidence())
-		})
-		result[lang] = make([]string, 0, len(claims[lang]))
-		for _, sc := range claims[lang] {
+	result := make(map[string][]string, len(claimsByLang))
+	for lang, claims := range claimsByLang {
+		result[lang] = make([]string, 0, len(claims))
+		for _, sc := range claims {
 			result[lang] = append(result[lang], sc.String)
 		}
 	}
 	return result
 }
 
-// extractInLanguages extracts language codes from a claim's meta IN_LANGUAGE references.
+// extractInLanguages extracts language codes from a claim's IN_LANGUAGE meta references.
 // A claim can be in multiple languages, so all matching codes are returned.
 // Returns ["und"] if no languages are specified or none can be resolved to
 // supported languages.
-func (c *Converter) extractInLanguages(meta *document.ClaimTypes) []string {
-	rels := document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](meta, inLanguagePropID, document.LowConfidence)
+func (c *Converter) extractInLanguages(claims document.Claims) []string {
+	if claims == nil {
+		return []string{document.UndeterminedLanguage}
+	}
+	refs := document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](claims, inLanguagePropID, document.LowConfidence)
 	var codes []string
-	for _, rel := range rels {
+	for _, rel := range refs {
 		if code, ok := c.languageCodes[rel.To.ID]; ok && SupportedLanguages[code] {
 			codes = append(codes, code)
 		}
 	}
 	if len(codes) == 0 {
-		return []string{undeterminedLanguage}
+		return []string{document.UndeterminedLanguage}
 	}
 	return codes
 }
