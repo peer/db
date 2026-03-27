@@ -704,8 +704,10 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	require.NoError(t, err)
 
 	// Both documents should be in ES.
-	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, docA.String()), "docA should exist in ES")
-	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, docB.String()), "docB should exist in ES")
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		assert.True(c, testutils.DocExists(ctx, t, esClient, b.Index, docA.String()), "docA should exist in ES")
+		assert.True(c, testutils.DocExists(ctx, t, esClient, b.Index, docB.String()), "docB should exist in ES")
+	}, 30*time.Second, 100*time.Millisecond)
 
 	// Add a relation from docA to docB via edit session.
 	session, versionA, errE := b.BeginEditDocumentLatest(ctx, docA)
