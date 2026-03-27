@@ -16,10 +16,12 @@ const (
 	DefaultProxyTo = "http://localhost:5173"
 	// DefaultElastic is the default Elasticsearch URL.
 	DefaultElastic = "http://127.0.0.1:9200"
-	// DefaultIndex is the default Elasticsearch index name.
-	DefaultIndex = "peerdb"
 	// DefaultSchema is the default database schema name.
 	DefaultSchema = "peerdb"
+	// DefaultIndex is the default Elasticsearch index name.
+	DefaultIndex = "peerdb"
+	// DefaultShards is the default number of Elasticsearch shards.
+	DefaultShards = "10"
 	// DefaultTitle is the default application title.
 	DefaultTitle = "PeerDB"
 )
@@ -33,9 +35,12 @@ type PostgresConfig struct {
 }
 
 // ElasticConfig contains configuration for ElasticSearch connection.
+//
+
 type ElasticConfig struct {
-	URL   string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance."                                placeholder:"URL"  short:"e" yaml:"elastic"`
-	Index string `default:"${defaultIndex}"   help:"Name of ElasticSearch index to use when sites are not configured." placeholder:"NAME"           yaml:"index"`
+	URL    string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance."                                placeholder:"URL"  short:"e" yaml:"elastic"`
+	Index  string `default:"${defaultIndex}"   help:"Name of ElasticSearch index to use when sites are not configured." placeholder:"NAME"           yaml:"index"`
+	Shards int    `default:"${defaultShards}"  help:"Number of ElasticSearch shards when initializing indices."         placeholder:"NUM"            yaml:"shards"`
 }
 
 // Globals describes top-level (global) flags.

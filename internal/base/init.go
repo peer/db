@@ -19,9 +19,9 @@ import (
 // InitAndStartComponents initializes and starts Base components.
 func InitAndStartComponents(
 	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elasticsearch.TypedClient,
-	schema, index string, languagePriority map[string][]string,
+	schema, index string, shards int, languagePriority map[string][]string,
 ) (*base.B, *river.Client[pgx.Tx], func(), errors.E) {
-	errE := internalSearch.EnsureIndex(ctx, esClient, index)
+	errE := internalSearch.EnsureIndex(ctx, esClient, index, shards)
 	if errE != nil {
 		return nil, nil, nil, errE
 	}

@@ -20,6 +20,7 @@ func main() {
 		"defaultElastic":      peerdb.DefaultElastic,
 		"defaultSchema":       peerdb.DefaultSchema,
 		"defaultIndex":        peerdb.DefaultIndex,
+		"defaultShards":       peerdb.DefaultShards,
 		"defaultTitle":        peerdb.DefaultTitle,
 		"developmentModeHelp": peerdb.DevelopmentModeHelp,
 	}, func(ctx *kong.Context) errors.E {

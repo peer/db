@@ -65,7 +65,7 @@ func initBaseInfra(t *testing.T, languagePriority map[string][]string) (context.
 		require.NoError(t, err)
 	})
 
-	b, _, onShutdown, errE := internalBase.InitAndStartComponents(ctx, logger, dbpool, esClient, schema, index, languagePriority)
+	b, _, onShutdown, errE := internalBase.InitAndStartComponents(ctx, logger, dbpool, esClient, schema, index, 1, languagePriority)
 	t.Cleanup(onShutdown)
 	require.NoError(t, errE, "% -+#.1v", errE)
 

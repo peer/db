@@ -18,7 +18,7 @@ import (
 //
 // It can be called multiple times. In that case it will not initialize again if
 // the site has already been initialized.
-func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elasticsearch.TypedClient) (func(), errors.E) {
+func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elasticsearch.TypedClient, shards int) (func(), errors.E) {
 	if s.initialized {
 		return nil, nil //nolint:nilnil
 	}
@@ -27,7 +27,7 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 	ctx = WithFallbackDBContext(ctx, s.Schema, "init")
 	ctx = logger.With().Str("schema", s.Schema).Str("index", s.Index).Logger().WithContext(ctx)
 
-	b, riverClient, onShutdown, errE := internalBase.InitAndStartComponents(ctx, logger, dbpool, esClient, s.Schema, s.Index, s.LanguagePriority)
+	b, riverClient, onShutdown, errE := internalBase.InitAndStartComponents(ctx, logger, dbpool, esClient, s.Schema, s.Index, shards, s.LanguagePriority)
 	if errE != nil {
 		return onShutdown, errE
 	}
@@ -106,7 +106,7 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 	for i := range globals.Sites {
 		site := &globals.Sites[i]
 
-		onS, errE := site.init(ctx, globals.Logger, dbpool, esClient)
+		onS, errE := site.init(ctx, globals.Logger, dbpool, esClient, globals.Elastic.Shards)
 		// We want existing onShutdown functions (e.g., dbpool.Close) to be last.
 		if onS != nil {
 			onShutdown = append([]func(){onS}, onShutdown...)

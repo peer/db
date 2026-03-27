@@ -106,7 +106,7 @@ func initBridge(t *testing.T) (
 		require.NoError(t, err)
 	})
 
-	errE = internalSearch.EnsureIndex(ctx, esClient, index)
+	errE = internalSearch.EnsureIndex(ctx, esClient, index, 1)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
