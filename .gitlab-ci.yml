@@ -76,6 +76,7 @@ test_go:
     - make test-ci
 
   after_script:
+    # TODO: This does not really work. We should move services inside a DinD and add docker binary here.
     - docker cp elasticsearch:/usr/share/elasticsearch/logs elasticsearch-logs
     - docker cp postgres:/var/log/postgresql postgresql-logs
 
