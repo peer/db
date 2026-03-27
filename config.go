@@ -35,8 +35,6 @@ type PostgresConfig struct {
 }
 
 // ElasticConfig contains configuration for ElasticSearch connection.
-//
-
 type ElasticConfig struct {
 	URL    string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance."                                placeholder:"URL"  short:"e" yaml:"elastic"`
 	Index  string `default:"${defaultIndex}"   help:"Name of ElasticSearch index to use when sites are not configured." placeholder:"NAME"           yaml:"index"`
