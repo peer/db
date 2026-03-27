@@ -142,6 +142,7 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 		Str("serverEncoding", conn.PgConn().ParameterStatus("server_encoding")).
 		Str("clientEncoding", conn.PgConn().ParameterStatus("client_encoding")).
 		Str("sessionAuthorization", conn.PgConn().ParameterStatus("session_authorization")).
+		Int32("maxConnections", dbconfig.MaxConns).
 		Msg("database connection successful")
 
 	dbconfig.PrepareConn = func(ctx context.Context, conn *pgx.Conn) (bool, error) {
