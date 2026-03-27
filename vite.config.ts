@@ -61,6 +61,7 @@ export default defineConfig({
     emptyOutDir: false,
   },
   test: {
+    setupFiles: ["src/test-setup.ts"],
     coverage: {
       include: ["src/**/*.{ts,vue}"],
       exclude: ["**/*.d.ts"],

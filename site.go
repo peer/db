@@ -42,8 +42,8 @@ type Site struct {
 
 	Build *Build `json:"build,omitempty" yaml:"-"`
 
-	Index  string `json:"index,omitempty"  yaml:"index,omitempty"`
-	Schema string `json:"schema,omitempty" yaml:"schema,omitempty"`
+	Index  string `json:"-"  yaml:"index,omitempty"`
+	Schema string `json:"-" yaml:"schema,omitempty"`
 	Title  string `json:"title,omitempty"  yaml:"title,omitempty"`
 
 	LanguagePriority map[string][]string              `json:"languagePriority,omitempty" yaml:"languagePriority,omitempty"`

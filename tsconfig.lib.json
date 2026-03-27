@@ -7,6 +7,6 @@
     "outDir": "lib",
     "rootDir": "src"
   },
-  "exclude": ["**/*.test.ts"],
+  "exclude": ["**/*.test.ts", "src/test-setup.ts", "src/__mocks__"],
   "extends": "./tsconfig.json"
 }

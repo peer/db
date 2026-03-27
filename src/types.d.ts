@@ -158,7 +158,6 @@ export type SiteContext = {
     buildTimestamp?: string
     revision?: string
   }
-  index: string
   title: string
   languagePriority: {
     [language: string]: string[]

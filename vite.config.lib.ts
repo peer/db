@@ -14,7 +14,7 @@ const peerDependencies = Object.keys(packageJson.default.peerDependencies || {})
 
 const entries = await Promise.all([glob("src/**/*.vue", { cwd: __dirname }), glob("src/**/*.ts", { cwd: __dirname })]).then(([vueFiles, tsFiles]) =>
   [...vueFiles, ...tsFiles]
-    .filter((file) => !file.includes(".test.") && !file.endsWith(".d.ts") && !file.endsWith(".css"))
+    .filter((file) => !file.includes(".test.") && !file.endsWith(".d.ts") && !file.endsWith(".css") && file !== "src/test-setup.ts" && !file.startWith("src/__mocks__"))
     .reduce(
       (acc, file) => {
         // Strip .ts and .vue extensions from the filename.
