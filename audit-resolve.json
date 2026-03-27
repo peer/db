@@ -19,6 +19,14 @@
     "1115493|picomatch": {
       "decision": "ignore",
       "madeAt": 1774614981275
+    },
+    "1115549|picomatch": {
+      "decision": "ignore",
+      "madeAt": 1774652084159
+    },
+    "1115552|picomatch": {
+      "decision": "ignore",
+      "madeAt": 1774652087040
     }
   },
   "rules": {},
