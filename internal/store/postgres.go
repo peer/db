@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -14,6 +15,7 @@ import (
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
+	"golang.org/x/sync/semaphore"
 )
 
 const (
@@ -21,6 +23,18 @@ const (
 	statementTimeout                = 10 * time.Second
 
 	initialApplicationName = "peerdb"
+)
+
+var (
+	// connectionsCountMap is a map of a system identifier to a semaphore tracking number
+	// of reserved connections across all pools against a particular system.
+	connectionsCountMap = map[string]*semaphore.Weighted{}
+	// maxConnectionsMap is a map of a system identifier to the maximum number of
+	// connections for the system. This allows us to query this information only once
+	// per system. It assumes the number of connections does not change during the lifetime
+	// of this process (which maybe is not true, but in that case one should restart the process).
+	maxConnectionsMap = map[string]int32{}
+	connectionsMu     sync.RWMutex
 )
 
 // Standard error codes.
@@ -43,6 +57,38 @@ var noticeSeverityToLogLevel = map[string]zerolog.Level{ //nolint:gochecknogloba
 	"INFO":    zerolog.InfoLevel,
 	"NOTICE":  zerolog.InfoLevel,
 	"WARNING": zerolog.WarnLevel,
+}
+
+func getMaxConnections(systemIdentifier string) (int32, *semaphore.Weighted) {
+	connectionsMu.RLock()
+	defer connectionsMu.RUnlock()
+
+	maxConnections, ok := maxConnectionsMap[systemIdentifier]
+	if !ok {
+		return 0, nil
+	}
+	return maxConnections, connectionsCountMap[systemIdentifier]
+}
+
+func setMaxConnections(systemIdentifier string, maxConnections int32) *semaphore.Weighted {
+	connectionsMu.Lock()
+	defer connectionsMu.Unlock()
+
+	existingMaxConnections, ok := maxConnectionsMap[systemIdentifier]
+	if ok {
+		if existingMaxConnections != maxConnections {
+			errE := errors.New("max connections is inconsistent")
+			errors.Details(errE)["existing"] = existingMaxConnections
+			errors.Details(errE)["new"] = maxConnections
+			errors.Details(errE)["systemIdentifier"] = systemIdentifier
+			panic(errE)
+		}
+		return connectionsCountMap[systemIdentifier]
+	}
+
+	connectionsCountMap[systemIdentifier] = semaphore.NewWeighted(int64(maxConnections))
+	maxConnectionsMap[systemIdentifier] = maxConnections
+	return connectionsCountMap[systemIdentifier]
 }
 
 // InitPostgres initializes and configures a PostgreSQL connection pool with the specified settings.
@@ -100,10 +146,14 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 	}
 	defer conn.Close(ctx) //nolint:errcheck
 
-	// Allow overriding the maximum number of pool connections via context.
-	if maxConns, _ := ctx.Value(maxDBPoolConnectionsContextKey).(int32); maxConns > 0 {
-		dbconfig.MaxConns = maxConns
-	} else {
+	var systemIdentifier string
+	err = conn.QueryRow(ctx, `SELECT system_identifier FROM pg_control_system()`).Scan(&systemIdentifier)
+	if err != nil {
+		return nil, WithPgxError(err)
+	}
+
+	maxConnectionsTotal, connectionsCount := getMaxConnections(systemIdentifier)
+	if maxConnectionsTotal == 0 {
 		var maxConnectionsStr string
 		err = conn.QueryRow(ctx, `SHOW max_connections`).Scan(&maxConnectionsStr)
 		if err != nil {
@@ -134,8 +184,27 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 			return nil, errors.WithStack(err)
 		}
 
-		dbconfig.MaxConns = int32(maxConnections - reservedConnections - superuserReservedConnections) //nolint:gosec
+		maxConnectionsTotal = int32(maxConnections - reservedConnections - superuserReservedConnections) //nolint:gosec
+		connectionsCount = setMaxConnections(systemIdentifier, maxConnectionsTotal)
 	}
+
+	// Allow overriding the maximum number of pool connections via context.
+	if maxConns, _ := ctx.Value(maxDBPoolConnectionsContextKey).(int32); maxConns > 0 {
+		dbconfig.MaxConns = maxConns
+	} else {
+		dbconfig.MaxConns = maxConnectionsTotal
+	}
+
+	err = connectionsCount.Acquire(ctx, int64(dbconfig.MaxConns))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	connectionsPendingRelease := true
+	defer func() {
+		if connectionsPendingRelease {
+			connectionsCount.Release(int64(dbconfig.MaxConns))
+		}
+	}()
 
 	logger.Info().
 		Str("serverVersion", conn.PgConn().ParameterStatus("server_version")).
@@ -187,6 +256,10 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 		return nil, errors.WithStack(err)
 	}
 	context.AfterFunc(ctx, dbpool.Close)
+	context.AfterFunc(ctx, func() {
+		connectionsCount.Release(int64(dbconfig.MaxConns))
+	})
+	connectionsPendingRelease = false
 
 	return dbpool, nil
 }
