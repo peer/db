@@ -101,10 +101,14 @@ func setMaxConnections(systemIdentifier string, maxConnections int32) *semaphore
 }
 
 // InitPostgres initializes and configures a PostgreSQL connection pool with the specified settings.
-func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger, getRequest func(context.Context) (string, string)) (*pgxpool.Pool, errors.E) {
+//
+// It returns the pool and a cleanup function that closes the pool and releases the reserved connections.
+// The caller must call the cleanup function when the pool is no longer needed.
+// Do not call just dbpool.Close.
+func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger, getRequest func(context.Context) (string, string)) (*pgxpool.Pool, func(), errors.E) {
 	dbconfig, err := pgxpool.ParseConfig(strings.TrimSpace(databaseURI))
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, nil, errors.WithStack(err)
 	}
 
 	dbconfig.ConnConfig.OnNotice = func(conn *pgconn.PgConn, notice *pgconn.Notice) {
@@ -151,7 +155,7 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 
 	conn, err := pgx.ConnectConfig(ctx, dbconfig.ConnConfig)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, nil, errors.WithStack(err)
 	}
 	defer conn.Close(ctx) //nolint:errcheck
 
@@ -161,7 +165,7 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 	var systemIdentifier string
 	err = conn.QueryRow(ctx, `SELECT system_identifier FROM pg_control_system()`).Scan(&systemIdentifier)
 	if err != nil {
-		return nil, WithPgxError(err)
+		return nil, nil, WithPgxError(err)
 	}
 
 	maxConnectionsTotal, connectionsCount := getMaxConnections(systemIdentifier)
@@ -169,31 +173,31 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 		var maxConnectionsStr string
 		err = conn.QueryRow(ctx, `SHOW max_connections`).Scan(&maxConnectionsStr)
 		if err != nil {
-			return nil, WithPgxError(err)
+			return nil, nil, WithPgxError(err)
 		}
 		maxConnections, err := strconv.Atoi(maxConnectionsStr)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, nil, errors.WithStack(err)
 		}
 
 		var reservedConnectionsStr string
 		err = conn.QueryRow(ctx, `SHOW reserved_connections`).Scan(&reservedConnectionsStr)
 		if err != nil {
-			return nil, WithPgxError(err)
+			return nil, nil, WithPgxError(err)
 		}
 		reservedConnections, err := strconv.Atoi(reservedConnectionsStr)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, nil, errors.WithStack(err)
 		}
 
 		var superuserReservedConnectionsStr string
 		err = conn.QueryRow(ctx, `SHOW superuser_reserved_connections`).Scan(&superuserReservedConnectionsStr)
 		if err != nil {
-			return nil, WithPgxError(err)
+			return nil, nil, WithPgxError(err)
 		}
 		superuserReservedConnections, err := strconv.Atoi(superuserReservedConnectionsStr)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, nil, errors.WithStack(err)
 		}
 
 		maxConnectionsTotal = int32(maxConnections - reservedConnections - superuserReservedConnections) //nolint:gosec
@@ -209,7 +213,7 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 
 	err = connectionsCount.Acquire(ctx, int64(dbconfig.MaxConns))
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, nil, errors.WithStack(err)
 	}
 	connectionsPendingRelease := true
 	defer func() {
@@ -269,15 +273,16 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 
 	dbpool, err := pgxpool.NewWithConfig(ctx, dbconfig)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, nil, errors.WithStack(err)
 	}
-	context.AfterFunc(ctx, dbpool.Close)
-	context.AfterFunc(ctx, func() {
+
+	cleanup := func() {
+		dbpool.Close()
 		connectionsCount.Release(int64(dbconfig.MaxConns))
-	})
+	}
 	connectionsPendingRelease = false
 
-	return dbpool, nil
+	return dbpool, cleanup, nil
 }
 
 // EnsureSchema creates a database schema if it doesn't exist, ignoring duplicate errors.

@@ -79,9 +79,10 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 	// Initialize for the first time.
 	if dbpool == nil {
 		var errE errors.E
+		var dbpoolCleanup func()
 		// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
 		// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
-		dbpool, errE = internalStore.InitPostgres(
+		dbpool, dbpoolCleanup, errE = internalStore.InitPostgres(
 			context.WithoutCancel(ctx),
 			string(globals.Postgres.URL),
 			globals.Logger,
@@ -90,8 +91,8 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 		if errE != nil {
 			return nil, errE
 		}
-		// We want dbpool.Close to be last.
-		onShutdown = append(onShutdown, dbpool.Close)
+		// We want dbpoolCleanup to be last.
+		onShutdown = append(onShutdown, dbpoolCleanup)
 	}
 
 	// Initialize for the first time.

@@ -92,11 +92,11 @@ func initBridge(t *testing.T) (
 	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
 	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
 	dbCtx := internalStore.WithMaxDBPoolConnections(context.WithoutCancel(ctx), internalStore.TestMaxDBPoolConnections)
-	dbpool, errE := internalStore.InitPostgres(dbCtx, os.Getenv("POSTGRES"), logger, func(_ context.Context) (string, string) {
+	dbpool, dbpoolCleanup, errE := internalStore.InitPostgres(dbCtx, os.Getenv("POSTGRES"), logger, func(_ context.Context) (string, string) {
 		return schema, "tests"
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
-	t.Cleanup(dbpool.Close)
+	t.Cleanup(dbpoolCleanup)
 
 	esClient, errE := internalSearch.GetClient(cleanhttp.DefaultPooledClient(), logger, os.Getenv("ELASTIC"))
 	require.NoError(t, errE, "% -+#.1v", errE)

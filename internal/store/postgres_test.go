@@ -35,11 +35,11 @@ func initTestPool(t *testing.T) (context.Context, *pgxpool.Pool) {
 	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
 	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
 	dbCtx := internalStore.WithMaxDBPoolConnections(context.WithoutCancel(ctx), internalStore.TestMaxDBPoolConnections)
-	dbpool, errE := internalStore.InitPostgres(dbCtx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
+	dbpool, dbpoolCleanup, errE := internalStore.InitPostgres(dbCtx, os.Getenv("POSTGRES"), logger, func(context.Context) (string, string) {
 		return schema, "tests"
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
-	t.Cleanup(dbpool.Close)
+	t.Cleanup(dbpoolCleanup)
 
 	errE = internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		return internalStore.EnsureSchema(ctx, tx, schema)
@@ -65,7 +65,7 @@ func TestInitPostgresInvalidURI(t *testing.T) {
 	t.Parallel()
 
 	logger := zerolog.New(zerolog.NewTestWriter(t))
-	_, errE := internalStore.InitPostgres(t.Context(), "not a valid uri %%%", logger, func(context.Context) (string, string) {
+	_, _, errE := internalStore.InitPostgres(t.Context(), "not a valid uri %%%", logger, func(context.Context) (string, string) {
 		return "test", "test"
 	})
 	assert.EqualError(t, errE, "cannot parse `not a valid uri %%%`: failed to parse as keyword/value (invalid keyword/value)")
