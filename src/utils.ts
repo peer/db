@@ -9,7 +9,7 @@ import { onBeforeUnmount, onMounted, readonly, ref, toRaw, watch, watchEffect } 
 
 import { NAME, TITLE } from "@/core"
 import { fromDate, hour, minute, second, toDate } from "@/time"
-import { selectClaimsByCurrentLanguage } from "./document/claims"
+import { selectClaimsByLanguage } from "./document/claims"
 
 // If the last increase would be equal or less than this number, just skip to the end.
 const SKIP_TO_END = 2
@@ -101,14 +101,14 @@ const NAMING_PROPERTIES = [NAME, TITLE]
 // getDisplayLabel returns the display label for a document's claims, using the
 // current locale and language fallback chain. This matches how makeDisplayStrings
 // (without template) works in the backend.
-export function getDisplayLabel(claimTypes: DeepReadonly<ClaimTypes> | undefined | null): string | null {
-  const claim = selectClaimsByCurrentLanguage(claimTypes, "string", NAMING_PROPERTIES, (claims) => {
+export function getDisplayLabel(claimTypes: DeepReadonly<ClaimTypes> | undefined | null, language: string): string | null {
+  const claim = selectClaimsByLanguage(claimTypes, "string", NAMING_PROPERTIES, language, (claims) => {
     if (claims.length > 0 && claims[0].string) {
-      return claims[0]
+      return true
     }
-    return null
+    return false
   })
-  return claim?.string ?? null
+  return claim?.[0].string ?? null
 }
 
 export function useLimitResults<T>(

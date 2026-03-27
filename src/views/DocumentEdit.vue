@@ -53,7 +53,7 @@ const claimTo = ref("")
 const claimToAmountPrecision = ref("")
 const claimToTimePrecision = ref<TimePrecision>("y")
 
-const { t } = useI18n()
+const { t, locale } = useI18n({ useScope: "global" })
 const router = useRouter()
 
 const saveProgress = injectProgress()
@@ -147,6 +147,7 @@ async function loadAndSubscribe() {
             return
           }
           const change = changeFrom(changeDoc)
+          // eslint-disable-next-line
           await change.Apply(_doc.value!)
         }
       } finally {
@@ -169,7 +170,7 @@ loadAndSubscribe().catch((error) => {
   console.error("loadAndSubscribe", error)
 })
 
-const docName = computed(() => getDisplayLabel(doc.value?.claims))
+const docName = computed(() => getDisplayLabel(doc.value?.claims, locale.value))
 
 async function onSave() {
   if (abortController.signal.aborted) {

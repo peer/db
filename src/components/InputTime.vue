@@ -338,7 +338,7 @@ defineOptions({
   inheritAttrs: false,
 })
 
-const { t } = useI18n()
+const { t } = useI18n({ useScope: "global" })
 
 const abortController = new AbortController()
 

@@ -35,7 +35,7 @@ const $emit = defineEmits<{
   viewChange: [value: ViewType]
 }>()
 
-const { t } = useI18n()
+const { t } = useI18n({ useScope: "global" })
 
 const SEARCH_INITIAL_LIMIT = 50
 const SEARCH_INCREASE = 50

@@ -17,12 +17,12 @@ defineProps<{
   result: Result
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n({ useScope: "global" })
 
 const WithDocumentD = WithDocument<D>
 const withDocument = ref<ComponentExposed<typeof WithDocumentD> | null>(null)
 
-const docName = computed(() => getDisplayLabel(withDocument.value?.doc?.claims))
+const docName = computed(() => getDisplayLabel(withDocument.value?.doc?.claims, locale.value))
 // TODO: Do not hard-code properties?
 const description = computed(() => {
   return getBestClaimOfType(withDocument.value?.doc?.claims, "html", DESCRIPTION)?.html || ""
@@ -96,7 +96,7 @@ const rowSpan = computed(() => {
                   <li
                     class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs"
                     :data-url="url"
-                    v-html="getDisplayLabel(doc.claims) || `<i>${t('common.values.noName')}</i>`"
+                    v-html="getDisplayLabel(doc.claims, locale) || `<i>${t('common.values.noName')}</i>`"
                   ></li>
                 </template>
                 <template #loading="{ url }">

@@ -15,7 +15,7 @@ defineOptions({
   inheritAttrs: false,
 })
 
-const { t } = useI18n()
+const { t, locale } = useI18n({ useScope: "global" })
 
 const WithDocumentD = WithDocument<D>
 </script>
@@ -28,7 +28,7 @@ const WithDocumentD = WithDocument<D>
         :data-url="url"
         v-bind="$attrs"
         class="link"
-        v-html="getDisplayLabel(doc.claims) || `<i>${t('common.values.noName')}</i>`"
+        v-html="getDisplayLabel(doc.claims, locale) || `<i>${t('common.values.noName')}</i>`"
       />
     </template>
     <template #loading="{ url }">

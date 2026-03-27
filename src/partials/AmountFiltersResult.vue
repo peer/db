@@ -26,7 +26,7 @@ const emit = defineEmits<{
   "update:state": [state: AmountFilterState]
 }>()
 
-const { t } = useI18n()
+const { t } = useI18n({ useScope: "global" })
 
 const el = useTemplateRef<HTMLElement>("el")
 

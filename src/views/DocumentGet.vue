@@ -27,7 +27,7 @@ const props = defineProps<{
   id: string
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n({ useScope: "global" })
 const route = useRoute()
 const router = useRouter()
 
@@ -110,7 +110,7 @@ function afterClick() {
   document.getElementById("search-input-text")?.focus()
 }
 
-const docName = computed(() => getDisplayLabel(withDocument.value?.doc?.claims))
+const docName = computed(() => getDisplayLabel(withDocument.value?.doc?.claims, locale.value))
 
 async function onEdit() {
   if (abortController.signal.aborted) {

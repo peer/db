@@ -42,7 +42,7 @@ const $emit = defineEmits<{
   viewChange: [value: ViewType]
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n({ useScope: "global" })
 
 const SEARCH_INITIAL_LIMIT = 100
 const SEARCH_INCREASE = 100
@@ -295,7 +295,7 @@ function onCloseFilterModal() {
                       @click.prevent="onOpenFilterModal(filter)"
                     >
                       <!-- We need a span to be able to use v-html. -->
-                      <span class="truncate" v-html="getDisplayLabel(doc.claims) || `<i>${t('common.values.noName')}</i>`" />
+                      <span class="truncate" v-html="getDisplayLabel(doc.claims, locale) || `<i>${t('common.values.noName')}</i>`" />
                       <FunnelIcon class="size-5" :class="isFilterActive(filter) ? '' : 'text-primary-300'" />
                     </Button>
                   </template>

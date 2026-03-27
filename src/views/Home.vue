@@ -10,7 +10,7 @@ import Footer from "@/partials/Footer.vue"
 import { injectProgress } from "@/progress"
 import { createSearchSession } from "@/search"
 
-const { t } = useI18n()
+const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
 const progress = injectProgress()

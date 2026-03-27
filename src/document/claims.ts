@@ -3,8 +3,6 @@ import type { DeepReadonly } from "vue"
 import type { Amount, Confidence, Reference, TimePrecision, Timestamp } from "@/document/types"
 import type { Constructee, Constructor, Required } from "@/types"
 
-import { i18n } from "@/i18n"
-
 import siteContext from "@/context"
 import { IN_LANGUAGE, LIST, ORDER_IN_LIST } from "@/core"
 import { LowConfidence } from "@/document/confidence"
@@ -867,24 +865,23 @@ function getFallbackLanguages(lang: string): string[] {
   return []
 }
 
-export function selectClaimsByCurrentLanguage<K extends ClaimTypeName>(
+export function selectClaimsByLanguage<K extends ClaimTypeName>(
   claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
   claimType: K,
   propertyId: string | string[],
-  selector: (claims: Required<DeepReadonly<ClaimTypes>>[K][number][]) => Required<DeepReadonly<ClaimTypes>>[K][number] | null,
+  language: string,
+  selector: (claims: Required<DeepReadonly<ClaimTypes>>[K][number][]) => boolean,
   confidence: Confidence = LowConfidence,
-): Required<DeepReadonly<ClaimTypes>>[K][number] | null {
+): Required<DeepReadonly<ClaimTypes>>[K][number][] | null {
   const claimsWithLanguage = getClaimsAndLanguageOfTypeWithConfidence(claimTypes, claimType, propertyId, confidence)
-  const lang = i18n.global.locale.value
-  const chain = [lang, ...getFallbackLanguages(lang)]
+  const chain = [language, ...getFallbackLanguages(language)]
   for (const tryLang of chain) {
     const claims = claimsWithLanguage[tryLang]
     if (!claims) {
       continue
     }
-    const claim = selector(claims)
-    if (claim) {
-      return claim
+    if (selector(claims)) {
+      return claims
     }
   }
   return null

@@ -28,7 +28,7 @@ const $emit = defineEmits<{
   queryChange: [change: string]
 }>()
 
-const { t } = useI18n()
+const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
 const progress = injectProgress()
