@@ -25,6 +25,7 @@ const (
 	initialApplicationName = "peerdb"
 )
 
+//nolint:gochecknoglobals
 var (
 	// connectionsCountMap is a map of a system identifier to a semaphore tracking number
 	// of reserved connections across all pools against a particular system.
