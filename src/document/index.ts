@@ -24,13 +24,16 @@ export {
   StringClaim,
   TimeClaim,
   TimeIntervalClaim,
+  UNDETERMINED_LANGUAGE,
   UnknownClaim,
   getAllClaimsOfType,
   getAllClaimsOfTypeWithConfidence,
   getBestClaimOfType,
+  getClaimsAndLanguageOfTypeWithConfidence,
   getClaimsListsOfType,
   getClaimsOfType,
   getClaimsOfTypeWithConfidence,
+  selectClaimsByLanguage,
 } from "@/document/claims"
 export type { Claim, ClaimForType, ClaimTypeName, Claims, ClaimsContainer } from "@/document/claims"
 
