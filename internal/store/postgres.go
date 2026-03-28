@@ -208,7 +208,18 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 	if maxConns, _ := ctx.Value(maxDBPoolConnectionsContextKey).(int32); maxConns > 0 {
 		dbconfig.MaxConns = maxConns
 	} else {
-		dbconfig.MaxConns = maxConnectionsTotal
+		// We use maxConnectionsTotal minus reservedConnections because the semaphore
+		// capacity is reduced by reservedConnections to keep some connection slots
+		// available for system connections and others.
+		dbconfig.MaxConns = maxConnectionsTotal - reservedConnections
+	}
+
+	// Less than 5 connections is not useful.
+	if dbconfig.MaxConns < 5 || dbconfig.MaxConns > maxConnectionsTotal-reservedConnections {
+		errE := errors.New("invalid max connections")
+		errors.Details(errE)["maxConnections"] = dbconfig.MaxConns
+		errors.Details(errE)["maxConnectionsTotal"] = maxConnectionsTotal
+		return nil, nil, errE
 	}
 
 	err = connectionsCount.Acquire(ctx, int64(dbconfig.MaxConns))
