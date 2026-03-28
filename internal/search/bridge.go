@@ -36,6 +36,7 @@ type bulkError struct {
 }
 
 type bridgeJob interface {
+	converterReady() bool
 	runIndexInverseRelations(ctx context.Context, job *river.Job[jobArgs]) errors.E
 }
 
@@ -93,6 +94,14 @@ func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
 	c, errE := w.getBridge(job.Args.Schema, job.Args.Prefix)
 	if errE != nil {
 		return errE
+	}
+
+	// The converter is set in Start which runs after Init. Jobs persisted from
+	// a previous run or the startup job inserted in Init can be picked up by
+	// River before Start is called. Snooze so we retry shortly without
+	// counting it as a failed attempt.
+	if !c.converterReady() {
+		return river.JobSnooze(time.Second)
 	}
 
 	errE = c.runIndexInverseRelations(ctx, job)
@@ -160,6 +169,11 @@ type Bridge struct {
 	// inverseRelationsMinSeq is the MIN(seq) of remaining rows in BridgeInverseRelations,
 	// or math.MaxInt64 if the table is empty. A waiter for seq X is done when this value > X.
 	inverseRelationsMinSeq int64
+}
+
+// converterReady returns true if the converter has been set via Start.
+func (b *Bridge) converterReady() bool {
+	return b.converter != nil
 }
 
 // Converter returns the underlying Converter instance.
