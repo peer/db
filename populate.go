@@ -160,13 +160,17 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 
 	ctx, cancel := context.WithCancel(ctx)
 
-	onShutdown, errE := Init(ctx, globals)
-	if onShutdown != nil {
-		defer onShutdown()
-	}
-	defer cancel()
-	if errE != nil {
-		return errE
+	if !c.DryRun {
+		onShutdown, errE := Init(ctx, globals)
+		if onShutdown != nil {
+			defer onShutdown()
+		}
+		defer cancel()
+		if errE != nil {
+			return errE
+		}
+	} else {
+		defer cancel()
 	}
 
 	for _, site := range globals.Sites {
