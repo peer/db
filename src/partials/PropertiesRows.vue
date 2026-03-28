@@ -78,7 +78,7 @@ function onRemove(id: string) {
         <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.string" :key="claim.id">
     <tr>
@@ -94,7 +94,7 @@ function onRemove(id: string) {
         <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.html" :key="claim.id">
     <tr>
@@ -110,7 +110,7 @@ function onRemove(id: string) {
         <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.amount" :key="claim.id">
     <tr>
@@ -126,7 +126,7 @@ function onRemove(id: string) {
         <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.amountInterval" :key="claim.id">
     <tr>
@@ -144,7 +144,7 @@ function onRemove(id: string) {
         <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.time" :key="claim.id">
     <tr>
@@ -160,7 +160,7 @@ function onRemove(id: string) {
         <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.timeInterval" :key="claim.id">
     <tr>
@@ -176,7 +176,7 @@ function onRemove(id: string) {
         <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.link" :key="claim.id">
     <tr>
@@ -192,7 +192,7 @@ function onRemove(id: string) {
         <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.ref" :key="claim.id">
     <tr>
@@ -208,7 +208,7 @@ function onRemove(id: string) {
         <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.has" :key="claim.id">
     <tr>
@@ -224,7 +224,7 @@ function onRemove(id: string) {
         <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.none" :key="claim.id">
     <tr>
@@ -240,7 +240,7 @@ function onRemove(id: string) {
         <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" />
   </template>
   <template v-for="claim in claims.unknown" :key="claim.id">
     <tr>
@@ -256,6 +256,6 @@ function onRemove(id: string) {
         <Button type="button" class="px-3.5 py-1" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.meta" :level="level + 1" :editable="editable" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" />
   </template>
 </template>

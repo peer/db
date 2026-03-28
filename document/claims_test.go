@@ -97,7 +97,7 @@ func TestCoreClaimMethods(t *testing.T) {
 	assert.Empty(t, slices.Collect(claim.AllClaims()))
 	assert.Empty(t, claim.Get(prop))
 
-	metaClaim1 := &document.StringClaim{
+	subClaim1 := &document.StringClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         id1,
 			Confidence: 1.0,
@@ -105,7 +105,7 @@ func TestCoreClaimMethods(t *testing.T) {
 		Prop:   document.Reference{ID: prop},
 		String: "first",
 	}
-	metaClaim2 := &document.UnknownClaim{
+	subClaim2 := &document.UnknownClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         id2,
 			Confidence: 1.0,
@@ -113,21 +113,21 @@ func TestCoreClaimMethods(t *testing.T) {
 		Prop: document.Reference{ID: otherProp},
 	}
 
-	errE := claim.Add(metaClaim1)
+	errE := claim.Add(subClaim1)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	errE = claim.Add(metaClaim2)
+	errE = claim.Add(subClaim2)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, 2, claim.Size())
 
-	// AllClaims returns all meta claims.
+	// AllClaims returns all sub-claims.
 	all := slices.Collect(claim.AllClaims())
 	assert.Len(t, all, 2)
 
 	// Get returns only claims matching prop.
 	got := claim.Get(prop)
 	assert.Len(t, got, 1)
-	assert.Equal(t, metaClaim1, got[0])
+	assert.Equal(t, subClaim1, got[0])
 
 	// Remove removes and returns matching claims.
 	removed := claim.Remove(prop)
@@ -798,7 +798,7 @@ func TestCoreClaimValidateInvalidConfidence(t *testing.T) {
 func TestCoreClaimAddDuplicateID(t *testing.T) {
 	t.Parallel()
 
-	metaID := identifier.New()
+	subID := identifier.New()
 	claim := &document.NoneClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         identifier.New(),
@@ -808,7 +808,7 @@ func TestCoreClaimAddDuplicateID(t *testing.T) {
 	}
 
 	errE := claim.Add(&document.StringClaim{
-		CoreClaim: document.CoreClaim{ID: metaID, Confidence: 1.0},
+		CoreClaim: document.CoreClaim{ID: subID, Confidence: 1.0},
 		Prop:      document.Reference{ID: identifier.New()},
 		String:    "first",
 	})
@@ -816,22 +816,22 @@ func TestCoreClaimAddDuplicateID(t *testing.T) {
 
 	// Adding with same ID should fail.
 	errE = claim.Add(&document.StringClaim{
-		CoreClaim: document.CoreClaim{ID: metaID, Confidence: 1.0},
+		CoreClaim: document.CoreClaim{ID: subID, Confidence: 1.0},
 		Prop:      document.Reference{ID: identifier.New()},
 		String:    "duplicate",
 	})
 	assert.EqualError(t, errE, "claim with ID already exists")
 }
 
-// TestCoreClaimValidateWithInvalidMeta tests CoreClaim.Validate with invalid meta claims.
-func TestCoreClaimValidateWithInvalidMeta(t *testing.T) {
+// TestCoreClaimValidateWithInvalidSub tests CoreClaim.Validate with invalid sub-claims.
+func TestCoreClaimValidateWithInvalidSub(t *testing.T) {
 	t.Parallel()
 
 	claim := &document.NoneClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         identifier.New(),
 			Confidence: 1.0,
-			Meta: &document.ClaimTypes{
+			Sub: &document.ClaimTypes{
 				String: document.StringClaims{
 					{
 						CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
@@ -1198,7 +1198,7 @@ func TestGetClaimsListsOfType(t *testing.T) {
 			{
 				CoreClaim: document.CoreClaim{
 					ID: identifier.New(), Confidence: 1.0,
-					Meta: &document.ClaimTypes{
+					Sub: &document.ClaimTypes{
 						Identifier: document.IdentifierClaims{
 							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: listProp}, Value: listA.String()},
 						},
@@ -1213,7 +1213,7 @@ func TestGetClaimsListsOfType(t *testing.T) {
 			{
 				CoreClaim: document.CoreClaim{
 					ID: identifier.New(), Confidence: 1.0,
-					Meta: &document.ClaimTypes{
+					Sub: &document.ClaimTypes{
 						Identifier: document.IdentifierClaims{
 							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: listProp}, Value: listA.String()},
 						},
@@ -1228,7 +1228,7 @@ func TestGetClaimsListsOfType(t *testing.T) {
 			{
 				CoreClaim: document.CoreClaim{
 					ID: identifier.New(), Confidence: 1.0,
-					Meta: &document.ClaimTypes{
+					Sub: &document.ClaimTypes{
 						Identifier: document.IdentifierClaims{
 							{CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, Prop: document.Reference{ID: listProp}, Value: listB.String()},
 						},
@@ -1266,7 +1266,7 @@ func TestGetClaimsListsOfType(t *testing.T) {
 	assert.Equal(t, "b1", listBClaims[0].String)
 }
 
-// TestGetClaimsListsOfTypeNoList tests claims without LIST meta-claims.
+// TestGetClaimsListsOfTypeNoList tests claims without LIST sub-claims.
 func TestGetClaimsListsOfTypeNoList(t *testing.T) {
 	t.Parallel()
 
@@ -1287,7 +1287,7 @@ func TestGetClaimsListsOfTypeNoList(t *testing.T) {
 		},
 	}
 
-	// All claims without LIST meta should be grouped into one list keyed "none".
+	// All claims without LIST sub-claim should be grouped into one list keyed "none".
 	lists := document.GetClaimsListsOfType[*document.StringClaim](ct, prop)
 	require.Len(t, lists, 1)
 	require.Len(t, lists[0], 2)
@@ -1312,19 +1312,19 @@ func TestCoreClaimGetRemove(t *testing.T) {
 	t.Parallel()
 
 	prop := identifier.New()
-	metaProp := identifier.New()
-	metaID := identifier.New()
+	subProp := identifier.New()
+	subID := identifier.New()
 
 	claim := &document.NoneClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         identifier.New(),
 			Confidence: 1.0,
-			Meta: &document.ClaimTypes{
+			Sub: &document.ClaimTypes{
 				String: document.StringClaims{
 					{
-						CoreClaim: document.CoreClaim{ID: metaID, Confidence: 0.8},
-						Prop:      document.Reference{ID: metaProp},
-						String:    "meta",
+						CoreClaim: document.CoreClaim{ID: subID, Confidence: 0.8},
+						Prop:      document.Reference{ID: subProp},
+						String:    "sub",
 					},
 				},
 			},
@@ -1332,23 +1332,23 @@ func TestCoreClaimGetRemove(t *testing.T) {
 		Prop: document.Reference{ID: prop},
 	}
 
-	// Get meta claims by prop.
-	got := claim.Get(metaProp)
+	// Get sub-claims by prop.
+	got := claim.Get(subProp)
 	require.Len(t, got, 1)
-	assert.Equal(t, metaID, got[0].GetID())
+	assert.Equal(t, subID, got[0].GetID())
 
 	// Get with non-matching prop.
 	got = claim.Get(identifier.New())
 	assert.Empty(t, got)
 
-	// Remove meta claims by prop.
-	removed := claim.Remove(metaProp)
+	// Remove sub-claims by prop.
+	removed := claim.Remove(subProp)
 	require.Len(t, removed, 1)
 	assert.Equal(t, 0, claim.Size())
 }
 
-// TestCoreClaimGetRemoveNoMeta tests CoreClaim.Get and CoreClaim.Remove with no meta.
-func TestCoreClaimGetRemoveNoMeta(t *testing.T) {
+// TestCoreClaimGetRemoveNoSub tests CoreClaim.Get and CoreClaim.Remove with no sub-claims.
+func TestCoreClaimGetRemoveNoSub(t *testing.T) {
 	t.Parallel()
 
 	claim := &document.NoneClaim{
@@ -1372,13 +1372,13 @@ func TestCoreClaimGetRemoveNoMeta(t *testing.T) {
 	assert.Nil(t, removedByID)
 }
 
-// TestRemoveByIDMetaClaim tests that RemoveByID removes a meta claim without removing its parent.
-func TestRemoveByIDMetaClaim(t *testing.T) {
+// TestRemoveByIDSubClaim tests that RemoveByID removes a sub-claim without removing its parent.
+func TestRemoveByIDSubClaim(t *testing.T) {
 	t.Parallel()
 
 	prop := identifier.New()
 	topID := identifier.New()
-	metaID := identifier.New()
+	subID := identifier.New()
 
 	docBase := []string{"testdoc"}
 	doc := document.D{
@@ -1395,23 +1395,23 @@ func TestRemoveByIDMetaClaim(t *testing.T) {
 	require.NotNil(t, topClaim)
 
 	errE = topClaim.Add(&document.StringClaim{
-		CoreClaim: document.CoreClaim{ID: metaID, Confidence: 1.0},
+		CoreClaim: document.CoreClaim{ID: subID, Confidence: 1.0},
 		Prop:      document.Reference{ID: prop},
-		String:    "meta value",
+		String:    "sub value",
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// RemoveByID on the meta claim ID must not remove the parent top-level claim.
-	removed := doc.RemoveByID(metaID)
+	// RemoveByID on the sub-claim ID must not remove the parent top-level claim.
+	removed := doc.RemoveByID(subID)
 	require.NotNil(t, removed)
-	assert.Equal(t, metaID, removed.GetID())
+	assert.Equal(t, subID, removed.GetID())
 
 	// Parent claim must still exist in the document.
 	assert.Equal(t, 1, doc.Size())
 	parent := doc.GetByID(topID)
 	assert.NotNil(t, parent)
 
-	// Meta claim must be gone.
-	meta := doc.GetByID(metaID)
-	assert.Nil(t, meta)
+	// Sub-claim must be gone.
+	sub := doc.GetByID(subID)
+	assert.Nil(t, sub)
 }

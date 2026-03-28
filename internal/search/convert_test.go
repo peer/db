@@ -36,12 +36,12 @@ var (
 	testTargetDocID = identifier.New()
 )
 
-// makeCoreClaim creates a CoreClaim with the given confidence and optional meta.
-func makeCoreClaim(confidence document.Confidence, meta *document.ClaimTypes) document.CoreClaim {
+// makeCoreClaim creates a CoreClaim with the given confidence and optional sub-claims.
+func makeCoreClaim(confidence document.Confidence, sub *document.ClaimTypes) document.CoreClaim {
 	return document.CoreClaim{
 		ID:         identifier.New(),
 		Confidence: confidence,
-		Meta:       meta,
+		Sub:        sub,
 	}
 }
 
@@ -924,8 +924,8 @@ func TestExtractInLanguages(t *testing.T) {
 		},
 	}
 
-	// Meta with IN_LANGUAGE relation to a known language.
-	meta := &document.ClaimTypes{
+	// Sub-claims with IN_LANGUAGE relation to a known language.
+	sub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -934,16 +934,16 @@ func TestExtractInLanguages(t *testing.T) {
 			},
 		},
 	}
-	langs := c.extractInLanguages(meta)
+	langs := c.extractInLanguages(sub)
 	assert.Equal(t, []string{"en"}, langs)
 
-	// No meta.
+	// No sub-claims.
 	langs = c.extractInLanguages(nil)
 	assert.Equal(t, []string{"und"}, langs)
 
-	// Meta with unknown language.
+	// Sub-claims with unknown language.
 	unknownLangID := identifier.New()
-	metaUnknown := &document.ClaimTypes{
+	subUnknown := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -952,7 +952,7 @@ func TestExtractInLanguages(t *testing.T) {
 			},
 		},
 	}
-	langs = c.extractInLanguages(metaUnknown)
+	langs = c.extractInLanguages(subUnknown)
 	assert.Equal(t, []string{"und"}, langs)
 }
 
@@ -967,7 +967,7 @@ func TestExtractInLanguagesUnsupportedLanguage(t *testing.T) {
 		},
 	}
 
-	meta := &document.ClaimTypes{
+	sub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -976,7 +976,7 @@ func TestExtractInLanguagesUnsupportedLanguage(t *testing.T) {
 			},
 		},
 	}
-	langs := c.extractInLanguages(meta)
+	langs := c.extractInLanguages(sub)
 	assert.Equal(t, []string{"und"}, langs)
 }
 
@@ -992,7 +992,7 @@ func TestExtractInLanguagesMultiple(t *testing.T) {
 		},
 	}
 
-	meta := &document.ClaimTypes{
+	sub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -1006,7 +1006,7 @@ func TestExtractInLanguagesMultiple(t *testing.T) {
 			},
 		},
 	}
-	langs := c.extractInLanguages(meta)
+	langs := c.extractInLanguages(sub)
 	assert.Len(t, langs, 2)
 	assert.Contains(t, langs, "en")
 	assert.Contains(t, langs, "sl")
@@ -1017,8 +1017,8 @@ func TestExtractInUnit(t *testing.T) {
 
 	c := &Converter{}
 
-	// Meta with IN_UNIT relation.
-	meta := &document.ClaimTypes{
+	// Sub-claims with IN_UNIT relation.
+	sub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -1027,15 +1027,15 @@ func TestExtractInUnit(t *testing.T) {
 			},
 		},
 	}
-	unit := c.extractInUnit(meta)
+	unit := c.extractInUnit(sub)
 	require.NotNil(t, unit)
 	assert.Equal(t, testUnitDocID, *unit)
 
-	// No meta.
+	// No sub-claims.
 	unit = c.extractInUnit(nil)
 	assert.Nil(t, unit)
 
-	// Empty meta.
+	// Empty sub-claims.
 	unit = c.extractInUnit(&document.ClaimTypes{})
 	assert.Nil(t, unit)
 }
@@ -1332,7 +1332,7 @@ func TestConvertStringWithLanguage(t *testing.T) {
 	}
 
 	ctx := t.Context()
-	meta := &document.ClaimTypes{
+	sub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -1342,7 +1342,7 @@ func TestConvertStringWithLanguage(t *testing.T) {
 		},
 	}
 	claim := &document.StringClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, meta),
+		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
 		Prop:      document.Reference{ID: testPropID},
 		String:    "hello",
 	}
@@ -1388,7 +1388,7 @@ func TestConvertHTMLWithLanguage(t *testing.T) {
 	}
 
 	ctx := t.Context()
-	meta := &document.ClaimTypes{
+	sub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -1398,7 +1398,7 @@ func TestConvertHTMLWithLanguage(t *testing.T) {
 		},
 	}
 	claim := &document.HTMLClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, meta),
+		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
 		Prop:      document.Reference{ID: testPropID},
 		HTML:      "<b>test</b>",
 	}
@@ -1446,7 +1446,7 @@ func TestConvertAmountWithUnit(t *testing.T) {
 	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	meta := &document.ClaimTypes{
+	sub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -1456,7 +1456,7 @@ func TestConvertAmountWithUnit(t *testing.T) {
 		},
 	}
 	claim := &document.AmountClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, meta),
+		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
 		Prop:      document.Reference{ID: testPropID},
 		Amount:    document.Amount("42"),
 		Precision: 1,
@@ -2365,35 +2365,35 @@ func TestConvertStringWithPropertyCycle(t *testing.T) {
 	assert.Contains(t, propIDs, propB)
 }
 
-func TestConvertRelationWithMetaRelations(t *testing.T) {
+func TestConvertRelationWithSubRelations(t *testing.T) {
 	t.Parallel()
 
-	metaPropID := identifier.New()
-	metaTargetID := identifier.New()
+	subPropID := identifier.New()
+	subTargetID := identifier.New()
 	propDoc := makeNamingDoc(testPropID, "Rel Prop")
 	targetDoc := makeNamingDoc(testTargetDocID, "Target")
-	metaPropDoc := makeNamingDoc(metaPropID, "Meta Prop")
-	metaTargetDoc := makeNamingDoc(metaTargetID, "Meta Target")
+	subPropDoc := makeNamingDoc(subPropID, "Sub Prop")
+	subTargetDoc := makeNamingDoc(subTargetID, "Sub Target")
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID:      propDoc,
 		testTargetDocID: targetDoc,
-		metaPropID:      metaPropDoc,
-		metaTargetID:    metaTargetDoc,
+		subPropID:       subPropDoc,
+		subTargetID:     subTargetDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	meta := &document.ClaimTypes{
+	sub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: metaPropID},
-				To:        document.Reference{ID: metaTargetID},
+				Prop:      document.Reference{ID: subPropID},
+				To:        document.Reference{ID: subTargetID},
 			},
 		},
 	}
 	claim := &document.ReferenceClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, meta),
+		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
@@ -2401,8 +2401,8 @@ func TestConvertRelationWithMetaRelations(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
 	require.Len(t, result[0].Reference, 1)
-	assert.Equal(t, metaPropID, result[0].Reference[0].Prop)
-	assert.Equal(t, metaTargetID, result[0].Reference[0].To)
+	assert.Equal(t, subPropID, result[0].Reference[0].Prop)
+	assert.Equal(t, subTargetID, result[0].Reference[0].To)
 }
 
 func TestConvertHas(t *testing.T) {
@@ -2425,33 +2425,33 @@ func TestConvertHas(t *testing.T) {
 	assert.Equal(t, testPropID, result[0].Prop)
 }
 
-func TestConvertHasWithMetaRelations(t *testing.T) {
+func TestConvertHasWithSubRelations(t *testing.T) {
 	t.Parallel()
 
-	metaPropID := identifier.New()
-	metaTargetID := identifier.New()
+	subPropID := identifier.New()
+	subTargetID := identifier.New()
 	propDoc := makeNamingDoc(testPropID, "Has Prop")
-	metaPropDoc := makeNamingDoc(metaPropID, "Meta Prop")
-	metaTargetDoc := makeNamingDoc(metaTargetID, "Meta Target")
+	subPropDoc := makeNamingDoc(subPropID, "Sub Prop")
+	subTargetDoc := makeNamingDoc(subTargetID, "Sub Target")
 	extraDocs := map[identifier.Identifier]*document.D{
-		testPropID:   propDoc,
-		metaPropID:   metaPropDoc,
-		metaTargetID: metaTargetDoc,
+		testPropID:  propDoc,
+		subPropID:   subPropDoc,
+		subTargetID: subTargetDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	meta := &document.ClaimTypes{
+	sub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: metaPropID},
-				To:        document.Reference{ID: metaTargetID},
+				Prop:      document.Reference{ID: subPropID},
+				To:        document.Reference{ID: subTargetID},
 			},
 		},
 	}
 	claim := &document.HasClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, meta),
+		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
 		Prop:      document.Reference{ID: testPropID},
 	}
 	result, errE := c.convertHas(ctx, claim)
@@ -3353,10 +3353,10 @@ func TestConvertTimeIntervalInvalidToTimestamp(t *testing.T) {
 	assert.EqualError(t, errE, "unable to parse timestamp")
 }
 
-func TestConvertRelationMetaPropError(t *testing.T) {
+func TestConvertRelationSubPropError(t *testing.T) {
 	t.Parallel()
 
-	// Meta relation has unknown prop ID.
+	// Sub-claim relation has unknown prop ID.
 	targetDoc := makeNamingDoc(testTargetDocID, "Target")
 	extraDocs := map[identifier.Identifier]*document.D{
 		testTargetDocID: targetDoc,
@@ -3364,7 +3364,7 @@ func TestConvertRelationMetaPropError(t *testing.T) {
 	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	meta := &document.ClaimTypes{
+	sub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3374,7 +3374,7 @@ func TestConvertRelationMetaPropError(t *testing.T) {
 		},
 	}
 	claim := &document.ReferenceClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, meta),
+		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
@@ -3382,17 +3382,17 @@ func TestConvertRelationMetaPropError(t *testing.T) {
 	assert.EqualError(t, errE, "document not found")
 }
 
-func TestConvertRelationMetaToError(t *testing.T) {
+func TestConvertRelationSubToError(t *testing.T) {
 	t.Parallel()
 
-	metaPropDoc := makeNamingDoc(testPropID2, "Meta Prop")
+	subPropDoc := makeNamingDoc(testPropID2, "Sub Prop")
 	extraDocs := map[identifier.Identifier]*document.D{
-		testPropID2: metaPropDoc,
+		testPropID2: subPropDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	meta := &document.ClaimTypes{
+	sub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3402,7 +3402,7 @@ func TestConvertRelationMetaToError(t *testing.T) {
 		},
 	}
 	claim := &document.ReferenceClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, meta),
+		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
@@ -3430,14 +3430,14 @@ func TestConvertRelationToDisplayError(t *testing.T) {
 	assert.EqualError(t, errE, "document not found")
 }
 
-func TestConvertHasMetaPropError(t *testing.T) {
+func TestConvertHasSubPropError(t *testing.T) {
 	t.Parallel()
 
 	extraDocs := map[identifier.Identifier]*document.D{}
 	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	meta := &document.ClaimTypes{
+	sub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3447,24 +3447,24 @@ func TestConvertHasMetaPropError(t *testing.T) {
 		},
 	}
 	claim := &document.HasClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, meta),
+		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
 		Prop:      document.Reference{ID: testPropID},
 	}
 	_, errE := c.convertHas(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
-func TestConvertHasMetaToError(t *testing.T) {
+func TestConvertHasSubToError(t *testing.T) {
 	t.Parallel()
 
-	metaPropDoc := makeNamingDoc(testPropID2, "Meta Prop")
+	subPropDoc := makeNamingDoc(testPropID2, "Sub Prop")
 	extraDocs := map[identifier.Identifier]*document.D{
-		testPropID2: metaPropDoc,
+		testPropID2: subPropDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
 
 	ctx := t.Context()
-	meta := &document.ClaimTypes{
+	sub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3474,7 +3474,7 @@ func TestConvertHasMetaToError(t *testing.T) {
 		},
 	}
 	claim := &document.HasClaim{
-		CoreClaim: makeCoreClaim(document.HighConfidence, meta),
+		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
 		Prop:      document.Reference{ID: testPropID},
 	}
 	_, errE := c.convertHas(ctx, claim)
@@ -3868,7 +3868,7 @@ func TestMakeDisplayStringsTemplateAllLanguages(t *testing.T) {
 	c := newTestConverter(t, nil, languages, extraDocs)
 	c.namingProperties = []identifier.Identifier{namingPropID}
 
-	enMeta := &document.ClaimTypes{
+	enSub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3877,7 +3877,7 @@ func TestMakeDisplayStringsTemplateAllLanguages(t *testing.T) {
 			},
 		},
 	}
-	slMeta := &document.ClaimTypes{
+	slSub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -3892,18 +3892,18 @@ func TestMakeDisplayStringsTemplateAllLanguages(t *testing.T) {
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, enMeta),
+					CoreClaim: makeCoreClaim(document.HighConfidence, enSub),
 					Prop:      document.Reference{ID: namingPropID},
 					String:    "English Name",
 				},
 				{
 					// SHORT_NAME only in English, used by the template.
-					CoreClaim: makeCoreClaim(document.HighConfidence, enMeta),
+					CoreClaim: makeCoreClaim(document.HighConfidence, enSub),
 					Prop:      document.Reference{ID: shortNamePropID},
 					String:    "EN",
 				},
 				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, slMeta),
+					CoreClaim: makeCoreClaim(document.HighConfidence, slSub),
 					Prop:      document.Reference{ID: shortNamePropID},
 					String:    "SL",
 				},
@@ -4043,7 +4043,7 @@ func TestTemplateBestStringLanguageFallback(t *testing.T) {
 	c := newTestConverter(t, nil, languages, extraDocs)
 	c.namingProperties = []identifier.Identifier{namingPropID}
 
-	enMeta := &document.ClaimTypes{
+	enSub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -4060,7 +4060,7 @@ func TestTemplateBestStringLanguageFallback(t *testing.T) {
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, enMeta),
+					CoreClaim: makeCoreClaim(document.HighConfidence, enSub),
 					Prop:      document.Reference{ID: namingPropID},
 					String:    "English Naming",
 				},
@@ -4325,7 +4325,7 @@ func TestGetDocumentInfoWithLanguagePriority(t *testing.T) {
 	enLangID := identifier.New()
 	slLangID := identifier.New()
 
-	enMeta := &document.ClaimTypes{
+	enSub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -4334,7 +4334,7 @@ func TestGetDocumentInfoWithLanguagePriority(t *testing.T) {
 			},
 		},
 	}
-	slMeta := &document.ClaimTypes{
+	slSub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -4350,12 +4350,12 @@ func TestGetDocumentInfoWithLanguagePriority(t *testing.T) {
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, enMeta),
+					CoreClaim: makeCoreClaim(document.HighConfidence, enSub),
 					Prop:      document.Reference{ID: namingPropID},
 					String:    "English Name",
 				},
 				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, slMeta),
+					CoreClaim: makeCoreClaim(document.HighConfidence, slSub),
 					Prop:      document.Reference{ID: namingPropID},
 					String:    "Slovensko Ime",
 				},
@@ -4399,7 +4399,7 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 	enLangID := identifier.New()
 	slLangID := identifier.New()
 
-	enMeta := &document.ClaimTypes{
+	enSub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -4408,7 +4408,7 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 			},
 		},
 	}
-	slMeta := &document.ClaimTypes{
+	slSub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -4434,7 +4434,7 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, enMeta),
+					CoreClaim: makeCoreClaim(document.HighConfidence, enSub),
 					Prop:      document.Reference{ID: namingPropID},
 					String:    "Parent EN",
 				},
@@ -4448,12 +4448,12 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, enMeta),
+					CoreClaim: makeCoreClaim(document.HighConfidence, enSub),
 					Prop:      document.Reference{ID: namingPropID},
 					String:    "Child EN",
 				},
 				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, slMeta),
+					CoreClaim: makeCoreClaim(document.HighConfidence, slSub),
 					Prop:      document.Reference{ID: namingPropID},
 					String:    "Child SL",
 				},
@@ -4508,7 +4508,7 @@ func TestDisplayPathsEmptyAppend(t *testing.T) {
 
 	enLangID := identifier.New()
 
-	enMeta := &document.ClaimTypes{
+	enSub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -4534,7 +4534,7 @@ func TestDisplayPathsEmptyAppend(t *testing.T) {
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, enMeta),
+					CoreClaim: makeCoreClaim(document.HighConfidence, enSub),
 					Prop:      document.Reference{ID: namingPropID},
 					String:    "Parent EN",
 				},
@@ -4598,7 +4598,7 @@ func TestBestStringLanguagePriority(t *testing.T) {
 	classID := identifier.New()
 	classDoc := makeClassDocWithTemplate(classID, `{{bestString `+idTmpl(namePropID)+` .}}`)
 
-	enMeta := &document.ClaimTypes{
+	enSub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -4607,7 +4607,7 @@ func TestBestStringLanguagePriority(t *testing.T) {
 			},
 		},
 	}
-	slMeta := &document.ClaimTypes{
+	slSub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -4616,7 +4616,7 @@ func TestBestStringLanguagePriority(t *testing.T) {
 			},
 		},
 	}
-	ptMeta := &document.ClaimTypes{
+	ptSub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
@@ -4647,18 +4647,18 @@ func TestBestStringLanguagePriority(t *testing.T) {
 		Claims: &document.ClaimTypes{
 			String: []document.StringClaim{
 				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, ptMeta),
+					CoreClaim: makeCoreClaim(document.HighConfidence, ptSub),
 					Prop:      document.Reference{ID: namingPropID},
 					String:    "Nome PT",
 				},
 				{
 					// NAME claim only in Slovenian.
-					CoreClaim: makeCoreClaim(document.HighConfidence, slMeta),
+					CoreClaim: makeCoreClaim(document.HighConfidence, slSub),
 					Prop:      document.Reference{ID: namePropID},
 					String:    "Slovenian Value",
 				},
 				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, enMeta),
+					CoreClaim: makeCoreClaim(document.HighConfidence, enSub),
 					Prop:      document.Reference{ID: namePropID},
 					String:    "English Value",
 				},

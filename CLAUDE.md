@@ -178,7 +178,7 @@ Claims-based document system supporting 12 claim types:
 - **TimeIntervalClaim**: Time intervals with bounds
 - **LinkClaim**: URL/IRI links
 - **ReferenceClaim**: Relationships to other documents
-- **HasClaim**: Property-only claim (can hold nested claims via meta)
+- **HasClaim**: Property-only claim (can hold nested claims via sub-claims)
 - **NoneClaim**: Explicitly states no value exists
 - **UnknownClaim**: Value exists but is unknown
 
@@ -193,7 +193,7 @@ type D struct {
 type CoreClaim struct {
     ID         identifier.Identifier
     Confidence Confidence  // float64 in [-1, 1]
-    Meta       *ClaimTypes // optional metadata claims
+    Sub        *ClaimTypes // optional sub-claims
 }
 ```
 
@@ -201,7 +201,7 @@ type CoreClaim struct {
 
 - Use the Visitor pattern to traverse/manipulate claims
 - Claims reference properties (also documents) via `Prop`
-- Each claim embeds `CoreClaim` with ID, Confidence, and optional Meta claims
+- Each claim embeds `CoreClaim` with ID, Confidence, and optional Sub-claims
 - Built-in classes and properties defined in `core/` (NAME, DESCRIPTION, etc.)
 
 #### 4. **Search** (`search/search.go`)

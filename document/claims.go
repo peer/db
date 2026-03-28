@@ -180,7 +180,7 @@ func extractClaimLanguages(claims Claims, languageCodes map[identifier.Identifie
 
 // GetClaimsAndLanguageOfTypeWithConfidence returns claims of a given type for the specified
 // property IDs, filtered by minimum confidence, sorted by decreasing confidence,
-// grouped by language. Languages are extracted from each claim's IN_LANGUAGE meta
+// grouped by language. Languages are extracted from each claim's IN_LANGUAGE sub-claim
 // references using languageCodes to map language document IDs to codes. Only languages
 // that are keys in languagePriority are considered supported.
 //
@@ -269,7 +269,7 @@ var (
 )
 
 // GetClaimsListsOfType groups claims of the concrete type T matching the given property ID
-// by their LIST meta-claim and sorts within each list by the ORDER_IN_LIST meta-claim.
+// by their LIST sub-claim and sorts within each list by the ORDER_IN_LIST sub-claim.
 // Returns a slice of lists, where each list is a slice of claims sorted by order.
 //
 // Because Go does not support generic interface methods, this is a top-level function.
@@ -457,17 +457,17 @@ func (c *ClaimTypes) AllClaims() iter.Seq[Claim] {
 	}
 }
 
-// AllClaimsWithMeta returns an iterator over all claims, including meta claims.
-func (c *ClaimTypes) AllClaimsWithMeta() iter.Seq[Claim] {
+// AllClaimsWithSub returns an iterator over all claims, including sub-claims.
+func (c *ClaimTypes) AllClaimsWithSub() iter.Seq[Claim] {
 	return func(yield func(Claim) bool) {
-		_ = c.Visit(&AllClaimsWithMetaVisitor{Yield: yield, stopped: false})
+		_ = c.Visit(&AllClaimsWithSubVisitor{Yield: yield, stopped: false})
 	}
 }
 
 // Validate checks that all claims are valid.
 func (c *ClaimTypes) Validate() errors.E {
 	claims := map[identifier.Identifier]bool{}
-	for claim := range c.AllClaimsWithMeta() {
+	for claim := range c.AllClaimsWithSub() {
 		errE := claim.Validate()
 		if errE != nil {
 			return errE
@@ -514,7 +514,7 @@ type (
 type CoreClaim struct {
 	ID         identifier.Identifier `                       json:"id"`
 	Confidence Confidence            `                       json:"confidence"`
-	Meta       *ClaimTypes           `exhaustruct:"optional" json:"meta,omitempty"`
+	Sub        *ClaimTypes           `exhaustruct:"optional" json:"sub,omitempty"`
 }
 
 // GetID returns the claim's identifier.
@@ -527,35 +527,35 @@ func (cc *CoreClaim) GetConfidence() Confidence {
 	return cc.Confidence
 }
 
-// Validate checks that the claim has valid confidence and that meta claims are valid.
+// Validate checks that the claim has valid confidence and that sub-claims are valid.
 func (cc *CoreClaim) Validate() errors.E {
 	if math.IsInf(float64(cc.Confidence), 0) || math.IsNaN(float64(cc.Confidence)) || cc.Confidence < -1 || cc.Confidence > 1 {
 		return errors.New("confidence out of range [-1, 1]")
 	}
 
-	if cc.Meta != nil {
-		return cc.Meta.Validate()
+	if cc.Sub != nil {
+		return cc.Sub.Validate()
 	}
 
 	return nil
 }
 
-// Visit applies a visitor to the claim's metadata claims.
+// Visit applies a visitor to the claim's sub-claims.
 func (cc *CoreClaim) Visit(visitor Visitor) errors.E {
-	if cc.Meta != nil {
-		err := cc.Meta.Visit(visitor)
+	if cc.Sub != nil {
+		err := cc.Sub.Visit(visitor)
 		if err != nil {
 			return err
 		}
-		// If meta claims became empty after visiting, we set them to nil.
-		if cc.Meta.Size() == 0 {
-			cc.Meta = nil
+		// If sub-claims became empty after visiting, we set them to nil.
+		if cc.Sub.Size() == 0 {
+			cc.Sub = nil
 		}
 	}
 	return nil
 }
 
-// Get returns all metadata claims with the given property ID, sorted by decreasing confidence.
+// Get returns all sub-claims with the given property ID, sorted by decreasing confidence.
 func (cc *CoreClaim) Get(propID identifier.Identifier) []Claim {
 	v := GetByPropIDVisitor{
 		ID:     propID,
@@ -567,7 +567,7 @@ func (cc *CoreClaim) Get(propID identifier.Identifier) []Claim {
 	return v.Result
 }
 
-// Remove removes and returns all metadata claims with the given property ID.
+// Remove removes and returns all sub-claims with the given property ID.
 func (cc *CoreClaim) Remove(propID identifier.Identifier) []Claim {
 	v := GetByPropIDVisitor{
 		ID:     propID,
@@ -578,7 +578,7 @@ func (cc *CoreClaim) Remove(propID identifier.Identifier) []Claim {
 	return v.Result
 }
 
-// GetByID returns the metadata claim with the given ID.
+// GetByID returns the sub-claim with the given ID.
 func (cc *CoreClaim) GetByID(id identifier.Identifier) Claim { //nolint:ireturn
 	v := GetByIDVisitor{
 		ID:     id,
@@ -589,7 +589,7 @@ func (cc *CoreClaim) GetByID(id identifier.Identifier) Claim { //nolint:ireturn
 	return v.Result
 }
 
-// RemoveByID removes and returns the metadata claim with the given ID.
+// RemoveByID removes and returns the sub-claim with the given ID.
 func (cc *CoreClaim) RemoveByID(id identifier.Identifier) Claim { //nolint:ireturn
 	v := GetByIDVisitor{
 		ID:     id,
@@ -600,7 +600,7 @@ func (cc *CoreClaim) RemoveByID(id identifier.Identifier) Claim { //nolint:iretu
 	return v.Result
 }
 
-// Add adds a metadata claim to the claim.
+// Add adds a sub-claim to the claim.
 func (cc *CoreClaim) Add(claim Claim) errors.E {
 	claimID := claim.GetID()
 	if cc.ID == claimID || cc.GetByID(claimID) != nil {
@@ -608,20 +608,20 @@ func (cc *CoreClaim) Add(claim Claim) errors.E {
 		errors.Details(errE)["id"] = claimID
 		return errE
 	}
-	if cc.Meta == nil {
-		cc.Meta = new(ClaimTypes)
+	if cc.Sub == nil {
+		cc.Sub = new(ClaimTypes)
 	}
-	return cc.Meta.Add(claim)
+	return cc.Sub.Add(claim)
 }
 
-// Size returns the number of metadata claims in the claim.
+// Size returns the number of sub-claims in the claim.
 func (cc *CoreClaim) Size() int {
-	return cc.Meta.Size()
+	return cc.Sub.Size()
 }
 
-// AllClaims returns an iterator over all metadata claims.
+// AllClaims returns an iterator over all sub-claims.
 func (cc *CoreClaim) AllClaims() iter.Seq[Claim] {
-	return cc.Meta.AllClaims()
+	return cc.Sub.AllClaims()
 }
 
 // Reference represents a reference to another document.
@@ -659,7 +659,7 @@ func (c *IdentifierClaim) Validate() errors.E {
 
 // StringClaim represents a claim with a plain string value.
 //
-// Language of the string, if any, is specified as a meta claim.
+// Language of the string, if any, is specified as a sub-claim.
 type StringClaim struct {
 	CoreClaim
 
@@ -682,7 +682,7 @@ func (c *StringClaim) Validate() errors.E {
 
 // HTMLClaim represents a claim with HTML text content.
 //
-// Language of the string, if any, is specified as a meta claim.
+// Language of the string, if any, is specified as a sub-claim.
 type HTMLClaim struct {
 	CoreClaim
 
@@ -711,7 +711,7 @@ func (c *HTMLClaim) Validate() errors.E {
 //
 // Infinite or NaN amounts are not supported.
 //
-// Unit of the amount, if any, is specified as a meta claim.
+// Unit of the amount, if any, is specified as a sub-claim.
 type AmountClaim struct {
 	CoreClaim
 
@@ -737,7 +737,7 @@ func (c *AmountClaim) Validate() errors.E {
 //
 // Infinite or NaN amount interval bounds are not supported.
 //
-// Unit of the amount interval bounds, if any, is specified as a meta claim.
+// Unit of the amount interval bounds, if any, is specified as a sub-claim.
 //
 // Only one of FromIs* fields can be set at a time.
 // Exactly one of From (non-nil), FromIsUnknown, or FromIsNone must be set.

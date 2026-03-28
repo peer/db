@@ -370,7 +370,7 @@ func (c *ClaimTypes) Visit(visitor Visitor) errors.E { //nolint:maintidx
 	return nil
 }
 
-// GetByIDVisitor recurses into meta claims.
+// GetByIDVisitor recurses into sub-claims.
 type GetByIDVisitor struct {
 	ID     identifier.Identifier
 	Action VisitResult
@@ -537,7 +537,7 @@ func (v *GetByIDVisitor) VisitUnknown(claim *UnknownClaim) (VisitResult, errors.
 
 var _ Visitor = (*GetByPropIDVisitor)(nil)
 
-// GetByPropIDVisitor does not recurse into meta claims.
+// GetByPropIDVisitor does not recurse into sub-claims.
 type GetByPropIDVisitor struct {
 	ID     identifier.Identifier
 	Action VisitResult
@@ -656,7 +656,7 @@ var _ Visitor = (*AllClaimsVisitor)(nil)
 
 // AllClaimsVisitor is a Visitor that drives the AllClaims iterator.
 //
-// AllClaimsVisitor does not recurse into meta claims.
+// AllClaimsVisitor does not recurse into sub-claims.
 type AllClaimsVisitor struct {
 	Yield func(Claim) bool
 }
@@ -728,17 +728,17 @@ func (v *AllClaimsVisitor) VisitUnknown(claim *UnknownClaim) (VisitResult, error
 	return v.visit(claim)
 }
 
-var _ Visitor = (*AllClaimsWithMetaVisitor)(nil)
+var _ Visitor = (*AllClaimsWithSubVisitor)(nil)
 
-// AllClaimsWithMetaVisitor is a Visitor that drives the AllClaimsWithMeta iterator.
+// AllClaimsWithSubVisitor is a Visitor that drives the AllClaimsWithSub iterator.
 //
-// AllClaimsWithMetaVisitor recurses into meta claims.
-type AllClaimsWithMetaVisitor struct {
+// AllClaimsWithSubVisitor recurses into sub-claims.
+type AllClaimsWithSubVisitor struct {
 	Yield   func(Claim) bool
 	stopped bool
 }
 
-func (v *AllClaimsWithMetaVisitor) visit(claim Claim) (VisitResult, errors.E) {
+func (v *AllClaimsWithSubVisitor) visit(claim Claim) (VisitResult, errors.E) {
 	if v.stopped {
 		return KeepAndStop, nil
 	}
@@ -746,7 +746,7 @@ func (v *AllClaimsWithMetaVisitor) visit(claim Claim) (VisitResult, errors.E) {
 		v.stopped = true
 		return KeepAndStop, nil
 	}
-	// Recurse into meta claims.
+	// Recurse into sub-claims.
 	errE := claim.Visit(v)
 	if errE != nil {
 		return Keep, errE
@@ -758,61 +758,61 @@ func (v *AllClaimsWithMetaVisitor) visit(claim Claim) (VisitResult, errors.E) {
 }
 
 // VisitIdentifier calls yield with the identifier claim.
-func (v *AllClaimsWithMetaVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResult, errors.E) {
+func (v *AllClaimsWithSubVisitor) VisitIdentifier(claim *IdentifierClaim) (VisitResult, errors.E) {
 	return v.visit(claim)
 }
 
 // VisitString calls yield with the string claim.
-func (v *AllClaimsWithMetaVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E) {
+func (v *AllClaimsWithSubVisitor) VisitString(claim *StringClaim) (VisitResult, errors.E) {
 	return v.visit(claim)
 }
 
 // VisitHTML calls yield with the HTML claim.
-func (v *AllClaimsWithMetaVisitor) VisitHTML(claim *HTMLClaim) (VisitResult, errors.E) {
+func (v *AllClaimsWithSubVisitor) VisitHTML(claim *HTMLClaim) (VisitResult, errors.E) {
 	return v.visit(claim)
 }
 
 // VisitAmount calls yield with the amount claim.
-func (v *AllClaimsWithMetaVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E) {
+func (v *AllClaimsWithSubVisitor) VisitAmount(claim *AmountClaim) (VisitResult, errors.E) {
 	return v.visit(claim)
 }
 
 // VisitAmountInterval calls yield with the amount interval claim.
-func (v *AllClaimsWithMetaVisitor) VisitAmountInterval(claim *AmountIntervalClaim) (VisitResult, errors.E) {
+func (v *AllClaimsWithSubVisitor) VisitAmountInterval(claim *AmountIntervalClaim) (VisitResult, errors.E) {
 	return v.visit(claim)
 }
 
 // VisitTime calls yield with the time claim.
-func (v *AllClaimsWithMetaVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
+func (v *AllClaimsWithSubVisitor) VisitTime(claim *TimeClaim) (VisitResult, errors.E) {
 	return v.visit(claim)
 }
 
 // VisitTimeInterval calls yield with the time interval claim.
-func (v *AllClaimsWithMetaVisitor) VisitTimeInterval(claim *TimeIntervalClaim) (VisitResult, errors.E) {
+func (v *AllClaimsWithSubVisitor) VisitTimeInterval(claim *TimeIntervalClaim) (VisitResult, errors.E) {
 	return v.visit(claim)
 }
 
 // VisitLink calls yield with the link claim.
-func (v *AllClaimsWithMetaVisitor) VisitLink(claim *LinkClaim) (VisitResult, errors.E) {
+func (v *AllClaimsWithSubVisitor) VisitLink(claim *LinkClaim) (VisitResult, errors.E) {
 	return v.visit(claim)
 }
 
 // VisitReference calls yield with the reference claim.
-func (v *AllClaimsWithMetaVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
+func (v *AllClaimsWithSubVisitor) VisitReference(claim *ReferenceClaim) (VisitResult, errors.E) {
 	return v.visit(claim)
 }
 
 // VisitHas calls yield with the has claim.
-func (v *AllClaimsWithMetaVisitor) VisitHas(claim *HasClaim) (VisitResult, errors.E) {
+func (v *AllClaimsWithSubVisitor) VisitHas(claim *HasClaim) (VisitResult, errors.E) {
 	return v.visit(claim)
 }
 
 // VisitNone calls yield with the none claim.
-func (v *AllClaimsWithMetaVisitor) VisitNone(claim *NoneClaim) (VisitResult, errors.E) {
+func (v *AllClaimsWithSubVisitor) VisitNone(claim *NoneClaim) (VisitResult, errors.E) {
 	return v.visit(claim)
 }
 
 // VisitUnknown calls yield with the unknown claim.
-func (v *AllClaimsWithMetaVisitor) VisitUnknown(claim *UnknownClaim) (VisitResult, errors.E) {
+func (v *AllClaimsWithSubVisitor) VisitUnknown(claim *UnknownClaim) (VisitResult, errors.E) {
 	return v.visit(claim)
 }

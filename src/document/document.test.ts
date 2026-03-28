@@ -32,7 +32,7 @@ test("Document lifecycle", () => {
   assert.equal(removed?.GetID(), claimID)
   assert.equal(doc.Size(), 0)
 
-  // Now test meta claims on a claim.
+  // Now test sub-claims on a claim.
   const metaClaimID = Identifier.new().toString()
   const metaClaim = new UnknownClaim({
     id: metaClaimID,
@@ -41,10 +41,10 @@ test("Document lifecycle", () => {
   })
   claim.Add(metaClaim)
 
-  // Verify meta claim is accessible via the claim.
+  // Verify sub-claim is accessible via the claim.
   assert.equal(claim.GetByID(metaClaimID)?.GetID(), metaClaimID)
 
-  // RemoveByID on meta.
+  // RemoveByID on sub-claim.
   const removedMeta = claim.RemoveByID(metaClaimID)
   assert.equal(removedMeta?.GetID(), metaClaimID)
   assert.equal(claim.Size(), 0)
@@ -109,7 +109,7 @@ test("patch json", async () => {
           {
             id: id1,
             confidence: 1.0,
-            meta: {
+            sub: {
               id: [
                 {
                   id: id2,
@@ -134,7 +134,7 @@ test("patch json", async () => {
   )
 })
 
-test("Document GetByID in meta", () => {
+test("Document GetByID in sub-claims", () => {
   const prop = Identifier.new().toString()
   const innerID = Identifier.new().toString()
 
@@ -154,7 +154,7 @@ test("Document GetByID in meta", () => {
   outerClaim.Add(innerClaim)
   doc.Add(outerClaim)
 
-  // GetByID should find the inner claim inside meta.
+  // GetByID should find the inner claim inside sub-claims.
   const found = doc.GetByID(innerID)
   assert.equal(found?.GetID(), innerID)
 })

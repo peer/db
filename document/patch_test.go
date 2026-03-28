@@ -94,7 +94,7 @@ func TestPatchJSON(t *testing.T) {
 					CoreClaim: document.CoreClaim{
 						ID:         id1Claim,
 						Confidence: 1.0,
-						Meta: &document.ClaimTypes{
+						Sub: &document.ClaimTypes{
 							Identifier: []document.IdentifierClaim{
 								{
 									CoreClaim: document.CoreClaim{

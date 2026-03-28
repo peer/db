@@ -709,7 +709,7 @@ func (c *Converter) namingStrings(doc *document.D) map[string][]string {
 	return result
 }
 
-// extractInLanguages extracts language codes from a claim's IN_LANGUAGE meta references.
+// extractInLanguages extracts language codes from a claim's IN_LANGUAGE sub-claim references.
 // A claim can be in multiple languages, so all matching codes are returned.
 // Returns ["und"] if no languages are specified or none can be resolved to
 // supported languages.
@@ -730,9 +730,9 @@ func (c *Converter) extractInLanguages(claims document.Claims) []string {
 	return codes
 }
 
-// extractInUnit extracts the unit identifier from a claim's meta IN_UNIT reference.
-func (c *Converter) extractInUnit(meta *document.ClaimTypes) *identifier.Identifier {
-	if rel := document.GetBestClaimOfType[*document.ReferenceClaim](meta, inUnitPropID); rel != nil {
+// extractInUnit extracts the unit identifier from a claim's IN_UNIT sub-claim reference.
+func (c *Converter) extractInUnit(sub *document.ClaimTypes) *identifier.Identifier {
+	if rel := document.GetBestClaimOfType[*document.ReferenceClaim](sub, inUnitPropID); rel != nil {
 		return &rel.To.ID
 	}
 	return nil
@@ -1013,7 +1013,7 @@ func (c *Converter) convertIdentifier(ctx context.Context, claim *document.Ident
 
 func (c *Converter) convertString(ctx context.Context, claim *document.StringClaim) ([]StringClaim, errors.E) {
 	str := make(map[string]string)
-	for _, lang := range c.extractInLanguages(claim.Meta) {
+	for _, lang := range c.extractInLanguages(claim.Sub) {
 		str[lang] = claim.String
 	}
 	props := c.propagateProp(claim.Prop.ID)
@@ -1036,7 +1036,7 @@ func (c *Converter) convertString(ctx context.Context, claim *document.StringCla
 
 func (c *Converter) convertHTML(ctx context.Context, claim *document.HTMLClaim) ([]HTMLClaim, errors.E) {
 	html := make(map[string]string)
-	for _, lang := range c.extractInLanguages(claim.Meta) {
+	for _, lang := range c.extractInLanguages(claim.Sub) {
 		html[lang] = claim.HTML
 	}
 	props := c.propagateProp(claim.Prop.ID)
@@ -1059,7 +1059,7 @@ func (c *Converter) convertHTML(ctx context.Context, claim *document.HTMLClaim) 
 
 func (c *Converter) convertAmount(ctx context.Context, claim *document.AmountClaim) ([]AmountClaim, errors.E) {
 	// TODO: Normalize amounts of units of same measure to same base unit (e.g., cm and mm to m).
-	unit := c.extractInUnit(claim.Meta)
+	unit := c.extractInUnit(claim.Sub)
 	amount, errE := claim.Amount.Float64(claim.Precision)
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
@@ -1221,7 +1221,7 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 	}
 
 	// TODO: Normalize amounts of units of same measure to same base unit (e.g., cm and mm to m).
-	unit := c.extractInUnit(claim.Meta)
+	unit := c.extractInUnit(claim.Sub)
 	props := c.propagateProp(claim.Prop.ID)
 	result := make([]AmountClaim, 0, len(props))
 	for _, pid := range props {
@@ -1449,10 +1449,10 @@ func (c *Converter) convertLink(ctx context.Context, claim *document.LinkClaim) 
 }
 
 func (c *Converter) convertReference(ctx context.Context, claim *document.ReferenceClaim) ([]ReferenceClaim, errors.E) {
-	// Convert meta reference claims to nested search reference claims.
-	metaRelations := document.GetAllClaimsOfTypeWithConfidence[*document.ReferenceClaim](claim.Meta, document.LowConfidence)
-	nested := make([]NestedReferenceClaim, 0, len(metaRelations))
-	for _, mr := range metaRelations {
+	// Convert sub-claim references to nested search reference claims.
+	subRelations := document.GetAllClaimsOfTypeWithConfidence[*document.ReferenceClaim](claim.Sub, document.LowConfidence)
+	nested := make([]NestedReferenceClaim, 0, len(subRelations))
+	for _, mr := range subRelations {
 		mrPropDisplay, errE := c.getDisplayStrings(ctx, mr.Prop.ID)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
@@ -1531,10 +1531,10 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 }
 
 func (c *Converter) convertHas(ctx context.Context, claim *document.HasClaim) ([]HasClaim, errors.E) {
-	// Convert meta reference claims to nested search reference claims.
-	metaRelations := document.GetAllClaimsOfTypeWithConfidence[*document.ReferenceClaim](claim.Meta, document.LowConfidence)
-	nested := make([]NestedReferenceClaim, 0, len(metaRelations))
-	for _, mr := range metaRelations {
+	// Convert sub-claim references to nested search reference claims.
+	subRelations := document.GetAllClaimsOfTypeWithConfidence[*document.ReferenceClaim](claim.Sub, document.LowConfidence)
+	nested := make([]NestedReferenceClaim, 0, len(subRelations))
+	for _, mr := range subRelations {
 		mrPropDisplay, errE := c.getDisplayStrings(ctx, mr.Prop.ID)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim

@@ -52,7 +52,7 @@
 // ## value
 //
 // Marks a field as the value field within a nested struct. This field's value
-// becomes the main claim, while other fields in the struct become meta claims.
+// becomes the main claim, while other fields in the struct become sub-claims.
 //
 //	type PersonName struct {
 //		Value  string               `value:""`
@@ -196,7 +196,7 @@
 //   - core.RawHTML: text claim (without escaping),
 //   - core.None: none-value claim when true,
 //   - core.Unknown: unknown-value claim when true,
-//   - struct: nested claims (value field + meta claims),
+//   - struct: nested claims (value field + sub-claims),
 //   - []T: slice of any supported type,
 //   - *T: pointer to any supported type.
 //
@@ -208,8 +208,8 @@
 //   - field has cardinality with min > 0 without default tag: returns error,
 //   - value field with default:"none" tag: creates a none-value claim,
 //   - value field with default:"unknown" tag: creates an unknown-value claim,
-//   - value field without a default tag: creates has claim with meta claims,
-//   - nested struct with empty value but has meta claims: creates has claim with meta claims.
+//   - value field without a default tag: creates has claim with sub-claims,
+//   - nested struct with empty value but has sub-claims: creates has claim with sub-claims.
 //
 // # Examples
 //
@@ -712,32 +712,32 @@ func (tr *transformer) processSingleValue(
 		// This is the same count which is used below to construct the value claim.
 		newIDPath := append(slices.Clone(idPath), strconv.Itoa(claims[propertyID]))
 
-		// Create transformer for meta claims.
-		metaTr := transformer{
+		// Create transformer for sub-claims.
+		subTr := transformer{
 			Mnemonics: tr.Mnemonics,
 			Claims:    &document.ClaimTypes{},
 		}
 
-		// Here we use newIDPath because all other claims are nested under the value claim as its meta claims.
+		// Here we use newIDPath because all other claims are nested under the value claim as its sub-claims.
 		// Because we use newIDPath, we can use an empty claims map because all claim IDs made under newIDPath
 		// cannot collide with claim IDs made under idPath.
-		errE = metaTr.processStructFields(fieldValue, fieldType, newIDPath, fieldPath, map[identifier.Identifier]int{})
+		errE = subTr.processStructFields(fieldValue, fieldType, newIDPath, fieldPath, map[identifier.Identifier]int{})
 		if errE != nil {
 			return errE
 		}
 
 		// Here we use idPath because this claim really belongs at the level above this struct.
-		// It is only inside the struct so that we can list also its meta claims next to it.
+		// It is only inside the struct so that we can list also its sub-claims next to it.
 		claim, errE = extractValueClaim(fieldValue, fieldType, propertyID, confidence, idPath, fieldPath, claims)
 		if e, ok := errors.AsType[*claimNotMadeError](errE); ok {
-			if metaTr.Claims.Size() == 0 {
-				// There are no meta claims nor a value claim, so we just return errClaimNotMade here.
+			if subTr.Claims.Size() == 0 {
+				// There are no sub-claims nor a value claim, so we just return errClaimNotMade here.
 				return errE
 			}
 
 			// There is a value claim defined, but in this particular instance it has empty value,
-			// but there are meta claims for it, so we make a claim for it.
-			// TODO: What if all meta claims are "none" claims?
+			// but there are sub-claims for it, so we make a claim for it.
+			// TODO: What if all sub-claims are "none" claims?
 			claimID := newClaimID(idPath, propertyID, claims)
 			switch e.Default {
 			case defaultNone:
@@ -767,8 +767,8 @@ func (tr *transformer) processSingleValue(
 				}
 			}
 		} else if errors.Is(errE, errValueClaimNotFound) {
-			if metaTr.Claims.Size() == 0 {
-				// There are no meta claims nor a value claim, which makes nested claims be an empty value of sorts,
+			if subTr.Claims.Size() == 0 {
+				// There are no sub-claims nor a value claim, which makes nested claims be an empty value of sorts,
 				// so we just return errClaimNotMade here.
 				return errors.WithStack(errClaimNotMade)
 			}
@@ -786,8 +786,8 @@ func (tr *transformer) processSingleValue(
 			return errE
 		}
 
-		// We copy all claims to the value claim as its meta claims.
-		for c := range metaTr.Claims.AllClaims() {
+		// We copy all claims to the value claim as its sub-claims.
+		for c := range subTr.Claims.AllClaims() {
 			errE = claim.Add(c)
 			if errE != nil {
 				errors.Details(errE)["field"] = strings.Join(fieldPath, ".")

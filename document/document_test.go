@@ -83,7 +83,7 @@ func TestDocument(t *testing.T) {
 		CoreClaim: document.CoreClaim{
 			ID:         id,
 			Confidence: 1.0,
-			Meta: &document.ClaimTypes{
+			Sub: &document.ClaimTypes{
 				Unknown: document.UnknownClaims{
 					{
 						CoreClaim: document.CoreClaim{
@@ -97,22 +97,22 @@ func TestDocument(t *testing.T) {
 		},
 		Prop: document.GetReference(core.Namespace, "NAME"),
 	}, claim)
-	metaClaim := claim.GetByID(id2)
+	subClaim := claim.GetByID(id2)
 	assert.Equal(t, &document.UnknownClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         id2,
 			Confidence: 1.0,
 		},
 		Prop: document.GetReference(core.Namespace, "NAME"),
-	}, metaClaim)
-	metaClaim = claim.RemoveByID(id2)
+	}, subClaim)
+	subClaim = claim.RemoveByID(id2)
 	assert.Equal(t, &document.UnknownClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         id2,
 			Confidence: 1.0,
 		},
 		Prop: document.GetReference(core.Namespace, "NAME"),
-	}, metaClaim)
+	}, subClaim)
 	assert.Equal(t, &document.NoneClaim{
 		CoreClaim: document.CoreClaim{
 			ID:         id,

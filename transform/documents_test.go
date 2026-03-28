@@ -988,21 +988,21 @@ func TestDocuments_NestedWithValue(t *testing.T) {
 
 	doc := results[0]
 
-	// Should have 1 string claim with meta claims.
+	// Should have 1 string claim with sub-claims.
 	require.Len(t, doc.Claims.String, 1)
 
 	claim := doc.Claims.String[0]
 	assert.Equal(t, "Main Title", claim.String)
 	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), claim.ID)
 
-	// Check meta claims.
-	require.NotNil(t, claim.Meta)
+	// Check sub-claims.
+	require.NotNil(t, claim.Sub)
 
-	// Should have 1 TimeRange and 1 String meta claim.
-	assert.Len(t, claim.Meta.TimeInterval, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0", "PERIOD", "0"), claim.Meta.TimeInterval[0].ID)
-	assert.Len(t, claim.Meta.String, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0", "NOTE", "0"), claim.Meta.String[0].ID)
+	// Should have 1 TimeRange and 1 String sub-claim.
+	assert.Len(t, claim.Sub.TimeInterval, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0", "PERIOD", "0"), claim.Sub.TimeInterval[0].ID)
+	assert.Len(t, claim.Sub.String, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0", "NOTE", "0"), claim.Sub.String[0].ID)
 }
 
 func TestDocuments_NestedWithoutValue(t *testing.T) {
@@ -1038,18 +1038,18 @@ func TestDocuments_NestedWithoutValue(t *testing.T) {
 	doc := results[0]
 
 	// Nested struct without value field creates a HasClaim for the ADDRESS property,
-	// and the Location and Period fields become meta claims on that HasClaim.
+	// and the Location and Period fields become sub-claims on that HasClaim.
 	require.Len(t, doc.Claims.Has, 1)
 
 	hasClaim := doc.Claims.Has[0]
 	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0"), hasClaim.ID)
-	require.NotNil(t, hasClaim.Meta)
+	require.NotNil(t, hasClaim.Sub)
 
-	// Should have 1 Relation and 1 TimeRange as meta claims.
-	assert.Len(t, hasClaim.Meta.Reference, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "LOCATION", "0"), hasClaim.Meta.Reference[0].ID)
-	assert.Len(t, hasClaim.Meta.TimeInterval, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "PERIOD", "0"), hasClaim.Meta.TimeInterval[0].ID)
+	// Should have 1 Relation and 1 TimeRange as sub-claims.
+	assert.Len(t, hasClaim.Sub.Reference, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "LOCATION", "0"), hasClaim.Sub.Reference[0].ID)
+	assert.Len(t, hasClaim.Sub.TimeInterval, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "PERIOD", "0"), hasClaim.Sub.TimeInterval[0].ID)
 }
 
 func TestDocuments_SkippedFields(t *testing.T) {
@@ -1478,14 +1478,14 @@ func TestDocuments_NilRefValueUnknown(t *testing.T) {
 	t.Parallel()
 
 	// Test that nil *core.Ref in value field creates NoneClaim.
-	type RefWithMeta struct {
+	type RefWithSub struct {
 		Ref  *core.Ref `                value:""`
 		Note string    `property:"NOTE"`
 	}
 
 	type DocWithNilRefValue struct {
-		ID       []string    `documentid:""`
-		Optional RefWithMeta `              property:"OPTIONAL"`
+		ID       []string   `documentid:""`
+		Optional RefWithSub `              property:"OPTIONAL"`
 	}
 
 	mnemonics := createMnemonics()
@@ -1493,7 +1493,7 @@ func TestDocuments_NilRefValueUnknown(t *testing.T) {
 	docs := []any{
 		&DocWithNilRefValue{
 			ID: []string{"test", "doc1"},
-			Optional: RefWithMeta{
+			Optional: RefWithSub{
 				Ref:  nil, // Nil ref.
 				Note: "Some note",
 			},
@@ -1509,23 +1509,23 @@ func TestDocuments_NilRefValueUnknown(t *testing.T) {
 	require.Len(t, doc.Claims.Has, 1)
 	assert.Equal(t, identifier.From("test", "doc1", "OPTIONAL", "0"), doc.Claims.Has[0].ID)
 
-	// Should have meta claim (Note).
-	require.NotNil(t, doc.Claims.Has[0].Meta)
-	assert.Len(t, doc.Claims.Has[0].Meta.String, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "OPTIONAL", "0", "NOTE", "0"), doc.Claims.Has[0].Meta.String[0].ID)
+	// Should have sub-claim (Note).
+	require.NotNil(t, doc.Claims.Has[0].Sub)
+	assert.Len(t, doc.Claims.Has[0].Sub.String, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "OPTIONAL", "0", "NOTE", "0"), doc.Claims.Has[0].Sub.String[0].ID)
 }
 
 func TestDocuments_EmptyRefValue(t *testing.T) {
 	t.Parallel()
 
-	type RefWithMeta struct {
+	type RefWithSub struct {
 		Ref  core.Ref `                value:""`
 		Note string   `property:"NOTE"`
 	}
 
 	type DocWithEmptyRefValue struct {
-		ID       []string    `documentid:""`
-		Optional RefWithMeta `              property:"OPTIONAL"`
+		ID       []string   `documentid:""`
+		Optional RefWithSub `              property:"OPTIONAL"`
 	}
 
 	mnemonics := createMnemonics()
@@ -1533,7 +1533,7 @@ func TestDocuments_EmptyRefValue(t *testing.T) {
 	docs := []any{
 		&DocWithEmptyRefValue{
 			ID: []string{"test", "doc1"},
-			Optional: RefWithMeta{
+			Optional: RefWithSub{
 				Ref:  core.Ref{ID: []string{}}, // Empty ref.
 				Note: "Some note",
 			},
@@ -1545,7 +1545,7 @@ func TestDocuments_EmptyRefValue(t *testing.T) {
 
 	doc := results[0]
 
-	// Should create HasClaim for empty ref with meta claims.
+	// Should create HasClaim for empty ref with sub-claims.
 	assert.Len(t, doc.Claims.Has, 1)
 	assert.Equal(t, identifier.From("test", "doc1", "OPTIONAL", "0"), doc.Claims.Has[0].ID)
 }
@@ -1957,10 +1957,10 @@ func TestDocuments_PointerToRefInValue(t *testing.T) {
 	assert.Equal(t, expectedRefID, doc.Claims.Reference[0].To.ID)
 	assert.Equal(t, identifier.From("test", "doc1", "TARGET", "0"), doc.Claims.Reference[0].ID)
 
-	// Should have meta claim (Note).
-	require.NotNil(t, doc.Claims.Reference[0].Meta)
-	assert.Len(t, doc.Claims.Reference[0].Meta.String, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "TARGET", "0", "NOTE", "0"), doc.Claims.Reference[0].Meta.String[0].ID)
+	// Should have sub-claim (Note).
+	require.NotNil(t, doc.Claims.Reference[0].Sub)
+	assert.Len(t, doc.Claims.Reference[0].Sub.String, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "TARGET", "0", "NOTE", "0"), doc.Claims.Reference[0].Sub.String[0].ID)
 }
 
 func TestDocuments_HTMLEscaping(t *testing.T) {
@@ -2033,10 +2033,10 @@ func TestDocuments_ValueFieldWithPointerString(t *testing.T) {
 	assert.Equal(t, "Test Title", doc.Claims.String[0].String)
 	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.String[0].ID)
 
-	// Should have meta claim (Note).
-	require.NotNil(t, doc.Claims.String[0].Meta)
-	assert.Len(t, doc.Claims.String[0].Meta.String, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0", "NOTE", "0"), doc.Claims.String[0].Meta.String[0].ID)
+	// Should have sub-claim (Note).
+	require.NotNil(t, doc.Claims.String[0].Sub)
+	assert.Len(t, doc.Claims.String[0].Sub.String, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0", "NOTE", "0"), doc.Claims.String[0].Sub.String[0].ID)
 }
 
 func TestDocuments_ValueFieldWithPointerStringNil(t *testing.T) {
@@ -2070,14 +2070,14 @@ func TestDocuments_ValueFieldWithPointerStringNil(t *testing.T) {
 
 	doc := results[0]
 
-	// Nil value creates HasClaim (has meta claims).
+	// Nil value creates HasClaim (has sub-claims).
 	require.Len(t, doc.Claims.Has, 1)
 	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.Has[0].ID)
 
-	// Should have meta claim.
-	require.NotNil(t, doc.Claims.Has[0].Meta)
-	assert.Len(t, doc.Claims.Has[0].Meta.String, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0", "NOTE", "0"), doc.Claims.Has[0].Meta.String[0].ID)
+	// Should have sub-claim.
+	require.NotNil(t, doc.Claims.Has[0].Sub)
+	assert.Len(t, doc.Claims.Has[0].Sub.String, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0", "NOTE", "0"), doc.Claims.Has[0].Sub.String[0].ID)
 }
 
 func TestDocuments_ValueFieldWithPointerStringRequired(t *testing.T) {
@@ -2111,7 +2111,7 @@ func TestDocuments_ValueFieldWithPointerStringRequired(t *testing.T) {
 
 	doc := results[0]
 
-	// Nil value with meta claims creates HasClaim (default:"none" applies to cardinality, not claim type).
+	// Nil value with sub-claims creates HasClaim (default:"none" applies to cardinality, not claim type).
 	require.Len(t, doc.Claims.Has, 1)
 	assert.Equal(t, identifier.From("test", "doc1", "TITLE", "0"), doc.Claims.Has[0].ID)
 }
@@ -2162,10 +2162,10 @@ func TestDocuments_ValueFieldWithPointerTime(t *testing.T) {
 	assert.Equal(t, now.UTC().Truncate(time.Second), tt)
 	assert.Equal(t, identifier.From("test", "doc1", "CREATED", "0"), doc.Claims.Time[0].ID)
 
-	// Should have meta claim (Note).
-	require.NotNil(t, doc.Claims.Time[0].Meta)
-	assert.Len(t, doc.Claims.Time[0].Meta.String, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "CREATED", "0", "NOTE", "0"), doc.Claims.Time[0].Meta.String[0].ID)
+	// Should have sub-claim (Note).
+	require.NotNil(t, doc.Claims.Time[0].Sub)
+	assert.Len(t, doc.Claims.Time[0].Sub.String, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "CREATED", "0", "NOTE", "0"), doc.Claims.Time[0].Sub.String[0].ID)
 }
 
 func TestDocuments_ValueFieldWithTime(t *testing.T) {
@@ -2476,10 +2476,10 @@ func TestDocuments_ValueFieldWithAmount(t *testing.T) {
 	assert.Equal(t, document.Amount("1.75"), doc.Claims.Amount[0].Amount)
 	assert.Equal(t, identifier.From("test", "doc1", "HEIGHT", "0"), doc.Claims.Amount[0].ID)
 
-	// Should have meta claim.
-	require.NotNil(t, doc.Claims.Amount[0].Meta)
-	assert.Len(t, doc.Claims.Amount[0].Meta.String, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "HEIGHT", "0", "NOTE", "0"), doc.Claims.Amount[0].Meta.String[0].ID)
+	// Should have sub-claim.
+	require.NotNil(t, doc.Claims.Amount[0].Sub)
+	assert.Len(t, doc.Claims.Amount[0].Sub.String, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "HEIGHT", "0", "NOTE", "0"), doc.Claims.Amount[0].Sub.String[0].ID)
 }
 
 func TestDocuments_ValueFieldWithBool(t *testing.T) {
@@ -2518,10 +2518,10 @@ func TestDocuments_ValueFieldWithBool(t *testing.T) {
 	require.Len(t, doc.Claims.Has, 1)
 	assert.Equal(t, identifier.From("test", "doc1", "ACTIVE", "0"), doc.Claims.Has[0].ID)
 
-	// Should have meta claim.
-	require.NotNil(t, doc.Claims.Has[0].Meta)
-	assert.Len(t, doc.Claims.Has[0].Meta.String, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "ACTIVE", "0", "NOTE", "0"), doc.Claims.Has[0].Meta.String[0].ID)
+	// Should have sub-claim.
+	require.NotNil(t, doc.Claims.Has[0].Sub)
+	assert.Len(t, doc.Claims.Has[0].Sub.String, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "ACTIVE", "0", "NOTE", "0"), doc.Claims.Has[0].Sub.String[0].ID)
 }
 
 func TestDocuments_ValueFieldWithBoolFalse(t *testing.T) {
@@ -2556,15 +2556,15 @@ func TestDocuments_ValueFieldWithBoolFalse(t *testing.T) {
 
 	doc := results[0]
 
-	// Bool false is empty, so HasClaim for the struct (has meta claims).
-	require.Len(t, doc.Claims.Has, 1, "false bool creates has claim for struct when meta claims exist")
+	// Bool false is empty, so HasClaim for the struct (has sub-claims).
+	require.Len(t, doc.Claims.Has, 1, "false bool creates has claim for struct when sub-claims exist")
 	assert.Equal(t, identifier.From("test", "doc1", "ACTIVE", "0"), doc.Claims.Has[0].ID)
 }
 
 func TestDocuments_StructWithoutValueField(t *testing.T) {
 	t.Parallel()
 
-	// Test struct without value:"" field - all fields become meta claims.
+	// Test struct without value:"" field - all fields become sub-claims.
 	type NoValueStruct struct {
 		Location core.Ref `property:"LOCATION"`
 		Note     string   `property:"NOTE"`
@@ -2593,18 +2593,18 @@ func TestDocuments_StructWithoutValueField(t *testing.T) {
 
 	doc := results[0]
 
-	// Without value field, creates HasClaim with meta claims.
+	// Without value field, creates HasClaim with sub-claims.
 	require.Len(t, doc.Claims.Has, 1)
 	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0"), doc.Claims.Has[0].ID)
 
 	hasClaim := doc.Claims.Has[0]
-	require.NotNil(t, hasClaim.Meta)
+	require.NotNil(t, hasClaim.Sub)
 
-	// Should have Location and Note as meta claims.
-	assert.Len(t, hasClaim.Meta.Reference, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "LOCATION", "0"), hasClaim.Meta.Reference[0].ID)
-	assert.Len(t, hasClaim.Meta.String, 1)
-	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "NOTE", "0"), hasClaim.Meta.String[0].ID)
+	// Should have Location and Note as sub-claims.
+	assert.Len(t, hasClaim.Sub.Reference, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "LOCATION", "0"), hasClaim.Sub.Reference[0].ID)
+	assert.Len(t, hasClaim.Sub.String, 1)
+	assert.Equal(t, identifier.From("test", "doc1", "ADDRESS", "0", "NOTE", "0"), hasClaim.Sub.String[0].ID)
 }
 
 func TestDocuments_RequiredPointerNilSlice(t *testing.T) {
@@ -2701,13 +2701,13 @@ func TestDocuments_NestedStructInSlice(t *testing.T) {
 	assert.Equal(t, identifier.From("test", "doc1", "ITEMS", "0"), doc.Claims.String[0].ID)
 	assert.Equal(t, identifier.From("test", "doc1", "ITEMS", "1"), doc.Claims.String[1].ID)
 
-	// Each should have meta claims.
+	// Each should have sub-claims.
 	for i, claim := range doc.Claims.String {
-		require.NotNil(t, claim.Meta, "claim %d", i)
-		assert.Len(t, claim.Meta.String, 1, "claim %d", i)
+		require.NotNil(t, claim.Sub, "claim %d", i)
+		assert.Len(t, claim.Sub.String, 1, "claim %d", i)
 	}
-	assert.Equal(t, identifier.From("test", "doc1", "ITEMS", "0", "NOTE", "0"), doc.Claims.String[0].Meta.String[0].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "ITEMS", "1", "NOTE", "0"), doc.Claims.String[1].Meta.String[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "ITEMS", "0", "NOTE", "0"), doc.Claims.String[0].Sub.String[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "ITEMS", "1", "NOTE", "0"), doc.Claims.String[1].Sub.String[0].ID)
 }
 
 func TestDocuments_MultipleValueFieldsError(t *testing.T) {
@@ -2937,11 +2937,11 @@ func TestDocuments_EmbeddedStructWithPropertySkip(t *testing.T) {
 	assert.Equal(t, identifier.From("test", "doc1", "EXTRA", "0"), doc.Claims.String[1].ID)
 }
 
-func TestDocuments_ComplexSharedPropertyWithMetaAndValue(t *testing.T) {
+func TestDocuments_ComplexSharedPropertyWithSubAndValue(t *testing.T) {
 	t.Parallel()
 
 	// Test complex scenario: multiple sources contributing to same property,
-	// including multiple embedded structs, top-level fields, value fields, and meta fields.
+	// including multiple embedded structs, top-level fields, value fields, and sub-claim fields.
 	type EmbeddedSharedA struct {
 		Field1 string `property:"SHARED"`
 		Field2 string `property:"SHARED"`
@@ -2951,10 +2951,10 @@ func TestDocuments_ComplexSharedPropertyWithMetaAndValue(t *testing.T) {
 		Field3 []string `property:"SHARED"` // Slice in embedded struct.
 	}
 
-	type ValueWithMetaShared struct {
-		Value      string   `                  value:""` // Value for SHARED property.
-		MetaShared []string `property:"SHARED"`          // Meta field also for SHARED property.
-		MetaNote   string   `property:"NOTE"`            // Meta field for different property.
+	type ValueWithSubShared struct {
+		Value     string   `                  value:""` // Value for SHARED property.
+		SubShared []string `property:"SHARED"`          // Sub-claim field also for SHARED property.
+		SubNote   string   `property:"NOTE"`            // Sub-claim field for different property.
 	}
 
 	type DocComplex struct {
@@ -2963,9 +2963,9 @@ func TestDocuments_ComplexSharedPropertyWithMetaAndValue(t *testing.T) {
 
 		ID []string `documentid:""`
 
-		TopShared1 string              `property:"SHARED"` // Top-level field for SHARED.
-		TopShared2 []string            `property:"SHARED"` // Slice creates multiple claims.
-		WithValue  ValueWithMetaShared `property:"SHARED"` // Value field for SHARED with meta.
+		TopShared1 string             `property:"SHARED"` // Top-level field for SHARED.
+		TopShared2 []string           `property:"SHARED"` // Slice creates multiple claims.
+		WithValue  ValueWithSubShared `property:"SHARED"` // Value field for SHARED with sub-claims.
 	}
 
 	mnemonics := createMnemonics()
@@ -2983,10 +2983,10 @@ func TestDocuments_ComplexSharedPropertyWithMetaAndValue(t *testing.T) {
 			ID:         []string{"test", "complex"},
 			TopShared1: "From Top 1",
 			TopShared2: []string{"From Top 2a", "From Top 2b"},
-			WithValue: ValueWithMetaShared{
-				Value:      "From Value",
-				MetaShared: []string{"Meta Shared 1", "Meta Shared 2"},
-				MetaNote:   "Meta Note",
+			WithValue: ValueWithSubShared{
+				Value:     "From Value",
+				SubShared: []string{"Sub Shared 1", "Sub Shared 2"},
+				SubNote:   "Sub Note",
 			},
 		},
 	}
@@ -3025,23 +3025,23 @@ func TestDocuments_ComplexSharedPropertyWithMetaAndValue(t *testing.T) {
 	assert.Equal(t, identifier.From("test", "complex", "SHARED", "6"), doc.Claims.String[6].ID)
 	assert.Equal(t, identifier.From("test", "complex", "SHARED", "7"), doc.Claims.String[7].ID)
 
-	// Verify the value claim (claim 7) has meta claims.
+	// Verify the value claim (claim 7) has sub-claims.
 	valueClaim := doc.Claims.String[7]
-	require.NotNil(t, valueClaim.Meta)
+	require.NotNil(t, valueClaim.Sub)
 
-	// Meta claims: MetaShared creates 2 string claims for SHARED, MetaNote creates 1 for NOTE.
-	assert.Len(t, valueClaim.Meta.String, 3)
+	// Sub-claims: SubShared creates 2 string claims for SHARED, SubNote creates 1 for NOTE.
+	assert.Len(t, valueClaim.Sub.String, 3)
 
-	// Meta claim IDs should start from 0 within the meta context.
-	// Meta claims inherit parent path ["test", "complex", "SHARED", "7"] and add their property.
-	assert.Equal(t, identifier.From("test", "complex", "SHARED", "7", "SHARED", "0"), valueClaim.Meta.String[0].ID)
-	assert.Equal(t, identifier.From("test", "complex", "SHARED", "7", "SHARED", "1"), valueClaim.Meta.String[1].ID)
-	assert.Equal(t, identifier.From("test", "complex", "SHARED", "7", "NOTE", "0"), valueClaim.Meta.String[2].ID)
+	// Sub-claim IDs should start from 0 within the sub-claim context.
+	// Sub-claims inherit parent path ["test", "complex", "SHARED", "7"] and add their property.
+	assert.Equal(t, identifier.From("test", "complex", "SHARED", "7", "SHARED", "0"), valueClaim.Sub.String[0].ID)
+	assert.Equal(t, identifier.From("test", "complex", "SHARED", "7", "SHARED", "1"), valueClaim.Sub.String[1].ID)
+	assert.Equal(t, identifier.From("test", "complex", "SHARED", "7", "NOTE", "0"), valueClaim.Sub.String[2].ID)
 
-	// Verify meta claims have correct property IDs.
-	assert.Equal(t, sharedPropID, valueClaim.Meta.String[0].Prop.ID)
-	assert.Equal(t, sharedPropID, valueClaim.Meta.String[1].Prop.ID)
-	assert.Equal(t, mnemonics["NOTE"], valueClaim.Meta.String[2].Prop.ID)
+	// Verify sub-claims have correct property IDs.
+	assert.Equal(t, sharedPropID, valueClaim.Sub.String[0].Prop.ID)
+	assert.Equal(t, sharedPropID, valueClaim.Sub.String[1].Prop.ID)
+	assert.Equal(t, mnemonics["NOTE"], valueClaim.Sub.String[2].Prop.ID)
 }
 
 type DocWithInvalidUnknown struct {
@@ -3119,11 +3119,11 @@ type DocWithNestedStructNoValue struct {
 }
 
 type NestedStructNoValue struct {
-	// No value field, only meta claims.
-	MetaField string `property:"META"`
+	// No value field, only sub-claims.
+	SubField string `property:"SUB"`
 }
 
-type DocWithNestedStructEmptyMetaClaims struct {
+type DocWithNestedStructEmptySubClaims struct {
 	ID     []string          `documentid:""`
 	Nested NestedStructEmpty `              property:"NESTED"`
 }
@@ -3141,7 +3141,7 @@ func TestDocuments_EdgeCases(t *testing.T) {
 		"TIMES":   identifier.New(),
 		"INVALID": identifier.New(),
 		"NESTED":  identifier.New(),
-		"META":    identifier.New(),
+		"SUB":     identifier.New(),
 	}
 
 	t.Run("SliceWithEmptyValues", func(t *testing.T) {
@@ -3201,14 +3201,14 @@ func TestDocuments_EdgeCases(t *testing.T) {
 		assert.Nil(t, result)
 	})
 
-	t.Run("NestedStructNoValueWithMetaClaims", func(t *testing.T) {
+	t.Run("NestedStructNoValueWithSubClaims", func(t *testing.T) {
 		t.Parallel()
 
 		docs := []any{
 			&DocWithNestedStructNoValue{
 				ID: []string{"doc1"},
 				Nested: NestedStructNoValue{
-					MetaField: "meta-value",
+					SubField: "sub-value",
 				},
 			},
 		}
@@ -3217,18 +3217,18 @@ func TestDocuments_EdgeCases(t *testing.T) {
 		require.NoError(t, errE, "% -+#.1v", errE)
 		require.Len(t, result, 1)
 
-		// Should create a HasClaim since there's no value field but there are meta claims.
+		// Should create a HasClaim since there's no value field but there are sub-claims.
 		nestedProperty := mnemonics["NESTED"]
 		nestedClaims := result[0].Get(nestedProperty)
 		assert.Len(t, nestedClaims, 1)
 		assert.IsType(t, &document.HasClaim{}, nestedClaims[0])
 	})
 
-	t.Run("NestedStructWithEmptyMetaClaims", func(t *testing.T) {
+	t.Run("NestedStructWithEmptySubClaims", func(t *testing.T) {
 		t.Parallel()
 
 		docs := []any{
-			&DocWithNestedStructEmptyMetaClaims{
+			&DocWithNestedStructEmptySubClaims{
 				ID:     []string{"doc1"},
 				Nested: NestedStructEmpty{},
 			},
@@ -3238,7 +3238,7 @@ func TestDocuments_EdgeCases(t *testing.T) {
 		require.NoError(t, errE, "% -+#.1v", errE)
 		require.Len(t, result, 1)
 
-		// Should not create a claim since there's no value field and no meta claims.
+		// Should not create a claim since there's no value field and no sub-claims.
 		nestedProperty := mnemonics["NESTED"]
 		nestedClaims := result[0].Get(nestedProperty)
 		assert.Empty(t, nestedClaims)
@@ -4624,7 +4624,7 @@ func TestDocuments_PointerWithCardinality(t *testing.T) {
 func TestDocuments_EmptyStructAsValue(t *testing.T) {
 	t.Parallel()
 
-	// Test struct with no value field and no meta claims produces no claim.
+	// Test struct with no value field and no sub-claims produces no claim.
 	type EmptyStruct struct {
 		// No fields.
 	}
@@ -4649,7 +4649,7 @@ func TestDocuments_EmptyStructAsValue(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	// Empty struct with no value field and no meta claims produces no claim.
+	// Empty struct with no value field and no sub-claims produces no claim.
 	fieldProperty := mnemonics["FIELD"]
 	fieldClaims := doc.Get(fieldProperty)
 	assert.Empty(t, fieldClaims)
@@ -4661,7 +4661,7 @@ func TestDocuments_EmbeddedStructWithValueClaim(t *testing.T) {
 	// Test embedded struct that contains a value field.
 	type EmbeddedWithValue struct {
 		Value string `                value:""`
-		Meta  string `property:"META"`
+		Sub   string `property:"SUB"`
 	}
 
 	type OuterStruct struct {
@@ -4675,7 +4675,7 @@ func TestDocuments_EmbeddedStructWithValueClaim(t *testing.T) {
 
 	mnemonics := createMnemonics()
 	mnemonics["FIELD"] = identifier.From("test", "FIELD")
-	mnemonics["META"] = identifier.From("test", "META")
+	mnemonics["SUB"] = identifier.From("test", "SUB")
 
 	docs := []any{
 		&DocWithEmbeddedValue{
@@ -4683,7 +4683,7 @@ func TestDocuments_EmbeddedStructWithValueClaim(t *testing.T) {
 			Field: OuterStruct{
 				EmbeddedWithValue: EmbeddedWithValue{
 					Value: "test-value",
-					Meta:  "meta-value",
+					Sub:   "sub-value",
 				},
 			},
 		},
@@ -4697,19 +4697,19 @@ func TestDocuments_EmbeddedStructWithValueClaim(t *testing.T) {
 	require.Len(t, doc.Claims.String, 1)
 	assert.Equal(t, "test-value", doc.Claims.String[0].String)
 
-	// Check meta claim.
-	require.NotNil(t, doc.Claims.String[0].Meta)
-	require.Len(t, doc.Claims.String[0].Meta.String, 1)
-	assert.Equal(t, "meta-value", doc.Claims.String[0].Meta.String[0].String)
+	// Check sub-claim.
+	require.NotNil(t, doc.Claims.String[0].Sub)
+	require.Len(t, doc.Claims.String[0].Sub.String, 1)
+	assert.Equal(t, "sub-value", doc.Claims.String[0].Sub.String[0].String)
 }
 
 func TestDocuments_EmbeddedStructWithEmptyValue(t *testing.T) {
 	t.Parallel()
 
-	// Test embedded struct with empty value field but has meta claims.
+	// Test embedded struct with empty value field but has sub-claims.
 	type EmbeddedWithEmptyValue struct {
 		Value string `                value:""`
-		Meta  string `property:"META"`
+		Sub   string `property:"SUB"`
 	}
 
 	type OuterStruct struct {
@@ -4723,7 +4723,7 @@ func TestDocuments_EmbeddedStructWithEmptyValue(t *testing.T) {
 
 	mnemonics := createMnemonics()
 	mnemonics["FIELD"] = identifier.From("test", "FIELD")
-	mnemonics["META"] = identifier.From("test", "META")
+	mnemonics["SUB"] = identifier.From("test", "SUB")
 
 	docs := []any{
 		&DocWithEmbeddedEmptyValue{
@@ -4731,7 +4731,7 @@ func TestDocuments_EmbeddedStructWithEmptyValue(t *testing.T) {
 			Field: OuterStruct{
 				EmbeddedWithEmptyValue: EmbeddedWithEmptyValue{
 					Value: "", // Empty value.
-					Meta:  "meta-value",
+					Sub:   "sub-value",
 				},
 			},
 		},
@@ -4742,18 +4742,18 @@ func TestDocuments_EmbeddedStructWithEmptyValue(t *testing.T) {
 	require.Len(t, results, 1)
 
 	doc := results[0]
-	// Should have HasClaim since value is empty but there are meta claims.
+	// Should have HasClaim since value is empty but there are sub-claims.
 	fieldProperty := mnemonics["FIELD"]
 	fieldClaims := doc.Get(fieldProperty)
 	require.Len(t, fieldClaims, 1)
 	assert.IsType(t, &document.HasClaim{}, fieldClaims[0])
 
-	// Check meta claim exists.
+	// Check sub-claim exists.
 	hasClaim, ok := fieldClaims[0].(*document.HasClaim)
 	require.True(t, ok)
-	require.NotNil(t, hasClaim.Meta)
-	require.Len(t, hasClaim.Meta.String, 1)
-	assert.Equal(t, "meta-value", hasClaim.Meta.String[0].String)
+	require.NotNil(t, hasClaim.Sub)
+	require.Len(t, hasClaim.Sub.String, 1)
+	assert.Equal(t, "sub-value", hasClaim.Sub.String[0].String)
 }
 
 func TestDocuments_SliceWithMinCardinality(t *testing.T) {
@@ -5486,10 +5486,10 @@ func TestDocuments_ValueFieldCannotHaveCardinality(t *testing.T) {
 	assert.EqualError(t, errE, "cardinality tag cannot be used with value tag")
 }
 
-func TestDocuments_ValueFieldDefaultNoneEmptyValueNoMeta(t *testing.T) {
+func TestDocuments_ValueFieldDefaultNoneEmptyValueNoSub(t *testing.T) {
 	t.Parallel()
 
-	// Test that value:"" default:"none" does not create a NoneClaim when the value is empty and there are no meta claims.
+	// Test that value:"" default:"none" does not create a NoneClaim when the value is empty and there are no sub-claims.
 	type NameValue struct {
 		Value string `default:"none" value:""`
 	}
@@ -5513,14 +5513,14 @@ func TestDocuments_ValueFieldDefaultNoneEmptyValueNoMeta(t *testing.T) {
 
 	doc := results[0]
 
-	// Empty value with default:"none" but no meta claims should not create any claim.
+	// Empty value with default:"none" but no sub-claims should not create any claim.
 	assert.Empty(t, doc.Claims.None)
 }
 
-func TestDocuments_ValueFieldDefaultUnknownEmptyValueNoMeta(t *testing.T) {
+func TestDocuments_ValueFieldDefaultUnknownEmptyValueNoSub(t *testing.T) {
 	t.Parallel()
 
-	// Test that value:"" default:"unknown" does not create an UnknownClaim when the value is empty and there are no meta claims.
+	// Test that value:"" default:"unknown" does not create an UnknownClaim when the value is empty and there are no sub-claims.
 	type NameValue struct {
 		Value string `default:"unknown" value:""`
 	}
@@ -5544,7 +5544,7 @@ func TestDocuments_ValueFieldDefaultUnknownEmptyValueNoMeta(t *testing.T) {
 
 	doc := results[0]
 
-	// Empty value with default:"unknown" but no meta claims should not create any claim.
+	// Empty value with default:"unknown" but no sub-claims should not create any claim.
 	assert.Empty(t, doc.Claims.Unknown)
 }
 
@@ -5583,16 +5583,16 @@ func TestDocuments_ValueFieldDefaultNoneWithValue(t *testing.T) {
 }
 
 //nolint:dupl
-func TestDocuments_ValueFieldDefaultNoneWithMetaClaims(t *testing.T) {
+func TestDocuments_ValueFieldDefaultNoneWithSubClaims(t *testing.T) {
 	t.Parallel()
 
-	// Test that value:"" default:"none" creates a NoneClaim with meta claims when value is empty.
+	// Test that value:"" default:"none" creates a NoneClaim with sub-claims when value is empty.
 	type NameValue struct {
 		Value string `default:"none"                 value:""`
 		Note  string `               property:"NOTE"`
 	}
 
-	type DocWithDefaultNoneMetaValue struct {
+	type DocWithDefaultNoneSubValue struct {
 		ID   []string  `documentid:""`
 		Name NameValue `              property:"NAME"`
 	}
@@ -5600,7 +5600,7 @@ func TestDocuments_ValueFieldDefaultNoneWithMetaClaims(t *testing.T) {
 	mnemonics := createMnemonics()
 
 	docs := []any{
-		&DocWithDefaultNoneMetaValue{
+		&DocWithDefaultNoneSubValue{
 			ID: []string{"test", "doc1"},
 			Name: NameValue{
 				Value: "",
@@ -5614,27 +5614,27 @@ func TestDocuments_ValueFieldDefaultNoneWithMetaClaims(t *testing.T) {
 
 	doc := results[0]
 
-	// Empty value with default:"none" and meta claims should create a NoneClaim with meta claims.
+	// Empty value with default:"none" and sub-claims should create a NoneClaim with sub-claims.
 	require.Len(t, doc.Claims.None, 1)
 	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0"), doc.Claims.None[0].ID)
 
-	require.NotNil(t, doc.Claims.None[0].Meta)
-	require.Len(t, doc.Claims.None[0].Meta.String, 1)
-	assert.Equal(t, "Annotation", doc.Claims.None[0].Meta.String[0].String)
-	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0", "NOTE", "0"), doc.Claims.None[0].Meta.String[0].ID)
+	require.NotNil(t, doc.Claims.None[0].Sub)
+	require.Len(t, doc.Claims.None[0].Sub.String, 1)
+	assert.Equal(t, "Annotation", doc.Claims.None[0].Sub.String[0].String)
+	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0", "NOTE", "0"), doc.Claims.None[0].Sub.String[0].ID)
 }
 
 //nolint:dupl
-func TestDocuments_ValueFieldDefaultUnknownWithMetaClaims(t *testing.T) {
+func TestDocuments_ValueFieldDefaultUnknownWithSubClaims(t *testing.T) {
 	t.Parallel()
 
-	// Test that value:"" default:"unknown" creates an UnknownClaim with meta claims when value is empty.
+	// Test that value:"" default:"unknown" creates an UnknownClaim with sub-claims when value is empty.
 	type NameValue struct {
 		Value string `default:"unknown"                 value:""`
 		Note  string `                  property:"NOTE"`
 	}
 
-	type DocWithDefaultUnknownMetaValue struct {
+	type DocWithDefaultUnknownSubValue struct {
 		ID   []string  `documentid:""`
 		Name NameValue `              property:"NAME"`
 	}
@@ -5642,7 +5642,7 @@ func TestDocuments_ValueFieldDefaultUnknownWithMetaClaims(t *testing.T) {
 	mnemonics := createMnemonics()
 
 	docs := []any{
-		&DocWithDefaultUnknownMetaValue{
+		&DocWithDefaultUnknownSubValue{
 			ID: []string{"test", "doc1"},
 			Name: NameValue{
 				Value: "",
@@ -5656,14 +5656,14 @@ func TestDocuments_ValueFieldDefaultUnknownWithMetaClaims(t *testing.T) {
 
 	doc := results[0]
 
-	// Empty value with default:"unknown" and meta claims should create an UnknownClaim with meta claims.
+	// Empty value with default:"unknown" and sub-claims should create an UnknownClaim with sub-claims.
 	require.Len(t, doc.Claims.Unknown, 1)
 	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0"), doc.Claims.Unknown[0].ID)
 
-	require.NotNil(t, doc.Claims.Unknown[0].Meta)
-	require.Len(t, doc.Claims.Unknown[0].Meta.String, 1)
-	assert.Equal(t, "Source unclear", doc.Claims.Unknown[0].Meta.String[0].String)
-	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0", "NOTE", "0"), doc.Claims.Unknown[0].Meta.String[0].ID)
+	require.NotNil(t, doc.Claims.Unknown[0].Sub)
+	require.Len(t, doc.Claims.Unknown[0].Sub.String, 1)
+	assert.Equal(t, "Source unclear", doc.Claims.Unknown[0].Sub.String[0].String)
+	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0", "NOTE", "0"), doc.Claims.Unknown[0].Sub.String[0].ID)
 }
 
 func TestClaimNotMadeError(t *testing.T) {
@@ -5739,27 +5739,27 @@ func TestDocuments_PointerIdentifierConflict(t *testing.T) {
 	assert.EqualError(t, errE, "identifier field used with conflicting tag")
 }
 
-func TestDocuments_MetaClaimsProcessingError(t *testing.T) {
+func TestDocuments_SubClaimsProcessingError(t *testing.T) {
 	t.Parallel()
 
-	// A nested struct where a meta field succeeds, with numeric meta claim.
-	type NestedWithBadMeta struct {
+	// A nested struct where a sub-claim field succeeds, with numeric sub-claim.
+	type NestedWithBadSub struct {
 		Value string `                               value:""`
 		Count int    `precision:"1" property:"COUNT"`
 	}
 
-	type DocWithNestedBadMeta struct {
-		ID   []string          `documentid:""`
-		Data NestedWithBadMeta `              property:"DATA"`
+	type DocWithNestedBadSub struct {
+		ID   []string         `documentid:""`
+		Data NestedWithBadSub `              property:"DATA"`
 	}
 
 	mnemonics := createMnemonics()
 	mnemonics["DATA"] = identifier.From("test", "DATA")
 
 	docs := []any{
-		&DocWithNestedBadMeta{
+		&DocWithNestedBadSub{
 			ID: []string{"test", "doc1"},
-			Data: NestedWithBadMeta{
+			Data: NestedWithBadSub{
 				Value: "test",
 				Count: 5,
 			},
@@ -5776,7 +5776,7 @@ func TestDocuments_EmbeddedNoValueInValueSearch(t *testing.T) {
 
 	// When extractValueClaim encounters an anonymous embedded struct with no value field, it continues.
 	type EmbeddedNoValue struct {
-		Meta string `property:"META"`
+		Sub string `property:"SUB"`
 	}
 
 	type OuterWithValueAndEmbedded struct {
@@ -5792,13 +5792,13 @@ func TestDocuments_EmbeddedNoValueInValueSearch(t *testing.T) {
 
 	mnemonics := createMnemonics()
 	mnemonics["FIELD"] = identifier.From("test", "FIELD")
-	mnemonics["META"] = identifier.From("test", "META")
+	mnemonics["SUB"] = identifier.From("test", "SUB")
 
 	docs := []any{
 		&DocWithOuterEmbedded{
 			ID: []string{"test", "doc1"},
 			Field: OuterWithValueAndEmbedded{
-				EmbeddedNoValue: EmbeddedNoValue{Meta: "meta-value"},
+				EmbeddedNoValue: EmbeddedNoValue{Sub: "sub-value"},
 				Value:           "main-value",
 			},
 		},
@@ -6498,10 +6498,10 @@ func TestDocuments_GoTimeValueField(t *testing.T) {
 	assert.Equal(t, document.TimePrecisionDay, doc.Claims.Time[0].Precision)
 	assert.Equal(t, document.Timestamp("2024-03-15"), doc.Claims.Time[0].Timestamp)
 
-	// Should have meta claim.
-	require.NotNil(t, doc.Claims.Time[0].Meta)
-	assert.Len(t, doc.Claims.Time[0].Meta.String, 1)
-	assert.Equal(t, "birth date", doc.Claims.Time[0].Meta.String[0].String)
+	// Should have sub-claim.
+	require.NotNil(t, doc.Claims.Time[0].Sub)
+	assert.Len(t, doc.Claims.Time[0].Sub.String, 1)
+	assert.Equal(t, "birth date", doc.Claims.Time[0].Sub.String[0].String)
 }
 
 func TestDocuments_PrecisionOnRefErrors(t *testing.T) {

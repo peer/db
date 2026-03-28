@@ -32,7 +32,7 @@ export interface ClaimsContainer extends Claims {
 class CoreClaim implements ClaimsContainer {
   id!: string
   confidence!: Confidence
-  meta?: ClaimTypes
+  sub?: ClaimTypes
 
   GetID(): string {
     return this.id
@@ -43,60 +43,60 @@ class CoreClaim implements ClaimsContainer {
   }
 
   Get(propID: string): Claim[] {
-    if (this.meta === undefined) {
+    if (this.sub === undefined) {
       return []
     }
-    return this.meta.Get(propID)
+    return this.sub.Get(propID)
   }
 
   Remove(propID: string): Claim[] {
-    if (this.meta === undefined) {
+    if (this.sub === undefined) {
       return []
     }
-    return this.meta.Remove(propID)
+    return this.sub.Remove(propID)
   }
 
   GetByID(id: string): Claim | undefined {
-    if (this.meta === undefined) {
+    if (this.sub === undefined) {
       return
     }
-    return this.meta.GetByID(id)
+    return this.sub.GetByID(id)
   }
 
   RemoveByID(id: string): Claim | undefined {
-    if (this.meta === undefined) {
+    if (this.sub === undefined) {
       return
     }
-    return this.meta.RemoveByID(id)
+    return this.sub.RemoveByID(id)
   }
 
   Add(claim: Claim): void {
-    if (this.meta === undefined) {
-      this.meta = new ClaimTypes({})
+    if (this.sub === undefined) {
+      this.sub = new ClaimTypes({})
     }
-    this.meta.Add(claim)
+    this.sub.Add(claim)
   }
 
   Size(): number {
-    if (this.meta === undefined) {
+    if (this.sub === undefined) {
       return 0
     }
-    return this.meta.Size()
+    return this.sub.Size()
   }
 
   AllClaims(): Claim[] {
-    if (this.meta === undefined) {
+    if (this.sub === undefined) {
       return []
     }
-    return this.meta.AllClaims()
+    return this.sub.AllClaims()
   }
 
   async Validate(): Promise<void> {
     if (this.confidence < -1 || this.confidence > 1 || !isFinite(this.confidence)) {
       throw new Error("confidence out of range [-1, 1]")
     }
-    if (this.meta !== undefined) {
-      await this.meta.Validate()
+    if (this.sub !== undefined) {
+      await this.sub.Validate()
     }
   }
 }
@@ -120,8 +120,8 @@ export class IdentifierClaim extends CoreClaim {
     if (!this.value) {
       throw new Error("value is required")
     }
-    if (this.meta !== undefined) {
-      this.meta = new ClaimTypes(this.meta)
+    if (this.sub !== undefined) {
+      this.sub = new ClaimTypes(this.sub)
     }
   }
 
@@ -153,8 +153,8 @@ export class StringClaim extends CoreClaim {
     if (!this.string) {
       throw new Error("string is required")
     }
-    if (this.meta !== undefined) {
-      this.meta = new ClaimTypes(this.meta)
+    if (this.sub !== undefined) {
+      this.sub = new ClaimTypes(this.sub)
     }
   }
 
@@ -186,8 +186,8 @@ export class HTMLClaim extends CoreClaim {
     if (!this.html) {
       throw new Error("html is required")
     }
-    if (this.meta !== undefined) {
-      this.meta = new ClaimTypes(this.meta)
+    if (this.sub !== undefined) {
+      this.sub = new ClaimTypes(this.sub)
     }
   }
 
@@ -223,8 +223,8 @@ export class AmountClaim extends CoreClaim {
     if (this.precision === undefined) {
       throw new Error("precision is required")
     }
-    if (this.meta !== undefined) {
-      this.meta = new ClaimTypes(this.meta)
+    if (this.sub !== undefined) {
+      this.sub = new ClaimTypes(this.sub)
     }
   }
 
@@ -263,8 +263,8 @@ export class AmountIntervalClaim extends CoreClaim {
     if (!this.prop) {
       throw new Error("prop is required")
     }
-    if (this.meta !== undefined) {
-      this.meta = new ClaimTypes(this.meta)
+    if (this.sub !== undefined) {
+      this.sub = new ClaimTypes(this.sub)
     }
   }
 
@@ -343,8 +343,8 @@ export class TimeClaim extends CoreClaim {
     if (this.precision === undefined) {
       throw new Error("precision is required")
     }
-    if (this.meta !== undefined) {
-      this.meta = new ClaimTypes(this.meta)
+    if (this.sub !== undefined) {
+      this.sub = new ClaimTypes(this.sub)
     }
   }
 
@@ -383,8 +383,8 @@ export class TimeIntervalClaim extends CoreClaim {
     if (!this.prop) {
       throw new Error("prop is required")
     }
-    if (this.meta !== undefined) {
-      this.meta = new ClaimTypes(this.meta)
+    if (this.sub !== undefined) {
+      this.sub = new ClaimTypes(this.sub)
     }
   }
 
@@ -459,8 +459,8 @@ export class LinkClaim extends CoreClaim {
     if (!this.iri) {
       throw new Error("iri is required")
     }
-    if (this.meta !== undefined) {
-      this.meta = new ClaimTypes(this.meta)
+    if (this.sub !== undefined) {
+      this.sub = new ClaimTypes(this.sub)
     }
   }
 
@@ -492,8 +492,8 @@ export class ReferenceClaim extends CoreClaim {
     if (!this.to) {
       throw new Error("to is required")
     }
-    if (this.meta !== undefined) {
-      this.meta = new ClaimTypes(this.meta)
+    if (this.sub !== undefined) {
+      this.sub = new ClaimTypes(this.sub)
     }
   }
 }
@@ -513,8 +513,8 @@ export class HasClaim extends CoreClaim {
     if (!this.prop) {
       throw new Error("prop is required")
     }
-    if (this.meta !== undefined) {
-      this.meta = new ClaimTypes(this.meta)
+    if (this.sub !== undefined) {
+      this.sub = new ClaimTypes(this.sub)
     }
   }
 }
@@ -534,8 +534,8 @@ export class NoneClaim extends CoreClaim {
     if (!this.prop) {
       throw new Error("prop is required")
     }
-    if (this.meta !== undefined) {
-      this.meta = new ClaimTypes(this.meta)
+    if (this.sub !== undefined) {
+      this.sub = new ClaimTypes(this.sub)
     }
   }
 }
@@ -555,8 +555,8 @@ export class UnknownClaim extends CoreClaim {
     if (!this.prop) {
       throw new Error("prop is required")
     }
-    if (this.meta !== undefined) {
-      this.meta = new ClaimTypes(this.meta)
+    if (this.sub !== undefined) {
+      this.sub = new ClaimTypes(this.sub)
     }
   }
 }
@@ -662,7 +662,7 @@ export class ClaimTypes implements Claims {
     return (Object.keys(CLAIM_TYPES_MAP) as ClaimTypeName[]).flatMap((k) => this[k] ?? [])
   }
 
-  // Validate validates all claims, including nested meta claims.
+  // Validate validates all claims, including nested sub-claims.
   async Validate(): Promise<void> {
     const ids = new Set<string>()
     for (const claim of this.AllClaims()) {
@@ -776,8 +776,8 @@ export function getAllClaimsOfTypeWithConfidence<K extends ClaimTypeName>(
   return claims.filter((claim) => claim.confidence >= confidence)
 }
 
-// getClaimsListsOfType groups claims by their LIST meta-claim and sorts within
-// each list by the ORDER_IN_LIST meta-claim. Returns an array of lists, where each
+// getClaimsListsOfType groups claims by their LIST sub-claim and sorts within
+// each list by the ORDER_IN_LIST sub-claim. Returns an array of lists, where each
 // list is an array of claims sorted by order.
 // TODO: Handle sub-lists. Children lists should be nested and not just added as additional lists to the list of lists.
 // TODO: Sort lists between themselves by (average) confidence?
@@ -789,8 +789,8 @@ export function getClaimsListsOfType<K extends ClaimTypeName>(
   const claims = getClaimsOfType(claimTypes, claimType, propertyId)
   const claimsPerList: Record<string, [Required<DeepReadonly<ClaimTypes>>[K][number], number][]> = {}
   for (const claim of claims) {
-    const list = getBestClaimOfType(claim.meta, "id", LIST)?.value || "none"
-    const order = parseFloat(getBestClaimOfType(claim.meta, "amount", ORDER_IN_LIST)?.amount ?? "") || Number.MAX_VALUE
+    const list = getBestClaimOfType(claim.sub, "id", LIST)?.value || "none"
+    const order = parseFloat(getBestClaimOfType(claim.sub, "amount", ORDER_IN_LIST)?.amount ?? "") || Number.MAX_VALUE
     if (!(list in claimsPerList)) {
       claimsPerList[list] = []
     }
@@ -806,14 +806,14 @@ export function getClaimsListsOfType<K extends ClaimTypeName>(
 // UNDETERMINED_LANGUAGE is the language code used for claims without a specific language.
 export const UNDETERMINED_LANGUAGE = "und"
 
-// extractClaimLanguages extracts language codes from a claim's meta IN_LANGUAGE references.
+// extractClaimLanguages extracts language codes from a claim's IN_LANGUAGE sub-claim references.
 //
 // It maps language document IDs to codes using languageCodes, and checks that the code
 // is a key in languagePriority (i.e., an enabled language).
 //
 // Returns [UNDETERMINED_LANGUAGE] if no languages are specified or none can be resolved.
-function extractClaimLanguages(meta: DeepReadonly<ClaimTypes> | undefined | null): string[] {
-  const refs = getClaimsOfTypeWithConfidence(meta, "ref", IN_LANGUAGE)
+function extractClaimLanguages(sub: DeepReadonly<ClaimTypes> | undefined | null): string[] {
+  const refs = getClaimsOfTypeWithConfidence(sub, "ref", IN_LANGUAGE)
   const codes: string[] = []
   for (const ref of refs) {
     const code = siteContext.languageCodes[ref.to.id]
@@ -838,7 +838,7 @@ export function getClaimsAndLanguageOfTypeWithConfidence<K extends ClaimTypeName
 ): Record<string, Required<DeepReadonly<ClaimTypes>>[K][number][]> {
   const grouped: Record<string, { confidence: number; value: Required<DeepReadonly<ClaimTypes>>[K][number] }[]> = {}
   for (const claim of getClaimsOfTypeWithConfidence(claimTypes, claimType, propertyId, confidence)) {
-    for (const lang of extractClaimLanguages(claim.meta)) {
+    for (const lang of extractClaimLanguages(claim.sub)) {
       if (!grouped[lang]) {
         grouped[lang] = []
       }

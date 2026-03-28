@@ -44,7 +44,7 @@ test("CoreClaim GetConfidence", () => {
   assert.equal(claim.GetConfidence(), MediumConfidence)
 })
 
-test("CoreClaim methods (Get, Remove, Size, AllClaims on meta)", () => {
+test("CoreClaim methods (Get, Remove, Size, AllClaims on sub-claims)", () => {
   const prop = Identifier.new().toString()
   const otherProp = Identifier.new().toString()
 
@@ -54,25 +54,25 @@ test("CoreClaim methods (Get, Remove, Size, AllClaims on meta)", () => {
     prop: { id: prop },
   })
 
-  // Initially empty meta.
+  // Initially empty sub-claims.
   assert.equal(claim.Size(), 0)
   assert.deepEqual(claim.AllClaims(), [])
   assert.deepEqual(claim.Get(prop), [])
 
-  // Add two meta claims.
-  const metaClaim1 = new StringClaim({
+  // Add two sub-claims.
+  const subClaim1 = new StringClaim({
     id: Identifier.new().toString(),
     confidence: HighConfidence,
     prop: { id: prop },
     string: "meta1",
   })
-  const metaClaim2 = new UnknownClaim({
+  const subClaim2 = new UnknownClaim({
     id: Identifier.new().toString(),
     confidence: HighConfidence,
     prop: { id: otherProp },
   })
-  claim.Add(metaClaim1)
-  claim.Add(metaClaim2)
+  claim.Add(subClaim1)
+  claim.Add(subClaim2)
 
   assert.equal(claim.Size(), 2)
   assert.equal(claim.AllClaims().length, 2)
@@ -80,7 +80,7 @@ test("CoreClaim methods (Get, Remove, Size, AllClaims on meta)", () => {
   // Get by prop returns only matching.
   const got = claim.Get(prop)
   assert.equal(got.length, 1)
-  assert.equal(got[0].GetID(), metaClaim1.GetID())
+  assert.equal(got[0].GetID(), subClaim1.GetID())
 
   // Remove by prop.
   const removed = claim.Remove(prop)
@@ -174,7 +174,7 @@ test("ClaimTypes RemoveByID", () => {
   assert.equal(ct.RemoveByID(Identifier.new().toString()), undefined)
 })
 
-test("ClaimTypes RemoveByID in meta", () => {
+test("ClaimTypes RemoveByID in sub-claims", () => {
   const prop = Identifier.new().toString()
   const outerID = Identifier.new().toString()
   const innerID = Identifier.new().toString()
@@ -185,7 +185,7 @@ test("ClaimTypes RemoveByID in meta", () => {
         id: outerID,
         confidence: 1.0,
         prop: { id: prop },
-        meta: {
+        sub: {
           string: [{ id: innerID, confidence: 1.0, prop: { id: prop }, string: "inner" }],
         },
       },
@@ -350,7 +350,7 @@ describe("GetClaimsListsOfType", () => {
           confidence: 1.0,
           prop: { id: prop },
           string: "a2",
-          meta: {
+          sub: {
             id: [{ id: Identifier.new().toString(), confidence: 1.0, prop: { id: LIST }, value: listA }],
             amount: [{ id: Identifier.new().toString(), confidence: 1.0, prop: { id: ORDER_IN_LIST }, amount: "2", precision: 1 }],
           },
@@ -360,7 +360,7 @@ describe("GetClaimsListsOfType", () => {
           confidence: 1.0,
           prop: { id: prop },
           string: "a1",
-          meta: {
+          sub: {
             id: [{ id: Identifier.new().toString(), confidence: 1.0, prop: { id: LIST }, value: listA }],
             amount: [{ id: Identifier.new().toString(), confidence: 1.0, prop: { id: ORDER_IN_LIST }, amount: "1", precision: 1 }],
           },
@@ -370,7 +370,7 @@ describe("GetClaimsListsOfType", () => {
           confidence: 1.0,
           prop: { id: prop },
           string: "b1",
-          meta: {
+          sub: {
             id: [{ id: Identifier.new().toString(), confidence: 1.0, prop: { id: LIST }, value: listB }],
             amount: [{ id: Identifier.new().toString(), confidence: 1.0, prop: { id: ORDER_IN_LIST }, amount: "1", precision: 1 }],
           },
@@ -420,7 +420,7 @@ test("CoreClaim Validate invalid confidence", async () => {
   await expect(claim.Validate()).rejects.toThrow("confidence out of range")
 })
 
-test("CoreClaim Validate with invalid meta", async () => {
+test("CoreClaim Validate with invalid sub-claims", async () => {
   const outerClaim = new NoneClaim({
     id: Identifier.new().toString(),
     confidence: 1.0,
@@ -484,7 +484,7 @@ test("ClaimTypes Remove", () => {
   assert.equal(ct.Size(), 0)
 })
 
-test("CoreClaim Get and Remove with no meta", () => {
+test("CoreClaim Get and Remove with no sub-claims", () => {
   const prop = Identifier.new().toString()
   const claim = new NoneClaim({
     id: Identifier.new().toString(),
@@ -492,10 +492,10 @@ test("CoreClaim Get and Remove with no meta", () => {
     prop: { id: prop },
   })
 
-  // Get on a claim with no meta returns empty.
+  // Get on a claim with no sub-claims returns empty.
   assert.deepEqual(claim.Get(prop), [])
 
-  // Remove on a claim with no meta returns empty.
+  // Remove on a claim with no sub-claims returns empty.
   assert.deepEqual(claim.Remove(prop), [])
 })
 
