@@ -386,8 +386,8 @@ func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Ident
 		var hierAncestors []identifier.Identifier
 		var hierIDPaths []string
 		hierDisplayPaths := map[string][]string{}
-		for _, rel := range refs {
-			parentID := rel.To.ID
+		for _, ref := range refs {
+			parentID := ref.To.ID
 			if seen[parentID] {
 				continue
 			}
@@ -719,8 +719,8 @@ func (c *Converter) extractInLanguages(claims document.Claims) []string {
 	}
 	refs := document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](claims, inLanguagePropID, document.LowConfidence)
 	var codes []string
-	for _, rel := range refs {
-		if code, ok := c.languageCodes[rel.To.ID]; ok && SupportedLanguages[code] {
+	for _, ref := range refs {
+		if code, ok := c.languageCodes[ref.To.ID]; ok && SupportedLanguages[code] {
 			codes = append(codes, code)
 		}
 	}

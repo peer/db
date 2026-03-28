@@ -165,8 +165,8 @@ const UndeterminedLanguage = "und"
 func extractClaimLanguages(claims Claims, languageCodes map[identifier.Identifier]string, languagePriority map[string][]string) []string {
 	refs := GetClaimsOfTypeWithConfidence[*ReferenceClaim](claims, inLanguagePropID, LowConfidence)
 	var codes []string
-	for _, rel := range refs {
-		if code, ok := languageCodes[rel.To.ID]; ok {
+	for _, ref := range refs {
+		if code, ok := languageCodes[ref.To.ID]; ok {
 			if _, ok := languagePriority[code]; ok {
 				codes = append(codes, code)
 			}
