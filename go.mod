@@ -29,7 +29,7 @@ require (
 	gitlab.com/tozd/go/x v0.0.0-20260325094342-27311bf9bec0
 	gitlab.com/tozd/go/zerolog v0.11.2
 	gitlab.com/tozd/identifier v0.8.1
-	gitlab.com/tozd/waf v0.22.1-0.20260326000050-e98811a2f69f
+	gitlab.com/tozd/waf v0.23.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
