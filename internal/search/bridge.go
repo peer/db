@@ -832,14 +832,14 @@ func (b *Bridge) indexCommit(
 func diffOutgoingInverseRelations(
 	current, parent map[identifier.Identifier][]internalStore.InverseRelation,
 ) (map[identifier.Identifier][]internalStore.InverseRelation, map[identifier.Identifier][]internalStore.InverseRelation) {
-	currentSet := make(map[internalStore.InverseRelation]bool)
+	currentSet := map[internalStore.InverseRelation]bool{}
 	for _, irs := range current {
 		for _, ir := range irs {
 			currentSet[ir] = true
 		}
 	}
 
-	parentSet := make(map[internalStore.InverseRelation]bool)
+	parentSet := map[internalStore.InverseRelation]bool{}
 	for _, irs := range parent {
 		for _, ir := range irs {
 			parentSet[ir] = true
@@ -915,7 +915,7 @@ func (b *Bridge) updateSeq(
 	// TODO: How to get MetricDatabaseRetries inside RetryTransaction to be incremented at every loop here?
 	for range internalStore.MaxRetries {
 		// Collect all affected document IDs from both added and removed maps.
-		affectedDocs := make(map[identifier.Identifier]bool)
+		affectedDocs := map[identifier.Identifier]bool{}
 		for docID, irs := range addedInverseRelations {
 			if len(irs) > 0 {
 				affectedDocs[docID] = true

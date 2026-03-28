@@ -198,7 +198,7 @@ func TestBuildPropertyHierarchy(t *testing.T) {
 
 	properties := []*document.D{parent, child}
 	c := &Converter{ //nolint:exhaustruct
-		documentInfoCache: make(map[identifier.Identifier]documentInfo),
+		documentInfoCache: map[identifier.Identifier]documentInfo{},
 	}
 	c.buildPropertyHierarchy(properties)
 
@@ -225,7 +225,7 @@ func TestBuildPropertyHierarchyTransitive(t *testing.T) {
 
 	properties := []*document.D{gpDoc, pDoc, cDoc}
 	c := &Converter{ //nolint:exhaustruct
-		documentInfoCache: make(map[identifier.Identifier]documentInfo),
+		documentInfoCache: map[identifier.Identifier]documentInfo{},
 	}
 	c.buildPropertyHierarchy(properties)
 
@@ -255,7 +255,7 @@ func TestBuildPropertyHierarchySkipsNonProperty(t *testing.T) {
 	}
 
 	c := &Converter{ //nolint:exhaustruct
-		documentInfoCache: make(map[identifier.Identifier]documentInfo),
+		documentInfoCache: map[identifier.Identifier]documentInfo{},
 	}
 	c.buildPropertyHierarchy([]*document.D{notProp})
 
@@ -434,7 +434,7 @@ func TestBuildPropertyHierarchySelfCycle(t *testing.T) {
 	selfRef := makePropertyDoc(testPropID, &testPropID)
 
 	c := &Converter{ //nolint:exhaustruct
-		documentInfoCache: make(map[identifier.Identifier]documentInfo),
+		documentInfoCache: map[identifier.Identifier]documentInfo{},
 	}
 	c.buildPropertyHierarchy([]*document.D{selfRef})
 
@@ -453,7 +453,7 @@ func TestBuildPropertyHierarchyMutualCycle(t *testing.T) {
 	bDoc := makePropertyDoc(b, &a)
 
 	c := &Converter{ //nolint:exhaustruct
-		documentInfoCache: make(map[identifier.Identifier]documentInfo),
+		documentInfoCache: map[identifier.Identifier]documentInfo{},
 	}
 	c.buildPropertyHierarchy([]*document.D{aDoc, bDoc})
 
@@ -476,7 +476,7 @@ func TestBuildPropertyHierarchyLongerCycle(t *testing.T) {
 	cDoc := makePropertyDoc(cc, &a)
 
 	c := &Converter{ //nolint:exhaustruct
-		documentInfoCache: make(map[identifier.Identifier]documentInfo),
+		documentInfoCache: map[identifier.Identifier]documentInfo{},
 	}
 	c.buildPropertyHierarchy([]*document.D{aDoc, bDoc, cDoc})
 
@@ -664,7 +664,7 @@ func TestBuildNamingProperties(t *testing.T) {
 	subNaming := makePropertyDoc(testPropID, &namingPropID)
 
 	c := &Converter{ //nolint:exhaustruct
-		documentInfoCache: make(map[identifier.Identifier]documentInfo),
+		documentInfoCache: map[identifier.Identifier]documentInfo{},
 	}
 	c.buildPropertyHierarchy([]*document.D{namingDoc, subNaming})
 	c.buildNamingProperties()
@@ -685,7 +685,7 @@ func TestDiscoverValueHierarchyProperties(t *testing.T) {
 	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
 
 	c := &Converter{ //nolint:exhaustruct
-		documentInfoCache: make(map[identifier.Identifier]documentInfo),
+		documentInfoCache: map[identifier.Identifier]documentInfo{},
 	}
 	c.buildPropertyHierarchy(properties)
 	c.discoverValueHierarchyProperties()
@@ -711,7 +711,7 @@ func TestDiscoverValueHierarchyPropertiesCustom(t *testing.T) {
 	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc, partOfDoc}
 
 	c := &Converter{ //nolint:exhaustruct
-		documentInfoCache: make(map[identifier.Identifier]documentInfo),
+		documentInfoCache: map[identifier.Identifier]documentInfo{},
 	}
 	c.buildPropertyHierarchy(properties)
 	c.discoverValueHierarchyProperties()
@@ -868,7 +868,7 @@ func TestBuildLanguageCodes(t *testing.T) {
 	slDoc := makeLanguageDoc(slID, "sl")
 
 	c := &Converter{ //nolint:exhaustruct
-		documentInfoCache: make(map[identifier.Identifier]documentInfo),
+		documentInfoCache: map[identifier.Identifier]documentInfo{},
 	}
 	c.buildLanguageCodes([]*document.D{enDoc, slDoc})
 
@@ -883,7 +883,7 @@ func TestBuildLanguageCodesSubtag(t *testing.T) {
 	langDoc := makeLanguageDoc(testLangDocID, "en-US")
 
 	c := &Converter{ //nolint:exhaustruct
-		documentInfoCache: make(map[identifier.Identifier]documentInfo),
+		documentInfoCache: map[identifier.Identifier]documentInfo{},
 	}
 	c.buildLanguageCodes([]*document.D{langDoc})
 
@@ -908,7 +908,7 @@ func TestBuildLanguageCodesSkipsNonLanguage(t *testing.T) {
 	}
 
 	c := &Converter{ //nolint:exhaustruct
-		documentInfoCache: make(map[identifier.Identifier]documentInfo),
+		documentInfoCache: map[identifier.Identifier]documentInfo{},
 	}
 	c.buildLanguageCodes([]*document.D{notLang})
 

@@ -124,7 +124,7 @@ func (l *Listener) Handle(channel string, handler Handler) {
 
 	// We maintain a copy of handlers because l.Listener does not expose its.
 	if l.handlers == nil {
-		l.handlers = make(map[string]Handler)
+		l.handlers = map[string]Handler{}
 	}
 
 	l.handlers[channel] = handler
