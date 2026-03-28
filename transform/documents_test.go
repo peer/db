@@ -4660,7 +4660,7 @@ func TestDocuments_EmbeddedStructWithValueClaim(t *testing.T) {
 
 	// Test embedded struct that contains a value field.
 	type EmbeddedWithValue struct {
-		Value string `                value:""`
+		Value string `               value:""`
 		Sub   string `property:"SUB"`
 	}
 
@@ -4708,7 +4708,7 @@ func TestDocuments_EmbeddedStructWithEmptyValue(t *testing.T) {
 
 	// Test embedded struct with empty value field but has sub-claims.
 	type EmbeddedWithEmptyValue struct {
-		Value string `                value:""`
+		Value string `               value:""`
 		Sub   string `property:"SUB"`
 	}
 
