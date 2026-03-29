@@ -29,11 +29,13 @@ const mainProgress = injectMainProgress()
     >
       <RouterLink :to="{ name: 'Home' }" class="group shrink-0 rounded-sm outline-none hover:bg-slate-400 active:bg-slate-200">
         <img
-          src="/logo.svg"
+          v-if="siteContext.logo"
+          :src="siteContext.logo"
           :alt="siteContext.title"
           :title="siteContext.title"
           class="pd-navbar-logo h-10 group-focus:ring-2 group-focus:ring-primary-500 group-focus:ring-offset-1"
         />
+        <h1 v-else class="pd-navbar-logo text-4xl font-bold group-focus:ring-2 group-focus:ring-primary-500 group-focus:ring-offset-1">{{ siteContext.title }}</h1>
       </RouterLink>
       <slot name="start" />
       <component :is="c" v-for="(c, i) in navbarComponents" :key="i" />

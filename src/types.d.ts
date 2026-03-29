@@ -159,6 +159,7 @@ export type SiteContext = {
     revision?: string
   }
   title: string
+  logo?: string
   languagePriority: {
     [language: string]: string[]
   }

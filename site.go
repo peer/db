@@ -45,6 +45,7 @@ type Site struct {
 	Index  string `json:"-"               yaml:"index,omitempty"`
 	Schema string `json:"-"               yaml:"schema,omitempty"`
 	Title  string `json:"title,omitempty" yaml:"title,omitempty"`
+	Logo   string `json:"logo,omitempty"  yaml:"logo,omitempty"`
 
 	LanguagePriority map[string][]string              `json:"languagePriority,omitempty" yaml:"languagePriority,omitempty"`
 	DefaultLanguage  string                           `json:"defaultLanguage,omitempty"  yaml:"defaultLanguage,omitempty"`

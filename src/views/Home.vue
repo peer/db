@@ -57,7 +57,8 @@ async function onSubmit() {
 <template>
   <form class="pd-home flex grow flex-col" novalidate @submit.prevent="onSubmit()">
     <div class="flex grow basis-0 flex-col justify-end">
-      <img src="/logo.svg" :alt="siteContext.title" :title="siteContext.title" class="logo mb-10 h-48" />
+      <img v-if="siteContext.logo" :src="siteContext.logo" :alt="siteContext.title" :title="siteContext.title" class="logo mb-10 h-48" />
+      <h1 v-else class="mb-10 p-4 text-center text-5xl font-bold">{{ siteContext.title }}</h1>
     </div>
     <div class="flex flex-row justify-center gap-x-1 px-1 sm:gap-x-4 sm:px-4">
       <InputText id="home-input-search" v-model="searchQuery" class="pd-searchinput w-full max-w-2xl sm:w-4/5 md:w-2/3 lg:w-1/2" :progress="progress" />
