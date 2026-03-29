@@ -75,7 +75,7 @@ test_go:
       -e PGSQL_DB_1_NAME=test
       -e PGSQL_DB_1_OWNER=test
       registry.gitlab.com/tozd/docker/postgresql:18
-    - wget --retry-connrefused --waitretry=1 --spider "http://docker:9200/_cluster/health?wait_for_status=yellow&timeout=120s"
+    - wget --spider "http://docker:9200/_cluster/health?wait_for_status=yellow&timeout=120s"
 
   script:
     - make test-ci
