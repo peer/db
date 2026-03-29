@@ -132,6 +132,7 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 			Index:            globals.Elastic.Index,
 			Schema:           globals.Postgres.Schema,
 			Title:            "",
+			Logo:             "",
 			LanguagePriority: nil,
 			DefaultLanguage:  "",
 			LanguageCodes:    nil,

@@ -50,6 +50,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			Index:            globals.Elastic.Index,
 			Schema:           globals.Postgres.Schema,
 			Title:            c.Title,
+			Logo:             "",
 			LanguagePriority: nil,
 			DefaultLanguage:  "",
 			LanguageCodes:    nil,
