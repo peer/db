@@ -7,6 +7,7 @@ import Button from "@/components/Button.vue"
 import InputText from "@/components/InputText.vue"
 import siteContext from "@/context"
 import Footer from "@/partials/Footer.vue"
+import HomeNavBar from "@/partials/HomeNavBar.vue"
 import { injectProgress } from "@/progress"
 import { createSearchSession } from "@/search"
 
@@ -55,6 +56,9 @@ async function onSubmit() {
 </script>
 
 <template>
+  <Teleport to="header">
+    <HomeNavBar />
+  </Teleport>
   <form class="pd-home flex grow flex-col" novalidate @submit.prevent="onSubmit()">
     <div class="flex grow basis-0 flex-col justify-end">
       <!--
