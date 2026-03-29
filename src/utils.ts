@@ -8,8 +8,8 @@ import { cloneDeep, isEqual } from "lodash-es"
 import { onBeforeUnmount, onMounted, readonly, ref, toRaw, watch, watchEffect } from "vue"
 
 import { NAME, TITLE } from "@/core"
-import { fromDate, hour, minute, second, toDate } from "@/time"
 import { selectClaimsByLanguage } from "@/document/claims"
+import { fromDate, hour, minute, second, toDate } from "@/time"
 
 // If the last increase would be equal or less than this number, just skip to the end.
 const SKIP_TO_END = 2
