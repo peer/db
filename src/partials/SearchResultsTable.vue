@@ -174,8 +174,8 @@ function onScroll() {
   }
 
   const { bottom } = el.getBoundingClientRect()
-  // We use -1 because we have a 1px border on the table which we want to offset.Otherwise there
-  // is a 1px gap between the top edge of the window and where the header gets stuck
+  // We use -1 because we have a 1px border on the table which we want to offset. Otherwise there
+  // is a 1px gap between the top edge of the window and where the header gets stuck.
   const top = Math.max(-1, bottom - 1)
   headerAttrs.value.style.top = `${top}px`
 }
@@ -276,7 +276,7 @@ function onCloseFilterModal() {
         <!-- Headers -->
         <!--
           We use -top-px because we have a 1px border on the table which we want to offset. Otherwise there
-          is a 1px gap between the top edge of the window and where the header gets stuck
+          is a 1px gap between the top edge of the window and where the header gets stuck.
         -->
         <thead class="sticky -top-px z-10 bg-slate-300" v-bind="headerAttrs">
           <tr :data-url="filtersURL">

@@ -1,6 +1,6 @@
 import { Identifier } from "@tozd/identifier"
 
-import { Namespace } from "./namespace"
+import { Namespace } from "@/core/namespace"
 
 // Core property IDs based on their mnemonics.
 export const SUBENTITY_OF = (await Identifier.from(Namespace, "SUBENTITY_OF")).toString()
