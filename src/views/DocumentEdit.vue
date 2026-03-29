@@ -5,7 +5,7 @@ import type { DocumentBeginMetadata, DocumentEditStatus, DocumentEndEditResponse
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { CheckIcon } from "@heroicons/vue/20/solid"
 import { Identifier } from "@tozd/identifier"
-import { computed, onBeforeUnmount, readonly, ref } from "vue"
+import { onBeforeUnmount, readonly, ref } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
@@ -15,12 +15,13 @@ import InputText from "@/components/InputText.vue"
 import InputTime from "@/components/InputTime.vue"
 import { D } from "@/document"
 import { AddClaimChange, changeFrom, RemoveClaimChange } from "@/document/patch"
+import DisplayLabel from "@/partials/DisplayLabel.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
 import { injectProgress } from "@/progress"
-import { encodeQuery, getDisplayLabel } from "@/utils"
+import { encodeQuery } from "@/utils"
 
 const props = defineProps<{
   id: string
@@ -53,7 +54,7 @@ const claimTo = ref("")
 const claimToAmountPrecision = ref("")
 const claimToTimePrecision = ref<TimePrecision>("y")
 
-const { t, locale } = useI18n({ useScope: "global" })
+const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
 const saveProgress = injectProgress()
@@ -168,8 +169,6 @@ loadAndSubscribe().catch((error) => {
   // TODO: Show error state to the user.
   console.error("loadAndSubscribe", error)
 })
-
-const displayLabel = computed(() => getDisplayLabel(doc.value?.claims, locale.value))
 
 async function onSave() {
   if (abortController.signal.aborted) {
@@ -392,12 +391,7 @@ function onChangeTab(index: number) {
   <div class="pd-documentedit mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
     <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <template v-if="doc">
-        <h1 class="mb-4 text-4xl font-bold drop-shadow-xs">
-          <template v-if="displayLabel">{{ displayLabel }}</template>
-          <template v-else
-            ><i>{{ t("common.values.noName") }}</i></template
-          >
-        </h1>
+        <h1 class="mb-4 text-4xl font-bold drop-shadow-xs"><DisplayLabel :claims="doc.claims" /></h1>
         <table class="w-full table-auto border-collapse">
           <thead>
             <tr>

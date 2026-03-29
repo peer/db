@@ -18,7 +18,7 @@ import InputTextLink from "@/components/InputTextLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import siteContext from "@/context"
 import { INSTANCE_OF } from "@/core"
-import { getClaimsOfType } from "@/document"
+import DisplayLabel from "@/partials/DisplayLabel.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
@@ -27,13 +27,13 @@ import PropertiesRows from "@/partials/PropertiesRows.vue"
 import { injectProgress } from "@/progress"
 import { getDocumentComponents } from "@/registry/document"
 import { useSearch, useSearchSession } from "@/search"
-import { encodeQuery, getDisplayLabel, loadingLongWidth } from "@/utils"
+import { encodeQuery, loadingLongWidth } from "@/utils"
 
 const props = defineProps<{
   id: string
 }>()
 
-const { t, locale } = useI18n({ useScope: "global" })
+const { t } = useI18n({ useScope: "global" })
 const route = useRoute()
 const router = useRouter()
 
@@ -116,13 +116,11 @@ function afterClick() {
   document.getElementById("search-input-text")?.focus()
 }
 
-const displayLabel = computed(() => getDisplayLabel(withDocument.value?.doc?.claims, locale.value))
-
 const documentComponents = getDocumentComponents()
 const documentTabs = computed(() => {
   const doc = withDocument.value?.doc
   if (!doc?.claims) return []
-  const refs = getClaimsOfType(doc.claims, "ref", INSTANCE_OF)
+  const refs = getClaimsOfTypeWithConfidence(doc.claims, "ref", INSTANCE_OF)
   const tabs: { component: Raw<Component>; id: string }[] = []
   for (const ref of refs) {
     const component = documentComponents.value.get(ref.to.id)
@@ -233,12 +231,7 @@ async function onEdit() {
                 >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
               >
             </TabList>
-            <h1 class="mb-4 text-4xl font-bold drop-shadow-xs">
-              <template v-if="displayLabel">{{ displayLabel }}</template>
-              <template v-else
-                ><i>{{ t("common.values.noName") }}</i></template
-              >
-            </h1>
+            <h1 class="mb-4 text-4xl font-bold drop-shadow-xs"><DisplayLabel :claims="doc.claims" /></h1>
             <TabPanels>
               <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
               <TabPanel v-for="documentTab in documentTabs" :key="documentTab.id" tabindex="-1">

@@ -706,6 +706,8 @@ export type ClaimForType<T extends ClaimTypeName> = Constructee<(typeof CLAIM_TY
 
 // getClaimsOfType returns all claims of a given type for the specified property ID(s),
 // sorted by decreasing confidence.
+//
+// Exported only for testing.
 export function getClaimsOfType<K extends ClaimTypeName>(
   claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
   claimType: K,
@@ -727,12 +729,15 @@ export function getClaimsOfType<K extends ClaimTypeName>(
 
 // getBestClaimOfType returns the highest-confidence claim of a given type for the
 // specified property ID(s), or null if none found.
+//
+// Claim has to have at least LowConfidence confidence.
+// TODO: Support also negation claims (i.e., those with negative confidence).
 export function getBestClaimOfType<K extends ClaimTypeName>(
   claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
   claimType: K,
   propertyId: string | string[],
 ): Required<DeepReadonly<ClaimTypes>>[K][number] | null {
-  const claims = getClaimsOfType(claimTypes, claimType, propertyId)
+  const claims = getClaimsOfTypeWithConfidence(claimTypes, claimType, propertyId)
   if (claims.length > 0) {
     return claims[0]
   }
@@ -741,6 +746,8 @@ export function getBestClaimOfType<K extends ClaimTypeName>(
 
 // getAllClaimsOfType returns all claims of a given type across all properties,
 // sorted by decreasing confidence.
+//
+// Exported only for testing.
 export function getAllClaimsOfType<K extends ClaimTypeName>(
   claimTypes: DeepReadonly<ClaimTypes> | undefined | null,
   claimType: K,
@@ -779,6 +786,9 @@ export function getAllClaimsOfTypeWithConfidence<K extends ClaimTypeName>(
 // getClaimsListsOfType groups claims by their LIST sub-claim and sorts within
 // each list by the ORDER_IN_LIST sub-claim. Returns an array of lists, where each
 // list is an array of claims sorted by order.
+//
+// Claim has to have at least LowConfidence confidence.
+// TODO: Support also negation claims (i.e., those with negative confidence).
 // TODO: Handle sub-lists. Children lists should be nested and not just added as additional lists to the list of lists.
 // TODO: Sort lists between themselves by (average) confidence?
 export function getClaimsListsOfType<K extends ClaimTypeName>(
@@ -786,7 +796,7 @@ export function getClaimsListsOfType<K extends ClaimTypeName>(
   claimType: K,
   propertyId: string | string[],
 ): Required<DeepReadonly<ClaimTypes>>[K][number][][] {
-  const claims = getClaimsOfType(claimTypes, claimType, propertyId)
+  const claims = getClaimsOfTypeWithConfidence(claimTypes, claimType, propertyId)
   const claimsPerList: Record<string, [Required<DeepReadonly<ClaimTypes>>[K][number], number][]> = {}
   for (const claim of claims) {
     const list = getBestClaimOfType(claim.sub, "id", LIST)?.value || "none"

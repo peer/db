@@ -26,12 +26,10 @@ export {
   TimeIntervalClaim,
   UNDETERMINED_LANGUAGE,
   UnknownClaim,
-  getAllClaimsOfType,
   getAllClaimsOfTypeWithConfidence,
   getBestClaimOfType,
   getClaimsAndLanguageOfTypeWithConfidence,
   getClaimsListsOfType,
-  getClaimsOfType,
   getClaimsOfTypeWithConfidence,
   selectClaimsByLanguage,
 } from "@/document/claims"

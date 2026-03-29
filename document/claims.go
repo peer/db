@@ -55,13 +55,13 @@ var (
 	_ Claim = (*UnknownClaim)(nil)
 )
 
-// GetClaimsOfType returns all claims of the concrete type T matching the given property ID,
+// getClaimsOfType returns all claims of the concrete type T matching the given property ID,
 // sorted by decreasing confidence.
 //
 // It operates like Claims.Get but returns the concrete claim type instead of the Claim interface.
 //
 // Because Go does not support generic interface methods, this is a top-level function.
-func GetClaimsOfType[T Claim](claims Claims, propID identifier.Identifier) []T {
+func getClaimsOfType[T Claim](claims Claims, propID identifier.Identifier) []T {
 	// Get already returns claims sorted by decreasing confidence.
 	all := claims.Get(propID)
 	result := make([]T, 0, len(all))
@@ -76,20 +76,23 @@ func GetClaimsOfType[T Claim](claims Claims, propID identifier.Identifier) []T {
 // GetBestClaimOfType returns the best (one with highest confidence) claim of the concrete type
 // T matching the given property ID, or the zero value of T if no matching claim is found.
 //
+// Claim has to have at least LowConfidence confidence.
+//
 // Because Go does not support generic interface methods, this is a top-level function.
+// TODO: Support also negation claims (i.e., those with negative confidence).
 func GetBestClaimOfType[T Claim](claims Claims, propID identifier.Identifier) T { //nolint:ireturn
 	// The best claim is really the first one because GetClaimsOfType returns claims in decreasing confidence.
-	for _, c := range GetClaimsOfType[T](claims, propID) {
+	for _, c := range GetClaimsOfTypeWithConfidence[T](claims, propID, LowConfidence) {
 		return c
 	}
 	return *new(T)
 }
 
-// GetAllClaimsOfType returns all claims of the concrete type T,
+// getAllClaimsOfType returns all claims of the concrete type T,
 // sorted by decreasing confidence.
 //
 // Because Go does not support generic interface methods, this is a top-level function.
-func GetAllClaimsOfType[T Claim](claims Claims) []T {
+func getAllClaimsOfType[T Claim](claims Claims) []T {
 	var result []T
 	for c := range claims.AllClaims() {
 		if typed, ok := c.(T); ok {
@@ -115,7 +118,7 @@ func GetAllClaimsOfTypeWithConfidence[T Claim](claims Claims, confidence Confide
 	if confidence == 0 {
 		confidence = LowConfidence
 	}
-	all := GetAllClaimsOfType[T](claims)
+	all := getAllClaimsOfType[T](claims)
 	result := make([]T, 0, len(all))
 	for _, c := range all {
 		if Claim(c).GetConfidence() >= confidence {
@@ -140,7 +143,7 @@ func GetClaimsOfTypeWithConfidence[T Claim](claims Claims, propID identifier.Ide
 	if confidence == 0 {
 		confidence = LowConfidence
 	}
-	all := GetClaimsOfType[T](claims, propID)
+	all := getClaimsOfType[T](claims, propID)
 	result := make([]T, 0, len(all))
 	for _, c := range all {
 		if Claim(c).GetConfidence() >= confidence {
@@ -272,11 +275,14 @@ var (
 // by their LIST sub-claim and sorts within each list by the ORDER_IN_LIST sub-claim.
 // Returns a slice of lists, where each list is a slice of claims sorted by order.
 //
+// Claim has to have at least LowConfidence confidence.
+//
 // Because Go does not support generic interface methods, this is a top-level function.
+// TODO: Support also negation claims (i.e., those with negative confidence).
 // TODO: Handle sub-lists. Children lists should be nested and not just added as additional lists to the list of lists.
 // TODO: Sort lists between themselves by (average) confidence?
 func GetClaimsListsOfType[T Claim](claims Claims, propID identifier.Identifier) [][]T {
-	all := GetClaimsOfType[T](claims, propID)
+	all := GetClaimsOfTypeWithConfidence[T](claims, propID, LowConfidence)
 	if len(all) == 0 {
 		return nil
 	}

@@ -17,6 +17,7 @@
     "status": {
       "loading": "Nalaganje...",
       "loadingDataFailed": "nalaganje podatkov ni uspelo",
+      "error": "napaka",
       "valuesNotShown": "1 vrednost ni prikazana. | {count} vrednosti nista prikazani. | {count} vrednosti niso prikazane. | {count} vrednosti ni prikazanih.",
       "allResults": "Vsi od 1 prikazanega rezultata. | Vsi od {count} prikazanih rezultatov.",
       "allResultsOnly": "Vseh prvih {first} prikazanih od 1 najdenega rezultata. | Vseh prvih {first} prikazanih od {count} najdenih rezultatov.",

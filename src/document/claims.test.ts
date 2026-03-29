@@ -7,11 +7,9 @@ import {
   AmountIntervalClaim,
   ClaimTypes,
   D,
-  getAllClaimsOfType,
   getAllClaimsOfTypeWithConfidence,
   getBestClaimOfType,
   getClaimsListsOfType,
-  getClaimsOfType,
   getClaimsOfTypeWithConfidence,
   HasClaim,
   HighConfidence,
@@ -27,6 +25,7 @@ import {
   TimeIntervalClaim,
   UnknownClaim,
 } from "@/document"
+import { getAllClaimsOfType, getClaimsOfType } from "@/document/claims"
 
 test("CoreDocument GetID", () => {
   const base = ["testdoc"]

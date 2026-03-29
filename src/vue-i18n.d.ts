@@ -28,6 +28,7 @@ declare module "vue-i18n" {
       status: {
         loading: string
         loadingDataFailed: string
+        error: string
         valuesNotShown: string
         allResults: string
         allResultsOnly: string

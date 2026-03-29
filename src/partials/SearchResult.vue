@@ -4,27 +4,26 @@ import type { ComponentExposed } from "vue-component-type-helpers"
 import type { D } from "@/document"
 import type { Result } from "@/types"
 
-import { LocalScope } from "@all1ndev/vue-local-scope"
 import { computed, ref } from "vue"
 import { useI18n } from "vue-i18n"
 
 import WithDocument from "@/components/WithDocument.vue"
 import { DESCRIPTION, INSTANCE_OF, SUBCLASS_OF } from "@/core"
-import { getBestClaimOfType, getClaimsOfType } from "@/document"
+import { getBestClaimOfType, getClaimsOfTypeWithConfidence } from "@/document"
+import DisplayLabel from "@/partials/DisplayLabel.vue"
 import { getSearchResultComponents } from "@/registry/search-result"
-import { encodeQuery, getDisplayLabel, loadingLongWidth, loadingWidth } from "@/utils"
+import { encodeQuery, loadingLongWidth, loadingWidth } from "@/utils"
 
 defineProps<{
   searchSessionId: string
   result: Result
 }>()
 
-const { t, locale } = useI18n({ useScope: "global" })
+const { t } = useI18n({ useScope: "global" })
 
 const WithDocumentD = WithDocument<D>
 const withDocument = ref<ComponentExposed<typeof WithDocumentD> | null>(null)
 
-const displayLabel = computed(() => getDisplayLabel(withDocument.value?.doc?.claims, locale.value))
 // TODO: Do not hard-code properties?
 const description = computed(() => {
   return getBestClaimOfType(withDocument.value?.doc?.claims, "html", DESCRIPTION)?.html || ""
@@ -32,15 +31,15 @@ const description = computed(() => {
 // TODO: Do not hard-code properties?
 const tags = computed(() => {
   return [
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "ref", INSTANCE_OF).map((c) => ({ id: c.to.id })),
-    ...getClaimsOfType(withDocument.value?.doc?.claims, "ref", SUBCLASS_OF).map((c) => ({ id: c.to.id })),
+    ...getClaimsOfTypeWithConfidence(withDocument.value?.doc?.claims, "ref", INSTANCE_OF).map((c) => ({ id: c.to.id })),
+    ...getClaimsOfTypeWithConfidence(withDocument.value?.doc?.claims, "ref", SUBCLASS_OF).map((c) => ({ id: c.to.id })),
   ]
 })
 const searchResultComponents = getSearchResultComponents()
 const customResultComponent = computed(() => {
   const doc = withDocument.value?.doc
   if (!doc?.claims) return null
-  const refs = getClaimsOfType(doc.claims, "ref", INSTANCE_OF)
+  const refs = getClaimsOfTypeWithConfidence(doc.claims, "ref", INSTANCE_OF)
   for (const ref of refs) {
     const comp = searchResultComponents.value.get(ref.to.id)
     if (comp) {
@@ -99,24 +98,16 @@ const rowSpan = computed(() => {
         <component :is="customResultComponent" v-if="customResultComponent" :doc="resultDoc" :search-session-id="searchSessionId" />
         <div v-else class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
           <h2 class="text-xl leading-none">
-            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link">
-              <template v-if="displayLabel">{{ displayLabel }}</template>
-              <template v-else
-                ><i>{{ t("common.values.noName") }}</i></template
-              >
-            </RouterLink>
+            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link"
+              ><DisplayLabel :claims="resultDoc.claims"
+            /></RouterLink>
           </h2>
           <ul v-if="tags.length" class="-mt-3 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
             <template v-for="tag of tags" :key="tag.id">
               <WithDocumentD :id="tag.id" name="DocumentGet">
                 <template #default="{ doc, url }">
                   <li class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
-                    <LocalScope v-slot="{ displayLabel }" :display-label="getDisplayLabel(doc.claims, locale)">
-                      <template v-if="displayLabel">{{ displayLabel }}</template>
-                      <template v-else
-                        ><i>{{ t("common.values.noName") }}</i></template
-                      >
-                    </LocalScope>
+                    <DisplayLabel :claims="doc.claims" />
                   </li>
                 </template>
                 <template #loading="{ url }">

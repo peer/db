@@ -15,13 +15,14 @@ import Button from "@/components/Button.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { getClaimsOfTypeWithConfidence } from "@/document"
 import ClaimValue from "@/partials/ClaimValue.vue"
+import DisplayLabel from "@/partials/DisplayLabel.vue"
 import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import { injectProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search"
 import { useTruncationTracking } from "@/truncation"
-import { encodeQuery, getDisplayLabel, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils"
+import { encodeQuery, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils"
 import { useVisibilityTracking } from "@/visibility"
 
 const props = defineProps<{
@@ -42,7 +43,7 @@ const $emit = defineEmits<{
   viewChange: [value: ViewType]
 }>()
 
-const { t, locale } = useI18n({ useScope: "global" })
+const { t } = useI18n({ useScope: "global" })
 
 const SEARCH_INITIAL_LIMIT = 100
 const SEARCH_INCREASE = 100
@@ -294,14 +295,7 @@ function onCloseFilterModal() {
                       class="flex w-full max-w-[400px] flex-row items-center justify-between gap-x-1 border-none p-2 leading-none shadow-none"
                       @click.prevent="onOpenFilterModal(filter)"
                     >
-                      <span class="truncate">
-                        <LocalScope v-slot="{ displayLabel }" :display-label="getDisplayLabel(doc.claims, locale)">
-                          <template v-if="displayLabel">{{ displayLabel }}</template>
-                          <template v-else
-                            ><i>{{ t("common.values.noName") }}</i></template
-                          >
-                        </LocalScope>
-                      </span>
+                      <span class="truncate"><DisplayLabel :claims="doc.claims" /></span>
                       <FunnelIcon class="size-5" :class="isFilterActive(filter) ? '' : 'text-primary-300'" />
                     </Button>
                   </template>
