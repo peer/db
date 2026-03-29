@@ -122,7 +122,7 @@ export function toDate(unixSeconds: bigint): [number, number, number] {
 
   let day = Number(d)
   if (isLeap(year)) {
-    // Leap year
+    // Leap year.
     if (day > 31 + 29 - 1) {
       // After leap day; pretend it wasn't there.
       day--
@@ -144,7 +144,7 @@ export function toDate(unixSeconds: bigint): [number, number, number] {
     begin = Number(daysBefore[month])
   }
 
-  month++ // because January is 1
+  month++ // Because January is 1.
   day = day - begin + 1
   return [year, month, day]
 }
@@ -185,7 +185,7 @@ export function fromDate(year: number, month: number, day: number, hour: number,
   // Add in days before this month.
   d += daysBefore[month - 1]
   if (isLeap(year) && month >= 3) {
-    d++ // February 29
+    d++ // February 29.
   }
 
   // Add in days before today.

@@ -349,3 +349,58 @@ func (s *Service) SearchUpdatePostAPI(w http.ResponseWriter, req *http.Request, 
 
 	s.WriteJSON(w, req, searchSession.Ref(), nil)
 }
+
+// SearchShortcutGet is a GET/HEAD HTTP request handler which creates a new search session
+// from query parameters and redirects to the search page. Query parameters are interpreted
+// as ref filters where key is the property ID and value is the value ID.
+func (s *Service) SearchShortcutGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+	ctx := req.Context()
+
+	var filters []search.Filters
+	for prop, values := range req.URL.Query() {
+		propID, errE := identifier.MaybeString(prop)
+		if errE != nil {
+			s.BadRequestWithError(w, req, errors.WithMessage(errE, "query parameter key is not a valid identifier"))
+			return
+		}
+		for _, value := range values {
+			valueID, errE := identifier.MaybeString(value)
+			if errE != nil {
+				s.BadRequestWithError(w, req, errors.WithMessage(errE, "query parameter value is not a valid identifier"))
+				return
+			}
+			filters = append(filters, search.Filters{ //nolint:exhaustruct
+				Ref: &search.RefFilter{ //nolint:exhaustruct
+					Prop:  propID,
+					Value: &valueID,
+				},
+			})
+		}
+	}
+
+	searchSession := search.Session{}
+	if len(filters) == 1 {
+		searchSession.Filters = &filters[0]
+	} else if len(filters) > 1 {
+		searchSession.Filters = &search.Filters{ //nolint:exhaustruct
+			And: filters,
+		}
+	}
+
+	errE := search.CreateSession(ctx, &searchSession)
+	if errors.Is(errE, search.ErrValidationFailed) {
+		s.BadRequestWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	path, errE := s.Reverse("SearchGet", waf.Params{"id": searchSession.ID.String()}, nil)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.TemporaryRedirectGetMethod(w, req, path)
+}

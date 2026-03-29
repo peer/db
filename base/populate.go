@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 
 	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
@@ -67,8 +68,10 @@ func GenerateCoreDocuments(ctx context.Context, additional []any) ([]any, []*doc
 // PopulateAndStart inserts the given documents into the store, starts the base,
 // waits for Elasticsearch to catch up, and then refreshes ElasticSearch index.
 //
+// Optional count and size counters can be provided to track ES indexing progress.
+//
 // You have to call this or Start for each base after Init.
-func (b *B) PopulateAndStart(ctx context.Context, documents []*document.D, progress func(doc *document.D)) errors.E {
+func (b *B) PopulateAndStart(ctx context.Context, documents []*document.D, progress func(doc *document.D), count, size *x.Counter) errors.E {
 	for _, doc := range documents {
 		if ctx.Err() != nil {
 			return errors.WithStack(ctx.Err())
@@ -93,7 +96,7 @@ func (b *B) PopulateAndStart(ctx context.Context, documents []*document.D, progr
 		return errE
 	}
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, count, size)
 	if errE != nil {
 		return errE
 	}

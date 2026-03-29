@@ -260,17 +260,21 @@ async function onViewChange(view: ViewType) {
 <template>
   <Teleport to="header">
     <NavBar>
-      <NavBarSearch :search-session="searchSession" :update-search-session-progress="updateSearchSessionProgress" @query-change="onQueryChange" />
-      <template v-if="siteContext.features.editButtons">
-        <Button :progress="createProgress" type="button" primary class="px-3.5" @click.prevent="onCreate">
-          <PlusIcon class="size-5 sm:hidden" :alt="t('common.buttons.create')" />
-          <span class="hidden sm:inline">{{ t("common.buttons.create") }}</span>
-        </Button>
-        <input ref="upload" type="file" class="hidden" @change="onChange" />
-        <Button :progress="uploadProgress" type="button" primary class="px-3.5" @click.prevent="onUpload">
-          <ArrowUpTrayIcon class="size-5 sm:hidden" :alt="t('common.buttons.upload')" />
-          <span class="hidden sm:inline">{{ t("common.buttons.upload") }}</span>
-        </Button>
+      <template #start>
+        <NavBarSearch :search-session="searchSession" :update-search-session-progress="updateSearchSessionProgress" @query-change="onQueryChange" />
+      </template>
+      <template #end>
+        <template v-if="siteContext.features.editButtons">
+          <Button :progress="createProgress" type="button" primary class="px-3.5" @click.prevent="onCreate">
+            <PlusIcon class="size-5 sm:hidden" :alt="t('common.buttons.create')" />
+            <span class="hidden sm:inline">{{ t("common.buttons.create") }}</span>
+          </Button>
+          <input ref="upload" type="file" class="hidden" @change="onChange" />
+          <Button :progress="uploadProgress" type="button" primary class="px-3.5" @click.prevent="onUpload">
+            <ArrowUpTrayIcon class="size-5 sm:hidden" :alt="t('common.buttons.upload')" />
+            <span class="hidden sm:inline">{{ t("common.buttons.upload") }}</span>
+          </Button>
+        </template>
       </template>
     </NavBar>
   </Teleport>

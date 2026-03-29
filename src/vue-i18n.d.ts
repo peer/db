@@ -28,6 +28,7 @@ declare module "vue-i18n" {
       status: {
         loading: string
         loadingDataFailed: string
+        error: string
         valuesNotShown: string
         allResults: string
         allResultsOnly: string
@@ -36,7 +37,7 @@ declare module "vue-i18n" {
       labels: {
         property: string
         value: string
-        timestamp: string
+        time: string
         precision: string
       }
       icons: {

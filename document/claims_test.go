@@ -150,9 +150,9 @@ func TestDocumentWithAllClaimTypes(t *testing.T) {
 	fromP := 0.1
 	to := document.Amount("9.0")
 	toP := 0.1
-	fromTS := document.Timestamp("2020-01-01")
+	fromTS := document.Time("2020-01-01")
 	fromPrec := document.TimePrecisionDay
-	toTS := document.Timestamp("2021-01-01")
+	toTS := document.Time("2021-01-01")
 	toPrec := document.TimePrecisionDay
 
 	newCore := func() document.CoreClaim {
@@ -177,7 +177,7 @@ func TestDocumentWithAllClaimTypes(t *testing.T) {
 	timeClaim := &document.TimeClaim{
 		CoreClaim: newCore(),
 		Prop:      ref,
-		Timestamp: "2025-01-01",
+		Time:      "2025-01-01",
 		Precision: document.TimePrecisionDay,
 	}
 	timeIntervalClaim := &document.TimeIntervalClaim{ //nolint:exhaustruct
@@ -247,148 +247,6 @@ func TestDocumentWithAllClaimTypes(t *testing.T) {
 	assert.Nil(t, doc.Claims)
 }
 
-// TestGetAllClaimsOfType tests GetAllClaimsOfType returns claims of the requested type sorted by decreasing confidence.
-func TestGetAllClaimsOfType(t *testing.T) {
-	t.Parallel()
-
-	prop1 := identifier.New()
-	prop2 := identifier.New()
-
-	doc := &document.D{}
-
-	// Empty document returns nil.
-	assert.Nil(t, document.GetAllClaimsOfType[*document.StringClaim](doc))
-
-	// Add string claims on different properties with varying confidence.
-	errE := doc.Add(&document.StringClaim{
-		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 0.5},
-		Prop:      document.Reference{ID: prop1},
-		String:    "low",
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
-	errE = doc.Add(&document.StringClaim{
-		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
-		Prop:      document.Reference{ID: prop2},
-		String:    "high",
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
-	errE = doc.Add(&document.StringClaim{
-		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 0.75},
-		Prop:      document.Reference{ID: prop1},
-		String:    "medium",
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	// Add a different claim type to verify type filtering.
-	errE = doc.Add(&document.HTMLClaim{
-		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
-		Prop:      document.Reference{ID: prop1},
-		HTML:      "<p>html</p>",
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	// GetAllClaimsOfType returns only string claims, across all properties.
-	strings := document.GetAllClaimsOfType[*document.StringClaim](doc)
-	assert.Len(t, strings, 3)
-
-	// Sorted by decreasing confidence.
-	assert.Equal(t, "high", strings[0].String)
-	assert.Equal(t, "medium", strings[1].String)
-	assert.Equal(t, "low", strings[2].String)
-
-	// GetAllClaimsOfType for HTML returns only the HTML claim.
-	htmls := document.GetAllClaimsOfType[*document.HTMLClaim](doc)
-	assert.Len(t, htmls, 1)
-	assert.Equal(t, "<p>html</p>", htmls[0].HTML)
-
-	// A type with no claims returns nil.
-	assert.Nil(t, document.GetAllClaimsOfType[*document.ReferenceClaim](doc))
-}
-
-// TestGetAllClaimsOfTypeNilClaims tests GetAllClaimsOfType on a nil ClaimTypes.
-func TestGetAllClaimsOfTypeNilClaims(t *testing.T) {
-	t.Parallel()
-
-	var claims *document.ClaimTypes
-	assert.Nil(t, document.GetAllClaimsOfType[*document.StringClaim](claims))
-}
-
-// TestGetAllClaimsOfTypeWithConfidence tests GetAllClaimsOfTypeWithConfidence filters by confidence threshold.
-func TestGetAllClaimsOfTypeWithConfidence(t *testing.T) {
-	t.Parallel()
-
-	prop1 := identifier.New()
-	prop2 := identifier.New()
-
-	doc := &document.D{}
-
-	// Empty document returns empty.
-	assert.Empty(t, document.GetAllClaimsOfTypeWithConfidence[*document.StringClaim](doc, document.LowConfidence))
-
-	errE := doc.Add(&document.StringClaim{
-		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 0.3},
-		Prop:      document.Reference{ID: prop1},
-		String:    "below-low",
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
-	errE = doc.Add(&document.StringClaim{
-		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 0.5},
-		Prop:      document.Reference{ID: prop2},
-		String:    "at-low",
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
-	errE = doc.Add(&document.StringClaim{
-		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 0.75},
-		Prop:      document.Reference{ID: prop1},
-		String:    "at-medium",
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
-	errE = doc.Add(&document.StringClaim{
-		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
-		Prop:      document.Reference{ID: prop2},
-		String:    "at-high",
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	// Add a different type to verify filtering.
-	errE = doc.Add(&document.HTMLClaim{
-		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
-		Prop:      document.Reference{ID: prop1},
-		HTML:      "<p>html</p>",
-	})
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	// LowConfidence (0.5) filters out below-low (0.3).
-	low := document.GetAllClaimsOfTypeWithConfidence[*document.StringClaim](doc, document.LowConfidence)
-	assert.Len(t, low, 3)
-	assert.Equal(t, "at-high", low[0].String)
-	assert.Equal(t, "at-medium", low[1].String)
-	assert.Equal(t, "at-low", low[2].String)
-
-	// MediumConfidence (0.75) filters out at-low and below-low.
-	medium := document.GetAllClaimsOfTypeWithConfidence[*document.StringClaim](doc, document.MediumConfidence)
-	assert.Len(t, medium, 2)
-	assert.Equal(t, "at-high", medium[0].String)
-	assert.Equal(t, "at-medium", medium[1].String)
-
-	// HighConfidence (1.0) keeps only at-high.
-	high := document.GetAllClaimsOfTypeWithConfidence[*document.StringClaim](doc, document.HighConfidence)
-	assert.Len(t, high, 1)
-	assert.Equal(t, "at-high", high[0].String)
-
-	// Zero confidence defaults to LowConfidence.
-	zero := document.GetAllClaimsOfTypeWithConfidence[*document.StringClaim](doc, 0)
-	assert.Equal(t, low, zero)
-}
-
-// TestGetAllClaimsOfTypeWithConfidenceNilClaims tests GetAllClaimsOfTypeWithConfidence on a nil ClaimTypes.
-func TestGetAllClaimsOfTypeWithConfidenceNilClaims(t *testing.T) {
-	t.Parallel()
-
-	var claims *document.ClaimTypes
-	assert.Empty(t, document.GetAllClaimsOfTypeWithConfidence[*document.ReferenceClaim](claims, document.LowConfidence))
-}
-
 // TestClaimValidations tests Validate methods on all claim types.
 func TestClaimValidations(t *testing.T) {
 	t.Parallel()
@@ -443,7 +301,7 @@ func TestClaimValidations(t *testing.T) {
 
 	t.Run("TimeClaim/invalid_precision", func(t *testing.T) {
 		t.Parallel()
-		c := &document.TimeClaim{CoreClaim: core, Prop: ref, Timestamp: "2025-01-01", Precision: 0}
+		c := &document.TimeClaim{CoreClaim: core, Prop: ref, Time: "2025-01-01", Precision: 0}
 		assert.EqualError(t, c.Validate(), "unknown Precision")
 	})
 	t.Run("TimeClaim/valid", func(t *testing.T) {
@@ -451,25 +309,25 @@ func TestClaimValidations(t *testing.T) {
 		c := &document.TimeClaim{
 			CoreClaim: core,
 			Prop:      ref,
-			Timestamp: "2025-01-01",
+			Time:      "2025-01-01",
 			Precision: document.TimePrecisionDay,
 		}
 		require.NoError(t, c.Validate())
 	})
-	t.Run("TimeClaim/invalid_timestamp", func(t *testing.T) {
+	t.Run("TimeClaim/invalid_time", func(t *testing.T) {
 		t.Parallel()
 		c := &document.TimeClaim{
 			CoreClaim: core,
 			Prop:      ref,
-			Timestamp: "not-a-date",
+			Time:      "not-a-date",
 			Precision: document.TimePrecisionDay,
 		}
-		assert.EqualError(t, c.Validate(), "unable to parse timestamp")
+		assert.EqualError(t, c.Validate(), "unable to parse time")
 	})
 
-	from := document.Timestamp("2020-01-01")
+	from := document.Time("2020-01-01")
 	fromPrec := document.TimePrecisionDay
-	to := document.Timestamp("2021-01-01")
+	to := document.Time("2021-01-01")
 	toPrec := document.TimePrecisionDay
 
 	t.Run("TimeIntervalClaim/valid", func(t *testing.T) {
@@ -997,7 +855,7 @@ func TestClaimTypesGetWithAllTypes(t *testing.T) {
 	t.Parallel()
 
 	prop := identifier.New()
-	ts := document.NewTimestamp(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), document.TimePrecisionYear, nil)
+	ts := document.NewTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), document.TimePrecisionYear, nil)
 
 	ct := &document.ClaimTypes{
 		Amount: document.AmountClaims{
@@ -1020,7 +878,7 @@ func TestClaimTypesGetWithAllTypes(t *testing.T) {
 			{
 				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
 				Prop:      document.Reference{ID: prop},
-				Timestamp: ts,
+				Time:      ts,
 				Precision: document.TimePrecisionYear,
 			},
 		},
@@ -1062,51 +920,6 @@ func TestClaimTypesGetWithAllTypes(t *testing.T) {
 
 	result := ct.Get(prop)
 	assert.Len(t, result, 8)
-}
-
-// TestGetClaimsOfType tests the generic GetClaimsOfType function.
-func TestGetClaimsOfType(t *testing.T) {
-	t.Parallel()
-
-	prop := identifier.New()
-	id1 := identifier.New()
-	id2 := identifier.New()
-	id3 := identifier.New()
-
-	ct := &document.ClaimTypes{
-		String: document.StringClaims{
-			{
-				CoreClaim: document.CoreClaim{ID: id1, Confidence: 0.5},
-				Prop:      document.Reference{ID: prop},
-				String:    "s1",
-			},
-			{
-				CoreClaim: document.CoreClaim{ID: id2, Confidence: 1.0},
-				Prop:      document.Reference{ID: prop},
-				String:    "s2",
-			},
-		},
-		None: document.NoneClaims{
-			{
-				CoreClaim: document.CoreClaim{ID: id3, Confidence: 0.75},
-				Prop:      document.Reference{ID: prop},
-			},
-		},
-	}
-
-	// Get only StringClaims for prop.
-	strings := document.GetClaimsOfType[*document.StringClaim](ct, prop)
-	require.Len(t, strings, 2)
-	assert.Equal(t, "s2", strings[0].String) // Higher confidence first.
-	assert.Equal(t, "s1", strings[1].String)
-
-	// Get NoneClaims for prop.
-	nones := document.GetClaimsOfType[*document.NoneClaim](ct, prop)
-	require.Len(t, nones, 1)
-
-	// No AmountClaims for prop.
-	amounts := document.GetClaimsOfType[*document.AmountClaim](ct, prop)
-	assert.Empty(t, amounts)
 }
 
 // TestGetBestClaimOfType tests the generic GetBestClaimOfType function.

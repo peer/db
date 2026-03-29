@@ -105,6 +105,8 @@ func setMaxConnections(systemIdentifier string, maxConnections int32) *semaphore
 // It returns the pool and a cleanup function that closes the pool and releases the reserved connections.
 // The caller must call the cleanup function when the pool is no longer needed.
 // Do not call just dbpool.Close.
+//
+//nolint:maintidx
 func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger, getRequest func(context.Context) (string, string)) (*pgxpool.Pool, func(), errors.E) {
 	dbconfig, err := pgxpool.ParseConfig(strings.TrimSpace(databaseURI))
 	if err != nil {
@@ -208,7 +210,18 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 	if maxConns, _ := ctx.Value(maxDBPoolConnectionsContextKey).(int32); maxConns > 0 {
 		dbconfig.MaxConns = maxConns
 	} else {
-		dbconfig.MaxConns = maxConnectionsTotal
+		// We use maxConnectionsTotal minus reservedConnections because the semaphore
+		// capacity is reduced by reservedConnections to keep some connection slots
+		// available for system connections and others.
+		dbconfig.MaxConns = maxConnectionsTotal - reservedConnections
+	}
+
+	// Less than 5 connections is not useful.
+	if dbconfig.MaxConns < 5 || dbconfig.MaxConns > maxConnectionsTotal-reservedConnections {
+		errE := errors.New("invalid max connections")
+		errors.Details(errE)["maxConnections"] = dbconfig.MaxConns
+		errors.Details(errE)["maxConnectionsTotal"] = maxConnectionsTotal
+		return nil, nil, errE
 	}
 
 	err = connectionsCount.Acquire(ctx, int64(dbconfig.MaxConns))

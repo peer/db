@@ -44,41 +44,49 @@ test_go:
     - saas-linux-2xlarge-amd64
 
   services:
-    - name: "$CI_REGISTRY_IMAGE/elastic/$ELASTIC_VERSION:latest"
-      alias: elasticsearch
-      variables:
-        network.bind_host: 0.0.0.0
-        network.publish_host: elasticsearch
-        discovery.type: single-node
-        xpack.security.enabled: false
-        ingest.geoip.downloader.enabled: false
-        cluster.routing.allocation.disk.watermark.flood_stage: "100%"
-        ES_LOG_STYLE: file
-    - name: registry.gitlab.com/tozd/docker/postgresql:18
-      alias: postgres
-      variables:
-        PGSQL_ROLE_1_USERNAME: test
-        PGSQL_ROLE_1_PASSWORD: test
-        PGSQL_DB_1_NAME: test
-        PGSQL_DB_1_OWNER: test
+    - name: docker:28-dind
+      command:
+        - "--feature"
+        - "containerd-snapshotter=true"
+
   variables:
-    ELASTIC: http://elasticsearch:9200
-    POSTGRES: postgres://test:test@postgres:5432/test
+    ELASTIC: http://docker:9200
+    POSTGRES: postgres://test:test@docker:5432/test
 
   before_script:
-    - apk --update add make bash gcc musl-dev mailcap git
+    - apk --update add make bash gcc musl-dev mailcap git docker-cli
     - (cd /go; go install gotest.tools/gotestsum@v1.13.0)
     - (cd /go; go install github.com/boumenot/gocover-cobertura@v1.4.0)
     - go version
-    - wget --spider "http://elasticsearch:9200/_cluster/health?wait_for_status=yellow&timeout=120s"
+    - docker info
+    - echo "$CI_REGISTRY_PASSWORD" | docker login --username "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker run -d --name elasticsearch -p 9200:9200
+      -e network.bind_host=0.0.0.0
+      -e network.publish_host=localhost
+      -e discovery.type=single-node
+      -e xpack.security.enabled=false
+      -e ingest.geoip.downloader.enabled=false
+      -e "cluster.routing.allocation.disk.watermark.flood_stage=100%"
+      -e ES_LOG_STYLE=file
+      "$CI_REGISTRY_IMAGE/elastic/$ELASTIC_VERSION:latest"
+    - docker run -d --name pgsql -p 5432:5432
+      -e PGSQL_ROLE_1_USERNAME=test
+      -e PGSQL_ROLE_1_PASSWORD=test
+      -e PGSQL_DB_1_NAME=test
+      -e PGSQL_DB_1_OWNER=test
+      registry.gitlab.com/tozd/docker/postgresql:18
+    - 'for i in $(seq 1 120); do wget --spider "http://docker:9200/_cluster/health?wait_for_status=yellow&timeout=10s" && break || { [ "$i" -eq 120 ] && exit 1; sleep 1; }; done'
 
   script:
     - make test-ci
 
   after_script:
-    # TODO: This does not really work. We should move services inside a DinD and add docker binary here.
-    - docker cp elasticsearch:/usr/share/elasticsearch/logs elasticsearch-logs
-    - docker cp postgres:/var/log/postgresql postgresql-logs
+    - docker cp elasticsearch:/usr/share/elasticsearch/logs elasticsearch-logs || true
+    - docker cp pgsql:/var/log/postgresql pgsql-logs || true
+    # Just in case any command above have not made directories.
+    - mkdir -p elasticsearch-logs pgsql-logs
+    - docker logs elasticsearch > elasticsearch-logs/docker.log 2>&1 || true
+    - docker logs pgsql > pgsql-logs/docker.log 2>&1 || true
 
   artifacts:
     when: always
@@ -92,7 +100,7 @@ test_go:
       - coverage.html
       - coverage.xml
       - elasticsearch-logs
-      - postgresql-logs
+      - pgsql-logs
     expire_in: never
 
   coverage: '/coverage: \d+\.\d+% of statements/'

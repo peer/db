@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Component, Raw } from "vue"
 import type { ComponentExposed } from "vue-component-type-helpers"
 
 import type { D } from "@/document"
@@ -16,19 +17,24 @@ import ButtonLink from "@/components/ButtonLink.vue"
 import InputTextLink from "@/components/InputTextLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import siteContext from "@/context"
+import { INSTANCE_OF } from "@/core"
+import { getClaimsOfTypeWithConfidence } from "@/document"
+import DisplayLabel from "@/partials/DisplayLabel.vue"
+import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
 import { injectProgress } from "@/progress"
+import { getDocumentComponents } from "@/registry/document"
 import { useSearch, useSearchSession } from "@/search"
-import { encodeQuery, getDisplayLabel, loadingLongWidth } from "@/utils"
+import { encodeQuery, loadingLongWidth } from "@/utils"
 
 const props = defineProps<{
   id: string
 }>()
 
-const { t, locale } = useI18n({ useScope: "global" })
+const { t } = useI18n({ useScope: "global" })
 const route = useRoute()
 const router = useRouter()
 
@@ -111,7 +117,20 @@ function afterClick() {
   document.getElementById("search-input-text")?.focus()
 }
 
-const docName = computed(() => getDisplayLabel(withDocument.value?.doc?.claims, locale.value))
+const documentComponents = getDocumentComponents()
+const documentTabs = computed(() => {
+  const doc = withDocument.value?.doc
+  if (!doc?.claims) return []
+  const refs = getClaimsOfTypeWithConfidence(doc.claims, "ref", INSTANCE_OF)
+  const tabs: { component: Raw<Component>; id: string }[] = []
+  for (const ref of refs) {
+    const component = documentComponents.value.get(ref.to.id)
+    if (component) {
+      tabs.push({ component, id: ref.to.id })
+    }
+  }
+  return tabs
+})
 
 async function onEdit() {
   if (abortController.signal.aborted) {
@@ -156,36 +175,40 @@ async function onEdit() {
 <template>
   <Teleport to="header">
     <NavBar>
-      <div v-if="searchSession !== null" class="flex grow gap-x-1 sm:gap-x-4">
-        <InputTextLink class="max-w-xl grow" :to="{ name: 'SearchGet', params: { id: searchSession.id }, query: encodeQuery({ at: id }) }" :after-click="afterClick">
-          {{ searchSession.query }}
-        </InputTextLink>
-        <div class="grid grid-cols-2 gap-x-1">
-          <ButtonLink
-            primary
-            class="px-3.5"
-            :disabled="!prevNext.previous"
-            :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: encodeQuery({ s: searchSession.id }) }"
-          >
-            <ChevronLeftIcon class="size-5 sm:hidden" :alt="t('common.buttons.prev')" />
-            <span class="hidden sm:inline">{{ t("common.buttons.prev") }}</span>
-          </ButtonLink>
-          <ButtonLink
-            primary
-            class="px-3.5"
-            :disabled="!prevNext.next"
-            :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: encodeQuery({ s: searchSession.id }) }"
-          >
-            <ChevronRightIcon class="size-5 sm:hidden" :alt="t('common.buttons.next')" />
-            <span class="hidden sm:inline">{{ t("common.buttons.next") }}</span>
-          </ButtonLink>
+      <template #start>
+        <div v-if="searchSession !== null" class="flex grow gap-x-1 sm:gap-x-4">
+          <InputTextLink class="max-w-xl grow" :to="{ name: 'SearchGet', params: { id: searchSession.id }, query: encodeQuery({ at: id }) }" :after-click="afterClick">
+            {{ searchSession.query }}
+          </InputTextLink>
+          <div class="grid grid-cols-2 gap-x-1">
+            <ButtonLink
+              primary
+              class="px-3.5"
+              :disabled="!prevNext.previous"
+              :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: encodeQuery({ s: searchSession.id }) }"
+            >
+              <ChevronLeftIcon class="size-5 sm:hidden" :alt="t('common.buttons.prev')" />
+              <span class="hidden sm:inline">{{ t("common.buttons.prev") }}</span>
+            </ButtonLink>
+            <ButtonLink
+              primary
+              class="px-3.5"
+              :disabled="!prevNext.next"
+              :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: encodeQuery({ s: searchSession.id }) }"
+            >
+              <ChevronRightIcon class="size-5 sm:hidden" :alt="t('common.buttons.next')" />
+              <span class="hidden sm:inline">{{ t("common.buttons.next") }}</span>
+            </ButtonLink>
+          </div>
         </div>
-      </div>
-      <NavBarSearch v-else />
-      <Button v-if="siteContext.features.editButtons" :progress="editProgress" type="button" primary class="px-3.5" @click.prevent="onEdit">
-        <PencilIcon class="size-5 sm:hidden" :alt="t('common.buttons.edit')" />
-        <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
-      </Button>
+        <NavBarSearch v-else />
+      </template>
+      <template #end>
+        <Button v-if="siteContext.features.editButtons" :progress="editProgress" type="button" primary class="px-3.5" @click.prevent="onEdit">
+          <PencilIcon class="size-5 sm:hidden" :alt="t('common.buttons.edit')" />
+          <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
+        </Button>
+      </template>
     </NavBar>
   </Teleport>
   <div ref="el" class="pd-documentget mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4" :data-url="withDocument?.url">
@@ -199,13 +222,22 @@ async function onEdit() {
           <TabGroup>
             <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100">
               <Tab
+                v-for="documentTab in documentTabs"
+                :key="documentTab.id"
+                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                ><DocumentRefInline :id="documentTab.id" :link="false"
+              /></Tab>
+              <Tab
                 class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
                 >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
               >
             </TabList>
-            <h1 class="mb-4 text-4xl font-bold drop-shadow-xs" v-html="docName || `<i>${t('common.values.noName')}</i>`"></h1>
+            <h1 class="mb-4 text-4xl font-bold drop-shadow-xs"><DisplayLabel :claims="doc.claims" /></h1>
             <TabPanels>
               <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
+              <TabPanel v-for="documentTab in documentTabs" :key="documentTab.id" tabindex="-1">
+                <component :is="documentTab.component" :doc="doc" />
+              </TabPanel>
               <TabPanel tabindex="-1">
                 <table class="w-full table-auto border-collapse">
                   <thead>

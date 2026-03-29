@@ -75,7 +75,7 @@ func (d documentInfo) CollectHierarchyPaths() ([]string, map[string][]string) {
 	for _, dpaths := range d.DisplayPaths {
 		for lang, paths := range dpaths {
 			if toDisplayPath == nil {
-				toDisplayPath = make(map[string][]string)
+				toDisplayPath = map[string][]string{}
 			}
 			toDisplayPath[lang] = append(toDisplayPath[lang], paths...)
 		}
@@ -152,7 +152,7 @@ func NewConverter(
 		languageCodes:            nil,
 		languagePriority:         fullPriority,
 		getDocument:              getDocument,
-		documentInfoCache:        make(map[identifier.Identifier]documentInfo),
+		documentInfoCache:        map[identifier.Identifier]documentInfo{},
 		documentInfoMu:           sync.RWMutex{},
 	}
 	c.buildPropertyHierarchy(properties)
@@ -205,8 +205,8 @@ func isInstanceOf(doc *document.D, classID identifier.Identifier) bool {
 func (c *Converter) buildPropertyHierarchy(properties []*document.D) {
 	// Build parent -> children and child -> parents maps.
 	// A property X with SUBPROPERTY_OF -> Y means X is a child (sub-property) of Y.
-	parentChildren := make(map[identifier.Identifier][]identifier.Identifier)
-	childParents := make(map[identifier.Identifier][]identifier.Identifier)
+	parentChildren := map[identifier.Identifier][]identifier.Identifier{}
+	childParents := map[identifier.Identifier][]identifier.Identifier{}
 	for _, prop := range properties {
 		if !isInstanceOf(prop, propertyClassID) {
 			continue
@@ -218,9 +218,9 @@ func (c *Converter) buildPropertyHierarchy(properties []*document.D) {
 	}
 
 	// Compute transitive descendants for each property (used for naming properties).
-	c.propertyDescendants = make(map[identifier.Identifier][]identifier.Identifier)
+	c.propertyDescendants = map[identifier.Identifier][]identifier.Identifier{}
 	for _, prop := range properties {
-		visited := make(map[identifier.Identifier]bool)
+		visited := map[identifier.Identifier]bool{}
 		var walk func(identifier.Identifier)
 		walk = func(propID identifier.Identifier) {
 			for _, child := range parentChildren[propID] {
@@ -244,9 +244,9 @@ func (c *Converter) buildPropertyHierarchy(properties []*document.D) {
 	}
 
 	// Compute transitive ancestors for each property (used for claim propagation).
-	c.propertyAncestors = make(map[identifier.Identifier][]identifier.Identifier)
+	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{}
 	for _, prop := range properties {
-		visited := make(map[identifier.Identifier]bool)
+		visited := map[identifier.Identifier]bool{}
 		var walk func(identifier.Identifier)
 		walk = func(propID identifier.Identifier) {
 			for _, parent := range childParents[propID] {
@@ -301,7 +301,7 @@ func (c *Converter) LanguageCodes() map[identifier.Identifier]string {
 // Only language documents (those with INSTANCE_OF -> LANGUAGE) need to be passed,
 // but the method still filters by INSTANCE_OF for safety.
 func (c *Converter) buildLanguageCodes(allDocuments []*document.D) {
-	c.languageCodes = make(map[identifier.Identifier]string)
+	c.languageCodes = map[identifier.Identifier]string{}
 	for _, doc := range allDocuments {
 		if !isInstanceOf(doc, languageClassID) {
 			continue
@@ -322,7 +322,7 @@ func (c *Converter) buildLanguageCodes(allDocuments []*document.D) {
 // and X is added to inverseProperties[Y]. Multiple properties can be inverses of
 // the same property (e.g., both X and Z can have INVERSE_PROPERTY_OF -> Y).
 func (c *Converter) buildInverseProperties(properties []*document.D) {
-	c.inverseProperties = make(map[identifier.Identifier][]identifier.Identifier)
+	c.inverseProperties = map[identifier.Identifier][]identifier.Identifier{}
 	for _, prop := range properties {
 		if !isInstanceOf(prop, propertyClassID) {
 			continue
@@ -342,7 +342,7 @@ func (c *Converter) buildInverseProperties(properties []*document.D) {
 // caching it on first access. It computes display strings and lazily walks
 // value hierarchy ancestors (e.g., SUBCLASS_OF). It is safe for concurrent use.
 func (c *Converter) getDocumentInfo(ctx context.Context, id identifier.Identifier) (documentInfo, errors.E) {
-	return c.computeDocumentInfo(ctx, id, make(map[identifier.Identifier]bool))
+	return c.computeDocumentInfo(ctx, id, map[identifier.Identifier]bool{})
 }
 
 // computeDocumentInfo fetches a document, computes its display strings, and lazily
@@ -386,8 +386,8 @@ func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Ident
 		var hierAncestors []identifier.Identifier
 		var hierIDPaths []string
 		hierDisplayPaths := map[string][]string{}
-		for _, rel := range refs {
-			parentID := rel.To.ID
+		for _, ref := range refs {
+			parentID := ref.To.ID
 			if seen[parentID] {
 				continue
 			}
@@ -418,19 +418,19 @@ func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Ident
 		}
 		if len(hierAncestors) > 0 {
 			if ancestors == nil {
-				ancestors = make(map[identifier.Identifier][]identifier.Identifier)
+				ancestors = map[identifier.Identifier][]identifier.Identifier{}
 			}
 			ancestors[hierProp] = hierAncestors
 		}
 		if len(hierIDPaths) > 0 {
 			if idPaths == nil {
-				idPaths = make(map[identifier.Identifier][]string)
+				idPaths = map[identifier.Identifier][]string{}
 			}
 			idPaths[hierProp] = hierIDPaths
 		}
 		if len(hierDisplayPaths) > 0 {
 			if displayPaths == nil {
-				displayPaths = make(map[identifier.Identifier]map[string][]string)
+				displayPaths = map[identifier.Identifier]map[string][]string{}
 			}
 			displayPaths[hierProp] = hierDisplayPaths
 		}
@@ -499,7 +499,7 @@ func (c *Converter) makeDisplayStrings(ctx context.Context, doc *document.D) (di
 	}
 
 	result := displayStrings{
-		Display: make(map[string]string),
+		Display: map[string]string{},
 		Naming:  c.namingStrings(doc),
 	}
 
@@ -684,7 +684,7 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 			if tc == nil {
 				return "", nil
 			}
-			return tc.Timestamp.String(), nil
+			return tc.Time.String(), nil
 		},
 	}
 }
@@ -719,8 +719,8 @@ func (c *Converter) extractInLanguages(claims document.Claims) []string {
 	}
 	refs := document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](claims, inLanguagePropID, document.LowConfidence)
 	var codes []string
-	for _, rel := range refs {
-		if code, ok := c.languageCodes[rel.To.ID]; ok && SupportedLanguages[code] {
+	for _, ref := range refs {
+		if code, ok := c.languageCodes[ref.To.ID]; ok && SupportedLanguages[code] {
 			codes = append(codes, code)
 		}
 	}
@@ -979,7 +979,7 @@ func inverseReferenceClaimID(target, source, claim identifier.Identifier) identi
 // For each reference claim in the document, it records an InverseRelation entry keyed
 // by the target document ID.
 func OutgoingInverseRelations(doc *document.D) map[identifier.Identifier][]internalStore.InverseRelation {
-	result := make(map[identifier.Identifier][]internalStore.InverseRelation)
+	result := map[identifier.Identifier][]internalStore.InverseRelation{}
 	for _, claim := range document.GetAllClaimsOfTypeWithConfidence[*document.ReferenceClaim](doc, document.LowConfidence) {
 		result[claim.To.ID] = append(result[claim.To.ID], internalStore.InverseRelation{
 			Claim:      claim.ID,
@@ -1012,7 +1012,7 @@ func (c *Converter) convertIdentifier(ctx context.Context, claim *document.Ident
 }
 
 func (c *Converter) convertString(ctx context.Context, claim *document.StringClaim) ([]StringClaim, errors.E) {
-	str := make(map[string]string)
+	str := map[string]string{}
 	for _, lang := range c.extractInLanguages(claim.Sub) {
 		str[lang] = claim.String
 	}
@@ -1035,7 +1035,7 @@ func (c *Converter) convertString(ctx context.Context, claim *document.StringCla
 }
 
 func (c *Converter) convertHTML(ctx context.Context, claim *document.HTMLClaim) ([]HTMLClaim, errors.E) {
-	html := make(map[string]string)
+	html := map[string]string{}
 	for _, lang := range c.extractInLanguages(claim.Sub) {
 		html[lang] = claim.HTML
 	}
@@ -1246,7 +1246,7 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 }
 
 func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) ([]TimeClaim, errors.E) {
-	t, errE := claim.Timestamp.Time(claim.Precision, time.UTC)
+	t, errE := claim.Time.Time(claim.Precision, time.UTC)
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
 		return nil, errE
@@ -1254,7 +1254,7 @@ func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) 
 
 	from := x.TimeToFloat64(t)
 	to := x.TimeToFloat64(addPrecision(t, claim.Precision))
-	display := claim.Timestamp.String()
+	display := claim.Time.String()
 
 	rangeFloat := RangeFloat{ //nolint:exhaustruct
 		GreaterThanOrEqual: &from,
@@ -1328,7 +1328,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		claims, errE := c.convertTime(ctx, &document.TimeClaim{
 			CoreClaim: claim.CoreClaim,
 			Prop:      claim.Prop,
-			Timestamp: *claim.To,
+			Time:      *claim.To,
 			Precision: *claim.ToPrecision,
 		})
 		if errE != nil {
@@ -1383,7 +1383,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		claims, errE := c.convertTime(ctx, &document.TimeClaim{
 			CoreClaim: claim.CoreClaim,
 			Prop:      claim.Prop,
-			Timestamp: *claim.From,
+			Time:      *claim.From,
 			Precision: *claim.FromPrecision,
 		})
 		if errE != nil {

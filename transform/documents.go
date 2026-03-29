@@ -102,7 +102,7 @@
 // ## location
 //
 // Optional. Only supported for time.Time, core.Time, and core.Interval[core.Time] fields.
-// Specifies the timezone for formatting the timestamp. The value must be a valid IANA timezone name
+// Specifies the timezone for formatting the time. The value must be a valid IANA timezone name
 // (e.g., "America/New_York", "Europe/London", "UTC"). Parsed using time.LoadLocation.
 // When not specified, UTC is used.
 //
@@ -155,7 +155,7 @@
 //
 //	type PersonWeight struct {
 //		Value     *int      `value:"" default:"unknown"`
-//		Timestamp core.Time `property:"TIMESTAMP"`
+//		Time core.Time `property:"TIMESTAMP"`
 //	}
 //
 // Semantic difference between values:
@@ -1048,7 +1048,7 @@ func makeClaim(
 				Confidence: confidence,
 			},
 			Prop:      document.Reference{ID: propertyID},
-			Timestamp: document.NewTimestamp(goTime, precision, loc),
+			Time:      document.NewTime(goTime, precision, loc),
 			Precision: precision,
 		}, nil
 	}
@@ -1069,7 +1069,7 @@ func makeClaim(
 		}
 
 		coreTime := fieldValue.Interface().(core.Time) //nolint:errcheck,forcetypeassert
-		if coreTime.Timestamp.IsZero() {
+		if coreTime.Time.IsZero() {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
 			})
@@ -1082,7 +1082,7 @@ func makeClaim(
 				Confidence: confidence,
 			},
 			Prop:      document.Reference{ID: propertyID},
-			Timestamp: document.NewTimestamp(coreTime.Timestamp, coreTime.Precision, loc),
+			Time:      document.NewTime(coreTime.Time, coreTime.Precision, loc),
 			Precision: coreTime.Precision,
 		}, nil
 	}
@@ -1124,8 +1124,8 @@ func makeClaim(
 		// Map From bound.
 		if interval.From != nil {
 			fromPrecision := interval.From.Precision
-			fromTimestamp := document.NewTimestamp(interval.From.Timestamp, fromPrecision, loc)
-			claim.From = &fromTimestamp
+			fromTime := document.NewTime(interval.From.Time, fromPrecision, loc)
+			claim.From = &fromTime
 			claim.FromPrecision = &fromPrecision
 			claim.FromIsOpen = interval.FromIsOpen
 		} else if interval.FromIsUnknown {
@@ -1139,8 +1139,8 @@ func makeClaim(
 		// Map To bound.
 		if interval.To != nil {
 			toPrecision := interval.To.Precision
-			toTimestamp := document.NewTimestamp(interval.To.Timestamp, toPrecision, loc)
-			claim.To = &toTimestamp
+			toTime := document.NewTime(interval.To.Time, toPrecision, loc)
+			claim.To = &toTime
 			claim.ToPrecision = &toPrecision
 			claim.ToIsClosed = interval.ToIsClosed
 		} else if interval.ToIsUnknown {
@@ -1709,7 +1709,7 @@ func makeClaim(
 }
 
 // parseLocation parses a location tag string using time.LoadLocation.
-// Returns nil if the tag is empty (defaults to UTC in document.NewTimestamp).
+// Returns nil if the tag is empty (defaults to UTC in document.NewTime).
 func parseLocation(locationTag string) (*time.Location, errors.E) {
 	if locationTag == "" {
 		return nil, nil //nolint:nilnil

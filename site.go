@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 	"gopkg.in/yaml.v3"
@@ -45,8 +46,10 @@ type Site struct {
 	Index  string `json:"-"               yaml:"index,omitempty"`
 	Schema string `json:"-"               yaml:"schema,omitempty"`
 	Title  string `json:"title,omitempty" yaml:"title,omitempty"`
+	Logo   string `json:"logo,omitempty"  yaml:"logo,omitempty"`
 
 	LanguagePriority map[string][]string              `json:"languagePriority,omitempty" yaml:"languagePriority,omitempty"`
+	DefaultLanguage  string                           `json:"defaultLanguage,omitempty"  yaml:"defaultLanguage,omitempty"`
 	LanguageCodes    map[identifier.Identifier]string `json:"languageCodes,omitempty"    yaml:"-"`
 
 	Features SiteFeatures `json:"features" yaml:"features"`
@@ -203,6 +206,21 @@ func (s *Site) updateUnitsTotal(_ context.Context, documents []*document.D) erro
 	return nil
 }
 
+func (s *Site) validateDefaultLanguage() errors.E {
+	if s.DefaultLanguage == "" {
+		if len(s.LanguagePriority) < 1 {
+			return nil
+		}
+		return errors.New("default language is required when more than one language is enabled")
+	}
+	if _, ok := s.LanguagePriority[s.DefaultLanguage]; !ok {
+		errE := errors.New("default language is not enabled")
+		errors.Details(errE)["language"] = s.DefaultLanguage
+		return errE
+	}
+	return nil
+}
+
 // Start starts the base for the site.
 //
 // You have to call this or PopulateAndStart for each site after Init.
@@ -213,6 +231,11 @@ func (s *Site) Start(ctx context.Context, documents []*document.D) errors.E {
 	}
 
 	errE = s.updateUnitsTotal(ctx, documents)
+	if errE != nil {
+		return errE
+	}
+
+	errE = s.validateDefaultLanguage()
 	if errE != nil {
 		return errE
 	}
@@ -230,8 +253,10 @@ func (s *Site) Start(ctx context.Context, documents []*document.D) errors.E {
 // PopulateAndStart for the site: inserts the given documents into the store, starts the base,
 // waits for Elasticsearch to catch up, and then refreshes ElasticSearch index.
 //
+// Optional count and size counters can be provided to track ES indexing progress.
+//
 // You have to call this or Start for each site after Init.
-func (s *Site) PopulateAndStart(ctx context.Context, documents []*document.D, progress func(doc *document.D)) errors.E {
+func (s *Site) PopulateAndStart(ctx context.Context, documents []*document.D, progress func(doc *document.D), count, size *x.Counter) errors.E {
 	errE := s.updatePropertiesTotal(ctx, documents)
 	if errE != nil {
 		return errE
@@ -242,7 +267,12 @@ func (s *Site) PopulateAndStart(ctx context.Context, documents []*document.D, pr
 		return errE
 	}
 
-	errE = s.Base.PopulateAndStart(ctx, documents, progress)
+	errE = s.validateDefaultLanguage()
+	if errE != nil {
+		return errE
+	}
+
+	errE = s.Base.PopulateAndStart(ctx, documents, progress, count, size)
 	if errE != nil {
 		return errE
 	}

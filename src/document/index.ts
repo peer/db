@@ -1,4 +1,4 @@
-export type { Amount, Confidence, Reference, TimePrecision, Timestamp } from "@/document/types"
+export type { Amount, Confidence, Reference, Time, TimePrecision } from "@/document/types"
 
 export {
   HighConfidence,
@@ -24,13 +24,14 @@ export {
   StringClaim,
   TimeClaim,
   TimeIntervalClaim,
+  UNDETERMINED_LANGUAGE,
   UnknownClaim,
-  getAllClaimsOfType,
   getAllClaimsOfTypeWithConfidence,
   getBestClaimOfType,
+  getClaimsAndLanguageOfTypeWithConfidence,
   getClaimsListsOfType,
-  getClaimsOfType,
   getClaimsOfTypeWithConfidence,
+  selectClaimsByLanguage,
 } from "@/document/claims"
 export type { Claim, ClaimForType, ClaimTypeName, Claims, ClaimsContainer } from "@/document/claims"
 

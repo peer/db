@@ -101,7 +101,7 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 	errE = site.PopulateAndStart(ctx, transformed, func(doc *document.D) {
 		count.Increment()
 		logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
-	})
+	}, count, size)
 	if errE != nil {
 		return errE
 	}
@@ -132,7 +132,9 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 			Index:            globals.Elastic.Index,
 			Schema:           globals.Postgres.Schema,
 			Title:            "",
+			Logo:             "",
 			LanguagePriority: nil,
+			DefaultLanguage:  "",
 			LanguageCodes:    nil,
 			Features:         SiteFeatures{},
 			Base:             nil,
@@ -159,13 +161,17 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 
 	ctx, cancel := context.WithCancel(ctx)
 
-	onShutdown, errE := Init(ctx, globals)
-	if onShutdown != nil {
-		defer onShutdown()
-	}
-	defer cancel()
-	if errE != nil {
-		return errE
+	if !c.DryRun {
+		onShutdown, errE := Init(ctx, globals)
+		if onShutdown != nil {
+			defer onShutdown()
+		}
+		defer cancel()
+		if errE != nil {
+			return errE
+		}
+	} else {
+		defer cancel()
 	}
 
 	for _, site := range globals.Sites {

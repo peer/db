@@ -21,10 +21,10 @@ func TestSanitizeHTML(t *testing.T) {
 	entries, err := testdataFS.ReadDir("testdata")
 	require.NoError(t, err)
 
-	testCases := make(map[string]struct {
+	testCases := map[string]struct {
 		inputFile  string
 		outputFile string
-	})
+	}{}
 
 	for _, entry := range entries {
 		name := entry.Name()

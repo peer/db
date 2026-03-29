@@ -36,12 +36,13 @@ node_modules: package-lock.json
 package-lock.json: package.json
 	npm install
 
-test:
-	gotestsum --format pkgname --packages ./... -- -race -timeout 10m -cover -covermode atomic
-
 # We use -p 1 to run only one package test and thus test process at a time. This allows us to control the number of
 # connections made to a PostgreSQL service to not hit the limit of connections to it. If multiple test processes run
 # in parallel, then our current logic where we track connections and pools inside one process is not enough.
+
+test:
+	gotestsum --format pkgname --packages ./... -- -p 1 -race -timeout 10m -cover -covermode atomic
+
 test-ci:
 	gotestsum --format pkgname --packages ./... --junitfile tests.xml -- -p 1 -race -timeout 10m -coverprofile=coverage.txt -covermode atomic
 	gocover-cobertura < coverage.txt > coverage.xml

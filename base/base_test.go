@@ -84,7 +84,7 @@ func populateBase(ctx context.Context, t *testing.T, b *base.B, additionalDocs [
 
 	transformed = append(transformed, additionalDocs...)
 
-	errE = b.PopulateAndStart(ctx, transformed, nil)
+	errE = b.PopulateAndStart(ctx, transformed, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 }
 
@@ -221,7 +221,7 @@ func TestInsertOrReplaceDocumentCarriesOverMetadata(t *testing.T) {
 	errE = b.InsertOrReplaceDocument(ctx, docADoc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for docB's metadata to have inverse relations from the bridge.
@@ -515,7 +515,7 @@ func TestDocumentEditSessionCarriesOverMetadata(t *testing.T) {
 	errE = b.InsertOrReplaceDocument(ctx, docADoc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for docB's metadata to have inverse relations from the bridge.
@@ -590,7 +590,7 @@ func TestDocumentEditSessionMetadataChangedDuringEdit(t *testing.T) {
 	errE := b.InsertOrReplaceDocument(ctx, docBDoc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Begin edit session for docB BEFORE any inverse relations exist.
@@ -612,7 +612,7 @@ func TestDocumentEditSessionMetadataChangedDuringEdit(t *testing.T) {
 	errE = b.InsertOrReplaceDocument(ctx, docADoc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for docB's metadata to be updated with inverse relations by the bridge.
@@ -697,7 +697,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	errE = b.InsertOrReplaceDocument(ctx, docBDoc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
@@ -741,7 +741,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 		assert.NotEqual(c, versionA.Changeset, newVersion.Changeset, "docA changeset should change")
 	}, 30*time.Second, 100*time.Millisecond)
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Verify the relation A --X--> B is indexed in ES.
@@ -787,7 +787,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 		assert.NotEqual(c, versionA2.Changeset, newVersion.Changeset, "docA changeset should change after removal")
 	}, 30*time.Second, 100*time.Millisecond)
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Verify the relation is removed from ES.

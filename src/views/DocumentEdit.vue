@@ -5,7 +5,7 @@ import type { DocumentBeginMetadata, DocumentEditStatus, DocumentEndEditResponse
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { CheckIcon } from "@heroicons/vue/20/solid"
 import { Identifier } from "@tozd/identifier"
-import { computed, onBeforeUnmount, readonly, ref } from "vue"
+import { onBeforeUnmount, readonly, ref } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
@@ -15,12 +15,13 @@ import InputText from "@/components/InputText.vue"
 import InputTime from "@/components/InputTime.vue"
 import { D } from "@/document"
 import { AddClaimChange, changeFrom, RemoveClaimChange } from "@/document/patch"
+import DisplayLabel from "@/partials/DisplayLabel.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
 import { injectProgress } from "@/progress"
-import { encodeQuery, getDisplayLabel } from "@/utils"
+import { encodeQuery } from "@/utils"
 
 const props = defineProps<{
   id: string
@@ -53,7 +54,7 @@ const claimTo = ref("")
 const claimToAmountPrecision = ref("")
 const claimToTimePrecision = ref<TimePrecision>("y")
 
-const { t, locale } = useI18n({ useScope: "global" })
+const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
 const saveProgress = injectProgress()
@@ -169,8 +170,6 @@ loadAndSubscribe().catch((error) => {
   console.error("loadAndSubscribe", error)
 })
 
-const docName = computed(() => getDisplayLabel(doc.value?.claims, locale.value))
-
 async function onSave() {
   if (abortController.signal.aborted) {
     return
@@ -274,7 +273,7 @@ function makePatch(): object {
         ...(claimTo.value ? { to: claimTo.value, toPrecision: parseFloat(claimToAmountPrecision.value) } : {}),
       }
     case "time":
-      return { ...shared, timestamp: claimValue.value, precision: claimTimePrecision.value }
+      return { ...shared, time: claimValue.value, precision: claimTimePrecision.value }
     case "timeInterval":
       return {
         ...shared,
@@ -378,17 +377,21 @@ function onChangeTab(index: number) {
 <template>
   <Teleport to="header">
     <NavBar>
-      <NavBarSearch />
-      <Button :progress="saveProgress" type="button" primary class="px-3.5" @click.prevent="onSave">
-        <CheckIcon class="size-5 sm:hidden" :alt="t('common.buttons.save')" />
-        <span class="hidden sm:inline">{{ t("common.buttons.save") }}</span>
-      </Button>
+      <template #start>
+        <NavBarSearch />
+      </template>
+      <template #end>
+        <Button :progress="saveProgress" type="button" primary class="px-3.5" @click.prevent="onSave">
+          <CheckIcon class="size-5 sm:hidden" :alt="t('common.buttons.save')" />
+          <span class="hidden sm:inline">{{ t("common.buttons.save") }}</span>
+        </Button>
+      </template>
     </NavBar>
   </Teleport>
   <div class="pd-documentedit mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
     <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <template v-if="doc">
-        <h1 class="mb-4 text-4xl font-bold drop-shadow-xs" v-html="docName || `<i>${t('common.values.noName')}</i>`"></h1>
+        <h1 class="mb-4 text-4xl font-bold drop-shadow-xs"><DisplayLabel :claims="doc.claims" /></h1>
         <table class="w-full table-auto border-collapse">
           <thead>
             <tr>
@@ -502,10 +505,10 @@ function onChangeTab(index: number) {
               <label for="timeInterval-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
               <InputText id="timeInterval-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
               <InputTime v-model="claimFrom" v-model:precision="claimFromTimePrecision" class="mt-4 min-w-0 flex-auto grow">
-                <template #timestamp-label>{{ t("views.DocumentEdit.labels.from") }}</template>
+                <template #time-label>{{ t("views.DocumentEdit.labels.from") }}</template>
               </InputTime>
               <InputTime v-model="claimTo" v-model:precision="claimToTimePrecision" class="mt-4 min-w-0 flex-auto grow">
-                <template #timestamp-label>{{ t("views.DocumentEdit.labels.to") }}</template>
+                <template #time-label>{{ t("views.DocumentEdit.labels.to") }}</template>
               </InputTime>
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">

@@ -45,10 +45,12 @@ export default defineConfig({
         {
           src: "src/theme.css",
           dest: ".",
+          rename: { stripBase: 1 },
         },
         {
           src: "src/**/*.d.ts",
           dest: ".",
+          rename: { stripBase: 1 },
         },
       ],
     }),

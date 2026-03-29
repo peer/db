@@ -18,5 +18,5 @@ export const HighNegationConfidence: Confidence = -1.0
 // MediumNegationConfidence represents medium confidence in a negation with a score of -0.75.
 export const MediumNegationConfidence: Confidence = -0.75
 
-// MediumNegationConfidence represents medium confidence in a negation with a score of -0.75.
+// LowNegationConfidence represents low confidence in a negation with a score of -0.5.
 export const LowNegationConfidence: Confidence = -0.5

@@ -135,10 +135,10 @@ type AmountClaim struct {
 	ToDisplay   string                 `json:"toDisplay,omitempty"`
 }
 
-// TimeClaim represents a claim for timestamp.
+// TimeClaim represents a claim for time.
 //
-// For search, we index timestamps as both ranges and boundaries.
-// Timestamps are stored as float64 seconds since Unix epoch.
+// For search, we index times as both ranges and boundaries.
+// Times are stored as float64 seconds since Unix epoch.
 type TimeClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`

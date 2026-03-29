@@ -974,13 +974,13 @@ func (p AmountIntervalClaimPatch) MarshalJSON() ([]byte, error) {
 type TimeClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
-	Timestamp  *Timestamp             `exhaustruct:"optional" json:"time,omitempty"`
+	Time       *Time                  `exhaustruct:"optional" json:"time,omitempty"`
 	Precision  *TimePrecision         `exhaustruct:"optional" json:"precision,omitempty"`
 }
 
 // New creates a new time claim from the patch.
 func (p TimeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
-	if p.Confidence == nil || p.Prop == nil || p.Timestamp == nil || p.Precision == nil {
+	if p.Confidence == nil || p.Prop == nil || p.Time == nil || p.Precision == nil {
 		return nil, errors.New("incomplete patch")
 	}
 
@@ -992,7 +992,7 @@ func (p TimeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 		Prop: Reference{
 			ID: *p.Prop,
 		},
-		Timestamp: *p.Timestamp,
+		Time:      *p.Time,
 		Precision: *p.Precision,
 	}
 
@@ -1001,7 +1001,7 @@ func (p TimeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 
 // Apply applies the patch to an existing time claim.
 func (p TimeClaimPatch) Apply(claim Claim) errors.E {
-	if p.Confidence == nil && p.Prop == nil && p.Timestamp == nil && p.Precision == nil {
+	if p.Confidence == nil && p.Prop == nil && p.Time == nil && p.Precision == nil {
 		return errors.New("empty patch")
 	}
 
@@ -1016,8 +1016,8 @@ func (p TimeClaimPatch) Apply(claim Claim) errors.E {
 	if p.Prop != nil {
 		c.Prop.ID = *p.Prop
 	}
-	if p.Timestamp != nil {
-		c.Timestamp = *p.Timestamp
+	if p.Time != nil {
+		c.Time = *p.Time
 	}
 	if p.Precision != nil {
 		c.Precision = *p.Precision
@@ -1071,13 +1071,13 @@ type TimeIntervalClaimPatch struct {
 	Confidence *Confidence            `exhaustruct:"optional" json:"confidence,omitempty"`
 	Prop       *identifier.Identifier `exhaustruct:"optional" json:"prop,omitempty"`
 
-	From          *Timestamp     `exhaustruct:"optional" json:"from,omitempty"`
+	From          *Time          `exhaustruct:"optional" json:"from,omitempty"`
 	FromPrecision *TimePrecision `exhaustruct:"optional" json:"fromPrecision,omitempty"`
 	FromIsOpen    *bool          `exhaustruct:"optional" json:"fromIsOpen,omitempty"`
 	FromIsUnknown *bool          `exhaustruct:"optional" json:"fromIsUnknown,omitempty"`
 	FromIsNone    *bool          `exhaustruct:"optional" json:"fromIsNone,omitempty"`
 
-	To          *Timestamp     `exhaustruct:"optional" json:"to,omitempty"`
+	To          *Time          `exhaustruct:"optional" json:"to,omitempty"`
 	ToPrecision *TimePrecision `exhaustruct:"optional" json:"toPrecision,omitempty"`
 	ToIsClosed  *bool          `exhaustruct:"optional" json:"toIsClosed,omitempty"`
 	ToIsUnknown *bool          `exhaustruct:"optional" json:"toIsUnknown,omitempty"`

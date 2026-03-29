@@ -174,7 +174,7 @@ describe("progressiveValidate", () => {
     assert.notEqual(progressiveValidateExposed("2023-12-31 12:60:00"), "")
   })
 
-  test("rejects invalid timestamp structure", () => {
+  test("rejects invalid time structure", () => {
     assert.equal(progressiveValidateExposed("foo"), "components.InputTime.errors.invalid")
     assert.equal(progressiveValidateExposed("2023--12"), "components.InputTime.errors.invalid")
 

@@ -9,5 +9,5 @@ defineProps<{
 </script>
 
 <template>
-  <template v-if="claim">{{ claim.timestamp }}</template>
+  <template v-if="claim">{{ claim.time }}</template>
 </template>

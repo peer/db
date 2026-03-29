@@ -7,6 +7,7 @@ import (
 	"math"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v9"
@@ -36,6 +37,7 @@ type bulkError struct {
 }
 
 type bridgeJob interface {
+	converterReady() bool
 	runIndexInverseRelations(ctx context.Context, job *river.Job[jobArgs]) errors.E
 }
 
@@ -95,6 +97,14 @@ func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
 		return errE
 	}
 
+	// The converter is set in Start which runs after Init. Jobs persisted from
+	// a previous run or the startup job inserted in Init can be picked up by
+	// River before Start is called. Snooze so we retry shortly without
+	// counting it as a failed attempt.
+	if !c.converterReady() {
+		return river.JobSnooze(time.Second) //nolint:wrapcheck
+	}
+
 	errE = c.runIndexInverseRelations(ctx, job)
 	if errE != nil {
 		// We do not wrap any error into JobCancel because for all errors we want the job to be retried.
@@ -151,7 +161,7 @@ type Bridge struct {
 	dbpool                     *pgxpool.Pool
 	schema                     string
 	riverClient                *river.Client[pgx.Tx]
-	converter                  *Converter
+	converter                  atomic.Pointer[Converter]
 	lastSeqMu                  sync.RWMutex
 	lastSeqCond                *sync.Cond
 	lastSeq                    int64
@@ -162,9 +172,14 @@ type Bridge struct {
 	inverseRelationsMinSeq int64
 }
 
+// converterReady returns true if the converter has been set via Start.
+func (b *Bridge) converterReady() bool {
+	return b.converter.Load() != nil
+}
+
 // Converter returns the underlying Converter instance.
 func (b *Bridge) Converter() *Converter {
-	return b.converter
+	return b.converter.Load()
 }
 
 // Init creates the bridge progress table and registers a NOTIFY handler on the shared listener
@@ -207,18 +222,16 @@ func (b *Bridge) Init(
 				"seq" bigint NOT NULL,
 				PRIMARY KEY ("id", "seq")
 			);
+			-- This allows efficient MIN(seq) queries.
+			CREATE INDEX "`+b.Store.Prefix+`BridgeInverseRelationsSeq" ON "`+b.Store.Prefix+`BridgeInverseRelations" ("seq");
 			CREATE FUNCTION "`+b.Store.Prefix+`BridgeInverseRelationsAfterChangeFunc"()
 				RETURNS TRIGGER LANGUAGE plpgsql AS $$
-				DECLARE
-					_min_seq bigint;
 				BEGIN
-					-- After rows are inserted or deleted, notify with the MIN(seq) of all rows.
-					-- If the table is empty, send -1 to indicate no pending work.
-					SELECT MIN("seq") INTO _min_seq FROM "`+b.Store.Prefix+`BridgeInverseRelations";
-					IF _min_seq IS NULL THEN
-						_min_seq := -1;
-					END IF;
-					PERFORM pg_notify('`+b.Store.Prefix+`BridgeInverseRelationsMinSeq', _min_seq::text);
+					-- Notify without payload. The handler queries MIN(seq) in a separate read-only transaction to avoid serialization conflicts.
+					-- Computing MIN(seq) inside this read-write trigger would create an unnecessary dependency on the table, conflicting with
+					-- concurrent INSERTs and DELETEs under serializable isolation, but it is not really necessary to know the MIN(seq) from
+					-- inside the transaction because the handler can only obtain >= MIN(seq) through a later query.
+					PERFORM pg_notify('`+b.Store.Prefix+`BridgeInverseRelationsMinSeq', '');
 					RETURN NULL;
 				END;
 			$$;
@@ -304,7 +317,7 @@ func (b *Bridge) HandleNotification(
 	case b.Store.Prefix + "BridgeSeq":
 		return b.handleBridgeSeq(ctx, notification, conn)
 	case b.Store.Prefix + "BridgeInverseRelationsMinSeq":
-		return b.handleBridgeInverseRelationsMinSeq(notification)
+		return b.handleBridgeInverseRelationsMinSeq(ctx)
 	default:
 		errE := errors.New("unknown notification channel")
 		errors.Details(errE)["channel"] = notification.Channel
@@ -327,9 +340,9 @@ func (b *Bridge) HandleBacklog(
 		return errE
 	case b.Store.Prefix + "BridgeInverseRelationsMinSeq":
 		// TODO: Improve what happens on an error.
-		//       Any error from fixBridgeInverseRelationsMinSeq is just logged. Which means that goroutines waiting
+		//       Any error from updateBridgeInverseRelationsMinSeq is just logged. Which means that goroutines waiting
 		//       in WaitUntilCaughtUp might continue waiting until some other new commit is made, which might be never.
-		return b.fixBridgeInverseRelationsMinSeq(ctx)
+		return b.updateBridgeInverseRelationsMinSeq(ctx)
 	default:
 		errE := errors.New("unknown notification channel")
 		errors.Details(errE)["channel"] = channel
@@ -343,7 +356,7 @@ func (b *Bridge) HandlingReady(ctx context.Context, channel string) errors.E {
 	case b.Store.Prefix + "BridgeSeq":
 		return b.waitForFixBridgeSeq(ctx)
 	case b.Store.Prefix + "BridgeInverseRelationsMinSeq":
-		return b.waitForFixBridgeInverseRelationsMinSeq(ctx)
+		return b.waitForUpdateBridgeInverseRelationsMinSeq(ctx)
 	default:
 		errE := errors.New("unknown notification channel")
 		errors.Details(errE)["channel"] = channel
@@ -387,28 +400,22 @@ func (b *Bridge) fixBridgeSeq(ctx context.Context) (int64, errors.E) {
 
 // handleBridgeInverseRelationsMinSeq handles notifications from the BridgeInverseRelations table
 // trigger and broadcasts to any goroutines waiting in WaitUntilCaughtUp.
-func (b *Bridge) handleBridgeInverseRelationsMinSeq(notification *pgconn.Notification) errors.E {
-	minSeq, err := strconv.ParseInt(notification.Payload, 10, 64)
-	if err != nil {
-		errE := errors.WithMessage(err, "failed to parse inverse relations min seq notification payload")
-		errors.Details(errE)["payload"] = notification.Payload
-		return errE
-	}
-	b.inverseRelationsMinSeqMu.Lock()
-	defer b.inverseRelationsMinSeqMu.Unlock()
-	if minSeq < 0 {
-		// A payload of "-1" means the table is empty.
-		b.inverseRelationsMinSeq = math.MaxInt64
-	} else {
-		b.inverseRelationsMinSeq = minSeq
-	}
-	b.inverseRelationsMinSeqCond.Broadcast()
-	return nil
+//
+// We query MIN(seq) in a separate read-only transaction via updateBridgeInverseRelationsMinSeq
+// rather than receiving it as the notification payload. Computing MIN(seq) inside the trigger's
+// read-write transaction would create an unnecessary dependency on the BridgeInverseRelations table,
+// causing serialization conflicts with concurrent INSERTs and DELETEs under serializable isolation.
+// A read-only transaction does not take conflicting predicate locks, avoiding this issue. This is
+// safe because seq values only increase (new INSERTs always have higher seq) and DELETEs only
+// remove rows that have already been processed, so the MIN(seq) observed by the handler is always
+// a correct (or conservatively low) value.
+func (b *Bridge) handleBridgeInverseRelationsMinSeq(ctx context.Context) errors.E {
+	return b.updateBridgeInverseRelationsMinSeq(ctx)
 }
 
-// fixBridgeInverseRelationsMinSeq fetches the current MIN(seq) from BridgeInverseRelations,
+// updateBridgeInverseRelationsMinSeq fetches the current MIN(seq) from BridgeInverseRelations,
 // updates the in-memory state, and broadcasts to any goroutines waiting in WaitUntilCaughtUp.
-func (b *Bridge) fixBridgeInverseRelationsMinSeq(ctx context.Context) errors.E {
+func (b *Bridge) updateBridgeInverseRelationsMinSeq(ctx context.Context) errors.E {
 	var minSeq *int64
 	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		return internalStore.WithPgxError(
@@ -439,12 +446,17 @@ func (b *Bridge) waitForFixBridgeSeq(ctx context.Context) errors.E {
 		return errE
 	}
 
-	return b.waitForLastSeq(ctx, seq)
+	return b.waitForLastSeq(ctx, seq, nil, nil)
 }
 
-func (b *Bridge) waitForLastSeq(ctx context.Context, seq int64) errors.E {
+func (b *Bridge) waitForLastSeq(ctx context.Context, seq int64, count, size *x.Counter) errors.E {
 	b.lastSeqCond.L.Lock()
 	defer b.lastSeqCond.L.Unlock()
+
+	// Nothing to do.
+	if b.lastSeq >= seq {
+		return nil
+	}
 
 	// This is based on example for context.AfterFunc from the context package.
 	// See comments there for explanation how it works and why.
@@ -455,24 +467,41 @@ func (b *Bridge) waitForLastSeq(ctx context.Context, seq int64) errors.E {
 	})
 	defer stop()
 
+	prevSeq := b.lastSeq
+
+	if size != nil {
+		size.Add(seq - prevSeq)
+	}
+
 	for b.lastSeq < seq {
 		b.lastSeqCond.Wait()
 		if ctx.Err() != nil {
 			return errors.WithStack(ctx.Err())
 		}
+		if count != nil && b.lastSeq > prevSeq {
+			// Just in case b.lastSeq jumps more than seq.
+			current := min(b.lastSeq, seq)
+			count.Add(current - prevSeq)
+			prevSeq = current
+		}
+	}
+
+	// To get count to match the increase we made to size initially.
+	if count != nil && seq > prevSeq {
+		count.Add(seq - prevSeq)
 	}
 
 	return nil
 }
 
-// waitForFixBridgeInverseRelationsMinSeq is similar to WaitUntilCaughtUp but it does not wait for
+// waitForUpdateBridgeInverseRelationsMinSeq is similar to WaitUntilCaughtUp but it does not wait for
 // b.inverseRelationsMinSeq to catch up with committed commits, but just that it catches up with
 // the current last-indexed seq from the bridge table. A startup job submitted in Init ensures
 // any leftover rows will be processed.
-func (b *Bridge) waitForFixBridgeInverseRelationsMinSeq(ctx context.Context) errors.E {
-	// We must call fixBridgeInverseRelationsMinSeq here because HandleBacklog runs in a separate
+func (b *Bridge) waitForUpdateBridgeInverseRelationsMinSeq(ctx context.Context) errors.E {
+	// We must call updateBridgeInverseRelationsMinSeq here because HandleBacklog runs in a separate
 	// goroutine and may not have executed yet.
-	errE := b.fixBridgeInverseRelationsMinSeq(ctx)
+	errE := b.updateBridgeInverseRelationsMinSeq(ctx)
 	if errE != nil {
 		return errE
 	}
@@ -482,12 +511,17 @@ func (b *Bridge) waitForFixBridgeInverseRelationsMinSeq(ctx context.Context) err
 		return errE
 	}
 
-	return b.waitForInverseRelationsMinSeq(ctx, seq)
+	return b.waitForInverseRelationsMinSeq(ctx, seq, nil, nil)
 }
 
-func (b *Bridge) waitForInverseRelationsMinSeq(ctx context.Context, seq int64) errors.E {
+func (b *Bridge) waitForInverseRelationsMinSeq(ctx context.Context, seq int64, count, size *x.Counter) errors.E {
 	b.inverseRelationsMinSeqCond.L.Lock()
 	defer b.inverseRelationsMinSeqCond.L.Unlock()
+
+	// Nothing to do.
+	if b.inverseRelationsMinSeq > seq {
+		return nil
+	}
 
 	// This is based on example for context.AfterFunc from the context package.
 	// See comments there for explanation how it works and why.
@@ -498,6 +532,12 @@ func (b *Bridge) waitForInverseRelationsMinSeq(ctx context.Context, seq int64) e
 	})
 	defer stop()
 
+	prevMinSeq := b.inverseRelationsMinSeq
+
+	if size != nil {
+		size.Add(seq + 1 - prevMinSeq)
+	}
+
 	// inverseRelationsMinSeq tracks the MIN(seq) of remaining rows in BridgeInverseRelations.
 	// When it exceeds seq (or the table is empty, represented as MaxInt64), we are done.
 	for b.inverseRelationsMinSeq <= seq {
@@ -505,6 +545,19 @@ func (b *Bridge) waitForInverseRelationsMinSeq(ctx context.Context, seq int64) e
 		if ctx.Err() != nil {
 			return errors.WithStack(ctx.Err())
 		}
+		if count != nil && b.inverseRelationsMinSeq > prevMinSeq {
+			// inverseRelationsMinSeq can jump to MaxInt64 when the table is empty,
+			// so we cap progress to match the size we added.
+			// This also handles any other jump more than seq+1.
+			current := min(b.inverseRelationsMinSeq, seq+1)
+			count.Add(current - prevMinSeq)
+			prevMinSeq = current
+		}
+	}
+
+	// To get count to match the increase we made to size initially.
+	if count != nil && seq+1 > prevMinSeq {
+		count.Add(seq + 1 - prevMinSeq)
 	}
 
 	return nil
@@ -521,7 +574,7 @@ func (b *Bridge) waitForInverseRelationsMinSeq(ctx context.Context, seq int64) e
 //
 // Converter is used to convert documents for indexing and to track inverse relations.
 func (b *Bridge) Start(ctx context.Context, converter *Converter) {
-	b.converter = converter
+	b.converter.Store(converter)
 
 	go func() {
 		// TODO: Measure how many retries have to be made and abort if it is too much.
@@ -555,7 +608,11 @@ func (b *Bridge) Start(ctx context.Context, converter *Converter) {
 // WaitUntilCaughtUp blocks until the bridge has indexed all currently committed commits.
 //
 // It is useful for waiting after a bulk import before querying ElasticSearch.
-func (b *Bridge) WaitUntilCaughtUp(ctx context.Context) errors.E {
+//
+// Optional count and size counters can be provided to track ES indexing progress.
+// If provided, size is increased for the number of commits to process, and count is
+// incremented as commits are indexed.
+func (b *Bridge) WaitUntilCaughtUp(ctx context.Context, count, size *x.Counter) errors.E {
 	// Find the current maximum seq in CommitLog.
 	var maxSeq int64
 	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
@@ -570,14 +627,14 @@ func (b *Bridge) WaitUntilCaughtUp(ctx context.Context) errors.E {
 		return nil
 	}
 
-	// We first wait on lastSeq.
-	errE = b.waitForLastSeq(ctx, maxSeq)
+	// We first wait on lastSeq (commit indexing phase).
+	errE = b.waitForLastSeq(ctx, maxSeq, count, size)
 	if errE != nil {
 		return errE
 	}
 
-	// And then we wait on inverseRelationsMinSeq.
-	return b.waitForInverseRelationsMinSeq(ctx, maxSeq)
+	// And then we wait on inverseRelationsMinSeq (inverse relations phase).
+	return b.waitForInverseRelationsMinSeq(ctx, maxSeq, count, size)
 }
 
 func (b *Bridge) run(ctx context.Context) errors.E {
@@ -832,14 +889,14 @@ func (b *Bridge) indexCommit(
 func diffOutgoingInverseRelations(
 	current, parent map[identifier.Identifier][]internalStore.InverseRelation,
 ) (map[identifier.Identifier][]internalStore.InverseRelation, map[identifier.Identifier][]internalStore.InverseRelation) {
-	currentSet := make(map[internalStore.InverseRelation]bool)
+	currentSet := map[internalStore.InverseRelation]bool{}
 	for _, irs := range current {
 		for _, ir := range irs {
 			currentSet[ir] = true
 		}
 	}
 
-	parentSet := make(map[internalStore.InverseRelation]bool)
+	parentSet := map[internalStore.InverseRelation]bool{}
 	for _, irs := range parent {
 		for _, ir := range irs {
 			parentSet[ir] = true
@@ -876,7 +933,7 @@ func (b *Bridge) convertDocument(ctx context.Context, data json.RawMessage, meta
 		return nil, errE
 	}
 
-	return b.converter.FromDocument(ctx, &doc, metadata.InverseRelations)
+	return b.converter.Load().FromDocument(ctx, &doc, metadata.InverseRelations)
 }
 
 func (b *Bridge) outgoingInverseRelations(data json.RawMessage) (map[identifier.Identifier][]internalStore.InverseRelation, errors.E) {
@@ -915,7 +972,7 @@ func (b *Bridge) updateSeq(
 	// TODO: How to get MetricDatabaseRetries inside RetryTransaction to be incremented at every loop here?
 	for range internalStore.MaxRetries {
 		// Collect all affected document IDs from both added and removed maps.
-		affectedDocs := make(map[identifier.Identifier]bool)
+		affectedDocs := map[identifier.Identifier]bool{}
 		for docID, irs := range addedInverseRelations {
 			if len(irs) > 0 {
 				affectedDocs[docID] = true
@@ -954,10 +1011,11 @@ func (b *Bridge) updateSeq(
 
 		// In a single transaction: update metadata, enqueue document IDs for re-indexing,
 		// and then advance the bridge seq. The order matters: the INSERT into
-		// BridgeInverseRelations triggers a notification with MIN(seq) BEFORE the UPDATE
-		// of Bridge seq triggers the BridgeSeq notification. Since notifications are
-		// delivered in order within a transaction and processed sequentially by the listener,
-		// waitForInverseRelationsMinSeq sees the correct value before waitForLastSeq returns.
+		// BridgeInverseRelations triggers a notification BEFORE the UPDATE of Bridge seq
+		// triggers the BridgeSeq notification. Since notifications are delivered in order
+		// within a transaction and processed sequentially by the listener, the handler for
+		// BridgeInverseRelationsMinSeq queries the current MIN(seq) and updates
+		// inverseRelationsMinSeq before the BridgeSeq handler unblocks waitForLastSeq.
 		errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 			for _, u := range updates {
 				_, errE := b.Store.UpdateExistingMetadata(ctx, u.id, u.version, u.metadata)

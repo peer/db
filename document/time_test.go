@@ -11,12 +11,12 @@ import (
 	"gitlab.com/peerdb/peerdb/document"
 )
 
-func TestTimestampMarshal(t *testing.T) {
+func TestTimeMarshal(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		timestamp string
-		unix      int64
+		ts   string
+		unix int64
 	}{
 		{`"2006-12-04 12:34:45"`, 1165235685},
 		{`"0206-12-04 12:34:45"`, -55637321115},
@@ -30,28 +30,28 @@ func TestTimestampMarshal(t *testing.T) {
 		{`"-239999999-01-01 00:00:00"`, -7573730615596800},
 	}
 	for _, test := range tests {
-		t.Run(test.timestamp, func(t *testing.T) {
+		t.Run(test.ts, func(t *testing.T) {
 			t.Parallel()
 
-			var timestamp document.Timestamp
-			in := []byte(test.timestamp)
-			errE := x.UnmarshalWithoutUnknownFields(in, &timestamp)
+			var ts document.Time
+			in := []byte(test.ts)
+			errE := x.UnmarshalWithoutUnknownFields(in, &ts)
 			require.NoError(t, errE, "% -+#.1v", errE)
-			tt, errE := timestamp.Time(0, time.UTC)
+			tt, errE := ts.Time(0, time.UTC)
 			require.NoError(t, errE, "% -+#.1v", errE)
 			assert.Equal(t, test.unix, tt.Unix())
-			out, errE := x.MarshalWithoutEscapeHTML(timestamp)
+			out, errE := x.MarshalWithoutEscapeHTML(ts)
 			require.NoError(t, errE, "% -+#.1v", errE)
 			assert.Equal(t, in, out)
 		})
 	}
 }
 
-func TestTimestampValidation(t *testing.T) {
+func TestTimeValidation(t *testing.T) {
 	t.Parallel()
 
 	validCases := []struct {
-		timestamp string
+		ts        string
 		precision document.TimePrecision
 	}{
 		{"1000000000", document.TimePrecisionGigaYears},
@@ -68,16 +68,16 @@ func TestTimestampValidation(t *testing.T) {
 		{"2025-03-15 10:30:45.123456789", document.TimePrecisionNanosecond},
 	}
 	for _, tc := range validCases {
-		t.Run(tc.timestamp+"/"+tc.precision.String(), func(t *testing.T) {
+		t.Run(tc.ts+"/"+tc.precision.String(), func(t *testing.T) {
 			t.Parallel()
 
-			errE := document.Timestamp(tc.timestamp).Validate(tc.precision)
+			errE := document.Time(tc.ts).Validate(tc.precision)
 			require.NoError(t, errE, "% -+#.1v", errE)
 		})
 	}
 
 	invalidCases := []struct {
-		timestamp string
+		ts        string
 		precision document.TimePrecision
 		errMsg    string
 	}{
@@ -95,13 +95,13 @@ func TestTimestampValidation(t *testing.T) {
 		{"2025-03-15 25:00", document.TimePrecisionHour, "hours out of range"},
 		{"2025-03-15 10:60", document.TimePrecisionMinute, "minutes out of range"},
 		{"2025-03-15 10:30:60", document.TimePrecisionSecond, "seconds out of range"},
-		{"not-a-timestamp", document.TimePrecisionYear, "unable to parse timestamp"},
+		{"not-a-time", document.TimePrecisionYear, "unable to parse time"},
 	}
 	for _, tc := range invalidCases {
-		t.Run(tc.timestamp+"/"+tc.precision.String(), func(t *testing.T) {
+		t.Run(tc.ts+"/"+tc.precision.String(), func(t *testing.T) {
 			t.Parallel()
 
-			errE := document.Timestamp(tc.timestamp).Validate(tc.precision)
+			errE := document.Time(tc.ts).Validate(tc.precision)
 			assert.EqualError(t, errE, tc.errMsg)
 		})
 	}
@@ -149,7 +149,7 @@ func TestTimePrecisionMarshal(t *testing.T) {
 	}
 }
 
-func TestNewTimestamp(t *testing.T) {
+func TestNewTime(t *testing.T) {
 	t.Parallel()
 
 	newYork, err := time.LoadLocation("America/New_York")
@@ -323,8 +323,8 @@ func TestNewTimestamp(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			ts := document.NewTimestamp(tc.input, tc.precision, tc.location)
-			assert.Equal(t, document.Timestamp(tc.expected), ts)
+			ts := document.NewTime(tc.input, tc.precision, tc.location)
+			assert.Equal(t, document.Time(tc.expected), ts)
 		})
 	}
 }
@@ -333,7 +333,7 @@ func TestYearPrecisionValidation(t *testing.T) {
 	t.Parallel()
 
 	validCases := []struct {
-		timestamp string
+		ts        string
 		precision document.TimePrecision
 	}{
 		// Each precision requires the year to be divisible by the appropriate multiple.
@@ -368,16 +368,16 @@ func TestYearPrecisionValidation(t *testing.T) {
 		{"-1925", document.TimePrecisionYear},
 	}
 	for _, tc := range validCases {
-		t.Run(tc.timestamp+"/"+tc.precision.String(), func(t *testing.T) {
+		t.Run(tc.ts+"/"+tc.precision.String(), func(t *testing.T) {
 			t.Parallel()
 
-			errE := document.Timestamp(tc.timestamp).Validate(tc.precision)
+			errE := document.Time(tc.ts).Validate(tc.precision)
 			require.NoError(t, errE, "% -+#.1v", errE)
 		})
 	}
 
 	invalidCases := []struct {
-		timestamp string
+		ts        string
 		precision document.TimePrecision
 		errMsg    string
 	}{
@@ -396,16 +396,16 @@ func TestYearPrecisionValidation(t *testing.T) {
 		{"1919", document.TimePrecisionTenYears, "year not rounded to precision"},
 	}
 	for _, tc := range invalidCases {
-		t.Run(tc.timestamp+"/"+tc.precision.String(), func(t *testing.T) {
+		t.Run(tc.ts+"/"+tc.precision.String(), func(t *testing.T) {
 			t.Parallel()
 
-			errE := document.Timestamp(tc.timestamp).Validate(tc.precision)
+			errE := document.Time(tc.ts).Validate(tc.precision)
 			assert.EqualError(t, errE, tc.errMsg)
 		})
 	}
 }
 
-func TestNewTimestampYearTruncation(t *testing.T) {
+func TestNewTimeYearTruncation(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -451,8 +451,8 @@ func TestNewTimestampYearTruncation(t *testing.T) {
 			t.Parallel()
 
 			input := time.Date(tc.inputYear, 6, 15, 12, 30, 0, 0, time.UTC)
-			ts := document.NewTimestamp(input, tc.precision, time.UTC)
-			assert.Equal(t, document.Timestamp(tc.expected), ts)
+			ts := document.NewTime(input, tc.precision, time.UTC)
+			assert.Equal(t, document.Time(tc.expected), ts)
 
 			// Validate that the produced timestamp passes validation for its precision.
 			errE := ts.Validate(tc.precision)
@@ -461,7 +461,7 @@ func TestNewTimestampYearTruncation(t *testing.T) {
 	}
 }
 
-func TestNewTimestampRoundTrip(t *testing.T) {
+func TestNewTimeRoundTrip(t *testing.T) {
 	t.Parallel()
 
 	newYork, err := time.LoadLocation("America/New_York")
@@ -500,7 +500,7 @@ func TestNewTimestampRoundTrip(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			ts := document.NewTimestamp(tc.input, tc.precision, tc.location)
+			ts := document.NewTime(tc.input, tc.precision, tc.location)
 			errE := ts.Validate(tc.precision)
 			require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -514,16 +514,16 @@ func TestNewTimestampRoundTrip(t *testing.T) {
 	}
 }
 
-// TestTimestampMarshalText tests Timestamp.MarshalText.
-func TestTimestampMarshalText(t *testing.T) {
+// TestTimeMarshalText tests Time.MarshalText.
+func TestTimeMarshalText(t *testing.T) {
 	t.Parallel()
 
-	ts := document.Timestamp("2025-03-17 10:30:00")
+	ts := document.Time("2025-03-17 10:30:00")
 	text, err := ts.MarshalText()
 	require.NoError(t, err)
 	assert.Equal(t, []byte("2025-03-17 10:30:00"), text)
 
-	var ts2 document.Timestamp
+	var ts2 document.Time
 	err = ts2.UnmarshalText(text)
 	require.NoError(t, err)
 	assert.Equal(t, ts, ts2)
@@ -553,54 +553,54 @@ func TestTimePrecisionMarshalText(t *testing.T) {
 	}
 }
 
-// TestTimestampLeapYear tests leap year handling in Timestamp.Time via isLeap and daysIn.
-func TestTimestampLeapYear(t *testing.T) {
+// TestTimeLeapYear tests leap year handling in Time.Time via isLeap and daysIn.
+func TestTimeLeapYear(t *testing.T) {
 	t.Parallel()
 
 	// Feb 29 in a 400-year leap (year 2000).
-	ts := document.Timestamp("2000-02-29")
+	ts := document.Time("2000-02-29")
 	errE := ts.Validate(document.TimePrecisionDay)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Feb 29 in a regular quadrennial leap year (2004).
-	ts = document.Timestamp("2004-02-29")
+	ts = document.Time("2004-02-29")
 	errE = ts.Validate(document.TimePrecisionDay)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Feb 29 in a century non-leap year (1900).
-	ts = document.Timestamp("1900-02-29")
+	ts = document.Time("1900-02-29")
 	errE = ts.Validate(document.TimePrecisionDay)
 	assert.EqualError(t, errE, "day out of range")
 
 	// Feb 28 in a non-leap year is valid.
-	ts = document.Timestamp("2001-02-28")
+	ts = document.Time("2001-02-28")
 	errE = ts.Validate(document.TimePrecisionDay)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Feb 29 in a non-leap year (2001) is invalid.
-	ts = document.Timestamp("2001-02-29")
+	ts = document.Time("2001-02-29")
 	errE = ts.Validate(document.TimePrecisionDay)
 	assert.EqualError(t, errE, "day out of range")
 }
 
-// TestTimestampValidateExtraCases tests additional Timestamp.Validate branches.
-func TestTimestampValidateExtraCases(t *testing.T) {
+// TestTimeValidateExtraCases tests additional Time.Validate branches.
+func TestTimeValidateExtraCases(t *testing.T) {
 	t.Parallel()
 
 	// "day not allowed for precision": month precision with non-zero day.
-	errE := document.Timestamp("2025-03-15").Validate(document.TimePrecisionMonth)
+	errE := document.Time("2025-03-15").Validate(document.TimePrecisionMonth)
 	assert.EqualError(t, errE, "day not allowed for precision")
 
 	// "hours and minutes not allowed for precision": day precision with hours present.
-	errE = document.Timestamp("2025-03-15 10:00").Validate(document.TimePrecisionDay)
+	errE = document.Time("2025-03-15 10:00").Validate(document.TimePrecisionDay)
 	assert.EqualError(t, errE, "hours and minutes not allowed for precision")
 
 	// "seconds not allowed for precision": minute precision with seconds present.
-	errE = document.Timestamp("2025-03-15 10:30:45").Validate(document.TimePrecisionMinute)
+	errE = document.Time("2025-03-15 10:30:45").Validate(document.TimePrecisionMinute)
 	assert.EqualError(t, errE, "seconds not allowed for precision")
 
 	// "subseconds not allowed for precision": second precision with subseconds present.
-	errE = document.Timestamp("2025-03-15 10:30:45.123").Validate(document.TimePrecisionSecond)
+	errE = document.Time("2025-03-15 10:30:45.123").Validate(document.TimePrecisionSecond)
 	assert.EqualError(t, errE, "subseconds not allowed for precision")
 }
 
@@ -622,13 +622,13 @@ func TestTimePrecisionUnmarshalTextUnknown(t *testing.T) {
 	assert.EqualError(t, errE, "unknown time precision")
 }
 
-// TestTimestampTimeNilLocation tests that Timestamp.Time with a nil location defaults to UTC.
-func TestTimestampTimeNilLocation(t *testing.T) {
+// TestTimeTimeNilLocation tests that Time.Time with a nil location defaults to UTC.
+func TestTimeTimeNilLocation(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name      string
-		timestamp string
+		ts        string
 		precision document.TimePrecision
 	}{
 		{"year", "2025", document.TimePrecisionYear},
@@ -647,7 +647,7 @@ func TestTimestampTimeNilLocation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			ts := document.Timestamp(tc.timestamp)
+			ts := document.Time(tc.ts)
 
 			tNil, errE := ts.Time(tc.precision, nil)
 			require.NoError(t, errE, "% -+#.1v", errE)
@@ -662,20 +662,20 @@ func TestTimestampTimeNilLocation(t *testing.T) {
 	}
 }
 
-// TestTimestampUnmarshalErrors tests error paths in Timestamp.UnmarshalText and UnmarshalJSON.
-func TestTimestampUnmarshalErrors(t *testing.T) {
+// TestTimeUnmarshalErrors tests error paths in Time.UnmarshalText and UnmarshalJSON.
+func TestTimeUnmarshalErrors(t *testing.T) {
 	t.Parallel()
 
 	t.Run("unmarshal_text_invalid", func(t *testing.T) {
 		t.Parallel()
-		var ts document.Timestamp
-		err := ts.UnmarshalText([]byte("not-a-timestamp"))
-		assert.EqualError(t, err, "unable to parse timestamp")
+		var ts document.Time
+		err := ts.UnmarshalText([]byte("not-a-time"))
+		assert.EqualError(t, err, "unable to parse time")
 	})
 
 	t.Run("unmarshal_json_non_string", func(t *testing.T) {
 		t.Parallel()
-		var ts document.Timestamp
+		var ts document.Time
 		err := ts.UnmarshalJSON([]byte("123"))
 		assert.EqualError(t, err, "json: cannot unmarshal number into Go value of type string")
 	})

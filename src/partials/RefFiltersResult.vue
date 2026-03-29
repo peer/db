@@ -11,10 +11,11 @@ import { useI18n } from "vue-i18n"
 import Button from "@/components/Button.vue"
 import CheckBox from "@/components/CheckBox.vue"
 import WithDocument from "@/components/WithDocument.vue"
+import DisplayLabel from "@/partials/DisplayLabel.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import { injectProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, NONE, useRefFilterValues } from "@/search"
-import { equals, getDisplayLabel, loadingWidth, useInitialLoad, useLimitResults } from "@/utils"
+import { equals, loadingWidth, useInitialLoad, useLimitResults } from "@/utils"
 
 const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
@@ -28,7 +29,7 @@ const emit = defineEmits<{
   "update:state": [state: RefFilterState]
 }>()
 
-const { t, locale } = useI18n({ useScope: "global" })
+const { t } = useI18n({ useScope: "global" })
 
 const el = useTemplateRef<HTMLElement>("el")
 
@@ -118,8 +119,8 @@ const WithDocumentD = WithDocument<D>
                   class="my-1 leading-none"
                   :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
                   :data-url="url"
-                  v-html="getDisplayLabel(doc.claims, locale) || `<i>${t('common.values.noName')}</i>`"
-                ></label>
+                  ><DisplayLabel :claims="doc.claims"
+                /></label>
               </template>
               <template #loading="{ url }">
                 <div class="pd-withdocument-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>
@@ -136,7 +137,9 @@ const WithDocumentD = WithDocument<D>
             <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
             <WithDocumentD :id="res.id" name="DocumentGet">
               <template #default="{ doc, url }">
-                <div class="my-1 inline-block leading-none" :data-url="url" v-html="getDisplayLabel(doc.claims, locale) || `<i>${t('common.values.noName')}</i>`"></div>
+                <div class="my-1 inline-block leading-none" :data-url="url">
+                  <DisplayLabel :claims="doc.claims" />
+                </div>
               </template>
               <template #loading="{ url }">
                 <div class="pd-withdocument-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>

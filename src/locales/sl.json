@@ -17,6 +17,7 @@
     "status": {
       "loading": "Nalaganje...",
       "loadingDataFailed": "nalaganje podatkov ni uspelo",
+      "error": "napaka",
       "valuesNotShown": "1 vrednost ni prikazana. | {count} vrednosti nista prikazani. | {count} vrednosti niso prikazane. | {count} vrednosti ni prikazanih.",
       "allResults": "Vsi od 1 prikazanega rezultata. | Vsi od {count} prikazanih rezultatov.",
       "allResultsOnly": "Vseh prvih {first} prikazanih od 1 najdenega rezultata. | Vseh prvih {first} prikazanih od {count} najdenih rezultatov.",
@@ -25,7 +26,7 @@
     "labels": {
       "property": "Lastnost",
       "value": "Vrednost",
-      "timestamp": "Datum-čas",
+      "time": "Čas",
       "precision": "Natančnost"
     },
     "icons": {
@@ -74,7 +75,7 @@
   },
   "partials": {
     "Footer": {
-      "poweredBy": "Zagotavlja {linkName}"
+      "poweredBy": "Poganja {linkName}"
     },
     "SearchResultsHeader": {
       "searchingQueryFilters": "Iskanje poizvedbe {query} in 1 aktiven filter. | Iskanje poizvedbe {query} in {count} aktivna filtra. | Iskanje poizvedbe {query} in {count} aktivni filtri. | Iskanje poizvedbe {query} in {count} aktivnih filtrov.",
@@ -114,7 +115,7 @@
         "html": "HTML",
         "amount": "Količina",
         "amountInterval": "Interval količine",
-        "time": "Datum-čas",
+        "time": "Čas",
         "timeInterval": "Časovni interval",
         "link": "Povezava",
         "reference": "Referenca",

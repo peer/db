@@ -1,21 +1,24 @@
 <script setup lang="ts">
 import type { D } from "@/document"
 
-import { useI18n } from "vue-i18n"
-
 import WithDocument from "@/components/WithDocument.vue"
-import { getDisplayLabel, loadingWidth } from "@/utils"
+import DisplayLabel from "@/partials/DisplayLabel.vue"
+import { loadingWidth } from "@/utils"
 
-defineProps<{
-  id: string | null
-}>()
+withDefaults(
+  defineProps<{
+    id: string | null
+    link?: boolean
+  }>(),
+  {
+    link: true,
+  },
+)
 
 // We want all fallthrough attributes to be passed to the link element.
 defineOptions({
   inheritAttrs: false,
 })
-
-const { t, locale } = useI18n({ useScope: "global" })
 
 const WithDocumentD = WithDocument<D>
 </script>
@@ -23,13 +26,10 @@ const WithDocumentD = WithDocument<D>
 <template>
   <WithDocumentD v-if="id" :id="id" name="DocumentGet">
     <template #default="{ doc, url }">
-      <RouterLink
-        :to="{ name: 'DocumentGet', params: { id } }"
-        :data-url="url"
-        v-bind="$attrs"
-        class="link"
-        v-html="getDisplayLabel(doc.claims, locale) || `<i>${t('common.values.noName')}</i>`"
-      />
+      <RouterLink v-if="link" :to="{ name: 'DocumentGet', params: { id } }" :data-url="url" v-bind="$attrs" class="link"
+        ><DisplayLabel :claims="doc.claims"
+      /></RouterLink>
+      <span v-else :data-url="url" v-bind="$attrs"><DisplayLabel :claims="doc.claims" /></span>
     </template>
     <template #loading="{ url }">
       <div class="pd-documentrefinline-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(id)]" />

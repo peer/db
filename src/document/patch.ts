@@ -1,5 +1,5 @@
 import type { Claim } from "@/document/claims"
-import type { Amount, Confidence, TimePrecision, Timestamp } from "@/document/types"
+import type { Amount, Confidence, Time, TimePrecision } from "@/document/types"
 
 import { Identifier } from "@tozd/identifier"
 
@@ -532,7 +532,7 @@ export class TimeClaimPatch implements ClaimPatch {
   type: "time"
   confidence?: Confidence
   prop?: string
-  timestamp?: Timestamp
+  time?: Time
   precision?: TimePrecision
 
   constructor(obj: object) {
@@ -546,16 +546,16 @@ export class TimeClaimPatch implements ClaimPatch {
 
   // New creates a new time claim from the patch.
   New(id: string): Claim {
-    if (this.confidence === undefined || !this.prop || !this.timestamp || this.precision === undefined) {
+    if (this.confidence === undefined || !this.prop || !this.time || this.precision === undefined) {
       throw new Error("incomplete patch")
     }
 
-    return new TimeClaim({ id, confidence: this.confidence, prop: { id: this.prop }, timestamp: this.timestamp, precision: this.precision })
+    return new TimeClaim({ id, confidence: this.confidence, prop: { id: this.prop }, time: this.time, precision: this.precision })
   }
 
   // Apply applies the patch to an existing time claim.
   async Apply(claim: Claim): Promise<void> {
-    if (this.confidence === undefined && !this.prop && !this.timestamp && this.precision === undefined) {
+    if (this.confidence === undefined && !this.prop && !this.time && this.precision === undefined) {
       throw new Error("empty patch")
     }
 
@@ -565,7 +565,7 @@ export class TimeClaimPatch implements ClaimPatch {
 
     if (this.confidence !== undefined) claim.confidence = this.confidence
     if (this.prop) claim.prop.id = this.prop
-    if (this.timestamp) claim.timestamp = this.timestamp
+    if (this.time) claim.time = this.time
     if (this.precision !== undefined) claim.precision = this.precision
 
     await claim.Validate()
@@ -577,12 +577,12 @@ export class TimeIntervalClaimPatch implements ClaimPatch {
   type: "timeInterval"
   confidence?: Confidence
   prop?: string
-  from?: Timestamp
+  from?: Time
   fromPrecision?: TimePrecision
   fromIsOpen?: boolean
   fromIsUnknown?: boolean
   fromIsNone?: boolean
-  to?: Timestamp
+  to?: Time
   toPrecision?: TimePrecision
   toIsClosed?: boolean
   toIsUnknown?: boolean

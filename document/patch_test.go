@@ -170,9 +170,9 @@ func TestTimeIntervalClaimPatch(t *testing.T) {
 
 	prop := identifier.New()
 	confidence := document.Confidence(1.0)
-	from := document.Timestamp("2020-01-01")
+	from := document.Time("2020-01-01")
 	fromPrecision := document.TimePrecisionDay
-	to := document.Timestamp("2021-01-01")
+	to := document.Time("2021-01-01")
 	toPrecision := document.TimePrecisionDay
 
 	p := document.TimeIntervalClaimPatch{
@@ -364,13 +364,13 @@ func TestTimeClaimPatch(t *testing.T) {
 
 	prop := identifier.New()
 	confidence := document.Confidence(1.0)
-	ts := document.Timestamp("2025-06-15")
+	ts := document.Time("2025-06-15")
 	prec := document.TimePrecisionDay
 
 	p := document.TimeClaimPatch{
 		Confidence: &confidence,
 		Prop:       &prop,
-		Timestamp:  &ts,
+		Time:       &ts,
 		Precision:  &prec,
 	}
 
@@ -380,7 +380,7 @@ func TestTimeClaimPatch(t *testing.T) {
 
 	c, ok := claim.(*document.TimeClaim)
 	require.True(t, ok)
-	assert.Equal(t, ts, c.Timestamp)
+	assert.Equal(t, ts, c.Time)
 	assert.Equal(t, prec, c.Precision)
 
 	// Test JSON roundtrip.
@@ -393,12 +393,12 @@ func TestTimeClaimPatch(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, p, p2)
 
-	// Test Apply updates the timestamp.
-	newTS := document.Timestamp("2026-01-01")
-	applyPatch := document.TimeClaimPatch{Timestamp: &newTS}
+	// Test Apply updates the time.
+	newTS := document.Time("2026-01-01")
+	applyPatch := document.TimeClaimPatch{Time: &newTS}
 	errE = applyPatch.Apply(claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, newTS, c.Timestamp)
+	assert.Equal(t, newTS, c.Time)
 }
 
 // TestLinkClaimPatch tests LinkClaimPatch New, Apply, and JSON roundtrip.
@@ -802,11 +802,11 @@ func TestAllChangePatchTypesViaChanges(t *testing.T) {
 	fromP := 0.1
 	to := document.Amount("9.0")
 	toP := 0.1
-	ts := document.Timestamp("2025-01-01")
+	ts := document.Time("2025-01-01")
 	tsPrec := document.TimePrecisionDay
-	fromTS := document.Timestamp("2020-01-01")
+	fromTS := document.Time("2020-01-01")
 	fromTSPrec := document.TimePrecisionDay
-	toTS := document.Timestamp("2021-01-01")
+	toTS := document.Time("2021-01-01")
 	toTSPrec := document.TimePrecisionDay
 
 	makeBase := func(i int) []string {
@@ -851,7 +851,7 @@ func TestAllChangePatchTypesViaChanges(t *testing.T) {
 			ID:   makeID(4),
 			Base: makeBase(4),
 			Patch: document.TimeClaimPatch{
-				Confidence: &conf, Prop: &prop, Timestamp: &ts, Precision: &tsPrec,
+				Confidence: &conf, Prop: &prop, Time: &ts, Precision: &tsPrec,
 			},
 		},
 		document.AddClaimChange{ //nolint:exhaustruct
@@ -996,8 +996,8 @@ func TestPatchApplyWrongType(t *testing.T) {
 	})
 	t.Run("TimeClaimPatch", func(t *testing.T) {
 		t.Parallel()
-		ts := document.Timestamp("2025-01-01")
-		p := document.TimeClaimPatch{Timestamp: &ts}
+		ts := document.Time("2025-01-01")
+		p := document.TimeClaimPatch{Time: &ts}
 		assert.EqualError(t, p.Apply(wrongClaim), "not time claim")
 	})
 	t.Run("LinkClaimPatch", func(t *testing.T) {
@@ -1144,7 +1144,7 @@ func TestPatchApplyEmptyPatch(t *testing.T) {
 		return &document.TimeClaim{
 			CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
 			Prop:      document.Reference{ID: prop},
-			Timestamp: "2025-01-01",
+			Time:      "2025-01-01",
 			Precision: document.TimePrecisionDay,
 		}
 	}
@@ -1547,9 +1547,9 @@ func TestTimeIntervalClaimPatchApplyBranches(t *testing.T) {
 	newClaim := func(t *testing.T) *document.TimeIntervalClaim {
 		t.Helper()
 		prop := identifier.New()
-		from := document.Timestamp("2020-01-01")
+		from := document.Time("2020-01-01")
 		fromP := document.TimePrecisionDay
-		to := document.Timestamp("2021-01-01")
+		to := document.Time("2021-01-01")
 		toP := document.TimePrecisionDay
 		conf := document.Confidence(1.0)
 		p := document.TimeIntervalClaimPatch{
@@ -1570,7 +1570,7 @@ func TestTimeIntervalClaimPatchApplyBranches(t *testing.T) {
 	t.Run("set_from_and_precision", func(t *testing.T) {
 		t.Parallel()
 		claim := newClaim(t)
-		newFrom := document.Timestamp("2022-06-01")
+		newFrom := document.Time("2022-06-01")
 		newFromP := document.TimePrecisionDay
 		patch := document.TimeIntervalClaimPatch{
 			From:          &newFrom,
@@ -1607,7 +1607,7 @@ func TestTimeIntervalClaimPatchApplyBranches(t *testing.T) {
 	t.Run("set_to_and_precision", func(t *testing.T) {
 		t.Parallel()
 		claim := newClaim(t)
-		newTo := document.Timestamp("2023-12-31")
+		newTo := document.Time("2023-12-31")
 		newToP := document.TimePrecisionDay
 		patch := document.TimeIntervalClaimPatch{
 			To:          &newTo,

@@ -1,15 +1,15 @@
 import type { DeepReadonly, Ref } from "vue"
 
-import type { ClaimTypes } from "@/document"
-import type { Mutable, QueryValues, QueryValuesWithOptional } from "@/types"
+import type { GetDisplayLabel, Mutable, QueryValues, QueryValuesWithOptional } from "@/types"
 
 import { prng_alea } from "esm-seedrandom"
 import { cloneDeep, isEqual } from "lodash-es"
-import { onBeforeUnmount, onMounted, readonly, ref, toRaw, watch, watchEffect } from "vue"
+import { onBeforeUnmount, onMounted, readonly, ref, shallowRef, toRaw, watch, watchEffect } from "vue"
 
-import { NAME, TITLE } from "@/core"
+import { INSTANCE_OF, NAME, TITLE } from "@/core"
+import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
+import { getDisplayLabelFunctions } from "@/registry/display-label"
 import { fromDate, hour, minute, second, toDate } from "@/time"
-import { selectClaimsByLanguage } from "./document/claims"
 
 // If the last increase would be equal or less than this number, just skip to the end.
 const SKIP_TO_END = 2
@@ -22,16 +22,16 @@ export function formatValue(amount: number): string {
 
 export function formatTime(seconds: number): string {
   // TODO: Support also nanoseconds.
-  return secondsToTimestamp(BigInt(Math.round(seconds)))
+  return secondsToTime(BigInt(Math.round(seconds)))
 }
 
 export function parseTime(value: string): number {
-  return Number(timestampToSeconds(value))
+  return Number(timeToSeconds(value))
 }
 
 // TODO: Support also nanoseconds.
 // TODO: Return float.
-export function timestampToSeconds(value: string): bigint {
+export function timeToSeconds(value: string): bigint {
   const match = timeRegex.exec(value)
   if (!match) {
     throw new Error(`unable to parse time "${value}"`)
@@ -63,7 +63,7 @@ export function timestampToSeconds(value: string): bigint {
   return fromDate(year, month, day, hour, minute, second)
 }
 
-export function secondsToTimestamp(value: bigint): string {
+export function secondsToTime(value: bigint): string {
   const [year, month, day] = toDate(value)
   let yearStr
   if (year < 0) {
@@ -99,10 +99,30 @@ export function bigIntMax(a: bigint, b: bigint): bigint {
 const NAMING_PROPERTIES = [NAME, TITLE]
 
 // getDisplayLabel returns the display label for a document's claims, using the
-// current locale and language fallback chain. This matches how makeDisplayStrings
-// (without template) works in the backend.
-export function getDisplayLabel(claimTypes: DeepReadonly<ClaimTypes> | undefined | null, language: string): string | null {
-  const claim = selectClaimsByLanguage(claimTypes, "string", NAMING_PROPERTIES, language, (claims) => {
+// current locale and language fallback chain.
+//
+// If claims contain an INSTANCE_OF claim which points to a class which has
+// a display label function registered in the display label registry, then
+// that function is used instead. In such case this same class should also have
+// DISPLAY_LABEL_TEMPLATE defined to be used in the backend.
+//
+// This matches how makeDisplayStrings works in the backend, but for only one language.
+export const getDisplayLabel: GetDisplayLabel = async function (claims, language) {
+  if (!claims) {
+    return null
+  }
+
+  const displayLabelFunctions = getDisplayLabelFunctions()
+  const refs = getClaimsOfTypeWithConfidence(claims, "ref", INSTANCE_OF)
+  for (const ref of refs) {
+    const displayLabelFunction = displayLabelFunctions.value.get(ref.to.id)
+    if (displayLabelFunction) {
+      return await displayLabelFunction(claims, language)
+    }
+  }
+
+  // Default implementation.
+  const claim = selectClaimsByLanguage(claims, "string", NAMING_PROPERTIES, language, (claims) => {
     if (claims.length > 0 && claims[0].string) {
       return true
     }
@@ -328,4 +348,21 @@ export function redirectServerSide(url: string, replace: boolean, progress: Ref<
   } else {
     window.location.assign(url)
   }
+}
+
+// asyncToReactive converts an async function to a reactive value.
+//
+// Reactivity is tracked until the first await.
+export function asyncToReactive<T>(fn: () => Promise<T>): Ref<{ loading: true } | { error: unknown } | T> {
+  const result = shallowRef<{ loading: true } | { error: unknown } | T>({ loading: true })
+  watchEffect(() => {
+    fn()
+      .then((value) => {
+        result.value = value
+      })
+      .catch((error) => {
+        result.value = { error: error }
+      })
+  })
+  return result
 }

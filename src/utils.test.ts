@@ -1,6 +1,6 @@
 import { assert, test } from "vitest"
 
-import { secondsToTimestamp, timestampToSeconds } from "@/utils"
+import { secondsToTime, timeToSeconds } from "@/utils"
 
 test.each([
   ["2006-12-04T12:34:45Z", 1165235685n],
@@ -13,8 +13,8 @@ test.each([
   ["-2006-12-04T12:34:45Z", -125441263515n],
   ["-20006-12-04T12:34:45Z", -693466399515n],
   ["-239999999-01-01T00:00:00Z", -7573730615596800n],
-])("timestamp(%s)", (t, u) => {
-  const s = timestampToSeconds(t)
+])("time(%s)", (t, u) => {
+  const s = timeToSeconds(t)
   assert.equal(s, u)
-  assert.equal(secondsToTimestamp(s), t)
+  assert.equal(secondsToTime(s), t)
 })

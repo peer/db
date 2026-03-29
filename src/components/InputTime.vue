@@ -135,7 +135,7 @@ export function normalizeForParsing(raw: string): string {
  * progressiveValidate("2023-0-1")             // "Months cannot be 0 when days are not 0."
  * progressiveValidate("2023-2-30")            // "Day must be between 0-28."
  * progressiveValidate("2023-12-31 24")        // "Hours needs to be between 0-23."
- * progressiveValidate("foo")                  // "Invalid timestamp structure."
+ * progressiveValidate("foo")                  // "Invalid time structure."
  *
  *
  * @param normalized - Canonical datetime string produced by `normalizeForParsing`.
@@ -424,7 +424,7 @@ function precisionLabel(p: TimePrecision): string {
   return precisionLabels[p]
 }
 
-function getStructuredTimestamp(normalized: string): { y: string; m: string; d: string; h: string; min: string; s: string } {
+function getStructuredTime(normalized: string): { y: string; m: string; d: string; h: string; min: string; s: string } {
   const timeStruct = { y: "", m: "", d: "", h: "", min: "", s: "" }
   if (!normalized) return timeStruct
 
@@ -576,7 +576,7 @@ function emitCanonicalFromDisplay(): void {
 
   if (validationErrorMessage) return
 
-  const struct = getStructuredTimestamp(normalized)
+  const struct = getStructuredTime(normalized)
   const inferredPrecision = inferPrecisionFromNormalized(normalized, struct, props.maxPrecision, timePrecision.value)
 
   const canonical = toCanonicalString(struct, inferredPrecision)
@@ -592,7 +592,7 @@ function autoAdaptPrecisionFromDisplay(): void {
   // Only adapt when the structure isn't clearly broken.
   if (validationErrorMessage && validationErrorMessage !== "") return
 
-  const struct = getStructuredTimestamp(normalized)
+  const struct = getStructuredTime(normalized)
   const inferred = inferPrecisionFromNormalized(normalized, struct, props.maxPrecision, timePrecision.value)
 
   if (inferred !== timePrecision.value) {
@@ -661,7 +661,7 @@ function onPrecisionSelected(p: TimePrecision) {
 
   if (validationErrorMessage) return
 
-  const struct = getStructuredTimestamp(normalized)
+  const struct = getStructuredTime(normalized)
   const next = applyPrecision(struct, p)
 
   displayValue.value = next
@@ -680,7 +680,7 @@ watch(
   <div class="pd-inputtime flex flex-row gap-x-1 sm:gap-x-4" v-bind="$attrs">
     <div class="flex grow flex-col">
       <label :for="inputId" class="mb-1"
-        ><slot name="timestamp-label">{{ t("common.labels.timestamp") }}</slot></label
+        ><slot name="time-label">{{ t("common.labels.time") }}</slot></label
       >
 
       <InputText
