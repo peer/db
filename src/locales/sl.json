@@ -74,7 +74,7 @@
   },
   "partials": {
     "Footer": {
-      "poweredBy": "Zagotavlja {linkName}"
+      "poweredBy": "Poganja {linkName}"
     },
     "SearchResultsHeader": {
       "searchingQueryFilters": "Iskanje poizvedbe {query} in 1 aktiven filter. | Iskanje poizvedbe {query} in {count} aktivna filtra. | Iskanje poizvedbe {query} in {count} aktivni filtri. | Iskanje poizvedbe {query} in {count} aktivnih filtrov.",

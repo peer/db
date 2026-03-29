@@ -1,8 +1,13 @@
 <script setup lang="ts">
+import { creditsDisabled, getFooterEndComponents, getFooterStartComponents } from "@/registry/footer"
+
 // We want all fallthrough attributes to be passed to the footer element and not the container.
 defineOptions({
   inheritAttrs: false,
 })
+
+const footerStartComponents = getFooterStartComponents()
+const footerEndComponents = getFooterEndComponents()
 </script>
 
 <template>
@@ -14,14 +19,15 @@ defineOptions({
   <div class="pd-footer sticky left-0 z-30 w-0">
     <div v-bind="$attrs" class="w-container flex justify-between gap-x-2 p-2 leading-none sm:gap-x-4 sm:p-4">
       <ul class="flex gap-x-2 sm:gap-x-4">
-        <!-- <li><RouterLink :to="{ name: 'Home' }" class="link">About</RouterLink></li>
-        <li><RouterLink :to="{ name: 'Home' }" class="link">Help</RouterLink></li>
-        <li><RouterLink :to="{ name: 'Home' }" class="link">Privacy</RouterLink></li>
-        <li><RouterLink :to="{ name: 'Home' }" class="link">Terms</RouterLink></li>
-        <li><RouterLink :to="{ name: 'Home' }" class="link">API</RouterLink></li> -->
+        <li v-for="(c, i) in footerStartComponents" :key="i">
+          <component :is="c" />
+        </li>
       </ul>
       <ul class="flex gap-x-2 sm:gap-x-4">
-        <li class="text-neutral-500">
+        <li v-for="(c, i) in footerEndComponents" :key="i">
+          <component :is="c" />
+        </li>
+        <li v-if="!creditsDisabled" class="text-neutral-500">
           <i18n-t keypath="partials.Footer.poweredBy" scope="global">
             <template #linkName>
               <a href="https://gitlab.com/peerdb/peerdb" class="link">PeerDB</a>
