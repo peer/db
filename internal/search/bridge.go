@@ -221,18 +221,16 @@ func (b *Bridge) Init(
 				"seq" bigint NOT NULL,
 				PRIMARY KEY ("id", "seq")
 			);
+			-- This allows efficient MIN(seq) queries.
+			CREATE INDEX "`+b.Store.Prefix+`BridgeInverseRelationsSeq" ON "`+b.Store.Prefix+`BridgeInverseRelations" ("seq");
 			CREATE FUNCTION "`+b.Store.Prefix+`BridgeInverseRelationsAfterChangeFunc"()
 				RETURNS TRIGGER LANGUAGE plpgsql AS $$
-				DECLARE
-					_min_seq bigint;
 				BEGIN
-					-- After rows are inserted or deleted, notify with the MIN(seq) of all rows.
-					-- If the table is empty, send -1 to indicate no pending work.
-					SELECT MIN("seq") INTO _min_seq FROM "`+b.Store.Prefix+`BridgeInverseRelations";
-					IF _min_seq IS NULL THEN
-						_min_seq := -1;
-					END IF;
-					PERFORM pg_notify('`+b.Store.Prefix+`BridgeInverseRelationsMinSeq', _min_seq::text);
+					-- Notify without payload. The handler queries MIN(seq) in a separate read-only transaction to avoid serialization conflicts.
+					-- Computing MIN(seq) inside this read-write trigger would create an unnecessary dependency on the table, conflicting with
+					-- concurrent INSERTs and DELETEs under serializable isolation, but it is not really necessary to know the MIN(seq) from
+					-- inside the transaction because the handler can only obtain >= MIN(seq) through a later query.
+					PERFORM pg_notify('`+b.Store.Prefix+`BridgeInverseRelationsMinSeq', '');
 					RETURN NULL;
 				END;
 			$$;
@@ -318,7 +316,7 @@ func (b *Bridge) HandleNotification(
 	case b.Store.Prefix + "BridgeSeq":
 		return b.handleBridgeSeq(ctx, notification, conn)
 	case b.Store.Prefix + "BridgeInverseRelationsMinSeq":
-		return b.handleBridgeInverseRelationsMinSeq(notification)
+		return b.handleBridgeInverseRelationsMinSeq(ctx)
 	default:
 		errE := errors.New("unknown notification channel")
 		errors.Details(errE)["channel"] = notification.Channel
@@ -341,9 +339,9 @@ func (b *Bridge) HandleBacklog(
 		return errE
 	case b.Store.Prefix + "BridgeInverseRelationsMinSeq":
 		// TODO: Improve what happens on an error.
-		//       Any error from fixBridgeInverseRelationsMinSeq is just logged. Which means that goroutines waiting
+		//       Any error from updateBridgeInverseRelationsMinSeq is just logged. Which means that goroutines waiting
 		//       in WaitUntilCaughtUp might continue waiting until some other new commit is made, which might be never.
-		return b.fixBridgeInverseRelationsMinSeq(ctx)
+		return b.updateBridgeInverseRelationsMinSeq(ctx)
 	default:
 		errE := errors.New("unknown notification channel")
 		errors.Details(errE)["channel"] = channel
@@ -357,7 +355,7 @@ func (b *Bridge) HandlingReady(ctx context.Context, channel string) errors.E {
 	case b.Store.Prefix + "BridgeSeq":
 		return b.waitForFixBridgeSeq(ctx)
 	case b.Store.Prefix + "BridgeInverseRelationsMinSeq":
-		return b.waitForFixBridgeInverseRelationsMinSeq(ctx)
+		return b.waitForUpdateBridgeInverseRelationsMinSeq(ctx)
 	default:
 		errE := errors.New("unknown notification channel")
 		errors.Details(errE)["channel"] = channel
@@ -401,28 +399,22 @@ func (b *Bridge) fixBridgeSeq(ctx context.Context) (int64, errors.E) {
 
 // handleBridgeInverseRelationsMinSeq handles notifications from the BridgeInverseRelations table
 // trigger and broadcasts to any goroutines waiting in WaitUntilCaughtUp.
-func (b *Bridge) handleBridgeInverseRelationsMinSeq(notification *pgconn.Notification) errors.E {
-	minSeq, err := strconv.ParseInt(notification.Payload, 10, 64)
-	if err != nil {
-		errE := errors.WithMessage(err, "failed to parse inverse relations min seq notification payload")
-		errors.Details(errE)["payload"] = notification.Payload
-		return errE
-	}
-	b.inverseRelationsMinSeqMu.Lock()
-	defer b.inverseRelationsMinSeqMu.Unlock()
-	if minSeq < 0 {
-		// A payload of "-1" means the table is empty.
-		b.inverseRelationsMinSeq = math.MaxInt64
-	} else {
-		b.inverseRelationsMinSeq = minSeq
-	}
-	b.inverseRelationsMinSeqCond.Broadcast()
-	return nil
+//
+// We query MIN(seq) in a separate read-only transaction via updateBridgeInverseRelationsMinSeq
+// rather than receiving it as the notification payload. Computing MIN(seq) inside the trigger's
+// read-write transaction would create an unnecessary dependency on the BridgeInverseRelations table,
+// causing serialization conflicts with concurrent INSERTs and DELETEs under serializable isolation.
+// A read-only transaction does not take conflicting predicate locks, avoiding this issue. This is
+// safe because seq values only increase (new INSERTs always have higher seq) and DELETEs only
+// remove rows that have already been processed, so the MIN(seq) observed by the handler is always
+// a correct (or conservatively low) value.
+func (b *Bridge) handleBridgeInverseRelationsMinSeq(ctx context.Context) errors.E {
+	return b.updateBridgeInverseRelationsMinSeq(ctx)
 }
 
-// fixBridgeInverseRelationsMinSeq fetches the current MIN(seq) from BridgeInverseRelations,
+// updateBridgeInverseRelationsMinSeq fetches the current MIN(seq) from BridgeInverseRelations,
 // updates the in-memory state, and broadcasts to any goroutines waiting in WaitUntilCaughtUp.
-func (b *Bridge) fixBridgeInverseRelationsMinSeq(ctx context.Context) errors.E {
+func (b *Bridge) updateBridgeInverseRelationsMinSeq(ctx context.Context) errors.E {
 	var minSeq *int64
 	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		return internalStore.WithPgxError(
@@ -479,14 +471,14 @@ func (b *Bridge) waitForLastSeq(ctx context.Context, seq int64) errors.E {
 	return nil
 }
 
-// waitForFixBridgeInverseRelationsMinSeq is similar to WaitUntilCaughtUp but it does not wait for
+// waitForUpdateBridgeInverseRelationsMinSeq is similar to WaitUntilCaughtUp but it does not wait for
 // b.inverseRelationsMinSeq to catch up with committed commits, but just that it catches up with
 // the current last-indexed seq from the bridge table. A startup job submitted in Init ensures
 // any leftover rows will be processed.
-func (b *Bridge) waitForFixBridgeInverseRelationsMinSeq(ctx context.Context) errors.E {
-	// We must call fixBridgeInverseRelationsMinSeq here because HandleBacklog runs in a separate
+func (b *Bridge) waitForUpdateBridgeInverseRelationsMinSeq(ctx context.Context) errors.E {
+	// We must call updateBridgeInverseRelationsMinSeq here because HandleBacklog runs in a separate
 	// goroutine and may not have executed yet.
-	errE := b.fixBridgeInverseRelationsMinSeq(ctx)
+	errE := b.updateBridgeInverseRelationsMinSeq(ctx)
 	if errE != nil {
 		return errE
 	}
@@ -968,10 +960,11 @@ func (b *Bridge) updateSeq(
 
 		// In a single transaction: update metadata, enqueue document IDs for re-indexing,
 		// and then advance the bridge seq. The order matters: the INSERT into
-		// BridgeInverseRelations triggers a notification with MIN(seq) BEFORE the UPDATE
-		// of Bridge seq triggers the BridgeSeq notification. Since notifications are
-		// delivered in order within a transaction and processed sequentially by the listener,
-		// waitForInverseRelationsMinSeq sees the correct value before waitForLastSeq returns.
+		// BridgeInverseRelations triggers a notification BEFORE the UPDATE of Bridge seq
+		// triggers the BridgeSeq notification. Since notifications are delivered in order
+		// within a transaction and processed sequentially by the listener, the handler for
+		// BridgeInverseRelationsMinSeq queries the current MIN(seq) and updates
+		// inverseRelationsMinSeq before the BridgeSeq handler unblocks waitForLastSeq.
 		errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 			for _, u := range updates {
 				_, errE := b.Store.UpdateExistingMetadata(ctx, u.id, u.version, u.metadata)
