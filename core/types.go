@@ -293,7 +293,7 @@ type Field struct {
 	Name        []StringWithLanguage  `cardinality:"1.." json:"name"             property:"NAME"`
 	OrderInList int                   `cardinality:"1"   json:"orderInList"      property:"ORDER_IN_LIST"`
 	Cardinality Interval[Amount[int]] `cardinality:"1"   json:"cardinality"      property:"CARDINALITY"   unit:"1"`
-	Values      []Identifier          `cardinality:"0.." json:"values,omitempty" property:"FIELD_VALUES"`
+	Values      []Ref                 `cardinality:"0.." json:"values,omitempty" property:"FIELD_VALUES"`
 }
 
 // Fields represents a list of fields of an entity.
