@@ -178,7 +178,7 @@ func TestBridgeRealTime(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for bridge to catch up and force ES to make documents searchable.
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
@@ -195,7 +195,7 @@ func TestBridgeRealTime(t *testing.T) {
 	_, errE = s.Replace(ctx, id1, v1.Changeset, makeDocJSON(t, id1), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, err = esClient.Indices.Refresh().Index(b.Index).Do(ctx)
@@ -227,7 +227,7 @@ func TestBridgeCatchUp(t *testing.T) {
 	// Now start the bridge. It should catch up from CommitLog.
 	b.Start(ctx, newTestBridgeConverter(t))
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
@@ -251,7 +251,7 @@ func TestBridgeDeletedDocument(t *testing.T) {
 	v, errE := s.Insert(ctx, id, makeDocJSON(t, id), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
@@ -262,7 +262,7 @@ func TestBridgeDeletedDocument(t *testing.T) {
 	_, errE = s.Delete(ctx, id, v.Changeset, dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, err = esClient.Indices.Refresh().Index(b.Index).Do(ctx)
@@ -286,7 +286,7 @@ func TestBridgeSeqAdvancement(t *testing.T) {
 		require.NoError(t, errE, "% -+#.1v", errE)
 	}
 
-	errE := b.WaitUntilCaughtUp(ctx)
+	errE := b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The bridge table seq must match the maximum CommitLog seq.
@@ -316,7 +316,7 @@ func TestBridgeNotifyRecovery(t *testing.T) {
 	_, errE = s.Insert(ctx, id2, makeDocJSON(t, id2), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Simulate a listener reconnection by closing the store's Committed channel.
@@ -334,7 +334,7 @@ func TestBridgeNotifyRecovery(t *testing.T) {
 	_, errE = s.Insert(ctx, id4, makeDocJSON(t, id4), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, err = esClient.Indices.Refresh().Index(b.Index).Do(ctx)
@@ -366,7 +366,7 @@ func TestBridgeStaleDataNotIndexed(t *testing.T) {
 	// Now start the bridge. It should catch up and index the latest version.
 	b.Start(ctx, newTestBridgeConverter(t))
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
@@ -519,7 +519,7 @@ func TestBridgeInverseRelationReindexing(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for the bridge to index the initial commits.
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Verify that docB's metadata was updated with inverse relations.
@@ -575,7 +575,7 @@ func TestBridgeInverseRelationMutual(t *testing.T) {
 	_, errE = s.Insert(ctx, docB, makeDocWithRelationJSON(t, docB, propX, docA), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Both documents should eventually have both forward and inverse relations.
@@ -628,7 +628,7 @@ func TestBridgeInverseRelationMultipleSources(t *testing.T) {
 	_, errE = s.Insert(ctx, docC, makeDocWithRelationJSON(t, docC, propX, docB), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// B should eventually have both inverse relations.
@@ -672,7 +672,7 @@ func TestBridgeInverseRelationRemoval(t *testing.T) {
 	_, errE = s.Insert(ctx, docA, makeDocWithRelationJSON(t, docA, propX, docB), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for docB to have the inverse relation.
@@ -691,7 +691,7 @@ func TestBridgeInverseRelationRemoval(t *testing.T) {
 	_, errE = s.Replace(ctx, docA, latestA.Changeset, makeDocJSON(t, docA), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for docB to lose the inverse relation.
@@ -745,7 +745,7 @@ func TestBridgeInverseRelationChange(t *testing.T) {
 	_, errE = s.Insert(ctx, docA, makeDocWithRelationJSON(t, docA, propX, docB), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for docB to have the inverse relation.
@@ -764,7 +764,7 @@ func TestBridgeInverseRelationChange(t *testing.T) {
 	_, errE = s.Replace(ctx, docA, latestA.Changeset, makeDocWithRelationJSON(t, docA, propX, docC), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.WaitUntilCaughtUp(ctx)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for docC to gain and docB to lose the inverse relation.

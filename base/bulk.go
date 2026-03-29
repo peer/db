@@ -110,6 +110,10 @@ func (b *B) InsertOrReplaceFile(ctx context.Context, base []string, data []byte,
 // WaitUntilCaughtUp blocks until the base has indexed all currently committed documents.
 //
 // It is useful for waiting after a bulk import before searching.
-func (b *B) WaitUntilCaughtUp(ctx context.Context) errors.E {
-	return b.bridge.WaitUntilCaughtUp(ctx)
+//
+// Optional count and size counters can be provided to track ES indexing progress.
+// If provided, size is increased for the number of commits to process, and count is
+// incremented as commits are indexed.
+func (b *B) WaitUntilCaughtUp(ctx context.Context, count, size *x.Counter) errors.E {
+	return b.bridge.WaitUntilCaughtUp(ctx, count, size)
 }

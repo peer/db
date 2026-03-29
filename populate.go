@@ -101,7 +101,7 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 	errE = site.PopulateAndStart(ctx, transformed, func(doc *document.D) {
 		count.Increment()
 		logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
-	})
+	}, count, size)
 	if errE != nil {
 		return errE
 	}

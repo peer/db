@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 	"gopkg.in/yaml.v3"
@@ -252,8 +253,10 @@ func (s *Site) Start(ctx context.Context, documents []*document.D) errors.E {
 // PopulateAndStart for the site: inserts the given documents into the store, starts the base,
 // waits for Elasticsearch to catch up, and then refreshes ElasticSearch index.
 //
+// Optional count and size counters can be provided to track ES indexing progress.
+//
 // You have to call this or Start for each site after Init.
-func (s *Site) PopulateAndStart(ctx context.Context, documents []*document.D, progress func(doc *document.D)) errors.E {
+func (s *Site) PopulateAndStart(ctx context.Context, documents []*document.D, progress func(doc *document.D), count, size *x.Counter) errors.E {
 	errE := s.updatePropertiesTotal(ctx, documents)
 	if errE != nil {
 		return errE
@@ -269,7 +272,7 @@ func (s *Site) PopulateAndStart(ctx context.Context, documents []*document.D, pr
 		return errE
 	}
 
-	errE = s.Base.PopulateAndStart(ctx, documents, progress)
+	errE = s.Base.PopulateAndStart(ctx, documents, progress, count, size)
 	if errE != nil {
 		return errE
 	}

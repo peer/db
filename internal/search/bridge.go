@@ -445,13 +445,17 @@ func (b *Bridge) waitForFixBridgeSeq(ctx context.Context) errors.E {
 		return errE
 	}
 
-	return b.waitForLastSeq(ctx, seq)
+	return b.waitForLastSeq(ctx, seq, nil, nil)
 }
 
-func (b *Bridge) waitForLastSeq(ctx context.Context, seq int64) errors.E {
+func (b *Bridge) waitForLastSeq(ctx context.Context, seq int64, count, size *x.Counter) errors.E {
 	b.lastSeqCond.L.Lock()
 	defer b.lastSeqCond.L.Unlock()
 
+	// Nothing to do.
+	if b.lastSeq >= seq {
+		return nil
+	}
 	// This is based on example for context.AfterFunc from the context package.
 	// See comments there for explanation how it works and why.
 	stop := context.AfterFunc(ctx, func() {
@@ -461,11 +465,26 @@ func (b *Bridge) waitForLastSeq(ctx context.Context, seq int64) errors.E {
 	})
 	defer stop()
 
+	prevSeq := b.lastSeq
+
+	if size != nil {
+		size.Add(seq - prevSeq)
+	}
+
 	for b.lastSeq < seq {
 		b.lastSeqCond.Wait()
 		if ctx.Err() != nil {
 			return errors.WithStack(ctx.Err())
 		}
+		if count != nil && b.lastSeq > prevSeq {
+			count.Add(b.lastSeq - prevSeq)
+			prevSeq = b.lastSeq
+		}
+	}
+
+	// To get count to match the increase we made to size initially.
+	if count != nil && seq > prevSeq {
+		count.Add(seq - prevSeq)
 	}
 
 	return nil
@@ -561,7 +580,11 @@ func (b *Bridge) Start(ctx context.Context, converter *Converter) {
 // WaitUntilCaughtUp blocks until the bridge has indexed all currently committed commits.
 //
 // It is useful for waiting after a bulk import before querying ElasticSearch.
-func (b *Bridge) WaitUntilCaughtUp(ctx context.Context) errors.E {
+//
+// Optional count and size counters can be provided to track ES indexing progress.
+// If provided, size is increased for the number of commits to process, and count is
+// incremented as commits are indexed.
+func (b *Bridge) WaitUntilCaughtUp(ctx context.Context, count, size *x.Counter) errors.E {
 	// Find the current maximum seq in CommitLog.
 	var maxSeq int64
 	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
@@ -577,7 +600,7 @@ func (b *Bridge) WaitUntilCaughtUp(ctx context.Context) errors.E {
 	}
 
 	// We first wait on lastSeq.
-	errE = b.waitForLastSeq(ctx, maxSeq)
+	errE = b.waitForLastSeq(ctx, maxSeq, count, size)
 	if errE != nil {
 		return errE
 	}
