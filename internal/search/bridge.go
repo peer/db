@@ -101,7 +101,7 @@ func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
 	// River before Start is called. Snooze so we retry shortly without
 	// counting it as a failed attempt.
 	if !c.converterReady() {
-		return river.JobSnooze(time.Second)
+		return river.JobSnooze(time.Second) //nolint:wrapcheck
 	}
 
 	errE = c.runIndexInverseRelations(ctx, job)
