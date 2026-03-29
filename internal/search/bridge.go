@@ -7,6 +7,7 @@ import (
 	"math"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v9"
@@ -160,7 +161,7 @@ type Bridge struct {
 	dbpool                     *pgxpool.Pool
 	schema                     string
 	riverClient                *river.Client[pgx.Tx]
-	converter                  *Converter
+	converter                  atomic.Pointer[Converter]
 	lastSeqMu                  sync.RWMutex
 	lastSeqCond                *sync.Cond
 	lastSeq                    int64
@@ -173,12 +174,12 @@ type Bridge struct {
 
 // converterReady returns true if the converter has been set via Start.
 func (b *Bridge) converterReady() bool {
-	return b.converter != nil
+	return b.converter.Load() != nil
 }
 
 // Converter returns the underlying Converter instance.
 func (b *Bridge) Converter() *Converter {
-	return b.converter
+	return b.converter.Load()
 }
 
 // Init creates the bridge progress table and registers a NOTIFY handler on the shared listener
@@ -573,7 +574,7 @@ func (b *Bridge) waitForInverseRelationsMinSeq(ctx context.Context, seq int64, c
 //
 // Converter is used to convert documents for indexing and to track inverse relations.
 func (b *Bridge) Start(ctx context.Context, converter *Converter) {
-	b.converter = converter
+	b.converter.Store(converter)
 
 	go func() {
 		// TODO: Measure how many retries have to be made and abort if it is too much.
@@ -932,7 +933,7 @@ func (b *Bridge) convertDocument(ctx context.Context, data json.RawMessage, meta
 		return nil, errE
 	}
 
-	return b.converter.FromDocument(ctx, &doc, metadata.InverseRelations)
+	return b.converter.Load().FromDocument(ctx, &doc, metadata.InverseRelations)
 }
 
 func (b *Bridge) outgoingInverseRelations(data json.RawMessage) (map[identifier.Identifier][]internalStore.InverseRelation, errors.E) {
