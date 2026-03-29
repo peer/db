@@ -36,7 +36,7 @@ declare module "vue-i18n" {
       labels: {
         property: string
         value: string
-        timestamp: string
+        time: string
         precision: string
       }
       icons: {

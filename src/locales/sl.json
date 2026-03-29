@@ -25,7 +25,7 @@
     "labels": {
       "property": "Lastnost",
       "value": "Vrednost",
-      "timestamp": "Datum-čas",
+      "time": "Čas",
       "precision": "Natančnost"
     },
     "icons": {
@@ -114,7 +114,7 @@
         "html": "HTML",
         "amount": "Količina",
         "amountInterval": "Interval količine",
-        "time": "Datum-čas",
+        "time": "Čas",
         "timeInterval": "Časovni interval",
         "link": "Povezava",
         "reference": "Referenca",

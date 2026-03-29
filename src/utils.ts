@@ -22,16 +22,16 @@ export function formatValue(amount: number): string {
 
 export function formatTime(seconds: number): string {
   // TODO: Support also nanoseconds.
-  return secondsToTimestamp(BigInt(Math.round(seconds)))
+  return secondsToTime(BigInt(Math.round(seconds)))
 }
 
 export function parseTime(value: string): number {
-  return Number(timestampToSeconds(value))
+  return Number(timeToSeconds(value))
 }
 
 // TODO: Support also nanoseconds.
 // TODO: Return float.
-export function timestampToSeconds(value: string): bigint {
+export function timeToSeconds(value: string): bigint {
   const match = timeRegex.exec(value)
   if (!match) {
     throw new Error(`unable to parse time "${value}"`)
@@ -63,7 +63,7 @@ export function timestampToSeconds(value: string): bigint {
   return fromDate(year, month, day, hour, minute, second)
 }
 
-export function secondsToTimestamp(value: bigint): string {
+export function secondsToTime(value: bigint): string {
   const [year, month, day] = toDate(value)
   let yearStr
   if (year < 0) {

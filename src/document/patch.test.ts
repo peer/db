@@ -77,13 +77,13 @@ describe("patch New and Apply", () => {
   })
 
   test("TimeClaimPatch", async () => {
-    const p = new TimeClaimPatch({ type: "time", prop, timestamp: "2025-06-15", precision: "d", confidence: 1.0 })
+    const p = new TimeClaimPatch({ type: "time", prop, time: "2025-06-15", precision: "d", confidence: 1.0 })
     const claim = p.New(Identifier.new().toString()) as TimeClaim
-    assert.equal(claim.timestamp, "2025-06-15")
+    assert.equal(claim.time, "2025-06-15")
     assert.equal(claim.precision, "d")
 
-    await new TimeClaimPatch({ type: "time", timestamp: "2026-01-01" }).Apply(claim)
-    assert.equal(claim.timestamp, "2026-01-01")
+    await new TimeClaimPatch({ type: "time", time: "2026-01-01" }).Apply(claim)
+    assert.equal(claim.time, "2026-01-01")
   })
 
   test("LinkClaimPatch", async () => {
@@ -236,7 +236,7 @@ describe("patch Apply wrong type", () => {
     ["HTMLClaimPatch", { type: "html", html: "x", confidence: 1.0 }, "not HTML claim"],
     ["AmountClaimPatch", { type: "amount", amount: "42", precision: 1, confidence: 1.0 }, "not amount claim"],
     ["AmountIntervalClaimPatch", { type: "amountInterval", from: "1", fromPrecision: 0.1, confidence: 1.0 }, "not amount interval claim"],
-    ["TimeClaimPatch", { type: "time", timestamp: "2025", confidence: 1.0 }, "not time claim"],
+    ["TimeClaimPatch", { type: "time", time: "2025", confidence: 1.0 }, "not time claim"],
     ["TimeIntervalClaimPatch", { type: "timeInterval", from: "2020", fromPrecision: "y", confidence: 1.0 }, "not time interval claim"],
     ["LinkClaimPatch", { type: "link", iri: "x", confidence: 1.0 }, "not link claim"],
     ["ReferenceClaimPatch", { type: "ref", to: "x", confidence: 1.0 }, "not reference claim"],
@@ -329,7 +329,7 @@ describe("patch Apply empty patch", () => {
   })
 
   test("TimeClaimPatch empty", async () => {
-    const claim = new TimeClaim({ id: Identifier.new().toString(), confidence: 1.0, prop: { id: Identifier.new().toString() }, timestamp: "2025", precision: "y" })
+    const claim = new TimeClaim({ id: Identifier.new().toString(), confidence: 1.0, prop: { id: Identifier.new().toString() }, time: "2025", precision: "y" })
     await expect(new TimeClaimPatch({ type: "time" }).Apply(claim)).rejects.toThrow("empty patch")
   })
 

@@ -11,7 +11,7 @@ import (
 	"gitlab.com/tozd/go/x"
 )
 
-// Timestamp represents a point in time.
+// Time represents a point in time.
 //
 // It generally operates with two additional pieces of information
 // which are not part of the timestamp itself:
@@ -35,7 +35,7 @@ import (
 //   - location (timezone) must not be present
 //
 //nolint:recvcheck
-type Timestamp string
+type Time string
 
 var timeRegex = regexp.MustCompile(`^(-?\d{4,})(?:-(\d{2})-(\d{2})(?: (\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{3}(?:\d{3}(?:\d{3})?)?))?)?)?)?$`)
 
@@ -69,13 +69,13 @@ func daysIn(month, year int) int {
 	return 30 + int((month+month>>3)&1) //nolint:mnd,unconvert
 }
 
-// Float64 returns the float64 representation of a Timestamp,
+// Float64 returns the float64 representation of a Time,
 // as seconds since the Unix epoch.
 //
 // Passing 0 for precision skips checks for precision.
 //
 // It location is nil, UTC is used.
-func (t Timestamp) Float64(precision TimePrecision, location *time.Location) (float64, errors.E) {
+func (t Time) Float64(precision TimePrecision, location *time.Location) (float64, errors.E) {
 	tm, errE := t.Time(precision, location)
 	if errE != nil {
 		return 0, errE
@@ -83,12 +83,12 @@ func (t Timestamp) Float64(precision TimePrecision, location *time.Location) (fl
 	return x.TimeToFloat64(tm), nil
 }
 
-// Time returns the time.Time representation of a Timestamp.
+// Time returns the time.Time representation of a Time.
 //
 // Passing 0 for precision skips checks for precision.
 //
 // It location is nil, UTC is used.
-func (t Timestamp) Time(precision TimePrecision, location *time.Location) (time.Time, errors.E) { //nolint:maintidx
+func (t Time) Time(precision TimePrecision, location *time.Location) (time.Time, errors.E) { //nolint:maintidx
 	if location == nil {
 		location = time.UTC
 	}
@@ -96,7 +96,7 @@ func (t Timestamp) Time(precision TimePrecision, location *time.Location) (time.
 	s := string(t)
 	match := timeRegex.FindStringSubmatch(s)
 	if match == nil {
-		errE := errors.New("unable to parse timestamp")
+		errE := errors.New("unable to parse time")
 		errors.Details(errE)["value"] = s
 		return time.Time{}, errE
 	}
@@ -280,21 +280,21 @@ func (t Timestamp) Time(precision TimePrecision, location *time.Location) (time.
 	return time.Date(int(year), time.Month(month), int(day), int(hours), int(minutes), int(seconds), int(nanoseconds), location), nil
 }
 
-// Validate checks if the timestamp is valid for the given precision and returns an error if it is not.
+// Validate checks if the time is valid for the given precision and returns an error if it is not.
 //
 // Passing 0 for precision skips checks for precision and just checks the format.
-func (t Timestamp) Validate(precision TimePrecision) errors.E {
+func (t Time) Validate(precision TimePrecision) errors.E {
 	_, errE := t.Time(precision, time.UTC)
 	return errE
 }
 
-// MarshalText implements encoding.TextMarshaler for Timestamp.
-func (t Timestamp) MarshalText() ([]byte, error) {
+// MarshalText implements encoding.TextMarshaler for Time.
+func (t Time) MarshalText() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
-// MarshalJSON implements json.Marshaler for Timestamp.
-func (t Timestamp) MarshalJSON() ([]byte, error) {
+// MarshalJSON implements json.Marshaler for Time.
+func (t Time) MarshalJSON() ([]byte, error) {
 	b := bytes.Buffer{}
 	b.WriteString(`"`)
 	b.WriteString(t.String())
@@ -302,28 +302,28 @@ func (t Timestamp) MarshalJSON() ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-// String returns the string representation of Timestamp.
-func (t Timestamp) String() string {
+// String returns the string representation of Time.
+func (t Time) String() string {
 	return string(t)
 }
 
-// UnmarshalText implements encoding.TextUnmarshaler for Timestamp.
-func (t *Timestamp) UnmarshalText(text []byte) error {
-	timestamp := Timestamp(text)
+// UnmarshalText implements encoding.TextUnmarshaler for Time.
+func (t *Time) UnmarshalText(text []byte) error {
+	ts := Time(text)
 
 	// We use special value 0 for precision which skips checking precision.
-	errE := timestamp.Validate(0)
+	errE := ts.Validate(0)
 	if errE != nil {
 		return errE
 	}
 
-	*t = timestamp
+	*t = ts
 
 	return nil
 }
 
-// UnmarshalJSON implements json.Unmarshaler for Timestamp.
-func (t *Timestamp) UnmarshalJSON(data []byte) error {
+// UnmarshalJSON implements json.Unmarshaler for Time.
+func (t *Time) UnmarshalJSON(data []byte) error {
 	var s string
 	errE := x.UnmarshalWithoutUnknownFields(data, &s)
 	if errE != nil {
@@ -521,12 +521,12 @@ func yearPrecisionMultiple(precision TimePrecision) int64 {
 	}
 }
 
-// NewTimestamp formats a time.Time into a Timestamp string
+// NewTime formats a time.Time into a Time string
 // with only the parts required by the given precision.
 //
 // The timestamp is formatted in the provided location (timezone).
 // If location is nil, UTC is used.
-func NewTimestamp(t time.Time, precision TimePrecision, location *time.Location) Timestamp {
+func NewTime(t time.Time, precision TimePrecision, location *time.Location) Time {
 	if location == nil {
 		location = time.UTC
 	}
@@ -546,47 +546,47 @@ func NewTimestamp(t time.Time, precision TimePrecision, location *time.Location)
 	}
 	switch {
 	case precision >= TimePrecisionNanosecond:
-		return Timestamp(fmt.Sprintf(
+		return Time(fmt.Sprintf(
 			"%0*d-%02d-%02d %02d:%02d:%02d.%09d",
 			w, year, month, day, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(),
 		))
 	case precision >= TimePrecisionMicrosecond:
-		return Timestamp(fmt.Sprintf(
+		return Time(fmt.Sprintf(
 			"%0*d-%02d-%02d %02d:%02d:%02d.%06d",
 			w, year, month, day, t.Hour(), t.Minute(), t.Second(), t.Nanosecond()/1000, //nolint:mnd
 		))
 	case precision >= TimePrecisionMillisecond:
-		return Timestamp(fmt.Sprintf(
+		return Time(fmt.Sprintf(
 			"%0*d-%02d-%02d %02d:%02d:%02d.%03d",
 			w, year, month, day, t.Hour(), t.Minute(), t.Second(), t.Nanosecond()/1_000_000, //nolint:mnd
 		))
 	case precision >= TimePrecisionSecond:
-		return Timestamp(fmt.Sprintf(
+		return Time(fmt.Sprintf(
 			"%0*d-%02d-%02d %02d:%02d:%02d",
 			w, year, month, day, t.Hour(), t.Minute(), t.Second(),
 		))
 	case precision >= TimePrecisionMinute:
-		return Timestamp(fmt.Sprintf(
+		return Time(fmt.Sprintf(
 			"%0*d-%02d-%02d %02d:%02d",
 			w, year, month, day, t.Hour(), t.Minute(),
 		))
 	case precision >= TimePrecisionHour:
-		return Timestamp(fmt.Sprintf(
+		return Time(fmt.Sprintf(
 			"%0*d-%02d-%02d %02d:00",
 			w, year, month, day, t.Hour(),
 		))
 	case precision >= TimePrecisionDay:
-		return Timestamp(fmt.Sprintf(
+		return Time(fmt.Sprintf(
 			"%0*d-%02d-%02d",
 			w, year, month, day,
 		))
 	case precision >= TimePrecisionMonth:
-		return Timestamp(fmt.Sprintf(
+		return Time(fmt.Sprintf(
 			"%0*d-%02d-00",
 			w, year, month,
 		))
 	default:
-		return Timestamp(fmt.Sprintf(
+		return Time(fmt.Sprintf(
 			"%0*d",
 			w, year,
 		))

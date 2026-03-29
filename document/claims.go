@@ -840,16 +840,16 @@ func (c *AmountIntervalClaim) Validate() errors.E {
 	return nil
 }
 
-// TimeClaim represents a claim for timestamp and precision.
+// TimeClaim represents a claim for time and precision.
 type TimeClaim struct {
 	CoreClaim
 
 	Prop      Reference     `json:"prop"`
-	Timestamp Timestamp     `json:"time"`
+	Time      Time          `json:"time"`
 	Precision TimePrecision `json:"precision"`
 }
 
-// Validate checks that the time claim has a valid precision, timestamp, and valid confidence.
+// Validate checks that the time claim has a valid precision, time, and valid confidence.
 func (t *TimeClaim) Validate() errors.E {
 	errE := t.CoreClaim.Validate()
 	if errE != nil {
@@ -859,22 +859,22 @@ func (t *TimeClaim) Validate() errors.E {
 		return errors.New("unknown Precision")
 	}
 
-	return t.Timestamp.Validate(t.Precision)
+	return t.Time.Validate(t.Precision)
 }
 
-// TimeIntervalClaim represents a claim for timestamp interval.
+// TimeIntervalClaim represents a claim for time interval.
 type TimeIntervalClaim struct {
 	CoreClaim
 
 	Prop Reference `json:"prop"`
 
-	From          *Timestamp     `json:"from,omitempty"`
+	From          *Time          `json:"from,omitempty"`
 	FromPrecision *TimePrecision `json:"fromPrecision,omitempty"`
 	FromIsOpen    bool           `json:"fromIsOpen,omitempty"`
 	FromIsUnknown bool           `json:"fromIsUnknown,omitempty"`
 	FromIsNone    bool           `json:"fromIsNone,omitempty"`
 
-	To          *Timestamp     `json:"to,omitempty"`
+	To          *Time          `json:"to,omitempty"`
 	ToPrecision *TimePrecision `json:"toPrecision,omitempty"`
 	ToIsClosed  bool           `json:"toIsClosed,omitempty"`
 	ToIsUnknown bool           `json:"toIsUnknown,omitempty"`

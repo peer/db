@@ -102,7 +102,7 @@ test("ClaimTypes with all claim types", () => {
     new HTMLClaim({ id: Identifier.new().toString(), confidence: HighConfidence, prop: { id: prop }, html: "<b>bold</b>" }),
     new AmountClaim({ id: Identifier.new().toString(), confidence: HighConfidence, prop: { id: prop }, amount: "42", precision: 1 }),
     new AmountIntervalClaim({ id: Identifier.new().toString(), confidence: HighConfidence, prop: { id: prop } }),
-    new TimeClaim({ id: Identifier.new().toString(), confidence: HighConfidence, prop: { id: prop }, timestamp: "2025", precision: "y" }),
+    new TimeClaim({ id: Identifier.new().toString(), confidence: HighConfidence, prop: { id: prop }, time: "2025", precision: "y" }),
     new TimeIntervalClaim({ id: Identifier.new().toString(), confidence: HighConfidence, prop: { id: prop } }),
     new LinkClaim({ id: Identifier.new().toString(), confidence: HighConfidence, prop: { id: prop }, iri: "https://example.com" }),
     new ReferenceClaim({ id: Identifier.new().toString(), confidence: HighConfidence, prop: { id: prop }, to: { id: Identifier.new().toString() } }),

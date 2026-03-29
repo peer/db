@@ -684,7 +684,7 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 			if tc == nil {
 				return "", nil
 			}
-			return tc.Timestamp.String(), nil
+			return tc.Time.String(), nil
 		},
 	}
 }
@@ -1246,7 +1246,7 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 }
 
 func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) ([]TimeClaim, errors.E) {
-	t, errE := claim.Timestamp.Time(claim.Precision, time.UTC)
+	t, errE := claim.Time.Time(claim.Precision, time.UTC)
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
 		return nil, errE
@@ -1254,7 +1254,7 @@ func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) 
 
 	from := x.TimeToFloat64(t)
 	to := x.TimeToFloat64(addPrecision(t, claim.Precision))
-	display := claim.Timestamp.String()
+	display := claim.Time.String()
 
 	rangeFloat := RangeFloat{ //nolint:exhaustruct
 		GreaterThanOrEqual: &from,
@@ -1328,7 +1328,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		claims, errE := c.convertTime(ctx, &document.TimeClaim{
 			CoreClaim: claim.CoreClaim,
 			Prop:      claim.Prop,
-			Timestamp: *claim.To,
+			Time:      *claim.To,
 			Precision: *claim.ToPrecision,
 		})
 		if errE != nil {
@@ -1383,7 +1383,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		claims, errE := c.convertTime(ctx, &document.TimeClaim{
 			CoreClaim: claim.CoreClaim,
 			Prop:      claim.Prop,
-			Timestamp: *claim.From,
+			Time:      *claim.From,
 			Precision: *claim.FromPrecision,
 		})
 		if errE != nil {

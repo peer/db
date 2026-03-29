@@ -150,9 +150,9 @@ func TestDocumentWithAllClaimTypes(t *testing.T) {
 	fromP := 0.1
 	to := document.Amount("9.0")
 	toP := 0.1
-	fromTS := document.Timestamp("2020-01-01")
+	fromTS := document.Time("2020-01-01")
 	fromPrec := document.TimePrecisionDay
-	toTS := document.Timestamp("2021-01-01")
+	toTS := document.Time("2021-01-01")
 	toPrec := document.TimePrecisionDay
 
 	newCore := func() document.CoreClaim {
@@ -177,7 +177,7 @@ func TestDocumentWithAllClaimTypes(t *testing.T) {
 	timeClaim := &document.TimeClaim{
 		CoreClaim: newCore(),
 		Prop:      ref,
-		Timestamp: "2025-01-01",
+		Time:      "2025-01-01",
 		Precision: document.TimePrecisionDay,
 	}
 	timeIntervalClaim := &document.TimeIntervalClaim{ //nolint:exhaustruct
@@ -443,7 +443,7 @@ func TestClaimValidations(t *testing.T) {
 
 	t.Run("TimeClaim/invalid_precision", func(t *testing.T) {
 		t.Parallel()
-		c := &document.TimeClaim{CoreClaim: core, Prop: ref, Timestamp: "2025-01-01", Precision: 0}
+		c := &document.TimeClaim{CoreClaim: core, Prop: ref, Time: "2025-01-01", Precision: 0}
 		assert.EqualError(t, c.Validate(), "unknown Precision")
 	})
 	t.Run("TimeClaim/valid", func(t *testing.T) {
@@ -451,25 +451,25 @@ func TestClaimValidations(t *testing.T) {
 		c := &document.TimeClaim{
 			CoreClaim: core,
 			Prop:      ref,
-			Timestamp: "2025-01-01",
+			Time:      "2025-01-01",
 			Precision: document.TimePrecisionDay,
 		}
 		require.NoError(t, c.Validate())
 	})
-	t.Run("TimeClaim/invalid_timestamp", func(t *testing.T) {
+	t.Run("TimeClaim/invalid_time", func(t *testing.T) {
 		t.Parallel()
 		c := &document.TimeClaim{
 			CoreClaim: core,
 			Prop:      ref,
-			Timestamp: "not-a-date",
+			Time:      "not-a-date",
 			Precision: document.TimePrecisionDay,
 		}
-		assert.EqualError(t, c.Validate(), "unable to parse timestamp")
+		assert.EqualError(t, c.Validate(), "unable to parse time")
 	})
 
-	from := document.Timestamp("2020-01-01")
+	from := document.Time("2020-01-01")
 	fromPrec := document.TimePrecisionDay
-	to := document.Timestamp("2021-01-01")
+	to := document.Time("2021-01-01")
 	toPrec := document.TimePrecisionDay
 
 	t.Run("TimeIntervalClaim/valid", func(t *testing.T) {
@@ -997,7 +997,7 @@ func TestClaimTypesGetWithAllTypes(t *testing.T) {
 	t.Parallel()
 
 	prop := identifier.New()
-	ts := document.NewTimestamp(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), document.TimePrecisionYear, nil)
+	ts := document.NewTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), document.TimePrecisionYear, nil)
 
 	ct := &document.ClaimTypes{
 		Amount: document.AmountClaims{
@@ -1020,7 +1020,7 @@ func TestClaimTypesGetWithAllTypes(t *testing.T) {
 			{
 				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
 				Prop:      document.Reference{ID: prop},
-				Timestamp: ts,
+				Time:      ts,
 				Precision: document.TimePrecisionYear,
 			},
 		},

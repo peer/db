@@ -274,7 +274,7 @@ function makePatch(): object {
         ...(claimTo.value ? { to: claimTo.value, toPrecision: parseFloat(claimToAmountPrecision.value) } : {}),
       }
     case "time":
-      return { ...shared, timestamp: claimValue.value, precision: claimTimePrecision.value }
+      return { ...shared, time: claimValue.value, precision: claimTimePrecision.value }
     case "timeInterval":
       return {
         ...shared,
@@ -511,10 +511,10 @@ function onChangeTab(index: number) {
               <label for="timeInterval-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
               <InputText id="timeInterval-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
               <InputTime v-model="claimFrom" v-model:precision="claimFromTimePrecision" class="mt-4 min-w-0 flex-auto grow">
-                <template #timestamp-label>{{ t("views.DocumentEdit.labels.from") }}</template>
+                <template #time-label>{{ t("views.DocumentEdit.labels.from") }}</template>
               </InputTime>
               <InputTime v-model="claimTo" v-model:precision="claimToTimePrecision" class="mt-4 min-w-0 flex-auto grow">
-                <template #timestamp-label>{{ t("views.DocumentEdit.labels.to") }}</template>
+                <template #time-label>{{ t("views.DocumentEdit.labels.to") }}</template>
               </InputTime>
             </TabPanel>
             <TabPanel tabindex="-1" class="flex flex-col">

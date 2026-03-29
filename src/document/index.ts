@@ -1,4 +1,4 @@
-export type { Amount, Confidence, Reference, TimePrecision, Timestamp } from "@/document/types"
+export type { Amount, Confidence, Reference, Time, TimePrecision } from "@/document/types"
 
 export {
   HighConfidence,

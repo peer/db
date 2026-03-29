@@ -34,8 +34,8 @@ type Unknown bool
 
 // Time represents a time with precision.
 type Time struct {
-	// We do not use document.Timestamp here for easier interoperability with other systems.
-	Timestamp time.Time              `json:"time"`
+	// We do not use document.Time here for easier interoperability with other systems.
+	Time      time.Time              `json:"time"`
 	Precision document.TimePrecision `json:"precision"`
 }
 

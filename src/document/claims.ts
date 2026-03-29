@@ -1,6 +1,6 @@
 import type { DeepReadonly } from "vue"
 
-import type { Amount, Confidence, Reference, TimePrecision, Timestamp } from "@/document/types"
+import type { Amount, Confidence, Reference, Time, TimePrecision } from "@/document/types"
 import type { Constructee, Constructor, Required } from "@/types"
 
 import siteContext from "@/context"
@@ -322,7 +322,7 @@ export class AmountIntervalClaim extends CoreClaim {
 
 export class TimeClaim extends CoreClaim {
   prop!: Reference
-  timestamp!: Timestamp
+  time!: Time
   precision!: TimePrecision
 
   constructor(obj: object) {
@@ -337,8 +337,8 @@ export class TimeClaim extends CoreClaim {
     if (!this.prop) {
       throw new Error("prop is required")
     }
-    if (!this.timestamp) {
-      throw new Error("timestamp is required")
+    if (!this.time) {
+      throw new Error("time is required")
     }
     if (this.precision === undefined) {
       throw new Error("precision is required")
@@ -348,24 +348,24 @@ export class TimeClaim extends CoreClaim {
     }
   }
 
-  // Validate checks that the time claim has a valid precision, timestamp, and valid confidence.
+  // Validate checks that the time claim has a valid precision, time, and valid confidence.
   async Validate(): Promise<void> {
     await super.Validate()
     if (!VALID_TIME_PRECISIONS.has(this.precision)) {
       throw new Error("unknown Precision")
     }
-    // TODO: Validate timestamp format against precision.
+    // TODO: Validate time format against precision.
   }
 }
 
 export class TimeIntervalClaim extends CoreClaim {
   prop!: Reference
-  from?: Timestamp
+  from?: Time
   fromPrecision?: TimePrecision
   fromIsOpen?: boolean
   fromIsUnknown?: boolean
   fromIsNone?: boolean
-  to?: Timestamp
+  to?: Time
   toPrecision?: TimePrecision
   toIsClosed?: boolean
   toIsUnknown?: boolean

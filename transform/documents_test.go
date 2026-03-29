@@ -422,14 +422,14 @@ func TestDocuments_TimeClaim(t *testing.T) {
 		&DocWithTime{
 			ID: []string{"test", "doc1"},
 			Created: core.Time{
-				Timestamp: now,
+				Time:      now,
 				Precision: document.TimePrecisionSecond,
 			},
 			Modified: []core.Time{
-				{Timestamp: later, Precision: document.TimePrecisionSecond},
+				{Time: later, Precision: document.TimePrecisionSecond},
 			},
 			Published: core.Time{
-				Timestamp: now.Add(2 * time.Hour),
+				Time:      now.Add(2 * time.Hour),
 				Precision: document.TimePrecisionSecond,
 			},
 		},
@@ -442,7 +442,7 @@ func TestDocuments_TimeClaim(t *testing.T) {
 
 	require.Len(t, doc.Claims.Time, 3)
 
-	tt, errE := doc.Claims.Time[0].Timestamp.Time(doc.Claims.Time[0].Precision, time.UTC)
+	tt, errE := doc.Claims.Time[0].Time.Time(doc.Claims.Time[0].Precision, time.UTC)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, now.UTC().Truncate(time.Second), tt)
 
@@ -463,11 +463,11 @@ func TestDocuments_TimeRangeClaim(t *testing.T) {
 		&DocWithInterval{
 			ID: []string{"test", "doc1"},
 			Period: core.Interval[core.Time]{
-				From:          &core.Time{Timestamp: start, Precision: document.TimePrecisionDay},
+				From:          &core.Time{Time: start, Precision: document.TimePrecisionDay},
 				FromIsOpen:    false,
 				FromIsUnknown: false,
 				FromIsNone:    false,
-				To:            &core.Time{Timestamp: end, Precision: document.TimePrecisionDay},
+				To:            &core.Time{Time: end, Precision: document.TimePrecisionDay},
 				ToIsClosed:    false,
 				ToIsUnknown:   false,
 				ToIsNone:      false,
@@ -540,7 +540,7 @@ func TestDocuments_TimeIntervalWithNoneBounds(t *testing.T) {
 		&DocWithInterval{
 			ID: []string{"test", "doc1"},
 			Period: core.Interval[core.Time]{ //nolint:exhaustruct
-				From:     &core.Time{Timestamp: start, Precision: document.TimePrecisionDay},
+				From:     &core.Time{Time: start, Precision: document.TimePrecisionDay},
 				ToIsNone: true,
 			},
 		},
@@ -568,9 +568,9 @@ func TestDocuments_TimeIntervalWithOpenBound(t *testing.T) {
 		&DocWithInterval{
 			ID: []string{"test", "doc1"},
 			Period: core.Interval[core.Time]{ //nolint:exhaustruct
-				From:       &core.Time{Timestamp: start, Precision: document.TimePrecisionDay},
+				From:       &core.Time{Time: start, Precision: document.TimePrecisionDay},
 				FromIsOpen: true,
-				To:         &core.Time{Timestamp: end, Precision: document.TimePrecisionDay},
+				To:         &core.Time{Time: end, Precision: document.TimePrecisionDay},
 				ToIsClosed: true,
 			},
 		},
@@ -598,7 +598,7 @@ func TestDocuments_TimeIntervalMissingBound(t *testing.T) {
 		&DocWithInterval{
 			ID: []string{"test", "doc1"},
 			Period: core.Interval[core.Time]{ //nolint:exhaustruct
-				To: &core.Time{Timestamp: end, Precision: document.TimePrecisionDay},
+				To: &core.Time{Time: end, Precision: document.TimePrecisionDay},
 			},
 		},
 	}
@@ -968,11 +968,11 @@ func TestDocuments_NestedWithValue(t *testing.T) {
 			Title: NestedValue{
 				Value: "Main Title",
 				Period: core.Interval[core.Time]{
-					From:          &core.Time{Timestamp: start, Precision: document.TimePrecisionYear},
+					From:          &core.Time{Time: start, Precision: document.TimePrecisionYear},
 					FromIsOpen:    false,
 					FromIsUnknown: false,
 					FromIsNone:    false,
-					To:            &core.Time{Timestamp: end, Precision: document.TimePrecisionYear},
+					To:            &core.Time{Time: end, Precision: document.TimePrecisionYear},
 					ToIsClosed:    false,
 					ToIsUnknown:   false,
 					ToIsNone:      false,
@@ -1018,11 +1018,11 @@ func TestDocuments_NestedWithoutValue(t *testing.T) {
 			Address: NestedWithoutValue{
 				Location: core.Ref{ID: []string{"location", "1"}},
 				Period: core.Interval[core.Time]{
-					From:          &core.Time{Timestamp: start, Precision: document.TimePrecisionYear},
+					From:          &core.Time{Time: start, Precision: document.TimePrecisionYear},
 					FromIsOpen:    false,
 					FromIsUnknown: false,
 					FromIsNone:    false,
-					To:            &core.Time{Timestamp: end, Precision: document.TimePrecisionYear},
+					To:            &core.Time{Time: end, Precision: document.TimePrecisionYear},
 					ToIsClosed:    false,
 					ToIsUnknown:   false,
 					ToIsNone:      false,
@@ -1807,7 +1807,7 @@ func TestDocuments_ZeroTimeSkipped(t *testing.T) {
 		&DocWithZeroTime{
 			ID: []string{"test", "doc1"},
 			ValidTime: core.Time{
-				Timestamp: now,
+				Time:      now,
 				Precision: document.TimePrecisionSecond,
 			},
 			InvalidTime: core.Time{}, // Zero value.
@@ -1844,11 +1844,11 @@ func TestDocuments_EmptyIntervalSkipped(t *testing.T) {
 		&DocWithEmptyInterval{
 			ID: []string{"test", "doc1"},
 			ValidPeriod: core.Interval[core.Time]{
-				From:          &core.Time{Timestamp: start, Precision: document.TimePrecisionYear},
+				From:          &core.Time{Time: start, Precision: document.TimePrecisionYear},
 				FromIsOpen:    false,
 				FromIsUnknown: false,
 				FromIsNone:    false,
-				To:            &core.Time{Timestamp: end, Precision: document.TimePrecisionYear},
+				To:            &core.Time{Time: end, Precision: document.TimePrecisionYear},
 				ToIsClosed:    false,
 				ToIsUnknown:   false,
 				ToIsNone:      false,
@@ -2135,7 +2135,7 @@ func TestDocuments_ValueFieldWithPointerTime(t *testing.T) {
 
 	now := time.Now()
 	coreTime := core.Time{
-		Timestamp: now,
+		Time:      now,
 		Precision: document.TimePrecisionSecond,
 	}
 
@@ -2157,7 +2157,7 @@ func TestDocuments_ValueFieldWithPointerTime(t *testing.T) {
 	// Should have 1 time claim.
 	require.Len(t, doc.Claims.Time, 1)
 
-	tt, errE := doc.Claims.Time[0].Timestamp.Time(doc.Claims.Time[0].Precision, time.UTC)
+	tt, errE := doc.Claims.Time[0].Time.Time(doc.Claims.Time[0].Precision, time.UTC)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, now.UTC().Truncate(time.Second), tt)
 	assert.Equal(t, identifier.From("test", "doc1", "CREATED", "0"), doc.Claims.Time[0].ID)
@@ -2191,7 +2191,7 @@ func TestDocuments_ValueFieldWithTime(t *testing.T) {
 			ID: []string{"test", "doc1"},
 			Created: TimeValue{
 				Value: core.Time{
-					Timestamp: now,
+					Time:      now,
 					Precision: document.TimePrecisionSecond,
 				},
 				Note: "Important date",
@@ -3161,7 +3161,7 @@ func TestDocuments_EdgeCases(t *testing.T) {
 				},
 				Times: []core.Time{
 					{}, // Zero time - should be skipped.
-					{Timestamp: time.Now(), Precision: document.TimePrecisionSecond}, // Valid.
+					{Time: time.Now(), Precision: document.TimePrecisionSecond}, // Valid.
 				},
 			},
 		}
@@ -3476,11 +3476,11 @@ func TestDocuments_IntervalEdgeCases(t *testing.T) {
 				ID: []string{"doc1"},
 				Interval: core.Interval[core.Time]{ //nolint:exhaustruct
 					From: &core.Time{
-						Timestamp: start,
+						Time:      start,
 						Precision: document.TimePrecisionSecond,
 					},
 					To: &core.Time{
-						Timestamp: end,
+						Time:      end,
 						Precision: document.TimePrecisionDay, // Different precision - should use higher.
 					},
 				},
@@ -3513,7 +3513,7 @@ func TestDocuments_IntervalEdgeCases(t *testing.T) {
 				Interval: core.Interval[core.Time]{ //nolint:exhaustruct
 					From: nil,
 					To: &core.Time{
-						Timestamp: end,
+						Time:      end,
 						Precision: document.TimePrecisionDay,
 					},
 				},
@@ -3537,7 +3537,7 @@ func TestDocuments_IntervalEdgeCases(t *testing.T) {
 					From:          nil, // From is unknown (no concrete value).
 					FromIsUnknown: true,
 					To: &core.Time{
-						Timestamp: end,
+						Time:      end,
 						Precision: document.TimePrecisionDay,
 					},
 				},
@@ -5948,11 +5948,11 @@ func TestDocuments_IntervalToPrecisionHigher(t *testing.T) {
 			ID: []string{"test", "doc1"},
 			Duration: core.Interval[core.Time]{ //nolint:exhaustruct
 				From: &core.Time{
-					Timestamp: start,
+					Time:      start,
 					Precision: document.TimePrecisionDay,
 				},
 				To: &core.Time{
-					Timestamp: end,
+					Time:      end,
 					Precision: document.TimePrecisionSecond,
 				},
 			},
@@ -6267,12 +6267,12 @@ func TestDocuments_GoTimeClaim(t *testing.T) {
 
 	// Day precision truncates to YYYY-MM-DD.
 	assert.Equal(t, document.TimePrecisionDay, doc.Claims.Time[0].Precision)
-	assert.Equal(t, document.Timestamp("2024-03-15"), doc.Claims.Time[0].Timestamp)
+	assert.Equal(t, document.Time("2024-03-15"), doc.Claims.Time[0].Time)
 	assert.Equal(t, identifier.From("test", "doc1", "CREATED", "0"), doc.Claims.Time[0].ID)
 
 	// Year precision truncates to YYYY.
 	assert.Equal(t, document.TimePrecisionYear, doc.Claims.Time[1].Precision)
-	assert.Equal(t, document.Timestamp("1990"), doc.Claims.Time[1].Timestamp)
+	assert.Equal(t, document.Time("1990"), doc.Claims.Time[1].Time)
 	assert.Equal(t, identifier.From("test", "doc1", "BORN", "0"), doc.Claims.Time[1].ID)
 }
 
@@ -6430,8 +6430,8 @@ func TestDocuments_GoTimeSlice(t *testing.T) {
 
 	doc := results[0]
 	require.Len(t, doc.Claims.Time, 2)
-	assert.Equal(t, document.Timestamp("2024-01-01"), doc.Claims.Time[0].Timestamp)
-	assert.Equal(t, document.Timestamp("2024-06-15"), doc.Claims.Time[1].Timestamp)
+	assert.Equal(t, document.Time("2024-01-01"), doc.Claims.Time[0].Time)
+	assert.Equal(t, document.Time("2024-06-15"), doc.Claims.Time[1].Time)
 }
 
 func TestDocuments_GoTimePointer(t *testing.T) {
@@ -6459,7 +6459,7 @@ func TestDocuments_GoTimePointer(t *testing.T) {
 	doc := results[0]
 	require.Len(t, doc.Claims.Time, 1)
 	assert.Equal(t, document.TimePrecisionSecond, doc.Claims.Time[0].Precision)
-	assert.Equal(t, document.Timestamp("2024-03-15 10:30:45"), doc.Claims.Time[0].Timestamp)
+	assert.Equal(t, document.Time("2024-03-15 10:30:45"), doc.Claims.Time[0].Time)
 }
 
 func TestDocuments_GoTimeValueField(t *testing.T) {
@@ -6496,7 +6496,7 @@ func TestDocuments_GoTimeValueField(t *testing.T) {
 	doc := results[0]
 	require.Len(t, doc.Claims.Time, 1)
 	assert.Equal(t, document.TimePrecisionDay, doc.Claims.Time[0].Precision)
-	assert.Equal(t, document.Timestamp("2024-03-15"), doc.Claims.Time[0].Timestamp)
+	assert.Equal(t, document.Time("2024-03-15"), doc.Claims.Time[0].Time)
 
 	// Should have sub-claim.
 	require.NotNil(t, doc.Claims.Time[0].Sub)
@@ -6547,7 +6547,7 @@ func TestDocuments_LocationOnGoTime(t *testing.T) {
 
 	require.Len(t, results[0].Claims.Time, 1)
 	assert.Equal(t, document.TimePrecisionSecond, results[0].Claims.Time[0].Precision)
-	assert.Equal(t, document.Timestamp("2025-01-15 10:30:45"), results[0].Claims.Time[0].Timestamp)
+	assert.Equal(t, document.Time("2025-01-15 10:30:45"), results[0].Claims.Time[0].Time)
 }
 
 func TestDocuments_LocationOnCoreTime(t *testing.T) {
@@ -6564,7 +6564,7 @@ func TestDocuments_LocationOnCoreTime(t *testing.T) {
 		&DocCoreTimeLocation{
 			ID: []string{"test", "doc1"},
 			Created: core.Time{
-				Timestamp: time.Date(2025, 3, 15, 0, 30, 45, 0, time.UTC),
+				Time:      time.Date(2025, 3, 15, 0, 30, 45, 0, time.UTC),
 				Precision: document.TimePrecisionSecond,
 			},
 		},
@@ -6575,7 +6575,7 @@ func TestDocuments_LocationOnCoreTime(t *testing.T) {
 
 	require.Len(t, results[0].Claims.Time, 1)
 	assert.Equal(t, document.TimePrecisionSecond, results[0].Claims.Time[0].Precision)
-	assert.Equal(t, document.Timestamp("2025-03-15 09:30:45"), results[0].Claims.Time[0].Timestamp)
+	assert.Equal(t, document.Time("2025-03-15 09:30:45"), results[0].Claims.Time[0].Time)
 }
 
 func TestDocuments_LocationOnTimeInterval(t *testing.T) {
@@ -6589,11 +6589,11 @@ func TestDocuments_LocationOnTimeInterval(t *testing.T) {
 	}
 
 	from := core.Time{
-		Timestamp: time.Date(2025, 1, 15, 15, 0, 0, 0, time.UTC),
+		Time:      time.Date(2025, 1, 15, 15, 0, 0, 0, time.UTC),
 		Precision: document.TimePrecisionMinute,
 	}
 	to := core.Time{
-		Timestamp: time.Date(2025, 1, 15, 20, 0, 0, 0, time.UTC),
+		Time:      time.Date(2025, 1, 15, 20, 0, 0, 0, time.UTC),
 		Precision: document.TimePrecisionMinute,
 	}
 
@@ -6621,8 +6621,8 @@ func TestDocuments_LocationOnTimeInterval(t *testing.T) {
 	claim := results[0].Claims.TimeInterval[0]
 	require.NotNil(t, claim.From)
 	require.NotNil(t, claim.To)
-	assert.Equal(t, document.Timestamp("2025-01-15 10:00"), *claim.From)
-	assert.Equal(t, document.Timestamp("2025-01-15 15:00"), *claim.To)
+	assert.Equal(t, document.Time("2025-01-15 10:00"), *claim.From)
+	assert.Equal(t, document.Time("2025-01-15 15:00"), *claim.To)
 }
 
 func TestDocuments_LocationOnGoTimeValueField(t *testing.T) {
@@ -6654,7 +6654,7 @@ func TestDocuments_LocationOnGoTimeValueField(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, results[0].Claims.Time, 1)
-	assert.Equal(t, document.Timestamp("2025-01-15 10:30:45"), results[0].Claims.Time[0].Timestamp)
+	assert.Equal(t, document.Time("2025-01-15 10:30:45"), results[0].Claims.Time[0].Time)
 }
 
 func TestDocuments_LocationInvalidValue(t *testing.T) {
@@ -7153,7 +7153,7 @@ func TestDocuments_TypeTagOnCoreTimeErrors(t *testing.T) {
 		&Doc{
 			ID: []string{"test", "doc1"},
 			Created: core.Time{
-				Timestamp: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+				Time:      time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 				Precision: document.TimePrecisionDay,
 			},
 		},
@@ -7177,7 +7177,7 @@ func TestDocuments_PrecisionOnCoreTimeErrors(t *testing.T) {
 		&Doc{
 			ID: []string{"test", "doc1"},
 			Created: core.Time{
-				Timestamp: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+				Time:      time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 				Precision: document.TimePrecisionDay,
 			},
 		},
@@ -7202,8 +7202,8 @@ func TestDocuments_TypeTagOnTimeIntervalErrors(t *testing.T) {
 		&Doc{
 			ID: []string{"test", "doc1"},
 			Period: core.Interval[core.Time]{ //nolint:exhaustruct
-				From: &core.Time{Timestamp: now, Precision: document.TimePrecisionDay},
-				To:   &core.Time{Timestamp: now.Add(time.Hour), Precision: document.TimePrecisionDay},
+				From: &core.Time{Time: now, Precision: document.TimePrecisionDay},
+				To:   &core.Time{Time: now.Add(time.Hour), Precision: document.TimePrecisionDay},
 			},
 		},
 	}
@@ -7227,8 +7227,8 @@ func TestDocuments_PrecisionOnTimeIntervalErrors(t *testing.T) {
 		&Doc{
 			ID: []string{"test", "doc1"},
 			Period: core.Interval[core.Time]{ //nolint:exhaustruct
-				From: &core.Time{Timestamp: now, Precision: document.TimePrecisionDay},
-				To:   &core.Time{Timestamp: now.Add(time.Hour), Precision: document.TimePrecisionDay},
+				From: &core.Time{Time: now, Precision: document.TimePrecisionDay},
+				To:   &core.Time{Time: now.Add(time.Hour), Precision: document.TimePrecisionDay},
 			},
 		},
 	}
@@ -7252,8 +7252,8 @@ func TestDocuments_LocationOnTimeIntervalErrors(t *testing.T) {
 		&Doc{
 			ID: []string{"test", "doc1"},
 			Period: core.Interval[core.Time]{ //nolint:exhaustruct
-				From: &core.Time{Timestamp: now, Precision: document.TimePrecisionDay},
-				To:   &core.Time{Timestamp: now.Add(time.Hour), Precision: document.TimePrecisionDay},
+				From: &core.Time{Time: now, Precision: document.TimePrecisionDay},
+				To:   &core.Time{Time: now.Add(time.Hour), Precision: document.TimePrecisionDay},
 			},
 		},
 	}
@@ -7278,7 +7278,7 @@ func TestDocuments_TimeIntervalFromIsNone(t *testing.T) {
 			ID: []string{"test", "doc1"},
 			Period: core.Interval[core.Time]{ //nolint:exhaustruct
 				FromIsNone: true,
-				To:         &core.Time{Timestamp: now, Precision: document.TimePrecisionDay},
+				To:         &core.Time{Time: now, Precision: document.TimePrecisionDay},
 			},
 		},
 	}
@@ -7310,7 +7310,7 @@ func TestDocuments_TimeIntervalToMissing(t *testing.T) {
 		&Doc{
 			ID: []string{"test", "doc1"},
 			Period: core.Interval[core.Time]{ //nolint:exhaustruct
-				From: &core.Time{Timestamp: now, Precision: document.TimePrecisionDay},
+				From: &core.Time{Time: now, Precision: document.TimePrecisionDay},
 				// To is nil with no flags.
 			},
 		},
