@@ -57,8 +57,13 @@ async function onSubmit() {
 <template>
   <form class="pd-home flex grow flex-col" novalidate @submit.prevent="onSubmit()">
     <div class="flex grow basis-0 flex-col justify-end">
-      <RouterLink :to="{ name: 'SearchShortcut' }" class="mb-10 flex justify-center self-center p-4">
-        <img v-if="siteContext.logo" :src="siteContext.logo" :alt="siteContext.title" :title="siteContext.title" class="logo max-h-48 max-w-4/5" />
+      <!--
+        We use here "w-full max-w-2xl sm:w-4/5 md:w-2/3 lg:w-1/2" which is the same the input box below it,
+        but because we do not add also width of the button next to it, we can make logo max-w-full and get
+        it slightly smaller than the input box, which is what we want (~80% of the input box width).
+      -->
+      <RouterLink :to="{ name: 'SearchShortcut' }" class="mb-10 flex w-full max-w-2xl justify-center self-center p-4 sm:w-4/5 md:w-2/3 lg:w-1/2">
+        <img v-if="siteContext.logo" :src="siteContext.logo" :alt="siteContext.title" :title="siteContext.title" class="logo max-h-48 max-w-full" />
         <h1 v-else class="text-5xl font-bold">{{ siteContext.title }}</h1>
       </RouterLink>
     </div>
