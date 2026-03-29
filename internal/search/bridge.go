@@ -456,6 +456,7 @@ func (b *Bridge) waitForLastSeq(ctx context.Context, seq int64, count, size *x.C
 	if b.lastSeq >= seq {
 		return nil
 	}
+
 	// This is based on example for context.AfterFunc from the context package.
 	// See comments there for explanation how it works and why.
 	stop := context.AfterFunc(ctx, func() {
@@ -477,8 +478,10 @@ func (b *Bridge) waitForLastSeq(ctx context.Context, seq int64, count, size *x.C
 			return errors.WithStack(ctx.Err())
 		}
 		if count != nil && b.lastSeq > prevSeq {
-			count.Add(b.lastSeq - prevSeq)
-			prevSeq = b.lastSeq
+			// Just in case b.lastSeq jumps more than seq.
+			current := min(b.lastSeq, seq)
+			count.Add(current - prevSeq)
+			prevSeq = current
 		}
 	}
 
@@ -507,12 +510,17 @@ func (b *Bridge) waitForUpdateBridgeInverseRelationsMinSeq(ctx context.Context) 
 		return errE
 	}
 
-	return b.waitForInverseRelationsMinSeq(ctx, seq)
+	return b.waitForInverseRelationsMinSeq(ctx, seq, nil, nil)
 }
 
-func (b *Bridge) waitForInverseRelationsMinSeq(ctx context.Context, seq int64) errors.E {
+func (b *Bridge) waitForInverseRelationsMinSeq(ctx context.Context, seq int64, count, size *x.Counter) errors.E {
 	b.inverseRelationsMinSeqCond.L.Lock()
 	defer b.inverseRelationsMinSeqCond.L.Unlock()
+
+	// Nothing to do.
+	if b.inverseRelationsMinSeq > seq {
+		return nil
+	}
 
 	// This is based on example for context.AfterFunc from the context package.
 	// See comments there for explanation how it works and why.
@@ -523,6 +531,12 @@ func (b *Bridge) waitForInverseRelationsMinSeq(ctx context.Context, seq int64) e
 	})
 	defer stop()
 
+	prevMinSeq := b.inverseRelationsMinSeq
+
+	if size != nil {
+		size.Add(seq + 1 - prevMinSeq)
+	}
+
 	// inverseRelationsMinSeq tracks the MIN(seq) of remaining rows in BridgeInverseRelations.
 	// When it exceeds seq (or the table is empty, represented as MaxInt64), we are done.
 	for b.inverseRelationsMinSeq <= seq {
@@ -530,6 +544,19 @@ func (b *Bridge) waitForInverseRelationsMinSeq(ctx context.Context, seq int64) e
 		if ctx.Err() != nil {
 			return errors.WithStack(ctx.Err())
 		}
+		if count != nil && b.inverseRelationsMinSeq > prevMinSeq {
+			// inverseRelationsMinSeq can jump to MaxInt64 when the table is empty,
+			// so we cap progress to match the size we added.
+			// This also handles any other jump more than seq+1.
+			current := min(b.inverseRelationsMinSeq, seq+1)
+			count.Add(current - prevMinSeq)
+			prevMinSeq = current
+		}
+	}
+
+	// To get count to match the increase we made to size initially.
+	if count != nil && seq+1 > prevMinSeq {
+		count.Add(seq + 1 - prevMinSeq)
 	}
 
 	return nil
@@ -599,14 +626,14 @@ func (b *Bridge) WaitUntilCaughtUp(ctx context.Context, count, size *x.Counter) 
 		return nil
 	}
 
-	// We first wait on lastSeq.
+	// We first wait on lastSeq (commit indexing phase).
 	errE = b.waitForLastSeq(ctx, maxSeq, count, size)
 	if errE != nil {
 		return errE
 	}
 
-	// And then we wait on inverseRelationsMinSeq.
-	return b.waitForInverseRelationsMinSeq(ctx, maxSeq)
+	// And then we wait on inverseRelationsMinSeq (inverse relations phase).
+	return b.waitForInverseRelationsMinSeq(ctx, maxSeq, count, size)
 }
 
 func (b *Bridge) run(ctx context.Context) errors.E {
