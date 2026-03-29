@@ -62,7 +62,7 @@ test_go:
     - echo "$CI_REGISTRY_PASSWORD" | docker login --username "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
     - docker run -d --name elasticsearch -p 9200:9200
       -e network.bind_host=0.0.0.0
-      -e network.publish_host=elasticsearch
+      -e network.publish_host=localhost
       -e discovery.type=single-node
       -e xpack.security.enabled=false
       -e ingest.geoip.downloader.enabled=false
@@ -75,15 +75,16 @@ test_go:
       -e PGSQL_DB_1_NAME=test
       -e PGSQL_DB_1_OWNER=test
       registry.gitlab.com/tozd/docker/postgresql:18
-    - for i in $(seq 1 120); do wget --spider "http://docker:9200/_cluster/health?wait_for_status=yellow&timeout=10s" && break || sleep 1; done
+    - 'for i in $(seq 1 120); do wget --spider "http://docker:9200/_cluster/health?wait_for_status=yellow&timeout=10s" && break || { [ "$i" -eq 120 ] && exit 1; sleep 1; }; done'
 
   script:
     - make test-ci
 
   after_script:
-    - mkdir elasticsearch-logs postgresql-logs
     - docker cp elasticsearch:/usr/share/elasticsearch/logs elasticsearch-logs || true
     - docker cp pgsql:/var/log/postgresql pgsql-logs || true
+    # Just in case any command above have not made directories.
+    - mkdir -p elasticsearch-logs pgsql-logs
     - docker logs elasticsearch > elasticsearch-logs/docker.log 2>&1 || true
     - docker logs pgsql > pgsql-logs/docker.log 2>&1 || true
 
