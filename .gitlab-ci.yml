@@ -83,9 +83,9 @@ test_go:
   after_script:
     - mkdir elasticsearch-logs postgresql-logs
     - docker cp elasticsearch:/usr/share/elasticsearch/logs elasticsearch-logs || true
-    - docker cp postgres:/var/log/postgresql postgresql-logs || true
+    - docker cp pgsql:/var/log/postgresql pgsql-logs || true
     - docker logs elasticsearch > elasticsearch-logs/docker.log 2>&1 || true
-    - docker logs postgres > postgresql-logs/docker.log 2>&1 || true
+    - docker logs pgsql > pgsql-logs/docker.log 2>&1 || true
 
   artifacts:
     when: always
@@ -99,7 +99,7 @@ test_go:
       - coverage.html
       - coverage.xml
       - elasticsearch-logs
-      - postgresql-logs
+      - pgsql-logs
     expire_in: never
 
   coverage: '/coverage: \d+\.\d+% of statements/'
