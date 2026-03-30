@@ -156,6 +156,27 @@ func (a *Amount) UnmarshalJSON(data []byte) error {
 	return a.UnmarshalText([]byte(s))
 }
 
+// NewAmountDetectPrecision formats a string into an Amount string
+// with precision detected automatically.
+func NewAmountDetectPrecision(s string) (Amount, float64, errors.E) {
+	match := amountRegex.FindStringSubmatch(s)
+	if match == nil {
+		errE := errors.New("unable to parse amount")
+		errors.Details(errE)["value"] = s
+		return "", 0, errE
+	}
+
+	precision := 1.0
+	decimals := len(match[2])
+	if decimals > 0 {
+		precision = math.Pow(0.1, float64(decimals)) //nolint:mnd
+	}
+
+	value := Amount(s)
+
+	return value, precision, value.Validate(precision)
+}
+
 // NewAmount formats a float64 into an Amount string
 // rounded to the given precision.
 func NewAmount(value, precision float64) Amount {

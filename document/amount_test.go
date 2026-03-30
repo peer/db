@@ -279,6 +279,76 @@ func TestAmountString(t *testing.T) {
 	assert.Equal(t, "3,14", document.Amount("3,14").String())
 }
 
+func TestNewAmountDetectPrecision(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name              string
+		input             string
+		expectedAmount    document.Amount
+		expectedPrecision float64
+	}{
+		// Integers (precision 1).
+		{"integer", "42", document.Amount("42"), 1},
+		{"zero", "0", document.Amount("0"), 1},
+		{"negative integer", "-42", document.Amount("-42"), 1},
+		{"large integer", "123456789", document.Amount("123456789"), 1},
+
+		// Decimals with dot separator.
+		{"one decimal", "3.1", document.Amount("3.1"), 0.1},
+		{"two decimals", "3.14", document.Amount("3.14"), 0.01},
+		{"three decimals", "3.142", document.Amount("3.142"), 0.001},
+		{"trailing zeros", "1.50", document.Amount("1.50"), 0.01},
+		{"all zeros decimal", "0.00", document.Amount("0.00"), 0.01},
+		{"negative decimal", "-1.50", document.Amount("-1.50"), 0.01},
+
+		// Decimals with comma separator (preserved as-is).
+		{"comma one decimal", "3,1", document.Amount("3,1"), 0.1},
+		{"comma two decimals", "3,14", document.Amount("3,14"), 0.01},
+		{"comma trailing zeros", "1,50", document.Amount("1,50"), 0.01},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			result, precision, errE := document.NewAmountDetectPrecision(tc.input)
+			require.NoError(t, errE, "% -+#.1v", errE)
+			assert.Equal(t, tc.expectedAmount, result)
+			assert.InDelta(t, tc.expectedPrecision, precision, 1e-15)
+
+			// Validate passes with detected precision.
+			errE = result.Validate(precision)
+			require.NoError(t, errE, "% -+#.1v", errE)
+		})
+	}
+}
+
+func TestNewAmountDetectPrecisionInvalid(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		input  string
+		errMsg string
+	}{
+		{"empty string", "", "unable to parse amount"},
+		{"letters", "abc", "unable to parse amount"},
+		{"spaces", "1 2", "unable to parse amount"},
+		{"double dot", "1.2.3", "unable to parse amount"},
+		{"trailing dot", "1.", "unable to parse amount"},
+		{"leading dot", ".1", "unable to parse amount"},
+		{"plus sign", "+1", "unable to parse amount"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, _, errE := document.NewAmountDetectPrecision(tc.input)
+			assert.EqualError(t, errE, tc.errMsg)
+		})
+	}
+}
+
 func TestNewAmount(t *testing.T) {
 	t.Parallel()
 
