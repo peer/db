@@ -3,19 +3,19 @@ package transform
 import (
 	"context"
 	"reflect"
+	"slices"
 
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/identifier"
 )
 
-// Mnemonics returns a map between property mnemonic and identifier.
+// Mnemonics returns a map between property mnemonic and its base ID.
 //
 // It takes a slice of any structs and extracts the mnemonic (from a field named `Mnemonic`)
-// to identifier (from a field named `ID`) mapping from them.
+// to base ID (from a field named `ID`, a []string) mapping from them.
 //
 // Returns an error if mnemonics are not unique.
-func Mnemonics(ctx context.Context, documents []any) (map[string]identifier.Identifier, errors.E) {
-	result := map[string]identifier.Identifier{}
+func Mnemonics(ctx context.Context, documents []any) (map[string][]string, errors.E) {
+	result := map[string][]string{}
 
 	for _, doc := range documents {
 		if ctx.Err() != nil {
@@ -64,7 +64,7 @@ func Mnemonics(ctx context.Context, documents []any) (map[string]identifier.Iden
 			return nil, errE
 		}
 
-		result[mnemonic] = identifier.From(id...)
+		result[mnemonic] = slices.Clone(id)
 	}
 
 	return result, nil

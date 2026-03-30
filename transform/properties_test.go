@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/transform"
@@ -19,14 +18,14 @@ func TestMnemonics(t *testing.T) {
 	tests := []struct {
 		name      string
 		documents []any
-		expected  map[string]identifier.Identifier
+		expected  map[string][]string
 		wantError bool
 		errorMsg  string
 	}{
 		{
 			name:      "EmptySlice",
 			documents: []any{},
-			expected:  map[string]identifier.Identifier{},
+			expected:  map[string][]string{},
 			wantError: false,
 		},
 		{
@@ -41,8 +40,8 @@ func TestMnemonics(t *testing.T) {
 					},
 				},
 			},
-			expected: map[string]identifier.Identifier{
-				"NAME": identifier.From("prop1"),
+			expected: map[string][]string{
+				"NAME": {"prop1"},
 			},
 			wantError: false,
 		},
@@ -74,10 +73,10 @@ func TestMnemonics(t *testing.T) {
 					},
 				},
 			},
-			expected: map[string]identifier.Identifier{
-				"NAME":  identifier.From("prop1"),
-				"AGE":   identifier.From("prop2"),
-				"EMAIL": identifier.From("prop3"),
+			expected: map[string][]string{
+				"NAME":  {"prop1"},
+				"AGE":   {"prop2"},
+				"EMAIL": {"prop3"},
 			},
 			wantError: false,
 		},
@@ -101,8 +100,8 @@ func TestMnemonics(t *testing.T) {
 					},
 				},
 			},
-			expected: map[string]identifier.Identifier{
-				"NAME": identifier.From("prop2"),
+			expected: map[string][]string{
+				"NAME": {"prop2"},
 			},
 			wantError: false,
 		},
@@ -126,8 +125,8 @@ func TestMnemonics(t *testing.T) {
 					},
 				},
 			},
-			expected: map[string]identifier.Identifier{
-				"AGE": identifier.From("prop2"),
+			expected: map[string][]string{
+				"AGE": {"prop2"},
 			},
 			wantError: false,
 		},
@@ -151,8 +150,8 @@ func TestMnemonics(t *testing.T) {
 					},
 				},
 			},
-			expected: map[string]identifier.Identifier{
-				"AGE": identifier.From("prop2"),
+			expected: map[string][]string{
+				"AGE": {"prop2"},
 			},
 			wantError: false,
 		},
@@ -202,9 +201,9 @@ func TestMnemonics(t *testing.T) {
 					},
 				},
 			},
-			expected: map[string]identifier.Identifier{
-				"NAME": identifier.From("prop1"),
-				"AGE":  identifier.From("prop2"),
+			expected: map[string][]string{
+				"NAME": {"prop1"},
+				"AGE":  {"prop2"},
 			},
 			wantError: false,
 		},
@@ -215,7 +214,7 @@ func TestMnemonics(t *testing.T) {
 				123,
 				map[string]string{"key": "value"},
 			},
-			expected:  map[string]identifier.Identifier{},
+			expected:  map[string][]string{},
 			wantError: false,
 		},
 		{
@@ -230,8 +229,8 @@ func TestMnemonics(t *testing.T) {
 					},
 				},
 			},
-			expected: map[string]identifier.Identifier{
-				"COMPLEX_ID": identifier.From("part1", "part2", "part3"),
+			expected: map[string][]string{
+				"COMPLEX_ID": {"part1", "part2", "part3"},
 			},
 			wantError: false,
 		},

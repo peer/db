@@ -14,9 +14,9 @@
 //		Age  int      `property:"AGE"`
 //	}
 //
-//	mnemonics := map[string]identifier.Identifier{
-//		"NAME": identifier.New(),
-//		"AGE":  identifier.New(),
+//	mnemonics := map[string][]string{
+//		"NAME": {"people.example.com", "NAME"},
+//		"AGE":  {"people.example.com", "AGE"},
 //	}
 //
 //	docs := []any{
@@ -67,7 +67,8 @@
 // Specifies how to interpret fields. Supported types for string fields:
 //
 //   - "id": create an identifier claim,
-//   - "iri": create a reference claim,
+//   - "iri": create a link claim,
+//   - "file": create a link claim,
 //   - "html": create a text claim with HTML (content will be escaped),
 //   - "rawhtml": create a text claim with raw HTML (content will be sanitized but not escaped).
 //
@@ -179,19 +180,19 @@
 // # Field Types
 //
 // Supported field types:
-//   - string: string claim (or identifier claim/reference claim/text claim with type tag),
+//   - string: string claim (or identifier claim/link claim/text claim with type tag),
 //   - int, int8, int16, int32, int64: amount claim (requires precision tag),
 //   - uint, uint8, uint16, uint32, uint64: amount claim (requires precision tag),
 //   - float32, float64: amount claim (requires precision tag),
 //   - bool: has claim when true (or none-value/unknown-value claim with type tag),
 //   - time.Time: time claim (requires precision tag),
-//   - core.Ref: relation claim,
+//   - core.Ref: reference claim,
 //   - core.Time: time claim,
 //   - core.Amount[T]: amount claim,
 //   - core.Interval[core.Time]: time interval claim,
 //   - core.Interval[core.Amount[T]]: amount interval claim,
 //   - core.Identifier: identifier claim,
-//   - core.IRI: reference claim,
+//   - core.IRI: link claim,
 //   - core.HTML: text claim (with escaping),
 //   - core.RawHTML: text claim (without escaping),
 //   - core.None: none-value claim when true,
@@ -362,6 +363,7 @@ const (
 
 	typeID      = "id"
 	typeIRI     = "iri"
+	typeFile    = "file"
 	typeHTML    = "html"
 	typeRawHTML = "rawhtml"
 	typeNone    = "none"
@@ -370,10 +372,10 @@ const (
 
 // Documents transforms structs into PeerDB document.D documents.
 //
-// It takes a map between property mnemonics and identifiers, and a slice of documents
+// It takes a map between property mnemonics and their base IDs, and a slice of documents
 // which can be various struct types. It uses reflection to inspect structs and their
 // struct tags to determine how to map struct fields to document claims.
-func Documents(ctx context.Context, mnemonics map[string]identifier.Identifier, documents []any) ([]*document.D, errors.E) {
+func Documents(ctx context.Context, mnemonics map[string][]string, documents []any) ([]*document.D, errors.E) {
 	result := []*document.D{}
 
 	for _, doc := range documents {
@@ -394,12 +396,12 @@ func Documents(ctx context.Context, mnemonics map[string]identifier.Identifier, 
 }
 
 type transformer struct {
-	Mnemonics map[string]identifier.Identifier
+	Mnemonics map[string][]string
 	Claims    *document.ClaimTypes
 }
 
 // transformDocument transforms a struct to a document.
-func transformDocument(mnemonics map[string]identifier.Identifier, doc any) (*document.D, errors.E) {
+func transformDocument(mnemonics map[string][]string, doc any) (*document.D, errors.E) {
 	v := reflect.ValueOf(doc)
 	// Handle pointer to struct.
 	if v.Kind() == reflect.Ptr {
@@ -489,13 +491,14 @@ func (tr *transformer) processStructFields(
 		}
 
 		// Get property ID from mnemonic.
-		propertyID, ok := tr.Mnemonics[propertyMnemonic]
+		propertyBase, ok := tr.Mnemonics[propertyMnemonic]
 		if !ok {
 			errE := errors.New("mnemonic not found")
 			errors.Details(errE)["name"] = propertyMnemonic
 			errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
 			return errE
 		}
+		propertyID := identifier.From(propertyBase...)
 
 		newIDPath := append(slices.Clone(idPath), propertyMnemonic)
 
@@ -1584,7 +1587,7 @@ func makeClaim(
 			}, nil
 		}
 
-		if typeTag == typeIRI {
+		if typeTag == typeIRI || typeTag == typeFile {
 			return &document.LinkClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         claimID,

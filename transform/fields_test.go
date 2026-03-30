@@ -1,0 +1,587 @@
+package transform_test
+
+import (
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"gitlab.com/peerdb/peerdb/core"
+	"gitlab.com/peerdb/peerdb/transform"
+)
+
+// fieldsTestMnemonics returns a mnemonics map for testing Fields.
+func fieldsTestMnemonics() map[string][]string {
+	return map[string][]string{
+		"NAME":         {"test", "NAME"},
+		"DESCRIPTION":  {"test", "DESCRIPTION"},
+		"AGE":          {"test", "AGE"},
+		"HEIGHT":       {"test", "HEIGHT"},
+		"BORN":         {"test", "BORN"},
+		"PARENT":       {"test", "PARENT"},
+		"CODE":         {"test", "CODE"},
+		"HOMEPAGE":     {"test", "HOMEPAGE"},
+		"PERIOD":       {"test", "PERIOD"},
+		"WEIGHT":       {"test", "WEIGHT"},
+		"STATUS":       {"test", "STATUS"},
+		"SOMETHING":    {"test", "SOMETHING"},
+		"BAR":          {"test", "BAR"},
+		"FIRST":        {"test", "FIRST"},
+		"SECOND":       {"test", "SECOND"},
+		"THIRD":        {"test", "THIRD"},
+		"AMOUNT":       {"test", "AMOUNT"},
+		"NOTES":        {"test", "NOTES"},
+		"ABSENT":       {"test", "ABSENT"},
+		"UNKNOWN_PROP": {"test", "UNKNOWN_PROP"},
+		"SCORE":        {"test", "SCORE"},
+		"RANGE":        {"test", "RANGE"},
+		"CREATED":      {"test", "CREATED"},
+		"DATA":         {"test", "DATA"},
+		"RAW":          {"test", "RAW"},
+		"CHOICE":       {"test", "CHOICE"},
+	}
+}
+
+// fieldsTestLanguageCodes returns a language codes map for testing Fields.
+func fieldsTestLanguageCodes() map[string][]string {
+	return map[string][]string{
+		"en-GB": {"test", "LANGUAGE", "en-GB"},
+		"sl-SI": {"test", "LANGUAGE", "sl-SI"},
+	}
+}
+
+type SimpleFields struct {
+	Name string `cardinality:"1.."  json:"name" property:"NAME"`
+	Age  *int   `cardinality:"0..1" json:"age"  property:"AGE"`
+}
+
+type NestedSection struct {
+	Something string `cardinality:"1.." json:"something" property:"SOMETHING"`
+}
+
+type FieldsWithSection struct {
+	NestedSection `section:"Undefined section name" section@en-GB:"English section name"`
+
+	Bar string `cardinality:"1.." json:"bar" property:"BAR"`
+}
+
+type SectionA struct {
+	First  core.HTML `cardinality:"1"    json:"first"  property:"FIRST"`
+	Second core.Ref  `cardinality:"0..1" json:"second" property:"SECOND" values:"test.example.com,YES_NO"`
+}
+
+type SectionB struct {
+	Third *core.Time `cardinality:"0..1" json:"third" property:"THIRD"`
+}
+
+type MultipleSections struct {
+	SectionA `section:"Section A" section@en-GB:"Section A (en)"`
+	SectionB `                                                   section@sl-SI:"Razdelek B"`
+}
+
+type EmbeddedBase struct {
+	Name string `cardinality:"1.." json:"name" property:"NAME"`
+}
+
+type FieldsWithEmbedded struct {
+	EmbeddedBase
+
+	Description string `cardinality:"0..1" json:"description" property:"DESCRIPTION"`
+}
+
+type RefFieldWithValues struct {
+	Choice  core.Ref   `cardinality:"1"   json:"choice"  property:"CHOICE" values:"ns.example.com,OPT_A;ns.example.com,OPT_B"`
+	Choices []core.Ref `cardinality:"0.." json:"choices" property:"STATUS" values:"ns.example.com,STATUS_A"`
+}
+
+type AllTypeFields struct {
+	Name        string                          `cardinality:"1"    json:"name"                         property:"NAME"`
+	Code        core.Identifier                 `cardinality:"1"    json:"code"                         property:"CODE"`
+	Homepage    core.IRI                        `cardinality:"0..1" json:"homepage"                     property:"HOMEPAGE"`
+	Description core.HTML                       `cardinality:"0..1" json:"description"                  property:"DESCRIPTION"`
+	Notes       core.RawHTML                    `cardinality:"0..1" json:"notes"                        property:"NOTES"`
+	Age         int                             `cardinality:"1"    json:"age"         precision:"1"    property:"AGE"`
+	Height      float64                         `cardinality:"0..1" json:"height"      precision:"0.01" property:"HEIGHT"`
+	Born        time.Time                       `cardinality:"0..1" json:"born"        precision:"d"    property:"BORN"`
+	Created     core.Time                       `cardinality:"0..1" json:"created"                      property:"CREATED"`
+	Period      core.Interval[core.Time]        `cardinality:"0..1" json:"period"                       property:"PERIOD"`
+	Amount      core.Amount[int]                `cardinality:"0..1" json:"amount"                       property:"AMOUNT"`
+	Score       core.Amount[float64]            `cardinality:"0..1" json:"score"                        property:"SCORE"`
+	Range       core.Interval[core.Amount[int]] `cardinality:"0..1" json:"range"                        property:"RANGE"`
+	Weight      *float64                        `cardinality:"0..1" json:"weight"      precision:"0.1"  property:"WEIGHT"`
+	Parent      core.Ref                        `cardinality:"0..1" json:"parent"                       property:"PARENT"`
+	Absent      core.None                       `cardinality:"0..1" json:"absent"                       property:"ABSENT"`
+	Unknown     core.Unknown                    `cardinality:"0..1" json:"unknown"                      property:"UNKNOWN_PROP"`
+}
+
+type FieldsWithStringTypes struct {
+	Code     string `cardinality:"1"    json:"code"     property:"CODE"     type:"id"`
+	Homepage string `cardinality:"0..1" json:"homepage" property:"HOMEPAGE" type:"iri"`
+	Data     string `cardinality:"0..1" json:"data"     property:"DATA"     type:"html"`
+	Raw      string `cardinality:"0..1" json:"raw"      property:"RAW"      type:"rawhtml"`
+}
+
+type FieldsWithBoolNone struct {
+	Absent bool `cardinality:"0..1" json:"absent" property:"ABSENT" type:"none"`
+}
+
+type FieldsWithBoolUnknown struct {
+	Unknown bool `cardinality:"0..1" json:"unknown" property:"UNKNOWN_PROP" type:"unknown"`
+}
+
+type FieldsWithBoolHas struct {
+	Published bool `cardinality:"0..1" json:"published" property:"NAME"`
+}
+
+type FieldsWithFileType struct {
+	Upload string `cardinality:"0..1" json:"upload" property:"DATA" type:"file"`
+}
+
+type FieldsWithValuesOnNonRef struct {
+	Name string `cardinality:"1.." json:"name" property:"NAME" values:"test.example.com,FOO"`
+}
+
+type ValueStruct struct {
+	Value core.Amount[int] `json:"value"                 value:""`
+	Name  string           `json:"name"  property:"NAME"`
+}
+
+type FieldsWithValueStruct struct {
+	Data ValueStruct `cardinality:"1" json:"data" property:"DATA"`
+}
+
+type FieldsWithDocumentID struct {
+	ID   []string `                  documentid:"" json:"id"`
+	Name string   `cardinality:"1.."               json:"name" property:"NAME"`
+}
+
+type FieldsWithSkippedField struct {
+	Name     string `cardinality:"1.." json:"name"     property:"NAME"`
+	Internal string `                  json:"internal" property:"-"`
+}
+
+type NestedSectionWithSection struct {
+	First string `cardinality:"1" json:"first" property:"FIRST"`
+}
+
+type OuterSection struct {
+	NestedSectionWithSection `section:"Nested"`
+}
+
+type FieldsWithNestedSections struct {
+	OuterSection `section:"Outer"`
+}
+
+type EmbeddedInSection struct {
+	First string `cardinality:"1" json:"first" property:"FIRST"`
+}
+
+type SectionWithEmbedded struct {
+	EmbeddedInSection
+
+	Second string `cardinality:"1" json:"second" property:"SECOND"`
+}
+
+type FieldsWithSectionEmbedded struct {
+	SectionWithEmbedded `section:"Section"`
+}
+
+type FieldsWithDefaultCardinality struct {
+	Names  []string  `json:"names"                property:"NAME"`
+	Age    int       `json:"age"    precision:"1" property:"AGE"`
+	Parent *core.Ref `json:"parent"               property:"PARENT"`
+}
+
+func TestFieldsSimple(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[SimpleFields](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Empty(t, result.Section)
+	require.Len(t, result.Field, 2)
+
+	// Field 1: Name (string, cardinality 1..).
+	f := result.Field[0]
+	assert.Equal(t, core.Ref{ID: mnemonics["NAME"]}, f.Property)
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "STRING"}}, f.ValueType)
+	assert.Equal(t, 1, f.OrderInList)
+	require.NotNil(t, f.Cardinality.From)
+	assert.Equal(t, 1, f.Cardinality.From.Amount)
+	assert.True(t, f.Cardinality.ToIsNone)
+	assert.Nil(t, f.Cardinality.To)
+	assert.Empty(t, f.Values)
+
+	// Field 2: Age (pointer to int, cardinality 0..1).
+	f = result.Field[1]
+	assert.Equal(t, core.Ref{ID: mnemonics["AGE"]}, f.Property)
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "AMOUNT"}}, f.ValueType)
+	assert.Equal(t, 2, f.OrderInList)
+	require.NotNil(t, f.Cardinality.From)
+	assert.Equal(t, 0, f.Cardinality.From.Amount)
+	require.NotNil(t, f.Cardinality.To)
+	assert.Equal(t, 1, f.Cardinality.To.Amount)
+	assert.True(t, f.Cardinality.ToIsClosed)
+}
+
+func TestFieldsWithSection(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithSection](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Top-level: one section (Nested) and one field (Bar).
+	require.Len(t, result.Section, 1)
+	require.Len(t, result.Field, 1)
+
+	// Nested section (first, order 1).
+	section := result.Section[0]
+	assert.Equal(t, 1, section.OrderInList)
+
+	// Bar field (second, order 2).
+	assert.Equal(t, 2, result.Field[0].OrderInList)
+	assert.Equal(t, core.Ref{ID: mnemonics["BAR"]}, result.Field[0].Property)
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "STRING"}}, result.Field[0].ValueType)
+
+	// Section names: bare "section" + "section-en".
+	require.Len(t, section.Name, 2)
+	// Bare section name first.
+	assert.Equal(t, "Undefined section name", section.Name[0].Value)
+	assert.Empty(t, section.Name[0].InLanguage)
+	// English section name.
+	assert.Equal(t, "English section name", section.Name[1].Value)
+	require.Len(t, section.Name[1].InLanguage, 1)
+
+	// Section fields.
+	require.Len(t, section.Field, 1)
+	assert.Equal(t, 1, section.Field[0].OrderInList)
+	assert.Equal(t, core.Ref{ID: mnemonics["SOMETHING"]}, section.Field[0].Property)
+}
+
+func TestFieldsMultipleSections(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[MultipleSections](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Empty(t, result.Field)
+	require.Len(t, result.Section, 2)
+
+	// Section A.
+	sA := result.Section[0]
+	assert.Equal(t, 1, sA.OrderInList)
+	require.Len(t, sA.Name, 2)
+	assert.Equal(t, "Section A", sA.Name[0].Value)
+	assert.Equal(t, "Section A (en)", sA.Name[1].Value)
+	require.Len(t, sA.Field, 2)
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "HTML"}}, sA.Field[0].ValueType)
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "REFERENCE"}}, sA.Field[1].ValueType)
+
+	// Check values on SECOND field.
+	require.Len(t, sA.Field[1].Values, 1)
+	assert.Equal(t, core.Ref{ID: []string{"test.example.com", "YES_NO"}}, sA.Field[1].Values[0])
+
+	// Section B.
+	sB := result.Section[1]
+	assert.Equal(t, 2, sB.OrderInList)
+	require.Len(t, sB.Name, 1)
+	assert.Equal(t, "Razdelek B", sB.Name[0].Value)
+	require.Len(t, sB.Field, 1)
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "TIME"}}, sB.Field[0].ValueType)
+}
+
+func TestFieldsWithEmbedded(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithEmbedded](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Empty(t, result.Section)
+	require.Len(t, result.Field, 2)
+
+	// EmbeddedBase.Name comes first, then Description.
+	assert.Equal(t, 1, result.Field[0].OrderInList)
+	assert.Equal(t, core.Ref{ID: mnemonics["NAME"]}, result.Field[0].Property)
+	assert.Equal(t, 2, result.Field[1].OrderInList)
+	assert.Equal(t, core.Ref{ID: mnemonics["DESCRIPTION"]}, result.Field[1].Property)
+}
+
+func TestFieldsAllTypes(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[AllTypeFields](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Empty(t, result.Section)
+	require.Len(t, result.Field, 17)
+
+	expectedTypes := []string{
+		"STRING",          // Name (string).
+		"IDENTIFIER",      // Code (core.Identifier).
+		"LINK",            // Homepage (core.IRI).
+		"HTML",            // Description (core.HTML).
+		"HTML",            // Notes (core.RawHTML).
+		"AMOUNT",          // Age (int).
+		"AMOUNT",          // Height (float64).
+		"TIME",            // Born (time.Time).
+		"TIME",            // Created (core.Time).
+		"TIME_INTERVAL",   // Period (core.Interval[core.Time]).
+		"AMOUNT",          // Amount (core.Amount[int]).
+		"AMOUNT",          // Score (core.Amount[float64]).
+		"AMOUNT_INTERVAL", // Range (core.Interval[core.Amount[int]]).
+		"AMOUNT",          // Weight (*float64).
+		"REFERENCE",       // Parent (core.Ref).
+		"NONE",            // Absent (core.None).
+		"UNKNOWN",         // Unknown (core.Unknown).
+	}
+
+	for i, expected := range expectedTypes {
+		assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", expected}}, result.Field[i].ValueType, "field %d", i)
+		assert.Equal(t, i+1, result.Field[i].OrderInList, "field %d", i)
+	}
+}
+
+func TestFieldsStringTypes(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithStringTypes](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 4)
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "IDENTIFIER"}}, result.Field[0].ValueType)
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "LINK"}}, result.Field[1].ValueType)
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "HTML"}}, result.Field[2].ValueType)
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "HTML"}}, result.Field[3].ValueType)
+}
+
+func TestFieldsBoolNone(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithBoolNone](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 1)
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "NONE"}}, result.Field[0].ValueType)
+}
+
+func TestFieldsBoolUnknown(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithBoolUnknown](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 1)
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "UNKNOWN"}}, result.Field[0].ValueType)
+}
+
+func TestFieldsBoolHas(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithBoolHas](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 1)
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "HAS"}}, result.Field[0].ValueType)
+}
+
+func TestFieldsFileType(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithFileType](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 1)
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "FILE"}}, result.Field[0].ValueType)
+}
+
+func TestFieldsRefWithValues(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[RefFieldWithValues](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 2)
+
+	// Choice: two values.
+	require.Len(t, result.Field[0].Values, 2)
+	assert.Equal(t, core.Ref{ID: []string{"ns.example.com", "OPT_A"}}, result.Field[0].Values[0])
+	assert.Equal(t, core.Ref{ID: []string{"ns.example.com", "OPT_B"}}, result.Field[0].Values[1])
+
+	// Choices: one value.
+	require.Len(t, result.Field[1].Values, 1)
+	assert.Equal(t, core.Ref{ID: []string{"ns.example.com", "STATUS_A"}}, result.Field[1].Values[0])
+}
+
+func TestFieldsValuesOnNonRefError(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	_, errE := transform.Fields[FieldsWithValuesOnNonRef](langCodes, mnemonics)
+	require.Error(t, errE)
+	assert.Contains(t, errE.Error(), "values tag can only be used with core.Ref")
+}
+
+func TestFieldsValueStruct(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithValueStruct](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 1)
+	// The value field is core.Amount[int], so value type should be AMOUNT.
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "AMOUNT"}}, result.Field[0].ValueType)
+}
+
+func TestFieldsWithDocumentID(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithDocumentID](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// documentid field is skipped, only Name field remains.
+	require.Len(t, result.Field, 1)
+	assert.Equal(t, core.Ref{ID: mnemonics["NAME"]}, result.Field[0].Property)
+}
+
+func TestFieldsWithSkippedField(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithSkippedField](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// property:"-" field is skipped.
+	require.Len(t, result.Field, 1)
+}
+
+func TestFieldsNestedSectionsError(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	_, errE := transform.Fields[FieldsWithNestedSections](langCodes, mnemonics)
+	require.Error(t, errE)
+	assert.Contains(t, errE.Error(), "sections cannot be nested")
+}
+
+func TestFieldsSectionWithEmbedded(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithSectionEmbedded](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Section, 1)
+	assert.Empty(t, result.Field)
+
+	// Section has 2 fields: embedded First + Second.
+	section := result.Section[0]
+	require.Len(t, section.Field, 2)
+	assert.Equal(t, 1, section.Field[0].OrderInList)
+	assert.Equal(t, core.Ref{ID: mnemonics["FIRST"]}, section.Field[0].Property)
+	assert.Equal(t, 2, section.Field[1].OrderInList)
+	assert.Equal(t, core.Ref{ID: mnemonics["SECOND"]}, section.Field[1].Property)
+}
+
+func TestFieldsMnemonicNotFound(t *testing.T) {
+	t.Parallel()
+
+	langCodes := fieldsTestLanguageCodes()
+
+	// Empty mnemonics.
+	_, errE := transform.Fields[SimpleFields](langCodes, map[string][]string{})
+	require.Error(t, errE)
+	assert.Contains(t, errE.Error(), "mnemonic not found")
+}
+
+func TestFieldsNotStruct(t *testing.T) {
+	t.Parallel()
+
+	langCodes := fieldsTestLanguageCodes()
+	mnemonics := fieldsTestMnemonics()
+
+	_, errE := transform.Fields[string](langCodes, mnemonics)
+	require.Error(t, errE)
+	assert.Contains(t, errE.Error(), "expected struct")
+}
+
+func TestFieldsCardinality(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithDefaultCardinality](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 3)
+
+	// Names (slice, no cardinality tag): default 0..unbounded.
+	f0 := result.Field[0]
+	require.NotNil(t, f0.Cardinality.From)
+	assert.Equal(t, 0, f0.Cardinality.From.Amount)
+	assert.True(t, f0.Cardinality.ToIsNone)
+
+	// Age (single value, no cardinality tag): default 0..1.
+	f1 := result.Field[1]
+	require.NotNil(t, f1.Cardinality.From)
+	assert.Equal(t, 0, f1.Cardinality.From.Amount)
+	require.NotNil(t, f1.Cardinality.To)
+	assert.Equal(t, 1, f1.Cardinality.To.Amount)
+	assert.True(t, f1.Cardinality.ToIsClosed)
+
+	// Parent (pointer, no cardinality tag): default 0..1.
+	f2 := result.Field[2]
+	require.NotNil(t, f2.Cardinality.From)
+	assert.Equal(t, 0, f2.Cardinality.From.Amount)
+	require.NotNil(t, f2.Cardinality.To)
+	assert.Equal(t, 1, f2.Cardinality.To.Amount)
+	assert.True(t, f2.Cardinality.ToIsClosed)
+}

@@ -281,6 +281,12 @@ type Unit struct {
 	DocumentFields
 }
 
+// ValueType represents a value type vocabulary document.
+type ValueType struct {
+	VocabularyFields
+	DocumentFields
+}
+
 // Section represents a section of fields of an entity.
 type Section struct {
 	Name        []StringWithLanguage `cardinality:"1.." json:"name"            property:"NAME"`

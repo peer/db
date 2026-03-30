@@ -129,9 +129,9 @@ func TestResultsGetIntegration(t *testing.T) {
 	assert.Equal(t, int64(2), metadata["total"])
 
 	// Verify all expected IDs are present (order may vary by relevance).
-	gotIDs = make([]string, len(results))
-	for i, r := range results {
-		gotIDs[i] = r.ID
+	gotIDs = make([]string, 0, len(results))
+	for _, r := range results {
+		gotIDs = append(gotIDs, r.ID)
 	}
 	sort.Strings(gotIDs)
 	expectedIDs = []string{doc1ID.String(), doc3ID.String()}

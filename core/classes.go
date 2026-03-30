@@ -240,5 +240,34 @@ func Classes() ([]any, errors.E) {
 		},
 	})
 
+	documents = append(documents, &Class{
+		ClassFields: ClassFields{
+			Name: []StringWithLanguage{{
+				Value: "value type",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "tip vrednosti",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:       nil,
+			AlternativeName: nil,
+			Mnemonic:        "VALUE_TYPE",
+			Description:     nil,
+			SubclassOf: []Ref{{
+				ID: []string{Namespace, "VOCABULARY"},
+			}},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "VALUE_TYPE"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "CLASS"},
+			}},
+		},
+	})
+
 	return documents, nil
 }

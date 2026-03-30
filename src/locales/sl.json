@@ -120,7 +120,7 @@
         "link": "Povezava",
         "reference": "Referenca",
         "has": "Ima",
-        "none": "Brez vrednosti",
+        "none": "Neobstoječa vrednost",
         "unknown": "Neznana vrednost"
       },
       "labels": {
