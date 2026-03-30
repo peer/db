@@ -122,8 +122,8 @@
 //
 // Rules:
 //   - slice fields: any cardinality range allowed,
-//   - pointer fields: max must be ≤ 1 (can be 0 or 1),
-//   - single value fields: max must be ≤ 1 (can be 0 or 1),
+//   - pointer fields: max must be <= 1 (can be 0 or 1),
+//   - single value fields: max must be <= 1 (can be 0 or 1),
 //   - max cardinality cannot be 0.
 //
 // Default: min=0, max=unbounded for slices; min=0, max=1 for pointer and single value fields.
@@ -1749,7 +1749,7 @@ func getNumericValue(v reflect.Value) (float64, bool) {
 	}
 }
 
-// parseCardinality parses a cardinality tag string and returns min and max values.
+// parseCardinalityTag parses a cardinality tag string and returns min and max values.
 //
 // Supported formats:
 //   - "1" - exactly one (min=1, max=1)
@@ -1758,82 +1758,94 @@ func getNumericValue(v reflect.Value) (float64, bool) {
 //   - "0.." - zero or more (min=0, max=-1 for unbounded)
 //   - "2..5" - between 2 and 5 (min=2, max=5)
 //
-// Default cardinality, if not specified, is min=0, max=-1.
+// If cardinality is empty, returns (0, -1) where -1 means unbounded.
+//
+// Returns (minCardinality, maxCardinality) where maxCardinality=-1 means unbounded.
+func parseCardinalityTag(cardinality string) (int, int, errors.E) {
+	if cardinality == "" {
+		return 0, -1, nil
+	}
+
+	if strings.Contains(cardinality, "..") {
+		parts := strings.Split(cardinality, "..")
+		if len(parts) != 2 { //nolint:mnd
+			errE := errors.New("invalid cardinality format")
+			errors.Details(errE)["cardinality"] = cardinality
+			return 0, 0, errE
+		}
+		minStr := strings.TrimSpace(parts[0])
+		if minStr == "" {
+			errE := errors.New("cardinality min value is empty")
+			errors.Details(errE)["cardinality"] = cardinality
+			return 0, 0, errE
+		}
+		minCardinality, err := strconv.Atoi(minStr)
+		if err != nil {
+			errE := errors.New("cardinality min value is not a valid integer")
+			errors.Details(errE)["cardinality"] = cardinality
+			return 0, 0, errors.WrapWith(err, errE)
+		}
+		if minCardinality < 0 {
+			errE := errors.New("cardinality min value cannot be negative")
+			errors.Details(errE)["cardinality"] = cardinality
+			return 0, 0, errE
+		}
+
+		maxCardinality := -1
+		maxStr := strings.TrimSpace(parts[1])
+		if maxStr != "" {
+			maxCardinality, err = strconv.Atoi(maxStr)
+			if err != nil {
+				errE := errors.New("cardinality max value is not a valid integer")
+				errors.Details(errE)["cardinality"] = cardinality
+				return 0, 0, errors.WrapWith(err, errE)
+			}
+			if maxCardinality <= 0 {
+				errE := errors.New("cardinality max value cannot be negative or zero")
+				errors.Details(errE)["cardinality"] = cardinality
+				return 0, 0, errE
+			}
+			if maxCardinality < minCardinality {
+				errE := errors.New("cardinality max value cannot be less than min")
+				errors.Details(errE)["cardinality"] = cardinality
+				return 0, 0, errE
+			}
+		}
+
+		return minCardinality, maxCardinality, nil
+	}
+
+	val, err := strconv.Atoi(strings.TrimSpace(cardinality))
+	if err != nil {
+		errE := errors.New("cardinality value is not a valid integer")
+		errors.Details(errE)["cardinality"] = cardinality
+		return 0, 0, errors.WrapWith(err, errE)
+	}
+	if val <= 0 {
+		errE := errors.New("cardinality value cannot be negative or zero")
+		errors.Details(errE)["cardinality"] = cardinality
+		return 0, 0, errE
+	}
+
+	return val, val, nil
+}
+
+// parseCardinality parses a cardinality tag string and validates it against the Go field type.
+//
+// It enforces that pointer and single-value fields have max cardinality <= 1,
+// and that the default tag requires min cardinality > 0.
 //
 // Returns (minCardinality, maxCardinality) where maxCardinality=-1 means unbounded.
 func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault bool) (int, int, errors.E) {
-	minCardinality := 0
-	maxCardinality := -1
+	minCardinality, maxCardinality, errE := parseCardinalityTag(cardinality)
+	if errE != nil {
+		return 0, 0, errE
+	}
 
 	isPointer := fieldValue.Kind() == reflect.Ptr
 	isSlice := fieldValue.Kind() == reflect.Slice
 	// isSingleValue is true for all non-pointer, non-slice fields, including bool.
 	isSingleValue := !isPointer && !isSlice
-
-	if cardinality != "" { //nolint:nestif
-		if strings.Contains(cardinality, "..") {
-			parts := strings.Split(cardinality, "..")
-			if len(parts) != 2 { //nolint:mnd
-				errE := errors.New("invalid cardinality format")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errE
-			}
-
-			minStr := strings.TrimSpace(parts[0])
-			if minStr == "" {
-				errE := errors.New("cardinality min value is empty")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errE
-			}
-			var err error
-			minCardinality, err = strconv.Atoi(minStr)
-			if err != nil {
-				errE := errors.New("cardinality min value is not a valid integer")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errors.WrapWith(err, errE)
-			}
-			if minCardinality < 0 {
-				errE := errors.New("cardinality min value cannot be negative")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errE
-			}
-
-			maxStr := strings.TrimSpace(parts[1])
-			// Unbounded max is default.
-			if maxStr != "" {
-				maxCardinality, err = strconv.Atoi(maxStr)
-				if err != nil {
-					errE := errors.New("cardinality max value is not a valid integer")
-					errors.Details(errE)["cardinality"] = cardinality
-					return 0, 0, errors.WrapWith(err, errE)
-				}
-				if maxCardinality <= 0 {
-					errE := errors.New("cardinality max value cannot be negative or zero")
-					errors.Details(errE)["cardinality"] = cardinality
-					return 0, 0, errE
-				}
-				if maxCardinality < minCardinality {
-					errE := errors.New("cardinality max value cannot be less than min")
-					errors.Details(errE)["cardinality"] = cardinality
-					return 0, 0, errE
-				}
-			}
-		} else {
-			val, err := strconv.Atoi(strings.TrimSpace(cardinality))
-			if err != nil {
-				errE := errors.New("cardinality value is not a valid integer")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errors.WrapWith(err, errE)
-			}
-			if val <= 0 {
-				errE := errors.New("cardinality value cannot be negative or zero")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errE
-			}
-			minCardinality = val
-			maxCardinality = val
-		}
-	}
 
 	if (isPointer || isSingleValue) && maxCardinality == -1 && cardinality == "" {
 		maxCardinality = 1

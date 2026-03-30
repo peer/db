@@ -496,70 +496,16 @@ func parseFieldCardinality(field reflect.StructField) (core.Interval[core.Amount
 
 // parseFieldsCardinality parses a cardinality tag string for field descriptions.
 //
-// It parses the same format as parseCardinality but does not enforce Go-type constraints,
-// since field descriptions describe intended cardinality regardless of the Go type used.
+// It is similar to [parseCardinality], but applies default cardinality
+// based on Go type without enforcing Go-type constraints on explicit values.
 func parseFieldsCardinality(cardinality string, fieldType reflect.Type) (int, int, errors.E) {
-	minCardinality := 0
-	maxCardinality := -1
+	minCardinality, maxCardinality, errE := parseCardinalityTag(cardinality)
+	if errE != nil {
+		return 0, 0, errE
+	}
 
-	if cardinality != "" { //nolint:nestif
-		if strings.Contains(cardinality, "..") {
-			parts := strings.SplitN(cardinality, "..", 2) //nolint:mnd
-			minStr := strings.TrimSpace(parts[0])
-			if minStr == "" {
-				errE := errors.New("cardinality min value is empty")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errE
-			}
-			var err error
-			minCardinality, err = strconv.Atoi(minStr)
-			if err != nil {
-				errE := errors.New("cardinality min value is not a valid integer")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errors.WrapWith(err, errE)
-			}
-			if minCardinality < 0 {
-				errE := errors.New("cardinality min value cannot be negative")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errE
-			}
-
-			maxStr := strings.TrimSpace(parts[1])
-			if maxStr != "" {
-				maxCardinality, err = strconv.Atoi(maxStr)
-				if err != nil {
-					errE := errors.New("cardinality max value is not a valid integer")
-					errors.Details(errE)["cardinality"] = cardinality
-					return 0, 0, errors.WrapWith(err, errE)
-				}
-				if maxCardinality <= 0 {
-					errE := errors.New("cardinality max value cannot be negative or zero")
-					errors.Details(errE)["cardinality"] = cardinality
-					return 0, 0, errE
-				}
-				if maxCardinality < minCardinality {
-					errE := errors.New("cardinality max value cannot be less than min")
-					errors.Details(errE)["cardinality"] = cardinality
-					return 0, 0, errE
-				}
-			}
-		} else {
-			val, err := strconv.Atoi(strings.TrimSpace(cardinality))
-			if err != nil {
-				errE := errors.New("cardinality value is not a valid integer")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errors.WrapWith(err, errE)
-			}
-			if val <= 0 {
-				errE := errors.New("cardinality value cannot be negative or zero")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errE
-			}
-			minCardinality = val
-			maxCardinality = val
-		}
-	} else {
-		// Default cardinality based on Go type.
+	// Apply default cardinality based on Go type only when not explicitly specified.
+	if cardinality == "" {
 		baseType := fieldType
 		if baseType.Kind() == reflect.Ptr {
 			baseType = baseType.Elem()
