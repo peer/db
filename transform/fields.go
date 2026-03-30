@@ -25,7 +25,7 @@ import (
 func Fields[T any](
 	languageCodes map[string][]string,
 	mnemonics map[string][]string,
-) (core.Fields, errors.E) {
+) (*core.Fields, errors.E) {
 	v := reflect.ValueOf(new(T)).Elem() //nolint:varnamelen
 	t := v.Type()
 
@@ -37,7 +37,7 @@ func Fields[T any](
 	if t.Kind() != reflect.Struct {
 		errE := errors.New("expected struct")
 		errors.Details(errE)["got"] = t.Kind().String()
-		return core.Fields{}, errE
+		return nil, errE
 	}
 
 	fc := fieldsCollector{
@@ -48,10 +48,14 @@ func Fields[T any](
 	order := 1.0
 	sections, fields, errE := fc.processLevel(t, &order, []string{})
 	if errE != nil {
-		return core.Fields{}, errE
+		return nil, errE
 	}
 
-	return core.Fields{
+	if len(sections) == 0 && len(fields) == 0 {
+		return nil, nil //nolint:nilnil
+	}
+
+	return &core.Fields{
 		Section: sections,
 		Field:   fields,
 	}, nil

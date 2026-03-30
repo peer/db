@@ -621,6 +621,19 @@ func TestFieldsMnemonicNotFound(t *testing.T) {
 	assert.Contains(t, errE.Error(), "mnemonic not found")
 }
 
+type EmptyFields struct{}
+
+func TestFieldsEmptyStruct(t *testing.T) {
+	t.Parallel()
+
+	langCodes := fieldsTestLanguageCodes()
+	mnemonics := fieldsTestMnemonics()
+
+	result, errE := transform.Fields[EmptyFields](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Nil(t, result)
+}
+
 func TestFieldsNotStruct(t *testing.T) {
 	t.Parallel()
 

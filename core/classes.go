@@ -27,6 +27,7 @@ func Classes() ([]any, errors.E) {
 			Mnemonic:        "CLASS",
 			Description:     nil,
 			SubclassOf:      nil,
+			Fields:          nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "CLASS"},
@@ -84,6 +85,7 @@ func Classes() ([]any, errors.E) {
 				}},
 			}},
 			SubclassOf: nil,
+			Fields:     nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "PROPERTY"},
@@ -111,6 +113,7 @@ func Classes() ([]any, errors.E) {
 			Mnemonic:        "DOCUMENT",
 			Description:     nil,
 			SubclassOf:      nil,
+			Fields:          nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "DOCUMENT"},
@@ -148,6 +151,7 @@ func Classes() ([]any, errors.E) {
 			Mnemonic:    "VOCABULARY",
 			Description: nil,
 			SubclassOf:  nil,
+			Fields:      nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "VOCABULARY"},
@@ -177,6 +181,7 @@ func Classes() ([]any, errors.E) {
 			SubclassOf: []Ref{{
 				ID: []string{Namespace, "VOCABULARY"},
 			}},
+			Fields: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "LANGUAGE"},
@@ -231,6 +236,7 @@ func Classes() ([]any, errors.E) {
 			SubclassOf: []Ref{{
 				ID: []string{Namespace, "VOCABULARY"},
 			}},
+			Fields: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "UNIT"},
@@ -260,6 +266,7 @@ func Classes() ([]any, errors.E) {
 			SubclassOf: []Ref{{
 				ID: []string{Namespace, "VOCABULARY"},
 			}},
+			Fields: nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "VALUE_TYPE"},

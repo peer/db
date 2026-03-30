@@ -254,6 +254,7 @@ type ClassFields struct {
 	Mnemonic        string                `cardinality:"0..1" json:"mnemonic,omitempty"        property:"MNEMONIC"`
 	Description     []RawHTMLWithLanguage `cardinality:"0.."  json:"description,omitempty"     property:"DESCRIPTION"`
 	SubclassOf      []Ref                 `cardinality:"0.."  json:"subclassOf,omitempty"      property:"SUBCLASS_OF"`
+	Fields          *Fields               `cardinality:"0..1" json:"fields,omitempty"          property:"FIELDS"`
 }
 
 // Class represents a class document.
