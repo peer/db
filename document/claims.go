@@ -85,10 +85,10 @@ func getClaimsOfType[T any, PT interface {
 //
 // Because Go does not support generic interface methods, this is a top-level function.
 // TODO: Support also negation claims (i.e., those with negative confidence).
-func GetBestClaimOfType[T any, PT interface {
+func GetBestClaimOfType[T any, PT interface { //nolint:ireturn
 	*T
 	Claim
-}](claims Claims, propID identifier.Identifier) PT { //nolint:ireturn
+}](claims Claims, propID identifier.Identifier) PT {
 	// The best claim is really the first one because GetClaimsOfType returns claims in decreasing confidence.
 	for _, c := range GetClaimsOfTypeWithConfidence[T, PT](claims, propID, LowConfidence) {
 		return c
