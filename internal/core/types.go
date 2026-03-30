@@ -7,11 +7,8 @@ import (
 
 	"gitlab.com/tozd/go/errors"
 
-	"gitlab.com/peerdb/peerdb/document"
+	internalDocument "gitlab.com/peerdb/peerdb/internal/document"
 )
-
-// Namespace is the namespace for core entities.
-const Namespace = "core.peerdb.org"
 
 // Ref represents a reference to another document by ID.
 type Ref struct {
@@ -39,15 +36,15 @@ type Unknown bool
 // Time represents a time with precision.
 type Time struct {
 	// We do not use document.Time here for easier interoperability with other systems.
-	Time      time.Time              `json:"time"`
-	Precision document.TimePrecision `json:"precision"`
+	Time      time.Time                      `json:"time"`
+	Precision internalDocument.TimePrecision `json:"precision"`
 }
 
 func (Time) intervalBound() {}
 
 // Validate checks that Precision is a defined TimePrecision value.
 func (t Time) Validate() errors.E {
-	if t.Precision < document.TimePrecisionGigaYears || t.Precision > document.TimePrecisionNanosecond {
+	if t.Precision < internalDocument.TimePrecisionGigaYears || t.Precision > internalDocument.TimePrecisionNanosecond {
 		return errors.New("unknown precision")
 	}
 	return nil

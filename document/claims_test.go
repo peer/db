@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
 )
 
@@ -1003,8 +1004,8 @@ func TestGetClaimsListsOfType(t *testing.T) {
 	prop := identifier.New()
 	listA := identifier.New()
 	listB := identifier.New()
-	listProp := identifier.From("core.peerdb.org", "LIST")
-	orderProp := identifier.From("core.peerdb.org", "ORDER_IN_LIST")
+	listProp := identifier.From(core.Namespace, "LIST")
+	orderProp := identifier.From(core.Namespace, "ORDER_IN_LIST")
 
 	ct := &document.ClaimTypes{
 		String: document.StringClaims{

@@ -10,6 +10,8 @@ import (
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
+
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
 // sortByConfidence sorts claims in decreasing confidence order.
@@ -264,11 +266,9 @@ func SelectClaimsByLanguage[T Claim](
 //
 //nolint:gochecknoglobals
 var (
-	// coreNamespace must match core.Namespace. We cannot import core here due to import cycle.
-	coreNamespace     = "core.peerdb.org"
-	inLanguagePropID  = identifier.From(coreNamespace, "IN_LANGUAGE")
-	listPropID        = identifier.From(coreNamespace, "LIST")
-	orderInListPropID = identifier.From(coreNamespace, "ORDER_IN_LIST")
+	inLanguagePropID  = identifier.From(internalCore.Namespace, "IN_LANGUAGE")
+	listPropID        = identifier.From(internalCore.Namespace, "LIST")
+	orderInListPropID = identifier.From(internalCore.Namespace, "ORDER_IN_LIST")
 )
 
 // GetClaimsListsOfType groups claims of the concrete type T matching the given property ID

@@ -16,6 +16,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
+	internalDocument "gitlab.com/peerdb/peerdb/internal/document"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
@@ -1611,7 +1612,7 @@ func (c *Converter) convertUnknown(ctx context.Context, claim *document.UnknownC
 
 // addPrecision returns the time at the end of the precision window
 // starting at t. For example, year precision returns the start of the next year.
-func addPrecision(t time.Time, precision document.TimePrecision) time.Time {
+func addPrecision(t time.Time, precision internalDocument.TimePrecision) time.Time {
 	switch precision { //nolint:exhaustive
 	case document.TimePrecisionGigaYears:
 		return t.AddDate(1_000_000_000, 0, 0) //nolint:mnd
