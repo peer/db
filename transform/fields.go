@@ -311,6 +311,19 @@ func (fc *fieldsCollector) makeField(
 		return internalCore.Field{}, errE
 	}
 
+	// Parse inverseProperty tag.
+	var inverseProperty *internalCore.Ref
+	if inversePropertyMnemonic, ok := structField.Tag.Lookup("inverseProperty"); ok {
+		inverseBase, ok := fc.mnemonics[inversePropertyMnemonic]
+		if !ok {
+			errE := errors.New("inverse property mnemonic not found")
+			errors.Details(errE)["name"] = inversePropertyMnemonic
+			errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
+			return internalCore.Field{}, errE
+		}
+		inverseProperty = &internalCore.Ref{ID: inverseBase}
+	}
+
 	// Collect sub-fields from struct types.
 	subFields, errE := fc.collectSubFields(structField.Type, fieldPath, structPath)
 	if errE != nil {
@@ -318,12 +331,13 @@ func (fc *fieldsCollector) makeField(
 	}
 
 	return internalCore.Field{
-		Property:    propertyRef,
-		ValueType:   valueTypeRef,
-		OrderInList: order,
-		Cardinality: cardinality,
-		Values:      values,
-		SubField:    subFields,
+		Property:        propertyRef,
+		ValueType:       valueTypeRef,
+		OrderInList:     order,
+		Cardinality:     cardinality,
+		Values:          values,
+		SubField:        subFields,
+		InverseProperty: inverseProperty,
 	}, nil
 }
 

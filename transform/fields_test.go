@@ -291,6 +291,11 @@ type SharedSubStruct struct {
 	Note  string `json:"note"  property:"NOTES"`
 }
 
+type FieldsWithInverseProperty struct {
+	Parent core.Ref `cardinality:"0..1" inverseProperty:"FIRST" json:"parent" property:"PARENT"`
+	Name   string   `cardinality:"1.."                          json:"name"   property:"NAME"`
+}
+
 type FieldsWithSharedSubStruct struct {
 	First  SharedSubStruct `cardinality:"1" json:"first"  property:"FIRST"`
 	Second SharedSubStruct `cardinality:"1" json:"second" property:"SECOND"`
@@ -928,4 +933,27 @@ func TestFieldsUnknownLanguageCode(t *testing.T) {
 	_, errE := transform.Fields[FieldsWithUnknownLangSection](langCodes, mnemonics)
 	require.Error(t, errE)
 	assert.Contains(t, errE.Error(), "unknown language code in section tag")
+}
+
+func TestFieldsInverseProperty(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithInverseProperty](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 2)
+
+	// Parent has inverseProperty set.
+	f := result.Field[0]
+	assert.Equal(t, core.Ref{ID: mnemonics["PARENT"]}, f.Property)
+	require.NotNil(t, f.InverseProperty)
+	assert.Equal(t, core.Ref{ID: mnemonics["FIRST"]}, *f.InverseProperty)
+
+	// Name has no inverseProperty.
+	f = result.Field[1]
+	assert.Equal(t, core.Ref{ID: mnemonics["NAME"]}, f.Property)
+	assert.Nil(t, f.InverseProperty)
 }

@@ -3,6 +3,8 @@ import { Identifier } from "@tozd/identifier"
 import { Namespace } from "@/core/namespace"
 
 // Well-known core property IDs based on their mnemonics.
+//
+// Keep this list in sync with internal/core/properties.go and sorted alphabetically.
 export const ALTERNATIVE_NAME = (await Identifier.from(Namespace, "ALTERNATIVE_NAME")).toString()
 export const CARDINALITY = (await Identifier.from(Namespace, "CARDINALITY")).toString()
 export const CODE = (await Identifier.from(Namespace, "CODE")).toString()
@@ -11,8 +13,8 @@ export const DESCRIPTION = (await Identifier.from(Namespace, "DESCRIPTION")).toS
 export const DISPLAY_LABEL_TEMPLATE = (await Identifier.from(Namespace, "DISPLAY_LABEL_TEMPLATE")).toString()
 export const DISTINCT_FROM = (await Identifier.from(Namespace, "DISTINCT_FROM")).toString()
 export const FIELD = (await Identifier.from(Namespace, "FIELD")).toString()
-export const FIELDS = (await Identifier.from(Namespace, "FIELDS")).toString()
 export const FIELD_VALUES = (await Identifier.from(Namespace, "FIELD_VALUES")).toString()
+export const FIELDS = (await Identifier.from(Namespace, "FIELDS")).toString()
 export const HAS_PROPERTY = (await Identifier.from(Namespace, "HAS_PROPERTY")).toString()
 export const HAS_VALUE_TYPE = (await Identifier.from(Namespace, "HAS_VALUE_TYPE")).toString()
 export const IN_LANGUAGE = (await Identifier.from(Namespace, "IN_LANGUAGE")).toString()
@@ -20,6 +22,7 @@ export const IN_LOCATION = (await Identifier.from(Namespace, "IN_LOCATION")).toS
 export const IN_UNIT = (await Identifier.from(Namespace, "IN_UNIT")).toString()
 export const INSTANCE_OF = (await Identifier.from(Namespace, "INSTANCE_OF")).toString()
 export const INSTRUCTION = (await Identifier.from(Namespace, "INSTRUCTION")).toString()
+export const INVERSE_PROPERTY = (await Identifier.from(Namespace, "INVERSE_PROPERTY")).toString()
 export const INVERSE_PROPERTY_OF = (await Identifier.from(Namespace, "INVERSE_PROPERTY_OF")).toString()
 export const LIST = (await Identifier.from(Namespace, "LIST")).toString()
 export const MEDIA_TYPE = (await Identifier.from(Namespace, "MEDIA_TYPE")).toString()
@@ -31,9 +34,9 @@ export const SECTION = (await Identifier.from(Namespace, "SECTION")).toString()
 export const SELECTED_VARIANT = (await Identifier.from(Namespace, "SELECTED_VARIANT")).toString()
 export const SETTING = (await Identifier.from(Namespace, "SETTING")).toString()
 export const SHORT_NAME = (await Identifier.from(Namespace, "SHORT_NAME")).toString()
+export const SUB_FIELD = (await Identifier.from(Namespace, "SUB_FIELD")).toString()
 export const SUBCLASS_OF = (await Identifier.from(Namespace, "SUBCLASS_OF")).toString()
 export const SUBENTITY_OF = (await Identifier.from(Namespace, "SUBENTITY_OF")).toString()
-export const SUB_FIELD = (await Identifier.from(Namespace, "SUB_FIELD")).toString()
 export const SUBPROPERTY_OF = (await Identifier.from(Namespace, "SUBPROPERTY_OF")).toString()
 export const TITLE = (await Identifier.from(Namespace, "TITLE")).toString()
 export const VARIANT = (await Identifier.from(Namespace, "VARIANT")).toString()

@@ -6,6 +6,8 @@ import (
 
 // Well-known core property IDs based on their mnemonics.
 //
+// Keep this list in sync with src/core/properties.ts and sorted alphabetically.
+//
 //nolint:gochecknoglobals
 var (
 	AlternativeNamePropID      = identifier.From(Namespace, "ALTERNATIVE_NAME")
@@ -26,6 +28,7 @@ var (
 	InstructionPropID          = identifier.From(Namespace, "INSTRUCTION")
 	InUnitPropID               = identifier.From(Namespace, "IN_UNIT")
 	InversePropertyOfPropID    = identifier.From(Namespace, "INVERSE_PROPERTY_OF")
+	InversePropertyPropID      = identifier.From(Namespace, "INVERSE_PROPERTY")
 	ListPropID                 = identifier.From(Namespace, "LIST")
 	MediaTypePropID            = identifier.From(Namespace, "MEDIA_TYPE")
 	MnemonicPropID             = identifier.From(Namespace, "MNEMONIC")
