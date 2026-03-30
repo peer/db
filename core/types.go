@@ -290,7 +290,7 @@ type ValueType struct {
 // Section represents a section of fields of an entity.
 type Section struct {
 	Name        []StringWithLanguage `cardinality:"1.." json:"name"            property:"NAME"`
-	OrderInList int                  `cardinality:"1"   json:"orderInList"     property:"ORDER_IN_LIST"`
+	OrderInList float64              `cardinality:"1"   json:"orderInList"     property:"ORDER_IN_LIST"`
 	Field       []Field              `cardinality:"0.." json:"field,omitempty" property:"FIELD"`
 }
 
@@ -298,7 +298,7 @@ type Section struct {
 type Field struct {
 	Property    Ref                   `cardinality:"1"   json:"property"         property:"HAS_PROPERTY"`
 	ValueType   Ref                   `cardinality:"1"   json:"valueType"        property:"HAS_VALUE_TYPE"`
-	OrderInList int                   `cardinality:"1"   json:"orderInList"      property:"ORDER_IN_LIST"`
+	OrderInList float64               `cardinality:"1"   json:"orderInList"      property:"ORDER_IN_LIST"`
 	Cardinality Interval[Amount[int]] `cardinality:"1"   json:"cardinality"      property:"CARDINALITY"`
 	Values      []Ref                 `cardinality:"0.." json:"values,omitempty" property:"FIELD_VALUES"`
 }

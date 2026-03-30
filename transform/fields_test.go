@@ -209,7 +209,7 @@ func TestFieldsSimple(t *testing.T) {
 	f := result.Field[0]
 	assert.Equal(t, core.Ref{ID: mnemonics["NAME"]}, f.Property)
 	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "STRING"}}, f.ValueType)
-	assert.Equal(t, 1, f.OrderInList)
+	assert.Equal(t, 1.0, f.OrderInList) //nolint:testifylint
 	require.NotNil(t, f.Cardinality.From)
 	assert.Equal(t, 1, f.Cardinality.From.Amount)
 	assert.True(t, f.Cardinality.ToIsNone)
@@ -220,7 +220,7 @@ func TestFieldsSimple(t *testing.T) {
 	f = result.Field[1]
 	assert.Equal(t, core.Ref{ID: mnemonics["AGE"]}, f.Property)
 	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "AMOUNT"}}, f.ValueType)
-	assert.Equal(t, 2, f.OrderInList)
+	assert.Equal(t, 2.0, f.OrderInList) //nolint:testifylint
 	require.NotNil(t, f.Cardinality.From)
 	assert.Equal(t, 0, f.Cardinality.From.Amount)
 	require.NotNil(t, f.Cardinality.To)
@@ -243,10 +243,10 @@ func TestFieldsWithSection(t *testing.T) {
 
 	// Nested section (first, order 1).
 	section := result.Section[0]
-	assert.Equal(t, 1, section.OrderInList)
+	assert.Equal(t, 1.0, section.OrderInList) //nolint:testifylint
 
 	// Bar field (second, order 2).
-	assert.Equal(t, 2, result.Field[0].OrderInList)
+	assert.Equal(t, 2.0, result.Field[0].OrderInList) //nolint:testifylint
 	assert.Equal(t, core.Ref{ID: mnemonics["BAR"]}, result.Field[0].Property)
 	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "STRING"}}, result.Field[0].ValueType)
 
@@ -261,7 +261,7 @@ func TestFieldsWithSection(t *testing.T) {
 
 	// Section fields.
 	require.Len(t, section.Field, 1)
-	assert.Equal(t, 1, section.Field[0].OrderInList)
+	assert.Equal(t, 1.0, section.Field[0].OrderInList) //nolint:testifylint
 	assert.Equal(t, core.Ref{ID: mnemonics["SOMETHING"]}, section.Field[0].Property)
 }
 
@@ -279,7 +279,7 @@ func TestFieldsMultipleSections(t *testing.T) {
 
 	// Section A.
 	sA := result.Section[0]
-	assert.Equal(t, 1, sA.OrderInList)
+	assert.Equal(t, 1.0, sA.OrderInList) //nolint:testifylint
 	require.Len(t, sA.Name, 2)
 	assert.Equal(t, "Section A", sA.Name[0].Value)
 	assert.Equal(t, "Section A (en)", sA.Name[1].Value)
@@ -293,7 +293,7 @@ func TestFieldsMultipleSections(t *testing.T) {
 
 	// Section B.
 	sB := result.Section[1]
-	assert.Equal(t, 2, sB.OrderInList)
+	assert.Equal(t, 2.0, sB.OrderInList) //nolint:testifylint
 	require.Len(t, sB.Name, 1)
 	assert.Equal(t, "Razdelek B", sB.Name[0].Value)
 	require.Len(t, sB.Field, 1)
@@ -313,9 +313,9 @@ func TestFieldsWithEmbedded(t *testing.T) {
 	require.Len(t, result.Field, 2)
 
 	// EmbeddedBase.Name comes first, then Description.
-	assert.Equal(t, 1, result.Field[0].OrderInList)
+	assert.Equal(t, 1.0, result.Field[0].OrderInList) //nolint:testifylint
 	assert.Equal(t, core.Ref{ID: mnemonics["NAME"]}, result.Field[0].Property)
-	assert.Equal(t, 2, result.Field[1].OrderInList)
+	assert.Equal(t, 2.0, result.Field[1].OrderInList) //nolint:testifylint
 	assert.Equal(t, core.Ref{ID: mnemonics["DESCRIPTION"]}, result.Field[1].Property)
 }
 
@@ -353,7 +353,7 @@ func TestFieldsAllTypes(t *testing.T) {
 
 	for i, expected := range expectedTypes {
 		assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", expected}}, result.Field[i].ValueType, "field %d", i)
-		assert.Equal(t, i+1, result.Field[i].OrderInList, "field %d", i)
+		assert.Equal(t, float64(i+1), result.Field[i].OrderInList, "field %d", i) //nolint:testifylint
 	}
 }
 
@@ -524,9 +524,9 @@ func TestFieldsSectionWithEmbedded(t *testing.T) {
 	// Section has 2 fields: embedded First + Second.
 	section := result.Section[0]
 	require.Len(t, section.Field, 2)
-	assert.Equal(t, 1, section.Field[0].OrderInList)
+	assert.Equal(t, 1.0, section.Field[0].OrderInList) //nolint:testifylint
 	assert.Equal(t, core.Ref{ID: mnemonics["FIRST"]}, section.Field[0].Property)
-	assert.Equal(t, 2, section.Field[1].OrderInList)
+	assert.Equal(t, 2.0, section.Field[1].OrderInList) //nolint:testifylint
 	assert.Equal(t, core.Ref{ID: mnemonics["SECOND"]}, section.Field[1].Property)
 }
 

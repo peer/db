@@ -44,7 +44,7 @@ func Fields[T any](
 		mnemonics:     mnemonics,
 	}
 
-	order := 1
+	order := 1.0
 	sections, fields, errE := fc.processLevel(t, &order, []string{})
 	if errE != nil {
 		return core.Fields{}, errE
@@ -67,7 +67,7 @@ type fieldsCollector struct {
 // Embedded structs without section tags are recursed into, flattening their fields at this level.
 func (fc *fieldsCollector) processLevel(
 	structType reflect.Type,
-	order *int,
+	order *float64,
 	fieldPath []string,
 ) ([]core.Section, []core.Field, errors.E) {
 	var sections []core.Section
@@ -107,7 +107,7 @@ func (fc *fieldsCollector) processLevel(
 				*order++
 
 				// Process inner fields (no nested sections allowed).
-				innerOrder := 1
+				innerOrder := 1.0
 				innerFields, errE := fc.processInnerFields(fieldType, &innerOrder, newFieldPath)
 				if errE != nil {
 					return nil, nil, errE
@@ -147,7 +147,7 @@ func (fc *fieldsCollector) processLevel(
 // Sections cannot be nested, so embedded structs with section tags produce an error.
 func (fc *fieldsCollector) processInnerFields(
 	structType reflect.Type,
-	order *int,
+	order *float64,
 	fieldPath []string,
 ) ([]core.Field, errors.E) {
 	fields := make([]core.Field, 0, structType.NumField())
@@ -210,7 +210,7 @@ func (fc *fieldsCollector) processInnerFields(
 func (fc *fieldsCollector) makeField(
 	structField reflect.StructField,
 	mnemonic string,
-	order int,
+	order float64,
 	fieldPath []string,
 ) (core.Field, errors.E) {
 	// Check mnemonic exists.

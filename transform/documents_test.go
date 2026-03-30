@@ -43,8 +43,8 @@ type DocWithRawHTMLComplex struct {
 
 type DocWithLink struct {
 	ID        []string  `documentid:""`
-	Homepage  string    `              property:"HOMEPAGE"  type:"link"`
-	Links     []string  `              property:"LINKS"     type:"link"`
+	Homepage  string    `              property:"HOMEPAGE"   type:"link"`
+	Links     []string  `              property:"LINKS"      type:"link"`
 	PlainLink core.Link `              property:"PLAIN_LINK"`
 }
 
