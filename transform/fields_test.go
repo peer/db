@@ -323,7 +323,7 @@ func TestFieldsSimple(t *testing.T) {
 	f := result.Field[0]
 	assert.Equal(t, core.Ref{ID: mnemonics["NAME"]}, f.Property)
 	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "STRING"}}, f.ValueType)
-	assert.Equal(t, 1.0, f.OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 1, Precision: 1}, f.OrderInList)
 	require.NotNil(t, f.Cardinality.From)
 	assert.Equal(t, 1, f.Cardinality.From.Amount)
 	assert.True(t, f.Cardinality.ToIsNone)
@@ -334,7 +334,7 @@ func TestFieldsSimple(t *testing.T) {
 	f = result.Field[1]
 	assert.Equal(t, core.Ref{ID: mnemonics["AGE"]}, f.Property)
 	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "AMOUNT"}}, f.ValueType)
-	assert.Equal(t, 2.0, f.OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 2, Precision: 1}, f.OrderInList)
 	require.NotNil(t, f.Cardinality.From)
 	assert.Equal(t, 0, f.Cardinality.From.Amount)
 	require.NotNil(t, f.Cardinality.To)
@@ -357,10 +357,10 @@ func TestFieldsWithSection(t *testing.T) {
 
 	// Nested section (first, order 1).
 	section := result.Section[0]
-	assert.Equal(t, 1.0, section.OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 1, Precision: 1}, section.OrderInList)
 
 	// Bar field (second, order 2).
-	assert.Equal(t, 2.0, result.Field[0].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 2, Precision: 1}, result.Field[0].OrderInList)
 	assert.Equal(t, core.Ref{ID: mnemonics["BAR"]}, result.Field[0].Property)
 	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "STRING"}}, result.Field[0].ValueType)
 
@@ -375,7 +375,7 @@ func TestFieldsWithSection(t *testing.T) {
 
 	// Section fields.
 	require.Len(t, section.Field, 1)
-	assert.Equal(t, 1.0, section.Field[0].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 1, Precision: 1}, section.Field[0].OrderInList)
 	assert.Equal(t, core.Ref{ID: mnemonics["SOMETHING"]}, section.Field[0].Property)
 }
 
@@ -393,7 +393,7 @@ func TestFieldsMultipleSections(t *testing.T) {
 
 	// Section A.
 	sA := result.Section[0]
-	assert.Equal(t, 1.0, sA.OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 1, Precision: 1}, sA.OrderInList)
 	require.Len(t, sA.Name, 2)
 	assert.Equal(t, "Section A", sA.Name[0].Value)
 	assert.Equal(t, "Section A (en)", sA.Name[1].Value)
@@ -407,7 +407,7 @@ func TestFieldsMultipleSections(t *testing.T) {
 
 	// Section B.
 	sB := result.Section[1]
-	assert.Equal(t, 2.0, sB.OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 2, Precision: 1}, sB.OrderInList)
 	require.Len(t, sB.Name, 1)
 	assert.Equal(t, "Razdelek B", sB.Name[0].Value)
 	require.Len(t, sB.Field, 1)
@@ -427,9 +427,9 @@ func TestFieldsWithEmbedded(t *testing.T) {
 	require.Len(t, result.Field, 2)
 
 	// EmbeddedBase.Name comes first, then Description.
-	assert.Equal(t, 1.0, result.Field[0].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 1, Precision: 1}, result.Field[0].OrderInList)
 	assert.Equal(t, core.Ref{ID: mnemonics["NAME"]}, result.Field[0].Property)
-	assert.Equal(t, 2.0, result.Field[1].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 2, Precision: 1}, result.Field[1].OrderInList)
 	assert.Equal(t, core.Ref{ID: mnemonics["DESCRIPTION"]}, result.Field[1].Property)
 }
 
@@ -467,7 +467,7 @@ func TestFieldsAllTypes(t *testing.T) {
 
 	for i, expected := range expectedTypes {
 		assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", expected}}, result.Field[i].ValueType, "field %d", i)
-		assert.Equal(t, float64(i+1), result.Field[i].OrderInList, "field %d", i) //nolint:testifylint
+		assert.Equal(t, core.Amount[float64]{Amount: float64(i + 1), Precision: 1}, result.Field[i].OrderInList, "field %d", i)
 	}
 }
 
@@ -638,9 +638,9 @@ func TestFieldsSectionWithEmbedded(t *testing.T) {
 	// Section has 2 fields: embedded First + Second.
 	section := result.Section[0]
 	require.Len(t, section.Field, 2)
-	assert.Equal(t, 1.0, section.Field[0].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 1, Precision: 1}, section.Field[0].OrderInList)
 	assert.Equal(t, core.Ref{ID: mnemonics["FIRST"]}, section.Field[0].Property)
-	assert.Equal(t, 2.0, section.Field[1].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 2, Precision: 1}, section.Field[1].OrderInList)
 	assert.Equal(t, core.Ref{ID: mnemonics["SECOND"]}, section.Field[1].Property)
 }
 
@@ -726,15 +726,15 @@ func TestFieldsOrderTag(t *testing.T) {
 
 	// First has explicit order 10.5.
 	assert.Equal(t, core.Ref{ID: mnemonics["FIRST"]}, result.Field[0].Property)
-	assert.Equal(t, 10.5, result.Field[0].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 10.5, Precision: 0.1}, result.Field[0].OrderInList)
 
 	// Second has auto-increment order (1.0, since First used explicit order).
 	assert.Equal(t, core.Ref{ID: mnemonics["SECOND"]}, result.Field[1].Property)
-	assert.Equal(t, 1.0, result.Field[1].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 1, Precision: 1}, result.Field[1].OrderInList)
 
 	// Third has explicit order 5.
 	assert.Equal(t, core.Ref{ID: mnemonics["THIRD"]}, result.Field[2].Property)
-	assert.Equal(t, 5.0, result.Field[2].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 5, Precision: 1}, result.Field[2].OrderInList)
 }
 
 func TestFieldsOrderSkip(t *testing.T) {
@@ -750,10 +750,10 @@ func TestFieldsOrderSkip(t *testing.T) {
 	require.Len(t, result.Field, 2)
 
 	assert.Equal(t, core.Ref{ID: mnemonics["NAME"]}, result.Field[0].Property)
-	assert.Equal(t, 1.0, result.Field[0].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 1, Precision: 1}, result.Field[0].OrderInList)
 
 	assert.Equal(t, core.Ref{ID: mnemonics["DESCRIPTION"]}, result.Field[1].Property)
-	assert.Equal(t, 2.0, result.Field[1].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 2, Precision: 1}, result.Field[1].OrderInList)
 }
 
 func TestFieldsSectionOrderTag(t *testing.T) {
@@ -769,10 +769,10 @@ func TestFieldsSectionOrderTag(t *testing.T) {
 	require.Len(t, result.Field, 1)
 
 	// Section has explicit order 99.
-	assert.Equal(t, 99.0, result.Section[0].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 99, Precision: 1}, result.Section[0].OrderInList)
 
 	// Bar gets auto-increment (1.0, since section used explicit order).
-	assert.Equal(t, 1.0, result.Field[0].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 1, Precision: 1}, result.Field[0].OrderInList)
 }
 
 func TestFieldsSubFields(t *testing.T) {
@@ -793,9 +793,9 @@ func TestFieldsSubFields(t *testing.T) {
 	// Sub-fields: Period and Note (value field is not a sub-field).
 	require.Len(t, f.SubField, 2)
 	assert.Equal(t, core.Ref{ID: mnemonics["PERIOD"]}, f.SubField[0].Property)
-	assert.Equal(t, 1.0, f.SubField[0].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 1, Precision: 1}, f.SubField[0].OrderInList)
 	assert.Equal(t, core.Ref{ID: mnemonics["NOTES"]}, f.SubField[1].Property)
-	assert.Equal(t, 2.0, f.SubField[1].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 2, Precision: 1}, f.SubField[1].OrderInList)
 }
 
 func TestFieldsSubFieldsNoValue(t *testing.T) {
@@ -815,9 +815,9 @@ func TestFieldsSubFieldsNoValue(t *testing.T) {
 	// Sub-fields: Location and Note.
 	require.Len(t, f.SubField, 2)
 	assert.Equal(t, core.Ref{ID: mnemonics["HOMEPAGE"]}, f.SubField[0].Property)
-	assert.Equal(t, 1.0, f.SubField[0].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 1, Precision: 1}, f.SubField[0].OrderInList)
 	assert.Equal(t, core.Ref{ID: mnemonics["NOTES"]}, f.SubField[1].Property)
-	assert.Equal(t, 2.0, f.SubField[1].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 2, Precision: 1}, f.SubField[1].OrderInList)
 }
 
 func TestFieldsSubFieldsSkipped(t *testing.T) {
@@ -835,7 +835,7 @@ func TestFieldsSubFieldsSkipped(t *testing.T) {
 	// Only Visible sub-field remains (Hidden is skipped via order:"-").
 	require.Len(t, f.SubField, 1)
 	assert.Equal(t, core.Ref{ID: mnemonics["NOTES"]}, f.SubField[0].Property)
-	assert.Equal(t, 1.0, f.SubField[0].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 1, Precision: 1}, f.SubField[0].OrderInList)
 }
 
 func TestFieldsSubFieldsAllSkipped(t *testing.T) {
@@ -869,10 +869,10 @@ func TestFieldsSubFieldsWithOrder(t *testing.T) {
 	require.Len(t, f.SubField, 2)
 	// First has explicit order 5.
 	assert.Equal(t, core.Ref{ID: mnemonics["NOTES"]}, f.SubField[0].Property)
-	assert.Equal(t, 5.0, f.SubField[0].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 5, Precision: 1}, f.SubField[0].OrderInList)
 	// Second has auto-increment order 1.
 	assert.Equal(t, core.Ref{ID: mnemonics["PERIOD"]}, f.SubField[1].Property)
-	assert.Equal(t, 1.0, f.SubField[1].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Amount[float64]{Amount: 1, Precision: 1}, f.SubField[1].OrderInList)
 }
 
 func TestFieldsSubFieldsSlice(t *testing.T) {

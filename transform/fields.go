@@ -1,7 +1,6 @@
 package transform
 
 import (
-	"math"
 	"reflect"
 	"slices"
 	"strconv"
@@ -9,6 +8,7 @@ import (
 
 	"gitlab.com/tozd/go/errors"
 
+	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
@@ -244,37 +244,40 @@ func (fc *fieldsCollector) processInnerFields(
 	return fields, nil
 }
 
-// resolveOrder returns the order for a field or section.
+// resolveOrder returns the order for a field or section as an Amount[float64].
 //
-// If orderTag is non-empty, it is parsed as a finite float64 and the auto-increment order is not advanced.
-// If orderTag is empty, the current auto-increment order is used and advanced.
-func resolveOrder(orderTag string, order *float64) (float64, errors.E) {
+// If orderTag is non-empty, it is parsed using document.NewAmountDetectPrecision.
+// If orderTag is empty, the current auto-increment order is used (with precision 1) and advanced.
+func resolveOrder(orderTag string, order *float64) (internalCore.Amount[float64], errors.E) {
 	if orderTag == "" {
 		v := *order
 		*order++
-		return v, nil
+		return internalCore.Amount[float64]{Amount: v, Precision: 1}, nil
 	}
 
-	v, err := strconv.ParseFloat(orderTag, 64)
+	amount, precision, errE := document.NewAmountDetectPrecision(orderTag)
+	if errE != nil {
+		errors.Details(errE)["order"] = orderTag
+		return internalCore.Amount[float64]{}, errE
+	}
+
+	v, err := strconv.ParseFloat(string(amount), 64)
 	if err != nil {
-		errE := errors.Wrap(err, "order tag is not a valid number")
+		// This should not be possible.
+		errE := errors.WithStack(err)
 		errors.Details(errE)["order"] = orderTag
-		return 0, errE
-	}
-	if math.IsInf(v, 0) || math.IsNaN(v) {
-		errE := errors.New("order must be a finite number")
-		errors.Details(errE)["order"] = orderTag
-		return 0, errE
+		errors.Details(errE)["amount"] = amount
+		panic(errE)
 	}
 
-	return v, nil
+	return internalCore.Amount[float64]{Amount: v, Precision: precision}, nil
 }
 
 // makeField creates a core.Field from a struct field's tags.
 func (fc *fieldsCollector) makeField(
 	structField reflect.StructField,
 	mnemonic string,
-	order float64,
+	order internalCore.Amount[float64],
 	fieldPath []string,
 	structPath []reflect.Type,
 ) (internalCore.Field, errors.E) {
