@@ -159,13 +159,13 @@ export type SiteContext = {
     buildTimestamp?: string
     revision?: string
   }
-  title: string
+  title?: string
   logo?: string
-  languagePriority: {
+  languagePriority?: {
     [language: string]: string[]
   }
   defaultLanguage?: string
-  languageCodes: {
+  languageCodes?: {
     [documentId: string]: string
   }
   features: {
