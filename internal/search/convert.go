@@ -67,6 +67,17 @@ func (d documentInfo) CollectHierarchyPaths() ([]string, map[string][]string) {
 	return toPath, toDisplayPath
 }
 
+// fieldInverseKey identifies a position within a class's field hierarchy
+// for field-level inverse property lookup. Path is the encoded sequence of
+// parent HasClaim property IDs and SourceProp is the property at this position.
+type fieldInverseKey struct {
+	// Path is the encoded path of parent HasClaim property IDs leading to this
+	// field position, joined by "/". Empty string for top-level fields.
+	Path string
+	// SourceProp is the property ID of the claim at this field position.
+	SourceProp identifier.Identifier
+}
+
 // Converter holds preprocessed data for converting document.D to search Document.
 type Converter struct {
 	// propertyDescendants maps a property ID to all its transitive sub-property IDs.
@@ -85,6 +96,11 @@ type Converter struct {
 	// Y is in inverseProperties[X] and X is in inverseProperties[Y].
 	// Multiple properties can be inverses of the same property.
 	inverseProperties map[identifier.Identifier][]identifier.Identifier
+	// fieldInverseProperties maps a (field path, source property ID) pair to the
+	// target inverse property ID defined on class field definitions. Built from all
+	// class documents that define fields with INVERSE_PROPERTY. Field-level inverse
+	// properties take precedence over property-level INVERSE_PROPERTY_OF.
+	fieldInverseProperties map[fieldInverseKey]identifier.Identifier
 	// languagePriority defines per-language fallback order for display label resolution.
 	// It maps a language to its ordered fallback languages for display label resolution.
 	// If a language is not a key, fallback is only the undetermined language.
@@ -101,11 +117,12 @@ type Converter struct {
 // NewConverter creates a Converter that preprocesses property hierarchies and discovers
 // value hierarchy types. properties contains all property documents (used for SUBPROPERTY_OF
 // hierarchy and discovering other hierarchy types), languages contains language documents
-// needed for language code extraction, languagePriority defines per-language fallback order
-// for display label resolution, and getDocument is a callback to fetch documents by ID.
+// needed for language code extraction, classes contains class documents with field definitions
+// (used for field-level INVERSE_PROPERTY), languagePriority defines per-language fallback
+// order for display label resolution, and getDocument is a callback to fetch documents by ID.
 // Value hierarchies (e.g., SUBCLASS_OF) are computed lazily during conversion.
 func NewConverter(
-	properties, languages []*document.D,
+	properties, languages, classes []*document.D,
 	languagePriority map[string][]string,
 	getDocument func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E),
 ) (*Converter, errors.E) {
@@ -133,6 +150,7 @@ func NewConverter(
 		valueHierarchyProperties: nil,
 		namingProperties:         nil,
 		inverseProperties:        nil,
+		fieldInverseProperties:   nil,
 		languageCodes:            nil,
 		languagePriority:         fullPriority,
 		getDocument:              getDocument,
@@ -144,6 +162,7 @@ func NewConverter(
 	c.buildNamingProperties()
 	c.buildLanguageCodes(languages)
 	c.buildInverseProperties(properties)
+	c.buildFieldInverseProperties(classes)
 	return c, nil
 }
 
@@ -319,6 +338,67 @@ func (c *Converter) buildInverseProperties(properties []*document.D) {
 				c.inverseProperties[rel.To.ID] = append(c.inverseProperties[rel.To.ID], prop.ID)
 			}
 		}
+	}
+}
+
+// encodeFieldPath encodes a slice of property IDs into a string for use as a
+// fieldInverseKey path. IDs are joined by "/". Returns empty string for empty path.
+func encodeFieldPath(path []identifier.Identifier) string {
+	if len(path) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(path))
+	for _, id := range path {
+		parts = append(parts, id.String())
+	}
+	return strings.Join(parts, "/")
+}
+
+// buildFieldInverseProperties extracts inverse property definitions from class
+// document field hierarchies. For each class document that has FIELD or SECTION
+// claims, it walks the field tree (FIELD -> SUB_FIELD) and records any
+// INVERSE_PROPERTY settings as (field path, source property) -> target property.
+func (c *Converter) buildFieldInverseProperties(classes []*document.D) {
+	c.fieldInverseProperties = map[fieldInverseKey]identifier.Identifier{}
+	for _, cls := range classes {
+		// Process top-level FIELD HasClaims.
+		for _, field := range document.GetClaimsOfTypeWithConfidence[*document.HasClaim](cls, internalCore.FieldPropID, document.LowConfidence) {
+			c.processFieldInverse(nil, field)
+		}
+		// Process SECTION HasClaims which contain FIELD HasClaims.
+		for _, section := range document.GetClaimsOfTypeWithConfidence[*document.HasClaim](cls, internalCore.SectionPropID, document.LowConfidence) {
+			for _, field := range document.GetClaimsOfTypeWithConfidence[*document.HasClaim](section, internalCore.FieldPropID, document.LowConfidence) {
+				c.processFieldInverse(nil, field)
+			}
+		}
+	}
+}
+
+// processFieldInverse extracts inverse property from a single field HasClaim
+// and recurses into SUB_FIELD HasClaims. parentPath tracks the accumulated
+// property IDs from parent fields.
+func (c *Converter) processFieldInverse(parentPath []identifier.Identifier, field *document.HasClaim) {
+	// Extract the field's property (HAS_PROPERTY reference).
+	hasPropRef := document.GetBestClaimOfType[*document.ReferenceClaim](field, internalCore.HasPropertyPropID)
+	if hasPropRef == nil {
+		return
+	}
+	propID := hasPropRef.To.ID
+
+	// Check for INVERSE_PROPERTY reference.
+	inversePropRef := document.GetBestClaimOfType[*document.ReferenceClaim](field, internalCore.InversePropertyPropID)
+	if inversePropRef != nil {
+		key := fieldInverseKey{
+			Path:       encodeFieldPath(parentPath),
+			SourceProp: propID,
+		}
+		c.fieldInverseProperties[key] = inversePropRef.To.ID
+	}
+
+	// Recurse into SUB_FIELD HasClaims.
+	childPath := append(slices.Clone(parentPath), propID)
+	for _, subField := range document.GetClaimsOfTypeWithConfidence[*document.HasClaim](field, internalCore.SubFieldPropID, document.LowConfidence) {
+		c.processFieldInverse(childPath, subField)
 	}
 }
 
@@ -904,8 +984,7 @@ func (v *convertVisitor) VisitUnknown(claim *document.UnknownClaim) (document.Vi
 // FromDocument converts a document.D to a search Document.
 //
 // inverseRelations contains reference claims from other documents that point to this document.
-// For those whose property has an inverse property, a reverse reference claim is added to
-// the search document.
+// For each inverse relation, a synthetic reverse reference claim is added to the search document.
 func (c *Converter) FromDocument(
 	ctx context.Context, doc *document.D, inverseRelations []internalStore.InverseRelation,
 ) (*Document, errors.E) {
@@ -925,26 +1004,18 @@ func (c *Converter) FromDocument(
 
 	// Process incoming inverse relations from metadata.
 	for _, ir := range inverseRelations {
-		inversePropIDs, ok := c.inverseProperties[ir.Prop]
-		if !ok {
-			// Property has no inverse, skip.
-			continue
+		claims, errE := c.convertReference(ctx, &document.ReferenceClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         inverseReferenceClaimID(doc.Base, ir.InverseRelationKey),
+				Confidence: ir.Confidence,
+			},
+			Prop: document.Reference{ID: ir.TargetProp},
+			To:   document.Reference{ID: ir.Source},
+		})
+		if errE != nil {
+			return nil, errE
 		}
-		// Create a synthetic reference claim for each inverse property pointing back to the source document.
-		for _, inversePropID := range inversePropIDs {
-			claims, errE := c.convertReference(ctx, &document.ReferenceClaim{
-				CoreClaim: document.CoreClaim{
-					ID:         inverseReferenceClaimID(doc.ID, ir.Source, ir.Claim),
-					Confidence: ir.Confidence,
-				},
-				Prop: document.Reference{ID: inversePropID},
-				To:   document.Reference{ID: ir.Source},
-			})
-			if errE != nil {
-				return nil, errE
-			}
-			v.result.Claims.Reference = append(v.result.Claims.Reference, claims...)
-		}
+		v.result.Claims.Reference = append(v.result.Claims.Reference, claims...)
 	}
 
 	return v.result, nil
@@ -952,28 +1023,187 @@ func (c *Converter) FromDocument(
 
 // inverseReferenceClaimID computes an unique claim ID for a synthetic inverse reference claim.
 //
-// It uses source document ID and source claim ID to avoid collisions between claims from
+// It uses InverseRelationKey to avoid collisions between claims from
 // different source documents that might share the same claim ID.
-func inverseReferenceClaimID(target, source, claim identifier.Identifier) identifier.Identifier {
-	return identifier.From(target.String(), "INVERSE_RELATION", source.String(), claim.String())
+func inverseReferenceClaimID(base []string, irKey internalStore.InverseRelationKey) identifier.Identifier {
+	base = slices.Clone(base)
+	base = append(base, "INVERSE_RELATION", irKey.Source.String(), irKey.Claim.String(), irKey.TargetProp.String())
+	return identifier.From(base...)
+}
+
+// inverseRelationsVisitor implements document.Visitor to collect outgoing inverse
+// relations from a document. It tracks the current field path (via sub-claims)
+// and for each reference claim, resolves the inverse property from field-level
+// definitions (taking precedence) or property-level INVERSE_PROPERTY_OF.
+type inverseRelationsVisitor struct {
+	converter *Converter
+	docID     identifier.Identifier
+	// path tracks the current nesting of claim property IDs.
+	path []identifier.Identifier
+	// result maps target document ID to collected inverse relations.
+	result map[identifier.Identifier][]internalStore.InverseRelation
+}
+
+var _ document.Visitor = (*inverseRelationsVisitor)(nil)
+
+// recurse pushes propID onto the path, visits sub-claims, then pops.
+func (v *inverseRelationsVisitor) recurse(propID identifier.Identifier, claim document.Claim) errors.E {
+	v.path = append(v.path, propID)
+	errE := claim.Visit(v)
+	v.path = v.path[:len(v.path)-1]
+	return errE
+}
+
+// VisitIdentifier recurses into sub-claims to find nested references.
+func (v *inverseRelationsVisitor) VisitIdentifier(claim *document.IdentifierClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+// VisitString recurses into sub-claims to find nested references.
+func (v *inverseRelationsVisitor) VisitString(claim *document.StringClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+// VisitHTML recurses into sub-claims to find nested references.
+func (v *inverseRelationsVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+// VisitAmount recurses into sub-claims to find nested references.
+func (v *inverseRelationsVisitor) VisitAmount(claim *document.AmountClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+// VisitAmountInterval recurses into sub-claims to find nested references.
+func (v *inverseRelationsVisitor) VisitAmountInterval(claim *document.AmountIntervalClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+// VisitTime recurses into sub-claims to find nested references.
+func (v *inverseRelationsVisitor) VisitTime(claim *document.TimeClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+// VisitTimeInterval recurses into sub-claims to find nested references.
+func (v *inverseRelationsVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+// VisitLink recurses into sub-claims to find nested references.
+func (v *inverseRelationsVisitor) VisitLink(claim *document.LinkClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+// VisitReference checks for inverse properties and creates InverseRelation entries,
+// then recurses into sub-claims to find further nested references.
+// It first checks field-level inverse properties (based on the current path), then
+// falls back to property-level inverse properties.
+func (v *inverseRelationsVisitor) VisitReference(claim *document.ReferenceClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+
+	// Check field-level inverse property first (takes precedence).
+	key := fieldInverseKey{
+		Path:       encodeFieldPath(v.path),
+		SourceProp: claim.Prop.ID,
+	}
+	if targetProp, ok := v.converter.fieldInverseProperties[key]; ok {
+		v.result[claim.To.ID] = append(v.result[claim.To.ID], internalStore.InverseRelation{
+			InverseRelationKey: internalStore.InverseRelationKey{
+				Claim:      claim.ID,
+				Source:     v.docID,
+				TargetProp: targetProp,
+			},
+			SourceProp: claim.Prop.ID,
+			Target:     claim.To.ID,
+			Confidence: claim.GetConfidence(),
+		})
+	} else {
+		// Fall back to property-level inverse properties.
+		for _, inversePropID := range v.converter.inverseProperties[claim.Prop.ID] {
+			v.result[claim.To.ID] = append(v.result[claim.To.ID], internalStore.InverseRelation{
+				InverseRelationKey: internalStore.InverseRelationKey{
+					Claim:      claim.ID,
+					Source:     v.docID,
+					TargetProp: inversePropID,
+				},
+				SourceProp: claim.Prop.ID,
+				Target:     claim.To.ID,
+				Confidence: claim.GetConfidence(),
+			})
+		}
+	}
+
+	// Recurse into sub-claims (reference claims can also have sub-fields).
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+// VisitHas recurses into sub-claims to find nested references.
+func (v *inverseRelationsVisitor) VisitHas(claim *document.HasClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+// VisitNone recurses into sub-claims to find nested references.
+func (v *inverseRelationsVisitor) VisitNone(claim *document.NoneClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+// VisitUnknown recurses into sub-claims to find nested references.
+func (v *inverseRelationsVisitor) VisitUnknown(claim *document.UnknownClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
 }
 
 // OutgoingInverseRelations extracts the outgoing inverse relations from a document.
 //
-// For each reference claim in the document, it records an InverseRelation entry keyed
-// by the target document ID.
-func OutgoingInverseRelations(doc *document.D) map[identifier.Identifier][]internalStore.InverseRelation {
-	result := map[identifier.Identifier][]internalStore.InverseRelation{}
-	for _, claim := range document.GetAllClaimsOfTypeWithConfidence[*document.ReferenceClaim](doc, document.LowConfidence) {
-		result[claim.To.ID] = append(result[claim.To.ID], internalStore.InverseRelation{
-			Claim:      claim.ID,
-			Source:     doc.ID,
-			Prop:       claim.Prop.ID,
-			Target:     claim.To.ID,
-			Confidence: claim.GetConfidence(),
-		})
+// It walks the document's claims using an inverseRelationsVisitor that tracks the
+// current field path (via HasClaim nesting). For each reference claim, it resolves
+// the inverse property from field-level INVERSE_PROPERTY (taking precedence) or
+// property-level INVERSE_PROPERTY_OF. Only reference claims with a resolved inverse
+// property produce InverseRelation entries. Returns a map keyed by target document ID.
+func (c *Converter) OutgoingInverseRelations(doc *document.D) map[identifier.Identifier][]internalStore.InverseRelation {
+	v := &inverseRelationsVisitor{
+		converter: c,
+		docID:     doc.ID,
+		path:      nil,
+		result:    map[identifier.Identifier][]internalStore.InverseRelation{},
 	}
-	return result
+	// Visit cannot return an error from inverseRelationsVisitor.
+	_ = doc.Visit(v)
+	return v.result
 }
 
 func (c *Converter) convertIdentifier(ctx context.Context, claim *document.IdentifierClaim) ([]IdentifierClaim, errors.E) {

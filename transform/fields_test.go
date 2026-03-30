@@ -809,7 +809,7 @@ func TestFieldsSubFieldsNoValue(t *testing.T) {
 
 	require.Len(t, result.Field, 1)
 	f := result.Field[0]
-	// No value field → HAS value type (maps to HasClaim in Documents).
+	// No value field -> HAS value type (maps to HasClaim in Documents).
 	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "HAS"}}, f.ValueType)
 
 	// Sub-fields: Location and Note.
@@ -850,7 +850,7 @@ func TestFieldsSubFieldsAllSkipped(t *testing.T) {
 	require.Len(t, result.Field, 1)
 	f := result.Field[0]
 
-	// All sub-fields skipped → SubField should be nil.
+	// All sub-fields skipped -> SubField should be nil.
 	assert.Nil(t, f.SubField)
 }
 

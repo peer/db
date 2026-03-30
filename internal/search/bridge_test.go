@@ -55,7 +55,7 @@ func makeDocJSON(t *testing.T, id identifier.Identifier) json.RawMessage {
 // newTestBridgeConverter creates a minimal Converter for bridge tests.
 func newTestBridgeConverter(t *testing.T) *internalSearch.Converter {
 	t.Helper()
-	c, errE := internalSearch.NewConverter(nil, nil, nil, func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+	c, errE := internalSearch.NewConverter(nil, nil, nil, nil, func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
 		return &document.D{
 			CoreDocument: document.CoreDocument{ID: id}, //nolint:exhaustruct
 		}, nil
@@ -467,7 +467,7 @@ func makeConverterWithInverse(
 
 	properties := []*document.D{propXDoc, propYDoc}
 
-	c, errE := internalSearch.NewConverter(properties, nil, nil, func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
+	c, errE := internalSearch.NewConverter(properties, nil, nil, nil, func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
 		data, _, _, _, errE := s.GetLatest(ctx, id)
 		if errors.Is(errE, store.ErrValueNotFound) {
 			// Return a minimal document for IDs not in the store (e.g., core property/class IDs).

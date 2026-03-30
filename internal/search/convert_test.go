@@ -40,6 +40,16 @@ func makeCoreClaim(confidence document.Confidence, sub *document.ClaimTypes) doc
 	}
 }
 
+// newIR creates an InverseRelation with the given fields.
+func newIR(claim, source, sourceProp, targetProp, target identifier.Identifier, confidence document.Confidence) internalStore.InverseRelation {
+	return internalStore.InverseRelation{
+		InverseRelationKey: internalStore.InverseRelationKey{Claim: claim, Source: source, TargetProp: targetProp},
+		SourceProp:         sourceProp,
+		Target:             target,
+		Confidence:         confidence,
+	}
+}
+
 // makePropertyDoc creates a property document (instance of PROPERTY class) with optional SUBPROPERTY_OF relation.
 func makePropertyDoc(id identifier.Identifier, subpropertyOf *identifier.Identifier) *document.D {
 	return makePropertyDocFull(id, subpropertyOf, nil)
@@ -148,7 +158,17 @@ func newTestConverter(
 	extraDocs map[identifier.Identifier]*document.D,
 ) *Converter {
 	t.Helper()
-	return newTestConverterWithPriority(t, properties, languages, extraDocs, nil)
+	return newTestConverterFull(t, properties, languages, nil, extraDocs, nil)
+}
+
+// newTestConverterWithClasses creates a Converter with class documents.
+func newTestConverterWithClasses(
+	t *testing.T,
+	properties, classes []*document.D,
+	extraDocs map[identifier.Identifier]*document.D,
+) *Converter {
+	t.Helper()
+	return newTestConverterFull(t, properties, nil, classes, extraDocs, nil)
 }
 
 // newTestConverterWithPriority creates a Converter with custom language priority.
@@ -159,13 +179,24 @@ func newTestConverterWithPriority(
 	priority map[string][]string,
 ) *Converter {
 	t.Helper()
+	return newTestConverterFull(t, properties, languages, nil, extraDocs, priority)
+}
+
+// newTestConverterFull creates a Converter with all options.
+func newTestConverterFull(
+	t *testing.T,
+	properties, languages, classes []*document.D,
+	extraDocs map[identifier.Identifier]*document.D,
+	priority map[string][]string,
+) *Converter {
+	t.Helper()
 	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
 		if doc, ok := extraDocs[id]; ok {
 			return doc, nil
 		}
 		return nil, errors.New("document not found")
 	}
-	c, errE := NewConverter(properties, languages, priority, getDocument)
+	c, errE := NewConverter(properties, languages, classes, priority, getDocument)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	return c
 }
@@ -408,7 +439,7 @@ func TestGetDocumentInfoCaching(t *testing.T) {
 		}
 		return nil, errors.New("document not found")
 	}
-	c, errE := NewConverter(nil, nil, nil, getDocument)
+	c, errE := NewConverter(nil, nil, nil, nil, getDocument)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	ctx := t.Context()
@@ -4304,12 +4335,12 @@ func TestNewConverterValidation(t *testing.T) {
 	}
 
 	// Valid priority.
-	c, errE := NewConverter(nil, nil, map[string][]string{"en": {"sl"}}, getDocument)
+	c, errE := NewConverter(nil, nil, nil, map[string][]string{"en": {"sl"}}, getDocument)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.NotNil(t, c)
 
 	// Invalid priority.
-	c, errE = NewConverter(nil, nil, map[string][]string{"xx": {"en"}}, getDocument)
+	c, errE = NewConverter(nil, nil, nil, map[string][]string{"xx": {"en"}}, getDocument)
 	assert.EqualError(t, errE, "unsupported language in priority key")
 	assert.Nil(t, c)
 }
@@ -4760,6 +4791,11 @@ func TestBuildInversePropertiesSkipsNonProperties(t *testing.T) {
 func TestOutgoingInverseRelations(t *testing.T) {
 	t.Parallel()
 
+	// Property testPropID has inverse testPropID2.
+	propDoc := makePropertyDocFull(testPropID, nil, &testPropID2)
+	propDoc2 := makePropertyDocFull(testPropID2, nil, nil)
+	c := newTestConverter(t, []*document.D{propDoc, propDoc2}, nil, nil)
+
 	claimID := identifier.New()
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
@@ -4777,7 +4813,7 @@ func TestOutgoingInverseRelations(t *testing.T) {
 		},
 	}
 
-	outgoing := OutgoingInverseRelations(doc)
+	outgoing := c.OutgoingInverseRelations(doc)
 
 	// Should have an entry for the target document.
 	require.Contains(t, outgoing, testTargetDocID)
@@ -4785,19 +4821,23 @@ func TestOutgoingInverseRelations(t *testing.T) {
 	ir := outgoing[testTargetDocID][0]
 	assert.Equal(t, claimID, ir.Claim)
 	assert.Equal(t, testDocID, ir.Source)
-	assert.Equal(t, testPropID, ir.Prop)
+	assert.Equal(t, testPropID, ir.SourceProp)
+	assert.Equal(t, testPropID2, ir.TargetProp)
 	assert.InDelta(t, float64(document.HighConfidence), float64(ir.Confidence), 0)
 }
 
 func TestInverseRelationClaimIDDeterministic(t *testing.T) {
 	t.Parallel()
 
-	target := identifier.New()
-	source := identifier.New()
-	claim := identifier.New()
+	base := []string{"base"}
+	irKey := internalStore.InverseRelationKey{
+		Claim:      identifier.New(),
+		Source:     identifier.New(),
+		TargetProp: identifier.New(),
+	}
 
-	id1 := inverseReferenceClaimID(target, source, claim)
-	id2 := inverseReferenceClaimID(target, source, claim)
+	id1 := inverseReferenceClaimID(base, irKey)
+	id2 := inverseReferenceClaimID(base, irKey)
 
 	assert.Equal(t, id1, id2)
 }
@@ -4805,13 +4845,14 @@ func TestInverseRelationClaimIDDeterministic(t *testing.T) {
 func TestInverseRelationClaimIDDiffersPerSource(t *testing.T) {
 	t.Parallel()
 
-	target := identifier.New()
+	base := []string{"base"}
+	claim := identifier.New()
+	targetProp := identifier.New()
 	sourceA := identifier.New()
 	sourceB := identifier.New()
-	claim := identifier.New()
 
-	idA := inverseReferenceClaimID(target, sourceA, claim)
-	idB := inverseReferenceClaimID(target, sourceB, claim)
+	idA := inverseReferenceClaimID(base, internalStore.InverseRelationKey{Claim: claim, Source: sourceA, TargetProp: targetProp})
+	idB := inverseReferenceClaimID(base, internalStore.InverseRelationKey{Claim: claim, Source: sourceB, TargetProp: targetProp})
 
 	assert.NotEqual(t, idA, idB)
 }
@@ -4819,11 +4860,39 @@ func TestInverseRelationClaimIDDiffersPerSource(t *testing.T) {
 func TestOutgoingInverseRelationsEmpty(t *testing.T) {
 	t.Parallel()
 
+	c := newTestConverter(t, nil, nil, nil)
+
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 
-	outgoing := OutgoingInverseRelations(doc)
+	outgoing := c.OutgoingInverseRelations(doc)
+	assert.Empty(t, outgoing)
+}
+
+func TestOutgoingInverseRelationsNoInverse(t *testing.T) {
+	t.Parallel()
+
+	// Property with no inverse.
+	propDoc := makePropertyDocFull(testPropID, nil, nil)
+	c := newTestConverter(t, []*document.D{propDoc}, nil, nil)
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+					To:        document.Reference{ID: testTargetDocID},
+				},
+			},
+		},
+	}
+
+	outgoing := c.OutgoingInverseRelations(doc)
+
+	// No inverse property, so no outgoing relations should be created.
 	assert.Empty(t, outgoing)
 }
 
@@ -4856,14 +4925,9 @@ func TestFromDocumentIncomingInverseRelation(t *testing.T) {
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
+	// TargetProp is pre-resolved: property X has inverse Y.
 	inverseRelations := []internalStore.InverseRelation{
-		{
-			Claim:      claimID,
-			Source:     sourceDocID,
-			Prop:       propX,
-			Target:     identifier.Identifier{},
-			Confidence: document.HighConfidence,
-		},
+		newIR(claimID, sourceDocID, propX, propY, identifier.Identifier{}, document.HighConfidence),
 	}
 
 	result, errE := c.FromDocument(ctx, doc, inverseRelations)
@@ -4876,44 +4940,12 @@ func TestFromDocumentIncomingInverseRelation(t *testing.T) {
 	assert.Equal(t, sourceDocID, rel.To)
 }
 
-func TestFromDocumentIncomingInverseRelationNoInverse(t *testing.T) {
-	t.Parallel()
-
-	// Property X has no inverse.
-	propX := identifier.New()
-	propXDoc := makePropertyDocFull(propX, nil, nil)
-
-	extraDocs := map[identifier.Identifier]*document.D{
-		propX: makeNamingDoc(propX, "Prop X"),
-	}
-	c := newTestConverter(t, []*document.D{propXDoc}, nil, extraDocs)
-
-	ctx := t.Context()
-	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
-	}
-	inverseRelations := []internalStore.InverseRelation{
-		{
-			Claim:      identifier.New(),
-			Source:     identifier.New(),
-			Prop:       propX,
-			Target:     identifier.Identifier{},
-			Confidence: document.HighConfidence,
-		},
-	}
-
-	result, errE := c.FromDocument(ctx, doc, inverseRelations)
-	require.NoError(t, errE, "% -+#.1v", errE)
-
-	// No inverse property, so no relation claims should be added.
-	assert.Empty(t, result.Claims.Reference)
-}
-
 func TestFromDocumentIncomingInverseRelationMultipleInverses(t *testing.T) {
 	t.Parallel()
 
 	// Both A and C have inversePropertyOf B.
-	// An incoming relation with property B should produce reverse claims for both A and C.
+	// Two separate InverseRelation entries (one with TargetProp=A, one with TargetProp=C)
+	// should produce two reverse claims.
 	propA := identifier.New()
 	propB := identifier.New()
 	propC := identifier.New()
@@ -4932,17 +4964,13 @@ func TestFromDocumentIncomingInverseRelationMultipleInverses(t *testing.T) {
 	c := newTestConverter(t, []*document.D{propADoc, propBDoc, propCDoc}, nil, extraDocs)
 
 	ctx := t.Context()
+	claimID := identifier.New()
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 	inverseRelations := []internalStore.InverseRelation{
-		{
-			Claim:      identifier.New(),
-			Source:     sourceDocID,
-			Prop:       propB,
-			Target:     identifier.Identifier{},
-			Confidence: document.HighConfidence,
-		},
+		newIR(claimID, sourceDocID, propB, propA, identifier.Identifier{}, document.HighConfidence),
+		newIR(claimID, sourceDocID, propB, propC, identifier.Identifier{}, document.HighConfidence),
 	}
 
 	result, errE := c.FromDocument(ctx, doc, inverseRelations)
@@ -4985,15 +5013,9 @@ func TestFromDocumentIncomingInverseRelationBidirectional(t *testing.T) {
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 
-	// Incoming relation with property A (the one that declared inversePropertyOf B).
+	// Incoming relation with property A, resolved TargetProp is B.
 	inverseRelations := []internalStore.InverseRelation{
-		{
-			Claim:      identifier.New(),
-			Source:     sourceDocID,
-			Prop:       propA,
-			Target:     identifier.Identifier{},
-			Confidence: document.HighConfidence,
-		},
+		newIR(identifier.New(), sourceDocID, propA, propB, identifier.Identifier{}, document.HighConfidence),
 	}
 
 	result, errE := c.FromDocument(ctx, doc, inverseRelations)
@@ -5025,7 +5047,7 @@ func TestDiffOutgoingInverseRelationsNewClaim(t *testing.T) {
 	prop1 := identifier.New()
 
 	current := map[identifier.Identifier][]internalStore.InverseRelation{
-		targetB: {{Claim: claim1, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence}},
+		targetB: {newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence)},
 	}
 	parent := map[identifier.Identifier][]internalStore.InverseRelation{}
 
@@ -5046,7 +5068,7 @@ func TestDiffOutgoingInverseRelationsRemovedClaim(t *testing.T) {
 
 	current := map[identifier.Identifier][]internalStore.InverseRelation{}
 	parent := map[identifier.Identifier][]internalStore.InverseRelation{
-		targetB: {{Claim: claim1, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence}},
+		targetB: {newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence)},
 	}
 
 	added, removed := diffOutgoingInverseRelations(current, parent)
@@ -5064,7 +5086,7 @@ func TestDiffOutgoingInverseRelationsUnchanged(t *testing.T) {
 	claim1 := identifier.New()
 	prop1 := identifier.New()
 
-	ir := internalStore.InverseRelation{Claim: claim1, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence}
+	ir := newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence)
 	current := map[identifier.Identifier][]internalStore.InverseRelation{targetB: {ir}}
 	parent := map[identifier.Identifier][]internalStore.InverseRelation{targetB: {ir}}
 
@@ -5086,10 +5108,10 @@ func TestDiffOutgoingInverseRelationsChangedTarget(t *testing.T) {
 
 	// Parent had A -> B, current has A -> C (different claim IDs because the claim was replaced).
 	parent := map[identifier.Identifier][]internalStore.InverseRelation{
-		targetB: {{Claim: claimOld, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence}},
+		targetB: {newIR(claimOld, docA, prop1, prop1, targetB, document.HighConfidence)},
 	}
 	current := map[identifier.Identifier][]internalStore.InverseRelation{
-		targetC: {{Claim: claimNew, Source: docA, Prop: prop1, Target: targetC, Confidence: document.HighConfidence}},
+		targetC: {newIR(claimNew, docA, prop1, prop1, targetC, document.HighConfidence)},
 	}
 
 	added, removed := diffOutgoingInverseRelations(current, parent)
@@ -5116,14 +5138,14 @@ func TestDiffOutgoingInverseRelationsMultipleParents(t *testing.T) {
 	// Two parents contributed claims, current keeps claim1 and adds claimNew but drops claim2.
 	parent := map[identifier.Identifier][]internalStore.InverseRelation{
 		targetB: {
-			{Claim: claim1, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence},
-			{Claim: claim2, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence},
+			newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence),
+			newIR(claim2, docA, prop1, prop1, targetB, document.HighConfidence),
 		},
 	}
 	current := map[identifier.Identifier][]internalStore.InverseRelation{
 		targetB: {
-			{Claim: claim1, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence},
-			{Claim: claimNew, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence},
+			newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence),
+			newIR(claimNew, docA, prop1, prop1, targetB, document.HighConfidence),
 		},
 	}
 
@@ -5147,10 +5169,10 @@ func TestDiffOutgoingInverseRelationsSameClaimChangedTarget(t *testing.T) {
 
 	// Same claim ID, but target changed from B to C.
 	parent := map[identifier.Identifier][]internalStore.InverseRelation{
-		targetB: {{Claim: claim1, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence}},
+		targetB: {newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence)},
 	}
 	current := map[identifier.Identifier][]internalStore.InverseRelation{
-		targetC: {{Claim: claim1, Source: docA, Prop: prop1, Target: targetC, Confidence: document.HighConfidence}},
+		targetC: {newIR(claim1, docA, prop1, prop1, targetC, document.HighConfidence)},
 	}
 
 	added, removed := diffOutgoingInverseRelations(current, parent)
@@ -5176,20 +5198,20 @@ func TestDiffOutgoingInverseRelationsSameClaimChangedProp(t *testing.T) {
 
 	// Same claim ID and target, but property changed.
 	parent := map[identifier.Identifier][]internalStore.InverseRelation{
-		targetB: {{Claim: claim1, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence}},
+		targetB: {newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence)},
 	}
 	current := map[identifier.Identifier][]internalStore.InverseRelation{
-		targetB: {{Claim: claim1, Source: docA, Prop: prop2, Target: targetB, Confidence: document.HighConfidence}},
+		targetB: {newIR(claim1, docA, prop2, prop2, targetB, document.HighConfidence)},
 	}
 
 	added, removed := diffOutgoingInverseRelations(current, parent)
 
 	// Should detect the property change as removal + addition.
 	require.Len(t, added[targetB], 1)
-	assert.Equal(t, prop2, added[targetB][0].Prop)
+	assert.Equal(t, prop2, added[targetB][0].SourceProp)
 
 	require.Len(t, removed[targetB], 1)
-	assert.Equal(t, prop1, removed[targetB][0].Prop)
+	assert.Equal(t, prop1, removed[targetB][0].SourceProp)
 }
 
 func TestDiffOutgoingInverseRelationsSameClaimChangedConfidence(t *testing.T) {
@@ -5202,10 +5224,10 @@ func TestDiffOutgoingInverseRelationsSameClaimChangedConfidence(t *testing.T) {
 
 	// Same claim ID, target, and prop, but confidence changed.
 	parent := map[identifier.Identifier][]internalStore.InverseRelation{
-		targetB: {{Claim: claim1, Source: docA, Prop: prop1, Target: targetB, Confidence: document.HighConfidence}},
+		targetB: {newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence)},
 	}
 	current := map[identifier.Identifier][]internalStore.InverseRelation{
-		targetB: {{Claim: claim1, Source: docA, Prop: prop1, Target: targetB, Confidence: document.LowConfidence}},
+		targetB: {newIR(claim1, docA, prop1, prop1, targetB, document.LowConfidence)},
 	}
 
 	added, removed := diffOutgoingInverseRelations(current, parent)
@@ -5216,4 +5238,428 @@ func TestDiffOutgoingInverseRelationsSameClaimChangedConfidence(t *testing.T) {
 
 	require.Len(t, removed[targetB], 1)
 	assert.InDelta(t, float64(document.HighConfidence), float64(removed[targetB][0].Confidence), 0)
+}
+
+// makeClassDocWithField creates a class document with a single top-level FIELD
+// that has the given property and optional inverse property.
+func makeClassDocWithField(id, fieldPropID identifier.Identifier, inversePropID *identifier.Identifier) *document.D {
+	fieldSub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: internalCore.HasPropertyPropID},
+				To:        document.Reference{ID: fieldPropID},
+			},
+		},
+	}
+	if inversePropID != nil {
+		fieldSub.Reference = append(fieldSub.Reference, document.ReferenceClaim{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: internalCore.InversePropertyPropID},
+			To:        document.Reference{ID: *inversePropID},
+		})
+	}
+	claims := &document.ClaimTypes{
+		Has: []document.HasClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, fieldSub),
+				Prop:      document.Reference{ID: internalCore.FieldPropID},
+			},
+		},
+	}
+	return &document.D{
+		CoreDocument: document.CoreDocument{ID: id}, //nolint:exhaustruct
+		Claims:       claims,
+	}
+}
+
+// makeClassDocWithSubField creates a class document with a top-level FIELD (parentPropID)
+// containing a SUB_FIELD (childPropID) with optional inverse property.
+func makeClassDocWithSubField(id, parentPropID, childPropID identifier.Identifier, inversePropID *identifier.Identifier) *document.D {
+	subFieldSub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: internalCore.HasPropertyPropID},
+				To:        document.Reference{ID: childPropID},
+			},
+		},
+	}
+	if inversePropID != nil {
+		subFieldSub.Reference = append(subFieldSub.Reference, document.ReferenceClaim{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: internalCore.InversePropertyPropID},
+			To:        document.Reference{ID: *inversePropID},
+		})
+	}
+	fieldSub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: internalCore.HasPropertyPropID},
+				To:        document.Reference{ID: parentPropID},
+			},
+		},
+		Has: []document.HasClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, subFieldSub),
+				Prop:      document.Reference{ID: internalCore.SubFieldPropID},
+			},
+		},
+	}
+	claims := &document.ClaimTypes{
+		Has: []document.HasClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, fieldSub),
+				Prop:      document.Reference{ID: internalCore.FieldPropID},
+			},
+		},
+	}
+	return &document.D{
+		CoreDocument: document.CoreDocument{ID: id}, //nolint:exhaustruct
+		Claims:       claims,
+	}
+}
+
+func TestBuildFieldInverseProperties(t *testing.T) {
+	t.Parallel()
+
+	classID := identifier.New()
+	fieldProp := identifier.New()
+	inverseProp := identifier.New()
+
+	classDoc := makeClassDocWithField(classID, fieldProp, &inverseProp)
+
+	c := &Converter{}
+	c.buildFieldInverseProperties([]*document.D{classDoc})
+
+	// Should have field inverse for top-level field.
+	key := fieldInverseKey{Path: "", SourceProp: fieldProp}
+	assert.Equal(t, inverseProp, c.fieldInverseProperties[key])
+}
+
+func TestBuildFieldInversePropertiesNoInverse(t *testing.T) {
+	t.Parallel()
+
+	classID := identifier.New()
+	fieldProp := identifier.New()
+
+	classDoc := makeClassDocWithField(classID, fieldProp, nil)
+
+	c := &Converter{}
+	c.buildFieldInverseProperties([]*document.D{classDoc})
+
+	assert.Empty(t, c.fieldInverseProperties)
+}
+
+func TestBuildFieldInversePropertiesSubField(t *testing.T) {
+	t.Parallel()
+
+	classID := identifier.New()
+	parentProp := identifier.New()
+	childProp := identifier.New()
+	inverseProp := identifier.New()
+
+	classDoc := makeClassDocWithSubField(classID, parentProp, childProp, &inverseProp)
+
+	c := &Converter{}
+	c.buildFieldInverseProperties([]*document.D{classDoc})
+
+	// Should have field inverse for sub-field with parent path.
+	key := fieldInverseKey{Path: parentProp.String(), SourceProp: childProp}
+	assert.Equal(t, inverseProp, c.fieldInverseProperties[key])
+}
+
+func TestOutgoingInverseRelationsFieldLevel(t *testing.T) {
+	t.Parallel()
+
+	// Set up: class defines field P1 with inverse IP.
+	classID := identifier.New()
+	fieldProp := identifier.New()
+	inverseProp := identifier.New()
+	classDoc := makeClassDocWithField(classID, fieldProp, &inverseProp)
+
+	// No property-level inverse for fieldProp.
+	c := newTestConverterWithClasses(t, nil, []*document.D{classDoc}, nil)
+
+	targetDocID := identifier.New()
+	claimID := identifier.New()
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: document.CoreClaim{
+						ID:         claimID,
+						Confidence: document.HighConfidence,
+					},
+					Prop: document.Reference{ID: fieldProp},
+					To:   document.Reference{ID: targetDocID},
+				},
+			},
+		},
+	}
+
+	outgoing := c.OutgoingInverseRelations(doc)
+
+	require.Contains(t, outgoing, targetDocID)
+	require.Len(t, outgoing[targetDocID], 1)
+	ir := outgoing[targetDocID][0]
+	assert.Equal(t, claimID, ir.Claim)
+	assert.Equal(t, testDocID, ir.Source)
+	assert.Equal(t, fieldProp, ir.SourceProp)
+	assert.Equal(t, inverseProp, ir.TargetProp)
+}
+
+func TestOutgoingInverseRelationsFieldLevelPrecedence(t *testing.T) {
+	t.Parallel()
+
+	// Set up: property P has property-level inverse propInv.
+	propP := identifier.New()
+	propInv := identifier.New()
+	propPDoc := makePropertyDocFull(propP, nil, &propInv)
+	propInvDoc := makePropertyDocFull(propInv, nil, nil)
+
+	// But class field defines a different inverse: fieldInv.
+	classID := identifier.New()
+	fieldInv := identifier.New()
+	classDoc := makeClassDocWithField(classID, propP, &fieldInv)
+
+	extraDocs := map[identifier.Identifier]*document.D{}
+	c := newTestConverterWithClasses(t, []*document.D{propPDoc, propInvDoc}, []*document.D{classDoc}, extraDocs)
+
+	targetDocID := identifier.New()
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: propP},
+					To:        document.Reference{ID: targetDocID},
+				},
+			},
+		},
+	}
+
+	outgoing := c.OutgoingInverseRelations(doc)
+
+	// Field-level inverse takes precedence over property-level.
+	require.Contains(t, outgoing, targetDocID)
+	require.Len(t, outgoing[targetDocID], 1)
+	assert.Equal(t, fieldInv, outgoing[targetDocID][0].TargetProp)
+}
+
+func TestOutgoingInverseRelationsSubFieldInverse(t *testing.T) {
+	t.Parallel()
+
+	// Class defines Has(P1) -> Ref(P2) with inverse IP2.
+	classID := identifier.New()
+	parentProp := identifier.New()
+	childProp := identifier.New()
+	inverseProp := identifier.New()
+	classDoc := makeClassDocWithSubField(classID, parentProp, childProp, &inverseProp)
+
+	c := newTestConverterWithClasses(t, nil, []*document.D{classDoc}, nil)
+
+	targetDocID := identifier.New()
+	claimID := identifier.New()
+
+	// Document has Has(P1) containing Ref(P2).
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Has: []document.HasClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, &document.ClaimTypes{
+						Reference: []document.ReferenceClaim{
+							{
+								CoreClaim: document.CoreClaim{
+									ID:         claimID,
+									Confidence: document.HighConfidence,
+								},
+								Prop: document.Reference{ID: childProp},
+								To:   document.Reference{ID: targetDocID},
+							},
+						},
+					}),
+					Prop: document.Reference{ID: parentProp},
+				},
+			},
+		},
+	}
+
+	outgoing := c.OutgoingInverseRelations(doc)
+
+	require.Contains(t, outgoing, targetDocID)
+	require.Len(t, outgoing[targetDocID], 1)
+	ir := outgoing[targetDocID][0]
+	assert.Equal(t, claimID, ir.Claim)
+	assert.Equal(t, childProp, ir.SourceProp)
+	assert.Equal(t, inverseProp, ir.TargetProp)
+}
+
+func TestOutgoingInverseRelationsDifferentPathsSameProperty(t *testing.T) {
+	t.Parallel()
+
+	// Same property P2 appears under different parents with different inverses.
+	classID := identifier.New()
+	parentA := identifier.New()
+	parentB := identifier.New()
+	childProp := identifier.New()
+	inverseA := identifier.New()
+	inverseB := identifier.New()
+
+	classDocA := makeClassDocWithSubField(classID, parentA, childProp, &inverseA)
+	classDocB := makeClassDocWithSubField(identifier.New(), parentB, childProp, &inverseB)
+
+	c := newTestConverterWithClasses(t, nil, []*document.D{classDocA, classDocB}, nil)
+
+	targetDoc1 := identifier.New()
+	targetDoc2 := identifier.New()
+	claimID1 := identifier.New()
+	claimID2 := identifier.New()
+
+	// Document has both Has(parentA)/Ref(childProp) and Has(parentB)/Ref(childProp).
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Has: []document.HasClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, &document.ClaimTypes{
+						Reference: []document.ReferenceClaim{
+							{
+								CoreClaim: document.CoreClaim{ID: claimID1, Confidence: document.HighConfidence},
+								Prop:      document.Reference{ID: childProp},
+								To:        document.Reference{ID: targetDoc1},
+							},
+						},
+					}),
+					Prop: document.Reference{ID: parentA},
+				},
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, &document.ClaimTypes{
+						Reference: []document.ReferenceClaim{
+							{
+								CoreClaim: document.CoreClaim{ID: claimID2, Confidence: document.HighConfidence},
+								Prop:      document.Reference{ID: childProp},
+								To:        document.Reference{ID: targetDoc2},
+							},
+						},
+					}),
+					Prop: document.Reference{ID: parentB},
+				},
+			},
+		},
+	}
+
+	outgoing := c.OutgoingInverseRelations(doc)
+
+	// Each should have the correct inverse based on its path.
+	require.Contains(t, outgoing, targetDoc1)
+	require.Len(t, outgoing[targetDoc1], 1)
+	assert.Equal(t, inverseA, outgoing[targetDoc1][0].TargetProp)
+
+	require.Contains(t, outgoing, targetDoc2)
+	require.Len(t, outgoing[targetDoc2], 1)
+	assert.Equal(t, inverseB, outgoing[targetDoc2][0].TargetProp)
+}
+
+func TestOutgoingInverseRelationsPropertyFallback(t *testing.T) {
+	t.Parallel()
+
+	// Property-level inverse but no field-level inverse.
+	propP := identifier.New()
+	propInv := identifier.New()
+	propPDoc := makePropertyDocFull(propP, nil, &propInv)
+	propInvDoc := makePropertyDocFull(propInv, nil, nil)
+
+	c := newTestConverter(t, []*document.D{propPDoc, propInvDoc}, nil, nil)
+
+	targetDocID := identifier.New()
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: propP},
+					To:        document.Reference{ID: targetDocID},
+				},
+			},
+		},
+	}
+
+	outgoing := c.OutgoingInverseRelations(doc)
+
+	// Should use property-level inverse.
+	require.Contains(t, outgoing, targetDocID)
+	require.Len(t, outgoing[targetDocID], 1)
+	assert.Equal(t, propInv, outgoing[targetDocID][0].TargetProp)
+}
+
+func TestOutgoingInverseRelationsStringSubClaimReference(t *testing.T) {
+	t.Parallel()
+
+	// Class defines field NAME (string) with sub-field IN_LANGUAGE (reference)
+	// that has an inverse property.
+	classID := identifier.New()
+	nameProp := identifier.New()
+	inLangProp := identifier.New()
+	inverseProp := identifier.New()
+	classDoc := makeClassDocWithSubField(classID, nameProp, inLangProp, &inverseProp)
+
+	c := newTestConverterWithClasses(t, nil, []*document.D{classDoc}, nil)
+
+	langDocID := identifier.New()
+	refClaimID := identifier.New()
+
+	// Document has a StringClaim(Prop=nameProp) with a reference sub-claim
+	// ReferenceClaim(Prop=inLangProp, To=langDocID).
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, &document.ClaimTypes{
+						Reference: []document.ReferenceClaim{
+							{
+								CoreClaim: document.CoreClaim{
+									ID:         refClaimID,
+									Confidence: document.HighConfidence,
+								},
+								Prop: document.Reference{ID: inLangProp},
+								To:   document.Reference{ID: langDocID},
+							},
+						},
+					}),
+					Prop:   document.Reference{ID: nameProp},
+					String: "hello",
+				},
+			},
+		},
+	}
+
+	outgoing := c.OutgoingInverseRelations(doc)
+
+	// Should find the reference inside the string claim's sub-claims.
+	require.Contains(t, outgoing, langDocID)
+	require.Len(t, outgoing[langDocID], 1)
+	ir := outgoing[langDocID][0]
+	assert.Equal(t, refClaimID, ir.Claim)
+	assert.Equal(t, inLangProp, ir.SourceProp)
+	assert.Equal(t, inverseProp, ir.TargetProp)
+}
+
+func TestEncodeFieldPath(t *testing.T) {
+	t.Parallel()
+
+	assert.Empty(t, encodeFieldPath(nil))
+	assert.Empty(t, encodeFieldPath([]identifier.Identifier{}))
+
+	id1 := identifier.New()
+	assert.Equal(t, id1.String(), encodeFieldPath([]identifier.Identifier{id1}))
+
+	id2 := identifier.New()
+	assert.Equal(t, id1.String()+"/"+id2.String(), encodeFieldPath([]identifier.Identifier{id1, id2}))
 }

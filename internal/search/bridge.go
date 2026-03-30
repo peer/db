@@ -946,7 +946,7 @@ func (b *Bridge) outgoingInverseRelations(data json.RawMessage) (map[identifier.
 		return nil, errE
 	}
 
-	return OutgoingInverseRelations(&doc), nil
+	return b.converter.Load().OutgoingInverseRelations(&doc), nil
 }
 
 // getSeq reads the current last-indexed seq from the bridge table.

@@ -130,7 +130,7 @@ func (b *B) Init(
 // You have to call this or PopulateAndStart for each base after Init.
 func (b *B) Start(ctx context.Context, documents []*document.D) errors.E {
 	converter, errE := internalSearch.NewConverter(
-		documents, documents, b.LanguagePriority,
+		documents, documents, documents, b.LanguagePriority,
 		func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
 			// TODO: Make sure once we have permissions, that the public has the permission to read the document.
 			doc, _, _, _, errE := b.GetDocumentLatestDoc(ctx, id)
