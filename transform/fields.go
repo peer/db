@@ -4,7 +4,6 @@ import (
 	"math"
 	"reflect"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -109,7 +108,11 @@ func (fc *fieldsCollector) processLevel(
 
 		// Handle embedded structs.
 		if field.Anonymous && fieldType.Kind() == reflect.Struct {
-			sectionNames := fc.extractSectionNames(field.Tag)
+			sectionNames, errE := fc.extractSectionNames(field.Tag)
+			if errE != nil {
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return nil, nil, errE
+			}
 			if len(sectionNames) > 0 {
 				// This is a section.
 				fieldOrder, errE := resolveOrder(orderTag, order)
@@ -202,7 +205,11 @@ func (fc *fieldsCollector) processInnerFields(
 
 		// Handle embedded structs.
 		if field.Anonymous && fieldType.Kind() == reflect.Struct {
-			sectionNames := fc.extractSectionNames(field.Tag)
+			sectionNames, errE := fc.extractSectionNames(field.Tag)
+			if errE != nil {
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return nil, errE
+			}
 			if len(sectionNames) > 0 {
 				errE := errors.New("sections cannot be nested inside sections")
 				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
@@ -372,32 +379,82 @@ func isKnownCoreType(t reflect.Type) bool {
 // extractSectionNames extracts section names from struct tags.
 // The bare "section" tag produces a name without InLanguage.
 // Tags like "section@en-GB" produce names with InLanguage set to the corresponding language.
+// Returns an error if a "section@XX" tag uses an unknown language code.
+//
+// Implementation is based on Go's StructTag.Lookup function.
 func (fc *fieldsCollector) extractSectionNames(
-	tag reflect.StructTag,
-) []internalCore.StringWithLanguage {
+	originalTag reflect.StructTag,
+) ([]internalCore.StringWithLanguage, errors.E) {
 	var names []internalCore.StringWithLanguage
 
-	// Check for bare "section" tag.
-	if name, ok := tag.Lookup("section"); ok {
-		names = append(names, internalCore.StringWithLanguage{
-			Value:      name,
-			InLanguage: nil,
-		})
-	}
+	tag := string(originalTag)
 
-	// Check for section@XX tags, iterating language codes in sorted order for determinism.
-	codes := make([]string, 0, len(fc.languageCodes))
-	for code := range fc.languageCodes {
-		codes = append(codes, code)
-	}
-	sort.Strings(codes)
+	// Parse all struct tag keys to find section tags.
+	// Go's reflect.StructTag doesn't provide iteration, so we parse the raw string.
+	for tag != "" {
+		// Skip leading spaces.
+		i := 0
+		for i < len(tag) && tag[i] == ' ' {
+			i++
+		}
+		tag = tag[i:]
+		if tag == "" {
+			break
+		}
 
-	for _, code := range codes {
-		langBase := fc.languageCodes[code]
-		key := "section@" + code
-		if name, ok := tag.Lookup(key); ok {
+		// Scan to colon.
+		i = 0
+		for i < len(tag) && tag[i] > ' ' && tag[i] != ':' && tag[i] != '"' && tag[i] != 0x7f {
+			i++
+		}
+		if i == 0 || i+1 >= len(tag) || tag[i] != ':' || tag[i+1] != '"' {
+			break
+		}
+		name := tag[:i]
+		tag = tag[i+1:]
+
+		// Scan quoted string to find value.
+		i = 1
+		for i < len(tag) && tag[i] != '"' {
+			if tag[i] == '\\' {
+				i++
+			}
+			i++
+		}
+		if i >= len(tag) {
+			break
+		}
+		qvalue := tag[:i+1]
+		tag = tag[i+1:]
+
+		if name == "section" {
+			value, err := strconv.Unquote(qvalue)
+			if err != nil {
+				errE := errors.WithStack(err)
+				errors.Details(errE)["tag"] = name
+				errors.Details(errE)["value"] = qvalue
+				return nil, errE
+			}
 			names = append(names, internalCore.StringWithLanguage{
-				Value: name,
+				Value:      value,
+				InLanguage: nil,
+			})
+		} else if code, ok := strings.CutPrefix(name, "section@"); ok {
+			langBase, found := fc.languageCodes[code]
+			if !found {
+				errE := errors.New("unknown language code in section tag")
+				errors.Details(errE)["tag"] = name
+				return nil, errE
+			}
+			value, err := strconv.Unquote(qvalue)
+			if err != nil {
+				errE := errors.WithStack(err)
+				errors.Details(errE)["tag"] = name
+				errors.Details(errE)["value"] = qvalue
+				return nil, errE
+			}
+			names = append(names, internalCore.StringWithLanguage{
+				Value: value,
 				InLanguage: []internalCore.Ref{{
 					ID: langBase,
 				}},
@@ -405,7 +462,7 @@ func (fc *fieldsCollector) extractSectionNames(
 		}
 	}
 
-	return names
+	return names, nil
 }
 
 // valueTypeRef creates a core.Ref pointing to a VALUE_TYPE vocabulary entry.

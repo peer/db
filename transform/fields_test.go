@@ -277,6 +277,14 @@ type FieldsWithRecursion struct {
 	Data RecursiveStruct `cardinality:"1" json:"data" property:"DATA"`
 }
 
+type UnknownLangSection struct {
+	First string `cardinality:"1" json:"first" property:"FIRST"`
+}
+
+type FieldsWithUnknownLangSection struct {
+	UnknownLangSection `section@fr-FR:"Section française"`
+}
+
 // SharedSubStruct is used by multiple fields in the same parent.
 type SharedSubStruct struct {
 	Value string `json:"value"                  value:""`
@@ -908,4 +916,16 @@ func TestFieldsSharedSubStruct(t *testing.T) {
 	assert.Equal(t, core.Ref{ID: mnemonics["NOTES"]}, result.Field[0].SubField[0].Property)
 	require.Len(t, result.Field[1].SubField, 1)
 	assert.Equal(t, core.Ref{ID: mnemonics["NOTES"]}, result.Field[1].SubField[0].Property)
+}
+
+func TestFieldsUnknownLanguageCode(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	// fr-FR is not in languageCodes, so this should error.
+	_, errE := transform.Fields[FieldsWithUnknownLangSection](langCodes, mnemonics)
+	require.Error(t, errE)
+	assert.Contains(t, errE.Error(), "unknown language code in section tag")
 }
