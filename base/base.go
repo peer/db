@@ -144,6 +144,5 @@ func (b *B) Start(ctx context.Context, documents []*document.D) errors.E {
 		return errE
 	}
 
-	b.bridge.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "bridge"), converter)
-	return nil
+	return b.bridge.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "bridge"), converter)
 }

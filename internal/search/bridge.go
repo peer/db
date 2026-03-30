@@ -266,16 +266,6 @@ func (b *Bridge) Init(
 	listener.Handle(b.Store.Prefix+"BridgeSeq", b)
 	listener.Handle(b.Store.Prefix+"BridgeInverseRelationsMinSeq", b)
 
-	// Submit a startup job to process any leftover rows in BridgeInverseRelations
-	// from a previous run. The job is persisted and will be picked up once River starts.
-	_, err := b.riverClient.Insert(ctx, jobArgs{
-		Schema: b.schema,
-		Prefix: b.Store.Prefix,
-	}, nil)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
 	return nil
 }
 
@@ -573,8 +563,19 @@ func (b *Bridge) waitForInverseRelationsMinSeq(ctx context.Context, seq int64, c
 // real-time processing of new commits.
 //
 // Converter is used to convert documents for indexing and to track inverse relations.
-func (b *Bridge) Start(ctx context.Context, converter *Converter) {
+func (b *Bridge) Start(ctx context.Context, converter *Converter) errors.E {
+	// This also makes any existing job not snooze itself anymore.
+	// River starts running jobs once we call registerCoordinator from Init.
 	b.converter.Store(converter)
+
+	// Submit a startup job to process any leftover rows in BridgeInverseRelations from a previous run.
+	_, err := b.riverClient.Insert(ctx, jobArgs{
+		Schema: b.schema,
+		Prefix: b.Store.Prefix,
+	}, nil)
+	if err != nil {
+		return errors.WithStack(err)
+	}
 
 	go func() {
 		// TODO: Measure how many retries have to be made and abort if it is too much.
@@ -603,6 +604,8 @@ func (b *Bridge) Start(ctx context.Context, converter *Converter) {
 			}
 		}
 	}()
+
+	return nil
 }
 
 // WaitUntilCaughtUp blocks until the bridge has indexed all currently committed commits.
