@@ -1,6 +1,7 @@
 package transform
 
 import (
+	"math"
 	"reflect"
 	"slices"
 	"sort"
@@ -94,17 +95,26 @@ func (fc *fieldsCollector) processLevel(
 			continue
 		}
 
+		orderTag := field.Tag.Get("order")
+		if orderTag == "-" {
+			continue
+		}
+
 		// Handle embedded structs.
 		if field.Anonymous && fieldType.Kind() == reflect.Struct {
 			sectionNames := fc.extractSectionNames(field.Tag)
 			if len(sectionNames) > 0 {
 				// This is a section.
+				fieldOrder, errE := resolveOrder(orderTag, order)
+				if errE != nil {
+					errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+					return nil, nil, errE
+				}
 				section := core.Section{
 					Name:        sectionNames,
-					OrderInList: *order,
+					OrderInList: fieldOrder,
 					Field:       nil,
 				}
-				*order++
 
 				// Process inner fields (no nested sections allowed).
 				innerOrder := 1.0
@@ -132,12 +142,16 @@ func (fc *fieldsCollector) processLevel(
 			continue
 		}
 
-		f, errE := fc.makeField(field, propertyMnemonic, *order, newFieldPath)
+		fieldOrder, errE := resolveOrder(orderTag, order)
+		if errE != nil {
+			errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+			return nil, nil, errE
+		}
+		f, errE := fc.makeField(field, propertyMnemonic, fieldOrder, newFieldPath)
 		if errE != nil {
 			return nil, nil, errE
 		}
 		fields = append(fields, f)
-		*order++
 	}
 
 	return sections, fields, nil
@@ -173,6 +187,11 @@ func (fc *fieldsCollector) processInnerFields(
 			continue
 		}
 
+		orderTag := field.Tag.Get("order")
+		if orderTag == "-" {
+			continue
+		}
+
 		// Handle embedded structs.
 		if field.Anonymous && fieldType.Kind() == reflect.Struct {
 			sectionNames := fc.extractSectionNames(field.Tag)
@@ -195,15 +214,45 @@ func (fc *fieldsCollector) processInnerFields(
 			continue
 		}
 
-		f, errE := fc.makeField(field, propertyMnemonic, *order, newFieldPath)
+		fieldOrder, errE := resolveOrder(orderTag, order)
+		if errE != nil {
+			errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+			return nil, errE
+		}
+		f, errE := fc.makeField(field, propertyMnemonic, fieldOrder, newFieldPath)
 		if errE != nil {
 			return nil, errE
 		}
 		fields = append(fields, f)
-		*order++
 	}
 
 	return fields, nil
+}
+
+// resolveOrder returns the order for a field or section.
+//
+// If orderTag is non-empty, it is parsed as a finite float64 and the auto-increment order is not advanced.
+// If orderTag is empty, the current auto-increment order is used and advanced.
+func resolveOrder(orderTag string, order *float64) (float64, errors.E) {
+	if orderTag == "" {
+		v := *order
+		*order++
+		return v, nil
+	}
+
+	v, err := strconv.ParseFloat(orderTag, 64)
+	if err != nil {
+		errE := errors.Wrap(err, "order tag is not a valid number")
+		errors.Details(errE)["order"] = orderTag
+		return 0, errE
+	}
+	if math.IsInf(v, 0) || math.IsNaN(v) {
+		errE := errors.New("order must be a finite number")
+		errors.Details(errE)["order"] = orderTag
+		return 0, errE
+	}
+
+	return v, nil
 }
 
 // makeField creates a core.Field from a struct field's tags.

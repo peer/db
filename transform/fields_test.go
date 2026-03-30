@@ -187,6 +187,28 @@ type FieldsWithSectionEmbedded struct {
 	SectionWithEmbedded `section:"Section"`
 }
 
+type FieldsWithOrderTag struct {
+	First  string `cardinality:"1" json:"first"  order:"10.5" property:"FIRST"`
+	Second string `cardinality:"1" json:"second"              property:"SECOND"`
+	Third  string `cardinality:"1" json:"third"  order:"5"    property:"THIRD"`
+}
+
+type FieldsWithOrderSkip struct {
+	Name    string `cardinality:"1.." json:"name"              property:"NAME"`
+	Skipped string `cardinality:"1"   json:"skipped" order:"-" property:"CODE"`
+	Other   string `cardinality:"1"   json:"other"             property:"DESCRIPTION"`
+}
+
+type SectionWithOrder struct {
+	First string `cardinality:"1" json:"first" property:"FIRST"`
+}
+
+type FieldsWithSectionOrder struct {
+	SectionWithOrder `order:"99" section:"Ordered section"`
+
+	Bar string `cardinality:"1.." json:"bar" property:"BAR"`
+}
+
 type FieldsWithDefaultCardinality struct {
 	Names  []string  `json:"names"                property:"NAME"`
 	Age    int       `json:"age"    precision:"1" property:"AGE"`
@@ -584,4 +606,66 @@ func TestFieldsCardinality(t *testing.T) {
 	require.NotNil(t, f2.Cardinality.To)
 	assert.Equal(t, 1, f2.Cardinality.To.Amount)
 	assert.True(t, f2.Cardinality.ToIsClosed)
+}
+
+func TestFieldsOrderTag(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithOrderTag](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 3)
+
+	// First has explicit order 10.5.
+	assert.Equal(t, core.Ref{ID: mnemonics["FIRST"]}, result.Field[0].Property)
+	assert.Equal(t, 10.5, result.Field[0].OrderInList) //nolint:testifylint
+
+	// Second has auto-increment order (1.0, since First used explicit order).
+	assert.Equal(t, core.Ref{ID: mnemonics["SECOND"]}, result.Field[1].Property)
+	assert.Equal(t, 1.0, result.Field[1].OrderInList) //nolint:testifylint
+
+	// Third has explicit order 5.
+	assert.Equal(t, core.Ref{ID: mnemonics["THIRD"]}, result.Field[2].Property)
+	assert.Equal(t, 5.0, result.Field[2].OrderInList) //nolint:testifylint
+}
+
+func TestFieldsOrderSkip(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithOrderSkip](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Skipped field (order:"-") should not appear.
+	require.Len(t, result.Field, 2)
+
+	assert.Equal(t, core.Ref{ID: mnemonics["NAME"]}, result.Field[0].Property)
+	assert.Equal(t, 1.0, result.Field[0].OrderInList) //nolint:testifylint
+
+	assert.Equal(t, core.Ref{ID: mnemonics["DESCRIPTION"]}, result.Field[1].Property)
+	assert.Equal(t, 2.0, result.Field[1].OrderInList) //nolint:testifylint
+}
+
+func TestFieldsSectionOrderTag(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithSectionOrder](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Section, 1)
+	require.Len(t, result.Field, 1)
+
+	// Section has explicit order 99.
+	assert.Equal(t, 99.0, result.Section[0].OrderInList) //nolint:testifylint
+
+	// Bar gets auto-increment (1.0, since section used explicit order).
+	assert.Equal(t, 1.0, result.Field[0].OrderInList) //nolint:testifylint
 }

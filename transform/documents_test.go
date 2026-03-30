@@ -2880,7 +2880,7 @@ func TestDocuments_InfinityFloatError(t *testing.T) {
 	// Infinity should error.
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 
-	assert.EqualError(t, errE, "value is infinity or not a number")
+	assert.EqualError(t, errE, "value must be a finite number")
 }
 
 func TestDocuments_NaNFloatError(t *testing.T) {
@@ -2905,7 +2905,7 @@ func TestDocuments_NaNFloatError(t *testing.T) {
 	// NaN should error.
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 
-	assert.EqualError(t, errE, "value is infinity or not a number")
+	assert.EqualError(t, errE, "value must be a finite number")
 }
 
 func TestDocuments_EmbeddedStructWithPropertySkip(t *testing.T) {
@@ -3399,7 +3399,7 @@ func TestDocuments_MoreEdgeCases(t *testing.T) {
 		}
 
 		result, errE := transform.Documents(t.Context(), mnemonics, docs)
-		assert.EqualError(t, errE, "value is infinity or not a number")
+		assert.EqualError(t, errE, "value must be a finite number")
 		assert.Nil(t, result)
 	})
 
@@ -3414,7 +3414,7 @@ func TestDocuments_MoreEdgeCases(t *testing.T) {
 		}
 
 		result, errE := transform.Documents(t.Context(), mnemonics, docs)
-		assert.EqualError(t, errE, "value is infinity or not a number")
+		assert.EqualError(t, errE, "value must be a finite number")
 		assert.Nil(t, result)
 	})
 }
@@ -6200,7 +6200,7 @@ func TestDocuments_NumericInvalidPrecision(t *testing.T) {
 	}
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	assert.EqualError(t, errE, "invalid precision value for numeric field")
+	assert.EqualError(t, errE, "precision tag is not a valid number")
 }
 
 func TestDocuments_NumericPrecisionZero(t *testing.T) {
@@ -6884,7 +6884,7 @@ func TestDocuments_ConfidenceInvalidFloat(t *testing.T) {
 	}
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	assert.EqualError(t, errE, "confidence tag value is not a valid float")
+	assert.EqualError(t, errE, "confidence tag is not a valid number")
 }
 
 func TestDocuments_ConfidenceOutOfRangeHigh(t *testing.T) {
@@ -6905,7 +6905,7 @@ func TestDocuments_ConfidenceOutOfRangeHigh(t *testing.T) {
 	}
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	assert.EqualError(t, errE, "confidence tag value out of range [-1, 1]")
+	assert.EqualError(t, errE, "confidence is out of range [-1, 1]")
 }
 
 func TestDocuments_ConfidenceOutOfRangeLow(t *testing.T) {
@@ -6926,7 +6926,7 @@ func TestDocuments_ConfidenceOutOfRangeLow(t *testing.T) {
 	}
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	assert.EqualError(t, errE, "confidence tag value out of range [-1, 1]")
+	assert.EqualError(t, errE, "confidence is out of range [-1, 1]")
 }
 
 func TestDocuments_ConfidenceOnBoolField(t *testing.T) {
@@ -7675,7 +7675,7 @@ func TestDocuments_CoreAmountInfinityErrors(t *testing.T) {
 	}
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	assert.EqualError(t, errE, "value is infinity or not a number")
+	assert.EqualError(t, errE, "value must be a finite number")
 }
 
 func TestDocuments_PrecisionOnIdentifierErrors(t *testing.T) {

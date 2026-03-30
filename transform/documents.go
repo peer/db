@@ -1297,7 +1297,7 @@ func makeClaim(
 		}
 
 		if math.IsInf(amount, 0) || math.IsNaN(amount) {
-			errE := errors.New("value is infinity or not a number")
+			errE := errors.New("value must be a finite number")
 			errors.Details(errE)["value"] = amount
 			return nil, errE
 		}
@@ -1679,7 +1679,7 @@ func makeClaim(
 
 		precision, err := strconv.ParseFloat(precisionTag, 64)
 		if err != nil {
-			errE := errors.New("invalid precision value for numeric field")
+			errE := errors.Wrap(err, "precision tag is not a valid number")
 			errors.Details(errE)["precision"] = precisionTag
 			return nil, errE
 		}
@@ -1691,7 +1691,7 @@ func makeClaim(
 		}
 
 		if math.IsInf(amount, 0) || math.IsNaN(amount) {
-			errE := errors.New("value is infinity or not a number")
+			errE := errors.New("value must be a finite number")
 			errors.Details(errE)["value"] = amount
 			return nil, errE
 		}
@@ -1874,13 +1874,13 @@ func parseConfidence(tag string) (document.Confidence, errors.E) {
 
 	v, err := strconv.ParseFloat(tag, 64)
 	if err != nil {
-		errE := errors.New("confidence tag value is not a valid float")
+		errE := errors.Wrap(err, "confidence tag is not a valid number")
 		errors.Details(errE)["confidence"] = tag
 		return 0, errE
 	}
 
 	if v < -1 || v > 1 || math.IsInf(v, 0) || math.IsNaN(v) {
-		errE := errors.New("confidence tag value out of range [-1, 1]")
+		errE := errors.New("confidence is out of range [-1, 1]")
 		errors.Details(errE)["confidence"] = v
 		return 0, errE
 	}
