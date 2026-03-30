@@ -14,27 +14,10 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalDocument "gitlab.com/peerdb/peerdb/internal/document"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
-)
-
-// Well-known IDs computed from the core namespace.
-//
-//nolint:gochecknoglobals
-var (
-	subentityOfPropID          = identifier.From(core.Namespace, "SUBENTITY_OF")
-	subpropertyOfPropID        = identifier.From(core.Namespace, "SUBPROPERTY_OF")
-	namingPropID               = identifier.From(core.Namespace, "NAMING")
-	inLanguagePropID           = identifier.From(core.Namespace, "IN_LANGUAGE")
-	inUnitPropID               = identifier.From(core.Namespace, "IN_UNIT")
-	codePropID                 = identifier.From(core.Namespace, "CODE")
-	instanceOfPropID           = identifier.From(core.Namespace, "INSTANCE_OF")
-	propertyClassID            = identifier.From(core.Namespace, "PROPERTY")
-	languageClassID            = identifier.From(core.Namespace, "LANGUAGE")
-	displayLabelTemplatePropID = identifier.From(core.Namespace, "DISPLAY_LABEL_TEMPLATE")
-	inversePropertyOfPropID    = identifier.From(core.Namespace, "INVERSE_PROPERTY_OF")
 )
 
 type displayStrings struct {
@@ -192,7 +175,7 @@ func validateLanguagePriority(priority map[string][]string) errors.E {
 // isInstanceOf returns true if the document has an INSTANCE_OF reference claim
 // pointing to the given class ID.
 func isInstanceOf(doc *document.D, classID identifier.Identifier) bool {
-	for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](doc, instanceOfPropID, document.LowConfidence) {
+	for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](doc, internalCore.InstanceOfPropID, document.LowConfidence) {
 		if rel.To.ID == classID {
 			return true
 		}
@@ -209,10 +192,10 @@ func (c *Converter) buildPropertyHierarchy(properties []*document.D) {
 	parentChildren := map[identifier.Identifier][]identifier.Identifier{}
 	childParents := map[identifier.Identifier][]identifier.Identifier{}
 	for _, prop := range properties {
-		if !isInstanceOf(prop, propertyClassID) {
+		if !isInstanceOf(prop, internalCore.PropertyClassID) {
 			continue
 		}
-		for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](prop, subpropertyOfPropID, document.LowConfidence) {
+		for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](prop, internalCore.SubpropertyOfPropID, document.LowConfidence) {
 			parentChildren[rel.To.ID] = append(parentChildren[rel.To.ID], prop.ID)
 			childParents[prop.ID] = append(childParents[prop.ID], rel.To.ID)
 		}
@@ -277,8 +260,8 @@ func (c *Converter) buildPropertyHierarchy(properties []*document.D) {
 // because it is used for property propagation, not value expansion.
 func (c *Converter) discoverValueHierarchyProperties() {
 	c.valueHierarchyProperties = nil
-	for _, desc := range c.propertyDescendants[subentityOfPropID] {
-		if desc == instanceOfPropID || desc == subpropertyOfPropID {
+	for _, desc := range c.propertyDescendants[internalCore.SubentityOfPropID] {
+		if desc == internalCore.InstanceOfPropID || desc == internalCore.SubpropertyOfPropID {
 			continue
 		}
 		c.valueHierarchyProperties = append(c.valueHierarchyProperties, desc)
@@ -288,8 +271,8 @@ func (c *Converter) discoverValueHierarchyProperties() {
 // buildNamingProperties computes the set of all properties that are
 // NAMING or transitive sub-properties of NAMING.
 func (c *Converter) buildNamingProperties() {
-	c.namingProperties = []identifier.Identifier{namingPropID}
-	c.namingProperties = append(c.namingProperties, c.propertyDescendants[namingPropID]...)
+	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
+	c.namingProperties = append(c.namingProperties, c.propertyDescendants[internalCore.NamingPropID]...)
 }
 
 // LanguageCodes returns the language codes map which maps language document IDs
@@ -304,11 +287,11 @@ func (c *Converter) LanguageCodes() map[identifier.Identifier]string {
 func (c *Converter) buildLanguageCodes(allDocuments []*document.D) {
 	c.languageCodes = map[identifier.Identifier]string{}
 	for _, doc := range allDocuments {
-		if !isInstanceOf(doc, languageClassID) {
+		if !isInstanceOf(doc, internalCore.LanguageClassID) {
 			continue
 		}
 		// Extract the CODE identifier claim and use the primary language subtag.
-		ids := document.GetClaimsOfTypeWithConfidence[*document.IdentifierClaim](doc, codePropID, document.LowConfidence)
+		ids := document.GetClaimsOfTypeWithConfidence[*document.IdentifierClaim](doc, internalCore.CodePropID, document.LowConfidence)
 		for _, id := range ids {
 			code, _, _ := strings.Cut(id.Value, "-")
 			if SupportedLanguages[code] {
@@ -325,10 +308,10 @@ func (c *Converter) buildLanguageCodes(allDocuments []*document.D) {
 func (c *Converter) buildInverseProperties(properties []*document.D) {
 	c.inverseProperties = map[identifier.Identifier][]identifier.Identifier{}
 	for _, prop := range properties {
-		if !isInstanceOf(prop, propertyClassID) {
+		if !isInstanceOf(prop, internalCore.PropertyClassID) {
 			continue
 		}
-		for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](prop, inversePropertyOfPropID, document.LowConfidence) {
+		for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](prop, internalCore.InversePropertyOfPropID, document.LowConfidence) {
 			if !slices.Contains(c.inverseProperties[prop.ID], rel.To.ID) {
 				c.inverseProperties[prop.ID] = append(c.inverseProperties[prop.ID], rel.To.ID)
 			}
@@ -573,13 +556,13 @@ func (c *Converter) displayLabelTemplate(ctx context.Context, doc *document.D) (
 	var bestTemplate string
 	var bestConfidence document.Confidence
 
-	for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](doc, instanceOfPropID, document.LowConfidence) {
+	for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](doc, internalCore.InstanceOfPropID, document.LowConfidence) {
 		classDoc, errE := c.getDocument(ctx, rel.To.ID)
 		if errE != nil {
 			return "", errE
 		}
 		instanceConfidence := rel.GetConfidence()
-		for _, sc := range document.GetClaimsOfTypeWithConfidence[*document.StringClaim](classDoc, displayLabelTemplatePropID, document.LowConfidence) {
+		for _, sc := range document.GetClaimsOfTypeWithConfidence[*document.StringClaim](classDoc, internalCore.DisplayLabelTemplatePropID, document.LowConfidence) {
 			effective := instanceConfidence * sc.GetConfidence()
 			if effective > bestConfidence {
 				bestConfidence = effective
@@ -718,7 +701,7 @@ func (c *Converter) extractInLanguages(claims document.Claims) []string {
 	if claims == nil {
 		return []string{document.UndeterminedLanguage}
 	}
-	refs := document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](claims, inLanguagePropID, document.LowConfidence)
+	refs := document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](claims, internalCore.InLanguagePropID, document.LowConfidence)
 	var codes []string
 	for _, ref := range refs {
 		if code, ok := c.languageCodes[ref.To.ID]; ok && SupportedLanguages[code] {
@@ -733,7 +716,7 @@ func (c *Converter) extractInLanguages(claims document.Claims) []string {
 
 // extractInUnit extracts the unit identifier from a claim's IN_UNIT sub-claim reference.
 func (c *Converter) extractInUnit(sub *document.ClaimTypes) *identifier.Identifier {
-	if rel := document.GetBestClaimOfType[*document.ReferenceClaim](sub, inUnitPropID); rel != nil {
+	if rel := document.GetBestClaimOfType[*document.ReferenceClaim](sub, internalCore.InUnitPropID); rel != nil {
 		return &rel.To.ID
 	}
 	return nil

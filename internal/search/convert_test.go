@@ -12,15 +12,10 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
-
-// Well-known IDs used only in tests.
-//
-//nolint:gochecknoglobals
-var subclassOfPropID = identifier.From(core.Namespace, "SUBCLASS_OF")
 
 // Helper IDs for tests.
 //
@@ -56,20 +51,20 @@ func makePropertyDocFull(id identifier.Identifier, subpropertyOf, inversePropert
 	// INSTANCE_OF -> PROPERTY.
 	claims.Reference = append(claims.Reference, document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-		Prop:      document.Reference{ID: instanceOfPropID},
-		To:        document.Reference{ID: propertyClassID},
+		Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+		To:        document.Reference{ID: internalCore.PropertyClassID},
 	})
 	if subpropertyOf != nil {
 		claims.Reference = append(claims.Reference, document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-			Prop:      document.Reference{ID: subpropertyOfPropID},
+			Prop:      document.Reference{ID: internalCore.SubpropertyOfPropID},
 			To:        document.Reference{ID: *subpropertyOf},
 		})
 	}
 	if inversePropertyOf != nil {
 		claims.Reference = append(claims.Reference, document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-			Prop:      document.Reference{ID: inversePropertyOfPropID},
+			Prop:      document.Reference{ID: internalCore.InversePropertyOfPropID},
 			To:        document.Reference{ID: *inversePropertyOf},
 		})
 	}
@@ -86,7 +81,7 @@ func makeHierarchyDoc(id identifier.Identifier, name string, hierProp identifier
 	claims := &document.ClaimTypes{}
 	claims.String = append(claims.String, document.StringClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-		Prop:      document.Reference{ID: namingPropID},
+		Prop:      document.Reference{ID: internalCore.NamingPropID},
 		String:    name,
 	})
 	if parentID != nil {
@@ -109,12 +104,12 @@ func makeLanguageDoc(id identifier.Identifier, code string) *document.D {
 	claims := &document.ClaimTypes{}
 	claims.Reference = append(claims.Reference, document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-		Prop:      document.Reference{ID: instanceOfPropID},
-		To:        document.Reference{ID: languageClassID},
+		Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+		To:        document.Reference{ID: internalCore.LanguageClassID},
 	})
 	claims.Identifier = append(claims.Identifier, document.IdentifierClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-		Prop:      document.Reference{ID: codePropID},
+		Prop:      document.Reference{ID: internalCore.CodePropID},
 		Value:     code,
 	})
 	return &document.D{
@@ -135,7 +130,7 @@ func makeNamingDoc(id identifier.Identifier, name string) *document.D {
 	claims := &document.ClaimTypes{}
 	claims.String = append(claims.String, document.StringClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-		Prop:      document.Reference{ID: namingPropID},
+		Prop:      document.Reference{ID: internalCore.NamingPropID},
 		String:    name,
 	})
 	return &document.D{
@@ -179,14 +174,14 @@ func TestIsInstanceOf(t *testing.T) {
 	t.Parallel()
 
 	doc := makePropertyDoc(testPropID, nil)
-	assert.True(t, isInstanceOf(doc, propertyClassID))
-	assert.False(t, isInstanceOf(doc, languageClassID))
+	assert.True(t, isInstanceOf(doc, internalCore.PropertyClassID))
+	assert.False(t, isInstanceOf(doc, internalCore.LanguageClassID))
 
 	// Document with no claims.
 	emptyDoc := &document.D{
 		CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
 	}
-	assert.False(t, isInstanceOf(emptyDoc, propertyClassID))
+	assert.False(t, isInstanceOf(emptyDoc, internalCore.PropertyClassID))
 }
 
 func TestBuildPropertyHierarchy(t *testing.T) {
@@ -247,7 +242,7 @@ func TestBuildPropertyHierarchySkipsNonProperty(t *testing.T) {
 			Reference: []document.ReferenceClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: subpropertyOfPropID},
+					Prop:      document.Reference{ID: internalCore.SubpropertyOfPropID},
 					To:        document.Reference{ID: testPropID},
 				},
 			},
@@ -284,19 +279,19 @@ func TestGetDocumentInfoWithClassAncestors(t *testing.T) {
 	t.Parallel()
 
 	// Set up SUBENTITY_OF hierarchy so SUBCLASS_OF is discovered.
-	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
-	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
-	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
-	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
 	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
 
 	grandparent := identifier.New()
 	parent := identifier.New()
 	child := identifier.New()
 
-	gpDoc := makeHierarchyDoc(grandparent, "Grandparent", subclassOfPropID, nil)
-	pDoc := makeHierarchyDoc(parent, "Parent", subclassOfPropID, &grandparent)
-	cDoc := makeHierarchyDoc(child, "Child", subclassOfPropID, &parent)
+	gpDoc := makeHierarchyDoc(grandparent, "Grandparent", internalCore.SubclassOfPropID, nil)
+	pDoc := makeHierarchyDoc(parent, "Parent", internalCore.SubclassOfPropID, &grandparent)
+	cDoc := makeHierarchyDoc(child, "Child", internalCore.SubclassOfPropID, &parent)
 
 	extraDocs := map[identifier.Identifier]*document.D{
 		grandparent: gpDoc,
@@ -309,38 +304,38 @@ func TestGetDocumentInfoWithClassAncestors(t *testing.T) {
 	info, errE := c.getDocumentInfo(ctx, child)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Child should have parent and grandparent as ancestors via SUBCLASS_OF.
-	assert.Contains(t, info.Ancestors[subclassOfPropID], parent)
-	assert.Contains(t, info.Ancestors[subclassOfPropID], grandparent)
+	assert.Contains(t, info.Ancestors[internalCore.SubclassOfPropID], parent)
+	assert.Contains(t, info.Ancestors[internalCore.SubclassOfPropID], grandparent)
 
 	// Child should have a hierarchy path: grandparent/parent/child.
-	require.Len(t, info.IDPaths[subclassOfPropID], 1)
+	require.Len(t, info.IDPaths[internalCore.SubclassOfPropID], 1)
 	expectedIDPath := grandparent.String() + "/" + parent.String() + "/" + child.String()
-	assert.Equal(t, expectedIDPath, info.IDPaths[subclassOfPropID][0])
+	assert.Equal(t, expectedIDPath, info.IDPaths[internalCore.SubclassOfPropID][0])
 
 	// Display path should use null-byte separated display names.
-	require.Contains(t, info.DisplayPaths[subclassOfPropID], "und")
-	require.Len(t, info.DisplayPaths[subclassOfPropID]["und"], 1)
-	assert.Equal(t, "Grandparent\x00Parent\x00Child", info.DisplayPaths[subclassOfPropID]["und"][0])
+	require.Contains(t, info.DisplayPaths[internalCore.SubclassOfPropID], "und")
+	require.Len(t, info.DisplayPaths[internalCore.SubclassOfPropID]["und"], 1)
+	assert.Equal(t, "Grandparent\x00Parent\x00Child", info.DisplayPaths[internalCore.SubclassOfPropID]["und"][0])
 
 	// Parent should have a single-level path: grandparent/parent.
 	parentInfo, errE := c.getDocumentInfo(ctx, parent)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	require.Len(t, parentInfo.IDPaths[subclassOfPropID], 1)
-	assert.Equal(t, grandparent.String()+"/"+parent.String(), parentInfo.IDPaths[subclassOfPropID][0])
+	require.Len(t, parentInfo.IDPaths[internalCore.SubclassOfPropID], 1)
+	assert.Equal(t, grandparent.String()+"/"+parent.String(), parentInfo.IDPaths[internalCore.SubclassOfPropID][0])
 
 	// Grandparent has no hierarchy paths (it's a root).
 	gpInfo, errE := c.getDocumentInfo(ctx, grandparent)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Empty(t, gpInfo.IDPaths[subclassOfPropID])
+	assert.Empty(t, gpInfo.IDPaths[internalCore.SubclassOfPropID])
 }
 
 func TestGetDocumentInfoMultiplePaths(t *testing.T) {
 	t.Parallel()
 
-	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
-	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
-	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
-	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
 	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
 
 	// Diamond hierarchy: child has two parents, both share a grandparent.
@@ -350,25 +345,25 @@ func TestGetDocumentInfoMultiplePaths(t *testing.T) {
 	child := identifier.New()
 
 	gpDoc := makeNamingDoc(grandparent, "Root")
-	paDoc := makeHierarchyDoc(parentA, "ParentA", subclassOfPropID, &grandparent)
-	pbDoc := makeHierarchyDoc(parentB, "ParentB", subclassOfPropID, &grandparent)
+	paDoc := makeHierarchyDoc(parentA, "ParentA", internalCore.SubclassOfPropID, &grandparent)
+	pbDoc := makeHierarchyDoc(parentB, "ParentB", internalCore.SubclassOfPropID, &grandparent)
 
 	// Child with two parents.
 	childClaims := &document.ClaimTypes{}
 	childClaims.String = append(childClaims.String, document.StringClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-		Prop:      document.Reference{ID: namingPropID},
+		Prop:      document.Reference{ID: internalCore.NamingPropID},
 		String:    "Leaf",
 	})
 	childClaims.Reference = append(childClaims.Reference,
 		document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-			Prop:      document.Reference{ID: subclassOfPropID},
+			Prop:      document.Reference{ID: internalCore.SubclassOfPropID},
 			To:        document.Reference{ID: parentA},
 		},
 		document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-			Prop:      document.Reference{ID: subclassOfPropID},
+			Prop:      document.Reference{ID: internalCore.SubclassOfPropID},
 			To:        document.Reference{ID: parentB},
 		},
 	)
@@ -389,13 +384,13 @@ func TestGetDocumentInfoMultiplePaths(t *testing.T) {
 	info, errE := c.getDocumentInfo(ctx, child)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Child should have two ID paths (one through each parent).
-	require.Len(t, info.IDPaths[subclassOfPropID], 2)
+	require.Len(t, info.IDPaths[internalCore.SubclassOfPropID], 2)
 	pathA := grandparent.String() + "/" + parentA.String() + "/" + child.String()
 	pathB := grandparent.String() + "/" + parentB.String() + "/" + child.String()
-	assert.ElementsMatch(t, info.IDPaths[subclassOfPropID], []string{pathA, pathB})
+	assert.ElementsMatch(t, info.IDPaths[internalCore.SubclassOfPropID], []string{pathA, pathB})
 	// Two display paths.
-	require.Len(t, info.DisplayPaths[subclassOfPropID]["und"], 2)
-	assert.ElementsMatch(t, info.DisplayPaths[subclassOfPropID]["und"], []string{
+	require.Len(t, info.DisplayPaths[internalCore.SubclassOfPropID]["und"], 2)
+	assert.ElementsMatch(t, info.DisplayPaths[internalCore.SubclassOfPropID]["und"], []string{
 		"Root\x00ParentA\x00Leaf",
 		"Root\x00ParentB\x00Leaf",
 	})
@@ -495,15 +490,15 @@ func TestGetDocumentInfoSelfCycle(t *testing.T) {
 	t.Parallel()
 
 	// Set up SUBENTITY_OF hierarchy so SUBCLASS_OF is discovered.
-	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
-	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
-	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
-	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
 	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
 
 	// Document with SUBCLASS_OF pointing to itself.
 	selfID := identifier.New()
-	selfDoc := makeHierarchyDoc(selfID, "Self", subclassOfPropID, &selfID)
+	selfDoc := makeHierarchyDoc(selfID, "Self", internalCore.SubclassOfPropID, &selfID)
 	extraDocs := map[identifier.Identifier]*document.D{
 		selfID: selfDoc,
 	}
@@ -513,22 +508,22 @@ func TestGetDocumentInfoSelfCycle(t *testing.T) {
 	info, errE := c.getDocumentInfo(ctx, selfID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Self-reference is excluded to avoid duplicates.
-	assert.Empty(t, info.Ancestors[subclassOfPropID])
+	assert.Empty(t, info.Ancestors[internalCore.SubclassOfPropID])
 }
 
 func TestGetDocumentInfoMutualCycle(t *testing.T) {
 	t.Parallel()
 
-	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
-	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
-	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
-	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
 	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
 
 	a := identifier.New()
 	b := identifier.New()
-	aDoc := makeHierarchyDoc(a, "A", subclassOfPropID, &b)
-	bDoc := makeHierarchyDoc(b, "B", subclassOfPropID, &a)
+	aDoc := makeHierarchyDoc(a, "A", internalCore.SubclassOfPropID, &b)
+	bDoc := makeHierarchyDoc(b, "B", internalCore.SubclassOfPropID, &a)
 	extraDocs := map[identifier.Identifier]*document.D{
 		a: aDoc,
 		b: bDoc,
@@ -539,7 +534,7 @@ func TestGetDocumentInfoMutualCycle(t *testing.T) {
 	infoA, errE := c.getDocumentInfo(ctx, a)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// A should have B as ancestor (cycle handled without infinite loop).
-	assert.Contains(t, infoA.Ancestors[subclassOfPropID], b)
+	assert.Contains(t, infoA.Ancestors[internalCore.SubclassOfPropID], b)
 }
 
 func TestGetDocumentInfoMultipleHierarchies(t *testing.T) {
@@ -547,11 +542,11 @@ func TestGetDocumentInfoMultipleHierarchies(t *testing.T) {
 
 	// Custom hierarchy property PART_OF as a sub-property of SUBENTITY_OF.
 	partOfPropID := identifier.New()
-	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
-	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
-	partOfDoc := makePropertyDoc(partOfPropID, &subentityOfPropID)
-	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
-	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	partOfDoc := makePropertyDoc(partOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
 	properties := []*document.D{subentityDoc, subclassDoc, partOfDoc, subpropDoc, instanceDoc}
 
 	classParent := identifier.New()
@@ -562,13 +557,13 @@ func TestGetDocumentInfoMultipleHierarchies(t *testing.T) {
 	childClaims := &document.ClaimTypes{}
 	childClaims.String = append(childClaims.String, document.StringClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-		Prop:      document.Reference{ID: namingPropID},
+		Prop:      document.Reference{ID: internalCore.NamingPropID},
 		String:    "Child",
 	})
 	childClaims.Reference = append(childClaims.Reference,
 		document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-			Prop:      document.Reference{ID: subclassOfPropID},
+			Prop:      document.Reference{ID: internalCore.SubclassOfPropID},
 			To:        document.Reference{ID: classParent},
 		},
 		document.ReferenceClaim{
@@ -595,10 +590,10 @@ func TestGetDocumentInfoMultipleHierarchies(t *testing.T) {
 	info, errE := c.getDocumentInfo(ctx, child)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Ancestors should be computed separately for each hierarchy.
-	assert.Contains(t, info.Ancestors[subclassOfPropID], classParent)
+	assert.Contains(t, info.Ancestors[internalCore.SubclassOfPropID], classParent)
 	assert.Contains(t, info.Ancestors[partOfPropID], partParent)
 	// Each hierarchy should only contain its own ancestors.
-	assert.NotContains(t, info.Ancestors[subclassOfPropID], partParent)
+	assert.NotContains(t, info.Ancestors[internalCore.SubclassOfPropID], partParent)
 	assert.NotContains(t, info.Ancestors[partOfPropID], classParent)
 }
 
@@ -607,11 +602,11 @@ func TestGetDocumentInfoOverlappingHierarchies(t *testing.T) {
 
 	// Custom hierarchy property PART_OF as a sub-property of SUBENTITY_OF.
 	partOfPropID := identifier.New()
-	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
-	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
-	partOfDoc := makePropertyDoc(partOfPropID, &subentityOfPropID)
-	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
-	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	partOfDoc := makePropertyDoc(partOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
 	properties := []*document.D{subentityDoc, subclassDoc, partOfDoc, subpropDoc, instanceDoc}
 
 	// Same parent reachable via both SUBCLASS_OF and PART_OF.
@@ -621,13 +616,13 @@ func TestGetDocumentInfoOverlappingHierarchies(t *testing.T) {
 	childClaims := &document.ClaimTypes{}
 	childClaims.String = append(childClaims.String, document.StringClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-		Prop:      document.Reference{ID: namingPropID},
+		Prop:      document.Reference{ID: internalCore.NamingPropID},
 		String:    "Child",
 	})
 	childClaims.Reference = append(childClaims.Reference,
 		document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-			Prop:      document.Reference{ID: subclassOfPropID},
+			Prop:      document.Reference{ID: internalCore.SubclassOfPropID},
 			To:        document.Reference{ID: sharedParent},
 		},
 		document.ReferenceClaim{
@@ -652,16 +647,16 @@ func TestGetDocumentInfoOverlappingHierarchies(t *testing.T) {
 	info, errE := c.getDocumentInfo(ctx, child)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Shared parent appears in both hierarchies.
-	assert.Contains(t, info.Ancestors[subclassOfPropID], sharedParent)
+	assert.Contains(t, info.Ancestors[internalCore.SubclassOfPropID], sharedParent)
 	assert.Contains(t, info.Ancestors[partOfPropID], sharedParent)
 }
 
 func TestBuildNamingProperties(t *testing.T) {
 	t.Parallel()
 
-	// namingPropID is NAMING, testPropID is a subproperty of NAMING.
-	namingDoc := makePropertyDoc(namingPropID, nil)
-	subNaming := makePropertyDoc(testPropID, &namingPropID)
+	// internalCore.NamingPropID is NAMING, testPropID is a subproperty of NAMING.
+	namingDoc := makePropertyDoc(internalCore.NamingPropID, nil)
+	subNaming := makePropertyDoc(testPropID, &internalCore.NamingPropID)
 
 	c := &Converter{ //nolint:exhaustruct
 		documentInfoCache: map[identifier.Identifier]documentInfo{},
@@ -669,7 +664,7 @@ func TestBuildNamingProperties(t *testing.T) {
 	c.buildPropertyHierarchy([]*document.D{namingDoc, subNaming})
 	c.buildNamingProperties()
 
-	assert.Contains(t, c.namingProperties, namingPropID)
+	assert.Contains(t, c.namingProperties, internalCore.NamingPropID)
 	assert.Contains(t, c.namingProperties, testPropID)
 	assert.NotContains(t, c.namingProperties, testPropID2)
 }
@@ -678,10 +673,10 @@ func TestDiscoverValueHierarchyProperties(t *testing.T) {
 	t.Parallel()
 
 	// Standard properties: SUBENTITY_OF with INSTANCE_OF, SUBCLASS_OF, SUBPROPERTY_OF as children.
-	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
-	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
-	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
-	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
 	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
 
 	c := &Converter{ //nolint:exhaustruct
@@ -692,9 +687,9 @@ func TestDiscoverValueHierarchyProperties(t *testing.T) {
 
 	// Only SUBCLASS_OF should be a value hierarchy property.
 	// INSTANCE_OF and SUBPROPERTY_OF are excluded.
-	assert.Contains(t, c.valueHierarchyProperties, subclassOfPropID)
-	assert.NotContains(t, c.valueHierarchyProperties, instanceOfPropID)
-	assert.NotContains(t, c.valueHierarchyProperties, subpropertyOfPropID)
+	assert.Contains(t, c.valueHierarchyProperties, internalCore.SubclassOfPropID)
+	assert.NotContains(t, c.valueHierarchyProperties, internalCore.InstanceOfPropID)
+	assert.NotContains(t, c.valueHierarchyProperties, internalCore.SubpropertyOfPropID)
 	assert.Len(t, c.valueHierarchyProperties, 1)
 }
 
@@ -703,11 +698,11 @@ func TestDiscoverValueHierarchyPropertiesCustom(t *testing.T) {
 
 	// Add a custom PART_OF property as a sub-property of SUBENTITY_OF.
 	partOfPropID := identifier.New()
-	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
-	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
-	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
-	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
-	partOfDoc := makePropertyDoc(partOfPropID, &subentityOfPropID)
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
+	partOfDoc := makePropertyDoc(partOfPropID, &internalCore.SubentityOfPropID)
 	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc, partOfDoc}
 
 	c := &Converter{ //nolint:exhaustruct
@@ -717,10 +712,10 @@ func TestDiscoverValueHierarchyPropertiesCustom(t *testing.T) {
 	c.discoverValueHierarchyProperties()
 
 	// Both SUBCLASS_OF and PART_OF should be value hierarchy properties.
-	assert.Contains(t, c.valueHierarchyProperties, subclassOfPropID)
+	assert.Contains(t, c.valueHierarchyProperties, internalCore.SubclassOfPropID)
 	assert.Contains(t, c.valueHierarchyProperties, partOfPropID)
-	assert.NotContains(t, c.valueHierarchyProperties, instanceOfPropID)
-	assert.NotContains(t, c.valueHierarchyProperties, subpropertyOfPropID)
+	assert.NotContains(t, c.valueHierarchyProperties, internalCore.InstanceOfPropID)
+	assert.NotContains(t, c.valueHierarchyProperties, internalCore.SubpropertyOfPropID)
 	assert.Len(t, c.valueHierarchyProperties, 2)
 }
 
@@ -729,11 +724,11 @@ func TestConvertRelationMultipleHierarchies(t *testing.T) {
 
 	// Custom hierarchy property PART_OF as a sub-property of SUBENTITY_OF.
 	partOfPropID := identifier.New()
-	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
-	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
-	partOfDoc := makePropertyDoc(partOfPropID, &subentityOfPropID)
-	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
-	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	partOfDoc := makePropertyDoc(partOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
 	properties := []*document.D{subentityDoc, subclassDoc, partOfDoc, subpropDoc, instanceDoc}
 
 	classParent := identifier.New()
@@ -744,13 +739,13 @@ func TestConvertRelationMultipleHierarchies(t *testing.T) {
 	targetClaims := &document.ClaimTypes{}
 	targetClaims.String = append(targetClaims.String, document.StringClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-		Prop:      document.Reference{ID: namingPropID},
+		Prop:      document.Reference{ID: internalCore.NamingPropID},
 		String:    "Target",
 	})
 	targetClaims.Reference = append(targetClaims.Reference,
 		document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-			Prop:      document.Reference{ID: subclassOfPropID},
+			Prop:      document.Reference{ID: internalCore.SubclassOfPropID},
 			To:        document.Reference{ID: classParent},
 		},
 		document.ReferenceClaim{
@@ -799,11 +794,11 @@ func TestConvertRelationOverlappingAncestors(t *testing.T) {
 
 	// Custom hierarchy property PART_OF.
 	partOfPropID := identifier.New()
-	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
-	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
-	partOfDoc := makePropertyDoc(partOfPropID, &subentityOfPropID)
-	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
-	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	partOfDoc := makePropertyDoc(partOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
 	properties := []*document.D{subentityDoc, subclassDoc, partOfDoc, subpropDoc, instanceDoc}
 
 	// Same ancestor reachable via both SUBCLASS_OF and PART_OF.
@@ -813,13 +808,13 @@ func TestConvertRelationOverlappingAncestors(t *testing.T) {
 	targetClaims := &document.ClaimTypes{}
 	targetClaims.String = append(targetClaims.String, document.StringClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-		Prop:      document.Reference{ID: namingPropID},
+		Prop:      document.Reference{ID: internalCore.NamingPropID},
 		String:    "Target",
 	})
 	targetClaims.Reference = append(targetClaims.Reference,
 		document.ReferenceClaim{
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-			Prop:      document.Reference{ID: subclassOfPropID},
+			Prop:      document.Reference{ID: internalCore.SubclassOfPropID},
 			To:        document.Reference{ID: sharedAncestor},
 		},
 		document.ReferenceClaim{
@@ -900,7 +895,7 @@ func TestBuildLanguageCodesSkipsNonLanguage(t *testing.T) {
 			Identifier: []document.IdentifierClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: codePropID},
+					Prop:      document.Reference{ID: internalCore.CodePropID},
 					Value:     "en",
 				},
 			},
@@ -929,7 +924,7 @@ func TestExtractInLanguages(t *testing.T) {
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inLanguagePropID},
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
 				To:        document.Reference{ID: testLangDocID},
 			},
 		},
@@ -947,7 +942,7 @@ func TestExtractInLanguages(t *testing.T) {
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inLanguagePropID},
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
 				To:        document.Reference{ID: unknownLangID},
 			},
 		},
@@ -971,7 +966,7 @@ func TestExtractInLanguagesUnsupportedLanguage(t *testing.T) {
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inLanguagePropID},
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
 				To:        document.Reference{ID: xxLangID},
 			},
 		},
@@ -996,12 +991,12 @@ func TestExtractInLanguagesMultiple(t *testing.T) {
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inLanguagePropID},
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
 				To:        document.Reference{ID: enLangID},
 			},
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inLanguagePropID},
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
 				To:        document.Reference{ID: slLangID},
 			},
 		},
@@ -1022,7 +1017,7 @@ func TestExtractInUnit(t *testing.T) {
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inUnitPropID},
+				Prop:      document.Reference{ID: internalCore.InUnitPropID},
 				To:        document.Reference{ID: testUnitDocID},
 			},
 		},
@@ -1064,7 +1059,7 @@ func TestNamingStrings(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
-		namingProperties: []identifier.Identifier{namingPropID},
+		namingProperties: []identifier.Identifier{internalCore.NamingPropID},
 		languageCodes:    map[identifier.Identifier]string{},
 	}
 
@@ -1078,7 +1073,7 @@ func TestNamingStringsEmpty(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
-		namingProperties: []identifier.Identifier{namingPropID},
+		namingProperties: []identifier.Identifier{internalCore.NamingPropID},
 		languageCodes:    map[identifier.Identifier]string{},
 	}
 
@@ -1094,7 +1089,7 @@ func TestNamingStringsSorted(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
-		namingProperties: []identifier.Identifier{namingPropID},
+		namingProperties: []identifier.Identifier{internalCore.NamingPropID},
 		languageCodes:    map[identifier.Identifier]string{},
 	}
 
@@ -1105,12 +1100,12 @@ func TestNamingStringsSorted(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.MediumConfidence, nil),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "Medium",
 				},
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "High",
 				},
 			},
@@ -1127,7 +1122,7 @@ func TestMakeDisplayStrings(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
-		namingProperties: []identifier.Identifier{namingPropID},
+		namingProperties: []identifier.Identifier{internalCore.NamingPropID},
 		languageCodes:    map[identifier.Identifier]string{},
 	}
 
@@ -1138,12 +1133,12 @@ func TestMakeDisplayStrings(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "Primary",
 				},
 				{
 					CoreClaim: makeCoreClaim(document.MediumConfidence, nil),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "Secondary",
 				},
 			},
@@ -1162,7 +1157,7 @@ func TestMakeDisplayStringsSanitizesNullBytes(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
-		namingProperties: []identifier.Identifier{namingPropID},
+		namingProperties: []identifier.Identifier{internalCore.NamingPropID},
 		languageCodes:    map[identifier.Identifier]string{},
 	}
 
@@ -1173,7 +1168,7 @@ func TestMakeDisplayStringsSanitizesNullBytes(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "Before\x00After",
 				},
 			},
@@ -1218,14 +1213,14 @@ func TestGetDisplayStringsNotFound(t *testing.T) {
 func TestNewConverter(t *testing.T) {
 	t.Parallel()
 
-	namingDoc := makePropertyDoc(namingPropID, nil)
-	subProp := makePropertyDoc(testPropID, &namingPropID)
+	namingDoc := makePropertyDoc(internalCore.NamingPropID, nil)
+	subProp := makePropertyDoc(testPropID, &internalCore.NamingPropID)
 	langDoc := makeLanguageDoc(testLangDocID, "en")
 
 	extraDocs := map[identifier.Identifier]*document.D{}
 	c := newTestConverter(t, []*document.D{namingDoc, subProp}, []*document.D{langDoc}, extraDocs)
 
-	assert.Contains(t, c.namingProperties, namingPropID)
+	assert.Contains(t, c.namingProperties, internalCore.NamingPropID)
 	assert.Contains(t, c.namingProperties, testPropID)
 	assert.Equal(t, "en", c.languageCodes[testLangDocID])
 	assert.NotNil(t, c.documentInfoCache)
@@ -1336,7 +1331,7 @@ func TestConvertStringWithLanguage(t *testing.T) {
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inLanguagePropID},
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
 				To:        document.Reference{ID: testLangDocID},
 			},
 		},
@@ -1392,7 +1387,7 @@ func TestConvertHTMLWithLanguage(t *testing.T) {
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inLanguagePropID},
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
 				To:        document.Reference{ID: testLangDocID},
 			},
 		},
@@ -1450,7 +1445,7 @@ func TestConvertAmountWithUnit(t *testing.T) {
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inUnitPropID},
+				Prop:      document.Reference{ID: internalCore.InUnitPropID},
 				To:        document.Reference{ID: testUnitDocID},
 			},
 		},
@@ -2138,15 +2133,15 @@ func TestConvertRelationWithClassAncestors(t *testing.T) {
 	t.Parallel()
 
 	// Set up hierarchy properties so SUBCLASS_OF is discovered.
-	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
-	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
-	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
-	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
 	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
 
 	propDoc := makeNamingDoc(testPropID, "Rel Prop")
 	// Target has SUBCLASS_OF -> parent.
-	targetDoc := makeHierarchyDoc(testTargetDocID, "Target", subclassOfPropID, &testParentClass)
+	targetDoc := makeHierarchyDoc(testTargetDocID, "Target", internalCore.SubclassOfPropID, &testParentClass)
 	parentDoc := makeNamingDoc(testParentClass, "Parent Class")
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID:      propDoc,
@@ -2180,7 +2175,7 @@ func TestConvertRelationWithClassAncestors(t *testing.T) {
 
 	// Target claim should have a hierarchy path: <SUBCLASS_OF>:<parent>/<target>.
 	require.Len(t, targetClaim.ToPath, 1)
-	assert.Equal(t, subclassOfPropID.String()+":"+testParentClass.String()+"/"+testTargetDocID.String(), targetClaim.ToPath[0])
+	assert.Equal(t, internalCore.SubclassOfPropID.String()+":"+testParentClass.String()+"/"+testTargetDocID.String(), targetClaim.ToPath[0])
 	require.Len(t, targetClaim.ToDisplayPath["und"], 1)
 	assert.Equal(t, "Parent Class\x00Target", targetClaim.ToDisplayPath["und"][0])
 
@@ -2192,15 +2187,15 @@ func TestConvertRelationWithClassAncestors(t *testing.T) {
 func TestConvertRelationWithClassSelfCycle(t *testing.T) {
 	t.Parallel()
 
-	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
-	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
-	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
-	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
 	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
 
 	propDoc := makeNamingDoc(testPropID, "Rel Prop")
 	// Target has SUBCLASS_OF pointing to itself.
-	targetDoc := makeHierarchyDoc(testTargetDocID, "Target", subclassOfPropID, &testTargetDocID)
+	targetDoc := makeHierarchyDoc(testTargetDocID, "Target", internalCore.SubclassOfPropID, &testTargetDocID)
 	extraDocs := map[identifier.Identifier]*document.D{
 		testPropID:      propDoc,
 		testTargetDocID: targetDoc,
@@ -2223,17 +2218,17 @@ func TestConvertRelationWithClassSelfCycle(t *testing.T) {
 func TestConvertRelationWithClassMutualCycle(t *testing.T) {
 	t.Parallel()
 
-	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
-	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
-	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
-	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
 	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
 
 	classA := identifier.New()
 	classB := identifier.New()
 	// A has SUBCLASS_OF -> B, B has SUBCLASS_OF -> A.
-	aDoc := makeHierarchyDoc(classA, "Class A", subclassOfPropID, &classB)
-	bDoc := makeHierarchyDoc(classB, "Class B", subclassOfPropID, &classA)
+	aDoc := makeHierarchyDoc(classA, "Class A", internalCore.SubclassOfPropID, &classB)
+	bDoc := makeHierarchyDoc(classB, "Class B", internalCore.SubclassOfPropID, &classA)
 
 	propDoc := makeNamingDoc(testPropID, "Rel Prop")
 	extraDocs := map[identifier.Identifier]*document.D{
@@ -3680,12 +3675,12 @@ func makeClassDocWithTemplate(id identifier.Identifier, tmpl string) *document.D
 	claims := &document.ClaimTypes{}
 	claims.Reference = append(claims.Reference, document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-		Prop:      document.Reference{ID: instanceOfPropID},
-		To:        document.Reference{ID: propertyClassID},
+		Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+		To:        document.Reference{ID: internalCore.PropertyClassID},
 	})
 	claims.String = append(claims.String, document.StringClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-		Prop:      document.Reference{ID: displayLabelTemplatePropID},
+		Prop:      document.Reference{ID: internalCore.DisplayLabelTemplatePropID},
 		String:    tmpl,
 	})
 	return &document.D{
@@ -3701,7 +3696,7 @@ func addInstanceOf(doc *document.D, classID identifier.Identifier, confidence do
 	}
 	doc.Claims.Reference = append(doc.Claims.Reference, document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(confidence, nil),
-		Prop:      document.Reference{ID: instanceOfPropID},
+		Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
 		To:        document.Reference{ID: classID},
 	})
 }
@@ -3784,7 +3779,7 @@ func TestMakeDisplayStringsWithTemplate(t *testing.T) {
 		classID: classDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
-	c.namingProperties = []identifier.Identifier{namingPropID}
+	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
 
 	// Document with INSTANCE_OF class and naming + short name claims.
 	doc := &document.D{
@@ -3793,7 +3788,7 @@ func TestMakeDisplayStringsWithTemplate(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "Full Name",
 				},
 				{
@@ -3825,7 +3820,7 @@ func TestMakeDisplayStringsWithInvalidTemplate(t *testing.T) {
 		classID: classDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
-	c.namingProperties = []identifier.Identifier{namingPropID}
+	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
 
 	// Template with invalid syntax should return an error.
 	doc := &document.D{
@@ -3834,7 +3829,7 @@ func TestMakeDisplayStringsWithInvalidTemplate(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "Fallback Name",
 				},
 			},
@@ -3866,13 +3861,13 @@ func TestMakeDisplayStringsTemplateAllLanguages(t *testing.T) {
 		classID: classDoc,
 	}
 	c := newTestConverter(t, nil, languages, extraDocs)
-	c.namingProperties = []identifier.Identifier{namingPropID}
+	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
 
 	enSub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inLanguagePropID},
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
 				To:        document.Reference{ID: enLangID},
 			},
 		},
@@ -3881,7 +3876,7 @@ func TestMakeDisplayStringsTemplateAllLanguages(t *testing.T) {
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inLanguagePropID},
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
 				To:        document.Reference{ID: slLangID},
 			},
 		},
@@ -3893,7 +3888,7 @@ func TestMakeDisplayStringsTemplateAllLanguages(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, enSub),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "English Name",
 				},
 				{
@@ -3955,7 +3950,7 @@ func TestMakeDisplayStringsTemplateRelationTraversal(t *testing.T) {
 	}
 
 	c := newTestConverter(t, nil, nil, extraDocs)
-	c.namingProperties = []identifier.Identifier{namingPropID}
+	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
 	c.languageCodes = map[identifier.Identifier]string{}
 
 	doc := &document.D{
@@ -3964,7 +3959,7 @@ func TestMakeDisplayStringsTemplateRelationTraversal(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "United States",
 				},
 				{
@@ -4002,7 +3997,7 @@ func TestMakeDisplayStringsTemplateOnlyNoNaming(t *testing.T) {
 		classID: classDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
-	c.namingProperties = []identifier.Identifier{namingPropID}
+	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
 
 	// Document with template (via class) but no naming strings.
 	doc := &document.D{
@@ -4041,13 +4036,13 @@ func TestTemplateBestStringLanguageFallback(t *testing.T) {
 		classID: classDoc,
 	}
 	c := newTestConverter(t, nil, languages, extraDocs)
-	c.namingProperties = []identifier.Identifier{namingPropID}
+	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
 
 	enSub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inLanguagePropID},
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
 				To:        document.Reference{ID: enLangID},
 			},
 		},
@@ -4061,7 +4056,7 @@ func TestTemplateBestStringLanguageFallback(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, enSub),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "English Naming",
 				},
 				{
@@ -4093,7 +4088,7 @@ func TestTemplateBestIdentifier(t *testing.T) {
 		classID: classDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
-	c.namingProperties = []identifier.Identifier{namingPropID}
+	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
 
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
@@ -4101,7 +4096,7 @@ func TestTemplateBestIdentifier(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "Some Name",
 				},
 			},
@@ -4136,7 +4131,7 @@ func TestTemplateNilDoc(t *testing.T) {
 		classID: classDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
-	c.namingProperties = []identifier.Identifier{namingPropID}
+	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
 	c.languageCodes = map[identifier.Identifier]string{}
 
 	// Template tries to follow a non-existent relation.
@@ -4147,7 +4142,7 @@ func TestTemplateNilDoc(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "Test",
 				},
 			},
@@ -4173,7 +4168,7 @@ func TestTemplateBestTimeString(t *testing.T) {
 		classID: classDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
-	c.namingProperties = []identifier.Identifier{namingPropID}
+	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
 
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
@@ -4181,7 +4176,7 @@ func TestTemplateBestTimeString(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "Some Name",
 				},
 			},
@@ -4214,14 +4209,14 @@ func TestTemplateGetDocumentByMnemonic(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "Other Document",
 				},
 			},
 		},
 	}
 	classDoc := makeClassDocWithTemplate(classID,
-		`{{getDocument `+idTmpl(otherDocID)+` | bestString `+idTmpl(namingPropID)+`}}`,
+		`{{getDocument `+idTmpl(otherDocID)+` | bestString `+idTmpl(internalCore.NamingPropID)+`}}`,
 	)
 
 	extraDocs := map[identifier.Identifier]*document.D{
@@ -4229,7 +4224,7 @@ func TestTemplateGetDocumentByMnemonic(t *testing.T) {
 		classID:    classDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
-	c.namingProperties = []identifier.Identifier{namingPropID}
+	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
 	c.languageCodes = map[identifier.Identifier]string{}
 
 	doc := &document.D{
@@ -4238,7 +4233,7 @@ func TestTemplateGetDocumentByMnemonic(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "My Doc",
 				},
 			},
@@ -4329,7 +4324,7 @@ func TestGetDocumentInfoWithLanguagePriority(t *testing.T) {
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inLanguagePropID},
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
 				To:        document.Reference{ID: enLangID},
 			},
 		},
@@ -4338,7 +4333,7 @@ func TestGetDocumentInfoWithLanguagePriority(t *testing.T) {
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inLanguagePropID},
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
 				To:        document.Reference{ID: slLangID},
 			},
 		},
@@ -4351,12 +4346,12 @@ func TestGetDocumentInfoWithLanguagePriority(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, enSub),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "English Name",
 				},
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, slSub),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "Slovensko Ime",
 				},
 			},
@@ -4403,7 +4398,7 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inLanguagePropID},
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
 				To:        document.Reference{ID: enLangID},
 			},
 		},
@@ -4412,17 +4407,17 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inLanguagePropID},
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
 				To:        document.Reference{ID: slLangID},
 			},
 		},
 	}
 
 	// Set up hierarchy.
-	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
-	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
-	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
-	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
 	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
 
 	parentID := identifier.New()
@@ -4435,7 +4430,7 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, enSub),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "Parent EN",
 				},
 			},
@@ -4449,19 +4444,19 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, enSub),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "Child EN",
 				},
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, slSub),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "Child SL",
 				},
 			},
 			Reference: []document.ReferenceClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: subclassOfPropID},
+					Prop:      document.Reference{ID: internalCore.SubclassOfPropID},
 					To:        document.Reference{ID: parentID},
 				},
 			},
@@ -4490,17 +4485,17 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// English path exists: parent has EN, child has EN.
-	require.Contains(t, info.DisplayPaths[subclassOfPropID], "en")
-	assert.Equal(t, []string{"Parent EN\x00Child EN"}, info.DisplayPaths[subclassOfPropID]["en"])
+	require.Contains(t, info.DisplayPaths[internalCore.SubclassOfPropID], "en")
+	assert.Equal(t, []string{"Parent EN\x00Child EN"}, info.DisplayPaths[internalCore.SubclassOfPropID]["en"])
 
 	// Slovenian path: parent resolved to "Parent EN" via sl->en fallback, child has "Child SL".
-	require.Contains(t, info.DisplayPaths[subclassOfPropID], "sl")
-	assert.Equal(t, []string{"Parent EN\x00Child SL"}, info.DisplayPaths[subclassOfPropID]["sl"])
+	require.Contains(t, info.DisplayPaths[internalCore.SubclassOfPropID], "sl")
+	assert.Equal(t, []string{"Parent EN\x00Child SL"}, info.DisplayPaths[internalCore.SubclassOfPropID]["sl"])
 
 	// Portuguese: pt has no fallback, both parent and child have empty pt display.
 	// Path is still created with empty strings.
-	require.Contains(t, info.DisplayPaths[subclassOfPropID], "pt")
-	assert.Equal(t, []string{"\x00"}, info.DisplayPaths[subclassOfPropID]["pt"])
+	require.Contains(t, info.DisplayPaths[internalCore.SubclassOfPropID], "pt")
+	assert.Equal(t, []string{"\x00"}, info.DisplayPaths[internalCore.SubclassOfPropID]["pt"])
 }
 
 func TestDisplayPathsEmptyAppend(t *testing.T) {
@@ -4512,17 +4507,17 @@ func TestDisplayPathsEmptyAppend(t *testing.T) {
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inLanguagePropID},
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
 				To:        document.Reference{ID: enLangID},
 			},
 		},
 	}
 
 	// Set up hierarchy.
-	subentityDoc := makePropertyDoc(subentityOfPropID, nil)
-	subclassDoc := makePropertyDoc(subclassOfPropID, &subentityOfPropID)
-	subpropDoc := makePropertyDoc(subpropertyOfPropID, &subentityOfPropID)
-	instanceDoc := makePropertyDoc(instanceOfPropID, &subentityOfPropID)
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
 	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
 
 	parentID := identifier.New()
@@ -4535,7 +4530,7 @@ func TestDisplayPathsEmptyAppend(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, enSub),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "Parent EN",
 				},
 			},
@@ -4549,14 +4544,14 @@ func TestDisplayPathsEmptyAppend(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "Child UND",
 				},
 			},
 			Reference: []document.ReferenceClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: subclassOfPropID},
+					Prop:      document.Reference{ID: internalCore.SubclassOfPropID},
 					To:        document.Reference{ID: parentID},
 				},
 			},
@@ -4584,8 +4579,8 @@ func TestDisplayPathsEmptyAppend(t *testing.T) {
 
 	// Parent has "en" display. Child has no "en" display (empty fallback means no resolution).
 	// Path should still be created with empty child display appended.
-	require.Contains(t, info.DisplayPaths[subclassOfPropID], "en")
-	assert.Equal(t, []string{"Parent EN\x00"}, info.DisplayPaths[subclassOfPropID]["en"])
+	require.Contains(t, info.DisplayPaths[internalCore.SubclassOfPropID], "en")
+	assert.Equal(t, []string{"Parent EN\x00"}, info.DisplayPaths[internalCore.SubclassOfPropID]["en"])
 }
 
 func TestBestStringLanguagePriority(t *testing.T) {
@@ -4602,7 +4597,7 @@ func TestBestStringLanguagePriority(t *testing.T) {
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inLanguagePropID},
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
 				To:        document.Reference{ID: enLangID},
 			},
 		},
@@ -4611,7 +4606,7 @@ func TestBestStringLanguagePriority(t *testing.T) {
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inLanguagePropID},
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
 				To:        document.Reference{ID: slLangID},
 			},
 		},
@@ -4620,7 +4615,7 @@ func TestBestStringLanguagePriority(t *testing.T) {
 		Reference: []document.ReferenceClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: inLanguagePropID},
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
 				To:        document.Reference{ID: ptLangID},
 			},
 		},
@@ -4639,7 +4634,7 @@ func TestBestStringLanguagePriority(t *testing.T) {
 		"pt": {"sl", "und"},
 	}
 	c := newTestConverterWithPriority(t, nil, languages, extraDocs, priority)
-	c.namingProperties = []identifier.Identifier{namingPropID}
+	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
 
 	// Document with template (via class). NAME only exists in "sl".
 	doc := &document.D{
@@ -4648,7 +4643,7 @@ func TestBestStringLanguagePriority(t *testing.T) {
 			String: []document.StringClaim{
 				{
 					CoreClaim: makeCoreClaim(document.HighConfidence, ptSub),
-					Prop:      document.Reference{ID: namingPropID},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
 					String:    "Nome PT",
 				},
 				{
@@ -4748,7 +4743,7 @@ func TestBuildInversePropertiesSkipsNonProperties(t *testing.T) {
 	claims := &document.ClaimTypes{}
 	claims.Reference = append(claims.Reference, document.ReferenceClaim{
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-		Prop:      document.Reference{ID: inversePropertyOfPropID},
+		Prop:      document.Reference{ID: internalCore.InversePropertyOfPropID},
 		To:        document.Reference{ID: propB},
 	})
 	notAProp := &document.D{

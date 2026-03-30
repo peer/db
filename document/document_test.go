@@ -10,6 +10,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
 func TestDocument(t *testing.T) {
@@ -49,7 +50,7 @@ func TestDocument(t *testing.T) {
 		},
 		Prop: document.GetReference(core.Namespace, "NAME"),
 	}, claim)
-	claims := doc.Get(identifier.From(core.Namespace, "NAME"))
+	claims := doc.Get(internalCore.NamePropID)
 	assert.Equal(t, []document.Claim{
 		&document.NoneClaim{
 			CoreClaim: document.CoreClaim{

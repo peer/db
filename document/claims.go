@@ -168,7 +168,7 @@ const UndeterminedLanguage = "und"
 //
 // Returns UndeterminedLanguage if no languages are specified or none can be resolved.
 func extractClaimLanguages(claims Claims, languageCodes map[identifier.Identifier]string, languagePriority map[string][]string) []string {
-	refs := GetClaimsOfTypeWithConfidence[*ReferenceClaim](claims, inLanguagePropID, LowConfidence)
+	refs := GetClaimsOfTypeWithConfidence[*ReferenceClaim](claims, internalCore.InLanguagePropID, LowConfidence)
 	var codes []string
 	for _, ref := range refs {
 		if code, ok := languageCodes[ref.To.ID]; ok {
@@ -262,15 +262,6 @@ func SelectClaimsByLanguage[T Claim](
 	return nil
 }
 
-// Well-known IDs computed from the core namespace.
-//
-//nolint:gochecknoglobals
-var (
-	inLanguagePropID  = identifier.From(internalCore.Namespace, "IN_LANGUAGE")
-	listPropID        = identifier.From(internalCore.Namespace, "LIST")
-	orderInListPropID = identifier.From(internalCore.Namespace, "ORDER_IN_LIST")
-)
-
 // GetClaimsListsOfType groups claims of the concrete type T matching the given property ID
 // by their LIST sub-claim and sorts within each list by the ORDER_IN_LIST sub-claim.
 // Returns a slice of lists, where each list is a slice of claims sorted by order.
@@ -295,11 +286,11 @@ func GetClaimsListsOfType[T Claim](claims Claims, propID identifier.Identifier) 
 	claimsPerList := map[string][]entry{}
 	for _, c := range all {
 		listID := "none"
-		if listClaim := GetBestClaimOfType[*IdentifierClaim](Claim(c), listPropID); listClaim != nil {
+		if listClaim := GetBestClaimOfType[*IdentifierClaim](Claim(c), internalCore.ListPropID); listClaim != nil {
 			listID = listClaim.Value
 		}
 		order := math.MaxFloat64
-		if orderClaim := GetBestClaimOfType[*AmountClaim](Claim(c), orderInListPropID); orderClaim != nil {
+		if orderClaim := GetBestClaimOfType[*AmountClaim](Claim(c), internalCore.OrderInListPropID); orderClaim != nil {
 			f, errE := orderClaim.Amount.Float64(0)
 			if errE == nil {
 				order = f

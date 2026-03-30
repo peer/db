@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
 // TestCoreDocumentGetID tests CoreDocument.GetID.
@@ -1004,8 +1004,8 @@ func TestGetClaimsListsOfType(t *testing.T) {
 	prop := identifier.New()
 	listA := identifier.New()
 	listB := identifier.New()
-	listProp := identifier.From(core.Namespace, "LIST")
-	orderProp := identifier.From(core.Namespace, "ORDER_IN_LIST")
+	listProp := internalCore.ListPropID
+	orderProp := internalCore.OrderInListPropID
 
 	ct := &document.ClaimTypes{
 		String: document.StringClaims{

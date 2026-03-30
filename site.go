@@ -20,8 +20,8 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"gitlab.com/peerdb/peerdb/base"
-	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
 // Build contains version and build metadata.
@@ -93,13 +93,6 @@ func (s *Site) Decode(ctx *kong.DecodeContext) error {
 
 const fetchDocumentIDsPageSize = 5000
 
-// Well-known IDs computed from the core namespace.
-//
-//nolint:gochecknoglobals
-var (
-	instanceOfPropID = identifier.From(core.Namespace, "INSTANCE_OF")
-)
-
 // rawFieldValue wraps a types.FieldValue so it satisfies types.FieldValueVariant.
 //
 // See: https://github.com/elastic/go-elasticsearch/issues/1328
@@ -113,7 +106,7 @@ func (r *rawFieldValue) FieldValueCaster() *types.FieldValue {
 
 func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifier) ([]identifier.Identifier, errors.E) {
 	boolQuery := esdsl.NewBoolQuery().Must(
-		esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(instanceOfPropID.String())),
+		esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(internalCore.InstanceOfPropID.String())),
 		esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(classID.String())),
 	)
 	query := esdsl.NewNestedQuery(boolQuery).Path("claims.ref")

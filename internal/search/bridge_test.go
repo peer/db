@@ -18,8 +18,8 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/internal/testutils"
@@ -382,28 +382,19 @@ func TestBridgeStaleDataNotIndexed(t *testing.T) {
 	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, id.String()), "document should be in ES")
 }
 
-// Well-known IDs computed from the core namespace.
-//
-//nolint:gochecknoglobals
-var (
-	testInstanceOfPropID       = identifier.From(core.Namespace, "INSTANCE_OF")
-	testPropertyClassID        = identifier.From(core.Namespace, "PROPERTY")
-	testInversePropertyOfPropI = identifier.From(core.Namespace, "INVERSE_PROPERTY_OF")
-)
-
 // makePropertyDocJSON creates a property document (INSTANCE_OF PROPERTY) with optional INVERSE_PROPERTY_OF.
 func makePropertyDocJSON(t *testing.T, id identifier.Identifier, inverseOf *identifier.Identifier) json.RawMessage {
 	t.Helper()
 	claims := &document.ClaimTypes{}
 	claims.Reference = append(claims.Reference, document.ReferenceClaim{
 		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
-		Prop:      document.Reference{ID: testInstanceOfPropID},
-		To:        document.Reference{ID: testPropertyClassID},
+		Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+		To:        document.Reference{ID: internalCore.PropertyClassID},
 	})
 	if inverseOf != nil {
 		claims.Reference = append(claims.Reference, document.ReferenceClaim{
 			CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
-			Prop:      document.Reference{ID: testInversePropertyOfPropI},
+			Prop:      document.Reference{ID: internalCore.InversePropertyOfPropID},
 			To:        document.Reference{ID: *inverseOf},
 		})
 	}
@@ -450,12 +441,12 @@ func makeConverterWithInverse(
 			Reference: []document.ReferenceClaim{
 				{
 					CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
-					Prop:      document.Reference{ID: testInstanceOfPropID},
-					To:        document.Reference{ID: testPropertyClassID},
+					Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+					To:        document.Reference{ID: internalCore.PropertyClassID},
 				},
 				{
 					CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
-					Prop:      document.Reference{ID: testInversePropertyOfPropI},
+					Prop:      document.Reference{ID: internalCore.InversePropertyOfPropID},
 					To:        document.Reference{ID: propY},
 				},
 			},
@@ -467,8 +458,8 @@ func makeConverterWithInverse(
 			Reference: []document.ReferenceClaim{
 				{
 					CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
-					Prop:      document.Reference{ID: testInstanceOfPropID},
-					To:        document.Reference{ID: testPropertyClassID},
+					Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+					To:        document.Reference{ID: internalCore.PropertyClassID},
 				},
 			},
 		},
