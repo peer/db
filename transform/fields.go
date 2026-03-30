@@ -305,8 +305,9 @@ func (fc *fieldsCollector) makeField(
 	}
 
 	// Parse values tag.
-	values, errE := parseValuesTag(structField, fieldPath)
+	values, errE := parseValuesTag(structField)
 	if errE != nil {
+		errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
 		return internalCore.Field{}, errE
 	}
 
@@ -654,7 +655,7 @@ func parseFieldsCardinality(cardinality string, fieldType reflect.Type) (int, in
 // The format is "namespace,mnemonic;namespace2,part1,part2".
 //
 // The values tag can only be used with core.Ref field type.
-func parseValuesTag(field reflect.StructField, fieldPath []string) ([]internalCore.Ref, errors.E) {
+func parseValuesTag(field reflect.StructField) ([]internalCore.Ref, errors.E) {
 	tag := field.Tag.Get("values")
 	if tag == "" {
 		return nil, nil
@@ -670,7 +671,6 @@ func parseValuesTag(field reflect.StructField, fieldPath []string) ([]internalCo
 	}
 	if baseType != coreRef {
 		errE := errors.New("values tag can only be used with core.Ref field type")
-		errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
 		errors.Details(errE)["type"] = field.Type.String()
 		return nil, errE
 	}
