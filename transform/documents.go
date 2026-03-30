@@ -67,7 +67,7 @@
 // Specifies how to interpret fields. Supported types for string fields:
 //
 //   - "id": create an identifier claim,
-//   - "iri": create a link claim,
+//   - "link": create a link claim,
 //   - "file": create a link claim,
 //   - "html": create a text claim with HTML (content will be escaped),
 //   - "rawhtml": create a text claim with raw HTML (content will be sanitized but not escaped).
@@ -80,7 +80,7 @@
 // Example:
 //
 //	Code      string `property:"CODE" type:"id"`
-//	Homepage  string `property:"HOMEPAGE" type:"iri"`
+//	Homepage  string `property:"HOMEPAGE" type:"link"`
 //	Bio       string `property:"BIO" type:"html"`
 //	IsAbsent  bool   `property:"NAME" type:"none"`
 //	IsUnknown bool   `property:"AGE" type:"unknown"`
@@ -192,7 +192,7 @@
 //   - core.Interval[core.Time]: time interval claim,
 //   - core.Interval[core.Amount[T]]: amount interval claim,
 //   - core.Identifier: identifier claim,
-//   - core.IRI: link claim,
+//   - core.Link: link claim,
 //   - core.HTML: text claim (with escaping),
 //   - core.RawHTML: text claim (without escaping),
 //   - core.None: none-value claim when true,
@@ -297,7 +297,7 @@ var (
 	timeTime         = reflect.TypeFor[time.Time]()
 	coreTimeInterval = reflect.TypeFor[core.Interval[core.Time]]()
 	coreIdentifier   = reflect.TypeFor[core.Identifier]()
-	coreIRI          = reflect.TypeFor[core.IRI]()
+	coreLink         = reflect.TypeFor[core.Link]()
 	coreHTML         = reflect.TypeFor[core.HTML]()
 	coreRawHTML      = reflect.TypeFor[core.RawHTML]()
 	coreNone         = reflect.TypeFor[core.None]()
@@ -362,7 +362,7 @@ const (
 	defaultUnknown = "unknown"
 
 	typeID      = "id"
-	typeIRI     = "iri"
+	typeLink    = "link"
 	typeFile    = "file"
 	typeHTML    = "html"
 	typeRawHTML = "rawhtml"
@@ -1347,25 +1347,25 @@ func makeClaim(
 		}, nil
 	}
 
-	// Handle core.IRI.
-	if t == coreIRI {
+	// Handle core.Link.
+	if t == coreLink {
 		if precisionTag != "" {
-			return nil, errors.New("precision tag is not supported for core.IRI fields")
+			return nil, errors.New("precision tag is not supported for core.Link fields")
 		}
 
 		if locationTag != "" {
-			return nil, errors.New("location tag is not supported for core.IRI fields")
+			return nil, errors.New("location tag is not supported for core.Link fields")
 		}
 
-		iri := fieldValue.Interface().(core.IRI) //nolint:errcheck,forcetypeassert
-		if iri == "" {
+		link := fieldValue.Interface().(core.Link) //nolint:errcheck,forcetypeassert
+		if link == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
 			})
 		}
 
-		if typeTag != "" && typeTag != typeIRI {
-			return nil, errors.New("IRI field used with conflicting tag")
+		if typeTag != "" && typeTag != typeLink {
+			return nil, errors.New("link field used with conflicting tag")
 		}
 
 		claimID := newClaimID(idPath, propertyID, claims)
@@ -1375,7 +1375,7 @@ func makeClaim(
 				Confidence: confidence,
 			},
 			Prop: document.Reference{ID: propertyID},
-			IRI:  string(iri),
+			IRI:  string(link),
 		}, nil
 	}
 
@@ -1587,7 +1587,7 @@ func makeClaim(
 			}, nil
 		}
 
-		if typeTag == typeIRI || typeTag == typeFile {
+		if typeTag == typeLink || typeTag == typeFile {
 			return &document.LinkClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         claimID,

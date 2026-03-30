@@ -135,7 +135,7 @@ declare module "vue-i18n" {
           unknown: string
         }
         labels: {
-          iri: string
+          link: string
           html: string
           string: string
           amount: string

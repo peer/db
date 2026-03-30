@@ -124,7 +124,7 @@
         "unknown": "Unknown"
       },
       "labels": {
-        "iri": "IRI",
+        "link": "Link",
         "html": "HTML",
         "string": "String",
         "amount": "Amount",

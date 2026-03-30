@@ -17,8 +17,8 @@ type Ref struct {
 // Identifier is a string identifier.
 type Identifier string
 
-// IRI is a string URL, URI or IRI.
-type IRI string
+// Link is a string URL, URI or IRI.
+type Link string
 
 // HTML is a string with HTML.
 type HTML string
@@ -221,9 +221,9 @@ type RawHTMLWithLanguage struct {
 	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
 }
 
-// IRIWithMediaType represents IRI (URL, URI or IRI) with its media type.
-type IRIWithMediaType struct {
-	Value IRI `json:"value" value:""`
+// LinkWithMediaType represents link (URL, URI or IRI) with its media type.
+type LinkWithMediaType struct {
+	Value Link `json:"value" value:""`
 
 	MediaType []Identifier `cardinality:"0.." json:"mediaType,omitempty" property:"MEDIA_TYPE"`
 }

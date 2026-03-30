@@ -98,7 +98,7 @@ type RefFieldWithValues struct {
 type AllTypeFields struct {
 	Name        string                          `cardinality:"1"    json:"name"                         property:"NAME"`
 	Code        core.Identifier                 `cardinality:"1"    json:"code"                         property:"CODE"`
-	Homepage    core.IRI                        `cardinality:"0..1" json:"homepage"                     property:"HOMEPAGE"`
+	Homepage    core.Link                       `cardinality:"0..1" json:"homepage"                     property:"HOMEPAGE"`
 	Description core.HTML                       `cardinality:"0..1" json:"description"                  property:"DESCRIPTION"`
 	Notes       core.RawHTML                    `cardinality:"0..1" json:"notes"                        property:"NOTES"`
 	Age         int                             `cardinality:"1"    json:"age"         precision:"1"    property:"AGE"`
@@ -117,7 +117,7 @@ type AllTypeFields struct {
 
 type FieldsWithStringTypes struct {
 	Code     string `cardinality:"1"    json:"code"     property:"CODE"     type:"id"`
-	Homepage string `cardinality:"0..1" json:"homepage" property:"HOMEPAGE" type:"iri"`
+	Homepage string `cardinality:"0..1" json:"homepage" property:"HOMEPAGE" type:"link"`
 	Data     string `cardinality:"0..1" json:"data"     property:"DATA"     type:"html"`
 	Raw      string `cardinality:"0..1" json:"raw"      property:"RAW"      type:"rawhtml"`
 }
@@ -334,7 +334,7 @@ func TestFieldsAllTypes(t *testing.T) {
 	expectedTypes := []string{
 		"STRING",          // Name (string).
 		"IDENTIFIER",      // Code (core.Identifier).
-		"LINK",            // Homepage (core.IRI).
+		"LINK",            // Homepage (core.Link).
 		"HTML",            // Description (core.HTML).
 		"HTML",            // Notes (core.RawHTML).
 		"AMOUNT",          // Age (int).

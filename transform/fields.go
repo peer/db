@@ -332,7 +332,7 @@ func determineValueTypeFromReflect(fieldType reflect.Type, typeTag string) (core
 		return valueTypeRef("TIME_INTERVAL"), nil
 	case fieldType == coreIdentifier:
 		return valueTypeRef("IDENTIFIER"), nil
-	case fieldType == coreIRI:
+	case fieldType == coreLink:
 		return valueTypeRef("LINK"), nil
 	case fieldType == coreHTML:
 		return valueTypeRef("HTML"), nil
@@ -356,7 +356,7 @@ func determineValueTypeFromReflect(fieldType reflect.Type, typeTag string) (core
 			return valueTypeRef("IDENTIFIER"), nil
 		case typeHTML, typeRawHTML:
 			return valueTypeRef("HTML"), nil
-		case typeIRI:
+		case typeLink:
 			return valueTypeRef("LINK"), nil
 		case typeFile:
 			return valueTypeRef("FILE"), nil

@@ -124,7 +124,7 @@
         "unknown": "Neznana vrednost"
       },
       "labels": {
-        "iri": "IRI",
+        "link": "Povezava",
         "html": "HTML",
         "string": "Enostavno besedilo",
         "amount": "Količina",
