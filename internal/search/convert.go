@@ -194,7 +194,7 @@ func validateLanguagePriority(priority map[string][]string) errors.E {
 // isInstanceOf returns true if the document has an INSTANCE_OF reference claim
 // pointing to the given class ID.
 func isInstanceOf(doc *document.D, classID identifier.Identifier) bool {
-	for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](doc, internalCore.InstanceOfPropID, document.LowConfidence) {
+	for _, rel := range document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, internalCore.InstanceOfPropID, document.LowConfidence) {
 		if rel.To.ID == classID {
 			return true
 		}
@@ -214,7 +214,7 @@ func (c *Converter) buildPropertyHierarchy(properties []*document.D) {
 		if !isInstanceOf(prop, internalCore.PropertyClassID) {
 			continue
 		}
-		for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](prop, internalCore.SubpropertyOfPropID, document.LowConfidence) {
+		for _, rel := range document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](prop, internalCore.SubpropertyOfPropID, document.LowConfidence) {
 			parentChildren[rel.To.ID] = append(parentChildren[rel.To.ID], prop.ID)
 			childParents[prop.ID] = append(childParents[prop.ID], rel.To.ID)
 		}
@@ -310,7 +310,7 @@ func (c *Converter) buildLanguageCodes(allDocuments []*document.D) {
 			continue
 		}
 		// Extract the CODE identifier claim and use the primary language subtag.
-		ids := document.GetClaimsOfTypeWithConfidence[*document.IdentifierClaim](doc, internalCore.CodePropID, document.LowConfidence)
+		ids := document.GetClaimsOfTypeWithConfidence[document.IdentifierClaim](doc, internalCore.CodePropID, document.LowConfidence)
 		for _, id := range ids {
 			code, _, _ := strings.Cut(id.Value, "-")
 			if SupportedLanguages[code] {
@@ -330,7 +330,7 @@ func (c *Converter) buildInverseProperties(properties []*document.D) {
 		if !isInstanceOf(prop, internalCore.PropertyClassID) {
 			continue
 		}
-		for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](prop, internalCore.InversePropertyOfPropID, document.LowConfidence) {
+		for _, rel := range document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](prop, internalCore.InversePropertyOfPropID, document.LowConfidence) {
 			if !slices.Contains(c.inverseProperties[prop.ID], rel.To.ID) {
 				c.inverseProperties[prop.ID] = append(c.inverseProperties[prop.ID], rel.To.ID)
 			}
@@ -362,12 +362,12 @@ func (c *Converter) buildFieldInverseProperties(classes []*document.D) {
 	c.fieldInverseProperties = map[fieldInverseKey]identifier.Identifier{}
 	for _, cls := range classes {
 		// Process top-level FIELD HasClaims.
-		for _, field := range document.GetClaimsOfTypeWithConfidence[*document.HasClaim](cls, internalCore.FieldPropID, document.LowConfidence) {
+		for _, field := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](cls, internalCore.FieldPropID, document.LowConfidence) {
 			c.processFieldInverse(nil, field)
 		}
 		// Process SECTION HasClaims which contain FIELD HasClaims.
-		for _, section := range document.GetClaimsOfTypeWithConfidence[*document.HasClaim](cls, internalCore.SectionPropID, document.LowConfidence) {
-			for _, field := range document.GetClaimsOfTypeWithConfidence[*document.HasClaim](section, internalCore.FieldPropID, document.LowConfidence) {
+		for _, section := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](cls, internalCore.SectionPropID, document.LowConfidence) {
+			for _, field := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](section, internalCore.FieldPropID, document.LowConfidence) {
 				c.processFieldInverse(nil, field)
 			}
 		}
@@ -379,14 +379,14 @@ func (c *Converter) buildFieldInverseProperties(classes []*document.D) {
 // property IDs from parent fields.
 func (c *Converter) processFieldInverse(parentPath []identifier.Identifier, field *document.HasClaim) {
 	// Extract the field's property (HAS_PROPERTY reference).
-	hasPropRef := document.GetBestClaimOfType[*document.ReferenceClaim](field, internalCore.HasPropertyPropID)
+	hasPropRef := document.GetBestClaimOfType[document.ReferenceClaim](field, internalCore.HasPropertyPropID)
 	if hasPropRef == nil {
 		return
 	}
 	propID := hasPropRef.To.ID
 
 	// Check for INVERSE_PROPERTY reference.
-	inversePropRef := document.GetBestClaimOfType[*document.ReferenceClaim](field, internalCore.InversePropertyPropID)
+	inversePropRef := document.GetBestClaimOfType[document.ReferenceClaim](field, internalCore.InversePropertyPropID)
 	if inversePropRef != nil {
 		key := fieldInverseKey{
 			Path:       encodeFieldPath(parentPath),
@@ -397,7 +397,7 @@ func (c *Converter) processFieldInverse(parentPath []identifier.Identifier, fiel
 
 	// Recurse into SUB_FIELD HasClaims.
 	childPath := append(slices.Clone(parentPath), propID)
-	for _, subField := range document.GetClaimsOfTypeWithConfidence[*document.HasClaim](field, internalCore.SubFieldPropID, document.LowConfidence) {
+	for _, subField := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](field, internalCore.SubFieldPropID, document.LowConfidence) {
 		c.processFieldInverse(childPath, subField)
 	}
 }
@@ -442,7 +442,7 @@ func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Ident
 	var displayPaths map[identifier.Identifier]map[string][]string
 	idStr := id.String()
 	for _, hierProp := range c.valueHierarchyProperties {
-		refs := document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](doc, hierProp, document.LowConfidence)
+		refs := document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, hierProp, document.LowConfidence)
 		if len(refs) == 0 {
 			continue
 		}
@@ -589,7 +589,7 @@ func (c *Converter) makeDisplayStrings(ctx context.Context, doc *document.D) (di
 		// No template. Search naming strings in the fallback chain.
 		// Both here and in namingProperties we traverse naming claims, so we traverse it twice, but we do that
 		// so that code here matches the implementation on the frontend and that it is easier to compare with it.
-		selected := document.SelectClaimsByLanguage[*document.StringClaim](
+		selected := document.SelectClaimsByLanguage[document.StringClaim](
 			doc, c.namingProperties, lang,
 			func(claims []*document.StringClaim) bool {
 				// Here we want only a non-empty string (after sanitization).
@@ -636,13 +636,13 @@ func (c *Converter) displayLabelTemplate(ctx context.Context, doc *document.D) (
 	var bestTemplate string
 	var bestConfidence document.Confidence
 
-	for _, rel := range document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](doc, internalCore.InstanceOfPropID, document.LowConfidence) {
+	for _, rel := range document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, internalCore.InstanceOfPropID, document.LowConfidence) {
 		classDoc, errE := c.getDocument(ctx, rel.To.ID)
 		if errE != nil {
 			return "", errE
 		}
 		instanceConfidence := rel.GetConfidence()
-		for _, sc := range document.GetClaimsOfTypeWithConfidence[*document.StringClaim](classDoc, internalCore.DisplayLabelTemplatePropID, document.LowConfidence) {
+		for _, sc := range document.GetClaimsOfTypeWithConfidence[document.StringClaim](classDoc, internalCore.DisplayLabelTemplatePropID, document.LowConfidence) {
 			effective := instanceConfidence * sc.GetConfidence()
 			if effective > bestConfidence {
 				bestConfidence = effective
@@ -689,7 +689,7 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 			if doc == nil {
 				return "", nil
 			}
-			selected := document.SelectClaimsByLanguage[*document.StringClaim](
+			selected := document.SelectClaimsByLanguage[document.StringClaim](
 				doc, []identifier.Identifier{propID}, lang,
 				func(claims []*document.StringClaim) bool {
 					// Here we are fine with empty strings.
@@ -707,7 +707,7 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 			if doc == nil {
 				return "", nil
 			}
-			ac := document.GetBestClaimOfType[*document.AmountClaim](doc, propID)
+			ac := document.GetBestClaimOfType[document.AmountClaim](doc, propID)
 			if ac == nil {
 				return "", nil
 			}
@@ -718,7 +718,7 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 			if doc == nil {
 				return nil, nil
 			}
-			rc := document.GetBestClaimOfType[*document.ReferenceClaim](doc, propID)
+			rc := document.GetBestClaimOfType[document.ReferenceClaim](doc, propID)
 			if rc == nil {
 				return nil, nil
 			}
@@ -733,7 +733,7 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 			if doc == nil {
 				return "", nil
 			}
-			ic := document.GetBestClaimOfType[*document.IdentifierClaim](doc, propID)
+			ic := document.GetBestClaimOfType[document.IdentifierClaim](doc, propID)
 			if ic == nil {
 				return "", nil
 			}
@@ -744,7 +744,7 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 			if doc == nil {
 				return "", nil
 			}
-			tc := document.GetBestClaimOfType[*document.TimeClaim](doc, propID)
+			tc := document.GetBestClaimOfType[document.TimeClaim](doc, propID)
 			if tc == nil {
 				return "", nil
 			}
@@ -757,7 +757,7 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 // It collects string claims whose property is NAMING or any sub-property of NAMING
 // (NAME, SHORT_NAME, ALTERNATIVE_NAME, TITLE, CODE, MNEMONIC, etc.).
 func (c *Converter) namingStrings(doc *document.D) map[string][]string {
-	claimsByLang := document.GetClaimsAndLanguageOfTypeWithConfidence[*document.StringClaim](
+	claimsByLang := document.GetClaimsAndLanguageOfTypeWithConfidence[document.StringClaim](
 		doc, c.namingProperties, document.LowConfidence, c.languageCodes, c.languagePriority,
 	)
 	if len(claimsByLang) == 0 {
@@ -781,7 +781,7 @@ func (c *Converter) extractInLanguages(claims document.Claims) []string {
 	if claims == nil {
 		return []string{document.UndeterminedLanguage}
 	}
-	refs := document.GetClaimsOfTypeWithConfidence[*document.ReferenceClaim](claims, internalCore.InLanguagePropID, document.LowConfidence)
+	refs := document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](claims, internalCore.InLanguagePropID, document.LowConfidence)
 	var codes []string
 	for _, ref := range refs {
 		if code, ok := c.languageCodes[ref.To.ID]; ok && SupportedLanguages[code] {
@@ -796,7 +796,7 @@ func (c *Converter) extractInLanguages(claims document.Claims) []string {
 
 // extractInUnit extracts the unit identifier from a claim's IN_UNIT sub-claim reference.
 func (c *Converter) extractInUnit(sub *document.ClaimTypes) *identifier.Identifier {
-	if rel := document.GetBestClaimOfType[*document.ReferenceClaim](sub, internalCore.InUnitPropID); rel != nil {
+	if rel := document.GetBestClaimOfType[document.ReferenceClaim](sub, internalCore.InUnitPropID); rel != nil {
 		return &rel.To.ID
 	}
 	return nil
@@ -1664,7 +1664,7 @@ func (c *Converter) convertLink(ctx context.Context, claim *document.LinkClaim) 
 
 func (c *Converter) convertReference(ctx context.Context, claim *document.ReferenceClaim) ([]ReferenceClaim, errors.E) {
 	// Convert sub-claim references to nested search reference claims.
-	subRelations := document.GetAllClaimsOfTypeWithConfidence[*document.ReferenceClaim](claim.Sub, document.LowConfidence)
+	subRelations := document.GetAllClaimsOfTypeWithConfidence[document.ReferenceClaim](claim.Sub, document.LowConfidence)
 	nested := make([]NestedReferenceClaim, 0, len(subRelations))
 	for _, mr := range subRelations {
 		mrPropDisplay, errE := c.getDisplayStrings(ctx, mr.Prop.ID)
@@ -1746,7 +1746,7 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 
 func (c *Converter) convertHas(ctx context.Context, claim *document.HasClaim) ([]HasClaim, errors.E) {
 	// Convert sub-claim references to nested search reference claims.
-	subRelations := document.GetAllClaimsOfTypeWithConfidence[*document.ReferenceClaim](claim.Sub, document.LowConfidence)
+	subRelations := document.GetAllClaimsOfTypeWithConfidence[document.ReferenceClaim](claim.Sub, document.LowConfidence)
 	nested := make([]NestedReferenceClaim, 0, len(subRelations))
 	for _, mr := range subRelations {
 		mrPropDisplay, errE := c.getDisplayStrings(ctx, mr.Prop.ID)
