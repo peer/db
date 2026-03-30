@@ -50,7 +50,7 @@ func (a Amount) Float64(precision float64) (float64, errors.E) {
 
 	value, err := strconv.ParseFloat(numStr, 64)
 	if err != nil {
-		errE := errors.New("unable to parse amount as float64")
+		errE := errors.WithMessage(err, "unable to parse amount as float64")
 		errors.Details(errE)["value"] = s
 		return 0, errE
 	}

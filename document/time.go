@@ -102,7 +102,7 @@ func (t Time) Time(precision TimePrecision, location *time.Location) (time.Time,
 	}
 	year, err := strconv.ParseInt(match[timeIndexYear], 10, 0)
 	if err != nil {
-		errE := errors.New("unable to parse year")
+		errE := errors.WithMessage(err, "unable to parse year")
 		errors.Details(errE)["value"] = s
 		return time.Time{}, errE
 	}
@@ -110,7 +110,7 @@ func (t Time) Time(precision TimePrecision, location *time.Location) (time.Time,
 	if match[timeIndexMonth] != "" { //nolint:nestif
 		month, err = strconv.ParseInt(match[timeIndexMonth], 10, 0)
 		if err != nil {
-			errE := errors.New("unable to parse month")
+			errE := errors.WithMessage(err, "unable to parse month")
 			errors.Details(errE)["value"] = s
 			return time.Time{}, errE
 		}
@@ -122,7 +122,7 @@ func (t Time) Time(precision TimePrecision, location *time.Location) (time.Time,
 		}
 		day, err = strconv.ParseInt(match[timeIndexDay], 10, 0)
 		if err != nil {
-			errE := errors.New("unable to parse day")
+			errE := errors.WithMessage(err, "unable to parse day")
 			errors.Details(errE)["value"] = s
 			return time.Time{}, errE
 		}
@@ -135,7 +135,7 @@ func (t Time) Time(precision TimePrecision, location *time.Location) (time.Time,
 		if match[timeIndexHours] != "" {
 			hours, err = strconv.ParseInt(match[timeIndexHours], 10, 0)
 			if err != nil {
-				errE := errors.New("unable to parse hours")
+				errE := errors.WithMessage(err, "unable to parse hours")
 				errors.Details(errE)["value"] = s
 				return time.Time{}, errE
 			}
@@ -146,7 +146,7 @@ func (t Time) Time(precision TimePrecision, location *time.Location) (time.Time,
 			}
 			minutes, err = strconv.ParseInt(match[timeIndexMinutes], 10, 0)
 			if err != nil {
-				errE := errors.New("unable to parse minutes")
+				errE := errors.WithMessage(err, "unable to parse minutes")
 				errors.Details(errE)["value"] = s
 				return time.Time{}, errE
 			}
@@ -158,7 +158,7 @@ func (t Time) Time(precision TimePrecision, location *time.Location) (time.Time,
 			if match[timeIndexSeconds] != "" {
 				seconds, err = strconv.ParseInt(match[timeIndexSeconds], 10, 0)
 				if err != nil {
-					errE := errors.New("unable to parse seconds")
+					errE := errors.WithMessage(err, "unable to parse seconds")
 					errors.Details(errE)["value"] = s
 					return time.Time{}, errE
 				}
@@ -170,7 +170,7 @@ func (t Time) Time(precision TimePrecision, location *time.Location) (time.Time,
 				if match[timeIndexSubseconds] != "" {
 					nanoseconds, err = strconv.ParseInt(match[timeIndexSubseconds], 10, 0)
 					if err != nil {
-						errE := errors.New("unable to parse subseconds")
+						errE := errors.WithMessage(err, "unable to parse subseconds")
 						errors.Details(errE)["value"] = s
 						return time.Time{}, errE
 					}
