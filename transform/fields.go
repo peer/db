@@ -294,13 +294,62 @@ func (fc *fieldsCollector) makeField(
 		return core.Field{}, errE
 	}
 
+	// Collect sub-fields from struct types.
+	subFields, errE := fc.collectSubFields(structField.Type, fieldPath)
+	if errE != nil {
+		return core.Field{}, errE
+	}
+
 	return core.Field{
 		Property:    propertyRef,
 		ValueType:   valueTypeRef,
 		OrderInList: order,
 		Cardinality: cardinality,
 		Values:      values,
+		SubField:    subFields,
 	}, nil
+}
+
+// collectSubFields extracts sub-field descriptions from a struct type.
+// Sub-fields are non-value fields within a nested struct that has a property tag.
+// Returns nil if the type is not a struct or has no sub-fields.
+func (fc *fieldsCollector) collectSubFields(fieldType reflect.Type, fieldPath []string) ([]core.Field, errors.E) {
+	// Unwrap slice.
+	if fieldType.Kind() == reflect.Slice {
+		fieldType = fieldType.Elem()
+	}
+
+	// Unwrap pointer.
+	if fieldType.Kind() == reflect.Ptr {
+		fieldType = fieldType.Elem()
+	}
+
+	if fieldType.Kind() != reflect.Struct {
+		return nil, nil
+	}
+
+	// Skip known core types that are not user-defined structs with sub-fields.
+	if isKnownCoreType(fieldType) {
+		return nil, nil
+	}
+
+	subOrder := 1.0
+	subFields, errE := fc.processInnerFields(fieldType, &subOrder, fieldPath)
+	if errE != nil {
+		return nil, errE
+	}
+
+	if len(subFields) == 0 {
+		return nil, nil
+	}
+
+	return subFields, nil
+}
+
+// isKnownCoreType returns true for core types that should not be
+// inspected for sub-fields.
+func isKnownCoreType(t reflect.Type) bool {
+	return coreStructTypes[t] || coreAmountTypes[t] || coreAmountIntervalTypes[t]
 }
 
 // extractSectionNames extracts section names from struct tags.
@@ -431,7 +480,12 @@ func determineValueTypeFromReflect(fieldType reflect.Type, typeTag string) (core
 		}
 	case reflect.Struct:
 		// Look for value field in struct to determine type.
-		return determineStructValueType(fieldType)
+		// If no value field exists, the struct maps to a HAS claim in Documents.
+		ref, errE := determineStructValueType(fieldType)
+		if errors.Is(errE, errValueClaimNotFound) {
+			return valueTypeRef("HAS"), nil
+		}
+		return ref, errE
 	}
 
 	errE := errors.New("field has unsupported or unexpected value type")
@@ -440,6 +494,8 @@ func determineValueTypeFromReflect(fieldType reflect.Type, typeTag string) (core
 }
 
 // determineStructValueType determines the value type for a struct by looking at its value field.
+//
+// Returns errValueClaimNotFound if no value field is found.
 func determineStructValueType(structType reflect.Type) (core.Ref, errors.E) {
 	for i := range structType.NumField() {
 		field := structType.Field(i)
@@ -454,15 +510,13 @@ func determineStructValueType(structType reflect.Type) (core.Ref, errors.E) {
 		// Recurse into embedded structs.
 		if field.Anonymous && field.Type.Kind() == reflect.Struct {
 			ref, errE := determineStructValueType(field.Type)
-			if errE == nil {
-				return ref, nil
+			if !errors.Is(errE, errValueClaimNotFound) {
+				return ref, errE
 			}
 		}
 	}
 
-	errE := errors.New("struct has no value field")
-	errors.Details(errE)["type"] = structType.String()
-	return core.Ref{}, errE
+	return core.Ref{}, errors.WithStack(errValueClaimNotFound)
 }
 
 // parseFieldCardinality parses the cardinality tag and returns a core.Interval[core.Amount[int]].

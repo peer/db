@@ -209,6 +209,64 @@ type FieldsWithSectionOrder struct {
 	Bar string `cardinality:"1.." json:"bar" property:"BAR"`
 }
 
+// NestedWithSubFields is a struct with a value field and sub-fields.
+type NestedWithSubFields struct {
+	Value  string `json:"value"                    value:""`
+	Period string `json:"period" property:"PERIOD"`
+	Note   string `json:"note"   property:"NOTES"`
+}
+
+type FieldsWithSubFields struct {
+	Data NestedWithSubFields `cardinality:"1" json:"data" property:"DATA"`
+}
+
+// NestedNoValue is a struct without a value field (maps to has claim), with sub-fields.
+type NestedNoValue struct {
+	Location string `json:"location" property:"HOMEPAGE"`
+	Note     string `json:"note"     property:"NOTES"`
+}
+
+type FieldsWithNestedNoValue struct {
+	Address NestedNoValue `cardinality:"1" json:"address" property:"DATA"`
+}
+
+// NestedWithSkippedSubField has sub-fields where one is skipped via order:"-".
+type NestedWithSkippedSubField struct {
+	Value   string `json:"value"                               value:""`
+	Visible string `json:"visible"           property:"NOTES"`
+	Hidden  string `json:"hidden"  order:"-" property:"PERIOD"`
+}
+
+type FieldsWithSkippedSubField struct {
+	Data NestedWithSkippedSubField `cardinality:"1" json:"data" property:"DATA"`
+}
+
+// NestedAllSkipped has all sub-fields skipped.
+type NestedAllSkipped struct {
+	Value  string `json:"value"                             value:""`
+	Hidden string `json:"hidden" order:"-" property:"NOTES"`
+}
+
+type FieldsWithAllSubFieldsSkipped struct {
+	Data NestedAllSkipped `cardinality:"1" json:"data" property:"DATA"`
+}
+
+// NestedWithOrderedSubFields has sub-fields with explicit order.
+type NestedWithOrderedSubFields struct {
+	Value  string `json:"value"                              value:""`
+	First  string `json:"first"  order:"5" property:"NOTES"`
+	Second string `json:"second"           property:"PERIOD"`
+}
+
+type FieldsWithOrderedSubFields struct {
+	Data NestedWithOrderedSubFields `cardinality:"1" json:"data" property:"DATA"`
+}
+
+// SliceOfNestedWithSubFields tests sub-fields on a slice of structs.
+type FieldsWithSliceSubFields struct {
+	Items []NestedWithSubFields `cardinality:"0.." json:"items" property:"DATA"`
+}
+
 type FieldsWithDefaultCardinality struct {
 	Names  []string  `json:"names"                property:"NAME"`
 	Age    int       `json:"age"    precision:"1" property:"AGE"`
@@ -668,4 +726,122 @@ func TestFieldsSectionOrderTag(t *testing.T) {
 
 	// Bar gets auto-increment (1.0, since section used explicit order).
 	assert.Equal(t, 1.0, result.Field[0].OrderInList) //nolint:testifylint
+}
+
+func TestFieldsSubFields(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithSubFields](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 1)
+	f := result.Field[0]
+	assert.Equal(t, core.Ref{ID: mnemonics["DATA"]}, f.Property)
+	// Value type comes from the value field (string).
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "STRING"}}, f.ValueType)
+
+	// Sub-fields: Period and Note (value field is not a sub-field).
+	require.Len(t, f.SubField, 2)
+	assert.Equal(t, core.Ref{ID: mnemonics["PERIOD"]}, f.SubField[0].Property)
+	assert.Equal(t, 1.0, f.SubField[0].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Ref{ID: mnemonics["NOTES"]}, f.SubField[1].Property)
+	assert.Equal(t, 2.0, f.SubField[1].OrderInList) //nolint:testifylint
+}
+
+func TestFieldsSubFieldsNoValue(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithNestedNoValue](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 1)
+	f := result.Field[0]
+	// No value field → HAS value type (maps to HasClaim in Documents).
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "HAS"}}, f.ValueType)
+
+	// Sub-fields: Location and Note.
+	require.Len(t, f.SubField, 2)
+	assert.Equal(t, core.Ref{ID: mnemonics["HOMEPAGE"]}, f.SubField[0].Property)
+	assert.Equal(t, 1.0, f.SubField[0].OrderInList) //nolint:testifylint
+	assert.Equal(t, core.Ref{ID: mnemonics["NOTES"]}, f.SubField[1].Property)
+	assert.Equal(t, 2.0, f.SubField[1].OrderInList) //nolint:testifylint
+}
+
+func TestFieldsSubFieldsSkipped(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithSkippedSubField](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 1)
+	f := result.Field[0]
+
+	// Only Visible sub-field remains (Hidden is skipped via order:"-").
+	require.Len(t, f.SubField, 1)
+	assert.Equal(t, core.Ref{ID: mnemonics["NOTES"]}, f.SubField[0].Property)
+	assert.Equal(t, 1.0, f.SubField[0].OrderInList) //nolint:testifylint
+}
+
+func TestFieldsSubFieldsAllSkipped(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithAllSubFieldsSkipped](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 1)
+	f := result.Field[0]
+
+	// All sub-fields skipped → SubField should be nil.
+	assert.Nil(t, f.SubField)
+}
+
+func TestFieldsSubFieldsWithOrder(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithOrderedSubFields](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 1)
+	f := result.Field[0]
+
+	require.Len(t, f.SubField, 2)
+	// First has explicit order 5.
+	assert.Equal(t, core.Ref{ID: mnemonics["NOTES"]}, f.SubField[0].Property)
+	assert.Equal(t, 5.0, f.SubField[0].OrderInList) //nolint:testifylint
+	// Second has auto-increment order 1.
+	assert.Equal(t, core.Ref{ID: mnemonics["PERIOD"]}, f.SubField[1].Property)
+	assert.Equal(t, 1.0, f.SubField[1].OrderInList) //nolint:testifylint
+}
+
+func TestFieldsSubFieldsSlice(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	result, errE := transform.Fields[FieldsWithSliceSubFields](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 1)
+	f := result.Field[0]
+
+	// Sub-fields from the element type (NestedWithSubFields).
+	require.Len(t, f.SubField, 2)
+	assert.Equal(t, core.Ref{ID: mnemonics["PERIOD"]}, f.SubField[0].Property)
+	assert.Equal(t, core.Ref{ID: mnemonics["NOTES"]}, f.SubField[1].Property)
 }

@@ -296,11 +296,12 @@ type Section struct {
 
 // Field represents a field of an entity.
 type Field struct {
-	Property    Ref                   `cardinality:"1"   json:"property"         property:"HAS_PROPERTY"`
-	ValueType   Ref                   `cardinality:"1"   json:"valueType"        property:"HAS_VALUE_TYPE"`
-	OrderInList float64               `cardinality:"1"   json:"orderInList"      property:"ORDER_IN_LIST"`
-	Cardinality Interval[Amount[int]] `cardinality:"1"   json:"cardinality"      property:"CARDINALITY"`
-	Values      []Ref                 `cardinality:"0.." json:"values,omitempty" property:"FIELD_VALUES"`
+	Property    Ref                   `cardinality:"1"   json:"property"           property:"HAS_PROPERTY"`
+	ValueType   Ref                   `cardinality:"1"   json:"valueType"          property:"HAS_VALUE_TYPE"`
+	OrderInList float64               `cardinality:"1"   json:"orderInList"        property:"ORDER_IN_LIST"`
+	Cardinality Interval[Amount[int]] `cardinality:"1"   json:"cardinality"        property:"CARDINALITY"`
+	Values      []Ref                 `cardinality:"0.." json:"values,omitempty"   property:"FIELD_VALUES"`
+	SubField    []Field               `cardinality:"0.." json:"subField,omitempty" property:"SUB_FIELD"`
 }
 
 // Fields represents a list of fields of an entity.

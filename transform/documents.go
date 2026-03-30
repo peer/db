@@ -303,6 +303,19 @@ var (
 	coreNone         = reflect.TypeFor[core.None]()
 	coreUnknown      = reflect.TypeFor[core.Unknown]()
 
+	coreStructTypes = map[reflect.Type]bool{
+		coreRef:          true,
+		coreTime:         true,
+		timeTime:         true,
+		coreTimeInterval: true,
+		coreIdentifier:   true,
+		coreLink:         true,
+		coreHTML:         true,
+		coreRawHTML:      true,
+		coreNone:         true,
+		coreUnknown:      true,
+	}
+
 	coreAmountTypes = map[reflect.Type]bool{
 		reflect.TypeFor[core.Amount[int]]():     true,
 		reflect.TypeFor[core.Amount[int8]]():    true,
