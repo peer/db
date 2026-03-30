@@ -286,22 +286,22 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
 //nolint:gochecknoglobals
 var (
-	coreRef          = reflect.TypeFor[core.Ref]()
-	coreTime         = reflect.TypeFor[core.Time]()
+	coreRef          = reflect.TypeFor[internalCore.Ref]()
+	coreTime         = reflect.TypeFor[internalCore.Time]()
 	timeTime         = reflect.TypeFor[time.Time]()
-	coreTimeInterval = reflect.TypeFor[core.Interval[core.Time]]()
-	coreIdentifier   = reflect.TypeFor[core.Identifier]()
-	coreLink         = reflect.TypeFor[core.Link]()
-	coreHTML         = reflect.TypeFor[core.HTML]()
-	coreRawHTML      = reflect.TypeFor[core.RawHTML]()
-	coreNone         = reflect.TypeFor[core.None]()
-	coreUnknown      = reflect.TypeFor[core.Unknown]()
+	coreTimeInterval = reflect.TypeFor[internalCore.Interval[internalCore.Time]]()
+	coreIdentifier   = reflect.TypeFor[internalCore.Identifier]()
+	coreLink         = reflect.TypeFor[internalCore.Link]()
+	coreHTML         = reflect.TypeFor[internalCore.HTML]()
+	coreRawHTML      = reflect.TypeFor[internalCore.RawHTML]()
+	coreNone         = reflect.TypeFor[internalCore.None]()
+	coreUnknown      = reflect.TypeFor[internalCore.Unknown]()
 
 	coreStructTypes = map[reflect.Type]bool{
 		coreRef:          true,
@@ -317,33 +317,33 @@ var (
 	}
 
 	coreAmountTypes = map[reflect.Type]bool{
-		reflect.TypeFor[core.Amount[int]]():     true,
-		reflect.TypeFor[core.Amount[int8]]():    true,
-		reflect.TypeFor[core.Amount[int16]]():   true,
-		reflect.TypeFor[core.Amount[int32]]():   true,
-		reflect.TypeFor[core.Amount[int64]]():   true,
-		reflect.TypeFor[core.Amount[uint]]():    true,
-		reflect.TypeFor[core.Amount[uint8]]():   true,
-		reflect.TypeFor[core.Amount[uint16]]():  true,
-		reflect.TypeFor[core.Amount[uint32]]():  true,
-		reflect.TypeFor[core.Amount[uint64]]():  true,
-		reflect.TypeFor[core.Amount[float32]](): true,
-		reflect.TypeFor[core.Amount[float64]](): true,
+		reflect.TypeFor[internalCore.Amount[int]]():     true,
+		reflect.TypeFor[internalCore.Amount[int8]]():    true,
+		reflect.TypeFor[internalCore.Amount[int16]]():   true,
+		reflect.TypeFor[internalCore.Amount[int32]]():   true,
+		reflect.TypeFor[internalCore.Amount[int64]]():   true,
+		reflect.TypeFor[internalCore.Amount[uint]]():    true,
+		reflect.TypeFor[internalCore.Amount[uint8]]():   true,
+		reflect.TypeFor[internalCore.Amount[uint16]]():  true,
+		reflect.TypeFor[internalCore.Amount[uint32]]():  true,
+		reflect.TypeFor[internalCore.Amount[uint64]]():  true,
+		reflect.TypeFor[internalCore.Amount[float32]](): true,
+		reflect.TypeFor[internalCore.Amount[float64]](): true,
 	}
 
 	coreAmountIntervalTypes = map[reflect.Type]bool{
-		reflect.TypeFor[core.Interval[core.Amount[int]]]():     true,
-		reflect.TypeFor[core.Interval[core.Amount[int8]]]():    true,
-		reflect.TypeFor[core.Interval[core.Amount[int16]]]():   true,
-		reflect.TypeFor[core.Interval[core.Amount[int32]]]():   true,
-		reflect.TypeFor[core.Interval[core.Amount[int64]]]():   true,
-		reflect.TypeFor[core.Interval[core.Amount[uint]]]():    true,
-		reflect.TypeFor[core.Interval[core.Amount[uint8]]]():   true,
-		reflect.TypeFor[core.Interval[core.Amount[uint16]]]():  true,
-		reflect.TypeFor[core.Interval[core.Amount[uint32]]]():  true,
-		reflect.TypeFor[core.Interval[core.Amount[uint64]]]():  true,
-		reflect.TypeFor[core.Interval[core.Amount[float32]]](): true,
-		reflect.TypeFor[core.Interval[core.Amount[float64]]](): true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int]]]():     true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int8]]]():    true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int16]]]():   true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int32]]]():   true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int64]]]():   true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint]]]():    true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint8]]]():   true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint16]]]():  true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint32]]]():  true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint64]]]():  true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[float32]]](): true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[float64]]](): true,
 	}
 )
 
@@ -1009,7 +1009,7 @@ func makeClaim(
 			return nil, errors.New("location tag is not supported for core.Ref fields")
 		}
 
-		ref := fieldValue.Interface().(core.Ref) //nolint:errcheck,forcetypeassert
+		ref := fieldValue.Interface().(internalCore.Ref) //nolint:errcheck,forcetypeassert
 		if len(ref.ID) == 0 {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1084,7 +1084,7 @@ func makeClaim(
 			return nil, errE
 		}
 
-		coreTime := fieldValue.Interface().(core.Time) //nolint:errcheck,forcetypeassert
+		coreTime := fieldValue.Interface().(internalCore.Time) //nolint:errcheck,forcetypeassert
 		if coreTime.Time.IsZero() {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1118,7 +1118,7 @@ func makeClaim(
 			return nil, errE
 		}
 
-		interval := fieldValue.Interface().(core.Interval[core.Time]) //nolint:errcheck,forcetypeassert
+		interval := fieldValue.Interface().(internalCore.Interval[internalCore.Time]) //nolint:errcheck,forcetypeassert
 
 		// Return claimNotMadeError if interval is completely zero (no bounds, no flags).
 		if interval.From == nil && !interval.FromIsOpen && !interval.FromIsUnknown && !interval.FromIsNone &&
@@ -1337,7 +1337,7 @@ func makeClaim(
 			return nil, errors.New("location tag is not supported for core.Identifier fields")
 		}
 
-		identifier := fieldValue.Interface().(core.Identifier) //nolint:errcheck,forcetypeassert
+		identifier := fieldValue.Interface().(internalCore.Identifier) //nolint:errcheck,forcetypeassert
 		if identifier == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1370,7 +1370,7 @@ func makeClaim(
 			return nil, errors.New("location tag is not supported for core.Link fields")
 		}
 
-		link := fieldValue.Interface().(core.Link) //nolint:errcheck,forcetypeassert
+		link := fieldValue.Interface().(internalCore.Link) //nolint:errcheck,forcetypeassert
 		if link == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1402,7 +1402,7 @@ func makeClaim(
 			return nil, errors.New("location tag is not supported for core.HTML fields")
 		}
 
-		h := fieldValue.Interface().(core.HTML) //nolint:errcheck,forcetypeassert
+		h := fieldValue.Interface().(internalCore.HTML) //nolint:errcheck,forcetypeassert
 		if h == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1442,7 +1442,7 @@ func makeClaim(
 			return nil, errors.New("location tag is not supported for core.RawHTML fields")
 		}
 
-		rawHTML := fieldValue.Interface().(core.RawHTML) //nolint:errcheck,forcetypeassert
+		rawHTML := fieldValue.Interface().(internalCore.RawHTML) //nolint:errcheck,forcetypeassert
 		if rawHTML == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1482,7 +1482,7 @@ func makeClaim(
 			return nil, errors.New("location tag is not supported for core.None fields")
 		}
 
-		none := fieldValue.Interface().(core.None) //nolint:errcheck,forcetypeassert
+		none := fieldValue.Interface().(internalCore.None) //nolint:errcheck,forcetypeassert
 		if !bool(none) {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1513,7 +1513,7 @@ func makeClaim(
 			return nil, errors.New("location tag is not supported for core.Unknown fields")
 		}
 
-		unknown := fieldValue.Interface().(core.Unknown) //nolint:errcheck,forcetypeassert
+		unknown := fieldValue.Interface().(internalCore.Unknown) //nolint:errcheck,forcetypeassert
 		if !bool(unknown) {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,

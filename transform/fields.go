@@ -10,7 +10,7 @@ import (
 
 	"gitlab.com/tozd/go/errors"
 
-	"gitlab.com/peerdb/peerdb/core"
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
 // Fields extracts field descriptions from a struct type using struct tags.
@@ -20,12 +20,14 @@ import (
 // describing the struct's field schema.
 //
 // The languageCodes parameter maps language code suffixes (used in "section@XX" struct tags,
-// e.g., "section@en-GB") to language document base IDs. The mnemonics parameter maps
-// property mnemonic names to property document base IDs.
+// e.g., "section@en-GB") to language document base IDs. It can be nil if the struct
+// type is not using sections.
+//
+// The mnemonics parameter maps property mnemonic names to property document base IDs.
 func Fields[T any](
 	languageCodes map[string][]string,
 	mnemonics map[string][]string,
-) (*core.Fields, errors.E) {
+) (*internalCore.Fields, errors.E) {
 	v := reflect.ValueOf(new(T)).Elem() //nolint:varnamelen
 	t := v.Type()
 
@@ -46,7 +48,7 @@ func Fields[T any](
 	}
 
 	order := 1.0
-	sections, fields, errE := fc.processLevel(t, &order, []string{})
+	sections, fields, errE := fc.processLevel(t, &order, []string{}, []reflect.Type{t})
 	if errE != nil {
 		return nil, errE
 	}
@@ -55,7 +57,7 @@ func Fields[T any](
 		return nil, nil //nolint:nilnil
 	}
 
-	return &core.Fields{
+	return &internalCore.Fields{
 		Section: sections,
 		Field:   fields,
 	}, nil
@@ -74,9 +76,10 @@ func (fc *fieldsCollector) processLevel(
 	structType reflect.Type,
 	order *float64,
 	fieldPath []string,
-) ([]core.Section, []core.Field, errors.E) {
-	var sections []core.Section
-	fields := make([]core.Field, 0, structType.NumField())
+	structPath []reflect.Type,
+) ([]internalCore.Section, []internalCore.Field, errors.E) {
+	var sections []internalCore.Section
+	fields := make([]internalCore.Field, 0, structType.NumField())
 
 	for i := range structType.NumField() {
 		field := structType.Field(i)
@@ -114,7 +117,7 @@ func (fc *fieldsCollector) processLevel(
 					errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
 					return nil, nil, errE
 				}
-				section := core.Section{
+				section := internalCore.Section{
 					Name:        sectionNames,
 					OrderInList: fieldOrder,
 					Field:       nil,
@@ -122,7 +125,7 @@ func (fc *fieldsCollector) processLevel(
 
 				// Process inner fields (no nested sections allowed).
 				innerOrder := 1.0
-				innerFields, errE := fc.processInnerFields(fieldType, &innerOrder, newFieldPath)
+				innerFields, errE := fc.processInnerFields(fieldType, &innerOrder, newFieldPath, structPath)
 				if errE != nil {
 					return nil, nil, errE
 				}
@@ -133,7 +136,7 @@ func (fc *fieldsCollector) processLevel(
 			}
 
 			// Plain embedded struct without section tag, recurse at current level.
-			innerSections, innerFields, errE := fc.processLevel(fieldType, order, newFieldPath)
+			innerSections, innerFields, errE := fc.processLevel(fieldType, order, newFieldPath, structPath)
 			if errE != nil {
 				return nil, nil, errE
 			}
@@ -151,7 +154,7 @@ func (fc *fieldsCollector) processLevel(
 			errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
 			return nil, nil, errE
 		}
-		f, errE := fc.makeField(field, propertyMnemonic, fieldOrder, newFieldPath)
+		f, errE := fc.makeField(field, propertyMnemonic, fieldOrder, newFieldPath, structPath)
 		if errE != nil {
 			return nil, nil, errE
 		}
@@ -167,8 +170,9 @@ func (fc *fieldsCollector) processInnerFields(
 	structType reflect.Type,
 	order *float64,
 	fieldPath []string,
-) ([]core.Field, errors.E) {
-	fields := make([]core.Field, 0, structType.NumField())
+	structPath []reflect.Type,
+) ([]internalCore.Field, errors.E) {
+	fields := make([]internalCore.Field, 0, structType.NumField())
 
 	for i := range structType.NumField() {
 		field := structType.Field(i)
@@ -206,7 +210,7 @@ func (fc *fieldsCollector) processInnerFields(
 			}
 
 			// Plain embedded struct, recurse.
-			innerFields, errE := fc.processInnerFields(fieldType, order, newFieldPath)
+			innerFields, errE := fc.processInnerFields(fieldType, order, newFieldPath, structPath)
 			if errE != nil {
 				return nil, errE
 			}
@@ -223,7 +227,7 @@ func (fc *fieldsCollector) processInnerFields(
 			errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
 			return nil, errE
 		}
-		f, errE := fc.makeField(field, propertyMnemonic, fieldOrder, newFieldPath)
+		f, errE := fc.makeField(field, propertyMnemonic, fieldOrder, newFieldPath, structPath)
 		if errE != nil {
 			return nil, errE
 		}
@@ -265,46 +269,47 @@ func (fc *fieldsCollector) makeField(
 	mnemonic string,
 	order float64,
 	fieldPath []string,
-) (core.Field, errors.E) {
+	structPath []reflect.Type,
+) (internalCore.Field, errors.E) {
 	// Check mnemonic exists.
 	propertyBase, ok := fc.mnemonics[mnemonic]
 	if !ok {
 		errE := errors.New("mnemonic not found")
 		errors.Details(errE)["name"] = mnemonic
 		errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
-		return core.Field{}, errE
+		return internalCore.Field{}, errE
 	}
 
 	// Create property ref using the base ID.
-	propertyRef := core.Ref{ID: propertyBase}
+	propertyRef := internalCore.Ref{ID: propertyBase}
 
 	// Determine value type.
 	valueTypeRef, errE := determineValueType(structField)
 	if errE != nil {
 		errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
-		return core.Field{}, errE
+		return internalCore.Field{}, errE
 	}
 
 	// Parse cardinality.
 	cardinality, errE := parseFieldCardinality(structField)
 	if errE != nil {
 		errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
-		return core.Field{}, errE
+		return internalCore.Field{}, errE
 	}
 
 	// Parse values tag.
 	values, errE := parseValuesTag(structField, fieldPath)
 	if errE != nil {
-		return core.Field{}, errE
+		return internalCore.Field{}, errE
 	}
 
 	// Collect sub-fields from struct types.
-	subFields, errE := fc.collectSubFields(structField.Type, fieldPath)
+	subFields, errE := fc.collectSubFields(structField.Type, fieldPath, structPath)
 	if errE != nil {
-		return core.Field{}, errE
+		return internalCore.Field{}, errE
 	}
 
-	return core.Field{
+	return internalCore.Field{
 		Property:    propertyRef,
 		ValueType:   valueTypeRef,
 		OrderInList: order,
@@ -317,7 +322,7 @@ func (fc *fieldsCollector) makeField(
 // collectSubFields extracts sub-field descriptions from a struct type.
 // Sub-fields are non-value fields within a nested struct that has a property tag.
 // Returns nil if the type is not a struct or has no sub-fields.
-func (fc *fieldsCollector) collectSubFields(fieldType reflect.Type, fieldPath []string) ([]core.Field, errors.E) {
+func (fc *fieldsCollector) collectSubFields(fieldType reflect.Type, fieldPath []string, structPath []reflect.Type) ([]internalCore.Field, errors.E) {
 	// Unwrap slice.
 	if fieldType.Kind() == reflect.Slice {
 		fieldType = fieldType.Elem()
@@ -337,8 +342,16 @@ func (fc *fieldsCollector) collectSubFields(fieldType reflect.Type, fieldPath []
 		return nil, nil
 	}
 
+	// Detect recursion: if this type is already on the struct path, return an error.
+	if slices.Contains(structPath, fieldType) {
+		errE := errors.New("recursive struct type detected")
+		errors.Details(errE)["type"] = fieldType.String()
+		errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
+		return nil, errE
+	}
+
 	subOrder := 1.0
-	subFields, errE := fc.processInnerFields(fieldType, &subOrder, fieldPath)
+	subFields, errE := fc.processInnerFields(fieldType, &subOrder, fieldPath, append(slices.Clone(structPath), fieldType))
 	if errE != nil {
 		return nil, errE
 	}
@@ -361,12 +374,12 @@ func isKnownCoreType(t reflect.Type) bool {
 // Tags like "section@en-GB" produce names with InLanguage set to the corresponding language.
 func (fc *fieldsCollector) extractSectionNames(
 	tag reflect.StructTag,
-) []core.StringWithLanguage {
-	var names []core.StringWithLanguage
+) []internalCore.StringWithLanguage {
+	var names []internalCore.StringWithLanguage
 
 	// Check for bare "section" tag.
 	if name, ok := tag.Lookup("section"); ok {
-		names = append(names, core.StringWithLanguage{
+		names = append(names, internalCore.StringWithLanguage{
 			Value:      name,
 			InLanguage: nil,
 		})
@@ -383,9 +396,9 @@ func (fc *fieldsCollector) extractSectionNames(
 		langBase := fc.languageCodes[code]
 		key := "section@" + code
 		if name, ok := tag.Lookup(key); ok {
-			names = append(names, core.StringWithLanguage{
+			names = append(names, internalCore.StringWithLanguage{
 				Value: name,
-				InLanguage: []core.Ref{{
+				InLanguage: []internalCore.Ref{{
 					ID: langBase,
 				}},
 			})
@@ -396,12 +409,12 @@ func (fc *fieldsCollector) extractSectionNames(
 }
 
 // valueTypeRef creates a core.Ref pointing to a VALUE_TYPE vocabulary entry.
-func valueTypeRef(code string) core.Ref {
-	return core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", code}}
+func valueTypeRef(code string) internalCore.Ref {
+	return internalCore.Ref{ID: []string{internalCore.Namespace, "VALUE_TYPE", code}}
 }
 
 // determineValueType determines the value type ref for a struct field based on its Go type and type tag.
-func determineValueType(field reflect.StructField) (core.Ref, errors.E) {
+func determineValueType(field reflect.StructField) (internalCore.Ref, errors.E) {
 	fieldType := field.Type
 	typeTag := field.Tag.Get("type")
 
@@ -411,7 +424,7 @@ func determineValueType(field reflect.StructField) (core.Ref, errors.E) {
 // determineValueTypeFromReflect determines the value type from a reflect.Type and optional type tag.
 //
 //nolint:cyclop
-func determineValueTypeFromReflect(fieldType reflect.Type, typeTag string) (core.Ref, errors.E) {
+func determineValueTypeFromReflect(fieldType reflect.Type, typeTag string) (internalCore.Ref, errors.E) {
 	// Unwrap slice.
 	if fieldType.Kind() == reflect.Slice {
 		fieldType = fieldType.Elem()
@@ -465,7 +478,7 @@ func determineValueTypeFromReflect(fieldType reflect.Type, typeTag string) (core
 		case "":
 			return valueTypeRef("STRING"), nil
 		default:
-			return core.Ref{}, errors.New("string field used with unsupported type tag")
+			return internalCore.Ref{}, errors.New("string field used with unsupported type tag")
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
@@ -480,7 +493,7 @@ func determineValueTypeFromReflect(fieldType reflect.Type, typeTag string) (core
 		case "":
 			return valueTypeRef("HAS"), nil
 		default:
-			return core.Ref{}, errors.New("bool field used with unsupported type tag")
+			return internalCore.Ref{}, errors.New("bool field used with unsupported type tag")
 		}
 	case reflect.Struct:
 		// Look for value field in struct to determine type.
@@ -494,13 +507,13 @@ func determineValueTypeFromReflect(fieldType reflect.Type, typeTag string) (core
 
 	errE := errors.New("field has unsupported or unexpected value type")
 	errors.Details(errE)["type"] = fieldType.String()
-	return core.Ref{}, errE
+	return internalCore.Ref{}, errE
 }
 
 // determineStructValueType determines the value type for a struct by looking at its value field.
 //
 // Returns errValueClaimNotFound if no value field is found.
-func determineStructValueType(structType reflect.Type) (core.Ref, errors.E) {
+func determineStructValueType(structType reflect.Type) (internalCore.Ref, errors.E) {
 	for i := range structType.NumField() {
 		field := structType.Field(i)
 		if _, ok := field.Tag.Lookup("value"); ok {
@@ -520,31 +533,31 @@ func determineStructValueType(structType reflect.Type) (core.Ref, errors.E) {
 		}
 	}
 
-	return core.Ref{}, errors.WithStack(errValueClaimNotFound)
+	return internalCore.Ref{}, errors.WithStack(errValueClaimNotFound)
 }
 
 // parseFieldCardinality parses the cardinality tag and returns a core.Interval[core.Amount[int]].
 //
 // Unlike parseCardinality used by Documents, this does not enforce Go-type constraints
 // (e.g., single values can have unbounded max in field descriptions).
-func parseFieldCardinality(field reflect.StructField) (core.Interval[core.Amount[int]], errors.E) {
+func parseFieldCardinality(field reflect.StructField) (internalCore.Interval[internalCore.Amount[int]], errors.E) {
 	cardTag := field.Tag.Get("cardinality")
 
 	minCard, maxCard, errE := parseFieldsCardinality(cardTag, field.Type)
 	if errE != nil {
-		return core.Interval[core.Amount[int]]{}, errE
+		return internalCore.Interval[internalCore.Amount[int]]{}, errE
 	}
 
-	result := core.Interval[core.Amount[int]]{}
+	result := internalCore.Interval[internalCore.Amount[int]]{}
 
-	fromAmount := core.Amount[int]{Amount: minCard, Precision: 1}
+	fromAmount := internalCore.Amount[int]{Amount: minCard, Precision: 1}
 	result.From = &fromAmount
 
 	if maxCard == -1 {
 		// Unbounded upper bound is mapped to none.
 		result.ToIsNone = true
 	} else {
-		toAmount := core.Amount[int]{Amount: maxCard, Precision: 1}
+		toAmount := internalCore.Amount[int]{Amount: maxCard, Precision: 1}
 		result.To = &toAmount
 		result.ToIsClosed = true
 	}
@@ -584,13 +597,13 @@ func parseFieldsCardinality(cardinality string, fieldType reflect.Type) (int, in
 // The format is "namespace,mnemonic;namespace2,part1,part2".
 //
 // The values tag can only be used with core.Ref field type.
-func parseValuesTag(field reflect.StructField, fieldPath []string) ([]core.Ref, errors.E) {
+func parseValuesTag(field reflect.StructField, fieldPath []string) ([]internalCore.Ref, errors.E) {
 	tag := field.Tag.Get("values")
 	if tag == "" {
 		return nil, nil
 	}
 
-	// Validate that the field type is core.Ref (or slice/pointer of core.Ref).
+	// Validate that the field type is internalCore.Ref (or slice/pointer of internalCore.Ref).
 	baseType := field.Type
 	if baseType.Kind() == reflect.Slice {
 		baseType = baseType.Elem()
@@ -606,7 +619,7 @@ func parseValuesTag(field reflect.StructField, fieldPath []string) ([]core.Ref, 
 	}
 
 	entries := strings.Split(tag, ";")
-	refs := make([]core.Ref, 0, len(entries))
+	refs := make([]internalCore.Ref, 0, len(entries))
 	for _, entry := range entries {
 		entry = strings.TrimSpace(entry)
 		if entry == "" {
@@ -616,7 +629,7 @@ func parseValuesTag(field reflect.StructField, fieldPath []string) ([]core.Ref, 
 		for i := range parts {
 			parts[i] = strings.TrimSpace(parts[i])
 		}
-		refs = append(refs, core.Ref{
+		refs = append(refs, internalCore.Ref{
 			ID: parts,
 		})
 	}

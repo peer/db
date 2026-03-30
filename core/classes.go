@@ -3,12 +3,22 @@ package core
 
 import (
 	"gitlab.com/tozd/go/errors"
+
+	"gitlab.com/peerdb/peerdb/transform"
 )
 
 // Classes returns core classes.
-func Classes() ([]any, errors.E) {
+//
+// The mnemonics parameter maps property mnemonic names to property document base IDs.
+//
+//nolint:maintidx
+func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 	documents := []any{}
 
+	fields, errE := transform.Fields[Class](nil, mnemonics)
+	if errE != nil {
+		return nil, errE
+	}
 	documents = append(documents, &Class{
 		ClassFields: ClassFields{
 			Name: []StringWithLanguage{{
@@ -27,7 +37,7 @@ func Classes() ([]any, errors.E) {
 			Mnemonic:        "CLASS",
 			Description:     nil,
 			SubclassOf:      nil,
-			Fields:          nil,
+			Fields:          fields,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "CLASS"},
@@ -37,6 +47,10 @@ func Classes() ([]any, errors.E) {
 		},
 	})
 
+	fields, errE = transform.Fields[Property](nil, mnemonics)
+	if errE != nil {
+		return nil, errE
+	}
 	documents = append(documents, &Class{
 		ClassFields: ClassFields{
 			Name: []StringWithLanguage{{
@@ -85,7 +99,7 @@ func Classes() ([]any, errors.E) {
 				}},
 			}},
 			SubclassOf: nil,
-			Fields:     nil,
+			Fields:     fields,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "PROPERTY"},
@@ -95,6 +109,10 @@ func Classes() ([]any, errors.E) {
 		},
 	})
 
+	fields, errE = transform.Fields[DocumentFields](nil, mnemonics)
+	if errE != nil {
+		return nil, errE
+	}
 	documents = append(documents, &Class{
 		ClassFields: ClassFields{
 			Name: []StringWithLanguage{{
@@ -113,7 +131,7 @@ func Classes() ([]any, errors.E) {
 			Mnemonic:        "DOCUMENT",
 			Description:     nil,
 			SubclassOf:      nil,
-			Fields:          nil,
+			Fields:          fields,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "DOCUMENT"},
@@ -123,6 +141,10 @@ func Classes() ([]any, errors.E) {
 		},
 	})
 
+	fields, errE = transform.Fields[Language](nil, mnemonics)
+	if errE != nil {
+		return nil, errE
+	}
 	documents = append(documents, &Class{
 		ClassFields: ClassFields{
 			Name: []StringWithLanguage{{
@@ -151,7 +173,7 @@ func Classes() ([]any, errors.E) {
 			Mnemonic:    "VOCABULARY",
 			Description: nil,
 			SubclassOf:  nil,
-			Fields:      nil,
+			Fields:      fields,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "VOCABULARY"},
@@ -161,6 +183,10 @@ func Classes() ([]any, errors.E) {
 		},
 	})
 
+	fields, errE = transform.Fields[Language](nil, mnemonics)
+	if errE != nil {
+		return nil, errE
+	}
 	documents = append(documents, &Class{
 		ClassFields: ClassFields{
 			Name: []StringWithLanguage{{
@@ -181,7 +207,7 @@ func Classes() ([]any, errors.E) {
 			SubclassOf: []Ref{{
 				ID: []string{Namespace, "VOCABULARY"},
 			}},
-			Fields: nil,
+			Fields: fields,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "LANGUAGE"},
@@ -191,6 +217,10 @@ func Classes() ([]any, errors.E) {
 		},
 	})
 
+	fields, errE = transform.Fields[Unit](nil, mnemonics)
+	if errE != nil {
+		return nil, errE
+	}
 	documents = append(documents, &Class{
 		ClassFields: ClassFields{
 			Name: []StringWithLanguage{{
@@ -236,7 +266,7 @@ func Classes() ([]any, errors.E) {
 			SubclassOf: []Ref{{
 				ID: []string{Namespace, "VOCABULARY"},
 			}},
-			Fields: nil,
+			Fields: fields,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "UNIT"},
@@ -246,6 +276,10 @@ func Classes() ([]any, errors.E) {
 		},
 	})
 
+	fields, errE = transform.Fields[ValueType](nil, mnemonics)
+	if errE != nil {
+		return nil, errE
+	}
 	documents = append(documents, &Class{
 		ClassFields: ClassFields{
 			Name: []StringWithLanguage{{
@@ -266,7 +300,7 @@ func Classes() ([]any, errors.E) {
 			SubclassOf: []Ref{{
 				ID: []string{Namespace, "VOCABULARY"},
 			}},
-			Fields: nil,
+			Fields: fields,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "VALUE_TYPE"},

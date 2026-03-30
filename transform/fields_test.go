@@ -267,6 +267,27 @@ type FieldsWithSliceSubFields struct {
 	Items []NestedWithSubFields `cardinality:"0.." json:"items" property:"DATA"`
 }
 
+// RecursiveStruct is a struct that references itself, causing recursion.
+type RecursiveStruct struct {
+	Name  string           `json:"name"  property:"NAME"`
+	Child *RecursiveStruct `json:"child" property:"DATA"`
+}
+
+type FieldsWithRecursion struct {
+	Data RecursiveStruct `cardinality:"1" json:"data" property:"DATA"`
+}
+
+// SharedSubStruct is used by multiple fields in the same parent.
+type SharedSubStruct struct {
+	Value string `json:"value"                  value:""`
+	Note  string `json:"note"  property:"NOTES"`
+}
+
+type FieldsWithSharedSubStruct struct {
+	First  SharedSubStruct `cardinality:"1" json:"first"  property:"FIRST"`
+	Second SharedSubStruct `cardinality:"1" json:"second" property:"SECOND"`
+}
+
 type FieldsWithDefaultCardinality struct {
 	Names  []string  `json:"names"                property:"NAME"`
 	Age    int       `json:"age"    precision:"1" property:"AGE"`
@@ -534,7 +555,7 @@ func TestFieldsValuesOnNonRefError(t *testing.T) {
 
 	_, errE := transform.Fields[FieldsWithValuesOnNonRef](langCodes, mnemonics)
 	require.Error(t, errE)
-	assert.Contains(t, errE.Error(), "values tag can only be used with core.Ref")
+	assert.EqualError(t, errE, "values tag can only be used with core.Ref field type")
 }
 
 func TestFieldsValueStruct(t *testing.T) {
@@ -586,7 +607,7 @@ func TestFieldsNestedSectionsError(t *testing.T) {
 
 	_, errE := transform.Fields[FieldsWithNestedSections](langCodes, mnemonics)
 	require.Error(t, errE)
-	assert.Contains(t, errE.Error(), "sections cannot be nested")
+	assert.EqualError(t, errE, "sections cannot be nested inside sections")
 }
 
 func TestFieldsSectionWithEmbedded(t *testing.T) {
@@ -618,7 +639,7 @@ func TestFieldsMnemonicNotFound(t *testing.T) {
 	// Empty mnemonics.
 	_, errE := transform.Fields[SimpleFields](langCodes, map[string][]string{})
 	require.Error(t, errE)
-	assert.Contains(t, errE.Error(), "mnemonic not found")
+	assert.EqualError(t, errE, "mnemonic not found")
 }
 
 type EmptyFields struct{}
@@ -642,7 +663,7 @@ func TestFieldsNotStruct(t *testing.T) {
 
 	_, errE := transform.Fields[string](langCodes, mnemonics)
 	require.Error(t, errE)
-	assert.Contains(t, errE.Error(), "expected struct")
+	assert.EqualError(t, errE, "expected struct")
 }
 
 func TestFieldsCardinality(t *testing.T) {
@@ -857,4 +878,34 @@ func TestFieldsSubFieldsSlice(t *testing.T) {
 	require.Len(t, f.SubField, 2)
 	assert.Equal(t, core.Ref{ID: mnemonics["PERIOD"]}, f.SubField[0].Property)
 	assert.Equal(t, core.Ref{ID: mnemonics["NOTES"]}, f.SubField[1].Property)
+}
+
+func TestFieldsRecursionDetected(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	_, errE := transform.Fields[FieldsWithRecursion](langCodes, mnemonics)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "recursive struct type detected")
+}
+
+func TestFieldsSharedSubStruct(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+	langCodes := fieldsTestLanguageCodes()
+
+	// Two sibling fields using the same struct type should not trigger recursion.
+	result, errE := transform.Fields[FieldsWithSharedSubStruct](langCodes, mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 2)
+
+	// Both fields should have the same sub-field structure.
+	require.Len(t, result.Field[0].SubField, 1)
+	assert.Equal(t, core.Ref{ID: mnemonics["NOTES"]}, result.Field[0].SubField[0].Property)
+	require.Len(t, result.Field[1].SubField, 1)
+	assert.Equal(t, core.Ref{ID: mnemonics["NOTES"]}, result.Field[1].SubField[0].Property)
 }

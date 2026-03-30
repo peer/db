@@ -10,12 +10,21 @@ import (
 
 	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/transform"
 )
 
 func TestClasses(t *testing.T) {
 	t.Parallel()
 
-	docs, errE := core.Classes()
+	// Build mnemonics from properties.
+	allDocs := []any{}
+	props, errE := core.Properties()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	allDocs = append(allDocs, props...)
+	mnemonics, errE := transform.Mnemonics(t.Context(), allDocs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	docs, errE := core.Classes(mnemonics)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.NotEmpty(t, docs)
 }

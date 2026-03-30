@@ -16,39 +16,53 @@ import (
 func GenerateCoreDocuments(ctx context.Context, additional []any) ([]any, []*document.D, errors.E) {
 	documents := []any{}
 
-	docs, errE := core.Classes()
+	// Properties are collected first so that mnemonics can be built for
+	// Classes, which needs them for field descriptions.
+	docs, errE := core.Properties()
 	if errE != nil {
 		return nil, nil, errE
 	}
 	documents = append(documents, docs...)
-
-	if ctx.Err() != nil {
-		return nil, nil, errors.WithStack(ctx.Err())
-	}
-
-	docs, errE = core.Properties()
-	if errE != nil {
-		return nil, nil, errE
-	}
-	documents = append(documents, docs...)
-
-	if ctx.Err() != nil {
-		return nil, nil, errors.WithStack(ctx.Err())
-	}
-
-	docs, errE = core.Vocabularies()
-	if errE != nil {
-		return nil, nil, errE
-	}
-	documents = append(documents, docs...)
-
-	documents = append(documents, additional...)
 
 	if ctx.Err() != nil {
 		return nil, nil, errors.WithStack(ctx.Err())
 	}
 
 	mnemonics, errE := transform.Mnemonics(ctx, documents)
+	if errE != nil {
+		return nil, nil, errE
+	}
+
+	if ctx.Err() != nil {
+		return nil, nil, errors.WithStack(ctx.Err())
+	}
+
+	// Now we can add classes.
+	docs, errE = core.Classes(mnemonics)
+	if errE != nil {
+		return nil, nil, errE
+	}
+	documents = append(documents, docs...)
+
+	if ctx.Err() != nil {
+		return nil, nil, errors.WithStack(ctx.Err())
+	}
+
+	// Now add the rest of documents.
+	docs, errE = core.Vocabularies()
+	if errE != nil {
+		return nil, nil, errE
+	}
+	documents = append(documents, docs...)
+
+	if ctx.Err() != nil {
+		return nil, nil, errors.WithStack(ctx.Err())
+	}
+
+	documents = append(documents, additional...)
+
+	// Rebuild mnemonics with all documents.
+	mnemonics, errE = transform.Mnemonics(ctx, documents)
 	if errE != nil {
 		return nil, nil, errE
 	}
