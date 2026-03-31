@@ -13,7 +13,7 @@ import (
 
 // GenerateCoreDocuments generates and transforms all core documents
 // (classes, properties, vocabularies) along with any additional documents.
-func GenerateCoreDocuments(ctx context.Context, additional []any) ([]any, []*document.D, errors.E) {
+func GenerateCoreDocuments(ctx context.Context, additional func(context.Context, []any) ([]any, errors.E)) ([]any, []*document.D, errors.E) {
 	documents := []any{}
 
 	// Properties are collected first so that mnemonics can be built for
@@ -59,7 +59,11 @@ func GenerateCoreDocuments(ctx context.Context, additional []any) ([]any, []*doc
 		return nil, nil, errors.WithStack(ctx.Err())
 	}
 
-	documents = append(documents, additional...)
+	docs, errE = additional(ctx, documents)
+	if errE != nil {
+		return nil, nil, errE
+	}
+	documents = append(documents, docs...)
 
 	// Rebuild mnemonics with all documents.
 	mnemonics, errE = transform.Mnemonics(ctx, documents)
