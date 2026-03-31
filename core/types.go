@@ -58,57 +58,65 @@ type Fields = internalCore.Fields
 
 // DocumentFields contains common fields for all documents.
 type DocumentFields struct {
-	ID         []string `                  documentid:"" json:"id"`
-	InstanceOf []Ref    `cardinality:"0.."               json:"instanceOf,omitempty" property:"INSTANCE_OF"`
+	ID []string `documentid:"" json:"id"`
+	// We set "order" to not allow "instance of" to be changed directly through fields.
+	InstanceOf []Ref `cardinality:"0.." json:"instanceOf,omitempty" order:"-" property:"INSTANCE_OF"`
 }
 
 // AmountWithUnit represents an amount with its unit.
 type AmountWithUnit[T AmountType] struct {
 	Value Amount[T] `json:"value" value:""`
 
-	InUnit []Ref `cardinality:"0.." json:"inUnit,omitempty" property:"IN_UNIT"`
+	// We set "order" to hide the field. It should not be set manually.
+	InUnit []Ref `cardinality:"0.." json:"inUnit,omitempty" order:"-" property:"IN_UNIT"`
 }
 
 // AmountIntervalWithUnit represents an amount interval with its unit.
 type AmountIntervalWithUnit[T AmountType] struct {
 	Value Interval[Amount[T]] `json:"value" value:""`
 
-	InUnit []Ref `cardinality:"0.." json:"inUnit,omitempty" property:"IN_UNIT"`
+	// We set "order" to hide the field. It should not be set manually.
+	InUnit []Ref `cardinality:"0.." json:"inUnit,omitempty" order:"-" property:"IN_UNIT"`
 }
 
 // TimeWithLocation represents a time with location information.
 type TimeWithLocation struct {
 	Value Time `json:"value" value:""`
 
-	InLocation []Identifier `cardinality:"0.." json:"inLocation,omitempty" property:"IN_LOCATION"`
+	// We set "order" to hide the field. It should not be set manually.
+	InLocation []Identifier `cardinality:"0.." json:"inLocation,omitempty" order:"-" property:"IN_LOCATION"`
 }
 
 // TimeIntervalWithLocation represents a time interval with location information.
 type TimeIntervalWithLocation struct {
 	Value Interval[Time] `json:"value" value:""`
 
-	InLocation []Identifier `cardinality:"0.." json:"inLocation,omitempty" property:"IN_LOCATION"`
+	// We set "order" to hide the field. It should not be set manually.
+	InLocation []Identifier `cardinality:"0.." json:"inLocation,omitempty" order:"-" property:"IN_LOCATION"`
 }
 
 // HTMLWithLanguage represents HTML with language information.
 type HTMLWithLanguage struct {
 	Value HTML `json:"value" value:""`
 
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
+	// We set "order" to hide the field. It should not be set manually.
+	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"-" property:"IN_LANGUAGE"`
 }
 
 // RawHTMLWithLanguage represents raw HTML with language information.
 type RawHTMLWithLanguage struct {
 	Value RawHTML `json:"value" value:""`
 
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
+	// We set "order" to hide the field. It should not be set manually.
+	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"-" property:"IN_LANGUAGE"`
 }
 
 // LinkWithMediaType represents link (URL, URI or IRI) with its media type.
 type LinkWithMediaType struct {
 	Value Link `json:"value" value:""`
 
-	MediaType []Identifier `cardinality:"0.." json:"mediaType,omitempty" property:"MEDIA_TYPE"`
+	// We set "order" to hide the field. It should not be set manually.
+	MediaType []Identifier `cardinality:"0.." json:"mediaType,omitempty" order:"-" property:"MEDIA_TYPE"`
 }
 
 // PropertyFields contains fields specific to properties.

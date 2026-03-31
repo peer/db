@@ -171,7 +171,8 @@ func (i *Interval[T]) Validate() errors.E {
 type StringWithLanguage struct {
 	Value string `json:"value" value:""`
 
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" property:"IN_LANGUAGE"`
+	// We set "order" to hide the field. It should not be set manually.
+	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"-" property:"IN_LANGUAGE"`
 }
 
 // Section represents a section of fields of an entity.
