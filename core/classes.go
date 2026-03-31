@@ -37,6 +37,7 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 			Mnemonic:        "CLASS",
 			Description:     nil,
 			SubclassOf:      nil,
+			AbstractClass:   true,
 			Fields:          fields,
 		},
 		DocumentFields: DocumentFields{
@@ -98,8 +99,9 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			SubclassOf: nil,
-			Fields:     fields,
+			SubclassOf:    nil,
+			AbstractClass: false,
+			Fields:        fields,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "PROPERTY"},
@@ -131,6 +133,7 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 			Mnemonic:        "DOCUMENT",
 			Description:     nil,
 			SubclassOf:      nil,
+			AbstractClass:   true,
 			Fields:          fields,
 		},
 		DocumentFields: DocumentFields{
@@ -170,10 +173,11 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			Mnemonic:    "VOCABULARY",
-			Description: nil,
-			SubclassOf:  nil,
-			Fields:      fields,
+			Mnemonic:      "VOCABULARY",
+			Description:   nil,
+			SubclassOf:    nil,
+			AbstractClass: true,
+			Fields:        fields,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "VOCABULARY"},
@@ -207,7 +211,8 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 			SubclassOf: []Ref{{
 				ID: []string{Namespace, "VOCABULARY"},
 			}},
-			Fields: fields,
+			AbstractClass: false,
+			Fields:        fields,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "LANGUAGE"},
@@ -266,7 +271,8 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 			SubclassOf: []Ref{{
 				ID: []string{Namespace, "VOCABULARY"},
 			}},
-			Fields: fields,
+			AbstractClass: false,
+			Fields:        fields,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "UNIT"},
@@ -300,7 +306,8 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 			SubclassOf: []Ref{{
 				ID: []string{Namespace, "VOCABULARY"},
 			}},
-			Fields: fields,
+			AbstractClass: true,
+			Fields:        fields,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "VALUE_TYPE"},

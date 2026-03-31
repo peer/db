@@ -5,6 +5,7 @@ import { Namespace } from "@/core/namespace"
 // Well-known core property IDs based on their mnemonics.
 //
 // Keep this list in sync with internal/core/properties.go and sorted alphabetically.
+export const ABSTRACT_CLASS = (await Identifier.from(Namespace, "ABSTRACT_CLASS")).toString()
 export const ALTERNATIVE_NAME = (await Identifier.from(Namespace, "ALTERNATIVE_NAME")).toString()
 export const CARDINALITY = (await Identifier.from(Namespace, "CARDINALITY")).toString()
 export const CODE = (await Identifier.from(Namespace, "CODE")).toString()

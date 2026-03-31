@@ -2,12 +2,13 @@ import type { DeepReadonly, Ref } from "vue"
 
 import type { GetDisplayLabel, Mutable, QueryValues, QueryValuesWithOptional } from "@/types"
 
+import { Identifier } from "@tozd/identifier"
 import { prng_alea } from "esm-seedrandom"
 import { cloneDeep, isEqual } from "lodash-es"
 import { onBeforeUnmount, onMounted, readonly, ref, shallowRef, toRaw, watch, watchEffect } from "vue"
 
 import { INSTANCE_OF, NAME, TITLE } from "@/core"
-import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
+import { AddClaimChange, getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
 import { getDisplayLabelFunctions } from "@/registry/display-label"
 import { fromDate, hour, minute, second, toDate } from "@/time"
 
@@ -365,4 +366,56 @@ export function asyncToReactive<T>(fn: () => Promise<T>): Ref<{ loading: true } 
       })
   })
   return result
+}
+
+// isLoading works on both Refs and unwrapped values.
+export function isLoading(result: Ref<{ loading: true } | unknown> | { loading: true } | unknown) {
+  if (!result) {
+    return false
+  }
+  if (typeof result === "object" && "value" in result) {
+    if (!result.value) {
+      return false
+    }
+    if (typeof result.value !== "object") {
+      return false
+    }
+    return "loading" in result.value && result.value.loading
+  } else if (typeof result !== "object") {
+    return false
+  }
+  return "loading" in result && result.loading
+}
+
+// getError works on both Refs and unwrapped values.
+export function getError(result: Ref<{ error: unknown } | unknown> | { error: unknown } | unknown): unknown {
+  if (!result) {
+    return ""
+  }
+  if (typeof result === "object" && "value" in result) {
+    if (!result.value) {
+      return ""
+    }
+    if (typeof result.value !== "object") {
+      return ""
+    }
+    if ("error" in result.value) {
+      return result.value.error
+    }
+  } else if (typeof result !== "object") {
+    return false
+  } else if ("error" in result) {
+    return result.error
+  }
+  return ""
+}
+
+export async function makeAddClaimChange(base: DeepReadonly<string[]>, session: string, changeIndex: number, patch: object) {
+  const changeBase = [...base, "SESSION", session, String(changeIndex)]
+  const claimID = (await Identifier.from(...changeBase)).toString()
+  return new AddClaimChange({
+    id: claimID,
+    base: changeBase,
+    patch,
+  })
 }

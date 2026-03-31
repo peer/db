@@ -26,6 +26,7 @@ declare module "vue-i18n" {
         next: string
       }
       status: {
+        editingNotAllowed: string
         loading: string
         loadingDataFailed: string
         error: string
@@ -111,6 +112,11 @@ declare module "vue-i18n" {
         collapseRow: string
         moreColumns: string
       }
+      FieldsForm: {
+        addAnother: string
+        from: string
+        to: string
+      }
     }
     views: {
       DocumentGet: {
@@ -119,6 +125,9 @@ declare module "vue-i18n" {
         }
       }
       DocumentEdit: {
+        tabs: {
+          allProperties: string
+        }
         addClaim: string
         claimTypes: {
           identifier: string

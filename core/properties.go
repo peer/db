@@ -204,6 +204,35 @@ func Properties() ([]any, errors.E) {
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
 			Name: []StringWithLanguage{{
+				Value: "abstract class",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "abstrakten razred",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:         nil,
+			AlternativeName:   nil,
+			Mnemonic:          "ABSTRACT_CLASS",
+			Description:       nil,
+			Instruction:       nil,
+			SubpropertyOf:     nil,
+			InversePropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "ABSTRACT_CLASS"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
 				Value: "distinct from",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},

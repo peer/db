@@ -139,13 +139,15 @@ type Property struct {
 
 // ClassFields contains fields specific to classes.
 type ClassFields struct {
-	Name            []StringWithLanguage  `cardinality:"1.."  json:"name"                                property:"NAME"`
-	ShortName       []StringWithLanguage  `cardinality:"0.."  json:"shortName,omitempty"                 property:"SHORT_NAME"`
-	AlternativeName []StringWithLanguage  `cardinality:"0.."  json:"alternativeName,omitempty"           property:"ALTERNATIVE_NAME"`
-	Mnemonic        string                `cardinality:"0..1" json:"mnemonic,omitempty"                  property:"MNEMONIC"`
-	Description     []RawHTMLWithLanguage `cardinality:"0.."  json:"description,omitempty"               property:"DESCRIPTION"`
-	SubclassOf      []Ref                 `cardinality:"0.."  json:"subclassOf,omitempty"                property:"SUBCLASS_OF"`
-	Fields          *Fields               `cardinality:"0..1" json:"fields,omitempty"          order:"-" property:"FIELDS"`
+	Name            []StringWithLanguage  `cardinality:"1.."  json:"name"                      property:"NAME"`
+	ShortName       []StringWithLanguage  `cardinality:"0.."  json:"shortName,omitempty"       property:"SHORT_NAME"`
+	AlternativeName []StringWithLanguage  `cardinality:"0.."  json:"alternativeName,omitempty" property:"ALTERNATIVE_NAME"`
+	Mnemonic        string                `cardinality:"0..1" json:"mnemonic,omitempty"        property:"MNEMONIC"`
+	Description     []RawHTMLWithLanguage `cardinality:"0.."  json:"description,omitempty"     property:"DESCRIPTION"`
+	SubclassOf      []Ref                 `cardinality:"0.."  json:"subclassOf,omitempty"      property:"SUBCLASS_OF"`
+	AbstractClass   bool                  `cardinality:"0..1" json:"abstractClass,omitempty"   property:"ABSTRACT_CLASS"`
+	// We set "order" to prevent infinite recursion when determining fields from ClassFields.
+	Fields *Fields `cardinality:"0..1" json:"fields,omitempty" order:"-" property:"FIELDS"`
 }
 
 // Class represents a class document.

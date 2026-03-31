@@ -15,6 +15,7 @@
       "next": "Naslednji"
     },
     "status": {
+      "editingNotAllowed": "Urejanje ni dovoljeno.",
       "loading": "Nalaganje...",
       "loadingDataFailed": "nalaganje podatkov ni uspelo",
       "error": "napaka",
@@ -99,6 +100,11 @@
       "expandRow": "Razširi vrstico",
       "collapseRow": "Skrči vrstico",
       "moreColumns": "Več stolpcev"
+    },
+    "FieldsForm": {
+      "addAnother": "Dodaj še enega",
+      "from": "Od",
+      "to": "Do"
     }
   },
   "views": {
@@ -108,6 +114,9 @@
       }
     },
     "DocumentEdit": {
+      "tabs": {
+        "allProperties": "@:views.DocumentGet.tabs.allProperties"
+      },
       "addClaim": "Dodaj trditev",
       "claimTypes": {
         "identifier": "Identifikator",

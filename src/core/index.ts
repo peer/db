@@ -1,3 +1,5 @@
+export { CLASS, DOCUMENT, LANGUAGE, PROPERTY, UNIT, VALUE_TYPE, VOCABULARY } from "@/core/classes"
+
 export {
   ALTERNATIVE_NAME,
   CARDINALITY,
@@ -7,9 +9,13 @@ export {
   DISPLAY_LABEL_TEMPLATE,
   DISTINCT_FROM,
   FIELD,
+  FIELDS,
   FIELD_VALUES,
+  HAS_PROPERTY,
+  HAS_VALUE_TYPE,
   INSTANCE_OF,
   INSTRUCTION,
+  INVERSE_PROPERTY,
   IN_LANGUAGE,
   IN_LOCATION,
   IN_UNIT,
@@ -26,8 +32,25 @@ export {
   SUBCLASS_OF,
   SUBENTITY_OF,
   SUBPROPERTY_OF,
+  SUB_FIELD,
   TITLE,
   VARIANT,
 } from "@/core/properties"
 
 export { Namespace } from "@/core/namespace"
+
+export {
+  VT_AMOUNT,
+  VT_AMOUNT_INTERVAL,
+  VT_FILE,
+  VT_HAS,
+  VT_HTML,
+  VT_IDENTIFIER,
+  VT_LINK,
+  VT_NONE,
+  VT_REFERENCE,
+  VT_STRING,
+  VT_TIME,
+  VT_TIME_INTERVAL,
+  VT_UNKNOWN,
+} from "@/core/valuetypes"

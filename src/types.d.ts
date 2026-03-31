@@ -220,6 +220,7 @@ export type DocumentEditStatus = {
 
 export type DocumentCreateResponse = {
   id: string
+  base: string[]
 }
 
 export type DocumentBeginEditResponse = {

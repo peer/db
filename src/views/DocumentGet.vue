@@ -7,7 +7,7 @@ import type { DocumentBeginEditResponse } from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { ChevronLeftIcon, ChevronRightIcon, PencilIcon } from "@heroicons/vue/20/solid"
-import { computed, onBeforeUnmount, ref, toRef, useTemplateRef, watchEffect } from "vue"
+import { computed, onBeforeUnmount, toRef, useTemplateRef, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
@@ -16,7 +16,6 @@ import Button from "@/components/Button.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
 import InputTextLink from "@/components/InputTextLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
-import siteContext from "@/context"
 import { INSTANCE_OF } from "@/core"
 import { getClaimsOfTypeWithConfidence } from "@/document"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
@@ -50,7 +49,7 @@ onBeforeUnmount(() => {
 })
 
 const WithDocumentD = WithDocument<D>
-const withDocument = ref<ComponentExposed<typeof WithDocumentD> | null>(null)
+const withDocument = useTemplateRef<ComponentExposed<typeof WithDocumentD>>("withDocument")
 
 const { searchSession, error: searchSessionError } = useSearchSession(
   toRef(() => {
@@ -204,7 +203,7 @@ async function onEdit() {
         <NavBarSearch v-else />
       </template>
       <template #end>
-        <Button v-if="siteContext.features.editButtons" :progress="editProgress" type="button" primary class="px-3.5" @click.prevent="onEdit">
+        <Button :progress="editProgress" type="button" primary class="px-3.5" @click.prevent="onEdit">
           <PencilIcon class="size-5 sm:hidden" :alt="t('common.buttons.edit')" />
           <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
         </Button>

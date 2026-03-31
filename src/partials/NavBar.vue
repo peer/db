@@ -2,6 +2,7 @@
 import ProgressBar from "@/components/ProgressBar.vue"
 import siteContext from "@/context"
 import { useNavbar } from "@/navbar"
+import CreateDropdown from "@/partials/CreateDropdown.vue"
 import LanguageSwitcher from "@/partials/LanguageSwitcher.vue"
 import { injectMainProgress } from "@/progress"
 import { getNavbarComponents } from "@/registry/navbar"
@@ -40,6 +41,7 @@ const mainProgress = injectMainProgress()
       <slot name="start" />
       <component :is="c" v-for="(c, i) in navbarComponents" :key="i" :home="false" />
       <slot name="end" />
+      <CreateDropdown />
       <LanguageSwitcher />
     </div>
   </div>

@@ -1,0 +1,393 @@
+import { Identifier } from "@tozd/identifier"
+import { assert, describe, test } from "vitest"
+
+import { CARDINALITY, FIELD, FIELDS, HAS_PROPERTY, HAS_VALUE_TYPE, NAME, ORDER_IN_LIST, SECTION, SUB_FIELD } from "@/core"
+import { ClaimTypes, HighConfidence } from "@/document"
+import { extractFieldsFromClaims, hasFields, mergeFields } from "@/fields"
+
+const propA = Identifier.new().toString()
+const propB = Identifier.new().toString()
+const propC = Identifier.new().toString()
+const valueTypeString = Identifier.new().toString()
+const valueTypeAmount = Identifier.new().toString()
+
+// Helpers to build raw JSON claim objects (mirrors how data comes from the API).
+function id(): string {
+  return Identifier.new().toString()
+}
+
+function rawRef(prop: string, to: string): object {
+  return { id: id(), confidence: HighConfidence, prop: { id: prop }, to: { id: to } }
+}
+
+function rawAmount(prop: string, amount: string): object {
+  return { id: id(), confidence: HighConfidence, prop: { id: prop }, amount, precision: 1 }
+}
+
+function rawString(prop: string, value: string): object {
+  return { id: id(), confidence: HighConfidence, prop: { id: prop }, string: value }
+}
+
+function rawCardinality(from: string | null, to: string | null): object {
+  const obj: Record<string, unknown> = { id: id(), confidence: HighConfidence, prop: { id: CARDINALITY } }
+  if (from !== null) {
+    obj.from = from
+    obj.fromPrecision = 1
+  } else {
+    obj.fromIsNone = true
+  }
+  if (to !== null) {
+    obj.to = to
+    obj.toPrecision = 1
+  } else {
+    obj.toIsNone = true
+  }
+  return obj
+}
+
+// Build a raw FIELD has claim.
+function rawField(opts: { propertyId: string; valueType: string; order: string; from?: string | null; to?: string | null; subFields?: object[] }): object {
+  const sub: Record<string, object[]> = {
+    ref: [rawRef(HAS_PROPERTY, opts.propertyId), rawRef(HAS_VALUE_TYPE, opts.valueType)],
+    amount: [rawAmount(ORDER_IN_LIST, opts.order)],
+    amountInterval: [rawCardinality(opts.from ?? "0", opts.to ?? null)],
+  }
+  if (opts.subFields && opts.subFields.length > 0) {
+    sub.has = opts.subFields
+  }
+  return { id: id(), confidence: HighConfidence, prop: { id: FIELD }, sub }
+}
+
+// Build a raw SUB_FIELD has claim.
+function rawSubField(opts: { propertyId: string; valueType: string; order: string; from?: string | null; to?: string | null }): object {
+  return {
+    id: id(),
+    confidence: HighConfidence,
+    prop: { id: SUB_FIELD },
+    sub: {
+      ref: [rawRef(HAS_PROPERTY, opts.propertyId), rawRef(HAS_VALUE_TYPE, opts.valueType)],
+      amount: [rawAmount(ORDER_IN_LIST, opts.order)],
+      amountInterval: [rawCardinality(opts.from ?? "0", opts.to ?? null)],
+    },
+  }
+}
+
+// Build a raw SECTION has claim.
+function rawSection(name: string, order: string, fields: object[]): object {
+  const sub: Record<string, object[]> = {
+    string: [rawString(NAME, name)],
+    amount: [rawAmount(ORDER_IN_LIST, order)],
+  }
+  if (fields.length > 0) {
+    sub.has = fields
+  }
+  return { id: id(), confidence: HighConfidence, prop: { id: SECTION }, sub }
+}
+
+// Build a ClaimTypes with a FIELDS has claim containing sections and top-level fields.
+// Validates all claims to ensure structural consistency.
+async function makeClaimsWithFields(sections: object[], fields: object[]): Promise<ClaimTypes> {
+  const sub: Record<string, object[]> = {}
+  const hasClaims: object[] = [...sections, ...fields]
+  if (hasClaims.length > 0) {
+    sub.has = hasClaims
+  }
+  const ct = new ClaimTypes({
+    has: [{ id: id(), confidence: HighConfidence, prop: { id: FIELDS }, sub }],
+  })
+  await ct.Validate()
+  return ct
+}
+
+describe("hasFields", () => {
+  test("returns false for null/undefined claims", () => {
+    assert.equal(hasFields(null), false)
+    assert.equal(hasFields(undefined), false)
+  })
+
+  test("returns false for empty claims", () => {
+    assert.equal(hasFields(new ClaimTypes({})), false)
+  })
+
+  test("returns false for FIELDS claim with no sections or fields", () => {
+    const ct = new ClaimTypes({
+      has: [{ id: id(), confidence: HighConfidence, prop: { id: FIELDS } }],
+    })
+    assert.equal(hasFields(ct), false)
+  })
+
+  test("returns true when FIELDS has a FIELD sub-claim", async () => {
+    const ct = await makeClaimsWithFields([], [rawField({ propertyId: propA, valueType: valueTypeString, order: "1" })])
+    assert.equal(hasFields(ct), true)
+  })
+
+  test("returns true when FIELDS has a SECTION sub-claim", async () => {
+    const section = rawSection("Basics", "1", [rawField({ propertyId: propA, valueType: valueTypeString, order: "1" })])
+    const ct = await makeClaimsWithFields([section], [])
+    assert.equal(hasFields(ct), true)
+  })
+})
+
+describe("extractFieldsFromClaims", () => {
+  test("returns null for null/undefined claims", () => {
+    assert.equal(extractFieldsFromClaims(null, "en"), null)
+    assert.equal(extractFieldsFromClaims(undefined, "en"), null)
+  })
+
+  test("returns null when no FIELDS claim exists", () => {
+    assert.equal(extractFieldsFromClaims(new ClaimTypes({}), "en"), null)
+  })
+
+  test("extracts top-level fields sorted by orderInList", async () => {
+    const ct = await makeClaimsWithFields(
+      [],
+      [rawField({ propertyId: propB, valueType: valueTypeString, order: "2" }), rawField({ propertyId: propA, valueType: valueTypeAmount, order: "1" })],
+    )
+    const result = extractFieldsFromClaims(ct, "und")
+    assert.notEqual(result, null)
+    assert.equal(result!.sections.length, 0)
+    assert.equal(result!.fields.length, 2)
+    // Sorted by order.
+    assert.equal(result!.fields[0].propertyId, propA)
+    assert.equal(result!.fields[0].orderInList, 1)
+    assert.equal(result!.fields[0].valueType, valueTypeAmount)
+    assert.equal(result!.fields[1].propertyId, propB)
+    assert.equal(result!.fields[1].orderInList, 2)
+  })
+
+  test("extracts sections with fields sorted by orderInList", async () => {
+    const ct = await makeClaimsWithFields(
+      [
+        rawSection("Second", "2", [rawField({ propertyId: propB, valueType: valueTypeString, order: "1" })]),
+        rawSection("First", "1", [rawField({ propertyId: propA, valueType: valueTypeString, order: "1" })]),
+      ],
+      [],
+    )
+    const result = extractFieldsFromClaims(ct, "und")
+    assert.notEqual(result, null)
+    assert.equal(result!.fields.length, 0)
+    assert.equal(result!.sections.length, 2)
+    // Sections sorted by order.
+    assert.equal(result!.sections[0].name, "First")
+    assert.equal(result!.sections[0].orderInList, 1)
+    assert.equal(result!.sections[1].name, "Second")
+    assert.equal(result!.sections[1].orderInList, 2)
+  })
+
+  test("extracts cardinality from amount interval claim", async () => {
+    const ct = await makeClaimsWithFields([], [rawField({ propertyId: propA, valueType: valueTypeString, order: "1", from: "1", to: "5" })])
+    const result = extractFieldsFromClaims(ct, "und")
+    assert.notEqual(result, null)
+    assert.equal(result!.fields[0].minCardinality, 1)
+    assert.equal(result!.fields[0].maxCardinality, 5)
+  })
+
+  test("unbounded cardinality when to is absent", async () => {
+    const ct = await makeClaimsWithFields([], [rawField({ propertyId: propA, valueType: valueTypeString, order: "1", from: "1", to: null })])
+    const result = extractFieldsFromClaims(ct, "und")
+    assert.notEqual(result, null)
+    assert.equal(result!.fields[0].minCardinality, 1)
+    assert.equal(result!.fields[0].maxCardinality, Infinity)
+  })
+
+  test("extracts sub-fields", async () => {
+    const subField = rawSubField({ propertyId: propB, valueType: valueTypeString, order: "1" })
+    const ct = await makeClaimsWithFields([], [rawField({ propertyId: propA, valueType: valueTypeString, order: "1", subFields: [subField] })])
+    const result = extractFieldsFromClaims(ct, "und")
+    assert.notEqual(result, null)
+    assert.equal(result!.fields[0].subFields.length, 1)
+    assert.equal(result!.fields[0].subFields[0].propertyId, propB)
+  })
+
+  test("extracts both sections and top-level fields", async () => {
+    const section = rawSection("Section", "1", [rawField({ propertyId: propA, valueType: valueTypeString, order: "1" })])
+    const ct = await makeClaimsWithFields([section], [rawField({ propertyId: propB, valueType: valueTypeString, order: "2" })])
+    const result = extractFieldsFromClaims(ct, "und")
+    assert.notEqual(result, null)
+    assert.equal(result!.sections.length, 1)
+    assert.equal(result!.sections[0].fields.length, 1)
+    assert.equal(result!.sections[0].fields[0].propertyId, propA)
+    assert.equal(result!.fields.length, 1)
+    assert.equal(result!.fields[0].propertyId, propB)
+  })
+
+  test("fields within a section are sorted by orderInList", async () => {
+    const section = rawSection("S", "1", [
+      rawField({ propertyId: propC, valueType: valueTypeString, order: "3" }),
+      rawField({ propertyId: propA, valueType: valueTypeString, order: "1" }),
+      rawField({ propertyId: propB, valueType: valueTypeString, order: "2" }),
+    ])
+    const ct = await makeClaimsWithFields([section], [])
+    const result = extractFieldsFromClaims(ct, "und")
+    assert.notEqual(result, null)
+    const fields = result!.sections[0].fields
+    assert.equal(fields[0].propertyId, propA)
+    assert.equal(fields[1].propertyId, propB)
+    assert.equal(fields[2].propertyId, propC)
+  })
+
+  test("default cardinality when no interval claim", () => {
+    // Build a field without a cardinality claim.
+    const ct = new ClaimTypes({
+      has: [
+        {
+          id: id(),
+          confidence: HighConfidence,
+          prop: { id: FIELDS },
+          sub: {
+            has: [
+              {
+                id: id(),
+                confidence: HighConfidence,
+                prop: { id: FIELD },
+                sub: {
+                  ref: [rawRef(HAS_PROPERTY, propA), rawRef(HAS_VALUE_TYPE, valueTypeString)],
+                  amount: [rawAmount(ORDER_IN_LIST, "1")],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    })
+    const result = extractFieldsFromClaims(ct, "und")
+    assert.notEqual(result, null)
+    assert.equal(result!.fields[0].minCardinality, 0)
+    assert.equal(result!.fields[0].maxCardinality, Infinity)
+  })
+
+  test("returns null for field missing HAS_PROPERTY", () => {
+    const ct = new ClaimTypes({
+      has: [
+        {
+          id: id(),
+          confidence: HighConfidence,
+          prop: { id: FIELDS },
+          sub: {
+            has: [
+              {
+                id: id(),
+                confidence: HighConfidence,
+                prop: { id: FIELD },
+                sub: {
+                  // Missing HAS_PROPERTY ref.
+                  ref: [rawRef(HAS_VALUE_TYPE, valueTypeString)],
+                  amount: [rawAmount(ORDER_IN_LIST, "1")],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    })
+    const result = extractFieldsFromClaims(ct, "und")
+    assert.notEqual(result, null)
+    // Field is skipped because HAS_PROPERTY is missing.
+    assert.equal(result!.fields.length, 0)
+  })
+})
+
+describe("mergeFields", () => {
+  test("empty input returns empty result", () => {
+    const result = mergeFields([])
+    assert.equal(result.sections.length, 0)
+    assert.equal(result.fields.length, 0)
+  })
+
+  test("single FieldsData passes through", () => {
+    const input = {
+      sections: [
+        {
+          name: "S",
+          orderInList: 1,
+          fields: [{ propertyId: propA, valueType: valueTypeString, orderInList: 1, minCardinality: 0, maxCardinality: Infinity, subFields: [], path: [propA] }],
+        },
+      ],
+      fields: [{ propertyId: propB, valueType: valueTypeString, orderInList: 2, minCardinality: 0, maxCardinality: Infinity, subFields: [], path: [propB] }],
+    }
+    const result = mergeFields([input])
+    assert.equal(result.sections.length, 1)
+    assert.equal(result.sections[0].fields[0].propertyId, propA)
+    assert.equal(result.fields.length, 1)
+    assert.equal(result.fields[0].propertyId, propB)
+  })
+
+  test("deduplicates top-level fields by propertyId", () => {
+    const f = (prop: string, order: number) => ({
+      propertyId: prop,
+      valueType: valueTypeString,
+      orderInList: order,
+      minCardinality: 0,
+      maxCardinality: Infinity,
+      subFields: [],
+      path: [prop],
+    })
+    const result = mergeFields([
+      { sections: [], fields: [f(propA, 1), f(propB, 2)] },
+      { sections: [], fields: [f(propA, 1), f(propC, 3)] },
+    ])
+    assert.equal(result.fields.length, 3)
+    assert.equal(result.fields[0].propertyId, propA)
+    assert.equal(result.fields[1].propertyId, propB)
+    assert.equal(result.fields[2].propertyId, propC)
+  })
+
+  test("merges sections with the same name", () => {
+    const f = (prop: string, order: number) => ({
+      propertyId: prop,
+      valueType: valueTypeString,
+      orderInList: order,
+      minCardinality: 0,
+      maxCardinality: Infinity,
+      subFields: [],
+      path: [prop],
+    })
+    const result = mergeFields([
+      { sections: [{ name: "Basics", orderInList: 1, fields: [f(propA, 1)] }], fields: [] },
+      { sections: [{ name: "Basics", orderInList: 1, fields: [f(propB, 2)] }], fields: [] },
+    ])
+    assert.equal(result.sections.length, 1)
+    assert.equal(result.sections[0].name, "Basics")
+    assert.equal(result.sections[0].fields.length, 2)
+    assert.equal(result.sections[0].fields[0].propertyId, propA)
+    assert.equal(result.sections[0].fields[1].propertyId, propB)
+  })
+
+  test("keeps sections with different names separate", () => {
+    const f = (prop: string) => ({
+      propertyId: prop,
+      valueType: valueTypeString,
+      orderInList: 1,
+      minCardinality: 0,
+      maxCardinality: Infinity,
+      subFields: [],
+      path: [prop],
+    })
+    const result = mergeFields([
+      { sections: [{ name: "Alpha", orderInList: 1, fields: [f(propA)] }], fields: [] },
+      { sections: [{ name: "Beta", orderInList: 2, fields: [f(propB)] }], fields: [] },
+    ])
+    assert.equal(result.sections.length, 2)
+    assert.equal(result.sections[0].name, "Alpha")
+    assert.equal(result.sections[1].name, "Beta")
+  })
+
+  test("deduplicates across sections and top-level fields", () => {
+    const f = (prop: string) => ({
+      propertyId: prop,
+      valueType: valueTypeString,
+      orderInList: 1,
+      minCardinality: 0,
+      maxCardinality: Infinity,
+      subFields: [],
+      path: [prop],
+    })
+    const result = mergeFields([
+      { sections: [{ name: "S", orderInList: 1, fields: [f(propA)] }], fields: [] },
+      { sections: [], fields: [f(propA)] },
+    ])
+    // propA already seen in section, so top-level duplicate is skipped.
+    assert.equal(result.sections[0].fields.length, 1)
+    assert.equal(result.fields.length, 0)
+  })
+})

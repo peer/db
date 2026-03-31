@@ -162,7 +162,8 @@ func (s *Service) DocumentGetGetAPI(w http.ResponseWriter, req *http.Request, pa
 }
 
 type documentCreateResponse struct {
-	ID identifier.Identifier `json:"id"`
+	ID   identifier.Identifier `json:"id"`
+	Base []string              `json:"base"`
 }
 
 // DocumentCreatePostAPI handles POST requests to create a new document.
@@ -197,7 +198,10 @@ func (s *Service) DocumentCreatePostAPI(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	s.WriteJSON(w, req, documentCreateResponse{ID: id}, nil)
+	s.WriteJSON(w, req, documentCreateResponse{
+		ID:   id,
+		Base: base,
+	}, nil)
 }
 
 type documentBeginEditResponse struct {

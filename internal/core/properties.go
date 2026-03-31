@@ -10,6 +10,7 @@ import (
 //
 //nolint:gochecknoglobals
 var (
+	AbstractClassPropID        = identifier.From(Namespace, "ABSTRACT_CLASS")
 	AlternativeNamePropID      = identifier.From(Namespace, "ALTERNATIVE_NAME")
 	CardinalityPropID          = identifier.From(Namespace, "CARDINALITY")
 	CodePropID                 = identifier.From(Namespace, "CODE")

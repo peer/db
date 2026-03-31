@@ -4,7 +4,7 @@ import type { ComponentExposed } from "vue-component-type-helpers"
 import type { D } from "@/document"
 import type { Result } from "@/types"
 
-import { computed, ref } from "vue"
+import { computed, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
 
 import WithDocument from "@/components/WithDocument.vue"
@@ -22,7 +22,7 @@ defineProps<{
 const { t } = useI18n({ useScope: "global" })
 
 const WithDocumentD = WithDocument<D>
-const withDocument = ref<ComponentExposed<typeof WithDocumentD> | null>(null)
+const withDocument = useTemplateRef<ComponentExposed<typeof WithDocumentD>>("withDocument")
 
 // TODO: Do not hard-code properties?
 const description = computed(() => {
