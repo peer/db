@@ -1,4 +1,4 @@
-import type { Component, Raw } from "vue"
+import type { Component, Raw, ShallowRef } from "vue"
 
 import { markRaw, shallowRef } from "vue"
 
@@ -8,6 +8,6 @@ export function registerHomeComponent(component: Component): void {
   homeComponent.value = markRaw(component)
 }
 
-export function getHomeComponent() {
+export function getHomeComponent(): Readonly<ShallowRef<Raw<Component> | null>> {
   return homeComponent
 }
