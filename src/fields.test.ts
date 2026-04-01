@@ -24,10 +24,6 @@ function rawAmount(prop: string, amount: string): object {
   return { id: id(), confidence: HighConfidence, prop: { id: prop }, amount, precision: 1 }
 }
 
-function rawString(prop: string, value: string): object {
-  return { id: id(), confidence: HighConfidence, prop: { id: prop }, string: value }
-}
-
 function rawCardinality(from: string | null, to: string | null): object {
   const obj: Record<string, unknown> = { id: id(), confidence: HighConfidence, prop: { id: CARDINALITY } }
   if (from !== null) {
