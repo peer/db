@@ -3,7 +3,7 @@ import type { DeepReadonly, Ref } from "vue"
 import type { D } from "@/document"
 import type { FieldsData } from "@/fields"
 
-import { computed, ref, watch } from "vue"
+import { computed, onBeforeUnmount, ref, watch } from "vue"
 import { useRouter } from "vue-router"
 
 import { getURL } from "@/api"
@@ -16,12 +16,16 @@ import { extractFieldsFromClaims, mergeFields } from "@/fields"
 export function useDocumentFields(
   doc: Ref<DeepReadonly<D> | null | undefined>,
   locale: Ref<string>,
-  abortSignal: AbortSignal,
 ): {
   fieldsData: Ref<FieldsData | null>
   classTabId: Ref<string>
   initialized: Ref<boolean>
 } {
+  // Uses a separate abort controller tied to component lifecycle (not route changes),
+  // because useDocumentFields watches doc reactively and handles route changes via doc becoming null.
+  const abortController = new AbortController()
+  onBeforeUnmount(() => abortController.abort())
+
   const router = useRouter()
   const fieldsData = ref<FieldsData | null>(null)
   const classTabId = ref("")
@@ -29,8 +33,8 @@ export function useDocumentFields(
 
   async function fetchClassDocument(classId: string): Promise<DocClass | null> {
     try {
-      const { doc: rawDoc } = await getURL<object>(router.apiResolve({ name: "DocumentGet", params: { id: classId } }).href, null, abortSignal, null)
-      if (abortSignal.aborted) {
+      const { doc: rawDoc } = await getURL<object>(router.apiResolve({ name: "DocumentGet", params: { id: classId } }).href, null, abortController.signal, null)
+      if (abortController.signal.aborted) {
         return null
       }
       return new DocClass(rawDoc)
@@ -51,14 +55,14 @@ export function useDocumentFields(
       result.push(id)
 
       const classDoc = await fetchClassDocument(id)
-      if (!classDoc?.claims || abortSignal.aborted) {
+      if (!classDoc?.claims || abortController.signal.aborted) {
         return
       }
 
       const subclassOfClaims = getClaimsOfTypeWithConfidence(classDoc.claims, "ref", SUBCLASS_OF)
       for (const claim of subclassOfClaims) {
         await walk(claim.to.id)
-        if (abortSignal.aborted) {
+        if (abortController.signal.aborted) {
           return
         }
       }
@@ -66,7 +70,7 @@ export function useDocumentFields(
 
     for (const id of classIds) {
       await walk(id)
-      if (abortSignal.aborted) {
+      if (abortController.signal.aborted) {
         return []
       }
     }
@@ -92,7 +96,7 @@ export function useDocumentFields(
       }
 
       const allClassIds = await collectAllClassIds(classIds)
-      if (abortSignal.aborted) {
+      if (abortController.signal.aborted) {
         return
       }
 
@@ -101,7 +105,7 @@ export function useDocumentFields(
 
       for (const classId of allClassIds) {
         const classDoc = await fetchClassDocument(classId)
-        if (abortSignal.aborted) {
+        if (abortController.signal.aborted) {
           return
         }
         if (!classDoc?.claims) {

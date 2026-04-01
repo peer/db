@@ -54,8 +54,8 @@ const WithDocumentD = WithDocument<D>
 const withDocument = useTemplateRef<ComponentExposed<typeof WithDocumentD>>("withDocument")
 
 // Resolve field definitions for this document's class(es).
-const docRef = computed(() => withDocument.value?.doc ?? null)
-const { fieldsData: mergedFieldsData, classTabId, initialized: fieldsInitialized } = useDocumentFields(docRef, locale, abortController.signal)
+const docRef = toRef(() => withDocument.value?.doc ?? null)
+const { fieldsData: mergedFieldsData, classTabId, initialized: fieldsInitialized } = useDocumentFields(docRef, locale)
 
 const { searchSession, error: searchSessionError } = useSearchSession(
   toRef(() => {

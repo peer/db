@@ -4,7 +4,7 @@ import type { ComponentExposed } from "vue-component-type-helpers"
 import type { D } from "@/document"
 import type { Result } from "@/types"
 
-import { computed, onBeforeUnmount, useTemplateRef } from "vue"
+import { computed, onBeforeUnmount, toRef, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
 
 import WithDocument from "@/components/WithDocument.vue"
@@ -44,8 +44,8 @@ const customResultComponent = computed(() => {
 })
 
 // Resolve field definitions for this document.
-const docRef = computed(() => withDocument.value?.doc ?? null)
-const { fieldsData } = useDocumentFields(docRef, locale, abortController.signal)
+const docRef = toRef(() => withDocument.value?.doc ?? null)
+const { fieldsData } = useDocumentFields(docRef, locale)
 
 // TODO: Do not hard-code properties?
 const description = computed(() => {

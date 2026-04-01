@@ -5,7 +5,7 @@ import type { DocumentBeginMetadata, DocumentEditStatus, DocumentEndEditResponse
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { CheckIcon } from "@heroicons/vue/20/solid"
-import { computed, onBeforeUnmount, provide, readonly, ref, watch } from "vue"
+import { onBeforeUnmount, provide, readonly, ref, toRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
@@ -111,12 +111,8 @@ provide(unregisterForFlushKey, (instance: FlushFn) => {
 const pollInterval = 1000
 
 // Resolve field definitions for the document's class(es).
-// Uses a separate abort controller tied to component lifecycle (not route changes),
-// because useDocumentFields watches doc reactively and handles route changes via doc becoming null.
-const fieldsAbortController = new AbortController()
-onBeforeUnmount(() => fieldsAbortController.abort())
-const docRef = computed(() => doc.value ?? null)
-const { fieldsData: mergedFieldsData, classTabId, initialized: mergedFieldsInitialized } = useDocumentFields(docRef, locale, fieldsAbortController.signal)
+const docRef = toRef(() => doc.value ?? null)
+const { fieldsData: mergedFieldsData, classTabId, initialized: mergedFieldsInitialized } = useDocumentFields(docRef, locale)
 
 let running = false
 async function loadChanges() {
