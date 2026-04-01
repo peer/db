@@ -740,7 +740,7 @@ func (b *Bridge) indexCommit(
 	addedInverseRelations := map[identifier.Identifier][]internalStore.InverseRelation{}
 	removedInverseRelations := map[identifier.Identifier][]internalStore.InverseRelation{}
 
-	var debugDocs = map[string]*Document{}
+	debugDocs := map[string]*Document{}
 
 	for _, cs := range c.Changesets {
 		var after *identifier.Identifier

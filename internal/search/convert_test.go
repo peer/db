@@ -4823,7 +4823,7 @@ func TestOutgoingInverseRelations(t *testing.T) {
 	assert.Equal(t, testDocID, ir.Source)
 	assert.Equal(t, testPropID, ir.SourceProp)
 	assert.Equal(t, testPropID2, ir.TargetProp)
-	assert.InDelta(t, float64(document.HighConfidence), float64(ir.Confidence), 0)
+	assert.Equal(t, float64(document.HighConfidence), float64(ir.Confidence)) //nolint:testifylint
 }
 
 func TestInverseRelationClaimIDDeterministic(t *testing.T) {
@@ -5234,10 +5234,10 @@ func TestDiffOutgoingInverseRelationsSameClaimChangedConfidence(t *testing.T) {
 
 	// Should detect the confidence change as removal + addition.
 	require.Len(t, added[targetB], 1)
-	assert.InDelta(t, float64(document.LowConfidence), float64(added[targetB][0].Confidence), 0)
+	assert.Equal(t, float64(document.LowConfidence), float64(added[targetB][0].Confidence)) //nolint:testifylint
 
 	require.Len(t, removed[targetB], 1)
-	assert.InDelta(t, float64(document.HighConfidence), float64(removed[targetB][0].Confidence), 0)
+	assert.Equal(t, float64(document.HighConfidence), float64(removed[targetB][0].Confidence)) //nolint:testifylint
 }
 
 // makeClassDocWithField creates a class document with a single top-level FIELD

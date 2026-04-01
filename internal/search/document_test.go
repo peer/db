@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 )
@@ -20,7 +21,7 @@ func TestRangeFloatValidate(t *testing.T) {
 			LessThan:           &lt,
 		}
 		swapped, errE := r.Validate()
-		assert.NoError(t, errE)
+		assert.NoError(t, errE) //nolint:testifylint
 		assert.False(t, swapped)
 	})
 
@@ -33,7 +34,7 @@ func TestRangeFloatValidate(t *testing.T) {
 			LessThanOrEqual: &lte,
 		}
 		swapped, errE := r.Validate()
-		assert.NoError(t, errE)
+		assert.NoError(t, errE) //nolint:testifylint
 		assert.False(t, swapped)
 	})
 
@@ -101,10 +102,10 @@ func TestRangeFloatValidate(t *testing.T) {
 			LessThanOrEqual:    &lte,
 		}
 		swapped, errE := r.Validate()
-		assert.NoError(t, errE)
+		require.NoError(t, errE, "% -+#.1v", errE)
 		assert.False(t, swapped)
-		assert.Equal(t, 5.0, *r.GreaterThanOrEqual)
-		assert.Equal(t, 5.0, *r.LessThanOrEqual)
+		assert.Equal(t, 5.0, *r.GreaterThanOrEqual) //nolint:testifylint
+		assert.Equal(t, 5.0, *r.LessThanOrEqual)    //nolint:testifylint
 	})
 
 	t.Run("equal bounds gte lt not swapped", func(t *testing.T) {
@@ -116,7 +117,7 @@ func TestRangeFloatValidate(t *testing.T) {
 			LessThan:           &lt,
 		}
 		swapped, errE := r.Validate()
-		assert.NoError(t, errE)
+		require.NoError(t, errE, "% -+#.1v", errE)
 		assert.False(t, swapped)
 	})
 
@@ -129,12 +130,12 @@ func TestRangeFloatValidate(t *testing.T) {
 			LessThan:           &lt,
 		}
 		swapped, errE := r.Validate()
-		assert.NoError(t, errE)
+		require.NoError(t, errE, "% -+#.1v", errE)
 		assert.True(t, swapped)
 		assert.Nil(t, r.GreaterThanOrEqual)
 		assert.Nil(t, r.LessThan)
-		assert.Equal(t, 1.0, *r.GreaterThan)
-		assert.Equal(t, 3.0, *r.LessThanOrEqual)
+		assert.Equal(t, 1.0, *r.GreaterThan)     //nolint:testifylint
+		assert.Equal(t, 3.0, *r.LessThanOrEqual) //nolint:testifylint
 	})
 
 	t.Run("inverted gt lte swaps to lt gte", func(t *testing.T) {
@@ -146,12 +147,12 @@ func TestRangeFloatValidate(t *testing.T) {
 			LessThanOrEqual: &lte,
 		}
 		swapped, errE := r.Validate()
-		assert.NoError(t, errE)
+		require.NoError(t, errE, "% -+#.1v", errE)
 		assert.True(t, swapped)
 		assert.Nil(t, r.GreaterThan)
 		assert.Nil(t, r.LessThanOrEqual)
-		assert.Equal(t, 1.0, *r.GreaterThanOrEqual)
-		assert.Equal(t, 3.0, *r.LessThan)
+		assert.Equal(t, 1.0, *r.GreaterThanOrEqual) //nolint:testifylint
+		assert.Equal(t, 3.0, *r.LessThan)           //nolint:testifylint
 	})
 
 	t.Run("inverted gt lt swaps to gt lt", func(t *testing.T) {
@@ -163,10 +164,10 @@ func TestRangeFloatValidate(t *testing.T) {
 			LessThan:    &lt,
 		}
 		swapped, errE := r.Validate()
-		assert.NoError(t, errE)
+		require.NoError(t, errE, "% -+#.1v", errE)
 		assert.True(t, swapped)
-		assert.Equal(t, 1.0, *r.GreaterThan)
-		assert.Equal(t, 3.0, *r.LessThan)
+		assert.Equal(t, 1.0, *r.GreaterThan) //nolint:testifylint
+		assert.Equal(t, 3.0, *r.LessThan)    //nolint:testifylint
 	})
 
 	t.Run("floating point precision issue", func(t *testing.T) {
@@ -180,10 +181,10 @@ func TestRangeFloatValidate(t *testing.T) {
 			LessThan:           &lt,
 		}
 		swapped, errE := r.Validate()
-		assert.NoError(t, errE)
+		require.NoError(t, errE, "% -+#.1v", errE)
 		assert.True(t, swapped)
 		// After swap, lt becomes GreaterThan and gte becomes LessThanOrEqual.
-		assert.Equal(t, 7.652447999999999e8, *r.GreaterThan)
-		assert.Equal(t, 7.652448e8, *r.LessThanOrEqual)
+		assert.Equal(t, 7.652447999999999e8, *r.GreaterThan) //nolint:testifylint
+		assert.Equal(t, 7.652448e8, *r.LessThanOrEqual)      //nolint:testifylint
 	})
 }

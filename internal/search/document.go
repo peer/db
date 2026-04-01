@@ -149,7 +149,7 @@ func (r *RangeFloat) Validate() (bool, errors.E) {
 	}
 
 	// Swap: old lower bound becomes new upper, old upper becomes new lower.
-	newR := RangeFloat{} //nolint:exhaustruct
+	newR := RangeFloat{}
 	if r.GreaterThan != nil {
 		newR.LessThan = r.GreaterThan
 	} else {
