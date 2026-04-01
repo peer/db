@@ -111,8 +111,12 @@ provide(unregisterForFlushKey, (instance: FlushFn) => {
 const pollInterval = 1000
 
 // Resolve field definitions for the document's class(es).
+// Uses a separate abort controller tied to component lifecycle (not route changes),
+// because useDocumentFields watches doc reactively and handles route changes via doc becoming null.
+const fieldsAbortController = new AbortController()
+onBeforeUnmount(() => fieldsAbortController.abort())
 const docRef = computed(() => doc.value ?? null)
-const { fieldsData: mergedFieldsData, classTabId, initialized: mergedFieldsInitialized } = useDocumentFields(docRef, locale, abortController.signal)
+const { fieldsData: mergedFieldsData, classTabId, initialized: mergedFieldsInitialized } = useDocumentFields(docRef, locale, fieldsAbortController.signal)
 
 let running = false
 async function loadChanges() {
