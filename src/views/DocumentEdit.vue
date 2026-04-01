@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { TimePrecision } from "@/document"
-import type { FieldsData, FieldsFormSaveChange, FlushFn } from "@/fields"
+import type { FieldsFormSaveChange, FlushFn } from "@/fields"
 import type { DocumentBeginMetadata, DocumentEditStatus, DocumentEndEditResponse } from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { CheckIcon } from "@heroicons/vue/20/solid"
-import { onBeforeUnmount, provide, readonly, ref, watch } from "vue"
+import { computed, onBeforeUnmount, provide, readonly, ref, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
@@ -14,10 +14,9 @@ import Button from "@/components/Button.vue"
 import InputText from "@/components/InputText.vue"
 import InputTime from "@/components/InputTime.vue"
 import siteContext from "@/context"
-import { INSTANCE_OF, SUBCLASS_OF } from "@/core"
-import { ClaimTypes, D, getClaimsOfTypeWithConfidence, HighConfidence } from "@/document"
+import { ClaimTypes, D, HighConfidence } from "@/document"
 import { changeFrom, RemoveClaimChange } from "@/document/patch"
-import { extractFieldsFromClaims, getNextChangeNumberKey, mergeFields, registerForFlushKey, saveChangeKey, unregisterForFlushKey } from "@/fields"
+import { getNextChangeNumberKey, registerForFlushKey, saveChangeKey, unregisterForFlushKey } from "@/fields"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import FieldsForm from "@/partials/FieldsForm.vue"
 import Footer from "@/partials/Footer.vue"
@@ -25,7 +24,8 @@ import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
 import { injectProgress } from "@/progress"
-import { asyncToReactive, encodeQuery, getError, isLoading, makeAddClaimChange } from "@/utils"
+import { useDocumentFields } from "@/useDocumentFields"
+import { encodeQuery, makeAddClaimChange } from "@/utils"
 
 const props = defineProps<{
   id: string
@@ -110,116 +110,9 @@ provide(unregisterForFlushKey, (instance: FlushFn) => {
 // Poll interval in milliseconds.
 const pollInterval = 1000
 
-// Class tab class ID.
-const classTabId = ref<string>("")
-// Merged fields from all classes.
-const mergedFieldsData = ref<FieldsData | null>(null)
-// Has merged fields data been initialized for the first time.
-const mergedFieldsInitialized = ref(false)
-
-// Fetch class document by ID, constructing a proper D instance so ClaimTypes are initialized.
-async function fetchClassDocument(classId: string): Promise<D | null> {
-  try {
-    const { doc: rawDoc } = await getURL<object>(router.apiResolve({ name: "DocumentGet", params: { id: classId } }).href, null, abortController.signal, null)
-    if (abortController.signal.aborted) {
-      return null
-    }
-    return new D(rawDoc)
-  } catch {
-    return null
-  }
-}
-
-// Collect all class IDs including parent classes via SUBCLASS_OF.
-async function collectAllClassIds(classIds: string[]): Promise<string[]> {
-  const visited = new Set<string>()
-  const result: string[] = []
-
-  async function walk(id: string) {
-    if (visited.has(id)) {
-      return
-    }
-    visited.add(id)
-    result.push(id)
-
-    const classDoc = await fetchClassDocument(id)
-    if (!classDoc?.claims || abortController.signal.aborted) {
-      return
-    }
-
-    const subclassOfClaims = getClaimsOfTypeWithConfidence(classDoc.claims, "ref", SUBCLASS_OF)
-    for (const claim of subclassOfClaims) {
-      await walk(claim.to.id)
-      if (abortController.signal.aborted) {
-        return
-      }
-    }
-  }
-
-  for (const id of classIds) {
-    await walk(id)
-    if (abortController.signal.aborted) {
-      return []
-    }
-  }
-
-  return result
-}
-
-// Load class fields data when the document's instance-of claims change.
-const classTabState = asyncToReactive(async () => {
-  if (!doc.value?.claims) {
-    classTabId.value = ""
-    mergedFieldsData.value = null
-    return
-  }
-
-  const classIds = getClaimsOfTypeWithConfidence(doc.value.claims, "ref", INSTANCE_OF).map((c) => c.to.id)
-  if (classIds.length === 0) {
-    classTabId.value = ""
-    mergedFieldsData.value = null
-    return
-  }
-
-  // Collect all class IDs (including parent classes).
-  const allClassIds = await collectAllClassIds(classIds)
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  // Extract fields from each class document.
-  const allFields: FieldsData[] = []
-  const classTabIds: string[] = []
-
-  for (const classId of allClassIds) {
-    const classDoc = await fetchClassDocument(classId)
-    if (abortController.signal.aborted) {
-      return
-    }
-    if (!classDoc?.claims) {
-      continue
-    }
-
-    const fields = extractFieldsFromClaims(classDoc.claims, locale.value)
-    if (fields && (fields.fields.length > 0 || fields.sections.length > 0)) {
-      allFields.push(fields)
-      // Only add direct instance-of classes as tab headers, not parent classes.
-      if (classIds.includes(classId)) {
-        classTabIds.push(classId)
-      }
-    }
-  }
-
-  mergedFieldsInitialized.value = true
-  if (classTabIds.length > 0) {
-    // We pick the first class ID.
-    classTabId.value = classTabIds[0]
-    mergedFieldsData.value = allFields.length > 0 ? mergeFields(allFields) : null
-  } else {
-    classTabId.value = ""
-    mergedFieldsData.value = null
-  }
-})
+// Resolve field definitions for the document's class(es).
+const docRef = computed(() => doc.value ?? null)
+const { fieldsData: mergedFieldsData, classTabId, initialized: mergedFieldsInitialized } = useDocumentFields(docRef, locale, abortController.signal)
 
 let running = false
 async function loadChanges() {
@@ -781,8 +674,6 @@ function canSave(): boolean {
           }}</Button>
         </div>
       </template>
-      <div v-else-if="isLoading(classTabState)" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
-      <div v-else-if="getError(classTabState)" class="my-1 text-center sm:my-4">{{ t("common.status.loadingDataFailed") }}</div>
       <div v-else-if="!mergedFieldsInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
       <div v-else-if="doc" class="my-1 text-center sm:my-4">{{ t("common.status.editingNotAllowed") }}</div>
       <div v-else class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>

@@ -17,9 +17,10 @@ import ButtonLink from "@/components/ButtonLink.vue"
 import InputTextLink from "@/components/InputTextLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { INSTANCE_OF } from "@/core"
-import { getClaimsOfTypeWithConfidence } from "@/document"
+import { ClaimTypes, getClaimsOfTypeWithConfidence } from "@/document"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import FieldsView from "@/partials/FieldsView.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
@@ -27,13 +28,14 @@ import PropertiesRows from "@/partials/PropertiesRows.vue"
 import { injectProgress } from "@/progress"
 import { getDocumentComponents } from "@/registry/document"
 import { useSearch, useSearchSession } from "@/search"
+import { useDocumentFields } from "@/useDocumentFields"
 import { encodeQuery, loadingLongWidth } from "@/utils"
 
 const props = defineProps<{
   id: string
 }>()
 
-const { t } = useI18n({ useScope: "global" })
+const { t, locale } = useI18n({ useScope: "global" })
 const route = useRoute()
 const router = useRouter()
 
@@ -50,6 +52,10 @@ onBeforeUnmount(() => {
 
 const WithDocumentD = WithDocument<D>
 const withDocument = useTemplateRef<ComponentExposed<typeof WithDocumentD>>("withDocument")
+
+// Resolve field definitions for this document's class(es).
+const docRef = computed(() => withDocument.value?.doc ?? null)
+const { fieldsData: mergedFieldsData, classTabId } = useDocumentFields(docRef, locale, abortController.signal)
 
 const { searchSession, error: searchSessionError } = useSearchSession(
   toRef(() => {
@@ -221,6 +227,11 @@ async function onEdit() {
           <TabGroup>
             <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100">
               <Tab
+                v-if="classTabId && mergedFieldsData"
+                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                ><DocumentRefInline :id="classTabId" :link="false"
+              /></Tab>
+              <Tab
                 v-for="documentTab in documentTabs"
                 :key="documentTab.id"
                 class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
@@ -234,6 +245,10 @@ async function onEdit() {
             <h1 class="mb-4 text-4xl font-bold drop-shadow-xs"><DisplayLabel :claims="doc.claims" /></h1>
             <TabPanels>
               <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
+              <!-- Fields view tab (first, if available). -->
+              <TabPanel v-if="classTabId && mergedFieldsData" tabindex="-1">
+                <FieldsView :fields-data="mergedFieldsData" :claims="doc.claims as ClaimTypes" sections />
+              </TabPanel>
               <TabPanel v-for="documentTab in documentTabs" :key="documentTab.id" tabindex="-1">
                 <component :is="documentTab.component" :doc="doc" />
               </TabPanel>

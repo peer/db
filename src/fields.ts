@@ -309,10 +309,8 @@ export type FlushFn = () => Promise<FieldsFormSaveChange[]>
 export const getNextChangeNumberKey: InjectionKey<() => number> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-getNextChangeNumber") : Symbol()
 export const saveChangeKey: InjectionKey<(change: object, changeNumber: number) => Promise<void>> =
   process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-saveChange") : Symbol()
-export const registerForFlushKey: InjectionKey<(instance: FlushFn) => void> =
-  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-registerForFlush") : Symbol()
-export const unregisterForFlushKey: InjectionKey<(instance: FlushFn) => void> =
-  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-unregisterForFlush") : Symbol()
+export const registerForFlushKey: InjectionKey<(instance: FlushFn) => void> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-registerForFlush") : Symbol()
+export const unregisterForFlushKey: InjectionKey<(instance: FlushFn) => void> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-unregisterForFlush") : Symbol()
 
 // ExistingClaimValue represents an existing claim's value extracted for display in form fields.
 export interface ExistingClaimValue {

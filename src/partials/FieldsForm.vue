@@ -475,7 +475,7 @@ onBeforeUnmount(() => {
         <!-- Existing entries. -->
         <template v-for="([claimId, entry], eIndex) in entriesForField(field)" :key="claimId">
           <tr>
-            <td v-if="eIndex === 0" class="px-2 py-1 align-top text-sm font-medium text-slate-700">
+            <td v-if="eIndex === 0" class="w-1/5 px-2 py-1 align-top text-sm font-medium text-slate-700">
               <DocumentRefInline :id="field.propertyId" :link="false" />
               <span v-if="isRequired(field)" class="ml-0.5 text-error-600">*</span>
             </td>
@@ -541,7 +541,7 @@ onBeforeUnmount(() => {
           <tr>
             <td
               v-if="entriesForField(field).length === 0 && emptySlotsForField(fieldKey(field))[0]?.[0] === slotId"
-              class="px-2 py-1 align-top text-sm font-medium text-slate-700"
+              class="w-1/5 px-2 py-1 align-top text-sm font-medium text-slate-700"
             >
               <DocumentRefInline :id="field.propertyId" :link="false" />
               <span v-if="isRequired(field)" class="ml-0.5 text-error-600">*</span>
@@ -611,7 +611,7 @@ onBeforeUnmount(() => {
           <!-- Existing entries. -->
           <template v-for="([claimId, entry], eIndex) in entriesForField(field)" :key="claimId">
             <tr>
-              <td v-if="eIndex === 0" class="px-2 py-1 align-top text-sm font-medium text-slate-700">
+              <td v-if="eIndex === 0" class="w-1/5 px-2 py-1 align-top text-sm font-medium text-slate-700">
                 <DocumentRefInline :id="field.propertyId" :link="false" />
                 <span v-if="isRequired(field)" class="ml-0.5 text-error-600">*</span>
               </td>
@@ -676,7 +676,7 @@ onBeforeUnmount(() => {
             <tr>
               <td
                 v-if="entriesForField(field).length === 0 && emptySlotsForField(fieldKey(field))[0]?.[0] === slotId"
-                class="px-2 py-1 align-top text-sm font-medium text-slate-700"
+                class="w-1/5 px-2 py-1 align-top text-sm font-medium text-slate-700"
               >
                 <DocumentRefInline :id="field.propertyId" :link="false" />
                 <span v-if="isRequired(field)" class="ml-0.5 text-error-600">*</span>
