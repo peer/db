@@ -826,9 +826,10 @@ function extractClaimLanguages(sub: DeepReadonly<ClaimTypes> | undefined | null)
   const refs = getClaimsOfTypeWithConfidence(sub, "ref", IN_LANGUAGE)
   const codes: string[] = []
   const languageCodes = siteContext.languageCodes ?? {}
+  const languagePriority = siteContext.languagePriority ?? {}
   for (const ref of refs) {
     const code = languageCodes[ref.to.id]
-    if (code && code in languageCodes) {
+    if (code && code in languagePriority) {
       codes.push(code)
     }
   }
