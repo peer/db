@@ -513,6 +513,8 @@ func determineValueTypeFromReflect(fieldType reflect.Type, typeTag string) (inte
 		return valueTypeRef("IDENTIFIER"), nil
 	case fieldType == coreLink:
 		return valueTypeRef("LINK"), nil
+	case fieldType == coreFile:
+		return valueTypeRef("FILE"), nil
 	case fieldType == coreHTML:
 		return valueTypeRef("HTML"), nil
 	case fieldType == coreRawHTML:

@@ -21,6 +21,9 @@ type Identifier string
 // Link is a string URL, URI or IRI.
 type Link string
 
+// File is a string URL, URI or IRI of a file.
+type File string
+
 // HTML is a string with HTML.
 type HTML string
 

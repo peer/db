@@ -17,6 +17,9 @@ type Identifier = internalCore.Identifier
 // Link is a string URL, URI or IRI.
 type Link = internalCore.Link
 
+// File is a string URL, URI or IRI of a file.
+type File = internalCore.File
+
 // HTML is a string with HTML.
 type HTML = internalCore.HTML
 

@@ -193,6 +193,7 @@
 //   - core.Interval[core.Amount[T]]: amount interval claim,
 //   - core.Identifier: identifier claim,
 //   - core.Link: link claim,
+//   - core.File: link claim,
 //   - core.HTML: text claim (with escaping),
 //   - core.RawHTML: text claim (without escaping),
 //   - core.None: none-value claim when true,
@@ -298,6 +299,7 @@ var (
 	coreTimeInterval = reflect.TypeFor[internalCore.Interval[internalCore.Time]]()
 	coreIdentifier   = reflect.TypeFor[internalCore.Identifier]()
 	coreLink         = reflect.TypeFor[internalCore.Link]()
+	coreFile         = reflect.TypeFor[internalCore.File]()
 	coreHTML         = reflect.TypeFor[internalCore.HTML]()
 	coreRawHTML      = reflect.TypeFor[internalCore.RawHTML]()
 	coreNone         = reflect.TypeFor[internalCore.None]()
@@ -310,6 +312,7 @@ var (
 		coreTimeInterval: true,
 		coreIdentifier:   true,
 		coreLink:         true,
+		coreFile:         true,
 		coreHTML:         true,
 		coreRawHTML:      true,
 		coreNone:         true,
@@ -1389,6 +1392,38 @@ func makeClaim(
 			},
 			Prop: document.Reference{ID: propertyID},
 			IRI:  string(link),
+		}, nil
+	}
+
+	// Handle core.File.
+	if t == coreFile {
+		if precisionTag != "" {
+			return nil, errors.New("precision tag is not supported for core.File fields")
+		}
+
+		if locationTag != "" {
+			return nil, errors.New("location tag is not supported for core.File fields")
+		}
+
+		file := fieldValue.Interface().(internalCore.File) //nolint:errcheck,forcetypeassert
+		if file == "" {
+			return nil, errors.WithStack(&claimNotMadeError{
+				Default: defaultTag,
+			})
+		}
+
+		if typeTag != "" && typeTag != typeFile {
+			return nil, errors.New("file field used with conflicting tag")
+		}
+
+		claimID := newClaimID(idPath, propertyID, claims)
+		return &document.LinkClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         claimID,
+				Confidence: confidence,
+			},
+			Prop: document.Reference{ID: propertyID},
+			IRI:  string(file),
 		}, nil
 	}
 

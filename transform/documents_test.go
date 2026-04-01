@@ -53,6 +53,11 @@ type DocWithFile struct {
 	FilePath string   `              property:"HOMEPAGE" type:"file"`
 }
 
+type DocWithCoreFile struct {
+	ID        []string  `documentid:""`
+	PlainFile core.File `              property:"PLAIN_FILE"`
+}
+
 type DocWithRef struct {
 	ID       []string   `documentid:""`
 	Parent   core.Ref   `              property:"PARENT"`
@@ -179,6 +184,7 @@ func createMnemonics() map[string][]string {
 		"HOMEPAGE":        {"test", "HOMEPAGE"},
 		"LINKS":           {"test", "LINKS"},
 		"PLAIN_LINK":      {"test", "PLAIN_LINK"},
+		"PLAIN_FILE":      {"test", "PLAIN_FILE"},
 		"PARENT":          {"test", "PARENT"},
 		"CHILDREN":        {"test", "CHILDREN"},
 		"CREATED":         {"test", "CREATED"},
@@ -1816,6 +1822,52 @@ func TestDocuments_FileTypeTag(t *testing.T) {
 
 	assert.Equal(t, "/uploads/photo.jpg", doc.Claims.Link[0].IRI)
 	assert.Equal(t, identifier.From("test", "doc1", "HOMEPAGE", "0"), doc.Claims.Link[0].ID)
+}
+
+func TestDocuments_CoreFileWithoutTag(t *testing.T) {
+	t.Parallel()
+
+	// Test that core.File without file tag is treated as file (produces LinkClaim).
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithCoreFile{
+			ID:        []string{"test", "doc1"},
+			PlainFile: "/uploads/photo.jpg",
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+
+	// Without file tag, should still be LinkClaim.
+	require.Len(t, doc.Claims.Link, 1)
+
+	assert.Equal(t, "/uploads/photo.jpg", doc.Claims.Link[0].IRI)
+	assert.Equal(t, identifier.From("test", "doc1", "PLAIN_FILE", "0"), doc.Claims.Link[0].ID)
+}
+
+func TestDocuments_CoreFileEmpty(t *testing.T) {
+	t.Parallel()
+
+	// Test that empty core.File is skipped.
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithCoreFile{
+			ID:        []string{"test", "doc1"},
+			PlainFile: "",
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+
+	assert.Empty(t, doc.Claims.Link)
 }
 
 func TestDocuments_ZeroTimeSkipped(t *testing.T) {

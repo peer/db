@@ -130,6 +130,10 @@ type FieldsWithFileType struct {
 	Upload string `cardinality:"0..1" json:"upload" property:"DATA" type:"file"`
 }
 
+type FieldsWithCoreFile struct {
+	Upload core.File `cardinality:"0..1" json:"upload" property:"DATA"`
+}
+
 type FieldsWithValuesOnNonRef struct {
 	Name string `cardinality:"1.." json:"name" property:"NAME" values:"test.example.com,FOO"`
 }
@@ -580,6 +584,18 @@ func TestFieldsFileType(t *testing.T) {
 	mnemonics := fieldsTestMnemonics()
 
 	result, errE := transform.Fields[FieldsWithFileType](mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 1)
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "FILE"}}, result.Field[0].ValueType)
+}
+
+func TestFieldsCoreFile(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+
+	result, errE := transform.Fields[FieldsWithCoreFile](mnemonics)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 1)
