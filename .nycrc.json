@@ -1,0 +1,9 @@
+{
+  "all": true,
+  "include": ["src/**/*.{js,ts,vue}"],
+  "exclude": ["src/**/*.test.{js,ts}", "tests/**"],
+  "extension": [".js", ".ts", ".vue"],
+  "reporter": ["html", "cobertura", "text"],
+  "report-dir": "coverage-frontend",
+  "temp-dir": ".nyc_output"
+}
