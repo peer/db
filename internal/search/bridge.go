@@ -34,6 +34,7 @@ var errCommittedChannelClosed = errors.Base("committed channel is closed")
 type bulkError struct {
 	ID    string            `json:"id,omitempty"`
 	Error *types.ErrorCause `json:"error,omitempty"`
+	Doc   *Document         `json:"doc,omitempty"`
 }
 
 type bridgeJob interface {
@@ -739,6 +740,8 @@ func (b *Bridge) indexCommit(
 	addedInverseRelations := map[identifier.Identifier][]internalStore.InverseRelation{}
 	removedInverseRelations := map[identifier.Identifier][]internalStore.InverseRelation{}
 
+	var debugDocs = map[string]*Document{}
+
 	for _, cs := range c.Changesets {
 		var after *identifier.Identifier
 		for {
@@ -832,6 +835,7 @@ func (b *Bridge) indexCommit(
 					if err != nil {
 						return nil, nil, errors.WithStack(err)
 					}
+					debugDocs[id] = searchDoc
 					numActions++
 				}
 			}
@@ -870,6 +874,7 @@ func (b *Bridge) indexCommit(
 			bulkErrors = append(bulkErrors, bulkError{
 				ID:    id,
 				Error: result.Error,
+				Doc:   debugDocs[id],
 			})
 		}
 	}

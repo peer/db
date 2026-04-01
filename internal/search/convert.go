@@ -1315,9 +1315,23 @@ func (c *Converter) convertAmount(ctx context.Context, claim *document.AmountCla
 	to := amount + claim.Precision/2   //nolint:mnd
 	display := claim.Amount.String()
 
+	// We use separate variables for the range bounds to avoid aliasing
+	// with from/to (swapping from/to would mutate the range values).
+	rangeFrom := from
+	rangeTo := to
 	rangeFloat := RangeFloat{ //nolint:exhaustruct
-		GreaterThanOrEqual: &from,
-		LessThan:           &to,
+		GreaterThanOrEqual: &rangeFrom,
+		LessThan:           &rangeTo,
+	}
+
+	// Sanity check.
+	swapped, errE := rangeFloat.Validate()
+	if errE != nil {
+		errors.Details(errE)["claim"] = claim
+		return nil, errE
+	}
+	if swapped {
+		from, to = to, from
 	}
 
 	props := c.propagateProp(claim.Prop.ID)
@@ -1458,11 +1472,30 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 		return nil, claims, errE
 	}
 
+	// If To and From are the same, treat as single point.
+	if from != nil && to != nil && *from == *to {
+		claims, errE := c.convertAmount(ctx, &document.AmountClaim{
+			CoreClaim: claim.CoreClaim,
+			Prop:      claim.Prop,
+			Amount:    *claim.From,
+			// Smaller float64 is more precise.
+			Precision: min(*claim.FromPrecision, *claim.ToPrecision),
+		})
+		if errE != nil {
+			errors.Details(errE)["claim"] = claim
+		}
+		return claims, nil, errE
+	}
+
 	// Sanity check.
-	errE := rangeFloat.Validate()
+	swapped, errE := rangeFloat.Validate()
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
 		return nil, nil, errE
+	}
+	if swapped {
+		from, to = to, from
+		fromDisplay, toDisplay = toDisplay, fromDisplay
 	}
 
 	// TODO: Normalize amounts of units of same measure to same base unit (e.g., cm and mm to m).
@@ -1501,9 +1534,23 @@ func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) 
 	to := x.TimeToFloat64(addPrecision(t, claim.Precision))
 	display := claim.Time.String()
 
+	// We use separate variables for the range bounds to avoid aliasing
+	// with from/to (swapping from/to would mutate the range values).
+	rangeFrom := from
+	rangeTo := to
 	rangeFloat := RangeFloat{ //nolint:exhaustruct
-		GreaterThanOrEqual: &from,
-		LessThan:           &to,
+		GreaterThanOrEqual: &rangeFrom,
+		LessThan:           &rangeTo,
+	}
+
+	// Sanity check.
+	swapped, errE := rangeFloat.Validate()
+	if errE != nil {
+		errors.Details(errE)["claim"] = claim
+		return nil, errE
+	}
+	if swapped {
+		from, to = to, from
 	}
 
 	props := c.propagateProp(claim.Prop.ID)
@@ -1645,11 +1692,30 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		return nil, claims, errE
 	}
 
+	// If To and From are the same, treat as single point.
+	if from != nil && to != nil && *from == *to {
+		claims, errE := c.convertTime(ctx, &document.TimeClaim{
+			CoreClaim: claim.CoreClaim,
+			Prop:      claim.Prop,
+			Time:      *claim.From,
+			// Larger TimePrecision is more precise.
+			Precision: max(*claim.FromPrecision, *claim.ToPrecision),
+		})
+		if errE != nil {
+			errors.Details(errE)["claim"] = claim
+		}
+		return claims, nil, errE
+	}
+
 	// Sanity check.
-	errE := rangeFloat.Validate()
+	swapped, errE := rangeFloat.Validate()
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
 		return nil, nil, errE
+	}
+	if swapped {
+		from, to = to, from
+		fromDisplay, toDisplay = toDisplay, fromDisplay
 	}
 
 	props := c.propagateProp(claim.Prop.ID)

@@ -19,7 +19,9 @@ func TestRangeFloatValidate(t *testing.T) {
 			GreaterThanOrEqual: &gte,
 			LessThan:           &lt,
 		}
-		assert.NoError(t, r.Validate())
+		swapped, errE := r.Validate()
+		assert.NoError(t, errE)
+		assert.False(t, swapped)
 	})
 
 	t.Run("valid gt lte", func(t *testing.T) {
@@ -30,7 +32,9 @@ func TestRangeFloatValidate(t *testing.T) {
 			GreaterThan:     &gt,
 			LessThanOrEqual: &lte,
 		}
-		assert.NoError(t, r.Validate())
+		swapped, errE := r.Validate()
+		assert.NoError(t, errE)
+		assert.False(t, swapped)
 	})
 
 	t.Run("both gt and gte", func(t *testing.T) {
@@ -43,7 +47,7 @@ func TestRangeFloatValidate(t *testing.T) {
 			GreaterThanOrEqual: &gte,
 			LessThan:           &lt,
 		}
-		errE := r.Validate()
+		_, errE := r.Validate()
 		assert.EqualError(t, errE, "both greater than and greater than or equal are set")
 	})
 
@@ -57,7 +61,7 @@ func TestRangeFloatValidate(t *testing.T) {
 			LessThan:           &lt,
 			LessThanOrEqual:    &lte,
 		}
-		errE := r.Validate()
+		_, errE := r.Validate()
 		assert.EqualError(t, errE, "both less than and less than or equal are set")
 	})
 
@@ -67,7 +71,7 @@ func TestRangeFloatValidate(t *testing.T) {
 		r := internalSearch.RangeFloat{ //nolint:exhaustruct
 			LessThan: &lt,
 		}
-		errE := r.Validate()
+		_, errE := r.Validate()
 		assert.EqualError(t, errE, "greater than bound is required")
 	})
 
@@ -77,14 +81,109 @@ func TestRangeFloatValidate(t *testing.T) {
 		r := internalSearch.RangeFloat{ //nolint:exhaustruct
 			GreaterThanOrEqual: &gte,
 		}
-		errE := r.Validate()
+		_, errE := r.Validate()
 		assert.EqualError(t, errE, "less than bound is required")
 	})
 
 	t.Run("empty range", func(t *testing.T) {
 		t.Parallel()
 		r := internalSearch.RangeFloat{}
-		errE := r.Validate()
+		_, errE := r.Validate()
 		assert.EqualError(t, errE, "greater than bound is required")
+	})
+
+	t.Run("equal bounds both closed", func(t *testing.T) {
+		t.Parallel()
+		gte := 5.0
+		lte := 5.0
+		r := internalSearch.RangeFloat{ //nolint:exhaustruct
+			GreaterThanOrEqual: &gte,
+			LessThanOrEqual:    &lte,
+		}
+		swapped, errE := r.Validate()
+		assert.NoError(t, errE)
+		assert.False(t, swapped)
+		assert.Equal(t, 5.0, *r.GreaterThanOrEqual)
+		assert.Equal(t, 5.0, *r.LessThanOrEqual)
+	})
+
+	t.Run("equal bounds gte lt not swapped", func(t *testing.T) {
+		t.Parallel()
+		gte := 5.0
+		lt := 5.0
+		r := internalSearch.RangeFloat{ //nolint:exhaustruct
+			GreaterThanOrEqual: &gte,
+			LessThan:           &lt,
+		}
+		swapped, errE := r.Validate()
+		assert.NoError(t, errE)
+		assert.False(t, swapped)
+	})
+
+	t.Run("inverted gte lt swaps to lte gt", func(t *testing.T) {
+		t.Parallel()
+		gte := 3.0
+		lt := 1.0
+		r := internalSearch.RangeFloat{ //nolint:exhaustruct
+			GreaterThanOrEqual: &gte,
+			LessThan:           &lt,
+		}
+		swapped, errE := r.Validate()
+		assert.NoError(t, errE)
+		assert.True(t, swapped)
+		assert.Nil(t, r.GreaterThanOrEqual)
+		assert.Nil(t, r.LessThan)
+		assert.Equal(t, 1.0, *r.GreaterThan)
+		assert.Equal(t, 3.0, *r.LessThanOrEqual)
+	})
+
+	t.Run("inverted gt lte swaps to lt gte", func(t *testing.T) {
+		t.Parallel()
+		gt := 3.0
+		lte := 1.0
+		r := internalSearch.RangeFloat{ //nolint:exhaustruct
+			GreaterThan:     &gt,
+			LessThanOrEqual: &lte,
+		}
+		swapped, errE := r.Validate()
+		assert.NoError(t, errE)
+		assert.True(t, swapped)
+		assert.Nil(t, r.GreaterThan)
+		assert.Nil(t, r.LessThanOrEqual)
+		assert.Equal(t, 1.0, *r.GreaterThanOrEqual)
+		assert.Equal(t, 3.0, *r.LessThan)
+	})
+
+	t.Run("inverted gt lt swaps to gt lt", func(t *testing.T) {
+		t.Parallel()
+		gt := 3.0
+		lt := 1.0
+		r := internalSearch.RangeFloat{ //nolint:exhaustruct
+			GreaterThan: &gt,
+			LessThan:    &lt,
+		}
+		swapped, errE := r.Validate()
+		assert.NoError(t, errE)
+		assert.True(t, swapped)
+		assert.Equal(t, 1.0, *r.GreaterThan)
+		assert.Equal(t, 3.0, *r.LessThan)
+	})
+
+	t.Run("floating point precision issue", func(t *testing.T) {
+		t.Parallel()
+		// Simulating the exact error from the bug report:
+		// min value (7.652448E8) > max value (7.652447999999999E8).
+		gte := 7.652448e8
+		lt := 7.652447999999999e8
+		r := internalSearch.RangeFloat{ //nolint:exhaustruct
+			GreaterThanOrEqual: &gte,
+			LessThan:           &lt,
+		}
+		swapped, errE := r.Validate()
+		assert.NoError(t, errE)
+		assert.True(t, swapped)
+		// After swap, lt becomes GreaterThan and gte becomes LessThanOrEqual.
+		assert.Equal(t, 7.652447999999999e8, *r.GreaterThan)
+		assert.Equal(t, 7.652448e8, *r.LessThanOrEqual)
 	})
 }
