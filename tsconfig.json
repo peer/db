@@ -14,12 +14,12 @@
     "noEmit": true,
     "esModuleInterop": true,
     "lib": ["esnext", "DOM", "DOM.Iterable"],
-    "types": ["vite/client", "node"],
+    "types": ["vite/client"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.vue", "tests/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.vue"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

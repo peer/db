@@ -73,7 +73,7 @@
     "lint-ci": "eslint --fix --format gitlab src tests",
     "lint-style": "stylelint --fix src/**/*.{css,scss,vue,html}",
     "lint-style-ci": "stylelint --fix --custom-formatter=@studiometa/stylelint-formatter-gitlab src/**/*.{css,scss,vue,html}",
-    "lint-vue": "vue-tsc --noEmit",
+    "lint-vue": "vue-tsc --noEmit && vue-tsc -p tsconfig.playwright.json --noEmit",
     "fmt": "prettier src *.ts *.js *.json .*.json tests --write",
     "test": "vitest",
     "coverage": "vitest --coverage",
