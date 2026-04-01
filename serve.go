@@ -183,6 +183,8 @@ func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	ctx = globals.Logger.WithContext(ctx)
+
 	ctx, cancel := context.WithCancel(ctx)
 
 	service, onShutdown, errE := c.Init(ctx, globals, files)

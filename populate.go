@@ -121,6 +121,8 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	ctx = globals.Logger.WithContext(ctx)
+
 	if len(globals.Sites) == 0 {
 		globals.Sites = []Site{{
 			Site: waf.Site{
