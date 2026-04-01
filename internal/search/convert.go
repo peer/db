@@ -10,6 +10,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
@@ -18,6 +19,7 @@ import (
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalDocument "gitlab.com/peerdb/peerdb/internal/document"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 type displayStrings struct {
@@ -429,6 +431,14 @@ func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Ident
 
 	doc, errE := c.getDocument(ctx, id)
 	if errE != nil {
+		if errors.Is(errE, store.ErrValueNotFound) {
+			// Referenced document does not exist (or was deleted). Return empty
+			// info without caching so that a later re-index can pick it up.
+			zerolog.Ctx(ctx).Warn().Err(errE).
+				Str("id", id.String()).
+				Msg("referenced document not found, using empty info")
+			return documentInfo{}, nil
+		}
 		return documentInfo{}, errE
 	}
 	display, errE := c.makeDisplayStrings(ctx, doc)
@@ -639,6 +649,14 @@ func (c *Converter) displayLabelTemplate(ctx context.Context, doc *document.D) (
 	for _, rel := range document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, internalCore.InstanceOfPropID, document.LowConfidence) {
 		classDoc, errE := c.getDocument(ctx, rel.To.ID)
 		if errE != nil {
+			if errors.Is(errE, store.ErrValueNotFound) {
+				// Class document does not exist, skip it.
+				zerolog.Ctx(ctx).Warn().Err(errE).
+					Str("id", doc.ID.String()).
+					Str("classId", rel.To.ID.String()).
+					Msg("class document for the document not found, skipping it for display label template")
+				continue
+			}
 			return "", errE
 		}
 		instanceConfidence := rel.GetConfidence()
@@ -722,11 +740,24 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 			if rc == nil {
 				return nil, nil
 			}
-			return c.getDocument(ctx, rc.To.ID)
+			d, errE := c.getDocument(ctx, rc.To.ID)
+			if errE != nil && errors.Is(errE, store.ErrValueNotFound) {
+				zerolog.Ctx(ctx).Warn().Err(errE).
+					Str("id", doc.ID.String()).
+					Str("propId", propID.String()).
+					Str("referenceId", rc.To.ID.String()).
+					Msg("bestReferenceDoc: reference not found, returning nil")
+				return nil, nil
+			}
+			return d, errE
 		},
 		// getDocument returns the document for a document ID.
 		"getDocument": func(docID identifier.Identifier) (*document.D, error) {
-			return c.getDocument(ctx, docID)
+			d, errE := c.getDocument(ctx, docID)
+			if errE != nil && errors.Is(errE, store.ErrValueNotFound) {
+				return nil, nil
+			}
+			return d, errE
 		},
 		// bestIdentifier returns the best identifier claim value for a property ID.
 		"bestIdentifier": func(propID identifier.Identifier, doc *document.D) (string, error) {
