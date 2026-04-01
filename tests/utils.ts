@@ -1,5 +1,3 @@
-/// <reference types="node" />
-
 import type { BrowserContext, Locator, Page } from "@playwright/test"
 import type { Result } from "axe-core"
 import type { PageScreenshotOptions } from "playwright-core"

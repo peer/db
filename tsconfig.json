@@ -14,7 +14,7 @@
     "noEmit": true,
     "esModuleInterop": true,
     "lib": ["esnext", "DOM", "DOM.Iterable"],
-    "types": ["vite/client"],
+    "types": ["vite/client", "node"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
