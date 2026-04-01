@@ -91,7 +91,9 @@ func GenerateCoreDocuments(ctx context.Context, additional func(context.Context,
 // Optional count and size counters can be provided to track ES indexing progress.
 //
 // You have to call this or Start for each base after Init.
-func (b *B) PopulateAndStart(ctx context.Context, documents []*document.D, progress func(doc *document.D), count, size *x.Counter) errors.E {
+func (b *B) PopulateAndStart(
+	ctx context.Context, documents []*document.D, progress func(doc *document.D), beforeWait func(ctx context.Context) errors.E, count, size *x.Counter,
+) errors.E {
 	for _, doc := range documents {
 		if ctx.Err() != nil {
 			return errors.WithStack(ctx.Err())
@@ -114,6 +116,13 @@ func (b *B) PopulateAndStart(ctx context.Context, documents []*document.D, progr
 	errE := b.Start(ctx, documents)
 	if errE != nil {
 		return errE
+	}
+
+	if beforeWait != nil {
+		errE = beforeWait(ctx)
+		if errE != nil {
+			return errE
+		}
 	}
 
 	errE = b.WaitUntilCaughtUp(ctx, count, size)

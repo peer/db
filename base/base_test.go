@@ -84,7 +84,7 @@ func populateBase(ctx context.Context, t *testing.T, b *base.B, additionalDocs [
 
 	transformed = append(transformed, additionalDocs...)
 
-	errE = b.PopulateAndStart(ctx, transformed, nil, nil, nil)
+	errE = b.PopulateAndStart(ctx, transformed, nil, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 }
 

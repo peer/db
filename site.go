@@ -249,7 +249,9 @@ func (s *Site) Start(ctx context.Context, documents []*document.D) errors.E {
 // Optional count and size counters can be provided to track ES indexing progress.
 //
 // You have to call this or Start for each site after Init.
-func (s *Site) PopulateAndStart(ctx context.Context, documents []*document.D, progress func(doc *document.D), count, size *x.Counter) errors.E {
+func (s *Site) PopulateAndStart(
+	ctx context.Context, documents []*document.D, progress func(doc *document.D), beforeWait func(ctx context.Context) errors.E, count, size *x.Counter,
+) errors.E {
 	errE := s.updatePropertiesTotal(ctx, documents)
 	if errE != nil {
 		return errE
@@ -265,7 +267,7 @@ func (s *Site) PopulateAndStart(ctx context.Context, documents []*document.D, pr
 		return errE
 	}
 
-	errE = s.Base.PopulateAndStart(ctx, documents, progress, count, size)
+	errE = s.Base.PopulateAndStart(ctx, documents, progress, beforeWait, count, size)
 	if errE != nil {
 		return errE
 	}
