@@ -8,7 +8,8 @@ import { cloneDeep, isEqual } from "lodash-es"
 import { onBeforeUnmount, onMounted, readonly, ref, shallowRef, toRaw, watch, watchEffect } from "vue"
 
 import { INSTANCE_OF, NAME, TITLE } from "@/core"
-import { AddClaimChange, getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
+import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document/claims"
+import { AddClaimChange } from "@/document/patch"
 import { getDisplayLabelFunctions } from "@/registry/display-label"
 import { fromDate, hour, minute, second, toDate } from "@/time"
 
