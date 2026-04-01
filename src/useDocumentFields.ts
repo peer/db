@@ -87,7 +87,7 @@ export function useDocumentFields(
       if (classIds.length === 0) {
         classTabId.value = ""
         fieldsData.value = null
-        initialized.value = true
+        initialized.value = !!doc.value?.claims
         return
       }
 

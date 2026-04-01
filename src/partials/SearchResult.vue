@@ -14,7 +14,7 @@ import DisplayLabel from "@/partials/DisplayLabel.vue"
 import FieldsView from "@/partials/FieldsView.vue"
 import { getSearchResultComponents } from "@/registry/search-result"
 import { useDocumentFields } from "@/useDocumentFields"
-import { encodeQuery, loadingLongWidth } from "@/utils"
+import { encodeQuery, loadingLongWidth, loadingWidth } from "@/utils"
 
 defineProps<{
   searchSessionId: string

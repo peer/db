@@ -55,7 +55,7 @@ const withDocument = useTemplateRef<ComponentExposed<typeof WithDocumentD>>("wit
 
 // Resolve field definitions for this document's class(es).
 const docRef = computed(() => withDocument.value?.doc ?? null)
-const { fieldsData: mergedFieldsData, classTabId } = useDocumentFields(docRef, locale, abortController.signal)
+const { fieldsData: mergedFieldsData, classTabId, initialized: fieldsInitialized } = useDocumentFields(docRef, locale, abortController.signal)
 
 const { searchSession, error: searchSessionError } = useSearchSession(
   toRef(() => {
@@ -220,11 +220,12 @@ async function onEdit() {
     <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <WithDocumentD :id="id" ref="withDocument" name="DocumentGet">
         <template #default="{ doc }">
+          <div v-if="!fieldsInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
           <!--
             TODO: Fix how hover interacts with focused tab.
             See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
           -->
-          <TabGroup>
+          <TabGroup v-else>
             <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100">
               <Tab
                 v-if="classTabId && mergedFieldsData"
