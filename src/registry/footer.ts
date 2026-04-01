@@ -1,4 +1,4 @@
-import type { Component, Raw } from "vue"
+import type { Component, Raw, ShallowRef } from "vue"
 
 import { markRaw, ref, shallowRef } from "vue"
 
@@ -15,10 +15,10 @@ export function registerFooterEndComponent(component: Component): void {
   footerEndComponents.value = [...footerEndComponents.value, markRaw(component)]
 }
 
-export function getFooterStartComponents() {
+export function getFooterStartComponents(): Readonly<ShallowRef<Raw<Component>[]>> {
   return footerStartComponents
 }
 
-export function getFooterEndComponents() {
+export function getFooterEndComponents(): Readonly<ShallowRef<Raw<Component>[]>> {
   return footerEndComponents
 }
