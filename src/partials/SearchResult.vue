@@ -21,7 +21,7 @@ defineProps<{
   result: Result
 }>()
 
-const { t, locale } = useI18n({ useScope: "global" })
+const { t } = useI18n({ useScope: "global" })
 
 const abortController = new AbortController()
 onBeforeUnmount(() => abortController.abort())
@@ -45,7 +45,7 @@ const customResultComponent = computed(() => {
 
 // Resolve field definitions for this document.
 const docRef = toRef(() => withDocument.value?.doc ?? null)
-const { fieldsData } = useDocumentFields(docRef, locale)
+const { fieldsData } = useDocumentFields(docRef)
 
 // TODO: Do not hard-code properties?
 const description = computed(() => {

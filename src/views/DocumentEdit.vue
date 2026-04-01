@@ -58,7 +58,7 @@ const claimTo = ref("")
 const claimToAmountPrecision = ref("")
 const claimToTimePrecision = ref<TimePrecision>("y")
 
-const { t, locale } = useI18n({ useScope: "global" })
+const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
 const progress = injectProgress()
@@ -112,7 +112,7 @@ const pollInterval = 1000
 
 // Resolve field definitions for the document's class(es).
 const docRef = toRef(() => doc.value ?? null)
-const { fieldsData: mergedFieldsData, classTabId, initialized: mergedFieldsInitialized } = useDocumentFields(docRef, locale)
+const { fieldsData: mergedFieldsData, classTabId, initialized: mergedFieldsInitialized } = useDocumentFields(docRef)
 
 let running = false
 async function loadChanges() {

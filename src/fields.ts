@@ -39,7 +39,6 @@ import {
   LinkClaim,
   NoneClaim,
   ReferenceClaim,
-  selectClaimsByLanguage,
   StringClaim,
   TimeClaim,
   TimeIntervalClaim,
@@ -73,10 +72,10 @@ export function fieldKey(field: FieldData): string {
   return field.path.join("/")
 }
 
-// SectionData represents a section of fields with a name and ordering.
+// SectionData represents a section of fields with an identifier and ordering.
 export interface SectionData {
-  // Section name.
-  name: string
+  // Section identifier.
+  id: string
   // Numeric order for sorting.
   orderInList: number
   // Fields within this section.
@@ -147,7 +146,7 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
 }
 
 // extractFieldsFromClaims extracts FieldsData from a class document's claims.
-export function extractFieldsFromClaims(claims: DeepReadonly<Claims> | undefined | null, language: string): FieldsData | null {
+export function extractFieldsFromClaims(claims: DeepReadonly<Claims> | undefined | null): FieldsData | null {
   if (!claims) {
     return null
   }
@@ -164,8 +163,8 @@ export function extractFieldsFromClaims(claims: DeepReadonly<Claims> | undefined
   // Extract sections.
   const sectionClaims = getClaimsOfTypeWithConfidence(fieldsClaim.sub, "has", SECTION)
   for (const sectionClaim of sectionClaims) {
-    const nameClaims = selectClaimsByLanguage(sectionClaim.sub, "string", NAME, language, (claims) => claims.length > 0)
-    const sectionName = nameClaims && nameClaims.length > 0 ? nameClaims[0].string : ""
+    const idClaim = getBestClaimOfType(sectionClaim.sub, "id", NAME)
+    const sectionId = idClaim ? idClaim.value : ""
     const orderClaim = getBestClaimOfType(sectionClaim.sub, "amount", ORDER_IN_LIST)
 
     const sectionFields: FieldData[] = []
@@ -179,7 +178,7 @@ export function extractFieldsFromClaims(claims: DeepReadonly<Claims> | undefined
     sectionFields.sort((a, b) => a.orderInList - b.orderInList)
 
     sections.push({
-      name: sectionName,
+      id: sectionId,
       orderInList: orderClaim ? parseFloat(orderClaim.amount) || 0 : 0,
       fields: sectionFields,
     })
@@ -220,8 +219,8 @@ export function mergeFields(allFields: FieldsData[]): FieldsData {
         }
       }
       if (newFields.length > 0) {
-        // Check if we already have a section with the same name.
-        const existingSection = mergedSections.find((s) => s.name === section.name)
+        // Check if we already have a section with the same ID.
+        const existingSection = mergedSections.find((s) => s.id === section.id)
         if (existingSection) {
           existingSection.fields.push(...newFields)
           existingSection.fields.sort((a, b) => a.orderInList - b.orderInList)

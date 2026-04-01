@@ -177,9 +177,9 @@ type StringWithLanguage struct {
 
 // Section represents a section of fields of an entity.
 type Section struct {
-	Name        []StringWithLanguage `cardinality:"1.." json:"name"            property:"NAME"`
-	OrderInList Amount[float64]      `cardinality:"1"   json:"orderInList"     property:"ORDER_IN_LIST"`
-	Field       []Field              `cardinality:"0.." json:"field,omitempty" property:"FIELD"`
+	ID          Identifier      `cardinality:"1"   json:"id"              property:"NAME"`
+	OrderInList Amount[float64] `cardinality:"1"   json:"orderInList"     property:"ORDER_IN_LIST"`
+	Field       []Field         `cardinality:"0.." json:"field,omitempty" property:"FIELD"`
 }
 
 // Field represents a field of an entity.

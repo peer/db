@@ -91,10 +91,10 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
 
       <!-- Sections (sorted by orderInList), only if sections prop is true. -->
       <template v-if="sections">
-        <template v-for="section in sortedByOrder(fieldsData.sections)" :key="'section-' + section.name">
+        <template v-for="section in sortedByOrder(fieldsData.sections)" :key="'section-' + section.id">
           <template v-if="section.fields.some(hasValues)">
             <tr>
-              <th colspan="2" class="border-b border-slate-200 px-2 pt-4 pb-1 text-left text-lg font-semibold">{{ (section as SectionData).name }}</th>
+              <th colspan="2" class="border-b border-slate-200 px-2 pt-4 pb-1 text-left text-lg font-semibold">{{ (section as SectionData).id }}</th>
             </tr>
             <template v-for="field in sortedByOrder(section.fields)" :key="fieldKey(field)">
               <template v-if="hasValues(field)">

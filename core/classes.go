@@ -15,7 +15,7 @@ import (
 func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 	documents := []any{}
 
-	fields, errE := transform.Fields[Class](nil, mnemonics)
+	fields, errE := transform.Fields[Class](mnemonics)
 	if errE != nil {
 		return nil, errE
 	}
@@ -48,7 +48,7 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 		},
 	})
 
-	fields, errE = transform.Fields[Property](nil, mnemonics)
+	fields, errE = transform.Fields[Property](mnemonics)
 	if errE != nil {
 		return nil, errE
 	}
@@ -111,7 +111,7 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 		},
 	})
 
-	fields, errE = transform.Fields[DocumentFields](nil, mnemonics)
+	fields, errE = transform.Fields[DocumentFields](mnemonics)
 	if errE != nil {
 		return nil, errE
 	}
@@ -144,7 +144,7 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 		},
 	})
 
-	fields, errE = transform.Fields[Language](nil, mnemonics)
+	fields, errE = transform.Fields[Language](mnemonics)
 	if errE != nil {
 		return nil, errE
 	}
@@ -187,7 +187,7 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 		},
 	})
 
-	fields, errE = transform.Fields[Language](nil, mnemonics)
+	fields, errE = transform.Fields[Language](mnemonics)
 	if errE != nil {
 		return nil, errE
 	}
@@ -222,7 +222,7 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 		},
 	})
 
-	fields, errE = transform.Fields[Unit](nil, mnemonics)
+	fields, errE = transform.Fields[Unit](mnemonics)
 	if errE != nil {
 		return nil, errE
 	}
@@ -282,7 +282,7 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 		},
 	})
 
-	fields, errE = transform.Fields[ValueType](nil, mnemonics)
+	fields, errE = transform.Fields[ValueType](mnemonics)
 	if errE != nil {
 		return nil, errE
 	}

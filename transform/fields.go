@@ -15,16 +15,19 @@ import (
 // Fields extracts field descriptions from a struct type using struct tags.
 //
 // It reads the same struct tags as [Documents] (property, cardinality, type, value)
-// plus additional tags (section, "section@XX", values) to produce a [core.Fields]
+// plus additional tags (section, order, values) to produce a [core.Fields]
 // describing the struct's field schema.
 //
-// The languageCodes parameter maps language code suffixes (used in "section@XX" struct tags,
-// e.g., "section@en-GB") to language document base IDs. It can be nil if the struct
-// type is not using sections.
+// The section tag can be used on embedded structs to define a section (with its order)
+// and set the default section for fields inside. The section tag can also be used on
+// individual fields to assign them to a section. Fields without a section tag (and not
+// inside an embedded struct with a section tag) are placed in the top-level Fields.Field.
+//
+// Every referenced section must have its order defined via an embedded struct with
+// the section tag. Sub-fields cannot have sections.
 //
 // The mnemonics parameter maps property mnemonic names to property document base IDs.
 func Fields[T any](
-	languageCodes map[string][]string,
 	mnemonics map[string][]string,
 ) (*internalCore.Fields, errors.E) {
 	v := reflect.ValueOf(new(T)).Elem() //nolint:varnamelen
@@ -42,44 +45,96 @@ func Fields[T any](
 	}
 
 	fc := fieldsCollector{
-		languageCodes: languageCodes,
-		mnemonics:     mnemonics,
+		mnemonics: mnemonics,
+		sections:  make(map[string]*sectionData),
 	}
 
 	order := 1.0
-	sections, fields, errE := fc.processLevel(t, &order, []string{}, []reflect.Type{t})
+	errE := fc.processLevel(t, &order, []string{}, []reflect.Type{t})
 	if errE != nil {
 		return nil, errE
 	}
 
-	if len(sections) == 0 && len(fields) == 0 {
+	return fc.finalizeSections()
+}
+
+// sectionData tracks state for a section being built.
+type sectionData struct {
+	order        internalCore.Amount[float64]
+	orderDefined bool
+	fieldOrder   float64
+	fields       []internalCore.Field
+}
+
+// fieldsCollector holds state for the Fields function.
+type fieldsCollector struct {
+	mnemonics map[string][]string
+	sections  map[string]*sectionData
+}
+
+// getOrCreateSection returns the sectionData for the given ID, creating it if needed.
+func (fc *fieldsCollector) getOrCreateSection(id string) *sectionData {
+	sd, ok := fc.sections[id]
+	if !ok {
+		sd = &sectionData{
+			order:        internalCore.Amount[float64]{},
+			orderDefined: false,
+			fieldOrder:   1.0,
+			fields:       nil,
+		}
+		fc.sections[id] = sd
+	}
+	return sd
+}
+
+// finalizeSections validates that all named sections have defined orders and builds the result.
+// Fields collected under the empty section ID are returned as top-level fields.
+func (fc *fieldsCollector) finalizeSections() (*internalCore.Fields, errors.E) {
+	if len(fc.sections) == 0 {
+		return nil, nil //nolint:nilnil
+	}
+
+	var topFields []internalCore.Field
+	sections := make([]internalCore.Section, 0, len(fc.sections))
+
+	for id, sd := range fc.sections {
+		if id == "" {
+			topFields = sd.fields
+			continue
+		}
+		if !sd.orderDefined {
+			errE := errors.New("section order not defined")
+			errors.Details(errE)["section"] = id
+			return nil, errE
+		}
+		sections = append(sections, internalCore.Section{
+			ID:          internalCore.Identifier(id),
+			OrderInList: sd.order,
+			Field:       sd.fields,
+		})
+	}
+
+	if len(sections) == 0 && len(topFields) == 0 {
 		return nil, nil //nolint:nilnil
 	}
 
 	return &internalCore.Fields{
 		Section: sections,
-		Field:   fields,
+		Field:   topFields,
 	}, nil
 }
 
-// fieldsCollector holds state for the Fields function.
-type fieldsCollector struct {
-	languageCodes map[string][]string
-	mnemonics     map[string][]string
-}
-
-// processLevel processes struct fields at the current level, producing sections and fields.
-// Sections come from embedded structs with section tags; fields come from regular fields with property tags.
-// Embedded structs without section tags are recursed into, flattening their fields at this level.
+// processLevel processes struct fields at the current level.
+// Sections are accumulated in fc.sections. Embedded structs with section tags define sections
+// and set the default section for their inner fields. Embedded structs without section tags
+// are flattened into the current level. All fields are added to the corresponding section
+// in fc.sections; fields without a section tag use the empty string as section ID.
 func (fc *fieldsCollector) processLevel(
 	structType reflect.Type,
 	order *float64,
 	fieldPath []string,
 	structPath []reflect.Type,
-) ([]internalCore.Section, []internalCore.Field, errors.E) {
-	var sections []internalCore.Section
-	fields := make([]internalCore.Field, 0, structType.NumField())
-
+) errors.E {
 	for i := range structType.NumField() {
 		field := structType.Field(i)
 		fieldType := field.Type
@@ -108,43 +163,37 @@ func (fc *fieldsCollector) processLevel(
 
 		// Handle embedded structs.
 		if field.Anonymous && fieldType.Kind() == reflect.Struct {
-			sectionNames, errE := fc.extractSectionNames(field.Tag)
-			if errE != nil {
-				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
-				return nil, nil, errE
-			}
-			if len(sectionNames) > 0 {
-				// This is a section.
-				fieldOrder, errE := resolveOrder(orderTag, order)
+			sectionID := strings.TrimSpace(field.Tag.Get("section"))
+			if sectionID != "" {
+				// Embedded struct defines a section.
+				sectionOrder, errE := resolveOrder(orderTag, order)
 				if errE != nil {
 					errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
-					return nil, nil, errE
+					return errE
 				}
-				section := internalCore.Section{
-					Name:        sectionNames,
-					OrderInList: fieldOrder,
-					Field:       nil,
+				sd := fc.getOrCreateSection(sectionID)
+				if sd.orderDefined {
+					errE := errors.New("section defined more than once")
+					errors.Details(errE)["section"] = sectionID
+					errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+					return errE
 				}
+				sd.order = sectionOrder
+				sd.orderDefined = true
 
-				// Process inner fields (no nested sections allowed).
-				innerOrder := 1.0
-				innerFields, errE := fc.processInnerFields(fieldType, &innerOrder, newFieldPath, structPath)
+				// Process inner fields with this section as default.
+				errE = fc.processFieldsWithDefaultSection(fieldType, sectionID, newFieldPath, structPath)
 				if errE != nil {
-					return nil, nil, errE
+					return errE
 				}
-				section.Field = innerFields
-
-				sections = append(sections, section)
 				continue
 			}
 
 			// Plain embedded struct without section tag, recurse at current level.
-			innerSections, innerFields, errE := fc.processLevel(fieldType, order, newFieldPath, structPath)
+			errE := fc.processLevel(fieldType, order, newFieldPath, structPath)
 			if errE != nil {
-				return nil, nil, errE
+				return errE
 			}
-			sections = append(sections, innerSections...)
-			fields = append(fields, innerFields...)
 			continue
 		}
 
@@ -152,24 +201,105 @@ func (fc *fieldsCollector) processLevel(
 			continue
 		}
 
-		fieldOrder, errE := resolveOrder(orderTag, order)
+		// All fields go into their section (empty string for top-level).
+		sectionID := strings.TrimSpace(field.Tag.Get("section"))
+		sd := fc.getOrCreateSection(sectionID)
+		fieldOrder, errE := resolveOrder(orderTag, &sd.fieldOrder)
 		if errE != nil {
 			errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
-			return nil, nil, errE
+			return errE
 		}
 		f, errE := fc.makeField(field, propertyMnemonic, fieldOrder, newFieldPath, structPath)
 		if errE != nil {
-			return nil, nil, errE
+			return errE
 		}
-		fields = append(fields, f)
+		sd.fields = append(sd.fields, f)
 	}
 
-	return sections, fields, nil
+	return nil
 }
 
-// processInnerFields processes struct fields inside a section.
-// Sections cannot be nested, so embedded structs with section tags produce an error.
-func (fc *fieldsCollector) processInnerFields(
+// processFieldsWithDefaultSection processes struct fields inside an embedded struct
+// with a section tag. Fields default to the given section unless they override with
+// their own section tag. Embedded structs with section tags produce an error
+// (sections cannot be nested).
+func (fc *fieldsCollector) processFieldsWithDefaultSection(
+	structType reflect.Type,
+	defaultSection string,
+	fieldPath []string,
+	structPath []reflect.Type,
+) errors.E {
+	for i := range structType.NumField() {
+		field := structType.Field(i)
+		fieldType := field.Type
+
+		newFieldPath := append(slices.Clone(fieldPath), field.Name)
+
+		// Skip documentid fields.
+		if _, ok := field.Tag.Lookup("documentid"); ok {
+			continue
+		}
+
+		// Skip value fields.
+		if _, ok := field.Tag.Lookup("value"); ok {
+			continue
+		}
+
+		propertyMnemonic := field.Tag.Get("property")
+		if propertyMnemonic == "-" {
+			continue
+		}
+
+		orderTag := field.Tag.Get("order")
+		if orderTag == "-" {
+			continue
+		}
+
+		// Handle embedded structs.
+		if field.Anonymous && fieldType.Kind() == reflect.Struct {
+			if strings.TrimSpace(field.Tag.Get("section")) != "" {
+				errE := errors.New("sections cannot be nested inside sections")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return errE
+			}
+
+			// Plain embedded struct, recurse with same default section.
+			errE := fc.processFieldsWithDefaultSection(fieldType, defaultSection, newFieldPath, structPath)
+			if errE != nil {
+				return errE
+			}
+			continue
+		}
+
+		if propertyMnemonic == "" {
+			continue
+		}
+
+		// Determine effective section: field's own section tag overrides default.
+		effectiveSection := strings.TrimSpace(field.Tag.Get("section"))
+		if effectiveSection == "" {
+			effectiveSection = defaultSection
+		}
+
+		sd := fc.getOrCreateSection(effectiveSection)
+		fieldOrder, errE := resolveOrder(orderTag, &sd.fieldOrder)
+		if errE != nil {
+			errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+			return errE
+		}
+		f, errE := fc.makeField(field, propertyMnemonic, fieldOrder, newFieldPath, structPath)
+		if errE != nil {
+			return errE
+		}
+		sd.fields = append(sd.fields, f)
+	}
+
+	return nil
+}
+
+// processSubFields processes struct fields for sub-field extraction.
+// Section tags are not allowed on sub-fields or their embedded structs.
+func (fc *fieldsCollector) processSubFields(
 	structType reflect.Type,
 	order *float64,
 	fieldPath []string,
@@ -205,19 +335,14 @@ func (fc *fieldsCollector) processInnerFields(
 
 		// Handle embedded structs.
 		if field.Anonymous && fieldType.Kind() == reflect.Struct {
-			sectionNames, errE := fc.extractSectionNames(field.Tag)
-			if errE != nil {
-				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
-				return nil, errE
-			}
-			if len(sectionNames) > 0 {
-				errE := errors.New("sections cannot be nested inside sections")
+			if strings.TrimSpace(field.Tag.Get("section")) != "" {
+				errE := errors.New("sub-fields cannot have sections")
 				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
 				return nil, errE
 			}
 
 			// Plain embedded struct, recurse.
-			innerFields, errE := fc.processInnerFields(fieldType, order, newFieldPath, structPath)
+			innerFields, errE := fc.processSubFields(fieldType, order, newFieldPath, structPath)
 			if errE != nil {
 				return nil, errE
 			}
@@ -227,6 +352,13 @@ func (fc *fieldsCollector) processInnerFields(
 
 		if propertyMnemonic == "" {
 			continue
+		}
+
+		// Sub-fields cannot have sections.
+		if strings.TrimSpace(field.Tag.Get("section")) != "" {
+			errE := errors.New("sub-fields cannot have sections")
+			errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+			return nil, errE
 		}
 
 		fieldOrder, errE := resolveOrder(orderTag, order)
@@ -376,7 +508,7 @@ func (fc *fieldsCollector) collectSubFields(fieldType reflect.Type, fieldPath []
 	}
 
 	subOrder := 1.0
-	subFields, errE := fc.processInnerFields(fieldType, &subOrder, fieldPath, append(slices.Clone(structPath), fieldType))
+	subFields, errE := fc.processSubFields(fieldType, &subOrder, fieldPath, append(slices.Clone(structPath), fieldType))
 	if errE != nil {
 		return nil, errE
 	}
@@ -392,95 +524,6 @@ func (fc *fieldsCollector) collectSubFields(fieldType reflect.Type, fieldPath []
 // inspected for sub-fields.
 func isKnownCoreType(t reflect.Type) bool {
 	return coreStructTypes[t] || coreAmountTypes[t] || coreAmountIntervalTypes[t]
-}
-
-// extractSectionNames extracts section names from struct tags.
-// The bare "section" tag produces a name without InLanguage.
-// Tags like "section@en-GB" produce names with InLanguage set to the corresponding language.
-// Returns an error if a "section@XX" tag uses an unknown language code.
-//
-// Implementation is based on Go's StructTag.Lookup function.
-func (fc *fieldsCollector) extractSectionNames(
-	originalTag reflect.StructTag,
-) ([]internalCore.StringWithLanguage, errors.E) {
-	var names []internalCore.StringWithLanguage
-
-	tag := string(originalTag)
-
-	// Parse all struct tag keys to find section tags.
-	// Go's reflect.StructTag doesn't provide iteration, so we parse the raw string.
-	for tag != "" {
-		// Skip leading spaces.
-		i := 0
-		for i < len(tag) && tag[i] == ' ' {
-			i++
-		}
-		tag = tag[i:]
-		if tag == "" {
-			break
-		}
-
-		// Scan to colon.
-		i = 0
-		for i < len(tag) && tag[i] > ' ' && tag[i] != ':' && tag[i] != '"' && tag[i] != 0x7f {
-			i++
-		}
-		if i == 0 || i+1 >= len(tag) || tag[i] != ':' || tag[i+1] != '"' {
-			break
-		}
-		name := tag[:i]
-		tag = tag[i+1:]
-
-		// Scan quoted string to find value.
-		i = 1
-		for i < len(tag) && tag[i] != '"' {
-			if tag[i] == '\\' {
-				i++
-			}
-			i++
-		}
-		if i >= len(tag) {
-			break
-		}
-		qvalue := tag[:i+1]
-		tag = tag[i+1:]
-
-		if name == "section" {
-			value, err := strconv.Unquote(qvalue)
-			if err != nil {
-				errE := errors.WithStack(err)
-				errors.Details(errE)["tag"] = name
-				errors.Details(errE)["value"] = qvalue
-				return nil, errE
-			}
-			names = append(names, internalCore.StringWithLanguage{
-				Value:      value,
-				InLanguage: nil,
-			})
-		} else if code, ok := strings.CutPrefix(name, "section@"); ok {
-			langBase, found := fc.languageCodes[code]
-			if !found {
-				errE := errors.New("unknown language code in section tag")
-				errors.Details(errE)["tag"] = name
-				return nil, errE
-			}
-			value, err := strconv.Unquote(qvalue)
-			if err != nil {
-				errE := errors.WithStack(err)
-				errors.Details(errE)["tag"] = name
-				errors.Details(errE)["value"] = qvalue
-				return nil, errE
-			}
-			names = append(names, internalCore.StringWithLanguage{
-				Value: value,
-				InLanguage: []internalCore.Ref{{
-					ID: langBase,
-				}},
-			})
-		}
-	}
-
-	return names, nil
 }
 
 // valueTypeRef creates a core.Ref pointing to a VALUE_TYPE vocabulary entry.

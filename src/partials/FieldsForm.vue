@@ -603,9 +603,9 @@ onBeforeUnmount(() => {
       </template>
 
       <!-- Sections (sorted by orderInList). -->
-      <template v-for="section in sortedByOrder(fieldsData.sections)" :key="'section-' + section.name">
+      <template v-for="section in sortedByOrder(fieldsData.sections)" :key="'section-' + section.id">
         <tr>
-          <th colspan="2" class="border-b border-slate-200 px-2 pt-4 pb-1 text-left text-lg font-semibold">{{ section.name }}</th>
+          <th colspan="2" class="border-b border-slate-200 px-2 pt-4 pb-1 text-left text-lg font-semibold">{{ section.id }}</th>
         </tr>
         <template v-for="field in sortedByOrder(section.fields)" :key="fieldKey(field)">
           <!-- Existing entries. -->

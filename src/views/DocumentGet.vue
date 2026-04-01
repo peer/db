@@ -35,7 +35,7 @@ const props = defineProps<{
   id: string
 }>()
 
-const { t, locale } = useI18n({ useScope: "global" })
+const { t } = useI18n({ useScope: "global" })
 const route = useRoute()
 const router = useRouter()
 
@@ -55,7 +55,7 @@ const withDocument = useTemplateRef<ComponentExposed<typeof WithDocumentD>>("wit
 
 // Resolve field definitions for this document's class(es).
 const docRef = toRef(() => withDocument.value?.doc ?? null)
-const { fieldsData: mergedFieldsData, classTabId, initialized: fieldsInitialized } = useDocumentFields(docRef, locale)
+const { fieldsData: mergedFieldsData, classTabId, initialized: fieldsInitialized } = useDocumentFields(docRef)
 
 const { searchSession, error: searchSessionError } = useSearchSession(
   toRef(() => {

@@ -13,10 +13,7 @@ import { extractFieldsFromClaims, mergeFields } from "@/fields"
 
 // useDocumentFields resolves the merged field definitions for a document by walking its
 // INSTANCE_OF classes and their SUBCLASS_OF parents. Returns reactive fieldsData and classTabId.
-export function useDocumentFields(
-  doc: Ref<DeepReadonly<D> | null | undefined>,
-  locale: Ref<string>,
-): {
+export function useDocumentFields(doc: Ref<DeepReadonly<D> | null | undefined>): {
   fieldsData: Ref<FieldsData | null>
   classTabId: Ref<string>
   initialized: Ref<boolean>
@@ -112,7 +109,7 @@ export function useDocumentFields(
           continue
         }
 
-        const fields = extractFieldsFromClaims(classDoc.claims, locale.value)
+        const fields = extractFieldsFromClaims(classDoc.claims)
         if (fields && (fields.fields.length > 0 || fields.sections.length > 0)) {
           allFields.push(fields)
           if (classIds.includes(classId)) {
