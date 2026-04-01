@@ -59,11 +59,13 @@ func GenerateCoreDocuments(ctx context.Context, additional func(context.Context,
 		return nil, nil, errors.WithStack(ctx.Err())
 	}
 
-	docs, errE = additional(ctx, documents)
-	if errE != nil {
-		return nil, nil, errE
+	if additional != nil {
+		docs, errE = additional(ctx, documents)
+		if errE != nil {
+			return nil, nil, errE
+		}
+		documents = append(documents, docs...)
 	}
-	documents = append(documents, docs...)
 
 	// Rebuild mnemonics with all documents.
 	mnemonics, errE = transform.Mnemonics(ctx, documents)

@@ -101,14 +101,11 @@ func TestRangeFloatValidate(t *testing.T) {
 			GreaterThanOrEqual: &gte,
 			LessThanOrEqual:    &lte,
 		}
-		swapped, errE := r.Validate()
-		require.NoError(t, errE, "% -+#.1v", errE)
-		assert.False(t, swapped)
-		assert.Equal(t, 5.0, *r.GreaterThanOrEqual) //nolint:testifylint
-		assert.Equal(t, 5.0, *r.LessThanOrEqual)    //nolint:testifylint
+		_, errE := r.Validate()
+		assert.EqualError(t, errE, "lower bound is equal to upper bound")
 	})
 
-	t.Run("equal bounds gte lt not swapped", func(t *testing.T) {
+	t.Run("equal bounds gte lt", func(t *testing.T) {
 		t.Parallel()
 		gte := 5.0
 		lt := 5.0
@@ -116,9 +113,8 @@ func TestRangeFloatValidate(t *testing.T) {
 			GreaterThanOrEqual: &gte,
 			LessThan:           &lt,
 		}
-		swapped, errE := r.Validate()
-		require.NoError(t, errE, "% -+#.1v", errE)
-		assert.False(t, swapped)
+		_, errE := r.Validate()
+		assert.EqualError(t, errE, "lower bound is equal to upper bound")
 	})
 
 	t.Run("inverted gte lt swaps to lte gt", func(t *testing.T) {
