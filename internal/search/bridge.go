@@ -569,6 +569,14 @@ func (b *Bridge) ResetSeq(ctx context.Context) errors.E {
 		return errE
 	}
 
+	b.lastSeqMu.Lock()
+	b.lastSeq = 0
+	b.lastSeqMu.Unlock()
+
+	b.inverseRelationsMinSeqMu.Lock()
+	b.inverseRelationsMinSeq = math.MaxInt64
+	b.inverseRelationsMinSeqMu.Unlock()
+
 	// We reset the store's Committed channel so that the bridge goroutine detects the closed
 	// channel and restarts its run loop, picking up the reset seq from the database.
 	// This impacts only the current process but this is fine because any concurrent process
