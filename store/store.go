@@ -5,6 +5,7 @@ package store
 
 import (
 	"context"
+	"sync"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -110,6 +111,7 @@ type Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetada
 	dbpool         *pgxpool.Pool
 	patchesEnabled bool
 	committed      chan<- CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
+	committedMu    sync.RWMutex
 }
 
 // Init initializes the Store.
@@ -577,22 +579,36 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 }
 
 // HandleBacklog implements pgxlisten.BacklogHandler interface.
-//
-// It recreates channels to signal to their consumers that notifications might have been
-// missed and that they should take corrective actions, if possible.
 func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) HandleBacklog(
 	_ context.Context, channel string, _ *pgx.Conn,
 ) error {
 	switch channel {
 	case s.Prefix + "CommittedChangesets":
-		// CommittedSize should be >= 0 here unless it was changed after initialization which is not allowed.
-		s.committed = s.Committed.Recreate(s.CommittedSize)
+		s.Reset()
 	default:
 		errE := errors.New("unknown notification channel")
 		errors.Details(errE)["channel"] = channel
 		return errE
 	}
 	return nil
+}
+
+// Reset recreates channels to signal to their consumers that notifications might have been
+// missed and that they should take corrective actions, if possible.
+func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Reset() {
+	s.committedMu.Lock()
+	defer s.committedMu.Unlock()
+
+	// CommittedSize should be >= 0 here unless it was changed after initialization which is not allowed.
+	s.committed = s.Committed.Recreate(s.CommittedSize)
+}
+
+//nolint:lll
+func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) getCommitted() chan<- CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch] {
+	s.committedMu.RLock()
+	defer s.committedMu.RUnlock()
+
+	return s.committed
 }
 
 // HandlingReady implements internalStore.Handler interface.
@@ -658,7 +674,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 		})
 	}
 	select {
-	case s.committed <- commit:
+	case s.getCommitted() <- commit:
 	case <-ctx.Done():
 	}
 	return nil

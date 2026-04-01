@@ -9,10 +9,8 @@ import (
 	"syscall"
 
 	"github.com/rs/zerolog"
-	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
-	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb/base"
 	"gitlab.com/peerdb/peerdb/document"
@@ -123,43 +121,7 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 
 	ctx = globals.Logger.WithContext(ctx)
 
-	if len(globals.Sites) == 0 {
-		globals.Sites = []Site{{
-			Site: waf.Site{
-				Domain:   "",
-				CertFile: "",
-				KeyFile:  "",
-			},
-			Build:            nil,
-			Index:            globals.Elastic.Index,
-			Schema:           globals.Postgres.Schema,
-			Title:            "",
-			Logo:             "",
-			LanguagePriority: nil,
-			DefaultLanguage:  "",
-			LanguageCodes:    nil,
-			Features:         SiteFeatures{},
-			Base:             nil,
-			DBPool:           nil,
-			ESClient:         nil,
-			RiverClient:      nil,
-			initialized:      false,
-			propertiesTotal:  0,
-			unitsTotal:       0,
-		}}
-	}
-
-	// We set build information on sites.
-	if cli.Version != "" || cli.BuildTimestamp != "" || cli.Revision != "" {
-		for i := range globals.Sites {
-			site := &globals.Sites[i]
-			site.Build = &Build{
-				Version:        cli.Version,
-				BuildTimestamp: cli.BuildTimestamp,
-				Revision:       cli.Revision,
-			}
-		}
-	}
+	InitSites(globals)
 
 	ctx, cancel := context.WithCancel(ctx)
 

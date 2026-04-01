@@ -145,7 +145,11 @@ type PopulateCommand struct {
 // SearchWaitCommand waits for pending indexing to complete.
 type SearchWaitCommand struct{}
 
+// SearchReindexCommand forces a full reindex of all documents.
+type SearchReindexCommand struct{}
+
 // SearchCommand contains sub-commands for managing search.
 type SearchCommand struct {
-	Wait SearchWaitCommand `cmd:"" help:"Wait for pending indexing to complete and exit." yaml:"wait"`
+	Wait    SearchWaitCommand    `cmd:"" help:"Wait for pending indexing to complete and exit." yaml:"wait"`
+	Reindex SearchReindexCommand `cmd:"" help:"Force full reindex of all documents."            yaml:"reindex"`
 }

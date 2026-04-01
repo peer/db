@@ -16,11 +16,52 @@ import (
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
-func (c *SearchWaitCommand) waitSite(ctx context.Context, logger zerolog.Logger, site Site) errors.E {
-	logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("waiting for indexing")
+// InitSites sets up default site configuration and build information if needed.
+func InitSites(globals *Globals) {
+	if len(globals.Sites) == 0 {
+		globals.Sites = []Site{{
+			Site: waf.Site{
+				Domain:   "",
+				CertFile: "",
+				KeyFile:  "",
+			},
+			Build:            nil,
+			Index:            globals.Elastic.Index,
+			Schema:           globals.Postgres.Schema,
+			Title:            "",
+			Logo:             "",
+			LanguagePriority: nil,
+			DefaultLanguage:  "",
+			LanguageCodes:    nil,
+			Features:         SiteFeatures{},
+			Base:             nil,
+			DBPool:           nil,
+			ESClient:         nil,
+			RiverClient:      nil,
+			initialized:      false,
+			propertiesTotal:  0,
+			unitsTotal:       0,
+		}}
+	}
 
+	// We set build information on sites.
+	if cli.Version != "" || cli.BuildTimestamp != "" || cli.Revision != "" {
+		for i := range globals.Sites {
+			site := &globals.Sites[i]
+			site.Build = &Build{
+				Version:        cli.Version,
+				BuildTimestamp: cli.BuildTimestamp,
+				Revision:       cli.Revision,
+			}
+		}
+	}
+}
+
+// startAndWaitSite starts the base for a site, waits for indexing to catch up,
+// and refreshes the ElasticSearch index.
+func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site Site) errors.E {
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
-	ctx = WithFallbackDBContext(ctx, site.Schema, "search-wait")
+	ctx = WithFallbackDBContext(ctx, site.Schema, "search")
 
 	documents, errE := site.fetchDocuments(ctx, internalCore.PropertyClassID)
 	if errE != nil {
@@ -77,43 +118,7 @@ func (c *SearchWaitCommand) Run(globals *Globals) errors.E {
 
 	ctx = globals.Logger.WithContext(ctx)
 
-	if len(globals.Sites) == 0 {
-		globals.Sites = []Site{{
-			Site: waf.Site{
-				Domain:   "",
-				CertFile: "",
-				KeyFile:  "",
-			},
-			Build:            nil,
-			Index:            globals.Elastic.Index,
-			Schema:           globals.Postgres.Schema,
-			Title:            "",
-			Logo:             "",
-			LanguagePriority: nil,
-			DefaultLanguage:  "",
-			LanguageCodes:    nil,
-			Features:         SiteFeatures{},
-			Base:             nil,
-			DBPool:           nil,
-			ESClient:         nil,
-			RiverClient:      nil,
-			initialized:      false,
-			propertiesTotal:  0,
-			unitsTotal:       0,
-		}}
-	}
-
-	// We set build information on sites.
-	if cli.Version != "" || cli.BuildTimestamp != "" || cli.Revision != "" {
-		for i := range globals.Sites {
-			site := &globals.Sites[i]
-			site.Build = &Build{
-				Version:        cli.Version,
-				BuildTimestamp: cli.BuildTimestamp,
-				Revision:       cli.Revision,
-			}
-		}
-	}
+	InitSites(globals)
 
 	ctx, cancel := context.WithCancel(ctx)
 
@@ -127,13 +132,57 @@ func (c *SearchWaitCommand) Run(globals *Globals) errors.E {
 	}
 
 	for _, site := range globals.Sites {
-		errE := c.waitSite(ctx, globals.Logger, site)
+		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("waiting for indexing")
+
+		errE := startAndWaitSite(ctx, globals.Logger, site)
 		if errE != nil {
 			return errE
 		}
 	}
 
 	globals.Logger.Info().Msg("search wait done")
+
+	return nil
+}
+
+// Run executes the search reindex command which resets the bridge progress,
+// re-processes all commits from the beginning, and then exits.
+func (c *SearchReindexCommand) Run(globals *Globals) errors.E {
+	// We stop gracefully on ctrl-c and TERM signal.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	ctx = globals.Logger.WithContext(ctx)
+
+	InitSites(globals)
+
+	ctx, cancel := context.WithCancel(ctx)
+
+	onShutdown, errE := Init(ctx, globals)
+	if onShutdown != nil {
+		defer onShutdown()
+	}
+	defer cancel()
+	if errE != nil {
+		return errE
+	}
+
+	for _, site := range globals.Sites {
+		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("reindexing")
+
+		// Reset bridge progress so all commits are re-processed.
+		errE := site.Base.Bridge().ResetSeq(ctx)
+		if errE != nil {
+			return errE
+		}
+
+		errE = startAndWaitSite(ctx, globals.Logger, site)
+		if errE != nil {
+			return errE
+		}
+	}
+
+	globals.Logger.Info().Msg("search reindex done")
 
 	return nil
 }

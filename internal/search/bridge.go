@@ -554,6 +554,30 @@ func (b *Bridge) waitForInverseRelationsMinSeq(ctx context.Context, seq int64, c
 	return nil
 }
 
+// ResetSeq resets the bridge progress to 0 and clears the inverse relations work queue.
+// This causes the bridge to re-process all commits from the beginning when started.
+func (b *Bridge) ResetSeq(ctx context.Context) errors.E {
+	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		_, err := tx.Exec(ctx, `UPDATE "`+b.Store.Prefix+`Bridge" SET "seq" = 0`)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		_, err = tx.Exec(ctx, `DELETE FROM "`+b.Store.Prefix+`BridgeInverseRelations"`)
+		return internalStore.WithPgxError(err)
+	})
+	if errE != nil {
+		return errE
+	}
+
+	// We reset the store's Committed channel so that the bridge goroutine detects the closed
+	// channel and restarts its run loop, picking up the reset seq from the database.
+	// This impacts only the current process but this is fine because any concurrent process
+	// will just wait for this process to reindex everything and then continue from there on.
+	b.Store.Reset()
+
+	return nil
+}
+
 // Start begins the bridging goroutine.
 //
 // It first indexes any commits from CommitLog that are newer than what is recorded in the bridge
