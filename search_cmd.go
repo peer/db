@@ -57,9 +57,9 @@ func InitSites(globals *Globals) {
 	}
 }
 
-// startAndWaitSite starts the base for a site, waits for indexing to catch up,
-// and refreshes the ElasticSearch index.
-func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site Site) errors.E {
+// startAndWaitSite starts the base for a site, runs optional beforeWait,
+// then waits for indexing to catch up, and refreshes the ElasticSearch index.
+func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site Site, beforeWait func(ctx context.Context) errors.E) errors.E {
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
 	ctx = WithFallbackDBContext(ctx, site.Schema, "search")
 
@@ -89,6 +89,13 @@ func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site Site) err
 			progress(ctx, p)
 		}
 	}()
+
+	if beforeWait != nil {
+		errE = beforeWait(ctx)
+		if errE != nil {
+			return errE
+		}
+	}
 
 	errE = site.Base.WaitUntilCaughtUp(ctx, count, size)
 	if errE != nil {
@@ -134,7 +141,7 @@ func (c *SearchWaitCommand) Run(globals *Globals) errors.E {
 	for _, site := range globals.Sites {
 		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("waiting for indexing")
 
-		errE := startAndWaitSite(ctx, globals.Logger, site)
+		errE := startAndWaitSite(ctx, globals.Logger, site, nil)
 		if errE != nil {
 			return errE
 		}
@@ -170,13 +177,10 @@ func (c *SearchReindexCommand) Run(globals *Globals) errors.E {
 	for _, site := range globals.Sites {
 		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("reindexing")
 
-		// Reset bridge progress so all commits are re-processed.
-		errE := site.Base.Bridge().ResetSeq(ctx)
-		if errE != nil {
-			return errE
-		}
-
-		errE = startAndWaitSite(ctx, globals.Logger, site)
+		errE = startAndWaitSite(ctx, globals.Logger, site, func(ctx context.Context) errors.E {
+			// Reset bridge progress so all commits are re-processed.
+			return site.Base.Bridge().ResetSeq(ctx)
+		})
 		if errE != nil {
 			return errE
 		}
