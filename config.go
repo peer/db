@@ -99,6 +99,7 @@ type Config struct {
 
 	Serve    ServeCommand    `cmd:"" default:"withargs" help:"Run HTTP server. Default command." yaml:"serve"`
 	Populate PopulateCommand `cmd:""                    help:"Populate database with documents." yaml:"populate"`
+	Search   SearchCommand   `cmd:""                    help:"Manage search."                    yaml:"search"`
 }
 
 // ServeCommand contains configuration for the serve command.
@@ -139,4 +140,12 @@ type PopulateCommand struct {
 	SaveDir   string `help:"Save intermediate structs as files into a directory."            name:"save"   placeholder:"DIR" short:"S" type:"path" yaml:"saveDir"`
 	OutputDir string `help:"Save documents as files into a directory."                       name:"output" placeholder:"DIR" short:"O" type:"path" yaml:"outputDir"`
 	DryRun    bool   `help:"Dry run. Do everything, but insert documents into the database."                                                       yaml:"dryRun"`
+}
+
+// SearchWaitCommand waits for pending indexing to complete.
+type SearchWaitCommand struct{}
+
+// SearchCommand contains sub-commands for managing search.
+type SearchCommand struct {
+	Wait SearchWaitCommand `cmd:"" help:"Wait for pending indexing to complete and exit." yaml:"wait"`
 }
