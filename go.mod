@@ -7,7 +7,7 @@ ignore ./node_modules
 
 require (
 	github.com/PuerkitoBio/goquery v1.11.0
-	github.com/alecthomas/kong v1.13.0
+	github.com/alecthomas/kong v1.13.1-0.20260401093329-db421839da20
 	github.com/cockroachdb/field-eng-powertools v0.1.3
 	github.com/deckarep/golang-set/v2 v2.8.0
 	github.com/elastic/elastic-transport-go/v8 v8.8.0
@@ -25,7 +25,7 @@ require (
 	github.com/samber/slog-zerolog/v2 v2.9.1
 	github.com/stretchr/testify v1.11.1
 	github.com/temoto/robotstxt v1.1.2
-	gitlab.com/tozd/go/cli v0.6.0
+	gitlab.com/tozd/go/cli v0.6.1
 	gitlab.com/tozd/go/x v0.0.0-20260325094342-27311bf9bec0
 	gitlab.com/tozd/go/zerolog v0.11.3
 	gitlab.com/tozd/identifier v0.8.1

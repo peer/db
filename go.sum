@@ -12,8 +12,8 @@ github.com/PuerkitoBio/goquery v1.11.0/go.mod h1:wQHgxUOU3JGuj3oD/QFfxUdlzW6xPHf
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
 github.com/alecthomas/assert/v2 v2.11.0 h1:2Q9r3ki8+JYXvGsDyBXwH3LcJ+WK5D0gc5E8vS6K3D0=
 github.com/alecthomas/assert/v2 v2.11.0/go.mod h1:Bze95FyfUr7x34QZrjL+XP+0qgp/zg8yS+TtBj1WA3k=
-github.com/alecthomas/kong v1.13.0 h1:5e/7XC3ugvhP1DQBmTS+WuHtCbcv44hsohMgcvVxSrA=
-github.com/alecthomas/kong v1.13.0/go.mod h1:wrlbXem1CWqUV5Vbmss5ISYhsVPkBb1Yo7YKJghju2I=
+github.com/alecthomas/kong v1.13.1-0.20260401093329-db421839da20 h1:YpvfmfJSyFcIvjkjt3J5FqkY/in9JQs86KHr6WRMtoI=
+github.com/alecthomas/kong v1.13.1-0.20260401093329-db421839da20/go.mod h1:wrlbXem1CWqUV5Vbmss5ISYhsVPkBb1Yo7YKJghju2I=
 github.com/alecthomas/repr v0.5.2 h1:SU73FTI9D1P5UNtvseffFSGmdNci/O6RsqzeXJtP0Qs=
 github.com/alecthomas/repr v0.5.2/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/andybalholm/brotli v1.2.0 h1:ukwgCxwYrmACq68yiUqwIWnGY0cTPox/M94sVwToPjQ=
@@ -285,8 +285,8 @@ github.com/xanzy/ssh-agent v0.3.3/go.mod h1:6dzNDKs0J9rVPHPhaGCukekBHKqfl+L3KghI
 github.com/xyproto/randomstring v1.0.5 h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU=
 github.com/xyproto/randomstring v1.0.5/go.mod h1:rgmS5DeNXLivK7YprL0pY+lTuhNQW3iGxZ18UQApw/E=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
-gitlab.com/tozd/go/cli v0.6.0 h1:cLOV73zrQdqCBLtVRRwkPnqHG3ZDDZj/ltVNvT/XrPA=
-gitlab.com/tozd/go/cli v0.6.0/go.mod h1:UFB7BmSjWJcuJxLyMUa8pkD56K8MGDppctBRtCCjW9M=
+gitlab.com/tozd/go/cli v0.6.1 h1:8Pgf1OvcCy0E9nDtSaBGLVbRe8GCxdsvI3XvwFwD4AY=
+gitlab.com/tozd/go/cli v0.6.1/go.mod h1:HrpUbRTANifBK0OfKQrKenZE++SK/S+9wx0FQ1fMcsc=
 gitlab.com/tozd/go/errors v0.11.1 h1:xMPBH+ecV0+8q60QtAGZ1E62FMuOOwpMP0hD4JZfjVo=
 gitlab.com/tozd/go/errors v0.11.1/go.mod h1:9oQ31+x7iUOEVsrXLDR+iMD8794G5uqLp6eEnYtvD8M=
 gitlab.com/tozd/go/x v0.0.0-20260325094342-27311bf9bec0 h1:SqHJZNquFTminQ2hQQjIKL9r0zIQDrAVPv4x8oiVn1A=

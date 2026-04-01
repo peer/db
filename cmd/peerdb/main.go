@@ -2,8 +2,6 @@
 package main
 
 import (
-	"io/fs"
-
 	"github.com/alecthomas/kong"
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
@@ -26,7 +24,8 @@ func main() {
 	}, func(ctx *kong.Context) errors.E {
 		return errors.WithStack(ctx.Run(&config.Globals))
 	},
-		// We have to use BindTo instead of passing it directly to Run because we are using an interface.
+		// We have to use BindFor instead of passing it directly to Run because we are using an interface.
 		// See: https://github.com/alecthomas/kong/issues/48
-		kong.BindTo(dist.Files, (*fs.FS)(nil)))
+		kong.BindFor(dist.Files),
+	)
 }
