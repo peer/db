@@ -355,6 +355,26 @@ type FieldsWithMixedSectionFields struct {
 	Second string `cardinality:"1" json:"second" property:"SECOND" section:"mixed"`
 }
 
+// SectionWithEmbeddedAndOrder tests that nil order is passed through correctly
+// when a section contains a plain embedded struct (exercising the processLevel
+// call with nil order for both the section and the plain embedded struct inside it).
+type EmbeddedInsideSection struct {
+	First string `cardinality:"1" json:"first" order:"10" property:"FIRST"`
+}
+
+type SectionWithEmbeddedAndOrder struct {
+	EmbeddedInsideSection
+
+	Second string `cardinality:"1" json:"second"           property:"SECOND"`
+	Third  string `cardinality:"1" json:"third"  order:"5" property:"THIRD"`
+}
+
+type FieldsWithSectionEmbeddedOrder struct {
+	SectionWithEmbeddedAndOrder `section:"sec"`
+
+	Bar string `cardinality:"1" json:"bar" property:"BAR"`
+}
+
 func TestFieldsSimple(t *testing.T) {
 	t.Parallel()
 
@@ -1050,4 +1070,36 @@ func TestFieldsMixedSectionFields(t *testing.T) {
 	// First gets inner order 1, Second continues at 2.
 	assert.Equal(t, core.Amount[float64]{Amount: 1, Precision: 1}, section.Field[0].OrderInList)
 	assert.Equal(t, core.Amount[float64]{Amount: 2, Precision: 1}, section.Field[1].OrderInList)
+}
+
+func TestFieldsSectionWithEmbeddedAndOrder(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+
+	result, errE := transform.Fields[FieldsWithSectionEmbeddedOrder](mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Section, 1)
+	require.Len(t, result.Field, 1)
+
+	// Section "sec" with fields from embedded struct and direct fields.
+	section := result.Section[0]
+	assert.Equal(t, "sec", string(section.ID))
+	require.Len(t, section.Field, 3)
+
+	// First comes from EmbeddedInsideSection with explicit order 10.
+	assert.Equal(t, core.Ref{ID: mnemonics["FIRST"]}, section.Field[0].Property)
+	assert.Equal(t, core.Amount[float64]{Amount: 10, Precision: 1}, section.Field[0].OrderInList)
+
+	// Second has auto-increment order 1 (section field counter, unaffected by explicit orders).
+	assert.Equal(t, core.Ref{ID: mnemonics["SECOND"]}, section.Field[1].Property)
+	assert.Equal(t, core.Amount[float64]{Amount: 1, Precision: 1}, section.Field[1].OrderInList)
+
+	// Third has explicit order 5.
+	assert.Equal(t, core.Ref{ID: mnemonics["THIRD"]}, section.Field[2].Property)
+	assert.Equal(t, core.Amount[float64]{Amount: 5, Precision: 1}, section.Field[2].OrderInList)
+
+	// Top-level Bar field.
+	assert.Equal(t, core.Ref{ID: mnemonics["BAR"]}, result.Field[0].Property)
 }

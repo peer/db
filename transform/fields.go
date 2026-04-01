@@ -1,6 +1,7 @@
 package transform
 
 import (
+	"cmp"
 	"reflect"
 	"slices"
 	"strconv"
@@ -45,12 +46,12 @@ func Fields[T any](
 	}
 
 	fc := fieldsCollector{
-		mnemonics: mnemonics,
-		sections:  make(map[string]*sectionData),
+		mnemonics:    mnemonics,
+		sections:     make(map[string]*sectionData),
+		sectionOrder: 1.0,
 	}
 
-	order := 1.0
-	errE := fc.processLevel(t, &order, []string{}, []reflect.Type{t})
+	errE := fc.processLevel(t, "", []string{}, []reflect.Type{t})
 	if errE != nil {
 		return nil, errE
 	}
@@ -68,8 +69,9 @@ type sectionData struct {
 
 // fieldsCollector holds state for the Fields function.
 type fieldsCollector struct {
-	mnemonics map[string][]string
-	sections  map[string]*sectionData
+	mnemonics    map[string][]string
+	sections     map[string]*sectionData
+	sectionOrder float64
 }
 
 // getOrCreateSection returns the sectionData for the given ID, creating it if needed.
@@ -118,112 +120,29 @@ func (fc *fieldsCollector) finalizeSections() (*internalCore.Fields, errors.E) {
 		return nil, nil //nolint:nilnil
 	}
 
+	// Sort sections by OrderInList for deterministic output, with ID as tiebreaker.
+	slices.SortFunc(sections, func(a, b internalCore.Section) int {
+		if c := cmp.Compare(a.OrderInList.Amount, b.OrderInList.Amount); c != 0 {
+			return c
+		}
+		return cmp.Compare(a.ID, b.ID)
+	})
+
 	return &internalCore.Fields{
 		Section: sections,
 		Field:   topFields,
 	}, nil
 }
 
-// processLevel processes struct fields at the current level.
-// Sections are accumulated in fc.sections. Embedded structs with section tags define sections
-// and set the default section for their inner fields. Embedded structs without section tags
-// are flattened into the current level. All fields are added to the corresponding section
-// in fc.sections; fields without a section tag use the empty string as section ID.
+// processLevel processes struct fields, accumulating them into fc.sections.
+// The defaultSection is the section ID that fields without a section tag inherit;
+// it is empty at the top level.
+//
+// Embedded structs with section tags define sections (at top level) or produce an
+// error (inside sections, since nesting is not allowed). Embedded structs without
+// section tags are flattened into the current level. Fields without a section tag
+// use defaultSection as their section ID.
 func (fc *fieldsCollector) processLevel(
-	structType reflect.Type,
-	order *float64,
-	fieldPath []string,
-	structPath []reflect.Type,
-) errors.E {
-	for i := range structType.NumField() {
-		field := structType.Field(i)
-		fieldType := field.Type
-
-		newFieldPath := append(slices.Clone(fieldPath), field.Name)
-
-		// Skip documentid fields.
-		if _, ok := field.Tag.Lookup("documentid"); ok {
-			continue
-		}
-
-		// Skip value fields.
-		if _, ok := field.Tag.Lookup("value"); ok {
-			continue
-		}
-
-		propertyMnemonic := field.Tag.Get("property")
-		if propertyMnemonic == "-" {
-			continue
-		}
-
-		orderTag := field.Tag.Get("order")
-		if orderTag == "-" {
-			continue
-		}
-
-		// Handle embedded structs.
-		if field.Anonymous && fieldType.Kind() == reflect.Struct {
-			sectionID := strings.TrimSpace(field.Tag.Get("section"))
-			if sectionID != "" {
-				// Embedded struct defines a section.
-				sectionOrder, errE := resolveOrder(orderTag, order)
-				if errE != nil {
-					errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
-					return errE
-				}
-				sd := fc.getOrCreateSection(sectionID)
-				if sd.orderDefined {
-					errE := errors.New("section defined more than once")
-					errors.Details(errE)["section"] = sectionID
-					errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
-					return errE
-				}
-				sd.order = sectionOrder
-				sd.orderDefined = true
-
-				// Process inner fields with this section as default.
-				errE = fc.processFieldsWithDefaultSection(fieldType, sectionID, newFieldPath, structPath)
-				if errE != nil {
-					return errE
-				}
-				continue
-			}
-
-			// Plain embedded struct without section tag, recurse at current level.
-			errE := fc.processLevel(fieldType, order, newFieldPath, structPath)
-			if errE != nil {
-				return errE
-			}
-			continue
-		}
-
-		if propertyMnemonic == "" {
-			continue
-		}
-
-		// All fields go into their section (empty string for top-level).
-		sectionID := strings.TrimSpace(field.Tag.Get("section"))
-		sd := fc.getOrCreateSection(sectionID)
-		fieldOrder, errE := resolveOrder(orderTag, &sd.fieldOrder)
-		if errE != nil {
-			errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
-			return errE
-		}
-		f, errE := fc.makeField(field, propertyMnemonic, fieldOrder, newFieldPath, structPath)
-		if errE != nil {
-			return errE
-		}
-		sd.fields = append(sd.fields, f)
-	}
-
-	return nil
-}
-
-// processFieldsWithDefaultSection processes struct fields inside an embedded struct
-// with a section tag. Fields default to the given section unless they override with
-// their own section tag. Embedded structs with section tags produce an error
-// (sections cannot be nested).
-func (fc *fieldsCollector) processFieldsWithDefaultSection(
 	structType reflect.Type,
 	defaultSection string,
 	fieldPath []string,
@@ -257,14 +176,41 @@ func (fc *fieldsCollector) processFieldsWithDefaultSection(
 
 		// Handle embedded structs.
 		if field.Anonymous && fieldType.Kind() == reflect.Struct {
-			if strings.TrimSpace(field.Tag.Get("section")) != "" {
-				errE := errors.New("sections cannot be nested inside sections")
-				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
-				return errE
+			sectionID := strings.TrimSpace(field.Tag.Get("section"))
+			if sectionID != "" {
+				// Sections can only be defined at the top level.
+				if defaultSection != "" {
+					errE := errors.New("sections cannot be nested inside sections")
+					errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+					return errE
+				}
+
+				// Embedded struct defines a section.
+				sectionOrder, errE := resolveOrder(orderTag, &fc.sectionOrder)
+				if errE != nil {
+					errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+					return errE
+				}
+				sd := fc.getOrCreateSection(sectionID)
+				if sd.orderDefined {
+					errE := errors.New("section defined more than once")
+					errors.Details(errE)["section"] = sectionID
+					errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+					return errE
+				}
+				sd.order = sectionOrder
+				sd.orderDefined = true
+
+				// Recurse with this section as default.
+				errE = fc.processLevel(fieldType, sectionID, newFieldPath, structPath)
+				if errE != nil {
+					return errE
+				}
+				continue
 			}
 
-			// Plain embedded struct, recurse with same default section.
-			errE := fc.processFieldsWithDefaultSection(fieldType, defaultSection, newFieldPath, structPath)
+			// Plain embedded struct, recurse at current level.
+			errE := fc.processLevel(fieldType, defaultSection, newFieldPath, structPath)
 			if errE != nil {
 				return errE
 			}
