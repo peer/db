@@ -160,13 +160,15 @@ test_e2e:
 
   after_script:
     - echo "Prepared combined (E2E + unit tests) backend coverage link:"
-    - echo "https://peerdb.gitlab.io/-/peerdb/-/jobs/${CI_JOB_ID}/artifacts/coverage.html"
+    - echo "https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts/coverage.html"
+    # "https://${CI_PROJECT_NAMESPACE}/-/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts/coverage.html"
+    # "https://CI_PROJECT_PATH/-/jobs/${CI_JOB_ID}/artifacts/coverage.html"
     - echo "Prepared E2E report link:"
-    - echo "https://peerdb.gitlab.io/-/peerdb/-/jobs/${CI_JOB_ID}/artifacts/playwright-report/index.html"
+    - echo "https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts/playwright-report/index.html"
     - echo "Prepared combined (E2E + unit tests) frontend coverage link:"
-    - echo "https://peerdb.gitlab.io/-/peerdb/-/jobs/${CI_JOB_ID}/artifacts/coverage-frontend/index.html"
+    - echo "https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts/coverage-frontend/index.html"
     - echo "Prepared accessibility report link:"
-    - echo "https://peerdb.gitlab.io/-/peerdb/-/jobs/${CI_JOB_ID}/artifacts/a11y-report/a11y-report.html"
+    - echo "https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts/a11y-report/a11y-report.html"
 
   artifacts:
     when: always
@@ -241,11 +243,11 @@ publish_e2e_report:
 
   script:
     - echo "Publishing E2E report link:"
-    - echo "https://peerdb.gitlab.io/-/peerdb/-/jobs/${LINK_PUBLISH_JOB_ID}/artifacts/playwright-report/index.html"
+    - echo "https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${LINK_PUBLISH_JOB_ID}/artifacts/playwright-report/index.html"
 
   environment:
     name: MR/${CI_MERGE_REQUEST_IID}/e2e_report
-    url: https://peerdb.gitlab.io/-/peerdb/-/jobs/${LINK_PUBLISH_JOB_ID}/artifacts/playwright-report/index.html
+    url: https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${LINK_PUBLISH_JOB_ID}/artifacts/playwright-report/index.html
     deployment_tier: other
 
 publish_backend_coverage:
@@ -264,11 +266,11 @@ publish_backend_coverage:
 
   script:
     - echo "Publishing combined (E2E + unit tests) backend coverage link:"
-    - echo "https://peerdb.gitlab.io/-/peerdb/-/jobs/${LINK_PUBLISH_JOB_ID}/artifacts/coverage.html"
+    - echo "https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${LINK_PUBLISH_JOB_ID}/artifacts/coverage.html"
 
   environment:
     name: MR/${CI_MERGE_REQUEST_IID}/backend_coverage
-    url: https://peerdb.gitlab.io/-/peerdb/-/jobs/${LINK_PUBLISH_JOB_ID}/artifacts/coverage.html
+    url: https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${LINK_PUBLISH_JOB_ID}/artifacts/coverage.html
     deployment_tier: other
 
 publish_frontend_coverage:
@@ -287,11 +289,11 @@ publish_frontend_coverage:
 
   script:
     - echo "Publishing combined (E2E + unit tests) frontend coverage link:"
-    - echo "https://peerdb.gitlab.io/-/peerdb/-/jobs/${LINK_PUBLISH_JOB_ID}/artifacts/coverage-frontend/index.html"
+    - echo "https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${LINK_PUBLISH_JOB_ID}/artifacts/coverage-frontend/index.html"
 
   environment:
     name: MR/${CI_MERGE_REQUEST_IID}/frontend_coverage
-    url: https://peerdb.gitlab.io/-/peerdb/-/jobs/${LINK_PUBLISH_JOB_ID}/artifacts/coverage-frontend/index.html
+    url: https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${LINK_PUBLISH_JOB_ID}/artifacts/coverage-frontend/index.html
     deployment_tier: other
 
 publish_a11y_report:
@@ -310,11 +312,11 @@ publish_a11y_report:
 
   script:
     - echo "Publishing accessibility report link:"
-    - echo "https://peerdb.gitlab.io/-/peerdb/-/jobs/${LINK_PUBLISH_JOB_ID}/artifacts/a11y-report/a11y-report.html"
+    - echo "https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${LINK_PUBLISH_JOB_ID}/artifacts/a11y-report/a11y-report.html"
 
   environment:
     name: MR/${CI_MERGE_REQUEST_IID}/a11y_report
-    url: https://peerdb.gitlab.io/-/peerdb/-/jobs/${LINK_PUBLISH_JOB_ID}/artifacts/a11y-report/a11y-report.html
+    url: https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${LINK_PUBLISH_JOB_ID}/artifacts/a11y-report/a11y-report.html
     deployment_tier: other
 
 lint_go:
