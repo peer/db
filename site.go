@@ -48,9 +48,11 @@ type Site struct {
 	Title  string `json:"title,omitempty" yaml:"title,omitempty"`
 	Logo   string `json:"logo,omitempty"  yaml:"logo,omitempty"`
 
-	LanguagePriority map[string][]string              `json:"languagePriority,omitempty" yaml:"languagePriority,omitempty"`
-	DefaultLanguage  string                           `json:"defaultLanguage,omitempty"  yaml:"defaultLanguage,omitempty"`
-	LanguageCodes    map[identifier.Identifier]string `json:"languageCodes,omitempty"    yaml:"-"`
+	LanguagePriority map[string][]string `json:"languagePriority,omitempty" yaml:"languagePriority,omitempty"`
+	DefaultLanguage  string              `json:"defaultLanguage,omitempty"  yaml:"defaultLanguage,omitempty"`
+
+	// TODO: How to keep LanguageCodes in sync, if they are added or removed after initialization?
+	LanguageCodes map[identifier.Identifier]string `json:"languageCodes,omitempty" yaml:"-"`
 
 	Features SiteFeatures `json:"features" yaml:"features"`
 
@@ -214,6 +216,14 @@ func (s *Site) validateDefaultLanguage() errors.E {
 	return nil
 }
 
+// This should be run before calling service.RouteWith because it freezes site's context.json
+// as static file and updating language codes later means they are not included in context.json.
+func (s *Site) updateLanguageCodes(_ context.Context) errors.E {
+	s.LanguageCodes = s.Base.Bridge().Converter().LanguageCodes()
+
+	return nil
+}
+
 // Start starts the base for the site.
 //
 // You have to call this or PopulateAndStart for each site after Init.
@@ -238,7 +248,10 @@ func (s *Site) Start(ctx context.Context, documents []*document.D) errors.E {
 		return errE
 	}
 
-	s.LanguageCodes = s.Base.Bridge().Converter().LanguageCodes()
+	errE = s.updateLanguageCodes(ctx)
+	if errE != nil {
+		return errE
+	}
 
 	return nil
 }
@@ -272,7 +285,10 @@ func (s *Site) PopulateAndStart(
 		return errE
 	}
 
-	s.LanguageCodes = s.Base.Bridge().Converter().LanguageCodes()
+	errE = s.updateLanguageCodes(ctx)
+	if errE != nil {
+		return errE
+	}
 
 	return nil
 }
