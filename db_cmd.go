@@ -2,10 +2,13 @@ package peerdb
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
@@ -14,6 +17,8 @@ import (
 
 	"gitlab.com/peerdb/peerdb/indexer"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
+	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 // InitSites sets up default site configuration and build information if needed.
@@ -187,6 +192,70 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 	}
 
 	globals.Logger.Info().Msg("db reindex done")
+
+	return nil
+}
+
+// Run executes the db wipe command which drops PostgreSQL schemas
+// and deletes ElasticSearch indices for all configured sites.
+func (c *DBWipeCommand) Run(globals *Globals) errors.E {
+	// We stop gracefully on ctrl-c and TERM signal.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	ctx = globals.Logger.WithContext(ctx)
+
+	InitSites(globals)
+
+	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
+	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
+	dbpool, dbpoolCleanup, errE := internalStore.InitPostgres(
+		context.WithoutCancel(ctx),
+		string(globals.Postgres.URL),
+		globals.Logger,
+		getRequestWithFallback(),
+	)
+	if errE != nil {
+		return errE
+	}
+	defer dbpoolCleanup()
+
+	esClient, errE := internalSearch.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic.URL)
+	if errE != nil {
+		return errE
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	for _, site := range globals.Sites {
+		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("wiping")
+
+		// We set fallback context values which are used to set application name on PostgreSQL connections.
+		siteCtx := WithFallbackDBContext(ctx, site.Schema, "wipe")
+
+		errE = internalStore.RetryTransaction(siteCtx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+			_, err := tx.Exec(ctx, fmt.Sprintf(`DROP SCHEMA IF EXISTS "%s" CASCADE`, site.Schema))
+			if err != nil {
+				return internalStore.WithPgxError(err)
+			}
+			return nil
+		})
+		if errE != nil {
+			return errE
+		}
+
+		globals.Logger.Info().Str("schema", site.Schema).Msg("schema dropped")
+
+		_, err := esClient.Indices.Delete(site.Index).IgnoreUnavailable(true).Do(siteCtx)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		globals.Logger.Info().Str("index", site.Index).Msg("index deleted")
+	}
+
+	globals.Logger.Info().Msg("db wipe done")
 
 	return nil
 }

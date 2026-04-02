@@ -148,8 +148,12 @@ type DBWaitCommand struct{}
 // DBReindexCommand forces a full reindex of all documents.
 type DBReindexCommand struct{}
 
+// DBWipeCommand drops PostgreSQL schemas and deletes ElasticSearch indices for all sites.
+type DBWipeCommand struct{}
+
 // DBCommand contains sub-commands for managing database.
 type DBCommand struct {
-	Wait    DBWaitCommand    `cmd:"" help:"Wait for pending indexing to complete and exit." yaml:"wait"`
-	Reindex DBReindexCommand `cmd:"" help:"Force full reindex of all documents."            yaml:"reindex"`
+	Wait    DBWaitCommand    `cmd:"" help:"Wait for pending indexing to complete and exit."    yaml:"wait"`
+	Reindex DBReindexCommand `cmd:"" help:"Force full reindex of all documents."               yaml:"reindex"`
+	Wipe    DBWipeCommand    `cmd:"" help:"Wipe PostgreSQL schemas and ElasticSearch indices." yaml:"wipe"`
 }
