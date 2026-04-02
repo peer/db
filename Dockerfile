@@ -29,6 +29,7 @@ ARG PEERDB_BUILD_FLAGS
 # in the node-build stage and we cannot (missing node, etc.) and do not want to build
 # it again, but it might have file timestamps which would otherwise trigger a build.
 RUN \
+  git status --porcelain
   BUILD_TIMESTAMP=$BUILD_TIMESTAMP PEERDB_BUILD_FLAGS="$PEERDB_BUILD_FLAGS" make -o dist build-static && \
   mv peerdb /go/bin/peerdb
 
