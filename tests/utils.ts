@@ -101,33 +101,11 @@ test.afterAll(() => {
   })
 })
 
-export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
-// Clear the console errors array for this context.
-export function clearConsoleErrors(page: Page): void {
-  const context = page.context() as ExtendedBrowserContext
-  context._consoleMessages.length = 0
-}
-
 // Fails the test if any console errors are present for this context.
 export async function expectNoConsoleErrors(page: Page): Promise<void> {
   const context = page.context() as ExtendedBrowserContext
   const resolvedMessages = await Promise.all(context._consoleMessages)
   expect(resolvedMessages.length, `Console errors detected:\n${resolvedMessages.join("\n")}`).toBe(0)
-}
-
-// Takes a screenshot of the activity page. Meant to be run at the end of every successful test.
-export async function takeActivityScreenshot(page: Page, name: string) {
-  const homeButton = page.locator("#navbar-link-home")
-  await expect(homeButton).toBeVisible()
-  await homeButton.click()
-  const activityLink = page.locator("#menu-list-activity")
-  await expect(activityLink).toBeVisible()
-  await activityLink.click()
-
-  const activityHeader = page.locator("#activitylist-header-activity")
-  await expect(activityHeader).toBeVisible()
-  await checkpoint(page, name, { mask: [page.locator(".activitylistitem-text-timestamp"), page.locator(".activitylistitem-text-session")] })
 }
 
 interface CheckpointOptions {
@@ -197,29 +175,4 @@ export async function checkpoint(page: Page, name: string, options: CheckpointOp
 
   // Check for any console logs.
   await expectNoConsoleErrors(page)
-}
-
-export async function takeScreenshotsOfEntries(
-  page: Page,
-  entrySelector: string,
-  displayNameSelector: string,
-  screenshotPrefix: string,
-  options: CheckpointOptions = {},
-): Promise<void> {
-  // Get all entry elements.
-  const entries = page.locator(entrySelector)
-  const count = await entries.count()
-
-  for (let i = 0; i < count; i++) {
-    const entry = entries.nth(i)
-    const box = await entry.boundingBox()
-    if (!box) {
-      continue
-    }
-
-    const displayNameElement = entry.locator(displayNameSelector)
-    const displayName = (await displayNameElement.textContent())?.replace(/\s/g, "")
-
-    await checkpoint(page, `${screenshotPrefix}-${displayName}`, { ...options, fullPage: true, clip: { x: box.x, y: box.y, width: box.width, height: box.height } })
-  }
 }
