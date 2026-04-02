@@ -106,7 +106,7 @@ const rowSpan = computed(() => {
 </script>
 
 <template>
-  <div :id="`result-${result.id}`" class="pd-searchresult rounded-sm border border-gray-200 bg-white p-4 shadow-sm" :data-url="withDocument?.url">
+  <div :id="`result-${result.id}`" class="pd-searchresult flex flex-col gap-y-2 rounded-sm border border-gray-200 bg-white p-4 shadow-sm" :data-url="withDocument?.url">
     <WithDocumentD :id="result.id" ref="withDocument" name="DocumentGet">
       <template #default="{ doc: resultDoc }">
         <component :is="customResultComponent" v-if="customResultComponent" :doc="resultDoc" :search-session-id="searchSessionId" />

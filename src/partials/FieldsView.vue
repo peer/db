@@ -68,17 +68,17 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
       <!-- Top-level fields first (sorted by orderInList). -->
       <template v-for="field in sortedByOrder(fieldsData.fields)" :key="fieldKey(field)">
         <template v-if="hasValues(field)">
-          <tr v-for="(claim, cIndex) in claimsForField(field).claims" :key="claim.GetID()">
-            <td v-if="cIndex === 0" class="w-1/5 px-2 py-1 align-top text-sm font-medium text-slate-700">
-              <DocumentRefInline :id="field.propertyId" :link="false" />
-            </td>
-            <td v-else></td>
-            <td class="px-2 py-1 text-sm">
-              <ClaimValue :claim="claim" :type="claimsForField(field).claimType" />
-            </td>
-          </tr>
-          <!-- Sub-fields for each claim value (recursive). -->
-          <template v-for="claim in claimsForField(field).claims" :key="claim.GetID() + '-sub'">
+          <template v-for="(claim, cIndex) in claimsForField(field).claims" :key="claim.GetID()">
+            <tr>
+              <td v-if="cIndex === 0" class="w-1/5 px-2 py-1 align-top font-medium text-slate-700">
+                <DocumentRefInline :id="field.propertyId" :link="false" />
+              </td>
+              <td v-else></td>
+              <td class="px-2 py-1">
+                <ClaimValue :claim="claim" :type="claimsForField(field).claimType" />
+              </td>
+            </tr>
+            <!-- Sub-fields for this claim value (recursive). -->
             <tr v-if="field.subFields.length > 0 && claim.sub">
               <td></td>
               <td class="px-2 py-0">
@@ -98,17 +98,17 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
             </tr>
             <template v-for="field in sortedByOrder(section.fields)" :key="fieldKey(field)">
               <template v-if="hasValues(field)">
-                <tr v-for="(claim, cIndex) in claimsForField(field).claims" :key="claim.GetID()">
-                  <td v-if="cIndex === 0" class="w-1/5 px-2 py-1 align-top text-sm font-medium text-slate-700">
-                    <DocumentRefInline :id="field.propertyId" :link="false" />
-                  </td>
-                  <td v-else></td>
-                  <td class="px-2 py-1 text-sm">
-                    <ClaimValue :claim="claim" :type="claimsForField(field).claimType" />
-                  </td>
-                </tr>
-                <!-- Sub-fields for each claim value (recursive). -->
-                <template v-for="claim in claimsForField(field).claims" :key="claim.GetID() + '-sub'">
+                <template v-for="(claim, cIndex) in claimsForField(field).claims" :key="claim.GetID()">
+                  <tr>
+                    <td v-if="cIndex === 0" class="w-1/5 px-2 py-1 align-top font-medium text-slate-700">
+                      <DocumentRefInline :id="field.propertyId" :link="false" />
+                    </td>
+                    <td v-else></td>
+                    <td class="px-2 py-1">
+                      <ClaimValue :claim="claim" :type="claimsForField(field).claimType" />
+                    </td>
+                  </tr>
+                  <!-- Sub-fields for this claim value (recursive). -->
                   <tr v-if="field.subFields.length > 0 && claim.sub">
                     <td></td>
                     <td class="px-2 py-0">
