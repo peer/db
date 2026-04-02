@@ -5,8 +5,10 @@ import type { Claim, ClaimTypeName } from "@/document"
 import type { FieldData, FieldsData, SectionData } from "@/fields"
 
 import { computed } from "vue"
+import { useI18n } from "vue-i18n"
 
-import { ClaimTypes, getClaimsOfTypeWithConfidence } from "@/document"
+import { IN_LANGUAGE } from "@/core"
+import { ClaimTypes, getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
 import { fieldKey, valueTypeToClaimType } from "@/fields"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
@@ -22,6 +24,8 @@ const props = withDefaults(
   },
 )
 
+const { locale } = useI18n({ useScope: "global" })
+
 // Ensure claims is a proper ClaimTypes instance (props may receive raw JSON from WithDocument).
 const normalizedClaims = computed(() => {
   if (props.claims instanceof ClaimTypes) {
@@ -34,9 +38,22 @@ function sortedByOrder<T extends { orderInList: number }>(items: T[]): T[] {
   return [...items].sort((a, b) => a.orderInList - b.orderInList)
 }
 
+// Check if any claims for a field have IN_LANGUAGE sub-claims in the actual data.
+function hasLanguageClaims(field: FieldData): boolean {
+  const claimType = valueTypeToClaimType(field.valueType)
+  const claims = getClaimsOfTypeWithConfidence(normalizedClaims.value, claimType, field.propertyId)
+  return claims.some((claim) => claim.sub && getClaimsOfTypeWithConfidence(claim.sub, "ref", IN_LANGUAGE).length > 0)
+}
+
 // Get claims for a field, returning the claim type name and array of claims.
+// If claims have IN_LANGUAGE sub-claims, only claims matching the current
+// locale (with fallbacks) are returned.
 function claimsForField(field: FieldData): { claimType: ClaimTypeName; claims: DeepReadonly<Claim>[] } {
   const claimType = valueTypeToClaimType(field.valueType)
+  if (hasLanguageClaims(field)) {
+    const claims = selectClaimsByLanguage(normalizedClaims.value, claimType, field.propertyId, locale.value, (c) => c.length > 0)
+    return { claimType, claims: (claims ?? []) as DeepReadonly<Claim>[] }
+  }
   const claims = getClaimsOfTypeWithConfidence(normalizedClaims.value, claimType, field.propertyId) as DeepReadonly<Claim>[]
   return { claimType, claims }
 }
