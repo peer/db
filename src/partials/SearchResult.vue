@@ -112,6 +112,20 @@ const rowSpan = computed(() => {
         <component :is="customResultComponent" v-if="customResultComponent" :doc="resultDoc" :search-session-id="searchSessionId" />
         <template v-else-if="fieldsData && resultDoc.claims">
           <h2 class="text-xl leading-none">
+            <ul v-if="tags.length" class="float-end flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
+              <template v-for="tag of tags" :key="tag.id">
+                <WithDocumentD :id="tag.id" name="DocumentGet">
+                  <template #default="{ doc, url }">
+                    <li class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
+                      <DisplayLabel :claims="doc.claims" />
+                    </li>
+                  </template>
+                  <template #loading="{ url }">
+                    <li class="pd-withdocument-loading h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(tag.id)]"></li>
+                  </template>
+                </WithDocumentD>
+              </template>
+            </ul>
             <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link"
               ><DisplayLabel :claims="resultDoc.claims"
             /></RouterLink>
