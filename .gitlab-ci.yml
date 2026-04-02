@@ -497,7 +497,6 @@ docker:
     - echo BUILD_TIMESTAMP "$BUILD_TIMESTAMP"
     - export VERSION="$(git describe --tags --always --dirty=+)"
     - echo VERSION "$VERSION"
-    - git status --porcelain
     - docker build
       --platform linux/amd64,linux/arm64
       --target production
