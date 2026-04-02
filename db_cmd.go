@@ -61,7 +61,7 @@ func InitSites(globals *Globals) {
 // then waits for indexing to catch up, and refreshes the ElasticSearch index.
 func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site Site, beforeWait func(ctx context.Context) errors.E) errors.E {
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
-	ctx = WithFallbackDBContext(ctx, site.Schema, "search")
+	ctx = WithFallbackDBContext(ctx, site.Schema, "db")
 
 	documents, errE := site.fetchDocuments(ctx, internalCore.PropertyClassID)
 	if errE != nil {
@@ -116,9 +116,9 @@ func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site Site, bef
 	return nil
 }
 
-// Run executes the search wait command which initializes the base,
+// Run executes the db wait command which initializes the base,
 // waits until all pending indexing is complete, and then exits.
-func (c *SearchWaitCommand) Run(globals *Globals) errors.E {
+func (c *DBWaitCommand) Run(globals *Globals) errors.E {
 	// We stop gracefully on ctrl-c and TERM signal.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -147,14 +147,14 @@ func (c *SearchWaitCommand) Run(globals *Globals) errors.E {
 		}
 	}
 
-	globals.Logger.Info().Msg("search wait done")
+	globals.Logger.Info().Msg("db wait done")
 
 	return nil
 }
 
-// Run executes the search reindex command which resets the bridge progress,
+// Run executes the db reindex command which resets the bridge progress,
 // re-processes all commits from the beginning, and then exits.
-func (c *SearchReindexCommand) Run(globals *Globals) errors.E {
+func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 	// We stop gracefully on ctrl-c and TERM signal.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -186,7 +186,7 @@ func (c *SearchReindexCommand) Run(globals *Globals) errors.E {
 		}
 	}
 
-	globals.Logger.Info().Msg("search reindex done")
+	globals.Logger.Info().Msg("db reindex done")
 
 	return nil
 }

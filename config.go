@@ -99,7 +99,7 @@ type Config struct {
 
 	Serve    ServeCommand    `cmd:"" default:"withargs" help:"Run HTTP server. Default command." yaml:"serve"`
 	Populate PopulateCommand `cmd:""                    help:"Populate database with documents." yaml:"populate"`
-	Search   SearchCommand   `cmd:""                    help:"Manage search."                    yaml:"search"`
+	DB       DBCommand       `cmd:""                    help:"Manage database."                  yaml:"db"`
 }
 
 // ServeCommand contains configuration for the serve command.
@@ -142,14 +142,14 @@ type PopulateCommand struct {
 	DryRun    bool   `help:"Dry run. Do everything, but insert documents into the database."                                                       yaml:"dryRun"`
 }
 
-// SearchWaitCommand waits for pending indexing to complete.
-type SearchWaitCommand struct{}
+// DBWaitCommand waits for pending indexing to complete.
+type DBWaitCommand struct{}
 
-// SearchReindexCommand forces a full reindex of all documents.
-type SearchReindexCommand struct{}
+// DBReindexCommand forces a full reindex of all documents.
+type DBReindexCommand struct{}
 
-// SearchCommand contains sub-commands for managing search.
-type SearchCommand struct {
-	Wait    SearchWaitCommand    `cmd:"" help:"Wait for pending indexing to complete and exit." yaml:"wait"`
-	Reindex SearchReindexCommand `cmd:"" help:"Force full reindex of all documents."            yaml:"reindex"`
+// DBCommand contains sub-commands for managing database.
+type DBCommand struct {
+	Wait    DBWaitCommand    `cmd:"" help:"Wait for pending indexing to complete and exit." yaml:"wait"`
+	Reindex DBReindexCommand `cmd:"" help:"Force full reindex of all documents."            yaml:"reindex"`
 }
