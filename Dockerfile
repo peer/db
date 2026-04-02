@@ -3,13 +3,16 @@
 # for the Dockerfile frontend image to be pulled.
 FROM node:24.10-alpine3.22 AS node-build
 
+ARG VITE_COVERAGE
+ARG VITE_E2E_TESTS
+
 RUN apk --update add make bash git
 COPY . /src/peerdb
 WORKDIR /src/peerdb
 RUN \
   npm ci --audit=false && \
   npm audit signatures && \
-  make dist
+  VITE_COVERAGE=$VITE_COVERAGE VITE_E2E_TESTS=$VITE_E2E_TESTS make dist
 
 FROM golang:1.25-alpine3.22 AS go-build
 

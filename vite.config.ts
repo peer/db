@@ -4,7 +4,8 @@ import vue from "@vitejs/plugin-vue"
 import path from "path"
 import license from "rollup-plugin-license"
 import url from "url"
-import { defineConfig } from "vitest/config"
+import istanbul from "vite-plugin-istanbul"
+import { configDefaults, defineConfig } from "vitest/config"
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
 
@@ -23,6 +24,14 @@ export default defineConfig({
       dropMessageCompiler: true,
       fullInstall: true,
       forceStringify: true,
+    }),
+    istanbul({
+      include: "src/**/*",
+      exclude: ["node_modules", "tests/"],
+      extension: [".js", ".ts", ".vue"],
+      // Only instrument for E2E coverage when VITE_COVERAGE is set to "true".
+      requireEnv: true,
+      forceBuildInstrument: true,
     }),
     license({
       sourcemap: true,
@@ -61,12 +70,14 @@ export default defineConfig({
     emptyOutDir: false,
   },
   test: {
+    exclude: [...configDefaults.exclude, "**/tests/**"],
     setupFiles: ["src/test-setup.ts"],
     coverage: {
       include: ["src/**/*.{ts,vue}"],
-      exclude: ["**/*.d.ts"],
-      provider: "v8",
-      reporter: ["text", "cobertura", "html"],
+      exclude: ["**/tests/**", "**/*.d.ts"],
+      provider: "istanbul", // Required for nyc compatibility.
+      reporter: ["json", "html", "text"], // JSON required for nyc compatibility.
+      reportsDirectory: "./coverage/vitest",
     },
   },
   esbuild: {

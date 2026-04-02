@@ -41,6 +41,11 @@ tests.xml
 coverage.*
 codeclimate.json
 /coverage
+/coverage-frontend
+/playwright-report
+/playwright-screenshots
+/test-results
+/a11y-report
 
 # Data
 /.cache
