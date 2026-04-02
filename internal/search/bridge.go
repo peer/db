@@ -171,6 +171,9 @@ type Bridge struct {
 	// inverseRelationsMinSeq is the MIN(seq) of remaining rows in BridgeInverseRelations,
 	// or math.MaxInt64 if the table is empty. A waiter for seq X is done when this value > X.
 	inverseRelationsMinSeq int64
+	// inverseRelationsCount is the number of distinct document IDs remaining
+	// in BridgeInverseRelations. It is used for progress tracking.
+	inverseRelationsCount int64
 }
 
 // converterReady returns true if the converter has been set via Start.
@@ -404,13 +407,15 @@ func (b *Bridge) handleBridgeInverseRelationsMinSeq(ctx context.Context) errors.
 	return b.updateBridgeInverseRelationsMinSeq(ctx)
 }
 
-// updateBridgeInverseRelationsMinSeq fetches the current MIN(seq) from BridgeInverseRelations,
-// updates the in-memory state, and broadcasts to any goroutines waiting in WaitUntilCaughtUp.
+// updateBridgeInverseRelationsMinSeq fetches the current MIN(seq) and COUNT(DISTINCT "id")
+// from BridgeInverseRelations, updates the in-memory state, and broadcasts to any goroutines
+// waiting in WaitUntilCaughtUp.
 func (b *Bridge) updateBridgeInverseRelationsMinSeq(ctx context.Context) errors.E {
 	var minSeq *int64
+	var cnt int64
 	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		return internalStore.WithPgxError(
-			tx.QueryRow(ctx, `SELECT MIN("seq") FROM "`+b.Store.Prefix+`BridgeInverseRelations"`).Scan(&minSeq),
+			tx.QueryRow(ctx, `SELECT MIN("seq"), COUNT(DISTINCT "id") FROM "`+b.Store.Prefix+`BridgeInverseRelations"`).Scan(&minSeq, &cnt),
 		)
 	})
 	if errE != nil {
@@ -423,6 +428,7 @@ func (b *Bridge) updateBridgeInverseRelationsMinSeq(ctx context.Context) errors.
 	} else {
 		b.inverseRelationsMinSeq = *minSeq
 	}
+	b.inverseRelationsCount = cnt
 	b.inverseRelationsMinSeqCond.Broadcast()
 	return nil
 }
@@ -523,10 +529,13 @@ func (b *Bridge) waitForInverseRelationsMinSeq(ctx context.Context, seq int64, c
 	})
 	defer stop()
 
-	prevMinSeq := b.inverseRelationsMinSeq
+	// We use the number of distinct document IDs for progress tracking instead of seq values.
+	// This provides regular progress updates because the count decreases with each processed
+	// document, while MIN(seq) can stay the same when many documents share the same seq.
+	initialCount := b.inverseRelationsCount
 
 	if size != nil {
-		size.Add(seq + 1 - prevMinSeq)
+		size.Add(initialCount)
 	}
 
 	// inverseRelationsMinSeq tracks the MIN(seq) of remaining rows in BridgeInverseRelations.
@@ -536,19 +545,18 @@ func (b *Bridge) waitForInverseRelationsMinSeq(ctx context.Context, seq int64, c
 		if ctx.Err() != nil {
 			return errors.WithStack(ctx.Err())
 		}
-		if count != nil && b.inverseRelationsMinSeq > prevMinSeq {
-			// inverseRelationsMinSeq can jump to MaxInt64 when the table is empty,
-			// so we cap progress to match the size we added.
-			// This also handles any other jump more than seq+1.
-			current := min(b.inverseRelationsMinSeq, seq+1)
-			count.Add(current - prevMinSeq)
-			prevMinSeq = current
+		if count != nil {
+			processed := initialCount - b.inverseRelationsCount
+			if processed > 0 {
+				count.Add(processed)
+				initialCount = b.inverseRelationsCount
+			}
 		}
 	}
 
 	// To get count to match the increase we made to size initially.
-	if count != nil && seq+1 > prevMinSeq {
-		count.Add(seq + 1 - prevMinSeq)
+	if count != nil && initialCount > 0 {
+		count.Add(initialCount)
 	}
 
 	return nil
@@ -575,6 +583,7 @@ func (b *Bridge) ResetSeq(ctx context.Context) errors.E {
 
 	b.inverseRelationsMinSeqMu.Lock()
 	b.inverseRelationsMinSeq = math.MaxInt64
+	b.inverseRelationsCount = 0
 	b.inverseRelationsMinSeqMu.Unlock()
 
 	// We reset the store's Committed channel so that the bridge goroutine detects the closed
