@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type { Claims } from "@/document"
+import type { ClaimTypes } from "@/document"
 
 import { asyncToReactive, getDisplayLabel, getError, isLoading } from "@/utils"
 import { useI18n } from "vue-i18n"
 
 const props = defineProps<{
-  claims?: DeepReadonly<Claims> | null
+  claims?: DeepReadonly<ClaimTypes> | null
 }>()
 
 const { t, locale } = useI18n({ useScope: "global" })

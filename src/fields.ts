@@ -1,6 +1,6 @@
 import type { DeepReadonly, InjectionKey } from "vue"
 
-import type { Claim, Claims, ClaimTypeName } from "@/document"
+import type { Claim, ClaimTypeName } from "@/document"
 
 import {
   CARDINALITY,
@@ -146,7 +146,7 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
 }
 
 // extractFieldsFromClaims extracts FieldsData from a class document's claims.
-export function extractFieldsFromClaims(claims: DeepReadonly<Claims> | undefined | null): FieldsData | null {
+export function extractFieldsFromClaims(claims: DeepReadonly<ClaimTypes> | undefined | null): FieldsData | null {
   if (!claims) {
     return null
   }
@@ -245,7 +245,7 @@ export function mergeFields(allFields: FieldsData[]): FieldsData {
 }
 
 // hasFields checks if claims have any FIELDS claims with actual field data.
-export function hasFields(claims: DeepReadonly<Claims> | undefined | null): boolean {
+export function hasFields(claims: DeepReadonly<ClaimTypes> | undefined | null): boolean {
   if (!claims) {
     return false
   }
@@ -261,7 +261,7 @@ export function hasFields(claims: DeepReadonly<Claims> | undefined | null): bool
 }
 
 // isAbstractClass checks if claims have an ABSTRACT_CLASS claim.
-export function isAbstractClass(claims: DeepReadonly<Claims> | undefined | null): boolean {
+export function isAbstractClass(claims: DeepReadonly<ClaimTypes> | undefined | null): boolean {
   if (!claims) {
     return false
   }
@@ -356,7 +356,7 @@ function getClaimValues(claim: DeepReadonly<Claim>): { value: string; valueTo: s
 }
 
 // getExistingClaimValues finds existing claims for a field and returns their IDs and string values.
-export function getExistingClaimValues(claims: DeepReadonly<Claims> | undefined | null, field: FieldData): ExistingClaimValue[] {
+export function getExistingClaimValues(claims: DeepReadonly<ClaimTypes> | undefined | null, field: FieldData): ExistingClaimValue[] {
   if (!claims) {
     return []
   }
