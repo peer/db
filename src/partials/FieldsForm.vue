@@ -523,6 +523,7 @@ onBeforeUnmount(() => {
           </tr>
           <!-- Sub-fields for this entry (recursive). -->
           <tr v-if="field.subFields.length > 0" :key="claimId + '-sub'">
+            <td></td>
             <td class="px-2 py-1">
               <FieldsForm
                 v-model:invalid="childInvalid[claimId]"
@@ -654,6 +655,7 @@ onBeforeUnmount(() => {
             </tr>
             <!-- Sub-fields for this entry (recursive). -->
             <tr v-if="field.subFields.length > 0" :key="claimId + '-sub'">
+              <td></td>
               <td class="px-2 py-1">
                 <FieldsForm
                   v-model:invalid="childInvalid[claimId]"
