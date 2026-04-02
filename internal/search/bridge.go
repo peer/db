@@ -1120,13 +1120,11 @@ func (b *Bridge) runIndexInverseRelations(ctx context.Context, _ *river.Job[jobA
 		var docIDStr string
 		var maxSeq int64
 		errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
-			// TODO: Maybe make the query pick ID randomly (order by random)?
-			//       So if we allow for multiple jobs to run in parallel (currently we have single worker queue for these jobs),
-			//       they would not all work on the same document ID. On the other hand, maybe we should pick document IDs based on
-			//       their minimal seq (or minimal MAX(seq)) so that they are processed in approximate order of how their commits were done.
+			// We pick a random document to reduce conflicts when multiple processes
+			// work on inverse relations in parallel.
 			return internalStore.WithPgxError(tx.QueryRow(ctx, `
 				SELECT "id", MAX("seq") FROM "`+b.Store.Prefix+`BridgeInverseRelations"
-					GROUP BY "id" LIMIT 1
+					GROUP BY "id" ORDER BY RANDOM() LIMIT 1
 			`).Scan(&docIDStr, &maxSeq))
 		})
 		if errors.Is(errE, pgx.ErrNoRows) {
