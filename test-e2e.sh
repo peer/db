@@ -103,7 +103,7 @@ cleanup_certs=1
 echo "2. Building Docker images..."
 
 # Build the PeerDB Docker image from Dockerfile.
-docker build --target production --build-arg PEERDB_BUILD_FLAGS="-cover -race -covermode atomic" --build-arg VITE_COVERAGE=true -t peerdb-image .
+docker build --target production --build-arg PEERDB_BUILD_FLAGS="-cover -race -covermode atomic" --build-arg VITE_COVERAGE=true --build-arg VITE_E2E_TESTS=true -t peerdb-image .
 cleanup_peerdb_image=1
 
 # Build the Playwright test image.
@@ -127,13 +127,11 @@ echo "4. Starting Elastic container..."
     --network peerdb-e2e-network \
     -e network.bind_host=0.0.0.0 \
     -e network.publish_host=localhost \
-    -e ES_JAVA_OPTS="-Xmx1000m" \
-    -e "discovery.type=single-node" \
+    -e discovery.type=single-node \
     -e "xpack.security.enabled=false" \
     -e "ingest.geoip.downloader.enabled=false" \
     -e "cluster.routing.allocation.disk.watermark.flood_stage=100%" \
-    "$CI_REGISTRY_IMAGE/elastic/$ELASTIC_VERSION:latest"
-    #registry.gitlab.com/peerdb/peerdb/elastic/7.17.9:latest
+    "${CI_REGISTRY_IMAGE:-registry.gitlab.com/peerdb/peerdb}/elastic/${ELASTIC_VERSION:-7.17.9}:latest"
 cleanup_elasticsearch_container=1
 
 echo "5. Waiting for Elasticsearch service to be ready..."

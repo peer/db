@@ -101,6 +101,12 @@ test.afterAll(() => {
   })
 })
 
+// Clear the console errors array for this context.
+export function clearConsoleErrors(page: Page): void {
+  const context = page.context() as ExtendedBrowserContext
+  context._consoleMessages.length = 0
+}
+
 // Fails the test if any console errors are present for this context.
 export async function expectNoConsoleErrors(page: Page): Promise<void> {
   const context = page.context() as ExtendedBrowserContext
@@ -175,4 +181,29 @@ export async function checkpoint(page: Page, name: string, options: CheckpointOp
 
   // Check for any console logs.
   await expectNoConsoleErrors(page)
+}
+
+export async function takeScreenshotsOfEntries(
+  page: Page,
+  entrySelector: string,
+  displayNameSelector: string,
+  screenshotPrefix: string,
+  options: CheckpointOptions = {},
+): Promise<void> {
+  // Get all entry elements.
+  const entries = page.locator(entrySelector)
+  const count = await entries.count()
+
+  for (let i = 0; i < count; i++) {
+    const entry = entries.nth(i)
+    const box = await entry.boundingBox()
+    if (!box) {
+      continue
+    }
+
+    const displayNameElement = entry.locator(displayNameSelector)
+    const displayName = (await displayNameElement.textContent())?.replace(/\s/g, "")
+
+    await checkpoint(page, `${screenshotPrefix}-${displayName}`, { ...options, fullPage: true, clip: { x: box.x, y: box.y, width: box.width, height: box.height } })
+  }
 }
