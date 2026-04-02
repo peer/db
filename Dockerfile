@@ -21,16 +21,16 @@ RUN apk --update add make bash git gcc musl-dev ca-certificates tzdata mailcap &
 COPY . /src/peerdb
 COPY --from=node-build /src/peerdb/dist /src/peerdb/dist
 WORKDIR /src/peerdb
-# We want Docker image for build timestamp label to match the one in
-# the binary so we take a timestamp once outside and pass it in.
+# We want Docker image for build timestamp and version labels to match the ones
+# in the binary so we take them once outside and pass them in.
 ARG BUILD_TIMESTAMP
+ARG VERSION
 ARG PEERDB_BUILD_FLAGS
 # We run make with "-o dist" which prevents dist from being build here as it was done
 # in the node-build stage and we cannot (missing node, etc.) and do not want to build
 # it again, but it might have file timestamps which would otherwise trigger a build.
 RUN \
-  git status --porcelain && \
-  BUILD_TIMESTAMP=$BUILD_TIMESTAMP PEERDB_BUILD_FLAGS="$PEERDB_BUILD_FLAGS" make -o dist build-static && \
+  VERSION=$VERSION BUILD_TIMESTAMP=$BUILD_TIMESTAMP PEERDB_BUILD_FLAGS="$PEERDB_BUILD_FLAGS" make -o dist build-static && \
   mv peerdb /go/bin/peerdb
 
 FROM alpine:3.22 AS debug
