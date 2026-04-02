@@ -138,7 +138,6 @@ cleanup_elasticsearch_container=1
 
 echo "5. Waiting for Elasticsearch service to be ready..."
 for i in $(seq 1 120); do docker exec peerdb-elastic curl -sf "http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=10s" && break || { [ "$i" -eq 120 ] && exit 1; sleep 1; }; done
-#for i in $(seq 1 120); do wget --spider "http://peerdb-elastic:9200/_cluster/health?wait_for_status=yellow&timeout=10s" && break || { [ "$i" -eq 120 ] && exit 1; sleep 1; }; done
 
 echo "6. Starting PeerDB container..."
 

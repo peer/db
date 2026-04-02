@@ -41,6 +41,7 @@ tests.xml
 coverage.*
 codeclimate.json
 /coverage
+/coverage-frontend
 /playwright-report
 /playwright-screenshots
 /test-results
