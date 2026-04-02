@@ -161,8 +161,6 @@ test_e2e:
   after_script:
     - echo "Prepared combined (E2E + unit tests) backend coverage link:"
     - echo "https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts/coverage.html"
-    # "https://${CI_PROJECT_NAMESPACE}/-/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts/coverage.html"
-    # "https://CI_PROJECT_PATH/-/jobs/${CI_JOB_ID}/artifacts/coverage.html"
     - echo "Prepared E2E report link:"
     - echo "https://${CI_PAGES_HOSTNAME}/-/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts/playwright-report/index.html"
     - echo "Prepared combined (E2E + unit tests) frontend coverage link:"
