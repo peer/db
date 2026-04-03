@@ -3720,6 +3720,66 @@ func makeClassDocWithTemplate(id identifier.Identifier, tmpl string) *document.D
 	}
 }
 
+// makeClassDocWithTemplateInLanguage creates a class document with an INSTANCE_OF PROPERTY
+// and a DISPLAY_LABEL_TEMPLATE claim tagged with the given language.
+func makeClassDocWithTemplateInLanguage(id identifier.Identifier, tmpl string, langID identifier.Identifier) *document.D {
+	langSub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
+				To:        document.Reference{ID: langID},
+			},
+		},
+	}
+	claims := &document.ClaimTypes{}
+	claims.Reference = append(claims.Reference, document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+		To:        document.Reference{ID: internalCore.PropertyClassID},
+	})
+	claims.String = append(claims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, langSub),
+		Prop:      document.Reference{ID: internalCore.DisplayLabelTemplatePropID},
+		String:    tmpl,
+	})
+	return &document.D{
+		CoreDocument: document.CoreDocument{ID: id}, //nolint:exhaustruct
+		Claims:       claims,
+	}
+}
+
+// makeClassDocWithTemplates creates a class document with an INSTANCE_OF PROPERTY
+// and multiple DISPLAY_LABEL_TEMPLATE claims, each tagged with a language.
+func makeClassDocWithTemplates(id identifier.Identifier, templates map[identifier.Identifier]string) *document.D {
+	claims := &document.ClaimTypes{}
+	claims.Reference = append(claims.Reference, document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+		To:        document.Reference{ID: internalCore.PropertyClassID},
+	})
+	for langID, tmpl := range templates {
+		langSub := &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: internalCore.InLanguagePropID},
+					To:        document.Reference{ID: langID},
+				},
+			},
+		}
+		claims.String = append(claims.String, document.StringClaim{
+			CoreClaim: makeCoreClaim(document.HighConfidence, langSub),
+			Prop:      document.Reference{ID: internalCore.DisplayLabelTemplatePropID},
+			String:    tmpl,
+		})
+	}
+	return &document.D{
+		CoreDocument: document.CoreDocument{ID: id}, //nolint:exhaustruct
+		Claims:       claims,
+	}
+}
+
 // addInstanceOf adds an INSTANCE_OF relation claim to a document.
 func addInstanceOf(doc *document.D, classID identifier.Identifier, confidence document.Confidence) {
 	if doc.Claims == nil {
@@ -3751,7 +3811,10 @@ func TestDisplayLabelTemplate(t *testing.T) {
 	ctx := t.Context()
 	result, errE := c.displayLabelTemplate(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, `{{bestString "SHORT_NAME" .}}`, result)
+	// Template without IN_LANGUAGE is "und"; all languages resolve to it via fallback.
+	for lang := range SupportedLanguages {
+		assert.Equal(t, `{{bestString "SHORT_NAME" .}}`, result[lang])
+	}
 }
 
 func TestDisplayLabelTemplateEmpty(t *testing.T) {
@@ -3767,7 +3830,7 @@ func TestDisplayLabelTemplateEmpty(t *testing.T) {
 	ctx := t.Context()
 	result, errE := c.displayLabelTemplate(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Empty(t, result)
+	assert.Nil(t, result)
 }
 
 func TestDisplayLabelTemplateConfidenceSelection(t *testing.T) {
@@ -3796,7 +3859,10 @@ func TestDisplayLabelTemplateConfidenceSelection(t *testing.T) {
 	ctx := t.Context()
 	result, errE := c.displayLabelTemplate(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, "Template B", result)
+	// Both templates are "und" (no IN_LANGUAGE); all languages resolve to the highest confidence one.
+	for lang := range SupportedLanguages {
+		assert.Equal(t, "Template B", result[lang])
+	}
 }
 
 func TestMakeDisplayStringsWithTemplate(t *testing.T) {
@@ -3942,7 +4008,7 @@ func TestMakeDisplayStringsTemplateAllLanguages(t *testing.T) {
 	display, errE := c.makeDisplayStrings(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Template is not per-language; all languages render it.
+	// Template without IN_LANGUAGE is "und"; all languages resolve to it via fallback.
 	// English renders bestString for "en": finds "EN".
 	assert.Equal(t, "EN", display.Display["en"])
 	// Slovenian renders bestString for "sl": finds "SL".
@@ -4276,6 +4342,344 @@ func TestTemplateGetDocumentByMnemonic(t *testing.T) {
 	display, errE := c.makeDisplayStrings(ctx, doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, "Other Document", display.Display["und"])
+}
+
+func TestDisplayLabelTemplatePerLanguage(t *testing.T) {
+	t.Parallel()
+
+	enLangID := identifier.New()
+	slLangID := identifier.New()
+	classID := identifier.New()
+
+	// Class with separate templates for English and Slovenian.
+	classDoc := makeClassDocWithTemplates(classID, map[identifier.Identifier]string{
+		enLangID: `EN: {{bestString "NAME" .}}`,
+		slLangID: `SL: {{bestString "NAME" .}}`,
+	})
+
+	languages := []*document.D{
+		makeLanguageDoc(enLangID, "en"),
+		makeLanguageDoc(slLangID, "sl"),
+	}
+	extraDocs := map[identifier.Identifier]*document.D{
+		classID: classDoc,
+	}
+	c := newTestConverter(t, nil, languages, extraDocs)
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+	}
+	addInstanceOf(doc, classID, document.HighConfidence)
+
+	ctx := t.Context()
+	result, errE := c.displayLabelTemplate(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// English gets the English template.
+	assert.Equal(t, `EN: {{bestString "NAME" .}}`, result["en"])
+	// Slovenian gets the Slovenian template.
+	assert.Equal(t, `SL: {{bestString "NAME" .}}`, result["sl"])
+	// Portuguese and undetermined have no specific template and no "und" fallback template.
+	assert.Empty(t, result["pt"])
+	assert.Empty(t, result["und"])
+}
+
+func TestDisplayLabelTemplatePerLanguageWithFallback(t *testing.T) {
+	t.Parallel()
+
+	enLangID := identifier.New()
+	classID := identifier.New()
+
+	// Class with only an English template.
+	classDoc := makeClassDocWithTemplateInLanguage(classID, `EN-only template`, enLangID)
+
+	languages := []*document.D{
+		makeLanguageDoc(enLangID, "en"),
+	}
+	extraDocs := map[identifier.Identifier]*document.D{
+		classID: classDoc,
+	}
+	c := newTestConverter(t, nil, languages, extraDocs)
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+	}
+	addInstanceOf(doc, classID, document.HighConfidence)
+
+	ctx := t.Context()
+	result, errE := c.displayLabelTemplate(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// English gets its own template.
+	assert.Equal(t, "EN-only template", result["en"])
+	// Other languages do not fall back to "en" (default fallback is "und", not other languages).
+	assert.Empty(t, result["sl"])
+	assert.Empty(t, result["pt"])
+	assert.Empty(t, result["und"])
+}
+
+func TestDisplayLabelTemplateUndAndPerLanguage(t *testing.T) {
+	t.Parallel()
+
+	enLangID := identifier.New()
+	classID := identifier.New()
+
+	// Class with an undetermined template and an English-specific template.
+	claims := &document.ClaimTypes{}
+	claims.Reference = append(claims.Reference, document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+		To:        document.Reference{ID: internalCore.PropertyClassID},
+	})
+	// Undetermined template (no IN_LANGUAGE).
+	claims.String = append(claims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.DisplayLabelTemplatePropID},
+		String:    "default template",
+	})
+	// English-specific template.
+	enSub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
+				To:        document.Reference{ID: enLangID},
+			},
+		},
+	}
+	claims.String = append(claims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, enSub),
+		Prop:      document.Reference{ID: internalCore.DisplayLabelTemplatePropID},
+		String:    "english template",
+	})
+	classDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: classID}, //nolint:exhaustruct
+		Claims:       claims,
+	}
+
+	languages := []*document.D{
+		makeLanguageDoc(enLangID, "en"),
+	}
+	extraDocs := map[identifier.Identifier]*document.D{
+		classID: classDoc,
+	}
+	c := newTestConverter(t, nil, languages, extraDocs)
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+	}
+	addInstanceOf(doc, classID, document.HighConfidence)
+
+	ctx := t.Context()
+	result, errE := c.displayLabelTemplate(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// English gets its own specific template (first in fallback chain).
+	assert.Equal(t, "english template", result["en"])
+	// Other languages fall back to "und" template.
+	assert.Equal(t, "default template", result["sl"])
+	assert.Equal(t, "default template", result["pt"])
+	assert.Equal(t, "default template", result["und"])
+}
+
+func TestMakeDisplayStringsPerLanguageTemplate(t *testing.T) {
+	t.Parallel()
+
+	enLangID := identifier.New()
+	slLangID := identifier.New()
+	shortNamePropID := identifier.New()
+	classID := identifier.New()
+
+	// Class with English and Slovenian templates using different formats.
+	classDoc := makeClassDocWithTemplates(classID, map[identifier.Identifier]string{
+		enLangID: `{{bestString ` + idTmpl(shortNamePropID) + ` .}} (EN)`,
+		slLangID: `{{bestString ` + idTmpl(shortNamePropID) + ` .}} (SL)`,
+	})
+
+	languages := []*document.D{
+		makeLanguageDoc(enLangID, "en"),
+		makeLanguageDoc(slLangID, "sl"),
+	}
+	extraDocs := map[identifier.Identifier]*document.D{
+		classID: classDoc,
+	}
+	c := newTestConverter(t, nil, languages, extraDocs)
+	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
+
+	enSub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
+				To:        document.Reference{ID: enLangID},
+			},
+		},
+	}
+	slSub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
+				To:        document.Reference{ID: slLangID},
+			},
+		},
+	}
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, enSub),
+					Prop:      document.Reference{ID: shortNamePropID},
+					String:    "Short",
+				},
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, slSub),
+					Prop:      document.Reference{ID: shortNamePropID},
+					String:    "Kratko",
+				},
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
+					String:    "Full Name",
+				},
+			},
+		},
+	}
+	addInstanceOf(doc, classID, document.HighConfidence)
+
+	ctx := t.Context()
+	display, errE := c.makeDisplayStrings(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// English and Slovenian use their per-language templates.
+	assert.Equal(t, "Short (EN)", display.Display["en"])
+	assert.Equal(t, "Kratko (SL)", display.Display["sl"])
+	// Portuguese and undetermined have no template, fall back to naming strings.
+	assert.Equal(t, "Full Name", display.Display["pt"])
+	assert.Equal(t, "Full Name", display.Display["und"])
+}
+
+func TestMakeDisplayStringsPerLanguageTemplateFallbackToNaming(t *testing.T) {
+	t.Parallel()
+
+	enLangID := identifier.New()
+	classID := identifier.New()
+
+	// Class with only an English template.
+	classDoc := makeClassDocWithTemplateInLanguage(classID,
+		`English Only`, enLangID)
+
+	languages := []*document.D{
+		makeLanguageDoc(enLangID, "en"),
+	}
+	extraDocs := map[identifier.Identifier]*document.D{
+		classID: classDoc,
+	}
+	c := newTestConverter(t, nil, languages, extraDocs)
+	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
+					String:    "Naming String",
+				},
+			},
+		},
+	}
+	addInstanceOf(doc, classID, document.HighConfidence)
+
+	ctx := t.Context()
+	display, errE := c.makeDisplayStrings(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// English uses the template.
+	assert.Equal(t, "English Only", display.Display["en"])
+	// Other languages have no template, fall back to naming strings.
+	assert.Equal(t, "Naming String", display.Display["sl"])
+	assert.Equal(t, "Naming String", display.Display["pt"])
+	assert.Equal(t, "Naming String", display.Display["und"])
+	// Naming is always populated independently.
+	assert.Equal(t, []string{"Naming String"}, display.Naming["und"])
+}
+
+func TestMakeDisplayStringsPerLanguageTemplateWithUndFallback(t *testing.T) {
+	t.Parallel()
+
+	enLangID := identifier.New()
+	shortNamePropID := identifier.New()
+	classID := identifier.New()
+
+	// Class with an English template and an undetermined (default) template.
+	claims := &document.ClaimTypes{}
+	claims.Reference = append(claims.Reference, document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+		To:        document.Reference{ID: internalCore.PropertyClassID},
+	})
+	// English-specific template.
+	enSub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
+				To:        document.Reference{ID: enLangID},
+			},
+		},
+	}
+	claims.String = append(claims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, enSub),
+		Prop:      document.Reference{ID: internalCore.DisplayLabelTemplatePropID},
+		String:    `EN: {{bestString ` + idTmpl(shortNamePropID) + ` .}}`,
+	})
+	// Undetermined template (no IN_LANGUAGE).
+	claims.String = append(claims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.DisplayLabelTemplatePropID},
+		String:    `{{bestString ` + idTmpl(shortNamePropID) + ` .}}`,
+	})
+	classDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: classID}, //nolint:exhaustruct
+		Claims:       claims,
+	}
+
+	languages := []*document.D{
+		makeLanguageDoc(enLangID, "en"),
+	}
+	extraDocs := map[identifier.Identifier]*document.D{
+		classID: classDoc,
+	}
+	c := newTestConverter(t, nil, languages, extraDocs)
+	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: shortNamePropID},
+					String:    "Val",
+				},
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
+					String:    "Full Name",
+				},
+			},
+		},
+	}
+	addInstanceOf(doc, classID, document.HighConfidence)
+
+	ctx := t.Context()
+	display, errE := c.makeDisplayStrings(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// English uses its specific template.
+	assert.Equal(t, "EN: Val", display.Display["en"])
+	// Other languages fall back to the "und" template.
+	assert.Equal(t, "Val", display.Display["sl"])
+	assert.Equal(t, "Val", display.Display["pt"])
+	assert.Equal(t, "Val", display.Display["und"])
 }
 
 func TestValidateLanguagePriority(t *testing.T) {

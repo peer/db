@@ -557,17 +557,18 @@ func (c *Converter) extendDisplayPaths(
 // configure UI to show them data in that language.
 //
 // For each supported language (with its fallback chain):
-//  1. If the document's class defines a display label template, render it with
-//     the target language (template functions use that language's fallback chain
-//     internally). The result is the display label, even if empty.
-//  2. If no template exists, search naming strings through the fallback chain.
-//     The first (highest confidence) naming string from the first language in the
-//     chain that has naming strings becomes the display label.
+//  1. If the document's class defines a display label template for the language
+//     (resolved via IN_LANGUAGE sub-claims with the language fallback chain),
+//     render it with the target language (template functions use that language's
+//     fallback chain internally). The result is the display label, even if empty.
+//  2. If no template resolves for the language, search naming strings through the
+//     fallback chain. The first (highest confidence) naming string from the first
+//     language in the chain that has naming strings becomes the display label.
 //
 // Naming contains all naming strings per language as extracted from claims, without
 // modifications. It is independent of Display.
 func (c *Converter) makeDisplayStrings(ctx context.Context, doc *document.D) (displayStrings, errors.E) {
-	tmplStr, errE := c.displayLabelTemplate(ctx, doc)
+	templates, errE := c.displayLabelTemplate(ctx, doc)
 	if errE != nil {
 		return displayStrings{}, errE
 	}
@@ -578,9 +579,9 @@ func (c *Converter) makeDisplayStrings(ctx context.Context, doc *document.D) (di
 	}
 
 	for lang := range SupportedLanguages {
-		if tmplStr != "" {
-			// Template exists: render it with the target language so that template
-			// functions (e.g., bestString) use that language's fallback chain.
+		if tmplStr, ok := templates[lang]; ok {
+			// Template exists for this language: render it with the target language so that
+			// template functions (e.g., bestString) use that language's fallback chain.
 			rendered, errE := c.renderDisplayTemplate(ctx, doc, lang, tmplStr)
 			if errE != nil {
 				return displayStrings{}, errE
@@ -596,7 +597,7 @@ func (c *Converter) makeDisplayStrings(ctx context.Context, doc *document.D) (di
 			continue
 		}
 
-		// No template. Search naming strings in the fallback chain.
+		// No template for this language. Search naming strings in the fallback chain.
 		// Both here and in namingProperties we traverse naming claims, so we traverse it twice, but we do that
 		// so that code here matches the implementation on the frontend and that it is easier to compare with it.
 		selected := document.SelectClaimsByLanguage[document.StringClaim](
@@ -635,16 +636,27 @@ func (c *Converter) getDisplayStrings(ctx context.Context, id identifier.Identif
 	return info.Display, nil
 }
 
-// displayLabelTemplate returns the best display label template for a document
-// by looking at the document's INSTANCE_OF class documents. The template is
-// not per-language, language fallback happens inside template functions.
+// displayLabelTemplate returns the best display label template for each supported
+// language by looking at the document's INSTANCE_OF class documents. Templates can
+// have IN_LANGUAGE sub-claims to specify which language they apply to; templates
+// without IN_LANGUAGE are treated as undetermined language and can be reached via
+// fallback.
 //
-// If multiple class documents define templates, the one with the highest
-// effective confidence wins. Effective confidence is the product of the
-// INSTANCE_OF claim's confidence and the template claim's confidence.
-func (c *Converter) displayLabelTemplate(ctx context.Context, doc *document.D) (string, errors.E) {
-	var bestTemplate string
-	var bestConfidence document.Confidence
+// For each supported language, the fallback chain is walked to find the best template.
+// Because templates are reached indirectly — through the document's INSTANCE_OF claims
+// to classes, then through the class's template claim — each template carries an
+// effective confidence: the product of the INSTANCE_OF claim's confidence and the
+// template claim's confidence. Within the first language in the chain that has
+// templates, the one with the highest effective confidence wins.
+//
+// Returns nil if no templates are found for any language.
+func (c *Converter) displayLabelTemplate(ctx context.Context, doc *document.D) (map[string]string, errors.E) {
+	// Collect templates grouped by their language with effective confidences.
+	type templateEntry struct {
+		template   string
+		confidence document.Confidence
+	}
+	byLang := map[string][]templateEntry{}
 
 	for _, rel := range document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, internalCore.InstanceOfPropID, document.LowConfidence) {
 		classDoc, errE := c.getDocument(ctx, rel.To.ID)
@@ -657,19 +669,52 @@ func (c *Converter) displayLabelTemplate(ctx context.Context, doc *document.D) (
 					Msg("class document for the document not found, skipping it for display label template")
 				continue
 			}
-			return "", errE
+			return nil, errE
 		}
 		instanceConfidence := rel.GetConfidence()
 		for _, sc := range document.GetClaimsOfTypeWithConfidence[document.StringClaim](classDoc, internalCore.DisplayLabelTemplatePropID, document.LowConfidence) {
 			effective := instanceConfidence * sc.GetConfidence()
-			if effective > bestConfidence {
-				bestConfidence = effective
-				bestTemplate = sc.String
+			for _, lang := range c.extractInLanguages(sc.Sub) {
+				byLang[lang] = append(byLang[lang], templateEntry{template: sc.String, confidence: effective})
 			}
 		}
 	}
 
-	return bestTemplate, nil
+	if len(byLang) == 0 {
+		return nil, nil
+	}
+
+	// For each supported language, find the best template using the fallback chain.
+	result := make(map[string]string, len(SupportedLanguages))
+	for lang := range SupportedLanguages {
+		chain := []string{lang}
+		if fallbacks, ok := c.languagePriority[lang]; ok {
+			chain = append(chain, fallbacks...)
+		} else if lang != document.UndeterminedLanguage {
+			chain = append(chain, document.UndeterminedLanguage)
+		}
+		for _, tryLang := range chain {
+			entries, ok := byLang[tryLang]
+			if !ok || len(entries) == 0 {
+				continue
+			}
+			// Found templates for this fallback language. Pick the one with highest confidence.
+			bestIdx := 0
+			for i := 1; i < len(entries); i++ {
+				if entries[i].confidence > entries[bestIdx].confidence {
+					bestIdx = i
+				}
+			}
+			result[lang] = entries[bestIdx].template
+			break
+		}
+	}
+
+	if len(result) == 0 {
+		return nil, nil
+	}
+
+	return result, nil
 }
 
 // renderDisplayTemplate parses and executes a display label template string.
