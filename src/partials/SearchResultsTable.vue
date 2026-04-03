@@ -295,7 +295,7 @@ function onCloseFilterModal() {
                       class="flex w-full max-w-[400px] flex-row items-center justify-between gap-x-1 border-none p-2 leading-none shadow-none"
                       @click.prevent="onOpenFilterModal(filter)"
                     >
-                      <span class="truncate"><DisplayLabel :claims="doc.claims" /></span>
+                      <span class="truncate"><DisplayLabel :doc="doc" /></span>
                       <FunnelIcon class="size-5" :class="isFilterActive(filter) ? '' : 'text-primary-300'" />
                     </Button>
                   </template>

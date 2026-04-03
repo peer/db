@@ -20,7 +20,7 @@ const mainProgress = injectMainProgress()
           One would assume that w-full is needed to make the container div as wide as the
           body inside which then the navbar horizontally shifts.
   -->
-  <div class="pd-navbar-wrapper sticky left-0 z-30 w-0">
+  <div class="pd-navbar-wrapper sticky left-0 z-35 w-0">
     <!-- useNavbar uses a template ref named "navbar". -->
     <div
       id="navbar"

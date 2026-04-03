@@ -117,7 +117,7 @@ const rowSpan = computed(() => {
                 <WithDocumentD :id="tag.id" name="DocumentGet">
                   <template #default="{ doc, url }">
                     <li class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
-                      <DisplayLabel :claims="doc.claims" />
+                      <DisplayLabel :doc="doc" />
                     </li>
                   </template>
                   <template #loading="{ url }">
@@ -127,7 +127,7 @@ const rowSpan = computed(() => {
               </template>
             </ul>
             <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link"
-              ><DisplayLabel :claims="resultDoc.claims"
+              ><DisplayLabel :doc="resultDoc"
             /></RouterLink>
           </h2>
           <FieldsView :fields-data="fieldsData" :claims="resultDoc.claims as ClaimTypes" />
@@ -135,7 +135,7 @@ const rowSpan = computed(() => {
         <div v-else class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
           <h2 class="text-xl leading-none">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link"
-              ><DisplayLabel :claims="resultDoc.claims"
+              ><DisplayLabel :doc="resultDoc"
             /></RouterLink>
           </h2>
           <ul v-if="tags.length" class="-mt-3 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
@@ -143,7 +143,7 @@ const rowSpan = computed(() => {
               <WithDocumentD :id="tag.id" name="DocumentGet">
                 <template #default="{ doc, url }">
                   <li class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
-                    <DisplayLabel :claims="doc.claims" />
+                    <DisplayLabel :doc="doc" />
                   </li>
                 </template>
                 <template #loading="{ url }">

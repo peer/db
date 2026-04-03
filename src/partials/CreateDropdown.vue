@@ -23,7 +23,7 @@ const progress = injectProgress()
 const abortController = new AbortController()
 
 const showDropdown = ref(false)
-const classesWithFields = ref<{ id: string; claims: D["claims"] }[]>([])
+const classesWithFields = ref<D[]>([])
 const initial = ref(true)
 const loaded = ref(false)
 const loading = ref(false)
@@ -55,7 +55,7 @@ async function loadClasses() {
     }
 
     // Fetch each class document and check for fields.
-    const classes: { id: string; claims: D["claims"] }[] = []
+    const classes: D[] = []
     for (const result of results) {
       try {
         const { doc } = await getURL<D>(router.apiResolve({ name: "DocumentGet", params: { id: result.id } }).href, null, abortController.signal, null)
@@ -63,7 +63,7 @@ async function loadClasses() {
           return
         }
         if (hasFields(doc.claims) && !isAbstractClass(doc.claims)) {
-          classes.push({ id: result.id, claims: doc.claims })
+          classes.push(doc)
         }
       } catch (err) {
         // TODO: Do something better?
@@ -203,7 +203,7 @@ onBeforeUnmount(() => {
           @click="onCreate(cls.id)"
         >
           <!-- TODO: This twice loads same document (here and inside DisplayLabel). Do we care with caching? -->
-          <DisplayLabel :claims="cls.claims" />
+          <DisplayLabel :doc="cls" />
         </button>
       </template>
     </div>

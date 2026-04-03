@@ -26,10 +26,8 @@ const WithDocumentD = WithDocument<D>
 <template>
   <WithDocumentD v-if="id" :id="id" name="DocumentGet">
     <template #default="{ doc, url }">
-      <RouterLink v-if="link" :to="{ name: 'DocumentGet', params: { id } }" :data-url="url" v-bind="$attrs" class="link"
-        ><DisplayLabel :claims="doc.claims"
-      /></RouterLink>
-      <span v-else :data-url="url" v-bind="$attrs"><DisplayLabel :claims="doc.claims" /></span>
+      <RouterLink v-if="link" :to="{ name: 'DocumentGet', params: { id } }" :data-url="url" v-bind="$attrs" class="link"><DisplayLabel :doc="doc" /></RouterLink>
+      <span v-else :data-url="url" v-bind="$attrs"><DisplayLabel :doc="doc" /></span>
     </template>
     <template #loading="{ url }">
       <div class="pd-documentrefinline-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(id)]" />

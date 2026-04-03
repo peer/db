@@ -243,7 +243,7 @@ async function onEdit() {
                 >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
               >
             </TabList>
-            <h1 class="mb-4 text-4xl font-bold drop-shadow-xs"><DisplayLabel :claims="doc.claims" /></h1>
+            <h1 class="mb-4 text-4xl font-bold drop-shadow-xs"><DisplayLabel :doc="doc" /></h1>
             <TabPanels>
               <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
               <!-- Fields view tab (first, if available). -->
