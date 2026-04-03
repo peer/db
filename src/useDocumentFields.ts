@@ -127,7 +127,9 @@ export function useDocumentFields(doc: Ref<DeepReadonly<D> | null | undefined>):
         fieldsData.value = null
       }
     },
-    { immediate: true },
+    {
+      immediate: true,
+    },
   )
 
   return { fieldsData, classTabId, initialized }

@@ -143,7 +143,10 @@ watch(
   () => {
     syncFromDoc()
   },
-  { deep: true, immediate: true },
+  {
+    deep: true,
+    immediate: true,
+  },
 )
 
 watch(
@@ -183,7 +186,10 @@ watch(
   (v) => {
     invalid.value = v
   },
-  { immediate: true, flush: "sync" },
+  {
+    immediate: true,
+    flush: "sync",
+  },
 )
 
 function onEntryInput(claimId: string, value: string, isTo?: boolean) {
