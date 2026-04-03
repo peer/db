@@ -161,6 +161,26 @@ func (fc *fieldsCollector) processLevel(
 
 		// Skip value fields.
 		if _, ok := field.Tag.Lookup("value"); ok {
+			if field.Tag.Get("values") != "" {
+				errE := errors.New("values tag cannot be used with value tag")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return errE
+			}
+			if _, hasInverse := field.Tag.Lookup("inverseProperty"); hasInverse {
+				errE := errors.New("inverseProperty tag cannot be used with value tag")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return errE
+			}
+			if strings.TrimSpace(field.Tag.Get("section")) != "" {
+				errE := errors.New("section tag cannot be used with value tag")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return errE
+			}
+			if field.Tag.Get("order") != "" {
+				errE := errors.New("order tag cannot be used with value tag")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return errE
+			}
 			continue
 		}
 
@@ -266,6 +286,26 @@ func (fc *fieldsCollector) processSubFields(
 
 		// Skip value fields.
 		if _, ok := field.Tag.Lookup("value"); ok {
+			if field.Tag.Get("values") != "" {
+				errE := errors.New("values tag cannot be used with value tag")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return nil, errE
+			}
+			if _, hasInverse := field.Tag.Lookup("inverseProperty"); hasInverse {
+				errE := errors.New("inverseProperty tag cannot be used with value tag")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return nil, errE
+			}
+			if strings.TrimSpace(field.Tag.Get("section")) != "" {
+				errE := errors.New("section tag cannot be used with value tag")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return nil, errE
+			}
+			if field.Tag.Get("order") != "" {
+				errE := errors.New("order tag cannot be used with value tag")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return nil, errE
+			}
 			continue
 		}
 

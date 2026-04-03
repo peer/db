@@ -138,6 +138,42 @@ type FieldsWithValuesOnNonRef struct {
 	Name string `cardinality:"1.." json:"name" property:"NAME" values:"test.example.com,FOO"`
 }
 
+type ValuesOnValueStruct struct {
+	Value core.Ref `json:"value" value:"" values:"test.example.com,FOO"`
+	Name  string   `json:"name"  property:"NAME"`
+}
+
+type FieldsWithValuesOnValue struct {
+	Data ValuesOnValueStruct `cardinality:"1" json:"data" property:"DATA"`
+}
+
+type InverseOnValueStruct struct {
+	Value core.Ref `json:"value" value:"" inverseProperty:"NAME"`
+	Name  string   `json:"name"  property:"NAME"`
+}
+
+type FieldsWithInverseOnValue struct {
+	Data InverseOnValueStruct `cardinality:"1" json:"data" property:"DATA"`
+}
+
+type SectionOnValueStruct struct {
+	Value string `json:"value" value:"" section:"my-section"`
+	Name  string `json:"name"  property:"NAME"`
+}
+
+type FieldsWithSectionOnValue struct {
+	Data SectionOnValueStruct `cardinality:"1" json:"data" property:"DATA"`
+}
+
+type OrderOnValueStruct struct {
+	Value string `json:"value" value:"" order:"5"`
+	Name  string `json:"name"  property:"NAME"`
+}
+
+type FieldsWithOrderOnValue struct {
+	Data OrderOnValueStruct `cardinality:"1" json:"data" property:"DATA"`
+}
+
 type ValueStruct struct {
 	Value core.Amount[int] `json:"value"                 value:""`
 	Name  string           `json:"name"  property:"NAME"`
@@ -630,6 +666,46 @@ func TestFieldsValuesOnNonRefError(t *testing.T) {
 	_, errE := transform.Fields[FieldsWithValuesOnNonRef](mnemonics)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "values tag can only be used with core.Ref field type")
+}
+
+func TestFieldsValuesOnValueError(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+
+	_, errE := transform.Fields[FieldsWithValuesOnValue](mnemonics)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "values tag cannot be used with value tag")
+}
+
+func TestFieldsInversePropertyOnValueError(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+
+	_, errE := transform.Fields[FieldsWithInverseOnValue](mnemonics)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "inverseProperty tag cannot be used with value tag")
+}
+
+func TestFieldsSectionOnValueError(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+
+	_, errE := transform.Fields[FieldsWithSectionOnValue](mnemonics)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "section tag cannot be used with value tag")
+}
+
+func TestFieldsOrderOnValueError(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+
+	_, errE := transform.Fields[FieldsWithOrderOnValue](mnemonics)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "order tag cannot be used with value tag")
 }
 
 func TestFieldsValueStruct(t *testing.T) {
