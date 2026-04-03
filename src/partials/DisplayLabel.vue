@@ -10,9 +10,10 @@ const props = defineProps<{
   claims?: DeepReadonly<ClaimTypes> | null
 }>()
 
-const { t, locale } = useI18n({ useScope: "global" })
+const i18n = useI18n({ useScope: "global" })
+const { t } = i18n
 
-const displayLabel = asyncToReactive(() => getDisplayLabel(props.claims, locale.value))
+const displayLabel = asyncToReactive(() => getDisplayLabel(props.claims, i18n))
 </script>
 
 <template>

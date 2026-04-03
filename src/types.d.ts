@@ -1,7 +1,8 @@
 import type { BareItem, Key } from "structured-field-values"
 import type { Component, DeepReadonly } from "vue"
+import type { Composer } from "vue-i18n"
 
-import { ClaimTypes } from "@/document/claims"
+import type { ClaimTypes } from "@/document/claims"
 import type { NONE } from "@/symbols"
 
 export type RefSearchResult = {
@@ -251,7 +252,7 @@ export type SelectButtonOption<T> = {
   progress?: number
 }
 
-type GetDisplayLabel = (claims: DeepReadonly<ClaimTypes> | null | undefined, language: string) => Promise<string | null>
+export type GetDisplayLabel = (claims: DeepReadonly<ClaimTypes> | null | undefined, i18n: Composer) => Promise<string | null>
 
 // It is recursive.
 export type Mutable<T> = {

@@ -109,7 +109,7 @@ const NAMING_PROPERTIES = [NAME, TITLE]
 // DISPLAY_LABEL_TEMPLATE defined to be used in the backend.
 //
 // This matches how makeDisplayStrings works in the backend, but for only one language.
-export const getDisplayLabel: GetDisplayLabel = async function (claims, language) {
+export const getDisplayLabel: GetDisplayLabel = async function (claims, i18n) {
   if (!claims) {
     return null
   }
@@ -119,12 +119,14 @@ export const getDisplayLabel: GetDisplayLabel = async function (claims, language
   for (const ref of refs) {
     const displayLabelFunction = displayLabelFunctions.value.get(ref.to.id)
     if (displayLabelFunction) {
-      return await displayLabelFunction(claims, language)
+      return await displayLabelFunction(claims, i18n)
     }
   }
 
+  const { locale } = i18n
+
   // Default implementation.
-  const claim = selectClaimsByLanguage(claims, "string", NAMING_PROPERTIES, language, (claims) => {
+  const claim = selectClaimsByLanguage(claims, "string", NAMING_PROPERTIES, locale.value, (claims) => {
     if (claims.length > 0 && claims[0].string) {
       return true
     }
@@ -401,11 +403,15 @@ export function getError(result: Ref<{ error: unknown } | unknown> | { error: un
       return ""
     }
     if ("error" in result.value) {
+      // A side effect, but still useful for debugging.
+      console.error("getError", result.value.error)
       return result.value.error
     }
   } else if (typeof result !== "object") {
     return false
   } else if ("error" in result) {
+    // A side effect, but still useful for debugging.
+    console.error("getError", result.error)
     return result.error
   }
   return ""
