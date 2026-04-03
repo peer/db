@@ -149,7 +149,7 @@ type ClassFields struct {
 	Description          []RawHTMLWithLanguage `cardinality:"0.."  json:"description,omitempty"          property:"DESCRIPTION"`
 	SubclassOf           []Ref                 `cardinality:"0.."  json:"subclassOf,omitempty"           property:"SUBCLASS_OF"`
 	AbstractClass        bool                  `cardinality:"0..1" json:"abstractClass,omitempty"        property:"ABSTRACT_CLASS"`
-	DisplayLabelTemplate string                `cardinality:"0..1" json:"displayLabelTemplate,omitempty" property:"DISPLAY_LABEL_TEMPLATE"`
+	DisplayLabelTemplate []StringWithLanguage  `cardinality:"0.."  json:"displayLabelTemplate,omitempty" property:"DISPLAY_LABEL_TEMPLATE"`
 	// We set "order" to prevent infinite recursion when determining fields from ClassFields.
 	Fields *Fields `cardinality:"0..1" json:"fields,omitempty" order:"-" property:"FIELDS"`
 }
