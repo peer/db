@@ -11,8 +11,8 @@
       "loadCountMore": "{count} več",
       "loadMore": "Naloži več",
       "filters": "Filtri",
-      "prev": "Prejšnji",
-      "next": "Naslednji"
+      "prev": "Nazaj",
+      "next": "Naprej"
     },
     "status": {
       "editingNotAllowed": "Urejanje ni dovoljeno.",
