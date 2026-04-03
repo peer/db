@@ -37,8 +37,9 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 			Mnemonic:        "CLASS",
 			Description:     nil,
 			SubclassOf:      nil,
-			AbstractClass:   true,
-			Fields:          fields,
+			AbstractClass:        true,
+			DisplayLabelTemplate: "",
+			Fields:               fields,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "CLASS"},
@@ -100,8 +101,9 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 				}},
 			}},
 			SubclassOf:    nil,
-			AbstractClass: false,
-			Fields:        fields,
+			AbstractClass:        false,
+			DisplayLabelTemplate: "",
+			Fields:               fields,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "PROPERTY"},
@@ -133,8 +135,9 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 			Mnemonic:        "DOCUMENT",
 			Description:     nil,
 			SubclassOf:      nil,
-			AbstractClass:   true,
-			Fields:          fields,
+			AbstractClass:        true,
+			DisplayLabelTemplate: "",
+			Fields:               fields,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "DOCUMENT"},
@@ -176,8 +179,9 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 			Mnemonic:      "VOCABULARY",
 			Description:   nil,
 			SubclassOf:    nil,
-			AbstractClass: true,
-			Fields:        fields,
+			AbstractClass:        true,
+			DisplayLabelTemplate: "",
+			Fields:               fields,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "VOCABULARY"},
@@ -211,8 +215,9 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 			SubclassOf: []Ref{{
 				ID: []string{Namespace, "VOCABULARY"},
 			}},
-			AbstractClass: false,
-			Fields:        fields,
+			AbstractClass:        false,
+			DisplayLabelTemplate: "",
+			Fields:               fields,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "LANGUAGE"},
@@ -271,8 +276,9 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 			SubclassOf: []Ref{{
 				ID: []string{Namespace, "VOCABULARY"},
 			}},
-			AbstractClass: false,
-			Fields:        fields,
+			AbstractClass:        false,
+			DisplayLabelTemplate: "",
+			Fields:               fields,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "UNIT"},
@@ -306,8 +312,9 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 			SubclassOf: []Ref{{
 				ID: []string{Namespace, "VOCABULARY"},
 			}},
-			AbstractClass: true,
-			Fields:        fields,
+			AbstractClass:        true,
+			DisplayLabelTemplate: "",
+			Fields:               fields,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "VALUE_TYPE"},
