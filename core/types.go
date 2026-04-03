@@ -124,14 +124,15 @@ type LinkWithMediaType struct {
 
 // PropertyFields contains fields specific to properties.
 type PropertyFields struct {
-	Name              []StringWithLanguage  `cardinality:"1.."  json:"name"                        property:"NAME"`
-	ShortName         []StringWithLanguage  `cardinality:"0.."  json:"shortName,omitempty"         property:"SHORT_NAME"`
-	AlternativeName   []StringWithLanguage  `cardinality:"0.."  json:"alternativeName,omitempty"   property:"ALTERNATIVE_NAME"`
-	Mnemonic          string                `cardinality:"0..1" json:"mnemonic,omitempty"          property:"MNEMONIC"`
-	Description       []RawHTMLWithLanguage `cardinality:"0.."  json:"description,omitempty"       property:"DESCRIPTION"`
-	Instruction       []RawHTMLWithLanguage `cardinality:"0.."  json:"instruction,omitempty"       property:"INSTRUCTION"`
-	SubpropertyOf     []Ref                 `cardinality:"0.."  json:"subpropertyOf,omitempty"     property:"SUBPROPERTY_OF"`
-	InversePropertyOf *Ref                  `cardinality:"0..1" json:"inversePropertyOf,omitempty" property:"INVERSE_PROPERTY_OF"`
+	Name                   []StringWithLanguage  `cardinality:"1.."  json:"name"                              property:"NAME"`
+	ShortName              []StringWithLanguage  `cardinality:"0.."  json:"shortName,omitempty"               property:"SHORT_NAME"`
+	AlternativeName        []StringWithLanguage  `cardinality:"0.."  json:"alternativeName,omitempty"         property:"ALTERNATIVE_NAME"`
+	Mnemonic               string                `cardinality:"0..1" json:"mnemonic,omitempty"                property:"MNEMONIC"`
+	Description            []RawHTMLWithLanguage `cardinality:"0.."  json:"description,omitempty"             property:"DESCRIPTION"`
+	Instruction            []RawHTMLWithLanguage `cardinality:"0.."  json:"instruction,omitempty"             property:"INSTRUCTION"`
+	IdentifierLinkTemplate string                `cardinality:"0..1" json:"identifierLinkTemplate,omitempty"  property:"IDENTIFIER_LINK_TEMPLATE"`
+	SubpropertyOf          []Ref                 `cardinality:"0.."  json:"subpropertyOf,omitempty"           property:"SUBPROPERTY_OF"`
+	InversePropertyOf      *Ref                  `cardinality:"0..1" json:"inversePropertyOf,omitempty"       property:"INVERSE_PROPERTY_OF"`
 }
 
 // Property represents a property document.

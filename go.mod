@@ -6,6 +6,7 @@ go 1.25.0
 ignore ./node_modules
 
 require (
+	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/alecthomas/kong v1.13.1-0.20260401093329-db421839da20
 	github.com/cockroachdb/field-eng-powertools v0.1.3
@@ -36,7 +37,6 @@ require (
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.3.0 // indirect
-	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect

@@ -18,6 +18,7 @@ export const FIELD_VALUES = (await Identifier.from(Namespace, "FIELD_VALUES")).t
 export const FIELDS = (await Identifier.from(Namespace, "FIELDS")).toString()
 export const HAS_PROPERTY = (await Identifier.from(Namespace, "HAS_PROPERTY")).toString()
 export const HAS_VALUE_TYPE = (await Identifier.from(Namespace, "HAS_VALUE_TYPE")).toString()
+export const IDENTIFIER_LINK_TEMPLATE = (await Identifier.from(Namespace, "IDENTIFIER_LINK_TEMPLATE")).toString()
 export const IN_LANGUAGE = (await Identifier.from(Namespace, "IN_LANGUAGE")).toString()
 export const IN_LOCATION = (await Identifier.from(Namespace, "IN_LOCATION")).toString()
 export const IN_UNIT = (await Identifier.from(Namespace, "IN_UNIT")).toString()
