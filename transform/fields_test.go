@@ -147,6 +147,15 @@ type FieldsWithValuesOnValue struct {
 	Data ValuesOnValueStruct `cardinality:"1" json:"data" property:"DATA"`
 }
 
+type ValuesOnNonRefValueStruct struct {
+	Value string `json:"value" value:"" values:"test.example.com,FOO"`
+	Name  string `json:"name"  property:"NAME"`
+}
+
+type FieldsWithValuesOnNonRefValue struct {
+	Data ValuesOnNonRefValueStruct `cardinality:"1" json:"data" property:"DATA"`
+}
+
 type InverseOnValueStruct struct {
 	Value core.Ref `json:"value" value:"" inverseProperty:"NAME"`
 	Name  string   `json:"name"  property:"NAME"`
@@ -668,14 +677,28 @@ func TestFieldsValuesOnNonRefError(t *testing.T) {
 	assert.EqualError(t, errE, "values tag can only be used with core.Ref field type")
 }
 
-func TestFieldsValuesOnValueError(t *testing.T) {
+func TestFieldsValuesOnValueField(t *testing.T) {
 	t.Parallel()
 
 	mnemonics := fieldsTestMnemonics()
 
-	_, errE := transform.Fields[FieldsWithValuesOnValue](mnemonics)
+	result, errE := transform.Fields[FieldsWithValuesOnValue](mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 1)
+	// Values come from the value:"" field inside the struct.
+	require.Len(t, result.Field[0].Values, 1)
+	assert.Equal(t, core.Ref{ID: []string{"test.example.com", "FOO"}}, result.Field[0].Values[0])
+}
+
+func TestFieldsValuesOnNonRefValueError(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+
+	_, errE := transform.Fields[FieldsWithValuesOnNonRefValue](mnemonics)
 	require.Error(t, errE)
-	assert.EqualError(t, errE, "values tag cannot be used with value tag")
+	assert.EqualError(t, errE, "values tag can only be used with core.Ref field type")
 }
 
 func TestFieldsInversePropertyOnValueError(t *testing.T) {

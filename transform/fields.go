@@ -161,11 +161,6 @@ func (fc *fieldsCollector) processLevel(
 
 		// Skip value fields.
 		if _, ok := field.Tag.Lookup("value"); ok {
-			if field.Tag.Get("values") != "" {
-				errE := errors.New("values tag cannot be used with value tag")
-				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
-				return errE
-			}
 			if _, hasInverse := field.Tag.Lookup("inverseProperty"); hasInverse {
 				errE := errors.New("inverseProperty tag cannot be used with value tag")
 				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
@@ -286,11 +281,6 @@ func (fc *fieldsCollector) processSubFields(
 
 		// Skip value fields.
 		if _, ok := field.Tag.Lookup("value"); ok {
-			if field.Tag.Get("values") != "" {
-				errE := errors.New("values tag cannot be used with value tag")
-				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
-				return nil, errE
-			}
 			if _, hasInverse := field.Tag.Lookup("inverseProperty"); hasInverse {
 				errE := errors.New("inverseProperty tag cannot be used with value tag")
 				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
@@ -425,11 +415,19 @@ func (fc *fieldsCollector) makeField(
 		return internalCore.Field{}, errE
 	}
 
-	// Parse values tag.
+	// Parse values tag. For simple fields, values is on the property field.
+	// For struct fields, values is on the value:"" field inside.
 	values, errE := parseValuesTag(structField)
 	if errE != nil {
 		errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
 		return internalCore.Field{}, errE
+	}
+	if values == nil {
+		values, errE = parseStructValueFieldValues(structField.Type)
+		if errE != nil {
+			errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
+			return internalCore.Field{}, errE
+		}
 	}
 
 	// Parse inverseProperty tag.
@@ -740,4 +738,40 @@ func parseValuesTag(field reflect.StructField) ([]internalCore.Ref, errors.E) {
 	}
 
 	return refs, nil
+}
+
+// parseStructValueFieldValues looks inside a struct type for a value:"" field
+// and parses its values tag. Returns nil if the type is not a struct or has
+// no value field with a values tag.
+func parseStructValueFieldValues(fieldType reflect.Type) ([]internalCore.Ref, errors.E) {
+	// Unwrap slice.
+	if fieldType.Kind() == reflect.Slice {
+		fieldType = fieldType.Elem()
+	}
+
+	// Unwrap pointer.
+	if fieldType.Kind() == reflect.Ptr {
+		fieldType = fieldType.Elem()
+	}
+
+	if fieldType.Kind() != reflect.Struct {
+		return nil, nil
+	}
+
+	for i := range fieldType.NumField() {
+		field := fieldType.Field(i)
+		if _, ok := field.Tag.Lookup("value"); ok {
+			return parseValuesTag(field)
+		}
+
+		// Recurse into embedded structs.
+		if field.Anonymous && field.Type.Kind() == reflect.Struct {
+			refs, errE := parseStructValueFieldValues(field.Type)
+			if refs != nil || errE != nil {
+				return refs, errE
+			}
+		}
+	}
+
+	return nil, nil
 }
