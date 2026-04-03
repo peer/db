@@ -109,7 +109,7 @@ const NAMING_PROPERTIES = [NAME, TITLE]
 // DISPLAY_LABEL_TEMPLATE defined to be used in the backend.
 //
 // This matches how makeDisplayStrings works in the backend, but for only one language.
-export const getDisplayLabel: GetDisplayLabel = async function (claims, i18n) {
+export const getDisplayLabel: GetDisplayLabel = async function (claims, router, i18n, el, abortSignal, progress) {
   if (!claims) {
     return null
   }
@@ -119,19 +119,23 @@ export const getDisplayLabel: GetDisplayLabel = async function (claims, i18n) {
   for (const ref of refs) {
     const displayLabelFunction = displayLabelFunctions.value.get(ref.to.id)
     if (displayLabelFunction) {
-      return await displayLabelFunction(claims, i18n)
+      return await displayLabelFunction(claims, router, i18n, el, abortSignal, progress)
     }
+  }
+
+  // Default implementation.
+  return defaultDisplayLabel(claims, router, i18n, el, abortSignal, progress)
+}
+
+// eslint-disable-next-line @typescript-eslint/require-await
+export const defaultDisplayLabel: GetDisplayLabel = async function (claims, router, i18n, el, abortSignal, progress) {
+  if (!claims) {
+    return null
   }
 
   const { locale } = i18n
 
-  // Default implementation.
-  const claim = selectClaimsByLanguage(claims, "string", NAMING_PROPERTIES, locale.value, (claims) => {
-    if (claims.length > 0 && claims[0].string) {
-      return true
-    }
-    return false
-  })
+  const claim = selectClaimsByLanguage(claims, "string", NAMING_PROPERTIES, locale.value, (claims) => !!(claims.length > 0 && claims[0].string))
   return claim?.[0].string ?? null
 }
 
