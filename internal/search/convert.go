@@ -10,6 +10,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/Masterminds/sprig/v3"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
@@ -738,95 +739,97 @@ func (c *Converter) renderDisplayTemplate(ctx context.Context, doc *document.D, 
 // templateFuncs returns template functions for rendering display label templates.
 // Functions accept mnemonic as the first argument and *document.D as the last,
 // making them composable with Go template pipelines.
+//
+// Sprig functions (https://masterminds.github.io/sprig/) are included as a base.
 func (c *Converter) templateFuncs(ctx context.Context, lang string) template.FuncMap {
-	return template.FuncMap{
-		// identifier returns an identifier.Identifier from the string version of the identifier.
-		"identifierString": func(s string) (identifier.Identifier, error) {
-			return identifier.MaybeString(s)
-		},
-		// identifier returns an identifier.Identifier from the given values.
-		"identifier": identifier.From,
-		// bestString returns the best string claim value for a property ID in the current language.
-		// Falls back using the language priority chain.
-		"bestString": func(propID identifier.Identifier, doc *document.D) (string, error) {
-			if doc == nil {
-				return "", nil
-			}
-			selected := document.SelectClaimsByLanguage[document.StringClaim](
-				doc, []identifier.Identifier{propID}, lang,
-				func(claims []*document.StringClaim) bool {
-					// Here we are fine with empty strings.
-					return len(claims) > 0
-				},
-				document.LowConfidence, c.languageCodes, c.languagePriority,
-			)
-			if len(selected) > 0 {
-				return selected[0].String, nil
-			}
-			return "", nil
-		},
-		// bestAmountString returns the string of the best amount claim for a property ID.
-		"bestAmountString": func(propID identifier.Identifier, doc *document.D) (string, error) {
-			if doc == nil {
-				return "", nil
-			}
-			ac := document.GetBestClaimOfType[document.AmountClaim](doc, propID)
-			if ac == nil {
-				return "", nil
-			}
-			return ac.Amount.String(), nil
-		},
-		// bestReferenceDoc follows the best reference claim for a property ID and returns the target document.
-		"bestReferenceDoc": func(propID identifier.Identifier, doc *document.D) (*document.D, error) {
-			if doc == nil {
-				return nil, nil
-			}
-			rc := document.GetBestClaimOfType[document.ReferenceClaim](doc, propID)
-			if rc == nil {
-				return nil, nil
-			}
-			d, errE := c.getDocument(ctx, rc.To.ID)
-			if errE != nil && errors.Is(errE, store.ErrValueNotFound) {
-				zerolog.Ctx(ctx).Warn().Err(errE).
-					Str("id", doc.ID.String()).
-					Str("propId", propID.String()).
-					Str("referenceId", rc.To.ID.String()).
-					Msg("bestReferenceDoc: reference not found, returning nil")
-				return nil, nil
-			}
-			return d, errE
-		},
-		// getDocument returns the document for a document ID.
-		"getDocument": func(docID identifier.Identifier) (*document.D, error) {
-			d, errE := c.getDocument(ctx, docID)
-			if errE != nil && errors.Is(errE, store.ErrValueNotFound) {
-				return nil, nil
-			}
-			return d, errE
-		},
-		// bestIdentifier returns the best identifier claim value for a property ID.
-		"bestIdentifier": func(propID identifier.Identifier, doc *document.D) (string, error) {
-			if doc == nil {
-				return "", nil
-			}
-			ic := document.GetBestClaimOfType[document.IdentifierClaim](doc, propID)
-			if ic == nil {
-				return "", nil
-			}
-			return ic.Value, nil
-		},
-		// bestTimeString returns the display string of the best time claim for a property ID.
-		"bestTimeString": func(propID identifier.Identifier, doc *document.D) (string, error) {
-			if doc == nil {
-				return "", nil
-			}
-			tc := document.GetBestClaimOfType[document.TimeClaim](doc, propID)
-			if tc == nil {
-				return "", nil
-			}
-			return tc.Time.String(), nil
-		},
+	funcs := sprig.HermeticTxtFuncMap()
+	// identifierString returns an identifier.Identifier from the string version of the identifier.
+	funcs["identifierString"] = func(s string) (identifier.Identifier, error) {
+		return identifier.MaybeString(s)
 	}
+	// identifier returns an identifier.Identifier from the given values.
+	funcs["identifier"] = identifier.From
+	// bestString returns the best string claim value for a property ID in the current language.
+	// Falls back using the language priority chain.
+	funcs["bestString"] = func(propID identifier.Identifier, doc *document.D) (string, error) {
+		if doc == nil {
+			return "", nil
+		}
+		selected := document.SelectClaimsByLanguage[document.StringClaim](
+			doc, []identifier.Identifier{propID}, lang,
+			func(claims []*document.StringClaim) bool {
+				// Here we are fine with empty strings.
+				return len(claims) > 0
+			},
+			document.LowConfidence, c.languageCodes, c.languagePriority,
+		)
+		if len(selected) > 0 {
+			return selected[0].String, nil
+		}
+		return "", nil
+	}
+	// bestAmountString returns the string of the best amount claim for a property ID.
+	funcs["bestAmountString"] = func(propID identifier.Identifier, doc *document.D) (string, error) {
+		if doc == nil {
+			return "", nil
+		}
+		ac := document.GetBestClaimOfType[document.AmountClaim](doc, propID)
+		if ac == nil {
+			return "", nil
+		}
+		return ac.Amount.String(), nil
+	}
+	// bestReferenceDoc follows the best reference claim for a property ID and returns the target document.
+	funcs["bestReferenceDoc"] = func(propID identifier.Identifier, doc *document.D) (*document.D, error) {
+		if doc == nil {
+			return nil, nil
+		}
+		rc := document.GetBestClaimOfType[document.ReferenceClaim](doc, propID)
+		if rc == nil {
+			return nil, nil
+		}
+		d, errE := c.getDocument(ctx, rc.To.ID)
+		if errE != nil && errors.Is(errE, store.ErrValueNotFound) {
+			zerolog.Ctx(ctx).Warn().Err(errE).
+				Str("id", doc.ID.String()).
+				Str("propId", propID.String()).
+				Str("referenceId", rc.To.ID.String()).
+				Msg("bestReferenceDoc: reference not found, returning nil")
+			return nil, nil
+		}
+		return d, errE
+	}
+	// getDocument returns the document for a document ID.
+	funcs["getDocument"] = func(docID identifier.Identifier) (*document.D, error) {
+		d, errE := c.getDocument(ctx, docID)
+		if errE != nil && errors.Is(errE, store.ErrValueNotFound) {
+			return nil, nil
+		}
+		return d, errE
+	}
+	// bestIdentifier returns the best identifier claim value for a property ID.
+	funcs["bestIdentifier"] = func(propID identifier.Identifier, doc *document.D) (string, error) {
+		if doc == nil {
+			return "", nil
+		}
+		ic := document.GetBestClaimOfType[document.IdentifierClaim](doc, propID)
+		if ic == nil {
+			return "", nil
+		}
+		return ic.Value, nil
+	}
+	// bestTimeString returns the display string of the best time claim for a property ID.
+	funcs["bestTimeString"] = func(propID identifier.Identifier, doc *document.D) (string, error) {
+		if doc == nil {
+			return "", nil
+		}
+		tc := document.GetBestClaimOfType[document.TimeClaim](doc, propID)
+		if tc == nil {
+			return "", nil
+		}
+		return tc.Time.String(), nil
+	}
+	return funcs
 }
 
 // namingStrings returns all naming display strings per language for a document.
