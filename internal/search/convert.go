@@ -681,7 +681,7 @@ func (c *Converter) displayLabelTemplate(ctx context.Context, doc *document.D) (
 	}
 
 	if len(byLang) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	// For each supported language, find the best template using the fallback chain.
@@ -711,7 +711,7 @@ func (c *Converter) displayLabelTemplate(ctx context.Context, doc *document.D) (
 	}
 
 	if len(result) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	return result, nil
