@@ -57,6 +57,9 @@ watch(
       console.error("ClaimValueId.watchEffect", err)
     }
   },
+  {
+    immediate: true,
+  },
 )
 
 // Construct the URL from the template or fall back to the identifier value itself if it looks like a URL.
