@@ -139,7 +139,7 @@ type FieldsWithValuesOnNonRef struct {
 }
 
 type ValuesOnValueStruct struct {
-	Value core.Ref `json:"value" value:"" values:"test.example.com,FOO"`
+	Value core.Ref `json:"value"                 value:"" values:"test.example.com,FOO"`
 	Name  string   `json:"name"  property:"NAME"`
 }
 
@@ -148,7 +148,7 @@ type FieldsWithValuesOnValue struct {
 }
 
 type ValuesOnNonRefValueStruct struct {
-	Value string `json:"value" value:"" values:"test.example.com,FOO"`
+	Value string `json:"value"                 value:"" values:"test.example.com,FOO"`
 	Name  string `json:"name"  property:"NAME"`
 }
 
@@ -157,8 +157,8 @@ type FieldsWithValuesOnNonRefValue struct {
 }
 
 type InverseOnValueStruct struct {
-	Value core.Ref `json:"value" value:"" inverseProperty:"NAME"`
-	Name  string   `json:"name"  property:"NAME"`
+	Value core.Ref `inverseProperty:"NAME" json:"value"                 value:""`
+	Name  string   `                       json:"name"  property:"NAME"`
 }
 
 type FieldsWithInverseOnValue struct {
@@ -166,7 +166,7 @@ type FieldsWithInverseOnValue struct {
 }
 
 type SectionOnValueStruct struct {
-	Value string `json:"value" value:"" section:"my-section"`
+	Value string `json:"value"                 section:"my-section" value:""`
 	Name  string `json:"name"  property:"NAME"`
 }
 
@@ -175,8 +175,8 @@ type FieldsWithSectionOnValue struct {
 }
 
 type OrderOnValueStruct struct {
-	Value string `json:"value" value:"" order:"5"`
-	Name  string `json:"name"  property:"NAME"`
+	Value string `json:"value" order:"5"                 value:""`
+	Name  string `json:"name"            property:"NAME"`
 }
 
 type FieldsWithOrderOnValue struct {
