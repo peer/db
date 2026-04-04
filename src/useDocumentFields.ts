@@ -1,6 +1,5 @@
 import type { DeepReadonly, Ref } from "vue"
 
-import type { D } from "@/document"
 import type { FieldsData } from "@/fields"
 
 import { computed, onBeforeUnmount, ref, watch } from "vue"
@@ -8,7 +7,7 @@ import { useRouter } from "vue-router"
 
 import { getURL } from "@/api"
 import { INSTANCE_OF, SUBCLASS_OF } from "@/core"
-import { D as DocClass, getClaimsOfTypeWithConfidence } from "@/document"
+import { D, getClaimsOfTypeWithConfidence } from "@/document"
 import { extractFieldsFromClaims, mergeFields } from "@/fields"
 
 // useDocumentFields resolves the merged field definitions for a document by walking its
@@ -28,13 +27,13 @@ export function useDocumentFields(doc: Ref<DeepReadonly<D> | null | undefined>):
   const classTabId = ref("")
   const initialized = ref(false)
 
-  async function fetchClassDocument(classId: string): Promise<DocClass | null> {
+  async function fetchClassDocument(classId: string): Promise<D | null> {
     try {
       const { doc: rawDoc } = await getURL<object>(router.apiResolve({ name: "DocumentGet", params: { id: classId } }).href, null, abortController.signal, null)
       if (abortController.signal.aborted) {
         return null
       }
-      return new DocClass(rawDoc)
+      return new D(rawDoc)
     } catch {
       return null
     }
