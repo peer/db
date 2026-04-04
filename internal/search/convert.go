@@ -782,11 +782,11 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 	// bestReferenceDoc follows the best reference claim for a property ID and returns the target document.
 	funcs["bestReferenceDoc"] = func(propID identifier.Identifier, doc *document.D) (*document.D, error) {
 		if doc == nil {
-			return nil, nil
+			return nil, nil //nolint:nilnil
 		}
 		rc := document.GetBestClaimOfType[document.ReferenceClaim](doc, propID)
 		if rc == nil {
-			return nil, nil
+			return nil, nil //nolint:nilnil
 		}
 		d, errE := c.getDocument(ctx, rc.To.ID)
 		if errE != nil && errors.Is(errE, store.ErrValueNotFound) {
@@ -795,7 +795,7 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 				Str("propId", propID.String()).
 				Str("referenceId", rc.To.ID.String()).
 				Msg("bestReferenceDoc: reference not found, returning nil")
-			return nil, nil
+			return nil, nil //nolint:nilnil
 		}
 		return d, errE
 	}
@@ -803,7 +803,7 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 	funcs["getDocument"] = func(docID identifier.Identifier) (*document.D, error) {
 		d, errE := c.getDocument(ctx, docID)
 		if errE != nil && errors.Is(errE, store.ErrValueNotFound) {
-			return nil, nil
+			return nil, nil //nolint:nilnil
 		}
 		return d, errE
 	}
