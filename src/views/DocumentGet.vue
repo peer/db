@@ -319,7 +319,7 @@ async function onEdit() {
                 v-for="(searchShortcut, i) of searchShortcuts"
                 :key="i"
                 class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-                ><RouterLink :to="{ name: 'SearchShortcut', query: searchShortcut.query }">{{ searchShortcut.name }}</RouterLink></Tab
+                >{{ searchShortcut.name }}</Tab
               >
               <Tab
                 class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
