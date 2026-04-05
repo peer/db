@@ -863,7 +863,7 @@ func (b *Bridge) indexCommit(
 					numActions++
 				} else {
 					// TODO: Use also information about the view so that documents are searchable by view as well.
-					searchDoc, errE := b.convertDocument(ctx, data, metadata)
+					searchDoc, errE := b.ConvertDocument(ctx, data, metadata)
 					if errE != nil {
 						errors.Details(errE)["seq"] = committed.Seq
 						errors.Details(errE)["view"] = committed.View.Name()
@@ -973,9 +973,9 @@ func diffOutgoingInverseRelations(
 	return added, removed
 }
 
-// convertDocument unmarshals data into a document.D and calls the converter's
+// ConvertDocument unmarshals data into a document.D and calls the converter's
 // FromDocument with inverse relations from metadata.
-func (b *Bridge) convertDocument(ctx context.Context, data json.RawMessage, metadata *internalStore.DocumentMetadata) (*Document, errors.E) {
+func (b *Bridge) ConvertDocument(ctx context.Context, data json.RawMessage, metadata *internalStore.DocumentMetadata) (*Document, errors.E) {
 	var doc document.D
 	errE := x.UnmarshalWithoutUnknownFields(data, &doc)
 	if errE != nil {
@@ -1180,7 +1180,7 @@ func (b *Bridge) indexDocument(ctx context.Context, docID identifier.Identifier)
 	}
 
 	// TODO: Use also information about the view so that documents are searchable by view as well.
-	searchDoc, errE := b.convertDocument(ctx, data, metadata)
+	searchDoc, errE := b.ConvertDocument(ctx, data, metadata)
 	if errE != nil {
 		return errE
 	}

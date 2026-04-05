@@ -83,6 +83,11 @@ type fieldInverseKey struct {
 
 // Converter holds preprocessed data for converting document.D to search Document.
 type Converter struct {
+	// Hooks are called in order to allow for modification of documents before they are converted.
+	Hooks []func(doc *document.D) (*document.D, errors.E)
+	// LanguageCodes is a map that maps language document ID to primary language subtag (e.g., "en").
+	LanguageCodes map[identifier.Identifier]string
+
 	// propertyDescendants maps a property ID to all its transitive sub-property IDs.
 	propertyDescendants map[identifier.Identifier][]identifier.Identifier
 	// propertyAncestors maps a property ID to all its transitive super-property IDs.
@@ -92,8 +97,6 @@ type Converter struct {
 	valueHierarchyProperties []identifier.Identifier
 	// namingProperties is the set of property IDs that are NAMING or sub-properties of NAMING.
 	namingProperties []identifier.Identifier
-	// languageCodes maps language document ID to primary language subtag (e.g., "en").
-	languageCodes map[identifier.Identifier]string
 	// inverseProperties maps a property ID to all its inverse property IDs.
 	// Both directions are stored: if X has INVERSE_PROPERTY_OF -> Y, then
 	// Y is in inverseProperties[X] and X is in inverseProperties[Y].
@@ -123,6 +126,7 @@ type Converter struct {
 // needed for language code extraction, classes contains class documents with field definitions
 // (used for field-level INVERSE_PROPERTY), languagePriority defines per-language fallback
 // order for display label resolution, and getDocument is a callback to fetch documents by ID.
+//
 // Value hierarchies (e.g., SUBCLASS_OF) are computed lazily during conversion.
 func NewConverter(
 	properties, languages, classes []*document.D,
@@ -148,13 +152,14 @@ func NewConverter(
 		}
 	}
 	c := &Converter{
+		Hooks:                    nil,
+		LanguageCodes:            nil,
 		propertyDescendants:      nil,
 		propertyAncestors:        nil,
 		valueHierarchyProperties: nil,
 		namingProperties:         nil,
 		inverseProperties:        nil,
 		fieldInverseProperties:   nil,
-		languageCodes:            nil,
 		languagePriority:         fullPriority,
 		getDocument:              getDocument,
 		documentInfoCache:        map[identifier.Identifier]documentInfo{},
@@ -297,17 +302,12 @@ func (c *Converter) buildNamingProperties() {
 	c.namingProperties = append(c.namingProperties, c.propertyDescendants[internalCore.NamingPropID]...)
 }
 
-// LanguageCodes returns the language codes map which maps language document IDs
-// to primary language subtags (e.g., "en").
-func (c *Converter) LanguageCodes() map[identifier.Identifier]string {
-	return c.languageCodes
-}
-
 // buildLanguageCodes extracts language codes from language documents.
+//
 // Only language documents (those with INSTANCE_OF -> LANGUAGE) need to be passed,
 // but the method still filters by INSTANCE_OF for safety.
 func (c *Converter) buildLanguageCodes(allDocuments []*document.D) {
-	c.languageCodes = map[identifier.Identifier]string{}
+	c.LanguageCodes = map[identifier.Identifier]string{}
 	for _, doc := range allDocuments {
 		if !isInstanceOf(doc, internalCore.LanguageClassID) {
 			continue
@@ -317,7 +317,7 @@ func (c *Converter) buildLanguageCodes(allDocuments []*document.D) {
 		for _, id := range ids {
 			code, _, _ := strings.Cut(id.Value, "-")
 			if SupportedLanguages[code] {
-				c.languageCodes[doc.ID] = code
+				c.LanguageCodes[doc.ID] = code
 			}
 		}
 	}
@@ -608,7 +608,7 @@ func (c *Converter) makeDisplayStrings(ctx context.Context, doc *document.D) (di
 				// So if we got an empty string here, we ignore it and continue searching.
 				return len(claims) > 0 && sanitizeDisplayString(claims[0].String) != ""
 			},
-			document.LowConfidence, c.languageCodes, c.languagePriority,
+			document.LowConfidence, c.LanguageCodes, c.languagePriority,
 		)
 		if len(selected) > 0 {
 			// This cannot be an empty string here because we already checked for it above.
@@ -761,7 +761,7 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 				// Here we are fine with empty strings.
 				return len(claims) > 0
 			},
-			document.LowConfidence, c.languageCodes, c.languagePriority,
+			document.LowConfidence, c.LanguageCodes, c.languagePriority,
 		)
 		if len(selected) > 0 {
 			return selected[0].String, nil
@@ -837,7 +837,7 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 // (NAME, SHORT_NAME, ALTERNATIVE_NAME, TITLE, CODE, MNEMONIC, etc.).
 func (c *Converter) namingStrings(doc *document.D) map[string][]string {
 	claimsByLang := document.GetClaimsAndLanguageOfTypeWithConfidence[document.StringClaim](
-		doc, c.namingProperties, document.LowConfidence, c.languageCodes, c.languagePriority,
+		doc, c.namingProperties, document.LowConfidence, c.LanguageCodes, c.languagePriority,
 	)
 	if len(claimsByLang) == 0 {
 		return nil
@@ -863,7 +863,7 @@ func (c *Converter) extractInLanguages(claims document.Claims) []string {
 	refs := document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](claims, internalCore.InLanguagePropID, document.LowConfidence)
 	var codes []string
 	for _, ref := range refs {
-		if code, ok := c.languageCodes[ref.To.ID]; ok && SupportedLanguages[code] {
+		if code, ok := c.LanguageCodes[ref.To.ID]; ok && SupportedLanguages[code] {
 			codes = append(codes, code)
 		}
 	}
@@ -1067,6 +1067,20 @@ func (v *convertVisitor) VisitUnknown(claim *document.UnknownClaim) (document.Vi
 func (c *Converter) FromDocument(
 	ctx context.Context, doc *document.D, inverseRelations []internalStore.InverseRelation,
 ) (*Document, errors.E) {
+	var errE errors.E
+	for i, hook := range c.Hooks {
+		doc, errE = hook(doc)
+		if errE != nil {
+			errors.Details(errE)["hook"] = i
+			return nil, errE
+		}
+		if doc == nil {
+			errE = errors.New("hook returned nil document")
+			errors.Details(errE)["hook"] = i
+			return nil, errE
+		}
+	}
+
 	v := &convertVisitor{
 		ctx:       ctx,
 		converter: c,
@@ -1076,7 +1090,8 @@ func (c *Converter) FromDocument(
 		},
 		docID: doc.ID,
 	}
-	errE := doc.Visit(v)
+
+	errE = doc.Visit(v)
 	if errE != nil {
 		return nil, errE
 	}

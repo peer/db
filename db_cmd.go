@@ -183,8 +183,7 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("reindexing")
 
 		errE = startAndWaitSite(ctx, globals.Logger, site, func(ctx context.Context) errors.E {
-			// Reset bridge progress so all commits are re-processed.
-			return site.Base.Bridge().ResetSeq(ctx)
+			return site.Base.ResetBridgeProgress(ctx)
 		})
 		if errE != nil {
 			return errE

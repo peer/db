@@ -898,8 +898,8 @@ func TestBuildLanguageCodes(t *testing.T) {
 	}
 	c.buildLanguageCodes([]*document.D{enDoc, slDoc})
 
-	assert.Equal(t, "en", c.languageCodes[testLangDocID])
-	assert.Equal(t, "sl", c.languageCodes[slID])
+	assert.Equal(t, "en", c.LanguageCodes[testLangDocID])
+	assert.Equal(t, "sl", c.LanguageCodes[slID])
 }
 
 func TestBuildLanguageCodesSubtag(t *testing.T) {
@@ -913,7 +913,7 @@ func TestBuildLanguageCodesSubtag(t *testing.T) {
 	}
 	c.buildLanguageCodes([]*document.D{langDoc})
 
-	assert.Equal(t, "en", c.languageCodes[testLangDocID])
+	assert.Equal(t, "en", c.LanguageCodes[testLangDocID])
 }
 
 func TestBuildLanguageCodesSkipsNonLanguage(t *testing.T) {
@@ -938,14 +938,14 @@ func TestBuildLanguageCodesSkipsNonLanguage(t *testing.T) {
 	}
 	c.buildLanguageCodes([]*document.D{notLang})
 
-	assert.Empty(t, c.languageCodes)
+	assert.Empty(t, c.LanguageCodes)
 }
 
 func TestExtractInLanguages(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
-		languageCodes: map[identifier.Identifier]string{
+		LanguageCodes: map[identifier.Identifier]string{
 			testLangDocID: "en",
 		},
 	}
@@ -988,7 +988,7 @@ func TestExtractInLanguagesUnsupportedLanguage(t *testing.T) {
 	// Language code is "xx" which is not in SupportedLanguages.
 	xxLangID := identifier.New()
 	c := &Converter{ //nolint:exhaustruct
-		languageCodes: map[identifier.Identifier]string{
+		LanguageCodes: map[identifier.Identifier]string{
 			xxLangID: "xx",
 		},
 	}
@@ -1012,7 +1012,7 @@ func TestExtractInLanguagesMultiple(t *testing.T) {
 	enLangID := identifier.New()
 	slLangID := identifier.New()
 	c := &Converter{ //nolint:exhaustruct
-		languageCodes: map[identifier.Identifier]string{
+		LanguageCodes: map[identifier.Identifier]string{
 			enLangID: "en",
 			slLangID: "sl",
 		},
@@ -1091,7 +1091,7 @@ func TestNamingStrings(t *testing.T) {
 
 	c := &Converter{ //nolint:exhaustruct
 		namingProperties: []identifier.Identifier{internalCore.NamingPropID},
-		languageCodes:    map[identifier.Identifier]string{},
+		LanguageCodes:    map[identifier.Identifier]string{},
 	}
 
 	doc := makeNamingDoc(testDocID, "Test Document")
@@ -1105,7 +1105,7 @@ func TestNamingStringsEmpty(t *testing.T) {
 
 	c := &Converter{ //nolint:exhaustruct
 		namingProperties: []identifier.Identifier{internalCore.NamingPropID},
-		languageCodes:    map[identifier.Identifier]string{},
+		LanguageCodes:    map[identifier.Identifier]string{},
 	}
 
 	// Document with no naming strings.
@@ -1121,7 +1121,7 @@ func TestNamingStringsSorted(t *testing.T) {
 
 	c := &Converter{ //nolint:exhaustruct
 		namingProperties: []identifier.Identifier{internalCore.NamingPropID},
-		languageCodes:    map[identifier.Identifier]string{},
+		LanguageCodes:    map[identifier.Identifier]string{},
 	}
 
 	// Two naming strings with different confidences.
@@ -1154,7 +1154,7 @@ func TestMakeDisplayStrings(t *testing.T) {
 
 	c := &Converter{ //nolint:exhaustruct
 		namingProperties: []identifier.Identifier{internalCore.NamingPropID},
-		languageCodes:    map[identifier.Identifier]string{},
+		LanguageCodes:    map[identifier.Identifier]string{},
 	}
 
 	// Two naming strings: first becomes Display, Naming contains all strings.
@@ -1189,7 +1189,7 @@ func TestMakeDisplayStringsSanitizesNullBytes(t *testing.T) {
 
 	c := &Converter{ //nolint:exhaustruct
 		namingProperties: []identifier.Identifier{internalCore.NamingPropID},
-		languageCodes:    map[identifier.Identifier]string{},
+		LanguageCodes:    map[identifier.Identifier]string{},
 	}
 
 	// Naming string with null byte should have it stripped.
@@ -1253,7 +1253,7 @@ func TestNewConverter(t *testing.T) {
 
 	assert.Contains(t, c.namingProperties, internalCore.NamingPropID)
 	assert.Contains(t, c.namingProperties, testPropID)
-	assert.Equal(t, "en", c.languageCodes[testLangDocID])
+	assert.Equal(t, "en", c.LanguageCodes[testLangDocID])
 	assert.NotNil(t, c.documentInfoCache)
 }
 
@@ -1353,7 +1353,7 @@ func TestConvertStringWithLanguage(t *testing.T) {
 		testPropID: propDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
-	c.languageCodes = map[identifier.Identifier]string{
+	c.LanguageCodes = map[identifier.Identifier]string{
 		testLangDocID: "en",
 	}
 
@@ -1409,7 +1409,7 @@ func TestConvertHTMLWithLanguage(t *testing.T) {
 		testPropID: propDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
-	c.languageCodes = map[identifier.Identifier]string{
+	c.LanguageCodes = map[identifier.Identifier]string{
 		testLangDocID: "sl",
 	}
 
@@ -4048,7 +4048,7 @@ func TestMakeDisplayStringsTemplateRelationTraversal(t *testing.T) {
 
 	c := newTestConverter(t, nil, nil, extraDocs)
 	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
-	c.languageCodes = map[identifier.Identifier]string{}
+	c.LanguageCodes = map[identifier.Identifier]string{}
 
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
@@ -4229,7 +4229,7 @@ func TestTemplateNilDoc(t *testing.T) {
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
 	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
-	c.languageCodes = map[identifier.Identifier]string{}
+	c.LanguageCodes = map[identifier.Identifier]string{}
 
 	// Template tries to follow a non-existent relation.
 	// bestReferenceDoc returns nil, bestAmountString handles nil doc gracefully.
@@ -4322,7 +4322,7 @@ func TestTemplateGetDocumentByMnemonic(t *testing.T) {
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
 	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
-	c.languageCodes = map[identifier.Identifier]string{}
+	c.LanguageCodes = map[identifier.Identifier]string{}
 
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
@@ -6066,4 +6066,237 @@ func TestEncodeFieldPath(t *testing.T) {
 
 	id2 := identifier.New()
 	assert.Equal(t, id1.String()+"/"+id2.String(), encodeFieldPath([]identifier.Identifier{id1, id2}))
+}
+
+func TestFromDocumentHookModifies(t *testing.T) {
+	t.Parallel()
+
+	propDoc := makeNamingDoc(testPropID, "My Prop")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID: propDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	// Hook adds a string claim to the document.
+	c.Hooks = []func(doc *document.D) (*document.D, errors.E){
+		func(doc *document.D) (*document.D, errors.E) {
+			if doc.Claims == nil {
+				doc.Claims = &document.ClaimTypes{}
+			}
+			doc.Claims.String = append(doc.Claims.String, document.StringClaim{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: testPropID},
+				String:    "injected",
+			})
+			return doc, nil
+		},
+	}
+
+	ctx := t.Context()
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+	}
+
+	result, errE := c.FromDocument(ctx, doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, testDocID, result.ID)
+	assert.Len(t, result.Claims.String, 1)
+	assert.Equal(t, "injected", result.Claims.String[0].String["und"])
+}
+
+func TestFromDocumentHookError(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
+
+	c.Hooks = []func(doc *document.D) (*document.D, errors.E){
+		func(doc *document.D) (*document.D, errors.E) {
+			return nil, errors.New("hook failed")
+		},
+	}
+
+	ctx := t.Context()
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+	}
+
+	_, errE := c.FromDocument(ctx, doc, nil)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "hook failed")
+	assert.Equal(t, 0, errors.AllDetails(errE)["hook"])
+}
+
+func TestFromDocumentHookReturnsNil(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
+
+	c.Hooks = []func(doc *document.D) (*document.D, errors.E){
+		func(_ *document.D) (*document.D, errors.E) {
+			return nil, nil //nolint:nilnil
+		},
+	}
+
+	ctx := t.Context()
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+	}
+
+	_, errE := c.FromDocument(ctx, doc, nil)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "hook returned nil document")
+	assert.Equal(t, 0, errors.AllDetails(errE)["hook"])
+}
+
+func TestFromDocumentMultipleHooks(t *testing.T) {
+	t.Parallel()
+
+	propDoc := makeNamingDoc(testPropID, "My Prop")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID: propDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	// First hook adds a string claim.
+	// Second hook adds another string claim.
+	c.Hooks = []func(doc *document.D) (*document.D, errors.E){
+		func(doc *document.D) (*document.D, errors.E) {
+			if doc.Claims == nil {
+				doc.Claims = &document.ClaimTypes{}
+			}
+			doc.Claims.String = append(doc.Claims.String, document.StringClaim{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: testPropID},
+				String:    "first",
+			})
+			return doc, nil
+		},
+		func(doc *document.D) (*document.D, errors.E) {
+			doc.Claims.String = append(doc.Claims.String, document.StringClaim{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: testPropID},
+				String:    "second",
+			})
+			return doc, nil
+		},
+	}
+
+	ctx := t.Context()
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+	}
+
+	result, errE := c.FromDocument(ctx, doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Len(t, result.Claims.String, 2)
+}
+
+func TestFromDocumentHookReplaces(t *testing.T) {
+	t.Parallel()
+
+	propDoc := makeNamingDoc(testPropID, "My Prop")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID: propDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	replacementID := identifier.New()
+
+	// Hook replaces the entire document.
+	c.Hooks = []func(doc *document.D) (*document.D, errors.E){
+		func(_ *document.D) (*document.D, errors.E) {
+			return &document.D{
+				CoreDocument: document.CoreDocument{ID: replacementID}, //nolint:exhaustruct
+				Claims: &document.ClaimTypes{
+					Identifier: []document.IdentifierClaim{
+						{
+							CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+							Prop:      document.Reference{ID: testPropID},
+							Value:     "REPLACED",
+						},
+					},
+				},
+			}, nil
+		},
+	}
+
+	ctx := t.Context()
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+					String:    "original",
+				},
+			},
+		},
+	}
+
+	result, errE := c.FromDocument(ctx, doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// Result should use the replacement document.
+	assert.Equal(t, replacementID, result.ID)
+	assert.Len(t, result.Claims.Identifier, 1)
+	assert.Equal(t, "REPLACED", result.Claims.Identifier[0].Value)
+	// Original string claims should not be present.
+	assert.Empty(t, result.Claims.String)
+}
+
+func TestFromDocumentMultipleHooksErrorInSecond(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
+
+	// First hook succeeds, second fails.
+	c.Hooks = []func(doc *document.D) (*document.D, errors.E){
+		func(doc *document.D) (*document.D, errors.E) {
+			return doc, nil
+		},
+		func(_ *document.D) (*document.D, errors.E) {
+			return nil, errors.New("second hook failed")
+		},
+	}
+
+	ctx := t.Context()
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+	}
+
+	_, errE := c.FromDocument(ctx, doc, nil)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "second hook failed")
+	// Hook index should be 1 (the second hook).
+	assert.Equal(t, 1, errors.AllDetails(errE)["hook"])
+}
+
+func TestFromDocumentNilHooks(t *testing.T) {
+	t.Parallel()
+
+	propDoc := makeNamingDoc(testPropID, "My Prop")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID: propDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+	// Hooks is nil by default, confirm it works.
+
+	ctx := t.Context()
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+					String:    "hello",
+				},
+			},
+		},
+	}
+
+	result, errE := c.FromDocument(ctx, doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, testDocID, result.ID)
+	assert.Len(t, result.Claims.String, 1)
 }

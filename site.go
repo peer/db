@@ -219,7 +219,7 @@ func (s *Site) validateDefaultLanguage() errors.E {
 // This should be run before calling service.RouteWith because it freezes site's context.json
 // as static file and updating language codes later means they are not included in context.json.
 func (s *Site) updateLanguageCodes(_ context.Context) errors.E {
-	s.LanguageCodes = s.Base.Bridge().Converter().LanguageCodes()
+	s.LanguageCodes = s.Base.LanguageCodes()
 
 	return nil
 }
