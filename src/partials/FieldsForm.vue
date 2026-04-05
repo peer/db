@@ -25,7 +25,7 @@ import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 
 const props = withDefaults(
   defineProps<{
-    fieldsData: FieldsData
+    fieldsData: DeepReadonly<FieldsData>
     claims: DeepReadonly<ClaimTypes>
     base: DeepReadonly<string[]>
     session: string
@@ -70,7 +70,7 @@ let emptySlotCounter = 0
 // Track child FieldsForm invalid states, keyed by parent claim ID.
 const childInvalid = reactive<Record<string, boolean>>({})
 
-function sortedByOrder<T extends { orderInList: number }>(items: T[]): T[] {
+function sortedByOrder<T extends { orderInList: number }>(items: readonly T[]): T[] {
   return [...items].sort((a, b) => a.orderInList - b.orderInList)
 }
 

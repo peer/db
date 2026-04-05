@@ -9,11 +9,13 @@ import { useI18n } from "vue-i18n"
 
 import WithDocument from "@/components/WithDocument.vue"
 import { DESCRIPTION, INSTANCE_OF, SUBCLASS_OF } from "@/core"
-import { ClaimTypes, getBestClaimOfType, getClaimsOfTypeWithConfidence } from "@/document"
+import { getBestClaimOfType, getClaimsOfTypeWithConfidence } from "@/document"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import FieldsView from "@/partials/FieldsView.vue"
+import { injectProgress } from "@/progress"
 import { getSearchResultComponents } from "@/registry/search-result"
 import { useDocumentFields } from "@/useDocumentFields"
+import { useParentClasses } from "@/useParentClasses"
 import { encodeQuery, loadingLongWidth, loadingWidth } from "@/utils"
 
 defineProps<{
@@ -23,8 +25,15 @@ defineProps<{
 
 const { t } = useI18n({ useScope: "global" })
 
+const el = useTemplateRef<HTMLElement>("el")
+
 const abortController = new AbortController()
-onBeforeUnmount(() => abortController.abort())
+
+onBeforeUnmount(() => {
+  abortController.abort()
+})
+
+const progress = injectProgress()
 
 const WithDocumentD = WithDocument<D>
 const withDocument = useTemplateRef<ComponentExposed<typeof WithDocumentD>>("withDocument")
@@ -45,7 +54,8 @@ const customResultComponent = computed(() => {
 
 // Resolve field definitions for this document.
 const docRef = toRef(() => withDocument.value?.doc ?? null)
-const { fieldsData } = useDocumentFields(docRef)
+const { classDocs, instanceOfClassIds } = useParentClasses(docRef, el, progress)
+const { fieldsData } = useDocumentFields(classDocs, instanceOfClassIds)
 
 // TODO: Do not hard-code properties?
 const description = computed(() => {
@@ -60,9 +70,9 @@ const tags = computed(() => {
   ]
 })
 
-const previewFiles = computed(() => {
+const previewFiles = computed<string[]>(() => {
   // TODO: Return image files.
-  return [] as string[]
+  return []
 })
 
 const rowsCount = computed(() => {
@@ -106,7 +116,12 @@ const rowSpan = computed(() => {
 </script>
 
 <template>
-  <div :id="`result-${result.id}`" class="pd-searchresult flex flex-col gap-y-2 rounded-sm border border-gray-200 bg-white p-4 shadow-sm" :data-url="withDocument?.url">
+  <div
+    :id="`result-${result.id}`"
+    ref="el"
+    class="pd-searchresult flex flex-col gap-y-2 rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
+    :data-url="withDocument?.url"
+  >
     <WithDocumentD :id="result.id" ref="withDocument" name="DocumentGet">
       <template #default="{ doc: resultDoc }">
         <component :is="customResultComponent" v-if="customResultComponent" :doc="resultDoc" :search-session-id="searchSessionId" />
@@ -130,7 +145,7 @@ const rowSpan = computed(() => {
               ><DisplayLabel :doc="resultDoc"
             /></RouterLink>
           </h2>
-          <FieldsView :fields-data="fieldsData" :claims="resultDoc.claims as ClaimTypes" />
+          <FieldsView :fields-data="fieldsData" :claims="resultDoc.claims" />
         </template>
         <div v-else class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
           <h2 class="text-xl leading-none">

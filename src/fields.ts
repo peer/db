@@ -59,12 +59,12 @@ export interface FieldData {
   // Maximum number of values (Infinity means unlimited).
   maxCardinality: number
   // Nested sub-fields.
-  subFields: FieldData[]
+  subFields: readonly FieldData[]
   // Path from the root field to this field, using property IDs.
   // Top-level fields have a single-element path. Sub-fields have
   // [parentPropertyId, ..., thisPropertyId]. Used as a unique key
   // to distinguish sub-fields with the same propertyId under different parents.
-  path: string[]
+  path: readonly string[]
 }
 
 // fieldKey returns a unique string key for a field, derived from its path.
@@ -79,15 +79,15 @@ export interface SectionData {
   // Numeric order for sorting.
   orderInList: number
   // Fields within this section.
-  fields: FieldData[]
+  fields: readonly FieldData[]
 }
 
 // FieldsData represents all fields and sections.
 export interface FieldsData {
   // Named sections containing fields.
-  sections: SectionData[]
+  sections: readonly SectionData[]
   // Top-level fields not in any section.
-  fields: FieldData[]
+  fields: readonly FieldData[]
 }
 
 // extractFieldData extracts FieldData from claims. parentPath is the path from the root.
@@ -220,10 +220,12 @@ export function mergeFields(allFields: FieldsData[]): FieldsData {
       }
       if (newFields.length > 0) {
         // Check if we already have a section with the same ID.
-        const existingSection = mergedSections.find((s) => s.id === section.id)
-        if (existingSection) {
-          existingSection.fields.push(...newFields)
-          existingSection.fields.sort((a, b) => a.orderInList - b.orderInList)
+        const existingIdx = mergedSections.findIndex((s) => s.id === section.id)
+        if (existingIdx >= 0) {
+          mergedSections[existingIdx] = {
+            ...mergedSections[existingIdx],
+            fields: [...mergedSections[existingIdx].fields, ...newFields].sort((a, b) => a.orderInList - b.orderInList),
+          }
         } else {
           mergedSections.push({ ...section, fields: newFields })
         }

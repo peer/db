@@ -17,7 +17,7 @@ import ButtonLink from "@/components/ButtonLink.vue"
 import InputTextLink from "@/components/InputTextLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import { INSTANCE_OF } from "@/core"
-import { ClaimTypes, getClaimsOfTypeWithConfidence } from "@/document"
+import { getClaimsOfTypeWithConfidence } from "@/document"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import FieldsView from "@/partials/FieldsView.vue"
@@ -25,10 +25,11 @@ import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
-import { injectProgress } from "@/progress"
+import { injectMainProgress, localProgress } from "@/progress"
 import { getDocumentComponents } from "@/registry/document"
 import { useSearch, useSearchSession } from "@/search"
 import { useDocumentFields } from "@/useDocumentFields"
+import { useParentClasses } from "@/useParentClasses"
 import { encodeQuery, loadingLongWidth } from "@/utils"
 
 const props = defineProps<{
@@ -41,8 +42,9 @@ const router = useRouter()
 
 const el = useTemplateRef<HTMLElement>("el")
 
-const progress = injectProgress()
-const editProgress = injectProgress()
+const mainProgress = injectMainProgress()
+const progress = localProgress(mainProgress)
+const editProgress = localProgress(mainProgress)
 
 const abortController = new AbortController()
 
@@ -55,7 +57,8 @@ const withDocument = useTemplateRef<ComponentExposed<typeof WithDocumentD>>("wit
 
 // Resolve field definitions for this document's class(es).
 const docRef = toRef(() => withDocument.value?.doc ?? null)
-const { fieldsData: mergedFieldsData, classTabId, initialized: fieldsInitialized } = useDocumentFields(docRef)
+const { classDocs, instanceOfClassIds, initialized: classesInitialized } = useParentClasses(docRef, el, progress)
+const { fieldsData: mergedFieldsData, classTabId } = useDocumentFields(classDocs, instanceOfClassIds)
 
 const { searchSession, error: searchSessionError } = useSearchSession(
   toRef(() => {
@@ -220,7 +223,7 @@ async function onEdit() {
     <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <WithDocumentD :id="id" ref="withDocument" name="DocumentGet">
         <template #default="{ doc }">
-          <div v-if="!fieldsInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+          <div v-if="!classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
           <!--
             TODO: Fix how hover interacts with focused tab.
             See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
@@ -248,7 +251,7 @@ async function onEdit() {
               <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
               <!-- Fields view tab (first, if available). -->
               <TabPanel v-if="classTabId && mergedFieldsData" tabindex="-1">
-                <FieldsView :fields-data="mergedFieldsData" :claims="doc.claims as ClaimTypes" sections />
+                <FieldsView :fields-data="mergedFieldsData" :claims="doc.claims" sections />
               </TabPanel>
               <TabPanel v-for="documentTab in documentTabs" :key="documentTab.id" tabindex="-1">
                 <component :is="documentTab.component" :doc="doc" />

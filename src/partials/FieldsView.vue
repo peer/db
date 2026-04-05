@@ -15,7 +15,7 @@ import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 
 const props = withDefaults(
   defineProps<{
-    fieldsData: FieldsData
+    fieldsData: DeepReadonly<FieldsData>
     claims: DeepReadonly<ClaimTypes>
     sections?: boolean
   }>(),
@@ -28,13 +28,16 @@ const { locale } = useI18n({ useScope: "global" })
 
 // Ensure claims is a proper ClaimTypes instance (props may receive raw JSON from WithDocument).
 const normalizedClaims = computed(() => {
+  if (!props.claims) {
+    return new ClaimTypes({})
+  }
   if (props.claims instanceof ClaimTypes) {
     return props.claims
   }
   return new ClaimTypes(props.claims as unknown as Record<string, object[]>)
 })
 
-function sortedByOrder<T extends { orderInList: number }>(items: T[]): T[] {
+function sortedByOrder<T extends { orderInList: number }>(items: readonly T[]): T[] {
   return [...items].sort((a, b) => a.orderInList - b.orderInList)
 }
 

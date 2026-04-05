@@ -5,7 +5,7 @@ import type { DocumentBeginMetadata, DocumentEditStatus, DocumentEndEditResponse
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { CheckIcon } from "@heroicons/vue/20/solid"
-import { onBeforeUnmount, provide, readonly, ref, toRef, watch } from "vue"
+import { onBeforeUnmount, provide, readonly, ref, toRef, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
@@ -14,7 +14,7 @@ import Button from "@/components/Button.vue"
 import InputText from "@/components/InputText.vue"
 import InputTime from "@/components/InputTime.vue"
 import siteContext from "@/context"
-import { ClaimTypes, D, HighConfidence } from "@/document"
+import { D, HighConfidence } from "@/document"
 import { changeFrom, RemoveClaimChange } from "@/document/patch"
 import { getNextChangeNumberKey, registerForFlushKey, saveChangeKey, unregisterForFlushKey } from "@/fields"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
@@ -23,8 +23,9 @@ import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
-import { injectProgress } from "@/progress"
+import { injectMainProgress, localProgress } from "@/progress"
 import { useDocumentFields } from "@/useDocumentFields"
+import { useParentClasses } from "@/useParentClasses"
 import { encodeQuery, makeAddClaimChange } from "@/utils"
 
 const props = defineProps<{
@@ -61,7 +62,11 @@ const claimToTimePrecision = ref<TimePrecision>("y")
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
-const progress = injectProgress()
+const mainProgress = injectMainProgress()
+const progress = localProgress(mainProgress)
+const editProgress = localProgress(mainProgress)
+
+const el = useTemplateRef<HTMLElement>("el")
 
 let abortController = new AbortController()
 
@@ -112,7 +117,8 @@ const pollInterval = 1000
 
 // Resolve field definitions for the document's class(es).
 const docRef = toRef(() => doc.value ?? null)
-const { fieldsData: mergedFieldsData, classTabId, initialized: mergedFieldsInitialized } = useDocumentFields(docRef)
+const { classDocs, instanceOfClassIds, initialized: classesInitialized } = useParentClasses(docRef, el, progress)
+const { fieldsData: mergedFieldsData, classTabId } = useDocumentFields(classDocs, instanceOfClassIds)
 
 let running = false
 async function loadChanges() {
@@ -220,9 +226,6 @@ watch(
     _doc.value = null
     committedChange = 0
     nextChangeToSubmit = 1
-    classTabId.value = ""
-    mergedFieldsData.value = null
-    mergedFieldsInitialized.value = false
     fieldsFormInvalid.value = false
 
     loadAndSubscribe().catch((error) => {
@@ -276,7 +279,7 @@ async function onSave() {
   abortController.abort()
   abortController = new AbortController()
 
-  progress.value += 1
+  editProgress.value += 1
   try {
     await postJSON<DocumentEndEditResponse>(
       router.apiResolve({
@@ -287,7 +290,7 @@ async function onSave() {
       }).href,
       {},
       abortController.signal,
-      progress,
+      editProgress,
     )
     if (abortController.signal.aborted) {
       return
@@ -336,7 +339,7 @@ async function onSave() {
     // TODO: Show notification with error.
     console.error("DocumentEdit.onSave", err)
   } finally {
-    progress.value -= 1
+    editProgress.value -= 1
   }
 }
 
@@ -472,7 +475,7 @@ function canSave(): boolean {
       <template #end>
         <Button
           v-if="doc && (siteContext.features.editButtons || (classTabId && mergedFieldsData))"
-          :progress="progress"
+          :progress="editProgress"
           type="button"
           primary
           class="px-3.5"
@@ -485,7 +488,7 @@ function canSave(): boolean {
       </template>
     </NavBar>
   </Teleport>
-  <div class="pd-documentedit mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
+  <div ref="el" class="pd-documentedit mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
     <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <template v-if="doc && (siteContext.features.editButtons || (classTabId && mergedFieldsData))">
         <!--
@@ -513,10 +516,10 @@ function canSave(): boolean {
               <FieldsForm
                 v-model:invalid="fieldsFormInvalid"
                 :fields-data="mergedFieldsData"
-                :claims="doc!.claims ?? new ClaimTypes({})"
-                :base="doc!.base"
+                :claims="doc.claims"
+                :base="doc.base"
                 :session="session"
-                :progress="progress"
+                :progress="editProgress"
               />
             </TabPanel>
             <!-- "All properties" tab panel. -->
@@ -671,12 +674,12 @@ function canSave(): boolean {
           </TabPanels>
         </TabGroup>
         <div class="mt-4 flex flex-row justify-end">
-          <Button id="documentedit-button-save" type="submit" primary :disabled="!canSave()" :progress="progress" @click.prevent="onSave">{{
+          <Button id="documentedit-button-save" type="submit" primary :disabled="!canSave()" :progress="editProgress" @click.prevent="onSave">{{
             t("common.buttons.save")
           }}</Button>
         </div>
       </template>
-      <div v-else-if="!mergedFieldsInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+      <div v-else-if="!classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
       <div v-else-if="doc" class="my-1 text-center sm:my-4">{{ t("common.status.editingNotAllowed") }}</div>
       <div v-else class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
     </div>
