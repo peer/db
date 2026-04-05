@@ -24,6 +24,10 @@ import (
 const (
 	// MaxResultsCount is the maximum number of search results that can be returned.
 	MaxResultsCount = 1000
+
+	// displayBoost is the boost factor for display and naming fields in text search queries.
+	// The value is multiplied with the field's relevance score.
+	displayBoost = "^0.2"
 )
 
 // ViewType represents the type of search view.
@@ -338,14 +342,53 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 	}
 	// Search string and HTML claims across all supported languages.
 	// Languages are sorted for deterministic query generation.
+	langs := slices.Sorted(maps.Keys(internalSearch.SupportedLanguages))
 	for _, f := range []field{
 		{"claims.string", "string"},
 		{"claims.html", "html"},
 	} {
-		for _, lang := range slices.Sorted(maps.Keys(internalSearch.SupportedLanguages)) {
+		for _, lang := range langs {
 			q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(f.Prefix + "." + f.Field + "." + lang).DefaultOperator(defaultOperator)
 			shoulds = append(shoulds, esdsl.NewNestedQuery(q).Path(f.Prefix))
 		}
+	}
+	// Search display and naming fields across all claim types with reduced boost.
+	for _, claimType := range []string{"amount", "has", "html", "id", "link", "none", "ref", "string", "time", "unknown"} {
+		prefix := "claims." + claimType
+		var fields []string
+		// propDisplay and propNaming exist on all claim types.
+		for _, fieldName := range []string{"propDisplay", "propNaming"} {
+			for _, lang := range langs {
+				fields = append(fields, prefix+"."+fieldName+"."+lang+displayBoost)
+			}
+		}
+		// Type-specific display/naming fields.
+		switch claimType {
+		case "ref":
+			for _, fieldName := range []string{"toDisplay", "toNaming"} {
+				for _, lang := range langs {
+					fields = append(fields, prefix+"."+fieldName+"."+lang+displayBoost)
+				}
+			}
+		case "amount", "time":
+			fields = append(fields, prefix+".fromDisplay"+displayBoost, prefix+".toDisplay"+displayBoost)
+		}
+		q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(fields...).DefaultOperator(defaultOperator)
+		shoulds = append(shoulds, esdsl.NewNestedQuery(q).Path(prefix))
+	}
+	// Display and naming fields in nested ref claims within ref and has claim types.
+	for _, claimType := range []string{"has", "ref"} {
+		outerPrefix := "claims." + claimType
+		innerPrefix := outerPrefix + ".ref"
+		var fields []string
+		for _, fieldName := range []string{"propDisplay", "propNaming", "toDisplay", "toNaming"} {
+			for _, lang := range langs {
+				fields = append(fields, innerPrefix+"."+fieldName+"."+lang+displayBoost)
+			}
+		}
+		innerQ := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(fields...).DefaultOperator(defaultOperator)
+		innerNested := esdsl.NewNestedQuery(innerQ).Path(innerPrefix)
+		shoulds = append(shoulds, esdsl.NewNestedQuery(innerNested).Path(outerPrefix))
 	}
 
 	return esdsl.NewBoolQuery().Should(shoulds...)
