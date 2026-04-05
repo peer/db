@@ -218,7 +218,13 @@ function serverToClientSearchSession(searchSession: ServerSearchSession): Client
   return s
 }
 
-export async function createSearchSession(router: Router, createSearchSessionRequest: CreateSearchSessionRequest, abortSignal: AbortSignal, progress: Ref<number>) {
+export async function createSearchSession(
+  router: Router,
+  createSearchSessionRequest: CreateSearchSessionRequest,
+  abortSignal: AbortSignal,
+  progress: Ref<number>,
+  replace: boolean,
+) {
   const payload: {
     view?: ViewType
     query: string
@@ -243,12 +249,21 @@ export async function createSearchSession(router: Router, createSearchSessionReq
   if (abortSignal.aborted) {
     return
   }
-  await router.push({
-    name: "SearchGet",
-    params: {
-      id: sessionRef.id,
-    },
-  })
+  if (replace) {
+    await router.replace({
+      name: "SearchGet",
+      params: {
+        id: sessionRef.id,
+      },
+    })
+  } else {
+    await router.push({
+      name: "SearchGet",
+      params: {
+        id: sessionRef.id,
+      },
+    })
+  }
 }
 
 export async function updateSearchSession(

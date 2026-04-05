@@ -54,6 +54,7 @@ onMounted(async () => {
       },
       abortController.signal,
       progress,
+      true,
     )
   } catch (err) {
     if (abortController.signal.aborted) {
