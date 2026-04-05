@@ -183,7 +183,7 @@ func (s *Service) DocumentCreatePostAPI(w http.ResponseWriter, req *http.Request
 	site := waf.MustGetSite[*Site](ctx)
 
 	// TODO: Support configuring base and not just use the domain.
-	base := []string{site.Domain, identifier.New().String()}
+	base := []string{site.Domain, "DOCUMENT", identifier.New().String()}
 	id := identifier.From(base...)
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{
