@@ -13,42 +13,62 @@ import (
 
 // GenerateCoreDocuments generates and transforms all core documents
 // (classes, properties, vocabularies) along with any additional documents.
-func GenerateCoreDocuments(ctx context.Context, additional []any) ([]any, []*document.D, errors.E) {
+func GenerateCoreDocuments(ctx context.Context, additional func(context.Context, []any) ([]any, errors.E)) ([]any, []*document.D, errors.E) {
 	documents := []any{}
 
-	docs, errE := core.Classes()
+	// Properties are collected first so that mnemonics can be built for
+	// Classes, which needs them for field descriptions.
+	docs, errE := core.Properties()
 	if errE != nil {
 		return nil, nil, errE
 	}
 	documents = append(documents, docs...)
-
-	if ctx.Err() != nil {
-		return nil, nil, errors.WithStack(ctx.Err())
-	}
-
-	docs, errE = core.Properties()
-	if errE != nil {
-		return nil, nil, errE
-	}
-	documents = append(documents, docs...)
-
-	if ctx.Err() != nil {
-		return nil, nil, errors.WithStack(ctx.Err())
-	}
-
-	docs, errE = core.Vocabularies()
-	if errE != nil {
-		return nil, nil, errE
-	}
-	documents = append(documents, docs...)
-
-	documents = append(documents, additional...)
 
 	if ctx.Err() != nil {
 		return nil, nil, errors.WithStack(ctx.Err())
 	}
 
 	mnemonics, errE := transform.Mnemonics(ctx, documents)
+	if errE != nil {
+		return nil, nil, errE
+	}
+
+	if ctx.Err() != nil {
+		return nil, nil, errors.WithStack(ctx.Err())
+	}
+
+	// Now we can add classes.
+	docs, errE = core.Classes(mnemonics)
+	if errE != nil {
+		return nil, nil, errE
+	}
+	documents = append(documents, docs...)
+
+	if ctx.Err() != nil {
+		return nil, nil, errors.WithStack(ctx.Err())
+	}
+
+	// Now add the rest of documents.
+	docs, errE = core.Vocabularies()
+	if errE != nil {
+		return nil, nil, errE
+	}
+	documents = append(documents, docs...)
+
+	if ctx.Err() != nil {
+		return nil, nil, errors.WithStack(ctx.Err())
+	}
+
+	if additional != nil {
+		docs, errE = additional(ctx, documents)
+		if errE != nil {
+			return nil, nil, errE
+		}
+		documents = append(documents, docs...)
+	}
+
+	// Rebuild mnemonics with all documents.
+	mnemonics, errE = transform.Mnemonics(ctx, documents)
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -71,7 +91,9 @@ func GenerateCoreDocuments(ctx context.Context, additional []any) ([]any, []*doc
 // Optional count and size counters can be provided to track ES indexing progress.
 //
 // You have to call this or Start for each base after Init.
-func (b *B) PopulateAndStart(ctx context.Context, documents []*document.D, progress func(doc *document.D), count, size *x.Counter) errors.E {
+func (b *B) PopulateAndStart(
+	ctx context.Context, documents []*document.D, progress func(doc *document.D), beforeWait func(ctx context.Context) errors.E, count, size *x.Counter,
+) errors.E {
 	for _, doc := range documents {
 		if ctx.Err() != nil {
 			return errors.WithStack(ctx.Err())
@@ -94,6 +116,13 @@ func (b *B) PopulateAndStart(ctx context.Context, documents []*document.D, progr
 	errE := b.Start(ctx, documents)
 	if errE != nil {
 		return errE
+	}
+
+	if beforeWait != nil {
+		errE = beforeWait(ctx)
+		if errE != nil {
+			return errE
+		}
 	}
 
 	errE = b.WaitUntilCaughtUp(ctx, count, size)

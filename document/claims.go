@@ -10,6 +10,8 @@ import (
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
+
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
 // sortByConfidence sorts claims in decreasing confidence order.
@@ -61,12 +63,15 @@ var (
 // It operates like Claims.Get but returns the concrete claim type instead of the Claim interface.
 //
 // Because Go does not support generic interface methods, this is a top-level function.
-func getClaimsOfType[T Claim](claims Claims, propID identifier.Identifier) []T {
+func getClaimsOfType[T any, PT interface {
+	*T
+	Claim
+}](claims Claims, propID identifier.Identifier) []PT {
 	// Get already returns claims sorted by decreasing confidence.
 	all := claims.Get(propID)
-	result := make([]T, 0, len(all))
+	result := make([]PT, 0, len(all))
 	for _, c := range all {
-		if typed, ok := c.(T); ok {
+		if typed, ok := c.(PT); ok {
 			result = append(result, typed)
 		}
 	}
@@ -80,26 +85,32 @@ func getClaimsOfType[T Claim](claims Claims, propID identifier.Identifier) []T {
 //
 // Because Go does not support generic interface methods, this is a top-level function.
 // TODO: Support also negation claims (i.e., those with negative confidence).
-func GetBestClaimOfType[T Claim](claims Claims, propID identifier.Identifier) T { //nolint:ireturn
+func GetBestClaimOfType[T any, PT interface { //nolint:ireturn
+	*T
+	Claim
+}](claims Claims, propID identifier.Identifier) PT {
 	// The best claim is really the first one because GetClaimsOfType returns claims in decreasing confidence.
-	for _, c := range GetClaimsOfTypeWithConfidence[T](claims, propID, LowConfidence) {
+	for _, c := range GetClaimsOfTypeWithConfidence[T, PT](claims, propID, LowConfidence) {
 		return c
 	}
-	return *new(T)
+	return *new(PT)
 }
 
 // getAllClaimsOfType returns all claims of the concrete type T,
 // sorted by decreasing confidence.
 //
 // Because Go does not support generic interface methods, this is a top-level function.
-func getAllClaimsOfType[T Claim](claims Claims) []T {
-	var result []T
+func getAllClaimsOfType[T any, PT interface {
+	*T
+	Claim
+}](claims Claims) []PT {
+	var result []PT
 	for c := range claims.AllClaims() {
-		if typed, ok := c.(T); ok {
+		if typed, ok := c.(PT); ok {
 			result = append(result, typed)
 		}
 	}
-	slices.SortFunc(result, func(a, b T) int {
+	slices.SortFunc(result, func(a, b PT) int {
 		// Reverse order: higher confidence first.
 		return cmp.Compare(b.GetConfidence(), a.GetConfidence())
 	})
@@ -114,14 +125,17 @@ func getAllClaimsOfType[T Claim](claims Claims) []T {
 //
 // Because Go does not support generic interface methods, this is a top-level function.
 // TODO: Support also negation claims (i.e., those with negative confidence).
-func GetAllClaimsOfTypeWithConfidence[T Claim](claims Claims, confidence Confidence) []T {
+func GetAllClaimsOfTypeWithConfidence[T any, PT interface {
+	*T
+	Claim
+}](claims Claims, confidence Confidence) []PT {
 	if confidence == 0 {
 		confidence = LowConfidence
 	}
-	all := getAllClaimsOfType[T](claims)
-	result := make([]T, 0, len(all))
+	all := getAllClaimsOfType[T, PT](claims)
+	result := make([]PT, 0, len(all))
 	for _, c := range all {
-		if Claim(c).GetConfidence() >= confidence {
+		if c.GetConfidence() >= confidence {
 			result = append(result, c)
 		} else {
 			// Because GetAllClaimsOfType returns claims sorted by decreasing confidence, we can break here.
@@ -139,14 +153,17 @@ func GetAllClaimsOfTypeWithConfidence[T Claim](claims Claims, confidence Confide
 //
 // Because Go does not support generic interface methods, this is a top-level function.
 // TODO: Support also negation claims (i.e., those with negative confidence).
-func GetClaimsOfTypeWithConfidence[T Claim](claims Claims, propID identifier.Identifier, confidence Confidence) []T {
+func GetClaimsOfTypeWithConfidence[T any, PT interface {
+	*T
+	Claim
+}](claims Claims, propID identifier.Identifier, confidence Confidence) []PT {
 	if confidence == 0 {
 		confidence = LowConfidence
 	}
-	all := getClaimsOfType[T](claims, propID)
-	result := make([]T, 0, len(all))
+	all := getClaimsOfType[T, PT](claims, propID)
+	result := make([]PT, 0, len(all))
 	for _, c := range all {
-		if Claim(c).GetConfidence() >= confidence {
+		if c.GetConfidence() >= confidence {
 			result = append(result, c)
 		} else {
 			// Because GetClaimsOfType returns claims sorted by decreasing confidence, we can break here.
@@ -166,7 +183,7 @@ const UndeterminedLanguage = "und"
 //
 // Returns UndeterminedLanguage if no languages are specified or none can be resolved.
 func extractClaimLanguages(claims Claims, languageCodes map[identifier.Identifier]string, languagePriority map[string][]string) []string {
-	refs := GetClaimsOfTypeWithConfidence[*ReferenceClaim](claims, inLanguagePropID, LowConfidence)
+	refs := GetClaimsOfTypeWithConfidence[ReferenceClaim](claims, internalCore.InLanguagePropID, LowConfidence)
 	var codes []string
 	for _, ref := range refs {
 		if code, ok := languageCodes[ref.To.ID]; ok {
@@ -188,13 +205,16 @@ func extractClaimLanguages(claims Claims, languageCodes map[identifier.Identifie
 // that are keys in languagePriority are considered supported.
 //
 // Because Go does not support generic interface methods, this is a top-level function.
-func GetClaimsAndLanguageOfTypeWithConfidence[T Claim](
+func GetClaimsAndLanguageOfTypeWithConfidence[T any, PT interface {
+	*T
+	Claim
+}](
 	claims Claims, propIDs []identifier.Identifier, confidence Confidence,
 	languageCodes map[identifier.Identifier]string, languagePriority map[string][]string,
-) map[string][]T {
-	grouped := map[string][]T{}
+) map[string][]PT {
+	grouped := map[string][]PT{}
 	for _, propID := range propIDs {
-		for _, c := range GetClaimsOfTypeWithConfidence[T](claims, propID, confidence) {
+		for _, c := range GetClaimsOfTypeWithConfidence[T, PT](claims, propID, confidence) {
 			for _, lang := range extractClaimLanguages(c, languageCodes, languagePriority) {
 				grouped[lang] = append(grouped[lang], c)
 			}
@@ -205,7 +225,7 @@ func GetClaimsAndLanguageOfTypeWithConfidence[T Claim](
 	}
 	for lang, entries := range grouped {
 		// Sort by decreasing confidence.
-		slices.SortFunc(entries, func(a, b T) int {
+		slices.SortFunc(entries, func(a, b PT) int {
 			return cmp.Compare(b.GetConfidence(), a.GetConfidence())
 		})
 		// Store it back.
@@ -237,16 +257,19 @@ func getFallbackLanguages(lang string, languagePriority map[string][]string) []s
 // walking the language chain in order. Returns nil if no language produces a match.
 //
 // Because Go does not support generic interface methods, this is a top-level function.
-func SelectClaimsByLanguage[T Claim](
+func SelectClaimsByLanguage[T any, PT interface {
+	*T
+	Claim
+}](
 	claims Claims,
 	propIDs []identifier.Identifier,
 	language string,
-	selector func(claims []T) bool,
+	selector func(claims []PT) bool,
 	confidence Confidence,
 	languageCodes map[identifier.Identifier]string,
 	languagePriority map[string][]string,
-) []T {
-	claimsByLanguage := GetClaimsAndLanguageOfTypeWithConfidence[T](claims, propIDs, confidence, languageCodes, languagePriority)
+) []PT {
+	claimsByLanguage := GetClaimsAndLanguageOfTypeWithConfidence[T, PT](claims, propIDs, confidence, languageCodes, languagePriority)
 	chain := append([]string{language}, getFallbackLanguages(language, languagePriority)...)
 	for _, tryLang := range chain {
 		langClaims := claimsByLanguage[tryLang]
@@ -260,17 +283,6 @@ func SelectClaimsByLanguage[T Claim](
 	return nil
 }
 
-// Well-known IDs computed from the core namespace.
-//
-//nolint:gochecknoglobals
-var (
-	// coreNamespace must match core.Namespace. We cannot import core here due to import cycle.
-	coreNamespace     = "core.peerdb.org"
-	inLanguagePropID  = identifier.From(coreNamespace, "IN_LANGUAGE")
-	listPropID        = identifier.From(coreNamespace, "LIST")
-	orderInListPropID = identifier.From(coreNamespace, "ORDER_IN_LIST")
-)
-
 // GetClaimsListsOfType groups claims of the concrete type T matching the given property ID
 // by their LIST sub-claim and sorts within each list by the ORDER_IN_LIST sub-claim.
 // Returns a slice of lists, where each list is a slice of claims sorted by order.
@@ -281,25 +293,28 @@ var (
 // TODO: Support also negation claims (i.e., those with negative confidence).
 // TODO: Handle sub-lists. Children lists should be nested and not just added as additional lists to the list of lists.
 // TODO: Sort lists between themselves by (average) confidence?
-func GetClaimsListsOfType[T Claim](claims Claims, propID identifier.Identifier) [][]T {
-	all := GetClaimsOfTypeWithConfidence[T](claims, propID, LowConfidence)
+func GetClaimsListsOfType[T any, PT interface {
+	*T
+	Claim
+}](claims Claims, propID identifier.Identifier) [][]PT {
+	all := GetClaimsOfTypeWithConfidence[T, PT](claims, propID, LowConfidence)
 	if len(all) == 0 {
 		return nil
 	}
 
 	type entry struct {
-		claim T
+		claim PT
 		order float64
 	}
 
 	claimsPerList := map[string][]entry{}
 	for _, c := range all {
 		listID := "none"
-		if listClaim := GetBestClaimOfType[*IdentifierClaim](Claim(c), listPropID); listClaim != nil {
+		if listClaim := GetBestClaimOfType[IdentifierClaim](Claim(c), internalCore.ListPropID); listClaim != nil {
 			listID = listClaim.Value
 		}
 		order := math.MaxFloat64
-		if orderClaim := GetBestClaimOfType[*AmountClaim](Claim(c), orderInListPropID); orderClaim != nil {
+		if orderClaim := GetBestClaimOfType[AmountClaim](Claim(c), internalCore.OrderInListPropID); orderClaim != nil {
 			f, errE := orderClaim.Amount.Float64(0)
 			if errE == nil {
 				order = f
@@ -308,12 +323,12 @@ func GetClaimsListsOfType[T Claim](claims Claims, propID identifier.Identifier) 
 		claimsPerList[listID] = append(claimsPerList[listID], entry{claim: c, order: order})
 	}
 
-	result := make([][]T, 0, len(claimsPerList))
+	result := make([][]PT, 0, len(claimsPerList))
 	for _, entries := range claimsPerList {
 		slices.SortFunc(entries, func(a, b entry) int {
 			return cmp.Compare(a.order, b.order)
 		})
-		list := make([]T, 0, len(entries))
+		list := make([]PT, 0, len(entries))
 		for _, e := range entries {
 			list = append(list, e.claim)
 		}

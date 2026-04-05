@@ -9,6 +9,8 @@ import (
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
+
+	internalDocument "gitlab.com/peerdb/peerdb/internal/document"
 )
 
 // Time represents a point in time.
@@ -102,7 +104,7 @@ func (t Time) Time(precision TimePrecision, location *time.Location) (time.Time,
 	}
 	year, err := strconv.ParseInt(match[timeIndexYear], 10, 0)
 	if err != nil {
-		errE := errors.New("unable to parse year")
+		errE := errors.WithMessage(err, "unable to parse year")
 		errors.Details(errE)["value"] = s
 		return time.Time{}, errE
 	}
@@ -110,7 +112,7 @@ func (t Time) Time(precision TimePrecision, location *time.Location) (time.Time,
 	if match[timeIndexMonth] != "" { //nolint:nestif
 		month, err = strconv.ParseInt(match[timeIndexMonth], 10, 0)
 		if err != nil {
-			errE := errors.New("unable to parse month")
+			errE := errors.WithMessage(err, "unable to parse month")
 			errors.Details(errE)["value"] = s
 			return time.Time{}, errE
 		}
@@ -122,7 +124,7 @@ func (t Time) Time(precision TimePrecision, location *time.Location) (time.Time,
 		}
 		day, err = strconv.ParseInt(match[timeIndexDay], 10, 0)
 		if err != nil {
-			errE := errors.New("unable to parse day")
+			errE := errors.WithMessage(err, "unable to parse day")
 			errors.Details(errE)["value"] = s
 			return time.Time{}, errE
 		}
@@ -135,7 +137,7 @@ func (t Time) Time(precision TimePrecision, location *time.Location) (time.Time,
 		if match[timeIndexHours] != "" {
 			hours, err = strconv.ParseInt(match[timeIndexHours], 10, 0)
 			if err != nil {
-				errE := errors.New("unable to parse hours")
+				errE := errors.WithMessage(err, "unable to parse hours")
 				errors.Details(errE)["value"] = s
 				return time.Time{}, errE
 			}
@@ -146,7 +148,7 @@ func (t Time) Time(precision TimePrecision, location *time.Location) (time.Time,
 			}
 			minutes, err = strconv.ParseInt(match[timeIndexMinutes], 10, 0)
 			if err != nil {
-				errE := errors.New("unable to parse minutes")
+				errE := errors.WithMessage(err, "unable to parse minutes")
 				errors.Details(errE)["value"] = s
 				return time.Time{}, errE
 			}
@@ -158,7 +160,7 @@ func (t Time) Time(precision TimePrecision, location *time.Location) (time.Time,
 			if match[timeIndexSeconds] != "" {
 				seconds, err = strconv.ParseInt(match[timeIndexSeconds], 10, 0)
 				if err != nil {
-					errE := errors.New("unable to parse seconds")
+					errE := errors.WithMessage(err, "unable to parse seconds")
 					errors.Details(errE)["value"] = s
 					return time.Time{}, errE
 				}
@@ -170,7 +172,7 @@ func (t Time) Time(precision TimePrecision, location *time.Location) (time.Time,
 				if match[timeIndexSubseconds] != "" {
 					nanoseconds, err = strconv.ParseInt(match[timeIndexSubseconds], 10, 0)
 					if err != nil {
-						errE := errors.New("unable to parse subseconds")
+						errE := errors.WithMessage(err, "unable to parse subseconds")
 						errors.Details(errE)["value"] = s
 						return time.Time{}, errE
 					}
@@ -238,7 +240,7 @@ func (t Time) Time(precision TimePrecision, location *time.Location) (time.Time,
 			}
 		} else if nanoseconds != -1 {
 			var requiredSubsecondsLen int
-			switch precision { //nolint:exhaustive
+			switch internalDocument.TimePrecision(precision) { //nolint:exhaustive,unconvert
 			case TimePrecisionMillisecond:
 				requiredSubsecondsLen = 3
 			case TimePrecisionMicrosecond:
@@ -333,170 +335,50 @@ func (t *Time) UnmarshalJSON(data []byte) error {
 }
 
 // TimePrecision represents the precision level of a timestamp.
-//
-//nolint:recvcheck
-type TimePrecision int
+type TimePrecision = internalDocument.TimePrecision
 
 const (
 	// TimePrecisionGigaYears represents a time precision of giga-years (1 billion years).
-	TimePrecisionGigaYears TimePrecision = iota + 1
+	TimePrecisionGigaYears = internalDocument.TimePrecisionGigaYears
 	// TimePrecisionHundredMegaYears represents a time precision of 100 million years.
-	TimePrecisionHundredMegaYears
+	TimePrecisionHundredMegaYears = internalDocument.TimePrecisionHundredMegaYears
 	// TimePrecisionTenMegaYears represents a time precision of 10 million years.
-	TimePrecisionTenMegaYears
+	TimePrecisionTenMegaYears = internalDocument.TimePrecisionTenMegaYears
 	// TimePrecisionMegaYears represents a time precision of 1 million years (mega-years).
-	TimePrecisionMegaYears
+	TimePrecisionMegaYears = internalDocument.TimePrecisionMegaYears
 	// TimePrecisionHundredKiloYears represents a time precision of 100 thousand years.
-	TimePrecisionHundredKiloYears
+	TimePrecisionHundredKiloYears = internalDocument.TimePrecisionHundredKiloYears
 	// TimePrecisionTenKiloYears represents a time precision of 10 thousand years.
-	TimePrecisionTenKiloYears
+	TimePrecisionTenKiloYears = internalDocument.TimePrecisionTenKiloYears
 	// TimePrecisionKiloYears represents a time precision of 1 thousand years (kilo-years).
-	TimePrecisionKiloYears
+	TimePrecisionKiloYears = internalDocument.TimePrecisionKiloYears
 	// TimePrecisionHundredYears represents a time precision of 100 years (centuries).
-	TimePrecisionHundredYears
+	TimePrecisionHundredYears = internalDocument.TimePrecisionHundredYears
 	// TimePrecisionTenYears represents a time precision of 10 years (decades).
-	TimePrecisionTenYears
+	TimePrecisionTenYears = internalDocument.TimePrecisionTenYears
 	// TimePrecisionYear represents a time precision of 1 year.
-	TimePrecisionYear
+	TimePrecisionYear = internalDocument.TimePrecisionYear
 	// TimePrecisionMonth represents a time precision of 1 month.
-	TimePrecisionMonth
+	TimePrecisionMonth = internalDocument.TimePrecisionMonth
 	// TimePrecisionDay represents a time precision of 1 day.
-	TimePrecisionDay
+	TimePrecisionDay = internalDocument.TimePrecisionDay
 	// TimePrecisionHour represents a time precision of 1 hour.
-	TimePrecisionHour
+	TimePrecisionHour = internalDocument.TimePrecisionHour
 	// TimePrecisionMinute represents a time precision of 1 minute.
-	TimePrecisionMinute
+	TimePrecisionMinute = internalDocument.TimePrecisionMinute
 	// TimePrecisionSecond represents a time precision of 1 second.
-	TimePrecisionSecond
+	TimePrecisionSecond = internalDocument.TimePrecisionSecond
 	// TimePrecisionMillisecond represents a time precision of 1 millisecond.
-	TimePrecisionMillisecond
+	TimePrecisionMillisecond = internalDocument.TimePrecisionMillisecond
 	// TimePrecisionMicrosecond represents a time precision of 1 microsecond.
-	TimePrecisionMicrosecond
+	TimePrecisionMicrosecond = internalDocument.TimePrecisionMicrosecond
 	// TimePrecisionNanosecond represents a time precision of 1 nanosecond.
-	TimePrecisionNanosecond
+	TimePrecisionNanosecond = internalDocument.TimePrecisionNanosecond
 )
-
-// MarshalText implements encoding.TextMarshaler for TimePrecision.
-func (p TimePrecision) MarshalText() ([]byte, error) {
-	return []byte(p.String()), nil
-}
-
-// MarshalJSON implements json.Marshaler for TimePrecision.
-func (p TimePrecision) MarshalJSON() ([]byte, error) {
-	b := bytes.Buffer{}
-	b.WriteString(`"`)
-	b.WriteString(p.String())
-	b.WriteString(`"`)
-	return b.Bytes(), nil
-}
-
-// String returns the string representation of TimePrecision.
-func (p TimePrecision) String() string {
-	switch p {
-	case TimePrecisionGigaYears:
-		return "G"
-	case TimePrecisionHundredMegaYears:
-		return "100M"
-	case TimePrecisionTenMegaYears:
-		return "10M"
-	case TimePrecisionMegaYears:
-		return "M"
-	case TimePrecisionHundredKiloYears:
-		return "100k"
-	case TimePrecisionTenKiloYears:
-		return "10k"
-	case TimePrecisionKiloYears:
-		return "k"
-	case TimePrecisionHundredYears:
-		return "100y"
-	case TimePrecisionTenYears:
-		return "10y"
-	case TimePrecisionYear:
-		return "y"
-	case TimePrecisionMonth:
-		return "m"
-	case TimePrecisionDay:
-		return "d"
-	case TimePrecisionHour:
-		return "h"
-	case TimePrecisionMinute:
-		return "min"
-	case TimePrecisionSecond:
-		return "s"
-	case TimePrecisionMillisecond:
-		return "ms"
-	case TimePrecisionMicrosecond:
-		return "us"
-	case TimePrecisionNanosecond:
-		return "ns"
-	default:
-		return fmt.Sprintf("[%d]", p)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler for TimePrecision.
-func (p *TimePrecision) UnmarshalText(text []byte) error {
-	s := string(text)
-
-	switch s {
-	case "G":
-		*p = TimePrecisionGigaYears
-	case "100M":
-		*p = TimePrecisionHundredMegaYears
-	case "10M":
-		*p = TimePrecisionTenMegaYears
-	case "M":
-		*p = TimePrecisionMegaYears
-	case "100k":
-		*p = TimePrecisionHundredKiloYears
-	case "10k":
-		*p = TimePrecisionTenKiloYears
-	case "k":
-		*p = TimePrecisionKiloYears
-	case "100y":
-		*p = TimePrecisionHundredYears
-	case "10y":
-		*p = TimePrecisionTenYears
-	case "y":
-		*p = TimePrecisionYear
-	case "m":
-		*p = TimePrecisionMonth
-	case "d":
-		*p = TimePrecisionDay
-	case "h":
-		*p = TimePrecisionHour
-	case "min":
-		*p = TimePrecisionMinute
-	case "s":
-		*p = TimePrecisionSecond
-	case "ms":
-		*p = TimePrecisionMillisecond
-	case "us":
-		*p = TimePrecisionMicrosecond
-	case "ns":
-		*p = TimePrecisionNanosecond
-	default:
-		errE := errors.New("unknown time precision")
-		errors.Details(errE)["value"] = s
-		return errE
-	}
-
-	return nil
-}
-
-// UnmarshalJSON implements json.Unmarshaler for TimePrecision.
-func (p *TimePrecision) UnmarshalJSON(b []byte) error {
-	var s string
-	errE := x.UnmarshalWithoutUnknownFields(b, &s)
-	if errE != nil {
-		return errE
-	}
-	return p.UnmarshalText([]byte(s))
-}
 
 // yearPrecisionMultiple returns the factor by which the year must be divisible
 // for precisions coarser than a single year. Returns 1 for TimePrecisionYear and finer.
-func yearPrecisionMultiple(precision TimePrecision) int64 {
+func yearPrecisionMultiple(precision internalDocument.TimePrecision) int64 {
 	switch precision { //nolint:exhaustive
 	case TimePrecisionGigaYears:
 		return 1_000_000_000 //nolint:mnd

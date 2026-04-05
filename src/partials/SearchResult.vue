@@ -4,14 +4,18 @@ import type { ComponentExposed } from "vue-component-type-helpers"
 import type { D } from "@/document"
 import type { Result } from "@/types"
 
-import { computed, ref } from "vue"
+import { computed, onBeforeUnmount, toRef, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
 
 import WithDocument from "@/components/WithDocument.vue"
 import { DESCRIPTION, INSTANCE_OF, SUBCLASS_OF } from "@/core"
 import { getBestClaimOfType, getClaimsOfTypeWithConfidence } from "@/document"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
+import FieldsView from "@/partials/FieldsView.vue"
+import { injectProgress } from "@/progress"
 import { getSearchResultComponents } from "@/registry/search-result"
+import { useDocumentFields } from "@/useDocumentFields"
+import { useParentClasses } from "@/useParentClasses"
 import { encodeQuery, loadingLongWidth, loadingWidth } from "@/utils"
 
 defineProps<{
@@ -21,20 +25,19 @@ defineProps<{
 
 const { t } = useI18n({ useScope: "global" })
 
-const WithDocumentD = WithDocument<D>
-const withDocument = ref<ComponentExposed<typeof WithDocumentD> | null>(null)
+const el = useTemplateRef<HTMLElement>("el")
 
-// TODO: Do not hard-code properties?
-const description = computed(() => {
-  return getBestClaimOfType(withDocument.value?.doc?.claims, "html", DESCRIPTION)?.html || ""
+const abortController = new AbortController()
+
+onBeforeUnmount(() => {
+  abortController.abort()
 })
-// TODO: Do not hard-code properties?
-const tags = computed(() => {
-  return [
-    ...getClaimsOfTypeWithConfidence(withDocument.value?.doc?.claims, "ref", INSTANCE_OF).map((c) => ({ id: c.to.id })),
-    ...getClaimsOfTypeWithConfidence(withDocument.value?.doc?.claims, "ref", SUBCLASS_OF).map((c) => ({ id: c.to.id })),
-  ]
-})
+
+const progress = injectProgress()
+
+const WithDocumentD = WithDocument<D>
+const withDocument = useTemplateRef<ComponentExposed<typeof WithDocumentD>>("withDocument")
+
 const searchResultComponents = getSearchResultComponents()
 const customResultComponent = computed(() => {
   const doc = withDocument.value?.doc
@@ -48,10 +51,30 @@ const customResultComponent = computed(() => {
   }
   return null
 })
-const previewFiles = computed(() => {
-  // TODO: Return image files.
-  return [] as string[]
+
+// Resolve field definitions for this document.
+const docRef = toRef(() => withDocument.value?.doc ?? null)
+const { classDocs, instanceOfClassIds } = useParentClasses(docRef, el, progress)
+const { fieldsData } = useDocumentFields(classDocs, instanceOfClassIds)
+
+// TODO: Do not hard-code properties?
+const description = computed(() => {
+  return getBestClaimOfType(withDocument.value?.doc?.claims, "html", DESCRIPTION)?.html || ""
 })
+
+// TODO: Do not hard-code properties?
+const tags = computed(() => {
+  return [
+    ...getClaimsOfTypeWithConfidence(withDocument.value?.doc?.claims, "ref", INSTANCE_OF).map((c) => ({ id: c.to.id })),
+    ...getClaimsOfTypeWithConfidence(withDocument.value?.doc?.claims, "ref", SUBCLASS_OF).map((c) => ({ id: c.to.id })),
+  ]
+})
+
+const previewFiles = computed<string[]>(() => {
+  // TODO: Return image files.
+  return []
+})
+
 const rowsCount = computed(() => {
   let r = 1
   if (tags.value.length) {
@@ -62,6 +85,7 @@ const rowsCount = computed(() => {
   }
   return r
 })
+
 // We have to use complete class names for Tailwind to detect used classes and generating the
 // corresponding CSS and do not do string interpolation or concatenation of partial class names.
 // See: https://tailwindcss.com/docs/content-configuration#dynamic-class-names
@@ -92,14 +116,41 @@ const rowSpan = computed(() => {
 </script>
 
 <template>
-  <div :id="`result-${result.id}`" class="pd-searchresult rounded-sm border border-gray-200 bg-white p-4 shadow-sm" :data-url="withDocument?.url">
+  <div
+    :id="`result-${result.id}`"
+    ref="el"
+    class="pd-searchresult flex flex-col gap-y-2 rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
+    :data-url="withDocument?.url"
+  >
     <WithDocumentD :id="result.id" ref="withDocument" name="DocumentGet">
       <template #default="{ doc: resultDoc }">
         <component :is="customResultComponent" v-if="customResultComponent" :doc="resultDoc" :search-session-id="searchSessionId" />
+        <template v-else-if="fieldsData && resultDoc.claims">
+          <h2 class="text-xl leading-none">
+            <ul v-if="tags.length" class="float-end flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
+              <template v-for="tag of tags" :key="tag.id">
+                <WithDocumentD :id="tag.id" name="DocumentGet">
+                  <template #default="{ doc, url }">
+                    <li class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
+                      <DisplayLabel :doc="doc" />
+                    </li>
+                  </template>
+                  <template #loading="{ url }">
+                    <li class="pd-withdocument-loading h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(tag.id)]"></li>
+                  </template>
+                </WithDocumentD>
+              </template>
+            </ul>
+            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link"
+              ><DisplayLabel :doc="resultDoc"
+            /></RouterLink>
+          </h2>
+          <FieldsView :fields-data="fieldsData" :claims="resultDoc.claims" />
+        </template>
         <div v-else class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
           <h2 class="text-xl leading-none">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link"
-              ><DisplayLabel :claims="resultDoc.claims"
+              ><DisplayLabel :doc="resultDoc"
             /></RouterLink>
           </h2>
           <ul v-if="tags.length" class="-mt-3 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
@@ -107,7 +158,7 @@ const rowSpan = computed(() => {
               <WithDocumentD :id="tag.id" name="DocumentGet">
                 <template #default="{ doc, url }">
                   <li class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
-                    <DisplayLabel :claims="doc.claims" />
+                    <DisplayLabel :doc="doc" />
                   </li>
                 </template>
                 <template #loading="{ url }">

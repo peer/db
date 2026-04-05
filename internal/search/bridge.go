@@ -34,6 +34,7 @@ var errCommittedChannelClosed = errors.Base("committed channel is closed")
 type bulkError struct {
 	ID    string            `json:"id,omitempty"`
 	Error *types.ErrorCause `json:"error,omitempty"`
+	Doc   *Document         `json:"doc,omitempty"`
 }
 
 type bridgeJob interface {
@@ -170,6 +171,9 @@ type Bridge struct {
 	// inverseRelationsMinSeq is the MIN(seq) of remaining rows in BridgeInverseRelations,
 	// or math.MaxInt64 if the table is empty. A waiter for seq X is done when this value > X.
 	inverseRelationsMinSeq int64
+	// inverseRelationsCount is the number of distinct document IDs remaining
+	// in BridgeInverseRelations. It is used for progress tracking.
+	inverseRelationsCount int64
 }
 
 // converterReady returns true if the converter has been set via Start.
@@ -265,16 +269,6 @@ func (b *Bridge) Init(
 	b.inverseRelationsMinSeq = math.MaxInt64
 	listener.Handle(b.Store.Prefix+"BridgeSeq", b)
 	listener.Handle(b.Store.Prefix+"BridgeInverseRelationsMinSeq", b)
-
-	// Submit a startup job to process any leftover rows in BridgeInverseRelations
-	// from a previous run. The job is persisted and will be picked up once River starts.
-	_, err := b.riverClient.Insert(ctx, jobArgs{
-		Schema: b.schema,
-		Prefix: b.Store.Prefix,
-	}, nil)
-	if err != nil {
-		return errors.WithStack(err)
-	}
 
 	return nil
 }
@@ -413,13 +407,15 @@ func (b *Bridge) handleBridgeInverseRelationsMinSeq(ctx context.Context) errors.
 	return b.updateBridgeInverseRelationsMinSeq(ctx)
 }
 
-// updateBridgeInverseRelationsMinSeq fetches the current MIN(seq) from BridgeInverseRelations,
-// updates the in-memory state, and broadcasts to any goroutines waiting in WaitUntilCaughtUp.
+// updateBridgeInverseRelationsMinSeq fetches the current MIN(seq) and COUNT(DISTINCT "id")
+// from BridgeInverseRelations, updates the in-memory state, and broadcasts to any goroutines
+// waiting in WaitUntilCaughtUp.
 func (b *Bridge) updateBridgeInverseRelationsMinSeq(ctx context.Context) errors.E {
 	var minSeq *int64
+	var cnt int64
 	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		return internalStore.WithPgxError(
-			tx.QueryRow(ctx, `SELECT MIN("seq") FROM "`+b.Store.Prefix+`BridgeInverseRelations"`).Scan(&minSeq),
+			tx.QueryRow(ctx, `SELECT MIN("seq"), COUNT(DISTINCT "id") FROM "`+b.Store.Prefix+`BridgeInverseRelations"`).Scan(&minSeq, &cnt),
 		)
 	})
 	if errE != nil {
@@ -432,6 +428,7 @@ func (b *Bridge) updateBridgeInverseRelationsMinSeq(ctx context.Context) errors.
 	} else {
 		b.inverseRelationsMinSeq = *minSeq
 	}
+	b.inverseRelationsCount = cnt
 	b.inverseRelationsMinSeqCond.Broadcast()
 	return nil
 }
@@ -532,10 +529,13 @@ func (b *Bridge) waitForInverseRelationsMinSeq(ctx context.Context, seq int64, c
 	})
 	defer stop()
 
-	prevMinSeq := b.inverseRelationsMinSeq
+	// We use the number of distinct document IDs for progress tracking instead of seq values.
+	// This provides regular progress updates because the count decreases with each processed
+	// document, while MIN(seq) can stay the same when many documents share the same seq.
+	initialCount := b.inverseRelationsCount
 
 	if size != nil {
-		size.Add(seq + 1 - prevMinSeq)
+		size.Add(initialCount)
 	}
 
 	// inverseRelationsMinSeq tracks the MIN(seq) of remaining rows in BridgeInverseRelations.
@@ -545,20 +545,52 @@ func (b *Bridge) waitForInverseRelationsMinSeq(ctx context.Context, seq int64, c
 		if ctx.Err() != nil {
 			return errors.WithStack(ctx.Err())
 		}
-		if count != nil && b.inverseRelationsMinSeq > prevMinSeq {
-			// inverseRelationsMinSeq can jump to MaxInt64 when the table is empty,
-			// so we cap progress to match the size we added.
-			// This also handles any other jump more than seq+1.
-			current := min(b.inverseRelationsMinSeq, seq+1)
-			count.Add(current - prevMinSeq)
-			prevMinSeq = current
+		if count != nil {
+			processed := initialCount - b.inverseRelationsCount
+			if processed > 0 {
+				count.Add(processed)
+				initialCount = b.inverseRelationsCount
+			}
 		}
 	}
 
 	// To get count to match the increase we made to size initially.
-	if count != nil && seq+1 > prevMinSeq {
-		count.Add(seq + 1 - prevMinSeq)
+	if count != nil && initialCount > 0 {
+		count.Add(initialCount)
 	}
+
+	return nil
+}
+
+// ResetSeq resets the bridge progress to 0 and clears the inverse relations work queue.
+// This causes the bridge to re-process all commits from the beginning when started.
+func (b *Bridge) ResetSeq(ctx context.Context) errors.E {
+	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		_, err := tx.Exec(ctx, `UPDATE "`+b.Store.Prefix+`Bridge" SET "seq" = 0`)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		_, err = tx.Exec(ctx, `DELETE FROM "`+b.Store.Prefix+`BridgeInverseRelations"`)
+		return internalStore.WithPgxError(err)
+	})
+	if errE != nil {
+		return errE
+	}
+
+	b.lastSeqMu.Lock()
+	b.lastSeq = 0
+	b.lastSeqMu.Unlock()
+
+	b.inverseRelationsMinSeqMu.Lock()
+	b.inverseRelationsMinSeq = math.MaxInt64
+	b.inverseRelationsCount = 0
+	b.inverseRelationsMinSeqMu.Unlock()
+
+	// We reset the store's Committed channel so that the bridge goroutine detects the closed
+	// channel and restarts its run loop, picking up the reset seq from the database.
+	// This impacts only the current process but this is fine because any concurrent process
+	// will just wait for this process to reindex everything and then continue from there on.
+	b.Store.Reset()
 
 	return nil
 }
@@ -573,8 +605,19 @@ func (b *Bridge) waitForInverseRelationsMinSeq(ctx context.Context, seq int64, c
 // real-time processing of new commits.
 //
 // Converter is used to convert documents for indexing and to track inverse relations.
-func (b *Bridge) Start(ctx context.Context, converter *Converter) {
+func (b *Bridge) Start(ctx context.Context, converter *Converter) errors.E {
+	// This also makes any existing job not snooze itself anymore.
+	// River starts running jobs once we call registerCoordinator from Init.
 	b.converter.Store(converter)
+
+	// Submit a startup job to process any leftover rows in BridgeInverseRelations from a previous run.
+	_, err := b.riverClient.Insert(ctx, jobArgs{
+		Schema: b.schema,
+		Prefix: b.Store.Prefix,
+	}, nil)
+	if err != nil {
+		return errors.WithStack(err)
+	}
 
 	go func() {
 		// TODO: Measure how many retries have to be made and abort if it is too much.
@@ -603,6 +646,8 @@ func (b *Bridge) Start(ctx context.Context, converter *Converter) {
 			}
 		}
 	}()
+
+	return nil
 }
 
 // WaitUntilCaughtUp blocks until the bridge has indexed all currently committed commits.
@@ -736,6 +781,8 @@ func (b *Bridge) indexCommit(
 	addedInverseRelations := map[identifier.Identifier][]internalStore.InverseRelation{}
 	removedInverseRelations := map[identifier.Identifier][]internalStore.InverseRelation{}
 
+	debugDocs := map[string]*Document{}
+
 	for _, cs := range c.Changesets {
 		var after *identifier.Identifier
 		for {
@@ -816,7 +863,7 @@ func (b *Bridge) indexCommit(
 					numActions++
 				} else {
 					// TODO: Use also information about the view so that documents are searchable by view as well.
-					searchDoc, errE := b.convertDocument(ctx, data, metadata)
+					searchDoc, errE := b.ConvertDocument(ctx, data, metadata)
 					if errE != nil {
 						errors.Details(errE)["seq"] = committed.Seq
 						errors.Details(errE)["view"] = committed.View.Name()
@@ -829,6 +876,7 @@ func (b *Bridge) indexCommit(
 					if err != nil {
 						return nil, nil, errors.WithStack(err)
 					}
+					debugDocs[id] = searchDoc
 					numActions++
 				}
 			}
@@ -867,6 +915,7 @@ func (b *Bridge) indexCommit(
 			bulkErrors = append(bulkErrors, bulkError{
 				ID:    id,
 				Error: result.Error,
+				Doc:   debugDocs[id],
 			})
 		}
 	}
@@ -924,9 +973,9 @@ func diffOutgoingInverseRelations(
 	return added, removed
 }
 
-// convertDocument unmarshals data into a document.D and calls the converter's
+// ConvertDocument unmarshals data into a document.D and calls the converter's
 // FromDocument with inverse relations from metadata.
-func (b *Bridge) convertDocument(ctx context.Context, data json.RawMessage, metadata *internalStore.DocumentMetadata) (*Document, errors.E) {
+func (b *Bridge) ConvertDocument(ctx context.Context, data json.RawMessage, metadata *internalStore.DocumentMetadata) (*Document, errors.E) {
 	var doc document.D
 	errE := x.UnmarshalWithoutUnknownFields(data, &doc)
 	if errE != nil {
@@ -943,7 +992,7 @@ func (b *Bridge) outgoingInverseRelations(data json.RawMessage) (map[identifier.
 		return nil, errE
 	}
 
-	return OutgoingInverseRelations(&doc), nil
+	return b.converter.Load().OutgoingInverseRelations(&doc), nil
 }
 
 // getSeq reads the current last-indexed seq from the bridge table.
@@ -1071,13 +1120,11 @@ func (b *Bridge) runIndexInverseRelations(ctx context.Context, _ *river.Job[jobA
 		var docIDStr string
 		var maxSeq int64
 		errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
-			// TODO: Maybe make the query pick ID randomly (order by random)?
-			//       So if we allow for multiple jobs to run in parallel (currently we have single worker queue for these jobs),
-			//       they would not all work on the same document ID. On the other hand, maybe we should pick document IDs based on
-			//       their minimal seq (or minimal MAX(seq)) so that they are processed in approximate order of how their commits were done.
+			// We pick a random document to reduce conflicts when multiple processes
+			// work on inverse relations in parallel.
 			return internalStore.WithPgxError(tx.QueryRow(ctx, `
 				SELECT "id", MAX("seq") FROM "`+b.Store.Prefix+`BridgeInverseRelations"
-					GROUP BY "id" LIMIT 1
+					GROUP BY "id" ORDER BY RANDOM() LIMIT 1
 			`).Scan(&docIDStr, &maxSeq))
 		})
 		if errors.Is(errE, pgx.ErrNoRows) {
@@ -1133,7 +1180,7 @@ func (b *Bridge) indexDocument(ctx context.Context, docID identifier.Identifier)
 	}
 
 	// TODO: Use also information about the view so that documents are searchable by view as well.
-	searchDoc, errE := b.convertDocument(ctx, data, metadata)
+	searchDoc, errE := b.ConvertDocument(ctx, data, metadata)
 	if errE != nil {
 		return errE
 	}

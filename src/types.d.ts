@@ -1,7 +1,9 @@
 import type { BareItem, Key } from "structured-field-values"
-import type { Component, DeepReadonly } from "vue"
+import type { Component, DeepReadonly, Ref } from "vue"
+import type { Composer } from "vue-i18n"
+import type { Router } from "vue-router"
 
-import { Claims } from "@/document"
+import type { ClaimTypes } from "@/document/claims"
 import type { NONE } from "@/symbols"
 
 export type RefSearchResult = {
@@ -159,13 +161,13 @@ export type SiteContext = {
     buildTimestamp?: string
     revision?: string
   }
-  title: string
+  title?: string
   logo?: string
-  languagePriority: {
+  languagePriority?: {
     [language: string]: string[]
   }
   defaultLanguage?: string
-  languageCodes: {
+  languageCodes?: {
     [documentId: string]: string
   }
   features: {
@@ -220,6 +222,7 @@ export type DocumentEditStatus = {
 
 export type DocumentCreateResponse = {
   id: string
+  base: string[]
 }
 
 export type DocumentBeginEditResponse = {
@@ -250,7 +253,14 @@ export type SelectButtonOption<T> = {
   progress?: number
 }
 
-type GetDisplayLabel = (claims: DeepReadonly<Claims> | null | undefined, language: string) => Promise<string | null>
+export type GetDisplayLabel = (
+  claims: DeepReadonly<ClaimTypes> | null | undefined,
+  router: Router,
+  i18n: Composer,
+  el: Ref<Element | null> | null,
+  abortSignal: AbortSignal,
+  progress: Ref<number> | null,
+) => Promise<string | null>
 
 // It is recursive.
 export type Mutable<T> = {

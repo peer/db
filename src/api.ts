@@ -7,7 +7,8 @@ import { Queue } from "@/queue"
 
 const queue = new Queue({ concurrency: 100 })
 
-const localGetCache = new Map<string, WeakRef<{ doc: unknown; metadata: Metadata }>>()
+// TODO: Use WeakRef with already reactive and new D() documents.
+const localGetCache = new Map<string, { doc: unknown; metadata: Metadata }>()
 
 export class FetchError extends Error {
   cause?: Error
@@ -38,15 +39,9 @@ export async function getURL<T>(
   progress: Ref<number> | null,
 ): Promise<{ doc: T; metadata: Metadata }> {
   // Is it already cached?
-  const weakRef = localGetCache.get(url)
-  if (weakRef) {
-    const cached = weakRef.deref()
-    if (cached) {
-      return cached as { doc: T; metadata: Metadata }
-    } else {
-      // Weak reference's target has been reclaimed.
-      localGetCache.delete(url)
-    }
+  const cached = localGetCache.get(url)
+  if (cached) {
+    return cached as { doc: T; metadata: Metadata }
   }
 
   if (progress) {
@@ -56,15 +51,9 @@ export async function getURL<T>(
     const res = await queue.add(
       async () => {
         // We check again.
-        const weakRef = localGetCache.get(url)
-        if (weakRef) {
-          const cached = weakRef.deref()
-          if (cached) {
-            return cached as { doc: T; metadata: Metadata }
-          } else {
-            // Weak reference's target has been reclaimed.
-            localGetCache.delete(url)
-          }
+        const cached = localGetCache.get(url)
+        if (cached) {
+          return cached as { doc: T; metadata: Metadata }
         }
 
         return await getURLDirect<T>(url, abortSignal, progress)
@@ -73,7 +62,7 @@ export async function getURL<T>(
         signal: abortSignal,
       },
     )
-    localGetCache.set(url, new WeakRef(res))
+    localGetCache.set(url, res)
     return res
   } finally {
     if (progress) {

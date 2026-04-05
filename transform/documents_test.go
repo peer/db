@@ -41,11 +41,21 @@ type DocWithRawHTMLComplex struct {
 	RawHTMLText    core.RawHTML `              property:"RAW_HTML"`
 }
 
-type DocWithIRI struct {
+type DocWithLink struct {
+	ID        []string  `documentid:""`
+	Homepage  string    `              property:"HOMEPAGE"   type:"link"`
+	Links     []string  `              property:"LINKS"      type:"link"`
+	PlainLink core.Link `              property:"PLAIN_LINK"`
+}
+
+type DocWithFile struct {
 	ID       []string `documentid:""`
-	Homepage string   `              property:"HOMEPAGE"  type:"iri"`
-	Links    []string `              property:"LINKS"     type:"iri"`
-	PlainIRI core.IRI `              property:"PLAIN_IRI"`
+	FilePath string   `              property:"HOMEPAGE" type:"file"`
+}
+
+type DocWithCoreFile struct {
+	ID        []string  `documentid:""`
+	PlainFile core.File `              property:"PLAIN_FILE"`
 }
 
 type DocWithRef struct {
@@ -160,38 +170,39 @@ type DocWithEmbeddedProperties struct {
 	Extra string   `              property:"EXTRA"`
 }
 
-func createMnemonics() map[string]identifier.Identifier {
-	return map[string]identifier.Identifier{
-		"NAME":            identifier.From("test", "NAME"),
-		"CODE":            identifier.From("test", "CODE"),
-		"CODES":           identifier.From("test", "CODES"),
-		"DESCRIPTION":     identifier.From("test", "DESCRIPTION"),
-		"NOTES":           identifier.From("test", "NOTES"),
-		"HTML":            identifier.From("test", "HTML"),
-		"RAW_DESCRIPTION": identifier.From("test", "RAW_DESCRIPTION"),
-		"RAW_NOTES":       identifier.From("test", "RAW_NOTES"),
-		"RAW_HTML":        identifier.From("test", "RAW_HTML"),
-		"HOMEPAGE":        identifier.From("test", "HOMEPAGE"),
-		"LINKS":           identifier.From("test", "LINKS"),
-		"PLAIN_IRI":       identifier.From("test", "PLAIN_IRI"),
-		"PARENT":          identifier.From("test", "PARENT"),
-		"CHILDREN":        identifier.From("test", "CHILDREN"),
-		"CREATED":         identifier.From("test", "CREATED"),
-		"MODIFIED":        identifier.From("test", "MODIFIED"),
-		"PUBLISHED":       identifier.From("test", "PUBLISHED"),
-		"PERIOD":          identifier.From("test", "PERIOD"),
-		"WIDTH":           identifier.From("test", "WIDTH"),
-		"HEIGHT":          identifier.From("test", "HEIGHT"),
-		"COUNT":           identifier.From("test", "COUNT"),
-		"HIDDEN":          identifier.From("test", "HIDDEN"),
-		"TITLE":           identifier.From("test", "TITLE"),
-		"AGE":             identifier.From("test", "AGE"),
-		"LOCATION":        identifier.From("test", "LOCATION"),
-		"ADDRESS":         identifier.From("test", "ADDRESS"),
-		"HISTORY":         identifier.From("test", "HISTORY"),
-		"NOTE":            identifier.From("test", "NOTE"),
-		"OPTIONAL":        identifier.From("test", "OPTIONAL"),
-		"BORN":            identifier.From("test", "BORN"),
+func createMnemonics() map[string][]string {
+	return map[string][]string{
+		"NAME":            {"test", "NAME"},
+		"CODE":            {"test", "CODE"},
+		"CODES":           {"test", "CODES"},
+		"DESCRIPTION":     {"test", "DESCRIPTION"},
+		"NOTES":           {"test", "NOTES"},
+		"HTML":            {"test", "HTML"},
+		"RAW_DESCRIPTION": {"test", "RAW_DESCRIPTION"},
+		"RAW_NOTES":       {"test", "RAW_NOTES"},
+		"RAW_HTML":        {"test", "RAW_HTML"},
+		"HOMEPAGE":        {"test", "HOMEPAGE"},
+		"LINKS":           {"test", "LINKS"},
+		"PLAIN_LINK":      {"test", "PLAIN_LINK"},
+		"PLAIN_FILE":      {"test", "PLAIN_FILE"},
+		"PARENT":          {"test", "PARENT"},
+		"CHILDREN":        {"test", "CHILDREN"},
+		"CREATED":         {"test", "CREATED"},
+		"MODIFIED":        {"test", "MODIFIED"},
+		"PUBLISHED":       {"test", "PUBLISHED"},
+		"PERIOD":          {"test", "PERIOD"},
+		"WIDTH":           {"test", "WIDTH"},
+		"HEIGHT":          {"test", "HEIGHT"},
+		"COUNT":           {"test", "COUNT"},
+		"HIDDEN":          {"test", "HIDDEN"},
+		"TITLE":           {"test", "TITLE"},
+		"AGE":             {"test", "AGE"},
+		"LOCATION":        {"test", "LOCATION"},
+		"ADDRESS":         {"test", "ADDRESS"},
+		"HISTORY":         {"test", "HISTORY"},
+		"NOTE":            {"test", "NOTE"},
+		"OPTIONAL":        {"test", "OPTIONAL"},
+		"BORN":            {"test", "BORN"},
 	}
 }
 
@@ -220,7 +231,7 @@ func TestDocuments_SimpleString(t *testing.T) {
 	claim := doc.Claims.String[0]
 	assert.Equal(t, "Test Document", claim.String)
 
-	propID := mnemonics["NAME"]
+	propID := identifier.From(mnemonics["NAME"]...)
 	assert.Equal(t, propID, claim.Prop.ID)
 
 	assert.Equal(t, identifier.From("test", "doc1", "NAME", "0"), claim.ID)
@@ -359,11 +370,11 @@ func TestDocuments_LinkClaim(t *testing.T) { //nolint:dupl
 
 	mnemonics := createMnemonics()
 	docs := []any{
-		&DocWithIRI{
-			ID:       []string{"test", "doc1"},
-			Homepage: "https://example.com",
-			Links:    []string{"https://link1.com", "https://link2.com"},
-			PlainIRI: "https://plain.com",
+		&DocWithLink{
+			ID:        []string{"test", "doc1"},
+			Homepage:  "https://example.com",
+			Links:     []string{"https://link1.com", "https://link2.com"},
+			PlainLink: "https://plain.com",
 		},
 	}
 
@@ -372,14 +383,14 @@ func TestDocuments_LinkClaim(t *testing.T) { //nolint:dupl
 
 	doc := results[0]
 
-	// Homepage + 2 Links + PlainIRI.
+	// Homepage + 2 Links + PlainLink.
 	require.Len(t, doc.Claims.Link, 4)
 
 	assert.Equal(t, "https://example.com", doc.Claims.Link[0].IRI)
 	assert.Equal(t, identifier.From("test", "doc1", "HOMEPAGE", "0"), doc.Claims.Link[0].ID)
 	assert.Equal(t, identifier.From("test", "doc1", "LINKS", "0"), doc.Claims.Link[1].ID)
 	assert.Equal(t, identifier.From("test", "doc1", "LINKS", "1"), doc.Claims.Link[2].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "PLAIN_IRI", "0"), doc.Claims.Link[3].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "PLAIN_LINK", "0"), doc.Claims.Link[3].ID)
 }
 
 func TestDocuments_ReferenceClaim(t *testing.T) {
@@ -875,7 +886,7 @@ func TestDocuments_BoolNoValue(t *testing.T) {
 	// Only Published=true should create HasClaim.
 	require.Len(t, doc.Claims.Has, 1)
 
-	propID := mnemonics["PUBLISHED"]
+	propID := identifier.From(mnemonics["PUBLISHED"]...)
 	assert.Equal(t, propID, doc.Claims.Has[0].Prop.ID)
 	assert.Equal(t, identifier.From("test", "doc1", "PUBLISHED", "0"), doc.Claims.Has[0].ID)
 }
@@ -1335,8 +1346,8 @@ func TestDocuments_EmbeddedProperties(t *testing.T) {
 	t.Parallel()
 
 	mnemonics := createMnemonics()
-	mnemonics["HAS_AUTHOR"] = identifier.From("test", "HAS_AUTHOR")
-	mnemonics["EXTRA"] = identifier.From("test", "EXTRA")
+	mnemonics["HAS_AUTHOR"] = []string{"test", "HAS_AUTHOR"}
+	mnemonics["EXTRA"] = []string{"test", "EXTRA"}
 
 	docs := []any{
 		&DocWithEmbeddedProperties{
@@ -1387,8 +1398,8 @@ func TestDocuments_EmbeddedLikeCore(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["INSTANCE_OF"] = identifier.From("core", "INSTANCE_OF")
-	mnemonics["MNEMONIC"] = identifier.From("core", "MNEMONIC")
+	mnemonics["INSTANCE_OF"] = []string{"core", "INSTANCE_OF"}
+	mnemonics["MNEMONIC"] = []string{"core", "MNEMONIC"}
 
 	docs := []any{
 		&Property{
@@ -1563,8 +1574,8 @@ func TestDocuments_MultipleFieldsSameProperty(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["HAS_AUTHOR"] = identifier.From("test", "HAS_AUTHOR")
-	mnemonics["HAS_ARTIST"] = identifier.From("test", "HAS_ARTIST")
+	mnemonics["HAS_AUTHOR"] = []string{"test", "HAS_AUTHOR"}
+	mnemonics["HAS_ARTIST"] = []string{"test", "HAS_ARTIST"}
 
 	docs := []any{
 		&DocWithDuplicateProps{
@@ -1669,10 +1680,10 @@ func TestDocuments_HTMLvsRawHTMLEscaping(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["ESCAPED"] = identifier.From("test", "ESCAPED")
-	mnemonics["UNESCAPED"] = identifier.From("test", "UNESCAPED")
-	mnemonics["CORE_HTML"] = identifier.From("test", "CORE_HTML")
-	mnemonics["CORE_RAW"] = identifier.From("test", "CORE_RAW")
+	mnemonics["ESCAPED"] = []string{"test", "ESCAPED"}
+	mnemonics["UNESCAPED"] = []string{"test", "UNESCAPED"}
+	mnemonics["CORE_HTML"] = []string{"test", "CORE_HTML"}
+	mnemonics["CORE_RAW"] = []string{"test", "CORE_RAW"}
 
 	testHTML := "<script>alert('xss')</script>"
 	docs := []any{
@@ -1717,10 +1728,10 @@ func TestDocuments_HTMLvsRawHTMLEscapingWithSurroundingText(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["ESCAPED"] = identifier.From("test", "ESCAPED")
-	mnemonics["UNESCAPED"] = identifier.From("test", "UNESCAPED")
-	mnemonics["CORE_HTML"] = identifier.From("test", "CORE_HTML")
-	mnemonics["CORE_RAW"] = identifier.From("test", "CORE_RAW")
+	mnemonics["ESCAPED"] = []string{"test", "ESCAPED"}
+	mnemonics["UNESCAPED"] = []string{"test", "UNESCAPED"}
+	mnemonics["CORE_HTML"] = []string{"test", "CORE_HTML"}
+	mnemonics["CORE_RAW"] = []string{"test", "CORE_RAW"}
 
 	testHTML := "hello <script>alert('xss')</script> world"
 	docs := []any{
@@ -1759,21 +1770,21 @@ func TestDocuments_HTMLvsRawHTMLEscapingWithSurroundingText(t *testing.T) {
 	assert.Equal(t, identifier.From("test", "doc1", "CORE_RAW", "0"), doc.Claims.HTML[3].ID)
 }
 
-func TestDocuments_CoreIRIWithoutTag(t *testing.T) {
+func TestDocuments_CoreLinkWithoutTag(t *testing.T) {
 	t.Parallel()
 
-	// Test that core.IRI without iri tag is treated as IRI.
-	type DocWithPlainIRI struct {
-		ID       []string `documentid:""`
-		PlainIRI core.IRI `              property:"PLAIN_IRI"` // No iri tag.
+	// Test that core.Link without link tag is treated as link.
+	type DocWithPlainLink struct {
+		ID        []string  `documentid:""`
+		PlainLink core.Link `              property:"PLAIN_LINK"` // No link tag.
 	}
 
 	mnemonics := createMnemonics()
 
 	docs := []any{
-		&DocWithPlainIRI{
-			ID:       []string{"test", "doc1"},
-			PlainIRI: "https://example.com",
+		&DocWithPlainLink{
+			ID:        []string{"test", "doc1"},
+			PlainLink: "https://example.com",
 		},
 	}
 
@@ -1782,11 +1793,81 @@ func TestDocuments_CoreIRIWithoutTag(t *testing.T) {
 
 	doc := results[0]
 
-	// Without iri tag, should still be LinkClaim.
+	// Without link tag, should still be LinkClaim.
 	require.Len(t, doc.Claims.Link, 1)
 
 	assert.Equal(t, "https://example.com", doc.Claims.Link[0].IRI)
-	assert.Equal(t, identifier.From("test", "doc1", "PLAIN_IRI", "0"), doc.Claims.Link[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "PLAIN_LINK", "0"), doc.Claims.Link[0].ID)
+}
+
+func TestDocuments_FileTypeTag(t *testing.T) {
+	t.Parallel()
+
+	// Test that type:"file" on a string field produces a LinkClaim (same as type:"link").
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithFile{
+			ID:       []string{"test", "doc1"},
+			FilePath: "/uploads/photo.jpg",
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+
+	require.Len(t, doc.Claims.Link, 1)
+
+	assert.Equal(t, "/uploads/photo.jpg", doc.Claims.Link[0].IRI)
+	assert.Equal(t, identifier.From("test", "doc1", "HOMEPAGE", "0"), doc.Claims.Link[0].ID)
+}
+
+func TestDocuments_CoreFileWithoutTag(t *testing.T) {
+	t.Parallel()
+
+	// Test that core.File without file tag is treated as file (produces LinkClaim).
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithCoreFile{
+			ID:        []string{"test", "doc1"},
+			PlainFile: "/uploads/photo.jpg",
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+
+	// Without file tag, should still be LinkClaim.
+	require.Len(t, doc.Claims.Link, 1)
+
+	assert.Equal(t, "/uploads/photo.jpg", doc.Claims.Link[0].IRI)
+	assert.Equal(t, identifier.From("test", "doc1", "PLAIN_FILE", "0"), doc.Claims.Link[0].ID)
+}
+
+func TestDocuments_CoreFileEmpty(t *testing.T) {
+	t.Parallel()
+
+	// Test that empty core.File is skipped.
+	mnemonics := createMnemonics()
+
+	docs := []any{
+		&DocWithCoreFile{
+			ID:        []string{"test", "doc1"},
+			PlainFile: "",
+		},
+	}
+
+	results, errE := transform.Documents(t.Context(), mnemonics, docs)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	doc := results[0]
+
+	assert.Empty(t, doc.Claims.Link)
 }
 
 func TestDocuments_ZeroTimeSkipped(t *testing.T) {
@@ -1799,8 +1880,8 @@ func TestDocuments_ZeroTimeSkipped(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["VALID_TIME"] = identifier.From("test", "VALID_TIME")
-	mnemonics["INVALID_TIME"] = identifier.From("test", "INVALID_TIME")
+	mnemonics["VALID_TIME"] = []string{"test", "VALID_TIME"}
+	mnemonics["INVALID_TIME"] = []string{"test", "INVALID_TIME"}
 
 	now := time.Now()
 	docs := []any{
@@ -1835,8 +1916,8 @@ func TestDocuments_EmptyIntervalSkipped(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["VALID_PERIOD"] = identifier.From("test", "VALID_PERIOD")
-	mnemonics["INVALID_PERIOD"] = identifier.From("test", "INVALID_PERIOD")
+	mnemonics["VALID_PERIOD"] = []string{"test", "VALID_PERIOD"}
+	mnemonics["INVALID_PERIOD"] = []string{"test", "INVALID_PERIOD"}
 
 	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 	end := time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -1888,7 +1969,7 @@ func TestDocuments_UniqueClaimIDsWithFieldName(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["SHARED"] = identifier.From("test", "SHARED")
+	mnemonics["SHARED"] = []string{"test", "SHARED"}
 
 	docs := []any{
 		&DocWithSamePropertyDifferentFields{
@@ -1932,7 +2013,7 @@ func TestDocuments_PointerToRefInValue(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["TARGET"] = identifier.From("test", "TARGET")
+	mnemonics["TARGET"] = []string{"test", "TARGET"}
 
 	ref := core.Ref{ID: []string{"target", "1"}}
 	docs := []any{
@@ -1973,7 +2054,7 @@ func TestDocuments_HTMLEscaping(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["CONTENT"] = identifier.From("test", "CONTENT")
+	mnemonics["CONTENT"] = []string{"test", "CONTENT"}
 
 	docs := []any{
 		&DocWithRawHTML{
@@ -2131,7 +2212,7 @@ func TestDocuments_ValueFieldWithPointerTime(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["CREATED"] = identifier.From("test", "CREATED")
+	mnemonics["CREATED"] = []string{"test", "CREATED"}
 
 	now := time.Now()
 	coreTime := core.Time{
@@ -2183,7 +2264,7 @@ func TestDocuments_ValueFieldWithTime(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["CREATED"] = identifier.From("test", "CREATED")
+	mnemonics["CREATED"] = []string{"test", "CREATED"}
 
 	now := time.Now()
 	docs := []any{
@@ -2224,7 +2305,7 @@ func TestDocuments_ValueFieldWithIdentifier(t *testing.T) { //nolint:dupl
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["CODE"] = identifier.From("test", "CODE")
+	mnemonics["CODE"] = []string{"test", "CODE"}
 
 	docs := []any{
 		&DocWithIDValue{
@@ -2263,7 +2344,7 @@ func TestDocuments_ValueFieldWithHTMLTag(t *testing.T) { //nolint:dupl
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["CONTENT"] = identifier.From("test", "CONTENT")
+	mnemonics["CONTENT"] = []string{"test", "CONTENT"}
 
 	docs := []any{
 		&DocWithHTMLValue{
@@ -2303,7 +2384,7 @@ func TestDocuments_ValueFieldWithRawHTMLTag(t *testing.T) { //nolint:dupl
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["CONTENT"] = identifier.From("test", "CONTENT")
+	mnemonics["CONTENT"] = []string{"test", "CONTENT"}
 
 	docs := []any{
 		&DocWithRawHTMLValue{
@@ -2328,27 +2409,27 @@ func TestDocuments_ValueFieldWithRawHTMLTag(t *testing.T) { //nolint:dupl
 	assert.Equal(t, identifier.From("test", "doc1", "CONTENT", "0"), doc.Claims.HTML[0].ID)
 }
 
-func TestDocuments_ValueFieldWithIRITag(t *testing.T) { //nolint:dupl
+func TestDocuments_ValueFieldWithLinkTag(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
-	// Test value:"" with type:"iri" tag.
-	type IRIValue struct {
-		Value string `                type:"iri" value:""`
+	// Test value:"" with type:"link" tag.
+	type LinkValue struct {
+		Value string `                type:"link" value:""`
 		Note  string `property:"NOTE"`
 	}
 
-	type DocWithIRIValue struct {
-		ID   []string `documentid:""`
-		Link IRIValue `              property:"LINK"`
+	type DocWithLinkValue struct {
+		ID   []string  `documentid:""`
+		Link LinkValue `              property:"LINK"`
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["LINK"] = identifier.From("test", "LINK")
+	mnemonics["LINK"] = []string{"test", "LINK"}
 
 	docs := []any{
-		&DocWithIRIValue{
+		&DocWithLinkValue{
 			ID: []string{"test", "doc1"},
-			Link: IRIValue{
+			Link: LinkValue{
 				Value: "https://example.com",
 				Note:  "Homepage",
 			},
@@ -2382,7 +2463,7 @@ func TestDocuments_ValueFieldUnsupportedSlice(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["ITEMS"] = identifier.From("test", "ITEMS")
+	mnemonics["ITEMS"] = []string{"test", "ITEMS"}
 
 	docs := []any{
 		&DocWithSliceValue{
@@ -2420,7 +2501,7 @@ func TestDocuments_ValueFieldUnsupportedStruct(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["DATA"] = identifier.From("test", "DATA")
+	mnemonics["DATA"] = []string{"test", "DATA"}
 
 	docs := []any{
 		&DocWithStructValue{
@@ -2453,7 +2534,7 @@ func TestDocuments_ValueFieldWithAmount(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["HEIGHT"] = identifier.From("test", "HEIGHT")
+	mnemonics["HEIGHT"] = []string{"test", "HEIGHT"}
 
 	docs := []any{
 		&DocWithAmountValue{
@@ -2497,7 +2578,7 @@ func TestDocuments_ValueFieldWithBool(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["ACTIVE"] = identifier.From("test", "ACTIVE")
+	mnemonics["ACTIVE"] = []string{"test", "ACTIVE"}
 
 	docs := []any{
 		&DocWithBoolValue{
@@ -2539,7 +2620,7 @@ func TestDocuments_ValueFieldWithBoolFalse(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["ACTIVE"] = identifier.From("test", "ACTIVE")
+	mnemonics["ACTIVE"] = []string{"test", "ACTIVE"}
 
 	docs := []any{
 		&DocWithBoolValue{
@@ -2576,7 +2657,7 @@ func TestDocuments_StructWithoutValueField(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["LOCATION"] = identifier.From("test", "LOCATION")
+	mnemonics["LOCATION"] = []string{"test", "LOCATION"}
 
 	docs := []any{
 		&DocWithoutValueField{
@@ -2617,7 +2698,7 @@ func TestDocuments_RequiredPointerNilSlice(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["ITEMS"] = identifier.From("test", "ITEMS")
+	mnemonics["ITEMS"] = []string{"test", "ITEMS"}
 
 	docs := []any{
 		&DocWithRequiredPointerSlice{
@@ -2679,7 +2760,7 @@ func TestDocuments_NestedStructInSlice(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["ITEMS"] = identifier.From("test", "ITEMS")
+	mnemonics["ITEMS"] = []string{"test", "ITEMS"}
 
 	docs := []any{
 		&DocWithStructSlice{
@@ -2726,7 +2807,7 @@ func TestDocuments_MultipleValueFieldsError(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["DATA"] = identifier.From("test", "DATA")
+	mnemonics["DATA"] = []string{"test", "DATA"}
 
 	docs := []any{
 		&DocWithMultiValue{
@@ -2760,8 +2841,8 @@ func TestDocuments_ValueAndPropertyTagError(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["DATA"] = identifier.From("test", "DATA")
-	mnemonics["VALUE"] = identifier.From("test", "VALUE")
+	mnemonics["DATA"] = []string{"test", "DATA"}
+	mnemonics["VALUE"] = []string{"test", "VALUE"}
 
 	docs := []any{
 		&DocWithInvalidValue{
@@ -2839,7 +2920,7 @@ func TestDocuments_InfinityFloatError(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["VALUE"] = identifier.From("test", "VALUE")
+	mnemonics["VALUE"] = []string{"test", "VALUE"}
 
 	docs := []any{
 		&DocWithInfinity{
@@ -2851,7 +2932,7 @@ func TestDocuments_InfinityFloatError(t *testing.T) {
 	// Infinity should error.
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 
-	assert.EqualError(t, errE, "value is infinity or not a number")
+	assert.EqualError(t, errE, "value must be a finite number")
 }
 
 func TestDocuments_NaNFloatError(t *testing.T) {
@@ -2864,7 +2945,7 @@ func TestDocuments_NaNFloatError(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["VALUE"] = identifier.From("test", "VALUE")
+	mnemonics["VALUE"] = []string{"test", "VALUE"}
 
 	docs := []any{
 		&DocWithNaN{
@@ -2876,7 +2957,7 @@ func TestDocuments_NaNFloatError(t *testing.T) {
 	// NaN should error.
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
 
-	assert.EqualError(t, errE, "value is infinity or not a number")
+	assert.EqualError(t, errE, "value must be a finite number")
 }
 
 func TestDocuments_EmbeddedStructWithPropertySkip(t *testing.T) {
@@ -2897,9 +2978,9 @@ func TestDocuments_EmbeddedStructWithPropertySkip(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["FIELD1"] = identifier.From("test", "FIELD1")
-	mnemonics["FIELD2"] = identifier.From("test", "FIELD2")
-	mnemonics["EXTRA"] = identifier.From("test", "EXTRA")
+	mnemonics["FIELD1"] = []string{"test", "FIELD1"}
+	mnemonics["FIELD2"] = []string{"test", "FIELD2"}
+	mnemonics["EXTRA"] = []string{"test", "EXTRA"}
 
 	docs := []any{
 		&DocWithSkippedEmbedded{
@@ -2927,8 +3008,8 @@ func TestDocuments_EmbeddedStructWithPropertySkip(t *testing.T) {
 		doc.Claims.String[1].Prop.ID,
 	}
 
-	nameID := mnemonics["NAME"]
-	extraID := mnemonics["EXTRA"]
+	nameID := identifier.From(mnemonics["NAME"]...)
+	extraID := identifier.From(mnemonics["EXTRA"]...)
 
 	assert.True(t, (propIDs[0] == nameID && propIDs[1] == extraID) || (propIDs[0] == extraID && propIDs[1] == nameID), "expected Name and Extra properties, got %v", propIDs)
 
@@ -2969,7 +3050,7 @@ func TestDocuments_ComplexSharedPropertyWithSubAndValue(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["SHARED"] = identifier.From("test", "SHARED")
+	mnemonics["SHARED"] = []string{"test", "SHARED"}
 
 	docs := []any{
 		&DocComplex{
@@ -3008,7 +3089,7 @@ func TestDocuments_ComplexSharedPropertyWithSubAndValue(t *testing.T) {
 	// Total: 8 string claims for SHARED property.
 	require.Len(t, doc.Claims.String, 8)
 
-	sharedPropID := mnemonics["SHARED"]
+	sharedPropID := identifier.From(mnemonics["SHARED"]...)
 
 	// Verify all claims have the same property.
 	for i, claim := range doc.Claims.String {
@@ -3041,7 +3122,7 @@ func TestDocuments_ComplexSharedPropertyWithSubAndValue(t *testing.T) {
 	// Verify sub-claims have correct property IDs.
 	assert.Equal(t, sharedPropID, valueClaim.Sub.String[0].Prop.ID)
 	assert.Equal(t, sharedPropID, valueClaim.Sub.String[1].Prop.ID)
-	assert.Equal(t, mnemonics["NOTE"], valueClaim.Sub.String[2].Prop.ID)
+	assert.Equal(t, identifier.From(mnemonics["NOTE"]...), valueClaim.Sub.String[2].Prop.ID)
 }
 
 type DocWithInvalidUnknown struct {
@@ -3057,11 +3138,11 @@ type UnsupportedFieldDoc struct {
 func TestDocuments_ErrorCases(t *testing.T) {
 	t.Parallel()
 
-	mnemonics := map[string]identifier.Identifier{
-		"NAME":        identifier.New(),
-		"INVALID":     identifier.New(),
-		"UNSUPPORTED": identifier.New(),
-		"NESTED":      identifier.New(),
+	mnemonics := map[string][]string{
+		"NAME":        {"test", identifier.New().String()},
+		"INVALID":     {"test", identifier.New().String()},
+		"UNSUPPORTED": {"test", identifier.New().String()},
+		"NESTED":      {"test", identifier.New().String()},
 	}
 
 	t.Run("UnknownTagWithNonBool", func(t *testing.T) {
@@ -3135,13 +3216,13 @@ type NestedStructEmpty struct {
 func TestDocuments_EdgeCases(t *testing.T) {
 	t.Parallel()
 
-	mnemonics := map[string]identifier.Identifier{
-		"REFS":    identifier.New(),
-		"STRINGS": identifier.New(),
-		"TIMES":   identifier.New(),
-		"INVALID": identifier.New(),
-		"NESTED":  identifier.New(),
-		"SUB":     identifier.New(),
+	mnemonics := map[string][]string{
+		"REFS":    {"test", identifier.New().String()},
+		"STRINGS": {"test", identifier.New().String()},
+		"TIMES":   {"test", identifier.New().String()},
+		"INVALID": {"test", identifier.New().String()},
+		"NESTED":  {"test", identifier.New().String()},
+		"SUB":     {"test", identifier.New().String()},
 	}
 
 	t.Run("SliceWithEmptyValues", func(t *testing.T) {
@@ -3171,15 +3252,15 @@ func TestDocuments_EdgeCases(t *testing.T) {
 		require.Len(t, result, 1)
 
 		// Should have claims only for the valid values.
-		refsProperty := mnemonics["REFS"]
+		refsProperty := identifier.From(mnemonics["REFS"]...)
 		refsClaims := result[0].Get(refsProperty)
 		assert.Len(t, refsClaims, 1) // Only one valid ref.
 
-		stringsProperty := mnemonics["STRINGS"]
+		stringsProperty := identifier.From(mnemonics["STRINGS"]...)
 		stringsClaims := result[0].Get(stringsProperty)
 		assert.Len(t, stringsClaims, 1) // Only one valid string.
 
-		timesProperty := mnemonics["TIMES"]
+		timesProperty := identifier.From(mnemonics["TIMES"]...)
 		timesClaims := result[0].Get(timesProperty)
 		assert.Len(t, timesClaims, 1) // Only one valid time.
 	})
@@ -3218,7 +3299,7 @@ func TestDocuments_EdgeCases(t *testing.T) {
 		require.Len(t, result, 1)
 
 		// Should create a HasClaim since there's no value field but there are sub-claims.
-		nestedProperty := mnemonics["NESTED"]
+		nestedProperty := identifier.From(mnemonics["NESTED"]...)
 		nestedClaims := result[0].Get(nestedProperty)
 		assert.Len(t, nestedClaims, 1)
 		assert.IsType(t, &document.HasClaim{}, nestedClaims[0])
@@ -3239,7 +3320,7 @@ func TestDocuments_EdgeCases(t *testing.T) {
 		require.Len(t, result, 1)
 
 		// Should not create a claim since there's no value field and no sub-claims.
-		nestedProperty := mnemonics["NESTED"]
+		nestedProperty := identifier.From(mnemonics["NESTED"]...)
 		nestedClaims := result[0].Get(nestedProperty)
 		assert.Empty(t, nestedClaims)
 	})
@@ -3248,17 +3329,17 @@ func TestDocuments_EdgeCases(t *testing.T) {
 type DocWithConflictingTags struct {
 	ID            []string        `documentid:""`
 	IdentifierStr core.Identifier `              property:"ID_STR"   type:"html"` // Conflicting type tag.
-	IRIStr        core.IRI        `              property:"IRI_STR"  type:"id"`   // Conflicting type tag.
+	LinkStr       core.Link       `              property:"LINK_STR" type:"id"`   // Conflicting type tag.
 	HTMLStr       core.HTML       `              property:"HTML_STR" type:"id"`   // Conflicting type tag.
 }
 
 func TestDocuments_ConflictingTags(t *testing.T) {
 	t.Parallel()
 
-	mnemonics := map[string]identifier.Identifier{
-		"ID_STR":   identifier.New(),
-		"IRI_STR":  identifier.New(),
-		"HTML_STR": identifier.New(),
+	mnemonics := map[string][]string{
+		"ID_STR":   {"test", identifier.New().String()},
+		"LINK_STR": {"test", identifier.New().String()},
+		"HTML_STR": {"test", identifier.New().String()},
 	}
 
 	t.Run("IdentifierWithConflictingTag", func(t *testing.T) {
@@ -3276,18 +3357,18 @@ func TestDocuments_ConflictingTags(t *testing.T) {
 		assert.Nil(t, result)
 	})
 
-	t.Run("IRIWithConflictingTag", func(t *testing.T) {
+	t.Run("LinkWithConflictingTag", func(t *testing.T) {
 		t.Parallel()
 
 		docs := []any{
 			&DocWithConflictingTags{ //nolint:exhaustruct
-				ID:     []string{"doc1"},
-				IRIStr: "https://example.com",
+				ID:      []string{"doc1"},
+				LinkStr: "https://example.com",
 			},
 		}
 
 		result, errE := transform.Documents(t.Context(), mnemonics, docs)
-		assert.EqualError(t, errE, "IRI field used with conflicting tag")
+		assert.EqualError(t, errE, "link field used with conflicting tag")
 		assert.Nil(t, result)
 	})
 
@@ -3324,9 +3405,9 @@ type DocWithInvalidFloatValue struct {
 func TestDocuments_MoreEdgeCases(t *testing.T) {
 	t.Parallel()
 
-	mnemonics := map[string]identifier.Identifier{
-		"COUNT": identifier.New(),
-		"VALUE": identifier.New(),
+	mnemonics := map[string][]string{
+		"COUNT": {"test", identifier.New().String()},
+		"VALUE": {"test", identifier.New().String()},
 	}
 
 	t.Run("NumericField", func(t *testing.T) {
@@ -3370,7 +3451,7 @@ func TestDocuments_MoreEdgeCases(t *testing.T) {
 		}
 
 		result, errE := transform.Documents(t.Context(), mnemonics, docs)
-		assert.EqualError(t, errE, "value is infinity or not a number")
+		assert.EqualError(t, errE, "value must be a finite number")
 		assert.Nil(t, result)
 	})
 
@@ -3385,7 +3466,7 @@ func TestDocuments_MoreEdgeCases(t *testing.T) {
 		}
 
 		result, errE := transform.Documents(t.Context(), mnemonics, docs)
-		assert.EqualError(t, errE, "value is infinity or not a number")
+		assert.EqualError(t, errE, "value must be a finite number")
 		assert.Nil(t, result)
 	})
 }
@@ -3402,9 +3483,9 @@ type PropertyConflictStruct struct {
 func TestDocuments_ValueTagConflicts(t *testing.T) {
 	t.Parallel()
 
-	mnemonics := map[string]identifier.Identifier{
-		"NESTED": identifier.New(),
-		"FOO":    identifier.New(),
+	mnemonics := map[string][]string{
+		"NESTED": {"test", identifier.New().String()},
+		"FOO":    {"test", identifier.New().String()},
 	}
 
 	t.Run("ValueTagWithPropertyTag", func(t *testing.T) {
@@ -3438,8 +3519,8 @@ type DocWithRawHTMLConflict struct {
 func TestDocuments_RawHTMLConflict(t *testing.T) {
 	t.Parallel()
 
-	mnemonics := map[string]identifier.Identifier{
-		"RAW": identifier.New(),
+	mnemonics := map[string][]string{
+		"RAW": {"test", identifier.New().String()},
 	}
 
 	t.Run("RawHTMLWithConflictingTag", func(t *testing.T) {
@@ -3461,8 +3542,8 @@ func TestDocuments_RawHTMLConflict(t *testing.T) {
 func TestDocuments_IntervalEdgeCases(t *testing.T) {
 	t.Parallel()
 
-	mnemonics := map[string]identifier.Identifier{
-		"INTERVAL": identifier.New(),
+	mnemonics := map[string][]string{
+		"INTERVAL": {"test", identifier.New().String()},
 	}
 
 	t.Run("IntervalWithDifferentPrecisions", func(t *testing.T) {
@@ -3491,7 +3572,7 @@ func TestDocuments_IntervalEdgeCases(t *testing.T) {
 		require.NoError(t, errE, "% -+#.1v", errE)
 		require.Len(t, result, 1)
 
-		intervalProperty := mnemonics["INTERVAL"]
+		intervalProperty := identifier.From(mnemonics["INTERVAL"]...)
 		intervalClaims := result[0].Get(intervalProperty)
 		require.Len(t, intervalClaims, 1)
 
@@ -3549,7 +3630,7 @@ func TestDocuments_IntervalEdgeCases(t *testing.T) {
 		require.Len(t, result, 1)
 
 		// FromIsUnknown creates a TimeIntervalClaim with unknown From bound.
-		intervalProperty := mnemonics["INTERVAL"]
+		intervalProperty := identifier.From(mnemonics["INTERVAL"]...)
 		intervalClaims := result[0].Get(intervalProperty)
 		require.Len(t, intervalClaims, 1)
 		timeRange, ok := intervalClaims[0].(*document.TimeIntervalClaim)
@@ -3584,11 +3665,11 @@ type DocEmbeddedEquivalent struct {
 func TestDocuments_EmbeddedStructEquivalence(t *testing.T) {
 	t.Parallel()
 
-	mnemonics := map[string]identifier.Identifier{
-		"NAME":        identifier.New(),
-		"DESCRIPTION": identifier.New(),
-		"AGE":         identifier.New(),
-		"IS_ACTIVE":   identifier.New(),
+	mnemonics := map[string][]string{
+		"NAME":        {"test", identifier.New().String()},
+		"DESCRIPTION": {"test", identifier.New().String()},
+		"AGE":         {"test", identifier.New().String()},
+		"IS_ACTIVE":   {"test", identifier.New().String()},
 	}
 
 	flatDoc := &DocFlatFields{
@@ -3648,11 +3729,11 @@ type DocMultiLevelFlat struct {
 func TestDocuments_MultiLevelEmbeddedEquivalence(t *testing.T) {
 	t.Parallel()
 
-	mnemonics := map[string]identifier.Identifier{
-		"FIELD0": identifier.New(),
-		"FIELD1": identifier.New(),
-		"FIELD2": identifier.New(),
-		"FIELD3": identifier.New(),
+	mnemonics := map[string][]string{
+		"FIELD0": {"test", identifier.New().String()},
+		"FIELD1": {"test", identifier.New().String()},
+		"FIELD2": {"test", identifier.New().String()},
+		"FIELD3": {"test", identifier.New().String()},
 	}
 
 	nestedDoc := &DocMultiLevelEmbedded{
@@ -4055,7 +4136,7 @@ func TestDocuments_NoneTag_Pointer(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["VALUE"] = identifier.From("test", "VALUE")
+	mnemonics["VALUE"] = []string{"test", "VALUE"}
 
 	// With nil pointer, should add 1 NoneClaim.
 	docs := []any{
@@ -4107,7 +4188,7 @@ func TestDocuments_CardinalityValidation_PointerMaxOne(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["VALUE"] = identifier.From("test", "VALUE")
+	mnemonics["VALUE"] = []string{"test", "VALUE"}
 
 	docs := []any{
 		&DocWithPointerMaxTwo{
@@ -4177,7 +4258,7 @@ func TestDocuments_CardinalityValidation_PointerCanBeZeroOrOne(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["VALUE"] = identifier.From("test", "VALUE")
+	mnemonics["VALUE"] = []string{"test", "VALUE"}
 
 	// With nil pointer.
 	docs := []any{
@@ -4217,7 +4298,7 @@ func TestDocuments_CardinalityValidation_PointerWithNone(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["VALUE"] = identifier.From("test", "VALUE")
+	mnemonics["VALUE"] = []string{"test", "VALUE"}
 
 	// With nil pointer and default:"none" tag, should add NoneClaim.
 	docs := []any{
@@ -4549,7 +4630,7 @@ func TestDocuments_ValueTag_WithPropertyTag(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["FIELD"] = identifier.From("test", "FIELD")
+	mnemonics["FIELD"] = []string{"test", "FIELD"}
 
 	docs := []any{
 		&DocWithInvalidValue{
@@ -4578,7 +4659,7 @@ func TestDocuments_MultipleValueClaims(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["FIELD"] = identifier.From("test", "FIELD")
+	mnemonics["FIELD"] = []string{"test", "FIELD"}
 
 	docs := []any{
 		&DocWithMultipleValues{
@@ -4602,7 +4683,7 @@ func TestDocuments_PointerWithCardinality(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["VALUE"] = identifier.From("test", "VALUE")
+	mnemonics["VALUE"] = []string{"test", "VALUE"}
 
 	value := "test"
 	docs := []any{
@@ -4635,7 +4716,7 @@ func TestDocuments_EmptyStructAsValue(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["FIELD"] = identifier.From("test", "FIELD")
+	mnemonics["FIELD"] = []string{"test", "FIELD"}
 
 	docs := []any{
 		&DocWithEmptyStruct{
@@ -4650,7 +4731,7 @@ func TestDocuments_EmptyStructAsValue(t *testing.T) {
 
 	doc := results[0]
 	// Empty struct with no value field and no sub-claims produces no claim.
-	fieldProperty := mnemonics["FIELD"]
+	fieldProperty := identifier.From(mnemonics["FIELD"]...)
 	fieldClaims := doc.Get(fieldProperty)
 	assert.Empty(t, fieldClaims)
 }
@@ -4674,8 +4755,8 @@ func TestDocuments_EmbeddedStructWithValueClaim(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["FIELD"] = identifier.From("test", "FIELD")
-	mnemonics["SUB"] = identifier.From("test", "SUB")
+	mnemonics["FIELD"] = []string{"test", "FIELD"}
+	mnemonics["SUB"] = []string{"test", "SUB"}
 
 	docs := []any{
 		&DocWithEmbeddedValue{
@@ -4722,8 +4803,8 @@ func TestDocuments_EmbeddedStructWithEmptyValue(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["FIELD"] = identifier.From("test", "FIELD")
-	mnemonics["SUB"] = identifier.From("test", "SUB")
+	mnemonics["FIELD"] = []string{"test", "FIELD"}
+	mnemonics["SUB"] = []string{"test", "SUB"}
 
 	docs := []any{
 		&DocWithEmbeddedEmptyValue{
@@ -4743,7 +4824,7 @@ func TestDocuments_EmbeddedStructWithEmptyValue(t *testing.T) {
 
 	doc := results[0]
 	// Should have HasClaim since value is empty but there are sub-claims.
-	fieldProperty := mnemonics["FIELD"]
+	fieldProperty := identifier.From(mnemonics["FIELD"]...)
 	fieldClaims := doc.Get(fieldProperty)
 	require.Len(t, fieldClaims, 1)
 	assert.IsType(t, &document.HasClaim{}, fieldClaims[0])
@@ -4790,7 +4871,7 @@ func TestDocuments_PointerDoesNotMeetMin(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["VALUE"] = identifier.From("test", "VALUE")
+	mnemonics["VALUE"] = []string{"test", "VALUE"}
 
 	// Nil pointer when min is 1 - should fail.
 	docs := []any{
@@ -4913,7 +4994,7 @@ func TestDocuments_UnknownTag_Pointer(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["VALUE"] = identifier.From("test", "VALUE")
+	mnemonics["VALUE"] = []string{"test", "VALUE"}
 
 	// With nil pointer, should add 1 UnknownClaim.
 	docs := []any{
@@ -4994,7 +5075,7 @@ func TestDocuments_UnknownTag_BooleanBehavior(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["AGE"] = identifier.From("test", "AGE")
+	mnemonics["AGE"] = []string{"test", "AGE"}
 
 	docs := []any{
 		&DocWithUnknownBool{
@@ -5025,7 +5106,7 @@ func TestDocuments_NoneTag_BooleanBehavior(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["LAST_NAME"] = identifier.From("test", "LAST_NAME")
+	mnemonics["LAST_NAME"] = []string{"test", "LAST_NAME"}
 
 	// When true, should create NoneClaim.
 	docs := []any{
@@ -5073,7 +5154,7 @@ func TestDocuments_NoneTag_BooleanVsCardinalityMode(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["LAST_NAME"] = identifier.From("test", "LAST_NAME")
+	mnemonics["LAST_NAME"] = []string{"test", "LAST_NAME"}
 
 	docs := []any{
 		&DocWithBothNoneModes{
@@ -5105,7 +5186,7 @@ func TestDocuments_CoreNoneType(t *testing.T) { //nolint:dupl
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["LAST_NAME"] = identifier.From("test", "LAST_NAME")
+	mnemonics["LAST_NAME"] = []string{"test", "LAST_NAME"}
 
 	// When true, should create NoneClaim.
 	docs := []any{
@@ -5152,7 +5233,7 @@ func TestDocuments_CoreUnknownType(t *testing.T) { //nolint:dupl
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["AGE"] = identifier.From("test", "AGE")
+	mnemonics["AGE"] = []string{"test", "AGE"}
 
 	// When true, should create UnknownClaim.
 	docs := []any{
@@ -5199,7 +5280,7 @@ func TestDocuments_BoolWithTypeNone(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["NOTE"] = identifier.From("test", "NOTE")
+	mnemonics["NOTE"] = []string{"test", "NOTE"}
 
 	// When true, should create NoneClaim.
 	docs := []any{
@@ -5230,7 +5311,7 @@ func TestDocuments_BoolWithTypeUnknown(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["AGE"] = identifier.From("test", "AGE")
+	mnemonics["AGE"] = []string{"test", "AGE"}
 
 	// When true, should create UnknownClaim.
 	docs := []any{
@@ -5260,7 +5341,7 @@ func TestDocuments_CoreNoneWithConflictingTag(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["FIELD"] = identifier.From("test", "FIELD")
+	mnemonics["FIELD"] = []string{"test", "FIELD"}
 
 	docs := []any{
 		&DocWithConflictingNone{
@@ -5284,7 +5365,7 @@ func TestDocuments_CoreUnknownWithConflictingTag(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["FIELD"] = identifier.From("test", "FIELD")
+	mnemonics["FIELD"] = []string{"test", "FIELD"}
 
 	docs := []any{
 		&DocWithConflictingUnknown{
@@ -5388,7 +5469,7 @@ func TestDocuments_PointerWithDefaultNone(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["VALUE"] = identifier.From("test", "VALUE")
+	mnemonics["VALUE"] = []string{"test", "VALUE"}
 
 	// Nil pointer with min=1 and default:"none" should add NoneClaim.
 	docs := []any{
@@ -5443,7 +5524,7 @@ func TestDocuments_BooleanWithMaxCardinality(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["FLAG"] = identifier.From("test", "FLAG")
+	mnemonics["FLAG"] = []string{"test", "FLAG"}
 
 	docs := []any{
 		&DocWithBoolMax{
@@ -5472,7 +5553,7 @@ func TestDocuments_ValueFieldCannotHaveCardinality(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["FIELD"] = identifier.From("test", "FIELD")
+	mnemonics["FIELD"] = []string{"test", "FIELD"}
 
 	docs := []any{
 		&DocWithCardinalityValue{
@@ -5698,7 +5779,7 @@ func TestDocuments_SliceIdentifierConflict(t *testing.T) {
 	// A slice of core.Identifier fields with conflicting type tag causes error propagation through processField.
 	type DocWithIdentifierSlice struct {
 		ID    []string          `documentid:""`
-		Codes []core.Identifier `              property:"CODE" type:"iri"`
+		Codes []core.Identifier `              property:"CODE" type:"link"`
 	}
 
 	mnemonics := createMnemonics()
@@ -5721,7 +5802,7 @@ func TestDocuments_PointerIdentifierConflict(t *testing.T) {
 	// A pointer to core.Identifier with conflicting type tag causes error propagation through processField.
 	type DocWithIdentifierPointer struct {
 		ID   []string         `documentid:""`
-		Code *core.Identifier `              property:"CODE" type:"iri"`
+		Code *core.Identifier `              property:"CODE" type:"link"`
 	}
 
 	mnemonics := createMnemonics()
@@ -5754,7 +5835,7 @@ func TestDocuments_SubClaimsProcessingError(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["DATA"] = identifier.From("test", "DATA")
+	mnemonics["DATA"] = []string{"test", "DATA"}
 
 	docs := []any{
 		&DocWithNestedBadSub{
@@ -5791,8 +5872,8 @@ func TestDocuments_EmbeddedNoValueInValueSearch(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["FIELD"] = identifier.From("test", "FIELD")
-	mnemonics["SUB"] = identifier.From("test", "SUB")
+	mnemonics["FIELD"] = []string{"test", "FIELD"}
+	mnemonics["SUB"] = []string{"test", "SUB"}
 
 	docs := []any{
 		&DocWithOuterEmbedded{
@@ -5818,7 +5899,7 @@ func TestDocuments_EmbeddedValueClaimError(t *testing.T) {
 
 	// When an embedded struct's value field has a conflicting type tag, the error propagates.
 	type EmbeddedWithConflict struct {
-		Value core.Identifier `type:"iri" value:""`
+		Value core.Identifier `type:"link" value:""`
 	}
 
 	type OuterWithConflict struct {
@@ -5831,7 +5912,7 @@ func TestDocuments_EmbeddedValueClaimError(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["ITEM"] = identifier.From("test", "ITEM")
+	mnemonics["ITEM"] = []string{"test", "ITEM"}
 
 	docs := []any{
 		&DocWithConflictEmbedded{
@@ -5963,7 +6044,7 @@ func TestDocuments_IntervalToPrecisionHigher(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 1)
 
-	periodProperty := mnemonics["PERIOD"]
+	periodProperty := identifier.From(mnemonics["PERIOD"]...)
 	periodClaims := results[0].Get(periodProperty)
 	require.Len(t, periodClaims, 1)
 
@@ -6080,7 +6161,7 @@ func TestDocuments_EmbeddedDocIDError(t *testing.T) {
 		OuterWithBadEmbeddedID
 	}
 
-	_, errE := transform.Documents(t.Context(), map[string]identifier.Identifier{}, []any{
+	_, errE := transform.Documents(t.Context(), map[string][]string{}, []any{
 		&DocWrapper{
 			OuterWithBadEmbeddedID: OuterWithBadEmbeddedID{
 				EmbeddedBadID: EmbeddedBadID{ID: 42},
@@ -6104,7 +6185,7 @@ func TestDocuments_NumericPrecision(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["SMALL_VAL"] = identifier.From("test", "SMALL_VAL")
+	mnemonics["SMALL_VAL"] = []string{"test", "SMALL_VAL"}
 
 	docs := []any{
 		&DocWithPrecision{
@@ -6171,7 +6252,7 @@ func TestDocuments_NumericInvalidPrecision(t *testing.T) {
 	}
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	assert.EqualError(t, errE, "invalid precision value for numeric field")
+	assert.EqualError(t, errE, "precision tag is not a valid number")
 }
 
 func TestDocuments_NumericPrecisionZero(t *testing.T) {
@@ -6477,7 +6558,7 @@ func TestDocuments_GoTimeValueField(t *testing.T) {
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["CREATED"] = identifier.From("test", "CREATED")
+	mnemonics["CREATED"] = []string{"test", "CREATED"}
 	ts := time.Date(2024, 3, 15, 12, 0, 0, 0, time.UTC)
 
 	docs := []any{
@@ -6855,7 +6936,7 @@ func TestDocuments_ConfidenceInvalidFloat(t *testing.T) {
 	}
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	assert.EqualError(t, errE, "confidence tag value is not a valid float")
+	assert.EqualError(t, errE, "confidence tag is not a valid number")
 }
 
 func TestDocuments_ConfidenceOutOfRangeHigh(t *testing.T) {
@@ -6876,7 +6957,7 @@ func TestDocuments_ConfidenceOutOfRangeHigh(t *testing.T) {
 	}
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	assert.EqualError(t, errE, "confidence tag value out of range [-1, 1]")
+	assert.EqualError(t, errE, "confidence is out of range [-1, 1]")
 }
 
 func TestDocuments_ConfidenceOutOfRangeLow(t *testing.T) {
@@ -6897,7 +6978,7 @@ func TestDocuments_ConfidenceOutOfRangeLow(t *testing.T) {
 	}
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	assert.EqualError(t, errE, "confidence tag value out of range [-1, 1]")
+	assert.EqualError(t, errE, "confidence is out of range [-1, 1]")
 }
 
 func TestDocuments_ConfidenceOnBoolField(t *testing.T) {
@@ -6913,7 +6994,7 @@ func TestDocuments_ConfidenceOnBoolField(t *testing.T) {
 
 	mnemonics := createMnemonics()
 	// Add HEIGHT to mnemonics.
-	mnemonics["HEIGHT"] = identifier.From("test", "HEIGHT")
+	mnemonics["HEIGHT"] = []string{"test", "HEIGHT"}
 
 	docs := []any{
 		&DocWithBoolConfidence{
@@ -7287,7 +7368,7 @@ func TestDocuments_TimeIntervalFromIsNone(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
 
-	periodClaims := result[0].Get(mnemonics["PERIOD"])
+	periodClaims := result[0].Get(identifier.From(mnemonics["PERIOD"]...))
 	require.Len(t, periodClaims, 1)
 	timeRange, ok := periodClaims[0].(*document.TimeIntervalClaim)
 	require.True(t, ok)
@@ -7413,7 +7494,7 @@ func TestDocuments_AmountIntervalEmptySkipped(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
 	// Empty interval should be skipped.
-	assert.Empty(t, result[0].Get(mnemonics["PERIOD"]))
+	assert.Empty(t, result[0].Get(identifier.From(mnemonics["PERIOD"]...)))
 }
 
 func TestDocuments_AmountIntervalFromMissing(t *testing.T) {
@@ -7464,7 +7545,7 @@ func TestDocuments_AmountIntervalFromIsNone(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
 
-	periodClaims := result[0].Get(mnemonics["PERIOD"])
+	periodClaims := result[0].Get(identifier.From(mnemonics["PERIOD"]...))
 	require.Len(t, periodClaims, 1)
 	amountRange, ok := periodClaims[0].(*document.AmountIntervalClaim)
 	require.True(t, ok)
@@ -7497,7 +7578,7 @@ func TestDocuments_AmountIntervalToIsNone(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
 
-	periodClaims := result[0].Get(mnemonics["PERIOD"])
+	periodClaims := result[0].Get(identifier.From(mnemonics["PERIOD"]...))
 	require.Len(t, periodClaims, 1)
 	amountRange, ok := periodClaims[0].(*document.AmountIntervalClaim)
 	require.True(t, ok)
@@ -7530,7 +7611,7 @@ func TestDocuments_AmountIntervalToIsUnknown(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
 
-	periodClaims := result[0].Get(mnemonics["PERIOD"])
+	periodClaims := result[0].Get(identifier.From(mnemonics["PERIOD"]...))
 	require.Len(t, periodClaims, 1)
 	amountRange, ok := periodClaims[0].(*document.AmountIntervalClaim)
 	require.True(t, ok)
@@ -7646,7 +7727,7 @@ func TestDocuments_CoreAmountInfinityErrors(t *testing.T) {
 	}
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	assert.EqualError(t, errE, "value is infinity or not a number")
+	assert.EqualError(t, errE, "value must be a finite number")
 }
 
 func TestDocuments_PrecisionOnIdentifierErrors(t *testing.T) {
@@ -7691,46 +7772,46 @@ func TestDocuments_LocationOnIdentifierErrors(t *testing.T) {
 	assert.EqualError(t, errE, "location tag is not supported for core.Identifier fields")
 }
 
-func TestDocuments_PrecisionOnIRIErrors(t *testing.T) {
+func TestDocuments_PrecisionOnLinkErrors(t *testing.T) {
 	t.Parallel()
 
 	mnemonics := createMnemonics()
 
 	type Doc struct {
-		ID  []string `documentid:""`
-		URL core.IRI `              precision:"1" property:"HOMEPAGE"`
+		ID  []string  `documentid:""`
+		URL core.Link `              precision:"1" property:"HOMEPAGE"`
 	}
 
 	docs := []any{
 		&Doc{
 			ID:  []string{"test", "doc1"},
-			URL: core.IRI("https://example.com"),
+			URL: core.Link("https://example.com"),
 		},
 	}
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	assert.EqualError(t, errE, "precision tag is not supported for core.IRI fields")
+	assert.EqualError(t, errE, "precision tag is not supported for core.Link fields")
 }
 
-func TestDocuments_LocationOnIRIErrors(t *testing.T) {
+func TestDocuments_LocationOnLinkErrors(t *testing.T) {
 	t.Parallel()
 
 	mnemonics := createMnemonics()
 
 	type Doc struct {
-		ID  []string `documentid:""`
-		URL core.IRI `              location:"UTC" property:"HOMEPAGE"`
+		ID  []string  `documentid:""`
+		URL core.Link `              location:"UTC" property:"HOMEPAGE"`
 	}
 
 	docs := []any{
 		&Doc{
 			ID:  []string{"test", "doc1"},
-			URL: core.IRI("https://example.com"),
+			URL: core.Link("https://example.com"),
 		},
 	}
 
 	_, errE := transform.Documents(t.Context(), mnemonics, docs)
-	assert.EqualError(t, errE, "location tag is not supported for core.IRI fields")
+	assert.EqualError(t, errE, "location tag is not supported for core.Link fields")
 }
 
 func TestDocuments_PrecisionOnHTMLErrors(t *testing.T) {

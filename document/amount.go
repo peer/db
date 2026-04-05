@@ -50,7 +50,7 @@ func (a Amount) Float64(precision float64) (float64, errors.E) {
 
 	value, err := strconv.ParseFloat(numStr, 64)
 	if err != nil {
-		errE := errors.New("unable to parse amount as float64")
+		errE := errors.WithMessage(err, "unable to parse amount as float64")
 		errors.Details(errE)["value"] = s
 		return 0, errE
 	}
@@ -154,6 +154,27 @@ func (a *Amount) UnmarshalJSON(data []byte) error {
 		return errE
 	}
 	return a.UnmarshalText([]byte(s))
+}
+
+// NewAmountDetectPrecision formats a string into an Amount string
+// with precision detected automatically.
+func NewAmountDetectPrecision(s string) (Amount, float64, errors.E) {
+	match := amountRegex.FindStringSubmatch(s)
+	if match == nil {
+		errE := errors.New("unable to parse amount")
+		errors.Details(errE)["value"] = s
+		return "", 0, errE
+	}
+
+	precision := 1.0
+	decimals := len(match[2])
+	if decimals > 0 {
+		precision = math.Pow(0.1, float64(decimals)) //nolint:mnd
+	}
+
+	value := Amount(s)
+
+	return value, precision, value.Validate(precision)
 }
 
 // NewAmount formats a float64 into an Amount string

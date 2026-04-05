@@ -18,8 +18,8 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/internal/testutils"
@@ -55,7 +55,7 @@ func makeDocJSON(t *testing.T, id identifier.Identifier) json.RawMessage {
 // newTestBridgeConverter creates a minimal Converter for bridge tests.
 func newTestBridgeConverter(t *testing.T) *internalSearch.Converter {
 	t.Helper()
-	c, errE := internalSearch.NewConverter(nil, nil, nil, func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+	c, errE := internalSearch.NewConverter(nil, nil, nil, nil, func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
 		return &document.D{
 			CoreDocument: document.CoreDocument{ID: id}, //nolint:exhaustruct
 		}, nil
@@ -163,14 +163,15 @@ func TestBridgeRealTime(t *testing.T) {
 
 	ctx, s, b, esClient := initBridge(t)
 
-	b.Start(ctx, newTestBridgeConverter(t))
+	errE := b.Start(ctx, newTestBridgeConverter(t))
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Insert three documents.
 	id1 := identifier.New()
 	id2 := identifier.New()
 	id3 := identifier.New()
 
-	_, errE := s.Insert(ctx, id1, makeDocJSON(t, id1), dummyMetadata(), dummyCommitMetadata())
+	_, errE = s.Insert(ctx, id1, makeDocJSON(t, id1), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = s.Insert(ctx, id2, makeDocJSON(t, id2), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -225,7 +226,8 @@ func TestBridgeCatchUp(t *testing.T) {
 	require.Len(t, entries, 2)
 
 	// Now start the bridge. It should catch up from CommitLog.
-	b.Start(ctx, newTestBridgeConverter(t))
+	errE = b.Start(ctx, newTestBridgeConverter(t))
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -243,7 +245,8 @@ func TestBridgeDeletedDocument(t *testing.T) {
 
 	ctx, s, b, esClient := initBridge(t)
 
-	b.Start(ctx, newTestBridgeConverter(t))
+	errE := b.Start(ctx, newTestBridgeConverter(t))
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	id := identifier.New()
 
@@ -277,7 +280,8 @@ func TestBridgeSeqAdvancement(t *testing.T) {
 
 	ctx, s, b, _ := initBridge(t)
 
-	b.Start(ctx, newTestBridgeConverter(t))
+	errE := b.Start(ctx, newTestBridgeConverter(t))
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Make several commits and verify the bridge table seq advances correctly.
 	for range 5 {
@@ -286,7 +290,7 @@ func TestBridgeSeqAdvancement(t *testing.T) {
 		require.NoError(t, errE, "% -+#.1v", errE)
 	}
 
-	errE := b.WaitUntilCaughtUp(ctx, nil, nil)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The bridge table seq must match the maximum CommitLog seq.
@@ -306,12 +310,13 @@ func TestBridgeNotifyRecovery(t *testing.T) {
 
 	ctx, s, b, esClient := initBridge(t)
 
-	b.Start(ctx, newTestBridgeConverter(t))
+	errE := b.Start(ctx, newTestBridgeConverter(t))
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Insert initial documents and wait for the bridge to catch up.
 	id1 := identifier.New()
 	id2 := identifier.New()
-	_, errE := s.Insert(ctx, id1, makeDocJSON(t, id1), dummyMetadata(), dummyCommitMetadata())
+	_, errE = s.Insert(ctx, id1, makeDocJSON(t, id1), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = s.Insert(ctx, id2, makeDocJSON(t, id2), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -364,7 +369,8 @@ func TestBridgeStaleDataNotIndexed(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Now start the bridge. It should catch up and index the latest version.
-	b.Start(ctx, newTestBridgeConverter(t))
+	errE = b.Start(ctx, newTestBridgeConverter(t))
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -376,28 +382,19 @@ func TestBridgeStaleDataNotIndexed(t *testing.T) {
 	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, id.String()), "document should be in ES")
 }
 
-// Well-known IDs computed from the core namespace.
-//
-//nolint:gochecknoglobals
-var (
-	testInstanceOfPropID       = identifier.From(core.Namespace, "INSTANCE_OF")
-	testPropertyClassID        = identifier.From(core.Namespace, "PROPERTY")
-	testInversePropertyOfPropI = identifier.From(core.Namespace, "INVERSE_PROPERTY_OF")
-)
-
 // makePropertyDocJSON creates a property document (INSTANCE_OF PROPERTY) with optional INVERSE_PROPERTY_OF.
 func makePropertyDocJSON(t *testing.T, id identifier.Identifier, inverseOf *identifier.Identifier) json.RawMessage {
 	t.Helper()
 	claims := &document.ClaimTypes{}
 	claims.Reference = append(claims.Reference, document.ReferenceClaim{
 		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
-		Prop:      document.Reference{ID: testInstanceOfPropID},
-		To:        document.Reference{ID: testPropertyClassID},
+		Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+		To:        document.Reference{ID: internalCore.PropertyClassID},
 	})
 	if inverseOf != nil {
 		claims.Reference = append(claims.Reference, document.ReferenceClaim{
 			CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
-			Prop:      document.Reference{ID: testInversePropertyOfPropI},
+			Prop:      document.Reference{ID: internalCore.InversePropertyOfPropID},
 			To:        document.Reference{ID: *inverseOf},
 		})
 	}
@@ -444,12 +441,12 @@ func makeConverterWithInverse(
 			Reference: []document.ReferenceClaim{
 				{
 					CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
-					Prop:      document.Reference{ID: testInstanceOfPropID},
-					To:        document.Reference{ID: testPropertyClassID},
+					Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+					To:        document.Reference{ID: internalCore.PropertyClassID},
 				},
 				{
 					CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
-					Prop:      document.Reference{ID: testInversePropertyOfPropI},
+					Prop:      document.Reference{ID: internalCore.InversePropertyOfPropID},
 					To:        document.Reference{ID: propY},
 				},
 			},
@@ -461,8 +458,8 @@ func makeConverterWithInverse(
 			Reference: []document.ReferenceClaim{
 				{
 					CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
-					Prop:      document.Reference{ID: testInstanceOfPropID},
-					To:        document.Reference{ID: testPropertyClassID},
+					Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+					To:        document.Reference{ID: internalCore.PropertyClassID},
 				},
 			},
 		},
@@ -470,7 +467,7 @@ func makeConverterWithInverse(
 
 	properties := []*document.D{propXDoc, propYDoc}
 
-	c, errE := internalSearch.NewConverter(properties, nil, nil, func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
+	c, errE := internalSearch.NewConverter(properties, nil, nil, nil, func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
 		data, _, _, _, errE := s.GetLatest(ctx, id)
 		if errors.Is(errE, store.ErrValueNotFound) {
 			// Return a minimal document for IDs not in the store (e.g., core property/class IDs).
@@ -502,10 +499,11 @@ func TestBridgeInverseRelationReindexing(t *testing.T) {
 	propY := identifier.New()
 
 	converter := makeConverterWithInverse(t, propX, propY, s)
-	b.Start(ctx, converter)
+	errE := b.Start(ctx, converter)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Insert property documents into the store so getDocument can find them.
-	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
+	_, errE = s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -558,10 +556,11 @@ func TestBridgeInverseRelationMutual(t *testing.T) {
 	propY := identifier.New()
 
 	converter := makeConverterWithInverse(t, propX, propY, s)
-	b.Start(ctx, converter)
+	errE := b.Start(ctx, converter)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Insert property documents.
-	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
+	_, errE = s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -609,10 +608,11 @@ func TestBridgeInverseRelationMultipleSources(t *testing.T) {
 	propY := identifier.New()
 
 	converter := makeConverterWithInverse(t, propX, propY, s)
-	b.Start(ctx, converter)
+	errE := b.Start(ctx, converter)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Insert property documents.
-	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
+	_, errE = s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -656,10 +656,11 @@ func TestBridgeInverseRelationRemoval(t *testing.T) {
 	propY := identifier.New()
 
 	converter := makeConverterWithInverse(t, propX, propY, s)
-	b.Start(ctx, converter)
+	errE := b.Start(ctx, converter)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Insert property documents.
-	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
+	_, errE = s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -726,10 +727,11 @@ func TestBridgeInverseRelationChange(t *testing.T) {
 	propY := identifier.New()
 
 	converter := makeConverterWithInverse(t, propX, propY, s)
-	b.Start(ctx, converter)
+	errE := b.Start(ctx, converter)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Insert property documents.
-	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
+	_, errE = s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)

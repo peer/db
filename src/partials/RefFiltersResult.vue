@@ -119,7 +119,7 @@ const WithDocumentD = WithDocument<D>
                   class="my-1 leading-none"
                   :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
                   :data-url="url"
-                  ><DisplayLabel :claims="doc.claims"
+                  ><DisplayLabel :doc="doc"
                 /></label>
               </template>
               <template #loading="{ url }">
@@ -138,7 +138,7 @@ const WithDocumentD = WithDocument<D>
             <WithDocumentD :id="res.id" name="DocumentGet">
               <template #default="{ doc, url }">
                 <div class="my-1 inline-block leading-none" :data-url="url">
-                  <DisplayLabel :claims="doc.claims" />
+                  <DisplayLabel :doc="doc" />
                 </div>
               </template>
               <template #loading="{ url }">

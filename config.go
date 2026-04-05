@@ -99,6 +99,7 @@ type Config struct {
 
 	Serve    ServeCommand    `cmd:"" default:"withargs" help:"Run HTTP server. Default command." yaml:"serve"`
 	Populate PopulateCommand `cmd:""                    help:"Populate database with documents." yaml:"populate"`
+	DB       DBCommand       `cmd:""                    help:"Manage database."                  yaml:"db"`
 }
 
 // ServeCommand contains configuration for the serve command.
@@ -139,4 +140,20 @@ type PopulateCommand struct {
 	SaveDir   string `help:"Save intermediate structs as files into a directory."            name:"save"   placeholder:"DIR" short:"S" type:"path" yaml:"saveDir"`
 	OutputDir string `help:"Save documents as files into a directory."                       name:"output" placeholder:"DIR" short:"O" type:"path" yaml:"outputDir"`
 	DryRun    bool   `help:"Dry run. Do everything, but insert documents into the database."                                                       yaml:"dryRun"`
+}
+
+// DBWaitCommand waits for pending indexing to complete.
+type DBWaitCommand struct{}
+
+// DBReindexCommand forces a full reindex of all documents.
+type DBReindexCommand struct{}
+
+// DBWipeCommand drops PostgreSQL schemas and deletes ElasticSearch indices for all sites.
+type DBWipeCommand struct{}
+
+// DBCommand contains sub-commands for managing database.
+type DBCommand struct {
+	Wait    DBWaitCommand    `cmd:"" help:"Wait for pending indexing to complete and exit."    yaml:"wait"`
+	Reindex DBReindexCommand `cmd:"" help:"Force full reindex of all documents."               yaml:"reindex"`
+	Wipe    DBWipeCommand    `cmd:"" help:"Wipe PostgreSQL schemas and ElasticSearch indices." yaml:"wipe"`
 }

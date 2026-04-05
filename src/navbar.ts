@@ -8,8 +8,11 @@ export function useNavbar(): { navbar: TemplateRef<HTMLElement>; attrs: Ref<{ st
   const config = getConfig()
 
   const navbar = useTemplateRef<HTMLElement>("navbar")
-  const attrs = ref({
-    style: { position: "absolute" as "absolute" | "fixed", top: "0px" },
+  const attrs = ref<{
+    style: { position: "absolute" | "fixed"; top: string }
+    class: { "animate-navbar": boolean }
+  }>({
+    style: { position: "absolute", top: "0px" },
     class: { "animate-navbar": false },
   })
 

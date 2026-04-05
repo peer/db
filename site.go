@@ -20,8 +20,8 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"gitlab.com/peerdb/peerdb/base"
-	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
 // Build contains version and build metadata.
@@ -48,9 +48,11 @@ type Site struct {
 	Title  string `json:"title,omitempty" yaml:"title,omitempty"`
 	Logo   string `json:"logo,omitempty"  yaml:"logo,omitempty"`
 
-	LanguagePriority map[string][]string              `json:"languagePriority,omitempty" yaml:"languagePriority,omitempty"`
-	DefaultLanguage  string                           `json:"defaultLanguage,omitempty"  yaml:"defaultLanguage,omitempty"`
-	LanguageCodes    map[identifier.Identifier]string `json:"languageCodes,omitempty"    yaml:"-"`
+	LanguagePriority map[string][]string `json:"languagePriority,omitempty" yaml:"languagePriority,omitempty"`
+	DefaultLanguage  string              `json:"defaultLanguage,omitempty"  yaml:"defaultLanguage,omitempty"`
+
+	// TODO: How to keep LanguageCodes in sync, if they are added or removed after initialization?
+	LanguageCodes map[identifier.Identifier]string `json:"languageCodes,omitempty" yaml:"-"`
 
 	Features SiteFeatures `json:"features" yaml:"features"`
 
@@ -93,13 +95,6 @@ func (s *Site) Decode(ctx *kong.DecodeContext) error {
 
 const fetchDocumentIDsPageSize = 5000
 
-// Well-known IDs computed from the core namespace.
-//
-//nolint:gochecknoglobals
-var (
-	instanceOfPropID = identifier.From(core.Namespace, "INSTANCE_OF")
-)
-
 // rawFieldValue wraps a types.FieldValue so it satisfies types.FieldValueVariant.
 //
 // See: https://github.com/elastic/go-elasticsearch/issues/1328
@@ -113,7 +108,7 @@ func (r *rawFieldValue) FieldValueCaster() *types.FieldValue {
 
 func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifier) ([]identifier.Identifier, errors.E) {
 	boolQuery := esdsl.NewBoolQuery().Must(
-		esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(instanceOfPropID.String())),
+		esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(internalCore.InstanceOfPropID.String())),
 		esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(classID.String())),
 	)
 	query := esdsl.NewNestedQuery(boolQuery).Path("claims.ref")
@@ -221,6 +216,14 @@ func (s *Site) validateDefaultLanguage() errors.E {
 	return nil
 }
 
+// This should be run before calling service.RouteWith because it freezes site's context.json
+// as static file and updating language codes later means they are not included in context.json.
+func (s *Site) updateLanguageCodes(_ context.Context) errors.E {
+	s.LanguageCodes = s.Base.LanguageCodes()
+
+	return nil
+}
+
 // Start starts the base for the site.
 //
 // You have to call this or PopulateAndStart for each site after Init.
@@ -245,7 +248,10 @@ func (s *Site) Start(ctx context.Context, documents []*document.D) errors.E {
 		return errE
 	}
 
-	s.LanguageCodes = s.Base.Bridge().Converter().LanguageCodes()
+	errE = s.updateLanguageCodes(ctx)
+	if errE != nil {
+		return errE
+	}
 
 	return nil
 }
@@ -256,7 +262,9 @@ func (s *Site) Start(ctx context.Context, documents []*document.D) errors.E {
 // Optional count and size counters can be provided to track ES indexing progress.
 //
 // You have to call this or Start for each site after Init.
-func (s *Site) PopulateAndStart(ctx context.Context, documents []*document.D, progress func(doc *document.D), count, size *x.Counter) errors.E {
+func (s *Site) PopulateAndStart(
+	ctx context.Context, documents []*document.D, progress func(doc *document.D), beforeWait func(ctx context.Context) errors.E, count, size *x.Counter,
+) errors.E {
 	errE := s.updatePropertiesTotal(ctx, documents)
 	if errE != nil {
 		return errE
@@ -272,12 +280,15 @@ func (s *Site) PopulateAndStart(ctx context.Context, documents []*document.D, pr
 		return errE
 	}
 
-	errE = s.Base.PopulateAndStart(ctx, documents, progress, count, size)
+	errE = s.Base.PopulateAndStart(ctx, documents, progress, beforeWait, count, size)
 	if errE != nil {
 		return errE
 	}
 
-	s.LanguageCodes = s.Base.Bridge().Converter().LanguageCodes()
+	errE = s.updateLanguageCodes(ctx)
+	if errE != nil {
+		return errE
+	}
 
 	return nil
 }

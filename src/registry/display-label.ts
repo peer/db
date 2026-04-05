@@ -1,4 +1,4 @@
-import type { Raw } from "vue"
+import type { Raw, ShallowRef } from "vue"
 
 import type { GetDisplayLabel } from "@/types"
 
@@ -12,6 +12,6 @@ export function registerDisplayLabelFunction(classId: string, fn: GetDisplayLabe
   displayLabelFunctions.value = updated
 }
 
-export function getDisplayLabelFunctions() {
+export function getDisplayLabelFunctions(): Readonly<ShallowRef<Map<string, Raw<GetDisplayLabel>>>> {
   return displayLabelFunctions
 }

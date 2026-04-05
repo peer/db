@@ -39,17 +39,36 @@ func (t *Time) UnmarshalJSON(data []byte) error {
 	return errors.WithStack(err)
 }
 
-// InverseRelation contains data about a relation claim from another document.
-// When document A has a relation claim with property X pointing to document B,
-// then document B's metadata will contain an InverseRelation entry with
-// Source=A and Target=B.
-type InverseRelation struct {
+// InverseRelationKey identifies an inverse relation by its source document, claim ID,
+// and target property. We validate that claim IDs are unique per source document but we
+// do not validate that they are unique globally, so both source and claim fields are needed.
+// TargetProp is included because the same source claim can produce multiple inverse relations
+// with different target properties (e.g., when multiple properties declare INVERSE_PROPERTY_OF
+// the same property).
+type InverseRelationKey struct {
 	// Claim is the ID of the relation claim in the source document (A).
 	Claim identifier.Identifier `json:"claim"`
 	// Source is the ID of the source document (A) that has the forward relation claim.
 	Source identifier.Identifier `json:"source"`
-	// Prop is the property ID of the forward relation claim in the source document (X).
-	Prop identifier.Identifier `json:"prop"`
+	// TargetProp is the resolved inverse property ID (Y) to use for the synthetic
+	// reverse claim on the target document (B). Resolved at creation time from either
+	// field-level INVERSE_PROPERTY (takes precedence) or property-level INVERSE_PROPERTY_OF.
+	TargetProp identifier.Identifier `json:"targetProp"`
+}
+
+// InverseRelation contains data about a relation claim from another document
+// and the resolved inverse property to use for the synthetic reverse claim.
+//
+// When document A has a relation claim with property X pointing to document B,
+// and property X has an inverse property Y (either from INVERSE_PROPERTY_OF on
+// the property, or from INVERSE_PROPERTY on a class field), then document B's
+// metadata will contain an InverseRelation with Source=A, SourceProp=X,
+// TargetProp=Y, and Target=B.
+type InverseRelation struct {
+	InverseRelationKey
+
+	// SourceProp is the property ID of the forward relation claim in the source document (X).
+	SourceProp identifier.Identifier `json:"sourceProp"`
 	// Target is the ID of the target document (B) that the relation points to.
 	Target identifier.Identifier `json:"-"`
 	// Confidence is the confidence of the forward relation claim.
@@ -78,26 +97,17 @@ func (c *CommitMetadata) ChangesetID() identifier.Identifier {
 	return identifier.From(c.Base...)
 }
 
-// inverseRelationKey identifies an inverse relation by its source document and claim ID.
-// We validate that claim IDs are unique per source document but we do not validate that
-// they are unique globally, so both fields are needed to cover all cases.
-type inverseRelationKey struct {
-	Source identifier.Identifier
-	Claim  identifier.Identifier
-}
-
 // AddInverseRelations adds inverse relations to this metadata,
 // if they do not already exist (comparison is done by (Source, Claim) pair).
 func (m *DocumentMetadata) AddInverseRelations(relations []InverseRelation) {
-	existing := make(map[inverseRelationKey]bool, len(m.InverseRelations))
+	existing := make(map[InverseRelationKey]bool, len(m.InverseRelations))
 	for _, ir := range m.InverseRelations {
-		existing[inverseRelationKey{Source: ir.Source, Claim: ir.Claim}] = true
+		existing[ir.InverseRelationKey] = true
 	}
 	for _, ir := range relations {
-		key := inverseRelationKey{Source: ir.Source, Claim: ir.Claim}
-		if !existing[key] {
+		if !existing[ir.InverseRelationKey] {
 			m.InverseRelations = append(m.InverseRelations, ir)
-			existing[key] = true
+			existing[ir.InverseRelationKey] = true
 		}
 	}
 }

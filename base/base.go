@@ -41,18 +41,22 @@ type B struct {
 	Schema string
 	Index  string
 
+	// languagePriority defines per-language fallback order for display label resolution.
+	// It maps a language to its ordered fallback languages for display label resolution.
+	// If a language is not a key, fallback is only the undetermined language.
+	// If a language has an empty slice, no fallback is attempted at all.
+	//
+	// All languages with keys in LanguagePriority are seen as enabled.
 	LanguagePriority map[string][]string
+
+	// Hooks are called in order to allow for modification of documents before they are indexed.
+	IndexingHooks []func(doc *document.D) (*document.D, errors.E)
 
 	// Data type for Store is on purpose not document.D so that we can serve it directly without doing first JSON unmarshal just to marshal it again immediately.
 	documents   *store.Store[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, document.Changes]
 	coordinator *coordinator.Coordinator[json.RawMessage, *documentChangeMetadata, *DocumentBeginMetadata, *documentEndMetadata, *documentCompleteData, *DocumentCompleteMetadata]
 	files       *storage.Storage
 	bridge      *internalSearch.Bridge
-}
-
-// Bridge returns the underlying Bridge instance.
-func (b *B) Bridge() *internalSearch.Bridge {
-	return b.bridge
 }
 
 // Init initializes the base.
@@ -130,7 +134,7 @@ func (b *B) Init(
 // You have to call this or PopulateAndStart for each base after Init.
 func (b *B) Start(ctx context.Context, documents []*document.D) errors.E {
 	converter, errE := internalSearch.NewConverter(
-		documents, documents, b.LanguagePriority,
+		documents, documents, documents, b.LanguagePriority,
 		func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
 			// TODO: Make sure once we have permissions, that the public has the permission to read the document.
 			doc, _, _, _, errE := b.GetDocumentLatestDoc(ctx, id)
@@ -144,6 +148,7 @@ func (b *B) Start(ctx context.Context, documents []*document.D) errors.E {
 		return errE
 	}
 
-	b.bridge.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "bridge"), converter)
-	return nil
+	converter.Hooks = b.IndexingHooks
+
+	return b.bridge.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "bridge"), converter)
 }

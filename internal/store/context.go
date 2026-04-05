@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 
+	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/waf"
 )
@@ -63,6 +64,8 @@ func MustGetRequestID(ctx context.Context) string {
 	}
 	if requestID == "" {
 		errE := errors.New("request ID is missing in context")
+		// We both log and panic because sometimes panic hangs the process and we want to make sure the error is seen.
+		zerolog.Ctx(ctx).Error().Err(errE).Send()
 		panic(errE)
 	}
 	return requestID
@@ -83,6 +86,8 @@ func GetRequestWithFallback(getSchema func(context.Context) string) func(context
 		}
 		if schema == "" {
 			errE := errors.New("schema is missing in context")
+			// We both log and panic because sometimes panic hangs the process and we want to make sure the error is seen.
+			zerolog.Ctx(ctx).Error().Err(errE).Send()
 			panic(errE)
 		}
 

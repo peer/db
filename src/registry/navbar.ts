@@ -1,4 +1,4 @@
-import type { Component, Raw } from "vue"
+import type { Component, Raw, ShallowRef } from "vue"
 
 import { markRaw, shallowRef } from "vue"
 
@@ -8,6 +8,6 @@ export function registerNavbarComponent(component: Component): void {
   navbarComponents.value = [...navbarComponents.value, markRaw(component)]
 }
 
-export function getNavbarComponents() {
+export function getNavbarComponents(): Readonly<ShallowRef<Raw<Component>[]>> {
   return navbarComponents
 }

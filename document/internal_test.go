@@ -67,17 +67,17 @@ func TestGetClaimsOfType(t *testing.T) {
 	}
 
 	// Get only StringClaims for prop.
-	strings := getClaimsOfType[*StringClaim](ct, prop)
+	strings := getClaimsOfType[StringClaim](ct, prop)
 	require.Len(t, strings, 2)
 	assert.Equal(t, "s2", strings[0].String) // Higher confidence first.
 	assert.Equal(t, "s1", strings[1].String)
 
 	// Get NoneClaims for prop.
-	nones := getClaimsOfType[*NoneClaim](ct, prop)
+	nones := getClaimsOfType[NoneClaim](ct, prop)
 	require.Len(t, nones, 1)
 
 	// No AmountClaims for prop.
-	amounts := getClaimsOfType[*AmountClaim](ct, prop)
+	amounts := getClaimsOfType[AmountClaim](ct, prop)
 	assert.Empty(t, amounts)
 }
 
@@ -91,7 +91,7 @@ func TestGetAllClaimsOfType(t *testing.T) {
 	doc := &D{}
 
 	// Empty document returns nil.
-	assert.Nil(t, getAllClaimsOfType[*StringClaim](doc))
+	assert.Nil(t, getAllClaimsOfType[StringClaim](doc))
 
 	// Add string claims on different properties with varying confidence.
 	errE := doc.Add(&StringClaim{
@@ -122,7 +122,7 @@ func TestGetAllClaimsOfType(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// GetAllClaimsOfType returns only string claims, across all properties.
-	strings := getAllClaimsOfType[*StringClaim](doc)
+	strings := getAllClaimsOfType[StringClaim](doc)
 	assert.Len(t, strings, 3)
 
 	// Sorted by decreasing confidence.
@@ -131,12 +131,12 @@ func TestGetAllClaimsOfType(t *testing.T) {
 	assert.Equal(t, "low", strings[2].String)
 
 	// GetAllClaimsOfType for HTML returns only the HTML claim.
-	htmls := getAllClaimsOfType[*HTMLClaim](doc)
+	htmls := getAllClaimsOfType[HTMLClaim](doc)
 	assert.Len(t, htmls, 1)
 	assert.Equal(t, "<p>html</p>", htmls[0].HTML)
 
 	// A type with no claims returns nil.
-	assert.Nil(t, getAllClaimsOfType[*ReferenceClaim](doc))
+	assert.Nil(t, getAllClaimsOfType[ReferenceClaim](doc))
 }
 
 // TestGetAllClaimsOfTypeNilClaims tests GetAllClaimsOfType on a nil ClaimTypes.
@@ -144,7 +144,7 @@ func TestGetAllClaimsOfTypeNilClaims(t *testing.T) {
 	t.Parallel()
 
 	var claims *ClaimTypes
-	assert.Nil(t, getAllClaimsOfType[*StringClaim](claims))
+	assert.Nil(t, getAllClaimsOfType[StringClaim](claims))
 }
 
 // TestGetAllClaimsOfTypeWithConfidence tests GetAllClaimsOfTypeWithConfidence filters by confidence threshold.
@@ -157,7 +157,7 @@ func TestGetAllClaimsOfTypeWithConfidence(t *testing.T) {
 	doc := &D{}
 
 	// Empty document returns empty.
-	assert.Empty(t, GetAllClaimsOfTypeWithConfidence[*StringClaim](doc, LowConfidence))
+	assert.Empty(t, GetAllClaimsOfTypeWithConfidence[StringClaim](doc, LowConfidence))
 
 	errE := doc.Add(&StringClaim{
 		CoreClaim: CoreClaim{ID: identifier.New(), Confidence: 0.3},
@@ -193,25 +193,25 @@ func TestGetAllClaimsOfTypeWithConfidence(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// LowConfidence (0.5) filters out below-low (0.3).
-	low := GetAllClaimsOfTypeWithConfidence[*StringClaim](doc, LowConfidence)
+	low := GetAllClaimsOfTypeWithConfidence[StringClaim](doc, LowConfidence)
 	assert.Len(t, low, 3)
 	assert.Equal(t, "at-high", low[0].String)
 	assert.Equal(t, "at-medium", low[1].String)
 	assert.Equal(t, "at-low", low[2].String)
 
 	// MediumConfidence (0.75) filters out at-low and below-low.
-	medium := GetAllClaimsOfTypeWithConfidence[*StringClaim](doc, MediumConfidence)
+	medium := GetAllClaimsOfTypeWithConfidence[StringClaim](doc, MediumConfidence)
 	assert.Len(t, medium, 2)
 	assert.Equal(t, "at-high", medium[0].String)
 	assert.Equal(t, "at-medium", medium[1].String)
 
 	// HighConfidence (1.0) keeps only at-high.
-	high := GetAllClaimsOfTypeWithConfidence[*StringClaim](doc, HighConfidence)
+	high := GetAllClaimsOfTypeWithConfidence[StringClaim](doc, HighConfidence)
 	assert.Len(t, high, 1)
 	assert.Equal(t, "at-high", high[0].String)
 
 	// Zero confidence defaults to LowConfidence.
-	zero := GetAllClaimsOfTypeWithConfidence[*StringClaim](doc, 0)
+	zero := GetAllClaimsOfTypeWithConfidence[StringClaim](doc, 0)
 	assert.Equal(t, low, zero)
 }
 
@@ -220,5 +220,5 @@ func TestGetAllClaimsOfTypeWithConfidenceNilClaims(t *testing.T) {
 	t.Parallel()
 
 	var claims *ClaimTypes
-	assert.Empty(t, GetAllClaimsOfTypeWithConfidence[*ReferenceClaim](claims, LowConfidence))
+	assert.Empty(t, GetAllClaimsOfTypeWithConfidence[ReferenceClaim](claims, LowConfidence))
 }

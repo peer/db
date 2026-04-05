@@ -96,28 +96,72 @@ type RangeFloat struct {
 }
 
 // Validate checks that the range is valid.
-func (r RangeFloat) Validate() errors.E {
+//
+// It ensures the lower bound is smaller than the upper bound.
+// If it is not, the bounds are swapped. It returns true if the bounds
+// were swapped.
+func (r *RangeFloat) Validate() (bool, errors.E) {
 	if r.GreaterThan != nil && r.GreaterThanOrEqual != nil {
 		errE := errors.New("both greater than and greater than or equal are set")
 		errors.Details(errE)["range"] = r
-		return errE
+		return false, errE
 	}
 	if r.LessThan != nil && r.LessThanOrEqual != nil {
 		errE := errors.New("both less than and less than or equal are set")
 		errors.Details(errE)["range"] = r
-		return errE
+		return false, errE
 	}
 	if r.GreaterThan == nil && r.GreaterThanOrEqual == nil {
 		errE := errors.New("greater than bound is required")
 		errors.Details(errE)["range"] = r
-		return errE
+		return false, errE
 	}
 	if r.LessThan == nil && r.LessThanOrEqual == nil {
 		errE := errors.New("less than bound is required")
 		errors.Details(errE)["range"] = r
-		return errE
+		return false, errE
 	}
-	return nil
+
+	var lower float64
+	switch {
+	case r.GreaterThan != nil:
+		lower = *r.GreaterThan
+	case r.GreaterThanOrEqual != nil:
+		lower = *r.GreaterThanOrEqual
+	}
+
+	var upper float64
+	switch {
+	case r.LessThan != nil:
+		upper = *r.LessThan
+	case r.LessThanOrEqual != nil:
+		upper = *r.LessThanOrEqual
+	}
+
+	if lower < upper {
+		return false, nil
+	}
+
+	if lower == upper {
+		errE := errors.New("lower bound is equal to upper bound")
+		errors.Details(errE)["range"] = r
+		return false, errE
+	}
+
+	// Swap: old lower bound becomes new upper, old upper becomes new lower.
+	newR := RangeFloat{}
+	if r.GreaterThan != nil {
+		newR.LessThan = r.GreaterThan
+	} else {
+		newR.LessThanOrEqual = r.GreaterThanOrEqual
+	}
+	if r.LessThan != nil {
+		newR.GreaterThan = r.LessThan
+	} else {
+		newR.GreaterThanOrEqual = r.LessThanOrEqual
+	}
+	*r = newR
+	return true, nil
 }
 
 // AmountClaim represents a claim for numeric amount and unit.

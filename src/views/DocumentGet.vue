@@ -3,11 +3,12 @@ import type { Component, Raw } from "vue"
 import type { ComponentExposed } from "vue-component-type-helpers"
 
 import type { D } from "@/document"
-import type { DocumentBeginEditResponse } from "@/types"
+import type { DocumentBeginEditResponse, QueryValues } from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { ChevronLeftIcon, ChevronRightIcon, PencilIcon } from "@heroicons/vue/20/solid"
-import { computed, onBeforeUnmount, ref, toRef, useTemplateRef, watchEffect } from "vue"
+import { Identifier } from "@tozd/identifier"
+import { computed, onBeforeUnmount, ref, toRef, useTemplateRef, watch, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
@@ -16,32 +17,35 @@ import Button from "@/components/Button.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
 import InputTextLink from "@/components/InputTextLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
-import siteContext from "@/context"
-import { INSTANCE_OF } from "@/core"
-import { getClaimsOfTypeWithConfidence } from "@/document"
+import { INSTANCE_OF, NAME, SEARCH_SHORTCUT } from "@/core"
+import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import FieldsView from "@/partials/FieldsView.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
-import { injectProgress } from "@/progress"
+import { injectMainProgress, localProgress } from "@/progress"
 import { getDocumentComponents } from "@/registry/document"
 import { useSearch, useSearchSession } from "@/search"
+import { useDocumentFields } from "@/useDocumentFields"
+import { useParentClasses } from "@/useParentClasses"
 import { encodeQuery, loadingLongWidth } from "@/utils"
 
 const props = defineProps<{
   id: string
 }>()
 
-const { t } = useI18n({ useScope: "global" })
+const { t, locale } = useI18n({ useScope: "global" })
 const route = useRoute()
 const router = useRouter()
 
 const el = useTemplateRef<HTMLElement>("el")
 
-const progress = injectProgress()
-const editProgress = injectProgress()
+const mainProgress = injectMainProgress()
+const progress = localProgress(mainProgress)
+const editProgress = localProgress(mainProgress)
 
 const abortController = new AbortController()
 
@@ -50,7 +54,27 @@ onBeforeUnmount(() => {
 })
 
 const WithDocumentD = WithDocument<D>
-const withDocument = ref<ComponentExposed<typeof WithDocumentD> | null>(null)
+const withDocument = useTemplateRef<ComponentExposed<typeof WithDocumentD>>("withDocument")
+
+const selectedTab = ref(0)
+
+async function changeTab(index: number) {
+  const offset = (classTabId.value && mergedFieldsData.value ? 1 : 0) + documentTabs.value.length
+  const searchShortcut = searchShortcuts.value[index - offset]
+  if (searchShortcut) {
+    await router.push({
+      name: "SearchShortcut",
+      query: searchShortcut.query,
+    })
+    return
+  }
+  selectedTab.value = index
+}
+
+// Resolve field definitions for this document's class(es).
+const docRef = toRef(() => withDocument.value?.doc ?? null)
+const { classDocs, instanceOfClassIds, initialized: classesInitialized } = useParentClasses(docRef, el, progress)
+const { fieldsData: mergedFieldsData, classTabId } = useDocumentFields(classDocs, instanceOfClassIds)
 
 const { searchSession, error: searchSessionError } = useSearchSession(
   toRef(() => {
@@ -132,6 +156,64 @@ const documentTabs = computed(() => {
   return tabs
 })
 
+const searchShortcuts = ref<{ name: string; query: QueryValues }[]>([])
+watch(
+  () => {
+    const result: { name: string; filter: Record<string, string> }[] = []
+    for (const classDoc of classDocs.value) {
+      const shortcuts = getClaimsOfTypeWithConfidence(classDoc.claims, "string", SEARCH_SHORTCUT)
+      for (const shortcut of shortcuts) {
+        if (!shortcut.string) {
+          continue
+        }
+        const name = selectClaimsByLanguage(shortcut.sub, "string", NAME, locale.value, (c) => c.length > 0)
+        if (!name || name.length === 0) {
+          continue
+        }
+        const parts = shortcut.string.split(";")
+        const filter: Record<string, string> = {}
+        for (const part of parts) {
+          const f = part.split(":")
+          if (f.length != 2) {
+            console.error("invalid search shortcut", classDoc.id, shortcut.string)
+            continue
+          }
+          filter[f[0]] = f[1]
+        }
+        if (Object.keys(filter).length === 0) {
+          continue
+        }
+        result.push({ name: name[0].string, filter })
+      }
+    }
+    return result
+  },
+  async (shortcuts: { name: string; filter: Record<string, string> }[]) => {
+    try {
+      const result = []
+      for (const shortcut of shortcuts) {
+        const filter: Record<string, string> = {}
+        for (const [key, value] of Object.entries(shortcut.filter)) {
+          const k = await Identifier.from(...key.split(","))
+          const v = await Identifier.from(...value.split(","))
+          filter[k.toString()] = v.toString()
+        }
+        // We could make computing the query be moved to changeTab which is already async,
+        // but we prefer that any exceptions happen here so that we then set documentSearchShortcuts
+        // to [] here and not even show tabs with problematic shortcuts.
+        result.push({ name: shortcut.name, query: encodeQuery(filter) })
+      }
+      searchShortcuts.value = result
+    } catch (err) {
+      console.error("documentSearchShortcuts.watch", err)
+      searchShortcuts.value = []
+    }
+  },
+  {
+    immediate: true,
+  },
+)
+
 async function onEdit() {
   if (abortController.signal.aborted) {
     return
@@ -204,7 +286,7 @@ async function onEdit() {
         <NavBarSearch v-else />
       </template>
       <template #end>
-        <Button v-if="siteContext.features.editButtons" :progress="editProgress" type="button" primary class="px-3.5" @click.prevent="onEdit">
+        <Button :progress="editProgress" type="button" primary class="px-3.5" @click.prevent="onEdit">
           <PencilIcon class="size-5 sm:hidden" :alt="t('common.buttons.edit')" />
           <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
         </Button>
@@ -215,12 +297,18 @@ async function onEdit() {
     <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <WithDocumentD :id="id" ref="withDocument" name="DocumentGet">
         <template #default="{ doc }">
+          <div v-if="!classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
           <!--
             TODO: Fix how hover interacts with focused tab.
             See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
           -->
-          <TabGroup>
+          <TabGroup v-else :selected-index="selectedTab" manual @change="changeTab">
             <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100">
+              <Tab
+                v-if="classTabId && mergedFieldsData"
+                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                ><DocumentRefInline :id="classTabId" :link="false"
+              /></Tab>
               <Tab
                 v-for="documentTab in documentTabs"
                 :key="documentTab.id"
@@ -228,17 +316,26 @@ async function onEdit() {
                 ><DocumentRefInline :id="documentTab.id" :link="false"
               /></Tab>
               <Tab
+                v-for="(searchShortcut, i) of searchShortcuts"
+                :key="i"
+                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                >{{ searchShortcut.name }}</Tab
+              >
+              <Tab
                 class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
                 >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
               >
             </TabList>
-            <h1 class="mb-4 text-4xl font-bold drop-shadow-xs"><DisplayLabel :claims="doc.claims" /></h1>
+            <h1 class="mb-4 text-4xl font-bold drop-shadow-xs"><DisplayLabel :doc="doc" /></h1>
             <TabPanels>
-              <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
-              <TabPanel v-for="documentTab in documentTabs" :key="documentTab.id" tabindex="-1">
+              <TabPanel v-if="classTabId && mergedFieldsData">
+                <FieldsView :fields-data="mergedFieldsData" :claims="doc.claims" sections />
+              </TabPanel>
+              <TabPanel v-for="documentTab in documentTabs" :key="documentTab.id">
                 <component :is="documentTab.component" :doc="doc" />
               </TabPanel>
-              <TabPanel tabindex="-1">
+              <TabPanel v-for="(_, i) of searchShortcuts" :key="i"><!-- Empty because this panel should never be rendered. --></TabPanel>
+              <TabPanel>
                 <table class="w-full table-auto border-collapse">
                   <thead>
                     <tr>

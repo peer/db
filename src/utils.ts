@@ -2,12 +2,14 @@ import type { DeepReadonly, Ref } from "vue"
 
 import type { GetDisplayLabel, Mutable, QueryValues, QueryValuesWithOptional } from "@/types"
 
+import { Identifier } from "@tozd/identifier"
 import { prng_alea } from "esm-seedrandom"
 import { cloneDeep, isEqual } from "lodash-es"
 import { onBeforeUnmount, onMounted, readonly, ref, shallowRef, toRaw, watch, watchEffect } from "vue"
 
 import { INSTANCE_OF, NAME, TITLE } from "@/core"
-import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
+import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document/claims"
+import { AddClaimChange } from "@/document/patch"
 import { getDisplayLabelFunctions } from "@/registry/display-label"
 import { fromDate, hour, minute, second, toDate } from "@/time"
 
@@ -107,7 +109,7 @@ const NAMING_PROPERTIES = [NAME, TITLE]
 // DISPLAY_LABEL_TEMPLATE defined to be used in the backend.
 //
 // This matches how makeDisplayStrings works in the backend, but for only one language.
-export const getDisplayLabel: GetDisplayLabel = async function (claims, language) {
+export const getDisplayLabel: GetDisplayLabel = async function (claims, router, i18n, el, abortSignal, progress) {
   if (!claims) {
     return null
   }
@@ -117,17 +119,23 @@ export const getDisplayLabel: GetDisplayLabel = async function (claims, language
   for (const ref of refs) {
     const displayLabelFunction = displayLabelFunctions.value.get(ref.to.id)
     if (displayLabelFunction) {
-      return await displayLabelFunction(claims, language)
+      return await displayLabelFunction(claims, router, i18n, el, abortSignal, progress)
     }
   }
 
   // Default implementation.
-  const claim = selectClaimsByLanguage(claims, "string", NAMING_PROPERTIES, language, (claims) => {
-    if (claims.length > 0 && claims[0].string) {
-      return true
-    }
-    return false
-  })
+  return defaultDisplayLabel(claims, router, i18n, el, abortSignal, progress)
+}
+
+// eslint-disable-next-line @typescript-eslint/require-await
+export const defaultDisplayLabel: GetDisplayLabel = async function (claims, router, i18n, el, abortSignal, progress) {
+  if (!claims) {
+    return null
+  }
+
+  const { locale } = i18n
+
+  const claim = selectClaimsByLanguage(claims, "string", NAMING_PROPERTIES, locale.value, (claims) => !!(claims.length > 0 && claims[0].string))
   return claim?.[0].string ?? null
 }
 
@@ -365,4 +373,60 @@ export function asyncToReactive<T>(fn: () => Promise<T>): Ref<{ loading: true } 
       })
   })
   return result
+}
+
+// isLoading works on both Refs and unwrapped values.
+export function isLoading(result: Ref<{ loading: true } | unknown> | { loading: true } | unknown) {
+  if (!result) {
+    return false
+  }
+  if (typeof result === "object" && "value" in result) {
+    if (!result.value) {
+      return false
+    }
+    if (typeof result.value !== "object") {
+      return false
+    }
+    return "loading" in result.value && result.value.loading
+  } else if (typeof result !== "object") {
+    return false
+  }
+  return "loading" in result && result.loading
+}
+
+// getError works on both Refs and unwrapped values.
+export function getError(result: Ref<{ error: unknown } | unknown> | { error: unknown } | unknown): unknown {
+  if (!result) {
+    return ""
+  }
+  if (typeof result === "object" && "value" in result) {
+    if (!result.value) {
+      return ""
+    }
+    if (typeof result.value !== "object") {
+      return ""
+    }
+    if ("error" in result.value) {
+      // A side effect, but still useful for debugging.
+      console.error("getError", result.value.error)
+      return result.value.error
+    }
+  } else if (typeof result !== "object") {
+    return false
+  } else if ("error" in result) {
+    // A side effect, but still useful for debugging.
+    console.error("getError", result.error)
+    return result.error
+  }
+  return ""
+}
+
+export async function makeAddClaimChange(base: DeepReadonly<string[]>, session: string, changeIndex: number, patch: object) {
+  const changeBase = [...base, "SESSION", session, String(changeIndex)]
+  const claimID = (await Identifier.from(...changeBase)).toString()
+  return new AddClaimChange({
+    id: claimID,
+    base: changeBase,
+    patch,
+  })
 }

@@ -16,9 +16,9 @@ import (
 
 	"gitlab.com/peerdb/peerdb/base"
 	"gitlab.com/peerdb/peerdb/coordinator"
-	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
 	internalBase "gitlab.com/peerdb/peerdb/internal/base"
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/internal/testutils"
@@ -84,7 +84,7 @@ func populateBase(ctx context.Context, t *testing.T, b *base.B, additionalDocs [
 
 	transformed = append(transformed, additionalDocs...)
 
-	errE = b.PopulateAndStart(ctx, transformed, nil, nil, nil)
+	errE = b.PopulateAndStart(ctx, transformed, nil, nil, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 }
 
@@ -117,27 +117,18 @@ func newDoc() *document.D {
 	}
 }
 
-// Well-known IDs computed from the core namespace.
-//
-//nolint:gochecknoglobals
-var (
-	testInstanceOfPropID        = identifier.From(core.Namespace, "INSTANCE_OF")
-	testPropertyClassID         = identifier.From(core.Namespace, "PROPERTY")
-	testInversePropertyOfPropID = identifier.From(core.Namespace, "INVERSE_PROPERTY_OF")
-)
-
 func makePropertyDoc(t *testing.T, id identifier.Identifier, base []string, inverseOf *identifier.Identifier) *document.D {
 	t.Helper()
 	claims := &document.ClaimTypes{}
 	claims.Reference = append(claims.Reference, document.ReferenceClaim{
 		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
-		Prop:      document.Reference{ID: testInstanceOfPropID},
-		To:        document.Reference{ID: testPropertyClassID},
+		Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+		To:        document.Reference{ID: internalCore.PropertyClassID},
 	})
 	if inverseOf != nil {
 		claims.Reference = append(claims.Reference, document.ReferenceClaim{
 			CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
-			Prop:      document.Reference{ID: testInversePropertyOfPropID},
+			Prop:      document.Reference{ID: internalCore.InversePropertyOfPropID},
 			To:        document.Reference{ID: *inverseOf},
 		})
 	}

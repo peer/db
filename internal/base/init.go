@@ -44,6 +44,7 @@ func InitAndStartComponents(
 		Schema:           schema,
 		Index:            index,
 		LanguagePriority: languagePriority,
+		IndexingHooks:    nil,
 	}
 	errE = b.Init(ctx, dbpool, listener, esClient, riverClient, workers)
 	if errE != nil {

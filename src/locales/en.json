@@ -15,6 +15,7 @@
       "next": "Next"
     },
     "status": {
+      "editingNotAllowed": "Editing not allowed.",
       "loading": "Loading...",
       "loadingDataFailed": "loading data failed",
       "error": "error",
@@ -99,6 +100,11 @@
       "expandRow": "Expand row",
       "collapseRow": "Collapse row",
       "moreColumns": "More columns"
+    },
+    "FieldsForm": {
+      "addAnother": "Add another",
+      "from": "From",
+      "to": "To"
     }
   },
   "views": {
@@ -108,6 +114,9 @@
       }
     },
     "DocumentEdit": {
+      "tabs": {
+        "allProperties": "@:views.DocumentGet.tabs.allProperties"
+      },
       "addClaim": "Add claim",
       "claimTypes": {
         "identifier": "Identifier",
@@ -124,7 +133,7 @@
         "unknown": "Unknown"
       },
       "labels": {
-        "iri": "IRI",
+        "link": "Link",
         "html": "HTML",
         "string": "String",
         "amount": "Amount",

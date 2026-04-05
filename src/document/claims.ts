@@ -825,9 +825,11 @@ export const UNDETERMINED_LANGUAGE = "und"
 function extractClaimLanguages(sub: DeepReadonly<ClaimTypes> | undefined | null): string[] {
   const refs = getClaimsOfTypeWithConfidence(sub, "ref", IN_LANGUAGE)
   const codes: string[] = []
+  const languageCodes = siteContext.languageCodes ?? {}
+  const languagePriority = siteContext.languagePriority ?? {}
   for (const ref of refs) {
-    const code = siteContext.languageCodes[ref.to.id]
-    if (code && code in siteContext.languagePriority) {
+    const code = languageCodes[ref.to.id]
+    if (code && code in languagePriority) {
       codes.push(code)
     }
   }
@@ -869,7 +871,7 @@ export function getClaimsAndLanguageOfTypeWithConfidence<K extends ClaimTypeName
 // If the language has an entry in languagePriority, that entry is used.
 // Otherwise, the fallback is the undetermined language (unless the language is itself undetermined).
 function getFallbackLanguages(lang: string): string[] {
-  const fallbacks = siteContext.languagePriority[lang]
+  const fallbacks = (siteContext.languagePriority ?? {})[lang]
   if (fallbacks) {
     return fallbacks
   }

@@ -736,5 +736,317 @@ func Vocabularies() ([]any, errors.E) { //nolint:maintidx
 		},
 	})
 
+	documents = append(documents, &ValueType{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "plain text",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "enostavno besedilo",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: nil,
+			Code:        []Identifier{"STRING"},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "VALUE_TYPE", "STRING"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "VALUE_TYPE"},
+			}},
+		},
+	})
+
+	documents = append(documents, &ValueType{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "text",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "besedilo",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: nil,
+			Code:        []Identifier{"HTML"},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "VALUE_TYPE", "HTML"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "VALUE_TYPE"},
+			}},
+		},
+	})
+
+	documents = append(documents, &ValueType{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "identifier",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "identifikator",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: nil,
+			Code:        []Identifier{"IDENTIFIER"},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "VALUE_TYPE", "IDENTIFIER"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "VALUE_TYPE"},
+			}},
+		},
+	})
+
+	documents = append(documents, &ValueType{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "amount",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "količina",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: nil,
+			Code:        []Identifier{"AMOUNT"},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "VALUE_TYPE", "AMOUNT"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "VALUE_TYPE"},
+			}},
+		},
+	})
+
+	documents = append(documents, &ValueType{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "interval",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "interval",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: nil,
+			Code:        []Identifier{"AMOUNT_INTERVAL"},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "VALUE_TYPE", "AMOUNT_INTERVAL"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "VALUE_TYPE"},
+			}},
+		},
+	})
+
+	documents = append(documents, &ValueType{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "time",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "čas",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: nil,
+			Code:        []Identifier{"TIME"},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "VALUE_TYPE", "TIME"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "VALUE_TYPE"},
+			}},
+		},
+	})
+
+	documents = append(documents, &ValueType{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "period",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "obdobje",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: nil,
+			Code:        []Identifier{"TIME_INTERVAL"},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "VALUE_TYPE", "TIME_INTERVAL"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "VALUE_TYPE"},
+			}},
+		},
+	})
+
+	documents = append(documents, &ValueType{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "link",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "povezava",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: nil,
+			Code:        []Identifier{"LINK"},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "VALUE_TYPE", "LINK"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "VALUE_TYPE"},
+			}},
+		},
+	})
+
+	documents = append(documents, &ValueType{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "file",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "datoteka",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: nil,
+			Code:        []Identifier{"FILE"},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "VALUE_TYPE", "FILE"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "VALUE_TYPE"},
+			}},
+		},
+	})
+
+	documents = append(documents, &ValueType{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "reference",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "referenca",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: nil,
+			Code:        []Identifier{"REFERENCE"},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "VALUE_TYPE", "REFERENCE"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "VALUE_TYPE"},
+			}},
+		},
+	})
+
+	documents = append(documents, &ValueType{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "label",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "oznaka",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: nil,
+			Code:        []Identifier{"HAS"},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "VALUE_TYPE", "HAS"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "VALUE_TYPE"},
+			}},
+		},
+	})
+
+	documents = append(documents, &ValueType{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "none",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "neobstoječa vrednost",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: nil,
+			Code:        []Identifier{"NONE"},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "VALUE_TYPE", "NONE"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "VALUE_TYPE"},
+			}},
+		},
+	})
+
+	documents = append(documents, &ValueType{
+		VocabularyFields: VocabularyFields{
+			Name: []StringWithLanguage{{
+				Value: "unknown",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "neznana vrednost",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			Description: nil,
+			Code:        []Identifier{"UNKNOWN"},
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "VALUE_TYPE", "UNKNOWN"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "VALUE_TYPE"},
+			}},
+		},
+	})
+
 	return documents, nil
 }

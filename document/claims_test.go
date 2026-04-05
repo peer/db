@@ -11,6 +11,7 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
 // TestCoreDocumentGetID tests CoreDocument.GetID.
@@ -943,12 +944,12 @@ func TestGetBestClaimOfType(t *testing.T) {
 		},
 	}
 
-	best := document.GetBestClaimOfType[*document.StringClaim](ct, prop)
+	best := document.GetBestClaimOfType[document.StringClaim](ct, prop)
 	require.NotNil(t, best)
 	assert.Equal(t, "high", best.String)
 
 	// No match returns zero value.
-	bestAmount := document.GetBestClaimOfType[*document.AmountClaim](ct, prop)
+	bestAmount := document.GetBestClaimOfType[document.AmountClaim](ct, prop)
 	assert.Nil(t, bestAmount)
 }
 
@@ -979,19 +980,19 @@ func TestGetClaimsOfTypeWithConfidence(t *testing.T) {
 	}
 
 	// With explicit confidence threshold.
-	result := document.GetClaimsOfTypeWithConfidence[*document.StringClaim](ct, prop, 0.75)
+	result := document.GetClaimsOfTypeWithConfidence[document.StringClaim](ct, prop, 0.75)
 	require.Len(t, result, 2)
 	assert.Equal(t, "top", result[0].String)
 	assert.Equal(t, "high", result[1].String)
 
 	// With 0 confidence (defaults to LowConfidence = 0.5).
-	result = document.GetClaimsOfTypeWithConfidence[*document.StringClaim](ct, prop, 0)
+	result = document.GetClaimsOfTypeWithConfidence[document.StringClaim](ct, prop, 0)
 	require.Len(t, result, 2)
 	assert.Equal(t, "top", result[0].String)
 	assert.Equal(t, "high", result[1].String)
 
 	// High threshold excludes all but top.
-	result = document.GetClaimsOfTypeWithConfidence[*document.StringClaim](ct, prop, 1.0)
+	result = document.GetClaimsOfTypeWithConfidence[document.StringClaim](ct, prop, 1.0)
 	require.Len(t, result, 1)
 	assert.Equal(t, "top", result[0].String)
 }
@@ -1003,8 +1004,8 @@ func TestGetClaimsListsOfType(t *testing.T) {
 	prop := identifier.New()
 	listA := identifier.New()
 	listB := identifier.New()
-	listProp := identifier.From("core.peerdb.org", "LIST")
-	orderProp := identifier.From("core.peerdb.org", "ORDER_IN_LIST")
+	listProp := internalCore.ListPropID
+	orderProp := internalCore.OrderInListPropID
 
 	ct := &document.ClaimTypes{
 		String: document.StringClaims{
@@ -1056,7 +1057,7 @@ func TestGetClaimsListsOfType(t *testing.T) {
 		},
 	}
 
-	lists := document.GetClaimsListsOfType[*document.StringClaim](ct, prop)
+	lists := document.GetClaimsListsOfType[document.StringClaim](ct, prop)
 	require.Len(t, lists, 2)
 
 	// Find list A and list B (order of lists is not guaranteed).
@@ -1101,7 +1102,7 @@ func TestGetClaimsListsOfTypeNoList(t *testing.T) {
 	}
 
 	// All claims without LIST sub-claim should be grouped into one list keyed "none".
-	lists := document.GetClaimsListsOfType[*document.StringClaim](ct, prop)
+	lists := document.GetClaimsListsOfType[document.StringClaim](ct, prop)
 	require.Len(t, lists, 1)
 	require.Len(t, lists[0], 2)
 	// Without ORDER_IN_LIST, order is MaxFloat64 for all, so original order is preserved.
@@ -1116,7 +1117,7 @@ func TestGetClaimsListsOfTypeEmpty(t *testing.T) {
 	prop := identifier.New()
 	ct := &document.ClaimTypes{}
 
-	lists := document.GetClaimsListsOfType[*document.StringClaim](ct, prop)
+	lists := document.GetClaimsListsOfType[document.StringClaim](ct, prop)
 	assert.Nil(t, lists)
 }
 

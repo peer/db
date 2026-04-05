@@ -1,4 +1,4 @@
-import type { Component, Raw } from "vue"
+import type { Component, Raw, ShallowRef } from "vue"
 
 import { markRaw, shallowRef } from "vue"
 
@@ -10,6 +10,6 @@ export function registerSearchResultComponent(classId: string, component: Compon
   searchResultComponents.value = updated
 }
 
-export function getSearchResultComponents() {
+export function getSearchResultComponents(): Readonly<ShallowRef<Map<string, Raw<Component>>>> {
   return searchResultComponents
 }

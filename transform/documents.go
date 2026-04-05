@@ -14,9 +14,9 @@
 //		Age  int      `property:"AGE"`
 //	}
 //
-//	mnemonics := map[string]identifier.Identifier{
-//		"NAME": identifier.New(),
-//		"AGE":  identifier.New(),
+//	mnemonics := map[string][]string{
+//		"NAME": {"people.example.com", "NAME"},
+//		"AGE":  {"people.example.com", "AGE"},
 //	}
 //
 //	docs := []any{
@@ -67,7 +67,8 @@
 // Specifies how to interpret fields. Supported types for string fields:
 //
 //   - "id": create an identifier claim,
-//   - "iri": create a reference claim,
+//   - "link": create a link claim,
+//   - "file": create a link claim,
 //   - "html": create a text claim with HTML (content will be escaped),
 //   - "rawhtml": create a text claim with raw HTML (content will be sanitized but not escaped).
 //
@@ -79,7 +80,7 @@
 // Example:
 //
 //	Code      string `property:"CODE" type:"id"`
-//	Homepage  string `property:"HOMEPAGE" type:"iri"`
+//	Homepage  string `property:"HOMEPAGE" type:"link"`
 //	Bio       string `property:"BIO" type:"html"`
 //	IsAbsent  bool   `property:"NAME" type:"none"`
 //	IsUnknown bool   `property:"AGE" type:"unknown"`
@@ -121,8 +122,8 @@
 //
 // Rules:
 //   - slice fields: any cardinality range allowed,
-//   - pointer fields: max must be ≤ 1 (can be 0 or 1),
-//   - single value fields: max must be ≤ 1 (can be 0 or 1),
+//   - pointer fields: max must be <= 1 (can be 0 or 1),
+//   - single value fields: max must be <= 1 (can be 0 or 1),
 //   - max cardinality cannot be 0.
 //
 // Default: min=0, max=unbounded for slices; min=0, max=1 for pointer and single value fields.
@@ -179,19 +180,20 @@
 // # Field Types
 //
 // Supported field types:
-//   - string: string claim (or identifier claim/reference claim/text claim with type tag),
+//   - string: string claim (or identifier claim/link claim/text claim with type tag),
 //   - int, int8, int16, int32, int64: amount claim (requires precision tag),
 //   - uint, uint8, uint16, uint32, uint64: amount claim (requires precision tag),
 //   - float32, float64: amount claim (requires precision tag),
 //   - bool: has claim when true (or none-value/unknown-value claim with type tag),
 //   - time.Time: time claim (requires precision tag),
-//   - core.Ref: relation claim,
+//   - core.Ref: reference claim,
 //   - core.Time: time claim,
 //   - core.Amount[T]: amount claim,
 //   - core.Interval[core.Time]: time interval claim,
 //   - core.Interval[core.Amount[T]]: amount interval claim,
 //   - core.Identifier: identifier claim,
-//   - core.IRI: reference claim,
+//   - core.Link: link claim,
+//   - core.File: link claim,
 //   - core.HTML: text claim (with escaping),
 //   - core.RawHTML: text claim (without escaping),
 //   - core.None: none-value claim when true,
@@ -285,51 +287,66 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
-	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
 //nolint:gochecknoglobals
 var (
-	coreRef          = reflect.TypeFor[core.Ref]()
-	coreTime         = reflect.TypeFor[core.Time]()
+	coreRef          = reflect.TypeFor[internalCore.Ref]()
+	coreTime         = reflect.TypeFor[internalCore.Time]()
 	timeTime         = reflect.TypeFor[time.Time]()
-	coreTimeInterval = reflect.TypeFor[core.Interval[core.Time]]()
-	coreIdentifier   = reflect.TypeFor[core.Identifier]()
-	coreIRI          = reflect.TypeFor[core.IRI]()
-	coreHTML         = reflect.TypeFor[core.HTML]()
-	coreRawHTML      = reflect.TypeFor[core.RawHTML]()
-	coreNone         = reflect.TypeFor[core.None]()
-	coreUnknown      = reflect.TypeFor[core.Unknown]()
+	coreTimeInterval = reflect.TypeFor[internalCore.Interval[internalCore.Time]]()
+	coreIdentifier   = reflect.TypeFor[internalCore.Identifier]()
+	coreLink         = reflect.TypeFor[internalCore.Link]()
+	coreFile         = reflect.TypeFor[internalCore.File]()
+	coreHTML         = reflect.TypeFor[internalCore.HTML]()
+	coreRawHTML      = reflect.TypeFor[internalCore.RawHTML]()
+	coreNone         = reflect.TypeFor[internalCore.None]()
+	coreUnknown      = reflect.TypeFor[internalCore.Unknown]()
+
+	coreStructTypes = map[reflect.Type]bool{
+		coreRef:          true,
+		coreTime:         true,
+		timeTime:         true,
+		coreTimeInterval: true,
+		coreIdentifier:   true,
+		coreLink:         true,
+		coreFile:         true,
+		coreHTML:         true,
+		coreRawHTML:      true,
+		coreNone:         true,
+		coreUnknown:      true,
+	}
 
 	coreAmountTypes = map[reflect.Type]bool{
-		reflect.TypeFor[core.Amount[int]]():     true,
-		reflect.TypeFor[core.Amount[int8]]():    true,
-		reflect.TypeFor[core.Amount[int16]]():   true,
-		reflect.TypeFor[core.Amount[int32]]():   true,
-		reflect.TypeFor[core.Amount[int64]]():   true,
-		reflect.TypeFor[core.Amount[uint]]():    true,
-		reflect.TypeFor[core.Amount[uint8]]():   true,
-		reflect.TypeFor[core.Amount[uint16]]():  true,
-		reflect.TypeFor[core.Amount[uint32]]():  true,
-		reflect.TypeFor[core.Amount[uint64]]():  true,
-		reflect.TypeFor[core.Amount[float32]](): true,
-		reflect.TypeFor[core.Amount[float64]](): true,
+		reflect.TypeFor[internalCore.Amount[int]]():     true,
+		reflect.TypeFor[internalCore.Amount[int8]]():    true,
+		reflect.TypeFor[internalCore.Amount[int16]]():   true,
+		reflect.TypeFor[internalCore.Amount[int32]]():   true,
+		reflect.TypeFor[internalCore.Amount[int64]]():   true,
+		reflect.TypeFor[internalCore.Amount[uint]]():    true,
+		reflect.TypeFor[internalCore.Amount[uint8]]():   true,
+		reflect.TypeFor[internalCore.Amount[uint16]]():  true,
+		reflect.TypeFor[internalCore.Amount[uint32]]():  true,
+		reflect.TypeFor[internalCore.Amount[uint64]]():  true,
+		reflect.TypeFor[internalCore.Amount[float32]](): true,
+		reflect.TypeFor[internalCore.Amount[float64]](): true,
 	}
 
 	coreAmountIntervalTypes = map[reflect.Type]bool{
-		reflect.TypeFor[core.Interval[core.Amount[int]]]():     true,
-		reflect.TypeFor[core.Interval[core.Amount[int8]]]():    true,
-		reflect.TypeFor[core.Interval[core.Amount[int16]]]():   true,
-		reflect.TypeFor[core.Interval[core.Amount[int32]]]():   true,
-		reflect.TypeFor[core.Interval[core.Amount[int64]]]():   true,
-		reflect.TypeFor[core.Interval[core.Amount[uint]]]():    true,
-		reflect.TypeFor[core.Interval[core.Amount[uint8]]]():   true,
-		reflect.TypeFor[core.Interval[core.Amount[uint16]]]():  true,
-		reflect.TypeFor[core.Interval[core.Amount[uint32]]]():  true,
-		reflect.TypeFor[core.Interval[core.Amount[uint64]]]():  true,
-		reflect.TypeFor[core.Interval[core.Amount[float32]]](): true,
-		reflect.TypeFor[core.Interval[core.Amount[float64]]](): true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int]]]():     true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int8]]]():    true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int16]]]():   true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int32]]]():   true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int64]]]():   true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint]]]():    true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint8]]]():   true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint16]]]():  true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint32]]]():  true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint64]]]():  true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[float32]]](): true,
+		reflect.TypeFor[internalCore.Interval[internalCore.Amount[float64]]](): true,
 	}
 )
 
@@ -361,7 +378,8 @@ const (
 	defaultUnknown = "unknown"
 
 	typeID      = "id"
-	typeIRI     = "iri"
+	typeLink    = "link"
+	typeFile    = "file"
 	typeHTML    = "html"
 	typeRawHTML = "rawhtml"
 	typeNone    = "none"
@@ -370,10 +388,10 @@ const (
 
 // Documents transforms structs into PeerDB document.D documents.
 //
-// It takes a map between property mnemonics and identifiers, and a slice of documents
+// It takes a map between property mnemonics and their base IDs, and a slice of documents
 // which can be various struct types. It uses reflection to inspect structs and their
 // struct tags to determine how to map struct fields to document claims.
-func Documents(ctx context.Context, mnemonics map[string]identifier.Identifier, documents []any) ([]*document.D, errors.E) {
+func Documents(ctx context.Context, mnemonics map[string][]string, documents []any) ([]*document.D, errors.E) {
 	result := []*document.D{}
 
 	for _, doc := range documents {
@@ -394,12 +412,12 @@ func Documents(ctx context.Context, mnemonics map[string]identifier.Identifier, 
 }
 
 type transformer struct {
-	Mnemonics map[string]identifier.Identifier
+	Mnemonics map[string][]string
 	Claims    *document.ClaimTypes
 }
 
 // transformDocument transforms a struct to a document.
-func transformDocument(mnemonics map[string]identifier.Identifier, doc any) (*document.D, errors.E) {
+func transformDocument(mnemonics map[string][]string, doc any) (*document.D, errors.E) {
 	v := reflect.ValueOf(doc)
 	// Handle pointer to struct.
 	if v.Kind() == reflect.Ptr {
@@ -489,13 +507,14 @@ func (tr *transformer) processStructFields(
 		}
 
 		// Get property ID from mnemonic.
-		propertyID, ok := tr.Mnemonics[propertyMnemonic]
+		propertyBase, ok := tr.Mnemonics[propertyMnemonic]
 		if !ok {
 			errE := errors.New("mnemonic not found")
 			errors.Details(errE)["name"] = propertyMnemonic
 			errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
 			return errE
 		}
+		propertyID := identifier.From(propertyBase...)
 
 		newIDPath := append(slices.Clone(idPath), propertyMnemonic)
 
@@ -993,7 +1012,7 @@ func makeClaim(
 			return nil, errors.New("location tag is not supported for core.Ref fields")
 		}
 
-		ref := fieldValue.Interface().(core.Ref) //nolint:errcheck,forcetypeassert
+		ref := fieldValue.Interface().(internalCore.Ref) //nolint:errcheck,forcetypeassert
 		if len(ref.ID) == 0 {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1068,7 +1087,7 @@ func makeClaim(
 			return nil, errE
 		}
 
-		coreTime := fieldValue.Interface().(core.Time) //nolint:errcheck,forcetypeassert
+		coreTime := fieldValue.Interface().(internalCore.Time) //nolint:errcheck,forcetypeassert
 		if coreTime.Time.IsZero() {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1102,7 +1121,7 @@ func makeClaim(
 			return nil, errE
 		}
 
-		interval := fieldValue.Interface().(core.Interval[core.Time]) //nolint:errcheck,forcetypeassert
+		interval := fieldValue.Interface().(internalCore.Interval[internalCore.Time]) //nolint:errcheck,forcetypeassert
 
 		// Return claimNotMadeError if interval is completely zero (no bounds, no flags).
 		if interval.From == nil && !interval.FromIsOpen && !interval.FromIsUnknown && !interval.FromIsNone &&
@@ -1294,7 +1313,7 @@ func makeClaim(
 		}
 
 		if math.IsInf(amount, 0) || math.IsNaN(amount) {
-			errE := errors.New("value is infinity or not a number")
+			errE := errors.New("value must be a finite number")
 			errors.Details(errE)["value"] = amount
 			return nil, errE
 		}
@@ -1321,7 +1340,7 @@ func makeClaim(
 			return nil, errors.New("location tag is not supported for core.Identifier fields")
 		}
 
-		identifier := fieldValue.Interface().(core.Identifier) //nolint:errcheck,forcetypeassert
+		identifier := fieldValue.Interface().(internalCore.Identifier) //nolint:errcheck,forcetypeassert
 		if identifier == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1344,25 +1363,25 @@ func makeClaim(
 		}, nil
 	}
 
-	// Handle core.IRI.
-	if t == coreIRI {
+	// Handle core.Link.
+	if t == coreLink {
 		if precisionTag != "" {
-			return nil, errors.New("precision tag is not supported for core.IRI fields")
+			return nil, errors.New("precision tag is not supported for core.Link fields")
 		}
 
 		if locationTag != "" {
-			return nil, errors.New("location tag is not supported for core.IRI fields")
+			return nil, errors.New("location tag is not supported for core.Link fields")
 		}
 
-		iri := fieldValue.Interface().(core.IRI) //nolint:errcheck,forcetypeassert
-		if iri == "" {
+		link := fieldValue.Interface().(internalCore.Link) //nolint:errcheck,forcetypeassert
+		if link == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
 			})
 		}
 
-		if typeTag != "" && typeTag != typeIRI {
-			return nil, errors.New("IRI field used with conflicting tag")
+		if typeTag != "" && typeTag != typeLink {
+			return nil, errors.New("link field used with conflicting tag")
 		}
 
 		claimID := newClaimID(idPath, propertyID, claims)
@@ -1372,7 +1391,39 @@ func makeClaim(
 				Confidence: confidence,
 			},
 			Prop: document.Reference{ID: propertyID},
-			IRI:  string(iri),
+			IRI:  string(link),
+		}, nil
+	}
+
+	// Handle core.File.
+	if t == coreFile {
+		if precisionTag != "" {
+			return nil, errors.New("precision tag is not supported for core.File fields")
+		}
+
+		if locationTag != "" {
+			return nil, errors.New("location tag is not supported for core.File fields")
+		}
+
+		file := fieldValue.Interface().(internalCore.File) //nolint:errcheck,forcetypeassert
+		if file == "" {
+			return nil, errors.WithStack(&claimNotMadeError{
+				Default: defaultTag,
+			})
+		}
+
+		if typeTag != "" && typeTag != typeFile {
+			return nil, errors.New("file field used with conflicting tag")
+		}
+
+		claimID := newClaimID(idPath, propertyID, claims)
+		return &document.LinkClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         claimID,
+				Confidence: confidence,
+			},
+			Prop: document.Reference{ID: propertyID},
+			IRI:  string(file),
 		}, nil
 	}
 
@@ -1386,7 +1437,7 @@ func makeClaim(
 			return nil, errors.New("location tag is not supported for core.HTML fields")
 		}
 
-		h := fieldValue.Interface().(core.HTML) //nolint:errcheck,forcetypeassert
+		h := fieldValue.Interface().(internalCore.HTML) //nolint:errcheck,forcetypeassert
 		if h == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1426,7 +1477,7 @@ func makeClaim(
 			return nil, errors.New("location tag is not supported for core.RawHTML fields")
 		}
 
-		rawHTML := fieldValue.Interface().(core.RawHTML) //nolint:errcheck,forcetypeassert
+		rawHTML := fieldValue.Interface().(internalCore.RawHTML) //nolint:errcheck,forcetypeassert
 		if rawHTML == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1466,7 +1517,7 @@ func makeClaim(
 			return nil, errors.New("location tag is not supported for core.None fields")
 		}
 
-		none := fieldValue.Interface().(core.None) //nolint:errcheck,forcetypeassert
+		none := fieldValue.Interface().(internalCore.None) //nolint:errcheck,forcetypeassert
 		if !bool(none) {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1497,7 +1548,7 @@ func makeClaim(
 			return nil, errors.New("location tag is not supported for core.Unknown fields")
 		}
 
-		unknown := fieldValue.Interface().(core.Unknown) //nolint:errcheck,forcetypeassert
+		unknown := fieldValue.Interface().(internalCore.Unknown) //nolint:errcheck,forcetypeassert
 		if !bool(unknown) {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1584,7 +1635,7 @@ func makeClaim(
 			}, nil
 		}
 
-		if typeTag == typeIRI {
+		if typeTag == typeLink || typeTag == typeFile {
 			return &document.LinkClaim{
 				CoreClaim: document.CoreClaim{
 					ID:         claimID,
@@ -1676,7 +1727,7 @@ func makeClaim(
 
 		precision, err := strconv.ParseFloat(precisionTag, 64)
 		if err != nil {
-			errE := errors.New("invalid precision value for numeric field")
+			errE := errors.Wrap(err, "precision tag is not a valid number")
 			errors.Details(errE)["precision"] = precisionTag
 			return nil, errE
 		}
@@ -1688,7 +1739,7 @@ func makeClaim(
 		}
 
 		if math.IsInf(amount, 0) || math.IsNaN(amount) {
-			errE := errors.New("value is infinity or not a number")
+			errE := errors.New("value must be a finite number")
 			errors.Details(errE)["value"] = amount
 			return nil, errE
 		}
@@ -1746,7 +1797,7 @@ func getNumericValue(v reflect.Value) (float64, bool) {
 	}
 }
 
-// parseCardinality parses a cardinality tag string and returns min and max values.
+// parseCardinalityTag parses a cardinality tag string and returns min and max values.
 //
 // Supported formats:
 //   - "1" - exactly one (min=1, max=1)
@@ -1755,82 +1806,94 @@ func getNumericValue(v reflect.Value) (float64, bool) {
 //   - "0.." - zero or more (min=0, max=-1 for unbounded)
 //   - "2..5" - between 2 and 5 (min=2, max=5)
 //
-// Default cardinality, if not specified, is min=0, max=-1.
+// If cardinality is empty, returns (0, -1) where -1 means unbounded.
+//
+// Returns (minCardinality, maxCardinality) where maxCardinality=-1 means unbounded.
+func parseCardinalityTag(cardinality string) (int, int, errors.E) {
+	if cardinality == "" {
+		return 0, -1, nil
+	}
+
+	if strings.Contains(cardinality, "..") {
+		parts := strings.Split(cardinality, "..")
+		if len(parts) != 2 { //nolint:mnd
+			errE := errors.New("invalid cardinality format")
+			errors.Details(errE)["cardinality"] = cardinality
+			return 0, 0, errE
+		}
+		minStr := strings.TrimSpace(parts[0])
+		if minStr == "" {
+			errE := errors.New("cardinality min value is empty")
+			errors.Details(errE)["cardinality"] = cardinality
+			return 0, 0, errE
+		}
+		minCardinality, err := strconv.Atoi(minStr)
+		if err != nil {
+			errE := errors.New("cardinality min value is not a valid integer")
+			errors.Details(errE)["cardinality"] = cardinality
+			return 0, 0, errors.WrapWith(err, errE)
+		}
+		if minCardinality < 0 {
+			errE := errors.New("cardinality min value cannot be negative")
+			errors.Details(errE)["cardinality"] = cardinality
+			return 0, 0, errE
+		}
+
+		maxCardinality := -1
+		maxStr := strings.TrimSpace(parts[1])
+		if maxStr != "" {
+			maxCardinality, err = strconv.Atoi(maxStr)
+			if err != nil {
+				errE := errors.New("cardinality max value is not a valid integer")
+				errors.Details(errE)["cardinality"] = cardinality
+				return 0, 0, errors.WrapWith(err, errE)
+			}
+			if maxCardinality <= 0 {
+				errE := errors.New("cardinality max value cannot be negative or zero")
+				errors.Details(errE)["cardinality"] = cardinality
+				return 0, 0, errE
+			}
+			if maxCardinality < minCardinality {
+				errE := errors.New("cardinality max value cannot be less than min")
+				errors.Details(errE)["cardinality"] = cardinality
+				return 0, 0, errE
+			}
+		}
+
+		return minCardinality, maxCardinality, nil
+	}
+
+	val, err := strconv.Atoi(strings.TrimSpace(cardinality))
+	if err != nil {
+		errE := errors.New("cardinality value is not a valid integer")
+		errors.Details(errE)["cardinality"] = cardinality
+		return 0, 0, errors.WrapWith(err, errE)
+	}
+	if val <= 0 {
+		errE := errors.New("cardinality value cannot be negative or zero")
+		errors.Details(errE)["cardinality"] = cardinality
+		return 0, 0, errE
+	}
+
+	return val, val, nil
+}
+
+// parseCardinality parses a cardinality tag string and validates it against the Go field type.
+//
+// It enforces that pointer and single-value fields have max cardinality <= 1,
+// and that the default tag requires min cardinality > 0.
 //
 // Returns (minCardinality, maxCardinality) where maxCardinality=-1 means unbounded.
 func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault bool) (int, int, errors.E) {
-	minCardinality := 0
-	maxCardinality := -1
+	minCardinality, maxCardinality, errE := parseCardinalityTag(cardinality)
+	if errE != nil {
+		return 0, 0, errE
+	}
 
 	isPointer := fieldValue.Kind() == reflect.Ptr
 	isSlice := fieldValue.Kind() == reflect.Slice
 	// isSingleValue is true for all non-pointer, non-slice fields, including bool.
 	isSingleValue := !isPointer && !isSlice
-
-	if cardinality != "" { //nolint:nestif
-		if strings.Contains(cardinality, "..") {
-			parts := strings.Split(cardinality, "..")
-			if len(parts) != 2 { //nolint:mnd
-				errE := errors.New("invalid cardinality format")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errE
-			}
-
-			minStr := strings.TrimSpace(parts[0])
-			if minStr == "" {
-				errE := errors.New("cardinality min value is empty")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errE
-			}
-			var err error
-			minCardinality, err = strconv.Atoi(minStr)
-			if err != nil {
-				errE := errors.New("cardinality min value is not a valid integer")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errors.WrapWith(err, errE)
-			}
-			if minCardinality < 0 {
-				errE := errors.New("cardinality min value cannot be negative")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errE
-			}
-
-			maxStr := strings.TrimSpace(parts[1])
-			// Unbounded max is default.
-			if maxStr != "" {
-				maxCardinality, err = strconv.Atoi(maxStr)
-				if err != nil {
-					errE := errors.New("cardinality max value is not a valid integer")
-					errors.Details(errE)["cardinality"] = cardinality
-					return 0, 0, errors.WrapWith(err, errE)
-				}
-				if maxCardinality <= 0 {
-					errE := errors.New("cardinality max value cannot be negative or zero")
-					errors.Details(errE)["cardinality"] = cardinality
-					return 0, 0, errE
-				}
-				if maxCardinality < minCardinality {
-					errE := errors.New("cardinality max value cannot be less than min")
-					errors.Details(errE)["cardinality"] = cardinality
-					return 0, 0, errE
-				}
-			}
-		} else {
-			val, err := strconv.Atoi(strings.TrimSpace(cardinality))
-			if err != nil {
-				errE := errors.New("cardinality value is not a valid integer")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errors.WrapWith(err, errE)
-			}
-			if val <= 0 {
-				errE := errors.New("cardinality value cannot be negative or zero")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errE
-			}
-			minCardinality = val
-			maxCardinality = val
-		}
-	}
 
 	if (isPointer || isSingleValue) && maxCardinality == -1 && cardinality == "" {
 		maxCardinality = 1
@@ -1871,13 +1934,13 @@ func parseConfidence(tag string) (document.Confidence, errors.E) {
 
 	v, err := strconv.ParseFloat(tag, 64)
 	if err != nil {
-		errE := errors.New("confidence tag value is not a valid float")
+		errE := errors.Wrap(err, "confidence tag is not a valid number")
 		errors.Details(errE)["confidence"] = tag
 		return 0, errE
 	}
 
 	if v < -1 || v > 1 || math.IsInf(v, 0) || math.IsNaN(v) {
-		errE := errors.New("confidence tag value out of range [-1, 1]")
+		errE := errors.New("confidence is out of range [-1, 1]")
 		errors.Details(errE)["confidence"] = v
 		return 0, errE
 	}

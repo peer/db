@@ -12,10 +12,9 @@ import (
 
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
-	"gitlab.com/peerdb/peerdb/core"
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
 // Service is the main HTTP service for PeerDB.
@@ -149,24 +148,16 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 	return service, onShutdown, nil
 }
 
-// Well-known IDs computed from the core namespace.
-//
-//nolint:gochecknoglobals
-var (
-	propertyClassID = identifier.From(core.Namespace, "PROPERTY")
-	languageClassID = identifier.From(core.Namespace, "LANGUAGE")
-)
-
 // Prepare prepares the HTTP service for serving.
 func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Handler, errors.E) {
 	for _, site := range service.Sites {
 		siteCtx := WithFallbackDBContext(ctx, site.Schema, "prepare")
 
-		documents, errE := site.fetchDocuments(siteCtx, propertyClassID)
+		documents, errE := site.fetchDocuments(siteCtx, internalCore.PropertyClassID)
 		if errE != nil {
 			return nil, errE
 		}
-		languages, errE := site.fetchDocuments(siteCtx, languageClassID)
+		languages, errE := site.fetchDocuments(siteCtx, internalCore.LanguageClassID)
 		if errE != nil {
 			return nil, errE
 		}
@@ -191,6 +182,8 @@ func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
 	// We stop the server gracefully on ctrl-c and TERM signal.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	ctx = globals.Logger.WithContext(ctx)
 
 	ctx, cancel := context.WithCancel(ctx)
 

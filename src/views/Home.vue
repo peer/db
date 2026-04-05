@@ -9,6 +9,7 @@ import siteContext from "@/context"
 import Footer from "@/partials/Footer.vue"
 import HomeNavBar from "@/partials/HomeNavBar.vue"
 import { injectProgress } from "@/progress"
+import { getHomeComponent } from "@/registry/home"
 import { createSearchSession } from "@/search"
 
 const { t } = useI18n({ useScope: "global" })
@@ -42,6 +43,7 @@ async function onSubmit() {
       },
       abortController.signal,
       progress,
+      false,
     )
   } catch (err) {
     if (abortController.signal.aborted) {
@@ -53,6 +55,8 @@ async function onSubmit() {
     progress.value -= 1
   }
 }
+
+const homeComponent = getHomeComponent()
 </script>
 
 <template>
@@ -75,7 +79,7 @@ async function onSubmit() {
       <InputText id="home-input-search" v-model="searchQuery" class="pd-searchinput w-full max-w-2xl sm:w-4/5 md:w-2/3 lg:w-1/2" :progress="progress" />
       <Button type="submit" primary :progress="progress">{{ t("common.buttons.search") }}</Button>
     </div>
-    <div class="flex grow basis-0"></div>
+    <div class="flex grow basis-0"><component :is="homeComponent" v-if="homeComponent" /></div>
   </form>
   <Teleport to="footer">
     <Footer />

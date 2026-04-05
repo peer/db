@@ -4,10 +4,8 @@ import (
 	"net/http"
 
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/waf"
 
-	"gitlab.com/peerdb/peerdb/document"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 )
 
@@ -39,16 +37,9 @@ func (s *Service) DebugIndexedGetAPI(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	var doc document.D
-	errE := x.UnmarshalWithoutUnknownFields(dataJSON, &doc)
-	if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
-		return
-	}
-
 	site := waf.MustGetSite[*Site](req.Context())
 
-	searchDoc, errE := site.Base.Bridge().Converter().FromDocument(req.Context(), &doc, metadata.InverseRelations)
+	searchDoc, errE := site.Base.IndexedDocument(req.Context(), dataJSON, metadata)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return

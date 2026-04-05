@@ -1,4 +1,4 @@
-import type { Component, Raw } from "vue"
+import type { Component, Raw, ShallowRef } from "vue"
 
 import { markRaw, shallowRef } from "vue"
 
@@ -10,6 +10,6 @@ export function registerDocumentComponent(classId: string, component: Component)
   documentComponents.value = updated
 }
 
-export function getDocumentComponents() {
+export function getDocumentComponents(): Readonly<ShallowRef<Map<string, Raw<Component>>>> {
   return documentComponents
 }
