@@ -8,14 +8,14 @@ import { INSTANCE_OF, SUBCLASS_OF } from "@/core"
 import { D, getClaimsOfTypeWithConfidence } from "@/document"
 
 // useParentClasses resolves all parent class documents for a document by walking its
-// INSTANCE_OF classes and their SUBCLASS_OF parents. Returns reactive classDocs map
-// (preserving walk order), the direct instanceOfClassIds, and an initialized flag.
+// INSTANCE_OF classes and their SUBCLASS_OF parents. Returns reactive classDocs array
+// (in walk order), the direct instanceOfClassIds, and an initialized flag.
 export function useParentClasses(
   doc: Ref<DeepReadonly<D> | null | undefined>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
-  classDocs: DeepReadonly<Ref<Map<string, D>>>
+  classDocs: DeepReadonly<Ref<D[]>>
   instanceOfClassIds: DeepReadonly<Ref<string[]>>
   initialized: DeepReadonly<Ref<boolean>>
 } {
@@ -25,7 +25,7 @@ export function useParentClasses(
   onBeforeUnmount(() => abortController.abort())
 
   const router = useRouter()
-  const _classDocs = ref<Map<string, D>>(new Map())
+  const _classDocs = ref<D[]>([])
   const _initialized = ref(false)
   const classDocs = process.env.NODE_ENV !== "production" ? readonly(_classDocs) : _classDocs
   const initialized = process.env.NODE_ENV !== "production" ? readonly(_initialized) : _initialized
@@ -66,13 +66,13 @@ export function useParentClasses(
     _instanceOfClassIds,
     async (classIds) => {
       if (classIds.length === 0) {
-        _classDocs.value = new Map()
+        _classDocs.value = []
         // TODO: Do something better here?
         _initialized.value = !!doc.value?.claims
         return
       }
 
-      const docs = new Map<string, D>()
+      const docs: D[] = []
       const visited = new Set<string>()
 
       async function walk(id: string) {
@@ -89,7 +89,7 @@ export function useParentClasses(
           return
         }
 
-        docs.set(id, classDoc)
+        docs.push(classDoc)
 
         if (!classDoc.claims) {
           return
