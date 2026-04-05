@@ -59,7 +59,7 @@ const withDocument = useTemplateRef<ComponentExposed<typeof WithDocumentD>>("wit
 const selectedTab = ref(0)
 
 async function changeTab(index: number) {
-  const offset = classTabId.value && mergedFieldsData.value ? 1 : 0
+  const offset = (classTabId.value && mergedFieldsData.value ? 1 : 0) + documentTabs.value.length
   const searchShortcut = searchShortcuts.value[index - offset]
   if (searchShortcut) {
     await router.push({
