@@ -39,6 +39,7 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 			SubclassOf:           nil,
 			AbstractClass:        true,
 			DisplayLabelTemplate: nil,
+			SearchShortcut:       nil,
 			Fields:               fields,
 		},
 		DocumentFields: DocumentFields{
@@ -103,6 +104,7 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 			SubclassOf:           nil,
 			AbstractClass:        false,
 			DisplayLabelTemplate: nil,
+			SearchShortcut:       nil,
 			Fields:               fields,
 		},
 		DocumentFields: DocumentFields{
@@ -137,6 +139,7 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 			SubclassOf:           nil,
 			AbstractClass:        true,
 			DisplayLabelTemplate: nil,
+			SearchShortcut:       nil,
 			Fields:               fields,
 		},
 		DocumentFields: DocumentFields{
@@ -181,6 +184,7 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 			SubclassOf:           nil,
 			AbstractClass:        true,
 			DisplayLabelTemplate: nil,
+			SearchShortcut:       nil,
 			Fields:               fields,
 		},
 		DocumentFields: DocumentFields{
@@ -217,6 +221,7 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 			}},
 			AbstractClass:        false,
 			DisplayLabelTemplate: nil,
+			SearchShortcut:       nil,
 			Fields:               fields,
 		},
 		DocumentFields: DocumentFields{
@@ -278,6 +283,7 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 			}},
 			AbstractClass:        false,
 			DisplayLabelTemplate: nil,
+			SearchShortcut:       nil,
 			Fields:               fields,
 		},
 		DocumentFields: DocumentFields{
@@ -314,6 +320,7 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 			}},
 			AbstractClass:        true,
 			DisplayLabelTemplate: nil,
+			SearchShortcut:       nil,
 			Fields:               fields,
 		},
 		DocumentFields: DocumentFields{

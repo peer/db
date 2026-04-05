@@ -32,6 +32,7 @@ export const MNEMONIC = (await Identifier.from(Namespace, "MNEMONIC")).toString(
 export const NAME = (await Identifier.from(Namespace, "NAME")).toString()
 export const NAMING = (await Identifier.from(Namespace, "NAMING")).toString()
 export const ORDER_IN_LIST = (await Identifier.from(Namespace, "ORDER_IN_LIST")).toString()
+export const SEARCH_SHORTCUT = (await Identifier.from(Namespace, "SEARCH_SHORTCUT")).toString()
 export const SECTION = (await Identifier.from(Namespace, "SECTION")).toString()
 export const SELECTED_VARIANT = (await Identifier.from(Namespace, "SELECTED_VARIANT")).toString()
 export const SETTING = (await Identifier.from(Namespace, "SETTING")).toString()

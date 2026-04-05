@@ -37,6 +37,7 @@ var (
 	NamePropID                   = identifier.From(Namespace, "NAME")
 	NamingPropID                 = identifier.From(Namespace, "NAMING")
 	OrderInListPropID            = identifier.From(Namespace, "ORDER_IN_LIST")
+	SearchShortcutPropID         = identifier.From(Namespace, "SEARCH_SHORTCUT")
 	SectionPropID                = identifier.From(Namespace, "SECTION")
 	SelectedVariantPropID        = identifier.From(Namespace, "SELECTED_VARIANT")
 	SettingPropID                = identifier.From(Namespace, "SETTING")

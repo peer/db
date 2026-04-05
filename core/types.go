@@ -114,6 +114,13 @@ type RawHTMLWithLanguage struct {
 	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"-" property:"IN_LANGUAGE"`
 }
 
+// SearchShortcut represents a search shortcut with its name.
+type SearchShortcut struct {
+	Value string `json:"value" value:""`
+
+	Name []StringWithLanguage `cardinality:"0.." json:"name,omitempty" property:"NAME"`
+}
+
 // LinkWithMediaType represents link (URL, URI or IRI) with its media type.
 type LinkWithMediaType struct {
 	Value Link `json:"value" value:""`
@@ -151,6 +158,7 @@ type ClassFields struct {
 	SubclassOf           []Ref                 `cardinality:"0.."  json:"subclassOf,omitempty"           property:"SUBCLASS_OF"`
 	AbstractClass        bool                  `cardinality:"0..1" json:"abstractClass,omitempty"        property:"ABSTRACT_CLASS"`
 	DisplayLabelTemplate []StringWithLanguage  `cardinality:"0.."  json:"displayLabelTemplate,omitempty" property:"DISPLAY_LABEL_TEMPLATE"`
+	SearchShortcut       []SearchShortcut      `cardinality:"0.."  json:"searchShortcut,omitempty"       property:"SEARCH_SHORTCUT"`
 	// We set "order" to prevent infinite recursion when determining fields from ClassFields.
 	Fields *Fields `cardinality:"0..1" json:"fields,omitempty" order:"-" property:"FIELDS"`
 }

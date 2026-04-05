@@ -1237,6 +1237,38 @@ func Properties() ([]any, errors.E) {
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{
 			Name: []StringWithLanguage{{
+				Value: "search shortcut",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "bližnjica iskanja",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:              nil,
+			AlternativeName:        nil,
+			Mnemonic:               "SEARCH_SHORTCUT",
+			Description:            nil,
+			Instruction:            nil,
+			IdentifierLinkTemplate: "",
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "SETTING"},
+			}},
+			InversePropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "SEARCH_SHORTCUT"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
 				Value: "fields",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
