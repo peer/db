@@ -6110,7 +6110,7 @@ func TestFromDocumentHookError(t *testing.T) {
 	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	c.Hooks = []func(doc *document.D) (*document.D, errors.E){
-		func(doc *document.D) (*document.D, errors.E) {
+		func(_ *document.D) (*document.D, errors.E) {
 			return nil, errors.New("hook failed")
 		},
 	}
