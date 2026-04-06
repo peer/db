@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type { AmountFilterState, AmountSearchResult, ClientSearchSession, FilterResult, FiltersState, FilterStateChange, RefFilterState, TimeFilterState } from "@/types"
+import type { AmountFilterEntry, Filter, FilterResult, RefFilterEntry, SearchSession, TimeFilterEntry } from "@/types"
 
 import { onBeforeUnmount } from "vue"
 
@@ -9,15 +9,15 @@ import AmountFiltersResult from "@/partials/AmountFiltersResult.vue"
 import RefFiltersResult from "@/partials/RefFiltersResult.vue"
 import TimeFiltersResult from "@/partials/TimeFiltersResult.vue"
 
-defineProps<{
+const props = defineProps<{
   result: FilterResult
-  searchSession: DeepReadonly<ClientSearchSession>
+  searchSession: DeepReadonly<SearchSession>
   searchTotal: number
-  filtersState: FiltersState
+  filters: Filter[]
 }>()
 
 const $emit = defineEmits<{
-  filterChange: [change: FilterStateChange]
+  filterUpdate: [filterId: string, filter: Filter]
 }>()
 
 // We have to explicitly pass attributes because we use multiple root nodes.
@@ -31,35 +31,34 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-function onRefFiltersStateUpdate(id: string, value: RefFilterState) {
+// Find the active filter by filterId. Returns undefined for inactive filters.
+function findRefFilter(result: FilterResult): RefFilterEntry | undefined {
+  if (!result.filterId) {
+    return undefined
+  }
+  return props.filters.find((f): f is RefFilterEntry => "ref" in f && f.id === result.filterId)
+}
+
+function findAmountFilter(result: FilterResult): AmountFilterEntry | undefined {
+  if (!result.filterId) {
+    return undefined
+  }
+  return props.filters.find((f): f is AmountFilterEntry => "amount" in f && f.id === result.filterId)
+}
+
+function findTimeFilter(result: FilterResult): TimeFilterEntry | undefined {
+  if (!result.filterId) {
+    return undefined
+  }
+  return props.filters.find((f): f is TimeFilterEntry => "time" in f && f.id === result.filterId)
+}
+
+function onFilterUpdate(filterId: string, filter: Filter) {
   if (abortController.signal.aborted) {
     return
   }
 
-  $emit("filterChange", { type: "ref", id, value })
-}
-
-function onAmountFiltersStateUpdate(id: string, unit: string | undefined, value: AmountFilterState) {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  $emit("filterChange", { type: "amount", id, unit, value })
-}
-
-function onTimeFiltersStateUpdate(id: string, value: TimeFilterState) {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  $emit("filterChange", { type: "time", id, value })
-}
-
-function amountFilterKey(id: string, unit?: string): string {
-  if (unit) {
-    return `${id}/${unit}`
-  }
-  return id
+  $emit("filterUpdate", filterId, filter)
 }
 </script>
 
@@ -70,9 +69,9 @@ function amountFilterKey(id: string, unit?: string): string {
     :search-session="searchSession"
     :search-total="searchTotal"
     :result="result"
-    :state="filtersState.ref[result.id] ?? []"
+    :filter="findRefFilter(result)"
     v-bind="$attrs"
-    @update:state="(v) => onRefFiltersStateUpdate(result.id, v)"
+    @filter-update="onFilterUpdate"
   />
 
   <AmountFiltersResult
@@ -81,9 +80,9 @@ function amountFilterKey(id: string, unit?: string): string {
     :search-session="searchSession"
     :search-total="searchTotal"
     :result="result"
-    :state="filtersState.amount[amountFilterKey(result.id, (result as AmountSearchResult).unit)] ?? null"
+    :filter="findAmountFilter(result)"
     v-bind="$attrs"
-    @update:state="(v) => onAmountFiltersStateUpdate(result.id, (result as AmountSearchResult).unit, v)"
+    @filter-update="onFilterUpdate"
   />
 
   <TimeFiltersResult
@@ -92,8 +91,8 @@ function amountFilterKey(id: string, unit?: string): string {
     :search-session="searchSession"
     :search-total="searchTotal"
     :result="result"
-    :state="filtersState.time[result.id] ?? null"
+    :filter="findTimeFilter(result)"
     v-bind="$attrs"
-    @update:state="(v) => onTimeFiltersStateUpdate(result.id, v)"
+    @filter-update="onFilterUpdate"
   />
 </template>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance, DeepReadonly } from "vue"
 
-import type { ClientSearchSession, FiltersState, FilterStateChange, Result, ViewType } from "@/types"
+import type { Filter, Result, SearchSession, ViewType } from "@/types"
 
 import { FunnelIcon } from "@heroicons/vue/20/solid"
 import { onBeforeUnmount, ref, toRef, useTemplateRef } from "vue"
@@ -22,15 +22,15 @@ const props = defineProps<{
   searchResults: DeepReadonly<Result[]>
   searchTotal: number | null
   searchMoreThanTotal: boolean
-  searchSession: DeepReadonly<ClientSearchSession>
+  searchSession: DeepReadonly<SearchSession>
   isDownloading: boolean
 
   // Filter props.
-  filtersState: FiltersState
+  filters: Filter[]
 }>()
 
 const $emit = defineEmits<{
-  filterChange: [change: FilterStateChange]
+  filterUpdate: [filterId: string, filter: Filter]
   viewChange: [value: ViewType]
   downloadZip: []
   downloadFiles: []
@@ -244,14 +244,14 @@ function onSkipTo(targetId: string) {
       <template v-else-if="filtersTotal > 0">
         <div class="text-center text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: filtersTotal }) }}</div>
 
-        <template v-for="filter in limitedFiltersResults" :key="filter.id">
+        <template v-for="filter in limitedFiltersResults" :key="filter.filterId ?? `${filter.propId}/${'unit' in filter ? filter.unit ?? '' : ''}`">
           <FiltersResult
             :result="filter"
             :search-session="searchSession"
             :search-total="searchTotal"
-            :filters-state="filtersState"
+            :filters="filters"
             class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
-            @filter-change="(c) => $emit('filterChange', c)"
+            @filter-update="(filterId, filter) => $emit('filterUpdate', filterId, filter)"
           />
         </template>
 

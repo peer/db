@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import type { FiltersState, RefFilterState } from "@/types"
+import type { Filter } from "@/types"
 
+import { Identifier } from "@tozd/identifier"
 import { onBeforeUnmount, onMounted } from "vue"
 import { useRoute, useRouter } from "vue-router"
 
@@ -24,34 +25,35 @@ onMounted(async () => {
     return
   }
 
-  // Query parameters are interpreted as ref filters where key is the
-  // property ID and value is the value ID, matching the backend behavior.
-  const refFilters: Record<string, RefFilterState> = {}
-  const query = route.query
-  for (const [prop, values] of Object.entries(query)) {
-    if (values == null) {
-      continue
-    }
-    const arr = Array.isArray(values) ? values : [values]
-    refFilters[prop] = arr.filter((v): v is string => v != null)
-  }
-
-  const filters: FiltersState | undefined =
-    Object.keys(refFilters).length > 0
-      ? {
-          ref: refFilters,
-          amount: {},
-          time: {},
-        }
-      : undefined
-
   progress.value += 1
   try {
     await createSearchSession(
       router,
-      {
-        query: "",
-        filters,
+      async (base) => {
+        // Query parameters are interpreted as ref filters where key is the
+        // property ID and value is the value ID, matching the backend behavior.
+        const filters: Filter[] = []
+        const query = route.query
+        for (const [prop, values] of Object.entries(query)) {
+          if (values == null) {
+            continue
+          }
+          const arr = Array.isArray(values) ? values : [values]
+          const toValues = arr.filter((v): v is string => v != null).map((v) => ({ id: v }))
+          if (toValues.length > 0) {
+            const filterBase = [...base, "FILTER", Identifier.new().toString()]
+            const id = (await Identifier.from(...filterBase)).toString()
+            filters.push({
+              id: id,
+              base: filterBase,
+              prop: [prop],
+              ref: { to: toValues },
+            })
+          }
+        }
+        return {
+          filters: filters.length > 0 ? filters : undefined,
+        }
       },
       abortController.signal,
       progress,

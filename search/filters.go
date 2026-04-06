@@ -1,13 +1,14 @@
 package search
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"slices"
 	"strconv"
 	"time"
 
-	"github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
+	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/sortorder"
@@ -19,10 +20,11 @@ import (
 
 // FilterResult describes an available filter as an union of possible fields for each supported filter type.
 type FilterResult struct {
-	ID    string `json:"id"`
-	Count int64  `json:"count"`
-	Type  string `json:"type"`
-	Unit  string `json:"unit,omitempty"`
+	PropID   string `json:"propId"`
+	Type     string `json:"type"`
+	Unit     string `json:"unit,omitempty"`
+	FilterID string `json:"filterId,omitempty"`
+	Count    int64  `json:"count"`
 }
 
 // parseStringTermsBuckets converts string terms buckets with reverse-nested doc counts into FilterResult slices.
@@ -40,10 +42,11 @@ func parseStringTermsBuckets(buckets []types.StringTermsBucket, filterType strin
 			return nil, errE
 		}
 		results = append(results, FilterResult{
-			ID:    key,
-			Count: bucketDocs.DocCount,
-			Type:  filterType,
-			Unit:  "",
+			PropID:   key,
+			Type:     filterType,
+			Unit:     "",
+			FilterID: "",
+			Count:    bucketDocs.DocCount,
 		})
 	}
 	return results, nil
@@ -77,18 +80,19 @@ func parseMultiTermsBuckets(buckets []types.MultiTermsBucket) ([]FilterResult, e
 			unit = ""
 		}
 		results = append(results, FilterResult{
-			ID:    propKey,
-			Count: bucketDocs.DocCount,
-			Type:  "amount",
-			Unit:  unit,
+			PropID:   propKey,
+			Type:     "amount",
+			Unit:     unit,
+			FilterID: "",
+			Count:    bucketDocs.DocCount,
 		})
 	}
 	return results, nil
 }
 
 // FiltersGet retrieves all available filters for the current search.
-func FiltersGet(
-	ctx context.Context, getSearchService func() (*search.Search, int64, int64), searchSession *Session,
+func FiltersGet( //nolint:maintidx
+	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64), searchSession *Session,
 ) ([]FilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
@@ -143,6 +147,38 @@ func FiltersGet(
 		AddAggregation("ref", refAggregation).
 		AddAggregation("amount", amountAggregation).
 		AddAggregation("time", timeAggregation)
+
+	// For each active filter, add an aggregation that computes the property count
+	// excluding that filter's own restriction. This ensures active filters always
+	// appear in results with correct counts.
+	for i, f := range searchSession.Filters {
+		if f.ID == nil {
+			// This should not be possible.
+			continue
+		}
+		prop := f.Prop[0]
+		var nestedPath string
+		switch {
+		case f.Ref != nil:
+			nestedPath = "claims.ref"
+		case f.Amount != nil:
+			nestedPath = "claims.amount"
+		case f.Time != nil:
+			nestedPath = "claims.time"
+		default:
+			// This should not be possible.
+			continue
+		}
+		activeAgg := esdsl.NewAggregations().
+			Filter(searchSession.ToQueryExcluding(*f.ID)).
+			AddAggregation("nested", esdsl.NewAggregations().
+				Nested(esdsl.NewNestedAggregation().Path(nestedPath)).
+				AddAggregation("filter", esdsl.NewAggregations().
+					Filter(esdsl.NewTermQuery(nestedPath+".prop", esdsl.NewFieldValue().String(prop.String()))).
+					AddAggregation("docs", esdsl.NewAggregations().
+						ReverseNested(esdsl.NewReverseNestedAggregation()))))
+		searchService = searchService.AddAggregation(fmt.Sprintf("active_%d", i), activeAgg)
+	}
 
 	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
@@ -230,15 +266,64 @@ func FiltersGet(
 	results = append(results, amountResults...)
 	results = append(results, timeResults...)
 
-	// Because we combine multiple aggregations of MaxResultsCount each, we have to
-	// re-sort results and limit them ourselves.
+	// Parse per-active-filter aggregation results and append them with FilterID set.
+	// Main results (without FilterID) remain as inactive filter options.
+	for i, f := range searchSession.Filters {
+		if f.ID == nil {
+			// This should not be possible.
+			continue
+		}
+
+		prop := f.Prop[0].String()
+		var result FilterResult
+		switch {
+		case f.Ref != nil:
+			result = FilterResult{PropID: prop, Type: "ref", Unit: "", FilterID: f.ID.String(), Count: 0}
+		case f.Amount != nil:
+			result = FilterResult{PropID: prop, Type: "amount", Unit: "", FilterID: f.ID.String(), Count: 0}
+			if f.Amount.Unit != nil {
+				result.Unit = f.Amount.Unit.String()
+			}
+		case f.Time != nil:
+			result = FilterResult{PropID: prop, Type: "time", Unit: "", FilterID: f.ID.String(), Count: 0}
+		default:
+			// This should not be possible.
+			continue
+		}
+
+		aggName := fmt.Sprintf("active_%d", i)
+		activeFilter, errE := aggAs[types.FilterAggregate](res.Aggregations, aggName)
+		if errE != nil {
+			return nil, nil, errE
+		}
+		activeNested, errE := aggAs[types.NestedAggregate](activeFilter.Aggregations, "nested")
+		if errE != nil {
+			return nil, nil, errE
+		}
+		propFilter, errE := aggAs[types.FilterAggregate](activeNested.Aggregations, "filter")
+		if errE != nil {
+			return nil, nil, errE
+		}
+		activeDocs, errE := aggAs[types.ReverseNestedAggregate](propFilter.Aggregations, "docs")
+		if errE != nil {
+			return nil, nil, errE
+		}
+
+		result.Count = activeDocs.DocCount
+		results = append(results, result)
+	}
+
+	// Sort: active filters first, then inactive, each group by count descending.
 	slices.SortStableFunc(results, func(a FilterResult, b FilterResult) int {
-		if a.Count > b.Count {
-			return -1
-		} else if a.Count < b.Count {
+		aActive := a.FilterID != ""
+		bActive := b.FilterID != ""
+		if aActive != bActive {
+			if aActive {
+				return -1
+			}
 			return 1
 		}
-		return 0
+		return cmp.Compare(b.Count, a.Count)
 	})
 	if len(results) > MaxResultsCount {
 		results = results[:MaxResultsCount]

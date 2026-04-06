@@ -53,6 +53,7 @@
       "table": "Table"
     },
     "values": {
+      "missing": "missing",
       "noName": "no name",
       "none": "none",
       "unknown": "unknown"

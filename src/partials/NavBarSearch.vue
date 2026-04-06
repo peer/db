@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type { ClientSearchSession } from "@/types"
+import type { SearchSession } from "@/types"
 
 import { MagnifyingGlassIcon } from "@heroicons/vue/20/solid"
 import { onBeforeUnmount, ref, watchEffect } from "vue"
@@ -15,7 +15,7 @@ import { createSearchSession } from "@/search"
 
 const props = withDefaults(
   defineProps<{
-    searchSession?: DeepReadonly<ClientSearchSession> | ClientSearchSession | null
+    searchSession?: DeepReadonly<SearchSession> | SearchSession | null
   }>(),
   {
     searchSession: undefined,
@@ -46,7 +46,7 @@ watchEffect(() => {
   }
 
   // We update the search query in one direction only when search session changes.
-  searchQuery.value = props.searchSession.query
+  searchQuery.value = props.searchSession.query || ""
 })
 
 onBeforeUnmount(() => {
@@ -69,9 +69,10 @@ async function onSubmit() {
   try {
     await createSearchSession(
       router,
-      {
-        query: searchQuery.value,
-      },
+      () =>
+        Promise.resolve({
+          query: searchQuery.value,
+        }),
       abortController.signal,
       busy,
       false,

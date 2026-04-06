@@ -163,6 +163,8 @@ func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Hand
 			return nil, errE
 		}
 
+		site.Features.SearchResultsTable = true
+
 		documents = append(documents, languages...)
 
 		errE = site.Start(siteCtx, documents)

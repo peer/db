@@ -64,6 +64,7 @@ declare module "vue-i18n" {
         table: string
       }
       values: {
+        missing: string
         noName: string
         none: string
         unknown: string

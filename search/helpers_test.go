@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/elastic/go-elasticsearch/v9"
-	essearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
+	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -22,7 +22,7 @@ import (
 
 // initES creates and configures an ES client and a test index.
 // It returns the client, a search service factory, and the index name.
-func initES(t *testing.T) (*elasticsearch.TypedClient, func() (*essearch.Search, int64, int64), string) {
+func initES(t *testing.T) (*elasticsearch.TypedClient, func() (*esSearch.Search, int64, int64), string) {
 	t.Helper()
 
 	if os.Getenv("ELASTIC") == "" {
@@ -47,7 +47,7 @@ func initES(t *testing.T) (*elasticsearch.TypedClient, func() (*essearch.Search,
 	errE = internalSearch.EnsureIndex(ctx, esClient, index, 1)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	getSearchService := func() (*essearch.Search, int64, int64) {
+	getSearchService := func() (*esSearch.Search, int64, int64) {
 		return esClient.Search().Index(index), 100, 10
 	}
 
@@ -72,10 +72,32 @@ func refreshIndex(t *testing.T, ctx context.Context, esClient *elasticsearch.Typ
 	require.NoError(t, err)
 }
 
-// createSession is a test helper that creates a search session.
-func createSession(t *testing.T, ctx context.Context, s *search.Session) { //nolint:revive
+// createSession is a test helper that creates a search session from SessionData.
+// It generates Base/ID for the session and any filters that lack them.
+func createSession(t *testing.T, ctx context.Context, data search.SessionData) *search.Session { //nolint:revive
 	t.Helper()
 
-	errE := search.CreateSession(ctx, s)
-	require.NoError(t, errE)
+	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
+
+	// Generate Base/ID for filters that don't have them.
+	for i := range data.Filters {
+		if len(data.Filters[i].Base) == 0 {
+			filterBase := append(base, "FILTER", identifier.New().String()) //nolint:gocritic
+			data.Filters[i].Base = filterBase
+			filterID := identifier.From(filterBase...)
+			data.Filters[i].ID = &filterID
+		}
+	}
+
+	session := &search.Session{
+		SessionData: data,
+		ID:          identifier.From(base...),
+		Base:        base,
+		Version:     0,
+	}
+
+	errE := search.CreateSession(ctx, session)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	return session
 }

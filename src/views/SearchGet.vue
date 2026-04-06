@@ -1,19 +1,9 @@
 <script setup lang="ts">
+import type { DocumentBeginEditResponse, DocumentCreateResponse, Filter, SearchSessionData, ViewType } from "@/types"
 import type { DeepReadonly } from "vue"
 
-import type {
-  AmountFilterState,
-  ClientSearchSession,
-  DocumentBeginEditResponse,
-  DocumentCreateResponse,
-  FiltersState,
-  FilterStateChange,
-  RefFilterState,
-  TimeFilterState,
-  ViewType,
-} from "@/types"
-
 import { ArrowUpTrayIcon, PlusIcon } from "@heroicons/vue/20/solid"
+import { Identifier } from "@tozd/identifier"
 import { onBeforeUnmount, ref, toRef, useTemplateRef, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
@@ -94,32 +84,30 @@ const {
   cancelDownload,
 } = useDownload(abortController, router, searchResults)
 
-// A non-read-only version of filters state so that we can modify it as necessary.
-const filtersState = ref<FiltersState>({ ref: {}, amount: {}, time: {} })
+// A non-read-only version of filters so that we can modify it as necessary.
+const filters = ref<Filter[]>([])
 // We keep it in sync with upstream version.
 watchEffect(() => {
   // We copy to make a read-only value mutable.
   if (searchSession.value === null || !searchSession.value.filters) {
-    filtersState.value = { ref: {}, amount: {}, time: {} }
+    filters.value = []
   } else {
-    filtersState.value = clone(searchSession.value.filters)
+    filters.value = clone(searchSession.value.filters)
   }
 })
 
-async function onSearchSessionUpdate(updatedSearchSession: DeepReadonly<ClientSearchSession>) {
+async function onSearchSessionUpdate(searchData: DeepReadonly<SearchSessionData>) {
   if (abortController.signal.aborted) {
     return
   }
 
   busy.value += 1
   try {
-    const updatedSearchSessionRef = await updateSearchSession(router, updatedSearchSession, abortController.signal, busy)
-    if (abortController.signal.aborted || !updatedSearchSessionRef) {
+    const response = await updateSearchSession(router, props.id, searchData, abortController.signal, busy)
+    if (abortController.signal.aborted || !response) {
       return
     }
-    // We know that updatedSearchSessionRef.id is the same as searchSession.id
-    // because we validated that in updateSearchSession.
-    searchSessionVersion.value = updatedSearchSessionRef.version
+    searchSessionVersion.value = response.version
   } catch (err) {
     if (abortController.signal.aborted) {
       return
@@ -131,38 +119,48 @@ async function onSearchSessionUpdate(updatedSearchSession: DeepReadonly<ClientSe
   }
 }
 
-async function onFiltersStateUpdate(updatedFilters: FiltersState) {
+async function onFiltersUpdate(updatedFilters: Filter[]) {
   // Checking abortController is done inside onSearchSessionUpdate.
 
-  await onSearchSessionUpdate({ ...searchSession.value!, filters: updatedFilters })
+  await onSearchSessionUpdate({
+    view: searchSession.value!.view,
+    query: searchSession.value!.query,
+    filters: updatedFilters.length > 0 ? updatedFilters : undefined,
+  })
 }
 
-async function onRefFiltersStateUpdate(id: string, state: RefFilterState) {
-  // Checking abortController is done inside onSearchSessionUpdate.
-
-  const updatedFilters = { ...filtersState.value }
-  updatedFilters.ref = { ...updatedFilters.ref }
-  updatedFilters.ref[id] = state
-  await onFiltersStateUpdate(updatedFilters)
+// isFilterEmpty returns true if the filter has no active selection.
+function isFilterEmpty(f: Filter): boolean {
+  if ("ref" in f) {
+    return (!f.ref.to || f.ref.to.length === 0) && !f.ref.missing
+  }
+  if ("amount" in f) {
+    return f.amount.gte == null && f.amount.lte == null && !f.amount.missing
+  }
+  if ("time" in f) {
+    return f.time.gte == null && f.time.lte == null && !f.time.missing
+  }
+  return true
 }
 
-async function onAmountFiltersStateUpdate(id: string, unit: string | undefined, state: AmountFilterState) {
+async function onFilterUpdate(filterId: string, updatedFilter: Filter) {
   // Checking abortController is done inside onSearchSessionUpdate.
 
-  const updatedFilters = { ...filtersState.value }
-  updatedFilters.amount = { ...updatedFilters.amount }
-  const key = unit ? `${id}/${unit}` : id
-  updatedFilters.amount[key] = state
-  await onFiltersStateUpdate(updatedFilters)
-}
-
-async function onTimeFiltersStateUpdate(id: string, state: TimeFilterState) {
-  // Checking abortController is done inside onSearchSessionUpdate.
-
-  const updatedFilters = { ...filtersState.value }
-  updatedFilters.time = { ...updatedFilters.time }
-  updatedFilters.time[id] = state
-  await onFiltersStateUpdate(updatedFilters)
+  if (isFilterEmpty(updatedFilter)) {
+    // Filter has no active selection: remove it from the session.
+    const updatedFilters = filters.value.filter((f) => f.id !== filterId)
+    await onFiltersUpdate(updatedFilters)
+  } else if (filterId && filters.value.some((f) => f.id === filterId)) {
+    // Existing filter: replace it.
+    const updatedFilters = filters.value.map((f) => (f.id === filterId ? updatedFilter : f))
+    await onFiltersUpdate(updatedFilters)
+  } else {
+    // New filter: generate Base/ID and add it.
+    const filterBase = [...searchSession.value!.base, "FILTER", Identifier.new().toString()]
+    const id = (await Identifier.from(...filterBase)).toString()
+    const newFilter = { ...updatedFilter, base: filterBase, id }
+    await onFiltersUpdate([...filters.value, newFilter])
+  }
 }
 
 async function onCreate() {
@@ -254,34 +252,24 @@ async function onChange() {
   }
 }
 
-function onFilterChange(change: FilterStateChange) {
-  // Checking abortController is done inside onSearchSessionUpdate.
-
-  switch (change.type) {
-    case "ref": {
-      return onRefFiltersStateUpdate(change.id, change.value)
-    }
-
-    case "amount": {
-      return onAmountFiltersStateUpdate(change.id, change.unit, change.value)
-    }
-
-    case "time": {
-      return onTimeFiltersStateUpdate(change.id, change.value)
-    }
-  }
-}
-
 async function onQueryChange(query: string) {
   // Checking abortController is done inside onSearchSessionUpdate.
 
-  await onSearchSessionUpdate({ ...searchSession.value!, query })
+  await onSearchSessionUpdate({
+    view: searchSession.value!.view,
+    query,
+    filters: searchSession.value!.filters,
+  })
 }
 
 async function onViewChange(view: ViewType) {
   // Checking abortController is done inside onSearchSessionUpdate.
 
-  await onSearchSessionUpdate({ ...searchSession.value!, view })
+  await onSearchSessionUpdate({
+    view,
+    query: searchSession.value!.query,
+    filters: searchSession.value!.filters,
+  })
 }
 
 async function onDownloadZip() {
@@ -339,9 +327,9 @@ async function onDownloadFiles() {
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
       :search-session="searchSession"
-      :filters-state="filtersState"
+      :filters="filters"
       :is-downloading="downloadingPhase !== null"
-      @filter-change="onFilterChange"
+      @filter-update="onFilterUpdate"
       @view-change="onViewChange"
       @download-zip="onDownloadZip"
       @download-files="onDownloadFiles"
@@ -353,9 +341,9 @@ async function onDownloadFiles() {
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
       :search-session="searchSession"
-      :filters-state="filtersState"
+      :filters="filters"
       :is-downloading="downloadingPhase !== null"
-      @filter-change="onFilterChange"
+      @filter-update="onFilterUpdate"
       @view-change="onViewChange"
       @download-zip="onDownloadZip"
       @download-files="onDownloadFiles"

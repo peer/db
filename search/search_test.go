@@ -13,7 +13,21 @@ import (
 	"gitlab.com/peerdb/peerdb/search"
 )
 
-func TestRefFilterValid(t *testing.T) {
+// makeTestFilter builds a valid Filter with proper Base/ID for testing.
+func makeTestFilter(prop identifier.Identifier, ref *search.RefFilter, amount *search.AmountFilter, timeVal *search.TimeFilter) search.Filter {
+	base := []string{"test.example.com", "SEARCH", "testsession", "FILTER", identifier.New().String()}
+	filterID := identifier.From(base...)
+	return search.Filter{
+		ID:     &filterID,
+		Base:   base,
+		Prop:   []identifier.Identifier{prop},
+		Ref:    ref,
+		Amount: amount,
+		Time:   timeVal,
+	}
+}
+
+func TestFilterValidRef(t *testing.T) {
 	t.Parallel()
 
 	prop := identifier.From("prop")
@@ -21,35 +35,35 @@ func TestRefFilterValid(t *testing.T) {
 
 	tests := []struct {
 		Name    string
-		Filter  search.RefFilter
+		Filter  search.Filter
 		WantErr string
 	}{
 		{
-			Name:    "ValueSet",
-			Filter:  search.RefFilter{Prop: prop, Value: &value, None: false},
+			Name:    "ToSet",
+			Filter:  makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil),
 			WantErr: "",
 		},
 		{
 			Name:    "NoneSet",
-			Filter:  search.RefFilter{Prop: prop, Value: nil, None: true},
+			Filter:  makeTestFilter(prop, &search.RefFilter{To: nil, Missing: true}, nil, nil),
 			WantErr: "",
 		},
 		{
 			Name:    "NeitherSet",
-			Filter:  search.RefFilter{Prop: prop, Value: nil, None: false},
-			WantErr: "value or none has to be set",
+			Filter:  makeTestFilter(prop, &search.RefFilter{To: nil, Missing: false}, nil, nil),
+			WantErr: "to or missing has to be set",
 		},
 		{
 			Name:    "BothSet",
-			Filter:  search.RefFilter{Prop: prop, Value: &value, None: true},
-			WantErr: "value and none cannot be both set",
+			Filter:  makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: true}, nil, nil),
+			WantErr: "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
-			err := tt.Filter.Valid()
+			err := tt.Filter.Validate(false)
 			if tt.WantErr == "" {
 				require.NoError(t, err)
 			} else {
@@ -59,7 +73,7 @@ func TestRefFilterValid(t *testing.T) {
 	}
 }
 
-func TestAmountFilterValid(t *testing.T) {
+func TestFilterValidAmount(t *testing.T) {
 	t.Parallel()
 
 	prop := identifier.From("prop")
@@ -68,45 +82,45 @@ func TestAmountFilterValid(t *testing.T) {
 
 	tests := []struct {
 		Name    string
-		Filter  search.AmountFilter
+		Filter  search.Filter
 		WantErr string
 	}{
 		{
 			Name:    "BothGteLteSet",
-			Filter:  search.AmountFilter{Prop: prop, Unit: nil, Gte: &gte, Lte: &lte, None: false},
+			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false}, nil),
 			WantErr: "",
 		},
 		{
 			Name:    "NoneSet",
-			Filter:  search.AmountFilter{Prop: prop, Unit: nil, Gte: nil, Lte: nil, None: true},
+			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true}, nil),
 			WantErr: "",
 		},
 		{
 			Name:    "NothingSet",
-			Filter:  search.AmountFilter{Prop: prop, Unit: nil, Gte: nil, Lte: nil, None: false},
-			WantErr: "both gte and lte or none has to be set",
+			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: false}, nil),
+			WantErr: "both gte and lte or missing has to be set",
 		},
 		{
 			Name:    "GteOnly",
-			Filter:  search.AmountFilter{Prop: prop, Unit: nil, Gte: &gte, Lte: nil, None: false},
+			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: &gte, Lte: nil, Missing: false}, nil),
 			WantErr: "both gte and lte must be set together",
 		},
 		{
 			Name:    "LteOnly",
-			Filter:  search.AmountFilter{Prop: prop, Unit: nil, Gte: nil, Lte: &lte, None: false},
+			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: nil, Lte: &lte, Missing: false}, nil),
 			WantErr: "both gte and lte must be set together",
 		},
 		{
-			Name:    "BothAndNone",
-			Filter:  search.AmountFilter{Prop: prop, Unit: nil, Gte: &gte, Lte: &lte, None: true},
-			WantErr: "gte/lte and none cannot be both set",
+			Name:    "BothAndMissing",
+			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: true}, nil),
+			WantErr: "gte/lte and missing cannot be both set",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
-			err := tt.Filter.Valid()
+			err := tt.Filter.Validate(false)
 			if tt.WantErr == "" {
 				require.NoError(t, err)
 			} else {
@@ -116,7 +130,7 @@ func TestAmountFilterValid(t *testing.T) {
 	}
 }
 
-func TestTimeFilterValid(t *testing.T) {
+func TestFilterValidTime(t *testing.T) {
 	t.Parallel()
 
 	prop := identifier.From("prop")
@@ -125,45 +139,45 @@ func TestTimeFilterValid(t *testing.T) {
 
 	tests := []struct {
 		Name    string
-		Filter  search.TimeFilter
+		Filter  search.Filter
 		WantErr string
 	}{
 		{
 			Name:    "BothGteLteSet",
-			Filter:  search.TimeFilter{Prop: prop, Gte: &gte, Lte: &lte, None: false},
+			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false}),
 			WantErr: "",
 		},
 		{
 			Name:    "NoneSet",
-			Filter:  search.TimeFilter{Prop: prop, Gte: nil, Lte: nil, None: true},
+			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: nil, Lte: nil, Missing: true}),
 			WantErr: "",
 		},
 		{
 			Name:    "NothingSet",
-			Filter:  search.TimeFilter{Prop: prop, Gte: nil, Lte: nil, None: false},
-			WantErr: "both gte and lte or none has to be set",
+			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: nil, Lte: nil, Missing: false}),
+			WantErr: "both gte and lte or missing has to be set",
 		},
 		{
 			Name:    "GteOnly",
-			Filter:  search.TimeFilter{Prop: prop, Gte: &gte, Lte: nil, None: false},
+			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: &gte, Lte: nil, Missing: false}),
 			WantErr: "both gte and lte must be set together",
 		},
 		{
 			Name:    "LteOnly",
-			Filter:  search.TimeFilter{Prop: prop, Gte: nil, Lte: &lte, None: false},
+			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: nil, Lte: &lte, Missing: false}),
 			WantErr: "both gte and lte must be set together",
 		},
 		{
-			Name:    "BothAndNone",
-			Filter:  search.TimeFilter{Prop: prop, Gte: &gte, Lte: &lte, None: true},
-			WantErr: "gte/lte and none cannot be both set",
+			Name:    "BothAndMissing",
+			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: true}),
+			WantErr: "gte/lte and missing cannot be both set",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
-			err := tt.Filter.Valid()
+			err := tt.Filter.Validate(false)
 			if tt.WantErr == "" {
 				require.NoError(t, err)
 			} else {
@@ -173,7 +187,7 @@ func TestTimeFilterValid(t *testing.T) {
 	}
 }
 
-func TestFiltersValid(t *testing.T) {
+func TestFilterValid(t *testing.T) {
 	t.Parallel()
 
 	prop := identifier.From("prop")
@@ -185,225 +199,94 @@ func TestFiltersValid(t *testing.T) {
 
 	tests := []struct {
 		Name    string
-		Filters search.Filters
+		Filter  search.Filter
 		WantErr string
 	}{
 		{
-			Name: "RefFilter",
-			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil,
-				Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
-			},
+			Name:    "RefFilter",
+			Filter:  makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil),
 			WantErr: "",
 		},
 		{
-			Name: "AmountFilter",
-			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil, Ref: nil,
-				Amount: &search.AmountFilter{Prop: prop, Unit: nil, Gte: &gte, Lte: &lte, None: false}, Time: nil,
-			},
+			Name:    "AmountFilter",
+			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false}, nil),
 			WantErr: "",
 		},
 		{
-			Name: "TimeFilter",
-			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil, Ref: nil, Amount: nil,
-				Time: &search.TimeFilter{Prop: prop, Gte: &gteTime, Lte: &lteTime, None: false},
-			},
+			Name:    "TimeFilter",
+			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: &gteTime, Lte: &lteTime, Missing: false}),
 			WantErr: "",
 		},
 		{
-			Name: "AndFilters",
-			Filters: search.Filters{
-				And: []search.Filters{
-					{
-						And: nil, Or: nil, Not: nil,
-						Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
-					},
-					{
-						And: nil, Or: nil, Not: nil, Ref: nil,
-						Amount: &search.AmountFilter{Prop: prop, Unit: nil, Gte: &gte, Lte: &lte, None: false},
-						Time:   nil,
-					},
-				},
-				Or: nil, Not: nil, Ref: nil, Amount: nil, Time: nil,
-			},
-			WantErr: "",
+			Name: "NoClause",
+			Filter: func() search.Filter {
+				f := makeTestFilter(prop, nil, nil, nil)
+				// Set a dummy Ref so makeTestFilter produces a valid base/id, then clear it.
+				f.Ref = nil
+				f.Amount = nil
+				f.Time = nil
+				return f
+			}(),
+			WantErr: "exactly one of ref, amount, or time must be set",
 		},
 		{
-			Name: "OrFilters",
-			Filters: search.Filters{
-				And: nil,
-				Or: []search.Filters{
-					{
-						And: nil, Or: nil, Not: nil,
-						Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
-					},
-					{
-						And: nil, Or: nil, Not: nil, Ref: nil, Amount: nil,
-						Time: &search.TimeFilter{Prop: prop, Gte: &gteTime, Lte: &lteTime, None: false},
-					},
-				},
-				Not: nil, Ref: nil, Amount: nil, Time: nil,
-			},
-			WantErr: "",
+			Name: "MultipleClausesRefAndAmount",
+			Filter: func() search.Filter {
+				f := makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil)
+				f.Amount = &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false}
+				return f
+			}(),
+			WantErr: "exactly one of ref, amount, or time must be set",
 		},
 		{
-			Name: "NotFilter",
-			Filters: search.Filters{
-				And: nil, Or: nil,
-				Not: &search.Filters{
-					And: nil, Or: nil, Not: nil,
-					Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
-				},
-				Ref: nil, Amount: nil, Time: nil,
-			},
-			WantErr: "",
+			Name: "MultipleClausesRefAndTime",
+			Filter: func() search.Filter {
+				f := makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil)
+				f.Time = &search.TimeFilter{Gte: &gteTime, Lte: &lteTime, Missing: false}
+				return f
+			}(),
+			WantErr: "exactly one of ref, amount, or time must be set",
 		},
 		{
-			Name:    "NoClause",
-			Filters: search.Filters{And: nil, Or: nil, Not: nil, Ref: nil, Amount: nil, Time: nil},
-			WantErr: "no clause is set",
+			Name:    "InvalidRefFilter",
+			Filter:  makeTestFilter(prop, &search.RefFilter{To: nil, Missing: false}, nil, nil),
+			WantErr: "to or missing has to be set",
 		},
 		{
-			Name: "MultipleClausesRelAndAmount",
-			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil,
-				Ref:    &search.RefFilter{Prop: prop, Value: &value, None: false},
-				Amount: &search.AmountFilter{Prop: prop, Unit: nil, Gte: &gte, Lte: &lte, None: false},
-				Time:   nil,
-			},
-			WantErr: "only one clause can be set",
+			Name:    "InvalidAmountFilter",
+			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: false}, nil),
+			WantErr: "both gte and lte or missing has to be set",
 		},
 		{
-			Name: "MultipleClausesAndAndOr",
-			Filters: search.Filters{
-				And: []search.Filters{
-					{
-						And: nil, Or: nil, Not: nil,
-						Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
-					},
-				},
-				Or: []search.Filters{
-					{
-						And: nil, Or: nil, Not: nil,
-						Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
-					},
-				},
-				Not: nil, Ref: nil, Amount: nil, Time: nil,
-			},
-			WantErr: "only one clause can be set",
+			Name:    "InvalidTimeFilter",
+			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: nil, Lte: nil, Missing: false}),
+			WantErr: "both gte and lte or missing has to be set",
 		},
 		{
-			Name: "InvalidNestedAndFilter",
-			Filters: search.Filters{
-				And: []search.Filters{
-					{
-						And: nil, Or: nil, Not: nil,
-						Ref: &search.RefFilter{Prop: prop, Value: nil, None: false}, Amount: nil, Time: nil,
-					},
-				},
-				Or: nil, Not: nil, Ref: nil, Amount: nil, Time: nil,
-			},
-			WantErr: "value or none has to be set",
+			Name: "InvalidID",
+			Filter: func() search.Filter {
+				f := makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil)
+				badID := identifier.New()
+				f.ID = &badID
+				return f
+			}(),
+			WantErr: "invalid filter ID",
 		},
 		{
-			Name: "InvalidNestedOrFilter",
-			Filters: search.Filters{
-				And: nil,
-				Or: []search.Filters{
-					{
-						And: nil, Or: nil, Not: nil,
-						Ref: &search.RefFilter{Prop: prop, Value: nil, None: false}, Amount: nil, Time: nil,
-					},
-				},
-				Not: nil, Ref: nil, Amount: nil, Time: nil,
-			},
-			WantErr: "value or none has to be set",
-		},
-		{
-			Name: "InvalidNotFilter",
-			Filters: search.Filters{
-				And: nil, Or: nil,
-				Not: &search.Filters{
-					And: nil, Or: nil, Not: nil,
-					Ref: &search.RefFilter{Prop: prop, Value: nil, None: false}, Amount: nil, Time: nil,
-				},
-				Ref: nil, Amount: nil, Time: nil,
-			},
-			WantErr: "value or none has to be set",
-		},
-		{
-			Name: "InvalidRefFilter",
-			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil,
-				Ref: &search.RefFilter{Prop: prop, Value: nil, None: false}, Amount: nil, Time: nil,
-			},
-			WantErr: "value or none has to be set",
-		},
-		{
-			Name: "InvalidAmountFilter",
-			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil, Ref: nil,
-				Amount: &search.AmountFilter{Prop: prop, Unit: nil, Gte: nil, Lte: nil, None: false}, Time: nil,
-			},
-			WantErr: "both gte and lte or none has to be set",
-		},
-		{
-			Name: "InvalidTimeFilter",
-			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil, Ref: nil, Amount: nil,
-				Time: &search.TimeFilter{Prop: prop, Gte: nil, Lte: nil, None: false},
-			},
-			WantErr: "both gte and lte or none has to be set",
-		},
-		{
-			Name: "NotAndRefFilter",
-			Filters: search.Filters{
-				And: nil, Or: nil,
-				Not: &search.Filters{
-					And: nil, Or: nil, Not: nil,
-					Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
-				},
-				Ref:    &search.RefFilter{Prop: prop, Value: &value, None: false},
-				Amount: nil, Time: nil,
-			},
-			WantErr: "only one clause can be set",
-		},
-		{
-			Name: "AndAndNotFilter",
-			Filters: search.Filters{
-				And: []search.Filters{
-					{
-						And: nil, Or: nil, Not: nil,
-						Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
-					},
-				},
-				Or: nil,
-				Not: &search.Filters{
-					And: nil, Or: nil, Not: nil,
-					Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
-				},
-				Ref: nil, Amount: nil, Time: nil,
-			},
-			WantErr: "only one clause can be set",
-		},
-		{
-			Name: "TimeAndRefFilter",
-			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil,
-				Ref:    &search.RefFilter{Prop: prop, Value: &value, None: false},
-				Amount: nil,
-				Time:   &search.TimeFilter{Prop: prop, Gte: &gteTime, Lte: &lteTime, None: false},
-			},
-			WantErr: "only one clause can be set",
+			Name: "EmptyProp",
+			Filter: func() search.Filter {
+				f := makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil)
+				f.Prop = nil
+				return f
+			}(),
+			WantErr: "prop must have exactly one element",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
-			err := tt.Filters.Valid()
+			err := tt.Filter.Validate(false)
 			if tt.WantErr == "" {
 				require.NoError(t, err)
 			} else {
@@ -413,7 +296,7 @@ func TestFiltersValid(t *testing.T) {
 	}
 }
 
-func TestFiltersToQuery(t *testing.T) {
+func TestFilterToQuery(t *testing.T) {
 	t.Parallel()
 
 	prop := identifier.From("prop")
@@ -424,132 +307,78 @@ func TestFiltersToQuery(t *testing.T) {
 	gteTime := float64(1000)
 	lteTime := float64(2000)
 
-	refFilter := &search.RefFilter{Prop: prop, Value: &value, None: false}
-	refNoneFilter := &search.RefFilter{Prop: prop, Value: nil, None: true}
-
 	tests := []struct {
-		Name    string
-		Filters search.Filters
-		Want    string
+		Name   string
+		Filter search.Filter
+		Want   string
 	}{
 		{
-			Name:    "RelValue",
-			Filters: search.Filters{And: nil, Or: nil, Not: nil, Ref: refFilter, Amount: nil, Time: nil},
+			Name:   "RefTo",
+			Filter: makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil),
 			//nolint:lll
 			Want: `{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}}`,
 		},
 		{
-			Name:    "RelNone",
-			Filters: search.Filters{And: nil, Or: nil, Not: nil, Ref: refNoneFilter, Amount: nil, Time: nil},
-
-			Want: `{"bool":{"must_not":[{"nested":{"path":"claims.ref","query":{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
+			Name:   "RefNone",
+			Filter: makeTestFilter(prop, &search.RefFilter{To: nil, Missing: true}, nil, nil),
+			Want:   `{"bool":{"must_not":[{"nested":{"path":"claims.ref","query":{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
 		},
 		{
-			Name: "AmountGteLteUnit",
-			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil, Ref: nil,
-				Amount: &search.AmountFilter{Prop: prop, Unit: &unit, Gte: &gte, Lte: &lte, None: false},
-				Time:   nil,
-			},
+			Name: "RefMultipleTo",
+			Filter: makeTestFilter(prop, &search.RefFilter{
+				To:      []search.ToValue{{ID: value}, {ID: identifier.From("value2")}},
+				Missing: false,
+			}, nil, nil),
+			//nolint:lll
+			Want: `{"bool":{"minimum_should_match":1,"should":[{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}},{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"1eNbijZLjE6RCP9J3v6yz1"}}}]}}}}]}}`,
+		},
+		{
+			Name:   "AmountGteLteUnit",
+			Filter: makeTestFilter(prop, nil, &search.AmountFilter{Unit: &unit, Gte: &gte, Lte: &lte, Missing: false}, nil),
 			//nolint:lll
 			Want: `{"nested":{"path":"claims.amount","query":{"bool":{"must":[{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.amount.range":{"gte":1,"lte":10}}},{"term":{"claims.amount.unit":{"value":"7xgMSp3wauK811A8Fwk3rY"}}}]}}}}`,
 		},
 		{
-			Name: "AmountNone",
-			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil, Ref: nil,
-				Amount: &search.AmountFilter{Prop: prop, Unit: nil, Gte: nil, Lte: nil, None: true},
-				Time:   nil,
-			},
-
-			Want: `{"bool":{"must_not":[{"nested":{"path":"claims.amount","query":{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
+			Name:   "AmountNone",
+			Filter: makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true}, nil),
+			Want:   `{"bool":{"must_not":[{"nested":{"path":"claims.amount","query":{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
 		},
 		{
-			Name: "AmountGteLteNoUnit",
-			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil, Ref: nil,
-				Amount: &search.AmountFilter{Prop: prop, Unit: nil, Gte: &gte, Lte: &lte, None: false},
-				Time:   nil,
-			},
+			Name:   "AmountGteLteNoUnit",
+			Filter: makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false}, nil),
 			//nolint:lll
 			Want: `{"nested":{"path":"claims.amount","query":{"bool":{"must":[{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.amount.range":{"gte":1,"lte":10}}}]}}}}`,
 		},
 		{
-			Name: "TimeGteLte",
-			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil, Ref: nil, Amount: nil,
-				Time: &search.TimeFilter{Prop: prop, Gte: &gteTime, Lte: &lteTime, None: false},
-			},
+			Name:   "TimeGteLte",
+			Filter: makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: &gteTime, Lte: &lteTime, Missing: false}),
 			//nolint:lll
 			Want: `{"nested":{"path":"claims.time","query":{"bool":{"must":[{"term":{"claims.time.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.time.range":{"gte":1000,"lte":2000}}}]}}}}`,
 		},
 		{
-			Name: "TimeNone",
-			Filters: search.Filters{
-				And: nil, Or: nil, Not: nil, Ref: nil, Amount: nil,
-				Time: &search.TimeFilter{Prop: prop, Gte: nil, Lte: nil, None: true},
-			},
-
-			Want: `{"bool":{"must_not":[{"nested":{"path":"claims.time","query":{"term":{"claims.time.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
-		},
-		{
-			Name: "And",
-			Filters: search.Filters{
-				And: []search.Filters{
-					{And: nil, Or: nil, Not: nil, Ref: refFilter, Amount: nil, Time: nil},
-					{
-						And: nil, Or: nil, Not: nil, Ref: nil,
-						Amount: &search.AmountFilter{Prop: prop, Unit: nil, Gte: &gte, Lte: &lte, None: false},
-						Time:   nil,
-					},
-				},
-				Or: nil, Not: nil, Ref: nil, Amount: nil, Time: nil,
-			},
-			//nolint:lll
-			Want: `{"bool":{"must":[{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}},{"nested":{"path":"claims.amount","query":{"bool":{"must":[{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.amount.range":{"gte":1,"lte":10}}}]}}}}]}}`,
-		},
-		{
-			Name: "Or",
-			Filters: search.Filters{
-				And: nil,
-				Or: []search.Filters{
-					{And: nil, Or: nil, Not: nil, Ref: refFilter, Amount: nil, Time: nil},
-					{
-						And: nil, Or: nil, Not: nil, Ref: nil, Amount: nil,
-						Time: &search.TimeFilter{Prop: prop, Gte: &gteTime, Lte: &lteTime, None: false},
-					},
-				},
-				Not: nil, Ref: nil, Amount: nil, Time: nil,
-			},
-			//nolint:lll
-			Want: `{"bool":{"minimum_should_match":1,"should":[{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}},{"nested":{"path":"claims.time","query":{"bool":{"must":[{"term":{"claims.time.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.time.range":{"gte":1000,"lte":2000}}}]}}}}]}}`,
-		},
-		{
-			Name: "Not",
-			Filters: search.Filters{
-				And: nil, Or: nil,
-				Not: &search.Filters{And: nil, Or: nil, Not: nil, Ref: refFilter, Amount: nil, Time: nil},
-				Ref: nil, Amount: nil, Time: nil,
-			},
-			//nolint:lll
-			Want: `{"bool":{"must_not":[{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}}]}}`,
+			Name:   "TimeNone",
+			Filter: makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: nil, Lte: nil, Missing: true}),
+			Want:   `{"bool":{"must_not":[{"nested":{"path":"claims.time","query":{"term":{"claims.time.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
-			q := tt.Filters.ToQuery()
+			q := tt.Filter.ToQuery()
 			assert.Equal(t, tt.Want, testutils.QueryJSON(t, q))
 		})
 	}
 }
 
-func TestFiltersToQueryPanicsOnInvalid(t *testing.T) {
+func TestFilterToQueryPanicsOnInvalid(t *testing.T) {
 	t.Parallel()
 
 	assert.Panics(t, func() {
-		f := search.Filters{And: nil, Or: nil, Not: nil, Ref: nil, Amount: nil, Time: nil}
+		f := makeTestFilter(identifier.From("prop"), nil, nil, nil)
+		f.Ref = nil
+		f.Amount = nil
+		f.Time = nil
 		f.ToQuery()
 	})
 }
@@ -557,88 +386,86 @@ func TestFiltersToQueryPanicsOnInvalid(t *testing.T) {
 func TestSessionValidate(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
-
-	t.Run("NewSessionGetsID", func(t *testing.T) {
+	t.Run("ValidSession", func(t *testing.T) {
 		t.Parallel()
-		s := &search.Session{ID: nil, Version: 0, View: search.ViewFeed, Query: "test", Filters: nil}
-		err := s.Validate(ctx, nil)
+		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
+		s := &search.Session{
+			SessionData: search.SessionData{View: search.ViewFeed, Query: "test", Filters: nil},
+			ID:          identifier.From(base...),
+			Base:        base,
+			Version:     0,
+		}
+		err := s.Validate()
 		require.NoError(t, err)
-		assert.NotNil(t, s.ID)
-		assert.Equal(t, 0, s.Version)
 		assert.Equal(t, search.ViewFeed, s.View)
 	})
 
-	t.Run("NewSessionWithIDFails", func(t *testing.T) {
+	t.Run("BaseTooShort", func(t *testing.T) {
 		t.Parallel()
-		id := identifier.New()
-		s := &search.Session{ID: &id, Version: 0, View: "", Query: "test", Filters: nil}
-		err := s.Validate(ctx, nil)
+		s := &search.Session{
+			SessionData: search.SessionData{View: "", Query: "test", Filters: nil},
+			ID:          identifier.From("short"),
+			Base:        []string{"short"},
+			Version:     0,
+		}
+		err := s.Validate()
 		require.Error(t, err)
-		assert.EqualError(t, err, "ID provided for new document")
+		assert.Contains(t, err.Error(), "base must have at least two elements")
 	})
 
-	t.Run("ExistingSessionVersionIncremented", func(t *testing.T) {
+	t.Run("InvalidSessionID", func(t *testing.T) {
 		t.Parallel()
-		id := identifier.New()
-		existing := &search.Session{ID: &id, Version: 3, View: "", Query: "old", Filters: nil}
-		s := &search.Session{ID: &id, Version: 0, View: "", Query: "updated", Filters: nil}
-		err := s.Validate(ctx, existing)
-		require.NoError(t, err)
-		assert.Equal(t, 4, s.Version)
-	})
-
-	t.Run("ExistingMissingPayloadID", func(t *testing.T) {
-		t.Parallel()
-		id := identifier.New()
-		existing := &search.Session{ID: &id, Version: 0, View: "", Query: "", Filters: nil}
-		s := &search.Session{ID: nil, Version: 0, View: "", Query: "test", Filters: nil}
-		err := s.Validate(ctx, existing)
+		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
+		wrongID := identifier.New()
+		s := &search.Session{
+			SessionData: search.SessionData{View: "", Query: "test", Filters: nil},
+			ID:          wrongID,
+			Base:        base,
+			Version:     0,
+		}
+		err := s.Validate()
 		require.Error(t, err)
-		assert.EqualError(t, err, "ID missing for existing document")
-	})
-
-	t.Run("ExistingMissingExistingID", func(t *testing.T) {
-		t.Parallel()
-		id := identifier.New()
-		existing := &search.Session{ID: nil, Version: 0, View: "", Query: "", Filters: nil}
-		s := &search.Session{ID: &id, Version: 0, View: "", Query: "test", Filters: nil}
-		err := s.Validate(ctx, existing)
-		require.Error(t, err)
-		assert.EqualError(t, err, "ID missing for existing document")
-	})
-
-	t.Run("IDMismatch", func(t *testing.T) {
-		t.Parallel()
-		id1 := identifier.New()
-		id2 := identifier.New()
-		existing := &search.Session{ID: &id1, Version: 0, View: "", Query: "", Filters: nil}
-		s := &search.Session{ID: &id2, Version: 0, View: "", Query: "test", Filters: nil}
-		err := s.Validate(ctx, existing)
-		require.Error(t, err)
-		assert.EqualError(t, err, "payload ID does not match existing ID")
+		assert.Contains(t, err.Error(), "invalid session ID")
 	})
 
 	t.Run("DefaultView", func(t *testing.T) {
 		t.Parallel()
-		s := &search.Session{ID: nil, Version: 0, View: "", Query: "test", Filters: nil}
-		err := s.Validate(ctx, nil)
+		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
+		s := &search.Session{
+			SessionData: search.SessionData{View: "", Query: "test", Filters: nil},
+			ID:          identifier.From(base...),
+			Base:        base,
+			Version:     0,
+		}
+		err := s.Validate()
 		require.NoError(t, err)
 		assert.Equal(t, search.ViewFeed, s.View)
 	})
 
 	t.Run("TableView", func(t *testing.T) {
 		t.Parallel()
-		s := &search.Session{ID: nil, Version: 0, View: search.ViewTable, Query: "test", Filters: nil}
-		err := s.Validate(ctx, nil)
+		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
+		s := &search.Session{
+			SessionData: search.SessionData{View: search.ViewTable, Query: "test", Filters: nil},
+			ID:          identifier.From(base...),
+			Base:        base,
+			Version:     0,
+		}
+		err := s.Validate()
 		require.NoError(t, err)
 		assert.Equal(t, search.ViewTable, s.View)
 	})
 
 	t.Run("InvalidView", func(t *testing.T) {
 		t.Parallel()
-		s := &search.Session{ID: nil, Version: 0, View: "grid", Query: "test", Filters: nil}
-		err := s.Validate(ctx, nil)
+		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
+		s := &search.Session{
+			SessionData: search.SessionData{View: "grid", Query: "test", Filters: nil},
+			ID:          identifier.From(base...),
+			Base:        base,
+			Version:     0,
+		}
+		err := s.Validate()
 		require.Error(t, err)
 		assert.EqualError(t, err, "invalid view")
 	})
@@ -646,49 +473,104 @@ func TestSessionValidate(t *testing.T) {
 	t.Run("InvalidFilters", func(t *testing.T) {
 		t.Parallel()
 		prop := identifier.From("prop")
+		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
+		// Filter with invalid ref (neither to nor none set).
 		s := &search.Session{
-			ID: nil, Version: 0, View: "", Query: "test",
-			Filters: &search.Filters{
-				And: nil, Or: nil, Not: nil,
-				Ref: &search.RefFilter{Prop: prop, Value: nil, None: false}, Amount: nil, Time: nil,
+			SessionData: search.SessionData{
+				View: "", Query: "test",
+				Filters: []search.Filter{
+					makeTestFilter(prop, &search.RefFilter{To: nil, Missing: false}, nil, nil),
+				},
 			},
+			ID:      identifier.From(base...),
+			Base:    base,
+			Version: 0,
 		}
-		err := s.Validate(ctx, nil)
+		err := s.Validate()
 		require.Error(t, err)
-		assert.EqualError(t, err, "value or none has to be set")
+		assert.EqualError(t, err, "to or missing has to be set")
 	})
 
 	t.Run("ValidFilters", func(t *testing.T) {
 		t.Parallel()
 		prop := identifier.From("prop")
 		value := identifier.From("value")
+		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		s := &search.Session{
-			ID: nil, Version: 0, View: "", Query: "test",
-			Filters: &search.Filters{
-				And: nil, Or: nil, Not: nil,
-				Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
+			SessionData: search.SessionData{
+				View: "", Query: "test",
+				Filters: []search.Filter{
+					makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil),
+				},
 			},
+			ID:      identifier.From(base...),
+			Base:    base,
+			Version: 0,
 		}
-		err := s.Validate(ctx, nil)
+		err := s.Validate()
 		require.NoError(t, err)
 	})
 
 	t.Run("NilFilters", func(t *testing.T) {
 		t.Parallel()
-		s := &search.Session{ID: nil, Version: 0, View: "", Query: "test", Filters: nil}
-		err := s.Validate(ctx, nil)
+		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
+		s := &search.Session{
+			SessionData: search.SessionData{View: "", Query: "test", Filters: nil},
+			ID:          identifier.From(base...),
+			Base:        base,
+			Version:     0,
+		}
+		err := s.Validate()
 		require.NoError(t, err)
 	})
 }
 
-func TestSessionRef(t *testing.T) {
+func TestSessionDataValidate(t *testing.T) {
 	t.Parallel()
 
-	id := identifier.From("prop")
-	s := &search.Session{ID: &id, Version: 5, View: "", Query: "", Filters: nil}
-	ref := s.Ref()
-	assert.Equal(t, id, ref.ID)
-	assert.Equal(t, 5, ref.Version)
+	t.Run("DefaultView", func(t *testing.T) {
+		t.Parallel()
+		data := search.SessionData{View: "", Query: "test", Filters: nil}
+		err := data.Validate(false)
+		require.NoError(t, err)
+		assert.Equal(t, search.ViewFeed, data.View)
+	})
+
+	t.Run("InvalidView", func(t *testing.T) {
+		t.Parallel()
+		data := search.SessionData{View: "grid", Query: "test", Filters: nil}
+		err := data.Validate(false)
+		require.Error(t, err)
+		assert.EqualError(t, err, "invalid view")
+	})
+
+	t.Run("ValidFilters", func(t *testing.T) {
+		t.Parallel()
+		prop := identifier.From("prop")
+		value := identifier.From("value")
+		data := search.SessionData{
+			View: "", Query: "test",
+			Filters: []search.Filter{
+				makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil),
+			},
+		}
+		err := data.Validate(false)
+		require.NoError(t, err)
+	})
+
+	t.Run("InvalidFilters", func(t *testing.T) {
+		t.Parallel()
+		prop := identifier.From("prop")
+		data := search.SessionData{
+			View: "", Query: "test",
+			Filters: []search.Filter{
+				makeTestFilter(prop, &search.RefFilter{To: nil, Missing: false}, nil, nil),
+			},
+		}
+		err := data.Validate(false)
+		require.Error(t, err)
+		assert.EqualError(t, err, "to or missing has to be set")
+	})
 }
 
 func TestSessionToQuery(t *testing.T) {
@@ -698,28 +580,27 @@ func TestSessionToQuery(t *testing.T) {
 	value := identifier.From("value")
 
 	tests := []struct {
-		Name    string
-		Session *search.Session
-		Want    string
+		Name        string
+		SessionData search.SessionData
+		Want        string
 	}{
 		{
-			Name:    "QueryOnly",
-			Session: &search.Session{ID: nil, Version: 0, View: "", Query: "hello", Filters: nil},
+			Name:        "QueryOnly",
+			SessionData: search.SessionData{View: "", Query: "hello", Filters: nil},
 			//nolint:lll
 			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.value"],"query":"hello"}}}},{"nested":{"path":"claims.link","query":{"simple_query_string":{"default_operator":"or","fields":["claims.link.iri"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.en"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.pt"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.sl"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.und"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.en"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.pt"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.sl"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.und"],"query":"hello"}}}},{"nested":{"path":"claims.amount","query":{"simple_query_string":{"default_operator":"or","fields":["claims.amount.propDisplay.en^0.2","claims.amount.propDisplay.pt^0.2","claims.amount.propDisplay.sl^0.2","claims.amount.propDisplay.und^0.2","claims.amount.propNaming.en^0.2","claims.amount.propNaming.pt^0.2","claims.amount.propNaming.sl^0.2","claims.amount.propNaming.und^0.2","claims.amount.fromDisplay^0.2","claims.amount.toDisplay^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.has","query":{"simple_query_string":{"default_operator":"or","fields":["claims.has.propDisplay.en^0.2","claims.has.propDisplay.pt^0.2","claims.has.propDisplay.sl^0.2","claims.has.propDisplay.und^0.2","claims.has.propNaming.en^0.2","claims.has.propNaming.pt^0.2","claims.has.propNaming.sl^0.2","claims.has.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.propDisplay.en^0.2","claims.html.propDisplay.pt^0.2","claims.html.propDisplay.sl^0.2","claims.html.propDisplay.und^0.2","claims.html.propNaming.en^0.2","claims.html.propNaming.pt^0.2","claims.html.propNaming.sl^0.2","claims.html.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.propDisplay.en^0.2","claims.id.propDisplay.pt^0.2","claims.id.propDisplay.sl^0.2","claims.id.propDisplay.und^0.2","claims.id.propNaming.en^0.2","claims.id.propNaming.pt^0.2","claims.id.propNaming.sl^0.2","claims.id.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.link","query":{"simple_query_string":{"default_operator":"or","fields":["claims.link.propDisplay.en^0.2","claims.link.propDisplay.pt^0.2","claims.link.propDisplay.sl^0.2","claims.link.propDisplay.und^0.2","claims.link.propNaming.en^0.2","claims.link.propNaming.pt^0.2","claims.link.propNaming.sl^0.2","claims.link.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.none","query":{"simple_query_string":{"default_operator":"or","fields":["claims.none.propDisplay.en^0.2","claims.none.propDisplay.pt^0.2","claims.none.propDisplay.sl^0.2","claims.none.propDisplay.und^0.2","claims.none.propNaming.en^0.2","claims.none.propNaming.pt^0.2","claims.none.propNaming.sl^0.2","claims.none.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.ref","query":{"simple_query_string":{"default_operator":"or","fields":["claims.ref.propDisplay.en^0.2","claims.ref.propDisplay.pt^0.2","claims.ref.propDisplay.sl^0.2","claims.ref.propDisplay.und^0.2","claims.ref.propNaming.en^0.2","claims.ref.propNaming.pt^0.2","claims.ref.propNaming.sl^0.2","claims.ref.propNaming.und^0.2","claims.ref.toDisplay.en^0.2","claims.ref.toDisplay.pt^0.2","claims.ref.toDisplay.sl^0.2","claims.ref.toDisplay.und^0.2","claims.ref.toNaming.en^0.2","claims.ref.toNaming.pt^0.2","claims.ref.toNaming.sl^0.2","claims.ref.toNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.propDisplay.en^0.2","claims.string.propDisplay.pt^0.2","claims.string.propDisplay.sl^0.2","claims.string.propDisplay.und^0.2","claims.string.propNaming.en^0.2","claims.string.propNaming.pt^0.2","claims.string.propNaming.sl^0.2","claims.string.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.time","query":{"simple_query_string":{"default_operator":"or","fields":["claims.time.propDisplay.en^0.2","claims.time.propDisplay.pt^0.2","claims.time.propDisplay.sl^0.2","claims.time.propDisplay.und^0.2","claims.time.propNaming.en^0.2","claims.time.propNaming.pt^0.2","claims.time.propNaming.sl^0.2","claims.time.propNaming.und^0.2","claims.time.fromDisplay^0.2","claims.time.toDisplay^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.unknown","query":{"simple_query_string":{"default_operator":"or","fields":["claims.unknown.propDisplay.en^0.2","claims.unknown.propDisplay.pt^0.2","claims.unknown.propDisplay.sl^0.2","claims.unknown.propDisplay.und^0.2","claims.unknown.propNaming.en^0.2","claims.unknown.propNaming.pt^0.2","claims.unknown.propNaming.sl^0.2","claims.unknown.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.has","query":{"nested":{"path":"claims.has.ref","query":{"simple_query_string":{"default_operator":"or","fields":["claims.has.ref.propDisplay.en^0.2","claims.has.ref.propDisplay.pt^0.2","claims.has.ref.propDisplay.sl^0.2","claims.has.ref.propDisplay.und^0.2","claims.has.ref.propNaming.en^0.2","claims.has.ref.propNaming.pt^0.2","claims.has.ref.propNaming.sl^0.2","claims.has.ref.propNaming.und^0.2","claims.has.ref.toDisplay.en^0.2","claims.has.ref.toDisplay.pt^0.2","claims.has.ref.toDisplay.sl^0.2","claims.has.ref.toDisplay.und^0.2","claims.has.ref.toNaming.en^0.2","claims.has.ref.toNaming.pt^0.2","claims.has.ref.toNaming.sl^0.2","claims.has.ref.toNaming.und^0.2"],"query":"hello"}}}}}},{"nested":{"path":"claims.ref","query":{"nested":{"path":"claims.ref.ref","query":{"simple_query_string":{"default_operator":"or","fields":["claims.ref.ref.propDisplay.en^0.2","claims.ref.ref.propDisplay.pt^0.2","claims.ref.ref.propDisplay.sl^0.2","claims.ref.ref.propDisplay.und^0.2","claims.ref.ref.propNaming.en^0.2","claims.ref.ref.propNaming.pt^0.2","claims.ref.ref.propNaming.sl^0.2","claims.ref.ref.propNaming.und^0.2","claims.ref.ref.toDisplay.en^0.2","claims.ref.ref.toDisplay.pt^0.2","claims.ref.ref.toDisplay.sl^0.2","claims.ref.ref.toDisplay.und^0.2","claims.ref.ref.toNaming.en^0.2","claims.ref.ref.toNaming.pt^0.2","claims.ref.ref.toNaming.sl^0.2","claims.ref.ref.toNaming.und^0.2"],"query":"hello"}}}}}}]}}]}}`,
 		},
 		{
-			Name:    "Empty",
-			Session: &search.Session{ID: nil, Version: 0, View: "", Query: "", Filters: nil},
-			Want:    `{"bool":{}}`,
+			Name:        "Empty",
+			SessionData: search.SessionData{View: "", Query: "", Filters: nil},
+			Want:        `{"bool":{}}`,
 		},
 		{
 			Name: "QueryAndFilter",
-			Session: &search.Session{
-				ID: nil, Version: 0, View: "", Query: "hello",
-				Filters: &search.Filters{
-					And: nil, Or: nil, Not: nil,
-					Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
+			SessionData: search.SessionData{
+				View: "", Query: "hello",
+				Filters: []search.Filter{
+					makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil),
 				},
 			},
 			//nolint:lll
@@ -730,7 +611,7 @@ func TestSessionToQuery(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
-			q := tt.Session.ToQuery()
+			q := tt.SessionData.ToQuery()
 			assert.Equal(t, tt.Want, testutils.QueryJSON(t, q))
 		})
 	}
@@ -741,15 +622,21 @@ func TestCreateSession(t *testing.T) {
 
 	ctx := context.Background()
 
-	s := &search.Session{ID: nil, Version: 0, View: "", Query: "test search", Filters: nil}
+	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
+	s := &search.Session{
+		SessionData: search.SessionData{View: "", Query: "test search", Filters: nil},
+		ID:          identifier.From(base...),
+		Base:        base,
+		Version:     0,
+	}
 	errE := search.CreateSession(ctx, s)
-	require.NoError(t, errE)
-	assert.NotNil(t, s.ID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.NotEqual(t, identifier.Identifier{}, s.ID)
 	assert.Equal(t, 0, s.Version)
 
 	// Verify the session was stored.
-	retrieved, errE := search.GetSession(ctx, *s.ID)
-	require.NoError(t, errE)
+	retrieved, errE := search.GetSession(ctx, s.ID)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, s.Query, retrieved.Query)
 }
 
@@ -757,9 +644,14 @@ func TestCreateSessionValidationError(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	id := identifier.New()
 
-	s := &search.Session{ID: &id, Version: 0, View: "", Query: "test", Filters: nil}
+	// Base with only one element triggers validation error.
+	s := &search.Session{
+		SessionData: search.SessionData{View: "", Query: "test", Filters: nil},
+		ID:          identifier.From("bad"),
+		Base:        []string{"bad"},
+		Version:     0,
+	}
 	errE := search.CreateSession(ctx, s)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "validation failed")
@@ -771,46 +663,48 @@ func TestUpdateSession(t *testing.T) {
 	ctx := context.Background()
 
 	// First create a session.
-	s := &search.Session{ID: nil, Version: 0, View: "", Query: "original", Filters: nil}
+	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
+	s := &search.Session{
+		SessionData: search.SessionData{View: "", Query: "original", Filters: nil},
+		ID:          identifier.From(base...),
+		Base:        base,
+		Version:     0,
+	}
 	errE := search.CreateSession(ctx, s)
-	require.NoError(t, errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
-	id := *s.ID
+	id := s.ID
 
 	// Update it.
-	updated := &search.Session{ID: &id, Version: 0, View: search.ViewTable, Query: "updated", Filters: nil}
+	updated := &search.Session{
+		SessionData: search.SessionData{View: search.ViewTable, Query: "updated", Filters: nil},
+		ID:          id,
+		Base:        base,
+		Version:     1,
+	}
 	errE = search.UpdateSession(ctx, updated)
-	require.NoError(t, errE)
-	assert.Equal(t, 1, updated.Version)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Verify update.
 	retrieved, errE := search.GetSession(ctx, id)
-	require.NoError(t, errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, "updated", retrieved.Query)
 	assert.Equal(t, search.ViewTable, retrieved.View)
 }
 
-func TestUpdateSessionMissingID(t *testing.T) {
+func TestUpdateSessionMissingBase(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
 
-	s := &search.Session{ID: nil, Version: 0, View: "", Query: "test", Filters: nil}
+	// Session with no base at all fails validation.
+	s := &search.Session{ //nolint:exhaustruct
+		SessionData: search.SessionData{View: "", Query: "test", Filters: nil},
+		Version:     0,
+	}
 	errE := search.UpdateSession(ctx, s)
 	require.Error(t, errE)
-	assert.EqualError(t, errE, "ID is missing: validation failed")
-}
-
-func TestUpdateSessionNotFound(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.Background()
-	id := identifier.New()
-
-	s := &search.Session{ID: &id, Version: 0, View: "", Query: "test", Filters: nil}
-	errE := search.UpdateSession(ctx, s)
-	require.Error(t, errE)
-	assert.EqualError(t, errE, "not found")
+	assert.EqualError(t, errE, "validation failed")
 }
 
 func TestUpdateSessionValidationError(t *testing.T) {
@@ -818,12 +712,23 @@ func TestUpdateSessionValidationError(t *testing.T) {
 
 	ctx := context.Background()
 
-	s := &search.Session{ID: nil, Version: 0, View: "", Query: "original", Filters: nil}
+	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
+	s := &search.Session{
+		SessionData: search.SessionData{View: "", Query: "original", Filters: nil},
+		ID:          identifier.From(base...),
+		Base:        base,
+		Version:     0,
+	}
 	errE := search.CreateSession(ctx, s)
-	require.NoError(t, errE)
-	id := *s.ID
+	require.NoError(t, errE, "% -+#.1v", errE)
+	id := s.ID
 
-	updated := &search.Session{ID: &id, Version: 0, View: "invalid", Query: "updated", Filters: nil}
+	updated := &search.Session{
+		SessionData: search.SessionData{View: "invalid", Query: "updated", Filters: nil},
+		ID:          id,
+		Base:        base,
+		Version:     1,
+	}
 	errE = search.UpdateSession(ctx, updated)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "validation failed")
@@ -834,12 +739,18 @@ func TestGetSession(t *testing.T) {
 
 	ctx := context.Background()
 
-	s := &search.Session{ID: nil, Version: 0, View: "", Query: "test", Filters: nil}
+	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
+	s := &search.Session{
+		SessionData: search.SessionData{View: "", Query: "test", Filters: nil},
+		ID:          identifier.From(base...),
+		Base:        base,
+		Version:     0,
+	}
 	errE := search.CreateSession(ctx, s)
-	require.NoError(t, errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
-	retrieved, errE := search.GetSession(ctx, *s.ID)
-	require.NoError(t, errE)
+	retrieved, errE := search.GetSession(ctx, s.ID)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, "test", retrieved.Query)
 
 	notFoundID := identifier.New()
@@ -853,12 +764,18 @@ func TestGetSessionFromID(t *testing.T) {
 
 	ctx := context.Background()
 
-	s := &search.Session{ID: nil, Version: 0, View: "", Query: "test", Filters: nil}
+	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
+	s := &search.Session{
+		SessionData: search.SessionData{View: "", Query: "test", Filters: nil},
+		ID:          identifier.From(base...),
+		Base:        base,
+		Version:     0,
+	}
 	errE := search.CreateSession(ctx, s)
-	require.NoError(t, errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	retrieved, errE := search.GetSessionFromID(ctx, s.ID.String())
-	require.NoError(t, errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, "test", retrieved.Query)
 
 	// Invalid ID string.
@@ -880,29 +797,42 @@ func TestCreateAndUpdateSessionRoundTrip(t *testing.T) {
 	prop := identifier.From("prop")
 	value := identifier.From("value")
 
-	s := &search.Session{ID: nil, Version: 0, View: search.ViewFeed, Query: "initial", Filters: nil}
+	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
+	s := &search.Session{
+		SessionData: search.SessionData{View: search.ViewFeed, Query: "initial", Filters: nil},
+		ID:          identifier.From(base...),
+		Base:        base,
+		Version:     0,
+	}
 	errE := search.CreateSession(ctx, s)
-	require.NoError(t, errE)
-	id := *s.ID
+	require.NoError(t, errE, "% -+#.1v", errE)
+	id := s.ID
 
 	s2 := &search.Session{
-		ID: &id, Version: 0, View: search.ViewTable, Query: "updated",
-		Filters: &search.Filters{
-			And: nil, Or: nil, Not: nil,
-			Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
+		SessionData: search.SessionData{
+			View: search.ViewTable, Query: "updated",
+			Filters: []search.Filter{
+				makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil),
+			},
 		},
+		ID:      id,
+		Base:    base,
+		Version: 1,
 	}
 	errE = search.UpdateSession(ctx, s2)
-	require.NoError(t, errE)
-	assert.Equal(t, 1, s2.Version)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
-	s3 := &search.Session{ID: &id, Version: 0, View: "", Query: "updated again", Filters: nil}
+	s3 := &search.Session{
+		SessionData: search.SessionData{View: "", Query: "updated again", Filters: nil},
+		ID:          id,
+		Base:        base,
+		Version:     2,
+	}
 	errE = search.UpdateSession(ctx, s3)
-	require.NoError(t, errE)
-	assert.Equal(t, 2, s3.Version)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	final, errE := search.GetSession(ctx, id)
-	require.NoError(t, errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, "updated again", final.Query)
 	assert.Equal(t, 2, final.Version)
 }
@@ -927,12 +857,43 @@ func TestErrorVariables(t *testing.T) {
 	assert.EqualError(t, search.ErrValidationFailed, "validation failed")
 }
 
+func TestGetFilterByID(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.From("prop")
+	value := identifier.From("value")
+
+	f1 := makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil)
+	f2 := makeTestFilter(prop, &search.RefFilter{To: nil, Missing: true}, nil, nil)
+	session := &search.Session{ //nolint:exhaustruct
+		SessionData: search.SessionData{
+			View:    "",
+			Query:   "",
+			Filters: []search.Filter{f1, f2},
+		},
+	}
+
+	// Found.
+	found, errE := session.GetFilterByID(*f1.ID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, f1.ID, found.ID)
+
+	found, errE = session.GetFilterByID(*f2.ID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, f2.ID, found.ID)
+
+	// Not found.
+	_, errE = session.GetFilterByID(identifier.New())
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "not found")
+}
+
 func TestJSONSerialization(t *testing.T) {
 	t.Parallel()
 
 	t.Run("FilterResult", func(t *testing.T) {
 		t.Parallel()
-		fr := search.FilterResult{ID: "test-id", Count: 42, Type: "ref", Unit: ""}
+		fr := search.FilterResult{PropID: "test-id", Type: "ref", Unit: "", FilterID: "", Count: 42}
 		data, errE := x.MarshalWithoutEscapeHTML(fr)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		var decoded search.FilterResult
@@ -983,15 +944,18 @@ func TestJSONSerialization(t *testing.T) {
 
 	t.Run("Session", func(t *testing.T) {
 		t.Parallel()
-		id := identifier.From("prop")
 		prop := identifier.From("prop")
 		value := identifier.From("value")
+		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
+		id := identifier.From(base...)
 		s := search.Session{
-			ID: &id, Version: 3, View: search.ViewTable, Query: "test query",
-			Filters: &search.Filters{
-				And: nil, Or: nil, Not: nil,
-				Ref: &search.RefFilter{Prop: prop, Value: &value, None: false}, Amount: nil, Time: nil,
+			SessionData: search.SessionData{
+				View: search.ViewTable, Query: "test query",
+				Filters: []search.Filter{
+					makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil),
+				},
 			},
+			ID: id, Base: base, Version: 3,
 		}
 		data, errE := x.MarshalWithoutEscapeHTML(s)
 		require.NoError(t, errE, "% -+#.1v", errE)
@@ -999,18 +963,6 @@ func TestJSONSerialization(t *testing.T) {
 		errE = x.UnmarshalWithoutUnknownFields(data, &decoded)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		assert.Equal(t, s.Query, decoded.Query)
-		assert.Equal(t, *s.ID, *decoded.ID)
-	})
-
-	t.Run("SessionRef", func(t *testing.T) {
-		t.Parallel()
-		id := identifier.From("prop")
-		ref := search.SessionRef{ID: id, Version: 7}
-		data, errE := x.MarshalWithoutEscapeHTML(ref)
-		require.NoError(t, errE, "% -+#.1v", errE)
-		var decoded search.SessionRef
-		errE = x.UnmarshalWithoutUnknownFields(data, &decoded)
-		require.NoError(t, errE, "% -+#.1v", errE)
-		assert.Equal(t, ref, decoded)
+		assert.Equal(t, s.ID, decoded.ID)
 	})
 }

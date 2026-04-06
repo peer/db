@@ -139,19 +139,16 @@ func TestFiltersGetIntegration(t *testing.T) {
 	})
 	refreshIndex(t, ctx, esClient, index)
 
-	session := &search.Session{
-		ID:      nil,
-		Version: 0,
+	session := createSession(t, ctx, search.SessionData{
 		View:    "",
 		Query:   "",
 		Filters: nil,
-	}
-	createSession(t, ctx, session)
+	})
 
 	filterResults, metadata, errE := search.FiltersGet(ctx, getSearchService, session)
-	require.NoError(t, errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// We should have 3 filters: rel, amount, and time.
+	// We should have 3 filters: ref, amount, and time.
 	assert.Len(t, filterResults, 3)
 	assert.Equal(t, "3", metadata["total"])
 
@@ -173,7 +170,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 	// Verify IDs match expected props.
 	ids := map[string]string{}
 	for _, fr := range filterResults {
-		ids[fr.Type] = fr.ID
+		ids[fr.Type] = fr.PropID
 	}
 	assert.Equal(t, refProp.String(), ids["ref"])
 	assert.Equal(t, amountProp.String(), ids["amount"])
@@ -252,21 +249,18 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 	})
 	refreshIndex(t, ctx, esClient, index)
 
-	session := &search.Session{
-		ID:      nil,
-		Version: 0,
+	session := createSession(t, ctx, search.SessionData{
 		View:    "",
 		Query:   "searchable",
 		Filters: nil,
-	}
-	createSession(t, ctx, session)
+	})
 
 	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session)
-	require.NoError(t, errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// With query "searchable", only 1 doc matches, so rel filter should have count 1.
+	// With query "searchable", only 1 doc matches, so ref filter should have count 1.
 	for _, fr := range filterResults {
-		if fr.Type == "ref" && fr.ID == refProp.String() {
+		if fr.Type == "ref" && fr.PropID == refProp.String() {
 			assert.Equal(t, int64(1), fr.Count)
 		}
 	}
@@ -313,24 +307,22 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 	})
 	refreshIndex(t, ctx, esClient, index)
 
-	session := &search.Session{
-		ID:      nil,
-		Version: 0,
+	session := createSession(t, ctx, search.SessionData{
 		View:    "",
 		Query:   "",
 		Filters: nil,
-	}
-	createSession(t, ctx, session)
+	})
 
 	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session)
-	require.NoError(t, errE)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have exactly one amount filter with empty unit and count 1.
 	assert.Len(t, filterResults, 1)
 	assert.Equal(t, search.FilterResult{
-		ID:    amountProp.String(),
-		Count: int64(1),
-		Type:  "amount",
-		Unit:  "",
+		PropID:   amountProp.String(),
+		Type:     "amount",
+		Unit:     "",
+		FilterID: "",
+		Count:    int64(1),
 	}, filterResults[0])
 }

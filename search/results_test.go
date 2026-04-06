@@ -4,7 +4,7 @@ import (
 	"sort"
 	"testing"
 
-	essearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
+	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -89,17 +89,14 @@ func TestResultsGetIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	// Empty query returns all documents.
-	session := &search.Session{
-		ID:      nil,
-		Version: 0,
+	session := createSession(t, ctx, search.SessionData{
 		View:    "",
 		Query:   "",
 		Filters: nil,
-	}
-	createSession(t, ctx, session)
+	})
 
-	results, metadata, errE := search.ResultsGet(ctx, getSearchService, session)
-	require.NoError(t, errE)
+	results, metadata, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Len(t, results, 3)
 	assert.Equal(t, int64(3), metadata["total"])
 
@@ -114,17 +111,14 @@ func TestResultsGetIntegration(t *testing.T) {
 	assert.Equal(t, expectedIDs, gotIDs)
 
 	// Query "hello" returns 2 documents.
-	helloSession := &search.Session{
-		ID:      nil,
-		Version: 0,
+	helloSession := createSession(t, ctx, search.SessionData{
 		View:    "",
 		Query:   "hello",
 		Filters: nil,
-	}
-	createSession(t, ctx, helloSession)
+	})
 
-	results, metadata, errE = search.ResultsGet(ctx, getSearchService, helloSession)
-	require.NoError(t, errE)
+	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &helloSession.SessionData)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Len(t, results, 2)
 	assert.Equal(t, int64(2), metadata["total"])
 
@@ -139,32 +133,26 @@ func TestResultsGetIntegration(t *testing.T) {
 	assert.Equal(t, expectedIDs, gotIDs)
 
 	// Query "goodbye" returns 1 document.
-	goodbyeSession := &search.Session{
-		ID:      nil,
-		Version: 0,
+	goodbyeSession := createSession(t, ctx, search.SessionData{
 		View:    "",
 		Query:   "goodbye",
 		Filters: nil,
-	}
-	createSession(t, ctx, goodbyeSession)
+	})
 
-	results, metadata, errE = search.ResultsGet(ctx, getSearchService, goodbyeSession)
-	require.NoError(t, errE)
+	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &goodbyeSession.SessionData)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc2ID.String()}}, results)
 	assert.Equal(t, int64(1), metadata["total"])
 
 	// Query "nonexistent" returns 0 documents.
-	noResultsSession := &search.Session{
-		ID:      nil,
-		Version: 0,
+	noResultsSession := createSession(t, ctx, search.SessionData{
 		View:    "",
 		Query:   "nonexistent",
 		Filters: nil,
-	}
-	createSession(t, ctx, noResultsSession)
+	})
 
-	results, metadata, errE = search.ResultsGet(ctx, getSearchService, noResultsSession)
-	require.NoError(t, errE)
+	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &noResultsSession.SessionData)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{}, results)
 	assert.Equal(t, int64(0), metadata["total"])
 }
@@ -222,54 +210,38 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 	})
 	refreshIndex(t, ctx, esClient, index)
 
-	// Filter by relation value.
-	session := &search.Session{
-		ID:      nil,
-		Version: 0,
-		View:    "",
-		Query:   "",
-		Filters: &search.Filters{
-			And: nil,
-			Or:  nil,
-			Not: nil,
+	// Filter by reference value.
+	session := createSession(t, ctx, search.SessionData{
+		View:  "",
+		Query: "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{refProp},
 			Ref: &search.RefFilter{
-				Prop:  refProp,
-				Value: &refTarget,
-				None:  false,
+				To:      []search.ToValue{{ID: refTarget}},
+				Missing: false,
 			},
-			Amount: nil,
-			Time:   nil,
-		},
-	}
-	createSession(t, ctx, session)
+		}},
+	})
 
-	results, _, errE := search.ResultsGet(ctx, getSearchService, session)
-	require.NoError(t, errE)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc1ID.String()}}, results)
 
-	// Filter by None relation.
-	noneSession := &search.Session{
-		ID:      nil,
-		Version: 0,
-		View:    "",
-		Query:   "",
-		Filters: &search.Filters{
-			And: nil,
-			Or:  nil,
-			Not: nil,
+	// Filter by None reference.
+	noneSession := createSession(t, ctx, search.SessionData{
+		View:  "",
+		Query: "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{refProp},
 			Ref: &search.RefFilter{
-				Prop:  refProp,
-				Value: nil,
-				None:  true,
+				To:      nil,
+				Missing: true,
 			},
-			Amount: nil,
-			Time:   nil,
-		},
-	}
-	createSession(t, ctx, noneSession)
+		}},
+	})
 
-	results, _, errE = search.ResultsGet(ctx, getSearchService, noneSession)
-	require.NoError(t, errE)
+	results, _, errE = search.ResultsGet(ctx, getSearchService, &noneSession.SessionData)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc2ID.String()}}, results)
 }
 
@@ -368,86 +340,62 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 	// Filter: amount in [10, 100] - matches doc2 (15) but not doc1 (5).
 	gte := 10.0
 	lteBig := 100.0
-	session := &search.Session{
-		ID:      nil,
-		Version: 0,
-		View:    "",
-		Query:   "",
-		Filters: &search.Filters{
-			And: nil,
-			Or:  nil,
-			Not: nil,
-			Ref: nil,
+	session := createSession(t, ctx, search.SessionData{
+		View:  "",
+		Query: "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{
-				Prop: amountProp,
-				Unit: &unitID,
-				Gte:  &gte,
-				Lte:  &lteBig,
-				None: false,
+				Unit:    &unitID,
+				Gte:     &gte,
+				Lte:     &lteBig,
+				Missing: false,
 			},
-			Time: nil,
-		},
-	}
-	createSession(t, ctx, session)
+		}},
+	})
 
-	results, _, errE := search.ResultsGet(ctx, getSearchService, session)
-	require.NoError(t, errE)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc2ID.String()}}, results)
 
 	// Filter: amount in [0, 10] - matches doc1 (5) but not doc2 (15).
 	gteSmall := 0.0
 	lte := 10.0
-	session2 := &search.Session{
-		ID:      nil,
-		Version: 0,
-		View:    "",
-		Query:   "",
-		Filters: &search.Filters{
-			And: nil,
-			Or:  nil,
-			Not: nil,
-			Ref: nil,
+	session2 := createSession(t, ctx, search.SessionData{
+		View:  "",
+		Query: "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{
-				Prop: amountProp,
-				Unit: &unitID,
-				Gte:  &gteSmall,
-				Lte:  &lte,
-				None: false,
+				Unit:    &unitID,
+				Gte:     &gteSmall,
+				Lte:     &lte,
+				Missing: false,
 			},
-			Time: nil,
-		},
-	}
-	createSession(t, ctx, session2)
+		}},
+	})
 
-	results, _, errE = search.ResultsGet(ctx, getSearchService, session2)
-	require.NoError(t, errE)
+	results, _, errE = search.ResultsGet(ctx, getSearchService, &session2.SessionData)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc1ID.String()}}, results)
 
 	// Filter: amount none.
-	session3 := &search.Session{
-		ID:      nil,
-		Version: 0,
-		View:    "",
-		Query:   "",
-		Filters: &search.Filters{
-			And: nil,
-			Or:  nil,
-			Not: nil,
-			Ref: nil,
+	session3 := createSession(t, ctx, search.SessionData{
+		View:  "",
+		Query: "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{
-				Prop: amountProp,
-				Unit: nil,
-				Gte:  nil,
-				Lte:  nil,
-				None: true,
+				Unit:    nil,
+				Gte:     nil,
+				Lte:     nil,
+				Missing: true,
 			},
-			Time: nil,
-		},
-	}
-	createSession(t, ctx, session3)
+		}},
+	})
 
-	results, _, errE = search.ResultsGet(ctx, getSearchService, session3)
-	require.NoError(t, errE)
+	results, _, errE = search.ResultsGet(ctx, getSearchService, &session3.SessionData)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc3ID.String()}}, results)
 }
 
@@ -543,59 +491,43 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 	// Filter: time in [1500, 10000] - matches doc2 (2000) but not doc1 (1000).
 	gte := float64(1500)
 	lteBig := float64(10000)
-	session := &search.Session{
-		ID:      nil,
-		Version: 0,
-		View:    "",
-		Query:   "",
-		Filters: &search.Filters{
-			And:    nil,
-			Or:     nil,
-			Not:    nil,
-			Ref:    nil,
-			Amount: nil,
+	session := createSession(t, ctx, search.SessionData{
+		View:  "",
+		Query: "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{timeProp},
 			Time: &search.TimeFilter{
-				Prop: timeProp,
-				Gte:  &gte,
-				Lte:  &lteBig,
-				None: false,
+				Gte:     &gte,
+				Lte:     &lteBig,
+				Missing: false,
 			},
-		},
-	}
-	createSession(t, ctx, session)
+		}},
+	})
 
-	results, _, errE := search.ResultsGet(ctx, getSearchService, session)
-	require.NoError(t, errE)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc2ID.String()}}, results)
 
 	// Filter: time none.
-	session2 := &search.Session{
-		ID:      nil,
-		Version: 0,
-		View:    "",
-		Query:   "",
-		Filters: &search.Filters{
-			And:    nil,
-			Or:     nil,
-			Not:    nil,
-			Ref:    nil,
-			Amount: nil,
+	session2 := createSession(t, ctx, search.SessionData{
+		View:  "",
+		Query: "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{timeProp},
 			Time: &search.TimeFilter{
-				Prop: timeProp,
-				Gte:  nil,
-				Lte:  nil,
-				None: true,
+				Gte:     nil,
+				Lte:     nil,
+				Missing: true,
 			},
-		},
-	}
-	createSession(t, ctx, session2)
+		}},
+	})
 
-	results, _, errE = search.ResultsGet(ctx, getSearchService, session2)
-	require.NoError(t, errE)
+	results, _, errE = search.ResultsGet(ctx, getSearchService, &session2.SessionData)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc3ID.String()}}, results)
 }
 
-func TestResultsGetWithBoolFiltersIntegration(t *testing.T) {
+func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
@@ -699,139 +631,31 @@ func TestResultsGetWithBoolFiltersIntegration(t *testing.T) {
 	})
 	refreshIndex(t, ctx, esClient, index)
 
-	// AND: both relations.
-	andSession := &search.Session{
-		ID:      nil,
-		Version: 0,
-		View:    "",
-		Query:   "",
-		Filters: &search.Filters{
-			And: []search.Filters{
-				{
-					And: nil,
-					Or:  nil,
-					Not: nil,
-					Ref: &search.RefFilter{
-						Prop:  refProp1,
-						Value: &refTarget1,
-						None:  false,
-					},
-					Amount: nil,
-					Time:   nil,
-				},
-				{
-					And: nil,
-					Or:  nil,
-					Not: nil,
-					Ref: &search.RefFilter{
-						Prop:  refProp2,
-						Value: &refTarget2,
-						None:  false,
-					},
-					Amount: nil,
-					Time:   nil,
-				},
-			},
-			Or:     nil,
-			Not:    nil,
-			Ref:    nil,
-			Amount: nil,
-			Time:   nil,
-		},
-	}
-	createSession(t, ctx, andSession)
-
-	results, _, errE := search.ResultsGet(ctx, getSearchService, andSession)
-	require.NoError(t, errE)
-	assert.Equal(t, []search.Result{{ID: doc3ID.String()}}, results)
-
-	// OR: either relation.
-	orSession := &search.Session{
-		ID:      nil,
-		Version: 0,
-		View:    "",
-		Query:   "",
-		Filters: &search.Filters{
-			And: nil,
-			Or: []search.Filters{
-				{
-					And: nil,
-					Or:  nil,
-					Not: nil,
-					Ref: &search.RefFilter{
-						Prop:  refProp1,
-						Value: &refTarget1,
-						None:  false,
-					},
-					Amount: nil,
-					Time:   nil,
-				},
-				{
-					And: nil,
-					Or:  nil,
-					Not: nil,
-					Ref: &search.RefFilter{
-						Prop:  refProp2,
-						Value: &refTarget2,
-						None:  false,
-					},
-					Amount: nil,
-					Time:   nil,
-				},
-			},
-			Not:    nil,
-			Ref:    nil,
-			Amount: nil,
-			Time:   nil,
-		},
-	}
-	createSession(t, ctx, orSession)
-
-	results, _, errE = search.ResultsGet(ctx, getSearchService, orSession)
-	require.NoError(t, errE)
-	assert.Len(t, results, 3)
-
-	// Verify all expected IDs are present (order is unspecified).
-	gotIDs := make([]string, 0, len(results))
-	for _, r := range results {
-		gotIDs = append(gotIDs, r.ID)
-	}
-	sort.Strings(gotIDs)
-	expectedIDs := []string{doc1ID.String(), doc2ID.String(), doc3ID.String()}
-	sort.Strings(expectedIDs)
-	assert.Equal(t, expectedIDs, gotIDs)
-
-	// NOT: not rel1.
-	notSession := &search.Session{
-		ID:      nil,
-		Version: 0,
-		View:    "",
-		Query:   "",
-		Filters: &search.Filters{
-			And: nil,
-			Or:  nil,
-			Not: &search.Filters{
-				And: nil,
-				Or:  nil,
-				Not: nil,
+	// Multiple filters in the slice act as AND: both references must match.
+	andSession := createSession(t, ctx, search.SessionData{
+		View:  "",
+		Query: "",
+		Filters: []search.Filter{
+			{ //nolint:exhaustruct
+				Prop: []identifier.Identifier{refProp1},
 				Ref: &search.RefFilter{
-					Prop:  refProp1,
-					Value: &refTarget1,
-					None:  false,
+					To:      []search.ToValue{{ID: refTarget1}},
+					Missing: false,
 				},
-				Amount: nil,
-				Time:   nil,
 			},
-			Ref:    nil,
-			Amount: nil,
-			Time:   nil,
+			{ //nolint:exhaustruct
+				Prop: []identifier.Identifier{refProp2},
+				Ref: &search.RefFilter{
+					To:      []search.ToValue{{ID: refTarget2}},
+					Missing: false,
+				},
+			},
 		},
-	}
-	createSession(t, ctx, notSession)
+	})
 
-	results, _, errE = search.ResultsGet(ctx, getSearchService, notSession)
-	require.NoError(t, errE)
-	assert.Equal(t, []search.Result{{ID: doc2ID.String()}}, results)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &andSession.SessionData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []search.Result{{ID: doc3ID.String()}}, results)
 }
 
 func TestResultsGetTotalGteIntegration(t *testing.T) {
@@ -858,21 +682,18 @@ func TestResultsGetTotalGteIntegration(t *testing.T) {
 	})
 	refreshIndex(t, ctx, esClient, index)
 
-	getSearchServiceTracked := func() (*essearch.Search, int64, int64) {
+	getSearchServiceTracked := func() (*esSearch.Search, int64, int64) {
 		return esClient.Search().Index(index).TrackTotalHits(esdsl.NewTrackHits().Bool(true)), 100, 10
 	}
 
-	session := &search.Session{
-		ID:      nil,
-		Version: 0,
+	session := createSession(t, ctx, search.SessionData{
 		View:    "",
 		Query:   "",
 		Filters: nil,
-	}
-	createSession(t, ctx, session)
+	})
 
-	results, metadata, errE := search.ResultsGet(ctx, getSearchServiceTracked, session)
-	require.NoError(t, errE)
+	results, metadata, errE := search.ResultsGet(ctx, getSearchServiceTracked, &session.SessionData)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: docID.String()}}, results)
 	assert.Equal(t, int64(1), metadata["total"])
 }
@@ -904,21 +725,18 @@ func TestResultsGetTotalGteRelationIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	// Set TrackTotalHits to 1 so ES returns "gte" relation when there are more than 1 hit.
-	getSearchServiceLimited := func() (*essearch.Search, int64, int64) {
+	getSearchServiceLimited := func() (*esSearch.Search, int64, int64) {
 		return esClient.Search().Index(index).TrackTotalHits(esdsl.NewTrackHits().Int(1)), 100, 10
 	}
 
-	session := &search.Session{
-		ID:      nil,
-		Version: 0,
+	session := createSession(t, ctx, search.SessionData{
 		View:    "",
 		Query:   "",
 		Filters: nil,
-	}
-	createSession(t, ctx, session)
+	})
 
-	results, metadata, errE := search.ResultsGet(ctx, getSearchServiceLimited, session)
-	require.NoError(t, errE)
+	results, metadata, errE := search.ResultsGet(ctx, getSearchServiceLimited, &session.SessionData)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Len(t, results, 5)
 	// With TrackTotalHits(1), ES returns relation "gte" and value 1, so total should be "1+".
 	assert.Equal(t, "1+", metadata["total"])

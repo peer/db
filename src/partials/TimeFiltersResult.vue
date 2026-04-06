@@ -2,7 +2,7 @@
 import type { API } from "nouislider"
 import type { DeepReadonly } from "vue"
 
-import type { ClientSearchSession, TimeFilterState, TimeSearchResult } from "@/types"
+import type { SearchSession, TimeFilterEntry, TimeSearchResult } from "@/types"
 
 import noUiSlider from "nouislider"
 import { computed, onBeforeUnmount, toRef, useId, useTemplateRef, watchEffect } from "vue"
@@ -12,20 +12,20 @@ import CheckBox from "@/components/CheckBox.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import TimeDisplay from "@/partials/TimeDisplay.vue"
 import { useLocked, useProgress } from "@/progress"
-import { NONE, useTimeHistogramValues } from "@/search"
+import { useTimeHistogramValues } from "@/search"
 import { equals, loadingShortHeights, timePrecisionForRange, timePrecisionForValue, timeStringFromFloat64, useInitialLoad } from "@/utils"
 
 const props = defineProps<{
-  searchSession: DeepReadonly<ClientSearchSession>
+  searchSession: DeepReadonly<SearchSession>
   searchTotal: number
   result: TimeSearchResult
-  state: TimeFilterState
+  filter?: TimeFilterEntry
 }>()
 
 const locked = useLocked()
 
 const emit = defineEmits<{
-  "update:state": [state: TimeFilterState]
+  filterUpdate: [filterId: string, filter: TimeFilterEntry]
 }>()
 
 const { t } = useI18n({ useScope: "global" })
@@ -42,15 +42,21 @@ onBeforeUnmount(() => {
 
 // Data loading only, no controls.
 const progress = useProgress()
+
+// The filter ID from the session's filter, if it exists.
+const filterId = computed(() => props.filter?.id ?? "")
+
 const {
   results,
+  missing: missingCount,
   from,
   to,
   error,
   url: resultsUrl,
 } = useTimeHistogramValues(
   toRef(() => props.searchSession),
-  toRef(() => props.result),
+  filterId,
+  computed(() => props.result.propId),
   el,
   progress,
 )
@@ -61,27 +67,37 @@ function onSliderChange(values: (number | string)[], handle: number, unencoded: 
     return
   }
 
-  const updatedState = {
-    gte: unencoded[0],
-    lte: unencoded[1],
+  const updatedFilter: TimeFilterEntry = {
+    id: props.filter?.id ?? "",
+    base: props.filter?.base ?? [],
+    prop: props.filter?.prop ?? [props.result.propId],
+    time: {
+      gte: unencoded[0],
+      lte: unencoded[1],
+    },
   }
-  if (!equals(props.state, updatedState)) {
-    emit("update:state", updatedState)
+  if (!equals(props.filter, updatedFilter)) {
+    emit("filterUpdate", updatedFilter.id, updatedFilter)
   }
 }
 
-const noneState = computed({
+const missingState = computed({
   get(): boolean {
-    return props.state === NONE
+    return props.filter?.time?.missing === true
   },
   set(value: boolean) {
     if (abortController.signal.aborted) {
       return
     }
 
-    const updatedState = value ? NONE : null
-    if (!equals(props.state, updatedState)) {
-      emit("update:state", updatedState)
+    const updatedFilter: TimeFilterEntry = {
+      id: props.filter?.id ?? "",
+      base: props.filter?.base ?? [],
+      prop: props.filter?.prop ?? [props.result.propId],
+      time: value ? { missing: true } : {},
+    }
+    if (!equals(props.filter, updatedFilter)) {
+      emit("filterUpdate", updatedFilter.id, updatedFilter)
     }
   },
 })
@@ -143,8 +159,9 @@ watchEffect(() => {
   if (from.value === null || to.value === null || from.value === to.value) {
     return
   }
-  const gte = props.state === null || props.state === NONE ? null : (props.state as { gte?: number; lte?: number }).gte
-  const lte = props.state === null || props.state === NONE ? null : (props.state as { gte?: number; lte?: number }).lte
+  const gte = props.filter?.time?.gte ?? null
+  const lte = props.filter?.time?.lte ?? null
+  const isMissing = props.filter?.time?.missing === true
   const rangeMin = gte == null ? from.value : Math.max(gte, from.value)
   const rangeMax = lte == null ? to.value : Math.min(lte, to.value)
   const rangeStart = gte == null ? from.value : gte
@@ -157,7 +174,7 @@ watchEffect(() => {
         max: [rangeMax],
       },
       margin: (rangeMax - rangeMin) / results.value.length,
-      connect: [false, true, false],
+      connect: [false, !isMissing, false],
       // Range is divided by this number to get the keyboard step.
       keyboardDefaultStep: results.value.length,
       keyboardPageMultiplier: 10,
@@ -184,6 +201,8 @@ watchEffect(() => {
       },
       true,
     )
+    // Update connect to reflect whether missing is active (no range highlight) or not.
+    slider.updateOptions({ connect: [false, !isMissing, false] }, false)
   }
 })
 
@@ -210,7 +229,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="pd-timefiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div :id="labelId" class="flex items-baseline gap-x-1">
-      <DocumentRefInline :id="result.id" class="mb-1.5 text-lg leading-none" />
+      <DocumentRefInline :id="result.propId" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
     </div>
     <ul ref="el" role="group" :aria-labelledby="labelId" class="grid grid-cols-[max-content_auto] gap-x-1 gap-y-3">
@@ -219,7 +238,7 @@ onBeforeUnmount(() => {
       </li>
       <li v-else-if="from === null || to === null" class="col-span-2 motion-safe:animate-pulse" aria-hidden="true">
         <div class="my-1.5 grid grid-cols-10 items-end gap-x-1" :style="`aspect-ratio: ${chartWidth - 1} / ${chartHeight}`">
-          <div v-for="(h, i) in loadingShortHeights(result.id, 10)" :key="i" class="w-auto rounded-sm bg-slate-200" :class="h"></div>
+          <div v-for="(h, i) in loadingShortHeights(result.propId, 10)" :key="i" class="w-auto rounded-sm bg-slate-200" :class="h"></div>
         </div>
         <div class="flex flex-row justify-between gap-x-1">
           <div class="my-1.5 h-2 w-8 rounded-sm bg-slate-200"></div>
@@ -253,13 +272,13 @@ onBeforeUnmount(() => {
           <div>({{ results[0].count }})</div>
         </div>
       </li>
-      <li v-if="result.count < searchTotal" class="contents">
-        <CheckBox :id="'time/' + result.id + '/none'" v-model="noneState" />
+      <li v-if="(missingCount != null && missingCount > 0) || missingState" class="contents">
+        <CheckBox :id="'time/' + result.propId + '/missing'" v-model="missingState" />
         <div class="flex items-baseline gap-x-1">
-          <label :for="'time/' + result.id + '/none'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-            ><i>{{ t("common.values.none") }}</i></label
+          <label :for="'time/' + result.propId + '/missing'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            ><i>{{ t("common.values.missing") }}</i></label
           >
-          <label :for="'time/' + result.id + '/none'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ searchTotal - result.count }})</label>
+          <label :for="'time/' + result.propId + '/missing'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ missingCount ?? 0 }})</label>
         </div>
       </li>
     </ul>

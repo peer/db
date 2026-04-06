@@ -53,6 +53,7 @@
       "table": "Tabela"
     },
     "values": {
+      "missing": "manjkajoče",
       "noName": "brez imena",
       "none": "brez",
       "unknown": "neznana"

@@ -166,7 +166,7 @@ type documentCreateResponse struct {
 	Base []string              `json:"base"`
 }
 
-// DocumentCreatePostAPI handles POST requests to create a new document.
+// DocumentCreatePostAPI handles POST requests to create a new empty document.
 func (s *Service) DocumentCreatePostAPI(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck

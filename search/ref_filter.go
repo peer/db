@@ -1,12 +1,14 @@
 package search
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"slices"
 	"strconv"
 	"time"
 
-	"github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
+	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/sortorder"
@@ -17,29 +19,27 @@ import (
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
+// MissingRefFilterID is a special ID used for the "missing" bucket in reference filter results.
+// It represents documents that do not have a value for the filtered property.
+const MissingRefFilterID = "__MISSING__"
+
 // RefFilterResult represents occurrences count for a single reference in a reference filter.
 type RefFilterResult struct {
 	ID    string `json:"id"`
 	Count int64  `json:"count"`
 }
 
-// RefFilterGet retrieves reference filter data for search results.
-func RefFilterGet(
-	ctx context.Context, getSearchService func() (*search.Search, int64, int64), id, prop identifier.Identifier,
+// Get retrieves reference filter data for search results.
+func (f *RefFilter) Get(
+	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64),
+	query types.QueryVariant, prop identifier.Identifier,
 ) ([]RefFilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
-	m := metrics.Duration(internalStore.MetricSearchSession).Start()
-	searchSession, errE := GetSession(ctx, id)
-	m.Stop()
-	if errE != nil {
-		return nil, nil, errE
-	}
-
-	query := searchSession.ToQuery()
-
 	searchService, _, _ := getSearchService()
-	aggregation := esdsl.NewAggregations().
+
+	// Aggregation for documents that have the property: terms on claims.ref.to.
+	refAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.ref")).
 		AddAggregation("filter", esdsl.NewAggregations().
 			Filter(esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String()))).
@@ -53,9 +53,20 @@ func RefFilterGet(
 				// so we use it to get the most accurate approximation. For now we didn't notice any performance issues
 				// at data scale PeerDB is currently being used with, but in the future we might want to make this configurable.
 				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.ref.to").PrecisionThreshold(40000)))) //nolint:mnd
-	searchService = searchService.Size(0).Query(query).AddAggregation("ref", aggregation)
 
-	m = metrics.Duration(internalStore.MetricElasticSearch).Start()
+	// Aggregation for documents missing the property: count documents where the prop does not exist.
+	missingAggregation := esdsl.NewAggregations().
+		Filter(esdsl.NewBoolQuery().MustNot(
+			esdsl.NewNestedQuery(
+				esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String())),
+			).Path("claims.ref"),
+		))
+
+	searchService = searchService.Size(0).Query(query).
+		AddAggregation("ref", refAggregation).
+		AddAggregation("missing", missingAggregation)
+
+	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
@@ -86,7 +97,14 @@ func RefFilterGet(
 		return nil, nil, errE
 	}
 
-	results := make([]RefFilterResult, 0, len(refBuckets))
+	// Parse the missing count.
+	missingFilter, errE := aggAs[types.FilterAggregate](res.Aggregations, "missing")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	missingCount := missingFilter.DocCount
+
+	results := make([]RefFilterResult, 0, len(refBuckets)+1)
 	for _, bucket := range refBuckets {
 		bucketDocs, errE := aggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
 		if errE != nil {
@@ -101,9 +119,22 @@ func RefFilterGet(
 		results = append(results, RefFilterResult{ID: key, Count: bucketDocs.DocCount})
 	}
 
+	// Include the missing bucket if there are documents without this property.
+	if missingCount > 0 {
+		results = append(results, RefFilterResult{ID: MissingRefFilterID, Count: missingCount})
+		// Re-sort by count descending so that missing is in the right position.
+		slices.SortStableFunc(results, func(a, b RefFilterResult) int {
+			return cmp.Compare(b.Count, a.Count)
+		})
+	}
+
 	// Cardinality count is approximate, so we make sure the total is sane.
 	// See: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html#_counts_are_approximate
 	refTotalValue := max(int64(len(refBuckets)), refTotal.Value)
+	// Include missing in the total if present.
+	if missingCount > 0 {
+		refTotalValue++
+	}
 	total := strconv.FormatInt(refTotalValue, 10)
 
 	return results, map[string]any{
