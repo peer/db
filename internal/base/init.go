@@ -20,6 +20,7 @@ import (
 func InitAndStartComponents(
 	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elasticsearch.TypedClient,
 	schema, index string, shards int, languagePriority map[string][]string,
+	registerWorkers func(context.Context, *river.Workers) errors.E,
 ) (*base.B, *river.Client[pgx.Tx], func(), errors.E) {
 	errE := internalSearch.EnsureIndex(ctx, esClient, index, shards)
 	if errE != nil {
@@ -38,6 +39,13 @@ func InitAndStartComponents(
 	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, dbpool, schema)
 	if errE != nil {
 		return nil, nil, nil, errE
+	}
+
+	if registerWorkers != nil {
+		errE = registerWorkers(ctx, workers)
+		if errE != nil {
+			return nil, nil, nil, errE
+		}
 	}
 
 	b := &base.B{

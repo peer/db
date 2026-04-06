@@ -55,6 +55,8 @@ type Site struct {
 
 	Features SiteFeatures `json:"features" yaml:"features"`
 
+	RegisterWorkers func(context.Context, *river.Workers) errors.E `json:"-" yaml:"-"`
+
 	Base        *base.B                    `json:"-" yaml:"-"`
 	DBPool      *pgxpool.Pool              `json:"-" yaml:"-"`
 	ESClient    *elasticsearch.TypedClient `json:"-" yaml:"-"`
