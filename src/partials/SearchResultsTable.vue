@@ -294,7 +294,7 @@ function onCloseFilterModal() {
                 aria-hidden="true"
               />
             </th>
-            <template v-for="filter in limitedFiltersResults" v-else :key="filter.filterId ?? `${filter.propId}/${'unit' in filter ? filter.unit ?? '' : ''}`">
+            <template v-for="filter in limitedFiltersResults" v-else :key="filter.filterId ?? `${filter.propId}/${'unit' in filter ? (filter.unit ?? '') : ''}`">
               <th v-if="supportedFilter(filter)" class="text-start">
                 <!-- <div class="flex flex-row items-center justify-between"> -->
                 <WithDocumentD :id="filter.propId" name="DocumentGet">
@@ -350,7 +350,7 @@ function onCloseFilterModal() {
                       aria-hidden="true"
                     />
                   </td>
-                  <template v-for="filter in limitedFiltersResults" v-else :key="filter.filterId ?? `${filter.propId}/${'unit' in filter ? filter.unit ?? '' : ''}`">
+                  <template v-for="filter in limitedFiltersResults" v-else :key="filter.filterId ?? `${filter.propId}/${'unit' in filter ? (filter.unit ?? '') : ''}`">
                     <td v-if="supportedFilter(filter)" class="align-top">
                       <LocalScope
                         v-slot="{ rowExpanded, cellTruncated, cellExpanded }"
