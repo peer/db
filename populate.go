@@ -18,21 +18,34 @@ import (
 	"gitlab.com/peerdb/peerdb/transform"
 )
 
-func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logger, site Site) (func(), errors.E) {
+func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logger, site Site) errors.E {
 	logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("populating")
+
+	// We use a per-site cancellable context so that we can stop Base (started
+	// inside PopulateAndStart) before returning. Without this, the deferred
+	// populateShutdown below would block forever waiting for Base to be stopped,
+	// since the parent ctx might still be alive when we return.
+	ctx, siteCancel := context.WithCancel(ctx)
+	var populateShutdown func()
+	defer func() {
+		siteCancel()
+		if populateShutdown != nil {
+			populateShutdown()
+		}
+	}()
 
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
 	ctx = WithFallbackDBContext(ctx, site.Schema, "populate")
 
 	documents, transformed, errE := base.GenerateCoreDocuments(ctx, nil)
 	if errE != nil {
-		return nil, errE
+		return errE
 	}
 
 	logger.Info().Int("count", len(documents)).Msg("generated all documents")
 
 	if ctx.Err() != nil {
-		return nil, errors.WithStack(ctx.Err())
+		return errors.WithStack(ctx.Err())
 	}
 
 	if c.SaveDir != "" {
@@ -53,13 +66,13 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 			return filepath.Join(p...), nil
 		})
 		if errE != nil {
-			return nil, errE
+			return errE
 		}
 
 		logger.Info().Int("count", len(documents)).Msg("saved all structs")
 
 		if ctx.Err() != nil {
-			return nil, errors.WithStack(ctx.Err())
+			return errors.WithStack(ctx.Err())
 		}
 	}
 
@@ -70,19 +83,19 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 			return doc.ID.String(), nil
 		})
 		if errE != nil {
-			return nil, errE
+			return errE
 		}
 
 		logger.Info().Int("count", len(transformed)).Msg("saved all documents")
 
 		if ctx.Err() != nil {
-			return nil, errors.WithStack(ctx.Err())
+			return errors.WithStack(ctx.Err())
 		}
 	}
 
 	if c.DryRun {
 		logger.Info().Msg("dry run, not inserting documents into the database")
-		return nil, nil //nolint:nilnil
+		return nil //nolint:nilnil
 	}
 
 	count := x.NewCounter(0)
@@ -96,12 +109,12 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 		}
 	}()
 
-	onShutdown, errE := site.PopulateAndStart(ctx, transformed, func(doc *document.D) {
+	populateShutdown, errE = site.PopulateAndStart(ctx, transformed, func(doc *document.D) {
 		count.Increment()
 		logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
 	}, nil, count, size)
 	if errE != nil {
-		return onShutdown, errE
+		return errE
 	}
 
 	logger.Info().
@@ -110,7 +123,7 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 		Int64("total", size.Count()).
 		Msg("indexing done")
 
-	return onShutdown, nil
+	return nil
 }
 
 // Run executes the populate command to populate database with documents.
@@ -130,35 +143,16 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 		if onShutdownInit != nil {
 			defer onShutdownInit()
 		}
-		// It is safe to call cancel multiple times. We want it to be
-		// called before any onShutdown waits.
 		defer cancel()
 		if errE != nil {
 			return errE
 		}
 	} else {
-		// It is safe to call cancel multiple times. We want it to be
-		// called before any onShutdown waits.
 		defer cancel()
 	}
 
-	onShutdown := []func(){}
-	onShutdownF := func() {
-		for _, f := range onShutdown {
-			if f == nil {
-				continue
-			}
-			f()
-		}
-	}
-	defer onShutdownF()
-	// It is safe to call cancel multiple times. We want it to be
-	// called before any onShutdown waits.
-	defer cancel()
-
 	for _, site := range globals.Sites {
-		onS, errE := c.populateSite(ctx, globals.Logger, site)
-		onShutdown = append(onShutdown, onS)
+		errE := c.populateSite(ctx, globals.Logger, site)
 		if errE != nil {
 			return errE
 		}
