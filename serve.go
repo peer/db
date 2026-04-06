@@ -200,9 +200,9 @@ func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
 
 	ctx, cancel := context.WithCancel(ctx)
 
-	service, onShutdown, errE := c.Init(ctx, globals, files)
-	if onShutdown != nil {
-		defer onShutdown()
+	service, initShutdown, errE := c.Init(ctx, globals, files)
+	if initShutdown != nil {
+		defer initShutdown()
 	}
 	// It is safe to call cancel multiple times. We want it to be
 	// called before any onShutdown waits.
@@ -211,9 +211,9 @@ func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
 		return errE
 	}
 
-	handler, onShutdown, errE := c.Prepare(ctx, service)
-	if onShutdown != nil {
-		defer onShutdown()
+	handler, prepareShutdown, errE := c.Prepare(ctx, service)
+	if prepareShutdown != nil {
+		defer prepareShutdown()
 	}
 	// It is safe to call cancel multiple times. We want it to be
 	// called before any onShutdown waits.
