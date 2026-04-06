@@ -197,13 +197,16 @@ type HasFilter struct {
 // ToQuery converts the HasFilter to an ElasticSearch query.
 func (f *HasFilter) ToQuery() types.QueryVariant { //nolint:ireturn
 	// Build value queries (OR across all selected props).
-	// Only has claims without ref sub-claims are matched.
+	// Only has claims without sub-claims are matched.
 	shoulds := make([]types.QueryVariant, 0, len(f.Props))
 	for _, p := range f.Props {
 		shoulds = append(shoulds, esdsl.NewNestedQuery(
 			esdsl.NewBoolQuery().
 				Must(esdsl.NewTermQuery("claims.has.prop", esdsl.NewFieldValue().String(p.ID.String()))).
-				MustNot(esdsl.NewNestedQuery(esdsl.NewMatchAllQuery()).Path("claims.has.ref")),
+				MustNot(
+					esdsl.NewNestedQuery(esdsl.NewMatchAllQuery()).Path("claims.has.ref"),
+					esdsl.NewNestedQuery(esdsl.NewMatchAllQuery()).Path("claims.has.has"),
+				),
 		).Path("claims.has"))
 	}
 
@@ -499,12 +502,26 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 		q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(fields...).DefaultOperator(defaultOperator)
 		shoulds = append(shoulds, esdsl.NewNestedQuery(q).Path(prefix))
 	}
-	// Display and naming fields in nested ref claims within ref and has claim types.
-	for _, claimType := range []string{"has", "ref"} {
+	// Display and naming fields in nested ref claims within ref, has, none, and unknown claim types.
+	for _, claimType := range []string{"ref", "has", "none", "unknown"} {
 		outerPrefix := "claims." + claimType
 		innerPrefix := outerPrefix + ".ref"
 		var fields []string
 		for _, fieldName := range []string{"propDisplay", "propNaming", "toDisplay", "toNaming"} {
+			for _, lang := range langs {
+				fields = append(fields, innerPrefix+"."+fieldName+"."+lang+displayBoost)
+			}
+		}
+		innerQ := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(fields...).DefaultOperator(defaultOperator)
+		innerNested := esdsl.NewNestedQuery(innerQ).Path(innerPrefix)
+		shoulds = append(shoulds, esdsl.NewNestedQuery(innerNested).Path(outerPrefix))
+	}
+	// Display and naming fields in nested has claims within has, none, ref, and unknown claim types.
+	for _, claimType := range []string{"ref", "has", "none", "unknown"} {
+		outerPrefix := "claims." + claimType
+		innerPrefix := outerPrefix + ".has"
+		var fields []string
+		for _, fieldName := range []string{"propDisplay", "propNaming"} {
 			for _, lang := range langs {
 				fields = append(fields, innerPrefix+"."+fieldName+"."+lang+displayBoost)
 			}

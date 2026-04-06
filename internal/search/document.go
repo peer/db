@@ -262,6 +262,14 @@ type ReferenceClaim struct {
 
 	// Nested claims.
 	Reference []NestedReferenceClaim `json:"ref,omitempty"`
+	Has       []NestedHasClaim       `json:"has,omitempty"`
+}
+
+// NestedHasClaim represents a nested has claim.
+type NestedHasClaim struct {
+	Prop        identifier.Identifier `json:"prop"`
+	PropDisplay map[string]string     `json:"propDisplay"`
+	PropNaming  map[string][]string   `json:"propNaming"`
 }
 
 // HasClaim represents a claim with just a property.
@@ -274,18 +282,31 @@ type HasClaim struct {
 
 	// Nested claims.
 	Reference []NestedReferenceClaim `json:"ref,omitempty"`
+	Has       []NestedHasClaim       `json:"has,omitempty"`
 }
 
 // NoneClaim represents a claim that explicitly states no value exists for a property.
+//
+// In addition, it supports a limited set of nested claims.
 type NoneClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
 	PropNaming  map[string][]string   `json:"propNaming"`
+
+	// Nested claims.
+	Reference []NestedReferenceClaim `json:"ref,omitempty"`
+	Has       []NestedHasClaim       `json:"has,omitempty"`
 }
 
 // UnknownClaim represents a claim where the value for a property is known to exist but is unknown.
+//
+// In addition, it supports a limited set of nested claims.
 type UnknownClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
 	PropNaming  map[string][]string   `json:"propNaming"`
+
+	// Nested claims.
+	Reference []NestedReferenceClaim `json:"ref,omitempty"`
+	Has       []NestedHasClaim       `json:"has,omitempty"`
 }

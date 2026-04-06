@@ -156,6 +156,15 @@ const nestedRef = `{
 	}
 }`
 
+const nestedHas = `{
+	"type": "nested",
+	"properties": {
+		"prop": ` + relationID + `,
+		"propDisplay": ` + propDisplay + `,
+		"propNaming": ` + multiLanguageString + `
+	}
+}`
+
 // TODO: Generate automatically from the Document struct.
 var claimTypes = []claimType{ //nolint:gochecknoglobals
 	{
@@ -421,6 +430,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 				"ref",
 				nestedRef,
 			},
+			{
+				"has",
+				nestedHas,
+			},
 		},
 	},
 	{
@@ -441,6 +454,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			{
 				"ref",
 				nestedRef,
+			},
+			{
+				"has",
+				nestedHas,
 			},
 		},
 	},
@@ -463,6 +480,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 				"ref",
 				nestedRef,
 			},
+			{
+				"has",
+				nestedHas,
+			},
 		},
 	},
 	{
@@ -483,6 +504,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			{
 				"ref",
 				nestedRef,
+			},
+			{
+				"has",
+				nestedHas,
 			},
 		},
 	},

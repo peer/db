@@ -31,14 +31,15 @@ func (f *HasFilter) Get(
 
 	searchService, propertiesTotal, _ := getSearchService()
 
-	// Aggregation for documents that have has claims without ref sub-claims: terms on claims.has.prop.
-	// We first enter the nested context, then filter to only has claims without ref sub-claims,
+	// Aggregation for documents that have has claims without sub-claims: terms on claims.has.prop.
+	// We first enter the nested context, then filter to only has claims without sub-claims,
 	// and then aggregate the prop terms within that filtered set.
 	hasAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.has")).
 		AddAggregation("filter", esdsl.NewAggregations().
 			Filter(esdsl.NewBoolQuery().MustNot(
 				esdsl.NewNestedQuery(esdsl.NewMatchAllQuery()).Path("claims.has.ref"),
+				esdsl.NewNestedQuery(esdsl.NewMatchAllQuery()).Path("claims.has.has"),
 			)).
 			AddAggregation("props", esdsl.NewAggregations().
 				Terms(esdsl.NewTermsAggregation().Field("claims.has.prop").Size(MaxResultsCount).

@@ -1830,22 +1830,20 @@ func (c *Converter) convertLink(ctx context.Context, claim *document.LinkClaim) 
 	return result, nil
 }
 
-func (c *Converter) convertReference(ctx context.Context, claim *document.ReferenceClaim) ([]ReferenceClaim, errors.E) {
-	// Convert sub-claim references to nested search reference claims.
-	subRelations := document.GetAllClaimsOfTypeWithConfidence[document.ReferenceClaim](claim.Sub, document.LowConfidence)
-	nested := make([]NestedReferenceClaim, 0, len(subRelations))
+// convertNestedClaims extracts nested reference and has sub-claims from a claim's sub-claims.
+func (c *Converter) convertNestedClaims(ctx context.Context, sub *document.ClaimTypes) ([]NestedReferenceClaim, []NestedHasClaim, errors.E) {
+	subRelations := document.GetAllClaimsOfTypeWithConfidence[document.ReferenceClaim](sub, document.LowConfidence)
+	nestedRef := make([]NestedReferenceClaim, 0, len(subRelations))
 	for _, mr := range subRelations {
 		mrPropDisplay, errE := c.getDisplayStrings(ctx, mr.Prop.ID)
 		if errE != nil {
-			errors.Details(errE)["claim"] = claim
-			return nil, errE
+			return nil, nil, errE
 		}
 		mrToDisplay, errE := c.getDisplayStrings(ctx, mr.To.ID)
 		if errE != nil {
-			errors.Details(errE)["claim"] = claim
-			return nil, errE
+			return nil, nil, errE
 		}
-		nested = append(nested, NestedReferenceClaim{
+		nestedRef = append(nestedRef, NestedReferenceClaim{
 			Prop:        mr.Prop.ID,
 			PropDisplay: mrPropDisplay.Display,
 			PropNaming:  mrPropDisplay.Naming,
@@ -1853,6 +1851,30 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 			ToDisplay:   mrToDisplay.Display,
 			ToNaming:    mrToDisplay.Naming,
 		})
+	}
+
+	subHas := document.GetAllClaimsOfTypeWithConfidence[document.HasClaim](sub, document.LowConfidence)
+	nestedHas := make([]NestedHasClaim, 0, len(subHas))
+	for _, mh := range subHas {
+		mhPropDisplay, errE := c.getDisplayStrings(ctx, mh.Prop.ID)
+		if errE != nil {
+			return nil, nil, errE
+		}
+		nestedHas = append(nestedHas, NestedHasClaim{
+			Prop:        mh.Prop.ID,
+			PropDisplay: mhPropDisplay.Display,
+			PropNaming:  mhPropDisplay.Naming,
+		})
+	}
+
+	return nestedRef, nestedHas, nil
+}
+
+func (c *Converter) convertReference(ctx context.Context, claim *document.ReferenceClaim) ([]ReferenceClaim, errors.E) {
+	nestedRef, nestedHas, errE := c.convertNestedClaims(ctx, claim.Sub)
+	if errE != nil {
+		errors.Details(errE)["claim"] = claim
+		return nil, errE
 	}
 
 	// Cross product of propagated properties x (target + value hierarchy ancestors).
@@ -1905,7 +1927,8 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 				ToNaming:      tidInfo.Display.Naming,
 				ToPath:        toPath,
 				ToDisplayPath: toDisplayPath,
-				Reference:     nested,
+				Reference:     nestedRef,
+				Has:           nestedHas,
 			})
 		}
 	}
@@ -1913,28 +1936,10 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 }
 
 func (c *Converter) convertHas(ctx context.Context, claim *document.HasClaim) ([]HasClaim, errors.E) {
-	// Convert sub-claim references to nested search reference claims.
-	subRelations := document.GetAllClaimsOfTypeWithConfidence[document.ReferenceClaim](claim.Sub, document.LowConfidence)
-	nested := make([]NestedReferenceClaim, 0, len(subRelations))
-	for _, mr := range subRelations {
-		mrPropDisplay, errE := c.getDisplayStrings(ctx, mr.Prop.ID)
-		if errE != nil {
-			errors.Details(errE)["claim"] = claim
-			return nil, errE
-		}
-		mrToDisplay, errE := c.getDisplayStrings(ctx, mr.To.ID)
-		if errE != nil {
-			errors.Details(errE)["claim"] = claim
-			return nil, errE
-		}
-		nested = append(nested, NestedReferenceClaim{
-			Prop:        mr.Prop.ID,
-			PropDisplay: mrPropDisplay.Display,
-			PropNaming:  mrPropDisplay.Naming,
-			To:          mr.To.ID,
-			ToDisplay:   mrToDisplay.Display,
-			ToNaming:    mrToDisplay.Naming,
-		})
+	nestedRef, nestedHas, errE := c.convertNestedClaims(ctx, claim.Sub)
+	if errE != nil {
+		errors.Details(errE)["claim"] = claim
+		return nil, errE
 	}
 
 	props := c.propagateProp(claim.Prop.ID)
@@ -1949,13 +1954,20 @@ func (c *Converter) convertHas(ctx context.Context, claim *document.HasClaim) ([
 			Prop:        pid,
 			PropDisplay: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
-			Reference:   nested,
+			Reference:   nestedRef,
+			Has:         nestedHas,
 		})
 	}
 	return result, nil
 }
 
 func (c *Converter) convertNone(ctx context.Context, claim *document.NoneClaim) ([]NoneClaim, errors.E) {
+	nestedRef, nestedHas, errE := c.convertNestedClaims(ctx, claim.Sub)
+	if errE != nil {
+		errors.Details(errE)["claim"] = claim
+		return nil, errE
+	}
+
 	props := c.propagateProp(claim.Prop.ID)
 	result := make([]NoneClaim, 0, len(props))
 	for _, pid := range props {
@@ -1968,12 +1980,20 @@ func (c *Converter) convertNone(ctx context.Context, claim *document.NoneClaim) 
 			Prop:        pid,
 			PropDisplay: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
+			Reference:   nestedRef,
+			Has:         nestedHas,
 		})
 	}
 	return result, nil
 }
 
 func (c *Converter) convertUnknown(ctx context.Context, claim *document.UnknownClaim) ([]UnknownClaim, errors.E) {
+	nestedRef, nestedHas, errE := c.convertNestedClaims(ctx, claim.Sub)
+	if errE != nil {
+		errors.Details(errE)["claim"] = claim
+		return nil, errE
+	}
+
 	props := c.propagateProp(claim.Prop.ID)
 	result := make([]UnknownClaim, 0, len(props))
 	for _, pid := range props {
@@ -1986,6 +2006,8 @@ func (c *Converter) convertUnknown(ctx context.Context, claim *document.UnknownC
 			Prop:        pid,
 			PropDisplay: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
+			Reference:   nestedRef,
+			Has:         nestedHas,
 		})
 	}
 	return result, nil

@@ -143,12 +143,13 @@ func FiltersGet( //nolint:maintidx
 			// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
 			// so we set precision threshold to twice as much to try to always get precise counts.
 			Cardinality(esdsl.NewCardinalityAggregation().Field("claims.time.prop").PrecisionThreshold(int(2*propertiesTotal)))) //nolint:mnd
-	// Has aggregation counts documents that have at least one has claim without ref sub-claims.
+	// Has aggregation counts documents that have at least one has claim without sub-claims.
 	// Unlike other filter types, has produces a single filter rather than one per property.
 	hasAggregation := esdsl.NewAggregations().
 		Filter(esdsl.NewNestedQuery(
 			esdsl.NewBoolQuery().MustNot(
 				esdsl.NewNestedQuery(esdsl.NewMatchAllQuery()).Path("claims.has.ref"),
+				esdsl.NewNestedQuery(esdsl.NewMatchAllQuery()).Path("claims.has.has"),
 			),
 		).Path("claims.has"))
 	searchService = searchService.Size(0).Query(query).
@@ -167,13 +168,14 @@ func FiltersGet( //nolint:maintidx
 		}
 		if f.Has != nil {
 			// Has filter uses a different aggregation structure since it is global (no specific prop).
-			// Only count has claims without ref sub-claims.
+			// Only count has claims without sub-claims.
 			activeAgg := esdsl.NewAggregations().
 				Filter(searchSession.ToQueryExcluding(*f.ID)).
 				AddAggregation("count", esdsl.NewAggregations().
 					Filter(esdsl.NewNestedQuery(
 						esdsl.NewBoolQuery().MustNot(
 							esdsl.NewNestedQuery(esdsl.NewMatchAllQuery()).Path("claims.has.ref"),
+							esdsl.NewNestedQuery(esdsl.NewMatchAllQuery()).Path("claims.has.has"),
 						),
 					).Path("claims.has")))
 			searchService = searchService.AddAggregation(fmt.Sprintf("active_%d", i), activeAgg)
