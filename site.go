@@ -118,14 +118,14 @@ func (s *Site) fetchDocuments(ctx context.Context, classID identifier.Identifier
 	return documents, nil
 }
 
-func (s *Site) updatePropertiesTotal(_ context.Context, documents []*document.D) errors.E {
+func (s *Site) updatePropertiesTotal(_ context.Context, documents []*document.D) errors.E { //nolint:unparam
 	// TODO: Limit properties only to those really used in filters ("rel", "amount", "amountRange")?
 	// TODO: Limit really only to properties.
 	s.propertiesTotal = int64(len(documents))
 	return nil
 }
 
-func (s *Site) updateUnitsTotal(_ context.Context, documents []*document.D) errors.E {
+func (s *Site) updateUnitsTotal(_ context.Context, documents []*document.D) errors.E { //nolint:unparam
 	// TODO: Limit really only to units.
 	s.unitsTotal = int64(len(documents))
 	return nil
@@ -148,7 +148,7 @@ func (s *Site) validateDefaultLanguage() errors.E {
 
 // This should be run before calling service.RouteWith because it freezes site's context.json
 // as static file and updating language codes later means they are not included in context.json.
-func (s *Site) updateLanguageCodes(_ context.Context) errors.E {
+func (s *Site) updateLanguageCodes(_ context.Context) errors.E { //nolint:unparam
 	s.LanguageCodes = s.Base.LanguageCodes()
 
 	return nil

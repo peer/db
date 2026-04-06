@@ -82,7 +82,7 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 
 	if c.DryRun {
 		logger.Info().Msg("dry run, not inserting documents into the database")
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	count := x.NewCounter(0)

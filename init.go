@@ -20,7 +20,7 @@ import (
 // the site has already been initialized.
 func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elasticsearch.TypedClient, shards int) errors.E {
 	if s.initialized {
-		return nil //nolint:nilnil
+		return nil
 	}
 	s.initialized = true
 
