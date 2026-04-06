@@ -459,6 +459,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 				"propNaming",
 				multiLanguageString,
 			},
+			{
+				"ref",
+				nestedRef,
+			},
 		},
 	},
 	{
@@ -475,6 +479,10 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			{
 				"propNaming",
 				multiLanguageString,
+			},
+			{
+				"ref",
+				nestedRef,
 			},
 		},
 	},
