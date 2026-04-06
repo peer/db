@@ -16,61 +16,41 @@ import (
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
-// InitAndStartComponents initializes and starts Base components.
-func InitAndStartComponents(
+// InitComponents initializes Base components.
+func InitComponents(
 	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elasticsearch.TypedClient,
-	schema, index string, shards int, languagePriority map[string][]string,
-	registerWorkers func(context.Context, *river.Workers) errors.E,
-) (*base.B, *river.Client[pgx.Tx], func(), errors.E) {
+	schema, index string, shards int,
+) (*base.B, *river.Client[pgx.Tx], errors.E) {
 	errE := internalSearch.EnsureIndex(ctx, esClient, index, shards)
 	if errE != nil {
-		return nil, nil, nil, errE
+		return nil, nil, errE
 	}
 
 	errE = internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		return internalStore.EnsureSchema(ctx, tx, schema)
 	})
 	if errE != nil {
-		return nil, nil, nil, errE
+		return nil, nil, errE
 	}
 
 	listener := internalStore.NewListener(dbpool)
 
 	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, dbpool, schema)
 	if errE != nil {
-		return nil, nil, nil, errE
-	}
-
-	if registerWorkers != nil {
-		errE = registerWorkers(ctx, workers)
-		if errE != nil {
-			return nil, nil, nil, errE
-		}
+		return nil, nil, errE
 	}
 
 	b := &base.B{
 		Schema:           schema,
 		Index:            index,
-		LanguagePriority: languagePriority,
+		LanguagePriority: nil,
 		IndexingHooks:    nil,
+		RegisterWorkers:  nil,
 	}
 	errE = b.Init(ctx, dbpool, listener, esClient, riverClient, workers)
 	if errE != nil {
-		return nil, nil, nil, errE
+		return nil, nil, errE
 	}
 
-	// Now that everything is initialized, we can start the river client.
-	// It will be stopped when ctx is cancelled.
-	err := riverClient.Start(internalStore.WithFallbackDBContext(ctx, schema, "river"))
-	if err != nil {
-		return nil, nil, nil, errors.WithStack(err)
-	}
-
-	onShutdown := func() {
-		// Wait for the client to stop.
-		<-riverClient.Stopped()
-	}
-
-	// After that, we can start the listener.
-	return b, riverClient, onShutdown, listener.Start(internalStore.WithFallbackDBContext(ctx, schema, "listener"))
+	return b, riverClient, errE
 }

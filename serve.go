@@ -150,24 +150,35 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 }
 
 // Prepare prepares the HTTP service for serving.
-func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Handler, errors.E) {
+func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Handler, func(), errors.E) {
+	onShutdown := []func(){}
+	onShutdownF := func() {
+		for _, f := range onShutdown {
+			if f == nil {
+				continue
+			}
+			f()
+		}
+	}
+
 	for _, site := range service.Sites {
 		siteCtx := WithFallbackDBContext(ctx, site.Schema, "prepare")
 
 		documents, errE := site.fetchDocuments(siteCtx, internalCore.PropertyClassID)
 		if errE != nil {
-			return nil, errE
+			return nil, onShutdownF, errE
 		}
 		languages, errE := site.fetchDocuments(siteCtx, internalCore.LanguageClassID)
 		if errE != nil {
-			return nil, errE
+			return nil, onShutdownF, errE
 		}
 
 		documents = append(documents, languages...)
 
-		errE = site.Start(siteCtx, documents)
+		onS, errE := site.Start(siteCtx, documents)
+		onShutdown = append(onShutdown, onS)
 		if errE != nil {
-			return nil, errE
+			return nil, onShutdownF, errE
 		}
 
 		c.Server.Logger.Info().Str("domain", site.Domain).Str("index", site.Index).Str("schema", site.Schema).Msg("serving")
@@ -175,7 +186,8 @@ func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Hand
 
 	// Construct the main handler for the service using the router.
 	router := new(waf.Router)
-	return service.RouteWith(router)
+	handler, errE := service.RouteWith(router)
+	return handler, onShutdownF, errE
 }
 
 // Run starts the HTTP server and serves the PeerDB application.
@@ -192,12 +204,20 @@ func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
 	if onShutdown != nil {
 		defer onShutdown()
 	}
+	// It is safe to call cancel multiple times. We want it to be
+	// called before any onShutdown waits.
 	defer cancel()
 	if errE != nil {
 		return errE
 	}
 
-	handler, errE := c.Prepare(ctx, service)
+	handler, onShutdown, errE := c.Prepare(ctx, service)
+	if onShutdown != nil {
+		defer onShutdown()
+	}
+	// It is safe to call cancel multiple times. We want it to be
+	// called before any onShutdown waits.
+	defer cancel()
 	if errE != nil {
 		return errE
 	}

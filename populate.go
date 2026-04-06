@@ -18,9 +18,7 @@ import (
 	"gitlab.com/peerdb/peerdb/transform"
 )
 
-func (c *PopulateCommand) populateSite(ctx context.Context, site Site) errors.E {
-	logger := zerolog.Ctx(ctx)
-
+func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logger, site Site) (func(), errors.E) {
 	logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("populating")
 
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
@@ -28,18 +26,13 @@ func (c *PopulateCommand) populateSite(ctx context.Context, site Site) errors.E 
 
 	documents, transformed, errE := base.GenerateCoreDocuments(ctx, nil)
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
 
-	return c.PopulateSite(ctx, site, documents, transformed)
-}
-
-// PopulateSite populates the given site with provided documents.
-func (c *PopulateCommand) PopulateSite(ctx context.Context, site Site, documents []any, transformed []*document.D) errors.E {
-	logger := zerolog.Ctx(ctx)
+	logger.Info().Int("count", len(documents)).Msg("generated all documents")
 
 	if ctx.Err() != nil {
-		return errors.WithStack(ctx.Err())
+		return nil, errors.WithStack(ctx.Err())
 	}
 
 	if c.SaveDir != "" {
@@ -60,13 +53,13 @@ func (c *PopulateCommand) PopulateSite(ctx context.Context, site Site, documents
 			return filepath.Join(p...), nil
 		})
 		if errE != nil {
-			return errE
+			return nil, errE
 		}
 
 		logger.Info().Int("count", len(documents)).Msg("saved all structs")
 
 		if ctx.Err() != nil {
-			return errors.WithStack(ctx.Err())
+			return nil, errors.WithStack(ctx.Err())
 		}
 	}
 
@@ -77,24 +70,24 @@ func (c *PopulateCommand) PopulateSite(ctx context.Context, site Site, documents
 			return doc.ID.String(), nil
 		})
 		if errE != nil {
-			return errE
+			return nil, errE
 		}
 
 		logger.Info().Int("count", len(transformed)).Msg("saved all documents")
 
 		if ctx.Err() != nil {
-			return errors.WithStack(ctx.Err())
+			return nil, errors.WithStack(ctx.Err())
 		}
 	}
 
 	if c.DryRun {
 		logger.Info().Msg("dry run, not inserting documents into the database")
-		return nil
+		return nil, nil
 	}
 
 	count := x.NewCounter(0)
 	size := x.NewCounter(int64(len(transformed)))
-	progress := indexer.Progress(logger.With().Logger(), "indexing", nil)
+	progress := indexer.Progress(logger, "indexing", nil)
 	ticker := x.NewTicker(ctx, count, size, indexer.ProgressPrintRate)
 	defer ticker.Stop()
 	go func() {
@@ -103,12 +96,12 @@ func (c *PopulateCommand) PopulateSite(ctx context.Context, site Site, documents
 		}
 	}()
 
-	errE := site.PopulateAndStart(ctx, transformed, func(doc *document.D) {
+	onShutdown, errE := site.PopulateAndStart(ctx, transformed, func(doc *document.D) {
 		count.Increment()
 		logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
 	}, nil, count, size)
 	if errE != nil {
-		return errE
+		return onShutdown, errE
 	}
 
 	logger.Info().
@@ -117,7 +110,7 @@ func (c *PopulateCommand) PopulateSite(ctx context.Context, site Site, documents
 		Int64("total", size.Count()).
 		Msg("indexing done")
 
-	return nil
+	return onShutdown, nil
 }
 
 // Run executes the populate command to populate database with documents.
@@ -133,20 +126,39 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 	ctx, cancel := context.WithCancel(ctx)
 
 	if !c.DryRun {
-		onShutdown, errE := Init(ctx, globals)
-		if onShutdown != nil {
-			defer onShutdown()
+		onShutdownInit, errE := Init(ctx, globals)
+		if onShutdownInit != nil {
+			defer onShutdownInit()
 		}
+		// It is safe to call cancel multiple times. We want it to be
+		// called before any onShutdown waits.
 		defer cancel()
 		if errE != nil {
 			return errE
 		}
 	} else {
+		// It is safe to call cancel multiple times. We want it to be
+		// called before any onShutdown waits.
 		defer cancel()
 	}
 
+	onShutdown := []func(){}
+	onShutdownF := func() {
+		for _, f := range onShutdown {
+			if f == nil {
+				continue
+			}
+			f()
+		}
+	}
+	defer onShutdownF()
+	// It is safe to call cancel multiple times. We want it to be
+	// called before any onShutdown waits.
+	defer cancel()
+
 	for _, site := range globals.Sites {
-		errE := c.populateSite(ctx, site)
+		onS, errE := c.populateSite(ctx, globals.Logger, site)
+		onShutdown = append(onShutdown, onS)
 		if errE != nil {
 			return errE
 		}

@@ -66,8 +66,8 @@ func initBaseInfra(t *testing.T, languagePriority map[string][]string) (context.
 		require.NoError(t, err)
 	})
 
-	b, _, onShutdown, errE := internalBase.InitAndStartComponents(ctx, logger, dbpool, esClient, schema, index, 1, languagePriority, nil)
-	t.Cleanup(onShutdown)
+	b, _, errE := internalBase.InitComponents(ctx, logger, dbpool, esClient, schema, index, 1)
+	b.LanguagePriority = languagePriority
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	return ctx, b, esClient
@@ -84,7 +84,8 @@ func populateBase(ctx context.Context, t *testing.T, b *base.B, additionalDocs [
 
 	transformed = append(transformed, additionalDocs...)
 
-	errE = b.PopulateAndStart(ctx, transformed, nil, nil, nil, nil)
+	onShutdown, errE := b.PopulateAndStart(ctx, transformed, nil, nil, nil, nil)
+	t.Cleanup(onShutdown)
 	require.NoError(t, errE, "% -+#.1v", errE)
 }
 
@@ -1270,7 +1271,10 @@ func TestStartInvalidLanguagePriority(t *testing.T) {
 	})
 
 	// Start with invalid language priority should fail.
-	errE := b.Start(ctx, nil)
+	onShutdown, errE := b.Start(ctx, nil)
+	if onShutdown != nil {
+		defer onShutdown()
+	}
 	assert.EqualError(t, errE, "unsupported language in priority key")
 }
 

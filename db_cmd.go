@@ -69,24 +69,24 @@ func InitSites(globals *Globals) {
 
 // startAndWaitSite starts the base for a site, runs optional beforeWait,
 // then waits for indexing to catch up, and refreshes the ElasticSearch index.
-func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site Site, beforeWait func(ctx context.Context) errors.E) errors.E {
+func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site Site, beforeWait func(ctx context.Context) errors.E) (func(), errors.E) {
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
 	ctx = WithFallbackDBContext(ctx, site.Schema, "db")
 
 	documents, errE := site.fetchDocuments(ctx, internalCore.PropertyClassID)
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
 	languages, errE := site.fetchDocuments(ctx, internalCore.LanguageClassID)
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
 
 	documents = append(documents, languages...)
 
-	errE = site.Start(ctx, documents)
+	onShutdown, errE := site.Start(ctx, documents)
 	if errE != nil {
-		return errE
+		return onShutdown, errE
 	}
 
 	count := x.NewCounter(0)
@@ -103,18 +103,18 @@ func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site Site, bef
 	if beforeWait != nil {
 		errE = beforeWait(ctx)
 		if errE != nil {
-			return errE
+			return onShutdown, errE
 		}
 	}
 
 	errE = site.Base.WaitUntilCaughtUp(ctx, count, size)
 	if errE != nil {
-		return errE
+		return onShutdown, errE
 	}
 
 	_, err := site.ESClient.Indices.Refresh().Index(site.Index).Do(ctx)
 	if err != nil {
-		return errors.WithStack(err)
+		return onShutdown, errors.WithStack(err)
 	}
 
 	logger.Info().
@@ -123,7 +123,7 @@ func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site Site, bef
 		Int64("total", size.Count()).
 		Msg("indexing done")
 
-	return nil
+	return onShutdown, nil
 }
 
 // Run executes the db wait command which initializes the base,
@@ -139,19 +139,36 @@ func (c *DBWaitCommand) Run(globals *Globals) errors.E {
 
 	ctx, cancel := context.WithCancel(ctx)
 
-	onShutdown, errE := Init(ctx, globals)
-	if onShutdown != nil {
-		defer onShutdown()
+	onShutdownInit, errE := Init(ctx, globals)
+	if onShutdownInit != nil {
+		defer onShutdownInit()
 	}
+	// It is safe to call cancel multiple times. We want it to be
+	// called before any onShutdown waits.
 	defer cancel()
 	if errE != nil {
 		return errE
 	}
 
+	onShutdown := []func(){}
+	onShutdownF := func() {
+		for _, f := range onShutdown {
+			if f == nil {
+				continue
+			}
+			f()
+		}
+	}
+	defer onShutdownF()
+	// It is safe to call cancel multiple times. We want it to be
+	// called before any onShutdown waits.
+	defer cancel()
+
 	for _, site := range globals.Sites {
 		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("waiting for indexing")
 
-		errE := startAndWaitSite(ctx, globals.Logger, site, nil)
+		onS, errE := startAndWaitSite(ctx, globals.Logger, site, nil)
+		onShutdown = append(onShutdown, onS)
 		if errE != nil {
 			return errE
 		}
@@ -175,21 +192,38 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 
 	ctx, cancel := context.WithCancel(ctx)
 
-	onShutdown, errE := Init(ctx, globals)
-	if onShutdown != nil {
-		defer onShutdown()
+	onShutdownInit, errE := Init(ctx, globals)
+	if onShutdownInit != nil {
+		defer onShutdownInit()
 	}
+	// It is safe to call cancel multiple times. We want it to be
+	// called before any onShutdown waits.
 	defer cancel()
 	if errE != nil {
 		return errE
 	}
 
+	onShutdown := []func(){}
+	onShutdownF := func() {
+		for _, f := range onShutdown {
+			if f == nil {
+				continue
+			}
+			f()
+		}
+	}
+	defer onShutdownF()
+	// It is safe to call cancel multiple times. We want it to be
+	// called before any onShutdown waits.
+	defer cancel()
+
 	for _, site := range globals.Sites {
 		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("reindexing")
 
-		errE = startAndWaitSite(ctx, globals.Logger, site, func(ctx context.Context) errors.E {
+		onS, errE := startAndWaitSite(ctx, globals.Logger, site, func(ctx context.Context) errors.E {
 			return site.Base.ResetBridgeProgress(ctx)
 		})
+		onShutdown = append(onShutdown, onS)
 		if errE != nil {
 			return errE
 		}
@@ -212,14 +246,30 @@ func (c *DBExportCommand) Run(globals *Globals) (returnErr errors.E) { //nolint:
 
 	ctx, cancel := context.WithCancel(ctx)
 
-	onShutdown, errE := Init(ctx, globals)
-	if onShutdown != nil {
-		defer onShutdown()
+	onShutdownInit, errE := Init(ctx, globals)
+	if onShutdownInit != nil {
+		defer onShutdownInit()
 	}
+	// It is safe to call cancel multiple times. We want it to be
+	// called before any onShutdown waits.
 	defer cancel()
 	if errE != nil {
 		return errE
 	}
+
+	onShutdown := []func(){}
+	onShutdownF := func() {
+		for _, f := range onShutdown {
+			if f == nil {
+				continue
+			}
+			f()
+		}
+	}
+	defer onShutdownF()
+	// It is safe to call cancel multiple times. We want it to be
+	// called before any onShutdown waits.
+	defer cancel()
 
 	// Determine output writer.
 	var w io.Writer
@@ -245,7 +295,8 @@ func (c *DBExportCommand) Run(globals *Globals) (returnErr errors.E) { //nolint:
 		// We set fallback context values which are used to set application name on PostgreSQL connections.
 		siteCtx := WithFallbackDBContext(ctx, site.Schema, "export")
 
-		errE := startAndWaitSite(siteCtx, globals.Logger, site, nil)
+		onS, errE := startAndWaitSite(siteCtx, globals.Logger, site, nil)
+		onShutdown = append(onShutdown, onS)
 		if errE != nil {
 			return errE
 		}

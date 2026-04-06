@@ -227,7 +227,8 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	errE = populate.Run(globals)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	handler, errE := serve.Prepare(t.Context(), service)
+	handler, onShutdown, errE := serve.Prepare(t.Context(), service)
+	t.Cleanup(onShutdown)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	ts := httptest.NewUnstartedServer(nil)
