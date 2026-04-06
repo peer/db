@@ -140,6 +140,9 @@ function isFilterEmpty(f: Filter): boolean {
   if ("time" in f) {
     return f.time.gte == null && f.time.lte == null && !f.time.missing
   }
+  if ("has" in f) {
+    return !f.has.props || f.has.props.length === 0
+  }
   return true
 }
 

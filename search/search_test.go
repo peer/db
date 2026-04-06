@@ -24,6 +24,7 @@ func makeTestFilter(prop identifier.Identifier, ref *search.RefFilter, amount *s
 		Ref:    ref,
 		Amount: amount,
 		Time:   timeVal,
+		Has:    nil,
 	}
 }
 
@@ -227,7 +228,7 @@ func TestFilterValid(t *testing.T) {
 				f.Time = nil
 				return f
 			}(),
-			WantErr: "exactly one of ref, amount, or time must be set",
+			WantErr: "exactly one of ref, amount, time, or has must be set",
 		},
 		{
 			Name: "MultipleClausesRefAndAmount",
@@ -236,7 +237,7 @@ func TestFilterValid(t *testing.T) {
 				f.Amount = &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false}
 				return f
 			}(),
-			WantErr: "exactly one of ref, amount, or time must be set",
+			WantErr: "exactly one of ref, amount, time, or has must be set",
 		},
 		{
 			Name: "MultipleClausesRefAndTime",
@@ -245,7 +246,7 @@ func TestFilterValid(t *testing.T) {
 				f.Time = &search.TimeFilter{Gte: &gteTime, Lte: &lteTime, Missing: false}
 				return f
 			}(),
-			WantErr: "exactly one of ref, amount, or time must be set",
+			WantErr: "exactly one of ref, amount, time, or has must be set",
 		},
 		{
 			Name:    "InvalidRefFilter",
@@ -280,6 +281,57 @@ func TestFilterValid(t *testing.T) {
 				return f
 			}(),
 			WantErr: "prop must have exactly one element",
+		},
+		{
+			Name: "HasFilter",
+			Filter: func() search.Filter {
+				base := []string{"test.example.com", "SEARCH", "testsession", "FILTER", identifier.New().String()}
+				filterID := identifier.From(base...)
+				return search.Filter{
+					ID:     &filterID,
+					Base:   base,
+					Prop:   nil,
+					Ref:    nil,
+					Amount: nil,
+					Time:   nil,
+					Has:    &search.HasFilter{Props: []search.HasValue{{ID: value}}},
+				}
+			}(),
+			WantErr: "",
+		},
+		{
+			Name: "InvalidHasFilter",
+			Filter: func() search.Filter {
+				base := []string{"test.example.com", "SEARCH", "testsession", "FILTER", identifier.New().String()}
+				filterID := identifier.From(base...)
+				return search.Filter{
+					ID:     &filterID,
+					Base:   base,
+					Prop:   nil,
+					Ref:    nil,
+					Amount: nil,
+					Time:   nil,
+					Has:    &search.HasFilter{Props: nil},
+				}
+			}(),
+			WantErr: "props has to be set",
+		},
+		{
+			Name: "HasFilterWithPropNotEmpty",
+			Filter: func() search.Filter {
+				base := []string{"test.example.com", "SEARCH", "testsession", "FILTER", identifier.New().String()}
+				filterID := identifier.From(base...)
+				return search.Filter{
+					ID:     &filterID,
+					Base:   base,
+					Prop:   []identifier.Identifier{prop},
+					Ref:    nil,
+					Amount: nil,
+					Time:   nil,
+					Has:    &search.HasFilter{Props: []search.HasValue{{ID: value}}},
+				}
+			}(),
+			WantErr: "prop must be empty for has filter",
 		},
 	}
 
@@ -359,6 +411,43 @@ func TestFilterToQuery(t *testing.T) {
 			Name:   "TimeNone",
 			Filter: makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: nil, Lte: nil, Missing: true}),
 			Want:   `{"bool":{"must_not":[{"nested":{"path":"claims.time","query":{"term":{"claims.time.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
+		},
+		{
+			Name: "HasSingleProp",
+			Filter: func() search.Filter {
+				base := []string{"test.example.com", "SEARCH", "testsession", "FILTER", identifier.New().String()}
+				filterID := identifier.From(base...)
+				return search.Filter{
+					ID:     &filterID,
+					Base:   base,
+					Prop:   nil,
+					Ref:    nil,
+					Amount: nil,
+					Time:   nil,
+					Has:    &search.HasFilter{Props: []search.HasValue{{ID: value}}},
+				}
+			}(),
+			Want: `{"nested":{"path":"claims.has","query":{"term":{"claims.has.prop":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}}}`,
+		},
+		{
+			Name: "HasMultipleProps",
+			Filter: func() search.Filter {
+				base := []string{"test.example.com", "SEARCH", "testsession", "FILTER", identifier.New().String()}
+				filterID := identifier.From(base...)
+				return search.Filter{
+					ID:     &filterID,
+					Base:   base,
+					Prop:   nil,
+					Ref:    nil,
+					Amount: nil,
+					Time:   nil,
+					Has: &search.HasFilter{
+						Props: []search.HasValue{{ID: value}, {ID: identifier.From("value2")}},
+					},
+				}
+			}(),
+			//nolint:lll
+			Want: `{"bool":{"minimum_should_match":1,"should":[{"nested":{"path":"claims.has","query":{"term":{"claims.has.prop":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}}},{"nested":{"path":"claims.has","query":{"term":{"claims.has.prop":{"value":"1eNbijZLjE6RCP9J3v6yz1"}}}}}]}}`,
 		},
 	}
 

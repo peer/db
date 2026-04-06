@@ -177,6 +177,9 @@
       "skipToFilters": "Preskoči na filtre",
       "skipToResults": "Preskoči na rezultate"
     },
+    "HasFiltersResult": {
+      "title": "ima lastnost"
+    },
     "SearchResultsTable": {
       "expandRow": "Razširi vrstico",
       "collapseRow": "Skrči vrstico",

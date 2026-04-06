@@ -27,13 +27,25 @@ export type TimeSearchResult = {
   filterId?: string
 }
 
-export type FilterResult = RefSearchResult | AmountSearchResult | TimeSearchResult
+export type HasSearchResult = {
+  propId?: string
+  count: number
+  type: "has"
+  filterId?: string
+}
+
+export type FilterResult = RefSearchResult | AmountSearchResult | TimeSearchResult | HasSearchResult
 
 export type Result = {
   id: string
 }
 
 export type RefFilterResult = {
+  id: string
+  count: number
+}
+
+export type HasFilterResult = {
   id: string
   count: number
 }
@@ -49,6 +61,10 @@ export type HistogramTimeResult = {
 }
 
 export type ToValue = {
+  id: string
+}
+
+export type HasValue = {
   id: string
 }
 
@@ -70,6 +86,10 @@ export type TimeFilter = {
   missing?: boolean
 }
 
+export type HasFilter = {
+  props?: HasValue[]
+}
+
 export type FilterBase = {
   // On frontend, ID and base are always set, except when we send payload to the SearchShortcut API
   // endpoint (e.g., in CreateDropdown.vue) where we use payload without them (and without this type).
@@ -81,8 +101,9 @@ export type FilterBase = {
 export type RefFilterEntry = FilterBase & { ref: RefFilter }
 export type AmountFilterEntry = FilterBase & { amount: AmountFilter }
 export type TimeFilterEntry = FilterBase & { time: TimeFilter }
+export type HasFilterEntry = FilterBase & { has: HasFilter }
 
-export type Filter = RefFilterEntry | AmountFilterEntry | TimeFilterEntry
+export type Filter = RefFilterEntry | AmountFilterEntry | TimeFilterEntry | HasFilterEntry
 
 export type SearchSession = {
   id: string

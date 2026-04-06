@@ -177,6 +177,9 @@
       "skipToFilters": "Skip to filters",
       "skipToResults": "Skip to results"
     },
+    "HasFiltersResult": {
+      "title": "has property"
+    },
     "SearchResultsTable": {
       "expandRow": "Expand row",
       "collapseRow": "Collapse row",

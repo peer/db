@@ -4,6 +4,7 @@ import type { Router } from "vue-router"
 import type {
   CreateSearchSessionResponse,
   FilterResult,
+  HasFilterResult,
   HistogramAmountResult,
   HistogramTimeResult,
   RefFilterResult,
@@ -179,7 +180,7 @@ export function useFilters(
   return { results, total, error, url }
 }
 
-function useSearchResults<T extends Result | FilterResult | RefFilterResult>(
+function useSearchResults<T extends Result | FilterResult | RefFilterResult | HasFilterResult>(
   el: Ref<Element | null>,
   progress: Ref<number>,
   getURL: () => string | null,
@@ -307,6 +308,42 @@ export function useRefFilters(
     return router.apiResolve({
       name: "SearchRefFilter",
       params: { id: searchSessionRef.value.id, prop: prop.value },
+      query,
+    }).href
+  })
+}
+
+export function useHasFilters(
+  searchSessionRef: Ref<SearchSessionRef>,
+  filterId: Ref<string>,
+  el: Ref<Element | null>,
+  progress: Ref<number>,
+): {
+  results: DeepReadonly<Ref<HasFilterResult[]>>
+  total: DeepReadonly<Ref<number | null>>
+  error: DeepReadonly<Ref<string | null>>
+  url: DeepReadonly<Ref<string | null>>
+} {
+  const router = useRouter()
+
+  return useSearchResults<HasFilterResult>(el, progress, () => {
+    // TODO: Implement proper versioning.
+    //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
+    //       but the backend does not really use the parameter and always returns the latest version.
+    const query = encodeQuery({ version: `${searchSessionRef.value.version}` })
+    const id = filterId.value
+    if (id) {
+      // Active filter: use filter ID route.
+      return router.apiResolve({
+        name: "SearchFilterGet",
+        params: { id: searchSessionRef.value.id, filter: id },
+        query,
+      }).href
+    }
+    // Inactive filter: use has-based route.
+    return router.apiResolve({
+      name: "SearchHasFilter",
+      params: { id: searchSessionRef.value.id },
       query,
     }).href
   })
@@ -580,7 +617,7 @@ export function useTimeHistogramValues(
   }
 }
 
-async function getSearchResults<T extends Result | FilterResult | RefFilterResult>(
+async function getSearchResults<T extends Result | FilterResult | RefFilterResult | HasFilterResult>(
   url: string,
   el: Ref<Element | null> | null,
   abortSignal: AbortSignal,

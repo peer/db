@@ -44,6 +44,11 @@ type ToValue struct {
 	ID identifier.Identifier `json:"id"`
 }
 
+// HasValue represents a selected property value in a has filter.
+type HasValue struct {
+	ID identifier.Identifier `json:"id"`
+}
+
 // RefFilter contains values for a reference filter.
 type RefFilter struct {
 	To      []ToValue `json:"to,omitempty"`
@@ -180,9 +185,41 @@ func (f *TimeFilter) Validate() errors.E {
 	return nil
 }
 
+// HasFilter contains values for a has filter.
+//
+// The has filter is a global filter where values are the distinct has claim properties.
+// Unlike other filters, it does not filter within a specific property.
+type HasFilter struct {
+	Props []HasValue `json:"props,omitempty"`
+}
+
+// ToQuery converts the HasFilter to an ElasticSearch query.
+func (f *HasFilter) ToQuery() types.QueryVariant { //nolint:ireturn
+	// Build value queries (OR across all selected props).
+	shoulds := make([]types.QueryVariant, 0, len(f.Props))
+	for _, p := range f.Props {
+		shoulds = append(shoulds, esdsl.NewNestedQuery(
+			esdsl.NewTermQuery("claims.has.prop", esdsl.NewFieldValue().String(p.ID.String())),
+		).Path("claims.has"))
+	}
+
+	if len(shoulds) == 1 {
+		return shoulds[0]
+	}
+	return esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
+}
+
+// Validate validates the HasFilter.
+func (f *HasFilter) Validate() errors.E {
+	if len(f.Props) == 0 {
+		return errors.New("props has to be set")
+	}
+	return nil
+}
+
 // Filter represents a single active search filter.
 //
-// Exactly one of Ref, Amount, or Time must be set.
+// Exactly one of Ref, Amount, Time, or Has must be set.
 type Filter struct {
 	ID     *identifier.Identifier  `json:"id,omitempty"`
 	Base   []string                `json:"base,omitempty"`
@@ -190,6 +227,7 @@ type Filter struct {
 	Ref    *RefFilter              `json:"ref,omitempty"`
 	Amount *AmountFilter           `json:"amount,omitempty"`
 	Time   *TimeFilter             `json:"time,omitempty"`
+	Has    *HasFilter              `json:"has,omitempty"`
 }
 
 // Validate validates the Filter to ensure it has a valid configuration.
@@ -221,12 +259,6 @@ func (f Filter) Validate(withoutSession bool) errors.E {
 		}
 	}
 
-	if len(f.Prop) != 1 {
-		errE := errors.New("prop must have exactly one element")
-		errors.Details(errE)["length"] = len(f.Prop)
-		return errE
-	}
-
 	nonEmpty := 0
 	if f.Ref != nil {
 		nonEmpty++
@@ -237,8 +269,26 @@ func (f Filter) Validate(withoutSession bool) errors.E {
 	if f.Time != nil {
 		nonEmpty++
 	}
+	if f.Has != nil {
+		nonEmpty++
+	}
 	if nonEmpty != 1 {
-		return errors.New("exactly one of ref, amount, or time must be set")
+		return errors.New("exactly one of ref, amount, time, or has must be set")
+	}
+
+	// Has filter does not use Prop (it is a global filter).
+	if f.Has != nil {
+		if len(f.Prop) != 0 {
+			errE := errors.New("prop must be empty for has filter")
+			errors.Details(errE)["length"] = len(f.Prop)
+			return errE
+		}
+	} else {
+		if len(f.Prop) != 1 {
+			errE := errors.New("prop must have exactly one element")
+			errors.Details(errE)["length"] = len(f.Prop)
+			return errE
+		}
 	}
 
 	if f.Ref != nil {
@@ -247,11 +297,17 @@ func (f Filter) Validate(withoutSession bool) errors.E {
 	if f.Amount != nil {
 		return f.Amount.Validate()
 	}
-	return f.Time.Validate()
+	if f.Time != nil {
+		return f.Time.Validate()
+	}
+	return f.Has.Validate()
 }
 
 // ToQuery converts the Filter to an ElasticSearch query.
 func (f Filter) ToQuery() types.QueryVariant { //nolint:ireturn
+	if f.Has != nil {
+		return f.Has.ToQuery()
+	}
 	prop := f.Prop[0]
 	if f.Ref != nil {
 		return f.Ref.ToQuery(prop)

@@ -20,7 +20,7 @@ import (
 
 // FilterResult describes an available filter as an union of possible fields for each supported filter type.
 type FilterResult struct {
-	PropID   string `json:"propId"`
+	PropID   string `json:"propId,omitempty"`
 	Type     string `json:"type"`
 	Unit     string `json:"unit,omitempty"`
 	FilterID string `json:"filterId,omitempty"`
@@ -143,10 +143,17 @@ func FiltersGet( //nolint:maintidx
 			// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
 			// so we set precision threshold to twice as much to try to always get precise counts.
 			Cardinality(esdsl.NewCardinalityAggregation().Field("claims.time.prop").PrecisionThreshold(int(2*propertiesTotal)))) //nolint:mnd
+	// Has aggregation counts documents that have at least one has claim.
+	// Unlike other filter types, has produces a single filter rather than one per property.
+	hasAggregation := esdsl.NewAggregations().
+		Filter(esdsl.NewNestedQuery(
+			esdsl.NewMatchAllQuery(),
+		).Path("claims.has"))
 	searchService = searchService.Size(0).Query(query).
 		AddAggregation("ref", refAggregation).
 		AddAggregation("amount", amountAggregation).
-		AddAggregation("time", timeAggregation)
+		AddAggregation("time", timeAggregation).
+		AddAggregation("has", hasAggregation)
 
 	// For each active filter, add an aggregation that computes the property count
 	// excluding that filter's own restriction. This ensures active filters always
@@ -154,6 +161,17 @@ func FiltersGet( //nolint:maintidx
 	for i, f := range searchSession.Filters {
 		if f.ID == nil {
 			// This should not be possible.
+			continue
+		}
+		if f.Has != nil {
+			// Has filter uses a different aggregation structure since it is global (no specific prop).
+			activeAgg := esdsl.NewAggregations().
+				Filter(searchSession.ToQueryExcluding(*f.ID)).
+				AddAggregation("count", esdsl.NewAggregations().
+					Filter(esdsl.NewNestedQuery(
+						esdsl.NewMatchAllQuery(),
+					).Path("claims.has")))
+			searchService = searchService.AddAggregation(fmt.Sprintf("active_%d", i), activeAgg)
 			continue
 		}
 		prop := f.Prop[0]
@@ -248,6 +266,13 @@ func FiltersGet( //nolint:maintidx
 		return nil, nil, errE
 	}
 
+	// Parse has aggregation.
+	hasFilter, errE := aggAs[types.FilterAggregate](res.Aggregations, "has")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	hasDocCount := hasFilter.DocCount
+
 	refResults, errE := parseStringTermsBuckets(refBuckets, "ref")
 	if errE != nil {
 		return nil, nil, errE
@@ -261,10 +286,21 @@ func FiltersGet( //nolint:maintidx
 		return nil, nil, errE
 	}
 
-	results := make([]FilterResult, 0, len(refResults)+len(amountResults)+len(timeResults))
+	results := make([]FilterResult, 0, len(refResults)+len(amountResults)+len(timeResults)+1)
 	results = append(results, refResults...)
 	results = append(results, amountResults...)
 	results = append(results, timeResults...)
+
+	// Add has filter result if any documents have has claims.
+	if hasDocCount > 0 {
+		results = append(results, FilterResult{
+			PropID:   "",
+			Type:     "has",
+			Unit:     "",
+			FilterID: "",
+			Count:    hasDocCount,
+		})
+	}
 
 	// Parse per-active-filter aggregation results and append them with FilterID set.
 	// Main results (without FilterID) remain as inactive filter options.
@@ -274,21 +310,25 @@ func FiltersGet( //nolint:maintidx
 			continue
 		}
 
-		prop := f.Prop[0].String()
 		var result FilterResult
-		switch {
-		case f.Ref != nil:
-			result = FilterResult{PropID: prop, Type: "ref", Unit: "", FilterID: f.ID.String(), Count: 0}
-		case f.Amount != nil:
-			result = FilterResult{PropID: prop, Type: "amount", Unit: "", FilterID: f.ID.String(), Count: 0}
-			if f.Amount.Unit != nil {
-				result.Unit = f.Amount.Unit.String()
+		if f.Has != nil {
+			result = FilterResult{PropID: "", Type: "has", Unit: "", FilterID: f.ID.String(), Count: 0}
+		} else {
+			prop := f.Prop[0].String()
+			switch {
+			case f.Ref != nil:
+				result = FilterResult{PropID: prop, Type: "ref", Unit: "", FilterID: f.ID.String(), Count: 0}
+			case f.Amount != nil:
+				result = FilterResult{PropID: prop, Type: "amount", Unit: "", FilterID: f.ID.String(), Count: 0}
+				if f.Amount.Unit != nil {
+					result.Unit = f.Amount.Unit.String()
+				}
+			case f.Time != nil:
+				result = FilterResult{PropID: prop, Type: "time", Unit: "", FilterID: f.ID.String(), Count: 0}
+			default:
+				// This should not be possible.
+				continue
 			}
-		case f.Time != nil:
-			result = FilterResult{PropID: prop, Type: "time", Unit: "", FilterID: f.ID.String(), Count: 0}
-		default:
-			// This should not be possible.
-			continue
 		}
 
 		aggName := fmt.Sprintf("active_%d", i)
@@ -296,20 +336,30 @@ func FiltersGet( //nolint:maintidx
 		if errE != nil {
 			return nil, nil, errE
 		}
-		activeNested, errE := aggAs[types.NestedAggregate](activeFilter.Aggregations, "nested")
-		if errE != nil {
-			return nil, nil, errE
-		}
-		propFilter, errE := aggAs[types.FilterAggregate](activeNested.Aggregations, "filter")
-		if errE != nil {
-			return nil, nil, errE
-		}
-		activeDocs, errE := aggAs[types.ReverseNestedAggregate](propFilter.Aggregations, "docs")
-		if errE != nil {
-			return nil, nil, errE
+
+		if f.Has != nil {
+			// Has filter uses a different aggregation structure.
+			countFilter, errE := aggAs[types.FilterAggregate](activeFilter.Aggregations, "count")
+			if errE != nil {
+				return nil, nil, errE
+			}
+			result.Count = countFilter.DocCount
+		} else {
+			activeNested, errE := aggAs[types.NestedAggregate](activeFilter.Aggregations, "nested")
+			if errE != nil {
+				return nil, nil, errE
+			}
+			propFilter, errE := aggAs[types.FilterAggregate](activeNested.Aggregations, "filter")
+			if errE != nil {
+				return nil, nil, errE
+			}
+			activeDocs, errE := aggAs[types.ReverseNestedAggregate](propFilter.Aggregations, "docs")
+			if errE != nil {
+				return nil, nil, errE
+			}
+			result.Count = activeDocs.DocCount
 		}
 
-		result.Count = activeDocs.DocCount
 		results = append(results, result)
 	}
 
@@ -343,7 +393,12 @@ func FiltersGet( //nolint:maintidx
 	if int64(len(timeBuckets)) > timeTotalValue {
 		timeTotalValue = int64(len(timeBuckets))
 	}
-	total := strconv.FormatInt(refTotalValue+amountTotalValue+timeTotalValue, 10)
+	// Has filter contributes at most 1 to the total (one filter for all has claims).
+	var hasTotalValue int64
+	if hasDocCount > 0 {
+		hasTotalValue = 1
+	}
+	total := strconv.FormatInt(refTotalValue+amountTotalValue+timeTotalValue+hasTotalValue, 10)
 
 	return results, map[string]any{
 		"total": total,

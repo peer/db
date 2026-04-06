@@ -88,6 +88,8 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 		data, metadata, errE = f.Amount.Get(ctx, searchService, query, prop)
 	case f.Time != nil:
 		data, metadata, errE = f.Time.Get(ctx, searchService, query, prop)
+	case f.Has != nil:
+		data, metadata, errE = f.Has.Get(ctx, searchService, query)
 	default:
 		panic(errors.New("invalid filter"))
 	}
@@ -222,6 +224,38 @@ func (s *Service) SearchTimeFilterGetAPI(w http.ResponseWriter, req *http.Reques
 	query := searchSession.ToQuery()
 	f := search.TimeFilter{}
 	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req), query, prop)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.WriteJSON(w, req, data, metadata)
+}
+
+// SearchHasFilterGetAPI handles GET requests for has filter data.
+//
+// Used for inactive filters (not yet in the session).
+func (s *Service) SearchHasFilterGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	ctx := req.Context()
+
+	id, errE := identifier.MaybeString(params["id"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
+		return
+	}
+
+	searchSession, errE := search.GetSession(ctx, id)
+	if errors.Is(errE, search.ErrNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	query := searchSession.ToQuery()
+	f := search.HasFilter{}
+	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req), query)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -520,6 +554,7 @@ func (s *Service) SearchShortcutGet(w http.ResponseWriter, req *http.Request, _ 
 			},
 			Amount: nil,
 			Time:   nil,
+			Has:    nil,
 		})
 	}
 

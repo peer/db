@@ -80,6 +80,14 @@ func (s *Service) setRoutes() { //nolint:maintidx
 				},
 			},
 		},
+		"SearchHasFilter": {
+			Path: "/s/filters/:id/has",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.SearchHasFilterGetAPI,
+				},
+			},
+		},
 		"SearchShortcut": {
 			RouteOptions: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{

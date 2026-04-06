@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type { AmountFilterEntry, Filter, FilterResult, RefFilterEntry, SearchSession, TimeFilterEntry } from "@/types"
+import type { AmountFilterEntry, Filter, FilterResult, HasFilterEntry, RefFilterEntry, SearchSession, TimeFilterEntry } from "@/types"
 
 import { onBeforeUnmount } from "vue"
 
 import AmountFiltersResult from "@/partials/AmountFiltersResult.vue"
+import HasFiltersResult from "@/partials/HasFiltersResult.vue"
 import RefFiltersResult from "@/partials/RefFiltersResult.vue"
 import TimeFiltersResult from "@/partials/TimeFiltersResult.vue"
 
@@ -53,6 +54,13 @@ function findTimeFilter(result: FilterResult): TimeFilterEntry | undefined {
   return props.filters.find((f): f is TimeFilterEntry => "time" in f && f.id === result.filterId)
 }
 
+function findHasFilter(result: FilterResult): HasFilterEntry | undefined {
+  if (!result.filterId) {
+    return undefined
+  }
+  return props.filters.find((f): f is HasFilterEntry => "has" in f && f.id === result.filterId)
+}
+
 function onFilterUpdate(filterId: string, filter: Filter) {
   if (abortController.signal.aborted) {
     return
@@ -92,6 +100,18 @@ function onFilterUpdate(filterId: string, filter: Filter) {
     :search-total="searchTotal"
     :result="result"
     :filter="findTimeFilter(result)"
+    v-bind="$attrs"
+    @filter-update="onFilterUpdate"
+  />
+
+  <HasFiltersResult
+    v-if="result.type === 'has'"
+    class="pd-filterresult"
+    :search-session="searchSession"
+    :search-total="searchTotal"
+    :result="result"
+    :filter="findHasFilter(result)"
+    :update-progress="updateSearchSessionProgress"
     v-bind="$attrs"
     @filter-update="onFilterUpdate"
   />

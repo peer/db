@@ -188,6 +188,9 @@ declare module "vue-i18n" {
         skipToFilters: string
         skipToResults: string
       }
+      HasFiltersResult: {
+        title: string
+      }
       SearchResultsTable: {
         expandRow: string
         collapseRow: string
