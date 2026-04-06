@@ -74,7 +74,6 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	prop := f.Prop[0]
 	query := searchSession.ToQueryExcluding(filterID)
 
 	var data any
@@ -83,11 +82,11 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 	searchService := s.getSearchServiceClosure(req)
 	switch {
 	case f.Ref != nil:
-		data, metadata, errE = f.Ref.Get(ctx, searchService, query, prop)
+		data, metadata, errE = f.Ref.Get(ctx, searchService, query, f.Prop[0])
 	case f.Amount != nil:
-		data, metadata, errE = f.Amount.Get(ctx, searchService, query, prop)
+		data, metadata, errE = f.Amount.Get(ctx, searchService, query, f.Prop[0])
 	case f.Time != nil:
-		data, metadata, errE = f.Time.Get(ctx, searchService, query, prop)
+		data, metadata, errE = f.Time.Get(ctx, searchService, query, f.Prop[0])
 	case f.Has != nil:
 		data, metadata, errE = f.Has.Get(ctx, searchService, query)
 	default:
