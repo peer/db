@@ -189,6 +189,7 @@ func (f *TimeFilter) Validate() errors.E {
 //
 // The has filter is a global filter where values are the distinct has claim properties.
 // Unlike other filters, it does not filter within a specific property.
+// Only has claims without ref sub-claims are considered (pure "has" claims).
 type HasFilter struct {
 	Props []HasValue `json:"props,omitempty"`
 }
@@ -196,10 +197,13 @@ type HasFilter struct {
 // ToQuery converts the HasFilter to an ElasticSearch query.
 func (f *HasFilter) ToQuery() types.QueryVariant { //nolint:ireturn
 	// Build value queries (OR across all selected props).
+	// Only has claims without ref sub-claims are matched.
 	shoulds := make([]types.QueryVariant, 0, len(f.Props))
 	for _, p := range f.Props {
 		shoulds = append(shoulds, esdsl.NewNestedQuery(
-			esdsl.NewTermQuery("claims.has.prop", esdsl.NewFieldValue().String(p.ID.String())),
+			esdsl.NewBoolQuery().
+				Must(esdsl.NewTermQuery("claims.has.prop", esdsl.NewFieldValue().String(p.ID.String()))).
+				MustNot(esdsl.NewNestedQuery(esdsl.NewMatchAllQuery()).Path("claims.has.ref")),
 		).Path("claims.has"))
 	}
 

@@ -427,7 +427,8 @@ func TestFilterToQuery(t *testing.T) {
 					Has:    &search.HasFilter{Props: []search.HasValue{{ID: value}}},
 				}
 			}(),
-			Want: `{"nested":{"path":"claims.has","query":{"term":{"claims.has.prop":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}}}`,
+			//nolint:lll
+			Want: `{"nested":{"path":"claims.has","query":{"bool":{"must":[{"term":{"claims.has.prop":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}],"must_not":[{"nested":{"path":"claims.has.ref","query":{"match_all":{}}}}]}}}}`,
 		},
 		{
 			Name: "HasMultipleProps",
@@ -447,7 +448,7 @@ func TestFilterToQuery(t *testing.T) {
 				}
 			}(),
 			//nolint:lll
-			Want: `{"bool":{"minimum_should_match":1,"should":[{"nested":{"path":"claims.has","query":{"term":{"claims.has.prop":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}}},{"nested":{"path":"claims.has","query":{"term":{"claims.has.prop":{"value":"1eNbijZLjE6RCP9J3v6yz1"}}}}}]}}`,
+			Want: `{"bool":{"minimum_should_match":1,"should":[{"nested":{"path":"claims.has","query":{"bool":{"must":[{"term":{"claims.has.prop":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}],"must_not":[{"nested":{"path":"claims.has.ref","query":{"match_all":{}}}}]}}}},{"nested":{"path":"claims.has","query":{"bool":{"must":[{"term":{"claims.has.prop":{"value":"1eNbijZLjE6RCP9J3v6yz1"}}}],"must_not":[{"nested":{"path":"claims.has.ref","query":{"match_all":{}}}}]}}}}]}}`,
 		},
 	}
 

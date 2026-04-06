@@ -31,18 +31,24 @@ func (f *HasFilter) Get(
 
 	searchService, propertiesTotal, _ := getSearchService()
 
-	// Aggregation for documents that have has claims: terms on claims.has.prop.
+	// Aggregation for documents that have has claims without ref sub-claims: terms on claims.has.prop.
+	// We first enter the nested context, then filter to only has claims without ref sub-claims,
+	// and then aggregate the prop terms within that filtered set.
 	hasAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.has")).
-		AddAggregation("props", esdsl.NewAggregations().
-			Terms(esdsl.NewTermsAggregation().Field("claims.has.prop").Size(MaxResultsCount).
-				Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
-			AddAggregation("docs", esdsl.NewAggregations().
-				ReverseNested(esdsl.NewReverseNestedAggregation()))).
-		AddAggregation("total", esdsl.NewAggregations().
-			// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
-			// so we set precision threshold to twice as much to try to always get precise counts.
-			Cardinality(esdsl.NewCardinalityAggregation().Field("claims.has.prop").PrecisionThreshold(int(2*propertiesTotal)))) //nolint:mnd
+		AddAggregation("filter", esdsl.NewAggregations().
+			Filter(esdsl.NewBoolQuery().MustNot(
+				esdsl.NewNestedQuery(esdsl.NewMatchAllQuery()).Path("claims.has.ref"),
+			)).
+			AddAggregation("props", esdsl.NewAggregations().
+				Terms(esdsl.NewTermsAggregation().Field("claims.has.prop").Size(MaxResultsCount).
+					Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
+				AddAggregation("docs", esdsl.NewAggregations().
+					ReverseNested(esdsl.NewReverseNestedAggregation()))).
+			AddAggregation("total", esdsl.NewAggregations().
+				// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
+				// so we set precision threshold to twice as much to try to always get precise counts.
+				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.has.prop").PrecisionThreshold(int(2*propertiesTotal))))) //nolint:mnd
 
 	searchService = searchService.Size(0).Query(query).
 		AddAggregation("has", hasAggregation)
@@ -59,7 +65,11 @@ func (f *HasFilter) Get(
 	if errE != nil {
 		return nil, nil, errE
 	}
-	hasTerms, errE := aggAs[types.StringTermsAggregate](hasNested.Aggregations, "props")
+	hasFiltered, errE := aggAs[types.FilterAggregate](hasNested.Aggregations, "filter")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	hasTerms, errE := aggAs[types.StringTermsAggregate](hasFiltered.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -69,7 +79,7 @@ func (f *HasFilter) Get(
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", hasTerms.Buckets)
 		return nil, nil, errE
 	}
-	hasTotal, errE := aggAs[types.CardinalityAggregate](hasNested.Aggregations, "total")
+	hasTotal, errE := aggAs[types.CardinalityAggregate](hasFiltered.Aggregations, "total")
 	if errE != nil {
 		return nil, nil, errE
 	}
