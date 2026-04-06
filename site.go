@@ -173,6 +173,10 @@ func (s *Site) Start(ctx context.Context, documents []*document.D) (func(), erro
 		return nil, errE
 	}
 
+	if s.Base.LanguagePriority == nil {
+		s.Base.LanguagePriority = s.LanguagePriority
+	}
+
 	onShutdown, errE := s.Base.Start(ctx, documents)
 	if errE != nil {
 		return onShutdown, errE
@@ -208,6 +212,10 @@ func (s *Site) PopulateAndStart(
 	errE = s.validateDefaultLanguage()
 	if errE != nil {
 		return nil, errE
+	}
+
+	if s.Base.LanguagePriority == nil {
+		s.Base.LanguagePriority = s.LanguagePriority
 	}
 
 	onShutdown, errE := s.Base.PopulateAndStart(ctx, documents, progress, beforeWait, count, size)

@@ -39,8 +39,6 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 	s.ESClient = esClient
 	s.RiverClient = riverClient
 
-	b.LanguagePriority = s.LanguagePriority
-
 	errE = s.initDebugRiverHandler(ctx, logger)
 	if errE != nil {
 		return errE
