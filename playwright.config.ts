@@ -36,8 +36,8 @@ export default defineConfig({
   },
   projects: [
     {
-      name: "does-not-require-login",
-      testMatch: /does-not-require-login\/.*\.test\.ts$/, // Match files without a dependency on login.
+      name: "search",
+      testMatch: /search\/.*\.test\.ts$/,
     },
   ],
 })
