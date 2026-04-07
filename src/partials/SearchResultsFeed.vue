@@ -165,9 +165,16 @@ function onFilters() {
           <SearchResult :ref="track(result.id)" :search-session-id="searchSession.id" :result="result" />
         </template>
 
-        <Button v-if="searchHasMore"  id="searchresultsfeed-button-loadmore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit self-center" @click.prevent="searchLoadMore">{{
-          t("common.buttons.loadMore")
-        }}</Button>
+        <Button
+          v-if="searchHasMore"
+          id="searchresultsfeed-button-loadmore"
+          ref="searchMoreButton"
+          :progress="searchProgress"
+          primary
+          class="w-1/4 min-w-fit self-center"
+          @click.prevent="searchLoadMore"
+          >{{ t("common.buttons.loadMore") }}</Button
+        >
 
         <div v-else class="my-1 sm:my-4">
           <!-- Here we assume that MaxResultsCount is always set to a smaller value than what TrackTotalHits is set to. -->

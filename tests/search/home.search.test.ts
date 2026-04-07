@@ -20,7 +20,7 @@ test.describe("PeerDB Search Flows", () => {
     await checkpoint(page, "search-default-all-80-results")
 
     console.log(
-        "Successfully used default search showing 50 results, scrolled to trigger loading remaining 30, verified 80 documents appear and load more button disappears.",
+      "Successfully used default search showing 50 results, scrolled to trigger loading remaining 30, verified 80 documents appear and load more button disappears.",
     )
   })
 
