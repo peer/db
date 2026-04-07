@@ -145,6 +145,25 @@ func (b *B) Init(
 //
 // You have to call this or PopulateAndStart for each base after Init.
 func (b *B) Start(ctx context.Context, documents []*document.D) (func(), errors.E) {
+	// We build the converter first so that invalid input (e.g., unsupported
+	// language priority) fails fast without leaving any resources running.
+	converter, errE := internalSearch.NewConverter(
+		documents, documents, documents, b.LanguagePriority,
+		func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
+			// TODO: Make sure once we have permissions, that the public has the permission to read the document.
+			doc, _, _, _, errE := b.GetDocumentLatestDoc(ctx, id)
+			if errE != nil {
+				return nil, errE
+			}
+			return doc, nil
+		},
+	)
+	if errE != nil {
+		return nil, errE
+	}
+
+	converter.Hooks = b.IndexingHooks
+
 	if b.RegisterWorkers != nil {
 		errE := b.RegisterWorkers(ctx, b.workers)
 		if errE != nil {
@@ -165,27 +184,10 @@ func (b *B) Start(ctx context.Context, documents []*document.D) (func(), errors.
 	}
 
 	// After that, we can start the listener.
-	errE := b.listener.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "listener"))
+	errE = b.listener.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "listener"))
 	if errE != nil {
 		return onShutdown, errE
 	}
-
-	converter, errE := internalSearch.NewConverter(
-		documents, documents, documents, b.LanguagePriority,
-		func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
-			// TODO: Make sure once we have permissions, that the public has the permission to read the document.
-			doc, _, _, _, errE := b.GetDocumentLatestDoc(ctx, id)
-			if errE != nil {
-				return nil, errE
-			}
-			return doc, nil
-		},
-	)
-	if errE != nil {
-		return onShutdown, errE
-	}
-
-	converter.Hooks = b.IndexingHooks
 
 	return onShutdown, b.bridge.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "bridge"), converter)
 }

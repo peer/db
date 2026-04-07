@@ -516,7 +516,7 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 		innerNested := esdsl.NewNestedQuery(innerQ).Path(innerPrefix)
 		shoulds = append(shoulds, esdsl.NewNestedQuery(innerNested).Path(outerPrefix))
 	}
-	// Display and naming fields in nested has claims within has, none, ref, and unknown claim types.
+	// Display and naming fields in nested has claims within ref, has, none, and unknown claim types.
 	for _, claimType := range []string{"ref", "has", "none", "unknown"} {
 		outerPrefix := "claims." + claimType
 		innerPrefix := outerPrefix + ".has"

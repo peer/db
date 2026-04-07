@@ -26,6 +26,7 @@ import (
 	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb"
+	"gitlab.com/peerdb/peerdb/base"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
@@ -222,14 +223,36 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		}
 	})
 
-	populate := peerdb.PopulateCommand{}
-
-	errE = populate.Run(globals)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	// Insert core documents directly for each site so that serve.Prepare is
+	// the single place that starts the base components. Using populate.Run
+	// here would both start and then shut down the base, while serve.Prepare
+	// would try to start it again.
+	for i := range globals.Sites {
+		site := &globals.Sites[i]
+		siteCtx := peerdb.WithFallbackDBContext(t.Context(), site.Schema, "populate")
+		_, transformed, errE := base.GenerateCoreDocuments(siteCtx, nil)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		for _, doc := range transformed {
+			errE := site.Base.InsertOrReplaceDocument(siteCtx, doc)
+			require.NoError(t, errE, "% -+#.1v", errE)
+		}
+	}
 
 	handler, onShutdown, errE := serve.Prepare(t.Context(), service)
 	t.Cleanup(onShutdown)
 	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Now that the base components are running, wait for the bridge to finish
+	// indexing the documents we inserted before Prepare and refresh the
+	// Elasticsearch index so subsequent queries see them.
+	for i := range globals.Sites {
+		site := &globals.Sites[i]
+		siteCtx := peerdb.WithFallbackDBContext(t.Context(), site.Schema, "populate")
+		errE := site.Base.WaitUntilCaughtUp(siteCtx, nil, nil)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		_, err := cleanupESClient.Indices.Refresh().Index(site.Index).Do(siteCtx)
+		require.NoError(t, err)
+	}
 
 	ts := httptest.NewUnstartedServer(nil)
 	ts.EnableHTTP2 = true
