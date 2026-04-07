@@ -77,7 +77,7 @@ const homeComponent = getHomeComponent()
     </div>
     <div class="flex flex-row justify-center gap-x-1 px-1 sm:gap-x-4 sm:px-4">
       <InputText id="home-input-search" v-model="searchQuery" class="pd-searchinput w-full max-w-2xl sm:w-4/5 md:w-2/3 lg:w-1/2" :progress="progress" />
-      <Button type="submit" primary :progress="progress">{{ t("common.buttons.search") }}</Button>
+      <Button id="home-button-search" type="submit" primary :progress="progress">{{ t("common.buttons.search") }}</Button>
     </div>
     <div class="flex grow basis-0"><component :is="homeComponent" v-if="homeComponent" /></div>
   </form>

@@ -165,7 +165,7 @@ function onFilters() {
           <SearchResult :ref="track(result.id)" :search-session-id="searchSession.id" :result="result" />
         </template>
 
-        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit self-center" @click.prevent="searchLoadMore">{{
+        <Button v-if="searchHasMore"  id="searchresultsfeed-button-loadmore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit self-center" @click.prevent="searchLoadMore">{{
           t("common.buttons.loadMore")
         }}</Button>
 

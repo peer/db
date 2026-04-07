@@ -141,7 +141,7 @@ const rowSpan = computed(() => {
                 </WithDocumentD>
               </template>
             </ul>
-            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link"
+            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="pd-searchresult-link-title link"
               ><DisplayLabel :doc="resultDoc"
             /></RouterLink>
           </h2>
