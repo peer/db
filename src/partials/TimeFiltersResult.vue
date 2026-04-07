@@ -56,7 +56,7 @@ const {
 } = useTimeHistogramValues(
   toRef(() => props.searchSession),
   filterId,
-  computed(() => props.result.propId),
+  computed(() => props.result.props[0]),
   el,
   progress,
 )
@@ -70,7 +70,7 @@ function onSliderChange(values: (number | string)[], handle: number, unencoded: 
   const updatedFilter: TimeFilterEntry = {
     id: props.filter?.id ?? "",
     base: props.filter?.base ?? [],
-    prop: props.filter?.prop ?? [props.result.propId],
+    prop: props.filter?.prop ?? [...props.result.props],
     time: {
       gte: unencoded[0],
       lte: unencoded[1],
@@ -93,7 +93,7 @@ const missingState = computed({
     const updatedFilter: TimeFilterEntry = {
       id: props.filter?.id ?? "",
       base: props.filter?.base ?? [],
-      prop: props.filter?.prop ?? [props.result.propId],
+      prop: props.filter?.prop ?? [...props.result.props],
       time: value ? { missing: true } : {},
     }
     if (!equals(props.filter, updatedFilter)) {
@@ -229,7 +229,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="pd-timefiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div :id="labelId" class="flex items-baseline gap-x-1">
-      <DocumentRefInline :id="result.propId" class="mb-1.5 text-lg leading-none" />
+      <DocumentRefInline :id="result.props[0]" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
     </div>
     <ul ref="el" role="group" :aria-labelledby="labelId" class="grid grid-cols-[max-content_auto] gap-x-1 gap-y-3">
@@ -238,7 +238,7 @@ onBeforeUnmount(() => {
       </li>
       <li v-else-if="from === null || to === null" class="col-span-2 motion-safe:animate-pulse" aria-hidden="true">
         <div class="my-1.5 grid grid-cols-10 items-end gap-x-1" :style="`aspect-ratio: ${chartWidth - 1} / ${chartHeight}`">
-          <div v-for="(h, i) in loadingShortHeights(result.propId, 10)" :key="i" class="w-auto rounded-sm bg-slate-200" :class="h"></div>
+          <div v-for="(h, i) in loadingShortHeights(result.props[0], 10)" :key="i" class="w-auto rounded-sm bg-slate-200" :class="h"></div>
         </div>
         <div class="flex flex-row justify-between gap-x-1">
           <div class="my-1.5 h-2 w-8 rounded-sm bg-slate-200"></div>
@@ -273,12 +273,12 @@ onBeforeUnmount(() => {
         </div>
       </li>
       <li v-if="(missingCount != null && missingCount > 0) || missingState" class="contents">
-        <CheckBox :id="'time/' + result.propId + '/missing'" v-model="missingState" />
+        <CheckBox :id="'time/' + result.props[0] + '/missing'" v-model="missingState" />
         <div class="flex items-baseline gap-x-1">
-          <label :for="'time/' + result.propId + '/missing'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label :for="'time/' + result.props[0] + '/missing'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             ><i>{{ t("common.values.missing") }}</i></label
           >
-          <label :for="'time/' + result.propId + '/missing'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ missingCount ?? 0 }})</label>
+          <label :for="'time/' + result.props[0] + '/missing'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ missingCount ?? 0 }})</label>
         </div>
       </li>
     </ul>

@@ -12,7 +12,7 @@ import Button from "@/components/Button.vue"
 import CheckBox from "@/components/CheckBox.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
-import { injectProgress } from "@/progress"
+import { useProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useHasFilters } from "@/search"
 import { equals, loadingWidth, useInitialLoad, useLimitResults } from "@/utils"
 
@@ -38,7 +38,7 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-const progress = injectProgress()
+const progress = useProgress()
 
 // The filter ID from the session's filter, if it exists.
 const filterId = computed(() => props.filter?.id ?? "")
@@ -116,11 +116,7 @@ const WithDocumentD = WithDocument<D>
           <CheckBox :id="'has/' + res.id" v-model="checkboxState" :progress="updateProgress" :value="res.id" class="my-1 self-center" />
           <WithDocumentD :id="res.id" name="DocumentGet">
             <template #default="{ doc, url }">
-              <label
-                :for="'has/' + res.id"
-                class="my-1 leading-none"
-                :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-                :data-url="url"
+              <label :for="'has/' + res.id" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'" :data-url="url"
                 ><DisplayLabel :doc="doc"
               /></label>
             </template>

@@ -48,6 +48,11 @@ const progress = useProgress()
 // The filter ID from the session's filter, if it exists.
 const filterId = computed(() => props.filter?.id ?? "")
 
+// Composite key uniquely identifying this filter panel (all props joined).
+// For single-prop ref filters this is just the prop ID; for sub-ref filters
+// it is "parentProp/prop" so it does not collide with the parent ref filter panel.
+const propsKey = computed(() => props.result.props.join("/"))
+
 const {
   results,
   total,
@@ -56,7 +61,7 @@ const {
 } = useRefFilters(
   toRef(() => props.searchSession),
   filterId,
-  computed(() => props.result.propId),
+  computed(() => props.result.props),
   el,
   progress,
 )
@@ -98,7 +103,7 @@ const checkboxState = computed({
     const updatedFilter: RefFilterEntry = {
       id: props.filter?.id ?? "",
       base: props.filter?.base ?? [],
-      prop: props.filter?.prop ?? [props.result.propId],
+      prop: props.filter?.prop ?? [...props.result.props],
       ref: { to, missing },
     }
 
@@ -114,7 +119,12 @@ const WithDocumentD = WithDocument<D>
 <template>
   <div class="pd-reffiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div :id="labelId" class="flex items-baseline gap-x-1">
-      <DocumentRefInline :id="result.propId" class="mb-1.5 text-lg leading-none" />
+      <template v-if="result.props.length === 2">
+        <DocumentRefInline :id="result.props[0]" class="mb-1.5 text-lg leading-none" />
+        <span class="mb-1.5 text-lg leading-none">&gt;</span>
+        <DocumentRefInline :id="result.props[1]" class="mb-1.5 text-lg leading-none" />
+      </template>
+      <DocumentRefInline v-else :id="result.props[0]" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
     </div>
     <ul ref="el" role="group" :aria-labelledby="labelId" class="grid grid-cols-[max-content_auto] gap-x-1">
@@ -125,7 +135,7 @@ const WithDocumentD = WithDocument<D>
         <li v-for="i in 3" :key="i" class="contents">
           <div class="my-1.5 h-2 w-4 rounded-sm bg-slate-200 motion-safe:animate-pulse" aria-hidden="true"></div>
           <div class="flex items-baseline gap-x-1" aria-hidden="true">
-            <div class="my-1.5 h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse" :class="[loadingWidth(`${result.propId}/${i}`)]"></div>
+            <div class="my-1.5 h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse" :class="[loadingWidth(`${propsKey}/${i}`)]"></div>
             <div class="my-1.5 h-2 w-8 rounded-sm bg-slate-200 motion-safe:animate-pulse"></div>
           </div>
         </li>
@@ -133,20 +143,20 @@ const WithDocumentD = WithDocument<D>
       <template v-else>
         <li v-for="res in limitedResults" :key="res.id" class="contents">
           <template v-if="res.id === '__MISSING__'">
-            <CheckBox :id="'ref/' + result.propId + '/missing'" v-model="checkboxState" value="__MISSING__" />
+            <CheckBox :id="'ref/' + propsKey + '/missing'" v-model="checkboxState" value="__MISSING__" />
             <div class="flex items-baseline gap-x-1">
-              <label :for="'ref/' + result.propId + '/missing'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+              <label :for="'ref/' + propsKey + '/missing'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
                 ><i>{{ t("common.values.missing") }}</i></label
               >
-              <label :for="'ref/' + result.propId + '/missing'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ res.count }})</label>
+              <label :for="'ref/' + propsKey + '/missing'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ res.count }})</label>
             </div>
           </template>
           <template v-else-if="res.count != searchTotal || selectedIds.includes(res.id)">
-            <CheckBox :id="'ref/' + result.propId + '/' + res.id" v-model="checkboxState" :value="res.id" />
+            <CheckBox :id="'ref/' + propsKey + '/' + res.id" v-model="checkboxState" :value="res.id" />
             <div class="flex items-baseline gap-x-1">
               <WithDocumentD :id="res.id" name="DocumentGet">
                 <template #default="{ doc, url }">
-                  <label :for="'ref/' + result.propId + '/' + res.id" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'" :data-url="url"
+                  <label :for="'ref/' + propsKey + '/' + res.id" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'" :data-url="url"
                     ><DisplayLabel :doc="doc"
                   /></label>
                 </template>
@@ -159,7 +169,7 @@ const WithDocumentD = WithDocument<D>
                   ></div>
                 </template>
               </WithDocumentD>
-              <label :for="'ref/' + result.propId + '/' + res.id" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ res.count }})</label>
+              <label :for="'ref/' + propsKey + '/' + res.id" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ res.count }})</label>
               <!--
                 tabindex="-1" keeps the open-link icon out of the keyboard tab
                 order so Tab jumps between filters without stopping

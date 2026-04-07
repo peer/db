@@ -20,6 +20,9 @@ import (
 
 const (
 	histogramBins = 100
+
+	// missingKey is the aggregation/metadata key used for the count of documents missing the filtered property.
+	missingKey = "missing"
 )
 
 // HistogramResult represents count for a single bucket in a filter histogram.
@@ -175,7 +178,7 @@ func histogramFilterGet(
 					ReverseNested(esdsl.NewReverseNestedAggregation())))
 		countSearchService = countSearchService.Size(0).Query(query).
 			AddAggregation("count", countAggregation).
-			AddAggregation("missing", missingAggregation)
+			AddAggregation(missingKey, missingAggregation)
 
 		m := metrics.Duration(internalStore.MetricElasticSearch1).Start()
 		res, err := countSearchService.Do(ctx)
@@ -190,7 +193,7 @@ func histogramFilterGet(
 		if errE != nil {
 			return nil, nil, errE
 		}
-		missingFilter, errE := aggAs[types.FilterAggregate](res.Aggregations, "missing")
+		missingFilter, errE := aggAs[types.FilterAggregate](res.Aggregations, missingKey)
 		if errE != nil {
 			return nil, nil, errE
 		}
@@ -213,7 +216,7 @@ func histogramFilterGet(
 					ReverseNested(esdsl.NewReverseNestedAggregation())))
 		minMaxSearchService = minMaxSearchService.Size(0).Query(query).
 			AddAggregation("minMax", minMaxAggregation).
-			AddAggregation("missing", missingAggregation)
+			AddAggregation(missingKey, missingAggregation)
 
 		m := metrics.Duration(internalStore.MetricElasticSearch1).Start()
 		res, err := minMaxSearchService.Do(ctx)
@@ -228,7 +231,7 @@ func histogramFilterGet(
 		if errE != nil {
 			return nil, nil, errE
 		}
-		missingFilter, errE := aggAs[types.FilterAggregate](res.Aggregations, "missing")
+		missingFilter, errE := aggAs[types.FilterAggregate](res.Aggregations, missingKey)
 		if errE != nil {
 			return nil, nil, errE
 		}
@@ -237,8 +240,8 @@ func histogramFilterGet(
 
 	if docCount == 0 {
 		return []HistogramResult{}, map[string]any{
-			"total":   0,
-			"missing": missingCount,
+			"total":    0,
+			missingKey: missingCount,
 		}, nil
 	}
 
@@ -246,10 +249,10 @@ func histogramFilterGet(
 	if minValue == maxValue {
 		valString := strconv.FormatFloat(minValue, 'f', -1, 64)
 		return []HistogramResult{{From: minValue, Count: docCount}}, map[string]any{
-			"total":   "1",
-			"from":    valString,
-			"to":      valString,
-			"missing": missingCount,
+			"total":    "1",
+			"from":     valString,
+			"to":       valString,
+			missingKey: missingCount,
 		}, nil
 	}
 
@@ -302,7 +305,7 @@ func histogramFilterGet(
 		"from":     strconv.FormatFloat(minValue, 'f', -1, 64),
 		"to":       strconv.FormatFloat(maxValue, 'f', -1, 64),
 		"interval": intervalString,
-		"missing":  missingCount,
+		missingKey: missingCount,
 	}
 
 	return results, metadata, nil

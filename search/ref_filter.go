@@ -141,3 +141,168 @@ func (f *RefFilter) Get(
 		"total": total,
 	}, nil
 }
+
+// ToSubRefQuery converts the RefFilter to an ElasticSearch query on claims.sub
+// for a sub-reference filter with parentProp and prop.
+func (f *RefFilter) ToSubRefQuery(parentProp, prop identifier.Identifier) types.QueryVariant { //nolint:ireturn
+	missingQuery := esdsl.NewBoolQuery().MustNot(
+		esdsl.NewNestedQuery(
+			esdsl.NewBoolQuery().Must(
+				esdsl.NewTermQuery("claims.sub.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+				esdsl.NewTermQuery("claims.sub.prop", esdsl.NewFieldValue().String(prop.String())),
+			),
+		).Path("claims.sub"),
+	)
+
+	// Missing only.
+	if f.Missing && len(f.To) == 0 {
+		return missingQuery
+	}
+
+	// Build value queries (OR across all To values).
+	shoulds := make([]types.QueryVariant, 0, len(f.To)+1)
+	for _, to := range f.To {
+		shoulds = append(shoulds, esdsl.NewNestedQuery(
+			esdsl.NewBoolQuery().Must(
+				esdsl.NewTermQuery("claims.sub.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+				esdsl.NewTermQuery("claims.sub.prop", esdsl.NewFieldValue().String(prop.String())),
+				esdsl.NewTermQuery("claims.sub.to", esdsl.NewFieldValue().String(to.ID.String())),
+			),
+		).Path("claims.sub"))
+	}
+
+	// Values + missing: OR them together.
+	if f.Missing {
+		shoulds = append(shoulds, missingQuery)
+	}
+
+	if len(shoulds) == 1 {
+		return shoulds[0]
+	}
+	return esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
+}
+
+// GetSubRef retrieves sub-reference filter data for search results.
+// It aggregates claims.sub.to values for a given (parentProp, prop) combination.
+// parentToRestrictions optionally restricts results to specific parentTo values (for cross-filtering).
+func (f *RefFilter) GetSubRef(
+	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64),
+	query types.QueryVariant, parentProp, prop identifier.Identifier,
+	parentToRestrictions []identifier.Identifier,
+) ([]RefFilterResult, map[string]any, errors.E) {
+	metrics, _ := waf.GetMetrics(ctx)
+
+	searchService, _, _ := getSearchService()
+
+	// Build the filter for parentProp + prop (+ optional parentTo restriction).
+	filterMusts := []types.QueryVariant{
+		esdsl.NewTermQuery("claims.sub.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+		esdsl.NewTermQuery("claims.sub.prop", esdsl.NewFieldValue().String(prop.String())),
+	}
+	if len(parentToRestrictions) > 0 {
+		parentToShoulds := make([]types.QueryVariant, 0, len(parentToRestrictions))
+		for _, pto := range parentToRestrictions {
+			parentToShoulds = append(parentToShoulds, esdsl.NewTermQuery("claims.sub.parentTo", esdsl.NewFieldValue().String(pto.String())))
+		}
+		filterMusts = append(filterMusts, esdsl.NewBoolQuery().Should(parentToShoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)))
+	}
+
+	// Aggregation for documents that have matching subRef: terms on claims.sub.to.
+	subRefAggregation := esdsl.NewAggregations().
+		Nested(esdsl.NewNestedAggregation().Path("claims.sub")).
+		AddAggregation("filter", esdsl.NewAggregations().
+			Filter(esdsl.NewBoolQuery().Must(filterMusts...)).
+			AddAggregation("props", esdsl.NewAggregations().
+				Terms(esdsl.NewTermsAggregation().Field("claims.sub.to").Size(MaxResultsCount).
+					Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
+				AddAggregation("docs", esdsl.NewAggregations().
+					ReverseNested(esdsl.NewReverseNestedAggregation()))).
+			AddAggregation("total", esdsl.NewAggregations().
+				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.sub.to").PrecisionThreshold(40000)))) //nolint:mnd
+
+	// Aggregation for documents missing this sub-reference.
+	missingAggregation := esdsl.NewAggregations().
+		Filter(esdsl.NewBoolQuery().MustNot(
+			esdsl.NewNestedQuery(
+				esdsl.NewBoolQuery().Must(
+					esdsl.NewTermQuery("claims.sub.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+					esdsl.NewTermQuery("claims.sub.prop", esdsl.NewFieldValue().String(prop.String())),
+				),
+			).Path("claims.sub"),
+		))
+
+	searchService = searchService.Size(0).Query(query).
+		AddAggregation("subRef", subRefAggregation).
+		AddAggregation("missing", missingAggregation)
+
+	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
+	res, err := searchService.Do(ctx)
+	m.Stop()
+	if err != nil {
+		return nil, nil, errors.WithStack(err)
+	}
+	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
+
+	subRefNested, errE := aggAs[types.NestedAggregate](res.Aggregations, "subRef")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	subRefFilter, errE := aggAs[types.FilterAggregate](subRefNested.Aggregations, "filter")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	subRefTerms, errE := aggAs[types.StringTermsAggregate](subRefFilter.Aggregations, "props")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	subRefBuckets, ok := subRefTerms.Buckets.([]types.StringTermsBucket)
+	if !ok {
+		errE := errors.New("unexpected bucket type for subRef")
+		errors.Details(errE)["type"] = fmt.Sprintf("%T", subRefTerms.Buckets)
+		return nil, nil, errE
+	}
+	subRefTotal, errE := aggAs[types.CardinalityAggregate](subRefFilter.Aggregations, "total")
+	if errE != nil {
+		return nil, nil, errE
+	}
+
+	// Parse the missing count.
+	missingFilter, errE := aggAs[types.FilterAggregate](res.Aggregations, "missing")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	missingCount := missingFilter.DocCount
+
+	results := make([]RefFilterResult, 0, len(subRefBuckets)+1)
+	for _, bucket := range subRefBuckets {
+		bucketDocs, errE := aggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
+		if errE != nil {
+			return nil, nil, errE
+		}
+		key, ok := bucket.Key.(string)
+		if !ok {
+			errE := errors.New("unexpected key type for subRef bucket")
+			errors.Details(errE)["type"] = fmt.Sprintf("%T", bucket.Key)
+			return nil, nil, errE
+		}
+		results = append(results, RefFilterResult{ID: key, Count: bucketDocs.DocCount})
+	}
+
+	// Include the missing bucket if there are documents without this sub-reference.
+	if missingCount > 0 {
+		results = append(results, RefFilterResult{ID: MissingRefFilterID, Count: missingCount})
+		slices.SortStableFunc(results, func(a, b RefFilterResult) int {
+			return cmp.Compare(b.Count, a.Count)
+		})
+	}
+
+	subRefTotalValue := max(int64(len(subRefBuckets)), subRefTotal.Value)
+	if missingCount > 0 {
+		subRefTotalValue++
+	}
+	total := strconv.FormatInt(subRefTotalValue, 10)
+
+	return results, map[string]any{
+		"total": total,
+	}, nil
+}

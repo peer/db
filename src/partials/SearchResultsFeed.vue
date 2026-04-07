@@ -244,7 +244,7 @@ function onSkipTo(targetId: string) {
       <template v-else-if="filtersTotal > 0">
         <div class="text-center text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: filtersTotal }) }}</div>
 
-        <template v-for="filter in limitedFiltersResults" :key="filter.filterId ?? `${filter.propId}/${'unit' in filter ? (filter.unit ?? '') : ''}`">
+        <template v-for="filter in limitedFiltersResults" :key="filter.filterId ?? `${filter.props?.join('/') ?? ''}/${'unit' in filter ? (filter.unit ?? '') : ''}`">
           <FiltersResult
             :result="filter"
             :search-session="searchSession"

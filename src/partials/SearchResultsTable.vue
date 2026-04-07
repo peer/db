@@ -294,10 +294,14 @@ function onCloseFilterModal() {
                 aria-hidden="true"
               />
             </th>
-            <template v-for="filter in limitedFiltersResults" v-else :key="filter.filterId ?? `${filter.propId}/${'unit' in filter ? (filter.unit ?? '') : ''}`">
+            <template
+              v-for="filter in limitedFiltersResults"
+              v-else
+              :key="filter.filterId ?? `${filter.props?.join('/') ?? ''}/${'unit' in filter ? (filter.unit ?? '') : ''}`"
+            >
               <th v-if="supportedFilter(filter)" class="text-start">
                 <!-- <div class="flex flex-row items-center justify-between"> -->
-                <WithDocumentD :id="filter.propId" name="DocumentGet">
+                <WithDocumentD :id="filter.props?.[0] ?? ''" name="DocumentGet">
                   <template #default="{ doc, url }">
                     <Button
                       :data-url="url"
@@ -310,9 +314,9 @@ function onCloseFilterModal() {
                   </template>
                   <template #loading="{ url }">
                     <div
-                      class="pd-withdocument-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
+                      class="pd-withdocument-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200"
                       :data-url="url"
-                      :class="[loadingWidth(filter.propId)]"
+                      :class="[loadingWidth(filter.props?.[0] ?? '')]"
                       aria-hidden="true"
                     />
                   </template>
@@ -350,20 +354,24 @@ function onCloseFilterModal() {
                       aria-hidden="true"
                     />
                   </td>
-                  <template v-for="filter in limitedFiltersResults" v-else :key="filter.filterId ?? `${filter.propId}/${'unit' in filter ? (filter.unit ?? '') : ''}`">
+                  <template
+                    v-for="filter in limitedFiltersResults"
+                    v-else
+                    :key="filter.filterId ?? `${filter.props?.join('/') ?? ''}/${'unit' in filter ? (filter.unit ?? '') : ''}`"
+                  >
                     <td v-if="supportedFilter(filter)" class="align-top">
                       <LocalScope
                         v-slot="{ rowExpanded, cellTruncated, cellExpanded }"
                         :row-expanded="isRowExpanded(result.id)"
-                        :cell-truncated="isCellTruncated(result.id, `${filter.filterId ?? `${filter.type}/${filter.propId}`}`)"
-                        :cell-expanded="isCellExpanded(result.id, `${filter.filterId ?? `${filter.type}/${filter.propId}`}`)"
+                        :cell-truncated="isCellTruncated(result.id, `${filter.filterId ?? `${filter.type}/${filter.props?.join('/') ?? ''}`}`)"
+                        :cell-expanded="isCellExpanded(result.id, `${filter.filterId ?? `${filter.type}/${filter.props?.join('/') ?? ''}`}`)"
                       >
                         <!--
                           We have div wrapper so that we can control the height of the row. td elements cannot have height set.
                           We set min-height to line height + padding.
                         -->
                         <div
-                          :ref="trackTruncation(result.id, `${filter.filterId ?? `${filter.type}/${filter.propId}`}`)"
+                          :ref="trackTruncation(result.id, `${filter.filterId ?? `${filter.type}/${filter.props?.join('/') ?? ''}`}`)"
                           class="min-h-[calc(1lh+var(--spacing)*2)] max-w-[400px] overscroll-contain p-2"
                           :class="[rowExpanded ? 'max-h-[300px] overflow-auto' : 'max-h-[calc(1lh+var(--spacing)*2)] truncate overflow-clip']"
                         >
@@ -387,7 +395,7 @@ function onCloseFilterModal() {
                             </Button>
                           </div>
 
-                          <template v-for="(claim, cIndex) in getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.propId)" :key="claim.id">
+                          <template v-for="(claim, cIndex) in getClaimsOfTypeWithConfidence(doc.claims, filter.type, filter.props?.[0] ?? '')" :key="claim.id">
                             <template v-if="cIndex !== 0">, </template>
                             <ClaimValue :type="filter.type" :claim="claim" />
                           </template>

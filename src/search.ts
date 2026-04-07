@@ -168,7 +168,7 @@ export function useFilters(
     const best = new Map<string, FilterResult>()
     for (const r of rawResults.value) {
       const unit = r.type === "amount" ? ((r as DeepReadonly<{ unit?: string }>).unit ?? "") : ""
-      const key = `${r.type}/${r.propId}/${unit}`
+      const key = `${r.type}/${r.props?.join("/") ?? ""}/${unit}`
       const existing = best.get(key)
       if (!existing || (r.filterId && !existing.filterId)) {
         best.set(key, r as FilterResult)
@@ -279,7 +279,7 @@ function useSearchResults<T extends Result | FilterResult | RefFilterResult | Ha
 export function useRefFilters(
   searchSessionRef: Ref<SearchSessionRef>,
   filterId: Ref<string>,
-  prop: Ref<string>,
+  props: Ref<readonly string[]>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
@@ -305,9 +305,17 @@ export function useRefFilters(
       }).href
     }
     // Inactive filter: use prop-based route.
+    if (props.value.length === 2) {
+      // Sub-ref filter: use parentProp + prop route.
+      return router.apiResolve({
+        name: "SearchSubRefFilter",
+        params: { id: searchSessionRef.value.id, parentProp: props.value[0], prop: props.value[1] },
+        query,
+      }).href
+    }
     return router.apiResolve({
       name: "SearchRefFilter",
-      params: { id: searchSessionRef.value.id, prop: prop.value },
+      params: { id: searchSessionRef.value.id, prop: props.value[0] },
       query,
     }).href
   })

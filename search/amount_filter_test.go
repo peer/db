@@ -52,7 +52,7 @@ func TestAmountFilterGetIntegration(t *testing.T) {
 					},
 					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
 				}},
-				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 			},
 		})
 	}
@@ -118,7 +118,7 @@ func TestAmountFilterGetMissingIntegration(t *testing.T) {
 				},
 				From: &ten, FromDisplay: "", To: &ten, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 		},
 	})
 	// Doc without the amount prop.
@@ -127,7 +127,7 @@ func TestAmountFilterGetMissingIntegration(t *testing.T) {
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil, String: nil, HTML: nil,
 			Amount: nil,
-			Time:   nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+			Time:   nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 		},
 	})
 	// Another doc without the amount prop.
@@ -136,7 +136,7 @@ func TestAmountFilterGetMissingIntegration(t *testing.T) {
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil, String: nil, HTML: nil,
 			Amount: nil,
-			Time:   nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+			Time:   nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -174,7 +174,7 @@ func TestAmountFilterGetNoMissingIntegration(t *testing.T) {
 				},
 				From: &ten, FromDisplay: "", To: &ten, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -221,7 +221,7 @@ func TestAmountFilterGetInactiveIntegration(t *testing.T) {
 					},
 					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
 				}},
-				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 			},
 		})
 	}
@@ -271,7 +271,7 @@ func TestAmountFilterGetSameValuesIntegration(t *testing.T) {
 					},
 					From: &fortyTwo, FromDisplay: "", To: &fortyTwo, ToDisplay: "",
 				}},
-				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 			},
 		})
 	}
@@ -338,7 +338,7 @@ func TestAmountFilterGetWithoutUnitIntegration(t *testing.T) {
 				},
 				From: &twentyFive, FromDisplay: "", To: &twentyFive, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -393,7 +393,7 @@ func TestAmountFilterGetGapIntegration(t *testing.T) {
 					},
 					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
 				}},
-				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 			},
 		})
 	}
@@ -469,7 +469,7 @@ func TestAmountFilterGetExtendedBoundsIntegration(t *testing.T) {
 					},
 					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
 				}},
-				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 			},
 		})
 	}
@@ -539,7 +539,7 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 				},
 				From: &zero, FromDisplay: "", To: &twenty, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -553,7 +553,7 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 				},
 				From: &eighty, FromDisplay: "", To: &hundred, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -630,7 +630,7 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 				},
 				From: &five, FromDisplay: "", To: &five, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -644,7 +644,7 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 				},
 				From: &twenty, FromDisplay: "", To: &eighty, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -658,7 +658,7 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 				},
 				From: &ninetyFive, FromDisplay: "", To: &ninetyFive, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)

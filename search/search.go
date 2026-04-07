@@ -197,16 +197,13 @@ type HasFilter struct {
 // ToQuery converts the HasFilter to an ElasticSearch query.
 func (f *HasFilter) ToQuery() types.QueryVariant { //nolint:ireturn
 	// Build value queries (OR across all selected props).
-	// Only has claims without sub-claims are matched.
+	// Only simple has claims (without sub-claims) are indexed in claims.has,
+	// so we just match by claims.has.prop. Has claims with sub-claims are stored
+	// in claims.sub instead and naturally excluded from this query.
 	shoulds := make([]types.QueryVariant, 0, len(f.Props))
 	for _, p := range f.Props {
 		shoulds = append(shoulds, esdsl.NewNestedQuery(
-			esdsl.NewBoolQuery().
-				Must(esdsl.NewTermQuery("claims.has.prop", esdsl.NewFieldValue().String(p.ID.String()))).
-				MustNot(
-					esdsl.NewNestedQuery(esdsl.NewMatchAllQuery()).Path("claims.has.ref"),
-					esdsl.NewNestedQuery(esdsl.NewMatchAllQuery()).Path("claims.has.has"),
-				),
+			esdsl.NewTermQuery("claims.has.prop", esdsl.NewFieldValue().String(p.ID.String())),
 		).Path("claims.has"))
 	}
 
@@ -284,13 +281,22 @@ func (f Filter) Validate(withoutSession bool) errors.E {
 	}
 
 	// Has filter does not use Prop (it is a global filter).
-	if f.Has != nil {
+	// Ref filter supports 1 prop (top-level) or 2 props (sub-ref: parentProp + prop).
+	// Amount/Time filters use exactly 1 prop.
+	switch {
+	case f.Has != nil:
 		if len(f.Prop) != 0 {
 			errE := errors.New("prop must be empty for has filter")
 			errors.Details(errE)["length"] = len(f.Prop)
 			return errE
 		}
-	} else {
+	case f.Ref != nil:
+		if len(f.Prop) != 1 && len(f.Prop) != 2 {
+			errE := errors.New("prop must have one or two elements for ref filter")
+			errors.Details(errE)["length"] = len(f.Prop)
+			return errE
+		}
+	default:
 		if len(f.Prop) != 1 {
 			errE := errors.New("prop must have exactly one element")
 			errors.Details(errE)["length"] = len(f.Prop)
@@ -315,10 +321,13 @@ func (f Filter) ToQuery() types.QueryVariant { //nolint:ireturn
 	if f.Has != nil {
 		return f.Has.ToQuery()
 	}
-	prop := f.Prop[0]
 	if f.Ref != nil {
-		return f.Ref.ToQuery(prop)
+		if len(f.Prop) == 2 { //nolint:mnd
+			return f.Ref.ToSubRefQuery(f.Prop[0], f.Prop[1])
+		}
+		return f.Ref.ToQuery(f.Prop[0])
 	}
+	prop := f.Prop[0]
 	if f.Amount != nil {
 		return f.Amount.ToQuery(prop)
 	}
@@ -502,33 +511,17 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 		q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(fields...).DefaultOperator(defaultOperator)
 		shoulds = append(shoulds, esdsl.NewNestedQuery(q).Path(prefix))
 	}
-	// Display and naming fields in nested ref claims within ref, has, none, and unknown claim types.
-	for _, claimType := range []string{"ref", "has", "none", "unknown"} {
-		outerPrefix := "claims." + claimType
-		innerPrefix := outerPrefix + ".ref"
+	// Display and naming fields in denormalized sub-claims.
+	{
+		prefix := "claims.sub"
 		var fields []string
 		for _, fieldName := range []string{"propDisplay", "propNaming", "toDisplay", "toNaming"} {
 			for _, lang := range langs {
-				fields = append(fields, innerPrefix+"."+fieldName+"."+lang+displayBoost)
+				fields = append(fields, prefix+"."+fieldName+"."+lang+displayBoost)
 			}
 		}
-		innerQ := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(fields...).DefaultOperator(defaultOperator)
-		innerNested := esdsl.NewNestedQuery(innerQ).Path(innerPrefix)
-		shoulds = append(shoulds, esdsl.NewNestedQuery(innerNested).Path(outerPrefix))
-	}
-	// Display and naming fields in nested has claims within ref, has, none, and unknown claim types.
-	for _, claimType := range []string{"ref", "has", "none", "unknown"} {
-		outerPrefix := "claims." + claimType
-		innerPrefix := outerPrefix + ".has"
-		var fields []string
-		for _, fieldName := range []string{"propDisplay", "propNaming"} {
-			for _, lang := range langs {
-				fields = append(fields, innerPrefix+"."+fieldName+"."+lang+displayBoost)
-			}
-		}
-		innerQ := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(fields...).DefaultOperator(defaultOperator)
-		innerNested := esdsl.NewNestedQuery(innerQ).Path(innerPrefix)
-		shoulds = append(shoulds, esdsl.NewNestedQuery(innerNested).Path(outerPrefix))
+		q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(fields...).DefaultOperator(defaultOperator)
+		shoulds = append(shoulds, esdsl.NewNestedQuery(q).Path(prefix))
 	}
 
 	return esdsl.NewBoolQuery().Should(shoulds...)

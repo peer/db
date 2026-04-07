@@ -6,14 +6,14 @@ import type { Router } from "vue-router"
 import type { ClaimTypes } from "@/document/claims"
 
 export type RefSearchResult = {
-  propId: string
+  props: readonly string[]
   count: number
   type: "ref"
   filterId?: string
 }
 
 export type AmountSearchResult = {
-  propId: string
+  props: readonly string[]
   count: number
   type: "amount"
   unit?: string
@@ -21,14 +21,14 @@ export type AmountSearchResult = {
 }
 
 export type TimeSearchResult = {
-  propId: string
+  props: readonly string[]
   count: number
   type: "time"
   filterId?: string
 }
 
 export type HasSearchResult = {
-  propId?: string
+  props?: readonly string[]
   count: number
   type: "has"
   filterId?: string
