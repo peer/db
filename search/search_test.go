@@ -427,7 +427,6 @@ func TestFilterToQuery(t *testing.T) {
 					Has:    &search.HasFilter{Props: []search.HasValue{{ID: value}}},
 				}
 			}(),
-			//nolint:lll
 			Want: `{"nested":{"path":"claims.has","query":{"bool":{"must":[{"term":{"claims.has.prop":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}],"must_not":[{"nested":{"path":"claims.has.ref","query":{"match_all":{}}}},{"nested":{"path":"claims.has.has","query":{"match_all":{}}}}]}}}}`, //nolint:lll
 		},
 		{
