@@ -264,6 +264,7 @@ async function onEdit() {
           </InputTextLink>
           <div class="grid grid-cols-2 gap-x-1">
             <ButtonLink
+              id="documentget-button-prev"
               primary
               class="px-3.5"
               :disabled="!prevNext.previous"
@@ -273,6 +274,7 @@ async function onEdit() {
               <span class="hidden sm:inline">{{ t("common.buttons.prev") }}</span>
             </ButtonLink>
             <ButtonLink
+              id="documentget-button-next"
               primary
               class="px-3.5"
               :disabled="!prevNext.next"
