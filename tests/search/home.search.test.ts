@@ -53,6 +53,6 @@ test.describe("PeerDB Search Flows", () => {
     const results = page.locator("[id^='result-']")
     await expect(results).toHaveCount(1)
 
-    console.log('Successfully searched for "short name", verified it shows up and narrowed search results to 4.')
+    console.log('Successfully searched for "short name", verified it shows up only 1 result.')
   })
 })
