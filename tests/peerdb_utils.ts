@@ -2,6 +2,9 @@ import type { Page } from "@playwright/test"
 
 import { checkpoint, expect, PEERDB_URL } from "./utils"
 
+export const TOTAL_CORE_DOCUMENTS = 80
+export const SEARCH_DEFAULT_LIMIT = 50
+
 // Verify search input and button exist, proceed with custom query.
 export async function searchWithQuery(page: Page, query: string): Promise<void> {
   await page.goto(PEERDB_URL)
@@ -20,9 +23,9 @@ export async function navigateToSearchResults(page: Page): Promise<void> {
   await searchWithQuery(page, "")
 
   const header = page.locator(".pd-searchresultsheader")
-  await expect(header).toContainText("80 results found.")
+  await expect(header).toContainText(`${TOTAL_CORE_DOCUMENTS} results found.`)
   await expect(header).toContainText("Searching without query and with 0 active filters.")
 
   const results = page.locator("[id^='result-']")
-  await expect(results).toHaveCount(50)
+  await expect(results).toHaveCount(SEARCH_DEFAULT_LIMIT)
 }
