@@ -1,5 +1,5 @@
 import { SHORT_NAME } from "@/core"
-import { navigateToSearchResults, searchWithQuery, TOTAL_CORE_DOCUMENTS, SEARCH_DEFAULT_LIMIT } from "../peerdb_utils"
+import { navigateToSearchResults, SEARCH_DEFAULT_LIMIT, searchWithQuery, TOTAL_CORE_DOCUMENTS } from "../peerdb_utils"
 import { checkpoint, expect, test } from "../utils"
 
 test.describe("PeerDB Search Flows", () => {

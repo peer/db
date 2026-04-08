@@ -1,6 +1,6 @@
 import { Identifier } from "@tozd/identifier"
 
-import { INSTANCE_OF, NAMING, Namespace, SUBPROPERTY_OF } from "@/core"
+import { INSTANCE_OF, Namespace, NAMING, SUBPROPERTY_OF } from "@/core"
 import { navigateToSearchResults, TOTAL_CORE_DOCUMENTS } from "../peerdb_utils"
 import { checkpoint, expect, test } from "../utils"
 
