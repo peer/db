@@ -29,6 +29,8 @@ type HistogramResult struct {
 }
 
 // aggAs extracts a typed aggregation from a map of aggregations.
+//
+// TODO: Contribute upstream. See: https://github.com/elastic/go-elasticsearch/issues/1367
 func aggAs[T any](aggs map[string]types.Aggregate, key string) (*T, errors.E) {
 	raw, ok := aggs[key]
 	if !ok {
