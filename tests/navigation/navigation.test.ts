@@ -1,13 +1,12 @@
 import { SHORT_NAME } from "@/core"
-import { navigateToSearchResults } from "../peerdb_utils"
+import { searchWithQuery } from "../peerdb_utils"
 import { checkpoint, expect, test } from "../utils"
 
 test.describe("PeerDB Document Navigation", () => {
   test("Prev/next navigation between documents in a search session", async ({ context }) => {
     const page = await context.newPage()
 
-    await navigateToSearchResults(page)
-    await checkpoint(page, "search-default-50-results")
+    await searchWithQuery(page, "")
 
     const shortName = page.locator(`#result-${SHORT_NAME} h2 .link`)
     await expect(shortName).toBeVisible()
