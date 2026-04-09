@@ -286,6 +286,15 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .pd-progressbar-short,
+  .pd-progressbar-long,
+  .animate-navbar,
+  .animate-pulse {
+    animation-duration: 0s;
+  }
+}
+
 /* stylelint-disable selector-class-pattern */
 
 /*
