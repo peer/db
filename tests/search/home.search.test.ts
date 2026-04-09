@@ -14,8 +14,9 @@ test.describe("PeerDB Search Flows", () => {
     await expect(loadMoreButton).toBeVisible()
 
     // Results are loaded in batches of SEARCH_DEFAULT_LIMIT, remaining are loaded when scrolling to bottom.
-    await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }))
-    await expect(loadMoreButton).not.toBeVisible()
+    while (await loadMoreButton.isVisible()) {
+      await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }))
+    }
     await checkpoint(page, `search-default-all-results`)
 
     console.log(
