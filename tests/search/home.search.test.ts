@@ -6,12 +6,13 @@ test.describe("PeerDB Search Flows", () => {
   test(`Default search returns ${TOTAL_CORE_DOCUMENTS} core documents`, async ({ context }) => {
     const page = await context.newPage()
 
-    await searchWithQuery(page, "", TOTAL_CORE_DOCUMENTS)
+    await searchWithQuery(page, "")
 
     const loadMoreButton = page.locator("#searchresultsfeed-button-loadmore")
     await expect(loadMoreButton).toBeVisible()
 
     const results = page.locator("[id^='result-']")
+    await expect(results).toHaveCount(SEARCH_DEFAULT_LIMIT)
     // Results are loaded in batches of SEARCH_DEFAULT_LIMIT, remaining are loaded when scrolling to bottom.
     await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }))
     await expect(results).toHaveCount(TOTAL_CORE_DOCUMENTS)
@@ -26,7 +27,7 @@ test.describe("PeerDB Search Flows", () => {
   test("Search with no matching query shows no results", async ({ context }) => {
     const page = await context.newPage()
 
-    await searchWithQuery(page, "no-results-expected", 0)
+    await searchWithQuery(page, "no-results-expected")
 
     console.log("Successfully searched for no documents when querying non-existing document.")
   })
@@ -34,7 +35,7 @@ test.describe("PeerDB Search Flows", () => {
   test("Search query narrows results and finds short name property", async ({ context }) => {
     const page = await context.newPage()
 
-    await searchWithQuery(page, "short", 1)
+    await searchWithQuery(page, "short")
 
     const shortNameResult = page.locator(`#result-${SHORT_NAME}`)
     await expect(shortNameResult).toBeVisible()
