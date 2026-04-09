@@ -1,13 +1,12 @@
 import { SHORT_NAME } from "@/core"
-import { navigateToSearchResults, SEARCH_DEFAULT_LIMIT, searchWithQuery, TOTAL_CORE_DOCUMENTS } from "../peerdb_utils"
+import { SEARCH_DEFAULT_LIMIT, searchWithQuery, TOTAL_CORE_DOCUMENTS } from "../peerdb_utils"
 import { checkpoint, expect, test } from "../utils"
 
 test.describe("PeerDB Search Flows", () => {
   test(`Default search returns ${TOTAL_CORE_DOCUMENTS} core documents`, async ({ context }) => {
     const page = await context.newPage()
 
-    await navigateToSearchResults(page)
-    await checkpoint(page, "search-default-results")
+    await searchWithQuery(page, "", TOTAL_CORE_DOCUMENTS)
 
     const loadMoreButton = page.locator("#searchresultsfeed-button-loadmore")
     await expect(loadMoreButton).toBeVisible()
@@ -27,12 +26,7 @@ test.describe("PeerDB Search Flows", () => {
   test("Search with no matching query shows no results", async ({ context }) => {
     const page = await context.newPage()
 
-    await searchWithQuery(page, "no-results-expected")
-
-    const header = page.locator(".pd-searchresultsheader")
-    await expect(header).toBeVisible()
-    await checkpoint(page, "search-zero-results")
-    await expect(header).toContainText("No results found.")
+    await searchWithQuery(page, "no-results-expected", 0)
 
     console.log("Successfully searched for no documents when querying non-existing document.")
   })
@@ -40,18 +34,10 @@ test.describe("PeerDB Search Flows", () => {
   test("Search query narrows results and finds short name property", async ({ context }) => {
     const page = await context.newPage()
 
-    await searchWithQuery(page, "short")
-
-    const header = page.locator(".pd-searchresultsheader")
-    await expect(header).toBeVisible()
-    await checkpoint(page, "search-query-short-name")
-    await expect(header).toContainText("1 result found.")
+    await searchWithQuery(page, "short", 1)
 
     const shortNameResult = page.locator(`#result-${SHORT_NAME}`)
     await expect(shortNameResult).toBeVisible()
-
-    const results = page.locator("[id^='result-']")
-    await expect(results).toHaveCount(1)
 
     console.log('Successfully searched for "short name", verified it shows up only 1 result.')
   })

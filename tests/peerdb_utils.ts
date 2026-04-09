@@ -5,8 +5,8 @@ import { checkpoint, expect, PEERDB_URL } from "./utils"
 export const TOTAL_CORE_DOCUMENTS = 80
 export const SEARCH_DEFAULT_LIMIT = 50
 
-// Verify search input and button exist, proceed with custom query.
-export async function searchWithQuery(page: Page, query: string): Promise<void> {
+// Verify search input and button exist, proceed with custom query, verify result count and take a screenshot.
+export async function searchWithQuery(page: Page, query: string, expectedCount: number): Promise<void> {
   await page.goto(PEERDB_URL)
 
   const searchInput = page.locator("#home-input-search")
@@ -17,15 +17,26 @@ export async function searchWithQuery(page: Page, query: string): Promise<void> 
 
   await searchInput.fill(query)
   await searchButton.click()
-}
-
-export async function navigateToSearchResults(page: Page): Promise<void> {
-  await searchWithQuery(page, "")
 
   const header = page.locator(".pd-searchresultsheader")
-  await expect(header).toContainText(`${TOTAL_CORE_DOCUMENTS} results found.`)
-  await expect(header).toContainText("Searching without query and with 0 active filters.")
-
   const results = page.locator("[id^='result-']")
-  await expect(results).toHaveCount(SEARCH_DEFAULT_LIMIT)
+  // A maximum of SEARCH_DEFAULT_LIMIT results are shown without scrolling, so we take the smaller number from the two.
+  await expect(results).toHaveCount(Math.min(expectedCount, SEARCH_DEFAULT_LIMIT))
+  await expect(header).toContainText(resultsFoundText(expectedCount))
+  await expect(header).toContainText(searchingQueryAndFiltersText(query, 0))
+
+  await checkpoint(page, query === "" ? "search-default-results" : `search-query-${query}`)
+}
+
+export function searchingQueryAndFiltersText(query: string, count: number): string {
+  const queryText = query === "" ? "Searching without query" : `Searching query ${query}`
+  const separator = query === "" ? " and with " : " and "
+  const filtersText = count === 1 ? "1 active filter." : `${count} active filters.`
+  return queryText + separator + filtersText
+}
+
+export function resultsFoundText(count: number): string {
+  if (count === 0) return "No results found."
+  if (count === 1) return "1 result found."
+  return `${count} results found.`
 }
