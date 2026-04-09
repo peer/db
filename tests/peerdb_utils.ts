@@ -2,9 +2,6 @@ import type { Page } from "@playwright/test"
 
 import { checkpoint, expect, PEERDB_URL } from "./utils"
 
-export const TOTAL_CORE_DOCUMENTS = 80
-export const SEARCH_DEFAULT_LIMIT = 50
-
 // Verify search input and button exist, proceed with custom query and take a screenshot.
 export async function searchWithQuery(page: Page, query: string): Promise<void> {
   await page.goto(PEERDB_URL)
