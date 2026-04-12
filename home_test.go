@@ -71,7 +71,7 @@ func init() { //nolint:gochecknoinits
 			return err //nolint:wrapcheck
 		}
 
-		testFiles[filepath.Join("dist", path)] = &fstest.MapFile{
+		testFiles[path] = &fstest.MapFile{
 			Data:    data,
 			Mode:    info.Mode(),
 			ModTime: info.ModTime(),
