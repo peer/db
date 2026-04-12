@@ -414,6 +414,19 @@ fmt_node:
     - npm run fmt
     - git diff --exit-code --color=always
 
+generate_vue_i18n:
+  stage: test
+
+  image: node:24.10-alpine3.22
+
+  before_script:
+    - apk --update add git
+
+  script:
+    - npm ci --audit=false
+    - npm run generate-vue-i18n
+    - git diff --exit-code --color=always
+
 lint_docs:
   stage: test
 
