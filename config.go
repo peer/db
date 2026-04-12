@@ -112,7 +112,7 @@ type ServeCommand struct {
 	Password kong.FileContentFlag `env:"PASSWORD_PATH" help:"Require authentication to access all sites. Its password." placeholder:"PATH" yaml:"password"`
 
 	Domain string `                          group:"Let's Encrypt:" help:"Domain name to request for Let's Encrypt's certificate when sites are not configured." name:"tls.domain" placeholder:"STRING"           yaml:"domain"`
-	Title  string `default:"${defaultTitle}"                        help:"Title to be shown to the users when sites are not configured."                                           placeholder:"NAME"   short:"T" yaml:"title"`
+	Title  string `default:"${defaultTitle}"                        help:"Title to be shown to the users when sites are not configured."                                           placeholder:"STRING" short:"T" yaml:"title"`
 }
 
 // Validate validates the serve command configuration.
