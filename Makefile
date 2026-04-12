@@ -44,9 +44,7 @@ test:
 	gotestsum --format pkgname --packages ./... -- -p 1 -race -timeout 10m -cover -covermode atomic
 
 test-ci:
-	gotestsum --format pkgname --packages ./... --junitfile tests.xml -- -p 1 -race -timeout 10m -coverprofile=coverage.txt -covermode atomic
-	gocover-cobertura < coverage.txt > coverage.xml
-	go tool cover -html=coverage.txt -o coverage.html
+	gotestsum --format pkgname --packages ./... --junitfile tests.xml -- -p 1 -race -timeout 10m -cover -covermode atomic -args -test.gocoverdir=coverage
 
 lint:
 	golangci-lint run --output.text.colors --allow-parallel-runners --fix
