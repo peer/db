@@ -9,7 +9,7 @@ import { configDefaults, defineConfig } from "vitest/config"
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
 
-// https://vitejs.dev/config/
+// https://vite.dev/config/
 // https://vitest.dev/config/
 export default defineConfig({
   define: {
