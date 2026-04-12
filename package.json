@@ -80,7 +80,7 @@
     "test-ci": "vitest run --reporter junit --reporter default --outputFile tests.xml --coverage",
     "test-e2e": "playwright test --config=playwright.config.ts --update-snapshots=${UPDATE_SCREENSHOTS:-missing} && nyc report",
     "test-e2e-install": "playwright install --with-deps chromium",
-    "generate-i18n-types": "node generate-vue-i18n.js",
+    "generate-vue-i18n": "node generate-vue-i18n.js",
     "upgrade": "ncu -u --dep dev,optional,peer,prod,packageManager --peer",
     "check-audit": "check-audit",
     "resolve-audit": "resolve-audit",
