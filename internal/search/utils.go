@@ -10,12 +10,17 @@ import (
 
 	"github.com/elastic/elastic-transport-go/v8/elastictransport"
 	"github.com/elastic/go-elasticsearch/v9"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/sortorder"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
+	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/indexer"
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
 type loggerAdapter struct {
@@ -140,4 +145,102 @@ func EnsureIndex(ctx context.Context, esClient *elasticsearch.TypedClient, index
 func NewHTTPClient(logger zerolog.Logger, httpClient *http.Client) *http.Client {
 	// TODO: Make contact e-mail into a CLI argument.
 	return indexer.NewHTTPClient(logger, httpClient, fmt.Sprintf("PeerBot/%s (build on %s, git revision %s) (mailto:mitar.peerbot@tnode.com)", cli.Version, cli.BuildTimestamp, cli.Revision)) //nolint:lll
+}
+
+const fetchDocumentIDsPageSize = 5000
+
+// rawFieldValue wraps a types.FieldValue so it satisfies types.FieldValueVariant.
+//
+// See: https://github.com/elastic/go-elasticsearch/issues/1328
+type rawFieldValue struct {
+	V types.FieldValue
+}
+
+// FieldValueCaster returns the wrapped FieldValue pointer.
+func (r *rawFieldValue) FieldValueCaster() *types.FieldValue {
+	return &r.V
+}
+
+// FetchDocumentIDs retrieves document IDs matching the given class IDs using ES PIT.
+// If classIDs is empty, all documents are returned.
+func FetchDocumentIDs(ctx context.Context, esClient *elasticsearch.TypedClient, index string, classIDs []identifier.Identifier) ([]identifier.Identifier, errors.E) {
+	pit, err := esClient.OpenPointInTime(index).KeepAlive("1m").Do(ctx)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	pitID := pit.Id
+
+	defer func() {
+		_, _ = esClient.ClosePointInTime().Id(pitID).Do(ctx)
+	}()
+
+	// Build query.
+	var query types.QueryVariant
+	if len(classIDs) == 0 {
+		query = esdsl.NewMatchAllQuery()
+	} else if len(classIDs) == 1 {
+		boolQ := esdsl.NewBoolQuery().Must(
+			esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(internalCore.InstanceOfPropID.String())),
+			esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(classIDs[0].String())),
+		)
+		query = esdsl.NewNestedQuery(boolQ).Path("claims.ref")
+	} else {
+		shoulds := make([]types.QueryVariant, 0, len(classIDs))
+		for _, classID := range classIDs {
+			boolQ := esdsl.NewBoolQuery().Must(
+				esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(internalCore.InstanceOfPropID.String())),
+				esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(classID.String())),
+			)
+			shoulds = append(shoulds, esdsl.NewNestedQuery(boolQ).Path("claims.ref"))
+		}
+		query = esdsl.NewBoolQuery().Should(shoulds...)
+	}
+
+	var allIDs []identifier.Identifier
+	var searchAfter []types.FieldValue
+
+	for {
+		searchService := esClient.Search().
+			Source_(esdsl.NewSourceConfig().Bool(false)).
+			AllowPartialSearchResults(false).
+			Query(query).
+			Size(fetchDocumentIDsPageSize).
+			Pit(esdsl.NewPointInTimeReference().Id(pitID).KeepAlive(esdsl.NewDuration().String("1m"))).
+			Sort(esdsl.NewSortOptions().AddSortOption("_shard_doc", esdsl.NewFieldSort(sortorder.Asc)))
+
+		if searchAfter != nil {
+			args := make([]types.FieldValueVariant, 0, len(searchAfter))
+			for _, v := range searchAfter {
+				args = append(args, &rawFieldValue{v})
+			}
+			searchService = searchService.SearchAfter(args...)
+		}
+
+		res, err := searchService.Do(ctx)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		hits := res.Hits.Hits
+
+		for _, hit := range hits {
+			if hit.Id_ == nil {
+				return nil, errors.New("hit has no ID")
+			}
+			id, errE := identifier.MaybeString(*hit.Id_)
+			if errE != nil {
+				return nil, errE
+			}
+			allIDs = append(allIDs, id)
+		}
+
+		if len(hits) < fetchDocumentIDsPageSize {
+			break
+		}
+
+		lastHit := hits[len(hits)-1]
+		searchAfter = lastHit.Sort
+	}
+
+	return allIDs, nil
 }

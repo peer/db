@@ -27,6 +27,7 @@ type Claim interface {
 	ClaimsContainer
 
 	GetConfidence() Confidence
+	GetProp() Reference
 }
 
 // Claims is the interface for types that hold and manipulate a collection of claims.
@@ -665,6 +666,11 @@ type IdentifierClaim struct {
 	Value string    `json:"value"`
 }
 
+// GetProp returns the claim's property reference.
+func (c *IdentifierClaim) GetProp() Reference {
+	return c.Prop
+}
+
 // Validate checks that the identifier claim has a non-empty value and valid confidence.
 func (c *IdentifierClaim) Validate() errors.E {
 	errE := c.CoreClaim.Validate()
@@ -688,6 +694,11 @@ type StringClaim struct {
 	String string    `json:"string"`
 }
 
+// GetProp returns the claim's property reference.
+func (c *StringClaim) GetProp() Reference {
+	return c.Prop
+}
+
 // Validate checks that the string claim has a non-empty string and valid confidence.
 func (c *StringClaim) Validate() errors.E {
 	errE := c.CoreClaim.Validate()
@@ -709,6 +720,11 @@ type HTMLClaim struct {
 
 	Prop Reference `json:"prop"`
 	HTML string    `json:"html"`
+}
+
+// GetProp returns the claim's property reference.
+func (c *HTMLClaim) GetProp() Reference {
+	return c.Prop
 }
 
 // Validate checks that the HTML claim has non-empty HTML and valid confidence.
@@ -739,6 +755,11 @@ type AmountClaim struct {
 	Prop      Reference `json:"prop"`
 	Amount    Amount    `json:"amount"`
 	Precision float64   `json:"precision"`
+}
+
+// GetProp returns the claim's property reference.
+func (c *AmountClaim) GetProp() Reference {
+	return c.Prop
 }
 
 // Validate checks that the amount claim has valid amount, precision, and confidence.
@@ -785,6 +806,11 @@ type AmountIntervalClaim struct {
 	ToIsOpen    bool     `json:"toIsOpen,omitempty"`
 	ToIsUnknown bool     `json:"toIsUnknown,omitempty"`
 	ToIsNone    bool     `json:"toIsNone,omitempty"`
+}
+
+// GetProp returns the claim's property reference.
+func (c *AmountIntervalClaim) GetProp() Reference {
+	return c.Prop
 }
 
 // Validate checks that the amount interval claim has valid bounds and valid confidence.
@@ -937,6 +963,11 @@ type TimeClaim struct {
 	Precision TimePrecision `json:"precision"`
 }
 
+// GetProp returns the claim's property reference.
+func (t *TimeClaim) GetProp() Reference {
+	return t.Prop
+}
+
 // Validate checks that the time claim has a valid precision, time, and valid confidence.
 func (t *TimeClaim) Validate() errors.E {
 	errE := t.CoreClaim.Validate()
@@ -967,6 +998,11 @@ type TimeIntervalClaim struct {
 	ToIsOpen    bool           `json:"toIsOpen,omitempty"`
 	ToIsUnknown bool           `json:"toIsUnknown,omitempty"`
 	ToIsNone    bool           `json:"toIsNone,omitempty"`
+}
+
+// GetProp returns the claim's property reference.
+func (c *TimeIntervalClaim) GetProp() Reference {
+	return c.Prop
 }
 
 // Validate checks that the time interval claim has valid bounds and valid confidence.
@@ -1107,6 +1143,11 @@ type LinkClaim struct {
 	IRI  string    `json:"iri"`
 }
 
+// GetProp returns the claim's property reference.
+func (c *LinkClaim) GetProp() Reference {
+	return c.Prop
+}
+
 // Validate checks that the link claim has a non-empty IRI and valid confidence.
 func (c *LinkClaim) Validate() errors.E {
 	errE := c.CoreClaim.Validate()
@@ -1128,6 +1169,11 @@ type ReferenceClaim struct {
 	To   Reference `json:"to"`
 }
 
+// GetProp returns the claim's property reference.
+func (c *ReferenceClaim) GetProp() Reference {
+	return c.Prop
+}
+
 // HasClaim represents a claim with just a property.
 //
 // It can also be used for nested claims.
@@ -1137,6 +1183,11 @@ type HasClaim struct {
 	Prop Reference `json:"prop"`
 }
 
+// GetProp returns the claim's property reference.
+func (c *HasClaim) GetProp() Reference {
+	return c.Prop
+}
+
 // NoneClaim represents a claim that explicitly states no value exists for a property.
 type NoneClaim struct {
 	CoreClaim
@@ -1144,9 +1195,19 @@ type NoneClaim struct {
 	Prop Reference `json:"prop"`
 }
 
+// GetProp returns the claim's property reference.
+func (c *NoneClaim) GetProp() Reference {
+	return c.Prop
+}
+
 // UnknownClaim represents a claim where the value for a property is known to exist but is unknown.
 type UnknownClaim struct {
 	CoreClaim
 
 	Prop Reference `json:"prop"`
+}
+
+// GetProp returns the claim's property reference.
+func (c *UnknownClaim) GetProp() Reference {
+	return c.Prop
 }
