@@ -288,9 +288,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pd-progressbar-short,
-  .pd-progressbar-long,
-  .animate-navbar,
-  .animate-pulse {
+  .pd-progressbar-long {
     animation-duration: 0s;
   }
 }
