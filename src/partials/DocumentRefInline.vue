@@ -30,7 +30,7 @@ const WithDocumentD = WithDocument<D>
       <span v-else :data-url="url" v-bind="$attrs"><DisplayLabel :doc="doc" /></span>
     </template>
     <template #loading="{ url }">
-      <div class="pd-documentrefinline-loading inline-block h-2 motion-safe:animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(id)]" />
+      <div class="pd-documentrefinline-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse" :data-url="url" :class="[loadingWidth(id)]" />
     </template>
   </WithDocumentD>
 </template>

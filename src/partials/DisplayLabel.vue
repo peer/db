@@ -30,7 +30,7 @@ const displayLabel = asyncToReactive(() => getDisplayLabel(props.doc?.claims, ro
 
 <template>
   <template v-if="isLoading(displayLabel)"
-    ><div v-if="doc" class="pd-displaylabel-loading inline-block h-2 motion-safe:animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(doc.id)]"
+    ><div v-if="doc" class="pd-displaylabel-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse" :class="[loadingWidth(doc.id)]"
   /></template>
   <i v-else-if="getError(displayLabel)" class="pd-displaylabel-error text-error-600">{{ t("common.status.error") }}</i>
   <template v-else-if="displayLabel">{{ displayLabel }}</template>

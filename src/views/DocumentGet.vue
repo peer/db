@@ -354,7 +354,7 @@ async function onEdit() {
           </TabGroup>
         </template>
         <template #loading>
-          <div class="pd-documentget-loading flex motion-safe:animate-pulse flex-col gap-y-2">
+          <div class="pd-documentget-loading flex flex-col gap-y-2 motion-safe:animate-pulse">
             <div class="inline-block h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/1`)]"></div>
             <div class="flex gap-x-4">
               <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/2`)]"></div>
