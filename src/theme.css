@@ -152,6 +152,8 @@
     animation-iteration-count: infinite;
     animation-delay: 200ms;
     will-change: left, right;
+    left: 0%;
+    right: 100%;
   }
 
   .pd-progressbar-short {
@@ -289,7 +291,8 @@
 @media (prefers-reduced-motion: reduce) {
   .pd-progressbar-short,
   .pd-progressbar-long {
-    animation-duration: 0s;
+    left: 0% !important;
+    right: 0% !important;
   }
 }
 
