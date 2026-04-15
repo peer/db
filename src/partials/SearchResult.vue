@@ -136,7 +136,7 @@ const rowSpan = computed(() => {
                     </li>
                   </template>
                   <template #loading="{ url }">
-                    <li class="pd-withdocument-loading h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(tag.id)]"></li>
+                    <li class="pd-withdocument-loading h-2 motion-safe:animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(tag.id)]"></li>
                   </template>
                 </WithDocumentD>
               </template>
@@ -162,7 +162,7 @@ const rowSpan = computed(() => {
                   </li>
                 </template>
                 <template #loading="{ url }">
-                  <li class="pd-withdocument-loading h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(tag.id)]"></li>
+                  <li class="pd-withdocument-loading h-2 motion-safe:animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(tag.id)]"></li>
                 </template>
               </WithDocumentD>
             </template>
@@ -177,7 +177,7 @@ const rowSpan = computed(() => {
         </div>
       </template>
       <template #loading>
-        <div class="pd-withdocument-loading flex animate-pulse flex-col gap-y-2">
+        <div class="pd-withdocument-loading flex motion-safe:animate-pulse flex-col gap-y-2">
           <div class="inline-block h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${result.id}/1`)]"></div>
           <div class="flex gap-x-4">
             <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${result.id}/2`)]"></div>

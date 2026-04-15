@@ -181,7 +181,7 @@ onBeforeUnmount(() => {
       <li v-if="error">
         <i class="pd-amountfiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
-      <li v-else-if="from === null || to === null" class="animate-pulse">
+      <li v-else-if="from === null || to === null" class="motion-safe:animate-pulse">
         <div class="my-1.5 grid grid-cols-10 items-end gap-x-1" :style="`aspect-ratio: ${chartWidth - 1} / ${chartHeight}`">
           <div v-for="(h, i) in loadingShortHeights(result.id, 10)" :key="i" class="w-auto rounded-sm bg-slate-200" :class="h"></div>
         </div>

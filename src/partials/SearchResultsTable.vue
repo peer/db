@@ -283,7 +283,7 @@ function onCloseFilterModal() {
           <tr :data-url="filtersURL">
             <th class="p-2 text-start">#</th>
             <th v-if="filtersTotal === null" class="p-2 text-start">
-              <div class="pd-searchresultstable-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/0`)]" />
+              <div class="pd-searchresultstable-loading inline-block h-2 motion-safe:animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(`${searchSession.id}/0`)]" />
             </th>
             <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
               <th v-if="supportedFilter(filter)" class="text-start">
@@ -300,7 +300,7 @@ function onCloseFilterModal() {
                     </Button>
                   </template>
                   <template #loading="{ url }">
-                    <div class="pd-withdocument-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(filter.id)]" />
+                    <div class="pd-withdocument-loading inline-block h-2 motion-safe:animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(filter.id)]" />
                   </template>
                 </WithDocumentD>
               </th>
@@ -331,7 +331,7 @@ function onCloseFilterModal() {
                   </td>
                   <td v-if="filtersTotal === null" class="p-2">
                     <div
-                      class="pd-searchresultstable-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200"
+                      class="pd-searchresultstable-loading inline-block h-2 motion-safe:animate-pulse rounded-sm bg-slate-200"
                       :class="[loadingWidth(`${searchSession.id}/${index + 1}`)]"
                     />
                   </td>
@@ -397,7 +397,7 @@ function onCloseFilterModal() {
                     }}</RouterLink>
                   </td>
                   <td :colspan="rowColspan" class="p-2">
-                    <div class="pd-withdocument-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(result.id)]" />
+                    <div class="pd-withdocument-loading inline-block h-2 motion-safe:animate-pulse rounded-sm bg-slate-200" :class="[loadingWidth(result.id)]" />
                   </td>
                 </tr>
               </template>
