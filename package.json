@@ -138,7 +138,7 @@
     "prettier-plugin-organize-imports": "^4.3.0",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "resolve-tspaths": "^0.8.23",
-    "rollup-plugin-license": "^3.7.0",
+    "rollup-plugin-license": "^3.7.1",
     "stylelint": "^16.26.1",
     "stylelint-config-standard": "^39.0.1",
     "stylelint-config-standard-vue": "^1.0.0",
