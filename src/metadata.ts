@@ -1,6 +1,6 @@
-import type { Item } from "structured-field-values"
+import type { BareItem, Item } from "structured-field-values"
 
-import type { ItemTypes, Metadata } from "@/types"
+import type { Metadata } from "@/types"
 
 // TODO: Consider moving to https://www.npmjs.com/package/structured-headers, once it supports parsing timestamps.
 import { decodeDict } from "structured-field-values"
@@ -8,13 +8,14 @@ import { decodeDict } from "structured-field-values"
 const metadataHeaderPrefix = ""
 const metadataHeader = metadataHeaderPrefix + "Metadata"
 
-function convertItem(item: Item): ItemTypes {
+function convertItem(item: Item): BareItem | BareItem[] {
   if (item.params !== null) {
     throw new Error("params not supported")
   }
 
   if (Array.isArray(item.value)) {
-    return item.value.map((i) => convertItem(i as Item))
+    // Inner lists in SFV contain only bare items, not nested lists.
+    return item.value.map((i) => convertItem(i as Item) as BareItem)
   }
 
   return item.value
