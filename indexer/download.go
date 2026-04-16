@@ -261,7 +261,7 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *http.Client, 
 
 func getPathAndURL(cacheDir, u string) (string, string, errors.E) {
 	if cacheDir == "" {
-		return u, u, nil
+		return "", "", errors.New("cache directory not provided")
 	}
 	_, err := os.Stat(u)
 	if errors.Is(err, fs.ErrNotExist) {
