@@ -13,8 +13,9 @@ import (
 )
 
 // GenerateCoreDocuments generates and transforms all core documents
-// (classes, properties, vocabularies) along with any additional documents.
-func GenerateCoreDocuments(ctx context.Context, additional func(context.Context, []any) ([]any, errors.E)) ([]any, []*document.D, errors.E) {
+// (classes, properties, vocabularies). Optionally, beforeTransform can be
+// used to modify, add, or remove documents before transforming.
+func GenerateCoreDocuments(ctx context.Context, beforeTransform func(context.Context, []any) ([]any, errors.E)) ([]any, []*document.D, errors.E) {
 	logger := zerolog.Ctx(ctx)
 
 	documents := []any{}
@@ -62,12 +63,11 @@ func GenerateCoreDocuments(ctx context.Context, additional func(context.Context,
 		return nil, nil, errors.WithStack(ctx.Err())
 	}
 
-	if additional != nil {
-		docs, errE = additional(ctx, documents)
+	if beforeTransform != nil {
+		documents, errE = beforeTransform(ctx, documents)
 		if errE != nil {
 			return nil, nil, errE
 		}
-		documents = append(documents, docs...)
 	}
 
 	logger.Info().Int("count", len(documents)).Msg("generated core documents")
