@@ -28,6 +28,8 @@ func GenerateCoreDocuments(ctx context.Context, beforeTransform func(context.Con
 	}
 	documents = append(documents, docs...)
 
+	logger.Info().Msg("core properties generated successfully")
+
 	if ctx.Err() != nil {
 		return nil, nil, errors.WithStack(ctx.Err())
 	}
@@ -48,6 +50,8 @@ func GenerateCoreDocuments(ctx context.Context, beforeTransform func(context.Con
 	}
 	documents = append(documents, docs...)
 
+	logger.Info().Msg("core classes generated successfully")
+
 	if ctx.Err() != nil {
 		return nil, nil, errors.WithStack(ctx.Err())
 	}
@@ -59,6 +63,8 @@ func GenerateCoreDocuments(ctx context.Context, beforeTransform func(context.Con
 	}
 	documents = append(documents, docs...)
 
+	logger.Info().Msg("core vocabularies generated successfully")
+
 	if ctx.Err() != nil {
 		return nil, nil, errors.WithStack(ctx.Err())
 	}
@@ -68,9 +74,13 @@ func GenerateCoreDocuments(ctx context.Context, beforeTransform func(context.Con
 		if errE != nil {
 			return nil, nil, errE
 		}
+
+		if ctx.Err() != nil {
+			return nil, nil, errors.WithStack(ctx.Err())
+		}
 	}
 
-	logger.Info().Int("count", len(documents)).Msg("generated core documents")
+	logger.Info().Int("count", len(documents)).Msg("generated documents")
 
 	// Rebuild mnemonics with all documents.
 	mnemonics, errE = transform.Mnemonics(ctx, documents)
@@ -87,7 +97,7 @@ func GenerateCoreDocuments(ctx context.Context, beforeTransform func(context.Con
 		return nil, nil, errE
 	}
 
-	logger.Info().Int("count", len(transformed)).Msg("transformed core documents")
+	logger.Info().Int("count", len(transformed)).Msg("transformed documents")
 
 	return documents, transformed, nil
 }
