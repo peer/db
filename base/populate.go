@@ -3,6 +3,7 @@ package base
 import (
 	"context"
 
+	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 
@@ -14,6 +15,8 @@ import (
 // GenerateCoreDocuments generates and transforms all core documents
 // (classes, properties, vocabularies) along with any additional documents.
 func GenerateCoreDocuments(ctx context.Context, additional func(context.Context, []any) ([]any, errors.E)) ([]any, []*document.D, errors.E) {
+	logger := zerolog.Ctx(ctx)
+
 	documents := []any{}
 
 	// Properties are collected first so that mnemonics can be built for
@@ -67,6 +70,8 @@ func GenerateCoreDocuments(ctx context.Context, additional func(context.Context,
 		documents = append(documents, docs...)
 	}
 
+	logger.Info().Int("count", len(documents)).Msg("generated core documents")
+
 	// Rebuild mnemonics with all documents.
 	mnemonics, errE = transform.Mnemonics(ctx, documents)
 	if errE != nil {
@@ -81,6 +86,8 @@ func GenerateCoreDocuments(ctx context.Context, additional func(context.Context,
 	if errE != nil {
 		return nil, nil, errE
 	}
+
+	logger.Info().Int("count", len(transformed)).Msg("transformed core documents")
 
 	return documents, transformed, nil
 }

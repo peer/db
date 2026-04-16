@@ -18,7 +18,9 @@ import (
 	"gitlab.com/peerdb/peerdb/transform"
 )
 
-func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logger, site Site) errors.E {
+func (c *PopulateCommand) populateSite(ctx context.Context, site Site) errors.E {
+	logger := zerolog.Ctx(ctx)
+
 	logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("populating")
 
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
@@ -29,7 +31,12 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 		return errE
 	}
 
-	logger.Info().Int("count", len(documents)).Msg("generated all documents")
+	return c.PopulateSite(ctx, site, documents, transformed)
+}
+
+// PopulateSite populates the given site with provided documents.
+func (c *PopulateCommand) PopulateSite(ctx context.Context, site Site, documents []any, transformed []*document.D) errors.E {
+	logger := zerolog.Ctx(ctx)
 
 	if ctx.Err() != nil {
 		return errors.WithStack(ctx.Err())
@@ -87,7 +94,7 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 
 	count := x.NewCounter(0)
 	size := x.NewCounter(int64(len(transformed)))
-	progress := indexer.Progress(logger, "indexing", nil)
+	progress := indexer.Progress(logger.With().Logger(), "indexing", nil)
 	ticker := x.NewTicker(ctx, count, size, indexer.ProgressPrintRate)
 	defer ticker.Stop()
 	go func() {
@@ -96,7 +103,7 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 		}
 	}()
 
-	errE = site.PopulateAndStart(ctx, transformed, func(doc *document.D) {
+	errE := site.PopulateAndStart(ctx, transformed, func(doc *document.D) {
 		count.Increment()
 		logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
 	}, nil, count, size)
@@ -139,7 +146,7 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 	}
 
 	for _, site := range globals.Sites {
-		errE := c.populateSite(ctx, globals.Logger, site)
+		errE := c.populateSite(ctx, site)
 		if errE != nil {
 			return errE
 		}
