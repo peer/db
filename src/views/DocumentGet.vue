@@ -307,15 +307,15 @@ async function onEdit() {
           <TabGroup v-else :selected-index="selectedTab" manual @change="changeTab">
             <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100">
               <Tab
-                v-if="classTabId && mergedFieldsData"
-                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
-                ><DocumentRefInline :id="classTabId" :link="false"
-              /></Tab>
-              <Tab
                 v-for="documentTab in documentTabs"
                 :key="documentTab.id"
                 class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
                 ><DocumentRefInline :id="documentTab.id" :link="false"
+              /></Tab>
+              <Tab
+                v-if="documentTabs.length === 0 && classTabId && mergedFieldsData"
+                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                ><DocumentRefInline :id="classTabId" :link="false"
               /></Tab>
               <Tab
                 v-for="(searchShortcut, i) of searchShortcuts"
@@ -330,11 +330,11 @@ async function onEdit() {
             </TabList>
             <h1 class="mb-4 text-4xl font-bold drop-shadow-xs"><DisplayLabel :doc="doc" /></h1>
             <TabPanels>
-              <TabPanel v-if="classTabId && mergedFieldsData">
-                <FieldsView :fields-data="mergedFieldsData" :claims="doc.claims" sections />
-              </TabPanel>
               <TabPanel v-for="documentTab in documentTabs" :key="documentTab.id">
                 <component :is="documentTab.component" :doc="doc" />
+              </TabPanel>
+              <TabPanel v-if="documentTabs.length === 0 && classTabId && mergedFieldsData">
+                <FieldsView :fields-data="mergedFieldsData" :claims="doc.claims" sections />
               </TabPanel>
               <TabPanel v-for="(_, i) of searchShortcuts" :key="i"><!-- Empty because this panel should never be rendered. --></TabPanel>
               <TabPanel>
