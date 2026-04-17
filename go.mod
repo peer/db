@@ -11,8 +11,8 @@ require (
 	github.com/alecthomas/kong v1.13.1-0.20260401093329-db421839da20
 	github.com/cockroachdb/field-eng-powertools v0.1.3
 	github.com/deckarep/golang-set/v2 v2.8.0
-	github.com/elastic/elastic-transport-go/v8 v8.8.0
-	github.com/elastic/go-elasticsearch/v9 v9.3.1
+	github.com/elastic/elastic-transport-go/v8 v8.9.0
+	github.com/elastic/go-elasticsearch/v9 v9.3.2
 	github.com/foolin/pagser v0.1.6
 	github.com/gabriel-vasile/mimetype v1.4.13
 	github.com/hashicorp/go-cleanhttp v0.5.3-0.20250908122250-455ae7932232
@@ -38,7 +38,7 @@ require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.3.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
-	github.com/go-logr/logr v1.4.2 // indirect
+	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect

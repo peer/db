@@ -95,17 +95,6 @@ func (s *Site) Decode(ctx *kong.DecodeContext) error {
 
 const fetchDocumentIDsPageSize = 5000
 
-// rawFieldValue wraps a types.FieldValue so it satisfies types.FieldValueVariant.
-//
-// See: https://github.com/elastic/go-elasticsearch/issues/1328
-type rawFieldValue struct {
-	v types.FieldValue
-}
-
-func (r *rawFieldValue) FieldValueCaster() *types.FieldValue {
-	return &r.v
-}
-
 func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifier) ([]identifier.Identifier, errors.E) {
 	boolQuery := esdsl.NewBoolQuery().Must(
 		esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(internalCore.InstanceOfPropID.String())),
@@ -134,11 +123,7 @@ func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifi
 			Sort(esdsl.NewSortOptions().AddSortOption("_shard_doc", esdsl.NewFieldSort(sortorder.Asc)))
 
 		if searchAfter != nil {
-			args := make([]types.FieldValueVariant, 0, len(searchAfter))
-			for _, v := range searchAfter {
-				args = append(args, &rawFieldValue{v})
-			}
-			searchService = searchService.SearchAfter(args...)
+			searchService = searchService.SearchAfterValues(searchAfter)
 		}
 
 		res, err := searchService.Do(ctx)
