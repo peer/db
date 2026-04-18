@@ -9,21 +9,63 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/riverqueue/river/rivermigrate"
 	"github.com/riverqueue/river/rivertype"
 	"github.com/rs/zerolog"
 	slogzerolog "github.com/samber/slog-zerolog/v2"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 )
 
 const jobTimeout = 15 * time.Minute
 
+// MetadataKeyError is the job metadata key under which a structured JSON
+// representation of the job's error is stored when HandleError fires.
+const MetadataKeyError = "error"
+
+// MetadataKeyPanic is the job metadata key under which a structured JSON
+// representation of a panic value is stored when HandlePanic fires and the
+// panic value is an error.
+const MetadataKeyPanic = "panic"
+
 type riverErrorHandler struct {
 	Logger zerolog.Logger
+	Driver *riverpgxv5.Driver
+	Schema string
 }
 
-func (r riverErrorHandler) HandleError(_ context.Context, job *rivertype.JobRow, err error) *river.ErrorHandlerResult {
+// storeErrorMetadata merges a JSON representation of err into the job's
+// metadata under the given key. It logs but does not propagate marshal or
+// update failures.
+func (r riverErrorHandler) storeErrorMetadata(ctx context.Context, job *rivertype.JobRow, key string, err any) {
+	var val any
+	switch v := err.(type) {
+	case error:
+		val = errors.Formatter{Error: v}
+	default:
+		val = v
+	}
+
+	metadataJSON, errE := x.MarshalWithoutEscapeHTML(map[string]any{key: val})
+	if errE != nil {
+		r.Logger.Error().Err(errE).Int64("id", job.ID).Msgf("failed to marshal %s metadata", key)
+		return
+	}
+
+	_, updateErr := r.Driver.GetExecutor().JobUpdate(ctx, &riverdriver.JobUpdateParams{
+		ID:              job.ID,
+		MetadataDoMerge: true,
+		Metadata:        metadataJSON,
+		Schema:          r.Schema,
+	})
+	if updateErr != nil {
+		r.Logger.Error().Err(errors.WithStack(updateErr)).Int64("id", job.ID).Msgf("failed to store %s metadata", key)
+	}
+}
+
+func (r riverErrorHandler) HandleError(ctx context.Context, job *rivertype.JobRow, err error) *river.ErrorHandlerResult {
 	e := r.Logger.Error().Err(err).
 		Int64("id", job.ID).
 		Int("attempt", job.Attempt).
@@ -44,10 +86,12 @@ func (r riverErrorHandler) HandleError(_ context.Context, job *rivertype.JobRow,
 		e = e.Strs("tags", job.Tags)
 	}
 	e.Msg("job error")
+
+	r.storeErrorMetadata(ctx, job, MetadataKeyError, err)
 	return nil
 }
 
-func (r riverErrorHandler) HandlePanic(_ context.Context, job *rivertype.JobRow, panicVal any, trace string) *river.ErrorHandlerResult {
+func (r riverErrorHandler) HandlePanic(ctx context.Context, job *rivertype.JobRow, panicVal any, trace string) *river.ErrorHandlerResult {
 	e := r.Logger.Error().
 		Int64("id", job.ID).
 		Int("attempt", job.Attempt).
@@ -77,6 +121,8 @@ func (r riverErrorHandler) HandlePanic(_ context.Context, job *rivertype.JobRow,
 		e = e.Interface("panic", v)
 	}
 	e.Msg("job panic")
+
+	r.storeErrorMetadata(ctx, job, MetadataKeyPanic, panicVal)
 	return nil
 }
 
@@ -94,8 +140,10 @@ func NewRiver(
 		ReplaceAttr:     nil,
 	}.NewZerologHandler())
 
+	driver := riverpgxv5.New(dbpool)
+
 	workers := river.NewWorkers()
-	riverClient, err := river.NewClient(riverpgxv5.New(dbpool), &river.Config{ //nolint:exhaustruct
+	riverClient, err := river.NewClient(driver, &river.Config{ //nolint:exhaustruct
 		Workers: workers,
 		Queues: map[string]river.QueueConfig{
 			river.QueueDefault: {
@@ -112,6 +160,8 @@ func NewRiver(
 		},
 		ErrorHandler: riverErrorHandler{
 			Logger: logger,
+			Driver: driver,
+			Schema: schema,
 		},
 		JobTimeout: jobTimeout,
 		Logger:     l,
@@ -121,7 +171,7 @@ func NewRiver(
 		return nil, nil, errors.WithStack(err)
 	}
 
-	migrator, err := rivermigrate.New(riverpgxv5.New(dbpool), &rivermigrate.Config{
+	migrator, err := rivermigrate.New(driver, &rivermigrate.Config{
 		Line:   "main",
 		Logger: l,
 		Schema: schema,
