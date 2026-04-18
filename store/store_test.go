@@ -1821,7 +1821,7 @@ func TestCommitLogViewFilter(t *testing.T) {
 		assert.Equal(t, vChild.Changeset, childEntries[0].Changesets[0].ID())
 	}
 
-	// Release the "child" name — the view is now unnamed.
+	// Release the "child" name - the view is now unnamed.
 	errE = childView.Release(ctx, testutils.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -1849,7 +1849,7 @@ func TestCommitLogViewFilter(t *testing.T) {
 	vChild2, errE := newChildView.Insert(ctx, idChild2, testutils.DummyData, testutils.DummyData, testutils.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Filtering by "child" now returns only the new commit — old commits are still unnamed.
+	// Filtering by "child" now returns only the new commit - old commits are still unnamed.
 	renamed, errE := s.CommitLog(ctx, nil, &childName)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	if assert.Len(t, renamed, 1) {
@@ -2175,7 +2175,7 @@ func TestUpdateExistingMetadataRevisionMismatch(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(2), v2.Revision)
 
-	// Try to update using the old revision — should fail with revision mismatch.
+	// Try to update using the old revision - should fail with revision mismatch.
 	_, errE = s.UpdateExistingMetadata(ctx, id, insertVersion, json.RawMessage(`{"meta": "v3"}`))
 	assert.ErrorIs(t, errE, store.ErrRevisionMismatch)
 }

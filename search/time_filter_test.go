@@ -373,7 +373,7 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 
 	// Doc1: point value at 500.
 	t500 := float64(500)
-	// Doc2: wide range [2000, 8000] — spans many histogram bins.
+	// Doc2: wide range [2000, 8000] - spans many histogram bins.
 	t2000 := float64(2000)
 	t8000 := float64(8000)
 	// Doc3: point value at 9500.

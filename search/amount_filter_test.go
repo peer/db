@@ -437,7 +437,7 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 
 	// Doc1: point value at 5.
 	five := 5.0
-	// Doc2: wide range [20, 80] — spans many histogram bins.
+	// Doc2: wide range [20, 80] - spans many histogram bins.
 	twenty := 20.0
 	eighty := 80.0
 	// Doc3: point value at 95.

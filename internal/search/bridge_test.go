@@ -220,7 +220,7 @@ func TestBridgeCatchUp(t *testing.T) {
 	_, errE = s.Insert(ctx, id2, makeDocJSON(t, id2), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Bridge seq should still be 0 — nothing indexed yet.
+	// Bridge seq should still be 0 - nothing indexed yet.
 	entries, errE := s.CommitLog(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, entries, 2)
@@ -326,7 +326,7 @@ func TestBridgeNotifyRecovery(t *testing.T) {
 
 	// Simulate a listener reconnection by closing the store's Committed channel.
 	// The bridge's run loop detects the channel close, exits with errCommittedChannelClosed,
-	// and restarts — re-running the catch-up phase to recover any missed commits.
+	// and restarts - re-running the catch-up phase to recover any missed commits.
 	err := s.HandleBacklog(ctx, s.Prefix+"CommittedChangesets", nil)
 	require.NoError(t, err, "% -+#.1v", err) // This is still errors.E.
 
@@ -378,7 +378,7 @@ func TestBridgeStaleDataNotIndexed(t *testing.T) {
 	_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
 	require.NoError(t, err)
 
-	// The document in ES should exist — the bridge calls GetLatest so it always indexes the latest version.
+	// The document in ES should exist - the bridge calls GetLatest so it always indexes the latest version.
 	assert.True(t, testutils.DocExists(ctx, t, esClient, b.Index, id.String()), "document should be in ES")
 }
 

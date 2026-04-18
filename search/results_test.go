@@ -365,7 +365,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 	})
 	refreshIndex(t, ctx, esClient, index)
 
-	// Filter: amount in [10, 100] — matches doc2 (15) but not doc1 (5).
+	// Filter: amount in [10, 100] - matches doc2 (15) but not doc1 (5).
 	gte := 10.0
 	lteBig := 100.0
 	session := &search.Session{
@@ -394,7 +394,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 	require.NoError(t, errE)
 	assert.Equal(t, []search.Result{{ID: doc2ID.String()}}, results)
 
-	// Filter: amount in [0, 10] — matches doc1 (5) but not doc2 (15).
+	// Filter: amount in [0, 10] - matches doc1 (5) but not doc2 (15).
 	gteSmall := 0.0
 	lte := 10.0
 	session2 := &search.Session{
@@ -540,7 +540,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 	})
 	refreshIndex(t, ctx, esClient, index)
 
-	// Filter: time in [1500, 10000] — matches doc2 (2000) but not doc1 (1000).
+	// Filter: time in [1500, 10000] - matches doc2 (2000) but not doc1 (1000).
 	gte := float64(1500)
 	lteBig := float64(10000)
 	session := &search.Session{

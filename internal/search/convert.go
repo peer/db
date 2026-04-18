@@ -644,8 +644,8 @@ func (c *Converter) getDisplayStrings(ctx context.Context, id identifier.Identif
 // fallback.
 //
 // For each supported language, the fallback chain is walked to find the best template.
-// Because templates are reached indirectly — through the document's INSTANCE_OF claims
-// to classes, then through the class's template claim — each template carries an
+// Because templates are reached indirectly - through the document's INSTANCE_OF claims
+// to classes, then through the class's template claim - each template carries an
 // effective confidence: the product of the INSTANCE_OF claim's confidence and the
 // template claim's confidence. Within the first language in the chain that has
 // templates, the one with the highest effective confidence wins.

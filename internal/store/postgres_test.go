@@ -97,7 +97,7 @@ func TestEnsureSchemaIdempotent(t *testing.T) {
 
 	schema := "s" + strings.ToLower(identifier.New().String())
 
-	// Create schema twice — second call should not error.
+	// Create schema twice - second call should not error.
 	for range 2 {
 		errE := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 			return internalStore.EnsureSchema(ctx, tx, schema)

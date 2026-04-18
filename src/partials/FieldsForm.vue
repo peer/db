@@ -63,7 +63,7 @@ interface EntryState {
 const entries = reactive(new Map<string, EntryState>())
 
 // Empty slot local values, keyed by a local counter string per field key.
-// These are purely local — no claim ID, no entry in the entries map.
+// These are purely local - no claim ID, no entry in the entries map.
 const emptySlots = reactive(new Map<string, { fieldKey: string; field: FieldData; value: string; valueTo: string }>())
 let emptySlotCounter = 0
 
