@@ -16,7 +16,7 @@ require (
 	github.com/foolin/pagser v0.1.6
 	github.com/gabriel-vasile/mimetype v1.4.13
 	github.com/hashicorp/go-cleanhttp v0.5.3-0.20250908122250-455ae7932232
-	github.com/jackc/pgx/v5 v5.8.0
+	github.com/jackc/pgx/v5 v5.9.2
 	github.com/jackc/pgxlisten v0.0.0-20250802141604-12b92425684c
 	github.com/microcosm-cc/bluemonday v1.0.26
 	github.com/riverqueue/river v0.31.0
