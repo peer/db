@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -42,18 +43,6 @@ var (
 	// We allow only one system connection (a connection used in InitPostgres) at any given time,
 	// regardless of the target system.
 	systemConnection sync.Mutex
-)
-
-// Standard error codes.
-// See: https://www.postgresql.org/docs/current/errcodes-appendix.html
-const (
-	ErrorCodeUniqueViolation      = "23505"
-	ErrorCodeDuplicateSchema      = "42P06"
-	ErrorCodeDuplicateTable       = "42P07"
-	ErrorCodeDuplicateFunction    = "42723"
-	ErrorCodeSerializationFailure = "40001"
-	ErrorCodeDeadlockDetected     = "40P01"
-	ErrorCodeExclusionViolation   = "23P01"
 )
 
 // See: https://www.postgresql.org/docs/current/runtime-config-client.html#GUC-CLIENT-MIN-MESSAGES
@@ -306,9 +295,9 @@ func EnsureSchema(ctx context.Context, tx pgx.Tx, schema string) errors.E {
 	if err != nil {
 		if pgError, ok := errors.AsType[*pgconn.PgError](err); ok {
 			switch pgError.Code {
-			case ErrorCodeUniqueViolation:
+			case pgerrcode.UniqueViolation:
 				return nil
-			case ErrorCodeDuplicateSchema:
+			case pgerrcode.DuplicateSchema:
 				return nil
 			}
 		}

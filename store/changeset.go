@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"gitlab.com/tozd/go/errors"
@@ -83,7 +84,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 				switch pgError.Code {
 				case errorCodeAlreadyCommitted:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
-				case internalStore.ErrorCodeUniqueViolation:
+				case pgerrcode.UniqueViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
 			}
@@ -135,7 +136,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
 				case errorCodeParentInvalid:
 					return errors.WrapWith(errE, ErrParentInvalid)
-				case internalStore.ErrorCodeUniqueViolation:
+				case pgerrcode.UniqueViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
 			}
@@ -198,7 +199,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
 				case errorCodeParentInvalid:
 					return errors.WrapWith(errE, ErrParentInvalid)
-				case internalStore.ErrorCodeUniqueViolation:
+				case pgerrcode.UniqueViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
 			}
@@ -252,7 +253,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
 				case errorCodeParentInvalid:
 					return errors.WrapWith(errE, ErrParentInvalid)
-				case internalStore.ErrorCodeUniqueViolation:
+				case pgerrcode.UniqueViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
 			}
@@ -303,7 +304,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
 				case errorCodeParentInvalid:
 					return errors.WrapWith(errE, ErrParentInvalid)
-				case internalStore.ErrorCodeUniqueViolation:
+				case pgerrcode.UniqueViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
 			}
@@ -354,9 +355,9 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 					return errors.WrapWith(errE, ErrViewNotFound)
 				case errorCodeChangesetNotFound:
 					return errors.WrapWith(errE, ErrChangesetNotFound)
-				case internalStore.ErrorCodeUniqueViolation:
+				case pgerrcode.UniqueViolation:
 					return errors.WrapWith(errE, ErrAlreadyCommitted)
-				case internalStore.ErrorCodeExclusionViolation:
+				case pgerrcode.ExclusionViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
 			}

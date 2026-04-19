@@ -7,6 +7,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -540,11 +541,11 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 	})
 	if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 		switch pgError.Code {
-		case internalStore.ErrorCodeUniqueViolation:
+		case pgerrcode.UniqueViolation:
 			// Nothing.
-		case internalStore.ErrorCodeDuplicateFunction:
+		case pgerrcode.DuplicateFunction:
 			// Nothing.
-		case internalStore.ErrorCodeDuplicateTable:
+		case pgerrcode.DuplicateTable:
 			// Nothing.
 		default:
 			return errE

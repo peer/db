@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -340,7 +341,7 @@ func TestRetryTransactionSerializationFailure(t *testing.T) {
 		attempts++
 		if attempts < 2 {
 			return errors.WithStack(&pgconn.PgError{ //nolint:exhaustruct
-				Code: internalStore.ErrorCodeSerializationFailure,
+				Code: pgerrcode.SerializationFailure,
 			})
 		}
 		return nil
@@ -359,7 +360,7 @@ func TestRetryTransactionDeadlockDetected(t *testing.T) {
 		attempts++
 		if attempts < 2 {
 			return errors.WithStack(&pgconn.PgError{ //nolint:exhaustruct
-				Code: internalStore.ErrorCodeDeadlockDetected,
+				Code: pgerrcode.DeadlockDetected,
 			})
 		}
 		return nil

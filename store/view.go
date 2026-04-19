@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"gitlab.com/tozd/go/errors"
@@ -751,7 +752,7 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 			errE := internalStore.WithPgxError(err)
 			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				switch pgError.Code { //nolint:gocritic
-				case internalStore.ErrorCodeUniqueViolation:
+				case pgerrcode.UniqueViolation:
 					return errors.WrapWith(errE, ErrConflict)
 				}
 			}

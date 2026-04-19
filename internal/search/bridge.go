@@ -13,6 +13,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v9"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/operationtype"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -248,9 +249,9 @@ func (b *Bridge) Init(
 	})
 	if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 		switch pgError.Code {
-		case internalStore.ErrorCodeDuplicateTable:
+		case pgerrcode.DuplicateTable:
 			// Nothing.
-		case internalStore.ErrorCodeDuplicateFunction:
+		case pgerrcode.DuplicateFunction:
 			// Nothing.
 		default:
 			return errE

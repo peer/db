@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -108,9 +109,9 @@ func RetryTransaction(
 			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 				// See: https://www.postgresql.org/docs/current/mvcc-serialization-failure-handling.html
 				switch pgError.Code {
-				case ErrorCodeSerializationFailure:
+				case pgerrcode.SerializationFailure:
 					continue
-				case ErrorCodeDeadlockDetected:
+				case pgerrcode.DeadlockDetected:
 					continue
 				}
 			}
