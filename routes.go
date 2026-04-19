@@ -323,5 +323,16 @@ func (s *Service) setRoutes() { //nolint:maintidx
 				},
 			},
 		}
+		s.Routes["DebugRiver"] = waf.Route{
+			Path: debugRiverPrefix + "/:path*",
+			RouteOptions: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet:   s.DebugRiver,
+					http.MethodPost:  s.DebugRiver,
+					http.MethodPut:   s.DebugRiver,
+					http.MethodPatch: s.DebugRiver,
+				},
+			},
+		}
 	}
 }

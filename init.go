@@ -24,8 +24,10 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 	}
 	s.initialized = true
 
+	logger = logger.With().Str("schema", s.Schema).Str("index", s.Index).Logger()
+
 	ctx = WithFallbackDBContext(ctx, s.Schema, "init")
-	ctx = logger.With().Str("schema", s.Schema).Str("index", s.Index).Logger().WithContext(ctx)
+	ctx = logger.WithContext(ctx)
 
 	b, riverClient, onShutdown, errE := internalBase.InitAndStartComponents(ctx, logger, dbpool, esClient, s.Schema, s.Index, shards, s.LanguagePriority)
 	if errE != nil {
@@ -36,6 +38,11 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 	s.DBPool = dbpool
 	s.ESClient = esClient
 	s.RiverClient = riverClient
+
+	errE = s.initDebugRiverHandler(ctx, logger)
+	if errE != nil {
+		return onShutdown, errE
+	}
 
 	return onShutdown, nil
 }

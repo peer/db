@@ -3,6 +3,7 @@ package peerdb
 import (
 	"context"
 	"io"
+	"net/http"
 	"strings"
 
 	"github.com/alecthomas/kong"
@@ -60,6 +61,10 @@ type Site struct {
 	DBPool      *pgxpool.Pool              `json:"-" yaml:"-"`
 	ESClient    *elasticsearch.TypedClient `json:"-" yaml:"-"`
 	RiverClient *river.Client[pgx.Tx]      `json:"-" yaml:"-"`
+
+	// debugRiverHandler is the River UI handler mounted at /debug/river.
+	// Populated only in development mode.
+	debugRiverHandler http.Handler
 
 	initialized bool
 
