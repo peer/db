@@ -6,7 +6,7 @@ set -o pipefail
 if [ -n "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" ]; then
   # Check if target branch has an open MR.
   echo "Checking if target branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME has an open merge request..."
-  TARGET_MR_IID=$(wget -q --header="PRIVATE-TOKEN: ${CI_JOB_TOKEN}" \
+  TARGET_MR_IID=$(wget -q --header="JOB-TOKEN: ${CI_JOB_TOKEN}" \
     -O - "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests?source_branch=${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}&state=opened" \
     | jq -r '.[0].iid // empty')
 
