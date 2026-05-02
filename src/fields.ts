@@ -26,6 +26,7 @@ import {
   VT_TIME_INTERVAL,
   VT_UNKNOWN,
 } from "@/core"
+import { ABSTRACT_CLASS } from "@/core/properties"
 import {
   AmountClaim,
   AmountIntervalClaim,
@@ -44,7 +45,6 @@ import {
   TimeIntervalClaim,
   UnknownClaim,
 } from "@/document"
-import { ABSTRACT_CLASS } from "./core/properties"
 
 // FieldData represents a single field.
 export interface FieldData {
