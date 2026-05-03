@@ -91,7 +91,7 @@ func computeInterval(from, to float64) (float64, float64, string) {
 // AmountFilterGet retrieves amount filter data for search results.
 func AmountFilterGet(
 	ctx context.Context, getSearchService func() (*search.Search, int64, int64), id, prop identifier.Identifier, unit *identifier.Identifier,
-) ([]HistogramResult, map[string]interface{}, errors.E) {
+) ([]HistogramResult, map[string]any, errors.E) {
 	filter := esdsl.NewBoolQuery().Must(
 		esdsl.NewTermQuery("claims.amount.prop", esdsl.NewFieldValue().String(prop.String())),
 		amountUnitFilter(unit),

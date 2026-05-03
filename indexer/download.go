@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"io/fs"
+	"maps"
 	"net/http"
 	"net/url"
 	"os"
@@ -112,9 +113,7 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *http.Client, 
 		// We have to disable compression so that we can obtain Content-Length header which Go otherwise removes on compressed responses.
 		req.Header.Set("Accept-Encoding", "identity")
 
-		for key, value := range r.Header {
-			req.Header[key] = value
-		}
+		maps.Copy(req.Header, r.Header)
 
 		resp, errE := x.NewRetryableResponse(retryableClient, req)
 		if errE != nil {
@@ -139,9 +138,7 @@ func (r *downloadingReader) Start(ctx context.Context, httpClient *http.Client, 
 		// We have to disable compression so that we can obtain Content-Length header which Go otherwise removes on compressed responses.
 		req.Header.Set("Accept-Encoding", "identity")
 
-		for key, value := range r.Header {
-			req.Header[key] = value
-		}
+		maps.Copy(req.Header, r.Header)
 
 		resp, err := httpClient.Do(req)
 		if err != nil {

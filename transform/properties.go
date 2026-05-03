@@ -73,7 +73,7 @@ func Mnemonics(ctx context.Context, documents []any) (map[string][]string, error
 func extractFieldValue(doc any, fieldName string) (reflect.Value, errors.E) {
 	v := reflect.ValueOf(doc)
 	// Handle pointer to struct.
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 

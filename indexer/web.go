@@ -28,18 +28,18 @@ type SchemaOrg struct {
 	MPN         string `json:"mpn"`
 }
 
-func pagserExists(node *goquery.Selection, _ ...string) (interface{}, error) {
+func pagserExists(node *goquery.Selection, _ ...string) (any, error) {
 	return node.Length() > 0, nil
 }
 
-func pagserClass(node *goquery.Selection, args ...string) (interface{}, error) {
+func pagserClass(node *goquery.Selection, args ...string) (any, error) {
 	classPrefix := ""
 	if len(args) > 0 {
 		classPrefix = args[0]
 	}
 
-	list := strings.Split(node.AttrOr("class", ""), " ")
-	for _, v := range list {
+	list := strings.SplitSeq(node.AttrOr("class", ""), " ")
+	for v := range list {
 		v = strings.TrimSpace(v)
 		if v != "" && strings.HasPrefix(v, classPrefix) {
 			return strings.TrimPrefix(v, classPrefix), nil
@@ -49,7 +49,7 @@ func pagserClass(node *goquery.Selection, args ...string) (interface{}, error) {
 	return "", nil
 }
 
-func pagserSchemaOrg(node *goquery.Selection, _ ...string) (interface{}, error) {
+func pagserSchemaOrg(node *goquery.Selection, _ ...string) (any, error) {
 	var s SchemaOrg
 	errE := x.Unmarshal([]byte(node.Text()), &s)
 	if errE != nil {

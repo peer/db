@@ -89,7 +89,7 @@ func parseMultiTermsBuckets(buckets []types.MultiTermsBucket) ([]FilterResult, e
 // FiltersGet retrieves all available filters for the current search.
 func FiltersGet(
 	ctx context.Context, getSearchService func() (*search.Search, int64, int64), searchSession *Session,
-) ([]FilterResult, map[string]interface{}, errors.E) {
+) ([]FilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
 	query := searchSession.ToQuery()
@@ -260,7 +260,7 @@ func FiltersGet(
 	}
 	total := strconv.FormatInt(refTotalValue+amountTotalValue+timeTotalValue, 10)
 
-	return results, map[string]interface{}{
+	return results, map[string]any{
 		"total": total,
 	}, nil
 }

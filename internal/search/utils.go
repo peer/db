@@ -23,8 +23,8 @@ type loggerAdapter struct {
 }
 
 type indexConfigurationStruct struct {
-	Settings map[string]interface{} `json:"settings"`
-	Mappings map[string]interface{} `json:"mappings"`
+	Settings map[string]any `json:"settings"`
+	Mappings map[string]any `json:"mappings"`
 }
 
 // LogRoundTrip logs the request and response details using zerolog.

@@ -48,7 +48,7 @@ func findTimeBounds(filters *Filters, prop identifier.Identifier) (*float64, *fl
 // TimeFilterGet retrieves time filter data for search results.
 func TimeFilterGet(
 	ctx context.Context, getSearchService func() (*search.Search, int64, int64), id, prop identifier.Identifier,
-) ([]HistogramResult, map[string]interface{}, errors.E) {
+) ([]HistogramResult, map[string]any, errors.E) {
 	filter := esdsl.NewTermQuery("claims.time.prop", esdsl.NewFieldValue().String(prop.String()))
 	return histogramFilterGet(
 		ctx, getSearchService, id,

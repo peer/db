@@ -420,7 +420,7 @@ type transformer struct {
 func transformDocument(mnemonics map[string][]string, doc any) (*document.D, errors.E) {
 	v := reflect.ValueOf(doc)
 	// Handle pointer to struct.
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 
@@ -597,7 +597,7 @@ func (tr *transformer) processField(
 		}
 
 		// Handle pointers.
-	} else if fieldValue.Kind() == reflect.Ptr {
+	} else if fieldValue.Kind() == reflect.Pointer {
 		// We do not use errors.E here because we do not really need a stack trace.
 		var err error = errClaimNotMade
 		count = 0
@@ -952,7 +952,7 @@ func processValueClaimField(
 	claims map[identifier.Identifier]int,
 ) (document.Claim, errors.E) {
 	// Handle pointers.
-	if fieldValue.Kind() == reflect.Ptr {
+	if fieldValue.Kind() == reflect.Pointer {
 		if fieldValue.IsNil() {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1890,7 +1890,7 @@ func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault b
 		return 0, 0, errE
 	}
 
-	isPointer := fieldValue.Kind() == reflect.Ptr
+	isPointer := fieldValue.Kind() == reflect.Pointer
 	isSlice := fieldValue.Kind() == reflect.Slice
 	// isSingleValue is true for all non-pointer, non-slice fields, including bool.
 	isSingleValue := !isPointer && !isSlice
@@ -1955,7 +1955,7 @@ func parseConfidence(tag string) (document.Confidence, errors.E) {
 func ExtractDocumentID(doc any) ([]string, errors.E) {
 	v := reflect.ValueOf(doc)
 	// Handle pointer to struct.
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 

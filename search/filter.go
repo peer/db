@@ -142,7 +142,7 @@ func histogramFilterGet(
 	filter types.QueryVariant,
 	fromField, toField, rangeField string,
 	extractBounds func(session *Session) (from, to *float64),
-) ([]HistogramResult, map[string]interface{}, errors.E) {
+) ([]HistogramResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
 	m := metrics.Duration(internalStore.MetricSearchSession).Start()
@@ -220,7 +220,7 @@ func histogramFilterGet(
 	}
 
 	if docCount == 0 {
-		return []HistogramResult{}, map[string]interface{}{
+		return []HistogramResult{}, map[string]any{
 			"total": 0,
 		}, nil
 	}
@@ -228,7 +228,7 @@ func histogramFilterGet(
 	// Bounds are the same, return a single bucket.
 	if minValue == maxValue {
 		valString := strconv.FormatFloat(minValue, 'f', -1, 64)
-		return []HistogramResult{{From: minValue, Count: docCount}}, map[string]interface{}{
+		return []HistogramResult{{From: minValue, Count: docCount}}, map[string]any{
 			"total": "1",
 			"from":  valString,
 			"to":    valString,
@@ -279,7 +279,7 @@ func histogramFilterGet(
 
 	total := strconv.Itoa(len(results))
 
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"total":    total,
 		"from":     strconv.FormatFloat(minValue, 'f', -1, 64),
 		"to":       strconv.FormatFloat(maxValue, 'f', -1, 64),

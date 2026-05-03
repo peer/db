@@ -2,14 +2,16 @@
 package store
 
 import (
+	"maps"
+
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 )
 
 // ErrorDetails extracts detailed information from a PostgreSQL error.
-func ErrorDetails(e *pgconn.PgError) map[string]interface{} {
-	details := map[string]interface{}{}
+func ErrorDetails(e *pgconn.PgError) map[string]any {
+	details := map[string]any{}
 	if e.Severity != "" {
 		details["severity"] = e.Severity
 	}
@@ -75,9 +77,7 @@ func WithPgxError(err error) errors.E {
 	errE := errors.WithStack(err)
 	if e, ok := errors.AsType[*pgconn.PgError](errE); ok {
 		details := errors.Details(errE)
-		for key, value := range ErrorDetails(e) {
-			details[key] = value
-		}
+		maps.Copy(details, ErrorDetails(e))
 	}
 
 	return errE

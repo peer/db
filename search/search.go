@@ -488,7 +488,7 @@ type Result struct {
 // ResultsGet retrieves search results for a given search session.
 func ResultsGet(
 	ctx context.Context, getSearchService func() (*search.Search, int64, int64), searchSession *Session,
-) ([]Result, map[string]interface{}, errors.E) {
+) ([]Result, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
 	query := searchSession.ToQuery()
@@ -511,14 +511,14 @@ func ResultsGet(
 	}
 
 	// Total is a string or a number.
-	var total interface{}
+	var total any
 	if res.Hits.Total.Relation == totalhitsrelation.Gte {
 		total = fmt.Sprintf("%d+", res.Hits.Total.Value)
 	} else {
 		total = res.Hits.Total.Value
 	}
 
-	return results, map[string]interface{}{
+	return results, map[string]any{
 		"total": total,
 	}, nil
 }

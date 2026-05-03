@@ -35,7 +35,7 @@ func Fields[T any](
 	t := v.Type()
 
 	// Handle pointer to struct.
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
@@ -470,7 +470,7 @@ func (fc *fieldsCollector) collectSubFields(fieldType reflect.Type, fieldPath []
 	}
 
 	// Unwrap pointer.
-	if fieldType.Kind() == reflect.Ptr {
+	if fieldType.Kind() == reflect.Pointer {
 		fieldType = fieldType.Elem()
 	}
 
@@ -533,7 +533,7 @@ func determineValueTypeFromReflect(fieldType reflect.Type, typeTag string) (inte
 	}
 
 	// Unwrap pointer.
-	if fieldType.Kind() == reflect.Ptr {
+	if fieldType.Kind() == reflect.Pointer {
 		fieldType = fieldType.Elem()
 	}
 
@@ -622,7 +622,7 @@ func determineStructValueType(structType reflect.Type) (internalCore.Ref, errors
 		field := structType.Field(i)
 		if _, ok := field.Tag.Lookup("value"); ok {
 			fieldType := field.Type
-			if fieldType.Kind() == reflect.Ptr {
+			if fieldType.Kind() == reflect.Pointer {
 				fieldType = fieldType.Elem()
 			}
 			return determineValueTypeFromReflect(fieldType, field.Tag.Get("type"))
@@ -682,7 +682,7 @@ func parseFieldsCardinality(cardinality string, fieldType reflect.Type) (int, in
 	// Apply default cardinality based on Go type only when not explicitly specified.
 	if cardinality == "" {
 		baseType := fieldType
-		if baseType.Kind() == reflect.Ptr {
+		if baseType.Kind() == reflect.Pointer {
 			baseType = baseType.Elem()
 		}
 		isSlice := baseType.Kind() == reflect.Slice || fieldType.Kind() == reflect.Slice
@@ -712,7 +712,7 @@ func parseValuesTag(field reflect.StructField) ([]internalCore.Ref, errors.E) {
 	if baseType.Kind() == reflect.Slice {
 		baseType = baseType.Elem()
 	}
-	if baseType.Kind() == reflect.Ptr {
+	if baseType.Kind() == reflect.Pointer {
 		baseType = baseType.Elem()
 	}
 	if baseType != coreRef {
@@ -750,7 +750,7 @@ func parseStructValueFieldValues(fieldType reflect.Type) ([]internalCore.Ref, er
 	}
 
 	// Unwrap pointer.
-	if fieldType.Kind() == reflect.Ptr {
+	if fieldType.Kind() == reflect.Pointer {
 		fieldType = fieldType.Elem()
 	}
 

@@ -19,7 +19,7 @@ func WithFallbackDBContext(ctx context.Context, schema, name string) context.Con
 }
 
 func hasConnectionUpgrade(req *http.Request) bool {
-	for _, value := range strings.Split(req.Header.Get("Connection"), ",") {
+	for value := range strings.SplitSeq(req.Header.Get("Connection"), ",") {
 		if strings.ToLower(strings.TrimSpace(value)) == "upgrade" {
 			return true
 		}

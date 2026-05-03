@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func prepareFields(keysAndValues []interface{}) {
+func prepareFields(keysAndValues []any) {
 	for i, keyOrValue := range keysAndValues {
 		// We want URLs logged as strings.
 		u, ok := keyOrValue.(*url.URL)
@@ -23,22 +23,22 @@ type retryableHTTPLoggerAdapter struct {
 	logger zerolog.Logger
 }
 
-func (a retryableHTTPLoggerAdapter) Error(msg string, keysAndValues ...interface{}) {
+func (a retryableHTTPLoggerAdapter) Error(msg string, keysAndValues ...any) {
 	prepareFields(keysAndValues)
 	a.logger.Error().Fields(keysAndValues).Msg(msg)
 }
 
-func (a retryableHTTPLoggerAdapter) Info(msg string, keysAndValues ...interface{}) {
+func (a retryableHTTPLoggerAdapter) Info(msg string, keysAndValues ...any) {
 	prepareFields(keysAndValues)
 	a.logger.Info().Fields(keysAndValues).Msg(msg)
 }
 
-func (a retryableHTTPLoggerAdapter) Debug(msg string, keysAndValues ...interface{}) {
+func (a retryableHTTPLoggerAdapter) Debug(msg string, keysAndValues ...any) {
 	prepareFields(keysAndValues)
 	a.logger.Debug().Fields(keysAndValues).Msg(msg)
 }
 
-func (a retryableHTTPLoggerAdapter) Warn(msg string, keysAndValues ...interface{}) {
+func (a retryableHTTPLoggerAdapter) Warn(msg string, keysAndValues ...any) {
 	prepareFields(keysAndValues)
 	a.logger.Warn().Fields(keysAndValues).Msg(msg)
 }

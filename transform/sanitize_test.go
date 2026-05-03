@@ -28,13 +28,13 @@ func TestSanitizeHTML(t *testing.T) {
 
 	for _, entry := range entries {
 		name := entry.Name()
-		if strings.HasSuffix(name, ".input") {
-			testName := strings.TrimSuffix(name, ".input")
+		if before, ok := strings.CutSuffix(name, ".input"); ok {
+			testName := before
 			tc := testCases[testName]
 			tc.inputFile = name
 			testCases[testName] = tc
-		} else if strings.HasSuffix(name, ".output") {
-			testName := strings.TrimSuffix(name, ".output")
+		} else if before, ok := strings.CutSuffix(name, ".output"); ok {
+			testName := before
 			tc := testCases[testName]
 			tc.outputFile = name
 			testCases[testName] = tc

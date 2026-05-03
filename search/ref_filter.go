@@ -26,7 +26,7 @@ type RefFilterResult struct {
 // RefFilterGet retrieves reference filter data for search results.
 func RefFilterGet(
 	ctx context.Context, getSearchService func() (*search.Search, int64, int64), id, prop identifier.Identifier,
-) ([]RefFilterResult, map[string]interface{}, errors.E) {
+) ([]RefFilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
 	m := metrics.Duration(internalStore.MetricSearchSession).Start()
@@ -103,13 +103,10 @@ func RefFilterGet(
 
 	// Cardinality count is approximate, so we make sure the total is sane.
 	// See: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html#_counts_are_approximate
-	refTotalValue := refTotal.Value
-	if int64(len(refBuckets)) > refTotalValue {
-		refTotalValue = int64(len(refBuckets))
-	}
+	refTotalValue := max(int64(len(refBuckets)), refTotal.Value)
 	total := strconv.FormatInt(refTotalValue, 10)
 
-	return results, map[string]interface{}{
+	return results, map[string]any{
 		"total": total,
 	}, nil
 }
