@@ -19,7 +19,7 @@ var (
 const trailingChars = `,.!?;:()[]{}<>|"'`
 
 func init() { //nolint:gochecknoinits
-	r := []string{}
+	r := []string{} //nolint:prealloc
 	// Adding trailingChars is mostly redundant because they are already matched by the \p{P} group,
 	// but we want to make sure we can extend trailingChars even with characters which are not in \p{P}
 	// and also we do not want to rely on which characters does html.EscapeString escape.

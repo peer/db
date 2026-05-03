@@ -8,7 +8,7 @@ import (
 //
 //nolint:maintidx
 func Properties() ([]any, errors.E) {
-	documents := []any{}
+	documents := []any{} //nolint:prealloc
 
 	documents = append(documents, &Property{
 		PropertyFields: PropertyFields{

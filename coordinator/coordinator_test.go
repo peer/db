@@ -458,7 +458,7 @@ func TestListPagination(t *testing.T) {
 		},
 	)
 
-	operations := []int64{}
+	operations := []int64{} //nolint:prealloc
 
 	session, errE := c.Begin(ctx, testutils.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -478,7 +478,7 @@ func TestListPagination(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, page2, 1000)
 
-	allPages := []int64{}
+	allPages := make([]int64, 0, len(page1)+len(page2))
 	allPages = append(allPages, page1...)
 	allPages = append(allPages, page2...)
 

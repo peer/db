@@ -810,7 +810,7 @@ func TestAllChangePatchTypesViaChanges(t *testing.T) {
 	toTSPrec := document.TimePrecisionDay
 
 	makeBase := func(i int) []string {
-		return append(append([]string{}, base...), string(rune('0'+i)))
+		return append(append([]string{}, base...), string(rune('0'+i))) //nolint:gosec
 	}
 	makeID := func(i int) identifier.Identifier {
 		return identifier.From(makeBase(i)...)

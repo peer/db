@@ -6,7 +6,7 @@ import (
 
 // Vocabularies returns core vocabularies.
 func Vocabularies() ([]any, errors.E) { //nolint:maintidx
-	documents := []any{}
+	documents := []any{} //nolint:prealloc
 
 	documents = append(documents, &Language{
 		VocabularyFields: VocabularyFields{

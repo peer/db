@@ -627,7 +627,7 @@ func TestListPagination(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, page2, 1000)
 
-	inserted := []identifier.Identifier{}
+	inserted := make([]identifier.Identifier, 0, len(page1)+len(page2))
 	inserted = append(inserted, page1...)
 	inserted = append(inserted, page2...)
 
@@ -662,11 +662,11 @@ func TestListPagination(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, csPage2, 1000)
 
-	changes := []store.Change{}
+	changes := make([]store.Change, 0, len(csPage1)+len(csPage2))
 	changes = append(changes, csPage1...)
 	changes = append(changes, csPage2...)
 
-	expected := []store.Change{}
+	expected := make([]store.Change, 0, len(ids))
 	for _, id := range ids {
 		expected = append(expected, store.Change{
 			ID: id,
@@ -704,7 +704,7 @@ func TestChangesPagination(t *testing.T) {
 
 	ctx, s, channelContents := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
-	changesets := []identifier.Identifier{}
+	changesets := []identifier.Identifier{} //nolint:prealloc
 
 	newID := identifier.New()
 	version, errE := s.Insert(ctx, newID, testutils.DummyData, testutils.DummyData, testutils.DummyData)
@@ -744,7 +744,7 @@ func TestChangesPagination(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, page2, 1001)
 
-	changes := []identifier.Identifier{}
+	changes := make([]identifier.Identifier, 0, len(page1)+len(page2))
 	changes = append(changes, page1...)
 	changes = append(changes, page2...)
 	slices.Reverse(changes)

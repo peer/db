@@ -180,7 +180,7 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 
 	domains := []string{"localhost"}
 	if len(globals.Sites) > 0 {
-		domains = []string{}
+		domains = make([]string, 0, len(globals.Sites))
 		for _, site := range globals.Sites {
 			domains = append(domains, site.Domain)
 		}

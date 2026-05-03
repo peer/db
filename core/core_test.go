@@ -17,9 +17,9 @@ func TestClasses(t *testing.T) {
 	t.Parallel()
 
 	// Build mnemonics from properties.
-	allDocs := []any{}
 	props, errE := core.Properties()
 	require.NoError(t, errE, "% -+#.1v", errE)
+	allDocs := make([]any, 0, len(props))
 	allDocs = append(allDocs, props...)
 	mnemonics, errE := transform.Mnemonics(t.Context(), allDocs)
 	require.NoError(t, errE, "% -+#.1v", errE)

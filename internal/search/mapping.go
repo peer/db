@@ -272,6 +272,7 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"from",
+				//nolint:goconst
 				`{
 					"type": "double"
 				}`,

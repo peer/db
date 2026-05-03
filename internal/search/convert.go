@@ -885,7 +885,8 @@ func (c *Converter) extractInUnit(sub *document.ClaimTypes) *identifier.Identifi
 // the original property plus all its transitive super-properties.
 // If X is a sub-property of Y, a claim for X also produces a claim for Y.
 func (c *Converter) propagateProp(propID identifier.Identifier) []identifier.Identifier {
-	result := []identifier.Identifier{propID}
+	result := make([]identifier.Identifier, 0, 1+len(c.propertyAncestors[propID]))
+	result = append(result, propID)
 	result = append(result, c.propertyAncestors[propID]...)
 	return result
 }
