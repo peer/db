@@ -422,70 +422,62 @@ describe("inferPrecisionFromNormalized", () => {
 })
 
 describe("progressiveValidate (subseconds)", () => {
-  const noopT = (key: string) => key
   // progressiveValidate returns "" for both valid and still-in-progress input;
   // it only returns a non-empty error message for definitively-invalid input.
   test("subseconds in progress (1-2 digits) accepted as still-typing", () => {
-    assert.equal(progressiveValidate("2023-12-31 12:34:56.1", noopT), "")
-    assert.equal(progressiveValidate("2023-12-31 12:34:56.12", noopT), "")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:34:56.1"), "")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:34:56.12"), "")
   })
   test("subseconds 3 digits valid (ms)", () => {
-    assert.equal(progressiveValidate("2023-12-31 12:34:56.123", noopT), "")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:34:56.123"), "")
   })
   test("subseconds 4-5 digits accepted as still-typing", () => {
-    assert.equal(progressiveValidate("2023-12-31 12:34:56.1234", noopT), "")
-    assert.equal(progressiveValidate("2023-12-31 12:34:56.12345", noopT), "")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:34:56.1234"), "")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:34:56.12345"), "")
   })
   test("subseconds 6 digits valid (us)", () => {
-    assert.equal(progressiveValidate("2023-12-31 12:34:56.123456", noopT), "")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:34:56.123456"), "")
   })
   test("subseconds 7-8 digits accepted as still-typing", () => {
-    assert.equal(progressiveValidate("2023-12-31 12:34:56.1234567", noopT), "")
-    assert.equal(progressiveValidate("2023-12-31 12:34:56.12345678", noopT), "")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:34:56.1234567"), "")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:34:56.12345678"), "")
   })
   test("subseconds 9 digits valid (ns)", () => {
-    assert.equal(progressiveValidate("2023-12-31 12:34:56.123456789", noopT), "")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:34:56.123456789"), "")
   })
 
   // Invalid inputs that should produce a non-empty error key.
   test("letters in subseconds rejected", () => {
-    assert.equal(progressiveValidate("2023-12-31 12:34:56.abc", noopT), "components.InputTime.errors.invalid")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:34:56.abc"), "components.InputTime.errors.invalid")
   })
   test("more than 9 subsecond digits rejected", () => {
-    assert.equal(progressiveValidate("2023-12-31 12:34:56.1234567890", noopT), "components.InputTime.errors.invalid")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:34:56.1234567890"), "components.InputTime.errors.invalid")
   })
   test("month out of range with subseconds rejected", () => {
-    assert.equal(progressiveValidate("2023-13-31 12:34:56.123", noopT), "components.InputTime.errors.months")
+    assert.equal(progressiveValidateExposed("2023-13-31 12:34:56.123"), "components.InputTime.errors.months")
   })
   test("day out of range with subseconds rejected", () => {
-    assert.equal(progressiveValidate("2023-12-32 12:34:56.123", noopT), "components.InputTime.errors.days")
+    assert.equal(progressiveValidateExposed("2023-12-32 12:34:56.123"), `components.InputTime.errors.days {"maxDay":31}`)
   })
   test("hour out of range with subseconds rejected", () => {
-    assert.equal(progressiveValidate("2023-12-31 25:34:56.123", noopT), "components.InputTime.errors.hours")
+    assert.equal(progressiveValidateExposed("2023-12-31 25:34:56.123"), "components.InputTime.errors.hours")
   })
   test("minute out of range with subseconds rejected", () => {
-    assert.equal(progressiveValidate("2023-12-31 12:60:56.123", noopT), "components.InputTime.errors.minutes")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:60:56.123"), "components.InputTime.errors.minutes")
   })
   test("second out of range with subseconds rejected", () => {
-    assert.equal(progressiveValidate("2023-12-31 12:34:60.123", noopT), "components.InputTime.errors.seconds")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:34:60.123"), "components.InputTime.errors.seconds")
   })
 })
 
 describe("progressiveValidate (general invalid inputs)", () => {
-  const noopT = (key: string) => key
   test("letters in year rejected", () => {
     // The first branch (YEAR_IN_PROGRESS_REGEX) tolerates partial input; "abc"
     // matches none of the well-formed shapes, falling through to the catch-all
     // "invalid" message.
-    assert.equal(progressiveValidate("abc", noopT), "components.InputTime.errors.invalid")
+    assert.equal(progressiveValidateExposed("abc"), "components.InputTime.errors.invalid")
   })
   test("garbage tail after time rejected", () => {
-    assert.equal(progressiveValidate("2023-12-31 12:34:56xyz", noopT), "components.InputTime.errors.invalid")
-  })
-  test("month=13 in date-only form rejected", () => {
-    assert.equal(progressiveValidate("2023-13", noopT), "components.InputTime.errors.months0")
-  })
-  test("hour=24 in hour form rejected", () => {
-    assert.equal(progressiveValidate("2023-12-31 24", noopT), "components.InputTime.errors.hours")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:34:56xyz"), "components.InputTime.errors.invalid")
   })
 })

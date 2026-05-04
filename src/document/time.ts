@@ -49,7 +49,15 @@ function yearPrecisionMultiple(p: TimePrecision): number {
       return 100
     case "10y":
       return 10
-    default:
+    case "y":
+    case "m":
+    case "d":
+    case "h":
+    case "min":
+    case "s":
+    case "ms":
+    case "us":
+    case "ns":
       return 1
   }
 }
@@ -216,6 +224,9 @@ function validatePrecision(t: string, parsed: ReturnType<typeof parseTimeString>
   }
   if (parsed.subsecondsLen > 0) {
     let requiredLen: number
+    // Only ms/us/ns reach this branch because needsSubseconds is true only
+    // for those; the other cases are unreachable.
+    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
     switch (precision) {
       case "ms":
         requiredLen = 3
