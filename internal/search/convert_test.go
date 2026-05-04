@@ -807,6 +807,8 @@ func TestConvertRelationMultipleHierarchies(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: target},
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Target + classParent + partParent = 3 claims.
@@ -874,6 +876,8 @@ func TestConvertRelationOverlappingAncestors(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: target},
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Target + sharedAncestor (deduplicated) = 2 claims.
@@ -1272,6 +1276,8 @@ func TestConvertIdentifier(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		Value:     "Q42",
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertIdentifier(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
@@ -1301,6 +1307,8 @@ func TestConvertIdentifierWithPropagation(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		Value:     "Q42",
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertIdentifier(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 2)
@@ -1319,7 +1327,9 @@ func TestConvertIdentifierGetDocumentError(t *testing.T) {
 		Prop:      document.Reference{ID: identifier.New()},
 		Value:     "Q42",
 	}
-	_, errE := c.convertIdentifier(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = c.convertIdentifier(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -1338,6 +1348,8 @@ func TestConvertString(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		String:    "hello world",
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertString(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
@@ -1372,6 +1384,8 @@ func TestConvertStringWithLanguage(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		String:    "hello",
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertString(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
@@ -1395,6 +1409,8 @@ func TestConvertHTML(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		HTML:      "<p>hello</p>",
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertHTML(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
@@ -1428,6 +1444,8 @@ func TestConvertHTMLWithLanguage(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		HTML:      "<b>test</b>",
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertHTML(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
@@ -1450,6 +1468,8 @@ func TestConvertAmount(t *testing.T) {
 		Amount:    document.Amount("100"),
 		Precision: 1,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertAmount(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
@@ -1487,6 +1507,8 @@ func TestConvertAmountWithUnit(t *testing.T) {
 		Amount:    document.Amount("42"),
 		Precision: 1,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertAmount(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
@@ -1516,6 +1538,8 @@ func TestConvertAmountInterval(t *testing.T) {
 		To:            &toAmount,
 		ToPrecision:   &toPrec,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, amountClaims, 1)
@@ -1564,6 +1588,8 @@ func TestConvertAmountIntervalOpen(t *testing.T) {
 		ToPrecision:   &toPrec,
 		ToIsOpen:      true,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, amountClaims, 1)
@@ -1602,24 +1628,30 @@ func TestConvertAmountIntervalSinglePointSamePrecision(t *testing.T) {
 	core := makeCoreClaim(document.HighConfidence, nil)
 	prop := document.Reference{ID: testPropID}
 
-	intervalClaims, unknownClaims, errE := c.convertAmountInterval(ctx, &document.AmountIntervalClaim{ //nolint:exhaustruct
+	intervalClaim := &document.AmountIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     core,
 		Prop:          prop,
 		From:          &amount,
 		FromPrecision: &prec,
 		To:            &amount,
 		ToPrecision:   &prec,
-	})
+	}
+	errE := intervalClaim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	intervalClaims, unknownClaims, errE := c.convertAmountInterval(ctx, intervalClaim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, intervalClaims, 1)
 	assert.Empty(t, unknownClaims)
 
-	pointClaims, errE := c.convertAmount(ctx, &document.AmountClaim{
+	pointClaim := &document.AmountClaim{
 		CoreClaim: core,
 		Prop:      prop,
 		Amount:    amount,
 		Precision: prec,
-	})
+	}
+	errE = pointClaim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	pointClaims, errE := c.convertAmount(ctx, pointClaim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Interval path with from == to must produce the same AmountClaim as the
@@ -1664,6 +1696,8 @@ func TestConvertAmountIntervalSinglePointDifferentPrecisions(t *testing.T) {
 		To:            &amount,
 		ToPrecision:   &toPrec,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, amountClaims, 1)
@@ -1789,6 +1823,8 @@ func TestConvertAmountIntervalDirectedDecreasingAdjacent(t *testing.T) { //nolin
 		To:            &toAmount,
 		ToPrecision:   &prec,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, amountClaims, 1)
@@ -1833,6 +1869,8 @@ func TestConvertTimeIntervalDirectedDecreasingAdjacent(t *testing.T) {
 		To:            &toTS,
 		ToPrecision:   &prec,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
@@ -1883,10 +1921,17 @@ func TestConvertAmountIntervalToIsOpenExcludesWindow(t *testing.T) {
 		}
 	}
 
-	defaultClaims, _, errE := c.convertAmountInterval(ctx, mkClaim(false))
+	defaultClaim := mkClaim(false)
+	errE := defaultClaim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	defaultClaims, _, errE := c.convertAmountInterval(ctx, defaultClaim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, defaultClaims, 1)
-	openClaims, _, errE := c.convertAmountInterval(ctx, mkClaim(true))
+
+	openClaim := mkClaim(true)
+	errE = openClaim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	openClaims, _, errE := c.convertAmountInterval(ctx, openClaim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, openClaims, 1)
 
@@ -1924,6 +1969,8 @@ func TestConvertAmountIntervalFromNone(t *testing.T) {
 		To:          &toAmount,
 		ToPrecision: &toPrec,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, amountClaims, 1)
@@ -1952,6 +1999,8 @@ func TestConvertAmountIntervalToNone(t *testing.T) {
 		FromPrecision: &fromPrec,
 		ToIsNone:      true,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, amountClaims, 1)
@@ -1979,6 +2028,8 @@ func TestConvertAmountIntervalFromUnknownWithTo(t *testing.T) {
 		To:            &toAmount,
 		ToPrecision:   &toPrec,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	// Should treat as single point at To.
 	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -2007,6 +2058,8 @@ func TestConvertAmountIntervalToUnknownWithFrom(t *testing.T) {
 		FromPrecision: &fromPrec,
 		ToIsUnknown:   true,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	// Should treat as single point at From.
 	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -2030,6 +2083,8 @@ func TestConvertAmountIntervalBothUnknown(t *testing.T) {
 		FromIsUnknown: true,
 		ToIsUnknown:   true,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	// Both unknown: should become unknown claim.
 	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -2053,6 +2108,8 @@ func TestConvertAmountIntervalFromNoneToUnknown(t *testing.T) {
 		FromIsNone:  true,
 		ToIsUnknown: true,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	// From is None, To is Unknown with known From: becomes unknown.
 	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -2076,6 +2133,8 @@ func TestConvertAmountIntervalMissingFromPrecision(t *testing.T) {
 		To:          &toAmount,
 		ToPrecision: &toPrec,
 	}
+	// Intentionally NO claim.Validate() call here - claim is deliberately
+	// invalid and would not pass Validate().
 	_, _, errE := c.convertAmountInterval(ctx, claim)
 	assert.EqualError(t, errE, "missing from precision in claim")
 }
@@ -2100,6 +2159,8 @@ func TestConvertAmountIntervalMissingToPrecision(t *testing.T) {
 		FromPrecision: &fromPrec,
 		To:            &toAmount,
 	}
+	// Intentionally NO claim.Validate() call here - claim is deliberately
+	// invalid and would not pass Validate().
 	_, _, errE := c.convertAmountInterval(ctx, claim)
 	assert.EqualError(t, errE, "missing to precision in claim")
 }
@@ -2117,6 +2178,8 @@ func TestConvertAmountIntervalFromUnknownMissingToPrecision(t *testing.T) {
 		FromIsUnknown: true,
 		To:            &toAmount,
 	}
+	// Intentionally NO claim.Validate() call here - claim is deliberately
+	// invalid and would not pass Validate().
 	_, _, errE := c.convertAmountInterval(ctx, claim)
 	assert.EqualError(t, errE, "missing to precision in claim")
 }
@@ -2134,6 +2197,8 @@ func TestConvertAmountIntervalToUnknownMissingFromPrecision(t *testing.T) {
 		From:        &fromAmount,
 		ToIsUnknown: true,
 	}
+	// Intentionally NO claim.Validate() call here - claim is deliberately
+	// invalid and would not pass Validate().
 	_, _, errE := c.convertAmountInterval(ctx, claim)
 	assert.EqualError(t, errE, "missing from precision in claim")
 }
@@ -2154,6 +2219,8 @@ func TestConvertTime(t *testing.T) {
 		Time:      document.Time("2024-01-15"),
 		Precision: document.TimePrecisionDay,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertTime(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
@@ -2191,6 +2258,8 @@ func TestConvertTimeInterval(t *testing.T) {
 		To:            &toTS,
 		ToPrecision:   &toPrec,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
@@ -2226,6 +2295,8 @@ func TestConvertTimeIntervalOpen(t *testing.T) {
 		ToPrecision:   &toPrec,
 		ToIsOpen:      true,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
@@ -2274,6 +2345,8 @@ func TestConvertTimeIntervalAppliesToPrecision(t *testing.T) {
 		To:            &toTS,
 		ToPrecision:   &toPrec,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
@@ -2320,6 +2393,8 @@ func TestConvertTimeIntervalCoarseTo(t *testing.T) {
 		To:            &toTS,
 		ToPrecision:   &toPrec,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
@@ -2370,10 +2445,17 @@ func TestConvertTimeIntervalToIsOpenExcludesWindow(t *testing.T) {
 		}
 	}
 
-	defaultClaims, _, errE := c.convertTimeInterval(ctx, mkClaim(false))
+	defaultClaim := mkClaim(false)
+	errE := defaultClaim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	defaultClaims, _, errE := c.convertTimeInterval(ctx, defaultClaim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, defaultClaims, 1)
-	openClaims, _, errE := c.convertTimeInterval(ctx, mkClaim(true))
+
+	openClaim := mkClaim(true)
+	errE = openClaim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	openClaims, _, errE := c.convertTimeInterval(ctx, openClaim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, openClaims, 1)
 
@@ -2420,6 +2502,8 @@ func TestConvertTimeIntervalCoarseFromOpen(t *testing.T) {
 		To:            &toTS,
 		ToPrecision:   &toPrec,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
@@ -2460,24 +2544,30 @@ func TestConvertTimeIntervalSinglePointSamePrecision(t *testing.T) {
 	core := makeCoreClaim(document.HighConfidence, nil)
 	prop := document.Reference{ID: testPropID}
 
-	intervalClaims, unknownClaims, errE := c.convertTimeInterval(ctx, &document.TimeIntervalClaim{ //nolint:exhaustruct
+	intervalClaim := &document.TimeIntervalClaim{ //nolint:exhaustruct
 		CoreClaim:     core,
 		Prop:          prop,
 		From:          &ts,
 		FromPrecision: &prec,
 		To:            &ts,
 		ToPrecision:   &prec,
-	})
+	}
+	errE := intervalClaim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	intervalClaims, unknownClaims, errE := c.convertTimeInterval(ctx, intervalClaim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, intervalClaims, 1)
 	assert.Empty(t, unknownClaims)
 
-	pointClaims, errE := c.convertTime(ctx, &document.TimeClaim{
+	pointClaim := &document.TimeClaim{
 		CoreClaim: core,
 		Prop:      prop,
 		Time:      ts,
 		Precision: prec,
-	})
+	}
+	errE = pointClaim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	pointClaims, errE := c.convertTime(ctx, pointClaim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Interval path with from == to must produce the same TimeClaim as the
@@ -2527,6 +2617,8 @@ func TestConvertTimeIntervalSinglePointToFinerPrecision(t *testing.T) {
 		To:            &toTS,
 		ToPrecision:   &toPrec,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
@@ -2569,6 +2661,8 @@ func TestConvertTimeIntervalSinglePointToCoarserPrecision(t *testing.T) {
 		To:            &toTS,
 		ToPrecision:   &toPrec,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
@@ -2604,6 +2698,8 @@ func TestConvertTimeIntervalFromNone(t *testing.T) {
 		To:          &toTS,
 		ToPrecision: &toPrec,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
@@ -2631,6 +2727,8 @@ func TestConvertTimeIntervalToNone(t *testing.T) {
 		FromPrecision: &fromPrec,
 		ToIsNone:      true,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
@@ -2658,6 +2756,8 @@ func TestConvertTimeIntervalFromUnknownWithTo(t *testing.T) {
 		To:            &toTS,
 		ToPrecision:   &toPrec,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
@@ -2683,6 +2783,8 @@ func TestConvertTimeIntervalToUnknownWithFrom(t *testing.T) {
 		FromPrecision: &fromPrec,
 		ToIsUnknown:   true,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
@@ -2705,6 +2807,8 @@ func TestConvertTimeIntervalBothUnknown(t *testing.T) {
 		FromIsUnknown: true,
 		ToIsUnknown:   true,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Empty(t, timeClaims)
@@ -2727,6 +2831,8 @@ func TestConvertTimeIntervalFromNoneToUnknown(t *testing.T) {
 		FromIsNone:  true,
 		ToIsUnknown: true,
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	// FromNone sets range gte, then ToUnknown with known From (but From is set through range) -
 	// this hits the default case.
 	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
@@ -2751,6 +2857,8 @@ func TestConvertTimeIntervalMissingFromPrecision(t *testing.T) {
 		To:          &toTS,
 		ToPrecision: &toPrec,
 	}
+	// Intentionally NO claim.Validate() call here - claim is deliberately
+	// invalid and would not pass Validate().
 	_, _, errE := c.convertTimeInterval(ctx, claim)
 	assert.EqualError(t, errE, "missing from precision in claim")
 }
@@ -2775,6 +2883,8 @@ func TestConvertTimeIntervalMissingToPrecision(t *testing.T) {
 		FromPrecision: &fromPrec,
 		To:            &toTS,
 	}
+	// Intentionally NO claim.Validate() call here - claim is deliberately
+	// invalid and would not pass Validate().
 	_, _, errE := c.convertTimeInterval(ctx, claim)
 	assert.EqualError(t, errE, "missing to precision in claim")
 }
@@ -2792,6 +2902,8 @@ func TestConvertTimeIntervalFromUnknownMissingToPrecision(t *testing.T) {
 		FromIsUnknown: true,
 		To:            &toTS,
 	}
+	// Intentionally NO claim.Validate() call here - claim is deliberately
+	// invalid and would not pass Validate().
 	_, _, errE := c.convertTimeInterval(ctx, claim)
 	assert.EqualError(t, errE, "missing to precision in claim")
 }
@@ -2809,6 +2921,8 @@ func TestConvertTimeIntervalToUnknownMissingFromPrecision(t *testing.T) {
 		From:        &fromTS,
 		ToIsUnknown: true,
 	}
+	// Intentionally NO claim.Validate() call here - claim is deliberately
+	// invalid and would not pass Validate().
 	_, _, errE := c.convertTimeInterval(ctx, claim)
 	assert.EqualError(t, errE, "missing from precision in claim")
 }
@@ -2828,6 +2942,8 @@ func TestConvertReference(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		IRI:       "https://example.com",
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertLink(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
@@ -2851,6 +2967,8 @@ func TestConvertRelation(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
@@ -2886,6 +3004,8 @@ func TestConvertRelationWithClassAncestors(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Should produce claims for both target and parent class.
@@ -2938,6 +3058,8 @@ func TestConvertRelationWithClassSelfCycle(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	// Self-reference excluded, so only one result claim.
 	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -2974,6 +3096,8 @@ func TestConvertRelationWithClassMutualCycle(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: classA},
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Target classA + ancestor classB, no duplicates.
@@ -3008,6 +3132,8 @@ func TestConvertRelationWithPropertySelfCycle(t *testing.T) {
 		Prop:      document.Reference{ID: propA},
 		To:        document.Reference{ID: testTargetDocID},
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Self-cycle excluded: only one claim with propA, no duplicate.
@@ -3042,6 +3168,8 @@ func TestConvertRelationWithPropertyMutualCycle(t *testing.T) {
 		Prop:      document.Reference{ID: propA},
 		To:        document.Reference{ID: testTargetDocID},
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// propA (direct) + propB (ancestor), no duplicates.
@@ -3078,6 +3206,8 @@ func TestConvertStringWithPropertyCycle(t *testing.T) {
 		Prop:      document.Reference{ID: propA},
 		String:    "hello",
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertString(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// propA (direct) + propB (ancestor), no duplicates.
@@ -3122,6 +3252,8 @@ func TestConvertRelationWithSubRelations(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
@@ -3144,6 +3276,8 @@ func TestConvertHas(t *testing.T) {
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: testPropID},
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertHas(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
@@ -3179,6 +3313,8 @@ func TestConvertHasWithSubRelations(t *testing.T) {
 		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
 		Prop:      document.Reference{ID: testPropID},
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertHas(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
@@ -3199,6 +3335,8 @@ func TestConvertNone(t *testing.T) {
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: testPropID},
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertNone(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
@@ -3219,6 +3357,8 @@ func TestConvertUnknown(t *testing.T) {
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: testPropID},
 	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
 	result, errE := c.convertUnknown(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
@@ -3768,7 +3908,9 @@ func TestConvertStringPropagationError(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		String:    "hello",
 	}
-	_, errE := c.convertString(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = c.convertString(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -3791,7 +3933,9 @@ func TestConvertHTMLPropagationError(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		HTML:      "<p>test</p>",
 	}
-	_, errE := c.convertHTML(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = c.convertHTML(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -3811,6 +3955,8 @@ func TestConvertAmountInvalidAmount(t *testing.T) {
 		Amount:    document.Amount("not-a-number"),
 		Precision: 1,
 	}
+	// Intentionally NO claim.Validate() call here - claim is deliberately
+	// invalid and would not pass Validate().
 	_, errE := c.convertAmount(ctx, claim)
 	assert.EqualError(t, errE, "unable to parse amount")
 }
@@ -3835,7 +3981,9 @@ func TestConvertAmountPropagationError(t *testing.T) {
 		Amount:    document.Amount("42"),
 		Precision: 1,
 	}
-	_, errE := c.convertAmount(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = c.convertAmount(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -3865,7 +4013,9 @@ func TestConvertAmountIntervalPropagationError(t *testing.T) {
 		To:            &toAmount,
 		ToPrecision:   &toPrec,
 	}
-	_, _, errE := c.convertAmountInterval(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, _, errE = c.convertAmountInterval(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -3887,6 +4037,8 @@ func TestConvertAmountIntervalInvalidFromAmount(t *testing.T) {
 		To:            &toAmount,
 		ToPrecision:   &toPrec,
 	}
+	// Intentionally NO claim.Validate() call here - claim is deliberately
+	// invalid and would not pass Validate().
 	_, _, errE := c.convertAmountInterval(ctx, claim)
 	assert.EqualError(t, errE, "unable to parse amount")
 }
@@ -3913,6 +4065,8 @@ func TestConvertAmountIntervalInvalidToAmount(t *testing.T) {
 		To:            &toAmount,
 		ToPrecision:   &toPrec,
 	}
+	// Intentionally NO claim.Validate() call here - claim is deliberately
+	// invalid and would not pass Validate().
 	_, _, errE := c.convertAmountInterval(ctx, claim)
 	assert.EqualError(t, errE, "unable to parse amount")
 }
@@ -3937,7 +4091,9 @@ func TestConvertTimePropagationError(t *testing.T) {
 		Time:      document.Time("2024-01-15"),
 		Precision: document.TimePrecisionDay,
 	}
-	_, errE := c.convertTime(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = c.convertTime(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -3957,6 +4113,8 @@ func TestConvertTimeInvalidTime(t *testing.T) {
 		Time:      document.Time("not-a-time"),
 		Precision: document.TimePrecisionDay,
 	}
+	// Intentionally NO claim.Validate() call here - claim is deliberately
+	// invalid and would not pass Validate().
 	_, errE := c.convertTime(ctx, claim)
 	assert.EqualError(t, errE, "unable to parse time")
 }
@@ -3987,7 +4145,9 @@ func TestConvertTimeIntervalPropagationError(t *testing.T) {
 		To:            &toTS,
 		ToPrecision:   &toPrec,
 	}
-	_, _, errE := c.convertTimeInterval(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, _, errE = c.convertTimeInterval(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4009,6 +4169,8 @@ func TestConvertTimeIntervalInvalidFromTime(t *testing.T) {
 		To:            &toTS,
 		ToPrecision:   &toPrec,
 	}
+	// Intentionally NO claim.Validate() call here - claim is deliberately
+	// invalid and would not pass Validate().
 	_, _, errE := c.convertTimeInterval(ctx, claim)
 	assert.EqualError(t, errE, "unable to parse time")
 }
@@ -4035,6 +4197,8 @@ func TestConvertTimeIntervalInvalidToTime(t *testing.T) {
 		To:            &toTS,
 		ToPrecision:   &toPrec,
 	}
+	// Intentionally NO claim.Validate() call here - claim is deliberately
+	// invalid and would not pass Validate().
 	_, _, errE := c.convertTimeInterval(ctx, claim)
 	assert.EqualError(t, errE, "unable to parse time")
 }
@@ -4064,7 +4228,9 @@ func TestConvertRelationSubPropError(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
-	_, errE := c.convertReference(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = c.convertReference(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4092,7 +4258,9 @@ func TestConvertRelationSubToError(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
-	_, errE := c.convertReference(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = c.convertReference(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4112,7 +4280,9 @@ func TestConvertRelationToDisplayError(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
-	_, errE := c.convertReference(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = c.convertReference(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4136,7 +4306,9 @@ func TestConvertHasSubPropError(t *testing.T) {
 		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
 		Prop:      document.Reference{ID: testPropID},
 	}
-	_, errE := c.convertHas(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = c.convertHas(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4163,7 +4335,9 @@ func TestConvertHasSubToError(t *testing.T) {
 		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
 		Prop:      document.Reference{ID: testPropID},
 	}
-	_, errE := c.convertHas(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = c.convertHas(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4185,7 +4359,9 @@ func TestConvertHasPropagationError(t *testing.T) {
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: testPropID},
 	}
-	_, errE := c.convertHas(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = c.convertHas(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4210,7 +4386,9 @@ func TestConvertRelationPropagationPropError(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
-	_, errE := c.convertReference(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = c.convertReference(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4233,7 +4411,9 @@ func TestConvertReferencePropagationError(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		IRI:       "https://example.com",
 	}
-	_, errE := c.convertLink(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = c.convertLink(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4255,7 +4435,9 @@ func TestConvertNonePropagationError(t *testing.T) {
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: testPropID},
 	}
-	_, errE := c.convertNone(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = c.convertNone(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4277,7 +4459,9 @@ func TestConvertUnknownPropagationError(t *testing.T) {
 		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 		Prop:      document.Reference{ID: testPropID},
 	}
-	_, errE := c.convertUnknown(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = c.convertUnknown(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4298,7 +4482,9 @@ func TestConvertAmountIntervalFromUnknownToError(t *testing.T) {
 		To:            &toAmount,
 		ToPrecision:   &toPrec,
 	}
-	_, _, errE := c.convertAmountInterval(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, _, errE = c.convertAmountInterval(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4318,7 +4504,9 @@ func TestConvertAmountIntervalToUnknownFromError(t *testing.T) {
 		FromPrecision: &fromPrec,
 		ToIsUnknown:   true,
 	}
-	_, _, errE := c.convertAmountInterval(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, _, errE = c.convertAmountInterval(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4337,7 +4525,9 @@ func TestConvertTimeIntervalFromUnknownToError(t *testing.T) {
 		To:            &toTS,
 		ToPrecision:   &toPrec,
 	}
-	_, _, errE := c.convertTimeInterval(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, _, errE = c.convertTimeInterval(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4356,7 +4546,9 @@ func TestConvertTimeIntervalToUnknownFromError(t *testing.T) {
 		FromPrecision: &fromPrec,
 		ToIsUnknown:   true,
 	}
-	_, _, errE := c.convertTimeInterval(ctx, claim)
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, _, errE = c.convertTimeInterval(ctx, claim)
 	assert.EqualError(t, errE, "document not found")
 }
 
