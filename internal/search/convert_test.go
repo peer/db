@@ -1555,8 +1555,8 @@ func TestConvertAmountInterval(t *testing.T) {
 	assert.Equal(t, 20.5, *amountClaims[0].Range.LessThan)          //nolint:testifylint
 	require.NotNil(t, amountClaims[0].From)
 	require.NotNil(t, amountClaims[0].To)
-	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual)
-	assert.Equal(t, *amountClaims[0].To, *amountClaims[0].Range.LessThan)
+	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
+	assert.Equal(t, *amountClaims[0].To, *amountClaims[0].Range.LessThan)             //nolint:testifylint
 	assert.Equal(t, "10", amountClaims[0].FromDisplay)
 	assert.Equal(t, "20", amountClaims[0].ToDisplay)
 }
@@ -1605,8 +1605,8 @@ func TestConvertAmountIntervalOpen(t *testing.T) {
 	assert.Equal(t, 19.5, *amountClaims[0].Range.LessThan)           //nolint:testifylint
 	require.NotNil(t, amountClaims[0].From)
 	require.NotNil(t, amountClaims[0].To)
-	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual)
-	assert.Equal(t, *amountClaims[0].To, *amountClaims[0].Range.LessThan)
+	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
+	assert.Equal(t, *amountClaims[0].To, *amountClaims[0].Range.LessThan)             //nolint:testifylint
 }
 
 // TestConvertAmountIntervalSinglePointSamePrecision verifies that an amount
@@ -1664,10 +1664,10 @@ func TestConvertAmountIntervalSinglePointSamePrecision(t *testing.T) {
 	require.NotNil(t, intervalClaims[0].Range.GreaterThanOrEqual)
 	require.NotNil(t, intervalClaims[0].Range.LessThan)
 
-	assert.Equal(t, 99.5, *intervalClaims[0].From) //nolint:testifylint
-	assert.Equal(t, 100.5, *intervalClaims[0].To)  //nolint:testifylint
-	assert.Equal(t, *intervalClaims[0].From, *intervalClaims[0].Range.GreaterThanOrEqual)
-	assert.Equal(t, *intervalClaims[0].To, *intervalClaims[0].Range.LessThan)
+	assert.Equal(t, 99.5, *intervalClaims[0].From)                                        //nolint:testifylint
+	assert.Equal(t, 100.5, *intervalClaims[0].To)                                         //nolint:testifylint
+	assert.Equal(t, *intervalClaims[0].From, *intervalClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
+	assert.Equal(t, *intervalClaims[0].To, *intervalClaims[0].Range.LessThan)             //nolint:testifylint
 	assert.Equal(t, "100", intervalClaims[0].FromDisplay)
 	assert.Equal(t, "100", intervalClaims[0].ToDisplay)
 }
@@ -1705,10 +1705,10 @@ func TestConvertAmountIntervalSinglePointDifferentPrecisions(t *testing.T) {
 
 	// from-window (prec 10) start = 95, to-window (prec 1) end = 100.5.
 	// Each side uses its own precision; the indexed range covers both.
-	assert.Equal(t, 95.0, *amountClaims[0].From) //nolint:testifylint
-	assert.Equal(t, 100.5, *amountClaims[0].To)  //nolint:testifylint
-	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual)
-	assert.Equal(t, *amountClaims[0].To, *amountClaims[0].Range.LessThan)
+	assert.Equal(t, 95.0, *amountClaims[0].From)                                      //nolint:testifylint
+	assert.Equal(t, 100.5, *amountClaims[0].To)                                       //nolint:testifylint
+	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
+	assert.Equal(t, *amountClaims[0].To, *amountClaims[0].Range.LessThan)             //nolint:testifylint
 	assert.Equal(t, "100", amountClaims[0].FromDisplay)
 	assert.Equal(t, "100", amountClaims[0].ToDisplay)
 }
@@ -1752,8 +1752,8 @@ func TestConvertAmountIntervalForwardAdjacent(t *testing.T) { //nolint:dupl
 	assert.Equal(t, 25.0, *amountClaims[0].Range.LessThan)          //nolint:testifylint
 	require.NotNil(t, amountClaims[0].From)
 	require.NotNil(t, amountClaims[0].To)
-	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual)
-	assert.Equal(t, *amountClaims[0].To, *amountClaims[0].Range.LessThan)
+	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
+	assert.Equal(t, *amountClaims[0].To, *amountClaims[0].Range.LessThan)             //nolint:testifylint
 	assert.Equal(t, "10", amountClaims[0].FromDisplay)
 	assert.Equal(t, "20", amountClaims[0].ToDisplay)
 }
@@ -1836,8 +1836,8 @@ func TestConvertAmountIntervalDirectedDecreasingAdjacent(t *testing.T) { //nolin
 	assert.Equal(t, 11.5, *amountClaims[0].Range.LessThan)          //nolint:testifylint
 	require.NotNil(t, amountClaims[0].From)
 	require.NotNil(t, amountClaims[0].To)
-	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual)
-	assert.Equal(t, *amountClaims[0].To, *amountClaims[0].Range.LessThan)
+	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
+	assert.Equal(t, *amountClaims[0].To, *amountClaims[0].Range.LessThan)             //nolint:testifylint
 	// Display strings follow the swapped orientation: smaller value is now From.
 	assert.Equal(t, "10", amountClaims[0].FromDisplay)
 	assert.Equal(t, "11", amountClaims[0].ToDisplay)
@@ -1884,8 +1884,8 @@ func TestConvertTimeIntervalDirectedDecreasingAdjacent(t *testing.T) {
 	assert.Equal(t, time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC), upperTime)
 	require.NotNil(t, timeClaims[0].From)
 	require.NotNil(t, timeClaims[0].To)
-	assert.Equal(t, *timeClaims[0].From, *timeClaims[0].Range.GreaterThanOrEqual)
-	assert.Equal(t, *timeClaims[0].To, *timeClaims[0].Range.LessThan)
+	assert.Equal(t, *timeClaims[0].From, *timeClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
+	assert.Equal(t, *timeClaims[0].To, *timeClaims[0].Range.LessThan)             //nolint:testifylint
 	// Display strings follow the swapped orientation.
 	assert.Equal(t, "2024", timeClaims[0].FromDisplay)
 	assert.Equal(t, "2025", timeClaims[0].ToDisplay)
@@ -1946,8 +1946,8 @@ func TestConvertAmountIntervalToIsOpenExcludesWindow(t *testing.T) {
 	// Scalars coincide with range bounds.
 	require.NotNil(t, defaultClaims[0].To)
 	require.NotNil(t, openClaims[0].To)
-	assert.Equal(t, *defaultClaims[0].To, *defaultClaims[0].Range.LessThan)
-	assert.Equal(t, *openClaims[0].To, *openClaims[0].Range.LessThan)
+	assert.Equal(t, *defaultClaims[0].To, *defaultClaims[0].Range.LessThan) //nolint:testifylint
+	assert.Equal(t, *openClaims[0].To, *openClaims[0].Range.LessThan)       //nolint:testifylint
 }
 
 func TestConvertAmountIntervalFromNone(t *testing.T) {
@@ -2316,8 +2316,8 @@ func TestConvertTimeIntervalOpen(t *testing.T) {
 	// Scalars coincide with range bounds.
 	require.NotNil(t, timeClaims[0].From)
 	require.NotNil(t, timeClaims[0].To)
-	assert.Equal(t, *timeClaims[0].From, *timeClaims[0].Range.GreaterThanOrEqual)
-	assert.Equal(t, *timeClaims[0].To, *timeClaims[0].Range.LessThan)
+	assert.Equal(t, *timeClaims[0].From, *timeClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
+	assert.Equal(t, *timeClaims[0].To, *timeClaims[0].Range.LessThan)             //nolint:testifylint
 }
 
 // TestConvertTimeIntervalAppliesToPrecision verifies that the indexed range
@@ -2361,8 +2361,8 @@ func TestConvertTimeIntervalAppliesToPrecision(t *testing.T) {
 	// To should be start of the day AFTER 2024-12-31, i.e. 2025-01-01.
 	toTime := x.TimeFromFloat64(*timeClaims[0].To).UTC()
 	assert.Equal(t, time.Date(2025, time.January, 1, 0, 0, 0, 0, time.UTC), toTime)
-	assert.Equal(t, *timeClaims[0].From, *timeClaims[0].Range.GreaterThanOrEqual)
-	assert.Equal(t, *timeClaims[0].To, *timeClaims[0].Range.LessThan)
+	assert.Equal(t, *timeClaims[0].From, *timeClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
+	assert.Equal(t, *timeClaims[0].To, *timeClaims[0].Range.LessThan)             //nolint:testifylint
 	assert.Equal(t, "2024-01-15", timeClaims[0].FromDisplay)
 	assert.Equal(t, "2024-12-31", timeClaims[0].ToDisplay)
 }
@@ -2409,8 +2409,8 @@ func TestConvertTimeIntervalCoarseTo(t *testing.T) {
 	assert.Equal(t, time.Date(2025, time.October, 21, 0, 0, 0, 0, time.UTC), fromTime)
 	// To with year precision extends to start of 2026.
 	assert.Equal(t, time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC), toTime)
-	assert.Equal(t, *timeClaims[0].From, *timeClaims[0].Range.GreaterThanOrEqual)
-	assert.Equal(t, *timeClaims[0].To, *timeClaims[0].Range.LessThan)
+	assert.Equal(t, *timeClaims[0].From, *timeClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
+	assert.Equal(t, *timeClaims[0].To, *timeClaims[0].Range.LessThan)             //nolint:testifylint
 	// Display strings keep the original user-visible form (no swap).
 	assert.Equal(t, "2025-10-21", timeClaims[0].FromDisplay)
 	assert.Equal(t, "2025", timeClaims[0].ToDisplay)
@@ -2472,8 +2472,8 @@ func TestConvertTimeIntervalToIsOpenExcludesWindow(t *testing.T) {
 	// Scalars coincide with range bounds.
 	require.NotNil(t, defaultClaims[0].To)
 	require.NotNil(t, openClaims[0].To)
-	assert.Equal(t, *defaultClaims[0].To, *defaultClaims[0].Range.LessThan)
-	assert.Equal(t, *openClaims[0].To, *openClaims[0].Range.LessThan)
+	assert.Equal(t, *defaultClaims[0].To, *defaultClaims[0].Range.LessThan) //nolint:testifylint
+	assert.Equal(t, *openClaims[0].To, *openClaims[0].Range.LessThan)       //nolint:testifylint
 }
 
 // TestConvertTimeIntervalCoarseFromOpen verifies that FromIsOpen=true with a
@@ -2520,8 +2520,8 @@ func TestConvertTimeIntervalCoarseFromOpen(t *testing.T) {
 	// Scalars coincide with range bounds, displays preserve user input.
 	require.NotNil(t, timeClaims[0].From)
 	require.NotNil(t, timeClaims[0].To)
-	assert.Equal(t, *timeClaims[0].From, *timeClaims[0].Range.GreaterThanOrEqual)
-	assert.Equal(t, *timeClaims[0].To, *timeClaims[0].Range.LessThan)
+	assert.Equal(t, *timeClaims[0].From, *timeClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
+	assert.Equal(t, *timeClaims[0].To, *timeClaims[0].Range.LessThan)             //nolint:testifylint
 	assert.Equal(t, "2024", timeClaims[0].FromDisplay)
 	assert.Equal(t, "2026-06-15", timeClaims[0].ToDisplay)
 }
@@ -2584,8 +2584,8 @@ func TestConvertTimeIntervalSinglePointSamePrecision(t *testing.T) {
 	toTime := x.TimeFromFloat64(*intervalClaims[0].To).UTC()
 	assert.Equal(t, time.Date(2025, time.January, 1, 0, 0, 0, 0, time.UTC), fromTime)
 	assert.Equal(t, time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC), toTime)
-	assert.Equal(t, *intervalClaims[0].From, *intervalClaims[0].Range.GreaterThanOrEqual)
-	assert.Equal(t, *intervalClaims[0].To, *intervalClaims[0].Range.LessThan)
+	assert.Equal(t, *intervalClaims[0].From, *intervalClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
+	assert.Equal(t, *intervalClaims[0].To, *intervalClaims[0].Range.LessThan)             //nolint:testifylint
 	assert.Equal(t, "2025", intervalClaims[0].FromDisplay)
 	assert.Equal(t, "2025", intervalClaims[0].ToDisplay)
 }
@@ -2595,7 +2595,7 @@ func TestConvertTimeIntervalSinglePointSamePrecision(t *testing.T) {
 // (e.g. from="2025" year, to="2025-01" month), the result reflects the
 // to-window: range = [from_start, to_end), with each side's display
 // preserved.
-func TestConvertTimeIntervalSinglePointToFinerPrecision(t *testing.T) {
+func TestConvertTimeIntervalSinglePointToFinerPrecision(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
 	propDoc := makeNamingDoc(testPropID, "Time Prop")
@@ -2629,8 +2629,8 @@ func TestConvertTimeIntervalSinglePointToFinerPrecision(t *testing.T) {
 	// from_start = 2025-01-01, to_end = 2025-02-01 (one month past to_start).
 	assert.Equal(t, time.Date(2025, time.January, 1, 0, 0, 0, 0, time.UTC), fromTime)
 	assert.Equal(t, time.Date(2025, time.February, 1, 0, 0, 0, 0, time.UTC), toTime)
-	assert.Equal(t, *timeClaims[0].From, *timeClaims[0].Range.GreaterThanOrEqual)
-	assert.Equal(t, *timeClaims[0].To, *timeClaims[0].Range.LessThan)
+	assert.Equal(t, *timeClaims[0].From, *timeClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
+	assert.Equal(t, *timeClaims[0].To, *timeClaims[0].Range.LessThan)             //nolint:testifylint
 	assert.Equal(t, "2025", timeClaims[0].FromDisplay)
 	assert.Equal(t, "2025-01-00", timeClaims[0].ToDisplay)
 }
@@ -2639,7 +2639,7 @@ func TestConvertTimeIntervalSinglePointToFinerPrecision(t *testing.T) {
 // from and to share the same start instant but to has coarser precision
 // (e.g. from="2025-01-01" day, to="2025" year), the result reflects the
 // wider to-window: range = [from_start, to_end).
-func TestConvertTimeIntervalSinglePointToCoarserPrecision(t *testing.T) {
+func TestConvertTimeIntervalSinglePointToCoarserPrecision(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
 	propDoc := makeNamingDoc(testPropID, "Time Prop")
@@ -2673,8 +2673,8 @@ func TestConvertTimeIntervalSinglePointToCoarserPrecision(t *testing.T) {
 	// from_start = 2025-01-01, to_end = 2026-01-01 (one year past to_start).
 	assert.Equal(t, time.Date(2025, time.January, 1, 0, 0, 0, 0, time.UTC), fromTime)
 	assert.Equal(t, time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC), toTime)
-	assert.Equal(t, *timeClaims[0].From, *timeClaims[0].Range.GreaterThanOrEqual)
-	assert.Equal(t, *timeClaims[0].To, *timeClaims[0].Range.LessThan)
+	assert.Equal(t, *timeClaims[0].From, *timeClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
+	assert.Equal(t, *timeClaims[0].To, *timeClaims[0].Range.LessThan)             //nolint:testifylint
 	assert.Equal(t, "2025-01-01", timeClaims[0].FromDisplay)
 	assert.Equal(t, "2025", timeClaims[0].ToDisplay)
 }

@@ -873,7 +873,7 @@ func (c *AmountIntervalClaim) Validate() errors.E {
 	// that case we fall back to the un-swapped-empty criterion: only swap
 	// when the un-swapped form is empty (start(from) >= end(to)). If the
 	// swapped form is also empty, the interval is genuinely empty.
-	if c.From != nil && c.To != nil && c.FromPrecision != nil && c.ToPrecision != nil {
+	if c.From != nil && c.To != nil && c.FromPrecision != nil && c.ToPrecision != nil { //nolint:nestif
 		if *c.FromPrecision == *c.ToPrecision {
 			fromValue, errE := c.From.Float64(*c.FromPrecision)
 			if errE != nil {
@@ -1044,7 +1044,7 @@ func (c *TimeIntervalClaim) Validate() errors.E {
 	// for same precision, swap on value (fromValue > toValue) then forward
 	// empty check; for different precision, swap iff un-swapped form is
 	// empty, with a swapped retry. Matches convertTimeInterval.
-	if c.From != nil && c.To != nil && c.FromPrecision != nil && c.ToPrecision != nil {
+	if c.From != nil && c.To != nil && c.FromPrecision != nil && c.ToPrecision != nil { //nolint:nestif
 		if *c.FromPrecision == *c.ToPrecision {
 			fromValue, errE := c.From.Float64(*c.FromPrecision, nil)
 			if errE != nil {

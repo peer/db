@@ -1387,7 +1387,8 @@ func (c *Converter) convertAmount(ctx context.Context, claim *document.AmountCla
 
 	// Sanity check. Validate is strict and never swaps; for a single-point
 	// amount with positive precision the bounds are always well-formed.
-	if errE := rangeFloat.Validate(); errE != nil {
+	errE = rangeFloat.Validate()
+	if errE != nil {
 		errors.Details(errE)["claim"] = claim
 		return nil, errE
 	}
@@ -1478,6 +1479,7 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 		toDisplay   string
 	)
 
+	//nolint:dupl
 	switch {
 	case workClaim.From != nil:
 		// FromIsOpen=true excludes the from-window: lower advances past the
@@ -1612,7 +1614,8 @@ func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) 
 
 	// Sanity check. Validate is strict and never swaps; for a single-point
 	// time with non-zero precision the bounds are always well-formed.
-	if errE := rangeFloat.Validate(); errE != nil {
+	errE = rangeFloat.Validate()
+	if errE != nil {
 		errors.Details(errE)["claim"] = claim
 		return nil, errE
 	}
@@ -1698,6 +1701,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		toDisplay   string
 	)
 
+	//nolint:dupl
 	switch {
 	case workClaim.From != nil:
 		// FromIsOpen=true excludes the from-window: lower advances past the

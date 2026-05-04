@@ -249,7 +249,7 @@ func TestDocumentWithAllClaimTypes(t *testing.T) {
 }
 
 // TestClaimValidations tests Validate methods on all claim types.
-func TestClaimValidations(t *testing.T) {
+func TestClaimValidations(t *testing.T) { //nolint:maintidx
 	t.Parallel()
 
 	prop := identifier.New()
