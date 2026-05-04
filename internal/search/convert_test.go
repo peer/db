@@ -3284,15 +3284,163 @@ func TestAddPrecision(t *testing.T) {
 		{"ten mega years", document.TimePrecisionTenMegaYears, time.Date(10002024, 1, 1, 0, 0, 0, 0, time.UTC)},
 		{"hundred mega years", document.TimePrecisionHundredMegaYears, time.Date(100002024, 1, 1, 0, 0, 0, 0, time.UTC)},
 		{"giga years", document.TimePrecisionGigaYears, time.Date(1000002024, 1, 1, 0, 0, 0, 0, time.UTC)},
-		{"millisecond", document.TimePrecisionMillisecond, time.Date(2024, 1, 1, 0, 0, 1, 0, time.UTC)},
-		{"microsecond", document.TimePrecisionMicrosecond, time.Date(2024, 1, 1, 0, 0, 1, 0, time.UTC)},
-		{"nanosecond", document.TimePrecisionNanosecond, time.Date(2024, 1, 1, 0, 0, 1, 0, time.UTC)},
+		{"millisecond", document.TimePrecisionMillisecond, time.Date(2024, 1, 1, 0, 0, 0, 1_000_000, time.UTC)},
+		{"microsecond", document.TimePrecisionMicrosecond, time.Date(2024, 1, 1, 0, 0, 0, 1_000, time.UTC)},
+		// Nanosecond is widened to microsecond because float64 cannot distinguish 1 ns here.
+		{"nanosecond", document.TimePrecisionNanosecond, time.Date(2024, 1, 1, 0, 0, 0, 1_000, time.UTC)},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := addPrecision(base, tt.precision)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+// TestAddPrecisionMagnitudeWidening verifies that the precision step is
+// widened to the next coarser precision when the natural step is below
+// float64 resolution at t's magnitude (i.e. the bound would round back
+// to t through x.TimeToFloat64).
+func TestAddPrecisionMagnitudeWidening(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		base      time.Time
+		precision document.TimePrecision
+		expected  time.Time
+	}{
+		// Near-epoch (unix ~86400, ULP ~ 1.9e-11 s): 1 ns survives, no widening.
+		{
+			"near-epoch nanosecond stays at 1 ns",
+			time.Date(1970, 1, 2, 0, 0, 0, 0, time.UTC),
+			document.TimePrecisionNanosecond,
+			time.Date(1970, 1, 2, 0, 0, 0, 1, time.UTC),
+		},
+		{
+			"near-epoch microsecond stays at 1 µs",
+			time.Date(1970, 1, 2, 0, 0, 0, 0, time.UTC),
+			document.TimePrecisionMicrosecond,
+			time.Date(1970, 1, 2, 0, 0, 0, 1_000, time.UTC),
+		},
+		// Modern (unix ~1.7e9, ULP ~3.8e-7 s): 1 ns -> widened to 1 µs.
+		{
+			"modern nanosecond widens to 1 µs",
+			time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+			document.TimePrecisionNanosecond,
+			time.Date(2024, 1, 1, 0, 0, 0, 1_000, time.UTC),
+		},
+		{
+			"modern microsecond stays at 1 µs",
+			time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+			document.TimePrecisionMicrosecond,
+			time.Date(2024, 1, 1, 0, 0, 0, 1_000, time.UTC),
+		},
+		// Far future (unix ~3.25e10, ULP ~7 µs): 1 ns and 1 µs widen to 1 ms.
+		{
+			"year 3000 nanosecond widens to 1 ms",
+			time.Date(3000, 1, 1, 0, 0, 0, 0, time.UTC),
+			document.TimePrecisionNanosecond,
+			time.Date(3000, 1, 1, 0, 0, 0, 1_000_000, time.UTC),
+		},
+		{
+			"year 3000 microsecond widens to 1 ms",
+			time.Date(3000, 1, 1, 0, 0, 0, 0, time.UTC),
+			document.TimePrecisionMicrosecond,
+			time.Date(3000, 1, 1, 0, 0, 0, 1_000_000, time.UTC),
+		},
+		{
+			"year 3000 millisecond stays at 1 ms",
+			time.Date(3000, 1, 1, 0, 0, 0, 0, time.UTC),
+			document.TimePrecisionMillisecond,
+			time.Date(3000, 1, 1, 0, 0, 0, 1_000_000, time.UTC),
+		},
+		// Distant past (unix negative, magnitude similar to far future): also widens.
+		{
+			"year 1000 nanosecond widens to 1 ms",
+			time.Date(1000, 1, 1, 0, 0, 0, 0, time.UTC),
+			document.TimePrecisionNanosecond,
+			time.Date(1000, 1, 1, 0, 0, 0, 1_000_000, time.UTC),
+		},
+		// Year 50 million (unix ~1.58e15, ULP ~0.25 s): 1 ms widens to 1 s
+		// (1 s is above 0.25 s ULP).
+		{
+			"year 50 million millisecond widens to 1 s",
+			time.Date(50_000_000, 1, 1, 0, 0, 0, 0, time.UTC),
+			document.TimePrecisionMillisecond,
+			time.Date(50_000_000, 1, 1, 0, 0, 1, 0, time.UTC),
+		},
+		// Year 500 million (unix ~1.58e16, ULP ~2 s): 1 s widens to 1 minute,
+		// crossing the sub-second boundary.
+		{
+			"year 500 million second widens to 1 minute",
+			time.Date(500_000_000, 1, 1, 0, 0, 0, 0, time.UTC),
+			document.TimePrecisionSecond,
+			time.Date(500_000_000, 1, 1, 0, 1, 0, 0, time.UTC),
+		},
+		// Same far-future timestamp, finer precision starts further down the
+		// chain but ends at the same widened unit.
+		{
+			"year 500 million nanosecond widens to 1 minute",
+			time.Date(500_000_000, 1, 1, 0, 0, 0, 0, time.UTC),
+			document.TimePrecisionNanosecond,
+			time.Date(500_000_000, 1, 1, 0, 1, 0, 0, time.UTC),
+		},
+		// Year 290 billion (near Go's time.Time upper limit, unix ~9.15e18,
+		// ULP ~1024 s): everything sub-hour widens up to hour. Hour and
+		// above always survive within Go's range.
+		{
+			"year 290 billion nanosecond widens to 1 hour",
+			time.Date(290_000_000_000, 1, 1, 0, 0, 0, 0, time.UTC),
+			document.TimePrecisionNanosecond,
+			time.Date(290_000_000_000, 1, 1, 1, 0, 0, 0, time.UTC),
+		},
+		{
+			"year 290 billion second widens to 1 hour",
+			time.Date(290_000_000_000, 1, 1, 0, 0, 0, 0, time.UTC),
+			document.TimePrecisionSecond,
+			time.Date(290_000_000_000, 1, 1, 1, 0, 0, 0, time.UTC),
+		},
+		{
+			"year 290 billion minute widens to 1 hour",
+			time.Date(290_000_000_000, 1, 1, 0, 0, 0, 0, time.UTC),
+			document.TimePrecisionMinute,
+			time.Date(290_000_000_000, 1, 1, 1, 0, 0, 0, time.UTC),
+		},
+		{
+			"year 290 billion hour stays at 1 hour",
+			time.Date(290_000_000_000, 1, 1, 0, 0, 0, 0, time.UTC),
+			document.TimePrecisionHour,
+			time.Date(290_000_000_000, 1, 1, 1, 0, 0, 0, time.UTC),
+		},
+		{
+			"year 290 billion year stays at 1 year",
+			time.Date(290_000_000_000, 1, 1, 0, 0, 0, 0, time.UTC),
+			document.TimePrecisionYear,
+			time.Date(290_000_000_001, 1, 1, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			"year 290 billion giga-years stays at 1 Gy",
+			time.Date(290_000_000_000, 1, 1, 0, 0, 0, 0, time.UTC),
+			document.TimePrecisionGigaYears,
+			time.Date(291_000_000_000, 1, 1, 0, 0, 0, 0, time.UTC),
+		},
+		// Year -290 billion (near Go's lower limit, unix ~-9.15e18): same
+		// magnitude, same widening behavior.
+		{
+			"year -290 billion nanosecond widens to 1 hour",
+			time.Date(-290_000_000_000, 1, 1, 0, 0, 0, 0, time.UTC),
+			document.TimePrecisionNanosecond,
+			time.Date(-290_000_000_000, 1, 1, 1, 0, 0, 0, time.UTC),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result := addPrecision(tt.base, tt.precision)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

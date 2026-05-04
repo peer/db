@@ -1968,40 +1968,72 @@ func (c *Converter) convertUnknown(ctx context.Context, claim *document.UnknownC
 }
 
 // addPrecision returns the time at the end of the precision window
-// starting at t. For example, year precision returns the start of the next year.
+// starting at t. For example, year precision returns the start of the
+// next year.
+//
+// If the natural step for the requested precision is below the float64
+// resolution at t's magnitude (i.e. it rounds back to t through
+// x.TimeToFloat64, which is how bounds are indexed), the function falls
+// back to the next coarser precision. Within Go's representable time
+// range (year ~-291 billion to ~+291 billion, set by int64 seconds since
+// year 1) this widening is enough: at the extremes the float64 ULP is
+// ~1024 s, so sub-hour precisions widen up to hour, and hour-and-above
+// always survive.
 func addPrecision(t time.Time, precision internalDocument.TimePrecision) time.Time {
-	switch precision { //nolint:exhaustive
+	var stepped time.Time
+	switch precision {
 	case document.TimePrecisionGigaYears:
-		return t.AddDate(1_000_000_000, 0, 0) //nolint:mnd
+		stepped = t.AddDate(1_000_000_000, 0, 0) //nolint:mnd
 	case document.TimePrecisionHundredMegaYears:
-		return t.AddDate(100_000_000, 0, 0) //nolint:mnd
+		stepped = t.AddDate(100_000_000, 0, 0) //nolint:mnd
 	case document.TimePrecisionTenMegaYears:
-		return t.AddDate(10_000_000, 0, 0) //nolint:mnd
+		stepped = t.AddDate(10_000_000, 0, 0) //nolint:mnd
 	case document.TimePrecisionMegaYears:
-		return t.AddDate(1_000_000, 0, 0) //nolint:mnd
+		stepped = t.AddDate(1_000_000, 0, 0) //nolint:mnd
 	case document.TimePrecisionHundredKiloYears:
-		return t.AddDate(100_000, 0, 0) //nolint:mnd
+		stepped = t.AddDate(100_000, 0, 0) //nolint:mnd
 	case document.TimePrecisionTenKiloYears:
-		return t.AddDate(10_000, 0, 0) //nolint:mnd
+		stepped = t.AddDate(10_000, 0, 0) //nolint:mnd
 	case document.TimePrecisionKiloYears:
-		return t.AddDate(1_000, 0, 0) //nolint:mnd
+		stepped = t.AddDate(1_000, 0, 0) //nolint:mnd
 	case document.TimePrecisionHundredYears:
-		return t.AddDate(100, 0, 0) //nolint:mnd
+		stepped = t.AddDate(100, 0, 0) //nolint:mnd
 	case document.TimePrecisionTenYears:
-		return t.AddDate(10, 0, 0) //nolint:mnd
+		stepped = t.AddDate(10, 0, 0) //nolint:mnd
 	case document.TimePrecisionYear:
-		return t.AddDate(1, 0, 0)
+		stepped = t.AddDate(1, 0, 0)
 	case document.TimePrecisionMonth:
-		return t.AddDate(0, 1, 0)
+		stepped = t.AddDate(0, 1, 0)
 	case document.TimePrecisionDay:
-		return t.AddDate(0, 0, 1)
+		stepped = t.AddDate(0, 0, 1)
 	case document.TimePrecisionHour:
-		return t.Add(time.Hour)
+		stepped = t.Add(time.Hour)
 	case document.TimePrecisionMinute:
-		return t.Add(time.Minute)
+		stepped = t.Add(time.Minute)
+	case document.TimePrecisionSecond:
+		stepped = t.Add(time.Second)
+	case document.TimePrecisionMillisecond:
+		stepped = t.Add(time.Millisecond)
+	case document.TimePrecisionMicrosecond:
+		stepped = t.Add(time.Microsecond)
+	case document.TimePrecisionNanosecond:
+		stepped = t.Add(time.Nanosecond)
 	default:
-		// Second and all subsecond precisions: we ignore subseconds,
-		// so the range is always at least one second.
-		return t.Add(time.Second)
+		errE := errors.New("unknown precision")
+		errors.Details(errE)["t"] = t
+		errors.Details(errE)["precision"] = precision
+		panic(errE)
 	}
+
+	if x.TimeToFloat64(stepped) == x.TimeToFloat64(t) {
+		if precision == document.TimePrecisionGigaYears {
+			// Nothing left to widen to.
+			errE := errors.New("unsupported precision")
+			errors.Details(errE)["t"] = t
+			errors.Details(errE)["precision"] = precision
+			panic(errE)
+		}
+		return addPrecision(t, precision-1)
+	}
+	return stepped
 }
