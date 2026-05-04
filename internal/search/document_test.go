@@ -1,6 +1,7 @@
 package search_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -93,7 +94,7 @@ func TestRangeFloatValidate(t *testing.T) {
 		assert.EqualError(t, errE, "greater than bound is required")
 	})
 
-	t.Run("equal bounds both closed", func(t *testing.T) {
+	t.Run("equal bounds both closed (gte lte) is accepted (single-point range)", func(t *testing.T) {
 		t.Parallel()
 		gte := 5.0
 		lte := 5.0
@@ -101,11 +102,17 @@ func TestRangeFloatValidate(t *testing.T) {
 			GreaterThanOrEqual: &gte,
 			LessThanOrEqual:    &lte,
 		}
-		_, errE := r.Validate()
-		assert.EqualError(t, errE, "lower bound is equal to upper bound")
+		swapped, errE := r.Validate()
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.False(t, swapped)
+		// Bounds unchanged.
+		require.NotNil(t, r.GreaterThanOrEqual)
+		require.NotNil(t, r.LessThanOrEqual)
+		assert.InDelta(t, 5.0, *r.GreaterThanOrEqual, 0.0)
+		assert.InDelta(t, 5.0, *r.LessThanOrEqual, 0.0)
 	})
 
-	t.Run("equal bounds gte lt", func(t *testing.T) {
+	t.Run("equal bounds gte lt is rejected", func(t *testing.T) {
 		t.Parallel()
 		gte := 5.0
 		lt := 5.0
@@ -114,7 +121,31 @@ func TestRangeFloatValidate(t *testing.T) {
 			LessThan:           &lt,
 		}
 		_, errE := r.Validate()
-		assert.EqualError(t, errE, "lower bound is equal to upper bound")
+		assert.EqualError(t, errE, "equal bounds with at least one strict bound")
+	})
+
+	t.Run("equal bounds gt lte is rejected", func(t *testing.T) {
+		t.Parallel()
+		gt := 5.0
+		lte := 5.0
+		r := internalSearch.RangeFloat{ //nolint:exhaustruct
+			GreaterThan:     &gt,
+			LessThanOrEqual: &lte,
+		}
+		_, errE := r.Validate()
+		assert.EqualError(t, errE, "equal bounds with at least one strict bound")
+	})
+
+	t.Run("equal bounds gt lt is rejected", func(t *testing.T) {
+		t.Parallel()
+		gt := 5.0
+		lt := 5.0
+		r := internalSearch.RangeFloat{ //nolint:exhaustruct
+			GreaterThan: &gt,
+			LessThan:    &lt,
+		}
+		_, errE := r.Validate()
+		assert.EqualError(t, errE, "equal bounds with at least one strict bound")
 	})
 
 	t.Run("inverted gte lt swaps to lte gt", func(t *testing.T) {
@@ -182,5 +213,92 @@ func TestRangeFloatValidate(t *testing.T) {
 		// After swap, lt becomes GreaterThan and gte becomes LessThanOrEqual.
 		assert.Equal(t, 7.652447999999999e8, *r.GreaterThan) //nolint:testifylint
 		assert.Equal(t, 7.652448e8, *r.LessThanOrEqual)      //nolint:testifylint
+	})
+
+	t.Run("NaN lower is rejected", func(t *testing.T) {
+		t.Parallel()
+		gte := math.NaN()
+		lt := 10.0
+		r := internalSearch.RangeFloat{ //nolint:exhaustruct
+			GreaterThanOrEqual: &gte,
+			LessThan:           &lt,
+		}
+		_, errE := r.Validate()
+		assert.EqualError(t, errE, "lower bound is not a finite number")
+	})
+
+	t.Run("NaN upper is rejected", func(t *testing.T) {
+		t.Parallel()
+		gte := 0.0
+		lt := math.NaN()
+		r := internalSearch.RangeFloat{ //nolint:exhaustruct
+			GreaterThanOrEqual: &gte,
+			LessThan:           &lt,
+		}
+		_, errE := r.Validate()
+		assert.EqualError(t, errE, "upper bound is not a finite number")
+	})
+
+	t.Run("negative infinity lower is rejected", func(t *testing.T) {
+		t.Parallel()
+		gte := math.Inf(-1)
+		lt := 10.0
+		r := internalSearch.RangeFloat{ //nolint:exhaustruct
+			GreaterThanOrEqual: &gte,
+			LessThan:           &lt,
+		}
+		_, errE := r.Validate()
+		assert.EqualError(t, errE, "lower bound is not a finite number")
+	})
+
+	t.Run("positive infinity upper is rejected", func(t *testing.T) {
+		t.Parallel()
+		gte := 0.0
+		lt := math.Inf(1)
+		r := internalSearch.RangeFloat{ //nolint:exhaustruct
+			GreaterThanOrEqual: &gte,
+			LessThan:           &lt,
+		}
+		_, errE := r.Validate()
+		assert.EqualError(t, errE, "upper bound is not a finite number")
+	})
+
+	t.Run("strict bounds within one ULP are rejected", func(t *testing.T) {
+		t.Parallel()
+		// gt: 5.0, lt: 5.0 advanced by one ULP - strict bounds 1 ULP apart.
+		gt := 5.0
+		lt := math.Nextafter(5.0, math.Inf(1))
+		r := internalSearch.RangeFloat{ //nolint:exhaustruct
+			GreaterThan: &gt,
+			LessThan:    &lt,
+		}
+		_, errE := r.Validate()
+		assert.EqualError(t, errE, "strict bounds within one ULP of each other")
+	})
+
+	t.Run("strict bounds two ULPs apart are accepted", func(t *testing.T) {
+		t.Parallel()
+		gt := 5.0
+		lt := math.Nextafter(math.Nextafter(5.0, math.Inf(1)), math.Inf(1))
+		r := internalSearch.RangeFloat{ //nolint:exhaustruct
+			GreaterThan: &gt,
+			LessThan:    &lt,
+		}
+		swapped, errE := r.Validate()
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.False(t, swapped)
+	})
+
+	t.Run("inverted strict bounds within one ULP are rejected after swap", func(t *testing.T) {
+		t.Parallel()
+		// Swap brings them into the strict-strict adjacent shape.
+		gt := math.Nextafter(5.0, math.Inf(1))
+		lt := 5.0
+		r := internalSearch.RangeFloat{ //nolint:exhaustruct
+			GreaterThan: &gt,
+			LessThan:    &lt,
+		}
+		_, errE := r.Validate()
+		assert.EqualError(t, errE, "strict bounds within one ULP of each other")
 	})
 }
