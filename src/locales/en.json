@@ -59,7 +59,10 @@
         "d": "days",
         "h": "hours",
         "min": "minutes",
-        "s": "seconds"
+        "s": "seconds",
+        "ms": "milliseconds",
+        "us": "microseconds",
+        "ns": "nanoseconds"
       },
       "errors": {
         "invalid": "Invalid format.",
@@ -70,7 +73,8 @@
         "days0": "Day must be between 0-{maxDay}.",
         "hours": "Hours needs to be between 0-23.",
         "minutes": "Minutes need to be between 0-59.",
-        "seconds": "Seconds need to be between 0-59."
+        "seconds": "Seconds need to be between 0-59.",
+        "subseconds": "Subseconds need to have 3, 6, or 9 digits."
       }
     }
   },
