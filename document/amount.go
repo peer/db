@@ -144,7 +144,7 @@ func (a Amount) windowStartFloat64(precision float64) (float64, errors.E) {
 	if errE != nil {
 		return 0, errE
 	}
-	return value - precision/2, nil //nolint:mnd
+	return value - precision/2, nil
 }
 
 // windowEndFloat64 returns the end of the precision window represented by
@@ -154,7 +154,7 @@ func (a Amount) windowEndFloat64(precision float64) (float64, errors.E) {
 	if errE != nil {
 		return 0, errE
 	}
-	return value + precision/2, nil //nolint:mnd
+	return value + precision/2, nil
 }
 
 // MarshalText implements encoding.TextMarshaler for Amount.

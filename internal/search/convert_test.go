@@ -1475,9 +1475,9 @@ func TestConvertAmount(t *testing.T) {
 	require.Len(t, result, 1)
 	assert.Equal(t, testPropID, result[0].Prop)
 	require.NotNil(t, result[0].From)
-	assert.Equal(t, 99.5, *result[0].From)   //nolint:testifylint
+	assert.Equal(t, 99.5, *result[0].From) //nolint:testifylint
 	require.NotNil(t, result[0].To)
-	assert.Equal(t, 100.5, *result[0].To)    //nolint:testifylint
+	assert.Equal(t, 100.5, *result[0].To) //nolint:testifylint
 	assert.Equal(t, "100", result[0].FromDisplay)
 	assert.Nil(t, result[0].Unit)
 }
@@ -1551,8 +1551,8 @@ func TestConvertAmountInterval(t *testing.T) {
 
 	// Default flags: from-window included -> lower = 10 - 0.5 = 9.5;
 	// to-window included -> upper = 20 + 0.5 = 20.5.
-	assert.Equal(t, 9.5, *amountClaims[0].Range.GreaterThanOrEqual)  //nolint:testifylint
-	assert.Equal(t, 20.5, *amountClaims[0].Range.LessThan)           //nolint:testifylint
+	assert.Equal(t, 9.5, *amountClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
+	assert.Equal(t, 20.5, *amountClaims[0].Range.LessThan)          //nolint:testifylint
 	require.NotNil(t, amountClaims[0].From)
 	require.NotNil(t, amountClaims[0].To)
 	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual)
@@ -1601,8 +1601,8 @@ func TestConvertAmountIntervalOpen(t *testing.T) {
 
 	// FromIsOpen=true: lower advances to 10 + 0.5 = 10.5 (from-window excluded).
 	// ToIsOpen=true:   upper retreats to 20 - 0.5 = 19.5 (to-window excluded).
-	assert.Equal(t, 10.5, *amountClaims[0].Range.GreaterThanOrEqual)  //nolint:testifylint
-	assert.Equal(t, 19.5, *amountClaims[0].Range.LessThan)            //nolint:testifylint
+	assert.Equal(t, 10.5, *amountClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
+	assert.Equal(t, 19.5, *amountClaims[0].Range.LessThan)           //nolint:testifylint
 	require.NotNil(t, amountClaims[0].From)
 	require.NotNil(t, amountClaims[0].To)
 	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual)
@@ -1664,8 +1664,8 @@ func TestConvertAmountIntervalSinglePointSamePrecision(t *testing.T) {
 	require.NotNil(t, intervalClaims[0].Range.GreaterThanOrEqual)
 	require.NotNil(t, intervalClaims[0].Range.LessThan)
 
-	assert.Equal(t, 99.5, *intervalClaims[0].From)   //nolint:testifylint
-	assert.Equal(t, 100.5, *intervalClaims[0].To)    //nolint:testifylint
+	assert.Equal(t, 99.5, *intervalClaims[0].From) //nolint:testifylint
+	assert.Equal(t, 100.5, *intervalClaims[0].To)  //nolint:testifylint
 	assert.Equal(t, *intervalClaims[0].From, *intervalClaims[0].Range.GreaterThanOrEqual)
 	assert.Equal(t, *intervalClaims[0].To, *intervalClaims[0].Range.LessThan)
 	assert.Equal(t, "100", intervalClaims[0].FromDisplay)
@@ -1705,8 +1705,8 @@ func TestConvertAmountIntervalSinglePointDifferentPrecisions(t *testing.T) {
 
 	// from-window (prec 10) start = 95, to-window (prec 1) end = 100.5.
 	// Each side uses its own precision; the indexed range covers both.
-	assert.Equal(t, 95.0, *amountClaims[0].From)    //nolint:testifylint
-	assert.Equal(t, 100.5, *amountClaims[0].To)     //nolint:testifylint
+	assert.Equal(t, 95.0, *amountClaims[0].From) //nolint:testifylint
+	assert.Equal(t, 100.5, *amountClaims[0].To)  //nolint:testifylint
 	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual)
 	assert.Equal(t, *amountClaims[0].To, *amountClaims[0].Range.LessThan)
 	assert.Equal(t, "100", amountClaims[0].FromDisplay)
@@ -1748,8 +1748,8 @@ func TestConvertAmountIntervalForwardAdjacent(t *testing.T) { //nolint:dupl
 	require.NotNil(t, amountClaims[0].Range.GreaterThanOrEqual)
 	require.NotNil(t, amountClaims[0].Range.LessThan)
 
-	assert.Equal(t, 5.0, *amountClaims[0].Range.GreaterThanOrEqual)  //nolint:testifylint
-	assert.Equal(t, 25.0, *amountClaims[0].Range.LessThan)           //nolint:testifylint
+	assert.Equal(t, 5.0, *amountClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
+	assert.Equal(t, 25.0, *amountClaims[0].Range.LessThan)          //nolint:testifylint
 	require.NotNil(t, amountClaims[0].From)
 	require.NotNil(t, amountClaims[0].To)
 	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual)
@@ -1832,8 +1832,8 @@ func TestConvertAmountIntervalDirectedDecreasingAdjacent(t *testing.T) { //nolin
 	require.NotNil(t, amountClaims[0].Range.GreaterThanOrEqual)
 	require.NotNil(t, amountClaims[0].Range.LessThan)
 
-	assert.Equal(t, 9.5, *amountClaims[0].Range.GreaterThanOrEqual)   //nolint:testifylint
-	assert.Equal(t, 11.5, *amountClaims[0].Range.LessThan)            //nolint:testifylint
+	assert.Equal(t, 9.5, *amountClaims[0].Range.GreaterThanOrEqual) //nolint:testifylint
+	assert.Equal(t, 11.5, *amountClaims[0].Range.LessThan)          //nolint:testifylint
 	require.NotNil(t, amountClaims[0].From)
 	require.NotNil(t, amountClaims[0].To)
 	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual)
@@ -1937,11 +1937,11 @@ func TestConvertAmountIntervalToIsOpenExcludesWindow(t *testing.T) {
 
 	// Default: upper = to_end = 100 + 0.5 = 100.5 (window included).
 	require.NotNil(t, defaultClaims[0].Range.LessThan)
-	assert.Equal(t, 100.5, *defaultClaims[0].Range.LessThan)  //nolint:testifylint
+	assert.Equal(t, 100.5, *defaultClaims[0].Range.LessThan) //nolint:testifylint
 
 	// ToIsOpen=true: upper = to_start = 100 - 0.5 = 99.5 (window excluded).
 	require.NotNil(t, openClaims[0].Range.LessThan)
-	assert.Equal(t, 99.5, *openClaims[0].Range.LessThan)      //nolint:testifylint
+	assert.Equal(t, 99.5, *openClaims[0].Range.LessThan) //nolint:testifylint
 
 	// Scalars coincide with range bounds.
 	require.NotNil(t, defaultClaims[0].To)

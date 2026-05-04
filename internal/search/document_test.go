@@ -22,7 +22,7 @@ func TestRangeFloatValidate(t *testing.T) {
 			LessThan:           &lt,
 		}
 		errE := r.Validate()
-		assert.NoError(t, errE) //nolint:testifylint
+		assert.NoError(t, errE)
 	})
 
 	t.Run("valid gt lte", func(t *testing.T) {
@@ -34,7 +34,7 @@ func TestRangeFloatValidate(t *testing.T) {
 			LessThanOrEqual: &lte,
 		}
 		errE := r.Validate()
-		assert.NoError(t, errE) //nolint:testifylint
+		assert.NoError(t, errE)
 	})
 
 	t.Run("both gt and gte", func(t *testing.T) {
@@ -105,8 +105,8 @@ func TestRangeFloatValidate(t *testing.T) {
 		// Bounds unchanged.
 		require.NotNil(t, r.GreaterThanOrEqual)
 		require.NotNil(t, r.LessThanOrEqual)
-		assert.Equal(t, 5.0, *r.GreaterThanOrEqual)  //nolint:testifylint
-		assert.Equal(t, 5.0, *r.LessThanOrEqual)     //nolint:testifylint
+		assert.Equal(t, 5.0, *r.GreaterThanOrEqual) //nolint:testifylint
+		assert.Equal(t, 5.0, *r.LessThanOrEqual)    //nolint:testifylint
 	})
 
 	t.Run("equal bounds gte lt is rejected", func(t *testing.T) {

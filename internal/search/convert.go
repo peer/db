@@ -1559,7 +1559,8 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 		return nil, claims, errE
 	}
 
-	if errE := rangeFloat.Validate(); errE != nil {
+	errE := rangeFloat.Validate()
+	if errE != nil {
 		errors.Details(errE)["claim"] = claim
 		return nil, nil, errE
 	}
@@ -1778,7 +1779,8 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		return nil, claims, errE
 	}
 
-	if errE := rangeFloat.Validate(); errE != nil {
+	errE := rangeFloat.Validate()
+	if errE != nil {
 		errors.Details(errE)["claim"] = claim
 		return nil, nil, errE
 	}
