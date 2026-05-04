@@ -56,7 +56,6 @@ test_go:
   before_script:
     - apk --update add make bash gcc musl-dev mailcap git docker-cli
     - (cd /go; go install gotest.tools/gotestsum@v1.13.0)
-    - (cd /go; go install github.com/boumenot/gocover-cobertura@v1.4.0)
     - go version
     - docker info
     - echo "$CI_REGISTRY_PASSWORD" | docker login --username "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
