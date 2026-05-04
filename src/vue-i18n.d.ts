@@ -71,6 +71,9 @@ declare module "vue-i18n" {
           h: string
           min: string
           s: string
+          ms: string
+          us: string
+          ns: string
         }
         errors: {
           invalid: string
@@ -82,6 +85,7 @@ declare module "vue-i18n" {
           hours: string
           minutes: string
           seconds: string
+          subseconds: string
         }
       }
     }
