@@ -247,7 +247,7 @@ export class AmountIntervalClaim extends CoreClaim {
   fromIsNone?: boolean
   to?: Amount
   toPrecision?: number
-  toIsClosed?: boolean
+  toIsOpen?: boolean
   toIsUnknown?: boolean
   toIsNone?: boolean
 
@@ -296,11 +296,11 @@ export class AmountIntervalClaim extends CoreClaim {
     }
 
     let toIsCount = 0
-    if (this.toIsClosed) toIsCount++
+    if (this.toIsOpen) toIsCount++
     if (this.toIsUnknown) toIsCount++
     if (this.toIsNone) toIsCount++
     if (toIsCount > 1) {
-      throw new Error("only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
+      throw new Error("only one of ToIsOpen, ToIsUnknown, ToIsNone can be set")
     }
     if (!this.to !== (this.toPrecision === undefined)) {
       throw new Error("To and ToPrecision must be set together")
@@ -367,7 +367,7 @@ export class TimeIntervalClaim extends CoreClaim {
   fromIsNone?: boolean
   to?: Time
   toPrecision?: TimePrecision
-  toIsClosed?: boolean
+  toIsOpen?: boolean
   toIsUnknown?: boolean
   toIsNone?: boolean
 
@@ -416,11 +416,11 @@ export class TimeIntervalClaim extends CoreClaim {
     }
 
     let toIsCount = 0
-    if (this.toIsClosed) toIsCount++
+    if (this.toIsOpen) toIsCount++
     if (this.toIsUnknown) toIsCount++
     if (this.toIsNone) toIsCount++
     if (toIsCount > 1) {
-      throw new Error("only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
+      throw new Error("only one of ToIsOpen, ToIsUnknown, ToIsNone can be set")
     }
     if (!this.to !== (this.toPrecision === undefined)) {
       throw new Error("To and ToPrecision must be set together")

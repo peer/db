@@ -782,7 +782,7 @@ type AmountIntervalClaim struct {
 
 	To          *Amount  `json:"to,omitempty"`
 	ToPrecision *float64 `json:"toPrecision,omitempty"`
-	ToIsClosed  bool     `json:"toIsClosed,omitempty"`
+	ToIsOpen    bool     `json:"toIsOpen,omitempty"`
 	ToIsUnknown bool     `json:"toIsUnknown,omitempty"`
 	ToIsNone    bool     `json:"toIsNone,omitempty"`
 }
@@ -827,7 +827,7 @@ func (c *AmountIntervalClaim) Validate() errors.E {
 	}
 
 	toIsCount := 0
-	if c.ToIsClosed {
+	if c.ToIsOpen {
 		toIsCount++
 	}
 	if c.ToIsUnknown {
@@ -837,7 +837,7 @@ func (c *AmountIntervalClaim) Validate() errors.E {
 		toIsCount++
 	}
 	if toIsCount > 1 {
-		return errors.New("only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
+		return errors.New("only one of ToIsOpen, ToIsUnknown, ToIsNone can be set")
 	}
 	if (c.To == nil) != (c.ToPrecision == nil) {
 		return errors.New("To and ToPrecision must be set together")
@@ -897,7 +897,7 @@ type TimeIntervalClaim struct {
 
 	To          *Time          `json:"to,omitempty"`
 	ToPrecision *TimePrecision `json:"toPrecision,omitempty"`
-	ToIsClosed  bool           `json:"toIsClosed,omitempty"`
+	ToIsOpen    bool           `json:"toIsOpen,omitempty"`
 	ToIsUnknown bool           `json:"toIsUnknown,omitempty"`
 	ToIsNone    bool           `json:"toIsNone,omitempty"`
 }
@@ -942,7 +942,7 @@ func (c *TimeIntervalClaim) Validate() errors.E {
 	}
 
 	toIsCount := 0
-	if c.ToIsClosed {
+	if c.ToIsOpen {
 		toIsCount++
 	}
 	if c.ToIsUnknown {
@@ -952,7 +952,7 @@ func (c *TimeIntervalClaim) Validate() errors.E {
 		toIsCount++
 	}
 	if toIsCount > 1 {
-		return errors.New("only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
+		return errors.New("only one of ToIsOpen, ToIsUnknown, ToIsNone can be set")
 	}
 	if (c.To == nil) != (c.ToPrecision == nil) {
 		return errors.New("To and ToPrecision must be set together")

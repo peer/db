@@ -1490,14 +1490,14 @@ func TestAmountIntervalClaimPatchApplyBranches(t *testing.T) {
 		assert.Equal(t, newTo, *claim.To)
 	})
 
-	t.Run("set_to_is_closed", func(t *testing.T) {
+	t.Run("set_to_is_open", func(t *testing.T) {
 		t.Parallel()
 		claim := newClaim(t)
-		isClosed := true
-		patch := document.AmountIntervalClaimPatch{ToIsClosed: &isClosed}
+		isOpen := true
+		patch := document.AmountIntervalClaimPatch{ToIsOpen: &isOpen}
 		errE := patch.Apply(claim)
 		require.NoError(t, errE, "% -+#.1v", errE)
-		assert.True(t, claim.ToIsClosed)
+		assert.True(t, claim.ToIsOpen)
 	})
 
 	t.Run("set_to_is_unknown", func(t *testing.T) {
@@ -1619,14 +1619,14 @@ func TestTimeIntervalClaimPatchApplyBranches(t *testing.T) {
 		assert.Equal(t, newTo, *claim.To)
 	})
 
-	t.Run("set_to_is_closed", func(t *testing.T) {
+	t.Run("set_to_is_open", func(t *testing.T) {
 		t.Parallel()
 		claim := newClaim(t)
-		isClosed := true
-		patch := document.TimeIntervalClaimPatch{ToIsClosed: &isClosed}
+		isOpen := true
+		patch := document.TimeIntervalClaimPatch{ToIsOpen: &isOpen}
 		errE := patch.Apply(claim)
 		require.NoError(t, errE, "% -+#.1v", errE)
-		assert.True(t, claim.ToIsClosed)
+		assert.True(t, claim.ToIsOpen)
 	})
 
 	t.Run("set_to_is_unknown", func(t *testing.T) {

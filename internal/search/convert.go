@@ -1498,10 +1498,10 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 		}
 		to = &toValue
 		toDisplay = claim.To.String()
-		if claim.ToIsClosed {
-			rangeFloat.LessThanOrEqual = &toValue
-		} else {
+		if claim.ToIsOpen {
 			rangeFloat.LessThan = &toValue
+		} else {
+			rangeFloat.LessThanOrEqual = &toValue
 		}
 	case claim.ToIsNone:
 		// We cannot search by the exact bound (we know that it does not exist),
@@ -1654,20 +1654,22 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
-		// TODO: How to integrate precision besides validation?
 		tm, errE := claim.From.Time(*claim.FromPrecision, time.UTC)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
-		f := x.TimeToFloat64(tm)
+		// FromIsOpen=true excludes the from-window, advancing the lower
+		// bound to from_end; default closed-lower uses from_start.
+		var f float64
+		if claim.FromIsOpen {
+			f = x.TimeToFloat64(addPrecision(tm, *claim.FromPrecision))
+		} else {
+			f = x.TimeToFloat64(tm)
+		}
 		from = &f
 		fromDisplay = claim.From.String()
-		if claim.FromIsOpen {
-			rangeFloat.GreaterThan = &f
-		} else {
-			rangeFloat.GreaterThanOrEqual = &f
-		}
+		rangeFloat.GreaterThanOrEqual = &f
 	case claim.FromIsNone:
 		// We cannot search by the exact bound (we know that it does not exist),
 		// so we leave from and fromDisplay empty.
@@ -1709,20 +1711,23 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
-		// TODO: How to integrate precision besides validation?
 		tm, errE := claim.To.Time(*claim.ToPrecision, time.UTC)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
-		t := x.TimeToFloat64(tm)
+		// ToIsOpen=true excludes the to-window, pulling the upper bound
+		// back to to_start; default closed-upper extends to to_end so the
+		// to-window is fully included.
+		var t float64
+		if claim.ToIsOpen {
+			t = x.TimeToFloat64(tm)
+		} else {
+			t = x.TimeToFloat64(addPrecision(tm, *claim.ToPrecision))
+		}
 		to = &t
 		toDisplay = claim.To.String()
-		if claim.ToIsClosed {
-			rangeFloat.LessThanOrEqual = &t
-		} else {
-			rangeFloat.LessThan = &t
-		}
+		rangeFloat.LessThan = &t
 	case claim.ToIsNone:
 		// We cannot search by the exact bound (we know that it does not exist),
 		// so we leave to and toDisplay empty.
@@ -1754,21 +1759,6 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 			Prop:      claim.Prop,
 		})
 		return nil, claims, errE
-	}
-
-	// If To and From are the same, treat as single point.
-	if from != nil && to != nil && *from == *to {
-		claims, errE := c.convertTime(ctx, &document.TimeClaim{
-			CoreClaim: claim.CoreClaim,
-			Prop:      claim.Prop,
-			Time:      *claim.From,
-			// Larger TimePrecision is more precise.
-			Precision: max(*claim.FromPrecision, *claim.ToPrecision),
-		})
-		if errE != nil {
-			errors.Details(errE)["claim"] = claim
-		}
-		return claims, nil, errE
 	}
 
 	// Sanity check.

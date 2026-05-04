@@ -398,7 +398,7 @@ func TestClaimValidations(t *testing.T) {
 			ToIsUnknown:   true,
 			ToIsNone:      true,
 		}
-		assert.EqualError(t, c.Validate(), "only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
+		assert.EqualError(t, c.Validate(), "only one of ToIsOpen, ToIsUnknown, ToIsNone can be set")
 	})
 	t.Run("TimeIntervalClaim/invalid_from_precision", func(t *testing.T) {
 		t.Parallel()
@@ -501,7 +501,7 @@ func TestAmountIntervalClaimValidateExtra(t *testing.T) {
 			ToIsUnknown:   true,
 			ToIsNone:      true,
 		}
-		assert.EqualError(t, c.Validate(), "only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
+		assert.EqualError(t, c.Validate(), "only one of ToIsOpen, ToIsUnknown, ToIsNone can be set")
 	})
 	t.Run("to_set_with_none_flag", func(t *testing.T) {
 		t.Parallel()

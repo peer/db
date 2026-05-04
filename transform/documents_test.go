@@ -479,7 +479,7 @@ func TestDocuments_TimeRangeClaim(t *testing.T) {
 				FromIsUnknown: false,
 				FromIsNone:    false,
 				To:            &core.Time{Time: end, Precision: document.TimePrecisionDay},
-				ToIsClosed:    false,
+				ToIsOpen:      false,
 				ToIsUnknown:   false,
 				ToIsNone:      false,
 			},
@@ -520,7 +520,7 @@ func TestDocuments_IntervalUnknown(t *testing.T) {
 				FromIsUnknown: true,
 				FromIsNone:    false,
 				To:            nil,
-				ToIsClosed:    false,
+				ToIsOpen:      false,
 				ToIsUnknown:   true,
 				ToIsNone:      false,
 			},
@@ -582,7 +582,7 @@ func TestDocuments_TimeIntervalWithOpenBound(t *testing.T) {
 				From:       &core.Time{Time: start, Precision: document.TimePrecisionDay},
 				FromIsOpen: true,
 				To:         &core.Time{Time: end, Precision: document.TimePrecisionDay},
-				ToIsClosed: true,
+				ToIsOpen:   true,
 			},
 		},
 	}
@@ -594,7 +594,7 @@ func TestDocuments_TimeIntervalWithOpenBound(t *testing.T) {
 	require.Len(t, doc.Claims.TimeInterval, 1)
 	claim := doc.Claims.TimeInterval[0]
 	assert.True(t, claim.FromIsOpen)
-	assert.True(t, claim.ToIsClosed)
+	assert.True(t, claim.ToIsOpen)
 	require.NotNil(t, claim.From)
 	require.NotNil(t, claim.To)
 }
@@ -696,7 +696,7 @@ func TestDocuments_AmountIntervalWithOpenBound(t *testing.T) {
 				From:       &core.Amount[int]{Amount: 1, Precision: 1},
 				FromIsOpen: true,
 				To:         &core.Amount[int]{Amount: 10, Precision: 1},
-				ToIsClosed: true,
+				ToIsOpen:   true,
 			},
 		},
 	}
@@ -708,7 +708,7 @@ func TestDocuments_AmountIntervalWithOpenBound(t *testing.T) {
 	require.Len(t, doc.Claims.AmountInterval, 1)
 	claim := doc.Claims.AmountInterval[0]
 	assert.True(t, claim.FromIsOpen)
-	assert.True(t, claim.ToIsClosed)
+	assert.True(t, claim.ToIsOpen)
 	require.NotNil(t, claim.From)
 	require.NotNil(t, claim.To)
 }
@@ -984,7 +984,7 @@ func TestDocuments_NestedWithValue(t *testing.T) {
 					FromIsUnknown: false,
 					FromIsNone:    false,
 					To:            &core.Time{Time: end, Precision: document.TimePrecisionYear},
-					ToIsClosed:    false,
+					ToIsOpen:      false,
 					ToIsUnknown:   false,
 					ToIsNone:      false,
 				},
@@ -1034,7 +1034,7 @@ func TestDocuments_NestedWithoutValue(t *testing.T) {
 					FromIsUnknown: false,
 					FromIsNone:    false,
 					To:            &core.Time{Time: end, Precision: document.TimePrecisionYear},
-					ToIsClosed:    false,
+					ToIsOpen:      false,
 					ToIsUnknown:   false,
 					ToIsNone:      false,
 				},
@@ -1930,7 +1930,7 @@ func TestDocuments_EmptyIntervalSkipped(t *testing.T) {
 				FromIsUnknown: false,
 				FromIsNone:    false,
 				To:            &core.Time{Time: end, Precision: document.TimePrecisionYear},
-				ToIsClosed:    false,
+				ToIsOpen:      false,
 				ToIsUnknown:   false,
 				ToIsNone:      false,
 			},
@@ -1940,7 +1940,7 @@ func TestDocuments_EmptyIntervalSkipped(t *testing.T) {
 				FromIsUnknown: false,
 				FromIsNone:    false,
 				To:            nil,
-				ToIsClosed:    false,
+				ToIsOpen:      false,
 				ToIsUnknown:   false,
 				ToIsNone:      false,
 			}, // Empty interval.
@@ -6688,7 +6688,7 @@ func TestDocuments_LocationOnTimeInterval(t *testing.T) {
 				FromIsUnknown: false,
 				FromIsNone:    false,
 				To:            &to,
-				ToIsClosed:    false,
+				ToIsOpen:      false,
 				ToIsUnknown:   false,
 				ToIsNone:      false,
 			},

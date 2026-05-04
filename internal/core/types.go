@@ -107,6 +107,8 @@ type IntervalBound interface {
 //
 // Only one of FromIs* fields can be set at a time. If FromIsUnknown or FromIsNone is true, From must be nil.
 // Only one of ToIs* fields can be set at a time. If ToIsUnknown or ToIsNone is true, To must be nil.
+//
+// FromIsOpen and ToIsOpen are exclusive-bound flags.
 type Interval[T IntervalBound] struct {
 	From          *T   `json:"from,omitempty"`
 	FromIsOpen    bool `json:"fromIsOpen,omitempty"`
@@ -114,7 +116,7 @@ type Interval[T IntervalBound] struct {
 	FromIsNone    bool `json:"fromIsNone,omitempty"`
 
 	To          *T   `json:"to,omitempty"`
-	ToIsClosed  bool `json:"toIsClosed,omitempty"`
+	ToIsOpen    bool `json:"toIsOpen,omitempty"`
 	ToIsUnknown bool `json:"toIsUnknown,omitempty"`
 	ToIsNone    bool `json:"toIsNone,omitempty"`
 }
@@ -145,7 +147,7 @@ func (i *Interval[T]) Validate() errors.E {
 	}
 
 	toIsCount := 0
-	if i.ToIsClosed {
+	if i.ToIsOpen {
 		toIsCount++
 	}
 	if i.ToIsUnknown {
@@ -155,7 +157,7 @@ func (i *Interval[T]) Validate() errors.E {
 		toIsCount++
 	}
 	if toIsCount > 1 {
-		return errors.New("only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
+		return errors.New("only one of ToIsOpen, ToIsUnknown, ToIsNone can be set")
 	}
 	if i.To != nil && (i.ToIsUnknown || i.ToIsNone) {
 		return errors.New("To must not be set when ToIsUnknown or ToIsNone is true")

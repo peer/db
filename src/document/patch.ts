@@ -427,7 +427,7 @@ export class AmountIntervalClaimPatch implements ClaimPatch {
   fromIsNone?: boolean
   to?: Amount
   toPrecision?: number
-  toIsClosed?: boolean
+  toIsOpen?: boolean
   toIsUnknown?: boolean
   toIsNone?: boolean
 
@@ -457,7 +457,7 @@ export class AmountIntervalClaimPatch implements ClaimPatch {
       fromIsNone: this.fromIsNone,
       to: this.to,
       toPrecision: this.toPrecision,
-      toIsClosed: this.toIsClosed,
+      toIsOpen: this.toIsOpen,
       toIsUnknown: this.toIsUnknown,
       toIsNone: this.toIsNone,
     })
@@ -475,7 +475,7 @@ export class AmountIntervalClaimPatch implements ClaimPatch {
       this.fromIsNone === undefined &&
       !this.to &&
       this.toPrecision === undefined &&
-      this.toIsClosed === undefined &&
+      this.toIsOpen === undefined &&
       this.toIsUnknown === undefined &&
       this.toIsNone === undefined
     ) {
@@ -507,7 +507,7 @@ export class AmountIntervalClaimPatch implements ClaimPatch {
     }
     if (this.to) claim.to = this.to
     if (this.toPrecision !== undefined) claim.toPrecision = this.toPrecision
-    if (this.toIsClosed !== undefined) claim.toIsClosed = this.toIsClosed
+    if (this.toIsOpen !== undefined) claim.toIsOpen = this.toIsOpen
     if (this.toIsUnknown !== undefined) {
       claim.toIsUnknown = this.toIsUnknown
       if (this.toIsUnknown) {
@@ -584,7 +584,7 @@ export class TimeIntervalClaimPatch implements ClaimPatch {
   fromIsNone?: boolean
   to?: Time
   toPrecision?: TimePrecision
-  toIsClosed?: boolean
+  toIsOpen?: boolean
   toIsUnknown?: boolean
   toIsNone?: boolean
 
@@ -614,7 +614,7 @@ export class TimeIntervalClaimPatch implements ClaimPatch {
       fromIsNone: this.fromIsNone,
       to: this.to,
       toPrecision: this.toPrecision,
-      toIsClosed: this.toIsClosed,
+      toIsOpen: this.toIsOpen,
       toIsUnknown: this.toIsUnknown,
       toIsNone: this.toIsNone,
     })
@@ -632,7 +632,7 @@ export class TimeIntervalClaimPatch implements ClaimPatch {
       this.fromIsNone === undefined &&
       !this.to &&
       this.toPrecision === undefined &&
-      this.toIsClosed === undefined &&
+      this.toIsOpen === undefined &&
       this.toIsUnknown === undefined &&
       this.toIsNone === undefined
     ) {
@@ -664,7 +664,7 @@ export class TimeIntervalClaimPatch implements ClaimPatch {
     }
     if (this.to) claim.to = this.to
     if (this.toPrecision !== undefined) claim.toPrecision = this.toPrecision
-    if (this.toIsClosed !== undefined) claim.toIsClosed = this.toIsClosed
+    if (this.toIsOpen !== undefined) claim.toIsOpen = this.toIsOpen
     if (this.toIsUnknown !== undefined) {
       claim.toIsUnknown = this.toIsUnknown
       if (this.toIsUnknown) {
