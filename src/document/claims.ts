@@ -7,7 +7,7 @@ import siteContext from "@/context"
 import { IN_LANGUAGE, LIST, ORDER_IN_LIST } from "@/core"
 import { amountFloat64, amountWindowEnd, amountWindowStart, validateAmount } from "@/document/amount"
 import { LowConfidence } from "@/document/confidence"
-import { timeFloat64, timeWindowEnd, timeWindowStart, validateTime, VALID_TIME_PRECISIONS } from "@/document/time"
+import { timeFloat64, timeWindowEnd, timeWindowStart, VALID_TIME_PRECISIONS, validateTime } from "@/document/time"
 
 // Claims is the interface for types that hold and manipulate a collection of claims.
 export interface Claims {

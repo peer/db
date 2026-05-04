@@ -480,8 +480,7 @@ describe("AmountClaim Validate", () => {
 describe("AmountIntervalClaim Validate", () => {
   const id = Identifier.new().toString()
   const prop = Identifier.new().toString()
-  const make = (obj: Partial<ConstructorParameters<typeof AmountIntervalClaim>[0]>) =>
-    new AmountIntervalClaim({ id, confidence: 1.0, prop: { id: prop }, ...obj })
+  const make = (obj: Partial<ConstructorParameters<typeof AmountIntervalClaim>[0]>) => new AmountIntervalClaim({ id, confidence: 1.0, prop: { id: prop }, ...obj })
 
   test("simple forward interval valid", async () => {
     const claim = make({ from: "10", fromPrecision: 1, to: "20", toPrecision: 1 })
@@ -566,8 +565,7 @@ describe("TimeClaim Validate", () => {
 describe("TimeIntervalClaim Validate", () => {
   const id = Identifier.new().toString()
   const prop = Identifier.new().toString()
-  const make = (obj: Partial<ConstructorParameters<typeof TimeIntervalClaim>[0]>) =>
-    new TimeIntervalClaim({ id, confidence: 1.0, prop: { id: prop }, ...obj })
+  const make = (obj: Partial<ConstructorParameters<typeof TimeIntervalClaim>[0]>) => new TimeIntervalClaim({ id, confidence: 1.0, prop: { id: prop }, ...obj })
 
   test("simple forward year interval valid", async () => {
     const claim = make({ from: "2020", fromPrecision: "y", to: "2025", toPrecision: "y" })

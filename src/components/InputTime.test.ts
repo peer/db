@@ -403,37 +403,19 @@ describe("inferPrecisionFromNormalized", () => {
   })
 
   test("infers ms precision (3 subsecond digits)", () => {
-    assert.equal(
-      inferPrecisionFromNormalizedExposed(
-        "2023-12-31 12:34:56.123",
-        { y: "2023", m: "12", d: "31", h: "12", min: "34", s: "56", sub: "123" },
-        "G",
-        "y",
-      ),
-      "ms",
-    )
+    assert.equal(inferPrecisionFromNormalizedExposed("2023-12-31 12:34:56.123", { y: "2023", m: "12", d: "31", h: "12", min: "34", s: "56", sub: "123" }, "G", "y"), "ms")
   })
 
   test("infers us precision (6 subsecond digits)", () => {
     assert.equal(
-      inferPrecisionFromNormalizedExposed(
-        "2023-12-31 12:34:56.123456",
-        { y: "2023", m: "12", d: "31", h: "12", min: "34", s: "56", sub: "123456" },
-        "G",
-        "y",
-      ),
+      inferPrecisionFromNormalizedExposed("2023-12-31 12:34:56.123456", { y: "2023", m: "12", d: "31", h: "12", min: "34", s: "56", sub: "123456" }, "G", "y"),
       "us",
     )
   })
 
   test("infers ns precision (9 subsecond digits)", () => {
     assert.equal(
-      inferPrecisionFromNormalizedExposed(
-        "2023-12-31 12:34:56.123456789",
-        { y: "2023", m: "12", d: "31", h: "12", min: "34", s: "56", sub: "123456789" },
-        "G",
-        "y",
-      ),
+      inferPrecisionFromNormalizedExposed("2023-12-31 12:34:56.123456789", { y: "2023", m: "12", d: "31", h: "12", min: "34", s: "56", sub: "123456789" }, "G", "y"),
       "ns",
     )
   })
