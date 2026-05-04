@@ -1520,10 +1520,26 @@ func TestConvertAmountInterval(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, amountClaims, 1)
 	assert.Empty(t, unknownClaims)
-	assert.NotNil(t, amountClaims[0].Range.GreaterThanOrEqual)
-	assert.NotNil(t, amountClaims[0].Range.LessThanOrEqual)
+	require.NotNil(t, amountClaims[0].Range.GreaterThanOrEqual)
+	assert.Nil(t, amountClaims[0].Range.GreaterThan)
+	require.NotNil(t, amountClaims[0].Range.LessThan)
+	assert.Nil(t, amountClaims[0].Range.LessThanOrEqual)
+
+	// Default flags: from-window included -> lower = 10 - 0.5 = 9.5;
+	// to-window included -> upper = 20 + 0.5 = 20.5.
+	assert.InDelta(t, 9.5, *amountClaims[0].Range.GreaterThanOrEqual, 0.001)
+	assert.InDelta(t, 20.5, *amountClaims[0].Range.LessThan, 0.001)
+	require.NotNil(t, amountClaims[0].From)
+	require.NotNil(t, amountClaims[0].To)
+	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual)
+	assert.Equal(t, *amountClaims[0].To, *amountClaims[0].Range.LessThan)
+	assert.Equal(t, "10", amountClaims[0].FromDisplay)
+	assert.Equal(t, "20", amountClaims[0].ToDisplay)
 }
 
+// TestConvertAmountIntervalOpen verifies that with both *IsOpen flags set,
+// each window is excluded: lower advances past from-window, upper retreats
+// to before to-window.
 func TestConvertAmountIntervalOpen(t *testing.T) {
 	t.Parallel()
 
@@ -1552,10 +1568,167 @@ func TestConvertAmountIntervalOpen(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, amountClaims, 1)
 	assert.Empty(t, unknownClaims)
-	assert.NotNil(t, amountClaims[0].Range.GreaterThan)
-	assert.Nil(t, amountClaims[0].Range.GreaterThanOrEqual)
-	assert.NotNil(t, amountClaims[0].Range.LessThan)
+	require.NotNil(t, amountClaims[0].Range.GreaterThanOrEqual)
+	assert.Nil(t, amountClaims[0].Range.GreaterThan)
+	require.NotNil(t, amountClaims[0].Range.LessThan)
 	assert.Nil(t, amountClaims[0].Range.LessThanOrEqual)
+
+	// FromIsOpen=true: lower advances to 10 + 0.5 = 10.5 (from-window excluded).
+	// ToIsOpen=true:   upper retreats to 20 - 0.5 = 19.5 (to-window excluded).
+	assert.InDelta(t, 10.5, *amountClaims[0].Range.GreaterThanOrEqual, 0.001)
+	assert.InDelta(t, 19.5, *amountClaims[0].Range.LessThan, 0.001)
+	require.NotNil(t, amountClaims[0].From)
+	require.NotNil(t, amountClaims[0].To)
+	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual)
+	assert.Equal(t, *amountClaims[0].To, *amountClaims[0].Range.LessThan)
+}
+
+// TestConvertAmountIntervalSinglePointSamePrecision verifies that an amount
+// interval with from == to (same value, same precision) produces an
+// identical indexed AmountClaim to what convertAmount produces for the same
+// single point.
+func TestConvertAmountIntervalSinglePointSamePrecision(t *testing.T) {
+	t.Parallel()
+
+	propDoc := makeNamingDoc(testPropID, "Amount Prop")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID: propDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+	amount := document.Amount("100")
+	prec := 1.0
+	core := makeCoreClaim(document.HighConfidence, nil)
+	prop := document.Reference{ID: testPropID}
+
+	intervalClaims, unknownClaims, errE := c.convertAmountInterval(ctx, &document.AmountIntervalClaim{ //nolint:exhaustruct
+		CoreClaim:     core,
+		Prop:          prop,
+		From:          &amount,
+		FromPrecision: &prec,
+		To:            &amount,
+		ToPrecision:   &prec,
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, intervalClaims, 1)
+	assert.Empty(t, unknownClaims)
+
+	pointClaims, errE := c.convertAmount(ctx, &document.AmountClaim{
+		CoreClaim: core,
+		Prop:      prop,
+		Amount:    amount,
+		Precision: prec,
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Interval path with from == to must produce the same AmountClaim as the
+	// single-point path.
+	assert.Equal(t, pointClaims, intervalClaims)
+
+	// Explicit value checks of the resulting bounds.
+	require.NotNil(t, intervalClaims[0].From)
+	require.NotNil(t, intervalClaims[0].To)
+	require.NotNil(t, intervalClaims[0].Range.GreaterThanOrEqual)
+	require.NotNil(t, intervalClaims[0].Range.LessThan)
+
+	assert.InDelta(t, 99.5, *intervalClaims[0].From, 0.001)
+	assert.InDelta(t, 100.5, *intervalClaims[0].To, 0.001)
+	assert.Equal(t, *intervalClaims[0].From, *intervalClaims[0].Range.GreaterThanOrEqual)
+	assert.Equal(t, *intervalClaims[0].To, *intervalClaims[0].Range.LessThan)
+	assert.Equal(t, "100", intervalClaims[0].FromDisplay)
+	assert.Equal(t, "100", intervalClaims[0].ToDisplay)
+}
+
+// TestConvertAmountIntervalSinglePointDifferentPrecisions verifies that
+// when from and to share the same value but have different precisions, the
+// result reflects each side's own precision-window edge.
+func TestConvertAmountIntervalSinglePointDifferentPrecisions(t *testing.T) {
+	t.Parallel()
+
+	propDoc := makeNamingDoc(testPropID, "Amount Prop")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID: propDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+	amount := document.Amount("100")
+	fromPrec := 10.0
+	toPrec := 1.0
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
+		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
+		Prop:          document.Reference{ID: testPropID},
+		From:          &amount,
+		FromPrecision: &fromPrec,
+		To:            &amount,
+		ToPrecision:   &toPrec,
+	}
+	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, amountClaims, 1)
+	assert.Empty(t, unknownClaims)
+
+	// from-window (prec 10) start = 95, to-window (prec 1) end = 100.5.
+	// Each side uses its own precision; the indexed range covers both.
+	assert.InDelta(t, 95.0, *amountClaims[0].From, 0.001)
+	assert.InDelta(t, 100.5, *amountClaims[0].To, 0.001)
+	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual)
+	assert.Equal(t, *amountClaims[0].To, *amountClaims[0].Range.LessThan)
+	assert.Equal(t, "100", amountClaims[0].FromDisplay)
+	assert.Equal(t, "100", amountClaims[0].ToDisplay)
+}
+
+// TestConvertAmountIntervalToIsOpenExcludesWindow verifies that
+// ToIsOpen=true pulls the upper bound back to to_start (excluding the
+// to-window) while the default (ToIsOpen=false) extends it to to_end
+// (including the to-window).
+func TestConvertAmountIntervalToIsOpenExcludesWindow(t *testing.T) {
+	t.Parallel()
+
+	propDoc := makeNamingDoc(testPropID, "Amount Prop")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID: propDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+	fromAmount := document.Amount("0")
+	toAmount := document.Amount("100")
+	fromPrec := 1.0
+	toPrec := 1.0
+	mkClaim := func(toIsOpen bool) *document.AmountIntervalClaim {
+		return &document.AmountIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
+			Prop:          document.Reference{ID: testPropID},
+			From:          &fromAmount,
+			FromPrecision: &fromPrec,
+			To:            &toAmount,
+			ToPrecision:   &toPrec,
+			ToIsOpen:      toIsOpen,
+		}
+	}
+
+	defaultClaims, _, errE := c.convertAmountInterval(ctx, mkClaim(false))
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, defaultClaims, 1)
+	openClaims, _, errE := c.convertAmountInterval(ctx, mkClaim(true))
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, openClaims, 1)
+
+	// Default: upper = to_end = 100 + 0.5 = 100.5 (window included).
+	require.NotNil(t, defaultClaims[0].Range.LessThan)
+	assert.InDelta(t, 100.5, *defaultClaims[0].Range.LessThan, 0.001)
+
+	// ToIsOpen=true: upper = to_start = 100 - 0.5 = 99.5 (window excluded).
+	require.NotNil(t, openClaims[0].Range.LessThan)
+	assert.InDelta(t, 99.5, *openClaims[0].Range.LessThan, 0.001)
+
+	// Scalars coincide with range bounds.
+	require.NotNil(t, defaultClaims[0].To)
+	require.NotNil(t, openClaims[0].To)
+	assert.Equal(t, *defaultClaims[0].To, *defaultClaims[0].Range.LessThan)
+	assert.Equal(t, *openClaims[0].To, *openClaims[0].Range.LessThan)
 }
 
 func TestConvertAmountIntervalFromNone(t *testing.T) {

@@ -1436,19 +1436,23 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
-		// TODO: How to integrate precision besides validation?
 		fromValue, errE := claim.From.Float64(*claim.FromPrecision)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
-		from = &fromValue
-		fromDisplay = claim.From.String()
+		// Amount precision is symmetric around the value: window =
+		// [value - prec/2, value + prec/2). FromIsOpen=true excludes the
+		// from-window, advancing the lower bound to from_end.
+		var f float64
 		if claim.FromIsOpen {
-			rangeFloat.GreaterThan = &fromValue
+			f = fromValue + *claim.FromPrecision/2 //nolint:mnd
 		} else {
-			rangeFloat.GreaterThanOrEqual = &fromValue
+			f = fromValue - *claim.FromPrecision/2 //nolint:mnd
 		}
+		from = &f
+		fromDisplay = claim.From.String()
+		rangeFloat.GreaterThanOrEqual = &f
 	case claim.FromIsNone:
 		// We cannot search by the exact bound (we know that it does not exist),
 		// so we leave from and fromDisplay empty.
@@ -1490,19 +1494,23 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
-		// TODO: How to integrate precision besides display?
 		toValue, errE := claim.To.Float64(*claim.ToPrecision)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
-		to = &toValue
-		toDisplay = claim.To.String()
+		// Amount precision is symmetric around the value: window =
+		// [value - prec/2, value + prec/2). ToIsOpen=true excludes the
+		// to-window, pulling the upper bound back to to_start.
+		var t float64
 		if claim.ToIsOpen {
-			rangeFloat.LessThan = &toValue
+			t = toValue - *claim.ToPrecision/2 //nolint:mnd
 		} else {
-			rangeFloat.LessThanOrEqual = &toValue
+			t = toValue + *claim.ToPrecision/2 //nolint:mnd
 		}
+		to = &t
+		toDisplay = claim.To.String()
+		rangeFloat.LessThan = &t
 	case claim.ToIsNone:
 		// We cannot search by the exact bound (we know that it does not exist),
 		// so we leave to and toDisplay empty.
@@ -1534,21 +1542,6 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 			Prop:      claim.Prop,
 		})
 		return nil, claims, errE
-	}
-
-	// If To and From are the same, treat as single point.
-	if from != nil && to != nil && *from == *to {
-		claims, errE := c.convertAmount(ctx, &document.AmountClaim{
-			CoreClaim: claim.CoreClaim,
-			Prop:      claim.Prop,
-			Amount:    *claim.From,
-			// Smaller float64 is more precise.
-			Precision: min(*claim.FromPrecision, *claim.ToPrecision),
-		})
-		if errE != nil {
-			errors.Details(errE)["claim"] = claim
-		}
-		return claims, nil, errE
 	}
 
 	// Sanity check.
