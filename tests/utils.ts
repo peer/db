@@ -94,7 +94,7 @@ test.afterAll(() => {
         .map((f) => JSON.parse(readFileSync(`a11y-report/${f}`, { encoding: "utf-8" })) as Result),
     },
     options: {
-      projectKey: "PeerDB Accessibility Report",
+      projectKey: "Accessibility Report",
       outputDir: "a11y-report",
       reportFileName: "a11y-report.html",
     },
