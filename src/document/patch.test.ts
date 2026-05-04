@@ -454,8 +454,8 @@ describe("AmountIntervalClaimPatch Apply branches", () => {
     })
 
     // Set from and fromPrecision.
-    await new AmountIntervalClaimPatch({ type: "amountInterval", from: "15", fromPrecision: 0.1 }).Apply(claim)
-    assert.equal(claim.from, "15")
+    await new AmountIntervalClaimPatch({ type: "amountInterval", from: "15.0", fromPrecision: 0.1 }).Apply(claim)
+    assert.equal(claim.from, "15.0")
     assert.equal(claim.fromPrecision, 0.1)
 
     // fromIsUnknown clears from and fromPrecision.
@@ -512,9 +512,9 @@ describe("TimeIntervalClaimPatch Apply branches", () => {
     })
 
     // Set from and fromPrecision.
-    await new TimeIntervalClaimPatch({ type: "timeInterval", from: "2021-06", fromPrecision: "M" }).Apply(claim)
-    assert.equal(claim.from, "2021-06")
-    assert.equal(claim.fromPrecision, "M")
+    await new TimeIntervalClaimPatch({ type: "timeInterval", from: "2021-06-00", fromPrecision: "m" }).Apply(claim)
+    assert.equal(claim.from, "2021-06-00")
+    assert.equal(claim.fromPrecision, "m")
 
     // fromIsUnknown clears from and fromPrecision.
     await new TimeIntervalClaimPatch({ type: "timeInterval", fromIsUnknown: true }).Apply(claim)
