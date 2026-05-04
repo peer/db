@@ -68,6 +68,8 @@ export default defineConfig({
     // We have dist.go file in dist directory.
     // We empty it ourselves in Makefile.
     emptyOutDir: false,
+    // Disable minification for E2E tests to improve debugging.
+    minify: !process.env.VITE_E2E_TESTS,
   },
   test: {
     exclude: [...configDefaults.exclude, "**/tests/**"],
