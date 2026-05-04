@@ -112,10 +112,34 @@ func (a Amount) Validate(precision float64) errors.E {
 	return errE
 }
 
-// WindowStartFloat64 returns the start of the precision window represented
+// WindowStartFloat64 returns the lower edge that this bound contributes to
+// a half-open indexed range. When the bound is closed (default,
+// isOpen=false) this is the start of the precision window; when open
+// (isOpen=true) the precision window is excluded and the edge advances to
+// the end of the window.
+func (a Amount) WindowStartFloat64(precision float64, isOpen bool) (float64, errors.E) {
+	if isOpen {
+		return a.windowEndFloat64(precision)
+	}
+	return a.windowStartFloat64(precision)
+}
+
+// WindowEndFloat64 returns the upper edge that this bound contributes to a
+// half-open indexed range. When the bound is closed (default,
+// isOpen=false) this is the end of the precision window; when open
+// (isOpen=true) the precision window is excluded and the edge retreats to
+// the start of the window.
+func (a Amount) WindowEndFloat64(precision float64, isOpen bool) (float64, errors.E) {
+	if isOpen {
+		return a.windowStartFloat64(precision)
+	}
+	return a.windowEndFloat64(precision)
+}
+
+// windowStartFloat64 returns the start of the precision window represented
 // by a as float64. The amount-precision window is symmetric around the
 // value: [value - precision/2, value + precision/2).
-func (a Amount) WindowStartFloat64(precision float64) (float64, errors.E) {
+func (a Amount) windowStartFloat64(precision float64) (float64, errors.E) {
 	value, errE := a.Float64(precision)
 	if errE != nil {
 		return 0, errE
@@ -123,9 +147,9 @@ func (a Amount) WindowStartFloat64(precision float64) (float64, errors.E) {
 	return value - precision/2, nil //nolint:mnd
 }
 
-// WindowEndFloat64 returns the end of the precision window represented by
+// windowEndFloat64 returns the end of the precision window represented by
 // a as float64.
-func (a Amount) WindowEndFloat64(precision float64) (float64, errors.E) {
+func (a Amount) windowEndFloat64(precision float64) (float64, errors.E) {
 	value, errE := a.Float64(precision)
 	if errE != nil {
 		return 0, errE

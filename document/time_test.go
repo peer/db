@@ -719,15 +719,15 @@ func TestTimeWindowEndFloat64(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			endF, errE := tt.ts.WindowEndFloat64(tt.precision)
+			endF, errE := tt.ts.WindowEndFloat64(tt.precision, false)
 			require.NoError(t, errE, "% -+#.1v", errE)
-			assert.InDelta(t, x.TimeToFloat64(tt.expectedEnd), endF, 0.0)
+			assert.Equal(t, x.TimeToFloat64(tt.expectedEnd), endF)  //nolint:testifylint
 			// WindowStartFloat64 should match the parsed ts (= start of window).
 			parsed, errE := tt.ts.Time(tt.precision, time.UTC)
 			require.NoError(t, errE, "% -+#.1v", errE)
-			startF, errE := tt.ts.WindowStartFloat64(tt.precision)
+			startF, errE := tt.ts.WindowStartFloat64(tt.precision, false)
 			require.NoError(t, errE, "% -+#.1v", errE)
-			assert.InDelta(t, x.TimeToFloat64(parsed), startF, 0.0)
+			assert.Equal(t, x.TimeToFloat64(parsed), startF)        //nolint:testifylint
 		})
 	}
 }
@@ -817,9 +817,9 @@ func TestTimeWindowEndFloat64MagnitudeWidening(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			endF, errE := tt.ts.WindowEndFloat64(tt.precision)
+			endF, errE := tt.ts.WindowEndFloat64(tt.precision, false)
 			require.NoError(t, errE, "% -+#.1v", errE)
-			assert.InDelta(t, x.TimeToFloat64(tt.expected), endF, 0.0)
+			assert.Equal(t, x.TimeToFloat64(tt.expected), endF)  //nolint:testifylint
 		})
 	}
 }

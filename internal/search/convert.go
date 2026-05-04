@@ -1366,20 +1366,18 @@ func (c *Converter) convertHTML(ctx context.Context, claim *document.HTMLClaim) 
 func (c *Converter) convertAmount(ctx context.Context, claim *document.AmountClaim) ([]AmountClaim, errors.E) {
 	// TODO: Normalize amounts of units of same measure to same base unit (e.g., cm and mm to m).
 	unit := c.extractInUnit(claim.Sub)
-	from, errE := claim.Amount.WindowStartFloat64(claim.Precision)
+	from, errE := claim.Amount.WindowStartFloat64(claim.Precision, false)
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
 		return nil, errE
 	}
-	to, errE := claim.Amount.WindowEndFloat64(claim.Precision)
+	to, errE := claim.Amount.WindowEndFloat64(claim.Precision, false)
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
 		return nil, errE
 	}
 	display := claim.Amount.String()
 
-	// We use separate variables for the range bounds to avoid aliasing
-	// with from/to (swapping from/to would mutate the range values).
 	rangeFrom := from
 	rangeTo := to
 	rangeFloat := RangeFloat{ //nolint:exhaustruct
@@ -1387,14 +1385,11 @@ func (c *Converter) convertAmount(ctx context.Context, claim *document.AmountCla
 		LessThan:           &rangeTo,
 	}
 
-	// Sanity check.
-	swapped, errE := rangeFloat.Validate()
-	if errE != nil {
+	// Sanity check. Validate is strict and never swaps; for a single-point
+	// amount with positive precision the bounds are always well-formed.
+	if errE := rangeFloat.Validate(); errE != nil {
 		errors.Details(errE)["claim"] = claim
 		return nil, errE
-	}
-	if swapped {
-		from, to = to, from
 	}
 
 	props := c.propagateProp(claim.Prop.ID)
@@ -1421,6 +1416,61 @@ func (c *Converter) convertAmount(ctx context.Context, claim *document.AmountCla
 }
 
 func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.AmountIntervalClaim) ([]AmountClaim, []UnknownClaim, errors.E) { //nolint:cyclop
+	if claim.From != nil && claim.FromPrecision == nil {
+		errE := errors.New("missing from precision in claim")
+		errors.Details(errE)["claim"] = claim
+		return nil, nil, errE
+	}
+	if claim.To != nil && claim.ToPrecision == nil {
+		errE := errors.New("missing to precision in claim")
+		errors.Details(errE)["claim"] = claim
+		return nil, nil, errE
+	}
+
+	// Swap directed-decreasing input to ascending order, before computing
+	// rangeFloat bounds. Dual criterion (matches document.AmountIntervalClaim.Validate):
+	//   - When both bounds share the same precision, the directed-decreasing
+	//     interpretation is unambiguous, so we use the simpler value-based
+	//     criterion: swap iff fromValue > toValue.
+	//   - When precisions differ, fall back to the un-swapped-empty
+	//     criterion: swap iff start(from) >= end(to). This preserves
+	//     precision-coarsening patterns (e.g., from=2025-10-21 day, to=2025
+	//     year, where the to-window engulfs from).
+	workClaim := *claim
+	if workClaim.From != nil && workClaim.To != nil {
+		var swap bool
+		if *workClaim.FromPrecision == *workClaim.ToPrecision {
+			fromValue, errE := workClaim.From.Float64(*workClaim.FromPrecision)
+			if errE != nil {
+				errors.Details(errE)["claim"] = claim
+				return nil, nil, errE
+			}
+			toValue, errE := workClaim.To.Float64(*workClaim.ToPrecision)
+			if errE != nil {
+				errors.Details(errE)["claim"] = claim
+				return nil, nil, errE
+			}
+			swap = fromValue > toValue
+		} else {
+			start, errE := workClaim.From.WindowStartFloat64(*workClaim.FromPrecision, workClaim.FromIsOpen)
+			if errE != nil {
+				errors.Details(errE)["claim"] = claim
+				return nil, nil, errE
+			}
+			end, errE := workClaim.To.WindowEndFloat64(*workClaim.ToPrecision, workClaim.ToIsOpen)
+			if errE != nil {
+				errors.Details(errE)["claim"] = claim
+				return nil, nil, errE
+			}
+			swap = start >= end
+		}
+		if swap {
+			workClaim.From, workClaim.To = workClaim.To, workClaim.From
+			workClaim.FromPrecision, workClaim.ToPrecision = workClaim.ToPrecision, workClaim.FromPrecision
+			workClaim.FromIsOpen, workClaim.ToIsOpen = workClaim.ToIsOpen, workClaim.FromIsOpen
+		}
+	}
+
 	var (
 		rangeFloat  RangeFloat
 		from, to    *float64
@@ -1429,47 +1479,30 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 	)
 
 	switch {
-	case claim.From != nil:
-		if claim.FromPrecision == nil {
-			errE := errors.New("missing from precision in claim")
-			errors.Details(errE)["claim"] = claim
-			return nil, nil, errE
-		}
-		// FromIsOpen=true excludes the from-window: lower advances to
-		// from.WindowEndFloat64(); default closed-lower uses
-		// from.WindowStartFloat64().
-		var f float64
-		var errE errors.E
-		if claim.FromIsOpen {
-			f, errE = claim.From.WindowEndFloat64(*claim.FromPrecision)
-		} else {
-			f, errE = claim.From.WindowStartFloat64(*claim.FromPrecision)
-		}
+	case workClaim.From != nil:
+		// FromIsOpen=true excludes the from-window: lower advances past the
+		// window's end. Default closed-lower uses the window's start.
+		f, errE := workClaim.From.WindowStartFloat64(*workClaim.FromPrecision, workClaim.FromIsOpen)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
 		from = &f
-		fromDisplay = claim.From.String()
+		fromDisplay = workClaim.From.String()
 		rangeFloat.GreaterThanOrEqual = &f
-	case claim.FromIsNone:
+	case workClaim.FromIsNone:
 		// We cannot search by the exact bound (we know that it does not exist),
 		// so we leave from and fromDisplay empty.
 		// But we want to find it always when we search by range.
 		f := -math.MaxFloat64
 		rangeFloat.GreaterThanOrEqual = &f
-	case claim.FromIsUnknown && claim.To != nil:
-		if claim.ToPrecision == nil {
-			errE := errors.New("missing to precision in claim")
-			errors.Details(errE)["claim"] = claim
-			return nil, nil, errE
-		}
+	case workClaim.FromIsUnknown && workClaim.To != nil:
 		// Unknown From with known To: treat as single point at To.
 		claims, errE := c.convertAmount(ctx, &document.AmountClaim{
-			CoreClaim: claim.CoreClaim,
-			Prop:      claim.Prop,
-			Amount:    *claim.To,
-			Precision: *claim.ToPrecision,
+			CoreClaim: workClaim.CoreClaim,
+			Prop:      workClaim.Prop,
+			Amount:    *workClaim.To,
+			Precision: *workClaim.ToPrecision,
 		})
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
@@ -1480,54 +1513,37 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 		// so we convert it as an unknown claim. This also handles the case
 		// of invalid claims (e.g., an empty claim without anything set).
 		claims, errE := c.convertUnknown(ctx, &document.UnknownClaim{
-			CoreClaim: claim.CoreClaim,
-			Prop:      claim.Prop,
+			CoreClaim: workClaim.CoreClaim,
+			Prop:      workClaim.Prop,
 		})
 		return nil, claims, errE
 	}
 
 	switch {
-	case claim.To != nil:
-		if claim.ToPrecision == nil {
-			errE := errors.New("missing to precision in claim")
-			errors.Details(errE)["claim"] = claim
-			return nil, nil, errE
-		}
-		// ToIsOpen=true excludes the to-window: upper retreats to
-		// to.WindowStartFloat64(); default closed-upper extends to
-		// to.WindowEndFloat64() so the to-window is fully included.
-		var t float64
-		var errE errors.E
-		if claim.ToIsOpen {
-			t, errE = claim.To.WindowStartFloat64(*claim.ToPrecision)
-		} else {
-			t, errE = claim.To.WindowEndFloat64(*claim.ToPrecision)
-		}
+	case workClaim.To != nil:
+		// ToIsOpen=true excludes the to-window: upper retreats to the
+		// window's start. Default closed-upper extends to the window's end.
+		t, errE := workClaim.To.WindowEndFloat64(*workClaim.ToPrecision, workClaim.ToIsOpen)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
 		to = &t
-		toDisplay = claim.To.String()
+		toDisplay = workClaim.To.String()
 		rangeFloat.LessThan = &t
-	case claim.ToIsNone:
+	case workClaim.ToIsNone:
 		// We cannot search by the exact bound (we know that it does not exist),
 		// so we leave to and toDisplay empty.
 		// But we want to find it always when we search by range.
 		t := math.MaxFloat64
 		rangeFloat.LessThanOrEqual = &t
-	case claim.ToIsUnknown && claim.From != nil:
-		if claim.FromPrecision == nil {
-			errE := errors.New("missing from precision in claim")
-			errors.Details(errE)["claim"] = claim
-			return nil, nil, errE
-		}
+	case workClaim.ToIsUnknown && workClaim.From != nil:
 		// Unknown To with known From: treat as single point at From.
 		claims, errE := c.convertAmount(ctx, &document.AmountClaim{
-			CoreClaim: claim.CoreClaim,
-			Prop:      claim.Prop,
-			Amount:    *claim.From,
-			Precision: *claim.FromPrecision,
+			CoreClaim: workClaim.CoreClaim,
+			Prop:      workClaim.Prop,
+			Amount:    *workClaim.From,
+			Precision: *workClaim.FromPrecision,
 		})
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
@@ -1537,26 +1553,20 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 		// Unknown To with None From. We cannot do much here,
 		// so we convert it as an unknown claim.
 		claims, errE := c.convertUnknown(ctx, &document.UnknownClaim{
-			CoreClaim: claim.CoreClaim,
-			Prop:      claim.Prop,
+			CoreClaim: workClaim.CoreClaim,
+			Prop:      workClaim.Prop,
 		})
 		return nil, claims, errE
 	}
 
-	// Sanity check.
-	swapped, errE := rangeFloat.Validate()
-	if errE != nil {
+	if errE := rangeFloat.Validate(); errE != nil {
 		errors.Details(errE)["claim"] = claim
 		return nil, nil, errE
 	}
-	if swapped {
-		from, to = to, from
-		fromDisplay, toDisplay = toDisplay, fromDisplay
-	}
 
 	// TODO: Normalize amounts of units of same measure to same base unit (e.g., cm and mm to m).
-	unit := c.extractInUnit(claim.Sub)
-	props := c.propagateProp(claim.Prop.ID)
+	unit := c.extractInUnit(workClaim.Sub)
+	props := c.propagateProp(workClaim.Prop.ID)
 	result := make([]AmountClaim, 0, len(props))
 	for _, pid := range props {
 		propDisplay, errE := c.getDisplayStrings(ctx, pid)
@@ -1580,20 +1590,18 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 }
 
 func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) ([]TimeClaim, errors.E) {
-	from, errE := claim.Time.WindowStartFloat64(claim.Precision)
+	from, errE := claim.Time.WindowStartFloat64(claim.Precision, false)
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
 		return nil, errE
 	}
-	to, errE := claim.Time.WindowEndFloat64(claim.Precision)
+	to, errE := claim.Time.WindowEndFloat64(claim.Precision, false)
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
 		return nil, errE
 	}
 	display := claim.Time.String()
 
-	// We use separate variables for the range bounds to avoid aliasing
-	// with from/to (swapping from/to would mutate the range values).
 	rangeFrom := from
 	rangeTo := to
 	rangeFloat := RangeFloat{ //nolint:exhaustruct
@@ -1601,14 +1609,11 @@ func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) 
 		LessThan:           &rangeTo,
 	}
 
-	// Sanity check.
-	swapped, errE := rangeFloat.Validate()
-	if errE != nil {
+	// Sanity check. Validate is strict and never swaps; for a single-point
+	// time with non-zero precision the bounds are always well-formed.
+	if errE := rangeFloat.Validate(); errE != nil {
 		errors.Details(errE)["claim"] = claim
 		return nil, errE
-	}
-	if swapped {
-		from, to = to, from
 	}
 
 	props := c.propagateProp(claim.Prop.ID)
@@ -1634,6 +1639,57 @@ func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) 
 }
 
 func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.TimeIntervalClaim) ([]TimeClaim, []UnknownClaim, errors.E) { //nolint:cyclop
+	if claim.From != nil && claim.FromPrecision == nil {
+		errE := errors.New("missing from precision in claim")
+		errors.Details(errE)["claim"] = claim
+		return nil, nil, errE
+	}
+	if claim.To != nil && claim.ToPrecision == nil {
+		errE := errors.New("missing to precision in claim")
+		errors.Details(errE)["claim"] = claim
+		return nil, nil, errE
+	}
+
+	// Swap directed-decreasing input to ascending order, before computing
+	// rangeFloat bounds. Dual criterion (matches document.TimeIntervalClaim.Validate):
+	// same precision -> swap on value, different precision -> swap iff the
+	// un-swapped form is empty. See convertAmountInterval for the full
+	// rationale.
+	workClaim := *claim
+	if workClaim.From != nil && workClaim.To != nil {
+		var swap bool
+		if *workClaim.FromPrecision == *workClaim.ToPrecision {
+			fromValue, errE := workClaim.From.Float64(*workClaim.FromPrecision, nil)
+			if errE != nil {
+				errors.Details(errE)["claim"] = claim
+				return nil, nil, errE
+			}
+			toValue, errE := workClaim.To.Float64(*workClaim.ToPrecision, nil)
+			if errE != nil {
+				errors.Details(errE)["claim"] = claim
+				return nil, nil, errE
+			}
+			swap = fromValue > toValue
+		} else {
+			start, errE := workClaim.From.WindowStartFloat64(*workClaim.FromPrecision, workClaim.FromIsOpen)
+			if errE != nil {
+				errors.Details(errE)["claim"] = claim
+				return nil, nil, errE
+			}
+			end, errE := workClaim.To.WindowEndFloat64(*workClaim.ToPrecision, workClaim.ToIsOpen)
+			if errE != nil {
+				errors.Details(errE)["claim"] = claim
+				return nil, nil, errE
+			}
+			swap = start >= end
+		}
+		if swap {
+			workClaim.From, workClaim.To = workClaim.To, workClaim.From
+			workClaim.FromPrecision, workClaim.ToPrecision = workClaim.ToPrecision, workClaim.FromPrecision
+			workClaim.FromIsOpen, workClaim.ToIsOpen = workClaim.ToIsOpen, workClaim.FromIsOpen
+		}
+	}
+
 	var (
 		rangeFloat  RangeFloat
 		from, to    *float64
@@ -1642,47 +1698,30 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 	)
 
 	switch {
-	case claim.From != nil:
-		if claim.FromPrecision == nil {
-			errE := errors.New("missing from precision in claim")
-			errors.Details(errE)["claim"] = claim
-			return nil, nil, errE
-		}
-		// FromIsOpen=true excludes the from-window: lower advances to
-		// from.WindowEndFloat64(); default closed-lower uses
-		// from.WindowStartFloat64().
-		var f float64
-		var errE errors.E
-		if claim.FromIsOpen {
-			f, errE = claim.From.WindowEndFloat64(*claim.FromPrecision)
-		} else {
-			f, errE = claim.From.WindowStartFloat64(*claim.FromPrecision)
-		}
+	case workClaim.From != nil:
+		// FromIsOpen=true excludes the from-window: lower advances past the
+		// window's end. Default closed-lower uses the window's start.
+		f, errE := workClaim.From.WindowStartFloat64(*workClaim.FromPrecision, workClaim.FromIsOpen)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
 		from = &f
-		fromDisplay = claim.From.String()
+		fromDisplay = workClaim.From.String()
 		rangeFloat.GreaterThanOrEqual = &f
-	case claim.FromIsNone:
+	case workClaim.FromIsNone:
 		// We cannot search by the exact bound (we know that it does not exist),
 		// so we leave from and fromDisplay empty.
 		// But we want to find it always when we search by range.
 		f := -math.MaxFloat64
 		rangeFloat.GreaterThanOrEqual = &f
-	case claim.FromIsUnknown && claim.To != nil:
-		if claim.ToPrecision == nil {
-			errE := errors.New("missing to precision in claim")
-			errors.Details(errE)["claim"] = claim
-			return nil, nil, errE
-		}
+	case workClaim.FromIsUnknown && workClaim.To != nil:
 		// Unknown From with known To: treat as single point at To.
 		claims, errE := c.convertTime(ctx, &document.TimeClaim{
-			CoreClaim: claim.CoreClaim,
-			Prop:      claim.Prop,
-			Time:      *claim.To,
-			Precision: *claim.ToPrecision,
+			CoreClaim: workClaim.CoreClaim,
+			Prop:      workClaim.Prop,
+			Time:      *workClaim.To,
+			Precision: *workClaim.ToPrecision,
 		})
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
@@ -1693,54 +1732,37 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		// so we convert it as an unknown claim. This also handles the case
 		// of invalid claims (e.g., an empty claim without anything set).
 		claims, errE := c.convertUnknown(ctx, &document.UnknownClaim{
-			CoreClaim: claim.CoreClaim,
-			Prop:      claim.Prop,
+			CoreClaim: workClaim.CoreClaim,
+			Prop:      workClaim.Prop,
 		})
 		return nil, claims, errE
 	}
 
 	switch {
-	case claim.To != nil:
-		if claim.ToPrecision == nil {
-			errE := errors.New("missing to precision in claim")
-			errors.Details(errE)["claim"] = claim
-			return nil, nil, errE
-		}
-		// ToIsOpen=true excludes the to-window: upper retreats to
-		// to.WindowStartFloat64(); default closed-upper extends to
-		// to.WindowEndFloat64() so the to-window is fully included.
-		var t float64
-		var errE errors.E
-		if claim.ToIsOpen {
-			t, errE = claim.To.WindowStartFloat64(*claim.ToPrecision)
-		} else {
-			t, errE = claim.To.WindowEndFloat64(*claim.ToPrecision)
-		}
+	case workClaim.To != nil:
+		// ToIsOpen=true excludes the to-window: upper retreats to the
+		// window's start. Default closed-upper extends to the window's end.
+		t, errE := workClaim.To.WindowEndFloat64(*workClaim.ToPrecision, workClaim.ToIsOpen)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
 		to = &t
-		toDisplay = claim.To.String()
+		toDisplay = workClaim.To.String()
 		rangeFloat.LessThan = &t
-	case claim.ToIsNone:
+	case workClaim.ToIsNone:
 		// We cannot search by the exact bound (we know that it does not exist),
 		// so we leave to and toDisplay empty.
 		// But we want to find it always when we search by range.
 		t := math.MaxFloat64
 		rangeFloat.LessThanOrEqual = &t
-	case claim.ToIsUnknown && claim.From != nil:
-		if claim.FromPrecision == nil {
-			errE := errors.New("missing from precision in claim")
-			errors.Details(errE)["claim"] = claim
-			return nil, nil, errE
-		}
+	case workClaim.ToIsUnknown && workClaim.From != nil:
 		// Unknown To with known From: treat as single point at From.
 		claims, errE := c.convertTime(ctx, &document.TimeClaim{
-			CoreClaim: claim.CoreClaim,
-			Prop:      claim.Prop,
-			Time:      *claim.From,
-			Precision: *claim.FromPrecision,
+			CoreClaim: workClaim.CoreClaim,
+			Prop:      workClaim.Prop,
+			Time:      *workClaim.From,
+			Precision: *workClaim.FromPrecision,
 		})
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
@@ -1750,24 +1772,18 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		// Unknown To with None From. We cannot do much here,
 		// so we convert it as an unknown claim.
 		claims, errE := c.convertUnknown(ctx, &document.UnknownClaim{
-			CoreClaim: claim.CoreClaim,
-			Prop:      claim.Prop,
+			CoreClaim: workClaim.CoreClaim,
+			Prop:      workClaim.Prop,
 		})
 		return nil, claims, errE
 	}
 
-	// Sanity check.
-	swapped, errE := rangeFloat.Validate()
-	if errE != nil {
+	if errE := rangeFloat.Validate(); errE != nil {
 		errors.Details(errE)["claim"] = claim
 		return nil, nil, errE
 	}
-	if swapped {
-		from, to = to, from
-		fromDisplay, toDisplay = toDisplay, fromDisplay
-	}
 
-	props := c.propagateProp(claim.Prop.ID)
+	props := c.propagateProp(workClaim.Prop.ID)
 	result := make([]TimeClaim, 0, len(props))
 	for _, pid := range props {
 		propDisplay, errE := c.getDisplayStrings(ctx, pid)
@@ -1968,4 +1984,3 @@ func (c *Converter) convertUnknown(ctx context.Context, claim *document.UnknownC
 	}
 	return result, nil
 }
-

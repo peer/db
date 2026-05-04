@@ -1455,9 +1455,9 @@ func TestConvertAmount(t *testing.T) {
 	require.Len(t, result, 1)
 	assert.Equal(t, testPropID, result[0].Prop)
 	require.NotNil(t, result[0].From)
-	assert.InDelta(t, 99.5, *result[0].From, 0.001)
+	assert.Equal(t, 99.5, *result[0].From)   //nolint:testifylint
 	require.NotNil(t, result[0].To)
-	assert.InDelta(t, 100.5, *result[0].To, 0.001)
+	assert.Equal(t, 100.5, *result[0].To)    //nolint:testifylint
 	assert.Equal(t, "100", result[0].FromDisplay)
 	assert.Nil(t, result[0].Unit)
 }
@@ -1527,8 +1527,8 @@ func TestConvertAmountInterval(t *testing.T) {
 
 	// Default flags: from-window included -> lower = 10 - 0.5 = 9.5;
 	// to-window included -> upper = 20 + 0.5 = 20.5.
-	assert.InDelta(t, 9.5, *amountClaims[0].Range.GreaterThanOrEqual, 0.001)
-	assert.InDelta(t, 20.5, *amountClaims[0].Range.LessThan, 0.001)
+	assert.Equal(t, 9.5, *amountClaims[0].Range.GreaterThanOrEqual)  //nolint:testifylint
+	assert.Equal(t, 20.5, *amountClaims[0].Range.LessThan)           //nolint:testifylint
 	require.NotNil(t, amountClaims[0].From)
 	require.NotNil(t, amountClaims[0].To)
 	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual)
@@ -1575,8 +1575,8 @@ func TestConvertAmountIntervalOpen(t *testing.T) {
 
 	// FromIsOpen=true: lower advances to 10 + 0.5 = 10.5 (from-window excluded).
 	// ToIsOpen=true:   upper retreats to 20 - 0.5 = 19.5 (to-window excluded).
-	assert.InDelta(t, 10.5, *amountClaims[0].Range.GreaterThanOrEqual, 0.001)
-	assert.InDelta(t, 19.5, *amountClaims[0].Range.LessThan, 0.001)
+	assert.Equal(t, 10.5, *amountClaims[0].Range.GreaterThanOrEqual)  //nolint:testifylint
+	assert.Equal(t, 19.5, *amountClaims[0].Range.LessThan)            //nolint:testifylint
 	require.NotNil(t, amountClaims[0].From)
 	require.NotNil(t, amountClaims[0].To)
 	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual)
@@ -1632,8 +1632,8 @@ func TestConvertAmountIntervalSinglePointSamePrecision(t *testing.T) {
 	require.NotNil(t, intervalClaims[0].Range.GreaterThanOrEqual)
 	require.NotNil(t, intervalClaims[0].Range.LessThan)
 
-	assert.InDelta(t, 99.5, *intervalClaims[0].From, 0.001)
-	assert.InDelta(t, 100.5, *intervalClaims[0].To, 0.001)
+	assert.Equal(t, 99.5, *intervalClaims[0].From)   //nolint:testifylint
+	assert.Equal(t, 100.5, *intervalClaims[0].To)    //nolint:testifylint
 	assert.Equal(t, *intervalClaims[0].From, *intervalClaims[0].Range.GreaterThanOrEqual)
 	assert.Equal(t, *intervalClaims[0].To, *intervalClaims[0].Range.LessThan)
 	assert.Equal(t, "100", intervalClaims[0].FromDisplay)
@@ -1671,12 +1671,186 @@ func TestConvertAmountIntervalSinglePointDifferentPrecisions(t *testing.T) {
 
 	// from-window (prec 10) start = 95, to-window (prec 1) end = 100.5.
 	// Each side uses its own precision; the indexed range covers both.
-	assert.InDelta(t, 95.0, *amountClaims[0].From, 0.001)
-	assert.InDelta(t, 100.5, *amountClaims[0].To, 0.001)
+	assert.Equal(t, 95.0, *amountClaims[0].From)    //nolint:testifylint
+	assert.Equal(t, 100.5, *amountClaims[0].To)     //nolint:testifylint
 	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual)
 	assert.Equal(t, *amountClaims[0].To, *amountClaims[0].Range.LessThan)
 	assert.Equal(t, "100", amountClaims[0].FromDisplay)
 	assert.Equal(t, "100", amountClaims[0].ToDisplay)
+}
+
+// TestConvertAmountIntervalForwardAdjacent verifies the basic forward
+// case with bounds exactly precision-apart, so their windows touch but
+// don't overlap. from=10, to=20, both prec=10, both closed.
+//   - from-window: [5, 15]; to-window: [15, 25]; share edge at 15.
+//   - Expected indexed range: [5, 25) - union of both windows.
+func TestConvertAmountIntervalForwardAdjacent(t *testing.T) { //nolint:dupl
+	t.Parallel()
+
+	propDoc := makeNamingDoc(testPropID, "Amount Prop")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID: propDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+	fromAmount := document.Amount("10")
+	toAmount := document.Amount("20")
+	prec := 10.0
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
+		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
+		Prop:          document.Reference{ID: testPropID},
+		From:          &fromAmount,
+		FromPrecision: &prec,
+		To:            &toAmount,
+		ToPrecision:   &prec,
+	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, amountClaims, 1)
+	assert.Empty(t, unknownClaims)
+	require.NotNil(t, amountClaims[0].Range.GreaterThanOrEqual)
+	require.NotNil(t, amountClaims[0].Range.LessThan)
+
+	assert.Equal(t, 5.0, *amountClaims[0].Range.GreaterThanOrEqual)  //nolint:testifylint
+	assert.Equal(t, 25.0, *amountClaims[0].Range.LessThan)           //nolint:testifylint
+	require.NotNil(t, amountClaims[0].From)
+	require.NotNil(t, amountClaims[0].To)
+	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual)
+	assert.Equal(t, *amountClaims[0].To, *amountClaims[0].Range.LessThan)
+	assert.Equal(t, "10", amountClaims[0].FromDisplay)
+	assert.Equal(t, "20", amountClaims[0].ToDisplay)
+}
+
+// TestConvertAmountIntervalOverlappingDirectedDecreasingRejected documents
+// the behavior on inputs whose precision-windows would strictly overlap
+// while values are directed-decreasing (e.g. from=12, to=10, prec=10:
+// from-window [7, 17], to-window [5, 15], overlap [7, 15]).
+//
+// Such inputs are not constructible through normal validated claim flow,
+// because Amount.Float64 enforces value-rounded-to-precision (12 is not
+// rounded to precision 10 - only multiples of 10 are). This test bypasses
+// AmountIntervalClaim.Validate and feeds the claim directly to the
+// converter to confirm the convert layer rejects the same way: when its
+// same-precision swap-criterion branch parses the values via Float64, the
+// rounding check fires.
+func TestConvertAmountIntervalOverlappingDirectedDecreasingRejected(t *testing.T) {
+	t.Parallel()
+
+	propDoc := makeNamingDoc(testPropID, "Amount Prop")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID: propDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+	fromAmount := document.Amount("12")
+	toAmount := document.Amount("10")
+	prec := 10.0
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
+		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
+		Prop:          document.Reference{ID: testPropID},
+		From:          &fromAmount,
+		FromPrecision: &prec,
+		To:            &toAmount,
+		ToPrecision:   &prec,
+	}
+	// Intentionally NO claim.Validate() call here - claim is deliberately
+	// invalid and would not pass Validate().
+	_, _, errE := c.convertAmountInterval(ctx, claim)
+	assert.ErrorContains(t, errE, "amount is not rounded to precision")
+}
+
+// TestConvertAmountIntervalDirectedDecreasingAdjacent verifies that an
+// interval written in directed-decreasing form with adjacent windows
+// (from=11, to=10, both prec=1, both closed) is swapped to ascending order.
+// The un-swapped effective edges coincide (10.5 and 10.5), so the swap fires
+// and the indexed range covers both windows: [9.5, 11.5).
+func TestConvertAmountIntervalDirectedDecreasingAdjacent(t *testing.T) { //nolint:dupl
+	t.Parallel()
+
+	propDoc := makeNamingDoc(testPropID, "Amount Prop")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID: propDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+	fromAmount := document.Amount("11")
+	toAmount := document.Amount("10")
+	prec := 1.0
+	claim := &document.AmountIntervalClaim{ //nolint:exhaustruct
+		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
+		Prop:          document.Reference{ID: testPropID},
+		From:          &fromAmount,
+		FromPrecision: &prec,
+		To:            &toAmount,
+		ToPrecision:   &prec,
+	}
+	amountClaims, unknownClaims, errE := c.convertAmountInterval(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, amountClaims, 1)
+	assert.Empty(t, unknownClaims)
+	require.NotNil(t, amountClaims[0].Range.GreaterThanOrEqual)
+	require.NotNil(t, amountClaims[0].Range.LessThan)
+
+	assert.Equal(t, 9.5, *amountClaims[0].Range.GreaterThanOrEqual)   //nolint:testifylint
+	assert.Equal(t, 11.5, *amountClaims[0].Range.LessThan)            //nolint:testifylint
+	require.NotNil(t, amountClaims[0].From)
+	require.NotNil(t, amountClaims[0].To)
+	assert.Equal(t, *amountClaims[0].From, *amountClaims[0].Range.GreaterThanOrEqual)
+	assert.Equal(t, *amountClaims[0].To, *amountClaims[0].Range.LessThan)
+	// Display strings follow the swapped orientation: smaller value is now From.
+	assert.Equal(t, "10", amountClaims[0].FromDisplay)
+	assert.Equal(t, "11", amountClaims[0].ToDisplay)
+}
+
+// TestConvertTimeIntervalDirectedDecreasingAdjacent verifies that an
+// interval with from=2025 year, to=2024 year (both closed, adjacent
+// year-windows) is swapped to ascending order. The un-swapped effective
+// edges coincide (2025-01-01 = 2025-01-01), so the swap fires and the
+// indexed range covers both years: [2024-01-01, 2026-01-01).
+func TestConvertTimeIntervalDirectedDecreasingAdjacent(t *testing.T) {
+	t.Parallel()
+
+	propDoc := makeNamingDoc(testPropID, "Time Prop")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID: propDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+	fromTS := document.Time("2025")
+	toTS := document.Time("2024")
+	prec := document.TimePrecisionYear
+	claim := &document.TimeIntervalClaim{ //nolint:exhaustruct
+		CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
+		Prop:          document.Reference{ID: testPropID},
+		From:          &fromTS,
+		FromPrecision: &prec,
+		To:            &toTS,
+		ToPrecision:   &prec,
+	}
+	timeClaims, unknownClaims, errE := c.convertTimeInterval(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, timeClaims, 1)
+	assert.Empty(t, unknownClaims)
+	require.NotNil(t, timeClaims[0].Range.GreaterThanOrEqual)
+	require.NotNil(t, timeClaims[0].Range.LessThan)
+
+	lowerTime := x.TimeFromFloat64(*timeClaims[0].Range.GreaterThanOrEqual).UTC()
+	upperTime := x.TimeFromFloat64(*timeClaims[0].Range.LessThan).UTC()
+	assert.Equal(t, time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC), lowerTime)
+	assert.Equal(t, time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC), upperTime)
+	require.NotNil(t, timeClaims[0].From)
+	require.NotNil(t, timeClaims[0].To)
+	assert.Equal(t, *timeClaims[0].From, *timeClaims[0].Range.GreaterThanOrEqual)
+	assert.Equal(t, *timeClaims[0].To, *timeClaims[0].Range.LessThan)
+	// Display strings follow the swapped orientation.
+	assert.Equal(t, "2024", timeClaims[0].FromDisplay)
+	assert.Equal(t, "2025", timeClaims[0].ToDisplay)
 }
 
 // TestConvertAmountIntervalToIsOpenExcludesWindow verifies that
@@ -1718,11 +1892,11 @@ func TestConvertAmountIntervalToIsOpenExcludesWindow(t *testing.T) {
 
 	// Default: upper = to_end = 100 + 0.5 = 100.5 (window included).
 	require.NotNil(t, defaultClaims[0].Range.LessThan)
-	assert.InDelta(t, 100.5, *defaultClaims[0].Range.LessThan, 0.001)
+	assert.Equal(t, 100.5, *defaultClaims[0].Range.LessThan)  //nolint:testifylint
 
 	// ToIsOpen=true: upper = to_start = 100 - 0.5 = 99.5 (window excluded).
 	require.NotNil(t, openClaims[0].Range.LessThan)
-	assert.InDelta(t, 99.5, *openClaims[0].Range.LessThan, 0.001)
+	assert.Equal(t, 99.5, *openClaims[0].Range.LessThan)      //nolint:testifylint
 
 	// Scalars coincide with range bounds.
 	require.NotNil(t, defaultClaims[0].To)

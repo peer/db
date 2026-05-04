@@ -290,13 +290,37 @@ func (t Time) Validate(precision TimePrecision) errors.E {
 	return errE
 }
 
-// WindowStartFloat64 returns the start of the precision window represented
+// WindowStartFloat64 returns the lower edge that this bound contributes to a
+// half-open indexed range, as float64 seconds since the unix epoch. When the
+// bound is closed (default, isOpen=false) this is the start of the precision
+// window; when open (isOpen=true) the precision window is excluded and the
+// edge advances to the end of the window.
+func (t Time) WindowStartFloat64(precision TimePrecision, isOpen bool) (float64, errors.E) {
+	if isOpen {
+		return t.windowEndFloat64(precision)
+	}
+	return t.windowStartFloat64(precision)
+}
+
+// WindowEndFloat64 returns the upper edge that this bound contributes to a
+// half-open indexed range, as float64 seconds since the unix epoch. When the
+// bound is closed (default, isOpen=false) this is the end of the precision
+// window; when open (isOpen=true) the precision window is excluded and the
+// edge retreats to the start of the window.
+func (t Time) WindowEndFloat64(precision TimePrecision, isOpen bool) (float64, errors.E) {
+	if isOpen {
+		return t.windowStartFloat64(precision)
+	}
+	return t.windowEndFloat64(precision)
+}
+
+// windowStartFloat64 returns the start of the precision window represented
 // by t as float64 seconds since the unix epoch.
-func (t Time) WindowStartFloat64(precision TimePrecision) (float64, errors.E) {
+func (t Time) windowStartFloat64(precision TimePrecision) (float64, errors.E) {
 	return t.Float64(precision, time.UTC)
 }
 
-// WindowEndFloat64 returns the end of the precision window represented by
+// windowEndFloat64 returns the end of the precision window represented by
 // t as float64 seconds since the unix epoch.
 //
 // If the natural step for the requested precision is below the float64
@@ -305,7 +329,7 @@ func (t Time) WindowStartFloat64(precision TimePrecision) (float64, errors.E) {
 // Within Go's representable time range (year ~-291 billion to ~+291 billion)
 // this widening is enough: at the extremes the float64 ULP is ~1024 s, so
 // sub-hour precisions widen up to hour, and hour-and-above always survive.
-func (t Time) WindowEndFloat64(precision TimePrecision) (float64, errors.E) {
+func (t Time) windowEndFloat64(precision TimePrecision) (float64, errors.E) {
 	parsed, errE := t.Time(precision, time.UTC)
 	if errE != nil {
 		return 0, errE

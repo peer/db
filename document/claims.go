@@ -858,31 +858,70 @@ func (c *AmountIntervalClaim) Validate() errors.E {
 		}
 	}
 
-	// Empty-interval check: after applying open/closed flags, the effective
-	// lower edge equals the effective upper edge, so the underlying range
-	// has no points.
+	// Empty-interval check. The swap criterion matches convertAmountInterval,
+	// so the orientation here is the same as the indexed range.
+	//
+	// When both bounds share the same precision, the directed-decreasing
+	// interpretation is unambiguous, so we use the simpler value-based
+	// criterion: swap iff fromValue > toValue. After the swap the
+	// orientation is ascending and the empty check is a forward
+	// start(from) >= end(to).
+	//
+	// When precisions differ, value comparison would conflict with the
+	// "precision-coarsening" pattern (e.g. from=2025-10-21 day, to=2025
+	// year, where the user means "from this day through end of year"). In
+	// that case we fall back to the un-swapped-empty criterion: only swap
+	// when the un-swapped form is empty (start(from) >= end(to)). If the
+	// swapped form is also empty, the interval is genuinely empty.
 	if c.From != nil && c.To != nil && c.FromPrecision != nil && c.ToPrecision != nil {
-		var effLower float64
-		var errE errors.E
-		if c.FromIsOpen {
-			effLower, errE = c.From.WindowEndFloat64(*c.FromPrecision)
+		if *c.FromPrecision == *c.ToPrecision {
+			fromValue, errE := c.From.Float64(*c.FromPrecision)
+			if errE != nil {
+				return errE
+			}
+			toValue, errE := c.To.Float64(*c.ToPrecision)
+			if errE != nil {
+				return errE
+			}
+			loVal, loIsOpen := c.From, c.FromIsOpen
+			hiVal, hiIsOpen := c.To, c.ToIsOpen
+			if fromValue > toValue {
+				loVal, loIsOpen = c.To, c.ToIsOpen
+				hiVal, hiIsOpen = c.From, c.FromIsOpen
+			}
+			start, errE := loVal.WindowStartFloat64(*c.FromPrecision, loIsOpen)
+			if errE != nil {
+				return errE
+			}
+			end, errE := hiVal.WindowEndFloat64(*c.FromPrecision, hiIsOpen)
+			if errE != nil {
+				return errE
+			}
+			if start >= end {
+				return errors.New("interval is empty")
+			}
 		} else {
-			effLower, errE = c.From.WindowStartFloat64(*c.FromPrecision)
-		}
-		if errE != nil {
-			return errE
-		}
-		var effUpper float64
-		if c.ToIsOpen {
-			effUpper, errE = c.To.WindowStartFloat64(*c.ToPrecision)
-		} else {
-			effUpper, errE = c.To.WindowEndFloat64(*c.ToPrecision)
-		}
-		if errE != nil {
-			return errE
-		}
-		if effLower == effUpper {
-			return errors.New("interval is empty")
+			start, errE := c.From.WindowStartFloat64(*c.FromPrecision, c.FromIsOpen)
+			if errE != nil {
+				return errE
+			}
+			end, errE := c.To.WindowEndFloat64(*c.ToPrecision, c.ToIsOpen)
+			if errE != nil {
+				return errE
+			}
+			if start >= end {
+				start, errE = c.To.WindowStartFloat64(*c.ToPrecision, c.ToIsOpen)
+				if errE != nil {
+					return errE
+				}
+				end, errE = c.From.WindowEndFloat64(*c.FromPrecision, c.FromIsOpen)
+				if errE != nil {
+					return errE
+				}
+				if start >= end {
+					return errors.New("interval is empty")
+				}
+			}
 		}
 	}
 
@@ -1001,31 +1040,59 @@ func (c *TimeIntervalClaim) Validate() errors.E {
 		}
 	}
 
-	// Empty-interval check: after applying open/closed flags, the effective
-	// lower edge equals the effective upper edge, so the underlying range
-	// has no points.
+	// Empty-interval check. Same dual criterion as AmountIntervalClaim.Validate:
+	// for same precision, swap on value (fromValue > toValue) then forward
+	// empty check; for different precision, swap iff un-swapped form is
+	// empty, with a swapped retry. Matches convertTimeInterval.
 	if c.From != nil && c.To != nil && c.FromPrecision != nil && c.ToPrecision != nil {
-		var effLower float64
-		var errE errors.E
-		if c.FromIsOpen {
-			effLower, errE = c.From.WindowEndFloat64(*c.FromPrecision)
+		if *c.FromPrecision == *c.ToPrecision {
+			fromValue, errE := c.From.Float64(*c.FromPrecision, nil)
+			if errE != nil {
+				return errE
+			}
+			toValue, errE := c.To.Float64(*c.ToPrecision, nil)
+			if errE != nil {
+				return errE
+			}
+			loVal, loIsOpen := c.From, c.FromIsOpen
+			hiVal, hiIsOpen := c.To, c.ToIsOpen
+			if fromValue > toValue {
+				loVal, loIsOpen = c.To, c.ToIsOpen
+				hiVal, hiIsOpen = c.From, c.FromIsOpen
+			}
+			start, errE := loVal.WindowStartFloat64(*c.FromPrecision, loIsOpen)
+			if errE != nil {
+				return errE
+			}
+			end, errE := hiVal.WindowEndFloat64(*c.FromPrecision, hiIsOpen)
+			if errE != nil {
+				return errE
+			}
+			if start >= end {
+				return errors.New("interval is empty")
+			}
 		} else {
-			effLower, errE = c.From.WindowStartFloat64(*c.FromPrecision)
-		}
-		if errE != nil {
-			return errE
-		}
-		var effUpper float64
-		if c.ToIsOpen {
-			effUpper, errE = c.To.WindowStartFloat64(*c.ToPrecision)
-		} else {
-			effUpper, errE = c.To.WindowEndFloat64(*c.ToPrecision)
-		}
-		if errE != nil {
-			return errE
-		}
-		if effLower == effUpper {
-			return errors.New("interval is empty")
+			start, errE := c.From.WindowStartFloat64(*c.FromPrecision, c.FromIsOpen)
+			if errE != nil {
+				return errE
+			}
+			end, errE := c.To.WindowEndFloat64(*c.ToPrecision, c.ToIsOpen)
+			if errE != nil {
+				return errE
+			}
+			if start >= end {
+				start, errE = c.To.WindowStartFloat64(*c.ToPrecision, c.ToIsOpen)
+				if errE != nil {
+					return errE
+				}
+				end, errE = c.From.WindowEndFloat64(*c.FromPrecision, c.FromIsOpen)
+				if errE != nil {
+					return errE
+				}
+				if start >= end {
+					return errors.New("interval is empty")
+				}
+			}
 		}
 	}
 

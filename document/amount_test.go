@@ -486,42 +486,42 @@ func TestAmountWindowEdgeFloat64(t *testing.T) {
 	t.Run("integer", func(t *testing.T) {
 		t.Parallel()
 		a := document.Amount("100")
-		startF, errE := a.WindowStartFloat64(1)
+		startF, errE := a.WindowStartFloat64(1, false)
 		require.NoError(t, errE, "% -+#.1v", errE)
-		assert.InDelta(t, 99.5, startF, 0.001)
-		endF, errE := a.WindowEndFloat64(1)
+		assert.Equal(t, 99.5, startF) //nolint:testifylint
+		endF, errE := a.WindowEndFloat64(1, false)
 		require.NoError(t, errE, "% -+#.1v", errE)
-		assert.InDelta(t, 100.5, endF, 0.001)
+		assert.Equal(t, 100.5, endF)  //nolint:testifylint
 	})
 
 	t.Run("decimal", func(t *testing.T) {
 		t.Parallel()
 		a := document.Amount("100.0")
-		startF, errE := a.WindowStartFloat64(0.5)
+		startF, errE := a.WindowStartFloat64(0.5, false)
 		require.NoError(t, errE, "% -+#.1v", errE)
-		assert.InDelta(t, 99.75, startF, 0.001)
-		endF, errE := a.WindowEndFloat64(0.5)
+		assert.Equal(t, 99.75, startF)  //nolint:testifylint
+		endF, errE := a.WindowEndFloat64(0.5, false)
 		require.NoError(t, errE, "% -+#.1v", errE)
-		assert.InDelta(t, 100.25, endF, 0.001)
+		assert.Equal(t, 100.25, endF)   //nolint:testifylint
 	})
 
 	t.Run("negative", func(t *testing.T) {
 		t.Parallel()
 		a := document.Amount("-10")
-		startF, errE := a.WindowStartFloat64(2)
+		startF, errE := a.WindowStartFloat64(2, false)
 		require.NoError(t, errE, "% -+#.1v", errE)
-		assert.InDelta(t, -11.0, startF, 0.001)
-		endF, errE := a.WindowEndFloat64(2)
+		assert.Equal(t, -11.0, startF)  //nolint:testifylint
+		endF, errE := a.WindowEndFloat64(2, false)
 		require.NoError(t, errE, "% -+#.1v", errE)
-		assert.InDelta(t, -9.0, endF, 0.001)
+		assert.Equal(t, -9.0, endF)     //nolint:testifylint
 	})
 
 	t.Run("invalid amount returns error", func(t *testing.T) {
 		t.Parallel()
 		a := document.Amount("not-a-number")
-		_, errE := a.WindowStartFloat64(1)
+		_, errE := a.WindowStartFloat64(1, false)
 		assert.Error(t, errE) //nolint:testifylint
-		_, errE = a.WindowEndFloat64(1)
+		_, errE = a.WindowEndFloat64(1, false)
 		assert.Error(t, errE) //nolint:testifylint
 	})
 }

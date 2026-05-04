@@ -98,41 +98,37 @@ type RangeFloat struct {
 }
 
 // Validate checks that the range is valid for indexing into Elasticsearch
-// as a range field.
-//
-// Errors are returned for shapes Elasticsearch would reject:
+// as a range field. It returns an error for any shape Elasticsearch would
+// reject:
 //   - Both gt and gte set, or both lt and lte set, or neither lower nor
 //     upper bound set.
 //   - NaN or Inf bound values.
+//   - Lower bound strictly greater than upper bound.
 //   - Equal numeric bounds with at least one strict side. ES accepts
 //     gte == lte (single-point range) but rejects any equal-bound
 //     combination involving a strict side.
 //   - Strict-strict ranges where the two bounds are within 1 ULP of
 //     each other.
-//
-// When the lower bound is strictly greater than the upper bound, the
-// bounds are swapped (because ES does not support interval direction
-// like PeerDB does). It returns true if the bounds were swapped.
-func (r *RangeFloat) Validate() (bool, errors.E) {
+func (r *RangeFloat) Validate() errors.E {
 	if r.GreaterThan != nil && r.GreaterThanOrEqual != nil {
 		errE := errors.New("both greater than and greater than or equal are set")
 		errors.Details(errE)["range"] = r
-		return false, errE
+		return errE
 	}
 	if r.LessThan != nil && r.LessThanOrEqual != nil {
 		errE := errors.New("both less than and less than or equal are set")
 		errors.Details(errE)["range"] = r
-		return false, errE
+		return errE
 	}
 	if r.GreaterThan == nil && r.GreaterThanOrEqual == nil {
 		errE := errors.New("greater than bound is required")
 		errors.Details(errE)["range"] = r
-		return false, errE
+		return errE
 	}
 	if r.LessThan == nil && r.LessThanOrEqual == nil {
 		errE := errors.New("less than bound is required")
 		errors.Details(errE)["range"] = r
-		return false, errE
+		return errE
 	}
 
 	var lower float64
@@ -151,46 +147,35 @@ func (r *RangeFloat) Validate() (bool, errors.E) {
 		upper = *r.LessThanOrEqual
 	}
 
-	// ES rejects non-finite (NaN or Inf) bound values.
 	if math.IsNaN(lower) || math.IsInf(lower, 0) {
 		errE := errors.New("lower bound is not a finite number")
 		errors.Details(errE)["range"] = r
-		return false, errE
+		return errE
 	}
 	if math.IsNaN(upper) || math.IsInf(upper, 0) {
 		errE := errors.New("upper bound is not a finite number")
 		errors.Details(errE)["range"] = r
-		return false, errE
+		return errE
 	}
 
-	swapped := false
 	switch {
 	case lower < upper:
-		// Normal case; nothing to do.
+		// Normal case.
 	case lower == upper:
 		// ES accepts gte == lte (single-point range). Any other equal-bound
 		// combination has at least one strict side and is rejected by ES.
 		if r.GreaterThanOrEqual != nil && r.LessThanOrEqual != nil {
-			return false, nil
+			return nil
 		}
 		errE := errors.New("equal bounds with at least one strict bound")
 		errors.Details(errE)["range"] = r
-		return false, errE
+		return errE
 	default:
-		// lower > upper: swap so the indexed range is well-formed.
-		newR := RangeFloat{}
-		if r.GreaterThan != nil {
-			newR.LessThan = r.GreaterThan
-		} else {
-			newR.LessThanOrEqual = r.GreaterThanOrEqual
-		}
-		if r.LessThan != nil {
-			newR.GreaterThan = r.LessThan
-		} else {
-			newR.GreaterThanOrEqual = r.LessThanOrEqual
-		}
-		*r = newR
-		swapped = true
+		// lower > upper: rejected. Upstream is responsible for swapping
+		// bounds before reaching this point.
+		errE := errors.New("lower bound is greater than upper bound")
+		errors.Details(errE)["range"] = r
+		return errE
 	}
 
 	// Strict-strict adjacency: when both bounds are strict and within 1 ULP
@@ -199,11 +184,11 @@ func (r *RangeFloat) Validate() (bool, errors.E) {
 		if math.Nextafter(*r.GreaterThan, math.Inf(1)) > math.Nextafter(*r.LessThan, math.Inf(-1)) {
 			errE := errors.New("strict bounds within one ULP of each other")
 			errors.Details(errE)["range"] = r
-			return swapped, errE
+			return errE
 		}
 	}
 
-	return swapped, nil
+	return nil
 }
 
 // AmountClaim represents a claim for numeric amount and unit.
