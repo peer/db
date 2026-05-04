@@ -152,16 +152,16 @@
     animation-iteration-count: infinite;
     animation-delay: 200ms;
     will-change: left, right;
-    left: 0%;
-    right: 100%;
   }
 
-  .pd-progressbar-short {
-    animation-name: indeterminate-short-ltr;
-  }
+  @media (prefers-reduced-motion: no-preference) {
+    .pd-progressbar-short {
+      animation-name: indeterminate-short-ltr;
+    }
 
-  .pd-progressbar-long {
-    animation-name: indeterminate-ltr;
+    .pd-progressbar-long {
+      animation-name: indeterminate-ltr;
+    }
   }
 
   @keyframes indeterminate-ltr {
@@ -285,14 +285,6 @@
 
   .w-container {
     width: 100cqw;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pd-progressbar-short,
-  .pd-progressbar-long {
-    left: 0% !important;
-    right: 0% !important;
   }
 }
 
