@@ -858,6 +858,34 @@ func (c *AmountIntervalClaim) Validate() errors.E {
 		}
 	}
 
+	// Empty-interval check: after applying open/closed flags, the effective
+	// lower edge equals the effective upper edge, so the underlying range
+	// has no points.
+	if c.From != nil && c.To != nil && c.FromPrecision != nil && c.ToPrecision != nil {
+		var effLower float64
+		var errE errors.E
+		if c.FromIsOpen {
+			effLower, errE = c.From.WindowEndFloat64(*c.FromPrecision)
+		} else {
+			effLower, errE = c.From.WindowStartFloat64(*c.FromPrecision)
+		}
+		if errE != nil {
+			return errE
+		}
+		var effUpper float64
+		if c.ToIsOpen {
+			effUpper, errE = c.To.WindowStartFloat64(*c.ToPrecision)
+		} else {
+			effUpper, errE = c.To.WindowEndFloat64(*c.ToPrecision)
+		}
+		if errE != nil {
+			return errE
+		}
+		if effLower == effUpper {
+			return errors.New("interval is empty")
+		}
+	}
+
 	return nil
 }
 
@@ -970,6 +998,34 @@ func (c *TimeIntervalClaim) Validate() errors.E {
 		errE := c.To.Validate(*c.ToPrecision)
 		if errE != nil {
 			return errE
+		}
+	}
+
+	// Empty-interval check: after applying open/closed flags, the effective
+	// lower edge equals the effective upper edge, so the underlying range
+	// has no points.
+	if c.From != nil && c.To != nil && c.FromPrecision != nil && c.ToPrecision != nil {
+		var effLower float64
+		var errE errors.E
+		if c.FromIsOpen {
+			effLower, errE = c.From.WindowEndFloat64(*c.FromPrecision)
+		} else {
+			effLower, errE = c.From.WindowStartFloat64(*c.FromPrecision)
+		}
+		if errE != nil {
+			return errE
+		}
+		var effUpper float64
+		if c.ToIsOpen {
+			effUpper, errE = c.To.WindowStartFloat64(*c.ToPrecision)
+		} else {
+			effUpper, errE = c.To.WindowEndFloat64(*c.ToPrecision)
+		}
+		if errE != nil {
+			return errE
+		}
+		if effLower == effUpper {
+			return errors.New("interval is empty")
 		}
 	}
 

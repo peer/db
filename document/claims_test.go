@@ -452,6 +452,64 @@ func TestClaimValidations(t *testing.T) {
 		}
 		assert.EqualError(t, c.Validate(), "To must not be set when ToIsUnknown or ToIsNone is true")
 	})
+
+	t.Run("TimeIntervalClaim/empty_interval_from_open", func(t *testing.T) {
+		t.Parallel()
+		c := &document.TimeIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &from,
+			FromPrecision: &fromPrec,
+			FromIsOpen:    true,
+			To:            &from,
+			ToPrecision:   &fromPrec,
+		}
+		assert.EqualError(t, c.Validate(), "interval is empty")
+	})
+	t.Run("TimeIntervalClaim/empty_interval_to_open", func(t *testing.T) {
+		t.Parallel()
+		c := &document.TimeIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &from,
+			FromPrecision: &fromPrec,
+			To:            &from,
+			ToPrecision:   &fromPrec,
+			ToIsOpen:      true,
+		}
+		assert.EqualError(t, c.Validate(), "interval is empty")
+	})
+	t.Run("TimeIntervalClaim/single_point_default_flags_valid", func(t *testing.T) {
+		t.Parallel()
+		c := &document.TimeIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &from,
+			FromPrecision: &fromPrec,
+			To:            &from,
+			ToPrecision:   &fromPrec,
+		}
+		require.NoError(t, c.Validate())
+	})
+	t.Run("TimeIntervalClaim/equal_value_different_precision_open_valid", func(t *testing.T) {
+		t.Parallel()
+		// Same time string with different precisions parses to different time
+		// instants, so the equal-value check does not fire.
+		yearStr := document.Time("2020")
+		yearPrec := document.TimePrecisionYear
+		dayStr := document.Time("2020-01-01")
+		dayPrec := document.TimePrecisionDay
+		c := &document.TimeIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &yearStr,
+			FromPrecision: &yearPrec,
+			FromIsOpen:    true,
+			To:            &dayStr,
+			ToPrecision:   &dayPrec,
+		}
+		require.NoError(t, c.Validate())
+	})
 }
 
 // TestAmountIntervalClaimValidateExtra tests additional validation paths for AmountIntervalClaim.
@@ -538,6 +596,62 @@ func TestAmountIntervalClaimValidateExtra(t *testing.T) {
 		}
 		errE := c.Validate()
 		require.NoError(t, errE, "% -+#.1v", errE)
+	})
+	t.Run("empty_interval_from_open", func(t *testing.T) {
+		t.Parallel()
+		c := &document.AmountIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &from,
+			FromPrecision: &fromP,
+			FromIsOpen:    true,
+			To:            &from,
+			ToPrecision:   &fromP,
+		}
+		assert.EqualError(t, c.Validate(), "interval is empty")
+	})
+	t.Run("empty_interval_to_open", func(t *testing.T) {
+		t.Parallel()
+		c := &document.AmountIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &from,
+			FromPrecision: &fromP,
+			To:            &from,
+			ToPrecision:   &fromP,
+			ToIsOpen:      true,
+		}
+		assert.EqualError(t, c.Validate(), "interval is empty")
+	})
+	t.Run("single_point_default_flags_valid", func(t *testing.T) {
+		t.Parallel()
+		c := &document.AmountIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &from,
+			FromPrecision: &fromP,
+			To:            &from,
+			ToPrecision:   &fromP,
+		}
+		require.NoError(t, c.Validate())
+	})
+	t.Run("equal_value_different_precision_open_valid", func(t *testing.T) {
+		t.Parallel()
+		// Same value, different precisions -> different windows; open flag does
+		// not produce an empty interval at the document level.
+		intAmount := document.Amount("10")
+		fineP := 1.0
+		coarseP := 10.0
+		c := &document.AmountIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &intAmount,
+			FromPrecision: &fineP,
+			FromIsOpen:    true,
+			To:            &intAmount,
+			ToPrecision:   &coarseP,
+		}
+		require.NoError(t, c.Validate())
 	})
 }
 

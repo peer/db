@@ -112,6 +112,27 @@ func (a Amount) Validate(precision float64) errors.E {
 	return errE
 }
 
+// WindowStartFloat64 returns the start of the precision window represented
+// by a as float64. The amount-precision window is symmetric around the
+// value: [value - precision/2, value + precision/2).
+func (a Amount) WindowStartFloat64(precision float64) (float64, errors.E) {
+	value, errE := a.Float64(precision)
+	if errE != nil {
+		return 0, errE
+	}
+	return value - precision/2, nil //nolint:mnd
+}
+
+// WindowEndFloat64 returns the end of the precision window represented by
+// a as float64.
+func (a Amount) WindowEndFloat64(precision float64) (float64, errors.E) {
+	value, errE := a.Float64(precision)
+	if errE != nil {
+		return 0, errE
+	}
+	return value + precision/2, nil //nolint:mnd
+}
+
 // MarshalText implements encoding.TextMarshaler for Amount.
 func (a Amount) MarshalText() ([]byte, error) {
 	return []byte(a.String()), nil

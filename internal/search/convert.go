@@ -8,17 +8,14 @@ import (
 	"strings"
 	"sync"
 	"text/template"
-	"time"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
-	internalDocument "gitlab.com/peerdb/peerdb/internal/document"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -1369,14 +1366,16 @@ func (c *Converter) convertHTML(ctx context.Context, claim *document.HTMLClaim) 
 func (c *Converter) convertAmount(ctx context.Context, claim *document.AmountClaim) ([]AmountClaim, errors.E) {
 	// TODO: Normalize amounts of units of same measure to same base unit (e.g., cm and mm to m).
 	unit := c.extractInUnit(claim.Sub)
-	amount, errE := claim.Amount.Float64(claim.Precision)
+	from, errE := claim.Amount.WindowStartFloat64(claim.Precision)
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
 		return nil, errE
 	}
-
-	from := amount - claim.Precision/2 //nolint:mnd
-	to := amount + claim.Precision/2   //nolint:mnd
+	to, errE := claim.Amount.WindowEndFloat64(claim.Precision)
+	if errE != nil {
+		errors.Details(errE)["claim"] = claim
+		return nil, errE
+	}
 	display := claim.Amount.String()
 
 	// We use separate variables for the range bounds to avoid aliasing
@@ -1436,19 +1435,19 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
-		fromValue, errE := claim.From.Float64(*claim.FromPrecision)
+		// FromIsOpen=true excludes the from-window: lower advances to
+		// from.WindowEndFloat64(); default closed-lower uses
+		// from.WindowStartFloat64().
+		var f float64
+		var errE errors.E
+		if claim.FromIsOpen {
+			f, errE = claim.From.WindowEndFloat64(*claim.FromPrecision)
+		} else {
+			f, errE = claim.From.WindowStartFloat64(*claim.FromPrecision)
+		}
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
-		}
-		// Amount precision is symmetric around the value: window =
-		// [value - prec/2, value + prec/2). FromIsOpen=true excludes the
-		// from-window, advancing the lower bound to from_end.
-		var f float64
-		if claim.FromIsOpen {
-			f = fromValue + *claim.FromPrecision/2 //nolint:mnd
-		} else {
-			f = fromValue - *claim.FromPrecision/2 //nolint:mnd
 		}
 		from = &f
 		fromDisplay = claim.From.String()
@@ -1494,19 +1493,19 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
-		toValue, errE := claim.To.Float64(*claim.ToPrecision)
+		// ToIsOpen=true excludes the to-window: upper retreats to
+		// to.WindowStartFloat64(); default closed-upper extends to
+		// to.WindowEndFloat64() so the to-window is fully included.
+		var t float64
+		var errE errors.E
+		if claim.ToIsOpen {
+			t, errE = claim.To.WindowStartFloat64(*claim.ToPrecision)
+		} else {
+			t, errE = claim.To.WindowEndFloat64(*claim.ToPrecision)
+		}
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
-		}
-		// Amount precision is symmetric around the value: window =
-		// [value - prec/2, value + prec/2). ToIsOpen=true excludes the
-		// to-window, pulling the upper bound back to to_start.
-		var t float64
-		if claim.ToIsOpen {
-			t = toValue - *claim.ToPrecision/2 //nolint:mnd
-		} else {
-			t = toValue + *claim.ToPrecision/2 //nolint:mnd
 		}
 		to = &t
 		toDisplay = claim.To.String()
@@ -1581,14 +1580,16 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 }
 
 func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) ([]TimeClaim, errors.E) {
-	t, errE := claim.Time.Time(claim.Precision, time.UTC)
+	from, errE := claim.Time.WindowStartFloat64(claim.Precision)
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
 		return nil, errE
 	}
-
-	from := x.TimeToFloat64(t)
-	to := x.TimeToFloat64(addPrecision(t, claim.Precision))
+	to, errE := claim.Time.WindowEndFloat64(claim.Precision)
+	if errE != nil {
+		errors.Details(errE)["claim"] = claim
+		return nil, errE
+	}
 	display := claim.Time.String()
 
 	// We use separate variables for the range bounds to avoid aliasing
@@ -1647,18 +1648,19 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
-		tm, errE := claim.From.Time(*claim.FromPrecision, time.UTC)
+		// FromIsOpen=true excludes the from-window: lower advances to
+		// from.WindowEndFloat64(); default closed-lower uses
+		// from.WindowStartFloat64().
+		var f float64
+		var errE errors.E
+		if claim.FromIsOpen {
+			f, errE = claim.From.WindowEndFloat64(*claim.FromPrecision)
+		} else {
+			f, errE = claim.From.WindowStartFloat64(*claim.FromPrecision)
+		}
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
-		}
-		// FromIsOpen=true excludes the from-window, advancing the lower
-		// bound to from_end; default closed-lower uses from_start.
-		var f float64
-		if claim.FromIsOpen {
-			f = x.TimeToFloat64(addPrecision(tm, *claim.FromPrecision))
-		} else {
-			f = x.TimeToFloat64(tm)
 		}
 		from = &f
 		fromDisplay = claim.From.String()
@@ -1704,19 +1706,19 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
 		}
-		tm, errE := claim.To.Time(*claim.ToPrecision, time.UTC)
+		// ToIsOpen=true excludes the to-window: upper retreats to
+		// to.WindowStartFloat64(); default closed-upper extends to
+		// to.WindowEndFloat64() so the to-window is fully included.
+		var t float64
+		var errE errors.E
+		if claim.ToIsOpen {
+			t, errE = claim.To.WindowStartFloat64(*claim.ToPrecision)
+		} else {
+			t, errE = claim.To.WindowEndFloat64(*claim.ToPrecision)
+		}
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 			return nil, nil, errE
-		}
-		// ToIsOpen=true excludes the to-window, pulling the upper bound
-		// back to to_start; default closed-upper extends to to_end so the
-		// to-window is fully included.
-		var t float64
-		if claim.ToIsOpen {
-			t = x.TimeToFloat64(tm)
-		} else {
-			t = x.TimeToFloat64(addPrecision(tm, *claim.ToPrecision))
 		}
 		to = &t
 		toDisplay = claim.To.String()
@@ -1967,73 +1969,3 @@ func (c *Converter) convertUnknown(ctx context.Context, claim *document.UnknownC
 	return result, nil
 }
 
-// addPrecision returns the time at the end of the precision window
-// starting at t. For example, year precision returns the start of the
-// next year.
-//
-// If the natural step for the requested precision is below the float64
-// resolution at t's magnitude (i.e. it rounds back to t through
-// x.TimeToFloat64, which is how bounds are indexed), the function falls
-// back to the next coarser precision. Within Go's representable time
-// range (year ~-291 billion to ~+291 billion, set by int64 seconds since
-// year 1) this widening is enough: at the extremes the float64 ULP is
-// ~1024 s, so sub-hour precisions widen up to hour, and hour-and-above
-// always survive.
-func addPrecision(t time.Time, precision internalDocument.TimePrecision) time.Time {
-	var stepped time.Time
-	switch precision {
-	case document.TimePrecisionGigaYears:
-		stepped = t.AddDate(1_000_000_000, 0, 0) //nolint:mnd
-	case document.TimePrecisionHundredMegaYears:
-		stepped = t.AddDate(100_000_000, 0, 0) //nolint:mnd
-	case document.TimePrecisionTenMegaYears:
-		stepped = t.AddDate(10_000_000, 0, 0) //nolint:mnd
-	case document.TimePrecisionMegaYears:
-		stepped = t.AddDate(1_000_000, 0, 0) //nolint:mnd
-	case document.TimePrecisionHundredKiloYears:
-		stepped = t.AddDate(100_000, 0, 0) //nolint:mnd
-	case document.TimePrecisionTenKiloYears:
-		stepped = t.AddDate(10_000, 0, 0) //nolint:mnd
-	case document.TimePrecisionKiloYears:
-		stepped = t.AddDate(1_000, 0, 0) //nolint:mnd
-	case document.TimePrecisionHundredYears:
-		stepped = t.AddDate(100, 0, 0) //nolint:mnd
-	case document.TimePrecisionTenYears:
-		stepped = t.AddDate(10, 0, 0) //nolint:mnd
-	case document.TimePrecisionYear:
-		stepped = t.AddDate(1, 0, 0)
-	case document.TimePrecisionMonth:
-		stepped = t.AddDate(0, 1, 0)
-	case document.TimePrecisionDay:
-		stepped = t.AddDate(0, 0, 1)
-	case document.TimePrecisionHour:
-		stepped = t.Add(time.Hour)
-	case document.TimePrecisionMinute:
-		stepped = t.Add(time.Minute)
-	case document.TimePrecisionSecond:
-		stepped = t.Add(time.Second)
-	case document.TimePrecisionMillisecond:
-		stepped = t.Add(time.Millisecond)
-	case document.TimePrecisionMicrosecond:
-		stepped = t.Add(time.Microsecond)
-	case document.TimePrecisionNanosecond:
-		stepped = t.Add(time.Nanosecond)
-	default:
-		errE := errors.New("unknown precision")
-		errors.Details(errE)["t"] = t
-		errors.Details(errE)["precision"] = precision
-		panic(errE)
-	}
-
-	if x.TimeToFloat64(stepped) == x.TimeToFloat64(t) {
-		if precision == document.TimePrecisionGigaYears {
-			// Nothing left to widen to.
-			errE := errors.New("unsupported precision")
-			errors.Details(errE)["t"] = t
-			errors.Details(errE)["precision"] = precision
-			panic(errE)
-		}
-		return addPrecision(t, precision-1)
-	}
-	return stepped
-}

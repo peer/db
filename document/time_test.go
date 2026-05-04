@@ -689,3 +689,137 @@ func TestTimePrecisionUnmarshalJSONBadJSON(t *testing.T) {
 	err := p.UnmarshalJSON([]byte("123"))
 	assert.EqualError(t, err, "json: cannot unmarshal number into Go value of type string")
 }
+
+// TestTimeWindowEndFloat64 covers the natural-step behavior of
+// Time.WindowEndFloat64 at modern timestamps for every supported precision.
+func TestTimeWindowEndFloat64(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		ts          document.Time
+		precision   document.TimePrecision
+		expectedEnd time.Time
+	}{
+		{"year", "2024", document.TimePrecisionYear, time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)},
+		{"month", "2024-01-00", document.TimePrecisionMonth, time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC)},
+		{"day", "2024-01-01", document.TimePrecisionDay, time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC)},
+		{"hour", "2024-01-01 00:00", document.TimePrecisionHour, time.Date(2024, 1, 1, 1, 0, 0, 0, time.UTC)},
+		{"minute", "2024-01-01 00:00", document.TimePrecisionMinute, time.Date(2024, 1, 1, 0, 1, 0, 0, time.UTC)},
+		{"second", "2024-01-01 00:00:00", document.TimePrecisionSecond, time.Date(2024, 1, 1, 0, 0, 1, 0, time.UTC)},
+		{"ten years", "2020", document.TimePrecisionTenYears, time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC)},
+		{"hundred years", "2000", document.TimePrecisionHundredYears, time.Date(2100, 1, 1, 0, 0, 0, 0, time.UTC)},
+		{"millisecond", "2024-01-01 00:00:00.000", document.TimePrecisionMillisecond, time.Date(2024, 1, 1, 0, 0, 0, 1_000_000, time.UTC)},
+		{"microsecond", "2024-01-01 00:00:00.000000", document.TimePrecisionMicrosecond, time.Date(2024, 1, 1, 0, 0, 0, 1_000, time.UTC)},
+		// Nanosecond is widened to microsecond because float64 cannot
+		// distinguish 1 ns at modern unix timestamps.
+		{"nanosecond", "2024-01-01 00:00:00.000000000", document.TimePrecisionNanosecond, time.Date(2024, 1, 1, 0, 0, 0, 1_000, time.UTC)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			endF, errE := tt.ts.WindowEndFloat64(tt.precision)
+			require.NoError(t, errE, "% -+#.1v", errE)
+			assert.InDelta(t, x.TimeToFloat64(tt.expectedEnd), endF, 0.0)
+			// WindowStartFloat64 should match the parsed ts (= start of window).
+			parsed, errE := tt.ts.Time(tt.precision, time.UTC)
+			require.NoError(t, errE, "% -+#.1v", errE)
+			startF, errE := tt.ts.WindowStartFloat64(tt.precision)
+			require.NoError(t, errE, "% -+#.1v", errE)
+			assert.InDelta(t, x.TimeToFloat64(parsed), startF, 0.0)
+		})
+	}
+}
+
+// TestTimeWindowEndFloat64MagnitudeWidening verifies that the precision
+// step is widened to the next coarser precision when the natural step is
+// below float64 resolution at t's magnitude.
+func TestTimeWindowEndFloat64MagnitudeWidening(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		ts        document.Time
+		precision document.TimePrecision
+		expected  time.Time
+	}{
+		// Near-epoch (unix ~86400, ULP ~1.9e-11 s): 1 ns survives, no widening.
+		{
+			"near-epoch nanosecond stays at 1 ns",
+			"1970-01-02 00:00:00.000000000",
+			document.TimePrecisionNanosecond,
+			time.Date(1970, 1, 2, 0, 0, 0, 1, time.UTC),
+		},
+		{
+			"near-epoch microsecond stays at 1 µs",
+			"1970-01-02 00:00:00.000000",
+			document.TimePrecisionMicrosecond,
+			time.Date(1970, 1, 2, 0, 0, 0, 1_000, time.UTC),
+		},
+		// Modern (unix ~1.7e9, ULP ~3.8e-7 s): 1 ns widened to 1 µs.
+		{
+			"modern nanosecond widens to 1 µs",
+			"2024-01-01 00:00:00.000000000",
+			document.TimePrecisionNanosecond,
+			time.Date(2024, 1, 1, 0, 0, 0, 1_000, time.UTC),
+		},
+		// Far future (unix ~3.25e10, ULP ~7 µs): 1 ns and 1 µs widen to 1 ms.
+		{
+			"year 3000 nanosecond widens to 1 ms",
+			"3000-01-01 00:00:00.000000000",
+			document.TimePrecisionNanosecond,
+			time.Date(3000, 1, 1, 0, 0, 0, 1_000_000, time.UTC),
+		},
+		{
+			"year 3000 microsecond widens to 1 ms",
+			"3000-01-01 00:00:00.000000",
+			document.TimePrecisionMicrosecond,
+			time.Date(3000, 1, 1, 0, 0, 0, 1_000_000, time.UTC),
+		},
+		// Year 50 million (unix ~1.58e15, ULP ~0.25 s): 1 ms widens to 1 s.
+		{
+			"year 50 million millisecond widens to 1 s",
+			"50000000-01-01 00:00:00.000",
+			document.TimePrecisionMillisecond,
+			time.Date(50_000_000, 1, 1, 0, 0, 1, 0, time.UTC),
+		},
+		// Year 500 million (unix ~1.58e16, ULP ~2 s): 1 s widens to 1 minute,
+		// crossing the sub-second boundary.
+		{
+			"year 500 million second widens to 1 minute",
+			"500000000-01-01 00:00:00",
+			document.TimePrecisionSecond,
+			time.Date(500_000_000, 1, 1, 0, 1, 0, 0, time.UTC),
+		},
+		// Year 290 billion (near Go's time.Time upper limit, unix ~9.15e18,
+		// ULP ~1024 s): everything sub-hour widens up to hour.
+		{
+			"year 290 billion second widens to 1 hour",
+			"290000000000-01-01 00:00:00",
+			document.TimePrecisionSecond,
+			time.Date(290_000_000_000, 1, 1, 1, 0, 0, 0, time.UTC),
+		},
+		{
+			"year 290 billion hour stays at 1 hour",
+			"290000000000-01-01 00:00",
+			document.TimePrecisionHour,
+			time.Date(290_000_000_000, 1, 1, 1, 0, 0, 0, time.UTC),
+		},
+		{
+			"year 290 billion giga-years stays at 1 Gy",
+			"290000000000",
+			document.TimePrecisionGigaYears,
+			time.Date(291_000_000_000, 1, 1, 0, 0, 0, 0, time.UTC),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			endF, errE := tt.ts.WindowEndFloat64(tt.precision)
+			require.NoError(t, errE, "% -+#.1v", errE)
+			assert.InDelta(t, x.TimeToFloat64(tt.expected), endF, 0.0)
+		})
+	}
+}

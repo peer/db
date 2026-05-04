@@ -290,6 +290,93 @@ func (t Time) Validate(precision TimePrecision) errors.E {
 	return errE
 }
 
+// WindowStartFloat64 returns the start of the precision window represented
+// by t as float64 seconds since the unix epoch.
+func (t Time) WindowStartFloat64(precision TimePrecision) (float64, errors.E) {
+	return t.Float64(precision, time.UTC)
+}
+
+// WindowEndFloat64 returns the end of the precision window represented by
+// t as float64 seconds since the unix epoch.
+//
+// If the natural step for the requested precision is below the float64
+// resolution at t's magnitude (i.e. it rounds back to t through
+// x.TimeToFloat64), the function falls back to the next coarser precision.
+// Within Go's representable time range (year ~-291 billion to ~+291 billion)
+// this widening is enough: at the extremes the float64 ULP is ~1024 s, so
+// sub-hour precisions widen up to hour, and hour-and-above always survive.
+func (t Time) WindowEndFloat64(precision TimePrecision) (float64, errors.E) {
+	parsed, errE := t.Time(precision, time.UTC)
+	if errE != nil {
+		return 0, errE
+	}
+	return x.TimeToFloat64(addTimePrecision(parsed, precision)), nil
+}
+
+// addTimePrecision returns the time at the end of the precision window
+// starting at t. If the natural step does not survive the float64
+// round-trip via x.TimeToFloat64 it widens to the next coarser precision.
+//
+//nolint:cyclop
+func addTimePrecision(t time.Time, precision TimePrecision) time.Time {
+	var stepped time.Time
+	switch precision {
+	case TimePrecisionGigaYears:
+		stepped = t.AddDate(1_000_000_000, 0, 0) //nolint:mnd
+	case TimePrecisionHundredMegaYears:
+		stepped = t.AddDate(100_000_000, 0, 0) //nolint:mnd
+	case TimePrecisionTenMegaYears:
+		stepped = t.AddDate(10_000_000, 0, 0) //nolint:mnd
+	case TimePrecisionMegaYears:
+		stepped = t.AddDate(1_000_000, 0, 0) //nolint:mnd
+	case TimePrecisionHundredKiloYears:
+		stepped = t.AddDate(100_000, 0, 0) //nolint:mnd
+	case TimePrecisionTenKiloYears:
+		stepped = t.AddDate(10_000, 0, 0) //nolint:mnd
+	case TimePrecisionKiloYears:
+		stepped = t.AddDate(1_000, 0, 0) //nolint:mnd
+	case TimePrecisionHundredYears:
+		stepped = t.AddDate(100, 0, 0) //nolint:mnd
+	case TimePrecisionTenYears:
+		stepped = t.AddDate(10, 0, 0) //nolint:mnd
+	case TimePrecisionYear:
+		stepped = t.AddDate(1, 0, 0)
+	case TimePrecisionMonth:
+		stepped = t.AddDate(0, 1, 0)
+	case TimePrecisionDay:
+		stepped = t.AddDate(0, 0, 1)
+	case TimePrecisionHour:
+		stepped = t.Add(time.Hour)
+	case TimePrecisionMinute:
+		stepped = t.Add(time.Minute)
+	case TimePrecisionSecond:
+		stepped = t.Add(time.Second)
+	case TimePrecisionMillisecond:
+		stepped = t.Add(time.Millisecond)
+	case TimePrecisionMicrosecond:
+		stepped = t.Add(time.Microsecond)
+	case TimePrecisionNanosecond:
+		stepped = t.Add(time.Nanosecond)
+	default:
+		errE := errors.New("unknown precision")
+		errors.Details(errE)["precision"] = precision
+		panic(errE)
+	}
+
+	if x.TimeToFloat64(stepped) == x.TimeToFloat64(t) {
+		if precision == TimePrecisionGigaYears {
+			// Nothing left to widen to.
+			// This should not happen.
+			errE := errors.New("unsupported precision")
+			errors.Details(errE)["t"] = t
+			errors.Details(errE)["precision"] = precision
+			panic(errE)
+		}
+		return addTimePrecision(t, precision-1)
+	}
+	return stepped
+}
+
 // MarshalText implements encoding.TextMarshaler for Time.
 func (t Time) MarshalText() ([]byte, error) {
 	return []byte(t.String()), nil

@@ -477,3 +477,51 @@ func TestNewAmountJSONRoundTrip(t *testing.T) {
 		})
 	}
 }
+
+// TestAmountWindowEdgeFloat64 covers the symmetric window for amounts:
+// [value - prec/2, value + prec/2).
+func TestAmountWindowEdgeFloat64(t *testing.T) {
+	t.Parallel()
+
+	t.Run("integer", func(t *testing.T) {
+		t.Parallel()
+		a := document.Amount("100")
+		startF, errE := a.WindowStartFloat64(1)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.InDelta(t, 99.5, startF, 0.001)
+		endF, errE := a.WindowEndFloat64(1)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.InDelta(t, 100.5, endF, 0.001)
+	})
+
+	t.Run("decimal", func(t *testing.T) {
+		t.Parallel()
+		a := document.Amount("100.0")
+		startF, errE := a.WindowStartFloat64(0.5)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.InDelta(t, 99.75, startF, 0.001)
+		endF, errE := a.WindowEndFloat64(0.5)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.InDelta(t, 100.25, endF, 0.001)
+	})
+
+	t.Run("negative", func(t *testing.T) {
+		t.Parallel()
+		a := document.Amount("-10")
+		startF, errE := a.WindowStartFloat64(2)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.InDelta(t, -11.0, startF, 0.001)
+		endF, errE := a.WindowEndFloat64(2)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.InDelta(t, -9.0, endF, 0.001)
+	})
+
+	t.Run("invalid amount returns error", func(t *testing.T) {
+		t.Parallel()
+		a := document.Amount("not-a-number")
+		_, errE := a.WindowStartFloat64(1)
+		assert.Error(t, errE) //nolint:testifylint
+		_, errE = a.WindowEndFloat64(1)
+		assert.Error(t, errE) //nolint:testifylint
+	})
+}
