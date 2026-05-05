@@ -145,7 +145,7 @@ mkdir -p coverage
 # We chown to the user PeerDB runs inside the Docker container so that it can write coverage.
 chown 1000:1000 coverage
 
-docker run -rm \
+docker run --rm \
   --network peerdb-e2e-network \
   -v "$(pwd):/data" \
   -e GOCOVERDIR=/data/coverage \
