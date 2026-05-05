@@ -137,13 +137,26 @@ cleanup_elasticsearch_container=1
 echo "5. Waiting for Elasticsearch service to be ready..."
 for i in $(seq 1 120); do docker exec peerdb-elastic curl -sf "http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=10s" && break || { [ "$i" -eq 120 ] && exit 1; sleep 1; }; done
 
-echo "6. Starting PeerDB container..."
+echo "6. Populating PeerDB with documents..."
 
 echo "postgres://test:test@peerdb-postgres:5432/test" > .postgresql.secret
 
 mkdir -p coverage
 # We chown to the user PeerDB runs inside the Docker container so that it can write coverage.
 chown 1000:1000 coverage
+
+docker run -rm \
+  --network peerdb-e2e-network \
+  -v "$(pwd):/data" \
+  -e GOCOVERDIR=/data/coverage \
+  -e SSL_CERT_FILE=/data/test-e2e-rootCA.pem \
+  -e SSL_CERT_DIR=/etc/ssl/certs \
+  peerdb-image \
+  -d /data/.postgresql.secret \
+  --elastic.url=http://peerdb-elastic:9200 \
+  populate
+
+echo "7. Starting PeerDB container..."
 
 # Start PeerDB container with certificates.
 docker run -d \
@@ -160,23 +173,11 @@ docker run -d \
   --elastic.url=http://peerdb-elastic:9200
 cleanup_peerdb_container=1
 
-echo "7. Waiting for PeerDB service to be ready..."
+echo "8. Waiting for PeerDB service to be ready..."
 
 sleep 5
 
-echo "8. Populating PeerDB with core documents..."
-
-docker exec peerdb-container /peerdb populate \
-  -d /data/.postgresql.secret \
-  --elastic.url=http://peerdb-elastic:9200
-
-echo "9. Reindexing PeerDB..."
-
-docker exec peerdb-container /peerdb db reindex \
-  -d /data/.postgresql.secret \
-  --elastic.url=http://peerdb-elastic:9200
-
-echo "10. Running Playwright tests..."
+echo "9. Running Playwright tests..."
 
 # Set environment variables for Playwright.
 export LINK_PUBLISH_JOB_ID="${CI_JOB_ID}"
@@ -197,7 +198,7 @@ docker run --rm \
   peerdb-playwright-image
 
 # Stop the PeerDB container and check its exit code.
-echo "11. Stopping PeerDB container..."
+echo "10. Stopping PeerDB container..."
 docker stop peerdb-container
 PEERDB_EXIT_CODE=$(docker wait peerdb-container)
 
