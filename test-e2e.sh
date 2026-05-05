@@ -170,7 +170,13 @@ docker exec peerdb-container /peerdb populate \
   -d /data/.postgresql.secret \
   --elastic.url=http://peerdb-elastic:9200
 
-echo "9. Running Playwright tests..."
+echo "9. Reindexing PeerDB..."
+
+docker exec peerdb-container /peerdb db reindex \
+  -d /data/.postgresql.secret \
+  --elastic.url=http://peerdb-elastic:9200
+
+echo "10. Running Playwright tests..."
 
 # Set environment variables for Playwright.
 export LINK_PUBLISH_JOB_ID="${CI_JOB_ID}"
@@ -191,7 +197,7 @@ docker run --rm \
   peerdb-playwright-image
 
 # Stop the PeerDB container and check its exit code.
-echo "10. Stopping PeerDB container..."
+echo "11. Stopping PeerDB container..."
 docker stop peerdb-container
 PEERDB_EXIT_CODE=$(docker wait peerdb-container)
 
