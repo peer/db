@@ -59,7 +59,10 @@
         "d": "dan",
         "h": "ura",
         "min": "minuta",
-        "s": "sekunda"
+        "s": "sekunda",
+        "ms": "milisekunda",
+        "us": "mikrosekunda",
+        "ns": "nanosekunda"
       },
       "errors": {
         "invalid": "Neveljavna oblika.",
@@ -70,7 +73,8 @@
         "days0": "Dan mora biti med 0-{maxDay}.",
         "hours": "Ure morajo biti med 0-23.",
         "minutes": "Minute morajo biti med 0-59.",
-        "seconds": "Sekunde morajo biti med 0-59."
+        "seconds": "Sekunde morajo biti med 0-59.",
+        "subseconds": "Manj kot sekunde morajo imeti 3, 6 ali 9 števk."
       }
     }
   },

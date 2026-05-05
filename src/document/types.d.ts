@@ -5,8 +5,7 @@
 export type Confidence = number
 
 // TimePrecision represents the precision level of a Time.
-// TODO: Add "ms", "us", "ns" support.
-export type TimePrecision = "G" | "100M" | "10M" | "M" | "100k" | "10k" | "k" | "100y" | "10y" | "y" | "m" | "d" | "h" | "min" | "s"
+export type TimePrecision = "G" | "100M" | "10M" | "M" | "100k" | "10k" | "k" | "100y" | "10y" | "y" | "m" | "d" | "h" | "min" | "s" | "ms" | "us" | "ns"
 
 // Amount represents a numeric amount.
 //

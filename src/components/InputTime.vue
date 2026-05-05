@@ -19,12 +19,16 @@ const DAY_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2})$/
 const HOUR_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2})$/
 const MINUTE_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2})$/
 const SECOND_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})$/
+const MS_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})\.(\d{3})$/
+const US_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})\.(\d{6})$/
+const NS_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})\.(\d{9})$/
 
 const YEAR_IN_PROGRESS_REGEX = /^-?\d*$/
 const MONTH_IN_PROGRESS_REGEX = /^-?\d+-\d{0,2}$/
 const DAY_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{0,2}$/
 const MINUTES_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2} \d{1,2}$/
 const SECONDS_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2} \d{1,2}:\d{1,2}$/
+const SUBSECONDS_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2} \d{1,2}:\d{1,2}:\d{1,2}\.\d{0,9}$/
 
 const TRAILING_DASH_REGEX = /-$/
 
@@ -34,9 +38,11 @@ const matchToDay = (s: string) => s.match(DAY_RE)
 const matchToHour = (s: string) => s.match(HOUR_RE)
 const matchToMinute = (s: string) => s.match(MINUTE_RE)
 const matchToSecond = (s: string) => s.match(SECOND_RE)
+const matchToMs = (s: string) => s.match(MS_RE)
+const matchToUs = (s: string) => s.match(US_RE)
+const matchToNs = (s: string) => s.match(NS_RE)
 
-// TODO: Add "ms" | "us" | "ns".
-const timePrecisionOptions = ["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"] as const
+const timePrecisionOptions = ["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s", "ms", "us", "ns"] as const
 export const PRECISION_RANK = new Map<TimePrecision, number>(timePrecisionOptions.map((p, i) => [p, i]))
 
 /**
@@ -233,6 +239,41 @@ export function progressiveValidate(normalized: string, t: (key: string, named?:
     return ""
   }
 
+  // Subseconds in progress (e.g. "2024-01-15 12:34:56." up to 9 digits).
+  if (SUBSECONDS_IN_PROGRESS_REGEX.test(normalized)) {
+    // Validate the date/time portion before the dot.
+    const dotIdx = normalized.indexOf(".")
+    const beforeDot = normalized.slice(0, dotIdx)
+    const toSec = matchToSecond(beforeDot)
+    if (toSec) {
+      const year = Number(toSec[1])
+      const month = Number(toSec[2])
+      const day = Number(toSec[3])
+      const hour = Number(toSec[4])
+      const minute = Number(toSec[5])
+      const second = Number(toSec[6])
+
+      if (month < 1 || month > 12) return t("components.InputTime.errors.months")
+      const maxDay = daysIn(month, year)
+      if (day < 1 || day > maxDay) return t("components.InputTime.errors.days", { maxDay })
+      if (hour < 0 || hour > 23) return t("components.InputTime.errors.hours")
+      if (minute < 0 || minute > 59) return t("components.InputTime.errors.minutes")
+      if (second < 0 || second > 59) return t("components.InputTime.errors.seconds")
+    }
+
+    // Allow only fully-typed groups of 3, 6, 9 digits as completed input;
+    // intermediate digit-counts are still "in progress".
+    const subLen = normalized.length - dotIdx - 1
+    if (subLen === 0 || subLen === 1 || subLen === 2 || subLen === 4 || subLen === 5 || subLen === 7 || subLen === 8) {
+      // Still in progress.
+      return ""
+    }
+    if (subLen === 3 || subLen === 6 || subLen === 9) {
+      return ""
+    }
+    return t("components.InputTime.errors.subseconds")
+  }
+
   return t("components.InputTime.errors.invalid")
 }
 
@@ -275,13 +316,19 @@ export function inferYearPrecision(yearStr: string, max: TimePrecision): TimePre
 
 export function inferPrecisionFromNormalized(
   normalized: string,
-  timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string },
+  timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string; sub: string },
   maxPrecision: TimePrecision,
   precision: TimePrecision,
 ): TimePrecision {
   let inferred: TimePrecision
 
-  if (matchToSecond(normalized)) {
+  if (matchToNs(normalized)) {
+    inferred = "ns"
+  } else if (matchToUs(normalized)) {
+    inferred = "us"
+  } else if (matchToMs(normalized)) {
+    inferred = "ms"
+  } else if (matchToSecond(normalized)) {
     inferred = "s"
   } else if (matchToMinute(normalized)) {
     inferred = "min"
@@ -362,6 +409,9 @@ const precisionLabels: Record<TimePrecision, string> = {
   h: t("components.InputTime.precision.h"),
   min: t("components.InputTime.precision.min"),
   s: t("components.InputTime.precision.s"),
+  ms: t("components.InputTime.precision.ms"),
+  us: t("components.InputTime.precision.us"),
+  ns: t("components.InputTime.precision.ns"),
 }
 
 const timePrecision = ref<TimePrecision>("y")
@@ -424,8 +474,8 @@ function precisionLabel(p: TimePrecision): string {
   return precisionLabels[p]
 }
 
-function getStructuredTime(normalized: string): { y: string; m: string; d: string; h: string; min: string; s: string } {
-  const timeStruct = { y: "", m: "", d: "", h: "", min: "", s: "" }
+function getStructuredTime(normalized: string): { y: string; m: string; d: string; h: string; min: string; s: string; sub: string } {
+  const timeStruct = { y: "", m: "", d: "", h: "", min: "", s: "", sub: "" }
   if (!normalized) return timeStruct
 
   const toYear = matchToYear(normalized)
@@ -479,10 +529,23 @@ function getStructuredTime(normalized: string): { y: string; m: string; d: strin
     return timeStruct
   }
 
+  // Subsecond formats (3, 6, or 9 digits after the dot).
+  const toSub = matchToMs(normalized) ?? matchToUs(normalized) ?? matchToNs(normalized)
+  if (toSub) {
+    timeStruct.y = toSub[1]
+    timeStruct.m = toSub[2]
+    timeStruct.d = toSub[3]
+    timeStruct.h = toSub[4]
+    timeStruct.min = toSub[5]
+    timeStruct.s = toSub[6]
+    timeStruct.sub = toSub[7]
+    return timeStruct
+  }
+
   return timeStruct
 }
 
-function toCanonicalString(timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string }, precision: TimePrecision): string {
+function toCanonicalString(timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string; sub: string }, precision: TimePrecision): string {
   const y = timeStruct.y || "0000"
 
   if (
@@ -515,6 +578,16 @@ function toCanonicalString(timeStruct: { y: string; m: string; d: string; h: str
   const s = pad2(timeStruct.s || "00")
   if (precision === "s") return `${y}-${m}-${d} ${h}:${min}:${s}`
 
+  // For sub-second precisions, pad/truncate the subseconds field to the
+  // required number of digits.
+  const padSubs = (raw: string, len: number): string => {
+    if (raw.length >= len) return raw.slice(0, len)
+    return raw.padEnd(len, "0")
+  }
+  if (precision === "ms") return `${y}-${m}-${d} ${h}:${min}:${s}.${padSubs(timeStruct.sub, 3)}`
+  if (precision === "us") return `${y}-${m}-${d} ${h}:${min}:${s}.${padSubs(timeStruct.sub, 6)}`
+  if (precision === "ns") return `${y}-${m}-${d} ${h}:${min}:${s}.${padSubs(timeStruct.sub, 9)}`
+
   return ""
 }
 
@@ -528,7 +601,7 @@ function roundDown(value: number, factor: number) {
   return Math.floor(value / factor) * factor
 }
 
-function applyPrecision(timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string }, precision: TimePrecision): string {
+function applyPrecision(timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string; sub: string }, precision: TimePrecision): string {
   const year = parseInt(timeStruct.y || "0000", 10)
 
   switch (precision) {
@@ -557,6 +630,9 @@ function applyPrecision(timeStruct: { y: string; m: string; d: string; h: string
     case "h":
     case "min":
     case "s":
+    case "ms":
+    case "us":
+    case "ns":
       return toCanonicalString(timeStruct, precision)
     default:
       return ""

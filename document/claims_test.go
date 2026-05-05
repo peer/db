@@ -249,7 +249,7 @@ func TestDocumentWithAllClaimTypes(t *testing.T) {
 }
 
 // TestClaimValidations tests Validate methods on all claim types.
-func TestClaimValidations(t *testing.T) {
+func TestClaimValidations(t *testing.T) { //nolint:maintidx
 	t.Parallel()
 
 	prop := identifier.New()
@@ -398,7 +398,7 @@ func TestClaimValidations(t *testing.T) {
 			ToIsUnknown:   true,
 			ToIsNone:      true,
 		}
-		assert.EqualError(t, c.Validate(), "only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
+		assert.EqualError(t, c.Validate(), "only one of ToIsOpen, ToIsUnknown, ToIsNone can be set")
 	})
 	t.Run("TimeIntervalClaim/invalid_from_precision", func(t *testing.T) {
 		t.Parallel()
@@ -452,6 +452,122 @@ func TestClaimValidations(t *testing.T) {
 		}
 		assert.EqualError(t, c.Validate(), "To must not be set when ToIsUnknown or ToIsNone is true")
 	})
+
+	t.Run("TimeIntervalClaim/empty_interval_from_open", func(t *testing.T) {
+		t.Parallel()
+		c := &document.TimeIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &from,
+			FromPrecision: &fromPrec,
+			FromIsOpen:    true,
+			To:            &from,
+			ToPrecision:   &fromPrec,
+		}
+		assert.EqualError(t, c.Validate(), "interval is empty")
+	})
+	t.Run("TimeIntervalClaim/empty_interval_to_open", func(t *testing.T) {
+		t.Parallel()
+		c := &document.TimeIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &from,
+			FromPrecision: &fromPrec,
+			To:            &from,
+			ToPrecision:   &fromPrec,
+			ToIsOpen:      true,
+		}
+		assert.EqualError(t, c.Validate(), "interval is empty")
+	})
+	t.Run("TimeIntervalClaim/empty_interval_both_open", func(t *testing.T) {
+		t.Parallel()
+		// from == to with both bounds open: un-swapped start = WindowEnd >
+		// end = WindowStart, so un-swapped is empty. Swapped is the same
+		// case (symmetric), also empty. Validate must reject.
+		c := &document.TimeIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &from,
+			FromPrecision: &fromPrec,
+			FromIsOpen:    true,
+			To:            &from,
+			ToPrecision:   &fromPrec,
+			ToIsOpen:      true,
+		}
+		assert.EqualError(t, c.Validate(), "interval is empty")
+	})
+	t.Run("TimeIntervalClaim/single_point_default_flags_valid", func(t *testing.T) {
+		t.Parallel()
+		c := &document.TimeIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &from,
+			FromPrecision: &fromPrec,
+			To:            &from,
+			ToPrecision:   &fromPrec,
+		}
+		require.NoError(t, c.Validate())
+	})
+	t.Run("TimeIntervalClaim/empty_overlapping_windows_open", func(t *testing.T) {
+		t.Parallel()
+		// from window [2020-01-01, 2021-01-01) excluded, to window
+		// [2020-01-01, 2020-01-02) included. Both un-swapped and swapped
+		// orientations collapse to start == end -> empty.
+		yearStr := document.Time("2020")
+		yearPrec := document.TimePrecisionYear
+		dayStr := document.Time("2020-01-01")
+		dayPrec := document.TimePrecisionDay
+		c := &document.TimeIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &yearStr,
+			FromPrecision: &yearPrec,
+			FromIsOpen:    true,
+			To:            &dayStr,
+			ToPrecision:   &dayPrec,
+		}
+		assert.EqualError(t, c.Validate(), "interval is empty")
+	})
+	t.Run("TimeIntervalClaim/directed_decreasing_adjacent_valid", func(t *testing.T) {
+		t.Parallel()
+		// from=2025, to=2024 (both year, both closed). Adjacent year-windows
+		// touch at 2025-01-01: un-swapped start = 2025-01-01 = end,
+		// so un-swapped is empty. Swapped (lo=2024, hi=2025) gives
+		// [2024-01-01, 2026-01-01), non-empty. Validate accepts.
+		fromY := document.Time("2025")
+		toY := document.Time("2024")
+		yearPrec := document.TimePrecisionYear
+		c := &document.TimeIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &fromY,
+			FromPrecision: &yearPrec,
+			To:            &toY,
+			ToPrecision:   &yearPrec,
+		}
+		require.NoError(t, c.Validate())
+	})
+	t.Run("TimeIntervalClaim/directed_decreasing_adjacent_both_open_empty", func(t *testing.T) {
+		t.Parallel()
+		// from=2025, to=2024 (both year), both open. Adjacent year-windows
+		// touch at 2025-01-01. Un-swapped is empty. Swapped (from=2024
+		// open, to=2025 open) gives effective [2025-01-01, 2025-01-01) -
+		// also empty. Both orientations empty -> reject.
+		fromY := document.Time("2025")
+		toY := document.Time("2024")
+		yearPrec := document.TimePrecisionYear
+		c := &document.TimeIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &fromY,
+			FromPrecision: &yearPrec,
+			FromIsOpen:    true,
+			To:            &toY,
+			ToPrecision:   &yearPrec,
+			ToIsOpen:      true,
+		}
+		assert.EqualError(t, c.Validate(), "interval is empty")
+	})
 }
 
 // TestAmountIntervalClaimValidateExtra tests additional validation paths for AmountIntervalClaim.
@@ -501,7 +617,7 @@ func TestAmountIntervalClaimValidateExtra(t *testing.T) {
 			ToIsUnknown:   true,
 			ToIsNone:      true,
 		}
-		assert.EqualError(t, c.Validate(), "only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
+		assert.EqualError(t, c.Validate(), "only one of ToIsOpen, ToIsUnknown, ToIsNone can be set")
 	})
 	t.Run("to_set_with_none_flag", func(t *testing.T) {
 		t.Parallel()
@@ -538,6 +654,119 @@ func TestAmountIntervalClaimValidateExtra(t *testing.T) {
 		}
 		errE := c.Validate()
 		require.NoError(t, errE, "% -+#.1v", errE)
+	})
+	t.Run("empty_interval_from_open", func(t *testing.T) {
+		t.Parallel()
+		c := &document.AmountIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &from,
+			FromPrecision: &fromP,
+			FromIsOpen:    true,
+			To:            &from,
+			ToPrecision:   &fromP,
+		}
+		assert.EqualError(t, c.Validate(), "interval is empty")
+	})
+	t.Run("empty_interval_to_open", func(t *testing.T) {
+		t.Parallel()
+		c := &document.AmountIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &from,
+			FromPrecision: &fromP,
+			To:            &from,
+			ToPrecision:   &fromP,
+			ToIsOpen:      true,
+		}
+		assert.EqualError(t, c.Validate(), "interval is empty")
+	})
+	t.Run("empty_interval_both_open", func(t *testing.T) {
+		t.Parallel()
+		// from == to with both bounds open: un-swapped start = WindowEnd >
+		// end = WindowStart, so un-swapped is empty. Swapped is the same
+		// case (symmetric), also empty. Validate must reject.
+		c := &document.AmountIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &from,
+			FromPrecision: &fromP,
+			FromIsOpen:    true,
+			To:            &from,
+			ToPrecision:   &fromP,
+			ToIsOpen:      true,
+		}
+		assert.EqualError(t, c.Validate(), "interval is empty")
+	})
+	t.Run("single_point_default_flags_valid", func(t *testing.T) {
+		t.Parallel()
+		c := &document.AmountIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &from,
+			FromPrecision: &fromP,
+			To:            &from,
+			ToPrecision:   &fromP,
+		}
+		require.NoError(t, c.Validate())
+	})
+	t.Run("equal_value_different_precision_open_valid", func(t *testing.T) {
+		t.Parallel()
+		// Same value, different precisions -> different windows; open flag does
+		// not produce an empty interval at the document level.
+		intAmount := document.Amount("10")
+		fineP := 1.0
+		coarseP := 10.0
+		c := &document.AmountIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &intAmount,
+			FromPrecision: &fineP,
+			FromIsOpen:    true,
+			To:            &intAmount,
+			ToPrecision:   &coarseP,
+		}
+		require.NoError(t, c.Validate())
+	})
+	t.Run("directed_decreasing_adjacent_valid", func(t *testing.T) {
+		t.Parallel()
+		// from=11, to=10 (both prec=1, both closed). Adjacent windows touch
+		// at 10.5: un-swapped start = 10.5 = end, so un-swapped is
+		// empty. Swapped (lo=10, hi=11) gives [9.5, 11.5), non-empty.
+		// Validate accepts.
+		from11 := document.Amount("11")
+		to10 := document.Amount("10")
+		prec := 1.0
+		c := &document.AmountIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &from11,
+			FromPrecision: &prec,
+			To:            &to10,
+			ToPrecision:   &prec,
+		}
+		require.NoError(t, c.Validate())
+	})
+	t.Run("directed_decreasing_adjacent_both_open_empty", func(t *testing.T) {
+		t.Parallel()
+		// from=11, to=10 (both prec=1), both open. Adjacent windows touch
+		// at 10.5. Un-swapped is empty. Swapped (from=10 open, to=11 open)
+		// gives effective [10.5, 10.5) - also empty. Both orientations
+		// empty -> reject.
+		from11 := document.Amount("11")
+		to10 := document.Amount("10")
+		prec := 1.0
+		c := &document.AmountIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     core,
+			Prop:          ref,
+			From:          &from11,
+			FromPrecision: &prec,
+			FromIsOpen:    true,
+			To:            &to10,
+			ToPrecision:   &prec,
+			ToIsOpen:      true,
+		}
+		assert.EqualError(t, c.Validate(), "interval is empty")
 	})
 }
 

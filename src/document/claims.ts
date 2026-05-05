@@ -5,11 +5,9 @@ import type { Constructee, Constructor, Required } from "@/types"
 
 import siteContext from "@/context"
 import { IN_LANGUAGE, LIST, ORDER_IN_LIST } from "@/core"
+import { amountFloat64, amountWindowEnd, amountWindowStart, validateAmount } from "@/document/amount"
 import { LowConfidence } from "@/document/confidence"
-
-// VALID_TIME_PRECISIONS is the set of valid TimePrecision values.
-// TODO: Add "ms" | "us" | "ns".
-const VALID_TIME_PRECISIONS: Set<string> = new Set(["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s"])
+import { timeFloat64, timeWindowEnd, timeWindowStart, VALID_TIME_PRECISIONS, validateTime } from "@/document/time"
 
 // Claims is the interface for types that hold and manipulate a collection of claims.
 export interface Claims {
@@ -234,7 +232,7 @@ export class AmountClaim extends CoreClaim {
     if (!isFinite(this.precision) || this.precision <= 0) {
       throw new Error(`Precision must be a finite positive number`)
     }
-    // TODO: Validate amount string format against precision.
+    validateAmount(this.amount, this.precision)
   }
 }
 
@@ -247,7 +245,7 @@ export class AmountIntervalClaim extends CoreClaim {
   fromIsNone?: boolean
   to?: Amount
   toPrecision?: number
-  toIsClosed?: boolean
+  toIsOpen?: boolean
   toIsUnknown?: boolean
   toIsNone?: boolean
 
@@ -292,15 +290,15 @@ export class AmountIntervalClaim extends CoreClaim {
       if (!isFinite(this.fromPrecision) || this.fromPrecision <= 0) {
         throw new Error("FromPrecision must be finite positive number")
       }
-      // TODO: Validate this.from against this.fromPrecision.
+      validateAmount(this.from!, this.fromPrecision)
     }
 
     let toIsCount = 0
-    if (this.toIsClosed) toIsCount++
+    if (this.toIsOpen) toIsCount++
     if (this.toIsUnknown) toIsCount++
     if (this.toIsNone) toIsCount++
     if (toIsCount > 1) {
-      throw new Error("only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
+      throw new Error("only one of ToIsOpen, ToIsUnknown, ToIsNone can be set")
     }
     if (!this.to !== (this.toPrecision === undefined)) {
       throw new Error("To and ToPrecision must be set together")
@@ -315,7 +313,53 @@ export class AmountIntervalClaim extends CoreClaim {
       if (!isFinite(this.toPrecision) || this.toPrecision <= 0) {
         throw new Error("ToPrecision must be finite positive number")
       }
-      // TODO: Validate this.to against this.toPrecision.
+      validateAmount(this.to!, this.toPrecision)
+    }
+
+    // Empty-interval check. The swap criterion matches convertAmountInterval,
+    // so the orientation here is the same as the indexed range.
+    //
+    // When both bounds share the same precision, the directed-decreasing
+    // interpretation is unambiguous, so we use the simpler value-based
+    // criterion: swap iff fromValue > toValue. After the swap the
+    // orientation is ascending and the empty check is a forward
+    // start(from) >= end(to).
+    //
+    // When precisions differ, value comparison would conflict with the
+    // "precision-coarsening" pattern. In that case we fall back to the
+    // un-swapped-empty criterion: only swap when the un-swapped form is
+    // empty. If the swapped form is also empty, the interval is genuinely
+    // empty.
+    if (this.from !== undefined && this.to !== undefined && this.fromPrecision !== undefined && this.toPrecision !== undefined) {
+      if (this.fromPrecision === this.toPrecision) {
+        const fromValue = amountFloat64(this.from, this.fromPrecision)
+        const toValue = amountFloat64(this.to, this.toPrecision)
+        let loVal = this.from
+        let loIsOpen = !!this.fromIsOpen
+        let hiVal = this.to
+        let hiIsOpen = !!this.toIsOpen
+        if (fromValue > toValue) {
+          loVal = this.to
+          loIsOpen = !!this.toIsOpen
+          hiVal = this.from
+          hiIsOpen = !!this.fromIsOpen
+        }
+        const start = amountWindowStart(loVal, this.fromPrecision, loIsOpen)
+        const end = amountWindowEnd(hiVal, this.fromPrecision, hiIsOpen)
+        if (start >= end) {
+          throw new Error("interval is empty")
+        }
+      } else {
+        let start = amountWindowStart(this.from, this.fromPrecision, !!this.fromIsOpen)
+        let end = amountWindowEnd(this.to, this.toPrecision, !!this.toIsOpen)
+        if (start >= end) {
+          start = amountWindowStart(this.to, this.toPrecision, !!this.toIsOpen)
+          end = amountWindowEnd(this.from, this.fromPrecision, !!this.fromIsOpen)
+          if (start >= end) {
+            throw new Error("interval is empty")
+          }
+        }
+      }
     }
   }
 }
@@ -354,7 +398,7 @@ export class TimeClaim extends CoreClaim {
     if (!VALID_TIME_PRECISIONS.has(this.precision)) {
       throw new Error("unknown Precision")
     }
-    // TODO: Validate time format against precision.
+    validateTime(this.time, this.precision)
   }
 }
 
@@ -367,7 +411,7 @@ export class TimeIntervalClaim extends CoreClaim {
   fromIsNone?: boolean
   to?: Time
   toPrecision?: TimePrecision
-  toIsClosed?: boolean
+  toIsOpen?: boolean
   toIsUnknown?: boolean
   toIsNone?: boolean
 
@@ -412,15 +456,15 @@ export class TimeIntervalClaim extends CoreClaim {
       if (!VALID_TIME_PRECISIONS.has(this.fromPrecision)) {
         throw new Error("unknown FromPrecision")
       }
-      // TODO: Validate this.from against this.fromPrecision.
+      validateTime(this.from!, this.fromPrecision)
     }
 
     let toIsCount = 0
-    if (this.toIsClosed) toIsCount++
+    if (this.toIsOpen) toIsCount++
     if (this.toIsUnknown) toIsCount++
     if (this.toIsNone) toIsCount++
     if (toIsCount > 1) {
-      throw new Error("only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
+      throw new Error("only one of ToIsOpen, ToIsUnknown, ToIsNone can be set")
     }
     if (!this.to !== (this.toPrecision === undefined)) {
       throw new Error("To and ToPrecision must be set together")
@@ -435,7 +479,43 @@ export class TimeIntervalClaim extends CoreClaim {
       if (!VALID_TIME_PRECISIONS.has(this.toPrecision)) {
         throw new Error("unknown ToPrecision")
       }
-      // TODO: Validate this.to against this.toPrecision.
+      validateTime(this.to!, this.toPrecision)
+    }
+
+    // Empty-interval check. Same dual criterion as AmountIntervalClaim.Validate:
+    // for same precision, swap on value (fromValue > toValue) then forward
+    // empty check; for different precision, swap iff un-swapped form is
+    // empty, with a swapped retry. Matches convertTimeInterval.
+    if (this.from !== undefined && this.to !== undefined && this.fromPrecision !== undefined && this.toPrecision !== undefined) {
+      if (this.fromPrecision === this.toPrecision) {
+        const fromValue = timeFloat64(this.from, this.fromPrecision)
+        const toValue = timeFloat64(this.to, this.toPrecision)
+        let loVal = this.from
+        let loIsOpen = !!this.fromIsOpen
+        let hiVal = this.to
+        let hiIsOpen = !!this.toIsOpen
+        if (fromValue > toValue) {
+          loVal = this.to
+          loIsOpen = !!this.toIsOpen
+          hiVal = this.from
+          hiIsOpen = !!this.fromIsOpen
+        }
+        const start = timeWindowStart(loVal, this.fromPrecision, loIsOpen)
+        const end = timeWindowEnd(hiVal, this.fromPrecision, hiIsOpen)
+        if (start >= end) {
+          throw new Error("interval is empty")
+        }
+      } else {
+        let start = timeWindowStart(this.from, this.fromPrecision, !!this.fromIsOpen)
+        let end = timeWindowEnd(this.to, this.toPrecision, !!this.toIsOpen)
+        if (start >= end) {
+          start = timeWindowStart(this.to, this.toPrecision, !!this.toIsOpen)
+          end = timeWindowEnd(this.from, this.fromPrecision, !!this.fromIsOpen)
+          if (start >= end) {
+            throw new Error("interval is empty")
+          }
+        }
+      }
     }
   }
 }

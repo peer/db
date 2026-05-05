@@ -827,7 +827,7 @@ type AmountIntervalClaimPatch struct {
 
 	To          *Amount  `exhaustruct:"optional" json:"to,omitempty"`
 	ToPrecision *float64 `exhaustruct:"optional" json:"toPrecision,omitempty"`
-	ToIsClosed  *bool    `exhaustruct:"optional" json:"toIsClosed,omitempty"`
+	ToIsOpen    *bool    `exhaustruct:"optional" json:"toIsOpen,omitempty"`
 	ToIsUnknown *bool    `exhaustruct:"optional" json:"toIsUnknown,omitempty"`
 	ToIsNone    *bool    `exhaustruct:"optional" json:"toIsNone,omitempty"`
 }
@@ -853,7 +853,7 @@ func (p AmountIntervalClaimPatch) New(id identifier.Identifier) (Claim, errors.E
 		FromIsNone:    p.FromIsNone != nil && *p.FromIsNone,
 		To:            p.To,
 		ToPrecision:   p.ToPrecision,
-		ToIsClosed:    p.ToIsClosed != nil && *p.ToIsClosed,
+		ToIsOpen:      p.ToIsOpen != nil && *p.ToIsOpen,
 		ToIsUnknown:   p.ToIsUnknown != nil && *p.ToIsUnknown,
 		ToIsNone:      p.ToIsNone != nil && *p.ToIsNone,
 	}
@@ -865,7 +865,7 @@ func (p AmountIntervalClaimPatch) New(id identifier.Identifier) (Claim, errors.E
 func (p AmountIntervalClaimPatch) Apply(claim Claim) errors.E {
 	if p.Confidence == nil && p.Prop == nil &&
 		p.From == nil && p.FromPrecision == nil && p.FromIsOpen == nil && p.FromIsUnknown == nil && p.FromIsNone == nil &&
-		p.To == nil && p.ToPrecision == nil && p.ToIsClosed == nil && p.ToIsUnknown == nil && p.ToIsNone == nil {
+		p.To == nil && p.ToPrecision == nil && p.ToIsOpen == nil && p.ToIsUnknown == nil && p.ToIsNone == nil {
 		return errors.New("empty patch")
 	}
 
@@ -909,8 +909,8 @@ func (p AmountIntervalClaimPatch) Apply(claim Claim) errors.E {
 	if p.ToPrecision != nil {
 		c.ToPrecision = p.ToPrecision
 	}
-	if p.ToIsClosed != nil {
-		c.ToIsClosed = *p.ToIsClosed
+	if p.ToIsOpen != nil {
+		c.ToIsOpen = *p.ToIsOpen
 	}
 	if p.ToIsUnknown != nil {
 		c.ToIsUnknown = *p.ToIsUnknown
@@ -1079,7 +1079,7 @@ type TimeIntervalClaimPatch struct {
 
 	To          *Time          `exhaustruct:"optional" json:"to,omitempty"`
 	ToPrecision *TimePrecision `exhaustruct:"optional" json:"toPrecision,omitempty"`
-	ToIsClosed  *bool          `exhaustruct:"optional" json:"toIsClosed,omitempty"`
+	ToIsOpen    *bool          `exhaustruct:"optional" json:"toIsOpen,omitempty"`
 	ToIsUnknown *bool          `exhaustruct:"optional" json:"toIsUnknown,omitempty"`
 	ToIsNone    *bool          `exhaustruct:"optional" json:"toIsNone,omitempty"`
 }
@@ -1105,7 +1105,7 @@ func (p TimeIntervalClaimPatch) New(id identifier.Identifier) (Claim, errors.E) 
 		FromIsNone:    p.FromIsNone != nil && *p.FromIsNone,
 		To:            p.To,
 		ToPrecision:   p.ToPrecision,
-		ToIsClosed:    p.ToIsClosed != nil && *p.ToIsClosed,
+		ToIsOpen:      p.ToIsOpen != nil && *p.ToIsOpen,
 		ToIsUnknown:   p.ToIsUnknown != nil && *p.ToIsUnknown,
 		ToIsNone:      p.ToIsNone != nil && *p.ToIsNone,
 	}
@@ -1117,7 +1117,7 @@ func (p TimeIntervalClaimPatch) New(id identifier.Identifier) (Claim, errors.E) 
 func (p TimeIntervalClaimPatch) Apply(claim Claim) errors.E {
 	if p.Confidence == nil && p.Prop == nil &&
 		p.From == nil && p.FromPrecision == nil && p.FromIsOpen == nil && p.FromIsUnknown == nil && p.FromIsNone == nil &&
-		p.To == nil && p.ToPrecision == nil && p.ToIsClosed == nil && p.ToIsUnknown == nil && p.ToIsNone == nil {
+		p.To == nil && p.ToPrecision == nil && p.ToIsOpen == nil && p.ToIsUnknown == nil && p.ToIsNone == nil {
 		return errors.New("empty patch")
 	}
 
@@ -1161,8 +1161,8 @@ func (p TimeIntervalClaimPatch) Apply(claim Claim) errors.E {
 	if p.ToPrecision != nil {
 		c.ToPrecision = p.ToPrecision
 	}
-	if p.ToIsClosed != nil {
-		c.ToIsClosed = *p.ToIsClosed
+	if p.ToIsOpen != nil {
+		c.ToIsOpen = *p.ToIsOpen
 	}
 	if p.ToIsUnknown != nil {
 		c.ToIsUnknown = *p.ToIsUnknown

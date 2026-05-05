@@ -159,7 +159,7 @@ func TestIntervalValidate(t *testing.T) {
 	assert.NoError(t, errE, "% -+#.1v", errE) //nolint:testifylint
 
 	// Valid: each To flag individually.
-	errE = (&core.Interval[core.Amount[int]]{ToIsClosed: true}).Validate()
+	errE = (&core.Interval[core.Amount[int]]{ToIsOpen: true}).Validate()
 	assert.NoError(t, errE, "% -+#.1v", errE) //nolint:testifylint
 
 	errE = (&core.Interval[core.Amount[int]]{ToIsUnknown: true}).Validate()
@@ -186,14 +186,14 @@ func TestIntervalValidate(t *testing.T) {
 	assert.EqualError(t, errE, "From must not be set when FromIsUnknown or FromIsNone is true")
 
 	// Invalid: multiple ToIs* set simultaneously.
-	errE = (&core.Interval[core.Amount[int]]{ToIsClosed: true, ToIsUnknown: true}).Validate()
-	assert.EqualError(t, errE, "only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
+	errE = (&core.Interval[core.Amount[int]]{ToIsOpen: true, ToIsUnknown: true}).Validate()
+	assert.EqualError(t, errE, "only one of ToIsOpen, ToIsUnknown, ToIsNone can be set")
 
-	errE = (&core.Interval[core.Amount[int]]{ToIsClosed: true, ToIsNone: true}).Validate()
-	assert.EqualError(t, errE, "only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
+	errE = (&core.Interval[core.Amount[int]]{ToIsOpen: true, ToIsNone: true}).Validate()
+	assert.EqualError(t, errE, "only one of ToIsOpen, ToIsUnknown, ToIsNone can be set")
 
 	errE = (&core.Interval[core.Amount[int]]{ToIsUnknown: true, ToIsNone: true}).Validate()
-	assert.EqualError(t, errE, "only one of ToIsClosed, ToIsUnknown, ToIsNone can be set")
+	assert.EqualError(t, errE, "only one of ToIsOpen, ToIsUnknown, ToIsNone can be set")
 
 	// Invalid: To set with ToIsUnknown or ToIsNone.
 	errE = (&core.Interval[core.Amount[int]]{To: &to, ToIsUnknown: true}).Validate()

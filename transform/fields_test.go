@@ -455,7 +455,7 @@ func TestFieldsSimple(t *testing.T) {
 	assert.Equal(t, 0, f.Cardinality.From.Amount)
 	require.NotNil(t, f.Cardinality.To)
 	assert.Equal(t, 1, f.Cardinality.To.Amount)
-	assert.True(t, f.Cardinality.ToIsClosed)
+	assert.False(t, f.Cardinality.ToIsOpen)
 }
 
 func TestFieldsWithSection(t *testing.T) {
@@ -853,7 +853,7 @@ func TestFieldsCardinality(t *testing.T) {
 	assert.Equal(t, 0, f1.Cardinality.From.Amount)
 	require.NotNil(t, f1.Cardinality.To)
 	assert.Equal(t, 1, f1.Cardinality.To.Amount)
-	assert.True(t, f1.Cardinality.ToIsClosed)
+	assert.False(t, f1.Cardinality.ToIsOpen)
 
 	// Parent (pointer, no cardinality tag): default 0..1.
 	f2 := result.Field[2]
@@ -861,7 +861,7 @@ func TestFieldsCardinality(t *testing.T) {
 	assert.Equal(t, 0, f2.Cardinality.From.Amount)
 	require.NotNil(t, f2.Cardinality.To)
 	assert.Equal(t, 1, f2.Cardinality.To.Amount)
-	assert.True(t, f2.Cardinality.ToIsClosed)
+	assert.False(t, f2.Cardinality.ToIsOpen)
 }
 
 func TestFieldsOrderTag(t *testing.T) {

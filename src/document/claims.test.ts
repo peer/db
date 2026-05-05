@@ -447,6 +447,158 @@ test("ClaimTypes Validate duplicate ID", async () => {
   await expect(ct.Validate()).rejects.toThrow("duplicate claim ID")
 })
 
+describe("AmountClaim Validate", () => {
+  const id = Identifier.new().toString()
+  const prop = Identifier.new().toString()
+
+  test("valid integer", async () => {
+    const claim = new AmountClaim({ id, confidence: 1.0, prop: { id: prop }, amount: "10", precision: 1 })
+    await claim.Validate()
+  })
+  test("valid decimal", async () => {
+    const claim = new AmountClaim({ id, confidence: 1.0, prop: { id: prop }, amount: "3.1", precision: 0.1 })
+    await claim.Validate()
+  })
+  test("invalid format", async () => {
+    const claim = new AmountClaim({ id, confidence: 1.0, prop: { id: prop }, amount: "not-a-number", precision: 1 })
+    await expect(claim.Validate()).rejects.toThrow("unable to parse amount")
+  })
+  test("not rounded to precision", async () => {
+    const claim = new AmountClaim({ id, confidence: 1.0, prop: { id: prop }, amount: "12", precision: 10 })
+    await expect(claim.Validate()).rejects.toThrow("amount is not rounded to precision")
+  })
+  test("decimal count mismatch", async () => {
+    const claim = new AmountClaim({ id, confidence: 1.0, prop: { id: prop }, amount: "3", precision: 0.1 })
+    await expect(claim.Validate()).rejects.toThrow("number of decimal digits does not match precision")
+  })
+  test("zero precision rejected", async () => {
+    const claim = new AmountClaim({ id, confidence: 1.0, prop: { id: prop }, amount: "10", precision: 0 })
+    await expect(claim.Validate()).rejects.toThrow("Precision must be a finite positive number")
+  })
+})
+
+describe("AmountIntervalClaim Validate", () => {
+  const id = Identifier.new().toString()
+  const prop = Identifier.new().toString()
+  const make = (obj: Partial<ConstructorParameters<typeof AmountIntervalClaim>[0]>) => new AmountIntervalClaim({ id, confidence: 1.0, prop: { id: prop }, ...obj })
+
+  test("simple forward interval valid", async () => {
+    const claim = make({ from: "10", fromPrecision: 1, to: "20", toPrecision: 1 })
+    await claim.Validate()
+  })
+  test("forward adjacent (prec=10) valid", async () => {
+    const claim = make({ from: "10", fromPrecision: 10, to: "20", toPrecision: 10 })
+    await claim.Validate()
+  })
+  test("directed-decreasing adjacent valid (swap)", async () => {
+    const claim = make({ from: "11", fromPrecision: 1, to: "10", toPrecision: 1 })
+    await claim.Validate()
+  })
+  test("same-point closed valid (single point)", async () => {
+    const claim = make({ from: "10", fromPrecision: 1, to: "10", toPrecision: 1 })
+    await claim.Validate()
+  })
+  test("same-point FromIsOpen empty", async () => {
+    const claim = make({ from: "10", fromPrecision: 1, fromIsOpen: true, to: "10", toPrecision: 1 })
+    await expect(claim.Validate()).rejects.toThrow("interval is empty")
+  })
+  test("same-point ToIsOpen empty", async () => {
+    const claim = make({ from: "10", fromPrecision: 1, to: "10", toPrecision: 1, toIsOpen: true })
+    await expect(claim.Validate()).rejects.toThrow("interval is empty")
+  })
+  test("same-point both open empty", async () => {
+    const claim = make({ from: "10", fromPrecision: 1, fromIsOpen: true, to: "10", toPrecision: 1, toIsOpen: true })
+    await expect(claim.Validate()).rejects.toThrow("interval is empty")
+  })
+  test("directed-decreasing adjacent both open empty", async () => {
+    const claim = make({ from: "11", fromPrecision: 1, fromIsOpen: true, to: "10", toPrecision: 1, toIsOpen: true })
+    await expect(claim.Validate()).rejects.toThrow("interval is empty")
+  })
+  test("equal value different precision FromIsOpen valid", async () => {
+    const claim = make({ from: "10", fromPrecision: 1, fromIsOpen: true, to: "10", toPrecision: 10 })
+    await claim.Validate()
+  })
+  test("FromIsNone with valid To", async () => {
+    const claim = make({ fromIsNone: true, to: "20", toPrecision: 1 })
+    await claim.Validate()
+  })
+})
+
+describe("TimeClaim Validate", () => {
+  const id = Identifier.new().toString()
+  const prop = Identifier.new().toString()
+
+  test("year valid", async () => {
+    const claim = new TimeClaim({ id, confidence: 1.0, prop: { id: prop }, time: "2025", precision: "y" })
+    await claim.Validate()
+  })
+  test("day valid", async () => {
+    const claim = new TimeClaim({ id, confidence: 1.0, prop: { id: prop }, time: "2025-01-15", precision: "d" })
+    await claim.Validate()
+  })
+  test("month valid (day=00)", async () => {
+    const claim = new TimeClaim({ id, confidence: 1.0, prop: { id: prop }, time: "2025-06-00", precision: "m" })
+    await claim.Validate()
+  })
+  test("invalid format", async () => {
+    const claim = new TimeClaim({ id, confidence: 1.0, prop: { id: prop }, time: "not-a-time", precision: "d" })
+    await expect(claim.Validate()).rejects.toThrow("unable to parse time")
+  })
+  test("year-only with day precision rejected", async () => {
+    const claim = new TimeClaim({ id, confidence: 1.0, prop: { id: prop }, time: "2025", precision: "d" })
+    await expect(claim.Validate()).rejects.toThrow()
+  })
+  test("year+month+day with year precision rejected", async () => {
+    const claim = new TimeClaim({ id, confidence: 1.0, prop: { id: prop }, time: "2025-06-15", precision: "y" })
+    await expect(claim.Validate()).rejects.toThrow()
+  })
+  test("decade precision requires year multiple of 10", async () => {
+    const claim = new TimeClaim({ id, confidence: 1.0, prop: { id: prop }, time: "2025", precision: "10y" })
+    await expect(claim.Validate()).rejects.toThrow("year not rounded to precision")
+  })
+  test("decade precision with year=2020 valid", async () => {
+    const claim = new TimeClaim({ id, confidence: 1.0, prop: { id: prop }, time: "2020", precision: "10y" })
+    await claim.Validate()
+  })
+})
+
+describe("TimeIntervalClaim Validate", () => {
+  const id = Identifier.new().toString()
+  const prop = Identifier.new().toString()
+  const make = (obj: Partial<ConstructorParameters<typeof TimeIntervalClaim>[0]>) => new TimeIntervalClaim({ id, confidence: 1.0, prop: { id: prop }, ...obj })
+
+  test("simple forward year interval valid", async () => {
+    const claim = make({ from: "2020", fromPrecision: "y", to: "2025", toPrecision: "y" })
+    await claim.Validate()
+  })
+  test("directed-decreasing adjacent year valid (swap)", async () => {
+    const claim = make({ from: "2025", fromPrecision: "y", to: "2024", toPrecision: "y" })
+    await claim.Validate()
+  })
+  test("same-point year both open empty", async () => {
+    const claim = make({ from: "2025", fromPrecision: "y", fromIsOpen: true, to: "2025", toPrecision: "y", toIsOpen: true })
+    await expect(claim.Validate()).rejects.toThrow("interval is empty")
+  })
+  test("precision-coarsening (day from, year to) not swapped", async () => {
+    // from=2025-10-21 day, to=2025 year. Different precisions: un-swapped-empty
+    // criterion. start=2025-10-21, end=2026-01-01 -> not empty, no swap.
+    const claim = make({ from: "2025-10-21", fromPrecision: "d", to: "2025", toPrecision: "y" })
+    await claim.Validate()
+  })
+  test("directed-decreasing adjacent both open empty", async () => {
+    const claim = make({ from: "2025", fromPrecision: "y", fromIsOpen: true, to: "2024", toPrecision: "y", toIsOpen: true })
+    await expect(claim.Validate()).rejects.toThrow("interval is empty")
+  })
+  test("FromIsNone with valid To", async () => {
+    const claim = make({ fromIsNone: true, to: "2024-12-31", toPrecision: "d" })
+    await claim.Validate()
+  })
+  test("ToIsUnknown with valid From", async () => {
+    const claim = make({ from: "2024-01-01", fromPrecision: "d", toIsUnknown: true })
+    await claim.Validate()
+  })
+})
+
 test("ClaimTypes Get", () => {
   const prop = Identifier.new().toString()
   const otherProp = Identifier.new().toString()

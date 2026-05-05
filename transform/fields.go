@@ -661,9 +661,9 @@ func parseFieldCardinality(field reflect.StructField) (internalCore.Interval[int
 		// Unbounded upper bound is mapped to none.
 		result.ToIsNone = true
 	} else {
+		// Cardinality upper is inclusive; default ToIsOpen=false gives that.
 		toAmount := internalCore.Amount[int]{Amount: maxCard, Precision: 1}
 		result.To = &toAmount
-		result.ToIsClosed = true
 	}
 
 	return result, nil

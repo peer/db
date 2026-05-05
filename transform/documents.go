@@ -1125,7 +1125,7 @@ func makeClaim(
 
 		// Return claimNotMadeError if interval is completely zero (no bounds, no flags).
 		if interval.From == nil && !interval.FromIsOpen && !interval.FromIsUnknown && !interval.FromIsNone &&
-			interval.To == nil && !interval.ToIsClosed && !interval.ToIsUnknown && !interval.ToIsNone {
+			interval.To == nil && !interval.ToIsOpen && !interval.ToIsUnknown && !interval.ToIsNone {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
 			})
@@ -1161,7 +1161,7 @@ func makeClaim(
 			toTime := document.NewTime(interval.To.Time, toPrecision, loc)
 			claim.To = &toTime
 			claim.ToPrecision = &toPrecision
-			claim.ToIsClosed = interval.ToIsClosed
+			claim.ToIsOpen = interval.ToIsOpen
 		} else if interval.ToIsUnknown {
 			claim.ToIsUnknown = true
 		} else if interval.ToIsNone {
@@ -1187,19 +1187,19 @@ func makeClaim(
 			return nil, errors.New("location tag is not supported for core.Interval[core.Amount[T]] fields")
 		}
 
-		// Interval struct field indices: 0=From, 1=FromIsOpen, 2=FromIsUnknown, 3=FromIsNone, 4=To, 5=ToIsClosed, 6=ToIsUnknown, 7=ToIsNone.
+		// Interval struct field indices: 0=From, 1=FromIsOpen, 2=FromIsUnknown, 3=FromIsNone, 4=To, 5=ToIsOpen, 6=ToIsUnknown, 7=ToIsNone.
 		fromField := fieldValue.Field(0)
 		fromIsOpen := fieldValue.Field(1).Bool()
 		fromIsUnknown := fieldValue.Field(2).Bool() //nolint:mnd
 		fromIsNone := fieldValue.Field(3).Bool()    //nolint:mnd
 		toField := fieldValue.Field(4)              //nolint:mnd
-		toIsClosed := fieldValue.Field(5).Bool()    //nolint:mnd
+		toIsOpen := fieldValue.Field(5).Bool()      //nolint:mnd
 		toIsUnknown := fieldValue.Field(6).Bool()   //nolint:mnd
 		toIsNone := fieldValue.Field(7).Bool()      //nolint:mnd
 
 		// Return claimNotMadeError if interval is completely zero (no bounds, no flags).
 		if fromField.IsNil() && !fromIsOpen && !fromIsUnknown && !fromIsNone &&
-			toField.IsNil() && !toIsClosed && !toIsUnknown && !toIsNone {
+			toField.IsNil() && !toIsOpen && !toIsUnknown && !toIsNone {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
 			})
@@ -1267,7 +1267,7 @@ func makeClaim(
 			toAmt := document.NewAmount(toAmount, toPrecision)
 			claim.To = &toAmt
 			claim.ToPrecision = &toPrecision
-			claim.ToIsClosed = toIsClosed
+			claim.ToIsOpen = toIsOpen
 		} else if toIsUnknown {
 			claim.ToIsUnknown = true
 		} else if toIsNone {
