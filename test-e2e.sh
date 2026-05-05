@@ -29,10 +29,10 @@ cleanup() {
   set +e
 
   if [ "$cleanup_peerdb_container" -ne 0 ]; then
-    echo "Logs peerdb"
+    echo "Logs PeerDB"
     docker logs peerdb-container
 
-    echo "Stopping peerdb Docker container (if still running)"
+    echo "Stopping PeerDB Docker container (if still running)"
     docker stop peerdb-container
     docker rm -f peerdb-container
   fi
@@ -56,7 +56,7 @@ cleanup() {
   fi
 
   if [ "$cleanup_peerdb_image" -ne 0 ]; then
-    echo "Removing peerdb Docker image"
+    echo "Removing PeerDB Docker image"
     docker image rm -f peerdb-image
   fi
 
