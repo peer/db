@@ -12,17 +12,17 @@ if [ -n "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" ]; then
 
   if [ -n "$TARGET_MR_IID" ]; then
     echo "Target branch has open MR !${TARGET_MR_IID}, downloading screenshots from merged results pipeline."
-    wget -O artifacts.zip "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/artifacts/refs/merge-requests/${TARGET_MR_IID}/merge/download?job=test_e2e"
+    wget --header="JOB-TOKEN: ${CI_JOB_TOKEN}" -O artifacts.zip "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/artifacts/refs/merge-requests/${TARGET_MR_IID}/merge/download?job=test_e2e"
   else
     echo "Target branch has no open MR, downloading screenshots from branch artifacts."
-    wget -O artifacts.zip "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/artifacts/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}/download?job=test_e2e"
+    wget --header="JOB-TOKEN: ${CI_JOB_TOKEN}" -O artifacts.zip "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/artifacts/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}/download?job=test_e2e"
   fi
 elif [ -n "$CI_COMMIT_TAG" ] || [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then
   echo "Tag or main branch pipeline, update screenshots."
   export UPDATE_SCREENSHOTS=changed
 else
   echo "Branch pipeline for '$CI_COMMIT_BRANCH', downloading screenshots from default branch '($CI_DEFAULT_BRANCH)'."
-  wget -O artifacts.zip "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/artifacts/${CI_DEFAULT_BRANCH}/download?job=test_e2e"
+  wget --header="JOB-TOKEN: ${CI_JOB_TOKEN}" -O artifacts.zip "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/artifacts/${CI_DEFAULT_BRANCH}/download?job=test_e2e"
 fi
 
 # Unzip artifacts if downloaded.
