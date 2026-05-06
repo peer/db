@@ -56,7 +56,9 @@ export const test = baseTest.extend({
         const url = page.url()
         const type = msg.type()
         const text = msg.text()
-        if (!CONSOLE_ALLOWLIST.some((pattern) => pattern.test(text))) {
+        // Running playwright in headed mode tries to fetch favicon, which returns 404, so we allow it.
+        const favicon404 = /^Failed to load resource: the server responded with a status of 404 \(\)$/.test(text) && msg.location().url.endsWith("favicon.ico")
+        if (!favicon404 && !CONSOLE_ALLOWLIST.some((pattern) => pattern.test(text))) {
           const messagePromise = (async function () {
             let argsMsg
             try {
@@ -94,7 +96,7 @@ test.afterAll(() => {
         .map((f) => JSON.parse(readFileSync(`a11y-report/${f}`, { encoding: "utf-8" })) as Result),
     },
     options: {
-      projectKey: "PeerDB Accessibility Report",
+      projectKey: "Accessibility Report",
       outputDir: "a11y-report",
       reportFileName: "a11y-report.html",
     },

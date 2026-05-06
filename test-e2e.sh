@@ -29,10 +29,10 @@ cleanup() {
   set +e
 
   if [ "$cleanup_peerdb_container" -ne 0 ]; then
-    echo "Logs peerdb"
+    echo "Logs PeerDB"
     docker logs peerdb-container
 
-    echo "Stopping peerdb Docker container (if still running)"
+    echo "Stopping PeerDB Docker container (if still running)"
     docker stop peerdb-container
     docker rm -f peerdb-container
   fi
@@ -56,7 +56,7 @@ cleanup() {
   fi
 
   if [ "$cleanup_peerdb_image" -ne 0 ]; then
-    echo "Removing peerdb Docker image"
+    echo "Removing PeerDB Docker image"
     docker image rm -f peerdb-image
   fi
 
@@ -142,7 +142,7 @@ echo "6. Populating PeerDB with documents..."
 echo "postgres://test:test@peerdb-postgres:5432/test" > .postgresql.secret
 
 mkdir -p coverage
-# We chown to the user PeerDB runs inside the Docker container so that it can write coverage.
+# We chown to the container user so the process running inside Docker container can write to coverage.
 chown 1000:1000 coverage
 
 docker run --rm \
