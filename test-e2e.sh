@@ -142,7 +142,7 @@ echo "6. Populating PeerDB with documents..."
 echo "postgres://test:test@peerdb-postgres:5432/test" > .postgresql.secret
 
 mkdir -p coverage
-# We chown to the user PeerDB runs inside the Docker container so that it can write coverage.
+# We chown to the container user so the process running inside Docker container can write to coverage.
 chown 1000:1000 coverage
 
 docker run --rm \
