@@ -154,12 +154,14 @@
     will-change: left, right;
   }
 
-  .pd-progressbar-short {
-    animation-name: indeterminate-short-ltr;
-  }
+  @media (prefers-reduced-motion: no-preference) {
+    .pd-progressbar-short {
+      animation-name: indeterminate-short-ltr;
+    }
 
-  .pd-progressbar-long {
-    animation-name: indeterminate-ltr;
+    .pd-progressbar-long {
+      animation-name: indeterminate-ltr;
+    }
   }
 
   @keyframes indeterminate-ltr {
