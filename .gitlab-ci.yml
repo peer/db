@@ -319,9 +319,6 @@ lint_go:
 
   image: golang:1.25-alpine3.22
 
-  tags:
-    - saas-linux-2xlarge-amd64
-
   before_script:
     - apk --update add make bash gcc musl-dev git
     - wget -O- -nv https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.12.1
