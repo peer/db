@@ -10,6 +10,8 @@ import type { DownloadFile, DownloadZipWorkerInput, DownloadZipWorkerOutput } fr
 
 import { Zip, ZipDeflate, ZipPassThrough } from "fflate"
 
+import { safeFilename } from "@/path"
+
 // Media types that are already compressed and should not be deflated.
 const compressedMediaTypes = new Set([
   "image/jpeg",
@@ -105,12 +107,15 @@ async function run(files: DownloadFile[], fileHandle: FileSystemFileHandle | nul
 
       const contentType = response.headers.get("Content-Type")
 
+      // Sanitize the entry name so the archive is portable across OS extractors.
+      const entryName = safeFilename(file.name)
+
       // Use passthrough for already-compressed files, deflate for others.
       let entry: ZipPassThrough | ZipDeflate
       if (isCompressedType(contentType)) {
-        entry = new ZipPassThrough(file.name)
+        entry = new ZipPassThrough(entryName)
       } else {
-        entry = new ZipDeflate(file.name, { level: 6 })
+        entry = new ZipDeflate(entryName, { level: 6 })
       }
       zip.add(entry)
 

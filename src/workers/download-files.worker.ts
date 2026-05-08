@@ -7,6 +7,8 @@
 
 import type { DownloadFile, DownloadFilesWorkerInput, DownloadFilesWorkerOutput } from "@/types"
 
+import { safeFilename } from "@/path"
+
 let cancelController: AbortController | null = null
 
 self.onmessage = (e: MessageEvent<DownloadFilesWorkerInput>) => {
@@ -37,7 +39,9 @@ async function run(files: DownloadFile[], directoryHandle: FileSystemDirectoryHa
         throw new Error(`failed to fetch ${file.name}: response has no body`)
       }
 
-      const fileHandle = await directoryHandle.getFileHandle(file.name, { create: true })
+      // Sanitize the name so OS/filesystem-invalid characters and Windows-reserved device names
+      // don't make getFileHandle reject.
+      const fileHandle = await directoryHandle.getFileHandle(safeFilename(file.name), { create: true })
       const writable = await fileHandle.createWritable()
       // pipeTo closes the writable on success and aborts it (cleaning up the swap file)
       // when signal fires, so cancellation does not leave a partial file at the target path.
