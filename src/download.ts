@@ -144,7 +144,7 @@ export function useDownload(abortController: AbortController, updateSearchSessio
       return
     }
     if (!window.showDirectoryPicker) {
-      return
+      throw new Error("showDirectoryPicker is not available")
     }
     // Set the flag immediately after the check so a re-entrant call cannot pass the guard while we await below.
     isDownloading.value = true
