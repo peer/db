@@ -140,11 +140,11 @@ export function useDownload(abortController: AbortController, updateSearchSessio
   }
 
   async function startBulkDownload(files: DownloadFile[]) {
-    if (isDownloading.value || abortController.signal.aborted) {
-      return
-    }
     if (!window.showDirectoryPicker) {
       throw new Error("showDirectoryPicker is not available")
+    }
+    if (isDownloading.value || abortController.signal.aborted) {
+      return
     }
     // Set the flag immediately after the check so a re-entrant call cannot pass the guard while we await below.
     isDownloading.value = true
