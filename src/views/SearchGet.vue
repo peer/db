@@ -44,6 +44,7 @@ const router = useRouter()
 const parentProgress = getParentProgress()
 const createProgress = localProgress(parentProgress)
 const uploadProgress = localProgress(parentProgress)
+const updateSearchSessionProgress = localProgress(parentProgress)
 
 const abortController = new AbortController()
 
@@ -59,7 +60,7 @@ const {
   startZipDownload,
   startBulkDownload,
   cancelDownload,
-} = useDownload(abortController)
+} = useDownload(abortController, updateSearchSessionProgress)
 
 // TODO: Replace with real file list from search results.
 const testFiles: DownloadFile[] = [
@@ -86,8 +87,6 @@ const {
   searchProgress,
 )
 const { results: searchResults, total: searchTotal, moreThanTotal: searchMoreThanTotal, error: searchResultsError } = useSearch(searchSession, searchEl, searchProgress)
-
-const updateSearchSessionProgress = localProgress(parentProgress)
 
 // A non-read-only version of filters state so that we can modify it as necessary.
 const filtersState = ref<FiltersState>({ ref: {}, amount: {}, time: {} })
@@ -363,7 +362,7 @@ async function onDownloadFiles() {
   </Teleport>
 
   <DownloadOverlay
-    :open="isDownloading || downloadError !== null"
+    :open="(isDownloading && total > 0) || downloadError !== null"
     :mode="downloadMode"
     :completed="completed"
     :total="total"

@@ -148,6 +148,7 @@ function onFilters() {
         :search-session="searchSession"
         :search-total="searchTotal"
         :search-more-than-total="searchMoreThanTotal"
+        :update-search-session-progress="updateSearchSessionProgress"
         @view-change="(v) => $emit('viewChange', v)"
         @download-zip="$emit('downloadZip')"
         @download-files="$emit('downloadFiles')"
