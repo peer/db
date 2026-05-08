@@ -82,9 +82,11 @@ self.onmessage = async (e: MessageEvent<DownloadZipWorkerInput>) => {
       if (!response.ok) {
         throw new Error(`failed to fetch ${file.name}: ${response.status} ${response.statusText}`)
       }
+      if (!response.body) {
+        throw new Error(`failed to fetch ${file.name}: response has no body`)
+      }
 
       const contentType = response.headers.get("Content-Type")
-      const data = new Uint8Array(await response.arrayBuffer())
 
       // Use passthrough for already-compressed files, deflate for others.
       let entry: ZipPassThrough | ZipDeflate
@@ -94,7 +96,25 @@ self.onmessage = async (e: MessageEvent<DownloadZipWorkerInput>) => {
         entry = new ZipDeflate(file.name, { level: 6 })
       }
       zip.add(entry)
-      entry.push(data, true)
+
+      // Stream the response body into the zip entry so we don't buffer the whole source
+      // file in memory. We hold one chunk back so the last push can carry final=true.
+      const reader = response.body.getReader()
+      let buffered: Uint8Array | null = null
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) {
+          entry.push(buffered ?? new Uint8Array(0), true)
+          break
+        }
+        if (buffered !== null) {
+          entry.push(buffered, false)
+          if (zipErrorMessage !== null) {
+            throw new Error(zipErrorMessage)
+          }
+        }
+        buffered = value
+      }
 
       if (zipErrorMessage !== null) {
         throw new Error(zipErrorMessage)

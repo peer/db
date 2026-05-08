@@ -1,6 +1,6 @@
 // Web worker for downloading files individually to a directory.
-// Receives a list of files and a FileSystemDirectoryHandle,
-// downloads each file and saves it to the directory.
+// Receives a list of files and a FileSystemDirectoryHandle, then streams each response body
+// directly into the target file via ReadableStream.pipeTo() so nothing is buffered in memory.
 
 import type { DownloadFilesWorkerInput, DownloadFilesWorkerOutput } from "@/types"
 
@@ -16,12 +16,14 @@ self.onmessage = async (e: MessageEvent<DownloadFilesWorkerInput>) => {
       if (!response.ok) {
         throw new Error(`failed to fetch ${file.name}: ${response.status} ${response.statusText}`)
       }
+      if (!response.body) {
+        throw new Error(`failed to fetch ${file.name}: response has no body`)
+      }
 
-      const data = await response.arrayBuffer()
       const fileHandle = await directoryHandle.getFileHandle(file.name, { create: true })
       const writable = await fileHandle.createWritable()
-      await writable.write(data)
-      await writable.close()
+      // pipeTo closes the writable on success and aborts it if the source errors mid-stream.
+      await response.body.pipeTo(writable)
     }
 
     self.postMessage({ type: "progress", completed: files.length, total: files.length, currentFile: "" } satisfies DownloadFilesWorkerOutput)
