@@ -135,7 +135,7 @@ test_e2e:
         - "containerd-snapshotter=true"
 
   needs:
-    - test_go
+    - test_node
 
   before_script:
     - apk --update add bash jq
