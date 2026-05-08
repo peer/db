@@ -52,8 +52,13 @@ self.onmessage = async (e: MessageEvent<DownloadZipWorkerInput>) => {
 
     const zip = new Zip()
     zip.ondata = (err, chunk, final) => {
+      // Once we've recorded an error, ignore any further callbacks so we don't queue writes
+      // or buffer data that will be discarded anyway, and so we keep the first error message.
+      if (zipErrorMessage !== null) {
+        return
+      }
       if (err) {
-        zipErrorMessage ??= err.message
+        zipErrorMessage = err.message
         return
       }
       // fflate's chunks are backed by a regular ArrayBuffer (not SharedArrayBuffer);
