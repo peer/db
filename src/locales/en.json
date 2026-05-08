@@ -109,6 +109,9 @@
       "addAnother": "Add another",
       "from": "From",
       "to": "To"
+    },
+    "TableOfContents": {
+      "label": "Table of contents"
     }
   },
   "views": {

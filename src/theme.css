@@ -215,6 +215,69 @@
     }
   }
 
+  .pd-toc {
+    /* Height grows when navbar auto-hides so the sidebar still reaches the viewport bottom. */
+    height: calc(100dvh - 3rem - var(--pd-navbar-top, 0px));
+    /* Top of TOC follows navbar's current viewport top (set by useNavbar). */
+    translate: 0 var(--pd-navbar-top, 0px);
+  }
+
+  @media (min-width: 640px) {
+    .pd-toc {
+      height: calc(100dvh - 4.5rem - var(--pd-navbar-top, 0px));
+    }
+  }
+
+  @supports (animation-timeline: scroll()) {
+    /*
+      Scroll-driven compensation: translate the whole nav (slot + items) back to its sticky position
+      as the parent's bottom enters the viewport at the page end. Runs on the compositor.
+      Range start and amount include var(--pd-navbar-top) to handle the navbar-hidden case where
+      the sidebar is taller and sticky needs to release earlier and by more.
+    */
+    .pd-toc {
+      animation-name: pd-toc-compensate;
+      animation-duration: auto;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: scroll(root block);
+      animation-range: calc(var(--pd-toc-release-start-base, 0px) + var(--pd-navbar-top, 0px)) var(--pd-toc-release-end, 100%);
+    }
+
+    @keyframes pd-toc-compensate {
+      from {
+        transform: translateY(0);
+      }
+
+      to {
+        transform: translateY(calc(var(--pd-toc-release-amount-base, 0px) - var(--pd-navbar-top, 0px)));
+      }
+    }
+
+    .pd-toc-active .pd-toc-item {
+      animation-name: pd-toc-track;
+      animation-duration: auto;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      /*
+        Length-based: animation runs over bottomOffset (or bottomOffset + |navbar_top|) px of cover scroll.
+        Subtracting var(--pd-navbar-top) (negative when hidden) extends the range to match the grown scrollport.
+      */
+      animation-range: cover 0px cover calc(var(--pd-toc-lockstep-end-base, 0px) - var(--pd-navbar-top, 0px));
+    }
+
+    @keyframes pd-toc-track {
+      from {
+        /* Add abs(--pd-navbar-top) (subtract the negative) so bottom-stack items reach the grown sidebar's inner bottom. */
+        transform: translateY(calc(var(--pd-toc-bottom-offset, 0px) - var(--pd-navbar-top, 0px)));
+      }
+
+      to {
+        transform: translateY(0);
+      }
+    }
+  }
+
   .prose :where(.prose > section:first-child > :first-child):not(:where([class~="not-prose"] *)),
   .prose * > p:first-child {
     @apply mt-0;

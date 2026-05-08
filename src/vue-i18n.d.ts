@@ -121,6 +121,9 @@ declare module "vue-i18n" {
         from: string
         to: string
       }
+      TableOfContents: {
+        label: string
+      }
     }
     views: {
       DocumentGet: {
