@@ -16,13 +16,17 @@ export function useDownload(abortController: AbortController, updateSearchSessio
   // Set while a worker is running; lets cancelDownload tear it down.
   let cancelCurrent: (() => void) | null = null
 
+  // Filename for the zip currently being assembled. Set by startZipDownload and read by
+  // handleZipBlob when the worker posts the Blob fallback back.
+  let zipFilename = ""
+
   // Blob fallback only: when the worker had no FileSystemFileHandle, it posts the assembled
   // Blob back here and we trigger a download via <a download>.
   function handleZipBlob(blob: Blob) {
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = "download.zip"
+    a.download = zipFilename
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -106,7 +110,7 @@ export function useDownload(abortController: AbortController, updateSearchSessio
     })
   }
 
-  async function startZipDownload(files: DownloadFile[]) {
+  async function startZipDownload(files: DownloadFile[], filename: string = "download.zip") {
     if (abortController.signal.aborted) {
       return
     }
@@ -119,13 +123,15 @@ export function useDownload(abortController: AbortController, updateSearchSessio
     // Bump the progress immediately after the check so a re-entrant call cannot pass the guard while we await below.
     updateSearchSessionProgress.value += 1
     try {
+      zipFilename = filename
+
       // Try to use showSaveFilePicker if available; otherwise the worker assembles a Blob
       // and we fall back to a <a download> click.
       let fileHandle: FileSystemFileHandle | null = null
       if (window.showSaveFilePicker) {
         try {
           fileHandle = await window.showSaveFilePicker({
-            suggestedName: "download.zip",
+            suggestedName: zipFilename,
             types: [
               {
                 description: "ZIP archive",
