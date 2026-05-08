@@ -1,6 +1,6 @@
 import type { Ref, StyleValue, TemplateRef } from "vue"
 
-import { ref, useTemplateRef, watchEffect } from "vue"
+import { computed, ref, useTemplateRef, watchEffect } from "vue"
 
 import { getConfig } from "@/config"
 
@@ -10,8 +10,16 @@ prefersReducedMotionQuery.addEventListener("change", (e) => {
   prefersReducedMotion.value = e.matches
 })
 
-export function useNavbar(): { navbar: TemplateRef<HTMLElement>; attrs: Ref<{ style: StyleValue; class: { "animate-navbar": boolean } }> } {
+// Whether the navbar is in fixed mode (always at viewport top) rather than auto-hide. Reactive so callers
+// can react to config or reduced-motion changes. Shared by useNavbar itself and any consumer that needs to
+// account for a permanently-visible navbar (e.g. computing scroll-to-anchor offsets).
+export function useFixedNavbar(): Ref<boolean> {
   const config = getConfig()
+  return computed(() => !!config.value.fixedNavbar || prefersReducedMotion.value)
+}
+
+export function useNavbar(): { navbar: TemplateRef<HTMLElement>; attrs: Ref<{ style: StyleValue; class: { "animate-navbar": boolean } }> } {
+  const fixedNavbar = useFixedNavbar()
 
   const navbar = useTemplateRef<HTMLElement>("navbar")
   const attrs = ref<{
@@ -35,6 +43,7 @@ export function useNavbar(): { navbar: TemplateRef<HTMLElement>; attrs: Ref<{ st
       attrs.value.style.position = "absolute"
       attrs.value.style.top = "0px"
       lastScrollPosition = 0
+      publishNavbarTop()
       return
     }
 
@@ -43,13 +52,7 @@ export function useNavbar(): { navbar: TemplateRef<HTMLElement>; attrs: Ref<{ st
         attrs.value.class["animate-navbar"] = false
         const { top } = navbar.value.getBoundingClientRect()
         attrs.value.style.position = "absolute"
-        if (currentScrollPosition - lastScrollPosition < 10) {
-          // Scroll speed is small enough for lastScrollPosition to be probably a better value
-          // so that navbar appears at the location where the user started scrolling.
-          attrs.value.style.top = `${lastScrollPosition + top}px`
-        } else {
-          attrs.value.style.top = `${currentScrollPosition + top}px`
-        }
+        attrs.value.style.top = `${lastScrollPosition + top}px`
       }
     } else if (currentScrollPosition < lastScrollPosition) {
       if (attrs.value.style.position !== "fixed") {
@@ -71,21 +74,48 @@ export function useNavbar(): { navbar: TemplateRef<HTMLElement>; attrs: Ref<{ st
     }
 
     lastScrollPosition = currentScrollPosition
+    publishNavbarTop()
+  }
+
+  // Publish navbar's current viewport top so other components (e.g. TableOfContents) can follow it via CSS.
+  // Clamped to [-height, 0]: once fully hidden the navbar cannot visually move further up, so followers should not either.
+  function publishNavbarTop() {
+    if (!navbar.value) return
+    const { top, height } = navbar.value.getBoundingClientRect()
+    const clamped = Math.min(0, Math.max(top, -height))
+    document.documentElement.style.setProperty("--pd-navbar-top", `${clamped}px`)
   }
 
   watchEffect((onCleanup) => {
     attrs.value.style.top = "0px"
     attrs.value.class["animate-navbar"] = false
 
-    if (config.value.fixedNavbar || prefersReducedMotion.value) {
+    if (fixedNavbar.value) {
       attrs.value.style.position = "fixed"
+      // Fixed navbar always sits at viewport top:0, so nothing to follow.
+      document.documentElement.style.setProperty("--pd-navbar-top", "0px")
+      onCleanup(() => {
+        document.documentElement.style.removeProperty("--pd-navbar-top")
+      })
       return
     }
 
     lastScrollPosition = supportScrollY ? window.scrollY : document.documentElement.scrollTop
     window.addEventListener("scroll", onScroll, { passive: true })
+    // Re-publish after scroll settles. The DOM rect is stale right after Vue mutates attrs.value.style during a
+    // transition (Vue applies style updates async), so getBoundingClientRect inside onScroll can return the old
+    // position. By the time scrollend fires, Vue has flushed and the rect is accurate.
+    window.addEventListener("scrollend", publishNavbarTop, { passive: true })
+    // animate-navbar runs a 100ms CSS animation that moves the navbar via transform. During the animation,
+    // getBoundingClientRect reflects the mid-animation position; re-publish at animationend to capture the final.
+    const el = navbar.value
+    el?.addEventListener("animationend", publishNavbarTop)
+    publishNavbarTop()
     onCleanup(() => {
       window.removeEventListener("scroll", onScroll)
+      window.removeEventListener("scrollend", publishNavbarTop)
+      el?.removeEventListener("animationend", publishNavbarTop)
+      document.documentElement.style.removeProperty("--pd-navbar-top")
     })
   })
 

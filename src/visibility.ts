@@ -2,7 +2,12 @@ import type { ComponentPublicInstance, DeepReadonly, Ref } from "vue"
 
 import { onBeforeUnmount, readonly, ref } from "vue"
 
-export function useVisibilityTracking(): {
+export interface VisibilityTrackingOptions {
+  rootMargin?: string
+  threshold?: number | number[]
+}
+
+export function useVisibilityTracking(options: VisibilityTrackingOptions = {}): {
   track: (id: string) => (el: Element | ComponentPublicInstance | null) => void
   visibles: DeepReadonly<Ref<Set<string>>>
 } {
@@ -26,8 +31,8 @@ export function useVisibilityTracking(): {
     },
     {
       root: null,
-      rootMargin: "-10% 0% -10% 0%",
-      threshold: 0.1,
+      rootMargin: options.rootMargin ?? "-10% 0% -10% 0%",
+      threshold: options.threshold ?? 0.1,
     },
   )
 

@@ -24,6 +24,11 @@ const router = createRouter({
     if (to.name === "SearchGet") {
       return false
     }
+    // Hash navigation is handled by component-level watchers (e.g. TableOfContents) so
+    // they can apply navbar-aware offsets and smooth scrolling.
+    if (to.hash) {
+      return false
+    }
     if (savedPosition) {
       return savedPosition
     } else {

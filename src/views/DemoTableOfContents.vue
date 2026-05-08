@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import TableOfContents from "@/components/TableOfContents.vue"
+import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
+import TableOfContents from "@/partials/TableOfContents.vue"
 
-const sections = [
+const targets = [
   { id: "personal-info", label: "Personal information" },
   { id: "contact", label: "Contact details" },
   { id: "address", label: "Address" },
@@ -23,15 +24,15 @@ const sections = [
   <div class="mt-12 flex w-full sm:mt-[4.5rem]">
     <!-- Table of contents sidebar. -->
     <div class="hidden w-56 shrink-0 lg:block">
-      <TableOfContents :sections="sections" />
+      <TableOfContents :targets="targets" />
     </div>
 
     <!-- Main content column. -->
     <div class="min-w-0 flex-1 p-4 sm:p-8">
       <h1 class="mb-8 text-3xl font-bold">Demo form</h1>
 
-      <section id="personal-info" class="mb-12">
-        <h2 class="mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">Personal information</h2>
+      <section class="mb-12">
+        <h2 id="personal-info" class="mt-2 mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">Personal information</h2>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label class="mb-1 block text-sm font-medium text-gray-700">First name</label>
@@ -56,8 +57,8 @@ const sections = [
         </p>
       </section>
 
-      <section id="contact" class="mb-12">
-        <h2 class="mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">Contact details</h2>
+      <section class="mb-12">
+        <h2 id="contact" class="mt-2 mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">Contact details</h2>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label class="mb-1 block text-sm font-medium text-gray-700">Email</label>
@@ -77,8 +78,8 @@ const sections = [
         </p>
       </section>
 
-      <section id="address" class="mb-12">
-        <h2 class="mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">Address</h2>
+      <section class="mb-12">
+        <h2 id="address" class="mt-2 mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">Address</h2>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div class="sm:col-span-2">
             <label class="mb-1 block text-sm font-medium text-gray-700">Street address</label>
@@ -103,8 +104,8 @@ const sections = [
         </div>
       </section>
 
-      <section id="education" class="mb-12">
-        <h2 class="mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">Education</h2>
+      <section class="mb-12">
+        <h2 id="education" class="mt-2 mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">Education</h2>
         <div class="space-y-6">
           <div class="rounded-sm border border-gray-200 p-4">
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -136,8 +137,8 @@ const sections = [
         </div>
       </section>
 
-      <section id="employment" class="mb-12">
-        <h2 class="mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">Employment history</h2>
+      <section class="mb-12">
+        <h2 id="employment" class="mt-2 mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">Employment history</h2>
         <div class="space-y-6">
           <div class="rounded-sm border border-gray-200 p-4">
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -173,8 +174,8 @@ const sections = [
         </div>
       </section>
 
-      <section id="skills" class="mb-12">
-        <h2 class="mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">Skills & expertise</h2>
+      <section class="mb-12">
+        <h2 id="skills" class="mt-2 mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">Skills & expertise</h2>
         <div class="space-y-4">
           <div>
             <label class="mb-1 block text-sm font-medium text-gray-700">Technical skills</label>
@@ -195,8 +196,8 @@ const sections = [
         </div>
       </section>
 
-      <section id="references" class="mb-12">
-        <h2 class="mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">References</h2>
+      <section class="mb-12">
+        <h2 id="references" class="mt-2 mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">References</h2>
         <div class="space-y-6">
           <div class="rounded-sm border border-gray-200 p-4">
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -222,8 +223,8 @@ const sections = [
         </div>
       </section>
 
-      <section id="documents" class="mb-12">
-        <h2 class="mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">Documents & uploads</h2>
+      <section class="mb-12">
+        <h2 id="documents" class="mt-2 mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">Documents & uploads</h2>
         <div class="space-y-4">
           <div>
             <label class="mb-1 block text-sm font-medium text-gray-700">Resume / CV</label>
@@ -250,8 +251,8 @@ const sections = [
         </div>
       </section>
 
-      <section id="preferences" class="mb-12">
-        <h2 class="mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">Preferences</h2>
+      <section class="mb-12">
+        <h2 id="preferences" class="mt-2 mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">Preferences</h2>
         <div class="space-y-4">
           <div>
             <label class="mb-1 block text-sm font-medium text-gray-700">Preferred start date</label>
@@ -285,8 +286,8 @@ const sections = [
         </div>
       </section>
 
-      <section id="review" class="mb-12">
-        <h2 class="mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">Review & submit</h2>
+      <section class="mb-12">
+        <h2 id="review" class="mt-2 mb-4 border-b border-gray-200 pb-2 text-xl font-semibold">Review & submit</h2>
         <div class="space-y-4">
           <p class="text-sm text-gray-600"
             >Please review all the information above before submitting. You can click on any section in the table of contents to jump back and make corrections.</p
@@ -306,4 +307,7 @@ const sections = [
       </section>
     </div>
   </div>
+  <Teleport to="footer">
+    <Footer />
+  </Teleport>
 </template>

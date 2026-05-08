@@ -109,6 +109,9 @@
       "addAnother": "Dodaj še enega",
       "from": "Od",
       "to": "Do"
+    },
+    "TableOfContents": {
+      "label": "Kazalo vsebine"
     }
   },
   "views": {
