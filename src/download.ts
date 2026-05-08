@@ -4,7 +4,7 @@ import { ref } from "vue"
 
 export type DownloadMode = "zip" | "files"
 
-export function useDownload() {
+export function useDownload(abortController: AbortController) {
   const isDownloading = ref(false)
   const downloadMode = ref<DownloadMode>("zip")
   const completed = ref(0)
@@ -25,6 +25,17 @@ export function useDownload() {
     activeWorker = null
     zipFileHandle = null
   }
+
+  function teardown() {
+    if (activeWorker) {
+      activeWorker.terminate()
+      activeWorker = null
+    }
+    reset()
+  }
+
+  // Tear down on owner abort (e.g. component unmount).
+  abortController.signal.addEventListener("abort", teardown)
 
   async function handleZipBlob(data: Uint8Array) {
     const blob = new Blob([data.buffer as ArrayBuffer], { type: "application/zip" })
@@ -73,7 +84,7 @@ export function useDownload() {
   }
 
   async function startZipDownload(files: DownloadFile[]) {
-    if (isDownloading.value) {
+    if (isDownloading.value || abortController.signal.aborted) {
       return
     }
 
@@ -117,7 +128,7 @@ export function useDownload() {
   }
 
   async function startBulkDownload(files: DownloadFile[]) {
-    if (isDownloading.value) {
+    if (isDownloading.value || abortController.signal.aborted) {
       return
     }
     if (!window.showDirectoryPicker) {
@@ -151,11 +162,7 @@ export function useDownload() {
   }
 
   function cancelDownload() {
-    if (activeWorker) {
-      activeWorker.terminate()
-      activeWorker = null
-    }
-    reset()
+    teardown()
   }
 
   return {

@@ -49,7 +49,17 @@ const abortController = new AbortController()
 
 const upload = useTemplateRef<HTMLInputElement>("upload")
 
-const { isDownloading, downloadMode, completed, total, currentFile, error: downloadError, startZipDownload, startBulkDownload, cancelDownload } = useDownload()
+const {
+  isDownloading,
+  downloadMode,
+  completed,
+  total,
+  currentFile,
+  error: downloadError,
+  startZipDownload,
+  startBulkDownload,
+  cancelDownload,
+} = useDownload(abortController)
 
 // TODO: Replace with real file list from search results.
 const testFiles: DownloadFile[] = [
@@ -58,9 +68,8 @@ const testFiles: DownloadFile[] = [
 ]
 
 onBeforeUnmount(() => {
+  // Aborting the controller also tears down any active download worker via useDownload's abort listener.
   abortController.abort()
-  // Terminate any active download worker so it does not outlive this view.
-  cancelDownload()
 })
 
 const searchEl = useTemplateRef<HTMLElement>("searchEl")
