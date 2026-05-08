@@ -314,11 +314,15 @@ export type DownloadWorkerFile = {
 export type DownloadZipWorkerInput = {
   type: "start"
   files: DownloadWorkerFile[]
+  // When non-null, the worker streams the zip directly to this handle. When null, the worker
+  // assembles a Blob and posts it back to the main thread for the <a download> fallback.
+  fileHandle: FileSystemFileHandle | null
 }
 
 export type DownloadZipWorkerOutput =
   | { type: "progress"; completed: number; total: number; currentFile: string }
-  | { type: "blob"; data: Uint8Array }
+  | { type: "blob"; blob: Blob }
+  | { type: "done" }
   | { type: "error"; message: string }
 
 export type DownloadFilesWorkerInput = {

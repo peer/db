@@ -13,30 +13,20 @@ export function useDownload(abortController: AbortController, updateSearchSessio
   const currentFile = ref("")
   const error = ref<string | null>(null)
 
-  // File handle obtained from showSaveFilePicker (null when using Blob fallback).
-  let zipFileHandle: FileSystemFileHandle | null = null
   // Set while a worker is running; lets cancelDownload tear it down.
   let cancelCurrent: (() => void) | null = null
 
-  async function handleZipBlob(data: Uint8Array) {
-    const blob = new Blob([data.buffer as ArrayBuffer], { type: "application/zip" })
-
-    if (zipFileHandle) {
-      // Write to the file handle obtained from showSaveFilePicker.
-      const writable = await zipFileHandle.createWritable()
-      await writable.write(blob)
-      await writable.close()
-    } else {
-      // Blob fallback: trigger download via <a> element.
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = "download.zip"
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    }
+  // Blob fallback only: when the worker had no FileSystemFileHandle, it posts the assembled
+  // Blob back here and we trigger a download via <a download>.
+  function handleZipBlob(blob: Blob) {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "download.zip"
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
 
   // Wrap a worker in a promise that resolves when the worker finishes, errors, is cancelled, or the owner aborts.
@@ -65,18 +55,14 @@ export function useDownload(abortController: AbortController, updateSearchSessio
 
       abortController.signal.addEventListener("abort", abortHandler, { once: true })
 
-      worker.onmessage = async (e: MessageEvent<DownloadZipWorkerOutput | DownloadFilesWorkerOutput>) => {
+      worker.onmessage = (e: MessageEvent<DownloadZipWorkerOutput | DownloadFilesWorkerOutput>) => {
         const msg = e.data
         if (msg.type === "progress") {
           completed.value = msg.completed
           total.value = msg.total
           currentFile.value = msg.currentFile
         } else if (msg.type === "blob") {
-          try {
-            await handleZipBlob(msg.data)
-          } catch (err) {
-            error.value = err instanceof Error ? err.message : String(err)
-          }
+          handleZipBlob(msg.blob)
           finish()
         } else if (msg.type === "done") {
           finish()
@@ -108,12 +94,12 @@ export function useDownload(abortController: AbortController, updateSearchSessio
     // Bump the progress immediately after the check so a re-entrant call cannot pass the guard while we await below.
     updateSearchSessionProgress.value += 1
     try {
-      // Try to use showSaveFilePicker if available.
-      // Falls back to Blob download otherwise.
-      zipFileHandle = null
+      // Try to use showSaveFilePicker if available; otherwise the worker assembles a Blob
+      // and we fall back to a <a download> click.
+      let fileHandle: FileSystemFileHandle | null = null
       if (window.showSaveFilePicker) {
         try {
-          zipFileHandle = await window.showSaveFilePicker({
+          fileHandle = await window.showSaveFilePicker({
             suggestedName: "download.zip",
             types: [
               {
@@ -135,11 +121,10 @@ export function useDownload(abortController: AbortController, updateSearchSessio
       error.value = null
 
       const worker = new Worker(new URL("@/workers/download-zip.worker.ts", import.meta.url), { type: "module" })
-      await runWorker(worker, { type: "start", files })
+      await runWorker(worker, { type: "start", files, fileHandle })
     } finally {
       // Reset total so the overlay's "open" condition (total > 0) flips back to closed.
       total.value = 0
-      zipFileHandle = null
       updateSearchSessionProgress.value -= 1
     }
   }

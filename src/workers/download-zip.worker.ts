@@ -1,6 +1,7 @@
 // Web worker for downloading files and creating a zip archive.
-// Receives a list of files and a WritableStream, downloads each file,
-// compresses them into a zip archive using fflate, and writes to the stream.
+// When the main thread provides a FileSystemFileHandle, the worker streams zip output
+// directly to disk via createWritable. Otherwise it assembles a Blob and posts it back
+// for the <a download> fallback.
 
 import type { DownloadZipWorkerInput, DownloadZipWorkerOutput } from "@/types"
 
@@ -33,18 +34,39 @@ function isCompressedType(contentType: string | null): boolean {
 }
 
 self.onmessage = async (e: MessageEvent<DownloadZipWorkerInput>) => {
-  const { files } = e.data
-  const chunks: Uint8Array[] = []
+  const { files, fileHandle } = e.data
+
+  // When fileHandle is provided we stream into the writable; otherwise we accumulate chunks
+  // into a Blob and post it back.
+  const chunks: Uint8Array<ArrayBuffer>[] = []
+  let writable: FileSystemWritableFileStream | null = null
+  // Sequential write chain; each ondata appends a write/close to keep on-disk order correct.
+  let writePromise: Promise<void> = Promise.resolve()
+  let zipErrorMessage: string | null = null
 
   try {
+    if (fileHandle) {
+      writable = await fileHandle.createWritable()
+    }
+    const w = writable
+
     const zip = new Zip()
-    zip.ondata = (err, chunk, _final) => {
+    zip.ondata = (err, chunk, final) => {
       if (err) {
-        self.postMessage({ type: "error", message: err.message } satisfies DownloadZipWorkerOutput)
+        zipErrorMessage ??= err.message
         return
       }
-      // Collect chunks in memory.
-      chunks.push(chunk)
+      // fflate's chunks are backed by a regular ArrayBuffer (not SharedArrayBuffer);
+      // narrow the type so write() and Blob() accept it.
+      const c = chunk as Uint8Array<ArrayBuffer>
+      if (w) {
+        writePromise = writePromise.then(() => w.write(c))
+        if (final) {
+          writePromise = writePromise.then(() => w.close())
+        }
+      } else {
+        chunks.push(c)
+      }
     }
 
     for (let i = 0; i < files.length; i++) {
@@ -68,29 +90,38 @@ self.onmessage = async (e: MessageEvent<DownloadZipWorkerInput>) => {
       }
       zip.add(entry)
       entry.push(data, true)
+
+      if (zipErrorMessage !== null) {
+        throw new Error(zipErrorMessage)
+      }
     }
 
     self.postMessage({ type: "progress", completed: files.length, total: files.length, currentFile: "" } satisfies DownloadZipWorkerOutput)
     zip.end()
 
-    // Concatenate all chunks into a single Uint8Array.
-    let totalLength = 0
-    for (const chunk of chunks) {
-      totalLength += chunk.length
-    }
-    const result = new Uint8Array(totalLength)
-    let offset = 0
-    for (const chunk of chunks) {
-      result.set(chunk, offset)
-      offset += chunk.length
+    if (zipErrorMessage !== null) {
+      throw new Error(zipErrorMessage)
     }
 
-    // Transfer the buffer for zero-copy.
-    // Worker postMessage supports a transfer list as the second argument,
-    // but TypeScript sees self as Window here, so we cast accordingly.
-    const msg: DownloadZipWorkerOutput = { type: "blob", data: result }
-    ;(self.postMessage as (message: unknown, transfer: Transferable[]) => void)(msg, [result.buffer])
+    if (w) {
+      // Drain queued writes (and the close) before declaring the download done.
+      await writePromise
+      self.postMessage({ type: "done" } satisfies DownloadZipWorkerOutput)
+    } else {
+      const blob = new Blob(chunks, { type: "application/zip" })
+      self.postMessage({ type: "blob", blob } satisfies DownloadZipWorkerOutput)
+    }
   } catch (err) {
+    if (writable) {
+      // Cancel partial output so the file is not left half-written.
+      try {
+        await writable.abort()
+      } catch {
+        // Ignore abort errors.
+      }
+      // Drain any queued writes that reject from the abort to avoid unhandled rejections.
+      await writePromise.catch(() => {})
+    }
     const message = err instanceof Error ? err.message : String(err)
     self.postMessage({ type: "error", message } satisfies DownloadZipWorkerOutput)
   }
