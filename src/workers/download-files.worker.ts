@@ -9,6 +9,46 @@ import type { DownloadFile, DownloadFilesWorkerInput, DownloadFilesWorkerOutput 
 
 import { safeFilename } from "@/path"
 
+// Returns true if the directory already contains an entry with the given name (file or directory).
+// The File System Access API does not expose an atomic "create-if-not-exists", so we approximate
+// it with a lookup; there is a small benign race window between the lookup and the subsequent create.
+async function entryExists(directoryHandle: FileSystemDirectoryHandle, name: string): Promise<boolean> {
+  try {
+    await directoryHandle.getFileHandle(name)
+    return true
+  } catch (err) {
+    if (err instanceof DOMException) {
+      if (err.name === "NotFoundError") {
+        return false
+      }
+      if (err.name === "TypeMismatchError") {
+        // Something with this name exists (e.g. a directory); treat as taken.
+        return true
+      }
+    }
+    throw err
+  }
+}
+
+// Returns name (or name_1.ext, name_2.ext, ...) - the first variant that does not collide with
+// an existing entry in the directory. Splits on the first dot so compound extensions like
+// .tar.gz survive intact (archive.tar.gz -> archive_1.tar.gz). Leading-dot ("hidden") names are
+// treated as having no extension so the suffix lands at the end.
+async function uniqueFilename(directoryHandle: FileSystemDirectoryHandle, name: string): Promise<string> {
+  if (!(await entryExists(directoryHandle, name))) {
+    return name
+  }
+  const dotIndex = name.indexOf(".")
+  const prefix = dotIndex > 0 ? name.substring(0, dotIndex) : name
+  const suffix = dotIndex > 0 ? name.substring(dotIndex) : ""
+  for (let n = 1; ; n++) {
+    const candidate = `${prefix}_${n}${suffix}`
+    if (!(await entryExists(directoryHandle, candidate))) {
+      return candidate
+    }
+  }
+}
+
 let cancelController: AbortController | null = null
 
 self.onmessage = (e: MessageEvent<DownloadFilesWorkerInput>) => {
@@ -40,8 +80,9 @@ async function run(files: DownloadFile[], directoryHandle: FileSystemDirectoryHa
       }
 
       // Sanitize the name so OS/filesystem-invalid characters and Windows-reserved device names
-      // don't make getFileHandle reject.
-      const fileHandle = await directoryHandle.getFileHandle(safeFilename(file.name), { create: true })
+      // don't make getFileHandle reject. Then dedupe so we never overwrite an existing entry.
+      const targetName = await uniqueFilename(directoryHandle, safeFilename(file.name))
+      const fileHandle = await directoryHandle.getFileHandle(targetName, { create: true })
       const writable = await fileHandle.createWritable()
       // pipeTo closes the writable on success and aborts it (cleaning up the swap file)
       // when signal fires, so cancellation does not leave a partial file at the target path.
