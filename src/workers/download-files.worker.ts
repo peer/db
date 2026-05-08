@@ -66,6 +66,10 @@ self.onmessage = (e: MessageEvent<DownloadFilesWorkerInput>) => {
 }
 
 async function run(files: DownloadFile[], directoryHandle: FileSystemDirectoryHandle, signal: AbortSignal) {
+  // Tracks the name of the file currently being written. Set after getFileHandle materializes
+  // the 0-byte placeholder, cleared after pipeTo finishes (close has run, content is on disk).
+  // On cancel/error, anything still set here is a partial file we should remove.
+  let pendingName: string | null = null
   try {
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
@@ -82,16 +86,29 @@ async function run(files: DownloadFile[], directoryHandle: FileSystemDirectoryHa
       // Sanitize the name so OS/filesystem-invalid characters and Windows-reserved device names
       // don't make getFileHandle reject. Then dedupe so we never overwrite an existing entry.
       const targetName = await uniqueFilename(directoryHandle, safeFilename(file.name))
+      pendingName = targetName
       const fileHandle = await directoryHandle.getFileHandle(targetName, { create: true })
       const writable = await fileHandle.createWritable()
       // pipeTo closes the writable on success and aborts it (cleaning up the swap file)
       // when signal fires, so cancellation does not leave a partial file at the target path.
       await response.body.pipeTo(writable, { signal })
+      // pipeTo resolved => close ran => content is committed. Anything from now on counts as
+      // a "fully written" file and should not be removed if a later iteration cancels.
+      pendingName = null
     }
 
     self.postMessage({ type: "progress", completed: files.length, total: files.length, currentFile: "" } satisfies DownloadFilesWorkerOutput)
     self.postMessage({ type: "done" } satisfies DownloadFilesWorkerOutput)
   } catch (err) {
+    // Remove the placeholder for the file we were in the middle of writing. Earlier iterations
+    // already cleared pendingName once their close() succeeded, so they won't be touched.
+    if (pendingName !== null) {
+      try {
+        await directoryHandle.removeEntry(pendingName)
+      } catch {
+        // Best-effort cleanup; ignore failures (NotFoundError, permission, etc.).
+      }
+    }
     if (signal.aborted) {
       // Cancelled by the main thread: report a clean completion so the overlay closes.
       self.postMessage({ type: "done" } satisfies DownloadFilesWorkerOutput)
