@@ -2,8 +2,11 @@
 // When the main thread provides a FileSystemFileHandle, the worker streams zip output
 // directly to disk via createWritable. Otherwise it assembles a Blob and posts it back
 // for the <a download> fallback.
+//
+// Supports a graceful cancel: the main thread can post { type: "cancel" } and the worker
+// aborts any in-flight fetch / writable, then posts a final "done".
 
-import type { DownloadZipWorkerInput, DownloadZipWorkerOutput } from "@/types"
+import type { DownloadWorkerFile, DownloadZipWorkerInput, DownloadZipWorkerOutput } from "@/types"
 
 import { Zip, ZipDeflate, ZipPassThrough } from "fflate"
 
@@ -33,9 +36,23 @@ function isCompressedType(contentType: string | null): boolean {
   return compressedMediaTypes.has(mediaType)
 }
 
-self.onmessage = async (e: MessageEvent<DownloadZipWorkerInput>) => {
-  const { files, fileHandle } = e.data
+let cancelController: AbortController | null = null
 
+self.onmessage = (e: MessageEvent<DownloadZipWorkerInput>) => {
+  const msg = e.data
+  if (msg.type === "cancel") {
+    cancelController?.abort()
+    return
+  }
+  if (cancelController !== null) {
+    // Already started; ignore duplicate "start".
+    return
+  }
+  cancelController = new AbortController()
+  void run(msg.files, msg.fileHandle, cancelController.signal)
+}
+
+async function run(files: DownloadWorkerFile[], fileHandle: FileSystemFileHandle | null, signal: AbortSignal) {
   // When fileHandle is provided we stream into the writable; otherwise we accumulate chunks
   // into a Blob and post it back.
   const chunks: Uint8Array<ArrayBuffer>[] = []
@@ -78,7 +95,7 @@ self.onmessage = async (e: MessageEvent<DownloadZipWorkerInput>) => {
       const file = files[i]
       self.postMessage({ type: "progress", completed: i, total: files.length, currentFile: file.name } satisfies DownloadZipWorkerOutput)
 
-      const response = await fetch(file.url)
+      const response = await fetch(file.url, { signal })
       if (!response.ok) {
         throw new Error(`failed to fetch ${file.name}: ${response.status} ${response.statusText}`)
       }
@@ -99,6 +116,8 @@ self.onmessage = async (e: MessageEvent<DownloadZipWorkerInput>) => {
 
       // Stream the response body into the zip entry so we don't buffer the whole source
       // file in memory. We hold one chunk back so the last push can carry final=true.
+      // The body is auto-cancelled when signal aborts (fetch wires the signal through),
+      // which makes reader.read() reject and exits the loop via the catch.
       const reader = response.body.getReader()
       let buffered: Uint8Array | null = null
       while (true) {
@@ -138,7 +157,7 @@ self.onmessage = async (e: MessageEvent<DownloadZipWorkerInput>) => {
     }
   } catch (err) {
     if (writable) {
-      // Cancel partial output so the file is not left half-written.
+      // Cancel partial output so the swap file is cleaned up and the original target is untouched.
       try {
         await writable.abort()
       } catch {
@@ -147,7 +166,12 @@ self.onmessage = async (e: MessageEvent<DownloadZipWorkerInput>) => {
       // Drain any queued writes that reject from the abort to avoid unhandled rejections.
       await writePromise.catch(() => {})
     }
-    const message = err instanceof Error ? err.message : String(err)
-    self.postMessage({ type: "error", message } satisfies DownloadZipWorkerOutput)
+    if (signal.aborted) {
+      // Cancelled by the main thread: report a clean completion so the overlay closes.
+      self.postMessage({ type: "done" } satisfies DownloadZipWorkerOutput)
+    } else {
+      const message = err instanceof Error ? err.message : String(err)
+      self.postMessage({ type: "error", message } satisfies DownloadZipWorkerOutput)
+    }
   }
 }

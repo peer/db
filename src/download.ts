@@ -33,24 +33,41 @@ export function useDownload(abortController: AbortController, updateSearchSessio
   function runWorker(worker: Worker, message: unknown): Promise<void> {
     return new Promise((resolve) => {
       let resolved = false
+      let terminateTimer: ReturnType<typeof setTimeout> | null = null
 
       function finish() {
         if (resolved) {
           return
         }
         resolved = true
+        if (terminateTimer !== null) {
+          clearTimeout(terminateTimer)
+          terminateTimer = null
+        }
         abortController.signal.removeEventListener("abort", abortHandler)
+        cancelCurrent = null
         worker.onmessage = null
         worker.onerror = null
-        cancelCurrent = null
+        // Terminate on every path (success, error, graceful cancel, hard timeout) so the
+        // worker thread does not linger waiting for GC.
+        worker.terminate()
         resolve()
       }
 
       function abortHandler() {
-        worker.terminate()
-        finish()
+        // Already shutting down. Do not restart the terminate timer.
+        if (terminateTimer !== null) {
+          return
+        }
+        // Ask the worker to abort cleanly. It will post "done" / "error", which routes through
+        // onmessage below and calls finish() (clearing the timer and terminating). If the worker
+        // does not respond within 1 second, the timer fires finish() to force-terminate.
+        worker.postMessage({ type: "cancel" })
+        terminateTimer = setTimeout(finish, 1000) // 1 second.
       }
 
+      // Both user-initiated cancel and owner abort go through the same handler: graceful first,
+      // hard terminate after a 1-second grace period.
       cancelCurrent = abortHandler
 
       abortController.signal.addEventListener("abort", abortHandler, { once: true })
