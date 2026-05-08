@@ -51,7 +51,6 @@ const abortController = new AbortController()
 const upload = useTemplateRef<HTMLInputElement>("upload")
 
 const {
-  isDownloading,
   downloadMode,
   completed,
   total,
@@ -362,7 +361,7 @@ async function onDownloadFiles() {
   </Teleport>
 
   <DownloadOverlay
-    :open="(isDownloading && total > 0) || downloadError !== null"
+    :open="total > 0 || downloadError !== null"
     :mode="downloadMode"
     :completed="completed"
     :total="total"
