@@ -6,6 +6,7 @@ import type {
   ClientSearchSession,
   DocumentBeginEditResponse,
   DocumentCreateResponse,
+  DownloadFile,
   FiltersState,
   FilterStateChange,
   RefFilterState,
@@ -21,6 +22,8 @@ import { useRouter } from "vue-router"
 import { postJSON } from "@/api"
 import Button from "@/components/Button.vue"
 import siteContext from "@/context"
+import { useDownload } from "@/download"
+import DownloadOverlay from "@/partials/DownloadOverlay.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
@@ -46,8 +49,18 @@ const abortController = new AbortController()
 
 const upload = useTemplateRef<HTMLInputElement>("upload")
 
+const { isDownloading, downloadMode, completed, total, currentFile, error: downloadError, startZipDownload, startBulkDownload, cancelDownload } = useDownload()
+
+// TODO: Replace with real file list from search results.
+const testFiles: DownloadFile[] = [
+  { name: "License", url: "/LICENSE.txt" },
+  { name: "Notice", url: "/NOTICE.txt" },
+]
+
 onBeforeUnmount(() => {
   abortController.abort()
+  // Terminate any active download worker so it does not outlive this view.
+  cancelDownload()
 })
 
 const searchEl = useTemplateRef<HTMLElement>("searchEl")
@@ -255,6 +268,22 @@ async function onViewChange(view: ViewType) {
 
   await onSearchSessionUpdate({ ...searchSession.value!, view })
 }
+
+async function onDownloadZip() {
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  await startZipDownload(testFiles)
+}
+
+async function onDownloadFiles() {
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  await startBulkDownload(testFiles)
+}
 </script>
 
 <template>
@@ -296,6 +325,8 @@ async function onViewChange(view: ViewType) {
       :update-search-session-progress="updateSearchSessionProgress"
       @filter-change="onFilterChange"
       @view-change="onViewChange"
+      @download-zip="onDownloadZip"
+      @download-files="onDownloadFiles"
     />
 
     <SearchResultsTable
@@ -309,6 +340,8 @@ async function onViewChange(view: ViewType) {
       :update-search-session-progress="updateSearchSessionProgress"
       @filter-change="onFilterChange"
       @view-change="onViewChange"
+      @download-zip="onDownloadZip"
+      @download-files="onDownloadFiles"
     />
   </div>
 
@@ -319,4 +352,14 @@ async function onViewChange(view: ViewType) {
   <Teleport v-if="searchSessionError || searchResultsError" to="footer">
     <Footer class="border-t border-slate-50 bg-slate-200 shadow-sm" />
   </Teleport>
+
+  <DownloadOverlay
+    :open="isDownloading || downloadError !== null"
+    :mode="downloadMode"
+    :completed="completed"
+    :total="total"
+    :current-file="currentFile"
+    :error="downloadError"
+    @cancel="cancelDownload"
+  />
 </template>

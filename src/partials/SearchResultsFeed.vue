@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance, DeepReadonly } from "vue"
 
-import type { ClientSearchSession, DownloadFile, FiltersState, FilterStateChange, Result, ViewType } from "@/types"
+import type { ClientSearchSession, FiltersState, FilterStateChange, Result, ViewType } from "@/types"
 
 import { FunnelIcon } from "@heroicons/vue/20/solid"
 import { onBeforeUnmount, ref, toRef, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
-import { useDownload } from "@/download"
-import DownloadOverlay from "@/partials/DownloadOverlay.vue"
 import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResult from "@/partials/SearchResult.vue"
@@ -35,6 +33,8 @@ const props = defineProps<{
 const $emit = defineEmits<{
   filterChange: [change: FilterStateChange]
   viewChange: [value: ViewType]
+  downloadZip: []
+  downloadFiles: []
 }>()
 
 const { t } = useI18n({ useScope: "global" })
@@ -54,14 +54,6 @@ const {
 
 const filtersEl = useTemplateRef<HTMLElement>("filtersEl")
 const filtersEnabled = ref(false)
-
-const { isDownloading, downloadMode, completed, total, currentFile, error: downloadError, startZipDownload, startBulkDownload, cancelDownload } = useDownload()
-
-// TODO: Replace with real file list from search results.
-const testFiles: DownloadFile[] = [
-  { name: "License", url: "/LICENSE.txt" },
-  { name: "Notice", url: "/NOTICE.txt" },
-]
 
 const filtersProgress = useProgress()
 const {
@@ -157,8 +149,8 @@ function onFilters() {
         :search-total="searchTotal"
         :search-more-than-total="searchMoreThanTotal"
         @view-change="(v) => $emit('viewChange', v)"
-        @download-zip="startZipDownload(testFiles)"
-        @download-files="startBulkDownload(testFiles)"
+        @download-zip="$emit('downloadZip')"
+        @download-files="$emit('downloadFiles')"
       />
 
       <template v-if="searchTotal !== null && searchTotal > 0">
@@ -249,14 +241,4 @@ function onFilters() {
   <Teleport v-if="(searchTotal !== null && searchTotal > 0 && !searchHasMore) || searchTotal === 0" to="footer">
     <Footer class="border-t border-slate-50 bg-slate-200 shadow-sm" />
   </Teleport>
-
-  <DownloadOverlay
-    :open="isDownloading || downloadError !== null"
-    :mode="downloadMode"
-    :completed="completed"
-    :total="total"
-    :current-file="currentFile"
-    :error="downloadError"
-    @cancel="cancelDownload"
-  />
 </template>
