@@ -1,6 +1,6 @@
 import type { Ref } from "vue"
 
-import type { DownloadFile, DownloadFilesWorkerOutput, DownloadZipWorkerOutput } from "@/types"
+import type { DownloadFile, DownloadFilesWorkerInput, DownloadFilesWorkerOutput, DownloadZipWorkerInput, DownloadZipWorkerOutput } from "@/types"
 
 import { ref } from "vue"
 
@@ -30,7 +30,7 @@ export function useDownload(abortController: AbortController, updateSearchSessio
   }
 
   // Wrap a worker in a promise that resolves when the worker finishes, errors, is cancelled, or the owner aborts.
-  function runWorker(worker: Worker, message: unknown): Promise<void> {
+  function runWorker(worker: Worker, message: Extract<DownloadZipWorkerInput | DownloadFilesWorkerInput, { type: "start" }>): Promise<void> {
     return new Promise((resolve) => {
       let resolved = false
       let terminateTimer: ReturnType<typeof setTimeout> | null = null
