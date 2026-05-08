@@ -5,7 +5,7 @@
 // Supports a graceful cancel: the main thread can post { type: "cancel" } and the worker
 // aborts pipeTo (which aborts the writable too), then posts a final "done".
 
-import type { DownloadFilesWorkerInput, DownloadFilesWorkerOutput, DownloadWorkerFile } from "@/types"
+import type { DownloadFile, DownloadFilesWorkerInput, DownloadFilesWorkerOutput } from "@/types"
 
 let cancelController: AbortController | null = null
 
@@ -23,7 +23,7 @@ self.onmessage = (e: MessageEvent<DownloadFilesWorkerInput>) => {
   void run(msg.files, msg.directoryHandle, cancelController.signal)
 }
 
-async function run(files: DownloadWorkerFile[], directoryHandle: FileSystemDirectoryHandle, signal: AbortSignal) {
+async function run(files: DownloadFile[], directoryHandle: FileSystemDirectoryHandle, signal: AbortSignal) {
   try {
     for (let i = 0; i < files.length; i++) {
       const file = files[i]

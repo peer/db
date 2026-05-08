@@ -6,7 +6,7 @@
 // Supports a graceful cancel: the main thread can post { type: "cancel" } and the worker
 // aborts any in-flight fetch / writable, then posts a final "done".
 
-import type { DownloadWorkerFile, DownloadZipWorkerInput, DownloadZipWorkerOutput } from "@/types"
+import type { DownloadFile, DownloadZipWorkerInput, DownloadZipWorkerOutput } from "@/types"
 
 import { Zip, ZipDeflate, ZipPassThrough } from "fflate"
 
@@ -52,7 +52,7 @@ self.onmessage = (e: MessageEvent<DownloadZipWorkerInput>) => {
   void run(msg.files, msg.fileHandle, cancelController.signal)
 }
 
-async function run(files: DownloadWorkerFile[], fileHandle: FileSystemFileHandle | null, signal: AbortSignal) {
+async function run(files: DownloadFile[], fileHandle: FileSystemFileHandle | null, signal: AbortSignal) {
   // When fileHandle is provided we stream into the writable; otherwise we accumulate chunks
   // into a Blob and post it back.
   const chunks: Uint8Array<ArrayBuffer>[] = []
