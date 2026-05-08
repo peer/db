@@ -29,17 +29,18 @@ export function useDownload(abortController: AbortController, updateSearchSessio
     URL.revokeObjectURL(url)
   }
 
-  // Wrap a worker in a promise that resolves when the worker finishes, errors, is cancelled, or the owner aborts.
+  // Wrap a worker in a promise that resolves when the worker finishes successfully or is cancelled,
+  // and rejects when the worker reports an error.
   function runWorker(worker: Worker, message: Extract<DownloadZipWorkerInput | DownloadFilesWorkerInput, { type: "start" }>): Promise<void> {
-    return new Promise((resolve) => {
-      let resolved = false
+    return new Promise((resolve, reject) => {
+      let settled = false
       let terminateTimer: ReturnType<typeof setTimeout> | null = null
 
-      function finish() {
-        if (resolved) {
+      function finish(err?: Error) {
+        if (settled) {
           return
         }
-        resolved = true
+        settled = true
         if (terminateTimer !== null) {
           clearTimeout(terminateTimer)
           terminateTimer = null
@@ -51,7 +52,11 @@ export function useDownload(abortController: AbortController, updateSearchSessio
         // Terminate on every path (success, error, graceful cancel, hard timeout) so the
         // worker thread does not linger waiting for GC.
         worker.terminate()
-        resolve()
+        if (err !== undefined) {
+          reject(err)
+        } else {
+          resolve()
+        }
       }
 
       function abortHandler() {
@@ -79,19 +84,22 @@ export function useDownload(abortController: AbortController, updateSearchSessio
           total.value = msg.total
           currentFile.value = msg.currentFile
         } else if (msg.type === "blob") {
-          handleZipBlob(msg.blob)
+          try {
+            handleZipBlob(msg.blob)
+          } catch (err) {
+            finish(err instanceof Error ? err : new Error(String(err)))
+            return
+          }
           finish()
         } else if (msg.type === "done") {
           finish()
         } else if (msg.type === "error") {
-          error.value = msg.message
-          finish()
+          finish(new Error(msg.message))
         }
       }
 
       worker.onerror = (e) => {
-        error.value = e.message || "Worker error."
-        finish()
+        finish(new Error(e.message || "worker error"))
       }
 
       worker.postMessage(message)
@@ -139,6 +147,9 @@ export function useDownload(abortController: AbortController, updateSearchSessio
 
       const worker = new Worker(new URL("@/workers/download-zip.worker.ts", import.meta.url), { type: "module" })
       await runWorker(worker, { type: "start", files, fileHandle })
+    } catch (err) {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      error.value = `${err}`
     } finally {
       // Reset total so the overlay's "open" condition (total > 0) flips back to closed.
       total.value = 0
@@ -178,6 +189,9 @@ export function useDownload(abortController: AbortController, updateSearchSessio
 
       const worker = new Worker(new URL("@/workers/download-files.worker.ts", import.meta.url), { type: "module" })
       await runWorker(worker, { type: "start", files, directoryHandle })
+    } catch (err) {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      error.value = `${err}`
     } finally {
       // Reset total so the overlay's "open" condition (total > 0) flips back to closed.
       total.value = 0
