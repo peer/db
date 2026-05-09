@@ -9,4 +9,11 @@ declare module "vue-router" {
       href: string
     }
   }
+
+  interface RouteMeta {
+    // True if this SPA route has a corresponding Vue view. False for routes
+    // that are registered for URL-building purposes only and are served
+    // directly by the backend.
+    hasView?: boolean
+  }
 }

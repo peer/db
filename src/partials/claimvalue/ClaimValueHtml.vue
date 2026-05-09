@@ -3,12 +3,20 @@ import type { DeepReadonly } from "vue"
 
 import type { HTMLClaim } from "@/document"
 
-defineProps<{
+import { computed } from "vue"
+
+import { useInternalLinksClick, useTransformedHtml } from "@/internal-links"
+
+const props = defineProps<{
   claim: HTMLClaim | DeepReadonly<HTMLClaim> | null
 }>()
+
+const html = computed(() => props.claim?.html ?? "")
+const transformedHtml = useTransformedHtml(html)
+const onClick = useInternalLinksClick()
 </script>
 
 <template>
   <!-- eslint-disable-next-line vue/no-v-html -->
-  <div v-if="claim" class="prose max-w-none prose-slate" v-html="claim.html"></div>
+  <div v-if="claim" class="prose max-w-none prose-slate" @click="onClick" v-html="transformedHtml"></div>
 </template>

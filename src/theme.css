@@ -146,6 +146,40 @@
     @apply text-primary-300;
   }
 
+  /*
+    Reserve space for the icon via padding-left on the link so its text continues to wrap naturally with surrounding prose.
+    Inline padding-left only applies to the leading edge of the link, so wrapped lines hug the parent's normal text flow
+    without an extra indent. The icon itself is rendered as an absolutely-positioned ::before pinned to the link's first
+    line-fragment, so it can't be orphaned on its own line.
+   */
+  .pd-link-file,
+  .pd-link-external {
+    position: relative;
+    padding-left: 1.15em;
+  }
+
+  .pd-link-file::before,
+  .pd-link-external::before {
+    position: absolute;
+    top: 0.1em;
+    left: 0;
+    width: 1em;
+    height: 1em;
+    content: "";
+    background-color: currentColor;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: contain;
+  }
+
+  .pd-link-file::before {
+    mask-image: var(--pd-icon-paperclip);
+  }
+
+  .pd-link-external::before {
+    mask-image: var(--pd-icon-globe-alt);
+  }
+
   .pd-progressbar-short,
   .pd-progressbar-long {
     animation-duration: 2.2s;

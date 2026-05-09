@@ -742,6 +742,18 @@ export class ClaimTypes implements Claims {
     return (Object.keys(CLAIM_TYPES_MAP) as ClaimTypeName[]).flatMap((k) => this[k] ?? [])
   }
 
+  // AllClaimsWithSub returns all claims, including sub-claims, recursively.
+  AllClaimsWithSub(): Claim[] {
+    const all: Claim[] = []
+    for (const claim of this.AllClaims()) {
+      all.push(claim)
+      if (claim.sub !== undefined) {
+        all.push(...claim.sub.AllClaimsWithSub())
+      }
+    }
+    return all
+  }
+
   // Validate validates all claims, including nested sub-claims.
   async Validate(): Promise<void> {
     const ids = new Set<string>()

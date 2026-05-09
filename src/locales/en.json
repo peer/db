@@ -96,7 +96,9 @@
       "downloadFiles": "Download files to folder"
     },
     "DownloadOverlay": {
+      "preparing": "Preparing...",
       "downloadingFile": "Downloading file {completed} of {total}.",
+      "noFiles": "No files to download.",
       "error": "Error downloading file."
     },
     "SearchResultsFeed": {

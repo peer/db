@@ -6,7 +6,6 @@ import type {
   ClientSearchSession,
   DocumentBeginEditResponse,
   DocumentCreateResponse,
-  DownloadFile,
   FiltersState,
   FilterStateChange,
   RefFilterState,
@@ -50,14 +49,6 @@ const abortController = new AbortController()
 
 const upload = useTemplateRef<HTMLInputElement>("upload")
 
-const { isDownloading, completed, total, currentFile, error: downloadError, startZipDownload, startBulkDownload, cancelDownload } = useDownload(abortController)
-
-// TODO: Replace with real file list from search results.
-const testFiles: DownloadFile[] = [
-  { name: "License", url: "/LICENSE.txt" },
-  { name: "Notice", url: "/NOTICE.txt" },
-]
-
 onBeforeUnmount(() => {
   // Aborting the controller also tears down any active download worker via useDownload's abort listener.
   abortController.abort()
@@ -77,6 +68,17 @@ const {
   searchProgress,
 )
 const { results: searchResults, total: searchTotal, moreThanTotal: searchMoreThanTotal, error: searchResultsError } = useSearch(searchSession, searchEl, searchProgress)
+
+const {
+  downloadingPhase,
+  completed,
+  total,
+  currentFile,
+  error: downloadError,
+  startZipDownload,
+  startBulkDownload,
+  cancelDownload,
+} = useDownload(abortController, router, searchResults)
 
 // A non-read-only version of filters state so that we can modify it as necessary.
 const filtersState = ref<FiltersState>({ ref: {}, amount: {}, time: {} })
@@ -272,7 +274,7 @@ async function onDownloadZip() {
     return
   }
 
-  await startZipDownload(testFiles)
+  await startZipDownload()
 }
 
 async function onDownloadFiles() {
@@ -280,7 +282,7 @@ async function onDownloadFiles() {
     return
   }
 
-  await startBulkDownload(testFiles)
+  await startBulkDownload()
 }
 </script>
 
@@ -321,7 +323,7 @@ async function onDownloadFiles() {
       :search-progress="searchProgress"
       :filters-state="filtersState"
       :update-search-session-progress="updateSearchSessionProgress"
-      :is-downloading="isDownloading"
+      :is-downloading="downloadingPhase !== null"
       @filter-change="onFilterChange"
       @view-change="onViewChange"
       @download-zip="onDownloadZip"
@@ -337,7 +339,7 @@ async function onDownloadFiles() {
       :search-progress="searchProgress"
       :filters-state="filtersState"
       :update-search-session-progress="updateSearchSessionProgress"
-      :is-downloading="isDownloading"
+      :is-downloading="downloadingPhase !== null"
       @filter-change="onFilterChange"
       @view-change="onViewChange"
       @download-zip="onDownloadZip"
@@ -354,7 +356,8 @@ async function onDownloadFiles() {
   </Teleport>
 
   <DownloadOverlay
-    :open="(isDownloading && total > 0) || downloadError !== null"
+    :open="(downloadingPhase !== null && downloadingPhase !== 'picking') || downloadError !== null"
+    :downloading-phase="downloadingPhase"
     :completed="completed"
     :total="total"
     :current-file="currentFile"

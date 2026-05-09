@@ -173,6 +173,7 @@ export type SiteContext = {
   features: {
     searchResultsTable?: boolean
     editButtons?: boolean
+    downloadButtons?: boolean
   }
 }
 
@@ -283,6 +284,8 @@ export type DownloadFile = {
   name: string
   url: string
 }
+
+export type DownloadingPhase = "picking" | "preparing" | "downloading" | "empty"
 
 export type DownloadZipWorkerInput =
   // When fileHandle is non-null, the worker streams the zip directly to this handle. When null,

@@ -7,6 +7,7 @@ import { computed, ref, watch } from "vue"
 import { useRouter } from "vue-router"
 
 import { getURL } from "@/api"
+import Link from "@/components/Link.vue"
 import { IDENTIFIER_LINK_TEMPLATE } from "@/core"
 import { D, getBestClaimOfType } from "@/document"
 import { useProgress } from "@/progress"
@@ -77,7 +78,7 @@ const identifierUrl = computed(() => {
 
 <template>
   <template v-if="claim"
-    ><a v-if="identifierUrl" :href="identifierUrl" class="link break-all">{{ claim.value }}</a
+    ><Link v-if="identifierUrl" :iri="identifierUrl">{{ claim.value }}</Link
     ><template v-else>{{ claim.value }}</template></template
   >
 </template>

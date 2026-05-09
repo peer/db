@@ -298,6 +298,27 @@ export function encodeQuery(query: QueryValuesWithOptional): QueryValues {
   return values
 }
 
+// delay resolves after ms milliseconds, or throws the signal's abort reason
+// if the signal aborts (or is already aborted) before then.
+export async function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  await new Promise<void>((resolve) => {
+    if (signal?.aborted) {
+      resolve()
+      return
+    }
+    const t = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort)
+      resolve()
+    }, ms)
+    function onAbort() {
+      clearTimeout(t)
+      resolve()
+    }
+    signal?.addEventListener("abort", onAbort, { once: true })
+  })
+  signal?.throwIfAborted()
+}
+
 // Polyfill for AbortSignal.any.
 export function anySignal(...signals: AbortSignal[]): AbortSignal {
   if ("any" in AbortSignal) {
