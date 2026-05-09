@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"gitlab.com/tozd/go/errors"
@@ -18,6 +19,14 @@ import (
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
+
+// rfc5987Filename returns filename percent-encoded for use as the value of a
+// Content-Disposition filename* parameter. url.PathEscape leaves the apostrophe
+// unencoded, but in RFC 5987's value-chars an apostrophe is the language-tag
+// delimiter and breaks parsers; ReplaceAll fixes that one specific over-allowance.
+func rfc5987Filename(filename string) string {
+	return strings.ReplaceAll(url.PathEscape(filename), "'", "%27")
+}
 
 // 10 MB.
 const maxPayloadSize = int64(10 << 20)
@@ -358,7 +367,7 @@ func (s *Service) StorageGetGet(w http.ResponseWriter, req *http.Request, params
 	w.Header().Set("Etag", metadata.Etag)
 	w.Header().Set("Version", version.String())
 	if metadata.Filename != "" {
-		w.Header().Set("Content-Disposition", `inline; filename*=UTF-8''`+url.PathEscape(metadata.Filename))
+		w.Header().Set("Content-Disposition", `inline; filename*=UTF-8''`+rfc5987Filename(metadata.Filename))
 	}
 
 	http.ServeContent(w, req, "", time.Time(metadata.At), bytes.NewReader(data))
@@ -409,7 +418,7 @@ func (s *Service) StorageChangesGetGet(w http.ResponseWriter, req *http.Request,
 	w.Header().Set("Etag", metadata.Etag)
 	w.Header().Set("Version", version.String())
 	if metadata.Filename != "" {
-		w.Header().Set("Content-Disposition", `inline; filename*=UTF-8''`+url.PathEscape(metadata.Filename))
+		w.Header().Set("Content-Disposition", `inline; filename*=UTF-8''`+rfc5987Filename(metadata.Filename))
 	}
 
 	http.ServeContent(w, req, "", time.Time(metadata.At), bytes.NewReader(data))
