@@ -92,7 +92,7 @@
       "resultsFound": "1 result found. | {count} results found.",
       "resultsFoundMoreThan": "More than 1 result found. | More than {count} results found.",
       "noResults": "No results found.",
-      "downloadZip": "Download as zip",
+      "downloadZip": "Download files as zip",
       "downloadFiles": "Download files to folder"
     },
     "DownloadOverlay": {

@@ -92,7 +92,7 @@
       "resultsFound": "1 najden rezultat. | {count} najdena rezultata. | {count} najdeni rezultati. | {count} najdenih rezultatov.",
       "resultsFoundMoreThan": "Več kot 1 najden rezultat. | Več kot {count} najdena rezultata. | Več kot {count} najdeni rezultati. | Več kot {count} najdenih rezultatov.",
       "noResults": "Ni najdenih rezultatov.",
-      "downloadZip": "Prenesi kot zip",
+      "downloadZip": "Prenesi datoteke kot zip",
       "downloadFiles": "Prenesi datoteke v mapo"
     },
     "DownloadOverlay": {
