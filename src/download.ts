@@ -14,7 +14,7 @@ import type {
 import { ref } from "vue"
 
 import { getURL, headURLDirect } from "@/api"
-import { D, LinkClaim } from "@/document"
+import { D, HTMLClaim, LinkClaim } from "@/document"
 import { delay } from "@/utils"
 
 // RFC 5987 extended form: filename*=<charset>'<lang>'<percent-encoded value>.
@@ -226,16 +226,30 @@ export function useDownload(abortController: AbortController, router: Router, re
     // reference the same file.
     const files = new Map<string, Promise<DownloadFile>>()
 
+    function recordFile(iri: string) {
+      const id = matchStorageRoute(iri)
+      if (id !== null && !files.has(id)) {
+        total.value += 1
+        files.set(id, fetchFileMetadata(id, signal))
+      }
+    }
+
     const docPromises = snapshot.map(async (r) => {
       const url = router.apiResolve({ name: "DocumentGet", params: { id: r.id } }).href
       const { doc: rawDoc } = await getURL<object>(url, null, signal, null)
       const d = new D(rawDoc)
       for (const claim of d.claims.AllClaimsWithSub()) {
         if (claim instanceof LinkClaim) {
-          const id = matchStorageRoute(claim.iri)
-          if (id !== null && !files.has(id)) {
-            total.value += 1
-            files.set(id, fetchFileMetadata(id, signal))
+          // Extract every link claim that points at our StorageGet route.
+          recordFile(claim.iri)
+        } else if (claim instanceof HTMLClaim) {
+          // Parse the HTML and extract every <a href="..."> that points at our StorageGet route.
+          const parsed = new DOMParser().parseFromString(claim.html, "text/html")
+          for (const a of parsed.querySelectorAll("a[href]")) {
+            const href = a.getAttribute("href")
+            if (href !== null) {
+              recordFile(href)
+            }
           }
         }
       }
