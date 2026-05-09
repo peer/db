@@ -12,30 +12,25 @@ import { Zip, ZipDeflate, ZipPassThrough } from "fflate"
 
 import { safeFilename } from "@/path"
 
-// Media types that are already compressed and should not be deflated.
-const compressedMediaTypes = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-  "image/avif",
-  "video/mp4",
-  "video/webm",
-  "audio/mpeg",
-  "audio/ogg",
-  "application/zip",
-  "application/gzip",
-  "application/x-7z-compressed",
-  "application/x-rar-compressed",
-])
-
-function isCompressedType(contentType: string | null): boolean {
+// Media types worth deflating: text/*, JSON, XML, and structured-syntax suffixes
+// like application/ld+json or application/atom+xml. Everything else (images, video,
+// audio, archives, office documents, PDFs, ...) is assumed to already be compressed.
+function isCompressibleType(contentType: string | null): boolean {
   if (!contentType) {
     return false
   }
   // Extract media type without parameters.
   const mediaType = contentType.split(";")[0].trim().toLowerCase()
-  return compressedMediaTypes.has(mediaType)
+  if (mediaType.startsWith("text/")) {
+    return true
+  }
+  if (mediaType === "application/json" || mediaType === "application/xml") {
+    return true
+  }
+  if (mediaType.startsWith("application/") && (mediaType.endsWith("+json") || mediaType.endsWith("+xml"))) {
+    return true
+  }
+  return false
 }
 
 let cancelController: AbortController | null = null
@@ -110,12 +105,13 @@ async function run(files: DownloadFile[], fileHandle: FileSystemFileHandle | nul
       // Sanitize the entry name so the archive is portable across OS extractors.
       const entryName = safeFilename(file.name)
 
-      // Use passthrough for already-compressed files, deflate for others.
+      // Deflate text-like payloads; pass everything else through since it is generally
+      // already compressed (images, video, audio, archives, office documents, ...).
       let entry: ZipPassThrough | ZipDeflate
-      if (isCompressedType(contentType)) {
-        entry = new ZipPassThrough(entryName)
-      } else {
+      if (isCompressibleType(contentType)) {
         entry = new ZipDeflate(entryName, { level: 6 })
+      } else {
+        entry = new ZipPassThrough(entryName)
       }
       zip.add(entry)
 
