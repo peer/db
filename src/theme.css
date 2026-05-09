@@ -152,14 +152,14 @@
     without an extra indent. The icon itself is rendered as an absolutely-positioned ::before pinned to the link's first
     line-fragment, so it can't be orphaned on its own line.
    */
-  .prose .pd-link-file,
-  .prose .pd-link-external {
+  .pd-link-file,
+  .pd-link-external {
     position: relative;
     padding-left: 1.15em;
   }
 
-  .prose .pd-link-file::before,
-  .prose .pd-link-external::before {
+  .pd-link-file::before,
+  .pd-link-external::before {
     position: absolute;
     top: 0.1em;
     left: 0;
@@ -172,11 +172,11 @@
     mask-size: contain;
   }
 
-  .prose .pd-link-file::before {
+  .pd-link-file::before {
     mask-image: var(--pd-icon-paperclip);
   }
 
-  .prose .pd-link-external::before {
+  .pd-link-external::before {
     mask-image: var(--pd-icon-globe-alt);
   }
 

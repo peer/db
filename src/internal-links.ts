@@ -59,7 +59,7 @@ export function classifyLink(href: string, router: Router): string[] {
 
 // transformInternalHtml parses the given HTML once and add CSS classes on each anchor.
 // Link icons are rendered via CSS rules in theme.css based on these classes.
-export function transformInternalHtml(html: string, router: Router): string {
+function transformInternalHtml(html: string, router: Router): string {
   if (!html) return ""
 
   const doc = new DOMParser().parseFromString(html, "text/html")
