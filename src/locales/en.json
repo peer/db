@@ -2,6 +2,8 @@
   "common": {
     "buttons": {
       "search": "Search",
+      "cancel": "Cancel",
+      "close": "Close",
       "create": "Create",
       "upload": "Upload",
       "edit": "Edit",
@@ -89,7 +91,13 @@
       "searchingNoQueryFiltersInProgress": "Searching without query and with 1 active filter... | Searching without query and with {count} active filters...",
       "resultsFound": "1 result found. | {count} results found.",
       "resultsFoundMoreThan": "More than 1 result found. | More than {count} results found.",
-      "noResults": "No results found."
+      "noResults": "No results found.",
+      "downloadZip": "Download files as zip",
+      "downloadFiles": "Download files to folder"
+    },
+    "DownloadOverlay": {
+      "downloadingFile": "Downloading file {completed} of {total}.",
+      "error": "Error downloading file."
     },
     "SearchResultsFeed": {
       "moreFilters": "More filters",

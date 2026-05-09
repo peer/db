@@ -33,6 +33,7 @@ const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
   searchProgress: number
   updateSearchSessionProgress: number
+  isDownloading: boolean
 
   // Filter props.
   filtersState: FiltersState
@@ -41,6 +42,8 @@ const props = defineProps<{
 const $emit = defineEmits<{
   filterChange: [change: FilterStateChange]
   viewChange: [value: ViewType]
+  downloadZip: []
+  downloadFiles: []
 }>()
 
 const { t } = useI18n({ useScope: "global" })
@@ -262,7 +265,10 @@ function onCloseFilterModal() {
       :search-session="searchSession"
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
+      :is-downloading="isDownloading"
       @view-change="(v) => $emit('viewChange', v)"
+      @download-zip="$emit('downloadZip')"
+      @download-files="$emit('downloadFiles')"
     />
   </div>
 

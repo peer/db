@@ -278,3 +278,29 @@ type Optional<T> = {
 
 export type Constructor<T> = new (json: object) => T
 export type Constructee<C> = C extends Constructor<infer R> ? R : never
+
+export type DownloadFile = {
+  name: string
+  url: string
+}
+
+export type DownloadZipWorkerInput =
+  // When fileHandle is non-null, the worker streams the zip directly to this handle. When null,
+  // the worker assembles a Blob and posts it back to the main thread for the <a download> fallback.
+  | { type: "start"; files: DownloadFile[]; fileHandle: FileSystemFileHandle | null }
+  // Asks the worker to abort cleanly: cancel pending I/O, abort the writable so the swap file is
+  // cleaned up, then post a final "done" so the main thread can close out the run.
+  | { type: "cancel" }
+
+export type DownloadZipWorkerOutput =
+  | { type: "progress"; completed: number; total: number; currentFile: string }
+  | { type: "blob"; blob: Blob }
+  | { type: "done" }
+  | { type: "error"; message: string }
+
+export type DownloadFilesWorkerInput = { type: "start"; files: DownloadFile[]; directoryHandle: FileSystemDirectoryHandle } | { type: "cancel" }
+
+export type DownloadFilesWorkerOutput =
+  | { type: "progress"; completed: number; total: number; currentFile: string }
+  | { type: "done" }
+  | { type: "error"; message: string }

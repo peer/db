@@ -3,7 +3,7 @@ import type { DeepReadonly } from "vue"
 
 import type { ClientSearchSession, SelectButtonOption, ViewType } from "@/types"
 
-import { Bars4Icon, TableCellsIcon } from "@heroicons/vue/24/solid"
+import { ArchiveBoxArrowDownIcon, ArrowDownTrayIcon, Bars4Icon, TableCellsIcon } from "@heroicons/vue/24/solid"
 import { useI18n } from "vue-i18n"
 
 import SelectButton from "@/components/SelectButton.vue"
@@ -13,13 +13,18 @@ const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
   searchTotal: number | null
   searchMoreThanTotal: boolean
+  isDownloading: boolean
 }>()
 
 const $emit = defineEmits<{
   viewChange: [value: ViewType]
+  downloadZip: []
+  downloadFiles: []
 }>()
 
 const { t } = useI18n({ useScope: "global" })
+
+const directoryPickerSupported = "showDirectoryPicker" in window
 
 const selectButtonOptions: SelectButtonOption<ViewType>[] = [
   {
@@ -102,5 +107,25 @@ function countFilters(): number {
       class="shrink-0"
       @update:model-value="(v) => $emit('viewChange', v)"
     />
+
+    <div class="flex shrink-0 items-center gap-1 rounded-sm bg-slate-200 px-1 py-1">
+      <button
+        class="rounded-sm px-2 py-0.5 enabled:hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-gray-400"
+        :disabled="isDownloading"
+        :title="t('partials.SearchResultsHeader.downloadZip')"
+        @click.prevent="$emit('downloadZip')"
+      >
+        <ArchiveBoxArrowDownIcon class="size-6" :alt="t('partials.SearchResultsHeader.downloadZip')" />
+      </button>
+      <button
+        v-if="directoryPickerSupported"
+        class="rounded-sm px-2 py-0.5 enabled:hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-gray-400"
+        :disabled="isDownloading"
+        :title="t('partials.SearchResultsHeader.downloadFiles')"
+        @click.prevent="$emit('downloadFiles')"
+      >
+        <ArrowDownTrayIcon class="size-6" :alt="t('partials.SearchResultsHeader.downloadFiles')" />
+      </button>
+    </div>
   </div>
 </template>

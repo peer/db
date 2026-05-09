@@ -1,0 +1,255 @@
+import type { DownloadFile, DownloadFilesWorkerInput, DownloadFilesWorkerOutput, DownloadZipWorkerInput, DownloadZipWorkerOutput } from "@/types"
+
+import { ref } from "vue"
+
+export function useDownload(abortController: AbortController) {
+  const isDownloading = ref(false)
+  const completed = ref(0)
+  const total = ref(0)
+  const currentFile = ref("")
+  const error = ref<string | null>(null)
+
+  // Set while a worker is running; lets cancelDownload tear it down.
+  let cancelCurrent: (() => void) | null = null
+
+  // Filename for the zip currently being assembled. Set by startZipDownload and read by
+  // handleZipBlob when the worker posts the Blob fallback back.
+  let zipFilename = ""
+
+  // Blob fallback only: when the worker had no FileSystemFileHandle, it posts the assembled
+  // Blob back here and we trigger a download via <a download>.
+  function handleZipBlob(blob: Blob) {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = zipFilename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  // Minimum time the overlay stays at 100% before the we return from runWorker and close
+  // the dialog. Padded only when the natural completion path is faster than this; if the
+  // worker takes longer to wrap up after 100% (e.g. zip writePromise drain), no extra wait.
+  const MIN_HOLD_MS = 400 // 300ms (progress bar transition duration) + 100ms extra.
+
+  // Wrap a worker in a promise that resolves when the worker finishes successfully or is cancelled,
+  // and rejects when the worker reports an error.
+  function runWorker(worker: Worker, message: Extract<DownloadZipWorkerInput | DownloadFilesWorkerInput, { type: "start" }>): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let settled = false
+      let terminateTimer: ReturnType<typeof setTimeout> | null = null
+      // Timestamp of the first progress message that reported completed === total. Used in
+      // finish() to ensure the overlay shows the final 100% state for at least MIN_HOLD_MS.
+      let completedAt: number | null = null
+
+      function finish(err?: Error) {
+        if (settled) {
+          return
+        }
+        settled = true
+        if (terminateTimer !== null) {
+          clearTimeout(terminateTimer)
+          terminateTimer = null
+        }
+        abortController.signal.removeEventListener("abort", abortHandler)
+        worker.onmessage = null
+        worker.onerror = null
+        // Terminate on every path (success, error, graceful cancel, hard timeout) so the
+        // worker thread does not linger waiting for GC.
+        worker.terminate()
+
+        const settle = err !== undefined ? () => reject(err) : resolve
+        // Skip the hold if we never reached 100% or the owner is being torn down (component unmount).
+        const remaining = completedAt === null || abortController.signal.aborted ? 0 : MIN_HOLD_MS - (Date.now() - completedAt)
+        if (remaining <= 0) {
+          cancelCurrent = null
+          settle()
+          return
+        }
+        // Hold the overlay at 100% for the remaining time. Point cancelCurrent at a shortcut
+        // so a cancel-button click during the hold closes the dialog immediately instead of
+        // waiting out the timer.
+        const holdTimer = setTimeout(() => {
+          cancelCurrent = null
+          settle()
+        }, remaining)
+        cancelCurrent = () => {
+          clearTimeout(holdTimer)
+          cancelCurrent = null
+          settle()
+        }
+      }
+
+      function abortHandler() {
+        // Already shutting down. Do not restart the terminate timer.
+        if (terminateTimer !== null) {
+          return
+        }
+        // Ask the worker to abort cleanly. It will post "done" / "error", which routes through
+        // onmessage below and calls finish() (clearing the timer and terminating). If the worker
+        // does not respond within 1 second, the timer fires finish() to force-terminate.
+        worker.postMessage({ type: "cancel" })
+        terminateTimer = setTimeout(finish, 1000) // 1 second.
+      }
+
+      // Both user-initiated cancel and owner abort go through the same handler: graceful first,
+      // hard terminate after a 1-second grace period.
+      cancelCurrent = abortHandler
+
+      abortController.signal.addEventListener("abort", abortHandler, { once: true })
+
+      worker.onmessage = (e: MessageEvent<DownloadZipWorkerOutput | DownloadFilesWorkerOutput>) => {
+        const msg = e.data
+        if (msg.type === "progress") {
+          completed.value = msg.completed
+          total.value = msg.total
+          currentFile.value = msg.currentFile
+          if (completedAt === null && msg.total > 0 && msg.completed >= msg.total) {
+            completedAt = Date.now()
+          }
+        } else if (msg.type === "blob") {
+          try {
+            handleZipBlob(msg.blob)
+          } catch (err) {
+            finish(err instanceof Error ? err : new Error(String(err)))
+            return
+          }
+          finish()
+        } else if (msg.type === "done") {
+          finish()
+        } else if (msg.type === "error") {
+          finish(new Error(msg.message))
+        }
+      }
+
+      worker.onerror = (e) => {
+        finish(new Error(e.message || "worker error"))
+      }
+
+      worker.postMessage(message)
+    })
+  }
+
+  async function startZipDownload(files: DownloadFile[], filename: string = "download.zip") {
+    if (abortController.signal.aborted) {
+      return
+    }
+    if (isDownloading.value) {
+      throw new Error("download already in progress")
+    }
+    // Set the flag immediately after the check so a re-entrant call cannot pass the guard while we await below.
+    isDownloading.value = true
+    try {
+      zipFilename = filename
+
+      // Try to use showSaveFilePicker if available; otherwise the worker assembles a Blob
+      // and we fall back to a <a download> click.
+      let fileHandle: FileSystemFileHandle | null = null
+      if (window.showSaveFilePicker) {
+        try {
+          fileHandle = await window.showSaveFilePicker({
+            suggestedName: zipFilename,
+            types: [
+              {
+                description: "ZIP archive",
+                accept: { "application/zip": [".zip"] },
+              },
+            ],
+          })
+        } catch {
+          // User cancelled the dialog.
+          return
+        }
+      }
+      if (abortController.signal.aborted) {
+        return
+      }
+
+      completed.value = 0
+      total.value = files.length
+      currentFile.value = ""
+      error.value = null
+
+      const worker = new Worker(new URL("@/workers/download-zip.worker.ts", import.meta.url), { type: "module" })
+      await runWorker(worker, { type: "start", files, fileHandle })
+    } catch (err) {
+      if (abortController.signal.aborted) {
+        return
+      }
+      console.error("download.startZipDownload", err)
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      error.value = `${err}`
+    } finally {
+      isDownloading.value = false
+      total.value = 0
+    }
+  }
+
+  async function startBulkDownload(files: DownloadFile[]) {
+    if (abortController.signal.aborted) {
+      return
+    }
+    if (!window.showDirectoryPicker) {
+      throw new Error("showDirectoryPicker is not available")
+    }
+    if (isDownloading.value) {
+      throw new Error("download already in progress")
+    }
+    // Set the flag immediately after the check so a re-entrant call cannot pass the guard while we await below.
+    isDownloading.value = true
+    try {
+      let directoryHandle: FileSystemDirectoryHandle
+      try {
+        directoryHandle = await window.showDirectoryPicker({ mode: "readwrite" })
+      } catch {
+        // User cancelled the dialog.
+        return
+      }
+      if (abortController.signal.aborted) {
+        return
+      }
+
+      completed.value = 0
+      total.value = files.length
+      currentFile.value = ""
+      error.value = null
+
+      const worker = new Worker(new URL("@/workers/download-files.worker.ts", import.meta.url), { type: "module" })
+      await runWorker(worker, { type: "start", files, directoryHandle })
+    } catch (err) {
+      if (abortController.signal.aborted) {
+        return
+      }
+      console.error("download.startBulkDownload", err)
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      error.value = `${err}`
+    } finally {
+      isDownloading.value = false
+      total.value = 0
+    }
+  }
+
+  function cancelDownload() {
+    if (cancelCurrent) {
+      // Active download: terminate worker and resolve its promise so the start function's finally runs.
+      cancelCurrent()
+    } else {
+      // No active download; clear any displayed error and total count so the dialog closes.
+      error.value = null
+      total.value = 0
+    }
+  }
+
+  return {
+    isDownloading,
+    completed,
+    total,
+    currentFile,
+    error,
+    startZipDownload,
+    startBulkDownload,
+    cancelDownload,
+  }
+}
