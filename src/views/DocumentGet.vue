@@ -26,7 +26,7 @@ import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
-import { injectMainProgress, localProgress } from "@/progress"
+import { getParentProgress, localProgress } from "@/progress"
 import { getDocumentComponents } from "@/registry/document"
 import { useSearch, useSearchSession } from "@/search"
 import { useDocumentFields } from "@/useDocumentFields"
@@ -43,9 +43,9 @@ const router = useRouter()
 
 const el = useTemplateRef<HTMLElement>("el")
 
-const mainProgress = injectMainProgress()
-const progress = localProgress(mainProgress)
-const editProgress = localProgress(mainProgress)
+const parentProgress = getParentProgress()
+const progress = localProgress(parentProgress)
+const editProgress = localProgress(parentProgress)
 
 const abortController = new AbortController()
 

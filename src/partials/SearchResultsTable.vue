@@ -19,7 +19,7 @@ import DisplayLabel from "@/partials/DisplayLabel.vue"
 import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
-import { injectProgress } from "@/progress"
+import { useProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search"
 import { useTruncationTracking } from "@/truncation"
 import { encodeQuery, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils"
@@ -60,7 +60,7 @@ const {
 
 const content = useTemplateRef<HTMLElement>("content")
 
-const filtersProgress = injectProgress()
+const filtersProgress = useProgress()
 const {
   results: filtersResults,
   total: filtersTotal,

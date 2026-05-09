@@ -12,7 +12,7 @@ import { DESCRIPTION, INSTANCE_OF, SUBCLASS_OF } from "@/core"
 import { getBestClaimOfType, getClaimsOfTypeWithConfidence } from "@/document"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import FieldsView from "@/partials/FieldsView.vue"
-import { injectProgress } from "@/progress"
+import { useProgress } from "@/progress"
 import { getSearchResultComponents } from "@/registry/search-result"
 import { useDocumentFields } from "@/useDocumentFields"
 import { useParentClasses } from "@/useParentClasses"
@@ -33,7 +33,7 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-const progress = injectProgress()
+const progress = useProgress()
 
 const WithDocumentD = WithDocument<D>
 const withDocument = useTemplateRef<ComponentExposed<typeof WithDocumentD>>("withDocument")

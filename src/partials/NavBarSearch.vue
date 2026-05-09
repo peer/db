@@ -10,7 +10,7 @@ import { useRouter } from "vue-router"
 
 import Button from "@/components/Button.vue"
 import InputText from "@/components/InputText.vue"
-import { injectProgress } from "@/progress"
+import { useProgress } from "@/progress"
 import { createSearchSession } from "@/search"
 
 const props = withDefaults(
@@ -31,7 +31,7 @@ const $emit = defineEmits<{
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
-const progress = injectProgress()
+const progress = useProgress()
 
 const abortController = new AbortController()
 

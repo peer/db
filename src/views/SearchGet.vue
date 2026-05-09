@@ -26,7 +26,7 @@ import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import SearchResultsFeed from "@/partials/SearchResultsFeed.vue"
 import SearchResultsTable from "@/partials/SearchResultsTable.vue"
-import { injectMainProgress, localProgress } from "@/progress"
+import { getParentProgress, localProgress } from "@/progress"
 import { updateSearchSession, useSearch, useSearchSession } from "@/search"
 import { uploadFile } from "@/upload"
 import { clone, redirectServerSide } from "@/utils"
@@ -38,9 +38,9 @@ const props = defineProps<{
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
-const mainProgress = injectMainProgress()
-const createProgress = localProgress(mainProgress)
-const uploadProgress = localProgress(mainProgress)
+const parentProgress = getParentProgress()
+const createProgress = localProgress(parentProgress)
+const uploadProgress = localProgress(parentProgress)
 
 const abortController = new AbortController()
 
@@ -54,7 +54,7 @@ const searchEl = useTemplateRef<HTMLElement>("searchEl")
 
 const searchSessionVersion = ref(0)
 
-const searchProgress = localProgress(mainProgress)
+const searchProgress = localProgress(parentProgress)
 const {
   searchSession,
   error: searchSessionError,
@@ -65,7 +65,7 @@ const {
 )
 const { results: searchResults, total: searchTotal, moreThanTotal: searchMoreThanTotal, error: searchResultsError } = useSearch(searchSession, searchEl, searchProgress)
 
-const updateSearchSessionProgress = localProgress(mainProgress)
+const updateSearchSessionProgress = localProgress(parentProgress)
 
 // A non-read-only version of filters state so that we can modify it as necessary.
 const filtersState = ref<FiltersState>({ ref: {}, amount: {}, time: {} })
@@ -209,7 +209,7 @@ async function onChange() {
         return
       }
 
-      redirectServerSide(router.resolve({ name: "StorageGet", params: { id: fileId } }).href, false, mainProgress)
+      redirectServerSide(router.resolve({ name: "StorageGet", params: { id: fileId } }).href, false, parentProgress)
     } catch (err) {
       if (abortController.signal.aborted) {
         return

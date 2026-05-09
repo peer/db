@@ -8,14 +8,14 @@ import InputText from "@/components/InputText.vue"
 import siteContext from "@/context"
 import Footer from "@/partials/Footer.vue"
 import HomeNavBar from "@/partials/HomeNavBar.vue"
-import { injectProgress } from "@/progress"
+import { useProgress } from "@/progress"
 import { getHomeComponent } from "@/registry/home"
 import { createSearchSession } from "@/search"
 
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
-const progress = injectProgress()
+const progress = useProgress()
 
 const abortController = new AbortController()
 
