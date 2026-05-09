@@ -29,12 +29,20 @@ export function useDownload(abortController: AbortController) {
     URL.revokeObjectURL(url)
   }
 
+  // Minimum time the overlay stays at 100% before the we return from runWorker and close
+  // the dialog. Padded only when the natural completion path is faster than this; if the
+  // worker takes longer to wrap up after 100% (e.g. zip writePromise drain), no extra wait.
+  const MIN_HOLD_MS = 400 // 300ms (progress bar transition duration) + 100ms extra.
+
   // Wrap a worker in a promise that resolves when the worker finishes successfully or is cancelled,
   // and rejects when the worker reports an error.
   function runWorker(worker: Worker, message: Extract<DownloadZipWorkerInput | DownloadFilesWorkerInput, { type: "start" }>): Promise<void> {
     return new Promise((resolve, reject) => {
       let settled = false
       let terminateTimer: ReturnType<typeof setTimeout> | null = null
+      // Timestamp of the first progress message that reported completed === total. Used in
+      // finish() to ensure the overlay shows the final 100% state for at least MIN_HOLD_MS.
+      let completedAt: number | null = null
 
       function finish(err?: Error) {
         if (settled) {
@@ -46,16 +54,31 @@ export function useDownload(abortController: AbortController) {
           terminateTimer = null
         }
         abortController.signal.removeEventListener("abort", abortHandler)
-        cancelCurrent = null
         worker.onmessage = null
         worker.onerror = null
         // Terminate on every path (success, error, graceful cancel, hard timeout) so the
         // worker thread does not linger waiting for GC.
         worker.terminate()
-        if (err !== undefined) {
-          reject(err)
-        } else {
-          resolve()
+
+        const settle = err !== undefined ? () => reject(err) : resolve
+        // Skip the hold if we never reached 100% or the owner is being torn down (component unmount).
+        const remaining = completedAt === null || abortController.signal.aborted ? 0 : MIN_HOLD_MS - (Date.now() - completedAt)
+        if (remaining <= 0) {
+          cancelCurrent = null
+          settle()
+          return
+        }
+        // Hold the overlay at 100% for the remaining time. Point cancelCurrent at a shortcut
+        // so a cancel-button click during the hold closes the dialog immediately instead of
+        // waiting out the timer.
+        const holdTimer = setTimeout(() => {
+          cancelCurrent = null
+          settle()
+        }, remaining)
+        cancelCurrent = () => {
+          clearTimeout(holdTimer)
+          cancelCurrent = null
+          settle()
         }
       }
 
@@ -83,6 +106,9 @@ export function useDownload(abortController: AbortController) {
           completed.value = msg.completed
           total.value = msg.total
           currentFile.value = msg.currentFile
+          if (completedAt === null && msg.total > 0 && msg.completed >= msg.total) {
+            completedAt = Date.now()
+          }
         } else if (msg.type === "blob") {
           try {
             handleZipBlob(msg.blob)
