@@ -173,11 +173,11 @@
   }
 
   .pd-link-file::before {
-    mask-image: var(--pd-icon-paperclip);
+    mask-image: url("/node_modules/heroicons/16/solid/paper-clip.svg");
   }
 
   .pd-link-external::before {
-    mask-image: var(--pd-icon-globe-alt);
+    mask-image: url("/node_modules/heroicons/16/solid/globe-alt.svg");
   }
 
   .pd-progressbar-short,
