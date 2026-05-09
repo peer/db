@@ -57,8 +57,8 @@ const currentIndex = computed(() => Math.min(props.completed + 1, props.total))
             <div v-if="currentFile" class="truncate text-xs text-gray-500">{{ currentFile }}</div>
 
             <!-- Determinate progress bar. -->
-            <div class="relative h-2 w-full rounded-sm bg-slate-200">
-              <div class="absolute inset-y-0 left-0 rounded-sm bg-secondary-400 transition-all duration-300" :style="{ width: progressPercent + '%' }" />
+            <div class="relative h-2 w-full bg-slate-200">
+              <div class="absolute inset-y-0 left-0 bg-secondary-400 transition-all duration-300" :style="{ width: progressPercent + '%' }" />
             </div>
           </template>
         </div>

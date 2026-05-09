@@ -192,7 +192,7 @@ function onFilters() {
           }}</div>
           <div v-else-if="searchResults.length === searchTotal" class="text-center text-sm">{{ t("common.status.allResults", { count: searchResults.length }) }}</div>
           <div class="relative h-2 w-full bg-slate-200">
-            <div class="absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: 100 + '%' }"></div>
+            <div class="absolute inset-y-0 left-0 bg-secondary-400" :style="{ width: 100 + '%' }"></div>
           </div>
         </div>
       </template>
