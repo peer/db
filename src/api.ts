@@ -78,7 +78,6 @@ export async function getURLDirect<T>(url: string, abortSignal: AbortSignal, pro
   try {
     const response = await fetch(url, {
       method: "GET",
-      // Mode and credentials match crossorigin=anonymous in link preload header.
       mode: "cors",
       credentials: "same-origin",
       referrer: document.location.href,
@@ -96,6 +95,35 @@ export async function getURLDirect<T>(url: string, abortSignal: AbortSignal, pro
       })
     }
     return { doc: (await response.json()) as T, metadata: decodeMetadata(response.headers) }
+  } finally {
+    if (progress) {
+      progress.value -= 1
+    }
+  }
+}
+
+export async function headURLDirect(url: string, abortSignal: AbortSignal, progress: Ref<number> | null): Promise<Headers> {
+  if (progress) {
+    progress.value += 1
+  }
+  try {
+    const response = await fetch(url, {
+      method: "HEAD",
+      mode: "cors",
+      credentials: "same-origin",
+      referrer: document.location.href,
+      referrerPolicy: "strict-origin-when-cross-origin",
+      signal: abortSignal,
+    })
+    if (!response.ok) {
+      throw new FetchError(`fetch HEAD error ${response.status}`, {
+        status: response.status,
+        body: "",
+        url,
+        requestID: response.headers.get("Request-ID"),
+      })
+    }
+    return response.headers
   } finally {
     if (progress) {
       progress.value -= 1

@@ -1,15 +1,38 @@
-import type { DownloadFile, DownloadFilesWorkerInput, DownloadFilesWorkerOutput, DownloadZipWorkerInput, DownloadZipWorkerOutput } from "@/types"
+import type { DeepReadonly, Ref } from "vue"
+import type { Router } from "vue-router"
+
+import type {
+  DownloadFile,
+  DownloadFilesWorkerInput,
+  DownloadFilesWorkerOutput,
+  DownloadingPhase,
+  DownloadZipWorkerInput,
+  DownloadZipWorkerOutput,
+  Result,
+} from "@/types"
 
 import { ref } from "vue"
 
-export function useDownload(abortController: AbortController) {
-  const isDownloading = ref(false)
+import { getURL, headURLDirect } from "@/api"
+import { D, LinkClaim } from "@/document"
+
+// RFC 5987 extended form: filename*=<charset>'<lang>'<percent-encoded value>.
+// Capture group 2 holds the percent-encoded value, ending at a `;` or end of string.
+const CONTENT_DISPOSITION_FILENAME_EXT = /filename\*=([^']*)'[^']*'([^;]+)/i
+// Plain form: filename="quoted" or filename=token. Capture group 2 is the quoted body
+// (without surrounding quotes), capture group 3 is the unquoted token.
+const CONTENT_DISPOSITION_FILENAME_PLAIN = /filename=("([^"]*)"|([^;]*))/i
+
+export function useDownload(abortController: AbortController, router: Router, results: Ref<DeepReadonly<Result[]>>) {
+  // Drives the overlay's message and the dialog's open state. null means idle.
+  const downloadingPhase = ref<DownloadingPhase | null>(null)
   const completed = ref(0)
   const total = ref(0)
   const currentFile = ref("")
   const error = ref<string | null>(null)
 
-  // Set while a worker is running; lets cancelDownload tear it down.
+  // Set while a download lifecycle is active; lets cancelDownload abort preparation, terminate
+  // the worker, dismiss an empty notice, etc. Repointed as we move through phases.
   let cancelCurrent: (() => void) | null = null
 
   // Filename for the zip currently being assembled. Set by startZipDownload and read by
@@ -132,15 +155,119 @@ export function useDownload(abortController: AbortController) {
     })
   }
 
-  async function startZipDownload(files: DownloadFile[], filename: string = "download.zip") {
+  // Test if an iri targets the StorageGet route (/f/:id) of this site. Returns the file id
+  // on match, null otherwise. Uses vue-router's resolve() so the match stays in lockstep
+  // with the actual route definition.
+  function matchStorageRoute(iri: string): string | null {
+    let u: URL
+    try {
+      u = new URL(iri, location.origin)
+    } catch {
+      return null
+    }
+    if (u.host !== location.host) {
+      return null
+    }
+    const r = router.resolve(u.pathname)
+    if (r.name !== "StorageGet") {
+      return null
+    }
+    const id = r.params.id
+    return typeof id === "string" ? id : null
+  }
+
+  // Parse a Content-Disposition header value and return the filename, preferring the
+  // RFC 5987 filename* form (which carries an explicit charset and percent-encoding) over
+  // the plain filename= form.
+  function parseContentDispositionFilename(header: string | null): string | null {
+    if (!header) {
+      return null
+    }
+    const ext = CONTENT_DISPOSITION_FILENAME_EXT.exec(header)
+    if (ext) {
+      try {
+        return decodeURIComponent(ext[2].trim())
+      } catch {
+        // Fall through to the plain form.
+      }
+    }
+    const plain = CONTENT_DISPOSITION_FILENAME_PLAIN.exec(header)
+    if (plain) {
+      return (plain[2] ?? plain[3] ?? "").trim() || null
+    }
+    return null
+  }
+
+  // HEAD a file to read its Content-Disposition filename and build a DownloadFile.
+  // Falls back to the file id as the name when no usable filename is advertised.
+  async function fetchFileMetadata(id: string, signal: AbortSignal): Promise<DownloadFile> {
+    const url = router.resolve({ name: "StorageGet", params: { id } }).href
+    const headers = await headURLDirect(url, signal, null)
+    const name = parseContentDispositionFilename(headers.get("content-disposition")) ?? id
+    completed.value += 1
+    return { name, url }
+  }
+
+  // Walk every search result document, collect all LinkClaim iris that target our StorageGet
+  // route, dedupe by file id, and resolve a DownloadFile (with HEAD-derived filename) for each.
+  // Progress reflects per-document completion; HEAD requests run in parallel with doc fetches
+  // and are awaited at the end.
+  async function prepareFiles(signal: AbortSignal): Promise<DownloadFile[]> {
+    // Snapshot once so a search update mid-preparation cannot shift the document set under us.
+    const snapshot = results.value
+    downloadingPhase.value = "preparing"
+    currentFile.value = ""
+    error.value = null
+    completed.value = 0
+    total.value = snapshot.length
+
+    // Dedupe by file id, and reuse the same in-flight HEAD promise across documents that
+    // reference the same file.
+    const files = new Map<string, Promise<DownloadFile>>()
+
+    const docPromises = snapshot.map(async (r) => {
+      const url = router.apiResolve({ name: "DocumentGet", params: { id: r.id } }).href
+      const { doc: rawDoc } = await getURL<object>(url, null, signal, null)
+      const d = new D(rawDoc)
+      for (const claim of d.claims.AllClaimsWithSub()) {
+        if (claim instanceof LinkClaim) {
+          const id = matchStorageRoute(claim.iri)
+          if (id !== null && !files.has(id)) {
+            total.value += 1
+            files.set(id, fetchFileMetadata(id, signal))
+          }
+        }
+      }
+      completed.value += 1
+    })
+
+    await Promise.all(docPromises)
+    const resolved = await Promise.all(files.values())
+    // Sort by url for a deterministic order (the url embeds the file id).
+    resolved.sort((a, b) => (a.url < b.url ? -1 : a.url > b.url ? 1 : 0))
+    return resolved
+  }
+
+  async function startZipDownload(filename: string = "download.zip") {
     if (abortController.signal.aborted) {
       return
     }
-    if (isDownloading.value) {
+    if (downloadingPhase.value !== null) {
       throw new Error("download already in progress")
     }
-    // Set the flag immediately after the check so a re-entrant call cannot pass the guard while we await below.
-    isDownloading.value = true
+    // Claim the slot immediately so a concurrent call sees us as busy without waiting
+    // for the picker / prepareFiles to flip the phase. The overlay stays closed for
+    // "picking" (the destination picker is its own modal); it opens once prepareFiles
+    // transitions to "preparing".
+    downloadingPhase.value = "picking"
+    // Clear any leftover error from a previous run.
+    error.value = null
+
+    const preparationController = new AbortController()
+    // Owner abort propagates to preparation too.
+    const onOwnerAbort = () => preparationController.abort()
+    abortController.signal.addEventListener("abort", onOwnerAbort, { once: true })
+
     try {
       zipFilename = filename
 
@@ -167,38 +294,68 @@ export function useDownload(abortController: AbortController) {
         return
       }
 
+      // During preparation, Cancel aborts preparation; once the worker starts,
+      // runWorker overwrites cancelCurrent with its own abort/terminate handler.
+      cancelCurrent = () => preparationController.abort()
+
+      const files = await prepareFiles(preparationController.signal)
+
+      if (files.length === 0) {
+        downloadingPhase.value = "empty"
+        // Close button dismisses the notice.
+        cancelCurrent = () => {
+          cancelCurrent = null
+          downloadingPhase.value = null
+        }
+        return
+      }
+
+      downloadingPhase.value = "downloading"
       completed.value = 0
       total.value = files.length
       currentFile.value = ""
-      error.value = null
 
       const worker = new Worker(new URL("@/workers/download-zip.worker.ts", import.meta.url), { type: "module" })
       await runWorker(worker, { type: "start", files, fileHandle })
     } catch (err) {
-      if (abortController.signal.aborted) {
+      // Cancellation (owner abort or user cancel during preparation) is a clean close, not an error.
+      if (abortController.signal.aborted || preparationController.signal.aborted) {
         return
       }
       console.error("download.startZipDownload", err)
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       error.value = `${err}`
     } finally {
-      isDownloading.value = false
-      total.value = 0
+      abortController.signal.removeEventListener("abort", onOwnerAbort)
+      // Do not clobber the empty-notice state.
+      if (downloadingPhase.value !== "empty") {
+        downloadingPhase.value = null
+      }
     }
   }
 
-  async function startBulkDownload(files: DownloadFile[]) {
+  async function startBulkDownload() {
     if (abortController.signal.aborted) {
       return
     }
     if (!window.showDirectoryPicker) {
       throw new Error("showDirectoryPicker is not available")
     }
-    if (isDownloading.value) {
+    if (downloadingPhase.value !== null) {
       throw new Error("download already in progress")
     }
-    // Set the flag immediately after the check so a re-entrant call cannot pass the guard while we await below.
-    isDownloading.value = true
+    // Claim the slot immediately so a concurrent call sees us as busy without waiting
+    // for the picker / prepareFiles to flip the phase. The overlay stays closed for
+    // "picking" (the directory picker is its own modal); it opens once prepareFiles
+    // transitions to "preparing".
+    downloadingPhase.value = "picking"
+    // Clear any leftover error from a previous run.
+    error.value = null
+
+    const preparationController = new AbortController()
+    const onOwnerAbort = () => preparationController.abort()
+    abortController.signal.addEventListener("abort", onOwnerAbort, { once: true })
+
     try {
       let directoryHandle: FileSystemDirectoryHandle
       try {
@@ -211,39 +368,57 @@ export function useDownload(abortController: AbortController) {
         return
       }
 
+      // During preparation, Cancel aborts preparation; once the worker starts,
+      // runWorker overwrites cancelCurrent with its own abort/terminate handler.
+      cancelCurrent = () => preparationController.abort()
+
+      const files = await prepareFiles(preparationController.signal)
+
+      if (files.length === 0) {
+        downloadingPhase.value = "empty"
+        cancelCurrent = () => {
+          cancelCurrent = null
+          downloadingPhase.value = null
+        }
+        return
+      }
+
+      downloadingPhase.value = "downloading"
       completed.value = 0
       total.value = files.length
       currentFile.value = ""
-      error.value = null
 
       const worker = new Worker(new URL("@/workers/download-files.worker.ts", import.meta.url), { type: "module" })
       await runWorker(worker, { type: "start", files, directoryHandle })
     } catch (err) {
-      if (abortController.signal.aborted) {
+      if (abortController.signal.aborted || preparationController.signal.aborted) {
         return
       }
       console.error("download.startBulkDownload", err)
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       error.value = `${err}`
     } finally {
-      isDownloading.value = false
-      total.value = 0
+      abortController.signal.removeEventListener("abort", onOwnerAbort)
+      // Do not clobber the empty-notice state.
+      if (downloadingPhase.value !== "empty") {
+        downloadingPhase.value = null
+      }
     }
   }
 
   function cancelDownload() {
     if (cancelCurrent) {
-      // Active download: terminate worker and resolve its promise so the start function's finally runs.
+      // Active phase. Preparation abort, worker terminate, or empty-notice dismiss.
       cancelCurrent()
-    } else {
-      // No active download; clear any displayed error and total count so the dialog closes.
-      error.value = null
-      total.value = 0
+      return
     }
+    // No active phase. Clear any displayed error and downloading phase so the dialog closes.
+    error.value = null
+    downloadingPhase.value = null
   }
 
   return {
-    isDownloading,
+    downloadingPhase,
     completed,
     total,
     currentFile,

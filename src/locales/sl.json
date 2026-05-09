@@ -96,7 +96,9 @@
       "downloadFiles": "Prenesi datoteke v mapo"
     },
     "DownloadOverlay": {
+      "preparing": "V pripravi...",
       "downloadingFile": "Prenašanje datoteke {completed} od {total}.",
+      "noFiles": "Ni datotek za prenos.",
       "error": "Napaka pri prenašanju datoteke."
     },
     "SearchResultsFeed": {

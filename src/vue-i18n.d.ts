@@ -107,7 +107,9 @@ declare module "vue-i18n" {
         downloadFiles: string
       }
       DownloadOverlay: {
+        preparing: string
         downloadingFile: string
+        noFiles: string
         error: string
       }
       SearchResultsFeed: {

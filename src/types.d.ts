@@ -284,6 +284,8 @@ export type DownloadFile = {
   url: string
 }
 
+export type DownloadingPhase = "picking" | "preparing" | "downloading" | "empty"
+
 export type DownloadZipWorkerInput =
   // When fileHandle is non-null, the worker streams the zip directly to this handle. When null,
   // the worker assembles a Blob and posts it back to the main thread for the <a download> fallback.

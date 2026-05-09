@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { DownloadingPhase } from "@/types"
+
 import { Dialog, DialogPanel } from "@headlessui/vue"
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
@@ -7,6 +9,7 @@ import Button from "@/components/Button.vue"
 
 const props = defineProps<{
   open: boolean
+  downloadingPhase: DownloadingPhase | null
   completed: number
   total: number
   currentFile: string
@@ -32,9 +35,16 @@ const progressPercent = computed(() => {
 // e.g. "6 of 5".
 const currentIndex = computed(() => Math.min(props.completed + 1, props.total))
 
+// Hide the progress bar when there's nothing meaningful to show. The empty notice is a
+// terminal state, and any error is shown as a separate block.
+const showProgress = computed(() => !props.error && props.downloadingPhase !== "empty")
+
+// The action button doubles as Close in any terminal state (error or the empty notice).
+const closeOnly = computed(() => props.error !== null || props.downloadingPhase === "empty")
+
 function onClose() {
-  if (!props.error) {
-    // We allow closing with esc key and clicking outside only on errors.
+  // We allow closing with esc key and clicking outside only in terminal states.
+  if (!closeOnly.value) {
     return
   }
   $emit("cancel")
@@ -53,21 +63,27 @@ function onCancel() {
     <!-- Full-screen container to center the panel. -->
     <div class="fixed inset-0 flex items-center justify-center">
       <DialogPanel class="relative flex w-full max-w-md flex-col gap-y-4 rounded-sm bg-white p-4 shadow-sm sm:p-6">
-        <div class="font-medium">
+        <div v-if="downloadingPhase === 'preparing'" class="font-medium">
+          {{ t("partials.DownloadOverlay.preparing") }}
+        </div>
+        <div v-else-if="downloadingPhase === 'downloading'" class="font-medium">
           {{ t("partials.DownloadOverlay.downloadingFile", { completed: currentIndex, total }) }}
+        </div>
+        <div v-else-if="downloadingPhase === 'empty'" class="font-medium">
+          {{ t("partials.DownloadOverlay.noFiles") }}
         </div>
 
         <div v-if="currentFile" class="truncate text-sm text-neutral-500">{{ currentFile }}</div>
 
         <!-- Determinate progress bar. -->
-        <div class="relative h-2 w-full bg-slate-200">
+        <div v-if="showProgress" class="relative h-2 w-full bg-slate-200">
           <div class="absolute inset-y-0 left-0 bg-secondary-400 transition-all duration-300" :style="{ width: progressPercent + '%' }" />
         </div>
 
         <div v-if="error" class="text-error-600">{{ t("partials.DownloadOverlay.error") }}</div>
 
         <div class="flex flex-row justify-end">
-          <Button @click="onCancel">{{ error ? t("common.buttons.close") : t("common.buttons.cancel") }}</Button>
+          <Button @click="onCancel">{{ closeOnly ? t("common.buttons.close") : t("common.buttons.cancel") }}</Button>
         </div>
       </DialogPanel>
     </div>
