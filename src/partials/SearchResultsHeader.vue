@@ -13,7 +13,7 @@ const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
   searchTotal: number | null
   searchMoreThanTotal: boolean
-  updateSearchSessionProgress: number
+  isDownloading: boolean
 }>()
 
 const $emit = defineEmits<{
@@ -111,7 +111,7 @@ function countFilters(): number {
     <div class="flex shrink-0 items-center gap-1 rounded-sm bg-slate-200 px-1 py-1">
       <button
         class="rounded-sm px-2 py-0.5 enabled:hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-gray-400"
-        :disabled="updateSearchSessionProgress > 0"
+        :disabled="isDownloading"
         :title="t('partials.SearchResultsHeader.downloadZip')"
         @click.prevent="$emit('downloadZip')"
       >
@@ -120,7 +120,7 @@ function countFilters(): number {
       <button
         v-if="directoryPickerSupported"
         class="rounded-sm px-2 py-0.5 enabled:hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-gray-400"
-        :disabled="updateSearchSessionProgress > 0"
+        :disabled="isDownloading"
         :title="t('partials.SearchResultsHeader.downloadFiles')"
         @click.prevent="$emit('downloadFiles')"
       >

@@ -51,6 +51,7 @@ const abortController = new AbortController()
 const upload = useTemplateRef<HTMLInputElement>("upload")
 
 const {
+  isDownloading,
   downloadMode,
   completed,
   total,
@@ -59,7 +60,7 @@ const {
   startZipDownload,
   startBulkDownload,
   cancelDownload,
-} = useDownload(abortController, updateSearchSessionProgress)
+} = useDownload(abortController)
 
 // TODO: Replace with real file list from search results.
 const testFiles: DownloadFile[] = [
@@ -330,6 +331,7 @@ async function onDownloadFiles() {
       :search-progress="searchProgress"
       :filters-state="filtersState"
       :update-search-session-progress="updateSearchSessionProgress"
+      :is-downloading="isDownloading"
       @filter-change="onFilterChange"
       @view-change="onViewChange"
       @download-zip="onDownloadZip"
@@ -345,6 +347,7 @@ async function onDownloadFiles() {
       :search-progress="searchProgress"
       :filters-state="filtersState"
       :update-search-session-progress="updateSearchSessionProgress"
+      :is-downloading="isDownloading"
       @filter-change="onFilterChange"
       @view-change="onViewChange"
       @download-zip="onDownloadZip"

@@ -1,12 +1,11 @@
-import type { Ref } from "vue"
-
 import type { DownloadFile, DownloadFilesWorkerInput, DownloadFilesWorkerOutput, DownloadZipWorkerInput, DownloadZipWorkerOutput } from "@/types"
 
 import { ref } from "vue"
 
 export type DownloadMode = "zip" | "files"
 
-export function useDownload(abortController: AbortController, updateSearchSessionProgress: Ref<number>) {
+export function useDownload(abortController: AbortController) {
+  const isDownloading = ref(false)
   const downloadMode = ref<DownloadMode>("zip")
   const completed = ref(0)
   const total = ref(0)
@@ -114,14 +113,11 @@ export function useDownload(abortController: AbortController, updateSearchSessio
     if (abortController.signal.aborted) {
       return
     }
-    if (updateSearchSessionProgress.value > 0) {
-      if (total.value > 0) {
-        throw new Error("download already in progress")
-      }
-      throw new Error("search session update in progress")
+    if (isDownloading.value) {
+      throw new Error("download already in progress")
     }
-    // Bump the progress immediately after the check so a re-entrant call cannot pass the guard while we await below.
-    updateSearchSessionProgress.value += 1
+    // Set the flag immediately after the check so a re-entrant call cannot pass the guard while we await below.
+    isDownloading.value = true
     try {
       zipFilename = filename
 
@@ -159,7 +155,7 @@ export function useDownload(abortController: AbortController, updateSearchSessio
     } finally {
       // Reset total so the overlay's "open" condition (total > 0) flips back to closed.
       total.value = 0
-      updateSearchSessionProgress.value -= 1
+      isDownloading.value = false
     }
   }
 
@@ -170,14 +166,11 @@ export function useDownload(abortController: AbortController, updateSearchSessio
     if (!window.showDirectoryPicker) {
       throw new Error("showDirectoryPicker is not available")
     }
-    if (updateSearchSessionProgress.value > 0) {
-      if (total.value > 0) {
-        throw new Error("download already in progress")
-      }
-      throw new Error("search session update in progress")
+    if (isDownloading.value) {
+      throw new Error("download already in progress")
     }
-    // Bump the progress immediately after the check so a re-entrant call cannot pass the guard while we await below.
-    updateSearchSessionProgress.value += 1
+    // Set the flag immediately after the check so a re-entrant call cannot pass the guard while we await below.
+    isDownloading.value = true
     try {
       let directoryHandle: FileSystemDirectoryHandle
       try {
@@ -201,7 +194,7 @@ export function useDownload(abortController: AbortController, updateSearchSessio
     } finally {
       // Reset total so the overlay's "open" condition (total > 0) flips back to closed.
       total.value = 0
-      updateSearchSessionProgress.value -= 1
+      isDownloading.value = false
     }
   }
 
@@ -216,6 +209,7 @@ export function useDownload(abortController: AbortController, updateSearchSessio
   }
 
   return {
+    isDownloading,
     downloadMode,
     completed,
     total,

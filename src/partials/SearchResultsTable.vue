@@ -33,6 +33,7 @@ const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
   searchProgress: number
   updateSearchSessionProgress: number
+  isDownloading: boolean
 
   // Filter props.
   filtersState: FiltersState
@@ -264,7 +265,7 @@ function onCloseFilterModal() {
       :search-session="searchSession"
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
-      :update-search-session-progress="updateSearchSessionProgress"
+      :is-downloading="isDownloading"
       @view-change="(v) => $emit('viewChange', v)"
       @download-zip="$emit('downloadZip')"
       @download-files="$emit('downloadFiles')"
