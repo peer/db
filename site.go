@@ -36,6 +36,7 @@ type Build struct {
 type SiteFeatures struct {
 	SearchResultsTable bool `json:"searchResultsTable,omitempty" yaml:"searchResultsTable,omitempty"`
 	EditButtons        bool `json:"editButtons,omitempty"        yaml:"editButtons,omitempty"`
+	DownloadButtons    bool `json:"downloadButtons,omitempty"    yaml:"downloadButtons,omitempty"`
 }
 
 // Site represents a single site in the PeerDB application with its configuration and state.

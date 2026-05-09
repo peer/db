@@ -108,7 +108,7 @@ function countFilters(): number {
       @update:model-value="(v) => $emit('viewChange', v)"
     />
 
-    <div class="flex shrink-0 items-center gap-1 rounded-sm bg-slate-200 px-1 py-1">
+    <div v-if="siteContext.features.downloadButtons" class="flex shrink-0 items-center gap-1 rounded-sm bg-slate-200 px-1 py-1">
       <button
         class="rounded-sm px-2 py-0.5 enabled:hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-gray-400"
         :disabled="isDownloading"
