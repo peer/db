@@ -284,28 +284,6 @@ export type DownloadFile = {
   url: string
 }
 
-// File System Access API types (Chromium-only, not in default lib-dom).
-interface SaveFilePickerOptions {
-  suggestedName?: string
-  types?: Array<{
-    description?: string
-    accept: Record<string, string[]>
-  }>
-}
-
-interface DirectoryPickerOptions {
-  id?: string
-  mode?: "read" | "readwrite"
-  startIn?: FileSystemHandle | "desktop" | "documents" | "downloads" | "music" | "pictures" | "videos"
-}
-
-declare global {
-  interface Window {
-    showSaveFilePicker?: (options?: SaveFilePickerOptions) => Promise<FileSystemFileHandle>
-    showDirectoryPicker?: (options?: DirectoryPickerOptions) => Promise<FileSystemDirectoryHandle>
-  }
-}
-
 export type DownloadZipWorkerInput =
   // When fileHandle is non-null, the worker streams the zip directly to this handle. When null,
   // the worker assembles a Blob and posts it back to the main thread for the <a download> fallback.
