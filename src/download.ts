@@ -163,6 +163,9 @@ export function useDownload(abortController: AbortController) {
           return
         }
       }
+      if (abortController.signal.aborted) {
+        return
+      }
 
       completed.value = 0
       total.value = files.length
@@ -172,6 +175,9 @@ export function useDownload(abortController: AbortController) {
       const worker = new Worker(new URL("@/workers/download-zip.worker.ts", import.meta.url), { type: "module" })
       await runWorker(worker, { type: "start", files, fileHandle })
     } catch (err) {
+      if (abortController.signal.aborted) {
+        return
+      }
       console.error("download.startZipDownload", err)
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       error.value = `${err}`
@@ -201,6 +207,9 @@ export function useDownload(abortController: AbortController) {
         // User cancelled the dialog.
         return
       }
+      if (abortController.signal.aborted) {
+        return
+      }
 
       completed.value = 0
       total.value = files.length
@@ -210,6 +219,9 @@ export function useDownload(abortController: AbortController) {
       const worker = new Worker(new URL("@/workers/download-files.worker.ts", import.meta.url), { type: "module" })
       await runWorker(worker, { type: "start", files, directoryHandle })
     } catch (err) {
+      if (abortController.signal.aborted) {
+        return
+      }
       console.error("download.startBulkDownload", err)
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       error.value = `${err}`
