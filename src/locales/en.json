@@ -2,6 +2,8 @@
   "common": {
     "buttons": {
       "search": "Search",
+      "cancel": "Cancel",
+      "close": "Close",
       "create": "Create",
       "upload": "Upload",
       "edit": "Edit",
@@ -95,7 +97,7 @@
     },
     "DownloadOverlay": {
       "downloadingFile": "Downloading file {completed} of {total}.",
-      "cancel": "Cancel"
+      "error": "Error downloading file."
     },
     "SearchResultsFeed": {
       "moreFilters": "More filters",

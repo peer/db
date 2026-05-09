@@ -146,12 +146,12 @@ export function useDownload(abortController: AbortController) {
       const worker = new Worker(new URL("@/workers/download-zip.worker.ts", import.meta.url), { type: "module" })
       await runWorker(worker, { type: "start", files, fileHandle })
     } catch (err) {
+      console.error("download.startZipDownload", err)
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       error.value = `${err}`
     } finally {
-      // Reset total so the overlay's "open" condition (total > 0) flips back to closed.
-      total.value = 0
       isDownloading.value = false
+      total.value = 0
     }
   }
 
@@ -184,12 +184,12 @@ export function useDownload(abortController: AbortController) {
       const worker = new Worker(new URL("@/workers/download-files.worker.ts", import.meta.url), { type: "module" })
       await runWorker(worker, { type: "start", files, directoryHandle })
     } catch (err) {
+      console.error("download.startBulkDownload", err)
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       error.value = `${err}`
     } finally {
-      // Reset total so the overlay's "open" condition (total > 0) flips back to closed.
-      total.value = 0
       isDownloading.value = false
+      total.value = 0
     }
   }
 
@@ -198,8 +198,9 @@ export function useDownload(abortController: AbortController) {
       // Active download: terminate worker and resolve its promise so the start function's finally runs.
       cancelCurrent()
     } else {
-      // No active download; clear any displayed error so the dialog closes.
+      // No active download; clear any displayed error and total count so the dialog closes.
       error.value = null
+      total.value = 0
     }
   }
 

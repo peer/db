@@ -354,7 +354,7 @@ async function onDownloadFiles() {
   </Teleport>
 
   <DownloadOverlay
-    :open="total > 0 || downloadError !== null"
+    :open="(isDownloading && total > 0) || downloadError !== null"
     :completed="completed"
     :total="total"
     :current-file="currentFile"

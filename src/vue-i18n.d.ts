@@ -13,6 +13,8 @@ declare module "vue-i18n" {
     common: {
       buttons: {
         search: string
+        cancel: string
+        close: string
         create: string
         upload: string
         edit: string
@@ -106,7 +108,7 @@ declare module "vue-i18n" {
       }
       DownloadOverlay: {
         downloadingFile: string
-        cancel: string
+        error: string
       }
       SearchResultsFeed: {
         moreFilters: string

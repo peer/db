@@ -2,6 +2,8 @@
   "common": {
     "buttons": {
       "search": "Išči",
+      "cancel": "Prekliči",
+      "close": "Zapri",
       "create": "Ustvari",
       "upload": "Naloži",
       "edit": "Uredi",
@@ -95,7 +97,7 @@
     },
     "DownloadOverlay": {
       "downloadingFile": "Prenašanje datoteke {completed} od {total}.",
-      "cancel": "Prekliči"
+      "error": "Napaka pri prenašanju datoteke."
     },
     "SearchResultsFeed": {
       "moreFilters": "Več filtrov",
