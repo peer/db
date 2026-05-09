@@ -115,6 +115,9 @@
       "collapseRow": "Skrči vrstico",
       "moreColumns": "Več stolpcev"
     },
+    "SearchResult": {
+      "details": "Podrobnosti"
+    },
     "FieldsForm": {
       "addAnother": "Dodaj še enega",
       "from": "Od",
