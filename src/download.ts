@@ -2,11 +2,8 @@ import type { DownloadFile, DownloadFilesWorkerInput, DownloadFilesWorkerOutput,
 
 import { ref } from "vue"
 
-export type DownloadMode = "zip" | "files"
-
 export function useDownload(abortController: AbortController) {
   const isDownloading = ref(false)
-  const downloadMode = ref<DownloadMode>("zip")
   const completed = ref(0)
   const total = ref(0)
   const currentFile = ref("")
@@ -141,7 +138,6 @@ export function useDownload(abortController: AbortController) {
         }
       }
 
-      downloadMode.value = "zip"
       completed.value = 0
       total.value = files.length
       currentFile.value = ""
@@ -180,7 +176,6 @@ export function useDownload(abortController: AbortController) {
         return
       }
 
-      downloadMode.value = "files"
       completed.value = 0
       total.value = files.length
       currentFile.value = ""
@@ -210,7 +205,6 @@ export function useDownload(abortController: AbortController) {
 
   return {
     isDownloading,
-    downloadMode,
     completed,
     total,
     currentFile,

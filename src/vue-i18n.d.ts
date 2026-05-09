@@ -106,7 +106,6 @@ declare module "vue-i18n" {
       }
       DownloadOverlay: {
         downloadingFile: string
-        creatingZip: string
         cancel: string
       }
       SearchResultsFeed: {

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { DownloadMode } from "@/download"
-
 import { Dialog, DialogPanel } from "@headlessui/vue"
 import { XMarkIcon } from "@heroicons/vue/20/solid"
 import { computed } from "vue"
@@ -10,7 +8,6 @@ import Button from "@/components/Button.vue"
 
 const props = defineProps<{
   open: boolean
-  mode: DownloadMode
   completed: number
   total: number
   currentFile: string
@@ -56,10 +53,6 @@ const progressPercent = computed(() => {
             <!-- Determinate progress bar. -->
             <div class="relative h-2 w-full rounded-sm bg-slate-200">
               <div class="absolute inset-y-0 left-0 rounded-sm bg-secondary-400 transition-all duration-300" :style="{ width: progressPercent + '%' }" />
-            </div>
-
-            <div v-if="mode === 'zip' && completed === total && total > 0" class="text-xs text-gray-500">
-              {{ t("partials.DownloadOverlay.creatingZip") }}
             </div>
           </template>
         </div>

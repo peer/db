@@ -50,17 +50,7 @@ const abortController = new AbortController()
 
 const upload = useTemplateRef<HTMLInputElement>("upload")
 
-const {
-  isDownloading,
-  downloadMode,
-  completed,
-  total,
-  currentFile,
-  error: downloadError,
-  startZipDownload,
-  startBulkDownload,
-  cancelDownload,
-} = useDownload(abortController)
+const { isDownloading, completed, total, currentFile, error: downloadError, startZipDownload, startBulkDownload, cancelDownload } = useDownload(abortController)
 
 // TODO: Replace with real file list from search results.
 const testFiles: DownloadFile[] = [
@@ -365,7 +355,6 @@ async function onDownloadFiles() {
 
   <DownloadOverlay
     :open="total > 0 || downloadError !== null"
-    :mode="downloadMode"
     :completed="completed"
     :total="total"
     :current-file="currentFile"

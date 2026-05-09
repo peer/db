@@ -95,7 +95,6 @@
     },
     "DownloadOverlay": {
       "downloadingFile": "Downloading file {completed} of {total}.",
-      "creatingZip": "Creating zip archive...",
       "cancel": "Cancel"
     },
     "SearchResultsFeed": {

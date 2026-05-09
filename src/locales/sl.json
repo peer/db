@@ -95,7 +95,6 @@
     },
     "DownloadOverlay": {
       "downloadingFile": "Prenašanje datoteke {completed} od {total}.",
-      "creatingZip": "Ustvarjanje zip arhiva...",
       "cancel": "Prekliči"
     },
     "SearchResultsFeed": {
