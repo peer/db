@@ -2,7 +2,7 @@
 import type { DownloadingPhase } from "@/types"
 
 import { Dialog, DialogPanel } from "@headlessui/vue"
-import { computed } from "vue"
+import { computed, ref, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
@@ -42,6 +42,24 @@ const showProgress = computed(() => !props.error && props.downloadingPhase !== "
 // The action button doubles as Close in any terminal state (error or the empty notice).
 const closeOnly = computed(() => props.error !== null || props.downloadingPhase === "empty")
 
+// Skip the bar's width transition when it resets to 0% (e.g., between preparation
+// and downloading). Without this, the bar visibly animates back to the start. With
+// it, the reset snaps back.
+const skipTransition = ref(false)
+watch(
+  progressPercent,
+  (v, prev) => {
+    if (v === 0 && prev !== undefined && prev > 0) {
+      skipTransition.value = true
+    } else {
+      skipTransition.value = false
+    }
+  },
+  {
+    flush: "pre",
+  },
+)
+
 function onClose() {
   // We allow closing with esc key and clicking outside only in terminal states.
   if (!closeOnly.value) {
@@ -77,7 +95,10 @@ function onCancel() {
 
         <!-- Determinate progress bar. -->
         <div v-if="showProgress" class="relative h-2 w-full bg-slate-200">
-          <div class="absolute inset-y-0 left-0 bg-secondary-400 transition-all duration-300" :style="{ width: progressPercent + '%' }" />
+          <div
+            class="absolute inset-y-0 left-0 bg-secondary-400 transition-all duration-300"
+            :style="{ width: progressPercent + '%', transition: skipTransition ? 'none' : undefined }"
+          />
         </div>
 
         <div v-if="error" class="text-error-600">{{ t("partials.DownloadOverlay.error") }}</div>
