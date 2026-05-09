@@ -23,7 +23,7 @@ import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
-import { injectMainProgress, localProgress } from "@/progress"
+import { getParentProgress, localProgress } from "@/progress"
 import { useDocumentFields } from "@/useDocumentFields"
 import { useParentClasses } from "@/useParentClasses"
 import { encodeQuery, makeAddClaimChange } from "@/utils"
@@ -62,9 +62,9 @@ const claimToTimePrecision = ref<TimePrecision>("y")
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
-const mainProgress = injectMainProgress()
-const progress = localProgress(mainProgress)
-const editProgress = localProgress(mainProgress)
+const parentProgress = getParentProgress()
+const progress = localProgress(parentProgress)
+const editProgress = localProgress(parentProgress)
 
 const el = useTemplateRef<HTMLElement>("el")
 

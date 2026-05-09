@@ -10,7 +10,7 @@ import { useI18n } from "vue-i18n"
 
 import CheckBox from "@/components/CheckBox.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
-import { injectProgress } from "@/progress"
+import { useProgress } from "@/progress"
 import { NONE, useTimeHistogramValues } from "@/search"
 import { equals, formatTime, loadingShortHeights, parseTime, useInitialLoad } from "@/utils"
 
@@ -36,7 +36,7 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-const progress = injectProgress()
+const progress = useProgress()
 const {
   results,
   from,

@@ -7,7 +7,7 @@ import { onBeforeUnmount } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
-import { injectProgress } from "@/progress"
+import { useProgress } from "@/progress"
 import { asyncToReactive, getDisplayLabel, getError, isLoading, loadingWidth } from "@/utils"
 
 const props = defineProps<{
@@ -18,7 +18,7 @@ const router = useRouter()
 const i18n = useI18n({ useScope: "global" })
 const { t } = i18n
 
-const progress = injectProgress()
+const progress = useProgress()
 
 let abortController = new AbortController()
 

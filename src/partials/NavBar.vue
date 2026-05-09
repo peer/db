@@ -4,17 +4,17 @@ import siteContext from "@/context"
 import { useNavbar } from "@/navbar"
 import CreateDropdown from "@/partials/CreateDropdown.vue"
 import LanguageSwitcher from "@/partials/LanguageSwitcher.vue"
-import { injectMainProgress } from "@/progress"
+import { getParentProgress } from "@/progress"
 import { getNavbarComponents } from "@/registry/navbar"
 
 const { attrs: navbarAttrs } = useNavbar()
 
 const navbarComponents = getNavbarComponents()
-const mainProgress = injectMainProgress()
+const parentProgress = getParentProgress()
 </script>
 
 <template>
-  <ProgressBar :progress="mainProgress" class="pd-navbar-progress fixed inset-x-0 top-0 z-40 will-change-transform" />
+  <ProgressBar :progress="parentProgress" class="pd-navbar-progress fixed inset-x-0 top-0 z-40 will-change-transform" />
   <!--
     TODO: No idea why w-0 (and w-fit) work here, but w-full does not.
           One would assume that w-full is needed to make the container div as wide as the

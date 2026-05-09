@@ -12,13 +12,13 @@ import Button from "@/components/Button.vue"
 import { CLASS, INSTANCE_OF } from "@/core"
 import { hasFields, isAbstractClass } from "@/fields"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
-import { injectProgress } from "@/progress"
+import { useProgress } from "@/progress"
 import { encodeQuery, makeAddClaimChange } from "@/utils"
 
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
-const progress = injectProgress()
+const progress = useProgress()
 
 const abortController = new AbortController()
 

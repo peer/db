@@ -9,7 +9,7 @@ import { useRouter } from "vue-router"
 import { getURL } from "@/api"
 import { IDENTIFIER_LINK_TEMPLATE } from "@/core"
 import { D, getBestClaimOfType } from "@/document"
-import { injectProgress } from "@/progress"
+import { useProgress } from "@/progress"
 
 const props = defineProps<{
   claim: IdentifierClaim | DeepReadonly<IdentifierClaim> | null
@@ -17,7 +17,7 @@ const props = defineProps<{
 
 const router = useRouter()
 
-const progress = injectProgress()
+const progress = useProgress()
 
 const linkTemplate = ref<string | null>(null)
 

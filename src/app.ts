@@ -7,7 +7,7 @@ import RouterLink from "@/components/RouterLink.vue"
 import { configKey } from "@/config"
 import siteContext from "@/context"
 import i18n from "@/i18n"
-import { progressKey } from "@/progress"
+import { progressKey, rootProgressKey } from "@/progress"
 import routes from "@/routes"
 import twMerge from "@/tw-merge"
 
@@ -61,6 +61,8 @@ const apiRouter = createRouter({
 
 router.apiResolve = apiRouter.resolve.bind(apiRouter)
 
+const rootProgress = ref(0)
+
 const app = createApp(App).use(router)
 
 // We replace Vue Router's RouterLink with ours.
@@ -70,7 +72,8 @@ app.component("RouterLink", RouterLink)
 app
   .use(i18n)
   .use(twMerge)
-  .provide(progressKey, ref(0))
+  .provide(progressKey, rootProgress)
+  .provide(rootProgressKey, rootProgress)
   .provide(
     configKey,
     ref({

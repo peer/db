@@ -4,13 +4,13 @@ import type { FiltersState, RefFilterState } from "@/types"
 import { onBeforeUnmount, onMounted } from "vue"
 import { useRoute, useRouter } from "vue-router"
 
-import { injectProgress } from "@/progress"
+import { useProgress } from "@/progress"
 import { createSearchSession } from "@/search"
 
 const route = useRoute()
 const router = useRouter()
 
-const progress = injectProgress()
+const progress = useProgress()
 
 const abortController = new AbortController()
 

@@ -13,7 +13,7 @@ import CheckBox from "@/components/CheckBox.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
-import { injectProgress } from "@/progress"
+import { useProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, NONE, useRefFilterValues } from "@/search"
 import { equals, loadingWidth, useInitialLoad, useLimitResults } from "@/utils"
 
@@ -39,7 +39,7 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-const progress = injectProgress()
+const progress = useProgress()
 const {
   results,
   total,
