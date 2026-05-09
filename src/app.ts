@@ -1,3 +1,5 @@
+import type { Component } from "vue"
+
 import { createApp, ref } from "vue"
 import { createRouter, createWebHistory } from "vue-router"
 
@@ -15,6 +17,20 @@ import twMerge from "@/tw-merge"
 // in HTML files are not rendered. So we set them here as well.
 if (siteContext.title) {
   document.title = siteContext.title
+}
+
+// Enumerate Vue views known to Vite at build time. Only routes whose name
+// matches one of these views become SPA-routed by useInternalLinksClick.
+// The rest (e.g. /f/:id which is served directly by the backend as a binary
+// download) are left to the browser. We use ./views/ and not @/views/ here
+// because with @/views/ Vite does not resolve any views.
+const viewModules = import.meta.glob<{ default: Component }>("./views/*.vue")
+const viewLoaders = new Map<string, () => Promise<{ default: Component }>>()
+for (const [path, loader] of Object.entries(viewModules)) {
+  const match = /\/views\/(.+)\.vue$/.exec(path)
+  if (match) {
+    viewLoaders.set(match[1], loader)
+  }
 }
 
 const router = createRouter({
@@ -37,13 +53,20 @@ const router = createRouter({
   },
   routes: Object.entries(routes)
     .filter(([, route]) => route.handlers)
-    .map(([name, route]) => ({
-      path: route.path,
-      name,
-      component: () => import(`./views/${name}.vue`),
-      props: true,
-      strict: true,
-    })),
+    .map(([name, route]) => {
+      const loader = viewLoaders.get(name)
+      return {
+        path: route.path,
+        name,
+        // Routes without a matching view (e.g. /f/:id served directly by the
+        // backend) are still registered so name-based URL building works, but
+        // are flagged via meta so useInternalLinksClick can skip them.
+        component: loader ?? (() => null),
+        props: true,
+        strict: true,
+        meta: { hasView: loader !== undefined },
+      }
+    }),
 })
 
 const apiRouter = createRouter({

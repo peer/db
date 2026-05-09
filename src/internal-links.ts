@@ -40,12 +40,14 @@ export function useInternalLinksClick(): (event: MouseEvent) => void {
     // Only intercept same-origin URLs; external links keep default behaviour.
     if (url.origin !== window.location.origin) return
 
-    // Only intercept URLs that Vue Router knows about; same-origin paths handled
-    // by the backend directly (e.g. /f/<id> file downloads) must keep their
-    // default browser behaviour.
+    // Only intercept URLs that resolve to a route the SPA actually renders.
+    // Same-origin paths served directly by the backend (e.g. /f/<id> file
+    // downloads) are registered without a view and must keep their default
+    // browser behaviour.
     const path = url.pathname + url.search + url.hash
     const resolved = router.resolve(path)
     if (resolved.matched.length === 0) return
+    if (!resolved.meta.hasView) return
 
     event.preventDefault()
     void router.push(resolved)
