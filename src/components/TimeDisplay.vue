@@ -299,7 +299,7 @@ export function getRelativeTimeInfo(diffMs: number): {
 import { computed, onBeforeUnmount, ref, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 
-import { timestampToSeconds } from "@/utils"
+import { timeToSeconds } from "@/utils"
 
 const props = withDefaults(
   defineProps<{
@@ -330,7 +330,7 @@ const now = ref(Date.now())
 // Parse the timestamp to seconds (bigint).
 const timestampSeconds = computed(() => {
   try {
-    return timestampToSeconds(props.timestamp)
+    return timeToSeconds(props.timestamp)
   } catch {
     return null
   }
