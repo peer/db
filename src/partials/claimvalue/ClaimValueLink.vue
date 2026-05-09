@@ -26,5 +26,7 @@ const name = computed<string | null>(() => {
 </script>
 
 <template>
-  <Link v-if="claim" :iri="claim.iri"><template v-if="name">{{ name }}</template></Link>
+  <Link v-if="claim" :iri="claim.iri"
+    ><template v-if="name">{{ name }}</template></Link
+  >
 </template>

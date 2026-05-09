@@ -25,6 +25,10 @@ const internalPath = computed<string | null>(() => {
 </script>
 
 <template>
-  <RouterLink v-if="internalPath" :to="internalPath" class="link break-all" :class="linkClasses"><slot>{{ iri }}</slot></RouterLink>
-  <a v-else :href="iri" class="link break-all" :class="linkClasses"><slot>{{ iri }}</slot></a>
+  <RouterLink v-if="internalPath" :to="internalPath" class="link break-all" :class="linkClasses"
+    ><slot>{{ iri }}</slot></RouterLink
+  >
+  <a v-else :href="iri" class="link break-all" :class="linkClasses"
+    ><slot>{{ iri }}</slot></a
+  >
 </template>
