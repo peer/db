@@ -159,21 +159,31 @@ export function useDownload(abortController: AbortController, router: Router, re
   // Test if an iri targets the StorageGet route (/f/:id) of this site. Returns the file id
   // on match, null otherwise. Uses vue-router's resolve() so the match stays in lockstep
   // with the actual route definition.
+  //
+  // classifyLink function is similar. Keep in sync as needed.
   function matchStorageRoute(iri: string): string | null {
-    let u: URL
+    if (!iri) return null
+    if (iri.startsWith("#")) return null
+
+    let url: URL
     try {
-      u = new URL(iri, location.origin)
+      url = new URL(iri, window.location.href)
     } catch {
       return null
     }
-    if (u.host !== location.host) {
+
+    if (url.origin !== window.location.origin) {
       return null
     }
-    const r = router.resolve(u.pathname)
-    if (r.name !== "StorageGet") {
+
+    const resolved = router.resolve(url.pathname)
+    const matched = resolved.matched.length > 0
+
+    if (!matched || resolved.name !== "StorageGet") {
       return null
     }
-    const id = r.params.id
+
+    const id = resolved.params.id
     return typeof id === "string" ? id : null
   }
 

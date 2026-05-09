@@ -10,7 +10,7 @@ import { useI18n } from "vue-i18n"
 import WithDocument from "@/components/WithDocument.vue"
 import { DESCRIPTION, INSTANCE_OF, SUBCLASS_OF } from "@/core"
 import { getBestClaimOfType, getClaimsOfTypeWithConfidence } from "@/document"
-import { useInternalLinksClick } from "@/internal-links"
+import { useInternalLinksClick, useTransformedHtml } from "@/internal-links"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import FieldsView from "@/partials/FieldsView.vue"
 import { useProgress } from "@/progress"
@@ -64,6 +64,7 @@ const onDescriptionClick = useInternalLinksClick()
 const description = computed(() => {
   return getBestClaimOfType(withDocument.value?.doc?.claims, "html", DESCRIPTION)?.html || ""
 })
+const transformedDescription = useTransformedHtml(description)
 
 // TODO: Do not hard-code properties?
 const tags = computed(() => {
@@ -176,7 +177,7 @@ const rowSpan = computed(() => {
             /></RouterLink>
           </div>
           <!-- eslint-disable-next-line vue/no-v-html -->
-          <p v-if="description" class="prose max-w-none prose-slate" @click="onDescriptionClick" v-html="description"></p>
+          <p v-if="description" class="prose max-w-none prose-slate" @click="onDescriptionClick" v-html="transformedDescription"></p>
         </div>
       </template>
       <template #loading>
