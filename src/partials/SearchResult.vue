@@ -39,6 +39,7 @@ const progress = useProgress()
 
 const WithDocumentD = WithDocument<D>
 const withDocument = useTemplateRef<ComponentExposed<typeof WithDocumentD>>("withDocument")
+const displayLabelComponent = useTemplateRef<ComponentExposed<typeof DisplayLabel>>("displayLabelComponent")
 
 const searchResultComponents = getSearchResultComponents()
 const customResultComponent = computed(() => {
@@ -134,9 +135,9 @@ const rowSpan = computed(() => {
           <ButtonLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="float-end px-3.5">{{
             t("partials.SearchResult.details")
           }}</ButtonLink>
-          <h2 class="mb-2 text-xl leading-none">
+          <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 text-xl leading-none">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link"
-              ><DisplayLabel :doc="resultDoc"
+              ><DisplayLabel ref="displayLabelComponent" :doc="resultDoc"
             /></RouterLink>
           </h2>
           <ul v-if="tags.length" class="mb-2 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
@@ -156,25 +157,30 @@ const rowSpan = computed(() => {
           <FieldsView :fields-data="fieldsData" :claims="resultDoc.claims" />
         </div>
         <div v-else class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
-          <h2 class="text-xl leading-none">
-            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link"
-              ><DisplayLabel :doc="resultDoc"
-            /></RouterLink>
-          </h2>
-          <ul v-if="tags.length" class="-mt-3 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
-            <template v-for="tag of tags" :key="tag.id">
-              <WithDocumentD :id="tag.id" name="DocumentGet">
-                <template #default="{ doc, url }">
-                  <li class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
-                    <DisplayLabel :doc="doc" />
-                  </li>
-                </template>
-                <template #loading="{ url }">
-                  <li class="pd-withdocument-loading h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse" :data-url="url" :class="[loadingWidth(tag.id)]"></li>
-                </template>
-              </WithDocumentD>
-            </template>
-          </ul>
+          <div>
+            <ButtonLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="float-end px-3.5">{{
+              t("partials.SearchResult.details")
+            }}</ButtonLink>
+            <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 text-xl leading-none">
+              <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link"
+                ><DisplayLabel :doc="resultDoc"
+              /></RouterLink>
+            </h2>
+            <ul v-if="tags.length" class="flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
+              <template v-for="tag of tags" :key="tag.id">
+                <WithDocumentD :id="tag.id" name="DocumentGet">
+                  <template #default="{ doc, url }">
+                    <li class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
+                      <DisplayLabel :doc="doc" />
+                    </li>
+                  </template>
+                  <template #loading="{ url }">
+                    <li class="pd-withdocument-loading h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse" :data-url="url" :class="[loadingWidth(tag.id)]"></li>
+                  </template>
+                </WithDocumentD>
+              </template>
+            </ul>
+          </div>
           <div v-if="previewFiles.length" :class="`w-full sm:order-first ${rowSpan}`">
             <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }"
               ><img :src="previewFiles[0]" class="mx-auto bg-white"
