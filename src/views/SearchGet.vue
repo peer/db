@@ -81,7 +81,7 @@ const { results: searchResults, total: searchTotal, moreThanTotal: searchMoreTha
 // A non-read-only version of filters state so that we can modify it as necessary.
 const filtersState = ref<FiltersState>({ ref: {}, amount: {}, time: {} })
 // We keep it in sync with upstream version.
-watchEffect((onCleanup) => {
+watchEffect(() => {
   // We copy to make a read-only value mutable.
   if (searchSession.value === null || !searchSession.value.filters) {
     filtersState.value = { ref: {}, amount: {}, time: {} }
