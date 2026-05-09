@@ -15,6 +15,7 @@ import { ref } from "vue"
 
 import { getURL, headURLDirect } from "@/api"
 import { D, LinkClaim } from "@/document"
+import { delay } from "@/utils"
 
 // RFC 5987 extended form: filename*=<charset>'<lang>'<percent-encoded value>.
 // Capture group 2 holds the percent-encoded value, ending at a `;` or end of string.
@@ -245,6 +246,12 @@ export function useDownload(abortController: AbortController, router: Router, re
     const resolved = await Promise.all(files.values())
     // Sort by url for a deterministic order (the url embeds the file id).
     resolved.sort((a, b) => (a.url < b.url ? -1 : a.url > b.url ? 1 : 0))
+
+    // Hold the progress bar at 100% for MIN_HOLD_MS so the user perceives preparation
+    // completing before the phase transitions to "downloading" or "empty". delay() rejects
+    // with the signal's abort reason if cancel hits during the hold.
+    await delay(MIN_HOLD_MS, signal)
+
     return resolved
   }
 
