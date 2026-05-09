@@ -26,6 +26,12 @@ const progressPercent = computed(() => {
   }
   return (props.completed / props.total) * 100
 })
+
+// Worker reports completed as the index of the file currently being fetched (0-based, so 0
+// while the first file is downloading). Shift to a 1-based "current file" for the user, and
+// cap at total so the brief final progress message before the overlay closes does not show
+// e.g. "6 of 5".
+const currentIndex = computed(() => Math.min(props.completed + 1, props.total))
 </script>
 
 <template>
@@ -45,7 +51,7 @@ const progressPercent = computed(() => {
 
           <template v-else>
             <div class="text-sm font-medium">
-              {{ t("partials.DownloadOverlay.downloadingFile", { completed, total }) }}
+              {{ t("partials.DownloadOverlay.downloadingFile", { completed: currentIndex, total }) }}
             </div>
 
             <div v-if="currentFile" class="truncate text-xs text-gray-500">{{ currentFile }}</div>
