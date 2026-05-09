@@ -169,7 +169,11 @@ async function run(files: DownloadFile[], fileHandle: FileSystemFileHandle | nul
         // Ignore abort errors.
       }
       // Drain any queued writes that reject from the abort to avoid unhandled rejections.
-      await writePromise.catch(() => {})
+      try {
+        await writePromise
+      } catch {
+        // Ignore errors.
+      }
     }
     if (signal.aborted) {
       // Cancelled by the main thread: report a clean completion so the overlay closes.
