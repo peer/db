@@ -66,6 +66,9 @@ function transformInternalHtml(html: string, router: Router): string {
     anchor.classList.add(...classes)
   }
 
+  // TODO: Instead of transforming HTML string to another HTML string, just use insert the transformed DOM.
+  //       It is redundant to generate transformed HTML string just for browser to parse it again.
+  //       We could have our own version of "v-html" directive which first does the transformation.
   return doc.body.innerHTML
 }
 
