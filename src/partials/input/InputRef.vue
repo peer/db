@@ -93,7 +93,7 @@ async function search(q: string) {
       return
     }
     // TODO: Show error.
-    console.error("InputRel.search", err)
+    console.error("InputRef.search", err)
   } finally {
     searchProgress.value -= 1
   }
