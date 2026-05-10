@@ -1,18 +1,20 @@
 <script setup lang="ts">
-import type { PeerDBDocument } from "@/document"
-import type { Filters, Result } from "@/types"
+import type { D } from "@/document"
+import type { ClaimTypes } from "@/document/claims"
+import type { Result } from "@/types"
+import type { DeepReadonly } from "vue"
 
 import { Combobox, ComboboxButton, ComboboxInput, ComboboxOption, ComboboxOptions } from "@headlessui/vue"
 import { ArrowTopRightOnSquareIcon, CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue"
+import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
-import { getURL, postJSON } from "@/api"
+import { postJSON } from "@/api"
 import WithDocument from "@/components/WithDocument.vue"
-import { injectProgress } from "@/progress"
-import { TYPE } from "@/props"
-import { NONE } from "@/search"
-import { anySignal, getName, loadingWidth } from "@/utils"
+import { selectClaimsByLanguage } from "@/document"
+import { useProgress } from "@/progress"
+import { anySignal, loadingWidth } from "@/utils"
 
 // Wildcard to see if a string ends with unicode letter or number.
 const WILDCARD_SEARCH_REGEX = /[\p{L}\p{N}]$/u
@@ -20,12 +22,10 @@ const WILDCARD_SEARCH_REGEX = /[\p{L}\p{N}]$/u
 const props = withDefaults(
   defineProps<{
     progress?: number
-    type?: string | typeof NONE
     readonly?: boolean
   }>(),
   {
     progress: 0,
-    type: "",
     readonly: false,
   },
 )
@@ -37,13 +37,13 @@ defineOptions({
   inheritAttrs: false,
 })
 
-const searchProgress = injectProgress()
+const searchProgress = useProgress()
 
 const router = useRouter()
+const { locale } = useI18n({ useScope: "global" })
 
 const selectedDocument = shallowRef<Result | null>(null)
 const query = ref("")
-const isDocumentTypeValid = ref(true)
 const isInProgress = computed(() => props.progress > 0 || searchProgress.value > 0)
 const searchResults = ref<Result[]>([])
 
@@ -51,6 +51,13 @@ const optionsVisible = ref(false)
 
 const mainAbortController = new AbortController()
 let searchAbortController = new AbortController()
+
+// Sync display-name lookup using the NAME/TITLE string claims for the active locale.
+function getName(claims: DeepReadonly<ClaimTypes> | null | undefined): string | null {
+  if (!claims) return null
+  const matched = selectClaimsByLanguage(claims, "string", [], locale.value, (cs) => !!(cs.length > 0 && cs[0].string))
+  return matched?.[0].string ?? null
+}
 
 async function search(q: string) {
   const signal = anySignal(mainAbortController.signal, searchAbortController.signal)
@@ -64,16 +71,6 @@ async function search(q: string) {
     q = q + "*"
   }
 
-  // Build rel filters.
-  let filters: Filters | undefined = undefined
-  if (props.type) {
-    if (props.type === NONE) {
-      filters = { rel: { prop: TYPE, none: true } }
-    } else {
-      filters = { rel: { prop: TYPE, value: props.type } }
-    }
-  }
-
   searchProgress.value += 1
   try {
     // Create a new search session.
@@ -81,7 +78,6 @@ async function search(q: string) {
       router.apiResolve({ name: "SearchJustResults" }).href,
       {
         query: q,
-        filters: filters,
       },
       signal,
       searchProgress,
@@ -103,28 +99,10 @@ async function search(q: string) {
   }
 }
 
-async function validateSelectedDocument(id: string): Promise<void> {
-  const newURL = router.apiResolve({ name: "DocumentGet", params: { id } }).href
-  const response = await getURL<PeerDBDocument>(newURL, null, mainAbortController.signal, searchProgress)
-
-  const relClaims = response.doc.claims?.rel
-  if (!relClaims) {
-    isDocumentTypeValid.value = false
-    return
-  }
-
-  isDocumentTypeValid.value = !!relClaims.find((claim) => claim.to.id == props.type)
-}
-
 watch(
   () => model.value,
-  async (id) => {
-    if (!id) return (selectedDocument.value = null)
-    await validateSelectedDocument(id)
-    if (mainAbortController.signal.aborted) {
-      return
-    }
-    selectedDocument.value = { id }
+  (id) => {
+    selectedDocument.value = id ? { id } : null
   },
   { immediate: true },
 )
@@ -154,7 +132,7 @@ onBeforeUnmount(() => {
   mainAbortController.abort()
 })
 
-const WithPeerDBDocument = WithDocument<PeerDBDocument>
+const WithPeerDBDocument = WithDocument<D>
 </script>
 
 <template>
@@ -172,7 +150,6 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
               'bg-white': !isInProgress,
               'bg-gray-100!': isInProgress || readonly,
               'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': isInProgress || readonly,
-              'bg-error-50!': !isDocumentTypeValid,
               'text-gray-800': isInProgress || readonly,
               'hover:ring-neutral-300! focus:ring-primary-300!': isInProgress || readonly,
               'hover:ring-neutral-400 focus:ring-primary-500': !isInProgress,
@@ -196,7 +173,6 @@ const WithPeerDBDocument = WithDocument<PeerDBDocument>
                   'bg-white': !isInProgress,
                   'bg-gray-100!': isInProgress || readonly,
                   'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': isInProgress || readonly,
-                  'bg-error-50!': !isDocumentTypeValid,
                   'text-gray-800': isInProgress || readonly,
                   'hover:ring-neutral-300! focus:ring-primary-300!': isInProgress || readonly,
                   'hover:ring-neutral-400 focus:ring-primary-500': !isInProgress,
