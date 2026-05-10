@@ -54,44 +54,44 @@ declare module "vue-i18n" {
         unknown: string
       }
     }
-    components: {
-      InputTime: {
-        format: string
-        precision: {
-          G: string
-          "100M": string
-          "10M": string
-          M: string
-          "100k": string
-          "10k": string
-          k: string
-          "100y": string
-          "10y": string
-          y: string
-          m: string
-          d: string
-          h: string
-          min: string
-          s: string
-          ms: string
-          us: string
-          ns: string
-        }
-        errors: {
-          invalid: string
-          daysNotZero: string
-          months: string
-          months0: string
-          days: string
-          days0: string
-          hours: string
-          minutes: string
-          seconds: string
-          subseconds: string
+    partials: {
+      input: {
+        InputTime: {
+          format: string
+          precision: {
+            G: string
+            "100M": string
+            "10M": string
+            M: string
+            "100k": string
+            "10k": string
+            k: string
+            "100y": string
+            "10y": string
+            y: string
+            m: string
+            d: string
+            h: string
+            min: string
+            s: string
+            ms: string
+            us: string
+            ns: string
+          }
+          errors: {
+            invalid: string
+            daysNotZero: string
+            months: string
+            months0: string
+            days: string
+            days0: string
+            hours: string
+            minutes: string
+            seconds: string
+            subseconds: string
+          }
         }
       }
-    }
-    partials: {
       Footer: {
         poweredBy: string
       }

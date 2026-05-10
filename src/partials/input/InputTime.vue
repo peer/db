@@ -163,7 +163,7 @@ export function progressiveValidate(normalized: string, t: (key: string, named?:
     if (!m) return ""
     const month = Number(m[2])
     if (month === 0) return ""
-    return month >= 0 && month <= 12 ? "" : t("components.InputTime.errors.months0")
+    return month >= 0 && month <= 12 ? "" : t("partials.input.InputTime.errors.months0")
   }
 
   // Day in progress: "2023-1-1".
@@ -174,12 +174,12 @@ export function progressiveValidate(normalized: string, t: (key: string, named?:
     const month = Number(asDay[2])
     const day = Number(asDay[3])
 
-    if (month == 0 && day != 0) return t("components.InputTime.errors.daysNotZero")
-    if (month < 0 || month > 12) return t("components.InputTime.errors.months0")
+    if (month == 0 && day != 0) return t("partials.input.InputTime.errors.daysNotZero")
+    if (month < 0 || month > 12) return t("partials.input.InputTime.errors.months0")
 
     if (day === 0) return ""
     const maxDay = daysIn(month, year)
-    if (day < 0 || day > maxDay) return t("components.InputTime.errors.days0", { maxDay })
+    if (day < 0 || day > maxDay) return t("partials.input.InputTime.errors.days0", { maxDay })
 
     return ""
   }
@@ -191,10 +191,10 @@ export function progressiveValidate(normalized: string, t: (key: string, named?:
     const day = Number(toHour[3])
     const hour = Number(toHour[4])
 
-    if (month < 1 || month > 12) return t("components.InputTime.errors.months")
+    if (month < 1 || month > 12) return t("partials.input.InputTime.errors.months")
     const maxDay = daysIn(month, year)
-    if (day < 1 || day > maxDay) return t("components.InputTime.errors.days", { maxDay })
-    if (hour < 0 || hour > 23) return t("components.InputTime.errors.hours")
+    if (day < 1 || day > maxDay) return t("partials.input.InputTime.errors.days", { maxDay })
+    if (hour < 0 || hour > 23) return t("partials.input.InputTime.errors.hours")
 
     return ""
   }
@@ -209,11 +209,11 @@ export function progressiveValidate(normalized: string, t: (key: string, named?:
     const hour = Number(toMinute[4])
     const minute = Number(toMinute[5])
 
-    if (month < 1 || month > 12) return t("components.InputTime.errors.months")
+    if (month < 1 || month > 12) return t("partials.input.InputTime.errors.months")
     const maxDay = daysIn(month, year)
-    if (day < 1 || day > maxDay) return t("components.InputTime.errors.days", { maxDay })
-    if (hour < 0 || hour > 23) return t("components.InputTime.errors.hours")
-    if (minute < 0 || minute > 59) return t("components.InputTime.errors.minutes")
+    if (day < 1 || day > maxDay) return t("partials.input.InputTime.errors.days", { maxDay })
+    if (hour < 0 || hour > 23) return t("partials.input.InputTime.errors.hours")
+    if (minute < 0 || minute > 59) return t("partials.input.InputTime.errors.minutes")
 
     return ""
   }
@@ -229,12 +229,12 @@ export function progressiveValidate(normalized: string, t: (key: string, named?:
     const minute = Number(toSecond[5])
     const second = Number(toSecond[6])
 
-    if (month < 1 || month > 12) return t("components.InputTime.errors.months")
+    if (month < 1 || month > 12) return t("partials.input.InputTime.errors.months")
     const maxDay = daysIn(month, year)
-    if (day < 1 || day > maxDay) return t("components.InputTime.errors.days", { maxDay })
-    if (hour < 0 || hour > 23) return t("components.InputTime.errors.hours")
-    if (minute < 0 || minute > 59) return t("components.InputTime.errors.minutes")
-    if (second < 0 || second > 59) return t("components.InputTime.errors.seconds")
+    if (day < 1 || day > maxDay) return t("partials.input.InputTime.errors.days", { maxDay })
+    if (hour < 0 || hour > 23) return t("partials.input.InputTime.errors.hours")
+    if (minute < 0 || minute > 59) return t("partials.input.InputTime.errors.minutes")
+    if (second < 0 || second > 59) return t("partials.input.InputTime.errors.seconds")
 
     return ""
   }
@@ -253,12 +253,12 @@ export function progressiveValidate(normalized: string, t: (key: string, named?:
       const minute = Number(toSec[5])
       const second = Number(toSec[6])
 
-      if (month < 1 || month > 12) return t("components.InputTime.errors.months")
+      if (month < 1 || month > 12) return t("partials.input.InputTime.errors.months")
       const maxDay = daysIn(month, year)
-      if (day < 1 || day > maxDay) return t("components.InputTime.errors.days", { maxDay })
-      if (hour < 0 || hour > 23) return t("components.InputTime.errors.hours")
-      if (minute < 0 || minute > 59) return t("components.InputTime.errors.minutes")
-      if (second < 0 || second > 59) return t("components.InputTime.errors.seconds")
+      if (day < 1 || day > maxDay) return t("partials.input.InputTime.errors.days", { maxDay })
+      if (hour < 0 || hour > 23) return t("partials.input.InputTime.errors.hours")
+      if (minute < 0 || minute > 59) return t("partials.input.InputTime.errors.minutes")
+      if (second < 0 || second > 59) return t("partials.input.InputTime.errors.seconds")
     }
 
     // Allow only fully-typed groups of 3, 6, 9 digits as completed input;
@@ -271,10 +271,10 @@ export function progressiveValidate(normalized: string, t: (key: string, named?:
     if (subLen === 3 || subLen === 6 || subLen === 9) {
       return ""
     }
-    return t("components.InputTime.errors.subseconds")
+    return t("partials.input.InputTime.errors.subseconds")
   }
 
-  return t("components.InputTime.errors.invalid")
+  return t("partials.input.InputTime.errors.invalid")
 }
 
 export function clampToMax(p: TimePrecision, max: TimePrecision): TimePrecision {
@@ -394,24 +394,24 @@ onBeforeUnmount(() => {
 })
 
 const precisionLabels: Record<TimePrecision, string> = {
-  G: t("components.InputTime.precision.G"),
-  "100M": t("components.InputTime.precision.100M"),
-  "10M": t("components.InputTime.precision.10M"),
-  M: t("components.InputTime.precision.M"),
-  "100k": t("components.InputTime.precision.100k"),
-  "10k": t("components.InputTime.precision.10k"),
-  k: t("components.InputTime.precision.k"),
-  "100y": t("components.InputTime.precision.100y"),
-  "10y": t("components.InputTime.precision.10y"),
-  y: t("components.InputTime.precision.y"),
-  m: t("components.InputTime.precision.m"),
-  d: t("components.InputTime.precision.d"),
-  h: t("components.InputTime.precision.h"),
-  min: t("components.InputTime.precision.min"),
-  s: t("components.InputTime.precision.s"),
-  ms: t("components.InputTime.precision.ms"),
-  us: t("components.InputTime.precision.us"),
-  ns: t("components.InputTime.precision.ns"),
+  G: t("partials.input.InputTime.precision.G"),
+  "100M": t("partials.input.InputTime.precision.100M"),
+  "10M": t("partials.input.InputTime.precision.10M"),
+  M: t("partials.input.InputTime.precision.M"),
+  "100k": t("partials.input.InputTime.precision.100k"),
+  "10k": t("partials.input.InputTime.precision.10k"),
+  k: t("partials.input.InputTime.precision.k"),
+  "100y": t("partials.input.InputTime.precision.100y"),
+  "10y": t("partials.input.InputTime.precision.10y"),
+  y: t("partials.input.InputTime.precision.y"),
+  m: t("partials.input.InputTime.precision.m"),
+  d: t("partials.input.InputTime.precision.d"),
+  h: t("partials.input.InputTime.precision.h"),
+  min: t("partials.input.InputTime.precision.min"),
+  s: t("partials.input.InputTime.precision.s"),
+  ms: t("partials.input.InputTime.precision.ms"),
+  us: t("partials.input.InputTime.precision.us"),
+  ns: t("partials.input.InputTime.precision.ns"),
 }
 
 const timePrecision = ref<TimePrecision>("y")
@@ -824,5 +824,5 @@ watch(
   </div>
 
   <div v-if="errorMessage" class="pd-inputtime-error mt-1 text-sm text-error-600">{{ errorMessage }}</div>
-  <div v-else class="pd-inputtime-hint mt-1 text-sm text-neutral-500 italic">{{ t("components.InputTime.format") }}</div>
+  <div v-else class="pd-inputtime-hint mt-1 text-sm text-neutral-500 italic">{{ t("partials.input.InputTime.format") }}</div>
 </template>

@@ -4,7 +4,7 @@ import type { TimePrecision } from "@/document"
 
 import { assert, describe, test } from "vitest"
 
-import { clampToMax, inferPrecisionFromNormalized, inferYearPrecision, normalizeForParsing, progressiveValidate } from "@/components/InputTime.vue"
+import { clampToMax, inferPrecisionFromNormalized, inferYearPrecision, normalizeForParsing, progressiveValidate } from "@/partials/input/InputTime.vue"
 
 // TODO: Enable once eslint parser for extra files is used.
 //       See: https://github.com/ota-meshi/typescript-eslint-parser-for-extra-files/issues/162
@@ -99,7 +99,7 @@ describe("progressiveValidate", () => {
   test("returns empty string for empty input", () => {
     assert.equal(progressiveValidateExposed(""), "")
 
-    assert.notEqual(progressiveValidateExposed(""), "components.InputTime.errors.invalid")
+    assert.notEqual(progressiveValidateExposed(""), "partials.input.InputTime.errors.invalid")
   })
 
   test("allows year in progress", () => {
@@ -108,7 +108,7 @@ describe("progressiveValidate", () => {
     assert.equal(progressiveValidateExposed("202"), "")
     assert.equal(progressiveValidateExposed("2023"), "")
 
-    assert.notEqual(progressiveValidateExposed("2023"), "components.InputTime.errors.months0")
+    assert.notEqual(progressiveValidateExposed("2023"), "partials.input.InputTime.errors.months0")
   })
 
   test("validates month in progress", () => {
@@ -116,9 +116,9 @@ describe("progressiveValidate", () => {
     assert.equal(progressiveValidateExposed("2023-0"), "")
     assert.equal(progressiveValidateExposed("2023-1"), "")
     assert.equal(progressiveValidateExposed("2023-12"), "")
-    assert.equal(progressiveValidateExposed("2023-13"), "components.InputTime.errors.months0")
+    assert.equal(progressiveValidateExposed("2023-13"), "partials.input.InputTime.errors.months0")
 
-    assert.notEqual(progressiveValidateExposed("2023-12"), "components.InputTime.errors.invalid")
+    assert.notEqual(progressiveValidateExposed("2023-12"), "partials.input.InputTime.errors.invalid")
     assert.notEqual(progressiveValidateExposed("2023-13"), "")
   })
 
@@ -127,13 +127,13 @@ describe("progressiveValidate", () => {
     assert.equal(progressiveValidateExposed("2023-1-0"), "")
     assert.equal(progressiveValidateExposed("2023-1-1"), "")
     assert.equal(progressiveValidateExposed("2023-1-1 1"), "")
-    assert.equal(progressiveValidateExposed("2023-0-1"), "components.InputTime.errors.daysNotZero")
-    assert.equal(progressiveValidateExposed("2023-00-01"), "components.InputTime.errors.daysNotZero")
-    assert.equal(progressiveValidateExposed("2023-13-1"), "components.InputTime.errors.months0")
-    assert.equal(progressiveValidateExposed("2023-2-30"), `components.InputTime.errors.days0 {"maxDay":28}`)
-    assert.equal(progressiveValidateExposed("2015-2-30"), `components.InputTime.errors.days0 {"maxDay":28}`)
+    assert.equal(progressiveValidateExposed("2023-0-1"), "partials.input.InputTime.errors.daysNotZero")
+    assert.equal(progressiveValidateExposed("2023-00-01"), "partials.input.InputTime.errors.daysNotZero")
+    assert.equal(progressiveValidateExposed("2023-13-1"), "partials.input.InputTime.errors.months0")
+    assert.equal(progressiveValidateExposed("2023-2-30"), `partials.input.InputTime.errors.days0 {"maxDay":28}`)
+    assert.equal(progressiveValidateExposed("2015-2-30"), `partials.input.InputTime.errors.days0 {"maxDay":28}`)
 
-    assert.notEqual(progressiveValidateExposed("2023-1-1"), "components.InputTime.errors.invalid")
+    assert.notEqual(progressiveValidateExposed("2023-1-1"), "partials.input.InputTime.errors.invalid")
     assert.notEqual(progressiveValidateExposed("2023-0-1"), "")
     assert.notEqual(progressiveValidateExposed("2023-13-1"), "")
     assert.notEqual(progressiveValidateExposed("2023-2-30"), "")
@@ -142,11 +142,11 @@ describe("progressiveValidate", () => {
   test("validates hours", () => {
     assert.equal(progressiveValidateExposed("2023-12-31 0"), "")
     assert.equal(progressiveValidateExposed("2023-12-31 23"), "")
-    assert.equal(progressiveValidateExposed("2023-12-31 24"), "components.InputTime.errors.hours")
-    assert.equal(progressiveValidateExposed("2023-13-31 12"), "components.InputTime.errors.months")
-    assert.equal(progressiveValidateExposed("2023-2-30 12"), `components.InputTime.errors.days {"maxDay":28}`)
+    assert.equal(progressiveValidateExposed("2023-12-31 24"), "partials.input.InputTime.errors.hours")
+    assert.equal(progressiveValidateExposed("2023-13-31 12"), "partials.input.InputTime.errors.months")
+    assert.equal(progressiveValidateExposed("2023-2-30 12"), `partials.input.InputTime.errors.days {"maxDay":28}`)
 
-    assert.notEqual(progressiveValidateExposed("2023-12-31 23"), "components.InputTime.errors.invalid")
+    assert.notEqual(progressiveValidateExposed("2023-12-31 23"), "partials.input.InputTime.errors.invalid")
     assert.notEqual(progressiveValidateExposed("2023-12-31 24"), "")
     assert.notEqual(progressiveValidateExposed("2023-13-31 12"), "")
     assert.notEqual(progressiveValidateExposed("2023-2-30 12"), "")
@@ -155,10 +155,10 @@ describe("progressiveValidate", () => {
   test("validates minutes", () => {
     assert.equal(progressiveValidateExposed("2023-12-31 12:0"), "")
     assert.equal(progressiveValidateExposed("2023-12-31 12:59"), "")
-    assert.equal(progressiveValidateExposed("2023-12-31 12:60"), "components.InputTime.errors.minutes")
-    assert.equal(progressiveValidateExposed("2023-12-31 24:00"), "components.InputTime.errors.hours")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:60"), "partials.input.InputTime.errors.minutes")
+    assert.equal(progressiveValidateExposed("2023-12-31 24:00"), "partials.input.InputTime.errors.hours")
 
-    assert.notEqual(progressiveValidateExposed("2023-12-31 12:59"), "components.InputTime.errors.invalid")
+    assert.notEqual(progressiveValidateExposed("2023-12-31 12:59"), "partials.input.InputTime.errors.invalid")
     assert.notEqual(progressiveValidateExposed("2023-12-31 12:60"), "")
     assert.notEqual(progressiveValidateExposed("2023-12-31 24:00"), "")
   })
@@ -166,17 +166,17 @@ describe("progressiveValidate", () => {
   test("validates seconds", () => {
     assert.equal(progressiveValidateExposed("2023-12-31 12:34:0"), "")
     assert.equal(progressiveValidateExposed("2023-12-31 12:34:59"), "")
-    assert.equal(progressiveValidateExposed("2023-12-31 12:34:60"), "components.InputTime.errors.seconds")
-    assert.equal(progressiveValidateExposed("2023-12-31 12:60:00"), "components.InputTime.errors.minutes")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:34:60"), "partials.input.InputTime.errors.seconds")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:60:00"), "partials.input.InputTime.errors.minutes")
 
-    assert.notEqual(progressiveValidateExposed("2023-12-31 12:34:59"), "components.InputTime.errors.invalid")
+    assert.notEqual(progressiveValidateExposed("2023-12-31 12:34:59"), "partials.input.InputTime.errors.invalid")
     assert.notEqual(progressiveValidateExposed("2023-12-31 12:34:60"), "")
     assert.notEqual(progressiveValidateExposed("2023-12-31 12:60:00"), "")
   })
 
   test("rejects invalid time structure", () => {
-    assert.equal(progressiveValidateExposed("foo"), "components.InputTime.errors.invalid")
-    assert.equal(progressiveValidateExposed("2023--12"), "components.InputTime.errors.invalid")
+    assert.equal(progressiveValidateExposed("foo"), "partials.input.InputTime.errors.invalid")
+    assert.equal(progressiveValidateExposed("2023--12"), "partials.input.InputTime.errors.invalid")
 
     assert.notEqual(progressiveValidateExposed("foo"), "")
     assert.notEqual(progressiveValidateExposed("2023--12"), "")
@@ -448,25 +448,25 @@ describe("progressiveValidate (subseconds)", () => {
 
   // Invalid inputs that should produce a non-empty error key.
   test("letters in subseconds rejected", () => {
-    assert.equal(progressiveValidateExposed("2023-12-31 12:34:56.abc"), "components.InputTime.errors.invalid")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:34:56.abc"), "partials.input.InputTime.errors.invalid")
   })
   test("more than 9 subsecond digits rejected", () => {
-    assert.equal(progressiveValidateExposed("2023-12-31 12:34:56.1234567890"), "components.InputTime.errors.invalid")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:34:56.1234567890"), "partials.input.InputTime.errors.invalid")
   })
   test("month out of range with subseconds rejected", () => {
-    assert.equal(progressiveValidateExposed("2023-13-31 12:34:56.123"), "components.InputTime.errors.months")
+    assert.equal(progressiveValidateExposed("2023-13-31 12:34:56.123"), "partials.input.InputTime.errors.months")
   })
   test("day out of range with subseconds rejected", () => {
-    assert.equal(progressiveValidateExposed("2023-12-32 12:34:56.123"), `components.InputTime.errors.days {"maxDay":31}`)
+    assert.equal(progressiveValidateExposed("2023-12-32 12:34:56.123"), `partials.input.InputTime.errors.days {"maxDay":31}`)
   })
   test("hour out of range with subseconds rejected", () => {
-    assert.equal(progressiveValidateExposed("2023-12-31 25:34:56.123"), "components.InputTime.errors.hours")
+    assert.equal(progressiveValidateExposed("2023-12-31 25:34:56.123"), "partials.input.InputTime.errors.hours")
   })
   test("minute out of range with subseconds rejected", () => {
-    assert.equal(progressiveValidateExposed("2023-12-31 12:60:56.123"), "components.InputTime.errors.minutes")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:60:56.123"), "partials.input.InputTime.errors.minutes")
   })
   test("second out of range with subseconds rejected", () => {
-    assert.equal(progressiveValidateExposed("2023-12-31 12:34:60.123"), "components.InputTime.errors.seconds")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:34:60.123"), "partials.input.InputTime.errors.seconds")
   })
 })
 
@@ -475,9 +475,9 @@ describe("progressiveValidate (general invalid inputs)", () => {
     // The first branch (YEAR_IN_PROGRESS_REGEX) tolerates partial input; "abc"
     // matches none of the well-formed shapes, falling through to the catch-all
     // "invalid" message.
-    assert.equal(progressiveValidateExposed("abc"), "components.InputTime.errors.invalid")
+    assert.equal(progressiveValidateExposed("abc"), "partials.input.InputTime.errors.invalid")
   })
   test("garbage tail after time rejected", () => {
-    assert.equal(progressiveValidateExposed("2023-12-31 12:34:56xyz"), "components.InputTime.errors.invalid")
+    assert.equal(progressiveValidateExposed("2023-12-31 12:34:56xyz"), "partials.input.InputTime.errors.invalid")
   })
 })

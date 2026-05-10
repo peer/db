@@ -43,44 +43,44 @@
       "unknown": "unknown"
     }
   },
-  "components": {
-    "InputTime": {
-      "format": "Format: YYYY-MM-DD HH:MM:SS",
-      "precision": {
-        "G": "giga years",
-        "100M": "hundred megayears",
-        "10M": "ten megayears",
-        "M": "megayears",
-        "100k": "hundred kiloyears",
-        "10k": "ten kiloyears",
-        "k": "kiloyears",
-        "100y": "hundred years",
-        "10y": "ten years",
-        "y": "years",
-        "m": "months",
-        "d": "days",
-        "h": "hours",
-        "min": "minutes",
-        "s": "seconds",
-        "ms": "milliseconds",
-        "us": "microseconds",
-        "ns": "nanoseconds"
-      },
-      "errors": {
-        "invalid": "Invalid format.",
-        "daysNotZero": "Months cannot be 0 when days are not 0.",
-        "months": "Months need to be between 1-12.",
-        "months0": "Months need to be between 0-12.",
-        "days": "Day must be between 1-{maxDay}.",
-        "days0": "Day must be between 0-{maxDay}.",
-        "hours": "Hours needs to be between 0-23.",
-        "minutes": "Minutes need to be between 0-59.",
-        "seconds": "Seconds need to be between 0-59.",
-        "subseconds": "Subseconds need to have 3, 6, or 9 digits."
-      }
-    }
-  },
   "partials": {
+    "input": {
+      "InputTime": {
+        "format": "Format: YYYY-MM-DD HH:MM:SS",
+        "precision": {
+          "G": "giga years",
+          "100M": "hundred megayears",
+          "10M": "ten megayears",
+          "M": "megayears",
+          "100k": "hundred kiloyears",
+          "10k": "ten kiloyears",
+          "k": "kiloyears",
+          "100y": "hundred years",
+          "10y": "ten years",
+          "y": "years",
+          "m": "months",
+          "d": "days",
+          "h": "hours",
+          "min": "minutes",
+          "s": "seconds",
+          "ms": "milliseconds",
+          "us": "microseconds",
+          "ns": "nanoseconds"
+        },
+        "errors": {
+          "invalid": "Invalid format.",
+          "daysNotZero": "Months cannot be 0 when days are not 0.",
+          "months": "Months need to be between 1-12.",
+          "months0": "Months need to be between 0-12.",
+          "days": "Day must be between 1-{maxDay}.",
+          "days0": "Day must be between 0-{maxDay}.",
+          "hours": "Hours needs to be between 0-23.",
+          "minutes": "Minutes need to be between 0-59.",
+          "seconds": "Seconds need to be between 0-59.",
+          "subseconds": "Subseconds need to have 3, 6, or 9 digits."
+        }
+      }
+    },
     "Footer": {
       "poweredBy": "Powered by {linkName}"
     },

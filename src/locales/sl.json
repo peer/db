@@ -43,44 +43,44 @@
       "unknown": "neznana"
     }
   },
-  "components": {
-    "InputTime": {
-      "format": "Oblika: LLLL-MM-DD UU:MM:SS",
-      "precision": {
-        "G": "gigaleto",
-        "100M": "sto megalet",
-        "10M": "deset megalet",
-        "M": "megaleto",
-        "100k": "sto kilolet",
-        "10k": "deset kilolet",
-        "k": "kiloleto",
-        "100y": "sto let",
-        "10y": "deset let",
-        "y": "leto",
-        "m": "mesec",
-        "d": "dan",
-        "h": "ura",
-        "min": "minuta",
-        "s": "sekunda",
-        "ms": "milisekunda",
-        "us": "mikrosekunda",
-        "ns": "nanosekunda"
-      },
-      "errors": {
-        "invalid": "Neveljavna oblika.",
-        "daysNotZero": "Meseci ne morejo biti 0, ko dnevi niso 0.",
-        "months": "Meseci morajo biti med 1-12.",
-        "months0": "Meseci morajo biti med 0-12.",
-        "days": "Dan mora biti med 1-{maxDay}.",
-        "days0": "Dan mora biti med 0-{maxDay}.",
-        "hours": "Ure morajo biti med 0-23.",
-        "minutes": "Minute morajo biti med 0-59.",
-        "seconds": "Sekunde morajo biti med 0-59.",
-        "subseconds": "Manj kot sekunde morajo imeti 3, 6 ali 9 števk."
-      }
-    }
-  },
   "partials": {
+    "input": {
+      "InputTime": {
+        "format": "Oblika: LLLL-MM-DD UU:MM:SS",
+        "precision": {
+          "G": "gigaleto",
+          "100M": "sto megalet",
+          "10M": "deset megalet",
+          "M": "megaleto",
+          "100k": "sto kilolet",
+          "10k": "deset kilolet",
+          "k": "kiloleto",
+          "100y": "sto let",
+          "10y": "deset let",
+          "y": "leto",
+          "m": "mesec",
+          "d": "dan",
+          "h": "ura",
+          "min": "minuta",
+          "s": "sekunda",
+          "ms": "milisekunda",
+          "us": "mikrosekunda",
+          "ns": "nanosekunda"
+        },
+        "errors": {
+          "invalid": "Neveljavna oblika.",
+          "daysNotZero": "Meseci ne morejo biti 0, ko dnevi niso 0.",
+          "months": "Meseci morajo biti med 1-12.",
+          "months0": "Meseci morajo biti med 0-12.",
+          "days": "Dan mora biti med 1-{maxDay}.",
+          "days0": "Dan mora biti med 0-{maxDay}.",
+          "hours": "Ure morajo biti med 0-23.",
+          "minutes": "Minute morajo biti med 0-59.",
+          "seconds": "Sekunde morajo biti med 0-59.",
+          "subseconds": "Manj kot sekunde morajo imeti 3, 6 ali 9 števk."
+        }
+      }
+    },
     "Footer": {
       "poweredBy": "Poganja {linkName}"
     },
