@@ -1,3 +1,11 @@
+<!--
+We do not use :read-only or :disabled pseudo classes to style the component because
+we want component to retain how it visually looks even if DOM element's read-only or
+disabled attributes are set, unless they are set through component's props.
+This is used during transitions/animations to disable the component by directly setting
+its DOM attributes without flickering how the component looks.
+-->
+
 <script setup lang="ts" generic="T">
 import type { SelectButtonOption } from "@/types"
 
@@ -23,6 +31,10 @@ for (const slot in useSlots()) {
     throw new Error(`slot '${slot}' used, but there is no corresponding option`)
   }
 }
+
+function isDisabled(option: SelectButtonOption<T>) {
+  return (option.progress ?? 0) > 0 || option.disabled
+}
 </script>
 
 <template>
@@ -30,11 +42,13 @@ for (const slot in useSlots()) {
     <button
       v-for="option in options"
       :key="option.name"
-      :disabled="(option.progress || 0) > 0 || option.disabled"
-      class="h-full rounded-sm px-2 py-0.5 disabled:cursor-not-allowed disabled:text-slate-500"
+      :disabled="isDisabled(option)"
+      class="h-full rounded-sm px-2 py-0.5"
       :class="{
-        'bg-white shadow-xs disabled:bg-slate-100': model === option.value,
-        'enabled:hover:bg-slate-100': model !== option.value,
+        'cursor-not-allowed text-slate-500': isDisabled(option),
+        'bg-white shadow-xs': model === option.value && !isDisabled(option),
+        'bg-slate-100 shadow-xs': model === option.value && isDisabled(option),
+        'hover:bg-slate-100': model !== option.value && !isDisabled(option),
       }"
       @click.prevent="model = option.value"
     >

@@ -1,3 +1,11 @@
+<!--
+We do not use :read-only or :disabled pseudo classes to style the component because
+we want component to retain how it visually looks even if DOM element's read-only or
+disabled attributes are set, unless they are set through component's props.
+This is used during transitions/animations to disable the component by directly setting
+its DOM attributes without flickering how the component looks.
+-->
+
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
@@ -110,7 +118,11 @@ function countFilters(): number {
 
     <div v-if="siteContext.features.downloadButtons" class="flex shrink-0 items-center gap-1 rounded-sm bg-slate-200 px-1 py-1">
       <button
-        class="h-full rounded-sm px-2 py-0.5 enabled:hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-500"
+        class="h-full rounded-sm px-2 py-0.5"
+        :class="{
+          'cursor-not-allowed text-slate-500': isDownloading, // Disabled style.
+          'hover:bg-slate-100': !isDownloading, // Enabled style.
+        }"
         :disabled="isDownloading"
         :title="t('partials.SearchResultsHeader.downloadZip')"
         @click.prevent="$emit('downloadZip')"
@@ -119,7 +131,11 @@ function countFilters(): number {
       </button>
       <button
         v-if="directoryPickerSupported"
-        class="h-full rounded-sm px-2 py-0.5 enabled:hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-500"
+        class="h-full rounded-sm px-2 py-0.5"
+        :class="{
+          'cursor-not-allowed text-slate-500': isDownloading, // Disabled style.
+          'hover:bg-slate-100': !isDownloading, // Enabled style.
+        }"
         :disabled="isDownloading"
         :title="t('partials.SearchResultsHeader.downloadFiles')"
         @click.prevent="$emit('downloadFiles')"
