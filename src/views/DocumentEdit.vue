@@ -511,7 +511,7 @@ function canSave(): boolean {
             >
           </TabList>
           <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
-          <TabPanels>
+          <TabPanels as="template">
             <!-- Class-specific tab. -->
             <TabPanel v-if="classTabId && mergedFieldsData" :key="classTabId" tabindex="-1">
               <FieldsForm
@@ -589,7 +589,7 @@ function canSave(): boolean {
                     >{{ t("views.DocumentEdit.claimTypes.unknown") }}</Tab
                   >
                 </TabList>
-                <TabPanels>
+                <TabPanels as="template">
                   <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
                   <TabPanel tabindex="-1" class="flex flex-col">
                     <label for="identifier-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
