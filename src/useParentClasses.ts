@@ -67,8 +67,7 @@ export function useParentClasses(
     async (classIds) => {
       if (classIds.length === 0) {
         _classDocs.value = []
-        // TODO: Do something better here?
-        _initialized.value = !!doc.value?.claims
+        _initialized.value = !!doc.value
         return
       }
 

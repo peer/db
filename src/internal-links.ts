@@ -1,16 +1,8 @@
 import type { ComputedRef, Ref } from "vue"
 import type { Router } from "vue-router"
 
-import globeAltUrl from "heroicons/16/solid/globe-alt.svg?url"
-import paperclipUrl from "heroicons/16/solid/paper-clip.svg?url"
 import { computed } from "vue"
 import { useRouter } from "vue-router"
-
-// Publish the heroicon URLs as CSS custom properties on the document root so
-// they can be used by `mask-image` rules in src/theme.css. Done at module load
-// because the icon URLs are static for the lifetime of the page.
-document.documentElement.style.setProperty("--pd-icon-paperclip", `url("${paperclipUrl}")`)
-document.documentElement.style.setProperty("--pd-icon-globe-alt", `url("${globeAltUrl}")`)
 
 // CSS classes stamped onto anchor elements during HTML transformation.
 // There is hierarchy between LINK_CLASS_INTERNAL > LINK_CLASS_INTERNAL_NOVIEW > LINK_CLASS_FILE.

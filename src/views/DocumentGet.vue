@@ -55,6 +55,7 @@ onBeforeUnmount(() => {
 
 const WithDocumentD = WithDocument<D>
 const withDocument = useTemplateRef<ComponentExposed<typeof WithDocumentD>>("withDocument")
+const displayLabelComponent = useTemplateRef<ComponentExposed<typeof DisplayLabel>>("displayLabelComponent")
 
 const selectedTab = ref(0)
 
@@ -328,16 +329,17 @@ async function onEdit() {
                 >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
               >
             </TabList>
-            <h1 class="mb-4 text-4xl font-bold drop-shadow-xs"><DisplayLabel :doc="doc" /></h1>
+            <h1 v-show="displayLabelComponent?.displayLabel" class="mb-4 text-4xl font-bold drop-shadow-xs"><DisplayLabel ref="displayLabelComponent" :doc="doc" /></h1>
+            <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
             <TabPanels>
-              <TabPanel v-for="documentTab in documentTabs" :key="documentTab.id">
+              <TabPanel v-for="documentTab in documentTabs" :key="documentTab.id" tabindex="-1">
                 <component :is="documentTab.component" :doc="doc" />
               </TabPanel>
-              <TabPanel v-if="documentTabs.length === 0 && classTabId && mergedFieldsData">
+              <TabPanel v-if="documentTabs.length === 0 && classTabId && mergedFieldsData" tabindex="-1">
                 <FieldsView :fields-data="mergedFieldsData" :claims="doc.claims" sections />
               </TabPanel>
-              <TabPanel v-for="(_, i) of searchShortcuts" :key="i"><!-- Empty because this panel should never be rendered. --></TabPanel>
-              <TabPanel>
+              <TabPanel v-for="(_, i) of searchShortcuts" :key="i" tabindex="-1"><!-- Empty because this panel should never be rendered. --></TabPanel>
+              <TabPanel tabindex="-1">
                 <table class="w-full table-auto border-collapse">
                   <thead>
                     <tr>

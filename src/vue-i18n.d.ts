@@ -126,6 +126,9 @@ declare module "vue-i18n" {
         collapseRow: string
         moreColumns: string
       }
+      SearchResult: {
+        details: string
+      }
       FieldsForm: {
         addAnother: string
         from: string

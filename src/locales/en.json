@@ -115,6 +115,9 @@
       "collapseRow": "Collapse row",
       "moreColumns": "More columns"
     },
+    "SearchResult": {
+      "details": "Details"
+    },
     "FieldsForm": {
       "addAnother": "Add another",
       "from": "From",

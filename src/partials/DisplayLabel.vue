@@ -26,6 +26,10 @@ onBeforeUnmount(() => abortController.abort())
 
 // TODO: Pass "el" in.
 const displayLabel = asyncToReactive(() => getDisplayLabel(props.doc?.claims, router, i18n, null, abortController.signal, progress))
+
+defineExpose({
+  displayLabel,
+})
 </script>
 
 <template>
