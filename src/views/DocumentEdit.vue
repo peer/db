@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { ComponentExposed } from "vue-component-type-helpers"
+
 import type { TimePrecision } from "@/document"
 import type { FieldsFormSaveChange, FlushFn } from "@/fields"
 import type { DocumentBeginMetadata, DocumentEditStatus, DocumentEndEditResponse } from "@/types"
@@ -16,6 +18,7 @@ import siteContext from "@/context"
 import { D, HighConfidence } from "@/document"
 import { changeFrom, RemoveClaimChange } from "@/document/patch"
 import { getNextChangeNumberKey, registerForFlushKey, saveChangeKey, unregisterForFlushKey } from "@/fields"
+import DisplayLabel from "@/partials/DisplayLabel.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import FieldsForm from "@/partials/FieldsForm.vue"
 import Footer from "@/partials/Footer.vue"
@@ -68,6 +71,7 @@ const progress = localProgress(parentProgress)
 const editProgress = localProgress(parentProgress)
 
 const el = useTemplateRef<HTMLElement>("el")
+const displayLabelComponent = useTemplateRef<ComponentExposed<typeof DisplayLabel>>("displayLabelComponent")
 
 let abortController = new AbortController()
 
@@ -510,6 +514,7 @@ function canSave(): boolean {
               >{{ t("views.DocumentEdit.tabs.allProperties") }}</Tab
             >
           </TabList>
+          <h1 v-show="displayLabelComponent?.displayLabel" class="mb-4 text-4xl font-bold drop-shadow-xs"><DisplayLabel ref="displayLabelComponent" :doc="doc" /></h1>
           <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
           <TabPanels as="template">
             <!-- Class-specific tab. -->
