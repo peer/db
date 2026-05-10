@@ -509,9 +509,9 @@ function canSave(): boolean {
               >{{ t("views.DocumentEdit.tabs.allProperties") }}</Tab
             >
           </TabList>
+          <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
           <TabPanels>
             <!-- Class-specific tab. -->
-            <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
             <TabPanel v-if="classTabId && mergedFieldsData" :key="classTabId" tabindex="-1">
               <FieldsForm
                 v-model:invalid="fieldsFormInvalid"
