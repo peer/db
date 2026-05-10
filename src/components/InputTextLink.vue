@@ -1,11 +1,13 @@
 <!--
-This component uses @tailwindcss/forms style for input text field and applies it to
-a link. Then we add our own site style InputText.vue on top to make the link
-look the same as InputText.vue.
+A link that visually matches InputText.vue. Built on InputStyled.vue.
 -->
 
 <script setup lang="ts">
 import type { RouteLocationRaw } from "vue-router"
+
+import { RouterLink } from "vue-router"
+
+import InputStyled from "@/components/InputStyled.vue"
 
 withDefaults(
   defineProps<{
@@ -22,29 +24,8 @@ withDefaults(
 )
 </script>
 
-<!--
-"class" does not contain "border-gray-500" and "focus:border-blue-600" because we anyway remove
-border with "border-none".
--->
-
 <template>
-  <RouterLink
-    :to="to"
-    :replace="replace"
-    :disabled="disabled"
-    :after-click="afterClick"
-    class="pd-inputtextlink appearance-none px-3 py-2 text-base"
-    :class="{
-      'text-left outline-none': true, // Override default @tailwindcss/forms style.
-      'rounded-sm border-none shadow-sm ring-2 ring-neutral-300 focus:ring-2': true, // InputText.vue style.
-      'cursor-not-allowed': disabled, // InputText.vue readonly style.
-      'bg-gray-100': disabled, // InputText.vue readonly style.
-      'bg-white': !disabled, // InputText.vue non-readonly style.
-      'text-gray-800': disabled, // InputText.vue readonly style.
-      'hover:ring-neutral-300 focus:ring-primary-300': disabled, // InputText.vue readonly style.
-      'hover:ring-neutral-400 focus:ring-primary-500': !disabled, // InputText.vue non-readonly style.
-    }"
-  >
+  <InputStyled :as="RouterLink" :to="to" :replace="replace" :inactive="disabled" :after-click="afterClick" class="pd-inputtextlink">
     <slot />
-  </RouterLink>
+  </InputStyled>
 </template>

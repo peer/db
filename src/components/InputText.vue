@@ -7,6 +7,12 @@ its DOM attributes without flickering how the component looks.
 -->
 
 <script setup lang="ts">
+// We use v-model-text directive to mirror what Vue does on native <input> elements which
+// we have to do ourselves because we use <input> element through InputStyled component.
+import { vModelText } from "vue"
+
+import InputStyled from "@/components/InputStyled.vue"
+
 withDefaults(
   defineProps<{
     progress?: number
@@ -26,19 +32,14 @@ const model = defineModel<string>({ default: "" })
 </script>
 
 <template>
-  <input
-    v-model="model"
-    :readonly="progress > 0 || readonly"
+  <InputStyled
+    v-model-text="model"
+    as="input"
+    :inactive="progress > 0 || readonly"
+    :invalid="invalid"
     :type="type"
-    class="pd-inputtext rounded-sm border-none shadow-sm ring-2 ring-neutral-300 focus:ring-2"
-    :class="{
-      'cursor-not-allowed': progress > 0 || readonly,
-      'bg-gray-100': !invalid && (progress > 0 || readonly),
-      'bg-white': !invalid && progress === 0 && !readonly,
-      'bg-error-50': invalid,
-      'text-gray-800': progress > 0 || readonly,
-      'hover:ring-neutral-300 focus:ring-primary-300': progress > 0 || readonly,
-      'hover:ring-neutral-400 focus:ring-primary-500': progress === 0 && !readonly,
-    }"
+    :readonly="progress > 0 || readonly"
+    class="pd-inputtext"
+    @update:model-value="model = $event"
   />
 </template>
