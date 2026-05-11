@@ -4,6 +4,8 @@ we want component to retain how it visually looks even if DOM element's read-onl
 disabled attributes are set, unless they are set through component's props.
 This is used during transitions/animations to disable the component by directly setting
 its DOM attributes without flickering how the component looks.
+
+Clicking on the already-selected radio clears the selection.
 -->
 
 <script setup lang="ts" generic="T">
@@ -24,6 +26,23 @@ const model = defineModel<T>()
 defineOptions({
   inheritAttrs: false,
 })
+
+// At click handler time, vModelRadio's change listener has not yet run, so
+// model.value still reflects the pre-click state. If it equals the clicked
+// radio's value, the user clicked the already-selected radio - clear the
+// model instead of re-selecting.
+//
+// We read el._value before el.value to support non-string values: Vue's
+// patchProp stringifies the DOM value attribute (el.value = String(value))
+// but stashes the original on el._value, and vModelRadio's getValue() reads
+// _value first for the same reason.
+function onClick(event: MouseEvent) {
+  const el = event.target as HTMLInputElement & { _value?: unknown }
+  const value = "_value" in el ? el._value : el.value
+  if (model.value === value) {
+    model.value = undefined
+  }
+}
 </script>
 
 <template>
@@ -39,6 +58,7 @@ defineOptions({
         'cursor-not-allowed bg-gray-400 text-primary-300': progress > 0 || disabled,
         'cursor-pointer text-primary-600 focus:ring-primary-500': progress === 0 && !disabled,
       }"
+      @click="onClick"
     />
   </div>
 </template>
