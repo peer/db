@@ -132,7 +132,7 @@ const rowSpan = computed(() => {
       <template #default="{ doc: resultDoc }">
         <component :is="customResultComponent" v-if="customResultComponent" :doc="resultDoc" :search-session-id="searchSessionId" />
         <div v-else-if="fieldsData && resultDoc.claims">
-          <ButtonLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="float-end px-3.5">{{
+          <ButtonLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="float-end px-4">{{
             t("partials.SearchResult.details")
           }}</ButtonLink>
           <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 text-xl leading-none">
@@ -158,7 +158,7 @@ const rowSpan = computed(() => {
         </div>
         <div v-else class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
           <div>
-            <ButtonLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="float-end px-3.5">{{
+            <ButtonLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="float-end px-4">{{
               t("partials.SearchResult.details")
             }}</ButtonLink>
             <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 text-xl leading-none">

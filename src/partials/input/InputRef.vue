@@ -354,7 +354,7 @@ const WithPeerDBDocument = WithDocument<D>
             <RouterLink v-if="!editMode" :to="{ name: 'DocumentGet', params: { id: selectedDocument.id } }" class="link">
               <ArrowTopRightOnSquareIcon class="size-5" aria-hidden="true" />
             </RouterLink>
-            <Button v-if="!readonly" type="button" :disabled="isInProgress" class="px-2 py-0.5" @click.prevent="clearSelection">{{ t("common.buttons.clear") }}</Button>
+            <Button v-if="!readonly" type="button" :disabled="isInProgress" class="px-2.5 py-1" @click.prevent="clearSelection">{{ t("common.buttons.clear") }}</Button>
           </template>
           <ComboboxButton v-else class="inline-flex items-center">
             <ChevronUpDownIcon
