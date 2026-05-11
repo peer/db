@@ -19,17 +19,26 @@ withDefaults(
 )
 
 const model = defineModel<T>()
+
+// We want all fallthrough attributes to be passed to the input element.
+defineOptions({
+  inheritAttrs: false,
+})
 </script>
 
 <template>
-  <input
-    v-model="model"
-    :disabled="progress > 0 || disabled"
-    type="checkbox"
-    class="pd-checkbox rounded-sm"
-    :class="{
-      'cursor-not-allowed bg-gray-100 text-primary-300': progress > 0 || disabled,
-      'cursor-pointer text-primary-600 focus:ring-primary-500': progress === 0 && !disabled,
-    }"
-  />
+  <!-- We wrap input in div to align check box correctly vertically inside the grid. -->
+  <div>
+    <input
+      v-model="model"
+      v-bind="$attrs"
+      :disabled="progress > 0 || disabled"
+      type="checkbox"
+      class="pd-checkbox -mt-0.5 rounded-sm align-middle"
+      :class="{
+        'cursor-not-allowed bg-gray-400 text-primary-300': progress > 0 || disabled,
+        'cursor-pointer text-primary-600 focus:ring-primary-500': progress === 0 && !disabled,
+      }"
+    />
+  </div>
 </template>
