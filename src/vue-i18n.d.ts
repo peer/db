@@ -20,6 +20,7 @@ declare module "vue-i18n" {
         edit: string
         save: string
         add: string
+        clear: string
         remove: string
         loadCountMore: string
         loadMore: string
@@ -56,6 +57,9 @@ declare module "vue-i18n" {
     }
     partials: {
       input: {
+        InputRef: {
+          noResults: string
+        }
         InputTime: {
           format: string
           precision: {

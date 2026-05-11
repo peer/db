@@ -88,6 +88,14 @@ func (s *Service) setRoutes() { //nolint:maintidx
 				},
 			},
 		},
+		"SearchJustResults": {
+			Path: "/s/results",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodPost: s.SearchJustResultsPostAPI,
+				},
+			},
+		},
 		"SearchGet": {
 			RouteOptions: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{
@@ -98,14 +106,6 @@ func (s *Service) setRoutes() { //nolint:maintidx
 			API: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{
 					http.MethodGet: s.SearchGetGetAPI,
-				},
-			},
-		},
-		"SearchJustResults": {
-			Path: "/s/results",
-			API: waf.RouteOptions{
-				Handlers: map[string]waf.Handler{
-					http.MethodPost: s.SearchJustResultsPostAPI,
 				},
 			},
 		},
