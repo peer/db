@@ -1,3 +1,12 @@
+<!--
+We paint the non-primary variant's outline with an inset ring (box-shadow) instead of
+a CSS border so that both variants share the same padding and outer dimensions. A real
+border participates in layout, and at fractional device pixel ratios (e.g. 125% display
+scaling) the browser snaps border-width down to the nearest device pixel - rendering
+2px as 1.6 CSS px and making the non-primary button shorter than the primary one. An
+inset ring is paint-only, so the outer box stays identical regardless of DPR.
+-->
+
 <script setup lang="ts">
 import type { RouteLocationRaw } from "vue-router"
 
@@ -31,15 +40,13 @@ const { navigate, href } = useLink({
 <template>
   <div
     v-if="disabled"
-    class="pd-buttonlink relative rounded-sm text-center leading-tight font-medium uppercase shadow-sm outline-none select-none focus:ring-2 focus:ring-offset-1"
+    class="pd-buttonlink relative rounded-sm px-6 py-2.5 text-center leading-tight font-medium uppercase shadow-sm outline-none select-none focus:ring-2 focus:ring-offset-1"
     :class="{
       'cursor-not-allowed': disabled,
-      'px-6 py-2.5': primary,
-      'px-[calc(1.5rem_-_2px)] py-[calc(0.625rem_-_2px)]': !primary,
       'bg-primary-300 text-gray-100': primary && disabled,
       'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 active:bg-primary-500': primary && !disabled,
-      'border-2 border-neutral-300 bg-gray-100 text-gray-800 shadow-none': !primary && disabled,
-      'border-2 border-primary-600 text-primary-600 hover:border-primary-700 hover:bg-primary-50 hover:text-primary-700 focus:ring-primary-500 active:border-primary-500 active:bg-primary-100 active:text-primary-500':
+      'bg-gray-100 text-gray-800 shadow-none inset-ring-2 inset-ring-neutral-300': !primary && disabled,
+      'text-primary-600 inset-ring-2 inset-ring-primary-600 hover:bg-primary-50 hover:text-primary-700 hover:inset-ring-primary-700 focus:ring-primary-500 active:bg-primary-100 active:text-primary-500 active:inset-ring-primary-500':
         !primary && !disabled,
     }"
   >
@@ -48,15 +55,13 @@ const { navigate, href } = useLink({
   <a
     v-else
     :href="href"
-    class="pd-buttonlink relative rounded-sm text-center leading-tight font-medium uppercase shadow-sm outline-none select-none focus:ring-2 focus:ring-offset-1"
+    class="pd-buttonlink relative rounded-sm px-6 py-2.5 text-center leading-tight font-medium uppercase shadow-sm outline-none select-none focus:ring-2 focus:ring-offset-1"
     :class="{
       'cursor-not-allowed': disabled,
-      'px-6 py-2.5': primary,
-      'px-[calc(1.5rem_-_2px)] py-[calc(0.625rem_-_2px)]': !primary,
       'bg-primary-300 text-gray-100': primary && disabled,
       'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 active:bg-primary-500': primary && !disabled,
-      'border-2 border-neutral-300 bg-gray-100 text-gray-800 shadow-none': !primary && disabled,
-      'border-2 border-primary-600 text-primary-600 hover:border-primary-700 hover:bg-primary-50 hover:text-primary-700 focus:ring-primary-500 active:border-primary-500 active:bg-primary-100 active:text-primary-500':
+      'bg-gray-100 text-gray-800 shadow-none inset-ring-2 inset-ring-neutral-300': !primary && disabled,
+      'text-primary-600 inset-ring-2 inset-ring-primary-600 hover:bg-primary-50 hover:text-primary-700 hover:inset-ring-primary-700 focus:ring-primary-500 active:bg-primary-100 active:text-primary-500 active:inset-ring-primary-500':
         !primary && !disabled,
     }"
     @click="navigate"
