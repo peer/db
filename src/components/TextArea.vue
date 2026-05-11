@@ -1,11 +1,3 @@
-<!--
-We do not use :read-only or :disabled pseudo classes to style the component because
-we want component to retain how it visually looks even if DOM element's read-only or
-disabled attributes are set, unless they are set through component's props.
-This is used during transitions/animations to disable the component by directly setting
-its DOM attributes without flickering how the component looks.
--->
-
 <script setup lang="ts">
 // We use v-model-text directive to mirror what Vue does on native <textarea> elements which
 // we have to do ourselves because we use <textarea> element through InputStyled component.

@@ -1,3 +1,11 @@
+<!--
+We do not use :read-only or :disabled pseudo classes to style the component because
+we want component to retain how it visually looks even if DOM element's read-only or
+disabled attributes are set, unless they are set through component's props.
+This is used during transitions/animations to disable the component by directly setting
+its DOM attributes without flickering how the component looks.
+-->
+
 <script lang="ts">
 // TODO: Remove. Workaround for prettier.
 import {} from "vue"

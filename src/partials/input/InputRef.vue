@@ -19,6 +19,12 @@ The chip is a contenteditable div (not a button) so it has a real blinking
 caret on focus, the closest match to a native <input readonly>. Real edits
 are blocked (@beforeinput.prevent etc.), so the chip is read-only despite
 contenteditable=true.
+
+We do not use :read-only or :disabled pseudo classes to style the component because
+we want component to retain how it visually looks even if DOM element's read-only or
+disabled attributes are set, unless they are set through component's props.
+This is used during transitions/animations to disable the component by directly setting
+its DOM attributes without flickering how the component looks.
 -->
 
 <script setup lang="ts">
