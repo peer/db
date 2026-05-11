@@ -9,6 +9,7 @@
       "edit": "Uredi",
       "save": "Shrani",
       "add": "Dodaj",
+      "clear": "Počisti",
       "remove": "Odstrani",
       "loadCountMore": "{count} več",
       "loadMore": "Naloži več",
@@ -45,6 +46,9 @@
   },
   "partials": {
     "input": {
+      "InputRef": {
+        "noResults": "Ni najdenih rezultatov."
+      },
       "InputTime": {
         "format": "Oblika: LLLL-MM-DD UU:MM:SS",
         "precision": {

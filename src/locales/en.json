@@ -9,6 +9,7 @@
       "edit": "Edit",
       "save": "Save",
       "add": "Add",
+      "clear": "Clear",
       "remove": "Remove",
       "loadCountMore": "{count} more",
       "loadMore": "Load more",
@@ -45,6 +46,9 @@
   },
   "partials": {
     "input": {
+      "InputRef": {
+        "noResults": "No results found."
+      },
       "InputTime": {
         "format": "Format: YYYY-MM-DD HH:MM:SS",
         "precision": {
