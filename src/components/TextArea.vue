@@ -53,5 +53,6 @@ onBeforeUnmount(() => {
     :invalid="invalid"
     :readonly="progress > 0 || readonly"
     class="pd-textarea h-10 resize-none"
+    @update:model-value="model = $event"
   />
 </template>
