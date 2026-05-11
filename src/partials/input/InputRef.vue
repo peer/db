@@ -397,7 +397,9 @@ const WithPeerDBDocument = WithDocument<D>
           class="absolute top-full z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none"
         >
           <ComboboxOption v-if="searchResults.length === 0">
-            <li class="p-2"><i>{{ t("partials.input.InputRef.noResults") }}</i></li>
+            <li class="p-2"
+              ><i>{{ t("partials.input.InputRef.noResults") }}</i></li
+            >
           </ComboboxOption>
 
           <template v-if="searchResults.length > 0">
