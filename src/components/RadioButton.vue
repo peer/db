@@ -36,11 +36,27 @@ defineOptions({
 // patchProp stringifies the DOM value attribute (el.value = String(value))
 // but stashes the original on el._value, and vModelRadio's getValue() reads
 // _value first for the same reason.
-function onClick(event: MouseEvent) {
-  const el = event.target as HTMLInputElement & { _value?: unknown }
+function maybeDeselect(el: HTMLInputElement & { _value?: unknown }): boolean {
   const value = "_value" in el ? el._value : el.value
   if (model.value === value) {
     model.value = undefined
+    return true
+  }
+  return false
+}
+
+function onClick(event: MouseEvent) {
+  maybeDeselect(event.target as HTMLInputElement & { _value?: unknown })
+}
+
+// Chrome does not fire a click event for Space on an already-selected radio
+// (Firefox does), so the @click handler alone is not enough for keyboard
+// deselect. We mirror the deselect logic on keydown for Space; for an
+// unselected radio Space falls through to native selection.
+function onKeyDown(event: KeyboardEvent) {
+  if (event.key !== " ") return
+  if (maybeDeselect(event.target as HTMLInputElement & { _value?: unknown })) {
+    event.preventDefault()
   }
 }
 </script>
@@ -59,6 +75,7 @@ function onClick(event: MouseEvent) {
         'cursor-pointer text-primary-600 focus:ring-primary-500': progress === 0 && !disabled,
       }"
       @click="onClick"
+      @keydown="onKeyDown"
     />
   </div>
 </template>
