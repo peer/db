@@ -333,17 +333,19 @@ async function onEdit() {
             <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
             <TabPanels as="template">
               <!-- Registry tabs. -->
-              <TabPanel v-for="documentTab in documentTabs" :key="documentTab.id" tabindex="-1">
+              <TabPanel v-for="documentTab in documentTabs" :key="documentTab.id" tabindex="-1" class="outline-none">
                 <component :is="documentTab.component" :doc="doc" />
               </TabPanel>
               <!-- Class-specific tab (if there are no registry tabs). -->
-              <TabPanel v-if="documentTabs.length === 0 && classTabId && mergedFieldsData" tabindex="-1">
+              <TabPanel v-if="documentTabs.length === 0 && classTabId && mergedFieldsData" tabindex="-1" class="outline-none">
                 <FieldsView :fields-data="mergedFieldsData" :claims="doc.claims" sections />
               </TabPanel>
               <!-- Shortcut tabs. -->
-              <TabPanel v-for="(_, i) of searchShortcuts" :key="i" tabindex="-1"><!-- Empty because this panel should never be rendered. --></TabPanel>
+              <TabPanel v-for="(_, i) of searchShortcuts" :key="i" tabindex="-1" class="outline-none"
+                ><!-- Empty because this panel should never be rendered. --></TabPanel
+              >
               <!-- "All properties" tab panel. -->
-              <TabPanel tabindex="-1">
+              <TabPanel tabindex="-1" class="outline-none">
                 <table class="w-full table-auto border-collapse">
                   <thead>
                     <tr>

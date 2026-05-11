@@ -518,7 +518,7 @@ function canSave(): boolean {
           <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
           <TabPanels as="template">
             <!-- Class-specific tab. -->
-            <TabPanel v-if="classTabId && mergedFieldsData" :key="classTabId" tabindex="-1">
+            <TabPanel v-if="classTabId && mergedFieldsData" :key="classTabId" tabindex="-1" class="outline-none">
               <FieldsForm
                 v-model:invalid="fieldsFormInvalid"
                 :fields-data="mergedFieldsData"
@@ -529,7 +529,7 @@ function canSave(): boolean {
               />
             </TabPanel>
             <!-- "All properties" tab panel. -->
-            <TabPanel v-if="siteContext.features.editButtons" tabindex="-1">
+            <TabPanel v-if="siteContext.features.editButtons" tabindex="-1" class="outline-none">
               <table class="w-full table-auto border-collapse">
                 <thead>
                   <tr>
@@ -596,25 +596,25 @@ function canSave(): boolean {
                 </TabList>
                 <TabPanels as="template">
                   <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
-                  <TabPanel tabindex="-1" class="flex flex-col">
+                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
                     <label for="identifier-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
                     <InputRef id="identifier-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
                     <label for="identifier-value" class="mt-4 mb-1">{{ t("common.labels.value") }}</label>
                     <InputText id="identifier-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
                   </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col">
+                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
                     <label for="string-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
                     <InputRef id="string-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
                     <label for="string-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.string") }}</label>
                     <InputText id="string-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
                   </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col">
+                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
                     <label for="html-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
                     <InputRef id="html-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
                     <label for="html-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.html") }}</label>
                     <InputText id="html-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
                   </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col">
+                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
                     <label for="amount-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
                     <InputRef id="amount-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
                     <label for="amount-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.amount") }}</label>
@@ -622,7 +622,7 @@ function canSave(): boolean {
                     <label for="amount-precision" class="mt-4 mb-1">{{ t("common.labels.precision") }}</label>
                     <InputText id="amount-precision" v-model="claimAmountPrecision" class="min-w-0 flex-auto grow" />
                   </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col">
+                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
                     <label for="amountInterval-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
                     <InputRef id="amountInterval-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
                     <label for="amountInterval-from" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.from") }}</label>
@@ -634,12 +634,12 @@ function canSave(): boolean {
                     <label for="amountInterval-toPrecision" class="mt-4 mb-1">{{ t("common.labels.precision") }}</label>
                     <InputText id="amountInterval-toPrecision" v-model="claimToAmountPrecision" class="min-w-0 flex-auto grow" />
                   </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col">
+                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
                     <label for="time-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
                     <InputRef id="time-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
                     <InputTime v-model="claimValue" v-model:precision="claimTimePrecision" class="mt-4 min-w-0 flex-auto grow" />
                   </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col">
+                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
                     <label for="timeInterval-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
                     <InputRef id="timeInterval-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
                     <InputTime v-model="claimFrom" v-model:precision="claimFromTimePrecision" class="mt-4 min-w-0 flex-auto grow">
@@ -649,27 +649,27 @@ function canSave(): boolean {
                       <template #time-label>{{ t("views.DocumentEdit.labels.to") }}</template>
                     </InputTime>
                   </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col">
+                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
                     <label for="link-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
                     <InputRef id="link-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
                     <label for="link-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.iri") }}</label>
                     <InputText id="link-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
                   </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col">
+                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
                     <label for="reference-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
                     <InputRef id="reference-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
                     <label for="reference-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.to") }}</label>
                     <InputRef id="reference-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
                   </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col">
+                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
                     <label for="has-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
                     <InputRef id="has-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
                   </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col">
+                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
                     <label for="none-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
                     <InputRef id="none-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
                   </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col">
+                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
                     <label for="unknown-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
                     <InputRef id="unknown-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
                   </TabPanel>
