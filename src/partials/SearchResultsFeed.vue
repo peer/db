@@ -164,8 +164,9 @@ function onFilters() {
             <div v-else-if="searchResults.length == searchTotal" class="pd-count text-center text-sm">{{
               t("partials.SearchResultsFeed.shownResults", { i, count: searchResults.length })
             }}</div>
+            <!-- We do not use ProgressBar here because we plan to make this an interactive bar on which you can click to move to that location. -->
             <div class="pd-track relative h-2 w-full bg-slate-200">
-              <div class="pd-thumb absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: (i / searchResults.length) * 100 + '%' }" />
+              <div class="pd-thumb absolute inset-y-0 left-0 bg-secondary-400" :style="{ width: (i / searchResults.length) * 100 + '%' }" />
             </div>
           </div>
           <SearchResult :ref="track(result.id)" :search-session-id="searchSession.id" :result="result" />
