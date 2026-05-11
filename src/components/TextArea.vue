@@ -45,6 +45,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <!-- We use min-h-22 to show space for 3 lines of text at minimum, so that it is visually distinct from InputText and invites more content. -->
   <InputStyled
     ref="el"
     v-model-text="model"
@@ -52,7 +53,7 @@ onBeforeUnmount(() => {
     :inactive="progress > 0 || readonly"
     :invalid="invalid"
     :readonly="progress > 0 || readonly"
-    class="pd-textarea h-10 resize-none"
+    class="pd-textarea min-h-22 resize-none"
     @update:model-value="model = $event"
   />
 </template>
