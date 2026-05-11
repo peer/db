@@ -10,12 +10,18 @@ set -o pipefail
 #  -w /workspace \
 #  docker:28-dind \
 #  sh -c " \
-#    dockerd-entrypoint.sh > /tmp/dockerd.log 2>&1 & \
+#    dockerd-entrypoint.sh --feature containerd-snapshotter=true > /tmp/dockerd.log 2>&1 & \
 #    sleep 2 && \
 #    DOCKER_HOST=unix:///var/run/docker.sock ./test-e2e.sh \
 #  "
 
 echo "=== E2E Test Script ==="
+
+ROOT_CA_FILE="test-e2e-rootCA.pem"
+PEERDB_CONTAINER="peerdb-container"
+PEERDB_IMAGE="peerdb-image"
+PLAYWRIGHT_IMAGE="peerdb-playwright-image"
+NETWORK="peerdb-e2e-network"
 
 cleanup_peerdb_container=0
 cleanup_elasticsearch_container=0
@@ -30,11 +36,11 @@ cleanup() {
 
   if [ "$cleanup_peerdb_container" -ne 0 ]; then
     echo "Logs PeerDB"
-    docker logs peerdb-container
+    docker logs "$PEERDB_CONTAINER"
 
     echo "Stopping PeerDB Docker container (if still running)"
-    docker stop peerdb-container
-    docker rm -f peerdb-container
+    docker stop "$PEERDB_CONTAINER"
+    docker rm -f "$PEERDB_CONTAINER"
   fi
 
   if [ "$cleanup_elasticsearch_container" -ne 0 ]; then
@@ -57,22 +63,22 @@ cleanup() {
 
   if [ "$cleanup_peerdb_image" -ne 0 ]; then
     echo "Removing PeerDB Docker image"
-    docker image rm -f peerdb-image
+    docker image rm -f "$PEERDB_IMAGE"
   fi
 
   if [ "$cleanup_playwright_image" -ne 0 ]; then
     echo "Removing playwright Docker image"
-    docker image rm -f peerdb-playwright-image
+    docker image rm -f "$PLAYWRIGHT_IMAGE"
   fi
 
   if [ "$cleanup_network" -ne 0 ]; then
     echo "Removing Docker network"
-    docker network rm peerdb-e2e-network
+    docker network rm "$NETWORK"
   fi
 
   if [ "$cleanup_certs" -ne 0 ]; then
     echo "Cleaning up temporary files"
-    rm test-e2e-rootCA.pem
+    rm "$ROOT_CA_FILE"
   fi
 }
 
@@ -80,7 +86,7 @@ trap cleanup EXIT
 
 # Create Docker network for E2E tests.
 echo "Creating Docker network..."
-docker network create peerdb-e2e-network
+docker network create "$NETWORK"
 cleanup_network=1
 
 echo "1. Installing dependencies and generating certificates..."
@@ -97,23 +103,20 @@ mkcert peerdb-container 127.0.0.1 ::1
 chmod 644 peerdb-container+2.pem peerdb-container+2-key.pem
 
 # Copy mkcert CA certificate for Docker build.
-cp "$(mkcert -CAROOT)/rootCA.pem" test-e2e-rootCA.pem
+cp "$(mkcert -CAROOT)/rootCA.pem" "$ROOT_CA_FILE"
 cleanup_certs=1
 
 echo "2. Building Docker images..."
 
-# Build the PeerDB Docker image from Dockerfile.
-docker build --target production --build-arg PEERDB_BUILD_FLAGS="-cover -race -covermode atomic" --build-arg VITE_COVERAGE=true --build-arg VITE_E2E_TESTS=true -t peerdb-image .
+# Build both PeerDB and Playwright images in parallel.
+PEERDB_IMAGE="$PEERDB_IMAGE" PLAYWRIGHT_IMAGE="$PLAYWRIGHT_IMAGE" docker buildx bake -f test-docker-bake.hcl
 cleanup_peerdb_image=1
-
-# Build the Playwright test image.
-docker build -f playwright.dockerfile -t peerdb-playwright-image .
 cleanup_playwright_image=1
 
 echo "3. Starting PostgreSQL container..."
-  docker run -d \
+docker run -d \
   --name peerdb-postgres \
-  --network peerdb-e2e-network  \
+  --network "$NETWORK"  \
   -e PGSQL_ROLE_1_USERNAME=test \
   -e PGSQL_ROLE_1_PASSWORD=test \
   -e PGSQL_DB_1_NAME=test \
@@ -122,16 +125,16 @@ echo "3. Starting PostgreSQL container..."
 cleanup_postgres_container=1
 
 echo "4. Starting Elastic container..."
-  docker run -d \
-   --name peerdb-elastic \
-    --network peerdb-e2e-network \
-    -e network.bind_host=0.0.0.0 \
-    -e network.publish_host=localhost \
-    -e discovery.type=single-node \
-    -e "xpack.security.enabled=false" \
-    -e "ingest.geoip.downloader.enabled=false" \
-    -e "cluster.routing.allocation.disk.watermark.flood_stage=100%" \
-    "${CI_REGISTRY_IMAGE:-registry.gitlab.com/peerdb/peerdb}/elastic/${ELASTIC_VERSION:-7.17.9}:latest"
+docker run -d \
+  --name peerdb-elastic \
+  --network "$NETWORK" \
+  -e network.bind_host=0.0.0.0 \
+  -e network.publish_host=localhost \
+  -e discovery.type=single-node \
+  -e "xpack.security.enabled=false" \
+  -e "ingest.geoip.downloader.enabled=false" \
+  -e "cluster.routing.allocation.disk.watermark.flood_stage=100%" \
+  "${CI_REGISTRY_IMAGE:-registry.gitlab.com/peerdb/peerdb}/elastic/${ELASTIC_VERSION:-7.17.9}:latest"
 cleanup_elasticsearch_container=1
 
 echo "5. Waiting for Elasticsearch service to be ready..."
@@ -146,12 +149,12 @@ mkdir -p coverage
 chown 1000:1000 coverage
 
 docker run --rm \
-  --network peerdb-e2e-network \
+  --network "$NETWORK" \
   -v "$(pwd):/data" \
   -e GOCOVERDIR=/data/coverage \
-  -e SSL_CERT_FILE=/data/test-e2e-rootCA.pem \
+  -e SSL_CERT_FILE=/data/"$ROOT_CA_FILE" \
   -e SSL_CERT_DIR=/etc/ssl/certs \
-  peerdb-image \
+  "$PEERDB_IMAGE" \
   -d /data/.postgresql.secret \
   --elastic.url=http://peerdb-elastic:9200 \
   populate
@@ -160,13 +163,13 @@ echo "7. Starting PeerDB container..."
 
 # Start PeerDB container with certificates.
 docker run -d \
-  --name peerdb-container \
-  --network peerdb-e2e-network \
+  --name "$PEERDB_CONTAINER" \
+  --network "$NETWORK" \
   -v "$(pwd):/data" \
   -e GOCOVERDIR=/data/coverage \
-  -e SSL_CERT_FILE=/data/test-e2e-rootCA.pem \
+  -e SSL_CERT_FILE=/data/"$ROOT_CA_FILE" \
   -e SSL_CERT_DIR=/etc/ssl/certs \
-  peerdb-image \
+  "$PEERDB_IMAGE" \
   -k /data/peerdb-container+2.pem \
   -K /data/peerdb-container+2-key.pem \
   -d /data/.postgresql.secret \
@@ -185,22 +188,22 @@ export LINK_PUBLISH_JOB_ID="${CI_JOB_ID}"
 # Run Playwright tests in separate container.
 docker run --rm \
   --name peerdb-playwright \
-  --network peerdb-e2e-network \
+  --network "$NETWORK" \
   -v "$(pwd)/playwright-report:/src/peerdb/playwright-report" \
   -v "$(pwd)/test-results:/src/peerdb/test-results" \
   -v "$(pwd)/playwright-screenshots:/src/peerdb/playwright-screenshots" \
   -v "$(pwd)/coverage-frontend:/src/peerdb/coverage-frontend" \
   -v "$(pwd)/a11y-report:/src/peerdb/a11y-report" \
   -v "$(pwd)/.nyc_output:/src/peerdb/.nyc_output" \
-  -e PEERDB_URL="https://peerdb-container:8080" \
+  -e PEERDB_URL="https://$PEERDB_CONTAINER:8080" \
   -e LINK_PUBLISH_JOB_ID \
   -e UPDATE_SCREENSHOTS \
-  peerdb-playwright-image
+  "$PLAYWRIGHT_IMAGE"
 
 # Stop the PeerDB container and check its exit code.
 echo "10. Stopping PeerDB container..."
-docker stop peerdb-container
-PEERDB_EXIT_CODE=$(docker wait peerdb-container)
+docker stop "$PEERDB_CONTAINER"
+PEERDB_EXIT_CODE=$(docker wait "$PEERDB_CONTAINER")
 
 if [ "$PEERDB_EXIT_CODE" -ne 0 ]; then
   echo "ERROR: PeerDB container exited with code $PEERDB_EXIT_CODE"

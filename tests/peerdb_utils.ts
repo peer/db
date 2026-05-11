@@ -56,6 +56,10 @@ export async function testDocumentPageDirect(page: Page, id: string, expectedTit
   const searchButton = navBarSearch.locator("[type='submit']")
   await expect(searchButton).toBeVisible()
   await searchButton.click()
+  const result = page.locator(`.pd-searchresult`).first()
+  await expect(result).toBeVisible()
+  const progressBar = page.locator(`.pd-progressbar`)
+  await expect(progressBar).not.toBeVisible()
 
   await checkpoint(page, "search-default-results")
 }
