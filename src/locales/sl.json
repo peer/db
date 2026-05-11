@@ -180,6 +180,7 @@
       },
       "labels": {
         "link": "Povezava",
+        "iri": "IRI",
         "html": "HTML",
         "string": "Enostavno besedilo",
         "amount": "Količina",

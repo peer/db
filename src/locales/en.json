@@ -180,6 +180,7 @@
       },
       "labels": {
         "link": "Link",
+        "iri": "IRI",
         "html": "HTML",
         "string": "String",
         "amount": "Amount",
