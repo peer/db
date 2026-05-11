@@ -7,7 +7,11 @@ its DOM attributes without flickering how the component looks.
 -->
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, onUpdated, useTemplateRef } from "vue"
+// We use v-model-text directive to mirror what Vue does on native <textarea> elements which
+// we have to do ourselves because we use <textarea> element through InputStyled component.
+import { onBeforeUnmount, onMounted, onUpdated, useTemplateRef, vModelText } from "vue"
+
+import InputStyled from "@/components/InputStyled.vue"
 
 withDefaults(
   defineProps<{
@@ -24,15 +28,16 @@ withDefaults(
 
 const model = defineModel<string>({ default: "" })
 
-const el = useTemplateRef<HTMLFormElement>("el")
+const el = useTemplateRef<InstanceType<typeof InputStyled>>("el")
 
 function resize() {
-  if (!el.value) {
+  const ta = el.value?.$el as HTMLTextAreaElement | undefined
+  if (!ta) {
     return
   }
 
-  el.value.style.height = "0"
-  el.value.style.height = el.value.scrollHeight + "px"
+  ta.style.height = "0"
+  ta.style.height = ta.scrollHeight + "px"
 }
 
 onMounted(resize)
@@ -48,16 +53,13 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <textarea
+  <InputStyled
     ref="el"
-    v-model="model"
+    v-model-text="model"
+    as="textarea"
+    :inactive="progress > 0 || readonly"
+    :invalid="invalid"
     :readonly="progress > 0 || readonly"
-    class="pd-textarea h-10 resize-none rounded-sm border-none shadow-sm ring-2 ring-neutral-300 focus:ring-2"
-    :class="{
-      'cursor-not-allowed': progress > 0 || readonly,
-      'bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': progress > 0 || readonly,
-      'bg-white hover:ring-neutral-400 focus:ring-primary-500': progress === 0 && !readonly,
-      'bg-error-50': invalid,
-    }"
+    class="pd-textarea h-10 resize-none"
   />
 </template>

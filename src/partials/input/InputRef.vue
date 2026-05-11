@@ -310,21 +310,17 @@ const WithPeerDBDocument = WithDocument<D>
           the chip's: full padding when Clear is visible, narrow when only
           the chevron is shown.
         -->
-        <ComboboxInput
+        <InputStyled
           v-else
           ref="comboboxInputRef"
+          :as="ComboboxInput"
+          :inactive="readonly || isInProgress"
           :readonly="readonly || isInProgress"
           v-bind="$attrs"
-          class="w-full rounded-sm border-none py-2 pl-3 text-left shadow-sm ring-2 ring-neutral-300 focus:ring-2"
+          class="w-full"
           :class="{
             'pr-23': selectedDocument?.id && !readonly,
             'pr-9': !selectedDocument?.id || readonly,
-            'bg-white': !readonly && !isInProgress,
-            'bg-gray-100!': readonly || isInProgress,
-            'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': readonly || isInProgress,
-            'text-gray-800': readonly || isInProgress,
-            'hover:ring-neutral-300! focus:ring-primary-300!': readonly || isInProgress,
-            'hover:ring-neutral-400 focus:ring-primary-500': !readonly && !isInProgress,
           }"
           :display-value="() => query"
           @input="query = ($event.target as HTMLInputElement).value"

@@ -361,6 +361,7 @@ import { debounce } from "lodash-es"
 import { computed, nextTick, onBeforeMount, onBeforeUnmount, onMounted, ref, useId, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
+import InputStyled from "@/components/InputStyled.vue"
 import InputText from "@/components/InputText.vue"
 
 const DEBOUNCE_MS = 2000
@@ -783,26 +784,16 @@ watch(
 
       <div class="relative">
         <!--
-          Expected padding is py-2 and px-3, same what InputText has, but we add additional
-          padding on the right to make space for the icon.
+          We add additional padding on the right (pr-10) on top of InputStyled's
+          default px-3 to make space for the icon.
         -->
-        <ListboxButton
-          class="relative w-full rounded-sm border-none py-2 pr-10 pl-3 text-left shadow-sm ring-2 ring-neutral-300 outline-none focus:ring-2"
-          :class="{
-            'cursor-not-allowed': progress > 0 || readonly,
-            'bg-gray-100': progress > 0 || readonly,
-            'bg-white': progress === 0 && !readonly,
-            'text-gray-800': progress > 0 || readonly,
-            'hover:ring-neutral-300 focus:ring-primary-300': progress > 0 || readonly,
-            'hover:ring-neutral-400 focus:ring-primary-500': progress === 0 && !readonly,
-          }"
-        >
+        <InputStyled :as="ListboxButton" :inactive="progress > 0 || readonly" class="relative w-full pr-10">
           <div class="truncate" :title="precisionLabel(timePrecision)">{{ precisionLabel(timePrecision) }}</div>
 
           <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
             <ChevronUpDownIcon class="size-5 text-gray-400" aria-hidden="true" />
           </div>
-        </ListboxButton>
+        </InputStyled>
 
         <ListboxOptions class="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none">
           <ListboxOption v-for="tp in timePrecisionWithMax" :key="tp" v-slot="{ active, selected }" :value="tp" as="template">
