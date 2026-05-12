@@ -135,14 +135,14 @@ export function useValidation<T>(
   function internalValidation(additionalSignal?: AbortSignal): Promise<void> | null {
     const validator = validatorGetter()
     if (!validator) return null
-    const value = model.value
+    const initialValue = model.value
 
     // Already have a result for this exact (value, validator) in errors.value.
-    if (lastValidated && lastValidated.value === value && lastValidated.validator === validator) {
+    if (lastValidated && lastValidated.value === initialValue && lastValidated.validator === validator) {
       return null
     }
     // Already running the validator for this exact (value, validator).
-    if (inFlight && inFlight.value === value && inFlight.validator === validator) {
+    if (inFlight && inFlight.value === initialValue && inFlight.validator === validator) {
       return null
     }
 
@@ -159,21 +159,39 @@ export function useValidation<T>(
     promise = (async (): Promise<void> => {
       progress.value++
       try {
-        let result: ValidationError[]
-        try {
-          result = await validator(value, signal)
-        } catch (err) {
+        let value = initialValue
+        // Validators may mutate model.value as a side effect. If that happens,
+        // the cached errors and lastValidated marker would be for the pre-mutation
+        // value while the model now holds something that has not been validated,
+        // so re-run with the new value until model stabilises. A validator that
+        // keeps mutating model never terminates here - that is a validator bug.
+        while (true) {
+          let result: ValidationError[]
+          try {
+            result = await validator(value, signal)
+          } catch (err) {
+            if (signal.aborted) {
+              throw new ValidationAbortedError()
+            }
+            throw err
+          }
           if (signal.aborted) {
             throw new ValidationAbortedError()
           }
-          throw err
-        }
-        if (signal.aborted) {
-          throw new ValidationAbortedError()
-        }
 
-        errors.value = result
-        lastValidated = { value, validator }
+          errors.value = result
+          lastValidated = { value, validator }
+
+          if (model.value === value) {
+            break
+          }
+          value = model.value
+          // Keep in-flight tracking current so concurrent callers can match
+          // against the value the loop is now validating.
+          if (inFlight?.promise === promise) {
+            inFlight.value = value
+          }
+        }
       } finally {
         progress.value--
         if (inFlight?.promise === promise) {
@@ -182,7 +200,7 @@ export function useValidation<T>(
       }
     })()
 
-    inFlight = { value, validator, promise }
+    inFlight = { value: initialValue, validator, promise }
 
     return promise
   }
