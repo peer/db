@@ -133,7 +133,12 @@ const WithDocumentD = WithDocument<D>
               <label :for="'ref/' + result.id + '/' + res.id" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
                 >({{ res.count }})</label
               >
-              <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link"
+              <!--
+                tabindex="-1" keeps the open-link icon out of the keyboard tab
+                order so Tab jumps between filters without stopping
+                on each row's icon. Mouse users can still click it.
+              -->
+              <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link" tabindex="-1"
                 ><ArrowTopRightOnSquareIcon :alt="t('common.icons.link')" class="inline size-5"
               /></RouterLink>
             </div>
@@ -155,7 +160,12 @@ const WithDocumentD = WithDocument<D>
                 </template>
               </WithDocumentD>
               <div>({{ res.count }})</div>
-              <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link"
+              <!--
+                tabindex="-1" keeps the open-link icon out of the keyboard tab
+                order so Tab jumps between filters without stopping
+                on each row's icon. Mouse users can still click it.
+              -->
+              <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link" tabindex="-1"
                 ><ArrowTopRightOnSquareIcon :alt="t('common.icons.link')" class="inline size-5"
               /></RouterLink>
             </div>
