@@ -76,13 +76,13 @@ onBeforeMount(async () => {
 
     // We use only the first 100 results.
     searchResults.value = response.slice(0, 100)
-  } catch (error) {
+  } catch (err) {
     if (abortController.signal.aborted) {
       return
     }
-    console.error("InputRefSelect.onBeforeMount", error)
+    console.error("InputRefSelect.onBeforeMount", err)
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-    dataLoadingError.value = `${error}`
+    dataLoadingError.value = `${err}`
   } finally {
     dataLoading.value = false
     dataProgress.value -= 1
