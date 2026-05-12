@@ -133,12 +133,12 @@ async function search(q: string) {
 
     // We use only the first 100 results.
     searchResults.value = response.slice(0, 100)
-  } catch (err) {
+  } catch (error) {
     if (signal.aborted) {
       return
     }
     // TODO: Show error.
-    console.error("InputRef.search", err)
+    console.error("InputRef.search", error)
   } finally {
     searchProgress.value -= 1
   }
