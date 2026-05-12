@@ -97,75 +97,77 @@ const WithDocumentD = WithDocument<D>
       <DocumentRefInline :id="result.id" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
     </div>
-    <ul ref="el">
-      <li v-if="error">
+    <ul ref="el" class="grid grid-cols-[max-content_auto] gap-x-1">
+      <li v-if="error" class="col-span-2">
         <i class="pd-reffiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
       <template v-else-if="total === null">
-        <li v-for="i in 3" :key="i" class="flex items-baseline gap-x-1 motion-safe:animate-pulse">
-          <div class="my-1.5 h-2 w-4 rounded-sm bg-slate-200"></div>
-          <div class="my-1.5 h-2 rounded-sm bg-slate-200" :class="[loadingWidth(`${result.id}/${i}`)]"></div>
-          <div class="my-1.5 h-2 w-8 rounded-sm bg-slate-200"></div>
+        <li v-for="i in 3" :key="i" class="contents">
+          <div class="my-1.5 h-2 w-4 rounded-sm bg-slate-200 motion-safe:animate-pulse" aria-hidden="true"></div>
+          <div class="flex items-baseline gap-x-1" aria-hidden="true">
+            <div class="my-1.5 h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse" :class="[loadingWidth(`${result.id}/${i}`)]"></div>
+            <div class="my-1.5 h-2 w-8 rounded-sm bg-slate-200 motion-safe:animate-pulse"></div>
+          </div>
         </li>
       </template>
       <template v-else>
-        <li v-for="res in limitedResultsWithNone" :key="'id' in res ? res.id : NONE" class="flex items-baseline gap-x-1">
+        <li v-for="res in limitedResultsWithNone" :key="'id' in res ? res.id : NONE" class="contents">
           <template v-if="'id' in res && (res.count != searchTotal || state.includes(res.id))">
-            <CheckBox :id="'ref/' + result.id + '/' + res.id" v-model="checkboxState" :progress="updateProgress" :value="res.id" class="my-1 self-center" />
-            <WithDocumentD :id="res.id" name="DocumentGet">
-              <template #default="{ doc, url }">
-                <label
-                  :for="'ref/' + result.id + '/' + res.id"
-                  class="my-1 leading-none"
-                  :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-                  :data-url="url"
-                  ><DisplayLabel :doc="doc"
-                /></label>
-              </template>
-              <template #loading="{ url }">
-                <div
-                  class="pd-withdocument-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
-                  :data-url="url"
-                  :class="[loadingWidth(res.id)]"
-                ></div>
-              </template>
-            </WithDocumentD>
-            <label :for="'ref/' + result.id + '/' + res.id" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-              >({{ res.count }})</label
-            >
-            <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link"
-              ><ArrowTopRightOnSquareIcon :alt="t('common.icons.link')" class="inline size-5 align-text-top"
-            /></RouterLink>
+            <CheckBox :id="'ref/' + result.id + '/' + res.id" v-model="checkboxState" :progress="updateProgress" :value="res.id" />
+            <div class="flex items-baseline gap-x-1">
+              <WithDocumentD :id="res.id" name="DocumentGet">
+                <template #default="{ doc, url }">
+                  <label :for="'ref/' + result.id + '/' + res.id" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'" :data-url="url"
+                    ><DisplayLabel :doc="doc"
+                  /></label>
+                </template>
+                <template #loading="{ url }">
+                  <div
+                    class="pd-withdocument-loading h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
+                    :data-url="url"
+                    :class="[loadingWidth(res.id)]"
+                    aria-hidden="true"
+                  ></div>
+                </template>
+              </WithDocumentD>
+              <label :for="'ref/' + result.id + '/' + res.id" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+                >({{ res.count }})</label
+              >
+              <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link"
+                ><ArrowTopRightOnSquareIcon :alt="t('common.icons.link')" class="inline size-5"
+              /></RouterLink>
+            </div>
           </template>
           <template v-else-if="'id' in res && res.count == searchTotal">
-            <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
-            <WithDocumentD :id="res.id" name="DocumentGet">
-              <template #default="{ doc, url }">
-                <div class="my-1 inline-block leading-none" :data-url="url">
-                  <DisplayLabel :doc="doc" />
-                </div>
-              </template>
-              <template #loading="{ url }">
-                <div
-                  class="pd-withdocument-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
-                  :data-url="url"
-                  :class="[loadingWidth(res.id)]"
-                ></div>
-              </template>
-            </WithDocumentD>
-            <div class="my-1 inline-block leading-none">({{ res.count }})</div>
-            <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link"
-              ><ArrowTopRightOnSquareIcon :alt="t('common.icons.link')" class="inline size-5 align-text-top"
-            /></RouterLink>
+            <div class="h-4 w-4"></div>
+            <div class="flex items-baseline gap-x-1">
+              <WithDocumentD :id="res.id" name="DocumentGet">
+                <template #default="{ doc, url }">
+                  <div :data-url="url"><DisplayLabel :doc="doc" /></div>
+                </template>
+                <template #loading="{ url }">
+                  <div
+                    class="pd-withdocument-loading h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
+                    :data-url="url"
+                    :class="[loadingWidth(res.id)]"
+                    aria-hidden="true"
+                  ></div>
+                </template>
+              </WithDocumentD>
+              <div>({{ res.count }})</div>
+              <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link"
+                ><ArrowTopRightOnSquareIcon :alt="t('common.icons.link')" class="inline size-5"
+              /></RouterLink>
+            </div>
           </template>
           <template v-else-if="!('id' in res)">
-            <CheckBox :id="'ref/' + result.id + '/none'" v-model="checkboxState" :progress="updateProgress" value="__NONE__" class="my-1 self-center" />
-            <label :for="'ref/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-              ><i>{{ t("common.values.none") }}</i></label
-            >
-            <label :for="'ref/' + result.id + '/none'" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-              >({{ res.count }})</label
-            >
+            <CheckBox :id="'ref/' + result.id + '/none'" v-model="checkboxState" :progress="updateProgress" value="__NONE__" />
+            <div class="flex items-baseline gap-x-1">
+              <label :for="'ref/' + result.id + '/none'" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+                ><i>{{ t("common.values.none") }}</i></label
+              >
+              <label :for="'ref/' + result.id + '/none'" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ res.count }})</label>
+            </div>
           </template>
         </li>
       </template>

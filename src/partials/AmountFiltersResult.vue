@@ -177,11 +177,11 @@ onBeforeUnmount(() => {
       <DocumentRefInline :id="result.id" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
     </div>
-    <ul ref="el">
-      <li v-if="error">
+    <ul ref="el" class="grid grid-cols-[max-content_auto] gap-x-1 gap-y-3">
+      <li v-if="error" class="col-span-2">
         <i class="pd-amountfiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
-      <li v-else-if="from === null || to === null" class="motion-safe:animate-pulse">
+      <li v-else-if="from === null || to === null" class="col-span-2 motion-safe:animate-pulse" aria-hidden="true">
         <div class="my-1.5 grid grid-cols-10 items-end gap-x-1" :style="`aspect-ratio: ${chartWidth - 1} / ${chartHeight}`">
           <div v-for="(h, i) in loadingShortHeights(result.id, 10)" :key="i" class="w-auto rounded-sm bg-slate-200" :class="h"></div>
         </div>
@@ -191,7 +191,7 @@ onBeforeUnmount(() => {
         </div>
         <div class="my-1.5 h-2 rounded-sm bg-slate-200"></div>
       </li>
-      <li v-else-if="from !== to">
+      <li v-else-if="from !== to" class="col-span-2">
         <!-- We subtract 1 from chartWidth because we subtract 1 from bar width, so there would be a gap after the last one. -->
         <svg :viewBox="`0 0 ${chartWidth - 1} ${chartHeight}`">
           <!-- We subtract 1 from bar width to have a gap between bars. -->
@@ -214,25 +214,23 @@ onBeforeUnmount(() => {
         </div>
         <div ref="sliderEl"></div>
       </li>
-      <li v-else-if="results.length === 1" class="flex items-baseline gap-x-1">
-        <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
-        <div class="my-1 leading-none">{{ results[0].from }}</div>
-        <div class="my-1 leading-none">({{ results[0].count }})</div>
+      <li v-else-if="results.length === 1" class="contents">
+        <div class="h-4 w-4 shrink-0 border border-transparent"></div>
+        <div class="flex items-baseline gap-x-1">
+          <div>{{ results[0].from }}</div>
+          <div>({{ results[0].count }})</div>
+        </div>
       </li>
-      <li v-if="result.count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="error ? 'mt-0' : from === null || to === null ? 'mt-3' : 'mt-4'">
-        <CheckBox :id="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'" v-model="noneState" :progress="updateProgress" class="my-1 self-center" />
-        <label
-          :for="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'"
-          class="my-1 leading-none"
-          :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-          ><i>{{ t("common.values.none") }}</i></label
-        >
-        <label
-          :for="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'"
-          class="my-1 leading-none"
-          :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-          >({{ searchTotal - result.count }})</label
-        >
+      <li v-if="result.count < searchTotal" class="contents">
+        <CheckBox :id="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'" v-model="noneState" :progress="updateProgress" />
+        <div class="flex items-baseline gap-x-1">
+          <label :for="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            ><i>{{ t("common.values.none") }}</i></label
+          >
+          <label :for="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            >({{ searchTotal - result.count }})</label
+          >
+        </div>
       </li>
     </ul>
   </div>
