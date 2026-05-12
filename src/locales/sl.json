@@ -49,6 +49,9 @@
       "InputRef": {
         "noResults": "Ni najdenih rezultatov."
       },
+      "InputRefSelect": {
+        "noOptions": "Ni razpoložljivih možnosti."
+      },
       "InputTime": {
         "format": "Oblika: LLLL-MM-DD UU:MM:SS",
         "precision": {

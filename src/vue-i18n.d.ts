@@ -60,6 +60,9 @@ declare module "vue-i18n" {
         InputRef: {
           noResults: string
         }
+        InputRefSelect: {
+          noOptions: string
+        }
         InputTime: {
           format: string
           precision: {

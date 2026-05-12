@@ -49,6 +49,9 @@
       "InputRef": {
         "noResults": "No results found."
       },
+      "InputRefSelect": {
+        "noOptions": "No options available."
+      },
       "InputTime": {
         "format": "Format: YYYY-MM-DD HH:MM:SS",
         "precision": {
