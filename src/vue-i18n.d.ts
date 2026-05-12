@@ -28,6 +28,9 @@ declare module "vue-i18n" {
         prev: string
         next: string
       }
+      errors: {
+        unexpected: string
+      }
       status: {
         editingNotAllowed: string
         loading: string

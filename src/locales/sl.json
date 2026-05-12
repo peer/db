@@ -17,6 +17,9 @@
       "prev": "Nazaj",
       "next": "Naprej"
     },
+    "errors": {
+      "unexpected": "Nepričakovana napaka. Prosimo, poskusite znova."
+    },
     "status": {
       "editingNotAllowed": "Urejanje ni dovoljeno.",
       "loading": "Nalaganje...",

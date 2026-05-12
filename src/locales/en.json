@@ -17,6 +17,9 @@
       "prev": "Prev",
       "next": "Next"
     },
+    "errors": {
+      "unexpected": "Unexpected error. Please try again."
+    },
     "status": {
       "editingNotAllowed": "Editing not allowed.",
       "loading": "Loading...",
