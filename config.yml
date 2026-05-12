@@ -1,0 +1,9 @@
+globals:
+  sites:
+    - domain: localhost
+      index: peerdb
+      schema: peerdb
+      features:
+        searchResultsTable: true
+        editButtons: true
+        downloadButtons: true
