@@ -307,3 +307,40 @@ export type DownloadFilesWorkerOutput =
   | { type: "progress"; completed: number; total: number; currentFile: string }
   | { type: "done" }
   | { type: "error"; message: string }
+
+// A single validation failure. Codes (not messages) keep i18n in the
+// presentation layer. Path is a hierarchical address into a composite input
+// (e.g. ["from"] for the lower bound of an interval input). The optional el
+// is the focus target for this specific error (used by composite inputs to
+// point at a particular sub-element); when absent the input's own el getter
+// is used as the fallback.
+export type ValidationError = {
+  path?: string[]
+  code: string
+  el?: HTMLElement
+
+  // Optional debug info.
+  debugMessage?: string
+  debugError?: Error
+}
+
+// Resolves to the list of errors for the input's current value (empty = valid).
+// As a side effect, the input sets its errors v-model so callers can read the
+// result reactively instead of (or in addition to) relying on the return value.
+// The optional signal lets callers abort in-flight async validation.
+export type ValidateFn = (signal?: AbortSignal) => Promise<ValidationError[]>
+
+// A user-supplied rule plugged into an input via its :validator prop. Same
+// shape as ValidateFn but receives the value directly instead of reading it
+// off the input's model.
+export type ValidatorFn<T> = (value: T, signal?: AbortSignal) => Promise<ValidationError[]>
+
+// What an input registers with a parent so the parent can validate it and
+// resolve focus targets. el returns the input's default focus target, used
+// by useValidationRegistry to decorate errors that lack their own el before
+// they are returned to the caller (so the resulting ValidationError[] is
+// self-contained for focus resolution).
+export type ValidatedInput = {
+  validate: ValidateFn
+  el: () => HTMLElement | null
+}

@@ -2,6 +2,7 @@
 import type { DeepReadonly } from "vue"
 
 import type { FieldData, FieldsData, FieldsFormSaveChange } from "@/fields"
+import type { ValidationError } from "@/types"
 
 import { XMarkIcon } from "@heroicons/vue/20/solid"
 import { Identifier } from "@tozd/identifier"
@@ -366,23 +367,25 @@ function canRemoveEntry(field: FieldData): boolean {
   return count > field.minCardinality
 }
 
-function isEmptySlotInvalid(field: FieldData, slotValue: string): boolean {
+function emptySlotErrors(field: FieldData, slotValue: string): ValidationError[] {
   if (!isRequired(field)) {
-    return false
+    return []
   }
   // A required field's empty slot is invalid if the value is empty and the field doesn't have enough non-empty entries.
   const fieldEntries = entriesForField(field)
   const nonEmpty = fieldEntries.filter(([_, e]) => e.value.trim() !== "").length
-  return nonEmpty < field.minCardinality && slotValue.trim() === ""
+  // TODO: Use standard codes.
+  return nonEmpty < field.minCardinality && slotValue.trim() === "" ? [{ code: "required" }] : []
 }
 
-function isEntryInvalid(entry: EntryState): boolean {
+function entryErrors(entry: EntryState): ValidationError[] {
   if (!isRequired(entry.field)) {
-    return false
+    return []
   }
   const fieldEntries = entriesForField(entry.field)
   const nonEmpty = fieldEntries.filter(([_, e]) => e.value.trim() !== "").length
-  return nonEmpty < entry.field.minCardinality && entry.value.trim() === ""
+  // TODO: Use standard codes.
+  return nonEmpty < entry.field.minCardinality && entry.value.trim() === "" ? [{ code: "required" }] : []
 }
 
 function getSubClaims(claimId: string): DeepReadonly<ClaimTypes> {
@@ -492,7 +495,7 @@ onBeforeUnmount(() => {
                   <span class="self-center text-xs text-slate-500">{{ t("partials.FieldsForm.from") }}</span>
                   <InputText
                     :model-value="entry.value"
-                    :invalid="isEntryInvalid(entry)"
+                    :errors="entryErrors(entry)"
                     :progress="progress"
                     class="min-w-0 flex-1"
                     @update:model-value="(v: string) => onEntryInput(claimId, v)"
@@ -510,7 +513,7 @@ onBeforeUnmount(() => {
                 <InputText
                   v-else
                   :model-value="entry.value"
-                  :invalid="isEntryInvalid(entry)"
+                  :errors="entryErrors(entry)"
                   :progress="progress"
                   class="min-w-0 flex-auto grow"
                   @update:model-value="(v: string) => onEntryInput(claimId, v)"
@@ -560,7 +563,7 @@ onBeforeUnmount(() => {
                   <span class="self-center text-xs text-slate-500">{{ t("partials.FieldsForm.from") }}</span>
                   <InputText
                     :model-value="slotVal.value"
-                    :invalid="isEmptySlotInvalid(field, slotVal.value)"
+                    :errors="emptySlotErrors(field, slotVal.value)"
                     :progress="progress"
                     class="min-w-0 flex-1"
                     @update:model-value="(v: string) => onEmptySlotInput(slotId, v)"
@@ -578,7 +581,7 @@ onBeforeUnmount(() => {
                 <InputText
                   v-else
                   :model-value="slotVal.value"
-                  :invalid="isEmptySlotInvalid(field, slotVal.value)"
+                  :errors="emptySlotErrors(field, slotVal.value)"
                   :progress="progress"
                   class="min-w-0 flex-auto grow"
                   @update:model-value="(v: string) => onEmptySlotInput(slotId, v)"
@@ -624,7 +627,7 @@ onBeforeUnmount(() => {
                     <span class="self-center text-xs text-slate-500">{{ t("partials.FieldsForm.from") }}</span>
                     <InputText
                       :model-value="entry.value"
-                      :invalid="isEntryInvalid(entry)"
+                      :errors="entryErrors(entry)"
                       :progress="progress"
                       class="min-w-0 flex-1"
                       @update:model-value="(v: string) => onEntryInput(claimId, v)"
@@ -642,7 +645,7 @@ onBeforeUnmount(() => {
                   <InputText
                     v-else
                     :model-value="entry.value"
-                    :invalid="isEntryInvalid(entry)"
+                    :errors="entryErrors(entry)"
                     :progress="progress"
                     class="min-w-0 flex-auto grow"
                     @update:model-value="(v: string) => onEntryInput(claimId, v)"

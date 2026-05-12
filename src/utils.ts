@@ -367,6 +367,24 @@ export async function delay(ms: number, signal?: AbortSignal): Promise<void> {
   signal?.throwIfAborted()
 }
 
+// raceWithSignal settles as soon as the given promise settles or the signal
+// aborts. A settling promise propagates its resolution or rejection through
+// unchanged. An abort resolves with undefined (no error is raised).
+export function raceWithSignal<T>(promise: Promise<T>, signal: AbortSignal): Promise<T | undefined> {
+  if (signal.aborted) return Promise.resolve(undefined)
+  let onAbort: (() => void) | undefined
+  const abortPromise = new Promise<undefined>((resolve) => {
+    onAbort = () => {
+      onAbort = undefined
+      resolve(undefined)
+    }
+    signal.addEventListener("abort", onAbort, { once: true })
+  })
+  return Promise.race<T | undefined>([promise, abortPromise]).finally(() => {
+    if (onAbort) signal.removeEventListener("abort", onAbort)
+  })
+}
+
 // Polyfill for AbortSignal.any.
 export function anySignal(...signals: AbortSignal[]): AbortSignal {
   if ("any" in AbortSignal) {

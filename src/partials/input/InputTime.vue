@@ -429,7 +429,8 @@ const timePrecision = ref<TimePrecision>("y")
 const isEditing = ref(false)
 const errorMessage = ref("")
 
-const isInvalid = computed(() => errorMessage.value !== "")
+// TODO: Use standard codes.
+const errors = computed(() => (errorMessage.value !== "" ? [{ code: "invalid", debugMessage: errorMessage.value }] : []))
 
 const inputId = useId()
 
@@ -776,7 +777,7 @@ watch(
         autocorrect="off"
         autocapitalize="none"
         :readonly="readonly"
-        :invalid="isInvalid"
+        :errors="errors"
         :progress="progress"
         @focus="onFocus"
         @blur="onBlur"
