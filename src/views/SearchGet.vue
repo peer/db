@@ -217,7 +217,7 @@ async function onChange() {
   for (const file of upload.value?.files || []) {
     uploadProgress.value += 1
     try {
-      const fileId = await uploadFile(router, file, abortController.signal, uploadProgress)
+      const fileId = await uploadFile(router, file, abortController.signal, uploadProgress, null)
       if (abortController.signal.aborted) {
         return
       }

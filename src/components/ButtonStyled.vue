@@ -23,10 +23,12 @@ withDefaults(
     as: string | Component
     inactive?: boolean
     primary?: boolean
+    active?: boolean
   }>(),
   {
     inactive: false,
     primary: false,
+    active: false,
   },
 )
 
@@ -44,10 +46,12 @@ defineOptions({
     :class="{
       'cursor-not-allowed': inactive,
       'bg-primary-300 text-gray-100': primary && inactive,
-      'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 active:bg-primary-500': primary && !inactive,
+      'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 active:bg-primary-500': primary && !inactive && !active,
+      'bg-primary-500 text-white focus:ring-primary-500': primary && !inactive && active,
       'bg-gray-100 text-gray-800 shadow-none inset-ring-2 inset-ring-neutral-300': !primary && inactive,
       'text-primary-600 inset-ring-2 inset-ring-primary-600 hover:bg-primary-50 hover:text-primary-700 hover:inset-ring-primary-700 focus:ring-primary-500 active:bg-primary-100 active:text-primary-500 active:inset-ring-primary-500':
-        !primary && !inactive,
+        !primary && !inactive && !active,
+      'bg-primary-100 text-primary-500 inset-ring-2 inset-ring-primary-500 focus:ring-primary-500': !primary && !inactive && active,
     }"
   >
     <slot />

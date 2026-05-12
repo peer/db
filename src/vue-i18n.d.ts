@@ -57,6 +57,9 @@ declare module "vue-i18n" {
     }
     partials: {
       input: {
+        InputFile: {
+          dropOrBrowse: string
+        }
         InputRef: {
           noResults: string
         }
@@ -187,6 +190,7 @@ declare module "vue-i18n" {
           time: string
           timeInterval: string
           link: string
+          file: string
           reference: string
           has: string
           none: string
@@ -198,6 +202,7 @@ declare module "vue-i18n" {
           html: string
           string: string
           amount: string
+          file: string
           from: string
           to: string
         }

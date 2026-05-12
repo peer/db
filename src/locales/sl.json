@@ -46,6 +46,9 @@
   },
   "partials": {
     "input": {
+      "InputFile": {
+        "dropOrBrowse": "Spustite datoteko sem ali kliknite za brskanje"
+      },
       "InputRef": {
         "noResults": "Ni najdenih rezultatov."
       },
@@ -176,6 +179,7 @@
         "time": "Čas",
         "timeInterval": "Časovni interval",
         "link": "Povezava",
+        "file": "Datoteka",
         "reference": "Referenca",
         "has": "Ima",
         "none": "Neobstoječa vrednost",
@@ -187,6 +191,7 @@
         "html": "HTML",
         "string": "Enostavno besedilo",
         "amount": "Količina",
+        "file": "Datoteka",
         "from": "Od",
         "to": "Do"
       }

@@ -46,6 +46,9 @@
   },
   "partials": {
     "input": {
+      "InputFile": {
+        "dropOrBrowse": "Drop file here or click to browse"
+      },
       "InputRef": {
         "noResults": "No results found."
       },
@@ -176,6 +179,7 @@
         "time": "Timestamp",
         "timeInterval": "Time interval",
         "link": "Link",
+        "file": "File",
         "reference": "Reference",
         "has": "Has",
         "none": "None",
@@ -187,6 +191,7 @@
         "html": "HTML",
         "string": "String",
         "amount": "Amount",
+        "file": "File",
         "from": "From",
         "to": "To"
       }

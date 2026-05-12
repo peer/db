@@ -167,8 +167,10 @@ export async function postJSON<T>(url: string, data: object, abortSignal: AbortS
   }
 }
 
-export async function postBlob<T>(url: string, data: Blob, abortSignal: AbortSignal, progress: Ref<number>): Promise<T> {
-  progress.value += 1
+export async function postBlob<T>(url: string, data: Blob, abortSignal: AbortSignal, progress: Ref<number> | null): Promise<T> {
+  if (progress) {
+    progress.value += 1
+  }
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -192,6 +194,8 @@ export async function postBlob<T>(url: string, data: Blob, abortSignal: AbortSig
     }
     return (await response.json()) as T
   } finally {
-    progress.value -= 1
+    if (progress) {
+      progress.value -= 1
+    }
   }
 }

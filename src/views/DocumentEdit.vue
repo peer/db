@@ -22,6 +22,7 @@ import DisplayLabel from "@/partials/DisplayLabel.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import FieldsForm from "@/partials/FieldsForm.vue"
 import Footer from "@/partials/Footer.vue"
+import InputFile from "@/partials/input/InputFile.vue"
 import InputRef from "@/partials/input/InputRef.vue"
 import InputTime from "@/partials/input/InputTime.vue"
 import NavBar from "@/partials/NavBar.vue"
@@ -30,28 +31,16 @@ import PropertiesRows from "@/partials/PropertiesRows.vue"
 import { getParentProgress, localProgress } from "@/progress"
 import { useDocumentFields } from "@/useDocumentFields"
 import { useParentClasses } from "@/useParentClasses"
-import { encodeQuery, makeAddClaimChange } from "@/utils"
+import { delay, encodeQuery, makeAddClaimChange } from "@/utils"
 
 const props = defineProps<{
   id: string
   session: string
 }>()
 
-const addClaimTypes: ("id" | "string" | "html" | "amount" | "amountInterval" | "time" | "timeInterval" | "link" | "ref" | "has" | "none" | "unknown")[] = [
-  "id",
-  "string",
-  "html",
-  "amount",
-  "amountInterval",
-  "time",
-  "timeInterval",
-  "link",
-  "ref",
-  "has",
-  "none",
-  "unknown",
-]
-const claimType = ref<"id" | "string" | "html" | "amount" | "amountInterval" | "time" | "timeInterval" | "link" | "ref" | "has" | "none" | "unknown">("id")
+type AddClaimType = "id" | "string" | "html" | "amount" | "amountInterval" | "time" | "timeInterval" | "link" | "file" | "ref" | "has" | "none" | "unknown"
+const addClaimTypes: AddClaimType[] = ["id", "string", "html", "amount", "amountInterval", "time", "timeInterval", "link", "file", "ref", "has", "none", "unknown"]
+const claimType = ref<AddClaimType>("id")
 const claimProp = ref("")
 const claimValue = ref("")
 const claimAmountPrecision = ref("")
@@ -310,11 +299,11 @@ async function onSave() {
       },
     }).href
     while (true) {
-      await new Promise((resolve) => setTimeout(resolve, pollInterval))
+      await delay(pollInterval, abortController.signal)
       if (abortController.signal.aborted) {
         return
       }
-      const { doc: status } = await getURLDirect<DocumentEditStatus>(editStatusURL, abortController.signal, null)
+      const { doc: status } = await getURLDirect<DocumentEditStatus>(editStatusURL, abortController.signal, editProgress)
       if (abortController.signal.aborted) {
         return
       }
@@ -349,7 +338,9 @@ async function onSave() {
 }
 
 function makePatch(): object {
-  const shared = { type: claimType.value, confidence: HighConfidence, prop: claimProp.value }
+  // The "file" value type produces a "link" claim with an IRI obtained from the file upload.
+  const backendType = claimType.value === "file" ? "link" : claimType.value
+  const shared = { type: backendType, confidence: HighConfidence, prop: claimProp.value }
   switch (claimType.value) {
     case "id":
       return { ...shared, value: claimValue.value }
@@ -374,6 +365,8 @@ function makePatch(): object {
         ...(claimTo.value ? { to: claimTo.value, toPrecision: claimToTimePrecision.value } : {}),
       }
     case "link":
+      return { ...shared, iri: claimValue.value }
+    case "file":
       return { ...shared, iri: claimValue.value }
     case "ref":
       return { ...shared, to: claimValue.value }
@@ -579,6 +572,10 @@ function canSave(): boolean {
                   >
                   <Tab
                     class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                    >{{ t("views.DocumentEdit.claimTypes.file") }}</Tab
+                  >
+                  <Tab
+                    class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
                     >{{ t("views.DocumentEdit.claimTypes.reference") }}</Tab
                   >
                   <Tab
@@ -654,6 +651,12 @@ function canSave(): boolean {
                     <InputRef id="link-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
                     <label for="link-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.iri") }}</label>
                     <InputText id="link-value" v-model="claimValue" class="min-w-0 flex-auto grow" />
+                  </TabPanel>
+                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                    <label for="file-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+                    <InputRef id="file-property" v-model="claimProp" class="min-w-0 flex-auto grow" />
+                    <label class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.file") }}</label>
+                    <InputFile v-model="claimValue" />
                   </TabPanel>
                   <TabPanel tabindex="-1" class="flex flex-col outline-none">
                     <label for="reference-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
