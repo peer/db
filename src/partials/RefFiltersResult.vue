@@ -141,7 +141,7 @@ const WithDocumentD = WithDocument<D>
                 on each row's icon. Mouse users can still click it.
               -->
               <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link" tabindex="-1"
-                ><ArrowTopRightOnSquareIcon :alt="t('common.icons.link')" class="inline size-5"
+                ><ArrowTopRightOnSquareIcon :alt="t('common.icons.link')" class="inline size-5 align-text-top"
               /></RouterLink>
             </div>
           </template>
@@ -168,7 +168,7 @@ const WithDocumentD = WithDocument<D>
                 on each row's icon. Mouse users can still click it.
               -->
               <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link" tabindex="-1"
-                ><ArrowTopRightOnSquareIcon :alt="t('common.icons.link')" class="inline size-5"
+                ><ArrowTopRightOnSquareIcon :alt="t('common.icons.link')" class="inline size-5 align-text-top"
               /></RouterLink>
             </div>
           </template>
