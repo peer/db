@@ -1,0 +1,35 @@
+<script setup lang="ts">
+import type { ValidationError, ValidatorFn } from "@/types"
+
+import InputText from "@/components/InputText.vue"
+
+withDefaults(
+  defineProps<{
+    readonly?: boolean
+  }>(),
+  {
+    readonly: false,
+  },
+)
+
+const model = defineModel<string>({ default: "" })
+const errors = defineModel<ValidationError[]>("errors", { default: () => [] })
+const progress = defineModel<number>("progress", { default: 0 })
+
+// An identifier is invalid if it is empty after trimming. As a side effect of
+// validation the model is normalized to the trimmed value, so " abc " becomes
+// "abc" on blur or before submit.
+// eslint-disable-next-line @typescript-eslint/require-await
+const validator: ValidatorFn<string> = async function (value) {
+  const trimmed = value.trim()
+  if (trimmed !== model.value) {
+    model.value = trimmed
+  }
+  // TODO: Use standard codes.
+  return trimmed === "" ? [{ code: "required" }] : []
+}
+</script>
+
+<template>
+  <InputText v-model="model" v-model:errors="errors" v-model:progress="progress" :readonly="readonly" :validator="validator" />
+</template>
