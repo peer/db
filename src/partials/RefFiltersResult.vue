@@ -5,7 +5,7 @@ import type { D } from "@/document"
 import type { ClientSearchSession, RefFilterState, RefSearchResult } from "@/types"
 
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
-import { computed, onBeforeUnmount, toRef, useTemplateRef } from "vue"
+import { computed, onBeforeUnmount, toRef, useId, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
@@ -32,6 +32,8 @@ const emit = defineEmits<{
 const { t } = useI18n({ useScope: "global" })
 
 const el = useTemplateRef<HTMLElement>("el")
+
+const labelId = useId()
 
 const abortController = new AbortController()
 
@@ -93,11 +95,11 @@ const WithDocumentD = WithDocument<D>
 
 <template>
   <div class="pd-reffiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
-    <div class="flex items-baseline gap-x-1">
+    <div :id="labelId" class="flex items-baseline gap-x-1">
       <DocumentRefInline :id="result.id" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
     </div>
-    <ul ref="el" class="grid grid-cols-[max-content_auto] gap-x-1">
+    <ul ref="el" role="group" :aria-labelledby="labelId" class="grid grid-cols-[max-content_auto] gap-x-1">
       <li v-if="error" class="col-span-2">
         <i class="pd-reffiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>

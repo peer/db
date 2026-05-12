@@ -5,7 +5,7 @@ import type { DeepReadonly } from "vue"
 import type { ClientSearchSession, TimeFilterState, TimeSearchResult } from "@/types"
 
 import noUiSlider from "nouislider"
-import { computed, onBeforeUnmount, toRef, useTemplateRef, watchEffect } from "vue"
+import { computed, onBeforeUnmount, toRef, useId, useTemplateRef, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 
 import CheckBox from "@/components/CheckBox.vue"
@@ -30,6 +30,8 @@ const emit = defineEmits<{
 const { t } = useI18n({ useScope: "global" })
 
 const el = useTemplateRef<HTMLElement>("el")
+
+const labelId = useId()
 
 const abortController = new AbortController()
 
@@ -209,11 +211,11 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="pd-timefiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
-    <div class="flex items-baseline gap-x-1">
+    <div :id="labelId" class="flex items-baseline gap-x-1">
       <DocumentRefInline :id="result.id" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
     </div>
-    <ul ref="el" class="grid grid-cols-[max-content_auto] gap-x-1 gap-y-3">
+    <ul ref="el" role="group" :aria-labelledby="labelId" class="grid grid-cols-[max-content_auto] gap-x-1 gap-y-3">
       <li v-if="error" class="col-span-2">
         <i class="pd-timefiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
