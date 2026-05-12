@@ -255,7 +255,7 @@ const WithPeerDBDocument = WithDocument<D>
   <div ref="wrapperRef" @focusout="onWrapperFocusout">
     <Combobox v-slot="{ open }" :model-value="selectedDocument" as="div" @update:model-value="onSelect">
       <!--
-        Grid with a single minmax(0, 1fr) column. The "0" min track size
+        Grid with a single minmax(0,1fr) column. The "0" min track size
         propagates a min-content of 0 up through the flex ancestors, so the
         whole input chain can shrink and the chip's truncate actually clips
         long display labels instead of forcing the input to grow.
@@ -265,7 +265,7 @@ const WithPeerDBDocument = WithDocument<D>
         grid is the chip/input, which means the container's height tracks the
         input's height exactly.
       -->
-      <div class="relative grid w-full grid-cols-[minmax(0,_1fr)]">
+      <div class="relative grid w-full grid-cols-[minmax(0,1fr)]">
         <!--
           Selected + not editing: render the display label inside a
           contenteditable div styled to look like a text input. The
