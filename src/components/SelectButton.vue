@@ -38,7 +38,7 @@ function isDisabled(option: SelectButtonOption<T>) {
 </script>
 
 <template>
-  <div class="pd-selectbutton flex items-center gap-1 rounded-sm bg-slate-200 px-1 py-1">
+  <div v-tw-merge class="pd-selectbutton flex items-center gap-1 rounded-sm bg-slate-200 px-1 py-1">
     <button
       v-for="option in options"
       :key="option.name"

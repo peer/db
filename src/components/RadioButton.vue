@@ -66,6 +66,7 @@ function onKeyDown(event: KeyboardEvent) {
   <div>
     <input
       v-model="model"
+      v-tw-merge
       v-bind="$attrs"
       :disabled="progress > 0 || disabled"
       type="radio"
