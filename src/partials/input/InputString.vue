@@ -3,12 +3,14 @@ import type { ValidationError, ValidatorFn } from "@/types"
 
 import InputText from "@/components/InputText.vue"
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     readonly?: boolean
+    required?: boolean
   }>(),
   {
     readonly: false,
+    required: false,
   },
 )
 
@@ -18,6 +20,9 @@ const errors = defineModel<ValidationError[]>("errors", { default: () => [] })
 // A string invalid if it is empty after trimming.
 // eslint-disable-next-line @typescript-eslint/require-await
 const validator: ValidatorFn<string> = async function (value) {
+  if (!props.required) {
+    return []
+  }
   // TODO: Use standard codes.
   return value.trim() === "" ? [{ code: "required" }] : []
 }

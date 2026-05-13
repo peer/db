@@ -3,12 +3,14 @@ import type { ValidationError, ValidatorFn } from "@/types"
 
 import InputText from "@/components/InputText.vue"
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     readonly?: boolean
+    required?: boolean
   }>(),
   {
     readonly: false,
+    required: false,
   },
 )
 
@@ -26,6 +28,9 @@ const validator: ValidatorFn<string> = async function (value, options) {
   const trimmed = value.trim()
   if (!options.eager && trimmed !== model.value) {
     model.value = trimmed
+  }
+  if (!props.required) {
+    return []
   }
   // TODO: Use standard codes.
   return trimmed === "" ? [{ code: "required" }] : []
