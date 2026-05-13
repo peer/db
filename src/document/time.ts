@@ -296,7 +296,7 @@ function partsToFloat64(p: TimeParts): number {
 }
 
 // addTimePrecision returns the parts at the end of the precision window
-// starting at `parts`. If the natural step doesn't survive the float64
+// starting at parts. If the natural step doesn't survive the float64
 // round-trip it widens to the next coarser precision.
 //
 // Mirrors addTimePrecision in document/time.go.
