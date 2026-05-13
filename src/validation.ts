@@ -119,11 +119,6 @@ export function useValidation<T>(
   runValidation: (options?: { signal?: AbortSignal; eager?: boolean }) => Promise<void>
   validatedInput: ValidatedInput
 } {
-  // runValidation is uses abort-and-restart: every call aborts any prior in-flight
-  // one and starts a new validator invocation. On successful completion it writes the
-  // result to errors.value and records lastValidated as a cache marker. On abort the
-  // IIFE throws ValidationAbortedError so callers awaiting inFlight.promise can
-  // distinguish validator aborts from real validator errors.
   let validateAbortController: AbortController | null = null
   let inFlight: { value: T; validator: ValidatorFn<T>; eager: boolean; promise: Promise<void> } | null = null
   let lastValidated: { value: T; validator: ValidatorFn<T>; eager: boolean } | null = null
@@ -141,6 +136,11 @@ export function useValidation<T>(
     return entry.value === value && entry.validator === validator && entry.eager === eager
   }
 
+  // internalValidation uses abort-and-restart: every call aborts any prior in-flight
+  // one and starts a new validator invocation. On successful completion it writes the
+  // result to errors.value and records lastValidated as a cache marker. On abort the
+  // IIFE throws ValidationAbortedError so callers awaiting inFlight.promise can
+  // distinguish validator aborts from real validator errors.
   function internalValidation(options?: { signal?: AbortSignal; eager?: boolean }): Promise<void> | null {
     const validator = validatorGetter()
     if (!validator) return null
