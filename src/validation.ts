@@ -237,24 +237,15 @@ export function useValidation<T>(
         return errors.value
       }
 
-      const validator = validatorGetter()
-      if (!validator) {
-        return errors.value
-      }
-      const value = model.value
-
-      // validate() is always lazy (eager=false) - it represents a caller
-      // asking for the final state, including model-mutating side effects.
-      if (entryCovers(lastValidated, value, validator, false)) {
-        return errors.value
-      }
-
+      // internalValidation handles validator-missing and cache-hit by
+      // returning null, and joins an in-flight matching call (eager=false,
+      // since validate represents a caller asking for the final state
+      // including model-mutating side effects) by returning its promise.
       const waitFor = internalValidation({ signal: additionalSignal })
       if (!waitFor) {
-        // internalValidation declined: lastValidated already covers the
-        // request (state shifted between our cache check above and its own),
-        // or the validator disappeared. Loop to re-evaluate.
-        continue
+        // No work to do: validator absent or lastValidated already covers the
+        // current (value, validator). errors.value reflects current state.
+        return errors.value
       }
 
       try {
