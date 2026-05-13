@@ -181,7 +181,7 @@ frontend_coverage:
     - test_e2e
 
   script:
-    - echo "Frontend coverage:" $(grep -oP '<span class="strong">\K\d+\.\d+(?=% </span>)' coverage-frontend/index.html | head -1)%
+    - echo "Frontend coverage:" $(sed -n 's|.*<span class="strong">\([0-9]\+\.[0-9]\+\)% </span>.*|\1|p' coverage-frontend/index.html | head -1)%
 
   artifacts:
     when: always
@@ -214,7 +214,7 @@ backend_coverage:
     - go tool cover -html=coverage.txt -o coverage.html
     - gocover-cobertura < coverage.txt > coverage.xml
     - go tool cover -func=coverage.txt -o coverage-percentages.txt
-    - echo "Backend coverage:" $(grep -oP '\(statements\)\s+\K\d+\.\d+' coverage-percentages.txt)%
+    - echo "Backend coverage:" $(sed -n 's/.*(statements)[[:space:]]\+\([0-9]\+\.[0-9]\+\).*/\1/p' coverage-percentages.txt)%
 
   after_script:
     - echo "Prepared combined (E2E + unit tests) backend coverage link:"
