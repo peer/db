@@ -112,7 +112,7 @@ class ValidationAbortedError extends Error {}
 export function useValidation<T>(
   model: Ref<T>,
   errors: Ref<ValidationError[]>,
-  progress: Ref<number>,
+  lock: Ref<number>,
   validatorGetter: () => ValidatorFn<T> | undefined,
   el: () => HTMLElement | null,
 ): {
@@ -169,7 +169,7 @@ export function useValidation<T>(
     let promise!: Promise<void>
     // eslint-disable-next-line prefer-const
     promise = (async (): Promise<void> => {
-      progress.value++
+      lock.value++
       try {
         let value = initialValue
         // Validators may mutate model.value as a side effect (ideally gated on
@@ -210,7 +210,7 @@ export function useValidation<T>(
           inFlight!.value = value
         }
       } finally {
-        progress.value--
+        lock.value--
         if (inFlight?.promise === promise) {
           inFlight = null
         }

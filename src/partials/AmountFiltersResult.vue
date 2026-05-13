@@ -10,7 +10,7 @@ import { useI18n } from "vue-i18n"
 
 import CheckBox from "@/components/CheckBox.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
-import { useProgress } from "@/progress"
+import { useLocked, useProgress } from "@/progress"
 import { NONE, useAmountHistogramValues } from "@/search"
 import { equals, loadingShortHeights, useInitialLoad } from "@/utils"
 
@@ -19,8 +19,9 @@ const props = defineProps<{
   searchTotal: number
   result: AmountSearchResult
   state: AmountFilterState
-  updateProgress: number
 }>()
+
+const locked = useLocked()
 
 const emit = defineEmits<{
   "update:state": [state: AmountFilterState]
@@ -38,6 +39,7 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
+// Data loading only, no controls.
 const progress = useProgress()
 const {
   results,
@@ -153,12 +155,12 @@ watchEffect((onCleanup) => {
   }
 })
 
-watchEffect((onCleanup) => {
+watchEffect(() => {
   if (!slider) {
     return
   }
 
-  if (props.updateProgress > 0) {
+  if (locked.value) {
     slider.disable()
   } else {
     slider.enable()
@@ -224,12 +226,12 @@ onBeforeUnmount(() => {
         </div>
       </li>
       <li v-if="result.count < searchTotal" class="contents">
-        <CheckBox :id="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'" v-model="noneState" :progress="updateProgress" />
+        <CheckBox :id="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'" v-model="noneState" />
         <div class="flex items-baseline gap-x-1">
-          <label :for="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label :for="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             ><i>{{ t("common.values.none") }}</i></label
           >
-          <label :for="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label :for="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             >({{ searchTotal - result.count }})</label
           >
         </div>

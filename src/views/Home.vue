@@ -8,14 +8,15 @@ import InputText from "@/components/InputText.vue"
 import siteContext from "@/context"
 import Footer from "@/partials/Footer.vue"
 import HomeNavBar from "@/partials/HomeNavBar.vue"
-import { useProgress } from "@/progress"
+import { useBusy } from "@/progress"
 import { getHomeComponent } from "@/registry/home"
 import { createSearchSession } from "@/search"
 
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
-const progress = useProgress()
+// Data loading and controls for data loading.
+const busy = useBusy()
 
 const abortController = new AbortController()
 
@@ -34,7 +35,7 @@ async function onSubmit() {
     return
   }
 
-  progress.value += 1
+  busy.value += 1
   try {
     await createSearchSession(
       router,
@@ -42,7 +43,7 @@ async function onSubmit() {
         query: searchQuery.value,
       },
       abortController.signal,
-      progress,
+      busy,
       false,
     )
   } catch (err) {
@@ -52,7 +53,7 @@ async function onSubmit() {
     // TODO: Show notification with error.
     console.error("Home.onSubmit", err)
   } finally {
-    progress.value -= 1
+    busy.value -= 1
   }
 }
 
@@ -76,8 +77,8 @@ const homeComponent = getHomeComponent()
       </RouterLink>
     </div>
     <div class="flex flex-row justify-center gap-x-1 px-1 sm:gap-x-4 sm:px-4">
-      <InputText id="home-input-search" v-model="searchQuery" class="pd-searchinput w-full max-w-2xl sm:w-4/5 md:w-2/3 lg:w-1/2" :progress="progress" />
-      <Button id="home-button-search" type="submit" primary :progress="progress">{{ t("common.buttons.search") }}</Button>
+      <InputText id="home-input-search" v-model="searchQuery" class="pd-searchinput w-full max-w-2xl sm:w-4/5 md:w-2/3 lg:w-1/2" />
+      <Button id="home-button-search" type="submit" primary>{{ t("common.buttons.search") }}</Button>
     </div>
     <div class="flex grow basis-0"><component :is="homeComponent" v-if="homeComponent" /></div>
   </form>

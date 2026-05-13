@@ -17,6 +17,7 @@ import Button from "@/components/Button.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
 import InputTextLink from "@/components/InputTextLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
+import WithLock from "@/components/WithLock.vue"
 import { INSTANCE_OF, NAME, SEARCH_SHORTCUT } from "@/core"
 import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
@@ -26,7 +27,7 @@ import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
-import { getParentProgress, localProgress } from "@/progress"
+import { getParentLock, lockScope, useProgress } from "@/progress"
 import { getDocumentComponents } from "@/registry/document"
 import { useSearch, useSearchSession } from "@/search"
 import { useDocumentFields } from "@/useDocumentFields"
@@ -43,9 +44,15 @@ const router = useRouter()
 
 const el = useTemplateRef<HTMLElement>("el")
 
-const parentProgress = getParentProgress()
-const progress = localProgress(parentProgress)
-const editProgress = localProgress(parentProgress)
+// Data loading only, no controls.
+const progress = useProgress()
+
+// Independent lock-scope for the Edit button.
+// getParentLock here reads from the ancestor's provides (above DocumentGet).
+const editLock = lockScope(getParentLock())
+function getEditLock() {
+  return editLock
+}
 
 const abortController = new AbortController()
 
@@ -220,7 +227,7 @@ async function onEdit() {
     return
   }
 
-  editProgress.value += 1
+  editLock.value += 1
   try {
     const editResponse = await postJSON<DocumentBeginEditResponse>(
       router.apiResolve({
@@ -231,7 +238,7 @@ async function onEdit() {
       }).href,
       {},
       abortController.signal,
-      editProgress,
+      editLock,
     )
     if (abortController.signal.aborted) {
       return
@@ -250,7 +257,7 @@ async function onEdit() {
     // TODO: Show notification with error.
     console.error("DocumentGet.onEdit", err)
   } finally {
-    editProgress.value -= 1
+    editLock.value -= 1
   }
 }
 </script>
@@ -289,10 +296,12 @@ async function onEdit() {
         <NavBarSearch v-else />
       </template>
       <template #end>
-        <Button :progress="editProgress" type="button" primary class="px-3.5" @click.prevent="onEdit">
-          <PencilIcon class="size-5 sm:hidden" :alt="t('common.buttons.edit')" />
-          <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
-        </Button>
+        <WithLock v-slot="{ lock }" :lock="getEditLock">
+          <Button :progress="lock" type="button" primary class="px-3.5" @click.prevent="onEdit">
+            <PencilIcon class="size-5 sm:hidden" :alt="t('common.buttons.edit')" />
+            <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
+          </Button>
+        </WithLock>
       </template>
     </NavBar>
   </Teleport>

@@ -19,7 +19,7 @@ import DisplayLabel from "@/partials/DisplayLabel.vue"
 import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
-import { useProgress } from "@/progress"
+import { useBusy } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search"
 import { useTruncationTracking } from "@/truncation"
 import { encodeQuery, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils"
@@ -31,8 +31,6 @@ const props = defineProps<{
   searchTotal: number | null
   searchMoreThanTotal: boolean
   searchSession: DeepReadonly<ClientSearchSession>
-  searchProgress: number
-  updateSearchSessionProgress: number
   isDownloading: boolean
 
   // Filter props.
@@ -63,7 +61,8 @@ const {
 
 const content = useTemplateRef<HTMLElement>("content")
 
-const filtersProgress = useProgress()
+// Data loading and controls for data loading.
+const busy = useBusy()
 const {
   results: filtersResults,
   total: filtersTotal,
@@ -74,7 +73,7 @@ const {
   // We use the content element because data about filters is needed to display columns for the whole table.
   // Using only <tr> element inside <thead> (where data-url attribute is set for filters) would not convey that requirement.
   content,
-  filtersProgress,
+  busy,
 )
 
 const {
@@ -433,7 +432,7 @@ function onCloseFilterModal() {
       </table>
 
       <div v-if="filtersHasMore" class="sticky top-[37.5%] z-20 h-full">
-        <Button ref="filtersMoreButton" :progress="filtersProgress" primary class="h-1/4 min-h-fit [writing-mode:sideways-lr]" @click.prevent="filtersLoadMore">{{
+        <Button ref="filtersMoreButton" primary class="h-1/4 min-h-fit [writing-mode:sideways-lr]" @click.prevent="filtersLoadMore">{{
           t("partials.SearchResultsTable.moreColumns")
         }}</Button>
       </div>
@@ -446,9 +445,7 @@ function onCloseFilterModal() {
     -->
     <div class="sticky left-0 z-20 w-0">
       <div class="w-container flex justify-center p-1 sm:p-4">
-        <Button v-if="searchHasMore" ref="searchMoreButton" :progress="searchProgress" primary class="w-1/4 min-w-fit" @click.prevent="searchLoadMore">{{
-          t("common.buttons.loadMore")
-        }}</Button>
+        <Button v-if="searchHasMore" ref="searchMoreButton" primary class="w-1/4 min-w-fit" @click.prevent="searchLoadMore">{{ t("common.buttons.loadMore") }}</Button>
 
         <div v-else class="my-1 sm:my-4">
           <!-- Here we assume that MaxResultsCount is always set to a smaller value than what TrackTotalHits is set to. -->
@@ -484,7 +481,6 @@ function onCloseFilterModal() {
           :result="activeFilter!"
           :search-session="searchSession"
           :search-total="searchTotal!"
-          :update-search-session-progress="updateSearchSessionProgress"
           :filters-state="filtersState"
           @filter-change="(c) => $emit('filterChange', c)"
         />

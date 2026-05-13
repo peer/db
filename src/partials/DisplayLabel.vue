@@ -18,6 +18,7 @@ const router = useRouter()
 const i18n = useI18n({ useScope: "global" })
 const { t } = i18n
 
+// Data loading only, no controls.
 const progress = useProgress()
 
 let abortController = new AbortController()

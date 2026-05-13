@@ -8,6 +8,7 @@ import type { ValidationError, ValidatorFn } from "@/types"
 import { computed, onBeforeUnmount, onMounted, onUpdated, useTemplateRef, vModelText } from "vue"
 
 import InputStyled from "@/components/InputStyled.vue"
+import { useLock } from "@/progress"
 import { useValidation } from "@/validation"
 
 const props = withDefaults(
@@ -27,15 +28,18 @@ const props = withDefaults(
 
 const model = defineModel<string>({ default: "" })
 const errors = defineModel<ValidationError[]>("errors", { default: () => [] })
-const progress = defineModel<number>("progress", { default: 0 })
 const invalid = computed(() => errors.value.length > 0)
+
+// Data modification and controls.
+const lock = useLock()
+const inactive = computed(() => lock.value > 0 || props.readonly)
 
 const inputStyledRef = useTemplateRef<ComponentPublicInstance>("inputStyledRef")
 
 const { runValidation, validatedInput } = useValidation(
   model,
   errors,
-  progress,
+  lock,
   () => props.validator,
   () => inputStyledRef.value?.$el ?? null,
 )
@@ -74,9 +78,9 @@ onBeforeUnmount(() => {
     ref="inputStyledRef"
     v-model-text="model"
     as="textarea"
-    :inactive="progress > 0 || readonly"
+    :inactive="inactive"
     :invalid="invalid"
-    :readonly="progress > 0 || readonly"
+    :readonly="inactive"
     :aria-invalid="invalid || undefined"
     class="pd-textarea min-h-22 resize-none"
     @update:model-value="model = $event"

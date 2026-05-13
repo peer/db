@@ -7,18 +7,21 @@ its DOM attributes without flickering how the component looks.
 -->
 
 <script setup lang="ts" generic="T">
-withDefaults(
+import { useLocked } from "@/progress"
+
+const props = withDefaults(
   defineProps<{
-    progress?: number
     disabled?: boolean
   }>(),
   {
-    progress: 0,
     disabled: false,
   },
 )
 
 const model = defineModel<T>()
+
+const locked = useLocked()
+const inactive = () => locked.value || props.disabled
 
 // We want all fallthrough attributes to be passed to the input element.
 defineOptions({
@@ -33,12 +36,12 @@ defineOptions({
       v-model="model"
       v-tw-merge
       v-bind="$attrs"
-      :disabled="progress > 0 || disabled"
+      :disabled="inactive()"
       type="checkbox"
       class="pd-checkbox -mt-0.5 rounded-sm align-middle"
       :class="{
-        'cursor-not-allowed bg-gray-400 text-primary-300': progress > 0 || disabled,
-        'cursor-pointer text-primary-600 focus:ring-primary-500': progress === 0 && !disabled,
+        'cursor-not-allowed bg-gray-400 text-primary-300': inactive(),
+        'cursor-pointer text-primary-600 focus:ring-primary-500': !inactive(),
       }"
     />
   </div>

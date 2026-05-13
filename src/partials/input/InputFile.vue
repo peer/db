@@ -21,6 +21,7 @@ import Button from "@/components/Button.vue"
 import InputStyled from "@/components/InputStyled.vue"
 import { HighConfidence, LinkClaim } from "@/document"
 import ClaimValue from "@/partials/ClaimValue.vue"
+import { useLock } from "@/progress"
 import { uploadFile } from "@/upload"
 
 const model = defineModel<string>({ default: "" })
@@ -34,6 +35,9 @@ const router = useRouter()
 // progress bar or top-level progress UI.
 const progress = ref(0)
 const total = ref<number | undefined>(undefined)
+
+// Data modification and controls.
+const lock = useLock()
 
 const fileInputEl = useTemplateRef<HTMLInputElement>("fileInputEl")
 const isDragOver = ref(false)
@@ -65,9 +69,11 @@ async function onUpload(file: File) {
   if (progress.value !== 0) {
     throw new Error("upload already in progress")
   }
-  // Setting progress to 1 disables the button and shows the intermediate progress bar.
+  // Setting progress to 1 shows the intermediate progress bar.
   progress.value = 1
   total.value = undefined
+  // Lock the button via the local useLock boundary.
+  lock.value += 1
   try {
     const fileId = await uploadFile(router, file, abortController.signal, progress, total)
     if (abortController.signal.aborted) {
@@ -83,6 +89,7 @@ async function onUpload(file: File) {
   } finally {
     progress.value = 0
     total.value = undefined
+    lock.value -= 1
   }
 }
 

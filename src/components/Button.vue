@@ -1,9 +1,15 @@
 <script setup lang="ts">
 import ButtonStyled from "@/components/ButtonStyled.vue"
 import ProgressBar from "@/components/ProgressBar.vue"
+import { useLocked } from "@/progress"
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
+    // progress drives the visual ProgressBar inside the button only. It does not
+    // participate in disabling the button. Lock state comes from the surrounding
+    // useLock boundary via useLocked. Pass progress when you want to display
+    // in-button progress (e.g. submit button or file upload) and rely on
+    // an enclosing useBusy/useLock to lock the button during the same work.
     progress?: number
     total?: number | null
     disabled?: boolean
@@ -18,10 +24,13 @@ withDefaults(
     active: false,
   },
 )
+
+const locked = useLocked()
+const inactive = () => locked.value || props.disabled
 </script>
 
 <template>
-  <ButtonStyled as="button" :inactive="progress > 0 || disabled" :primary="primary" :active="active" :disabled="progress > 0 || disabled" class="pd-button">
+  <ButtonStyled as="button" :inactive="inactive()" :primary="primary" :active="active" :disabled="inactive()" class="pd-button">
     <slot />
     <ProgressBar :progress="progress" :total="total" class="absolute inset-x-0 bottom-0 rounded-b" />
   </ButtonStyled>

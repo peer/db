@@ -28,7 +28,7 @@ import InputTime from "@/partials/input/InputTime.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
-import { getParentProgress, localProgress } from "@/progress"
+import { pairCounters, useLock, useProgress } from "@/progress"
 import { useDocumentFields } from "@/useDocumentFields"
 import { useParentClasses } from "@/useParentClasses"
 import { delay, encodeQuery, makeAddClaimChange } from "@/utils"
@@ -55,9 +55,10 @@ const claimToTimePrecision = ref<TimePrecision>("y")
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
-const parentProgress = getParentProgress()
-const progress = localProgress(parentProgress)
-const editProgress = localProgress(parentProgress)
+// We use separate lock for data modification and controls.
+const lock = useLock()
+// And used together with progress for data loading.
+const busy = pairCounters(useProgress(), lock)
 
 const el = useTemplateRef<HTMLElement>("el")
 const displayLabelComponent = useTemplateRef<ComponentExposed<typeof DisplayLabel>>("displayLabelComponent")
@@ -111,7 +112,7 @@ const pollInterval = 1000
 
 // Resolve field definitions for the document's class(es).
 const docRef = toRef(() => doc.value ?? null)
-const { classDocs, instanceOfClassIds, initialized: classesInitialized } = useParentClasses(docRef, el, progress)
+const { classDocs, instanceOfClassIds, initialized: classesInitialized } = useParentClasses(docRef, el, busy)
 const { fieldsData: mergedFieldsData, classTabId } = useDocumentFields(classDocs, instanceOfClassIds)
 
 let running = false
@@ -273,7 +274,7 @@ async function onSave() {
   abortController.abort()
   abortController = new AbortController()
 
-  editProgress.value += 1
+  lock.value += 1
   try {
     await postJSON<DocumentEndEditResponse>(
       router.apiResolve({
@@ -284,7 +285,7 @@ async function onSave() {
       }).href,
       {},
       abortController.signal,
-      editProgress,
+      lock,
     )
     if (abortController.signal.aborted) {
       return
@@ -303,7 +304,7 @@ async function onSave() {
       if (abortController.signal.aborted) {
         return
       }
-      const { doc: status } = await getURLDirect<DocumentEditStatus>(editStatusURL, abortController.signal, editProgress)
+      const { doc: status } = await getURLDirect<DocumentEditStatus>(editStatusURL, abortController.signal, lock)
       if (abortController.signal.aborted) {
         return
       }
@@ -333,7 +334,7 @@ async function onSave() {
     // TODO: Show notification with error.
     console.error("DocumentEdit.onSave", err)
   } finally {
-    editProgress.value -= 1
+    lock.value -= 1
   }
 }
 
@@ -473,7 +474,7 @@ function canSave(): boolean {
       <template #end>
         <Button
           v-if="doc && (siteContext.features.editButtons || (classTabId && mergedFieldsData))"
-          :progress="editProgress"
+          :progress="lock"
           type="button"
           primary
           class="px-3.5"
@@ -512,14 +513,7 @@ function canSave(): boolean {
           <TabPanels as="template">
             <!-- Class-specific tab. -->
             <TabPanel v-if="classTabId && mergedFieldsData" :key="classTabId" tabindex="-1" class="outline-none">
-              <FieldsForm
-                v-model:invalid="fieldsFormInvalid"
-                :fields-data="mergedFieldsData"
-                :claims="doc.claims"
-                :base="doc.base"
-                :session="session"
-                :progress="editProgress"
-              />
+              <FieldsForm v-model:invalid="fieldsFormInvalid" :fields-data="mergedFieldsData" :claims="doc.claims" :base="doc.base" :session="session" />
             </TabPanel>
             <!-- "All properties" tab panel. -->
             <TabPanel v-if="siteContext.features.editButtons" tabindex="-1" class="outline-none">
@@ -683,7 +677,7 @@ function canSave(): boolean {
           </TabPanels>
         </TabGroup>
         <div class="mt-4 flex flex-row justify-end">
-          <Button id="documentedit-button-save" type="submit" primary :disabled="!canSave()" :progress="editProgress" @click.prevent="onSave">{{
+          <Button id="documentedit-button-save" type="submit" primary :disabled="!canSave()" :progress="lock" @click.prevent="onSave">{{
             t("common.buttons.save")
           }}</Button>
         </div>

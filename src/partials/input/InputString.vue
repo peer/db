@@ -14,7 +14,6 @@ withDefaults(
 
 const model = defineModel<string>({ default: "" })
 const errors = defineModel<ValidationError[]>("errors", { default: () => [] })
-const progress = defineModel<number>("progress", { default: 0 })
 
 // A string invalid if it is empty after trimming.
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -25,5 +24,5 @@ const validator: ValidatorFn<string> = async function (value) {
 </script>
 
 <template>
-  <InputText v-model="model" v-model:errors="errors" v-model:progress="progress" :readonly="readonly" :validator="validator" />
+  <InputText v-model="model" v-model:errors="errors" :readonly="readonly" :validator="validator" />
 </template>

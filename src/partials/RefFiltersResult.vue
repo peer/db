@@ -13,7 +13,7 @@ import CheckBox from "@/components/CheckBox.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
-import { useProgress } from "@/progress"
+import { useLocked, useProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, NONE, useRefFilterValues } from "@/search"
 import { equals, loadingWidth, useInitialLoad, useLimitResults } from "@/utils"
 
@@ -22,8 +22,9 @@ const props = defineProps<{
   searchTotal: number
   result: RefSearchResult
   state: RefFilterState
-  updateProgress: number
 }>()
+
+const locked = useLocked()
 
 const emit = defineEmits<{
   "update:state": [state: RefFilterState]
@@ -41,6 +42,7 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
+// Data loading only, no controls.
 const progress = useProgress()
 const {
   results,
@@ -115,11 +117,11 @@ const WithDocumentD = WithDocument<D>
       <template v-else>
         <li v-for="res in limitedResultsWithNone" :key="'id' in res ? res.id : NONE" class="contents">
           <template v-if="'id' in res && (res.count != searchTotal || state.includes(res.id))">
-            <CheckBox :id="'ref/' + result.id + '/' + res.id" v-model="checkboxState" :progress="updateProgress" :value="res.id" />
+            <CheckBox :id="'ref/' + result.id + '/' + res.id" v-model="checkboxState" :value="res.id" />
             <div class="flex items-baseline gap-x-1">
               <WithDocumentD :id="res.id" name="DocumentGet">
                 <template #default="{ doc, url }">
-                  <label :for="'ref/' + result.id + '/' + res.id" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'" :data-url="url"
+                  <label :for="'ref/' + result.id + '/' + res.id" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'" :data-url="url"
                     ><DisplayLabel :doc="doc"
                   /></label>
                 </template>
@@ -132,9 +134,7 @@ const WithDocumentD = WithDocument<D>
                   ></div>
                 </template>
               </WithDocumentD>
-              <label :for="'ref/' + result.id + '/' + res.id" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-                >({{ res.count }})</label
-              >
+              <label :for="'ref/' + result.id + '/' + res.id" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ res.count }})</label>
               <!--
                 tabindex="-1" keeps the open-link icon out of the keyboard tab
                 order so Tab jumps between filters without stopping
@@ -173,12 +173,12 @@ const WithDocumentD = WithDocument<D>
             </div>
           </template>
           <template v-else-if="!('id' in res)">
-            <CheckBox :id="'ref/' + result.id + '/none'" v-model="checkboxState" :progress="updateProgress" value="__NONE__" />
+            <CheckBox :id="'ref/' + result.id + '/none'" v-model="checkboxState" value="__NONE__" />
             <div class="flex items-baseline gap-x-1">
-              <label :for="'ref/' + result.id + '/none'" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+              <label :for="'ref/' + result.id + '/none'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
                 ><i>{{ t("common.values.none") }}</i></label
               >
-              <label :for="'ref/' + result.id + '/none'" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ res.count }})</label>
+              <label :for="'ref/' + result.id + '/none'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ res.count }})</label>
             </div>
           </template>
         </li>

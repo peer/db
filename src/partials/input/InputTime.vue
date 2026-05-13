@@ -371,21 +371,23 @@ import { useI18n } from "vue-i18n"
 
 import InputStyled from "@/components/InputStyled.vue"
 import InputText from "@/components/InputText.vue"
+import { useLocked } from "@/progress"
 
 const DEBOUNCE_MS = 2000
 
 const props = withDefaults(
   defineProps<{
-    progress?: number
     readonly?: boolean
     maxPrecision?: "G" | "100M" | "10M" | "M" | "100k" | "10k" | "k" | "100y" | "10y" | "y"
   }>(),
   {
-    progress: 0,
     readonly: false,
     maxPrecision: "G",
   },
 )
+
+const locked = useLocked()
+const inactive = computed(() => locked.value || props.readonly)
 
 const model = defineModel<string>({ default: "" })
 const precision = defineModel<TimePrecision>("precision", { default: "y" })
@@ -778,7 +780,6 @@ watch(
         autocapitalize="none"
         :readonly="readonly"
         :errors="errors"
-        :progress="progress"
         @focus="onFocus"
         @blur="onBlur"
         @keydown="onKeydown"
@@ -786,7 +787,7 @@ watch(
       />
     </div>
 
-    <Listbox v-model="timePrecision" :disabled="progress > 0 || readonly" as="div" class="flex w-48 flex-col" @update:model-value="onPrecisionSelected">
+    <Listbox v-model="timePrecision" :disabled="inactive" as="div" class="flex w-48 flex-col" @update:model-value="onPrecisionSelected">
       <ListboxLabel class="mb-1"
         ><slot name="precision-label">{{ t("common.labels.precision") }}</slot></ListboxLabel
       >
@@ -796,7 +797,7 @@ watch(
           We add additional padding on the right (pr-10) on top of InputStyled's
           default px-3 to make space for the icon.
         -->
-        <InputStyled :as="ListboxButton" :inactive="progress > 0 || readonly" class="relative w-full pr-10">
+        <InputStyled :as="ListboxButton" :inactive="inactive" class="relative w-full pr-10">
           <div class="truncate" :title="precisionLabel(timePrecision)">{{ precisionLabel(timePrecision) }}</div>
 
           <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">

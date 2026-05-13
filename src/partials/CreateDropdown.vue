@@ -12,13 +12,14 @@ import Button from "@/components/Button.vue"
 import { CLASS, INSTANCE_OF } from "@/core"
 import { hasFields, isAbstractClass } from "@/fields"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
-import { useProgress } from "@/progress"
+import { useLock } from "@/progress"
 import { encodeQuery, makeAddClaimChange } from "@/utils"
 
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
-const progress = useProgress()
+// Data modification and controls.
+const lock = useLock()
 
 const abortController = new AbortController()
 
@@ -98,10 +99,10 @@ async function onCreate(classId: string) {
   }
 
   showDropdown.value = false
-  progress.value += 1
+  lock.value += 1
   try {
     // Create a new document.
-    const createResponse = await postJSON<DocumentCreateResponse>(router.apiResolve({ name: "DocumentCreate" }).href, {}, abortController.signal, progress)
+    const createResponse = await postJSON<DocumentCreateResponse>(router.apiResolve({ name: "DocumentCreate" }).href, {}, abortController.signal, lock)
     if (abortController.signal.aborted) {
       return
     }
@@ -116,7 +117,7 @@ async function onCreate(classId: string) {
       }).href,
       {},
       abortController.signal,
-      progress,
+      lock,
     )
     if (abortController.signal.aborted) {
       return
@@ -159,7 +160,7 @@ async function onCreate(classId: string) {
     }
     console.error("CreateDropdown.onCreate", err)
   } finally {
-    progress.value -= 1
+    lock.value -= 1
   }
 }
 
@@ -181,7 +182,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div v-if="initial || loading || (loaded && classesWithFields.length > 0)" class="pd-create-dropdown relative shrink-0 self-center">
-    <Button :progress="progress" type="button" primary class="px-3.5" @click.prevent="onToggle">
+    <Button :progress="lock" type="button" primary class="px-3.5" @click.prevent="onToggle">
       <PlusIcon class="size-5 sm:hidden" :alt="t('common.buttons.create')" />
       <span class="hidden sm:inline">{{ t("common.buttons.create") }}</span>
       <svg class="ml-1 hidden size-4 sm:inline" viewBox="0 0 20 20" fill="currentColor">

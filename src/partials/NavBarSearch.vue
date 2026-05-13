@@ -10,17 +10,15 @@ import { useRouter } from "vue-router"
 
 import Button from "@/components/Button.vue"
 import InputText from "@/components/InputText.vue"
-import { useProgress } from "@/progress"
+import { useBusy } from "@/progress"
 import { createSearchSession } from "@/search"
 
 const props = withDefaults(
   defineProps<{
     searchSession?: DeepReadonly<ClientSearchSession> | ClientSearchSession | null
-    updateSearchSessionProgress?: number
   }>(),
   {
     searchSession: undefined,
-    updateSearchSessionProgress: 0,
   },
 )
 
@@ -31,7 +29,8 @@ const $emit = defineEmits<{
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
-const progress = useProgress()
+// Data loading and controls for data loading.
+const busy = useBusy()
 
 const abortController = new AbortController()
 
@@ -66,7 +65,7 @@ async function onSubmit() {
     return
   }
 
-  progress.value += 1
+  busy.value += 1
   try {
     await createSearchSession(
       router,
@@ -74,7 +73,7 @@ async function onSubmit() {
         query: searchQuery.value,
       },
       abortController.signal,
-      progress,
+      busy,
       false,
     )
   } catch (err) {
@@ -84,15 +83,15 @@ async function onSubmit() {
     // TODO: Show notification with error.
     console.error("NavBarSearch.onSubmit", err)
   } finally {
-    progress.value -= 1
+    busy.value -= 1
   }
 }
 </script>
 
 <template>
   <form id="navbarsearch-teleport-end" class="pd-navbar-search flex grow gap-x-1 sm:gap-x-4" novalidate @submit.prevent="onSubmit()">
-    <InputText id="search-input-text" v-model="searchQuery" :progress="progress + updateSearchSessionProgress" class="pd-searchinput max-w-xl grow" />
-    <Button :progress="progress + updateSearchSessionProgress" type="submit" primary class="px-3.5">
+    <InputText id="search-input-text" v-model="searchQuery" class="pd-searchinput max-w-xl grow" />
+    <Button type="submit" primary class="px-3.5">
       <MagnifyingGlassIcon class="size-5 sm:hidden" :alt="t('common.buttons.search')" />
       <span class="hidden sm:inline">{{ t("common.buttons.search") }}</span>
     </Button>

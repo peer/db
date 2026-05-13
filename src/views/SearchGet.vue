@@ -20,6 +20,7 @@ import { useRouter } from "vue-router"
 
 import { postJSON } from "@/api"
 import Button from "@/components/Button.vue"
+import WithLock from "@/components/WithLock.vue"
 import siteContext from "@/context"
 import { useDownload } from "@/download"
 import DownloadOverlay from "@/partials/DownloadOverlay.vue"
@@ -28,7 +29,7 @@ import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import SearchResultsFeed from "@/partials/SearchResultsFeed.vue"
 import SearchResultsTable from "@/partials/SearchResultsTable.vue"
-import { getParentProgress, localProgress } from "@/progress"
+import { getParentLock, lockScope, useBusy } from "@/progress"
 import { updateSearchSession, useSearch, useSearchSession } from "@/search"
 import { uploadFile } from "@/upload"
 import { clone, redirectServerSide } from "@/utils"
@@ -40,34 +41,41 @@ const props = defineProps<{
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
-const parentProgress = getParentProgress()
-const createProgress = localProgress(parentProgress)
-const uploadProgress = localProgress(parentProgress)
-const updateSearchSessionProgress = localProgress(parentProgress)
+// Data loading and controls for data loading.
+const busy = useBusy()
+
+// Independent sub-scopes for the Create and Upload buttons.
+// getParentLock here reads from the ancestor's provides (above SearchGet).
+const createLock = lockScope(getParentLock())
+const uploadLock = lockScope(getParentLock())
+function getCreateLock() {
+  return createLock
+}
+function getUploadLock() {
+  return uploadLock
+}
 
 const abortController = new AbortController()
-
-const upload = useTemplateRef<HTMLInputElement>("upload")
 
 onBeforeUnmount(() => {
   // Aborting the controller also tears down any active download worker via useDownload's abort listener.
   abortController.abort()
 })
 
+const uploadEl = useTemplateRef<HTMLInputElement>("uploadEl")
 const searchEl = useTemplateRef<HTMLElement>("searchEl")
 
 const searchSessionVersion = ref(0)
 
-const searchProgress = localProgress(parentProgress)
 const {
   searchSession,
   error: searchSessionError,
   url: searchURL,
 } = useSearchSession(
   toRef(() => ({ id: props.id, version: searchSessionVersion.value })),
-  searchProgress,
+  busy,
 )
-const { results: searchResults, total: searchTotal, moreThanTotal: searchMoreThanTotal, error: searchResultsError } = useSearch(searchSession, searchEl, searchProgress)
+const { results: searchResults, total: searchTotal, moreThanTotal: searchMoreThanTotal, error: searchResultsError } = useSearch(searchSession, searchEl, busy)
 
 const {
   downloadingPhase,
@@ -97,9 +105,9 @@ async function onSearchSessionUpdate(updatedSearchSession: DeepReadonly<ClientSe
     return
   }
 
-  updateSearchSessionProgress.value += 1
+  busy.value += 1
   try {
-    const updatedSearchSessionRef = await updateSearchSession(router, updatedSearchSession, abortController.signal, updateSearchSessionProgress)
+    const updatedSearchSessionRef = await updateSearchSession(router, updatedSearchSession, abortController.signal, busy)
     if (abortController.signal.aborted || !updatedSearchSessionRef) {
       return
     }
@@ -113,7 +121,7 @@ async function onSearchSessionUpdate(updatedSearchSession: DeepReadonly<ClientSe
     // TODO: Show notification with error.
     console.error("SearchGet.onSearchSessionUpdate", err)
   } finally {
-    updateSearchSessionProgress.value -= 1
+    busy.value -= 1
   }
 }
 
@@ -156,7 +164,7 @@ async function onCreate() {
     return
   }
 
-  createProgress.value += 1
+  createLock.value += 1
   try {
     const createResponse = await postJSON<DocumentCreateResponse>(
       router.apiResolve({
@@ -164,7 +172,7 @@ async function onCreate() {
       }).href,
       {},
       abortController.signal,
-      createProgress,
+      createLock,
     )
     if (abortController.signal.aborted) {
       return
@@ -178,7 +186,7 @@ async function onCreate() {
       }).href,
       {},
       abortController.signal,
-      createProgress,
+      createLock,
     )
     if (abortController.signal.aborted) {
       return
@@ -197,7 +205,7 @@ async function onCreate() {
     // TODO: Show notification with error.
     console.error("SearchResults.onCreate", err)
   } finally {
-    createProgress.value -= 1
+    createLock.value -= 1
   }
 }
 
@@ -206,7 +214,7 @@ function onUpload() {
     return
   }
 
-  upload.value?.click()
+  uploadEl.value?.click()
 }
 
 async function onChange() {
@@ -214,15 +222,16 @@ async function onChange() {
     return
   }
 
-  for (const file of upload.value?.files || []) {
-    uploadProgress.value += 1
+  for (const file of uploadEl.value?.files || []) {
+    uploadLock.value += 1
     try {
-      const fileId = await uploadFile(router, file, abortController.signal, uploadProgress, null)
+      const fileId = await uploadFile(router, file, abortController.signal, uploadLock, null)
       if (abortController.signal.aborted) {
         return
       }
 
-      redirectServerSide(router.resolve({ name: "StorageGet", params: { id: fileId } }).href, false, parentProgress)
+      // We pass busy so that redirectServerSide uses it to locks all controls.
+      redirectServerSide(router.resolve({ name: "StorageGet", params: { id: fileId } }).href, false, busy)
     } catch (err) {
       if (abortController.signal.aborted) {
         return
@@ -230,7 +239,7 @@ async function onChange() {
       // TODO: Show notification with error.
       console.error("SearchResults.onChange", err)
     } finally {
-      uploadProgress.value -= 1
+      uploadLock.value -= 1
     }
 
     // TODO: Support uploading multiple files.
@@ -290,19 +299,23 @@ async function onDownloadFiles() {
   <Teleport to="header">
     <NavBar>
       <template #start>
-        <NavBarSearch :search-session="searchSession" :update-search-session-progress="updateSearchSessionProgress" @query-change="onQueryChange" />
+        <NavBarSearch :search-session="searchSession" @query-change="onQueryChange" />
       </template>
       <template #end>
         <template v-if="siteContext.features.editButtons">
-          <Button :progress="createProgress" type="button" primary class="px-3.5" @click.prevent="onCreate">
-            <PlusIcon class="size-5 sm:hidden" :alt="t('common.buttons.create')" />
-            <span class="hidden sm:inline">{{ t("common.buttons.create") }}</span>
-          </Button>
-          <input ref="upload" type="file" class="hidden" @change="onChange" />
-          <Button :progress="uploadProgress" type="button" primary class="px-3.5" @click.prevent="onUpload">
-            <ArrowUpTrayIcon class="size-5 sm:hidden" :alt="t('common.buttons.upload')" />
-            <span class="hidden sm:inline">{{ t("common.buttons.upload") }}</span>
-          </Button>
+          <WithLock v-slot="{ lock }" :lock="getCreateLock">
+            <Button :progress="lock" type="button" primary class="px-3.5" @click.prevent="onCreate">
+              <PlusIcon class="size-5 sm:hidden" :alt="t('common.buttons.create')" />
+              <span class="hidden sm:inline">{{ t("common.buttons.create") }}</span>
+            </Button>
+          </WithLock>
+          <WithLock v-slot="{ lock }" :lock="getUploadLock">
+            <input ref="uploadEl" type="file" class="hidden" @change="onChange" />
+            <Button :progress="lock" type="button" primary class="px-3.5" @click.prevent="onUpload">
+              <ArrowUpTrayIcon class="size-5 sm:hidden" :alt="t('common.buttons.upload')" />
+              <span class="hidden sm:inline">{{ t("common.buttons.upload") }}</span>
+            </Button>
+          </WithLock>
         </template>
       </template>
     </NavBar>
@@ -320,9 +333,7 @@ async function onDownloadFiles() {
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
       :search-session="searchSession"
-      :search-progress="searchProgress"
       :filters-state="filtersState"
-      :update-search-session-progress="updateSearchSessionProgress"
       :is-downloading="downloadingPhase !== null"
       @filter-change="onFilterChange"
       @view-change="onViewChange"
@@ -336,9 +347,7 @@ async function onDownloadFiles() {
       :search-total="searchTotal"
       :search-more-than-total="searchMoreThanTotal"
       :search-session="searchSession"
-      :search-progress="searchProgress"
       :filters-state="filtersState"
-      :update-search-session-progress="updateSearchSessionProgress"
       :is-downloading="downloadingPhase !== null"
       @filter-change="onFilterChange"
       @view-change="onViewChange"

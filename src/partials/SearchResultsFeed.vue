@@ -12,7 +12,7 @@ import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResult from "@/partials/SearchResult.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
-import { useProgress } from "@/progress"
+import { useBusy } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search"
 import { useLimitResults, useOnScrollOrResize } from "@/utils"
 import { useVisibilityTracking } from "@/visibility"
@@ -23,8 +23,6 @@ const props = defineProps<{
   searchTotal: number | null
   searchMoreThanTotal: boolean
   searchSession: DeepReadonly<ClientSearchSession>
-  searchProgress: number
-  updateSearchSessionProgress: number
   isDownloading: boolean
 
   // Filter props.
@@ -56,7 +54,8 @@ const {
 const filtersEl = useTemplateRef<HTMLElement>("filtersEl")
 const filtersEnabled = ref(false)
 
-const filtersProgress = useProgress()
+// Data loading and controls for data loading.
+const busy = useBusy()
 const {
   results: filtersResults,
   total: filtersTotal,
@@ -65,7 +64,7 @@ const {
 } = useFilters(
   toRef(() => props.searchSession),
   filtersEl,
-  filtersProgress,
+  busy,
 )
 
 const {
@@ -176,7 +175,6 @@ function onFilters() {
           v-if="searchHasMore"
           id="searchresultsfeed-button-loadmore"
           ref="searchMoreButton"
-          :progress="searchProgress"
           primary
           class="w-1/4 min-w-fit self-center"
           @click.prevent="searchLoadMore"
@@ -223,14 +221,13 @@ function onFilters() {
             :result="filter"
             :search-session="searchSession"
             :search-total="searchTotal"
-            :update-search-session-progress="updateSearchSessionProgress"
             :filters-state="filtersState"
             class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
             @filter-change="(c) => $emit('filterChange', c)"
           />
         </template>
 
-        <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" primary class="w-1/2 min-w-fit self-center" @click.prevent="filtersLoadMore">{{
+        <Button v-if="filtersHasMore" ref="filtersMoreButton" primary class="w-1/2 min-w-fit self-center" @click.prevent="filtersLoadMore">{{
           t("partials.SearchResultsFeed.moreFilters")
         }}</Button>
 

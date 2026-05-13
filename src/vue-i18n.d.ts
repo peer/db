@@ -57,6 +57,10 @@ declare module "vue-i18n" {
         none: string
         unknown: string
       }
+      validation: {
+        required: string
+        invalid: string
+      }
     }
     partials: {
       input: {

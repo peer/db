@@ -11,7 +11,7 @@ import { useI18n } from "vue-i18n"
 import CheckBox from "@/components/CheckBox.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import TimeDisplay from "@/partials/TimeDisplay.vue"
-import { useProgress } from "@/progress"
+import { useLocked, useProgress } from "@/progress"
 import { NONE, useTimeHistogramValues } from "@/search"
 import { equals, loadingShortHeights, timePrecisionForRange, timePrecisionForValue, timeStringFromFloat64, useInitialLoad } from "@/utils"
 
@@ -20,8 +20,9 @@ const props = defineProps<{
   searchTotal: number
   result: TimeSearchResult
   state: TimeFilterState
-  updateProgress: number
 }>()
+
+const locked = useLocked()
 
 const emit = defineEmits<{
   "update:state": [state: TimeFilterState]
@@ -39,6 +40,7 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
+// Data loading only, no controls.
 const progress = useProgress()
 const {
   results,
@@ -194,7 +196,7 @@ watchEffect(() => {
     return
   }
 
-  if (props.updateProgress > 0) {
+  if (locked.value) {
     slider.disable()
   } else {
     slider.enable()
@@ -256,14 +258,12 @@ onBeforeUnmount(() => {
         </div>
       </li>
       <li v-if="result.count < searchTotal" class="contents">
-        <CheckBox :id="'time/' + result.id + '/none'" v-model="noneState" :progress="updateProgress" />
+        <CheckBox :id="'time/' + result.id + '/none'" v-model="noneState" />
         <div class="flex items-baseline gap-x-1">
-          <label :for="'time/' + result.id + '/none'" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label :for="'time/' + result.id + '/none'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             ><i>{{ t("common.values.none") }}</i></label
           >
-          <label :for="'time/' + result.id + '/none'" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-            >({{ searchTotal - result.count }})</label
-          >
+          <label :for="'time/' + result.id + '/none'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ searchTotal - result.count }})</label>
         </div>
       </li>
     </ul>

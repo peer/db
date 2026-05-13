@@ -35,6 +35,7 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
+// Data loading only, no controls.
 const progress = useProgress()
 
 const WithDocumentD = WithDocument<D>

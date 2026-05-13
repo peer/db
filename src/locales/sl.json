@@ -45,6 +45,10 @@
       "noName": "brez imena",
       "none": "brez",
       "unknown": "neznana"
+    },
+    "validation": {
+      "required": "Obvezna vrednost.",
+      "invalid": "Neveljavna vrednost."
     }
   },
   "partials": {

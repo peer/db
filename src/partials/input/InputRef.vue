@@ -44,6 +44,7 @@ import InputStyled from "@/components/InputStyled.vue"
 import ProgressBar from "@/components/ProgressBar.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
+import { useLocked } from "@/progress"
 import { anySignal, loadingWidth } from "@/utils"
 
 // Wildcard to see if a string ends with unicode letter or number.
@@ -51,11 +52,9 @@ const WILDCARD_SEARCH_REGEX = /[\p{L}\p{N}]$/u
 
 const props = withDefaults(
   defineProps<{
-    progress?: number
     readonly?: boolean
   }>(),
   {
-    progress: 0,
     readonly: false,
   },
 )
@@ -87,11 +86,12 @@ const selectedDocument = computed<Result | null>({
   },
 })
 const query = ref("")
-// Treats parent-supplied progress like a soft (temporary) readonly: input remains
-// focusable and selectable but cannot be edited or cleared while it's set.
-// The Clear button visually appears but is disabled, distinguishing this
-// state from the harder readonly prop where Clear is hidden entirely.
-const isInProgress = computed(() => props.progress > 0)
+// Treats an active enclosing useLock like a soft (temporary) readonly:
+// input remains focusable and selectable but cannot be edited or cleared
+// while a lock is active above this component. The Clear button visually
+// appears but is disabled, distinguishing this state from the harder
+// readonly prop where Clear is hidden entirely.
+const locked = useLocked()
 const searchResults = ref<Result[]>([])
 
 // Toggles between the two "selected" visual states: false shows the chip,
@@ -164,7 +164,7 @@ async function enterEditMode() {
   // focusable for keyboard navigation and text selection. That means
   // click/focus events still fire even when conceptually "disabled", so
   // the gate has to live here rather than in markup.
-  if (props.readonly || isInProgress.value) return
+  if (props.readonly || locked.value) return
   if (editMode.value) return
   editMode.value = true
   // Wait for the ComboboxInput to render, then focus its underlying input.
@@ -289,8 +289,8 @@ const WithPeerDBDocument = WithDocument<D>
               as="div"
               role="textbox"
               contenteditable="true"
-              :inactive="readonly || isInProgress"
-              :aria-readonly="readonly || isInProgress || undefined"
+              :inactive="readonly || locked"
+              :aria-readonly="readonly || locked || undefined"
               class="w-full truncate"
               :class="readonly ? 'pr-9' : 'pr-29'"
               @click="enterEditMode"
@@ -320,8 +320,8 @@ const WithPeerDBDocument = WithDocument<D>
           v-else
           ref="comboboxInputRef"
           :as="ComboboxInput"
-          :inactive="readonly || isInProgress"
-          :readonly="readonly || isInProgress"
+          :inactive="readonly || locked"
+          :readonly="readonly || locked"
           v-bind="$attrs"
           class="w-full"
           :class="{
@@ -354,13 +354,13 @@ const WithPeerDBDocument = WithDocument<D>
             <RouterLink v-if="!editMode" :to="{ name: 'DocumentGet', params: { id: selectedDocument.id } }" class="link">
               <ArrowTopRightOnSquareIcon class="size-5" aria-hidden="true" />
             </RouterLink>
-            <Button v-if="!readonly" type="button" :disabled="isInProgress" class="px-2.5 py-1" @click.prevent="clearSelection">{{ t("common.buttons.clear") }}</Button>
+            <Button v-if="!readonly" type="button" class="px-2.5 py-1" @click.prevent="clearSelection">{{ t("common.buttons.clear") }}</Button>
           </template>
           <ComboboxButton v-else class="inline-flex items-center">
             <ChevronUpDownIcon
               class="size-5 text-gray-400"
               :class="{
-                'cursor-not-allowed': readonly || isInProgress,
+                'cursor-not-allowed': readonly || locked,
               }"
               aria-hidden="true"
             />
@@ -368,10 +368,9 @@ const WithPeerDBDocument = WithDocument<D>
         </div>
 
         <!--
-          Indeterminate progress bar bound only to searchProgress, not to
-          props.progress. Parent-level progress has its own UI in the parent;
-          this bar exists solely to indicate that the inline search is in
-          flight.
+          Indeterminate progress bar bound only to searchProgress.
+          Parent-level loading has its own UI in the parent; this bar exists
+          solely to indicate that the inline search is in flight.
         -->
         <ProgressBar :progress="searchProgress" class="absolute inset-x-0 bottom-0 rounded-b" />
 
@@ -394,7 +393,7 @@ const WithPeerDBDocument = WithDocument<D>
           the "below the input" placement.
         -->
         <ComboboxOptions
-          v-if="open && !isInProgress && !readonly"
+          v-if="open && !locked && !readonly"
           static
           class="absolute top-full z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none"
         >
