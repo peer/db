@@ -151,9 +151,10 @@ export function useValidation<T>(
     if (entryCovers(lastValidated, initialValue, validator, eager)) {
       return null
     }
-    // Already running the validator for this exact (value, validator, mode).
+    // Already running the validator for this exact (value, validator, mode): join the in-flight call.
     if (entryCovers(inFlight, initialValue, validator, eager)) {
-      return null
+      // The non-null assertion is safe: entryCovers returns false when entry is null.
+      return inFlight!.promise
     }
 
     validateAbortController?.abort()
@@ -248,16 +249,12 @@ export function useValidation<T>(
         return errors.value
       }
 
-      let waitFor: Promise<void> | null
-      if (entryCovers(inFlight, value, validator, false)) {
-        waitFor = inFlight!.promise
-      } else {
-        waitFor = internalValidation({ signal: additionalSignal })
-        if (!waitFor) {
-          // runValidation declined to run (state shifted between our check
-          // and its check, or validator disappeared); loop to re-evaluate.
-          continue
-        }
+      const waitFor = internalValidation({ signal: additionalSignal })
+      if (!waitFor) {
+        // internalValidation declined: lastValidated already covers the
+        // request (state shifted between our cache check above and its own),
+        // or the validator disappeared. Loop to re-evaluate.
+        continue
       }
 
       try {
