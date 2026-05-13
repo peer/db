@@ -333,7 +333,14 @@ export type ValidateFn = (signal?: AbortSignal) => Promise<ValidationError[]>
 // A user-supplied rule plugged into an input via its :validator prop. Same
 // shape as ValidateFn but receives the value directly instead of reading it
 // off the input's model.
-export type ValidatorFn<T> = (value: T, signal?: AbortSignal) => Promise<ValidationError[]>
+//
+// options.eager is true on re-validation triggered by the model watcher
+// (e.g. when the validator is being called during typing) and false on
+// validateAll (and underlying validate), but can be overridden when calling
+// runValidation directly. Validators with side effects on the model (e.g.
+// trimming whitespace) should gate those effects on !options.eager so the
+// user is not fighting the input while typing.
+export type ValidatorFn<T> = (value: T, options: { signal: AbortSignal; eager: boolean }) => Promise<ValidationError[]>
 
 // What an input registers with a parent so the parent can validate it and
 // resolve focus targets. el returns the input's default focus target, used
