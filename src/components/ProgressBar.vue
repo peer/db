@@ -22,7 +22,7 @@ const percent = computed(() => {
   return Math.min(100, (props.progress / props.total) * 100)
 })
 
-// Skip the width transition when the determinate bar resets to 0% (e.g.,
+// Skip the width transition when the determinate bar resets to 0% (e.g.
 // between phases). Without this, the bar visibly animates back to the
 // start; with it, the reset snaps back.
 const skipTransition = ref(false)

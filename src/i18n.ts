@@ -22,7 +22,7 @@ async function getInitialLocale(): Promise<string> {
 
   // Then check browser languages.
   for (const browserLang of navigator.languages) {
-    // Try exact match first, then language prefix (e.g., "en-US" -> "en").
+    // Try exact match first, then language prefix (e.g. "en-US" -> "en").
     if (enabledLanguages.includes(browserLang)) {
       return browserLang
     }
