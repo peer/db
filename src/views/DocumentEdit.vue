@@ -42,9 +42,9 @@ const props = defineProps<{
   session: string
 }>()
 
-type AddClaimType = "id" | "string" | "html" | "amount" | "amountInterval" | "time" | "timeInterval" | "link" | "file" | "ref" | "has" | "none" | "unknown"
-const addClaimTypes: AddClaimType[] = ["id", "string", "html", "amount", "amountInterval", "time", "timeInterval", "link", "file", "ref", "has", "none", "unknown"]
-const claimType = ref<AddClaimType>("id")
+type ClaimType = "id" | "string" | "html" | "amount" | "amountInterval" | "time" | "timeInterval" | "link" | "file" | "ref" | "has" | "none" | "unknown"
+const claimTypes: ClaimType[] = ["id", "string", "html", "amount", "amountInterval", "time", "timeInterval", "link", "file", "ref", "has", "none", "unknown"]
+const claimType = ref<ClaimType>("id")
 const claimProp = ref("")
 const claimValue = ref("")
 const claimAmountPrecision = ref("")
@@ -71,7 +71,7 @@ const saveBusy = localCounter(lock)
 
 const el = useTemplateRef<HTMLElement>("el")
 const displayLabelComponent = useTemplateRef<ComponentExposed<typeof DisplayLabel>>("displayLabelComponent")
-const addClaimFormRef = useTemplateRef<HTMLFormElement>("addClaimFormRef")
+const claimFormRef = useTemplateRef<HTMLFormElement>("claimFormRef")
 
 const { resetAll } = useValidationRegistry()
 
@@ -460,13 +460,13 @@ async function onSubmit() {
     }
     // Dispatches the reset event, which runs onReset (resetAll) and clears
     // any native form controls so the form is ready for the next claim.
-    addClaimFormRef.value?.reset()
+    claimFormRef.value?.reset()
   } catch (err) {
     if (abortController.signal.aborted) {
       return
     }
     // TODO: Show notification with error.
-    console.error("DocumentEdit.onAddClaim", err)
+    console.error("DocumentEdit.onSubmit", err)
   }
 }
 
@@ -517,12 +517,12 @@ async function onRemoveClaim(id: string) {
   }
 }
 
-function onChangeAddClaimTab(index: number) {
+function onChangeClaimTab(index: number) {
   if (abortController.signal.aborted) {
     return
   }
 
-  claimType.value = addClaimTypes[index]
+  claimType.value = claimTypes[index]
 }
 
 function canSave(): boolean {
@@ -581,9 +581,9 @@ function canSave(): boolean {
                   <PropertiesRows :claims="doc.claims" editable @edit-claim="onEditClaim" @remove-claim="onRemoveClaim" />
                 </tbody>
               </table>
-              <form ref="addClaimFormRef" @submit.prevent="onSubmit" @reset="onReset">
+              <form ref="claimFormRef" @submit.prevent="onSubmit" @reset="onReset">
                 <h2 class="mt-4 text-xl font-bold drop-shadow-xs">{{ t("views.DocumentEdit.addClaim") }}</h2>
-                <TabGroup @change="onChangeAddClaimTab">
+                <TabGroup @change="onChangeClaimTab">
                   <TabList class="mt-4 flex border-collapse flex-row border border-gray-200 bg-slate-100">
                     <Tab
                       class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
