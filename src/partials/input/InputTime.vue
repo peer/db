@@ -372,6 +372,7 @@ import { useI18n } from "vue-i18n"
 import InputStyled from "@/components/InputStyled.vue"
 import InputText from "@/components/InputText.vue"
 import { useLocked } from "@/progress"
+import { equals } from "@/utils"
 import { useRegisterForValidation, useValidationRegistry } from "@/validation"
 
 const DEBOUNCE_MS = 2000
@@ -465,9 +466,22 @@ const displayValue = ref(model.value)
 // calling our el(), which directly points at the inner InputText's
 // element via inputId, so .focus() lands on the right node in one hop.
 let forwardInteraction: (() => void) | null = null
-const { validateAll, resetAll } = useValidationRegistry(() => {
+const {
+  validateAll,
+  resetAll,
+  anyDirty: anyChildDirty,
+  snapshotBaselines,
+} = useValidationRegistry(() => {
   forwardInteraction?.()
 })
+
+// Baselines for InputTime's own (non-sub-input) state. The inner InputText
+// has its own baseline via the sub-registry; we additionally track the
+// canonical model and the chosen precision because the canonical model
+// updates lag the InputText during typing (debounced), and precision is
+// driven by the inlined Listbox, not a sub-input.
+const modelBaselineRef = ref(model.value)
+const precisionBaselineRef = ref(precision.value)
 
 const { onInteraction: notifyOuter } = useRegisterForValidation({
   validate: async (signal) => {
@@ -483,6 +497,12 @@ const { onInteraction: notifyOuter } = useRegisterForValidation({
     isEditing.value = false
   },
   el: () => document.getElementById(inputId),
+  isDirty: computed(() => !equals(model.value, modelBaselineRef.value) || !equals(precision.value, precisionBaselineRef.value) || anyChildDirty.value),
+  setBaseline: () => {
+    modelBaselineRef.value = model.value
+    precisionBaselineRef.value = precision.value
+    snapshotBaselines()
+  },
 })
 forwardInteraction = notifyOuter
 

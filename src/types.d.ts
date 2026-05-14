@@ -359,4 +359,11 @@ export type ValidatedInput = {
   validate: ValidateFn
   reset: () => void
   el: () => HTMLElement | null
+  // Reactive flag: true when the input's current value differs from its
+  // recorded baseline.
+  isDirty: Readonly<Ref<boolean>>
+  // Snapshots the input's current value as the baseline against which
+  // isDirty is compared. Called when a inputs controls are shown or when
+  // the are reset so subsequent edits show up as dirty.
+  setBaseline: () => void
 }

@@ -140,7 +140,7 @@ const el = useTemplateRef<HTMLElement>("el")
 const displayLabelComponent = useTemplateRef<ComponentExposed<typeof DisplayLabel>>("displayLabelComponent")
 const claimFormRef = useTemplateRef<HTMLFormElement>("claimFormRef")
 
-const { resetAll, focusFirst } = useValidationRegistry(() => {
+const { resetAll, focusFirst, anyDirty, snapshotBaselines } = useValidationRegistry(() => {
   // Any registered-input interaction clears stale form-level errors so the
   // user is not staring at an error message after they have moved on.
   sessionError.value = ""
@@ -324,6 +324,8 @@ async function onSave() {
   if (abortController.signal.aborted) {
     return
   }
+
+  // TODO: Do validation of fields form.
 
   sessionError.value = ""
 
@@ -522,6 +524,8 @@ async function onSubmit() {
     return
   }
 
+  // TODO: Do validation.
+
   try {
     const change = editingClaimId.value
       ? new SetClaimChange({ id: editingClaimId.value, patch: makePatch() })
@@ -561,6 +565,9 @@ function onReset() {
   claimFormError.value = ""
   editingClaimId.value = null
   lockedClaimType.value = null
+  // Re-baseline so the now-empty inputs are not considered dirty (which
+  // would keep the submit button enabled after a Cancel from edit mode).
+  snapshotBaselines()
 }
 
 async function onEditClaim(id: string) {
@@ -659,6 +666,9 @@ async function onEditClaim(id: string) {
   // to the first focusable one so the user can start editing immediately.
   await nextTick()
   focusFirst()
+  // Record the populated values as the baseline so the form is not dirty
+  // until the user actually changes something.
+  snapshotBaselines()
 }
 
 async function onRemoveClaim(id: string) {
@@ -703,7 +713,9 @@ function onChangeClaimTab(index: number) {
 
 function canSave(): boolean {
   // Save commits the edit session's changes - nothing to commit, nothing to save.
-  return !fieldsFormInvalid.value && committedChange.value > 0
+  // We do enable button even when inputs are invalid because we want the user to
+  // attempt a save and force validation (and focus to first invalid input).
+  return committedChange.value > 0
 }
 </script>
 
@@ -928,7 +940,11 @@ function canSave(): boolean {
                 <div v-if="claimFormError" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
                 <div class="mt-4 flex flex-row justify-end gap-4">
                   <Button type="reset">{{ t("common.buttons.cancel") }}</Button>
-                  <Button type="submit">{{ editingClaimId ? t("common.buttons.update") : t("common.buttons.add") }}</Button>
+                  <!--
+                    We do enable button even when inputs are invalid because we want the user to
+                    attempt a add/update and force validation (and focus to first invalid input).
+                  -->
+                  <Button type="submit" :disabled="!anyDirty">{{ editingClaimId ? t("common.buttons.update") : t("common.buttons.add") }}</Button>
                 </div>
               </form>
             </TabPanel>

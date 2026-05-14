@@ -2,9 +2,9 @@ import type { InjectionKey, MaybeRefOrGetter, Ref, WritableComputedRef } from "v
 
 import type { ValidatedInput, ValidateFn, ValidationError, ValidatorFn } from "@/types"
 
-import { computed, inject, onBeforeUnmount, onMounted, provide, ref, toRef, watch } from "vue"
+import { computed, inject, onBeforeUnmount, onMounted, provide, ref, shallowReactive, toRef, watch } from "vue"
 
-import { anySignal, raceWithSignal } from "@/utils"
+import { anySignal, equals, raceWithSignal } from "@/utils"
 
 // During development, Vite can optimize dependencies and can duplicate imports and thus symbols.
 // So we use Symbol.for to make sure that symbols are deduplicated. Also symbol name is useful for debugging.
@@ -83,8 +83,15 @@ export function useValidationRegistry(
   validateAll: ValidateFn
   resetAll: () => void
   focusFirst: () => void
+  anyDirty: Readonly<Ref<boolean>>
+  snapshotBaselines: () => void
 } {
-  const inputs = new Set<ValidatedInput>()
+  // shallow-reactive Set so iteration inside computeds (e.g. anyDirty)
+  // registers membership as a dependency and add/delete trigger
+  // re-evaluation when inputs mount/unmount across tab switches. Shallow
+  // because deep reactive would unwrap nested refs (e.g. input.isDirty,
+  // which is a Ref<boolean>) on access, breaking the type.
+  const inputs = shallowReactive(new Set<ValidatedInput>())
 
   const validateAll: ValidateFn = async function (signal?: AbortSignal): Promise<ValidationError[]> {
     const list = Array.from(inputs)
@@ -105,19 +112,34 @@ export function useValidationRegistry(
     }
   }
 
+  function snapshotBaselines(): void {
+    for (const input of inputs) {
+      input.setBaseline()
+    }
+  }
+
+  const anyDirty = computed<boolean>(() => {
+    for (const input of inputs) {
+      if (input.isDirty.value) return true
+    }
+    return false
+  })
+
   // When el is provided, self-register so this sub-registry appears as one
   // ValidatedInput in the outer registry (its validate/reset combine its
   // descendants', its onInteraction notifier forwards inner interactions
-  // upward). In sink mode (no el), descendant interactions do not bubble
-  // out of this registry automatically - if the caller still wants
-  // forwarding, they register manually and call the returned onInteraction
-  // themselves.
+  // upward, its isDirty/setBaseline cascade through anyDirty/snapshotBaselines).
+  // In sink mode (no el), descendant interactions do not bubble out of this
+  // registry automatically - if the caller still wants forwarding, they
+  // register manually and call the returned onInteraction themselves.
   let notifyUp: (() => void) | null = null
   if (el) {
     const { onInteraction: up } = useRegisterForValidation({
       el,
       validate: validateAll,
       reset: resetAll,
+      isDirty: anyDirty,
+      setBaseline: snapshotBaselines,
     })
     notifyUp = up
   }
@@ -133,7 +155,7 @@ export function useValidationRegistry(
     inputs.delete(input)
   })
 
-  return { validateAll, resetAll, focusFirst: () => focusFirstInput(inputs) }
+  return { validateAll, resetAll, focusFirst: () => focusFirstInput(inputs), anyDirty, snapshotBaselines }
 }
 
 // isFocusable returns true if calling .focus() on el can meaningfully move
@@ -423,10 +445,19 @@ export function useValidation<T>(
     { immediate: true },
   )
 
+  // Captured at setup time so an input whose v-model parent already holds
+  // a value at mount registers that value as the baseline (isDirty=false
+  // until the user actually types).
+  const baselineValue = ref<T>(model.value) as Ref<T>
+
   const validatedInput: ValidatedInput = {
     validate,
     reset,
     el,
+    isDirty: computed(() => !equals(model.value, baselineValue.value)),
+    setBaseline: () => {
+      baselineValue.value = model.value
+    },
   }
 
   const { onInteraction } = useRegisterForValidation(validatedInput)
