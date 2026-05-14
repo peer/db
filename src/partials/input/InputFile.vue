@@ -234,7 +234,14 @@ async function onDrop(e: DragEvent) {
       the display label does not slide underneath it.
     -->
     <InputStyled as="div" :inactive="inactive" :invalid="invalid" class="w-full truncate" :class="readonly ? '' : 'pr-23'">
-      <ClaimValue :claim="mockClaim" type="link" />
+      <!--
+        When the current value fails validation (e.g. it is not a route that
+        classifies as a file link), rendering ClaimValue/Link could resolve
+        the bad URL through the SPA router and produce a misleading link.
+        Show the raw value instead so the user can see exactly what is wrong.
+      -->
+      <template v-if="invalid">{{ model }}</template>
+      <ClaimValue v-else :claim="mockClaim" type="link" />
     </InputStyled>
     <div v-if="!readonly" class="absolute inset-y-0 right-0 flex items-center pr-2">
       <Button type="button" class="px-2.5 py-1" @click.prevent="onClear" @blur="onBlur">{{ t("common.buttons.clear") }}</Button>
