@@ -47,13 +47,16 @@ export function useRegisterForValidation(input: ValidatedInput): void {
 // useValidationRegistry is called to collect validated inputs from all
 // descendant inputs that called useRegisterForValidation. validateAll runs
 // every input's validator in parallel and returns the flat list of errors.
+// resetAll restores every registered input to its initial state.
 //
 // Validation registries nest transparently: if el getter is provided,
 // the registry self-registers as a ValidatedInput, so an outer validation
-// registry sees inner one as a single input whose validate is its validateAll.
-// useRegisterForValidation is a no-op when there is no outer registry.
+// registry sees inner one as a single input whose validate is its validateAll
+// and whose reset is its resetAll. useRegisterForValidation is a no-op when
+// there is no outer registry.
 export function useValidationRegistry(el?: () => HTMLElement | null): {
   validateAll: ValidateFn
+  resetAll: () => void
 } {
   const inputs = new Set<ValidatedInput>()
 
@@ -77,14 +80,21 @@ export function useValidationRegistry(el?: () => HTMLElement | null): {
     }
   }
 
+  function resetAll(): void {
+    for (const input of inputs) {
+      input.reset()
+    }
+  }
+
   if (el) {
     useRegisterForValidation({
       el,
       validate: validateAll,
+      reset: resetAll,
     })
   }
 
-  return { validateAll }
+  return { validateAll, resetAll }
 }
 
 // focusFirstInvalid focuses the error whose el appears earliest in the
@@ -115,6 +125,7 @@ export function useValidation<T>(
   lock: Ref<number>,
   validatorGetter: () => ValidatorFn<T> | undefined,
   el: () => HTMLElement | null,
+  reset: () => void,
 ): {
   runValidation: (options?: { signal?: AbortSignal; eager?: boolean; initial?: boolean }) => Promise<void>
   validatedInput: ValidatedInput
@@ -336,6 +347,7 @@ export function useValidation<T>(
 
   const validatedInput: ValidatedInput = {
     validate,
+    reset,
     el,
   }
 

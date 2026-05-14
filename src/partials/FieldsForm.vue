@@ -23,6 +23,7 @@ import {
   unregisterForFlushKey,
 } from "@/fields"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import { useValidationRegistry } from "@/validation"
 
 const props = withDefaults(
   defineProps<{
@@ -47,6 +48,9 @@ const getNextChangeNumber = inject(getNextChangeNumberKey, () => fallbackNextCha
 const saveChange = inject(saveChangeKey, () => Promise.resolve())
 const registerForFlush = inject(registerForFlushKey, () => {})
 const unregisterForFlush = inject(unregisterForFlushKey, () => {})
+
+// TODO: Implement. Aggregate and expose upwards.
+useValidationRegistry()
 
 // EntryState represents a single claim value being edited.
 interface EntryState {

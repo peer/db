@@ -353,8 +353,10 @@ export type ValidatorFn<T> = (value: T, options: { signal: AbortSignal; eager: b
 // resolve focus targets. el returns the input's default focus target, used
 // by useValidationRegistry to decorate errors that lack their own el before
 // they are returned to the caller (so the resulting ValidationError[] is
-// self-contained for focus resolution).
+// self-contained for focus resolution). reset restores the input to its
+// initial state (model and errors); useValidationRegistry exposes resetAll.
 export type ValidatedInput = {
   validate: ValidateFn
+  reset: () => void
   el: () => HTMLElement | null
 }

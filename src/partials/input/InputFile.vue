@@ -100,6 +100,13 @@ const { runValidation, validatedInput } = useValidation(
   // (the only failing case) the v-else Button is rendered and its $el is
   // the underlying <button>.
   () => (browseButtonRef.value?.$el as HTMLElement | null) ?? null,
+  () => {
+    model.value = ""
+    errors.value = []
+    if (fileInputEl.value) {
+      fileInputEl.value.value = ""
+    }
+  },
 )
 
 defineExpose(validatedInput)

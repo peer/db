@@ -90,6 +90,10 @@ const { runValidation, validatedInput } = useValidation(
   () => validator,
   // The focus target is the first radio inside the fieldset.
   () => fieldsetRef.value?.querySelector<HTMLInputElement>('input[type="radio"]') ?? null,
+  () => {
+    model.value = ""
+    errors.value = []
+  },
 )
 
 defineExpose(validatedInput)

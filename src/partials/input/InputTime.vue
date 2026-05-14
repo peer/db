@@ -372,6 +372,7 @@ import { useI18n } from "vue-i18n"
 import InputStyled from "@/components/InputStyled.vue"
 import InputText from "@/components/InputText.vue"
 import { useLocked } from "@/progress"
+import { useRegisterForValidation } from "@/validation"
 
 const DEBOUNCE_MS = 2000
 
@@ -446,6 +447,21 @@ const timePrecisionWithMax = computed(() => {
 })
 
 const displayValue = ref(model.value)
+
+useRegisterForValidation({
+  // TODO: Implement validate properly.
+  // eslint-disable-next-line @typescript-eslint/require-await
+  validate: async () => errors.value,
+  reset: () => {
+    displayValue.value = ""
+    model.value = ""
+    precision.value = "y"
+    timePrecision.value = "y"
+    errorMessage.value = ""
+    isEditing.value = false
+  },
+  el: () => document.getElementById(inputId),
+})
 
 onBeforeMount(() => {
   timePrecision.value = precision.value

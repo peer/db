@@ -42,6 +42,10 @@ const { runValidation, validatedInput } = useValidation(
   lock,
   () => props.validator,
   () => inputStyledRef.value?.$el ?? null,
+  () => {
+    model.value = ""
+    errors.value = []
+  },
 )
 
 defineExpose(validatedInput)

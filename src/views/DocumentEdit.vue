@@ -35,6 +35,7 @@ import { localCounter, pairCounters, useLock, useProgress } from "@/progress"
 import { useDocumentFields } from "@/useDocumentFields"
 import { useParentClasses } from "@/useParentClasses"
 import { delay, encodeQuery, makeAddClaimChange } from "@/utils"
+import { useValidationRegistry } from "@/validation"
 
 const props = defineProps<{
   id: string
@@ -70,6 +71,8 @@ const saveBusy = localCounter(lock)
 
 const el = useTemplateRef<HTMLElement>("el")
 const displayLabelComponent = useTemplateRef<ComponentExposed<typeof DisplayLabel>>("displayLabelComponent")
+
+const { resetAll } = useValidationRegistry()
 
 let abortController = new AbortController()
 
@@ -463,6 +466,12 @@ async function onSubmit() {
   }
 }
 
+function onReset() {
+  // We do not use .prevent so the browser also resets plain inputs.
+  // Here we reset registered input components.
+  resetAll()
+}
+
 function onEditClaim(id: string) {
   if (abortController.signal.aborted) {
     return
@@ -568,7 +577,7 @@ function canSave(): boolean {
                   <PropertiesRows :claims="doc.claims" editable @edit-claim="onEditClaim" @remove-claim="onRemoveClaim" />
                 </tbody>
               </table>
-              <form @submit.prevent="onSubmit">
+              <form @submit.prevent="onSubmit" @reset="onReset">
                 <h2 class="mt-4 text-xl font-bold drop-shadow-xs">{{ t("views.DocumentEdit.addClaim") }}</h2>
                 <TabGroup @change="onChangeAddClaimTab">
                   <TabList class="mt-4 flex border-collapse flex-row border border-gray-200 bg-slate-100">
@@ -780,7 +789,8 @@ function canSave(): boolean {
                     </TabPanel>
                   </TabPanels>
                 </TabGroup>
-                <div class="mt-4 flex flex-row justify-end">
+                <div class="mt-4 flex flex-row justify-end gap-4">
+                  <Button type="reset">{{ t("common.buttons.cancel") }}</Button>
                   <Button type="submit">{{ t("common.buttons.add") }}</Button>
                 </div>
               </form>

@@ -140,6 +140,12 @@ const { runValidation, validatedInput } = useValidation(
   // (the only failing case) the chip is not shown, so comboboxInputRef is
   // mounted and its $el is the underlying <input>.
   () => (comboboxInputRef.value?.$el as HTMLElement | null) ?? null,
+  () => {
+    query.value = ""
+    model.value = ""
+    errors.value = []
+    exitEditMode()
+  },
 )
 
 defineExpose(validatedInput)
