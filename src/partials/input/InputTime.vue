@@ -380,10 +380,12 @@ const DEBOUNCE_MS = 2000
 const props = withDefaults(
   defineProps<{
     readonly?: boolean
+    required?: boolean
     maxPrecision?: "G" | "100M" | "10M" | "M" | "100k" | "10k" | "k" | "100y" | "10y" | "y"
   }>(),
   {
     readonly: false,
+    required: false,
     maxPrecision: "G",
   },
 )
@@ -827,9 +829,10 @@ watch(
 <template>
   <div class="pd-inputtime flex flex-row gap-x-1 sm:gap-x-4" v-bind="$attrs">
     <div class="flex grow flex-col">
-      <label :for="inputId" class="mb-1"
-        ><slot name="time-label">{{ t("common.labels.time") }}</slot></label
-      >
+      <label :for="inputId" class="mb-1 flex flex-row items-center gap-1">
+        <slot name="time-label">{{ t("common.labels.time") }}</slot
+        ><span v-if="required" class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span>
+      </label>
 
       <InputText
         :id="inputId"
