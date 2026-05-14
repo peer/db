@@ -572,7 +572,7 @@ async function onSubmit() {
   }
 }
 
-function onReset() {
+async function onReset() {
   // We do not use .prevent so the browser also resets plain inputs.
   // Here we reset registered input components.
   resetAll()
@@ -582,6 +582,8 @@ function onReset() {
   lockedClaimType.value = null
   // Re-baseline so the now-empty inputs are not considered dirty (which
   // would keep the submit button enabled after a Cancel from edit mode).
+  // Wait one tick before snapshotting baselines for reset to propagate.
+  await nextTick()
   snapshotBaselines()
 }
 
