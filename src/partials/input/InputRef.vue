@@ -267,46 +267,12 @@ function clearSelection() {
   exitEditMode()
 }
 
-// HUI 1.7.x intentionally disabled its "immediate" prop in the context
-// (immediate: computed(() => false)), so ":immediate="true"" on Combobox does
-// nothing. To still get "open the dropdown on focus" behavior, we dispatch a
-// synthetic ArrowDown keydown on the input when it gains focus and the
-// dropdown is closed. HUI's keydown handler sees ArrowDown with state===1
-// (closed) and runs openCombobox() itself.
-// This workaround has a downside: when "immediate" is honored properly,
-// HUI's onFocus path also calls setActivationTrigger(1), which makes its
-// Tab handler skip selectActiveOption(). Our ArrowDown dispatch only opens
-// the combobox; it leaves activationTrigger at the default value of 2
-// ("Other"). Combined with HUI's openCombobox() setting its internal "just
-// opened" flag to true (which makes activeOptionIndex computed auto-active
-// the first option when no option has been manually navigated to), the
-// first Tab after a focus-open commits that first option via selectActiveOption()
-// and the chip mounts; the user then needs a second Tab to actually move forward.
-// Typing or arrow-key navigation does not suffer from this because typing's
-// pending search empties the options momentarily and arrowing resets "just opened"
-// flag to false, in both cases leaving activeOptionIndex null at Tab time so
-// selectActiveOption() is a no-op.
-// TODO: Remove this workaround when a never version is released.
-//       See: https://github.com/tailwindlabs/headlessui/issues/3862
-function onInputFocus(open: boolean, event: FocusEvent) {
-  if (open) return
-  const inputEl = event.target as HTMLInputElement | null
-  inputEl?.dispatchEvent(
-    new KeyboardEvent("keydown", {
-      key: "ArrowDown",
-      code: "ArrowDown",
-      bubbles: true,
-      cancelable: true,
-    }),
-  )
-}
-
 const WithPeerDBDocument = WithDocument<D>
 </script>
 
 <template>
   <div ref="wrapperRef" @focusout="onWrapperFocusout">
-    <Combobox v-slot="{ open }" :model-value="selectedDocument" as="div" @update:model-value="onSelect">
+    <Combobox v-slot="{ open }" :model-value="selectedDocument" as="div" :immediate="true" @update:model-value="onSelect">
       <!--
         Grid with a single minmax(0,1fr) column. The "0" min track size
         propagates a min-content of 0 up through the flex ancestors, so the
@@ -430,7 +396,6 @@ const WithPeerDBDocument = WithDocument<D>
           }"
           :display-value="() => query"
           @input="query = ($event.target as HTMLInputElement).value"
-          @focus="onInputFocus(open, $event)"
           @keydown.escape="exitEditMode"
         />
 
@@ -479,10 +444,8 @@ const WithPeerDBDocument = WithDocument<D>
           exposed via v-slot on Combobox. The chevron toggles it via HUI's
           built-in ComboboxButton onClick, typing into the input opens it
           via HUI's onInput, and HUI's blur logic closes it on
-          click-outside. Auto-open on focus is achieved by dispatching a
-          synthetic ArrowDown keydown from onInputFocus (see script), since
-          HUI 1.7.x's ":immediate" prop is intentionally disabled at the
-          library level.
+          click-outside. Auto-open on focus is achieved using ":immediate"
+          prop.
 
           top-full anchors the dropdown to the bottom of the grid container
           rather than its top-left corner. In a relative block parent, an
