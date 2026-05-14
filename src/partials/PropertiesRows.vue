@@ -25,11 +25,15 @@ withDefaults(
     claims?: DeepReadonly<ClaimTypes>
     level?: number
     editable?: boolean
+    // ID of the claim currently being edited, so its Edit button can be
+    // rendered as primary to highlight which row populated the form.
+    editingClaimId?: string | null
   }>(),
   {
     claims: () => new ClaimTypes({}),
     level: 0,
     editable: false,
+    editingClaimId: null,
   },
 )
 
@@ -74,13 +78,13 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueId :claim="claim" /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" :primary="editingClaimId === claim.id" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" @edit-claim="onEdit" @remove-claim="onRemove" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" :editing-claim-id="editingClaimId" @edit-claim="onEdit" @remove-claim="onRemove" />
   </template>
   <template v-for="claim in claims.string" :key="claim.id">
     <tr>
@@ -92,13 +96,13 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueString :claim="claim" /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" :primary="editingClaimId === claim.id" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" @edit-claim="onEdit" @remove-claim="onRemove" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" :editing-claim-id="editingClaimId" @edit-claim="onEdit" @remove-claim="onRemove" />
   </template>
   <template v-for="claim in claims.html" :key="claim.id">
     <tr>
@@ -110,13 +114,13 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueHtml :claim="claim" /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" :primary="editingClaimId === claim.id" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" @edit-claim="onEdit" @remove-claim="onRemove" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" :editing-claim-id="editingClaimId" @edit-claim="onEdit" @remove-claim="onRemove" />
   </template>
   <template v-for="claim in claims.amount" :key="claim.id">
     <tr>
@@ -128,13 +132,13 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueAmount :claim="claim" /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" :primary="editingClaimId === claim.id" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" @edit-claim="onEdit" @remove-claim="onRemove" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" :editing-claim-id="editingClaimId" @edit-claim="onEdit" @remove-claim="onRemove" />
   </template>
   <template v-for="claim in claims.amountInterval" :key="claim.id">
     <tr>
@@ -148,13 +152,13 @@ function onRemove(id: string) {
         ><ClaimValueAmountInterval :claim="claim"
       /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" :primary="editingClaimId === claim.id" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" @edit-claim="onEdit" @remove-claim="onRemove" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" :editing-claim-id="editingClaimId" @edit-claim="onEdit" @remove-claim="onRemove" />
   </template>
   <template v-for="claim in claims.time" :key="claim.id">
     <tr>
@@ -166,13 +170,13 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueTime :claim="claim" /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" :primary="editingClaimId === claim.id" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" @edit-claim="onEdit" @remove-claim="onRemove" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" :editing-claim-id="editingClaimId" @edit-claim="onEdit" @remove-claim="onRemove" />
   </template>
   <template v-for="claim in claims.timeInterval" :key="claim.id">
     <tr>
@@ -184,13 +188,13 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueTimeInterval :claim="claim" /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" :primary="editingClaimId === claim.id" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" @edit-claim="onEdit" @remove-claim="onRemove" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" :editing-claim-id="editingClaimId" @edit-claim="onEdit" @remove-claim="onRemove" />
   </template>
   <template v-for="claim in claims.link" :key="claim.id">
     <tr>
@@ -202,13 +206,13 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueLink :claim="claim" /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" :primary="editingClaimId === claim.id" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" @edit-claim="onEdit" @remove-claim="onRemove" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" :editing-claim-id="editingClaimId" @edit-claim="onEdit" @remove-claim="onRemove" />
   </template>
   <template v-for="claim in claims.ref" :key="claim.id">
     <tr>
@@ -220,13 +224,13 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueRef :claim="claim" /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" :primary="editingClaimId === claim.id" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" @edit-claim="onEdit" @remove-claim="onRemove" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" :editing-claim-id="editingClaimId" @edit-claim="onEdit" @remove-claim="onRemove" />
   </template>
   <template v-for="claim in claims.has" :key="claim.id">
     <tr>
@@ -238,13 +242,13 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueHas :claim="claim" /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" :primary="editingClaimId === claim.id" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" @edit-claim="onEdit" @remove-claim="onRemove" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" :editing-claim-id="editingClaimId" @edit-claim="onEdit" @remove-claim="onRemove" />
   </template>
   <template v-for="claim in claims.none" :key="claim.id">
     <tr>
@@ -256,13 +260,13 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueNone :claim="claim" /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" :primary="editingClaimId === claim.id" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" @edit-claim="onEdit" @remove-claim="onRemove" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" :editing-claim-id="editingClaimId" @edit-claim="onEdit" @remove-claim="onRemove" />
   </template>
   <template v-for="claim in claims.unknown" :key="claim.id">
     <tr>
@@ -274,12 +278,12 @@ function onRemove(id: string) {
       /></td>
       <td class="border-l border-slate-200 px-2 py-1 align-top" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }"><ClaimValueUnknown :claim="claim" /></td>
       <td v-if="editable" class="border-slate-200 py-1 pl-2 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
-        <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
+        <Button type="button" :primary="editingClaimId === claim.id" class="w-full px-4 py-1.5" @click.prevent="onEdit(claim.id)">{{ t("common.buttons.edit") }}</Button>
       </td>
       <td v-if="editable" class="border-slate-200 py-1 pl-1 align-top whitespace-nowrap" :class="{ 'border-t': level === 0, 'text-sm': level > 0 }">
         <Button type="button" class="w-full px-4 py-1.5" @click.prevent="onRemove(claim.id)">{{ t("common.buttons.remove") }}</Button>
       </td>
     </tr>
-    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" @edit-claim="onEdit" @remove-claim="onRemove" />
+    <PropertiesRows :claims="claim.sub" :level="level + 1" :editable="editable" :editing-claim-id="editingClaimId" @edit-claim="onEdit" @remove-claim="onRemove" />
   </template>
 </template>

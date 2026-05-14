@@ -747,7 +747,7 @@ function canSave(): boolean {
                   </tr>
                 </thead>
                 <tbody>
-                  <PropertiesRows :claims="doc.claims" editable @edit-claim="onEditClaim" @remove-claim="onRemoveClaim" />
+                  <PropertiesRows :claims="doc.claims" editable :editing-claim-id="editingClaimId" @edit-claim="onEditClaim" @remove-claim="onRemoveClaim" />
                 </tbody>
               </table>
               <form ref="claimFormRef" @submit.prevent="onSubmit" @reset="onReset">
