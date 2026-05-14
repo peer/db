@@ -161,7 +161,9 @@ const _doc = ref<D | null>(null)
 const doc = process.env.NODE_ENV !== "production" ? readonly(_doc) : _doc
 
 // Tracks the change number which was committed in the backend.
-let committedChange = 0
+// A ref so canSave reactively follows whether anything has been added to
+// the session yet (Save is disabled when the session has no changes).
+const committedChange = ref(0)
 // Tracks the next change number to submit (may be ahead of committedChange when changes are in-flight).
 let nextChangeToSubmit = 1
 
@@ -219,13 +221,13 @@ async function loadChanges() {
     if (abortController.signal.aborted) {
       return
     }
-    for (; changesList.length > 0 && committedChange < changesList[0]; committedChange++) {
+    for (; changesList.length > 0 && committedChange.value < changesList[0]; committedChange.value++) {
       const { doc: changeDoc } = await getURL<object>(
         router.apiResolve({
           name: "DocumentGetChange",
           params: {
             session: props.session,
-            change: committedChange + 1,
+            change: committedChange.value + 1,
           },
         }).href,
         null,
@@ -291,7 +293,7 @@ async function loadAndSubscribe() {
   // Load initial changes.
   await loadChanges()
   // Initialize next change counter after loading existing changes.
-  nextChangeToSubmit = committedChange + 1
+  nextChangeToSubmit = committedChange.value + 1
 }
 // Re-initialize when route params change.
 watch(
@@ -303,7 +305,7 @@ watch(
 
     // Reset state.
     _doc.value = null
-    committedChange = 0
+    committedChange.value = 0
     nextChangeToSubmit = 1
     fieldsFormInvalid.value = false
 
@@ -523,14 +525,14 @@ async function onSubmit() {
   try {
     const change = editingClaimId.value
       ? new SetClaimChange({ id: editingClaimId.value, patch: makePatch() })
-      : await makeAddClaimChange(doc.value!.base, props.session, committedChange + 1, makePatch())
+      : await makeAddClaimChange(doc.value!.base, props.session, committedChange.value + 1, makePatch())
     await postJSON(
       router.apiResolve({
         name: "DocumentSaveChange",
         params: {
           session: props.session,
         },
-        query: encodeQuery({ change: String(committedChange + 1) }),
+        query: encodeQuery({ change: String(committedChange.value + 1) }),
       }).href,
       change,
       abortController.signal,
@@ -671,7 +673,7 @@ async function onRemoveClaim(id: string) {
         params: {
           session: props.session,
         },
-        query: encodeQuery({ change: String(committedChange + 1) }),
+        query: encodeQuery({ change: String(committedChange.value + 1) }),
       }).href,
       new RemoveClaimChange({
         id,
@@ -700,7 +702,8 @@ function onChangeClaimTab(index: number) {
 }
 
 function canSave(): boolean {
-  return !fieldsFormInvalid.value
+  // Save commits the edit session's changes - nothing to commit, nothing to save.
+  return !fieldsFormInvalid.value && committedChange.value > 0
 }
 </script>
 
