@@ -20,6 +20,7 @@ import type { D } from "@/document"
 import type { Result, ValidationError, ValidatorFn } from "@/types"
 
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
+import { Identifier } from "@tozd/identifier"
 import { computed, nextTick, onBeforeMount, onBeforeUnmount, ref, useId, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
@@ -61,16 +62,25 @@ const inactive = computed(() => lock.value > 0 || props.readonly)
 
 const fieldsetRef = useTemplateRef<HTMLFieldSetElement>("fieldsetRef")
 
-// A reference is invalid if no document is selected. Skipped on initial so a
-// freshly mounted empty required field is not flagged before the user has
-// interacted.
+// A reference is invalid if it is empty (when required) or does not parse as
+// a valid document identifier. The required check is skipped on initial (no
+// user interaction yet), but the identifier-shape check is not - a
+// pre-populated value that is not a valid identifier should surface
+// immediately.
 // eslint-disable-next-line @typescript-eslint/require-await
 const validator: ValidatorFn<string> = async function (value, options) {
-  if (!props.required || options.initial) {
-    return []
+  if (value === "") {
+    if (!props.required || options.initial) {
+      return []
+    }
+    // TODO: Use standard codes.
+    return [{ code: "required" }]
   }
-  // TODO: Use standard codes.
-  return value === "" ? [{ code: "required" }] : []
+  if (!Identifier.valid(value)) {
+    // TODO: Use standard codes.
+    return [{ code: "invalid" }]
+  }
+  return []
 }
 
 const { runValidation, validatedInput } = useValidation(

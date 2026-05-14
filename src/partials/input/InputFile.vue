@@ -23,6 +23,7 @@ import { useRouter } from "vue-router"
 import Button from "@/components/Button.vue"
 import InputStyled from "@/components/InputStyled.vue"
 import { HighConfidence, LinkClaim } from "@/document"
+import { classifyLink, LINK_CLASS_FILE } from "@/internal-links"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import { useLock } from "@/progress"
 import { uploadFile } from "@/upload"
@@ -68,17 +69,26 @@ const fileInputEl = useTemplateRef<HTMLInputElement>("fileInputEl")
 const browseButtonRef = useTemplateRef<ComponentPublicInstance>("browseButtonRef")
 const isDragOver = ref(false)
 
-// A file value is invalid if no file has been uploaded. Only checked when
-// required; otherwise an empty value is allowed. Skipped on initial so a
-// freshly mounted empty required field is not flagged before the user has
-// interacted.
+// A file value is invalid if it is empty (when required) or does not resolve
+// through the Vue router to a StorageGet route, i.e. classifyLink does not
+// stamp it with LINK_CLASS_FILE. The required check is skipped on initial
+// (no user interaction yet), but the file-route check is not - a
+// pre-populated value pointing at something that is not a file should
+// surface immediately.
 // eslint-disable-next-line @typescript-eslint/require-await
 const validator: ValidatorFn<string> = async function (value, options) {
-  if (!props.required || options.initial) {
-    return []
+  if (value === "") {
+    if (!props.required || options.initial) {
+      return []
+    }
+    // TODO: Use standard codes.
+    return [{ code: "required" }]
   }
-  // TODO: Use standard codes.
-  return value === "" ? [{ code: "required" }] : []
+  if (!classifyLink(value, router).includes(LINK_CLASS_FILE)) {
+    // TODO: Use standard codes.
+    return [{ code: "invalid" }]
+  }
+  return []
 }
 
 const { runValidation, validatedInput } = useValidation(
