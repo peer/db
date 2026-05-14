@@ -77,6 +77,9 @@ const sessionError = ref("")
 // the primary button label, and the onSubmit branch (SetClaimChange vs
 // makeAddClaimChange).
 const editingClaimId = ref<string | null>(null)
+// Null when no parent is selected; otherwise the claim's ID under which
+// the new claim will be added. Mutually exclusive with editingClaimId.
+const subClaimParentId = ref<string | null>(null)
 // Locks the type tabs to a single type while editing. Decoupled from
 // editingClaimId so onEditClaim can briefly unlock the tabs (without
 // flipping the title back to "Add value") during the transition between
@@ -529,7 +532,7 @@ async function onSubmit() {
   try {
     const change = editingClaimId.value
       ? new SetClaimChange({ id: editingClaimId.value, patch: makePatch() })
-      : await makeAddClaimChange(doc.value!.base, props.session, committedChange.value + 1, makePatch())
+      : await makeAddClaimChange(doc.value!.base, props.session, committedChange.value + 1, makePatch(), subClaimParentId.value ?? undefined)
     await postJSON(
       router.apiResolve({
         name: "DocumentSaveChange",
@@ -564,6 +567,7 @@ function onReset() {
   resetAll()
   claimFormError.value = ""
   editingClaimId.value = null
+  subClaimParentId.value = null
   lockedClaimType.value = null
   // Re-baseline so the now-empty inputs are not considered dirty (which
   // would keep the submit button enabled after a Cancel from edit mode).
@@ -660,6 +664,7 @@ async function onEditClaim(id: string) {
   }
 
   editingClaimId.value = id
+  subClaimParentId.value = null
   lockedClaimType.value = claimType.value
 
   // Wait for the new panel's inputs to mount and register, then move focus
@@ -668,6 +673,26 @@ async function onEditClaim(id: string) {
   focusFirst()
   // Record the populated values as the baseline so the form is not dirty
   // until the user actually changes something.
+  snapshotBaselines()
+}
+
+// Configures the claim form to add a new claim as a sub-claim of the row
+// the user clicked Sub-value on. Mirrors onEditClaim's reset-then-focus
+// dance but leaves the form blank (we are adding, not editing). Tabs stay
+// unlocked because the user picks the type for the new sub-claim.
+async function onSubClaimAdd(id: string) {
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  resetAll()
+  claimFormError.value = ""
+  editingClaimId.value = null
+  subClaimParentId.value = id
+  lockedClaimType.value = null
+
+  await nextTick()
+  focusFirst()
   snapshotBaselines()
 }
 
@@ -764,14 +789,25 @@ function canSave(): boolean {
                     <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.value") }}</th>
                     <th class="w-px"></th>
                     <th class="w-px"></th>
+                    <th class="w-px"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  <PropertiesRows :claims="doc.claims" editable :editing-claim-id="editingClaimId" @edit-claim="onEditClaim" @remove-claim="onRemoveClaim" />
+                  <PropertiesRows
+                    :claims="doc.claims"
+                    editable
+                    :editing-claim-id="editingClaimId"
+                    :sub-claim-parent-id="subClaimParentId"
+                    @edit-claim="onEditClaim"
+                    @remove-claim="onRemoveClaim"
+                    @sub-claim="onSubClaimAdd"
+                  />
                 </tbody>
               </table>
               <form ref="claimFormRef" @submit.prevent="onSubmit" @reset="onReset">
-                <h2 class="mt-4 text-xl font-bold drop-shadow-xs">{{ editingClaimId ? t("views.DocumentEdit.editClaim") : t("views.DocumentEdit.addClaim") }}</h2>
+                <h2 class="mt-4 text-xl font-bold drop-shadow-xs">{{
+                  editingClaimId ? t("views.DocumentEdit.editClaim") : subClaimParentId ? t("views.DocumentEdit.addSubClaim") : t("views.DocumentEdit.addClaim")
+                }}</h2>
                 <TabGroup :selected-index="selectedClaimTab" @change="onChangeClaimTab">
                   <TabList class="mt-4 flex border-collapse flex-row border border-gray-200 bg-slate-100">
                     <Tab

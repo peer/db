@@ -522,12 +522,13 @@ export function getError(result: Ref<{ error: unknown } | unknown> | { error: un
   return ""
 }
 
-export async function makeAddClaimChange(base: DeepReadonly<string[]>, session: string, changeIndex: number, patch: object) {
+export async function makeAddClaimChange(base: DeepReadonly<string[]>, session: string, changeIndex: number, patch: object, under?: string) {
   const changeBase = [...base, "SESSION", session, String(changeIndex)]
   const claimID = (await Identifier.from(...changeBase)).toString()
   return new AddClaimChange({
     id: claimID,
     base: changeBase,
     patch,
+    ...(under ? { under } : {}),
   })
 }
