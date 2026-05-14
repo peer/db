@@ -140,7 +140,7 @@ const el = useTemplateRef<HTMLElement>("el")
 const displayLabelComponent = useTemplateRef<ComponentExposed<typeof DisplayLabel>>("displayLabelComponent")
 const claimFormRef = useTemplateRef<HTMLFormElement>("claimFormRef")
 
-const { resetAll } = useValidationRegistry(() => {
+const { resetAll, focusFirst } = useValidationRegistry(() => {
   // Any registered-input interaction clears stale form-level errors so the
   // user is not staring at an error message after they have moved on.
   sessionError.value = ""
@@ -652,6 +652,11 @@ async function onEditClaim(id: string) {
 
   editingClaimId.value = id
   lockedClaimType.value = claimType.value
+
+  // Wait for the new panel's inputs to mount and register, then move focus
+  // to the first focusable one so the user can start editing immediately.
+  await nextTick()
+  focusFirst()
 }
 
 async function onRemoveClaim(id: string) {

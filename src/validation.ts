@@ -82,6 +82,7 @@ export function useValidationRegistry(
 ): {
   validateAll: ValidateFn
   resetAll: () => void
+  focusFirst: () => void
 } {
   const inputs = new Set<ValidatedInput>()
 
@@ -132,27 +133,54 @@ export function useValidationRegistry(
     inputs.delete(input)
   })
 
-  return { validateAll, resetAll }
+  return { validateAll, resetAll, focusFirst: () => focusFirstInput(inputs) }
 }
 
-// focusFirstInvalid focuses the error whose el appears earliest in the
-// document. Errors without an el are skipped. Pairs that compareDocumentPosition
-// reports as disconnected or identical leave the running winner unchanged.
-export function focusFirstInvalid(errors: ValidationError[]) {
+// isFocusable returns true if calling .focus() on el can meaningfully move
+// keyboard focus to it. Disabled form controls (input/button/select/
+// textarea/fieldset) silently swallow .focus(), so we skip them and try
+// the next candidate instead.
+function isFocusable(el: HTMLElement): boolean {
+  if ("disabled" in el && Boolean((el as HTMLInputElement).disabled)) {
+    return false
+  }
+  return true
+}
+
+// pickEarliestFocusable returns the element from els that appears earliest
+// in document order and is focusable. Used by focusFirstInvalid and
+// focusFirstInput. Pairs that compareDocumentPosition reports as
+// disconnected or identical leave the running winner unchanged.
+function pickEarliestFocusable(els: Iterable<HTMLElement | null | undefined>): HTMLElement | null {
   let earliest: HTMLElement | null = null
-  for (const error of errors) {
-    if (!error.el) {
+  for (const el of els) {
+    if (!el || !isFocusable(el)) {
       continue
     }
     if (!earliest) {
-      earliest = error.el
+      earliest = el
       continue
     }
-    if (earliest.compareDocumentPosition(error.el) & Node.DOCUMENT_POSITION_PRECEDING) {
-      earliest = error.el
+    if (earliest.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING) {
+      earliest = el
     }
   }
-  earliest?.focus()
+  return earliest
+}
+
+// focusFirstInvalid focuses the error whose el appears earliest in the
+// document and is focusable. Errors without an el, or with an el that is
+// disabled, are skipped.
+export function focusFirstInvalid(errors: ValidationError[]) {
+  pickEarliestFocusable(errors.map((e) => e.el))?.focus()
+}
+
+// focusFirstInput moves focus to the first focusable input among the
+// given ValidatedInputs in document order. Used when programmatically
+// opening a form (e.g. switching into edit mode) so the user can start
+// typing without having to click.
+export function focusFirstInput(inputs: Iterable<ValidatedInput>): void {
+  pickEarliestFocusable(Array.from(inputs, (i) => i.el()))?.focus()
 }
 
 class ValidationAbortedError extends Error {}
