@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import type { ValidationError, ValidatorFn } from "@/types"
+import type { ShallowUnwrapRef } from "vue"
+
+import type { ValidatedInput, ValidationError, ValidatorFn } from "@/types"
 
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
-import { computed } from "vue"
+import { computed, useTemplateRef } from "vue"
 import { useRouter } from "vue-router"
 
 import InputText from "@/components/InputText.vue"
@@ -91,6 +93,22 @@ const validator: ValidatorFn<string> = async function (value, options) {
   }
   return []
 }
+
+// Forward the inner InputText's ValidatedInput so the parent sees this
+// wrapper as a regular validated input.
+const inputTextRef = useTemplateRef<ShallowUnwrapRef<ValidatedInput>>("inputTextRef")
+const validatedInput: ValidatedInput = {
+  validate: async (signal) => {
+    const inner = inputTextRef.value
+    if (!inner) return []
+    return await inner.validate(signal)
+  },
+  reset: () => inputTextRef.value?.reset(),
+  el: () => inputTextRef.value?.el() ?? null,
+  isDirty: computed<boolean>(() => inputTextRef.value?.isDirty ?? false),
+  setBaseline: () => inputTextRef.value?.setBaseline(),
+}
+defineExpose(validatedInput)
 </script>
 
 <template>
@@ -99,7 +117,7 @@ const validator: ValidatorFn<string> = async function (value, options) {
       pr-9 reserves space on the right for the absolutely-positioned open-link
       icon overlay so the input text does not slide underneath it.
     -->
-    <InputText v-model="model" v-model:errors="errors" :readonly="readonly" :validator="validator" class="w-full" :class="canOpen ? 'pr-9' : ''" />
+    <InputText ref="inputTextRef" v-model="model" v-model:errors="errors" :readonly="readonly" :validator="validator" class="w-full" :class="canOpen ? 'pr-9' : ''" />
     <div v-if="canOpen" class="absolute inset-y-0 right-0 flex items-center pr-2">
       <RouterLink v-if="useRouterLink && internalPath" :to="internalPath" class="link">
         <ArrowTopRightOnSquareIcon class="size-5" aria-hidden="true" />

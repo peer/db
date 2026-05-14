@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import type { ValidationError, ValidatorFn } from "@/types"
+import type { ShallowUnwrapRef } from "vue"
+
+import type { ValidatedInput, ValidationError, ValidatorFn } from "@/types"
+
+import { computed, useTemplateRef } from "vue"
 
 import InputText from "@/components/InputText.vue"
 
@@ -37,8 +41,24 @@ const validator: ValidatorFn<string> = async function (value, options) {
   // TODO: Use standard codes.
   return trimmed === "" ? [{ code: "required" }] : []
 }
+
+// Forward the inner InputText's ValidatedInput so the parent sees this
+// wrapper as a regular validated input.
+const inputTextRef = useTemplateRef<ShallowUnwrapRef<ValidatedInput>>("inputTextRef")
+const validatedInput: ValidatedInput = {
+  validate: async (signal) => {
+    const inner = inputTextRef.value
+    if (!inner) return []
+    return await inner.validate(signal)
+  },
+  reset: () => inputTextRef.value?.reset(),
+  el: () => inputTextRef.value?.el() ?? null,
+  isDirty: computed<boolean>(() => inputTextRef.value?.isDirty ?? false),
+  setBaseline: () => inputTextRef.value?.setBaseline(),
+}
+defineExpose(validatedInput)
 </script>
 
 <template>
-  <InputText v-model="model" v-model:errors="errors" :readonly="readonly" :validator="validator" />
+  <InputText ref="inputTextRef" v-model="model" v-model:errors="errors" :readonly="readonly" :validator="validator" />
 </template>

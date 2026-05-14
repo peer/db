@@ -34,6 +34,7 @@ import { getNextChangeNumberKey, registerForFlushKey, saveChangeKey, unregisterF
 import { classifyLink, LINK_CLASS_FILE } from "@/internal-links"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import FieldBadges from "@/partials/FieldBadges.vue"
 import FieldsForm from "@/partials/FieldsForm.vue"
 import Footer from "@/partials/Footer.vue"
 import InputFile from "@/partials/input/InputFile.vue"
@@ -71,6 +72,16 @@ const claimFromTimePrecision = ref<TimePrecision>("y")
 const claimTo = ref("")
 const claimToAmountPrecision = ref("")
 const claimToTimePrecision = ref<TimePrecision>("y")
+
+type FieldRef = { isDirty: boolean }
+const claimPropRef = useTemplateRef<FieldRef>("claimPropRef")
+const claimValueRef = useTemplateRef<FieldRef>("claimValueRef")
+const claimAmountPrecisionRef = useTemplateRef<FieldRef>("claimAmountPrecisionRef")
+const claimFromRef = useTemplateRef<FieldRef>("claimFromRef")
+const claimFromAmountPrecisionRef = useTemplateRef<FieldRef>("claimFromAmountPrecisionRef")
+const claimToRef = useTemplateRef<FieldRef>("claimToRef")
+const claimToAmountPrecisionRef = useTemplateRef<FieldRef>("claimToAmountPrecisionRef")
+
 const claimFormError = ref("")
 const sessionError = ref("")
 // Null in add mode; the claim's ID in edit mode. Drives the form title,
@@ -822,97 +833,114 @@ function canSave(): boolean {
                     <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
                       <label for="identifier-property" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("common.labels.property")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("common.labels.property") }}<FieldBadges required :changed="claimPropRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputRef id="identifier-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputRef id="identifier-property" ref="claimPropRef" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
                       </InputErrors>
                       <label for="identifier-value" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("views.DocumentEdit.labels.identifier")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("views.DocumentEdit.labels.identifier") }}<FieldBadges required :changed="claimValueRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputIdentifier id="identifier-value" v-bind="errorProps" v-model="claimValue" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputIdentifier
+                          id="identifier-value"
+                          ref="claimValueRef"
+                          v-bind="errorProps"
+                          v-model="claimValue"
+                          :required="true"
+                          class="min-w-0 flex-auto grow"
+                        />
                       </InputErrors>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
                       <label for="string-property" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("common.labels.property")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("common.labels.property") }}<FieldBadges required :changed="claimPropRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputRef id="string-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputRef id="string-property" ref="claimPropRef" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
                       </InputErrors>
                       <label for="string-value" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("views.DocumentEdit.labels.string")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("views.DocumentEdit.labels.string") }}<FieldBadges required :changed="claimValueRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputString id="string-value" v-bind="errorProps" v-model="claimValue" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputString id="string-value" ref="claimValueRef" v-bind="errorProps" v-model="claimValue" :required="true" class="min-w-0 flex-auto grow" />
                       </InputErrors>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
                       <label for="html-property" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("common.labels.property")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("common.labels.property") }}<FieldBadges required :changed="claimPropRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputRef id="html-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputRef id="html-property" ref="claimPropRef" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
                       </InputErrors>
                       <label for="html-value" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("views.DocumentEdit.labels.html")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("views.DocumentEdit.labels.html") }}<FieldBadges required :changed="claimValueRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputHTML id="html-value" v-bind="errorProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
+                        <InputHTML id="html-value" ref="claimValueRef" v-bind="errorProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
                       </InputErrors>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
                       <label for="amount-property" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("common.labels.property")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("common.labels.property") }}<FieldBadges required :changed="claimPropRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputRef id="amount-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputRef id="amount-property" ref="claimPropRef" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
                       </InputErrors>
                       <label for="amount-value" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("views.DocumentEdit.labels.amount")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("views.DocumentEdit.labels.amount") }}<FieldBadges required :changed="claimValueRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputString id="amount-value" v-bind="errorProps" v-model="claimValue" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputString id="amount-value" ref="claimValueRef" v-bind="errorProps" v-model="claimValue" :required="true" class="min-w-0 flex-auto grow" />
                       </InputErrors>
                       <label for="amount-precision" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("common.labels.precision")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("common.labels.precision") }}<FieldBadges required :changed="claimAmountPrecisionRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputString id="amount-precision" v-bind="errorProps" v-model="claimAmountPrecision" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputString
+                          id="amount-precision"
+                          ref="claimAmountPrecisionRef"
+                          v-bind="errorProps"
+                          v-model="claimAmountPrecision"
+                          :required="true"
+                          class="min-w-0 flex-auto grow"
+                        />
                       </InputErrors>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
                       <label for="amountInterval-property" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("common.labels.property")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("common.labels.property") }}<FieldBadges required :changed="claimPropRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputRef id="amountInterval-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputRef
+                          id="amountInterval-property"
+                          ref="claimPropRef"
+                          v-bind="errorProps"
+                          v-model="claimProp"
+                          :required="true"
+                          class="min-w-0 flex-auto grow"
+                        />
                       </InputErrors>
                       <label for="amountInterval-from" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("views.DocumentEdit.labels.from")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("views.DocumentEdit.labels.from") }}<FieldBadges required :changed="claimFromRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputString id="amountInterval-from" v-bind="errorProps" v-model="claimFrom" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputString
+                          id="amountInterval-from"
+                          ref="claimFromRef"
+                          v-bind="errorProps"
+                          v-model="claimFrom"
+                          :required="true"
+                          class="min-w-0 flex-auto grow"
+                        />
                       </InputErrors>
                       <label for="amountInterval-fromPrecision" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("common.labels.precision")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("common.labels.precision") }}<FieldBadges required :changed="claimFromAmountPrecisionRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
                         <InputString
                           id="amountInterval-fromPrecision"
+                          ref="claimFromAmountPrecisionRef"
                           v-bind="errorProps"
                           v-model="claimFromAmountPrecision"
                           :required="true"
@@ -920,19 +948,18 @@ function canSave(): boolean {
                         />
                       </InputErrors>
                       <label for="amountInterval-to" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("views.DocumentEdit.labels.to")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("views.DocumentEdit.labels.to") }}<FieldBadges required :changed="claimToRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputString id="amountInterval-to" v-bind="errorProps" v-model="claimTo" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputString id="amountInterval-to" ref="claimToRef" v-bind="errorProps" v-model="claimTo" :required="true" class="min-w-0 flex-auto grow" />
                       </InputErrors>
                       <label for="amountInterval-toPrecision" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("common.labels.precision")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("common.labels.precision") }}<FieldBadges required :changed="claimToAmountPrecisionRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
                         <InputString
                           id="amountInterval-toPrecision"
+                          ref="claimToAmountPrecisionRef"
                           v-bind="errorProps"
                           v-model="claimToAmountPrecision"
                           :required="true"
@@ -942,23 +969,28 @@ function canSave(): boolean {
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
                       <label for="time-property" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("common.labels.property")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("common.labels.property") }}<FieldBadges required :changed="claimPropRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputRef id="time-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputRef id="time-property" ref="claimPropRef" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
                       </InputErrors>
                       <InputErrors v-slot="errorProps">
-                        <InputTime v-bind="errorProps" v-model="claimValue" v-model:precision="claimTimePrecision" :required="true" class="mt-4 min-w-0 flex-auto grow" />
+                        <InputTime
+                          ref="claimValueRef"
+                          v-bind="errorProps"
+                          v-model="claimValue"
+                          v-model:precision="claimTimePrecision"
+                          :required="true"
+                          class="mt-4 min-w-0 flex-auto grow"
+                        />
                       </InputErrors>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
                       <label for="timeInterval-property" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("common.labels.property")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("common.labels.property") }}<FieldBadges required :changed="claimPropRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputRef id="timeInterval-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputRef id="timeInterval-property" ref="claimPropRef" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
                       </InputErrors>
                       <InputErrors v-slot="errorProps">
                         <InputTime
@@ -972,84 +1004,82 @@ function canSave(): boolean {
                         </InputTime>
                       </InputErrors>
                       <InputErrors v-slot="errorProps">
-                        <InputTime v-bind="errorProps" v-model="claimTo" v-model:precision="claimToTimePrecision" :required="true" class="mt-4 min-w-0 flex-auto grow">
+                        <InputTime
+                          ref="claimToRef"
+                          v-bind="errorProps"
+                          v-model="claimTo"
+                          v-model:precision="claimToTimePrecision"
+                          :required="true"
+                          class="mt-4 min-w-0 flex-auto grow"
+                        >
                           <template #time-label>{{ t("views.DocumentEdit.labels.to") }}</template>
                         </InputTime>
                       </InputErrors>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
                       <label for="link-property" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("common.labels.property")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("common.labels.property") }}<FieldBadges required :changed="claimPropRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputRef id="link-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputRef id="link-property" ref="claimPropRef" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
                       </InputErrors>
                       <label for="link-value" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("views.DocumentEdit.labels.iri")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("views.DocumentEdit.labels.iri") }}<FieldBadges required :changed="claimValueRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputLink id="link-value" v-bind="errorProps" v-model="claimValue" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputLink id="link-value" ref="claimValueRef" v-bind="errorProps" v-model="claimValue" :required="true" class="min-w-0 flex-auto grow" />
                       </InputErrors>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
                       <label for="file-property" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("common.labels.property")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("common.labels.property") }}<FieldBadges required :changed="claimPropRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputRef id="file-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputRef id="file-property" ref="claimPropRef" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
                       </InputErrors>
                       <label class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("views.DocumentEdit.labels.file")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("views.DocumentEdit.labels.file") }}<FieldBadges required :changed="claimValueRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputFile v-bind="errorProps" v-model="claimValue" :required="true" />
+                        <InputFile ref="claimValueRef" v-bind="errorProps" v-model="claimValue" :required="true" />
                       </InputErrors>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
                       <label for="reference-property" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("common.labels.property")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("common.labels.property") }}<FieldBadges required :changed="claimPropRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputRef id="reference-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputRef id="reference-property" ref="claimPropRef" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
                       </InputErrors>
                       <label for="reference-value" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("views.DocumentEdit.labels.to")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("views.DocumentEdit.labels.to") }}<FieldBadges required :changed="claimValueRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputRef id="reference-value" v-bind="errorProps" v-model="claimValue" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputRef id="reference-value" ref="claimValueRef" v-bind="errorProps" v-model="claimValue" :required="true" class="min-w-0 flex-auto grow" />
                       </InputErrors>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
                       <label for="has-property" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("common.labels.property")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("common.labels.property") }}<FieldBadges required :changed="claimPropRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputRef id="has-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputRef id="has-property" ref="claimPropRef" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
                       </InputErrors>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
                       <label for="none-property" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("common.labels.property")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("common.labels.property") }}<FieldBadges required :changed="claimPropRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputRef id="none-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputRef id="none-property" ref="claimPropRef" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
                       </InputErrors>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
                       <label for="unknown-property" class="mt-4 mb-1 flex flex-row items-center gap-1"
-                        >{{ t("common.labels.property")
-                        }}<span class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span></label
-                      >
+                        >{{ t("common.labels.property") }}<FieldBadges required :changed="claimPropRef?.isDirty ?? false"
+                      /></label>
                       <InputErrors v-slot="errorProps">
-                        <InputRef id="unknown-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                        <InputRef id="unknown-property" ref="claimPropRef" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
                       </InputErrors>
                     </TabPanel>
                   </TabPanels>

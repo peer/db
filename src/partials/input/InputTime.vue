@@ -363,6 +363,8 @@ export function inferPrecisionFromNormalized(
 </script>
 
 <script setup lang="ts">
+import type { ValidatedInput } from "@/types"
+
 import { Listbox, ListboxButton, ListboxLabel, ListboxOption, ListboxOptions } from "@headlessui/vue"
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { debounce } from "lodash-es"
@@ -485,7 +487,7 @@ const {
 const modelBaselineRef = ref(model.value)
 const precisionBaselineRef = ref(precision.value)
 
-const { onInteraction: notifyOuter } = useRegisterForValidation({
+const validatedInput: ValidatedInput = {
   validate: async (signal) => {
     const childErrors = await validateAll(signal)
     return [...errors.value, ...childErrors]
@@ -505,8 +507,20 @@ const { onInteraction: notifyOuter } = useRegisterForValidation({
     precisionBaselineRef.value = precision.value
     snapshotBaselines()
   },
-})
+}
+const { onInteraction: notifyOuter } = useRegisterForValidation(validatedInput)
 forwardInteraction = notifyOuter
+
+// Same shape exposed to the parent so an ancestor form (e.g. via a
+// template ref) sees this InputTime as a single ValidatedInput.
+defineExpose(validatedInput)
+
+// Dirty signal for the time-label "changed" badge. We bundle the canonical
+// model baseline check with anyChildDirty so the badge shows as soon as the
+// user types in the inner InputText (its model is the unsynced displayValue)
+// without waiting for the debounced canonical-model update to land. Excludes
+// the precision change since the precision Listbox has its own label.
+const timeChanged = computed(() => !equals(model.value, modelBaselineRef.value) || anyChildDirty.value)
 
 onBeforeMount(() => {
   timePrecision.value = precision.value
@@ -832,6 +846,7 @@ watch(
       <label :for="inputId" class="mb-1 flex flex-row items-center gap-1">
         <slot name="time-label">{{ t("common.labels.time") }}</slot
         ><span v-if="required" class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span>
+        <span v-if="timeChanged" class="rounded-xs bg-primary-300 px-1.5 py-0.5 text-xs leading-none text-gray-100 shadow-xs">{{ t("common.labels.changed") }}</span>
       </label>
 
       <InputText
