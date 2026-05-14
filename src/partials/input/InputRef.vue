@@ -98,7 +98,7 @@ const query = ref("")
 // The Clear button visually appears but is disabled, distinguishing this
 // state from the harder readonly prop where Clear is hidden entirely.
 const lock = useLock()
-const locked = computed(() => lock.value > 0)
+const inactive = computed(() => lock.value > 0 || props.readonly)
 const searchResults = ref<Result[]>([])
 
 // Toggles between the two "selected" visual states: false shows the chip,
@@ -195,7 +195,7 @@ async function enterEditMode() {
   // focusable for keyboard navigation and text selection. That means
   // click/focus events still fire even when conceptually "disabled", so
   // the gate has to live here rather than in markup.
-  if (props.readonly || locked.value) return
+  if (inactive.value) return
   if (editMode.value) return
   editMode.value = true
   // Wait for the ComboboxInput to render, then focus its underlying input.
@@ -322,9 +322,9 @@ const WithPeerDBDocument = WithDocument<D>
               as="div"
               role="textbox"
               contenteditable="true"
-              :inactive="readonly || locked"
+              :inactive="inactive"
               :invalid="invalid"
-              :aria-readonly="readonly || locked || undefined"
+              :aria-readonly="inactive || undefined"
               :aria-invalid="invalid || undefined"
               class="w-full truncate"
               :class="readonly ? 'pr-9' : 'pr-29'"
@@ -355,9 +355,9 @@ const WithPeerDBDocument = WithDocument<D>
           v-else
           ref="comboboxInputRef"
           :as="ComboboxInput"
-          :inactive="readonly || locked"
+          :inactive="inactive"
           :invalid="invalid"
-          :readonly="readonly || locked"
+          :readonly="inactive"
           :aria-invalid="invalid || undefined"
           v-bind="$attrs"
           class="w-full"
@@ -397,7 +397,7 @@ const WithPeerDBDocument = WithDocument<D>
             <ChevronUpDownIcon
               class="size-5 text-gray-400"
               :class="{
-                'cursor-not-allowed': readonly || locked,
+                'cursor-not-allowed': inactive,
               }"
               aria-hidden="true"
             />
@@ -430,7 +430,7 @@ const WithPeerDBDocument = WithDocument<D>
           the "below the input" placement.
         -->
         <ComboboxOptions
-          v-if="open && !locked && !readonly"
+          v-if="open && !inactive"
           static
           class="absolute top-full z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none"
         >
