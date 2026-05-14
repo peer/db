@@ -459,6 +459,11 @@ const displayValue = ref(model.value)
 // (called when an inner input notifies) to InputTime's own outer notifier
 // (obtained from its manual self-registration), so interactions inside
 // InputTime still reach the ancestor form's onInteraction handler.
+//
+// Focus, unlike interaction, does not need forwarding through the
+// sub-registry. The outer focusFirstInput resolves a focus target by
+// calling our el(), which directly points at the inner InputText's
+// element via inputId, so .focus() lands on the right node in one hop.
 let forwardInteraction: (() => void) | null = null
 const { validateAll, resetAll } = useValidationRegistry(() => {
   forwardInteraction?.()
