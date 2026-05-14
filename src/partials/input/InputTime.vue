@@ -372,7 +372,7 @@ import { useI18n } from "vue-i18n"
 import InputStyled from "@/components/InputStyled.vue"
 import InputText from "@/components/InputText.vue"
 import { useLocked } from "@/progress"
-import { useRegisterForValidation } from "@/validation"
+import { useRegisterForValidation, useValidationRegistry } from "@/validation"
 
 const DEBOUNCE_MS = 2000
 
@@ -448,12 +448,21 @@ const timePrecisionWithMax = computed(() => {
 
 const displayValue = ref(model.value)
 
+// Nested validation registry: the inner InputText registers here instead of
+// bubbling up to the ancestor form. InputTime then proxies its sub-inputs
+// upward as a single ValidatedInput, combining child errors with its own
+// errorMessage-derived ones and running resetAll alongside its own state
+// cleanup on reset. timePrecision/precision are not sub-inputs (the Listbox
+// is inlined, not extracted), so they are reset manually here.
+const { validateAll, resetAll } = useValidationRegistry()
+
 useRegisterForValidation({
-  // TODO: Implement validate properly.
-  // eslint-disable-next-line @typescript-eslint/require-await
-  validate: async () => errors.value,
+  validate: async (signal) => {
+    const childErrors = await validateAll(signal)
+    return [...errors.value, ...childErrors]
+  },
   reset: () => {
-    displayValue.value = ""
+    resetAll()
     model.value = ""
     precision.value = "y"
     timePrecision.value = "y"
