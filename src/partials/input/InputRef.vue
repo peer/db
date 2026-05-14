@@ -337,6 +337,45 @@ const WithPeerDBDocument = WithDocument<D>
               <DisplayLabel :doc="doc" />
             </InputStyled>
           </template>
+          <!--
+            Failure case: the selected id exists but the document could not be
+            loaded. Render the error inside an InputStyled wrapper so the
+            visual matches the chip (text-input border, same right-padding
+            reservation for the open-link + Clear stack rendered below).
+          -->
+          <template #error="{ url }">
+            <InputStyled
+              as="div"
+              :inactive="inactive"
+              :invalid="invalid"
+              :aria-readonly="inactive || undefined"
+              :aria-invalid="invalid || undefined"
+              class="w-full truncate"
+              :class="readonly ? 'pr-9' : 'pr-29'"
+            >
+              <i class="pd-withdocument-error text-error-600" :data-url="url">{{ t("common.status.loadingDataFailed") }}</i>
+            </InputStyled>
+          </template>
+          <!--
+            Loading case: same wrapper as the chip and error states so the
+            input retains a stable shape (border, padding, height) while the
+            document is fetched. Inside we render a pulsing placeholder bar
+            with a deterministic width derived from the document id, matching
+            the loading affordance used elsewhere (e.g. dropdown options).
+          -->
+          <template #loading="{ url }">
+            <InputStyled
+              as="div"
+              :inactive="inactive"
+              :invalid="invalid"
+              :aria-readonly="inactive || undefined"
+              :aria-invalid="invalid || undefined"
+              class="w-full truncate"
+              :class="readonly ? 'pr-9' : 'pr-29'"
+            >
+              <i class="block h-4 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(selectedDocument?.id ?? '')]"></i>
+            </InputStyled>
+          </template>
         </WithPeerDBDocument>
 
         <!--
