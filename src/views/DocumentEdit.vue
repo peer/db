@@ -55,6 +55,7 @@ const claimFromTimePrecision = ref<TimePrecision>("y")
 const claimTo = ref("")
 const claimToAmountPrecision = ref("")
 const claimToTimePrecision = ref<TimePrecision>("y")
+const claimFormError = ref("")
 
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
@@ -465,8 +466,9 @@ async function onSubmit() {
     if (abortController.signal.aborted) {
       return
     }
-    // TODO: Show notification with error.
     console.error("DocumentEdit.onSubmit", err)
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+    claimFormError.value = `${err}`
   }
 }
 
@@ -474,6 +476,7 @@ function onReset() {
   // We do not use .prevent so the browser also resets plain inputs.
   // Here we reset registered input components.
   resetAll()
+  claimFormError.value = ""
 }
 
 function onEditClaim(id: string) {
@@ -793,6 +796,7 @@ function canSave(): boolean {
                     </TabPanel>
                   </TabPanels>
                 </TabGroup>
+                <div v-if="claimFormError" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
                 <div class="mt-4 flex flex-row justify-end gap-4">
                   <Button type="reset">{{ t("common.buttons.cancel") }}</Button>
                   <Button type="submit">{{ t("common.buttons.add") }}</Button>
