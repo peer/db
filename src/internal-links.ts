@@ -4,6 +4,8 @@ import type { Router } from "vue-router"
 import { computed } from "vue"
 import { useRouter } from "vue-router"
 
+import { parseUrl } from "@/utils"
+
 // CSS classes stamped onto anchor elements during HTML transformation.
 // There is hierarchy between LINK_CLASS_INTERNAL > LINK_CLASS_INTERNAL_NOVIEW > LINK_CLASS_FILE.
 export const LINK_CLASS_INTERNAL = "pd-link-internal"
@@ -22,7 +24,7 @@ export function classifyLink(href: string, router: Router): string[] {
 
   let url: URL
   try {
-    url = new URL(href, window.location.href)
+    url = parseUrl(href)
   } catch {
     return []
   }

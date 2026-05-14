@@ -367,6 +367,20 @@ export async function delay(ms: number, signal?: AbortSignal): Promise<void> {
   signal?.throwIfAborted()
 }
 
+// parseUrl is a small wrapper over the URL constructor that picks the base
+// argument based on whether input looks site-relative. A leading "/" means
+// the input is an absolute path on the current site, so we resolve it
+// against window.location.href; otherwise the input is expected to be a
+// full absolute URL and is parsed standalone. Throws (via the URL
+// constructor) on inputs that don't fit either shape (e.g. document-relative
+// "foo/bar").
+export function parseUrl(input: string): URL {
+  if (input.startsWith("/")) {
+    return new URL(input, window.location.href)
+  }
+  return new URL(input)
+}
+
 // raceWithSignal settles as soon as the given promise settles or the signal
 // aborts. A settling promise propagates its resolution or rejection through
 // unchanged. An abort resolves with undefined (no error is raised).

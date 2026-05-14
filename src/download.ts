@@ -15,7 +15,7 @@ import { ref } from "vue"
 
 import { getURL, headURLDirect } from "@/api"
 import { D, HTMLClaim, LinkClaim } from "@/document"
-import { delay } from "@/utils"
+import { delay, parseUrl } from "@/utils"
 
 // RFC 5987 extended form: filename*=<charset>'<lang>'<percent-encoded value>.
 // Capture group 2 holds the percent-encoded value, ending at a ; or end of string.
@@ -167,7 +167,7 @@ export function useDownload(abortController: AbortController, router: Router, re
 
     let url: URL
     try {
-      url = new URL(iri, window.location.href)
+      url = parseUrl(iri)
     } catch {
       return null
     }
