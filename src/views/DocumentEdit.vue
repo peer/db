@@ -527,7 +527,8 @@ function canSave(): boolean {
                   <tr>
                     <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.property") }}</th>
                     <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.value") }}</th>
-                    <th class="flex max-w-fit flex-row gap-1"></th>
+                    <th class="w-px"></th>
+                    <th class="w-px"></th>
                   </tr>
                 </thead>
                 <tbody>
