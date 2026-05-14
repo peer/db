@@ -12,6 +12,9 @@ States:
 -->
 
 <script setup lang="ts">
+import type { ValidationError, ValidatorFn } from "@/types"
+import type { ComponentPublicInstance } from "vue"
+
 import { Identifier } from "@tozd/identifier"
 import { computed, onBeforeUnmount, ref, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
@@ -23,6 +26,7 @@ import { HighConfidence, LinkClaim } from "@/document"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import { useLock } from "@/progress"
 import { uploadFile } from "@/upload"
+import { useValidation } from "@/validation"
 
 // Multi-root template, so we route fall-through attrs explicitly onto
 // whichever element is visibly rendered.
@@ -30,7 +34,20 @@ defineOptions({
   inheritAttrs: false,
 })
 
+const props = withDefaults(
+  defineProps<{
+    readonly?: boolean
+    required?: boolean
+  }>(),
+  {
+    readonly: false,
+    required: false,
+  },
+)
+
 const model = defineModel<string>({ default: "" })
+const errors = defineModel<ValidationError[]>("errors", { default: () => [] })
+const invalid = computed(() => errors.value.length > 0)
 
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
@@ -42,11 +59,45 @@ const router = useRouter()
 const progress = ref(0)
 const total = ref<number | undefined>(undefined)
 
-// Data modification and controls.
+// Data modification and controls; useValidation writes to this lock during
+// validation so the button locks itself while a validator is in flight.
 const lock = useLock()
+const inactive = computed(() => lock.value > 0 || props.readonly)
 
 const fileInputEl = useTemplateRef<HTMLInputElement>("fileInputEl")
+const browseButtonRef = useTemplateRef<ComponentPublicInstance>("browseButtonRef")
 const isDragOver = ref(false)
+
+// A file value is invalid if no file has been uploaded. Only checked when
+// required; otherwise an empty value is allowed.
+// eslint-disable-next-line @typescript-eslint/require-await
+const validator: ValidatorFn<string> = async function (value) {
+  if (!props.required) {
+    return []
+  }
+  // TODO: Use standard codes.
+  return value === "" ? [{ code: "required" }] : []
+}
+
+const { runValidation, validatedInput } = useValidation(
+  model,
+  errors,
+  lock,
+  () => validator,
+  // The empty-state Button is the focus target. When required+empty
+  // (the only failing case) the v-else Button is rendered and its $el is
+  // the underlying <button>.
+  () => (browseButtonRef.value?.$el as HTMLElement | null) ?? null,
+)
+
+defineExpose(validatedInput)
+
+// Run lazy validation when focus leaves either of the visible elements (the
+// browse Button in empty state, or the Clear Button in uploaded state) so
+// the required error appears as soon as the user tabs/clicks away.
+async function onBlur() {
+  await runValidation()
+}
 
 const abortController = new AbortController()
 onBeforeUnmount(() => {
@@ -108,10 +159,12 @@ async function onFileInputChange() {
 }
 
 function onBrowse() {
+  if (inactive.value) return
   fileInputEl.value?.click()
 }
 
 function onClear() {
+  if (inactive.value) return
   model.value = ""
   if (fileInputEl.value) {
     fileInputEl.value.value = ""
@@ -119,6 +172,7 @@ function onClear() {
 }
 
 function onDragOver() {
+  if (inactive.value) return
   isDragOver.value = true
 }
 
@@ -127,6 +181,7 @@ function onDragLeave() {
 }
 
 async function onDrop(e: DragEvent) {
+  if (inactive.value) return
   isDragOver.value = false
   const file = e.dataTransfer?.files?.[0]
   if (!file) {
@@ -142,31 +197,36 @@ async function onDrop(e: DragEvent) {
     Grid wrapper with a single minmax(0,1fr) column so that long display labels
     actually clip with truncate.
   -->
-  <div v-if="model" v-tw-merge v-bind="$attrs" class="pd-inputfile relative grid w-full grid-cols-[minmax(0,1fr)]">
+  <div v-if="model" v-tw-merge v-bind="$attrs" :aria-invalid="invalid || undefined" class="pd-inputfile relative grid w-full grid-cols-[minmax(0,1fr)]">
     <!--
       pr-23 reserves space on the right for the Clear button overlay so
       the display label does not slide underneath it.
     -->
-    <InputStyled as="div" class="w-full truncate pr-23">
+    <InputStyled as="div" :inactive="inactive" :invalid="invalid" class="w-full truncate" :class="readonly ? '' : 'pr-23'">
       <ClaimValue :claim="mockClaim" type="link" />
     </InputStyled>
-    <div class="absolute inset-y-0 right-0 flex items-center pr-2">
-      <Button type="button" class="px-2.5 py-1" @click.prevent="onClear">{{ t("common.buttons.clear") }}</Button>
+    <div v-if="!readonly" class="absolute inset-y-0 right-0 flex items-center pr-2">
+      <Button type="button" class="px-2.5 py-1" @click.prevent="onClear" @blur="onBlur">{{ t("common.buttons.clear") }}</Button>
     </div>
   </div>
   <Button
     v-else
+    ref="browseButtonRef"
     v-bind="$attrs"
     type="button"
     class="pd-inputfile w-full"
     :progress="progress"
     :total="total"
     :active="isDragOver"
+    :disabled="readonly"
+    :invalid="invalid"
+    :aria-invalid="invalid || undefined"
     @click.prevent="onBrowse"
     @dragover.prevent="onDragOver"
     @dragenter.prevent="onDragOver"
     @dragleave.prevent="onDragLeave"
     @drop.prevent="onDrop"
+    @blur="onBlur"
     >{{ t("partials.input.InputFile.dropOrBrowse") }}</Button
   >
 </template>

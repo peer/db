@@ -15,6 +15,7 @@ const props = withDefaults(
     disabled?: boolean
     primary?: boolean
     active?: boolean
+    invalid?: boolean
   }>(),
   {
     progress: 0,
@@ -22,6 +23,7 @@ const props = withDefaults(
     disabled: false,
     primary: false,
     active: false,
+    invalid: false,
   },
 )
 
@@ -30,7 +32,7 @@ const inactive = () => locked.value || props.disabled
 </script>
 
 <template>
-  <ButtonStyled as="button" :inactive="inactive()" :primary="primary" :active="active" :disabled="inactive()" class="pd-button">
+  <ButtonStyled as="button" :inactive="inactive()" :primary="primary" :active="active" :invalid="invalid" :disabled="inactive()" class="pd-button">
     <slot />
     <ProgressBar :progress="progress" :total="total" class="absolute inset-x-0 bottom-0 rounded-b" />
   </ButtonStyled>
