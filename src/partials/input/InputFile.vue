@@ -24,6 +24,12 @@ import ClaimValue from "@/partials/ClaimValue.vue"
 import { useLock } from "@/progress"
 import { uploadFile } from "@/upload"
 
+// Multi-root template, so we route fall-through attrs explicitly onto
+// whichever element is visibly rendered.
+defineOptions({
+  inheritAttrs: false,
+})
+
 const model = defineModel<string>({ default: "" })
 
 const { t } = useI18n({ useScope: "global" })
@@ -131,34 +137,36 @@ async function onDrop(e: DragEvent) {
 </script>
 
 <template>
-  <div class="pd-inputfile flex w-full flex-row gap-x-1 sm:gap-x-4">
-    <input ref="fileInputEl" type="file" class="hidden" @change="onFileInputChange" />
-    <template v-if="model">
-      <!--
-        Grid wrapper with a single minmax(0,1fr) column so that long display labels
-        actually clips overflowing labels. With the grid track, the display label is
-        constrained and truncate clips with an ellipsis.
-      -->
-      <div class="grid min-w-0 flex-auto grow grid-cols-[minmax(0,1fr)]">
-        <InputStyled as="div" class="w-full truncate">
-          <ClaimValue :claim="mockClaim" type="link" />
-        </InputStyled>
-      </div>
-      <Button type="button" @click.prevent="onClear">{{ t("common.buttons.clear") }}</Button>
-    </template>
-    <Button
-      v-else
-      type="button"
-      class="w-full"
-      :progress="progress"
-      :total="total"
-      :active="isDragOver"
-      @click.prevent="onBrowse"
-      @dragover.prevent="onDragOver"
-      @dragenter.prevent="onDragOver"
-      @dragleave.prevent="onDragLeave"
-      @drop.prevent="onDrop"
-      >{{ t("partials.input.InputFile.dropOrBrowse") }}</Button
-    >
+  <input ref="fileInputEl" type="file" class="hidden" @change="onFileInputChange" />
+  <!--
+    Grid wrapper with a single minmax(0,1fr) column so that long display labels
+    actually clip with truncate.
+  -->
+  <div v-if="model" v-tw-merge v-bind="$attrs" class="pd-inputfile relative grid w-full grid-cols-[minmax(0,1fr)]">
+    <!--
+      pr-23 reserves space on the right for the Clear button overlay so
+      the display label does not slide underneath it.
+    -->
+    <InputStyled as="div" class="w-full truncate pr-23">
+      <ClaimValue :claim="mockClaim" type="link" />
+    </InputStyled>
+    <div class="absolute inset-y-0 right-0 flex items-center pr-2">
+      <Button type="button" class="px-2.5 py-1" @click.prevent="onClear">{{ t("common.buttons.clear") }}</Button>
+    </div>
   </div>
+  <Button
+    v-else
+    v-bind="$attrs"
+    type="button"
+    class="pd-inputfile w-full"
+    :progress="progress"
+    :total="total"
+    :active="isDragOver"
+    @click.prevent="onBrowse"
+    @dragover.prevent="onDragOver"
+    @dragenter.prevent="onDragOver"
+    @dragleave.prevent="onDragLeave"
+    @drop.prevent="onDrop"
+    >{{ t("partials.input.InputFile.dropOrBrowse") }}</Button
+  >
 </template>
