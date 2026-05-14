@@ -71,6 +71,7 @@ const saveBusy = localCounter(lock)
 
 const el = useTemplateRef<HTMLElement>("el")
 const displayLabelComponent = useTemplateRef<ComponentExposed<typeof DisplayLabel>>("displayLabelComponent")
+const addClaimFormRef = useTemplateRef<HTMLFormElement>("addClaimFormRef")
 
 const { resetAll } = useValidationRegistry()
 
@@ -457,6 +458,9 @@ async function onSubmit() {
     if (abortController.signal.aborted) {
       return
     }
+    // Dispatches the reset event, which runs onReset (resetAll) and clears
+    // any native form controls so the form is ready for the next claim.
+    addClaimFormRef.value?.reset()
   } catch (err) {
     if (abortController.signal.aborted) {
       return
@@ -577,7 +581,7 @@ function canSave(): boolean {
                   <PropertiesRows :claims="doc.claims" editable @edit-claim="onEditClaim" @remove-claim="onRemoveClaim" />
                 </tbody>
               </table>
-              <form @submit.prevent="onSubmit" @reset="onReset">
+              <form ref="addClaimFormRef" @submit.prevent="onSubmit" @reset="onReset">
                 <h2 class="mt-4 text-xl font-bold drop-shadow-xs">{{ t("views.DocumentEdit.addClaim") }}</h2>
                 <TabGroup @change="onChangeAddClaimTab">
                   <TabList class="mt-4 flex border-collapse flex-row border border-gray-200 bg-slate-100">
