@@ -8,7 +8,9 @@
       "upload": "Upload",
       "edit": "Edit",
       "save": "Save",
+      "discard": "Discard",
       "add": "Add",
+      "update": "Update",
       "clear": "Clear",
       "remove": "Remove",
       "loadCountMore": "{count} more",
@@ -177,7 +179,8 @@
       "tabs": {
         "allProperties": "@:views.DocumentGet.tabs.allProperties"
       },
-      "addClaim": "Add claim",
+      "addClaim": "Add value",
+      "editClaim": "Edit value",
       "claimTypes": {
         "identifier": "Identifier",
         "string": "String",

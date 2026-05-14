@@ -8,7 +8,9 @@
       "upload": "Naloži",
       "edit": "Uredi",
       "save": "Shrani",
+      "discard": "Zavrzi",
       "add": "Dodaj",
+      "update": "Posodobi",
       "clear": "Počisti",
       "remove": "Odstrani",
       "loadCountMore": "{count} več",
@@ -177,7 +179,8 @@
       "tabs": {
         "allProperties": "@:views.DocumentGet.tabs.allProperties"
       },
-      "addClaim": "Dodaj trditev",
+      "addClaim": "Dodaj vrednost",
+      "editClaim": "Uredi vrednost",
       "claimTypes": {
         "identifier": "Identifikator",
         "string": "Enostavno besedilo",

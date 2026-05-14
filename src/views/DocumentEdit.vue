@@ -6,16 +6,32 @@ import type { FieldsFormSaveChange, FlushFn } from "@/fields"
 import type { DocumentBeginMetadata, DocumentEditStatus, DocumentEndEditResponse } from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
-import { onBeforeUnmount, provide, readonly, ref, toRef, useTemplateRef, watch } from "vue"
+import { computed, nextTick, onBeforeUnmount, provide, readonly, ref, toRef, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import { deleteFromCache, getURL, getURLDirect, postJSON } from "@/api"
 import Button from "@/components/Button.vue"
 import siteContext from "@/context"
-import { D, HighConfidence } from "@/document"
-import { changeFrom, RemoveClaimChange } from "@/document/patch"
+import {
+  AmountClaim,
+  AmountIntervalClaim,
+  D,
+  HasClaim,
+  HighConfidence,
+  HTMLClaim,
+  IdentifierClaim,
+  LinkClaim,
+  NoneClaim,
+  ReferenceClaim,
+  StringClaim,
+  TimeClaim,
+  TimeIntervalClaim,
+  UnknownClaim,
+} from "@/document"
+import { changeFrom, RemoveClaimChange, SetClaimChange } from "@/document/patch"
 import { getNextChangeNumberKey, registerForFlushKey, saveChangeKey, unregisterForFlushKey } from "@/fields"
+import { classifyLink, LINK_CLASS_FILE } from "@/internal-links"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import FieldsForm from "@/partials/FieldsForm.vue"
@@ -57,6 +73,55 @@ const claimToAmountPrecision = ref("")
 const claimToTimePrecision = ref<TimePrecision>("y")
 const claimFormError = ref("")
 const sessionError = ref("")
+// Null in add mode; the claim's ID in edit mode. Drives the form title,
+// the primary button label, and the onSubmit branch (SetClaimChange vs
+// makeAddClaimChange).
+const editingClaimId = ref<string | null>(null)
+// Locks the type tabs to a single type while editing. Decoupled from
+// editingClaimId so onEditClaim can briefly unlock the tabs (without
+// flipping the title back to "Add value") during the transition between
+// two edits of different types - see onEditClaim for the rationale.
+const lockedClaimType = ref<ClaimType | null>(null)
+// Controlled selected-index for the claim type TabGroup so onEditClaim
+// can switch to the tab matching the edited claim's type.
+const selectedClaimTab = computed(() => {
+  const idx = claimTypes.indexOf(claimType.value)
+  return idx >= 0 ? idx : 0
+})
+
+function claimTypeLabel(type: ClaimType): string {
+  switch (type) {
+    case "id":
+      return t("views.DocumentEdit.claimTypes.identifier")
+    case "string":
+      return t("views.DocumentEdit.claimTypes.string")
+    case "html":
+      return t("views.DocumentEdit.claimTypes.html")
+    case "amount":
+      return t("views.DocumentEdit.claimTypes.amount")
+    case "amountInterval":
+      return t("views.DocumentEdit.claimTypes.amountInterval")
+    case "time":
+      return t("views.DocumentEdit.claimTypes.time")
+    case "timeInterval":
+      return t("views.DocumentEdit.claimTypes.timeInterval")
+    case "link":
+      return t("views.DocumentEdit.claimTypes.link")
+    case "file":
+      return t("views.DocumentEdit.claimTypes.file")
+    case "ref":
+      return t("views.DocumentEdit.claimTypes.reference")
+    case "has":
+      return t("views.DocumentEdit.claimTypes.has")
+    case "none":
+      return t("views.DocumentEdit.claimTypes.none")
+    case "unknown":
+      return t("views.DocumentEdit.claimTypes.unknown")
+    default:
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      throw new Error(`unsupported claim type: ${type}`)
+  }
+}
 
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
@@ -456,6 +521,9 @@ async function onSubmit() {
   }
 
   try {
+    const change = editingClaimId.value
+      ? new SetClaimChange({ id: editingClaimId.value, patch: makePatch() })
+      : await makeAddClaimChange(doc.value!.base, props.session, committedChange + 1, makePatch())
     await postJSON(
       router.apiResolve({
         name: "DocumentSaveChange",
@@ -464,7 +532,7 @@ async function onSubmit() {
         },
         query: encodeQuery({ change: String(committedChange + 1) }),
       }).href,
-      await makeAddClaimChange(doc.value!.base, props.session, committedChange + 1, makePatch()),
+      change,
       abortController.signal,
       null,
     )
@@ -489,15 +557,101 @@ function onReset() {
   // Here we reset registered input components.
   resetAll()
   claimFormError.value = ""
+  editingClaimId.value = null
+  lockedClaimType.value = null
 }
 
-function onEditClaim(id: string) {
+async function onEditClaim(id: string) {
   if (abortController.signal.aborted) {
     return
   }
+  if (!doc.value) {
+    return
+  }
 
-  // TODO: Implement.
-  console.log("edit", id)
+  const claim = doc.value.claims.GetByID(id)
+  if (!claim) {
+    return
+  }
+
+  // Unlock the tabs for one tick so every tab becomes enabled before the
+  // new selected-index change lands. Headless UI's TabGroup resolves its
+  // selected-index against each tab's DOM disabled attribute via a pre-flush
+  // watcher, so if both the disabled state and selected-index change in the
+  // same render (transitioning between two different-typed edits), it sees
+  // the previous render's disabled state and pins the panel to the prior
+  // type. lockedClaimType is decoupled from editingClaimId so the title and
+  // primary-button label do not flip back to "Add value" during this gap.
+  lockedClaimType.value = null
+  await nextTick()
+
+  // Start from a clean slate so stale fields from a prior add/edit do not
+  // leak into the patch sent on save.
+  resetAll()
+  claimFormError.value = ""
+
+  if (claim instanceof IdentifierClaim) {
+    claimType.value = "id"
+    claimProp.value = claim.prop.id
+    claimValue.value = claim.value
+  } else if (claim instanceof StringClaim) {
+    claimType.value = "string"
+    claimProp.value = claim.prop.id
+    claimValue.value = claim.string
+  } else if (claim instanceof HTMLClaim) {
+    claimType.value = "html"
+    claimProp.value = claim.prop.id
+    claimValue.value = claim.html
+  } else if (claim instanceof AmountClaim) {
+    claimType.value = "amount"
+    claimProp.value = claim.prop.id
+    claimValue.value = claim.amount
+    claimAmountPrecision.value = String(claim.precision)
+  } else if (claim instanceof AmountIntervalClaim) {
+    claimType.value = "amountInterval"
+    claimProp.value = claim.prop.id
+    claimFrom.value = claim.from ?? ""
+    claimFromAmountPrecision.value = claim.fromPrecision !== undefined ? String(claim.fromPrecision) : ""
+    claimTo.value = claim.to ?? ""
+    claimToAmountPrecision.value = claim.toPrecision !== undefined ? String(claim.toPrecision) : ""
+  } else if (claim instanceof TimeClaim) {
+    claimType.value = "time"
+    claimProp.value = claim.prop.id
+    claimValue.value = claim.time
+    claimTimePrecision.value = claim.precision
+  } else if (claim instanceof TimeIntervalClaim) {
+    claimType.value = "timeInterval"
+    claimProp.value = claim.prop.id
+    claimFrom.value = claim.from ?? ""
+    claimFromTimePrecision.value = claim.fromPrecision ?? "y"
+    claimTo.value = claim.to ?? ""
+    claimToTimePrecision.value = claim.toPrecision ?? "y"
+  } else if (claim instanceof LinkClaim) {
+    // A LinkClaim pointing at a StorageGet URL is what the "file" tab
+    // produces on add; route it back to that tab so editing matches the
+    // affordance the user originally used.
+    claimType.value = classifyLink(claim.iri, router).includes(LINK_CLASS_FILE) ? "file" : "link"
+    claimProp.value = claim.prop.id
+    claimValue.value = claim.iri
+  } else if (claim instanceof ReferenceClaim) {
+    claimType.value = "ref"
+    claimProp.value = claim.prop.id
+    claimValue.value = claim.to.id
+  } else if (claim instanceof HasClaim) {
+    claimType.value = "has"
+    claimProp.value = claim.prop.id
+  } else if (claim instanceof NoneClaim) {
+    claimType.value = "none"
+    claimProp.value = claim.prop.id
+  } else if (claim instanceof UnknownClaim) {
+    claimType.value = "unknown"
+    claimProp.value = claim.prop.id
+  } else {
+    throw new Error("unsupported claim type")
+  }
+
+  editingClaimId.value = id
+  lockedClaimType.value = claimType.value
 }
 
 async function onRemoveClaim(id: string) {
@@ -597,60 +751,15 @@ function canSave(): boolean {
                 </tbody>
               </table>
               <form ref="claimFormRef" @submit.prevent="onSubmit" @reset="onReset">
-                <h2 class="mt-4 text-xl font-bold drop-shadow-xs">{{ t("views.DocumentEdit.addClaim") }}</h2>
-                <TabGroup @change="onChangeClaimTab">
+                <h2 class="mt-4 text-xl font-bold drop-shadow-xs">{{ editingClaimId ? t("views.DocumentEdit.editClaim") : t("views.DocumentEdit.addClaim") }}</h2>
+                <TabGroup :selected-index="selectedClaimTab" @change="onChangeClaimTab">
                   <TabList class="mt-4 flex border-collapse flex-row border border-gray-200 bg-slate-100">
                     <Tab
-                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                      >{{ t("views.DocumentEdit.claimTypes.identifier") }}</Tab
-                    >
-                    <Tab
-                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                      >{{ t("views.DocumentEdit.claimTypes.string") }}</Tab
-                    >
-                    <Tab
-                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                      >{{ t("views.DocumentEdit.claimTypes.html") }}</Tab
-                    >
-                    <Tab
-                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                      >{{ t("views.DocumentEdit.claimTypes.amount") }}</Tab
-                    >
-                    <Tab
-                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                      >{{ t("views.DocumentEdit.claimTypes.amountInterval") }}</Tab
-                    >
-                    <Tab
-                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                      >{{ t("views.DocumentEdit.claimTypes.time") }}</Tab
-                    >
-                    <Tab
-                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                      >{{ t("views.DocumentEdit.claimTypes.timeInterval") }}</Tab
-                    >
-                    <Tab
-                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                      >{{ t("views.DocumentEdit.claimTypes.link") }}</Tab
-                    >
-                    <Tab
-                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                      >{{ t("views.DocumentEdit.claimTypes.file") }}</Tab
-                    >
-                    <Tab
-                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                      >{{ t("views.DocumentEdit.claimTypes.reference") }}</Tab
-                    >
-                    <Tab
-                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                      >{{ t("views.DocumentEdit.claimTypes.has") }}</Tab
-                    >
-                    <Tab
-                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                      >{{ t("views.DocumentEdit.claimTypes.none") }}</Tab
-                    >
-                    <Tab
-                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                      >{{ t("views.DocumentEdit.claimTypes.unknown") }}</Tab
+                      v-for="type in claimTypes"
+                      :key="type"
+                      :disabled="lockedClaimType !== null && lockedClaimType !== type"
+                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-selected:bg-white"
+                      >{{ claimTypeLabel(type) }}</Tab
                     >
                   </TabList>
                   <TabPanels as="template">
@@ -811,7 +920,7 @@ function canSave(): boolean {
                 <div v-if="claimFormError" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
                 <div class="mt-4 flex flex-row justify-end gap-4">
                   <Button type="reset">{{ t("common.buttons.cancel") }}</Button>
-                  <Button type="submit">{{ t("common.buttons.add") }}</Button>
+                  <Button type="submit">{{ editingClaimId ? t("common.buttons.update") : t("common.buttons.add") }}</Button>
                 </div>
               </form>
             </TabPanel>

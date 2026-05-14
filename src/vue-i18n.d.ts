@@ -19,7 +19,9 @@ declare module "vue-i18n" {
         upload: string
         edit: string
         save: string
+        discard: string
         add: string
+        update: string
         clear: string
         remove: string
         loadCountMore: string
@@ -189,6 +191,7 @@ declare module "vue-i18n" {
           allProperties: string
         }
         addClaim: string
+        editClaim: string
         claimTypes: {
           identifier: string
           string: string
