@@ -14,7 +14,6 @@ const linkClasses = computed(() => classifyLink(props.iri, router))
 
 const internalPath = computed<string | null>(() => {
   if (!linkClasses.value.includes(LINK_CLASS_INTERNAL)) return null
-  if (linkClasses.value.includes(LINK_CLASS_INTERNAL_NOVIEW)) return null
   try {
     const url = new URL(props.iri, window.location.href)
     return url.pathname + url.search + url.hash
@@ -22,13 +21,17 @@ const internalPath = computed<string | null>(() => {
     return null
   }
 })
+
+const internalNoView = computed(() => linkClasses.value.includes(LINK_CLASS_INTERNAL_NOVIEW))
 </script>
 
 <template>
-  <RouterLink v-if="internalPath" :to="internalPath" class="link break-all" :class="linkClasses"
-    ><slot>{{ iri }}</slot></RouterLink
+  <!-- We use RouterLink for internal links with view. -->
+  <RouterLink v-if="internalPath && !internalNoView" :to="internalPath" class="link break-all" :class="linkClasses"
+    ><slot>{{ internalPath }}</slot></RouterLink
   >
-  <a v-else :href="iri" class="link break-all" :class="linkClasses"
-    ><slot>{{ iri }}</slot></a
+  <!-- We use a for internal links without view and external links. -->
+  <a v-else :href="internalPath || iri" class="link break-all" :class="linkClasses"
+    ><slot>{{ internalPath || iri }}</slot></a
   >
 </template>
