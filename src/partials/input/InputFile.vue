@@ -69,10 +69,12 @@ const browseButtonRef = useTemplateRef<ComponentPublicInstance>("browseButtonRef
 const isDragOver = ref(false)
 
 // A file value is invalid if no file has been uploaded. Only checked when
-// required; otherwise an empty value is allowed.
+// required; otherwise an empty value is allowed. Skipped on initial so a
+// freshly mounted empty required field is not flagged before the user has
+// interacted.
 // eslint-disable-next-line @typescript-eslint/require-await
-const validator: ValidatorFn<string> = async function (value) {
-  if (!props.required) {
+const validator: ValidatorFn<string> = async function (value, options) {
+  if (!props.required || options.initial) {
     return []
   }
   // TODO: Use standard codes.

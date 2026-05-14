@@ -21,15 +21,18 @@ const errors = defineModel<ValidationError[]>("errors", { default: () => [] })
 // constructor. As a side effect of validation the model is normalized to the
 // re-stringified URL (so "https://Example.com" becomes "https://example.com/",
 // surrounding whitespace is stripped, etc.). The normalization is gated on
-// !eager so the user is not fighting the input while typing.
+// !eager so the user is not fighting the input while typing, and on !initial
+// so the field is not mutated before the user has interacted. The required
+// check is also skipped on initial, but URL-parse failure is still reported
+// so a pre-populated invalid link surfaces immediately.
 // eslint-disable-next-line @typescript-eslint/require-await
 const validator: ValidatorFn<string> = async function (value, options) {
   const trimmed = value.trim()
   if (trimmed === "") {
-    if (!options.eager && trimmed !== model.value) {
+    if (!options.eager && !options.initial && trimmed !== model.value) {
       model.value = trimmed
     }
-    if (!props.required) {
+    if (!props.required || options.initial) {
       return []
     }
     // TODO: Use standard codes.
@@ -49,7 +52,7 @@ const validator: ValidatorFn<string> = async function (value, options) {
       },
     ]
   }
-  if (!options.eager && normalized !== model.value) {
+  if (!options.eager && !options.initial && normalized !== model.value) {
     model.value = normalized
   }
   return []

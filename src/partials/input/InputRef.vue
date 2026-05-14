@@ -110,10 +110,12 @@ const wrapperRef = useTemplateRef<HTMLElement>("wrapperRef")
 const comboboxInputRef = useTemplateRef<ComponentPublicInstance>("comboboxInputRef")
 
 // A reference is invalid if no document is selected. Only checked when
-// required; otherwise empty selection is allowed.
+// required; otherwise empty selection is allowed. Skipped on initial so a
+// freshly mounted empty required field is not flagged before the user has
+// interacted.
 // eslint-disable-next-line @typescript-eslint/require-await
-const validator: ValidatorFn<string> = async function (value) {
-  if (!props.required) {
+const validator: ValidatorFn<string> = async function (value, options) {
+  if (!props.required || options.initial) {
     return []
   }
   // TODO: Use standard codes.

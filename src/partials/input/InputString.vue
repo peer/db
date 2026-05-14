@@ -17,10 +17,12 @@ const props = withDefaults(
 const model = defineModel<string>({ default: "" })
 const errors = defineModel<ValidationError[]>("errors", { default: () => [] })
 
-// A string invalid if it is empty after trimming.
+// A string invalid if it is empty after trimming. The required check is
+// skipped on initial so a freshly mounted empty field is not flagged before
+// the user has interacted.
 // eslint-disable-next-line @typescript-eslint/require-await
-const validator: ValidatorFn<string> = async function (value) {
-  if (!props.required) {
+const validator: ValidatorFn<string> = async function (value, options) {
+  if (!props.required || options.initial) {
     return []
   }
   // TODO: Use standard codes.

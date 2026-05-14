@@ -116,24 +116,30 @@ export function useValidation<T>(
   validatorGetter: () => ValidatorFn<T> | undefined,
   el: () => HTMLElement | null,
 ): {
-  runValidation: (options?: { signal?: AbortSignal; eager?: boolean }) => Promise<void>
+  runValidation: (options?: { signal?: AbortSignal; eager?: boolean; initial?: boolean }) => Promise<void>
   validatedInput: ValidatedInput
 } {
   let validateAbortController: AbortController | null = null
-  let inFlight: { value: T; validator: ValidatorFn<T>; eager: boolean; promise: Promise<void> } | null = null
-  let lastValidated: { value: T; validator: ValidatorFn<T>; eager: boolean } | null = null
+  let inFlight: { value: T; validator: ValidatorFn<T>; eager: boolean; initial: boolean; promise: Promise<void> } | null = null
+  let lastValidated: { value: T; validator: ValidatorFn<T>; eager: boolean; initial: boolean } | null = null
 
   onBeforeUnmount(() => {
     validateAbortController?.abort()
   })
 
   // Only treat an entry as covering a request when the value, validator, and
-  // mode all match. We don't assume a lazy result is strictly stronger than
-  // an eager one, because a validator's behavior under each mode is opaque to
-  // us; a mode mismatch always re-runs.
-  function entryCovers(entry: { value: T; validator: ValidatorFn<T>; eager: boolean } | null, value: T, validator: ValidatorFn<T>, eager: boolean): boolean {
+  // mode flags all match. We don't assume a result from one mode is strictly
+  // stronger than another, because a validator's behavior under each mode is
+  // opaque to us; any mode mismatch always re-runs.
+  function entryCovers(
+    entry: { value: T; validator: ValidatorFn<T>; eager: boolean; initial: boolean } | null,
+    value: T,
+    validator: ValidatorFn<T>,
+    eager: boolean,
+    initial: boolean,
+  ): boolean {
     if (!entry) return false
-    return entry.value === value && entry.validator === validator && entry.eager === eager
+    return entry.value === value && entry.validator === validator && entry.eager === eager && entry.initial === initial
   }
 
   // internalValidation uses abort-and-restart: every call aborts any prior in-flight
@@ -141,18 +147,19 @@ export function useValidation<T>(
   // result to errors.value and records lastValidated as a cache marker. On abort the
   // IIFE throws ValidationAbortedError so callers awaiting inFlight.promise can
   // distinguish validator aborts from real validator errors.
-  function internalValidation(options?: { signal?: AbortSignal; eager?: boolean }): Promise<void> | null {
+  function internalValidation(options?: { signal?: AbortSignal; eager?: boolean; initial?: boolean }): Promise<void> | null {
     const validator = validatorGetter()
     if (!validator) return null
     const initialValue = model.value
     const eager = options?.eager ?? false
+    const initial = options?.initial ?? false
 
     // Already have a result for this exact (value, validator, mode) in errors.value.
-    if (entryCovers(lastValidated, initialValue, validator, eager)) {
+    if (entryCovers(lastValidated, initialValue, validator, eager, initial)) {
       return null
     }
     // Already running the validator for this exact (value, validator, mode): join the in-flight call.
-    if (entryCovers(inFlight, initialValue, validator, eager)) {
+    if (entryCovers(inFlight, initialValue, validator, eager, initial)) {
       // The non-null assertion is safe: entryCovers returns false when entry is null.
       return inFlight!.promise
     }
@@ -173,17 +180,17 @@ export function useValidation<T>(
       try {
         let value = initialValue
         // Validators may mutate model.value as a side effect (ideally gated on
-        // !eager). If that happens, the cached errors and lastValidated marker
-        // would be for the pre-mutation value while the model now holds something
-        // that has not been validated, so re-run with the new value until model
-        // stabilises. A validator that keeps mutating model never terminates
-        // here - that is a validator bug.
+        // !eager && !initial). If that happens, the cached errors and
+        // lastValidated marker would be for the pre-mutation value while the
+        // model now holds something that has not been validated, so re-run
+        // with the new value until model stabilises. A validator that keeps
+        // mutating model never terminates here - that is a validator bug.
         while (true) {
           let result: ValidationError[]
           try {
             // We do not reuse passed options object, but reconstruct it so that
             // it is a new object and we control exactly what is being passed.
-            result = await validator(value, { signal, eager })
+            result = await validator(value, { signal, eager, initial })
           } catch (err) {
             if (signal.aborted) {
               throw new ValidationAbortedError()
@@ -195,7 +202,7 @@ export function useValidation<T>(
           }
 
           errors.value = result
-          lastValidated = { value, validator, eager }
+          lastValidated = { value, validator, eager, initial }
 
           if (model.value === value) {
             break
@@ -217,7 +224,7 @@ export function useValidation<T>(
       }
     })()
 
-    inFlight = { value: initialValue, validator, eager, promise }
+    inFlight = { value: initialValue, validator, eager, initial, promise }
 
     return promise
   }
@@ -281,8 +288,10 @@ export function useValidation<T>(
   // options.signal is generally not needed because useValidation already has
   // its own abort controller tied to the component's lifecycle.
   // options.eager forwards to the validator so it can skip model-mutating
-  // side effects (e.g. while the user is mid-typing).
-  async function runValidation(options?: { signal?: AbortSignal; eager?: boolean }): Promise<void> {
+  // side effects (e.g. while the user is mid-typing). options.initial
+  // forwards to the validator so it can skip both side effects and the
+  // required check on the first run before any user interaction.
+  async function runValidation(options?: { signal?: AbortSignal; eager?: boolean; initial?: boolean }): Promise<void> {
     const waitFor = internalValidation(options)
     if (!waitFor) {
       // runValidation declined to run.
@@ -301,16 +310,29 @@ export function useValidation<T>(
     }
   }
 
-  // Lazy by default; once invalid, re-validate eagerly on every model change so
-  // the error clears the moment the user fixes it. Once errors empty again the
-  // guard falls back to false and we return to lazy. The eager flag is passed
-  // to the validator so it can skip model-mutating side effects (e.g. trimming
-  // whitespace while the user is still typing).
-  watch(model, async () => {
-    if (errors.value.length > 0) {
-      await runValidation({ eager: true })
-    }
-  })
+  // Immediate so the very first invocation runs on mount with initial=true,
+  // letting validators surface structural errors on a pre-populated value
+  // (e.g. an invalid URL) without yelling "required" before the user has
+  // interacted. After that, lazy by default; once invalid, re-validate
+  // eagerly on every model change so the error clears the moment the user
+  // fixes it. Once errors empty again the guard falls back to false and we
+  // return to lazy. The eager/initial flags are passed to the validator so
+  // it can skip model-mutating side effects.
+  let firstRun = true
+  watch(
+    model,
+    async () => {
+      if (firstRun) {
+        firstRun = false
+        await runValidation({ initial: true })
+        return
+      }
+      if (errors.value.length > 0) {
+        await runValidation({ eager: true })
+      }
+    },
+    { immediate: true },
+  )
 
   const validatedInput: ValidatedInput = {
     validate,

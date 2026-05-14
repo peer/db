@@ -340,7 +340,14 @@ export type ValidateFn = (signal?: AbortSignal) => Promise<ValidationError[]>
 // runValidation directly. Validators with side effects on the model (e.g.
 // trimming whitespace) should gate those effects on !options.eager so the
 // user is not fighting the input while typing.
-export type ValidatorFn<T> = (value: T, options: { signal: AbortSignal; eager: boolean }) => Promise<ValidationError[]>
+//
+// options.initial is true on the very first validator invocation (triggered
+// by the immediate model watcher on mount) and false on every subsequent
+// call. On initial, validators should report structural errors (e.g. URL
+// parse failure) so a pre-populated invalid value is surfaced immediately,
+// but should skip the required check (the user has not interacted yet) and
+// skip any model-mutating side effects.
+export type ValidatorFn<T> = (value: T, options: { signal: AbortSignal; eager: boolean; initial: boolean }) => Promise<ValidationError[]>
 
 // What an input registers with a parent so the parent can validate it and
 // resolve focus targets. el returns the input's default focus target, used
