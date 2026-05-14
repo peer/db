@@ -6,7 +6,6 @@ import type { FieldsFormSaveChange, FlushFn } from "@/fields"
 import type { DocumentBeginMetadata, DocumentEditStatus, DocumentEndEditResponse } from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
-import { CheckIcon } from "@heroicons/vue/20/solid"
 import { onBeforeUnmount, provide, readonly, ref, toRef, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
@@ -347,6 +346,50 @@ async function onSave() {
   }
 }
 
+async function onDiscard() {
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  // Stop polling for changes before discarding the session by aborting and creating a fresh controller.
+  // The fresh controller is needed for the discard request itself.
+  abortController.abort()
+  abortController = new AbortController()
+
+  saveBusy.value += 1
+  try {
+    await postJSON(
+      router.apiResolve({
+        name: "DocumentDiscardEdit",
+        params: {
+          session: props.session,
+        },
+      }).href,
+      {},
+      abortController.signal,
+      saveBusy,
+    )
+    if (abortController.signal.aborted) {
+      return
+    }
+
+    await router.push({
+      name: "DocumentGet",
+      params: {
+        id: props.id,
+      },
+    })
+  } catch (err) {
+    if (abortController.signal.aborted) {
+      return
+    }
+    // TODO: Show notification with error.
+    console.error("DocumentEdit.onDiscard", err)
+  } finally {
+    saveBusy.value -= 1
+  }
+}
+
 function makePatch(): object {
   // The "file" value type produces a "link" claim with an IRI obtained from the file upload.
   const backendType = claimType.value === "file" ? "link" : claimType.value
@@ -479,20 +522,6 @@ function canSave(): boolean {
     <NavBar>
       <template #start>
         <NavBarSearch />
-      </template>
-      <template #end>
-        <Button
-          v-if="doc && (siteContext.features.editButtons || (classTabId && mergedFieldsData))"
-          :progress="saveBusy"
-          type="button"
-          primary
-          class="px-3.5"
-          :disabled="!canSave()"
-          @click.prevent="onSave"
-        >
-          <CheckIcon class="size-5 sm:hidden" :alt="t('common.buttons.save')" />
-          <span class="hidden sm:inline">{{ t("common.buttons.save") }}</span>
-        </Button>
       </template>
     </NavBar>
   </Teleport>
@@ -748,7 +777,8 @@ function canSave(): boolean {
             </TabPanel>
           </TabPanels>
         </TabGroup>
-        <div class="mt-4 flex flex-row justify-end">
+        <div class="mt-4 flex flex-row justify-between gap-4">
+          <Button id="documentedit-button-discard" type="button" :progress="saveBusy" @click.prevent="onDiscard">{{ t("common.buttons.discard") }}</Button>
           <Button id="documentedit-button-save" type="submit" primary :disabled="!canSave()" :progress="saveBusy" @click.prevent="onSave">{{
             t("common.buttons.save")
           }}</Button>
