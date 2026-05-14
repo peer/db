@@ -433,7 +433,7 @@ function makePatch(): object {
   }
 }
 
-async function onAddClaim() {
+async function onSubmit() {
   if (abortController.signal.aborted) {
     return
   }
@@ -568,212 +568,222 @@ function canSave(): boolean {
                   <PropertiesRows :claims="doc.claims" editable @edit-claim="onEditClaim" @remove-claim="onRemoveClaim" />
                 </tbody>
               </table>
-              <h2 class="mt-4 text-xl font-bold drop-shadow-xs">{{ t("views.DocumentEdit.addClaim") }}</h2>
-              <TabGroup @change="onChangeAddClaimTab">
-                <TabList class="mt-4 flex border-collapse flex-row border border-gray-200 bg-slate-100">
-                  <Tab
-                    class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                    >{{ t("views.DocumentEdit.claimTypes.identifier") }}</Tab
-                  >
-                  <Tab
-                    class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                    >{{ t("views.DocumentEdit.claimTypes.string") }}</Tab
-                  >
-                  <Tab
-                    class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                    >{{ t("views.DocumentEdit.claimTypes.html") }}</Tab
-                  >
-                  <Tab
-                    class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                    >{{ t("views.DocumentEdit.claimTypes.amount") }}</Tab
-                  >
-                  <Tab
-                    class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                    >{{ t("views.DocumentEdit.claimTypes.amountInterval") }}</Tab
-                  >
-                  <Tab
-                    class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                    >{{ t("views.DocumentEdit.claimTypes.time") }}</Tab
-                  >
-                  <Tab
-                    class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                    >{{ t("views.DocumentEdit.claimTypes.timeInterval") }}</Tab
-                  >
-                  <Tab
-                    class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                    >{{ t("views.DocumentEdit.claimTypes.link") }}</Tab
-                  >
-                  <Tab
-                    class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                    >{{ t("views.DocumentEdit.claimTypes.file") }}</Tab
-                  >
-                  <Tab
-                    class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                    >{{ t("views.DocumentEdit.claimTypes.reference") }}</Tab
-                  >
-                  <Tab
-                    class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                    >{{ t("views.DocumentEdit.claimTypes.has") }}</Tab
-                  >
-                  <Tab
-                    class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                    >{{ t("views.DocumentEdit.claimTypes.none") }}</Tab
-                  >
-                  <Tab
-                    class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                    >{{ t("views.DocumentEdit.claimTypes.unknown") }}</Tab
-                  >
-                </TabList>
-                <TabPanels as="template">
-                  <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
-                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                    <label for="identifier-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputRef id="identifier-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                    <label for="identifier-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.identifier") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputIdentifier id="identifier-value" v-bind="errorProps" v-model="claimValue" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                  </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                    <label for="string-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputRef id="string-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                    <label for="string-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.string") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputString id="string-value" v-bind="errorProps" v-model="claimValue" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                  </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                    <label for="html-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputRef id="html-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                    <label for="html-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.html") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputHTML id="html-value" v-bind="errorProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                  </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                    <label for="amount-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputRef id="amount-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                    <label for="amount-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.amount") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputString id="amount-value" v-bind="errorProps" v-model="claimValue" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                    <label for="amount-precision" class="mt-4 mb-1">{{ t("common.labels.precision") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputString id="amount-precision" v-bind="errorProps" v-model="claimAmountPrecision" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                  </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                    <label for="amountInterval-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputRef id="amountInterval-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                    <label for="amountInterval-from" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.from") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputString id="amountInterval-from" v-bind="errorProps" v-model="claimFrom" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                    <label for="amountInterval-fromPrecision" class="mt-4 mb-1">{{ t("common.labels.precision") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputString
-                        id="amountInterval-fromPrecision"
-                        v-bind="errorProps"
-                        v-model="claimFromAmountPrecision"
-                        :required="true"
-                        class="min-w-0 flex-auto grow"
-                      />
-                    </InputErrors>
-                    <label for="amountInterval-to" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.to") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputString id="amountInterval-to" v-bind="errorProps" v-model="claimTo" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                    <label for="amountInterval-toPrecision" class="mt-4 mb-1">{{ t("common.labels.precision") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputString id="amountInterval-toPrecision" v-bind="errorProps" v-model="claimToAmountPrecision" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                  </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                    <label for="time-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputRef id="time-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                    <InputErrors v-slot="errorProps">
-                      <InputTime v-bind="errorProps" v-model="claimValue" v-model:precision="claimTimePrecision" class="mt-4 min-w-0 flex-auto grow" />
-                    </InputErrors>
-                  </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                    <label for="timeInterval-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputRef id="timeInterval-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                    <InputErrors v-slot="errorProps">
-                      <InputTime v-bind="errorProps" v-model="claimFrom" v-model:precision="claimFromTimePrecision" class="mt-4 min-w-0 flex-auto grow">
-                        <template #time-label>{{ t("views.DocumentEdit.labels.from") }}</template>
-                      </InputTime>
-                    </InputErrors>
-                    <InputErrors v-slot="errorProps">
-                      <InputTime v-bind="errorProps" v-model="claimTo" v-model:precision="claimToTimePrecision" class="mt-4 min-w-0 flex-auto grow">
-                        <template #time-label>{{ t("views.DocumentEdit.labels.to") }}</template>
-                      </InputTime>
-                    </InputErrors>
-                  </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                    <label for="link-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputRef id="link-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                    <label for="link-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.iri") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputLink id="link-value" v-bind="errorProps" v-model="claimValue" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                  </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                    <label for="file-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputRef id="file-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                    <label class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.file") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputFile v-bind="errorProps" v-model="claimValue" :required="true" />
-                    </InputErrors>
-                  </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                    <label for="reference-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputRef id="reference-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                    <label for="reference-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.to") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputRef id="reference-value" v-bind="errorProps" v-model="claimValue" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                  </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                    <label for="has-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputRef id="has-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                  </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                    <label for="none-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputRef id="none-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                  </TabPanel>
-                  <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                    <label for="unknown-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
-                    <InputErrors v-slot="errorProps">
-                      <InputRef id="unknown-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
-                    </InputErrors>
-                  </TabPanel>
-                </TabPanels>
-              </TabGroup>
-              <Button type="button" class="mt-6" @click.prevent="onAddClaim">{{ t("common.buttons.add") }}</Button>
+              <form @submit.prevent="onSubmit">
+                <h2 class="mt-4 text-xl font-bold drop-shadow-xs">{{ t("views.DocumentEdit.addClaim") }}</h2>
+                <TabGroup @change="onChangeAddClaimTab">
+                  <TabList class="mt-4 flex border-collapse flex-row border border-gray-200 bg-slate-100">
+                    <Tab
+                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                      >{{ t("views.DocumentEdit.claimTypes.identifier") }}</Tab
+                    >
+                    <Tab
+                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                      >{{ t("views.DocumentEdit.claimTypes.string") }}</Tab
+                    >
+                    <Tab
+                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                      >{{ t("views.DocumentEdit.claimTypes.html") }}</Tab
+                    >
+                    <Tab
+                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                      >{{ t("views.DocumentEdit.claimTypes.amount") }}</Tab
+                    >
+                    <Tab
+                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                      >{{ t("views.DocumentEdit.claimTypes.amountInterval") }}</Tab
+                    >
+                    <Tab
+                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                      >{{ t("views.DocumentEdit.claimTypes.time") }}</Tab
+                    >
+                    <Tab
+                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                      >{{ t("views.DocumentEdit.claimTypes.timeInterval") }}</Tab
+                    >
+                    <Tab
+                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                      >{{ t("views.DocumentEdit.claimTypes.link") }}</Tab
+                    >
+                    <Tab
+                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                      >{{ t("views.DocumentEdit.claimTypes.file") }}</Tab
+                    >
+                    <Tab
+                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                      >{{ t("views.DocumentEdit.claimTypes.reference") }}</Tab
+                    >
+                    <Tab
+                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                      >{{ t("views.DocumentEdit.claimTypes.has") }}</Tab
+                    >
+                    <Tab
+                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                      >{{ t("views.DocumentEdit.claimTypes.none") }}</Tab
+                    >
+                    <Tab
+                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                      >{{ t("views.DocumentEdit.claimTypes.unknown") }}</Tab
+                    >
+                  </TabList>
+                  <TabPanels as="template">
+                    <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <label for="identifier-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputRef id="identifier-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                      <label for="identifier-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.identifier") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputIdentifier id="identifier-value" v-bind="errorProps" v-model="claimValue" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                    </TabPanel>
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <label for="string-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputRef id="string-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                      <label for="string-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.string") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputString id="string-value" v-bind="errorProps" v-model="claimValue" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                    </TabPanel>
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <label for="html-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputRef id="html-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                      <label for="html-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.html") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputHTML id="html-value" v-bind="errorProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                    </TabPanel>
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <label for="amount-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputRef id="amount-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                      <label for="amount-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.amount") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputString id="amount-value" v-bind="errorProps" v-model="claimValue" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                      <label for="amount-precision" class="mt-4 mb-1">{{ t("common.labels.precision") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputString id="amount-precision" v-bind="errorProps" v-model="claimAmountPrecision" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                    </TabPanel>
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <label for="amountInterval-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputRef id="amountInterval-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                      <label for="amountInterval-from" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.from") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputString id="amountInterval-from" v-bind="errorProps" v-model="claimFrom" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                      <label for="amountInterval-fromPrecision" class="mt-4 mb-1">{{ t("common.labels.precision") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputString
+                          id="amountInterval-fromPrecision"
+                          v-bind="errorProps"
+                          v-model="claimFromAmountPrecision"
+                          :required="true"
+                          class="min-w-0 flex-auto grow"
+                        />
+                      </InputErrors>
+                      <label for="amountInterval-to" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.to") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputString id="amountInterval-to" v-bind="errorProps" v-model="claimTo" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                      <label for="amountInterval-toPrecision" class="mt-4 mb-1">{{ t("common.labels.precision") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputString
+                          id="amountInterval-toPrecision"
+                          v-bind="errorProps"
+                          v-model="claimToAmountPrecision"
+                          :required="true"
+                          class="min-w-0 flex-auto grow"
+                        />
+                      </InputErrors>
+                    </TabPanel>
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <label for="time-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputRef id="time-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                      <InputErrors v-slot="errorProps">
+                        <InputTime v-bind="errorProps" v-model="claimValue" v-model:precision="claimTimePrecision" class="mt-4 min-w-0 flex-auto grow" />
+                      </InputErrors>
+                    </TabPanel>
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <label for="timeInterval-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputRef id="timeInterval-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                      <InputErrors v-slot="errorProps">
+                        <InputTime v-bind="errorProps" v-model="claimFrom" v-model:precision="claimFromTimePrecision" class="mt-4 min-w-0 flex-auto grow">
+                          <template #time-label>{{ t("views.DocumentEdit.labels.from") }}</template>
+                        </InputTime>
+                      </InputErrors>
+                      <InputErrors v-slot="errorProps">
+                        <InputTime v-bind="errorProps" v-model="claimTo" v-model:precision="claimToTimePrecision" class="mt-4 min-w-0 flex-auto grow">
+                          <template #time-label>{{ t("views.DocumentEdit.labels.to") }}</template>
+                        </InputTime>
+                      </InputErrors>
+                    </TabPanel>
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <label for="link-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputRef id="link-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                      <label for="link-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.iri") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputLink id="link-value" v-bind="errorProps" v-model="claimValue" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                    </TabPanel>
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <label for="file-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputRef id="file-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                      <label class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.file") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputFile v-bind="errorProps" v-model="claimValue" :required="true" />
+                      </InputErrors>
+                    </TabPanel>
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <label for="reference-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputRef id="reference-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                      <label for="reference-value" class="mt-4 mb-1">{{ t("views.DocumentEdit.labels.to") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputRef id="reference-value" v-bind="errorProps" v-model="claimValue" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                    </TabPanel>
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <label for="has-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputRef id="has-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                    </TabPanel>
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <label for="none-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputRef id="none-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                    </TabPanel>
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <label for="unknown-property" class="mt-4 mb-1">{{ t("common.labels.property") }}</label>
+                      <InputErrors v-slot="errorProps">
+                        <InputRef id="unknown-property" v-bind="errorProps" v-model="claimProp" :required="true" class="min-w-0 flex-auto grow" />
+                      </InputErrors>
+                    </TabPanel>
+                  </TabPanels>
+                </TabGroup>
+                <div class="mt-4 flex flex-row justify-end">
+                  <Button type="submit">{{ t("common.buttons.add") }}</Button>
+                </div>
+              </form>
             </TabPanel>
           </TabPanels>
         </TabGroup>
