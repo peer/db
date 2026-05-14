@@ -28,7 +28,7 @@ import InputTime from "@/partials/input/InputTime.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
-import { pairCounters, useLock, useProgress } from "@/progress"
+import { localCounter, pairCounters, useLock, useProgress } from "@/progress"
 import { useDocumentFields } from "@/useDocumentFields"
 import { useParentClasses } from "@/useParentClasses"
 import { delay, encodeQuery, makeAddClaimChange } from "@/utils"
@@ -59,6 +59,11 @@ const router = useRouter()
 const lock = useLock()
 // And used together with progress for data loading.
 const busy = pairCounters(useProgress(), lock)
+// saveBusy is the writable handle for the Save buttons: a local count
+// drives the :progress visual (so it lights only during save, not during
+// initial data load which also writes to lock via busy), and writes
+// propagate into lock for descendant cascade.
+const saveBusy = localCounter(lock)
 
 const el = useTemplateRef<HTMLElement>("el")
 const displayLabelComponent = useTemplateRef<ComponentExposed<typeof DisplayLabel>>("displayLabelComponent")
@@ -274,7 +279,7 @@ async function onSave() {
   abortController.abort()
   abortController = new AbortController()
 
-  lock.value += 1
+  saveBusy.value += 1
   try {
     await postJSON<DocumentEndEditResponse>(
       router.apiResolve({
@@ -285,7 +290,7 @@ async function onSave() {
       }).href,
       {},
       abortController.signal,
-      lock,
+      saveBusy,
     )
     if (abortController.signal.aborted) {
       return
@@ -304,7 +309,7 @@ async function onSave() {
       if (abortController.signal.aborted) {
         return
       }
-      const { doc: status } = await getURLDirect<DocumentEditStatus>(editStatusURL, abortController.signal, lock)
+      const { doc: status } = await getURLDirect<DocumentEditStatus>(editStatusURL, abortController.signal, saveBusy)
       if (abortController.signal.aborted) {
         return
       }
@@ -334,7 +339,7 @@ async function onSave() {
     // TODO: Show notification with error.
     console.error("DocumentEdit.onSave", err)
   } finally {
-    lock.value -= 1
+    saveBusy.value -= 1
   }
 }
 
@@ -474,7 +479,7 @@ function canSave(): boolean {
       <template #end>
         <Button
           v-if="doc && (siteContext.features.editButtons || (classTabId && mergedFieldsData))"
-          :progress="lock"
+          :progress="saveBusy"
           type="button"
           primary
           class="px-3.5"
@@ -677,7 +682,7 @@ function canSave(): boolean {
           </TabPanels>
         </TabGroup>
         <div class="mt-4 flex flex-row justify-end">
-          <Button id="documentedit-button-save" type="submit" primary :disabled="!canSave()" :progress="lock" @click.prevent="onSave">{{
+          <Button id="documentedit-button-save" type="submit" primary :disabled="!canSave()" :progress="saveBusy" @click.prevent="onSave">{{
             t("common.buttons.save")
           }}</Button>
         </div>

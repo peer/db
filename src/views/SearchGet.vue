@@ -29,7 +29,7 @@ import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import SearchResultsFeed from "@/partials/SearchResultsFeed.vue"
 import SearchResultsTable from "@/partials/SearchResultsTable.vue"
-import { getParentLock, lockScope, useBusy } from "@/progress"
+import { getParentLock, localCounter, lockScope, useBusy } from "@/progress"
 import { updateSearchSession, useSearch, useSearchSession } from "@/search"
 import { uploadFile } from "@/upload"
 import { clone, redirectServerSide } from "@/utils"
@@ -46,8 +46,14 @@ const busy = useBusy()
 
 // Independent sub-scopes for the Create and Upload buttons.
 // getParentLock here reads from the ancestor's provides (above SearchGet).
+// The *Busy refs are the writable handles used in handlers and as the
+// button's :progress visual: writes update a local counter (for the
+// visual, isolated from any ancestor lock contributions) and propagate
+// into the lockScope for descendant cascade.
 const createLock = lockScope(getParentLock())
 const uploadLock = lockScope(getParentLock())
+const createBusy = localCounter(createLock)
+const uploadBusy = localCounter(uploadLock)
 function getCreateLock() {
   return createLock
 }
@@ -164,7 +170,7 @@ async function onCreate() {
     return
   }
 
-  createLock.value += 1
+  createBusy.value += 1
   try {
     const createResponse = await postJSON<DocumentCreateResponse>(
       router.apiResolve({
@@ -172,7 +178,7 @@ async function onCreate() {
       }).href,
       {},
       abortController.signal,
-      createLock,
+      createBusy,
     )
     if (abortController.signal.aborted) {
       return
@@ -186,7 +192,7 @@ async function onCreate() {
       }).href,
       {},
       abortController.signal,
-      createLock,
+      createBusy,
     )
     if (abortController.signal.aborted) {
       return
@@ -205,7 +211,7 @@ async function onCreate() {
     // TODO: Show notification with error.
     console.error("SearchResults.onCreate", err)
   } finally {
-    createLock.value -= 1
+    createBusy.value -= 1
   }
 }
 
@@ -223,9 +229,9 @@ async function onChange() {
   }
 
   for (const file of uploadEl.value?.files || []) {
-    uploadLock.value += 1
+    uploadBusy.value += 1
     try {
-      const fileId = await uploadFile(router, file, abortController.signal, uploadLock, null)
+      const fileId = await uploadFile(router, file, abortController.signal, uploadBusy, null)
       if (abortController.signal.aborted) {
         return
       }
@@ -239,7 +245,7 @@ async function onChange() {
       // TODO: Show notification with error.
       console.error("SearchResults.onChange", err)
     } finally {
-      uploadLock.value -= 1
+      uploadBusy.value -= 1
     }
 
     // TODO: Support uploading multiple files.
@@ -303,15 +309,15 @@ async function onDownloadFiles() {
       </template>
       <template #end>
         <template v-if="siteContext.features.editButtons">
-          <WithLock v-slot="{ lock }" :lock="getCreateLock">
-            <Button :progress="lock" type="button" primary class="px-3.5" @click.prevent="onCreate">
+          <WithLock :lock="getCreateLock">
+            <Button :progress="createBusy" type="button" primary class="px-3.5" @click.prevent="onCreate">
               <PlusIcon class="size-5 sm:hidden" :alt="t('common.buttons.create')" />
               <span class="hidden sm:inline">{{ t("common.buttons.create") }}</span>
             </Button>
           </WithLock>
-          <WithLock v-slot="{ lock }" :lock="getUploadLock">
+          <WithLock :lock="getUploadLock">
             <input ref="uploadEl" type="file" class="hidden" @change="onChange" />
-            <Button :progress="lock" type="button" primary class="px-3.5" @click.prevent="onUpload">
+            <Button :progress="uploadBusy" type="button" primary class="px-3.5" @click.prevent="onUpload">
               <ArrowUpTrayIcon class="size-5 sm:hidden" :alt="t('common.buttons.upload')" />
               <span class="hidden sm:inline">{{ t("common.buttons.upload") }}</span>
             </Button>

@@ -57,26 +57,6 @@ export function getRootProgress(): Ref<number> {
   return inject(rootProgressKey, ref(0))
 }
 
-// localProgress returns a reactive sub-counter chained into the provided
-// parentProgress. Reads return its own local count, writes update local and
-// bubble the same delta into parent. Several siblings chained on the same
-// parent independently track their own operations while all of them
-// contribute to the shared parent's counter.
-export function localProgress(parentProgress: Ref<number>): Ref<number> {
-  // This has to be a reactive variable otherwise things do not work
-  // as expected and parent can become negative for some reason.
-  const own = ref(0)
-  return computed({
-    get() {
-      return own.value
-    },
-    set(newValue) {
-      parentProgress.value += newValue - own.value
-      own.value = newValue
-    },
-  })
-}
-
 // useProgress creates a progress boundary at the current component. It
 // returns a reactive sub-counter chained on the inherited parent progress:
 // writes bubble up the chain to the root progress (the global loading bar),
@@ -86,10 +66,10 @@ export function localProgress(parentProgress: Ref<number>): Ref<number> {
 //
 // You should not call useProgress multiple times inside the same component
 // because the parent progress for descendants can be set only once. To hold
-// several independent per-operation counters, use localProgress in combination
+// several independent per-operation counters, use localCounter in combination
 // with getParentProgress yourself.
 export function useProgress(): Ref<number> {
-  const progress = localProgress(getParentProgress())
+  const progress = localCounter(getParentProgress())
   setParentProgress(progress)
   return progress
 }
@@ -173,4 +153,13 @@ export function pairCounters(first: Ref<number>, second: Ref<number>): Ref<numbe
       second.value += delta
     },
   })
+}
+
+// localCounter returns a reactive sub-counter chained into the provided
+// parent counter. Reads return its own local count, writes update local and
+// bubble the same delta into parent. Several siblings chained on the same
+// parent independently track their own operations while all of them
+// contribute to the shared parent's counter.
+export function localCounter(parent: Ref<number>): Ref<number> {
+  return pairCounters(ref(0), parent)
 }

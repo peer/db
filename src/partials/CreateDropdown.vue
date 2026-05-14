@@ -12,18 +12,17 @@ import Button from "@/components/Button.vue"
 import { CLASS, INSTANCE_OF } from "@/core"
 import { hasFields, isAbstractClass } from "@/fields"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
-import { pairCounters, useLock } from "@/progress"
+import { localCounter, useLock } from "@/progress"
 import { encodeQuery, makeAddClaimChange } from "@/utils"
 
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
-// progress is a local-only counter for the Create button's :progress
-// visual, so the in-button bar lights only when CreateDropdown is doing
-// its own work, not when an ancestor's lock cascades through.
-const progress = ref(0)
-// Data modification and controls.
-const busy = pairCounters(progress, useLock())
+// Data modification and controls. busy holds a local count that drives
+// the Create button's :progress visual; writes also propagate into the
+// useLock combined ref so descendants and the button itself cascade-lock,
+// but ancestor lock contributions are not reflected in the visual.
+const busy = localCounter(useLock())
 
 const abortController = new AbortController()
 
