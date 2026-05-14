@@ -68,6 +68,7 @@ declare module "vue-i18n" {
           dropOrBrowse: string
         }
         InputRef: {
+          invalidValue: string
           noResults: string
         }
         InputRefSelect: {

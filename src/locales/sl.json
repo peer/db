@@ -57,6 +57,7 @@
         "dropOrBrowse": "Spustite datoteko sem ali kliknite za brskanje"
       },
       "InputRef": {
+        "invalidValue": "neveljavna vrednost",
         "noResults": "Ni najdenih rezultatov."
       },
       "InputRefSelect": {

@@ -327,7 +327,36 @@ const WithPeerDBDocument = WithDocument<D>
           on the right; pr-9 is the narrower variant for readonly mode where
           Clear is hidden, leaving only the open-link icon.
         -->
-        <WithPeerDBDocument v-if="selectedDocument?.id && !editMode" :id="selectedDocument.id" name="DocumentGet">
+        <!--
+          Invalid value (non-empty + validation failed): do not attempt to
+          load the doc; show the red "invalid value" placeholder inside the
+          chip. The chip retains its click/focus to enter edit mode so the
+          user can search for a new doc, and the right-side Clear button
+          still works. Combined with the selectedDocument?.id guard,
+          invalid here can only mean the value failed the identifier-shape
+          check (the required check only fires on empty).
+        -->
+        <InputStyled
+          v-if="selectedDocument?.id && !editMode && invalid"
+          as="div"
+          role="textbox"
+          contenteditable="true"
+          :inactive="inactive"
+          :invalid="invalid"
+          :aria-readonly="inactive || undefined"
+          :aria-invalid="invalid || undefined"
+          class="w-full truncate"
+          :class="readonly ? '' : 'pr-23'"
+          @click="enterEditMode"
+          @focus="enterEditMode"
+          @beforeinput.prevent
+          @paste.prevent
+          @drop.prevent
+        >
+          <i class="text-error-600">{{ t("partials.input.InputRef.invalidValue") }}</i>
+        </InputStyled>
+
+        <WithPeerDBDocument v-else-if="selectedDocument?.id && !editMode" :id="selectedDocument.id" name="DocumentGet">
           <template #default="{ doc }">
             <InputStyled
               as="div"
@@ -438,7 +467,7 @@ const WithPeerDBDocument = WithDocument<D>
         -->
         <div class="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
           <template v-if="selectedDocument?.id">
-            <RouterLink v-if="!editMode" :to="{ name: 'DocumentGet', params: { id: selectedDocument.id } }" class="link">
+            <RouterLink v-if="!editMode && !invalid" :to="{ name: 'DocumentGet', params: { id: selectedDocument.id } }" class="link">
               <ArrowTopRightOnSquareIcon class="size-5" aria-hidden="true" />
             </RouterLink>
             <Button v-if="!readonly" type="button" class="px-2.5 py-1" @click.prevent="clearSelection">{{ t("common.buttons.clear") }}</Button>

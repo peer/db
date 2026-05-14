@@ -57,6 +57,7 @@
         "dropOrBrowse": "Drop file here or click to browse"
       },
       "InputRef": {
+        "invalidValue": "invalid value",
         "noResults": "No results found."
       },
       "InputRefSelect": {
