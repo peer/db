@@ -17,10 +17,10 @@ its DOM attributes without flickering how the component looks.
 
 <script setup lang="ts">
 import type { D } from "@/document"
-import type { Result } from "@/types"
+import type { Result, ValidationError, ValidatorFn } from "@/types"
 
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
-import { computed, onBeforeMount, onBeforeUnmount, ref, useId } from "vue"
+import { computed, onBeforeMount, onBeforeUnmount, ref, useId, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
@@ -28,30 +28,59 @@ import { postJSON } from "@/api"
 import RadioButton from "@/components/RadioButton.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
-import { useLocked, useProgress } from "@/progress"
+import { useLock, useProgress } from "@/progress"
 import { loadingWidth } from "@/utils"
+import { useValidation } from "@/validation"
 
 const props = withDefaults(
   defineProps<{
     readonly?: boolean
+    required?: boolean
   }>(),
   {
     readonly: false,
+    required: false,
   },
 )
 
 const model = defineModel<string>({ default: "" })
+const errors = defineModel<ValidationError[]>("errors", { default: () => [] })
 
 const baseId = useId()
 
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
-// Data loading only, no controls.
+// Data loading only on before mount.
 const progress = useProgress()
 
-const locked = useLocked()
-const inactive = computed(() => locked.value || props.readonly)
+// Data modification and controls; useValidation writes to this lock during
+// validation so the radios disable themselves while a validator is in flight.
+const lock = useLock()
+const inactive = computed(() => lock.value > 0 || props.readonly)
+
+const fieldsetRef = useTemplateRef<HTMLFieldSetElement>("fieldsetRef")
+
+// A reference is invalid if no document is selected.
+// eslint-disable-next-line @typescript-eslint/require-await
+const validator: ValidatorFn<string> = async function (value) {
+  if (!props.required) {
+    return []
+  }
+  // TODO: Use standard codes.
+  return value === "" ? [{ code: "required" }] : []
+}
+
+const { validatedInput } = useValidation(
+  model,
+  errors,
+  lock,
+  () => validator,
+  // The focus target is the first radio inside the fieldset.
+  () => fieldsetRef.value?.querySelector<HTMLInputElement>('input[type="radio"]') ?? null,
+)
+
+defineExpose(validatedInput)
 
 const abortController = new AbortController()
 const dataLoading = ref(true)
@@ -96,7 +125,7 @@ const WithPeerDBDocument = WithDocument<D>
 </script>
 
 <template>
-  <fieldset class="pd-inputrefselect" :aria-busy="dataLoading || undefined">
+  <fieldset ref="fieldsetRef" class="pd-inputrefselect" :aria-busy="dataLoading || undefined">
     <legend class="mb-1"><slot /></legend>
     <div class="grid grid-cols-[max-content_auto] gap-x-1 gap-y-0.5">
       <template v-if="dataLoading">
