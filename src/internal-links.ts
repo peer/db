@@ -66,6 +66,10 @@ function transformInternalHtml(html: string, router: Router): string {
     if (classes.length === 0) continue
 
     anchor.classList.add(...classes)
+
+    if (classes.includes(LINK_CLASS_EXTERNAL)) {
+      anchor.relList.add("noreferrer")
+    }
   }
 
   // TODO: Instead of transforming HTML string to another HTML string, just use insert the transformed DOM.
