@@ -92,11 +92,29 @@ const { runValidation, validatedInput } = useValidation(
 
 defineExpose(validatedInput)
 
+// Set right before .click() on the hidden file input; consumed by the next
+// blur on the browse Button. Clicking the Button to open the native picker
+// can cause the browser to dispatch a blur on the trigger (Chrome does this
+// when the picker takes focus), and we don't want that synthetic blur to
+// fire validation while the user is actively in the middle of providing a
+// value. The flag is also cleared on re-focus so it can never outlive its
+// purpose in browsers that keep focus on the Button during the picker.
+let openingPicker = false
+
 // Run lazy validation when focus leaves either of the visible elements (the
 // browse Button in empty state, or the Clear Button in uploaded state) so
-// the required error appears as soon as the user tabs/clicks away.
+// the required error appears as soon as the user tabs/clicks away. Skip
+// the one blur caused by opening the file picker.
 async function onBlur() {
+  if (openingPicker) {
+    openingPicker = false
+    return
+  }
   await runValidation()
+}
+
+function onBrowseFocus() {
+  openingPicker = false
 }
 
 const abortController = new AbortController()
@@ -160,6 +178,7 @@ async function onFileInputChange() {
 
 function onBrowse() {
   if (inactive.value) return
+  openingPicker = true
   fileInputEl.value?.click()
 }
 
@@ -226,6 +245,7 @@ async function onDrop(e: DragEvent) {
     @dragenter.prevent="onDragOver"
     @dragleave.prevent="onDragLeave"
     @drop.prevent="onDrop"
+    @focus="onBrowseFocus"
     @blur="onBlur"
     >{{ t("partials.input.InputFile.dropOrBrowse") }}</Button
   >
