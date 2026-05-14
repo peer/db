@@ -75,7 +75,12 @@ const el = useTemplateRef<HTMLElement>("el")
 const displayLabelComponent = useTemplateRef<ComponentExposed<typeof DisplayLabel>>("displayLabelComponent")
 const claimFormRef = useTemplateRef<HTMLFormElement>("claimFormRef")
 
-const { resetAll } = useValidationRegistry()
+const { resetAll } = useValidationRegistry(() => {
+  // Any registered-input interaction clears stale form-level errors so the
+  // user is not staring at an error message after they have moved on.
+  sessionError.value = ""
+  claimFormError.value = ""
+})
 
 let abortController = new AbortController()
 

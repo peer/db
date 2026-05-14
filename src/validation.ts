@@ -8,7 +8,12 @@ import { anySignal, raceWithSignal } from "@/utils"
 
 // During development, Vite can optimize dependencies and can duplicate imports and thus symbols.
 // So we use Symbol.for to make sure that symbols are deduplicated. Also symbol name is useful for debugging.
-export const registerForValidationKey: InjectionKey<(instance: ValidatedInput) => void> =
+//
+// registerForValidationKey returns a registration callback which in turn, when an
+// input registers, returns an input-scoped notifier the input can call when the user
+// interacts with it. The registry forwards that notification to its onInteraction
+// handler with the input's identity.
+export const registerForValidationKey: InjectionKey<(instance: ValidatedInput) => () => void> =
   process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-validation-register") : Symbol()
 export const unregisterForValidationKey: InjectionKey<(instance: ValidatedInput) => void> =
   process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-validation-unregister") : Symbol()
@@ -33,15 +38,29 @@ export function useMergedErrors(parentErrors: MaybeRefOrGetter<ValidationError[]
 // useRegisterForValidation is called by an input to make itself discoverable
 // by the nearest ancestor (one that called useValidationRegistry). It is
 // a no-op when there is no such ancestor, so inputs can be used without them.
-export function useRegisterForValidation(input: ValidatedInput): void {
+//
+// The returned onInteraction callback should be called when the user interacts
+// with this input.
+export function useRegisterForValidation(input: ValidatedInput): {
+  onInteraction: () => void
+} {
   const register = inject(registerForValidationKey, null)
   const unregister = inject(unregisterForValidationKey, null)
+  // The notifier is returned by register at mount time. Capture it in a
+  // closure variable so calls before mount (or after unmount) are no-ops.
+  let notify: (() => void) | null = null
   onMounted(() => {
-    register?.(input)
+    notify = register?.(input) ?? null
   })
   onBeforeUnmount(() => {
     unregister?.(input)
+    notify = null
   })
+  return {
+    onInteraction: () => {
+      notify?.()
+    },
+  }
 }
 
 // useValidationRegistry is called to collect validated inputs from all
@@ -49,23 +68,22 @@ export function useRegisterForValidation(input: ValidatedInput): void {
 // every input's validator in parallel and returns the flat list of errors.
 // resetAll restores every registered input to its initial state.
 //
+// onInteraction is called whenever a registered input notifies that the user
+// has interacted with it (e.g. to clear top-level errors). The triggering
+// input is passed through so callers can react per-input if needed.
+//
 // Validation registries nest transparently: if el getter is provided,
 // the registry self-registers as a ValidatedInput, so an outer validation
-// registry sees inner one as a single input whose validate is its validateAll
-// and whose reset is its resetAll. useRegisterForValidation is a no-op when
-// there is no outer registry.
-export function useValidationRegistry(el?: () => HTMLElement | null): {
+// registry sees inner one as a single input whose validate is its validateAll,
+// whose reset is its resetAll and onInteraction callbacks bubble up.
+export function useValidationRegistry(
+  onInteraction?: (input: ValidatedInput) => void,
+  el?: () => HTMLElement | null,
+): {
   validateAll: ValidateFn
   resetAll: () => void
 } {
   const inputs = new Set<ValidatedInput>()
-
-  provide(registerForValidationKey, (input: ValidatedInput) => {
-    inputs.add(input)
-  })
-  provide(unregisterForValidationKey, (input: ValidatedInput) => {
-    inputs.delete(input)
-  })
 
   const validateAll: ValidateFn = async function (signal?: AbortSignal): Promise<ValidationError[]> {
     const list = Array.from(inputs)
@@ -86,13 +104,33 @@ export function useValidationRegistry(el?: () => HTMLElement | null): {
     }
   }
 
+  // When el is provided, self-register so this sub-registry appears as one
+  // ValidatedInput in the outer registry (its validate/reset combine its
+  // descendants', its onInteraction notifier forwards inner interactions
+  // upward). In sink mode (no el), descendant interactions do not bubble
+  // out of this registry automatically - if the caller still wants
+  // forwarding, they register manually and call the returned onInteraction
+  // themselves.
+  let notifyUp: (() => void) | null = null
   if (el) {
-    useRegisterForValidation({
+    const { onInteraction: up } = useRegisterForValidation({
       el,
       validate: validateAll,
       reset: resetAll,
     })
+    notifyUp = up
   }
+
+  provide(registerForValidationKey, (input: ValidatedInput) => {
+    inputs.add(input)
+    return () => {
+      onInteraction?.(input)
+      notifyUp?.()
+    }
+  })
+  provide(unregisterForValidationKey, (input: ValidatedInput) => {
+    inputs.delete(input)
+  })
 
   return { validateAll, resetAll }
 }
@@ -119,6 +157,18 @@ export function focusFirstInvalid(errors: ValidationError[]) {
 
 class ValidationAbortedError extends Error {}
 
+// useValidation is the high-level wrapper for the common "reactive ref +
+// ValidatorFn" shape of input. On top of useRegisterForValidation it owns the
+// validation machinery around the validator (abort-and-restart on every new
+// call, mode-aware caching for eager/initial, in-flight join, model-mutation
+// re-validation loop), watches model and writes results into errors.value,
+// and triggers onInteraction on every model change.
+//
+// Use useValidation for simple inputs with a single ValidatorFn<T> over one
+// model ref. For composite inputs whose validate/reset do not fit that shape,
+// for example inputs aggregating a sub-registry's validateAll/resetAll, or
+// inputs that have no validator at all, drop down to useRegisterForValidation
+// directly.
 export function useValidation<T>(
   model: Ref<T>,
   errors: Ref<ValidationError[]>,
@@ -351,7 +401,16 @@ export function useValidation<T>(
     el,
   }
 
-  useRegisterForValidation(validatedInput)
+  const { onInteraction } = useRegisterForValidation(validatedInput)
+
+  // Treat every model change as a user interaction. Without immediate the
+  // watcher only fires on real changes, so the initial mount value is
+  // excluded. Programmatic mutations (validator normalization, reset()) also
+  // flow through here, which is intentional - they represent state moving
+  // on, which should also clear stale errors.
+  watch(model, () => {
+    onInteraction()
+  })
 
   return { runValidation, validatedInput }
 }

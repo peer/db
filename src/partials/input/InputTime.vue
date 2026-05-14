@@ -454,9 +454,17 @@ const displayValue = ref(model.value)
 // errorMessage-derived ones and running resetAll alongside its own state
 // cleanup on reset. timePrecision/precision are not sub-inputs (the Listbox
 // is inlined, not extracted), so they are reset manually here.
-const { validateAll, resetAll } = useValidationRegistry()
+//
+// The forwardInteraction closure bridges the sub-registry's onInteraction
+// (called when an inner input notifies) to InputTime's own outer notifier
+// (obtained from its manual self-registration), so interactions inside
+// InputTime still reach the ancestor form's onInteraction handler.
+let forwardInteraction: (() => void) | null = null
+const { validateAll, resetAll } = useValidationRegistry(() => {
+  forwardInteraction?.()
+})
 
-useRegisterForValidation({
+const { onInteraction: notifyOuter } = useRegisterForValidation({
   validate: async (signal) => {
     const childErrors = await validateAll(signal)
     return [...errors.value, ...childErrors]
@@ -471,6 +479,7 @@ useRegisterForValidation({
   },
   el: () => document.getElementById(inputId),
 })
+forwardInteraction = notifyOuter
 
 onBeforeMount(() => {
   timePrecision.value = precision.value
