@@ -136,10 +136,13 @@ const { runValidation, validatedInput } = useValidation(
   errors,
   lock,
   () => validator,
-  // The combobox input element is the focus target. When required+empty
-  // (the only failing case) the chip is not shown, so comboboxInputRef is
-  // mounted and its $el is the underlying <input>.
-  () => (comboboxInputRef.value?.$el as HTMLElement | null) ?? null,
+  // Focus target: whichever of the two visual states is currently mounted.
+  // role="textbox" is on the contenteditable chip when a doc is selected;
+  // role="combobox" is on the HUI ComboboxInput when no doc is selected
+  // (or the user is re-editing). Validation cares about the latter (the
+  // only failing case is required+empty where the chip is not shown), but
+  // programmatic focus moves (focusFirstInput on edit) hit the chip.
+  () => wrapperRef.value?.querySelector<HTMLElement>('[role="textbox"], [role="combobox"]') ?? null,
   () => {
     query.value = ""
     model.value = ""
@@ -362,67 +365,42 @@ const WithPeerDBDocument = WithDocument<D>
           <i class="text-error-600">{{ t("partials.input.InputRef.invalidValue") }}</i>
         </InputStyled>
 
-        <WithPeerDBDocument v-else-if="selectedDocument?.id && !editMode" :id="selectedDocument.id" name="DocumentGet">
-          <template #default="{ doc }">
-            <InputStyled
-              as="div"
-              role="textbox"
-              contenteditable="true"
-              :inactive="inactive"
-              :invalid="invalid"
-              :aria-readonly="inactive || undefined"
-              :aria-invalid="invalid || undefined"
-              class="w-full truncate"
-              :class="readonly ? 'pr-9' : 'pr-29'"
-              @click="enterEditMode"
-              @focus="enterEditMode"
-              @beforeinput.prevent
-              @paste.prevent
-              @drop.prevent
-            >
+        <!--
+          One stable chip wrapper across the default / loading / error doc
+          states (WithPeerDBDocument swaps only its inner slot content). A
+          stable wrapper keeps role="textbox" continuously present so
+          focusFirstInput can land on the chip even while the doc is still
+          fetching, and keeps focus across the slot transitions.
+        -->
+        <InputStyled
+          v-else-if="selectedDocument?.id && !editMode"
+          as="div"
+          role="textbox"
+          contenteditable="true"
+          :inactive="inactive"
+          :invalid="invalid"
+          :aria-readonly="inactive || undefined"
+          :aria-invalid="invalid || undefined"
+          class="w-full truncate"
+          :class="readonly ? 'pr-9' : 'pr-29'"
+          @click="enterEditMode"
+          @focus="enterEditMode"
+          @beforeinput.prevent
+          @paste.prevent
+          @drop.prevent
+        >
+          <WithPeerDBDocument :id="selectedDocument.id" name="DocumentGet">
+            <template #default="{ doc }">
               <DisplayLabel :doc="doc" />
-            </InputStyled>
-          </template>
-          <!--
-            Failure case: the selected id exists but the document could not be
-            loaded. Render the error inside an InputStyled wrapper so the
-            visual matches the chip (text-input border, same right-padding
-            reservation for the open-link + Clear stack rendered below).
-          -->
-          <template #error="{ url }">
-            <InputStyled
-              as="div"
-              :inactive="inactive"
-              :invalid="invalid"
-              :aria-readonly="inactive || undefined"
-              :aria-invalid="invalid || undefined"
-              class="w-full truncate"
-              :class="readonly ? 'pr-9' : 'pr-29'"
-            >
+            </template>
+            <template #error="{ url }">
               <i class="pd-withdocument-error text-error-600" :data-url="url">{{ t("common.status.loadingDataFailed") }}</i>
-            </InputStyled>
-          </template>
-          <!--
-            Loading case: same wrapper as the chip and error states so the
-            input retains a stable shape (border, padding, height) while the
-            document is fetched. Inside we render a pulsing placeholder bar
-            with a deterministic width derived from the document id, matching
-            the loading affordance used elsewhere (e.g. dropdown options).
-          -->
-          <template #loading="{ url }">
-            <InputStyled
-              as="div"
-              :inactive="inactive"
-              :invalid="invalid"
-              :aria-readonly="inactive || undefined"
-              :aria-invalid="invalid || undefined"
-              class="w-full truncate"
-              :class="readonly ? 'pr-9' : 'pr-29'"
-            >
+            </template>
+            <template #loading="{ url }">
               <i class="block h-4 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(selectedDocument?.id ?? '')]"></i>
-            </InputStyled>
-          </template>
-        </WithPeerDBDocument>
+            </template>
+          </WithPeerDBDocument>
+        </InputStyled>
 
         <!--
           Either no selection yet, or the user is re-editing a selection.
