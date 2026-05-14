@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import type { ValidationError, ValidatorFn } from "@/types"
 
+import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
+import { computed } from "vue"
+import { useRouter } from "vue-router"
+
 import InputText from "@/components/InputText.vue"
+import { classifyLink, LINK_CLASS_INTERNAL, LINK_CLASS_INTERNAL_NOVIEW } from "@/internal-links"
 
 const props = withDefaults(
   defineProps<{
@@ -16,6 +21,35 @@ const props = withDefaults(
 
 const model = defineModel<string>({ default: "" })
 const errors = defineModel<ValidationError[]>("errors", { default: () => [] })
+
+const router = useRouter()
+
+const canOpen = computed(() => {
+  const trimmed = model.value.trim()
+  if (!trimmed) return false
+  try {
+    new URL(trimmed)
+  } catch {
+    return false
+  }
+  return true
+})
+const linkClasses = computed(() => {
+  const trimmed = model.value.trim()
+  if (!trimmed) return []
+  return classifyLink(trimmed, router)
+})
+const internalPath = computed<string | null>(() => {
+  if (!linkClasses.value.includes(LINK_CLASS_INTERNAL)) return null
+  const trimmed = model.value.trim()
+  try {
+    const url = new URL(trimmed)
+    return url.pathname + url.search + url.hash
+  } catch {
+    return null
+  }
+})
+const useRouterLink = computed(() => internalPath.value !== null && !linkClasses.value.includes(LINK_CLASS_INTERNAL_NOVIEW))
 
 // A link is invalid if it does not parse as an absolute URL via the URL
 // constructor. As a side effect of validation the model is normalized to the
@@ -60,5 +94,19 @@ const validator: ValidatorFn<string> = async function (value, options) {
 </script>
 
 <template>
-  <InputText v-model="model" v-model:errors="errors" :readonly="readonly" :validator="validator" />
+  <div class="relative">
+    <!--
+      pr-9 reserves space on the right for the absolutely-positioned open-link
+      icon overlay so the input text does not slide underneath it.
+    -->
+    <InputText v-model="model" v-model:errors="errors" :readonly="readonly" :validator="validator" class="w-full" :class="canOpen ? 'pr-9' : ''" />
+    <div v-if="canOpen" class="absolute inset-y-0 right-0 flex items-center pr-2">
+      <RouterLink v-if="useRouterLink && internalPath" :to="internalPath" class="link">
+        <ArrowTopRightOnSquareIcon class="size-5" aria-hidden="true" />
+      </RouterLink>
+      <a v-else :href="model.trim()" class="link" rel="noreferrer">
+        <ArrowTopRightOnSquareIcon class="size-5" aria-hidden="true" />
+      </a>
+    </div>
+  </div>
 </template>
