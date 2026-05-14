@@ -56,6 +56,7 @@ const claimTo = ref("")
 const claimToAmountPrecision = ref("")
 const claimToTimePrecision = ref<TimePrecision>("y")
 const claimFormError = ref("")
+const sessionError = ref("")
 
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
@@ -252,6 +253,8 @@ async function onSave() {
     return
   }
 
+  sessionError.value = ""
+
   // Flush any pending edits from all FieldsForm instances before saving.
   // Flush returns only valid changes; invalid fields remain and set fieldsFormInvalid.
   const allPendingChanges: FieldsFormSaveChange[] = []
@@ -344,8 +347,9 @@ async function onSave() {
     if (abortController.signal.aborted) {
       return
     }
-    // TODO: Show notification with error.
     console.error("DocumentEdit.onSave", err)
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+    sessionError.value = `${err}`
   } finally {
     saveBusy.value -= 1
   }
@@ -355,6 +359,8 @@ async function onDiscard() {
   if (abortController.signal.aborted) {
     return
   }
+
+  sessionError.value = ""
 
   // Stop polling for changes before discarding the session by aborting and creating a fresh controller.
   // The fresh controller is needed for the discard request itself.
@@ -388,8 +394,9 @@ async function onDiscard() {
     if (abortController.signal.aborted) {
       return
     }
-    // TODO: Show notification with error.
     console.error("DocumentEdit.onDiscard", err)
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+    sessionError.value = `${err}`
   } finally {
     saveBusy.value -= 1
   }
@@ -805,6 +812,7 @@ function canSave(): boolean {
             </TabPanel>
           </TabPanels>
         </TabGroup>
+        <div v-if="sessionError" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
         <div class="mt-4 flex flex-row justify-between gap-4">
           <Button id="documentedit-button-discard" type="button" :progress="saveBusy" @click.prevent="onDiscard">{{ t("common.buttons.discard") }}</Button>
           <Button id="documentedit-button-save" type="submit" primary :disabled="!canSave()" :progress="saveBusy" @click.prevent="onSave">{{
