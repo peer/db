@@ -209,6 +209,7 @@ declare module "vue-i18n" {
           iri: string
           html: string
           string: string
+          identifier: string
           amount: string
           file: string
           from: string

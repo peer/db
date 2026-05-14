@@ -198,6 +198,7 @@
         "iri": "Link",
         "html": "HTML",
         "string": "String",
+        "identifier": "Identifier",
         "amount": "Amount",
         "file": "File",
         "from": "From",
