@@ -467,16 +467,24 @@ const WithPeerDBDocument = WithDocument<D>
           </ComboboxOption>
 
           <template v-if="searchResults.length > 0">
-            <WithPeerDBDocument v-for="result in searchResults" :id="result.id" :key="result.id" name="DocumentGet">
-              <template #default="{ doc }">
-                <ComboboxOption v-slot="{ active }" :value="result" as="template">
-                  <li class="p-1 outline-none select-none">
-                    <!--
-                      We have an additional div so that the ring has the space to be shown.
-                      li element has p-1 for ring space, together with py-1 and px-2 we get the effective padding
-                      for option content of py-2 and px-3, same what InputText and ListboxButton have.
-                    -->
-                    <div class="flex flex-row items-center justify-between rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
+            <!--
+              ComboboxOption is the outer wrapper so that rows register with
+              HUI as soon as searchResults arrives, independent of the per-row
+              doc fetch. That lets the user arrow-navigate and pick a row
+              whose document is still loading, and keeps the active ring and
+              the selected-check icon consistent across the loading, error,
+              and loaded slot variants below.
+            -->
+            <ComboboxOption v-for="result in searchResults" :key="result.id" v-slot="{ active }" :value="result" as="template">
+              <li class="p-1 outline-none select-none">
+                <!--
+                  We have an additional div so that the ring has the space to be shown.
+                  li element has p-1 for ring space, together with py-1 and px-2 we get the effective padding
+                  for option content of py-2 and px-3, same what InputText and ListboxButton have.
+                -->
+                <div class="flex flex-row items-center justify-between rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
+                  <WithPeerDBDocument :id="result.id" name="DocumentGet">
+                    <template #default="{ doc }">
                       <div
                         class="w-full cursor-pointer truncate"
                         :class="{
@@ -494,19 +502,28 @@ const WithPeerDBDocument = WithDocument<D>
                         when the user actually wanted to open the link. The click event is
                         independent and still fires, letting RouterLink navigate normally.
                       -->
-                      <RouterLink v-if="result?.id" :to="{ name: 'DocumentGet', params: { id: result.id } }" class="link" @mousedown.stop>
+                      <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id } }" class="link" @mousedown.stop>
                         <ArrowTopRightOnSquareIcon class="size-5" aria-hidden="true" />
                       </RouterLink>
-                    </div>
-                  </li>
-                </ComboboxOption>
-              </template>
-              <template #loading="{ url }">
-                <li class="p-1 outline-none select-none">
-                  <i class="h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></i>
-                </li>
-              </template>
-            </WithPeerDBDocument>
+                    </template>
+                    <template #loading="{ url }">
+                      <div class="w-full">
+                        <i class="block h-4 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></i>
+                      </div>
+
+                      <CheckIcon v-if="result.id === selectedDocument?.id" class="size-5 text-primary-600" aria-hidden="true" />
+                    </template>
+                    <template #error="{ url }">
+                      <div class="w-full truncate">
+                        <i class="pd-withdocument-error text-error-600" :data-url="url">{{ t("common.status.loadingDataFailed") }}</i>
+                      </div>
+
+                      <CheckIcon v-if="result.id === selectedDocument?.id" class="size-5 text-primary-600" aria-hidden="true" />
+                    </template>
+                  </WithPeerDBDocument>
+                </div>
+              </li>
+            </ComboboxOption>
           </template>
         </ComboboxOptions>
       </div>
