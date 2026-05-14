@@ -29,7 +29,7 @@ its DOM attributes without flickering how the component looks.
 
 <script setup lang="ts">
 import type { D } from "@/document"
-import type { Result } from "@/types"
+import type { Result, ValidationError, ValidatorFn } from "@/types"
 import type { ComponentPublicInstance } from "vue"
 
 import { Combobox, ComboboxButton, ComboboxInput, ComboboxOption, ComboboxOptions } from "@headlessui/vue"
@@ -44,8 +44,9 @@ import InputStyled from "@/components/InputStyled.vue"
 import ProgressBar from "@/components/ProgressBar.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
-import { useLocked } from "@/progress"
+import { useLock } from "@/progress"
 import { anySignal, loadingWidth } from "@/utils"
+import { useValidation } from "@/validation"
 
 // Wildcard to see if a string ends with unicode letter or number.
 const WILDCARD_SEARCH_REGEX = /[\p{L}\p{N}]$/u
@@ -53,13 +54,17 @@ const WILDCARD_SEARCH_REGEX = /[\p{L}\p{N}]$/u
 const props = withDefaults(
   defineProps<{
     readonly?: boolean
+    required?: boolean
   }>(),
   {
     readonly: false,
+    required: false,
   },
 )
 
 const model = defineModel<string>({ default: "" })
+const errors = defineModel<ValidationError[]>("errors", { default: () => [] })
+const invalid = computed(() => errors.value.length > 0)
 
 // We want all fallthrough attributes to be passed to the combobox input element.
 defineOptions({
@@ -86,12 +91,14 @@ const selectedDocument = computed<Result | null>({
   },
 })
 const query = ref("")
-// Treats an active enclosing useLock like a soft (temporary) readonly:
-// input remains focusable and selectable but cannot be edited or cleared
-// while a lock is active above this component. The Clear button visually
-// appears but is disabled, distinguishing this state from the harder
-// readonly prop where Clear is hidden entirely.
-const locked = useLocked()
+// Data modification and controls; useValidation writes to this lock during
+// validation. An active enclosing lock (either inherited from a parent
+// useLock or contributed locally) behaves like a soft, temporary readonly:
+// input remains focusable and selectable but cannot be edited or cleared.
+// The Clear button visually appears but is disabled, distinguishing this
+// state from the harder readonly prop where Clear is hidden entirely.
+const lock = useLock()
+const locked = computed(() => lock.value > 0)
 const searchResults = ref<Result[]>([])
 
 // Toggles between the two "selected" visual states: false shows the chip,
@@ -101,6 +108,30 @@ const editMode = ref(false)
 
 const wrapperRef = useTemplateRef<HTMLElement>("wrapperRef")
 const comboboxInputRef = useTemplateRef<ComponentPublicInstance>("comboboxInputRef")
+
+// A reference is invalid if no document is selected. Only checked when
+// required; otherwise empty selection is allowed.
+// eslint-disable-next-line @typescript-eslint/require-await
+const validator: ValidatorFn<string> = async function (value) {
+  if (!props.required) {
+    return []
+  }
+  // TODO: Use standard codes.
+  return value === "" ? [{ code: "required" }] : []
+}
+
+const { runValidation, validatedInput } = useValidation(
+  model,
+  errors,
+  lock,
+  () => validator,
+  // The combobox input element is the focus target. When required+empty
+  // (the only failing case) the chip is not shown, so comboboxInputRef is
+  // mounted and its $el is the underlying <input>.
+  () => (comboboxInputRef.value?.$el as HTMLElement | null) ?? null,
+)
+
+defineExpose(validatedInput)
 
 const mainAbortController = new AbortController()
 let searchAbortController = new AbortController()
@@ -189,12 +220,14 @@ function exitEditMode() {
 // chip back with the same document still picked.
 async function onWrapperFocusout() {
   await nextTick()
-  const wrapper = wrapperRef.value
-  if (!wrapper) return
-  if (wrapper.contains(document.activeElement)) {
+  if (wrapperRef.value?.contains(document.activeElement)) {
     return
   }
   exitEditMode()
+  // Focus has actually left the component (not just moved between its inner
+  // focusables). Run lazy validation now so the required error appears as
+  // soon as the user tabs/clicks away from an empty required field.
+  await runValidation()
 }
 
 function onSelect(value: Result | null) {
@@ -290,7 +323,9 @@ const WithPeerDBDocument = WithDocument<D>
               role="textbox"
               contenteditable="true"
               :inactive="readonly || locked"
+              :invalid="invalid"
               :aria-readonly="readonly || locked || undefined"
+              :aria-invalid="invalid || undefined"
               class="w-full truncate"
               :class="readonly ? 'pr-9' : 'pr-29'"
               @click="enterEditMode"
@@ -321,7 +356,9 @@ const WithPeerDBDocument = WithDocument<D>
           ref="comboboxInputRef"
           :as="ComboboxInput"
           :inactive="readonly || locked"
+          :invalid="invalid"
           :readonly="readonly || locked"
+          :aria-invalid="invalid || undefined"
           v-bind="$attrs"
           class="w-full"
           :class="{

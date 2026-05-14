@@ -20,7 +20,7 @@ import type { D } from "@/document"
 import type { Result, ValidationError, ValidatorFn } from "@/types"
 
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
-import { computed, onBeforeMount, onBeforeUnmount, ref, useId, useTemplateRef } from "vue"
+import { computed, nextTick, onBeforeMount, onBeforeUnmount, ref, useId, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
@@ -71,7 +71,7 @@ const validator: ValidatorFn<string> = async function (value) {
   return value === "" ? [{ code: "required" }] : []
 }
 
-const { validatedInput } = useValidation(
+const { runValidation, validatedInput } = useValidation(
   model,
   errors,
   lock,
@@ -81,6 +81,20 @@ const { validatedInput } = useValidation(
 )
 
 defineExpose(validatedInput)
+
+// Focus has actually left the fieldset (not just moved between radios within
+// it). Run lazy validation now so the required error appears as soon as the
+// user tabs/clicks away from an empty required field. The nextTick is needed
+// because focusout fires synchronously while document.activeElement is still
+// in transition; without it, contains() would falsely report focus is still
+// inside.
+async function onFocusout() {
+  await nextTick()
+  if (fieldsetRef.value?.contains(document.activeElement)) {
+    return
+  }
+  await runValidation()
+}
 
 const abortController = new AbortController()
 const dataLoading = ref(true)
@@ -125,7 +139,7 @@ const WithPeerDBDocument = WithDocument<D>
 </script>
 
 <template>
-  <fieldset ref="fieldsetRef" class="pd-inputrefselect" :aria-busy="dataLoading || undefined">
+  <fieldset ref="fieldsetRef" class="pd-inputrefselect" :aria-busy="dataLoading || undefined" @focusout="onFocusout">
     <legend class="mb-1"><slot /></legend>
     <div class="grid grid-cols-[max-content_auto] gap-x-1 gap-y-0.5">
       <template v-if="dataLoading">
