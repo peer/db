@@ -178,7 +178,7 @@ export function useValidationRegistry(
     return pickEarliestFocusable(Array.from(inputs, (i) => i.el()))
   }
 
-  return { validateAll, resetAll, revertAll, firstEl, anyDirty, allEmpty, allErrors, anyError, snapshotBaselines }
+  return { validateAll, resetAll, revertAll, snapshotBaselines, firstEl, anyDirty, allEmpty, allErrors, anyError }
 }
 
 // isFocusable returns true if calling .focus() on el can meaningfully move
