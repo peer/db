@@ -1,3 +1,11 @@
+<!--
+We do not use :read-only or :disabled pseudo classes to style the component because
+we want component to retain how it visually looks even if DOM element's read-only or
+disabled attributes are set, unless they are set through component's props.
+This is used during transitions/animations to disable the component by directly setting
+its DOM attributes without flickering how the component looks.
+-->
+
 <script setup lang="ts">
 import type { ComponentExposed } from "vue-component-type-helpers"
 
@@ -93,6 +101,12 @@ const selectedClaimTab = computed(() => {
   const idx = claimTypes.indexOf(claimType.value)
   return idx >= 0 ? idx : 0
 })
+
+// A tab is locked-out when an edit is in progress and its type does not
+// match the type being edited.
+function claimTypeDisabled(type: ClaimType): boolean {
+  return lockedClaimType.value !== null && lockedClaimType.value !== type
+}
 
 function claimTypeLabel(type: ClaimType): string {
   switch (type) {
@@ -831,9 +845,10 @@ function canSave(): boolean {
                     <Tab
                       v-for="type in claimTypes"
                       :key="type"
-                      :disabled="lockedClaimType !== null && lockedClaimType !== type"
+                      :disabled="claimTypeDisabled(type)"
                       :title="claimTypeLabel(type)"
-                      class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-selected:bg-white"
+                      class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                      :class="claimTypeDisabled(type) ? 'cursor-not-allowed opacity-50' : 'not-aria-selected:hover:bg-slate-50'"
                       ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%-1rem),transparent)] px-4 py-3 whitespace-nowrap">{{
                         claimTypeLabel(type)
                       }}</span></Tab
