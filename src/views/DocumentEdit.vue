@@ -52,7 +52,7 @@ import { localCounter, pairCounters, useLock, useProgress } from "@/progress"
 import { useDocumentFields } from "@/useDocumentFields"
 import { useParentClasses } from "@/useParentClasses"
 import { delay, encodeQuery, makeAddClaimChange } from "@/utils"
-import { useValidationRegistry } from "@/validation"
+import { focusFirstInvalid, useValidationRegistry } from "@/validation"
 
 const props = defineProps<{
   id: string
@@ -145,7 +145,7 @@ const el = useTemplateRef<HTMLElement>("el")
 const displayLabelComponent = useTemplateRef<ComponentExposed<typeof DisplayLabel>>("displayLabelComponent")
 const claimFormRef = useTemplateRef<HTMLFormElement>("claimFormRef")
 
-const { resetAll, firstEl, anyDirty, allEmpty, snapshotBaselines } = useValidationRegistry(() => {
+const { resetAll, firstEl, anyDirty, allEmpty, validateAll, snapshotBaselines } = useValidationRegistry(() => {
   // Any registered-input interaction clears stale form-level errors so the
   // user is not staring at an error message after they have moved on.
   sessionError.value = ""
@@ -529,7 +529,18 @@ async function onSubmit() {
     return
   }
 
-  // TODO: Do validation.
+  // Run validation across every registered input in the claim form.
+  // Any returned error means at least one field is invalid - focus the
+  // first one and abort the submit so the user can fix it before we
+  // hit the backend.
+  const validationErrors = await validateAll(abortController.signal)
+  if (abortController.signal.aborted) {
+    return
+  }
+  if (validationErrors.length > 0) {
+    focusFirstInvalid(validationErrors)
+    return
+  }
 
   try {
     const change = editingClaimId.value
