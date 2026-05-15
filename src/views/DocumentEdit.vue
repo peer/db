@@ -770,7 +770,7 @@ function canSave(): boolean {
               :key="classTabId"
               class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
               ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%-1rem),transparent)] px-4 py-3 whitespace-nowrap"
-                ><DocumentRefInline :id="classTabId" :link="false" /></span
+                ><DocumentRefInline :id="classTabId" :link="false" title /></span
             ></Tab>
             <Tab
               v-if="siteContext.features.editButtons"
