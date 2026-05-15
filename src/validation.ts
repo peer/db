@@ -1,8 +1,8 @@
-import type { InjectionKey, MaybeRefOrGetter, Ref, WritableComputedRef } from "vue"
+import type { InjectionKey, Ref } from "vue"
 
 import type { ValidatedInput, ValidateFn, ValidationError, ValidatorFn } from "@/types"
 
-import { computed, inject, onBeforeUnmount, onMounted, provide, ref, shallowReactive, toRef, watch } from "vue"
+import { computed, inject, onBeforeUnmount, onMounted, provide, ref, shallowReactive, watch } from "vue"
 
 import { anySignal, equals, raceWithSignal } from "@/utils"
 
@@ -17,23 +17,6 @@ export const registerForValidationKey: InjectionKey<(instance: ValidatedInput) =
   process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-validation-register") : Symbol()
 export const unregisterForValidationKey: InjectionKey<(instance: ValidatedInput) => void> =
   process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-validation-unregister") : Symbol()
-
-// useMergedErrors allows defining a computed which can be passed to input's v-model:errors
-// and combines errors from the parent and child validation.
-//
-// It should not be used inline in a template but stored or cached to be able to keep the state.
-export function useMergedErrors(parentErrors: MaybeRefOrGetter<ValidationError[]>): WritableComputedRef<ValidationError[]> {
-  const parentErrorsRef = toRef(parentErrors)
-  const childErrors = ref<ValidationError[]>([])
-  return computed<ValidationError[]>({
-    get() {
-      return [...parentErrorsRef.value, ...childErrors.value]
-    },
-    set(value) {
-      childErrors.value = value
-    },
-  })
-}
 
 // useRegisterForValidation is called by an input to make itself discoverable
 // by the nearest ancestor (one that called useValidationRegistry). It is
