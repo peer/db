@@ -363,7 +363,7 @@ export function inferPrecisionFromNormalized(
 </script>
 
 <script setup lang="ts">
-import type { ValidatedInput } from "@/types"
+import type { ValidatedInput, ValidationError } from "@/types"
 
 import { Listbox, ListboxButton, ListboxLabel, ListboxOption, ListboxOptions } from "@headlessui/vue"
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
@@ -479,6 +479,7 @@ const {
   resetAll: resetTime,
   revertAll: revertTime,
   anyDirty: timeChanged,
+  allErrors: childErrors,
   snapshotBaselines: snapshotTimeBaselines,
 } = useValidationRegistry(() => {
   forwardInteraction?.()
@@ -495,10 +496,17 @@ const precisionBaselineRef = ref(precision.value)
 // field's badge just follows its own current-vs-baseline value.
 const precisionChanged = computed(() => !equals(precision.value, precisionBaselineRef.value))
 
+// Decorate undecorated errors with the inner InputText's element so
+// consumers see consistent { code, el } shape regardless of whether they
+// read from the errors computed below or await validate().
+function decorateErrors(list: ValidationError[]): ValidationError[] {
+  return list.map((error) => (error.el ? error : { ...error, el: document.getElementById(inputId) ?? undefined }))
+}
+
 const validatedInput: ValidatedInput = {
   validate: async (signal) => {
     const timeErrors = await validateTime(signal)
-    return [...errors.value, ...timeErrors]
+    return decorateErrors([...errors.value, ...timeErrors])
   },
   reset: () => {
     resetTime()
@@ -520,6 +528,7 @@ const validatedInput: ValidatedInput = {
   // canonical model rather than displayValue because mid-typing
   // intermediate strings would falsely register as non-empty.
   isEmpty: computed<boolean>(() => !model.value),
+  errors: computed<ValidationError[]>(() => decorateErrors([...errors.value, ...childErrors.value])),
   setBaseline: () => {
     precisionBaselineRef.value = precision.value
     snapshotTimeBaselines()

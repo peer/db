@@ -370,6 +370,8 @@ export type ValidatedInput = {
   // Reactive flag: true when the input holds no meaningful value (e.g.
   // empty string for text inputs, unchecked for checkboxes).
   isEmpty: Readonly<Ref<boolean>>
+  // The input's current errors.
+  errors: Readonly<Ref<ValidationError[]>>
   // Snapshots the input's current value as the baseline against which
   // isDirty is compared. Called when a inputs controls are shown or when
   // the are reset so subsequent edits show up as dirty.

@@ -60,6 +60,7 @@ const validatedInput: ValidatedInput = {
   el: () => inputTextRef.value?.el() ?? null,
   isDirty: computed<boolean>(() => inputTextRef.value?.isDirty ?? false),
   isEmpty: computed<boolean>(() => inputTextRef.value?.isEmpty ?? true),
+  errors: computed<ValidationError[]>(() => inputTextRef.value?.errors ?? []),
   setBaseline: () => inputTextRef.value?.setBaseline(),
 }
 defineExpose(validatedInput)

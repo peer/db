@@ -28,22 +28,28 @@ const props = defineProps<{
 const unknown = defineModel<boolean>("unknown", { default: false })
 const none = defineModel<boolean>("none", { default: false })
 
+// True when either missing-state checkbox is checked.
+const missingSet = computed<boolean>(() => unknown.value || none.value)
+
 const ownErrors = ref<ValidationError[]>([])
 const innerErrors = ref<ValidationError[]>([])
 
-// The emitted value is the union of our own errors (e.g. the required-but-empty
-// error we produce in validate) and whatever the wrapped input emits through
-// the slot's @errors binding.
-const emit = defineEmits<{
-  errors: [ValidationError[]]
-}>()
-watch(
-  [ownErrors, innerErrors],
-  ([own, inner]) => {
-    emit("errors", [...own, ...inner])
-  },
-  { flush: "sync" },
-)
+// Single source of truth for "what errors does this input currently
+// surface": our own (e.g. the required-but-empty error we produce in
+// validate) plus whatever the wrapped input emits through the slot's
+// @errors binding. Short-circuited while a missing-state checkbox
+// is checked - the wrapped input is locked then and its (now stale)
+// errors do not represent the field's state.
+const errors = computed<ValidationError[]>(() => {
+  if (missingSet.value) {
+    // This is [].
+    return ownErrors.value
+  }
+  return [...ownErrors.value, ...innerErrors.value].map((error) => (error.el ? error : { ...error, el: firstChildEl() ?? undefined }))
+})
+
+const emit = defineEmits<{ errors: [ValidationError[]] }>()
+watch(errors, (v) => emit("errors", v), { flush: "sync" })
 
 defineOptions({
   inheritAttrs: false,
@@ -96,9 +102,6 @@ const isNone = computed<boolean>({
   },
 })
 
-// True when either missing-state checkbox is checked.
-const missingSet = computed<boolean>(() => unknown.value || none.value)
-
 // Toggle the own lock counter on transitions to/from a checked state.
 watch(
   missingSet,
@@ -148,7 +151,8 @@ const validatedInput: ValidatedInput = {
       // TODO: Use standard codes.
       const own = [{ code: "required" }]
       ownErrors.value = own
-      return [...own, ...childErrors]
+      // We just re-computed it by assigning to ownErrors, so we can also just return it.
+      return errors.value
     }
     clearShowRequired()
     return childErrors
@@ -177,6 +181,7 @@ const validatedInput: ValidatedInput = {
     if (missingSet.value) return false
     return allChildEmpty.value
   }),
+  errors,
   setBaseline: () => {
     unknownBaseline.value = unknown.value
     noneBaseline.value = none.value

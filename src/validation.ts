@@ -2,7 +2,7 @@ import type { InjectionKey, Ref } from "vue"
 
 import type { ValidatedInput, ValidateFn, ValidationError, ValidatorFn } from "@/types"
 
-import { computed, inject, onBeforeUnmount, onMounted, provide, ref, shallowReactive, watch } from "vue"
+import { computed, inject, onBeforeUnmount, onMounted, provide, ref, shallowReactive, shallowReadonly, watch } from "vue"
 
 import { anySignal, equals, raceWithSignal } from "@/utils"
 
@@ -70,6 +70,10 @@ export function useValidationRegistry(
   firstEl: () => HTMLElement | null
   anyDirty: Readonly<Ref<boolean>>
   allEmpty: Readonly<Ref<boolean>>
+  // Flat list of all current errors across registered inputs.
+  allErrors: Readonly<Ref<ValidationError[]>>
+  // Convenience boolean derived from allErrors.length > 0.
+  anyError: Readonly<Ref<boolean>>
   snapshotBaselines: () => void
 } {
   // shallow-reactive Set so iteration inside computeds (e.g. anyDirty)
@@ -124,6 +128,18 @@ export function useValidationRegistry(
     return false
   })
 
+  const allErrors = computed<ValidationError[]>(() => {
+    const result: ValidationError[] = []
+    for (const input of inputs) {
+      for (const error of input.errors.value) {
+        result.push(error.el ? error : { ...error, el: input.el() ?? undefined })
+      }
+    }
+    return result
+  })
+
+  const anyError = computed<boolean>(() => allErrors.value.length > 0)
+
   // When el is provided, self-register so this sub-registry appears as one
   // ValidatedInput in the outer registry (its validate/reset combine its
   // descendants', its onInteraction notifier forwards inner interactions
@@ -140,6 +156,7 @@ export function useValidationRegistry(
       revert: revertAll,
       isDirty: anyDirty,
       isEmpty: allEmpty,
+      errors: allErrors,
       setBaseline: snapshotBaselines,
     })
     notifyUp = up
@@ -161,7 +178,7 @@ export function useValidationRegistry(
     return pickEarliestFocusable(Array.from(inputs, (i) => i.el()))
   }
 
-  return { validateAll, resetAll, revertAll, firstEl, anyDirty, allEmpty, snapshotBaselines }
+  return { validateAll, resetAll, revertAll, firstEl, anyDirty, allEmpty, allErrors, anyError, snapshotBaselines }
 }
 
 // isFocusable returns true if calling .focus() on el can meaningfully move
@@ -313,7 +330,7 @@ export function useValidation<T>(
             throw new ValidationAbortedError()
           }
 
-          errors.value = result
+          errors.value = result.map((error) => (error.el ? error : { ...error, el: el() ?? undefined }))
           lastValidated = { value, validator, eager, initial }
 
           if (model.value === value) {
@@ -465,6 +482,7 @@ export function useValidation<T>(
     el,
     isDirty: computed(() => !equals(model.value, baselineValue.value)),
     isEmpty: isEmpty ?? computed<boolean>(() => !model.value),
+    errors: shallowReadonly(errors),
     setBaseline: () => {
       baselineValue.value = model.value
     },
