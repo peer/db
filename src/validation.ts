@@ -69,6 +69,8 @@ export function useValidationRegistry(
   revertAll: () => void
   snapshotBaselines: () => void
   firstEl: () => HTMLElement | null
+  // Read-only view over the registered inputs.
+  inputs: ReadonlySet<ValidatedInput>
   anyDirty: Readonly<Ref<boolean>>
   allEmpty: Readonly<Ref<boolean>>
   // Flat list of all current errors across registered inputs.
@@ -178,7 +180,7 @@ export function useValidationRegistry(
     return pickEarliestFocusable(Array.from(inputs, (i) => i.el()))
   }
 
-  return { validateAll, resetAll, revertAll, snapshotBaselines, firstEl, anyDirty, allEmpty, allErrors, anyError }
+  return { validateAll, resetAll, revertAll, snapshotBaselines, firstEl, inputs: shallowReadonly(inputs), anyDirty, allEmpty, allErrors, anyError }
 }
 
 // isFocusable returns true if calling .focus() on el can meaningfully move
