@@ -5,7 +5,7 @@ import type { ValidatedInput } from "@/types"
 
 import { shallowRef, useId } from "vue"
 
-import FieldBadges from "@/partials/FieldBadges.vue"
+import InputBadges from "@/partials/InputBadges.vue"
 import InputErrors from "@/partials/InputErrors.vue"
 
 defineProps<{
@@ -32,7 +32,7 @@ function setInputRef(i: Element | ComponentPublicInstance | null) {
 
 <template>
   <label v-tw-merge :for="inputId" v-bind="$attrs" class="mb-1 flex flex-row items-center gap-1"
-    ><slot name="label" /><FieldBadges :required="required" :changed="input?.isDirty ?? false"
+    ><slot name="label" /><InputBadges :required="required" :changed="input?.isDirty ?? false"
   /></label>
   <InputErrors v-slot="errorProps">
     <slot v-bind="errorProps" :id="inputId" :ref="setInputRef" name="input" :required="required" />

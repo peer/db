@@ -373,7 +373,7 @@ import { useI18n } from "vue-i18n"
 
 import InputStyled from "@/components/InputStyled.vue"
 import InputText from "@/components/InputText.vue"
-import FieldBadges from "@/partials/FieldBadges.vue"
+import InputBadges from "@/partials/InputBadges.vue"
 import { useLocked } from "@/progress"
 import { equals } from "@/utils"
 import { useRegisterForValidation, useValidationRegistry } from "@/validation"
@@ -840,7 +840,8 @@ watch(
   <div class="pd-inputtime flex flex-row gap-x-1 sm:gap-x-4" v-bind="$attrs">
     <div class="flex grow flex-col">
       <label :for="inputId" class="mb-1 flex flex-row items-center gap-1"
-        ><slot name="time-label">{{ t("common.labels.time") }}</slot><FieldBadges :required="required" :changed="timeChanged"
+        ><slot name="time-label">{{ t("common.labels.time") }}</slot
+        ><InputBadges :required="required" :changed="timeChanged"
       /></label>
 
       <InputText
@@ -860,7 +861,8 @@ watch(
 
     <Listbox v-model="timePrecision" :disabled="inactive" as="div" class="flex w-48 flex-col" @update:model-value="onPrecisionSelected">
       <ListboxLabel class="mb-1 flex flex-row items-center gap-1"
-        ><slot name="precision-label">{{ t("common.labels.precision") }}</slot><FieldBadges :changed="precisionChanged"
+        ><slot name="precision-label">{{ t("common.labels.precision") }}</slot
+        ><InputBadges :changed="precisionChanged"
       /></ListboxLabel>
 
       <div class="relative">
