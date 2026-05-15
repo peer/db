@@ -71,7 +71,7 @@ export function allErrors(inputs: Iterable<ValidatedInput>): ComputedRef<Validat
 // every input's validator in parallel. The results land in each input's
 // reactive errors ref, so callers read state from there after awaiting.
 // resetAll restores every registered input to its initial state,
-// revertAll restores every registered input to its recorded baseline.
+// revertAll restores every registered input to its recorded checkpoint.
 //
 // onInteraction is called whenever a registered input notifies that the user
 // has interacted with it (e.g. to clear top-level errors). The triggering
@@ -88,7 +88,7 @@ export function useValidationRegistry(
   validateAll: ValidateFn
   resetAll: () => void
   revertAll: () => void
-  snapshotBaselines: () => void
+  checkpointAll: () => void
   firstEl: () => HTMLElement | null
   // Read-only view over the registered inputs.
   inputs: ReadonlySet<ValidatedInput>
@@ -133,9 +133,9 @@ export function useValidationRegistry(
     return true
   })
 
-  function snapshotBaselines(): void {
+  function checkpointAll(): void {
     for (const input of inputs) {
-      input.setBaseline()
+      input.checkpoint()
     }
   }
 
@@ -156,7 +156,7 @@ export function useValidationRegistry(
   // When el is provided, self-register so this sub-registry appears as one
   // ValidatedInput in the outer registry (its validate/reset combine its
   // descendants', its onInteraction notifier forwards inner interactions
-  // upward, its isDirty/setBaseline cascade through anyDirty/snapshotBaselines).
+  // upward, its isDirty/checkpoint cascade through anyDirty/checkpointAll).
   // In sink mode (no el), descendant interactions do not bubble out of this
   // registry automatically - if the caller still wants forwarding, they
   // register manually and call the returned onInteraction themselves.
@@ -170,7 +170,7 @@ export function useValidationRegistry(
       isDirty: anyDirty,
       isEmpty: allEmpty,
       errors: allErrors(inputs),
-      setBaseline: snapshotBaselines,
+      checkpoint: checkpointAll,
     })
     notifyUp = up
   }
@@ -191,7 +191,7 @@ export function useValidationRegistry(
     return pickEarliestFocusable(Array.from(inputs, (i) => i.el()))
   }
 
-  return { validateAll, resetAll, revertAll, snapshotBaselines, firstEl, inputs: shallowReadonly(inputs), anyDirty, allEmpty, anyError }
+  return { validateAll, resetAll, revertAll, checkpointAll, firstEl, inputs: shallowReadonly(inputs), anyDirty, allEmpty, anyError }
 }
 
 // isFocusable returns true if calling .focus() on el can meaningfully move
@@ -443,27 +443,27 @@ export function useValidation<T>(
   )
 
   // Captured at setup time so an input whose v-model parent already holds
-  // a value at mount registers that value as the baseline (isDirty=false
+  // a value at mount registers that value as the checkpoint (isDirty=false
   // until the user actually types).
-  const baselineValue = ref<T>(model.value) as Ref<T>
+  const checkpointValue = ref<T>(model.value) as Ref<T>
 
   const validatedInput: ValidatedInput = {
     validate,
     reset,
-    // Built-in revert: restore the model to whatever setBaseline last
+    // Built-in revert: restore the model to whatever checkpoint last
     // captured. We do not clear errors - the model watcher re-runs the
-    // validator on every model change, and a pre-populated baseline value
-    // may have legitimate errors (initial validation runs on mount) that
-    // should stay until validation says otherwise.
+    // validator on every model change, and a pre-populated checkpoint
+    // value may have legitimate errors (initial validation runs on mount)
+    // that should stay until validation says otherwise.
     revert: () => {
-      model.value = baselineValue.value
+      model.value = checkpointValue.value
     },
     el,
-    isDirty: computed(() => !equals(model.value, baselineValue.value)),
+    isDirty: computed(() => !equals(model.value, checkpointValue.value)),
     isEmpty: isEmpty ?? computed<boolean>(() => !model.value),
     errors: shallowReadonly(errors),
-    setBaseline: () => {
-      baselineValue.value = model.value
+    checkpoint: () => {
+      checkpointValue.value = model.value
     },
   }
 

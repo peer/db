@@ -145,7 +145,7 @@ const el = useTemplateRef<HTMLElement>("el")
 const displayLabelComponent = useTemplateRef<ComponentExposed<typeof DisplayLabel>>("displayLabelComponent")
 const claimFormRef = useTemplateRef<HTMLFormElement>("claimFormRef")
 
-const { resetAll, firstEl, allEmpty, anyDirty, anyError, inputs, validateAll, snapshotBaselines } = useValidationRegistry(() => {
+const { resetAll, firstEl, allEmpty, anyDirty, anyError, inputs, validateAll, checkpointAll } = useValidationRegistry(() => {
   // Any registered-input interaction clears stale form-level errors so the
   // user is not staring at an error message after they have moved on.
   sessionError.value = ""
@@ -581,11 +581,11 @@ async function onReset() {
   editingClaimId.value = null
   subClaimParentId.value = null
   lockedClaimType.value = null
-  // Re-baseline so the now-empty inputs are not considered dirty (which
-  // would keep the submit button enabled after a Cancel from edit mode).
-  // Wait one tick before snapshotting baselines for reset to propagate.
+  // Re-checkpoint so the now-empty inputs are not considered dirty
+  // (which would keep the submit button enabled after a Cancel from edit
+  // mode). Wait one tick before checkpointing for reset to propagate.
   await nextTick()
-  snapshotBaselines()
+  checkpointAll()
 }
 
 async function onEditClaim(id: string) {
@@ -685,9 +685,9 @@ async function onEditClaim(id: string) {
   // to the first focusable one so the user can start editing immediately.
   await nextTick()
   firstEl()?.focus()
-  // Record the populated values as the baseline so the form is not dirty
-  // until the user actually changes something.
-  snapshotBaselines()
+  // Record the populated values as the checkpoint so the form is not
+  // dirty until the user actually changes something.
+  checkpointAll()
 }
 
 // Configures the claim form to add a new claim as a sub-claim of the row
@@ -707,7 +707,7 @@ async function onSubClaimAdd(id: string) {
 
   await nextTick()
   firstEl()?.focus()
-  snapshotBaselines()
+  checkpointAll()
 }
 
 async function onRemoveClaim(id: string) {

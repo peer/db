@@ -480,23 +480,23 @@ const {
   revertAll: revertTime,
   anyDirty: timeChanged,
   inputs: timeInputs,
-  snapshotBaselines: snapshotTimeBaselines,
+  checkpointAll: checkpointTimeAll,
 } = useValidationRegistry(() => {
   forwardInteraction?.()
 })
 
 const timeErrors = allErrors(timeInputs)
 
-// Baseline for the precision dropdown - the time-input baseline lives
+// Checkpoint for the precision dropdown - the time-input checkpoint lives
 // inside the inner InputText, whose isDirty bubbles up through the
 // sub-registry as timeChanged.
-const precisionBaselineRef = ref(precision.value)
+const precisionCheckpointRef = ref(precision.value)
 
 // Per-field "changed" signal for the precision label. We don't try to
 // attribute cross-field side effects (typing can auto-adapt precision;
 // changing precision rewrites the time text via applyPrecision) - each
-// field's badge just follows its own current-vs-baseline value.
-const precisionChanged = computed(() => !equals(precision.value, precisionBaselineRef.value))
+// field's badge just follows its own current-vs-checkpoint value.
+const precisionChanged = computed(() => !equals(precision.value, precisionCheckpointRef.value))
 
 // Decorate undecorated errors with the inner InputText's element so
 // consumers see a consistent { code, el } shape on the errors computed.
@@ -518,7 +518,7 @@ const validatedInput: ValidatedInput = {
   },
   revert: () => {
     // Precision first so that the canonical-from-display call inside
-    // onRevertTime sees the baseline precision when re-deriving model.
+    // onRevertTime sees the checkpoint precision when re-deriving model.
     onRevertPrecision()
     onRevertTime()
   },
@@ -529,9 +529,9 @@ const validatedInput: ValidatedInput = {
   // intermediate strings would falsely register as non-empty.
   isEmpty: computed<boolean>(() => !model.value),
   errors: computed<ValidationError[]>(() => decorateErrors([...errors.value, ...timeErrors.value])),
-  setBaseline: () => {
-    precisionBaselineRef.value = precision.value
-    snapshotTimeBaselines()
+  checkpoint: () => {
+    precisionCheckpointRef.value = precision.value
+    checkpointTimeAll()
   },
 }
 const { onInteraction: notifyOuter } = useRegisterForValidation(validatedInput)
@@ -542,9 +542,9 @@ forwardInteraction = notifyOuter
 defineExpose(validatedInput)
 
 // Per-field revert handlers wired to the "changed" badge of each label.
-// The time revert restores the inner InputText to its baseline displayValue
-// and re-derives the canonical model from it. The precision revert restores
-// the precision dropdown to its baseline. Each handler only touches the
+// The time revert restores the inner InputText to its checkpoint
+// displayValue and re-derives the canonical model from it. The precision
+// revert restores the precision dropdown to its checkpoint. Each handler only touches the
 // source-of-truth state of its own field; the model may transiently drift
 // out of sync with precision after a precision revert, but the user can
 // click the time-label badge or edit further to re-sync.
@@ -556,8 +556,8 @@ function onRevertTime(): void {
 }
 
 function onRevertPrecision(): void {
-  precision.value = precisionBaselineRef.value
-  timePrecision.value = precisionBaselineRef.value
+  precision.value = precisionCheckpointRef.value
+  timePrecision.value = precisionCheckpointRef.value
 }
 
 onBeforeMount(() => {

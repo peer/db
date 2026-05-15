@@ -124,16 +124,16 @@ const {
   firstEl: firstChildEl,
   anyDirty: anyChildDirty,
   allEmpty: allChildEmpty,
-  snapshotBaselines: snapshotChildBaselines,
+  checkpointAll: checkpointChildAll,
 } = useValidationRegistry(() => {
   clearShowRequired()
   forwardInteraction?.()
 })
 
-// Baselines for our own dirty / setBaseline machinery. The wrapped input
-// keeps its own baseline through the sub-registry.
-const unknownBaseline = ref<boolean>(unknown.value)
-const noneBaseline = ref<boolean>(none.value)
+// Checkpoints for our own dirty / checkpoint machinery. The wrapped
+// input keeps its own checkpoint through the sub-registry.
+const unknownCheckpoint = ref<boolean>(unknown.value)
+const noneCheckpoint = ref<boolean>(none.value)
 
 const validatedInput: ValidatedInput = {
   validate: async (signal) => {
@@ -163,13 +163,13 @@ const validatedInput: ValidatedInput = {
   },
   revert: () => {
     revertChildAll()
-    unknown.value = unknownBaseline.value
-    none.value = noneBaseline.value
+    unknown.value = unknownCheckpoint.value
+    none.value = noneCheckpoint.value
     clearShowRequired()
   },
   el: firstChildEl,
   isDirty: computed<boolean>(() => {
-    if (unknown.value !== unknownBaseline.value || none.value !== noneBaseline.value) return true
+    if (unknown.value !== unknownCheckpoint.value || none.value !== noneCheckpoint.value) return true
     return anyChildDirty.value
   }),
   isEmpty: computed<boolean>(() => {
@@ -180,10 +180,10 @@ const validatedInput: ValidatedInput = {
     return allChildEmpty.value
   }),
   errors,
-  setBaseline: () => {
-    unknownBaseline.value = unknown.value
-    noneBaseline.value = none.value
-    snapshotChildBaselines()
+  checkpoint: () => {
+    unknownCheckpoint.value = unknown.value
+    noneCheckpoint.value = none.value
+    checkpointChildAll()
   },
 }
 

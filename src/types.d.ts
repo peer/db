@@ -356,25 +356,25 @@ export type ValidatorFn<T> = (value: T, options: { signal: AbortSignal; eager: b
 // they are returned to the caller (so the resulting ValidationError[] is
 // self-contained for focus resolution). reset restores the input to its
 // initial (empty/default) state; revert restores the input to its recorded
-// baseline. useValidationRegistry exposes resetAll / revertAll.
+// checkpoint. useValidationRegistry exposes resetAll / revertAll.
 export type ValidatedInput = {
   validate: ValidateFn
   reset: () => void
-  // Restores the input to whatever setBaseline last captured, leaving
+  // Restores the input to whatever checkpoint last captured, leaving
   // isDirty false. Used by the per-field "changed" badge so the user can
   // undo their changes without affecting other fields.
   revert: () => void
   el: () => HTMLElement | null
   // Reactive flag: true when the input's current value differs from its
-  // recorded baseline.
+  // recorded checkpoint.
   isDirty: Readonly<Ref<boolean>>
   // Reactive flag: true when the input holds no meaningful value (e.g.
   // empty string for text inputs, unchecked for checkboxes).
   isEmpty: Readonly<Ref<boolean>>
   // The input's current errors.
   errors: Readonly<Ref<ValidationError[]>>
-  // Snapshots the input's current value as the baseline against which
-  // isDirty is compared. Called when a inputs controls are shown or when
-  // the are reset so subsequent edits show up as dirty.
-  setBaseline: () => void
+  // Snapshots the input's current value as the checkpoint against which
+  // isDirty is compared. Called when an input's controls are shown or
+  // when they are reset so subsequent edits show up as dirty.
+  checkpoint: () => void
 }
