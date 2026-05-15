@@ -13,6 +13,8 @@
       "update": "Update",
       "clear": "Clear",
       "remove": "Remove",
+      "revert": "Revert",
+      "subClaim": "Sub-value",
       "loadCountMore": "{count} more",
       "loadMore": "Load more",
       "filters": "Filters",
@@ -36,7 +38,9 @@
       "property": "Property",
       "value": "Value",
       "time": "Time",
-      "precision": "Precision"
+      "precision": "Precision",
+      "required": "required",
+      "changed": "changed"
     },
     "icons": {
       "link": "Link",
@@ -181,6 +185,7 @@
       },
       "addClaim": "Add value",
       "editClaim": "Edit value",
+      "addSubClaim": "Add sub-value",
       "claimTypes": {
         "identifier": "Identifier",
         "string": "String",

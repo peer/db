@@ -13,6 +13,8 @@
       "update": "Posodobi",
       "clear": "Počisti",
       "remove": "Odstrani",
+      "revert": "Povrni",
+      "subClaim": "Pod-vrednost",
       "loadCountMore": "{count} več",
       "loadMore": "Naloži več",
       "filters": "Filtri",
@@ -36,7 +38,9 @@
       "property": "Lastnost",
       "value": "Vrednost",
       "time": "Čas",
-      "precision": "Natančnost"
+      "precision": "Natančnost",
+      "required": "obvezno",
+      "changed": "spremenjeno"
     },
     "icons": {
       "link": "Povezava",
@@ -181,6 +185,7 @@
       },
       "addClaim": "Dodaj vrednost",
       "editClaim": "Uredi vrednost",
+      "addSubClaim": "Dodaj pod-vrednost",
       "claimTypes": {
         "identifier": "Identifikator",
         "string": "Enostavno besedilo",

@@ -24,6 +24,8 @@ declare module "vue-i18n" {
         update: string
         clear: string
         remove: string
+        revert: string
+        subClaim: string
         loadCountMore: string
         loadMore: string
         filters: string
@@ -48,6 +50,8 @@ declare module "vue-i18n" {
         value: string
         time: string
         precision: string
+        required: string
+        changed: string
       }
       icons: {
         link: string
@@ -192,6 +196,7 @@ declare module "vue-i18n" {
         }
         addClaim: string
         editClaim: string
+        addSubClaim: string
         claimTypes: {
           identifier: string
           string: string
