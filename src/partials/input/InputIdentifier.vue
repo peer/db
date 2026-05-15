@@ -19,7 +19,8 @@ const props = withDefaults(
 )
 
 const model = defineModel<string>({ default: "" })
-const errors = defineModel<ValidationError[]>("errors", { default: () => [] })
+
+const emit = defineEmits<{ errors: [ValidationError[]] }>()
 
 // An identifier is invalid if it is empty after trimming. As a side effect of
 // validation the model is normalized to the trimmed value, so " abc " becomes
@@ -62,5 +63,5 @@ defineExpose(validatedInput)
 </script>
 
 <template>
-  <InputText ref="inputTextRef" v-model="model" v-model:errors="errors" :readonly="readonly" :validator="validator" />
+  <InputText ref="inputTextRef" v-model="model" :readonly="readonly" :validator="validator" @errors="(v: ValidationError[]) => emit('errors', v)" />
 </template>

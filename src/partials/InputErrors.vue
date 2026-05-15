@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import type { ValidationError } from "@/types"
 
-import { computed, useId } from "vue"
+import { computed, ref, useId, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
-// errors is a pure pass-through v-model. Callers do not have to bind it: if
-// omitted, the slotted input writes to the local model and only this
-// component reads it. Callers that want to inspect (or contribute to) the
-// errors should bind v-model on InputErrors rather than on the slotted input.
-const errors = defineModel<ValidationError[]>({ default: () => [] })
+const errors = ref<ValidationError[]>([])
+
+const emit = defineEmits<{ errors: [ValidationError[]] }>()
+watch(errors, (v) => emit("errors", v), { flush: "sync" })
 
 const { t } = useI18n({ useScope: "global" })
 
@@ -39,6 +38,6 @@ const message = computed<string | null>(() => {
 </script>
 
 <template>
-  <slot :errors="errors" :aria-describedby="errors.length > 0 ? errorId : undefined" @update:errors="(v: ValidationError[]) => (errors = v)" />
+  <slot :aria-describedby="errors.length > 0 ? errorId : undefined" @errors="(v: ValidationError[]) => (errors = v)" />
   <p v-if="message" :id="errorId" class="mt-1 text-sm text-error-600">{{ message }}</p>
 </template>

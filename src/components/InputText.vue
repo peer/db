@@ -5,7 +5,7 @@ import type { ValidationError, ValidatorFn } from "@/types"
 
 // We use v-model-text directive to mirror what Vue does on native <input> elements which
 // we have to do ourselves because we use <input> element through InputStyled component.
-import { computed, useTemplateRef, vModelText } from "vue"
+import { computed, ref, useTemplateRef, vModelText, watch } from "vue"
 
 import InputStyled from "@/components/InputStyled.vue"
 import { useLock } from "@/progress"
@@ -15,22 +15,32 @@ const props = withDefaults(
   defineProps<{
     readonly?: boolean
     type?: string
-    // Without a validator the input does not drive errors at all: errors is
-    // fully owned by the parent via v-model:errors (or :errors), and
-    // validate() is a no-op that returns the current errors. Pass a validator
-    // to let the input own its own validation logic.
+    // Presentational override. The input always renders as invalid when
+    // it has its own errors (errors.length > 0); setting this prop adds
+    // an external way to force-invalid styling on top, used by callers
+    // (like FieldsForm) that compute invalidity outside the input.
+    invalid?: boolean
+    // Without a validator the input does not drive errors at all:
+    // validate() is a no-op that returns the (empty) errors list. Pass a
+    // validator to let the input own its own validation logic. The input
+    // then emits "errors" whenever its computed errors change.
     validator?: ValidatorFn<string>
   }>(),
   {
     readonly: false,
     type: "text",
+    invalid: false,
     validator: undefined,
   },
 )
 
 const model = defineModel<string>({ default: "" })
-const errors = defineModel<ValidationError[]>("errors", { default: () => [] })
-const invalid = computed(() => errors.value.length > 0)
+const errors = ref<ValidationError[]>([])
+
+const emit = defineEmits<{ errors: [ValidationError[]] }>()
+watch(errors, (v) => emit("errors", v), { flush: "sync" })
+
+const invalid = computed(() => props.invalid || errors.value.length > 0)
 
 // Data modification and controls.
 const lock = useLock()

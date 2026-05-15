@@ -19,7 +19,8 @@ const props = withDefaults(
 )
 
 const model = defineModel<string>({ default: "" })
-const errors = defineModel<ValidationError[]>("errors", { default: () => [] })
+
+const emit = defineEmits<{ errors: [ValidationError[]] }>()
 
 // A string invalid if it is empty after trimming. The required check is
 // skipped on initial so a freshly mounted empty field is not flagged before
@@ -53,5 +54,5 @@ defineExpose(validatedInput)
 </script>
 
 <template>
-  <InputText ref="inputTextRef" v-model="model" v-model:errors="errors" :readonly="readonly" :validator="validator" />
+  <InputText ref="inputTextRef" v-model="model" :readonly="readonly" :validator="validator" @errors="(v: ValidationError[]) => emit('errors', v)" />
 </template>

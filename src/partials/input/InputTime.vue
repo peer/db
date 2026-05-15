@@ -881,7 +881,7 @@ watch(
         autocorrect="off"
         autocapitalize="none"
         :readonly="readonly"
-        :errors="errors"
+        :invalid="errors.length > 0"
         @focus="onFocus"
         @blur="onBlur"
         @keydown="onKeydown"

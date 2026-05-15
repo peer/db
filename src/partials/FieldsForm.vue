@@ -497,7 +497,7 @@ onBeforeUnmount(() => {
                   <span class="self-center text-xs text-slate-500">{{ t("partials.FieldsForm.from") }}</span>
                   <InputText
                     :model-value="entry.value"
-                    :errors="entryErrors(entry)"
+                    :invalid="entryErrors(entry).length > 0"
                     class="min-w-0 flex-1"
                     @update:model-value="(v: string) => onEntryInput(claimId, v)"
                     @blur="onEntryBlur(claimId)"
@@ -513,7 +513,7 @@ onBeforeUnmount(() => {
                 <InputText
                   v-else
                   :model-value="entry.value"
-                  :errors="entryErrors(entry)"
+                  :invalid="entryErrors(entry).length > 0"
                   class="min-w-0 flex-auto grow"
                   @update:model-value="(v: string) => onEntryInput(claimId, v)"
                   @blur="onEntryBlur(claimId)"
@@ -561,7 +561,7 @@ onBeforeUnmount(() => {
                   <span class="self-center text-xs text-slate-500">{{ t("partials.FieldsForm.from") }}</span>
                   <InputText
                     :model-value="slotVal.value"
-                    :errors="emptySlotErrors(field, slotVal.value)"
+                    :invalid="emptySlotErrors(field, slotVal.value).length > 0"
                     class="min-w-0 flex-1"
                     @update:model-value="(v: string) => onEmptySlotInput(slotId, v)"
                     @blur="onEmptySlotBlur(slotId, field)"
@@ -577,7 +577,7 @@ onBeforeUnmount(() => {
                 <InputText
                   v-else
                   :model-value="slotVal.value"
-                  :errors="emptySlotErrors(field, slotVal.value)"
+                  :invalid="emptySlotErrors(field, slotVal.value).length > 0"
                   class="min-w-0 flex-auto grow"
                   @update:model-value="(v: string) => onEmptySlotInput(slotId, v)"
                   @blur="onEmptySlotBlur(slotId, field)"
@@ -622,7 +622,7 @@ onBeforeUnmount(() => {
                     <span class="self-center text-xs text-slate-500">{{ t("partials.FieldsForm.from") }}</span>
                     <InputText
                       :model-value="entry.value"
-                      :errors="entryErrors(entry)"
+                      :invalid="entryErrors(entry).length > 0"
                       class="min-w-0 flex-1"
                       @update:model-value="(v: string) => onEntryInput(claimId, v)"
                       @blur="onEntryBlur(claimId)"
@@ -638,7 +638,7 @@ onBeforeUnmount(() => {
                   <InputText
                     v-else
                     :model-value="entry.value"
-                    :errors="entryErrors(entry)"
+                    :invalid="entryErrors(entry).length > 0"
                     class="min-w-0 flex-auto grow"
                     @update:model-value="(v: string) => onEntryInput(claimId, v)"
                     @blur="onEntryBlur(claimId)"

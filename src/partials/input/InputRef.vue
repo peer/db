@@ -64,7 +64,11 @@ const props = withDefaults(
 )
 
 const model = defineModel<string>({ default: "" })
-const errors = defineModel<ValidationError[]>("errors", { default: () => [] })
+const errors = ref<ValidationError[]>([])
+
+const emit = defineEmits<{ errors: [ValidationError[]] }>()
+watch(errors, (v) => emit("errors", v), { flush: "sync" })
+
 const invalid = computed(() => errors.value.length > 0)
 
 // We want all fallthrough attributes to be passed to the combobox input element.

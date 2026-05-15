@@ -21,7 +21,7 @@ import type { Result, ValidationError, ValidatorFn } from "@/types"
 
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 import { Identifier } from "@tozd/identifier"
-import { computed, nextTick, onBeforeMount, onBeforeUnmount, ref, useId, useTemplateRef } from "vue"
+import { computed, nextTick, onBeforeMount, onBeforeUnmount, ref, useId, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
@@ -45,7 +45,10 @@ const props = withDefaults(
 )
 
 const model = defineModel<string>({ default: "" })
-const errors = defineModel<ValidationError[]>("errors", { default: () => [] })
+const errors = ref<ValidationError[]>([])
+
+const emit = defineEmits<{ errors: [ValidationError[]] }>()
+watch(errors, (v) => emit("errors", v), { flush: "sync" })
 
 const baseId = useId()
 

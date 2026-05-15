@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ValidatedInput } from "@/types"
+import type { ValidatedInput, ValidationError } from "@/types"
 
 import { computed, ref, watch } from "vue"
 import { useI18n } from "vue-i18n"
@@ -28,6 +28,23 @@ const props = defineProps<{
 const unknown = defineModel<boolean>("unknown", { default: false })
 const none = defineModel<boolean>("none", { default: false })
 
+const ownErrors = ref<ValidationError[]>([])
+const innerErrors = ref<ValidationError[]>([])
+
+// The emitted value is the union of our own errors (e.g. the required-but-empty
+// error we produce in validate) and whatever the wrapped input emits through
+// the slot's @errors binding.
+const emit = defineEmits<{
+  errors: [ValidationError[]]
+}>()
+watch(
+  [ownErrors, innerErrors],
+  ([own, inner]) => {
+    emit("errors", [...own, ...inner])
+  },
+  { flush: "sync" },
+)
+
 defineOptions({
   inheritAttrs: false,
 })
@@ -55,6 +72,7 @@ const showRequired = ref(false)
 
 function clearShowRequired(): void {
   showRequired.value = false
+  ownErrors.value = []
 }
 
 // Mutual-exclusion bindings used by the two checkboxes. Checking one
@@ -128,7 +146,9 @@ const validatedInput: ValidatedInput = {
     if (props.required && allChildEmpty.value) {
       showRequired.value = true
       // TODO: Use standard codes.
-      return [{ code: "required" }, ...childErrors]
+      const own = [{ code: "required" }]
+      ownErrors.value = own
+      return [...own, ...childErrors]
     }
     clearShowRequired()
     return childErrors
@@ -173,7 +193,7 @@ defineExpose(validatedInput)
 <template>
   <div class="flex flex-row items-start gap-x-4">
     <div class="flex min-w-0 grow flex-row">
-      <slot v-bind="$attrs" :required="showRequired" />
+      <slot v-bind="$attrs" :required="showRequired" @errors="(v: ValidationError[]) => (innerErrors = v)" />
     </div>
     <WithLock :lock="getParentLockRef">
       <div class="flex flex-col">

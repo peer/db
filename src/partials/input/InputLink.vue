@@ -22,7 +22,8 @@ const props = withDefaults(
 )
 
 const model = defineModel<string>({ default: "" })
-const errors = defineModel<ValidationError[]>("errors", { default: () => [] })
+
+const emit = defineEmits<{ errors: [ValidationError[]] }>()
 
 const router = useRouter()
 
@@ -119,7 +120,15 @@ defineExpose(validatedInput)
       pr-9 reserves space on the right for the absolutely-positioned open-link
       icon overlay so the input text does not slide underneath it.
     -->
-    <InputText ref="inputTextRef" v-model="model" v-model:errors="errors" :readonly="readonly" :validator="validator" class="w-full" :class="canOpen ? 'pr-9' : ''" />
+    <InputText
+      ref="inputTextRef"
+      v-model="model"
+      :readonly="readonly"
+      :validator="validator"
+      class="w-full"
+      :class="canOpen ? 'pr-9' : ''"
+      @errors="(v: ValidationError[]) => emit('errors', v)"
+    />
     <div v-if="canOpen" class="absolute inset-y-0 right-0 flex items-center pr-2">
       <RouterLink v-if="useRouterLink && internalPath" :to="internalPath" class="link">
         <ArrowTopRightOnSquareIcon class="size-5" aria-hidden="true" />

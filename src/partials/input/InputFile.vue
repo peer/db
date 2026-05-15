@@ -16,7 +16,7 @@ import type { ValidationError, ValidatorFn } from "@/types"
 import type { ComponentPublicInstance } from "vue"
 
 import { Identifier } from "@tozd/identifier"
-import { computed, onBeforeUnmount, ref, useTemplateRef } from "vue"
+import { computed, onBeforeUnmount, ref, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
@@ -47,7 +47,11 @@ const props = withDefaults(
 )
 
 const model = defineModel<string>({ default: "" })
-const errors = defineModel<ValidationError[]>("errors", { default: () => [] })
+const errors = ref<ValidationError[]>([])
+
+const emit = defineEmits<{ errors: [ValidationError[]] }>()
+watch(errors, (v) => emit("errors", v), { flush: "sync" })
+
 const invalid = computed(() => errors.value.length > 0)
 
 const { t } = useI18n({ useScope: "global" })
