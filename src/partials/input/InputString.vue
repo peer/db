@@ -46,6 +46,7 @@ const validatedInput: ValidatedInput = {
   revert: () => inputTextRef.value?.revert(),
   el: () => inputTextRef.value?.el() ?? null,
   isDirty: computed<boolean>(() => inputTextRef.value?.isDirty ?? false),
+  isEmpty: computed<boolean>(() => inputTextRef.value?.isEmpty ?? true),
   setBaseline: () => inputTextRef.value?.setBaseline(),
 }
 defineExpose(validatedInput)

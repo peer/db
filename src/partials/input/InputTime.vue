@@ -513,6 +513,10 @@ const validatedInput: ValidatedInput = {
   },
   el: () => document.getElementById(inputId),
   isDirty: computed(() => timeChanged.value || precisionChanged.value),
+  // Empty iff no canonical time value has been emitted yet. We use the
+  // canonical model rather than displayValue because mid-typing
+  // intermediate strings would falsely register as non-empty.
+  isEmpty: computed<boolean>(() => !model.value),
   setBaseline: () => {
     precisionBaselineRef.value = precision.value
     snapshotTimeBaselines()

@@ -86,6 +86,7 @@ export function useValidationRegistry(
   revertAll: () => void
   focusFirst: () => void
   anyDirty: Readonly<Ref<boolean>>
+  allEmpty: Readonly<Ref<boolean>>
   snapshotBaselines: () => void
 } {
   // shallow-reactive Set so iteration inside computeds (e.g. anyDirty)
@@ -120,6 +121,13 @@ export function useValidationRegistry(
     }
   }
 
+  const allEmpty = computed<boolean>(() => {
+    for (const input of inputs) {
+      if (!input.isEmpty.value) return false
+    }
+    return true
+  })
+
   function snapshotBaselines(): void {
     for (const input of inputs) {
       input.setBaseline()
@@ -148,6 +156,7 @@ export function useValidationRegistry(
       reset: resetAll,
       revert: revertAll,
       isDirty: anyDirty,
+      isEmpty: allEmpty,
       setBaseline: snapshotBaselines,
     })
     notifyUp = up
@@ -164,7 +173,7 @@ export function useValidationRegistry(
     inputs.delete(input)
   })
 
-  return { validateAll, resetAll, revertAll, focusFirst: () => focusFirstInput(inputs), anyDirty, snapshotBaselines }
+  return { validateAll, resetAll, revertAll, focusFirst: () => focusFirstInput(inputs), anyDirty, allEmpty, snapshotBaselines }
 }
 
 // isFocusable returns true if calling .focus() on el can meaningfully move
@@ -235,6 +244,9 @@ export function useValidation<T>(
   validatorGetter: () => ValidatorFn<T> | undefined,
   el: () => HTMLElement | null,
   reset: () => void,
+  // Optional custom emptiness ref. When provided it is exposed as the
+  // validated input's isEmpty. Otherwise !model.value is used.
+  isEmpty?: Readonly<Ref<boolean>> | null,
 ): {
   runValidation: (options?: { signal?: AbortSignal; eager?: boolean; initial?: boolean }) => Promise<void>
   validatedInput: ValidatedInput
@@ -472,6 +484,7 @@ export function useValidation<T>(
     },
     el,
     isDirty: computed(() => !equals(model.value, baselineValue.value)),
+    isEmpty: isEmpty ?? computed<boolean>(() => !model.value),
     setBaseline: () => {
       baselineValue.value = model.value
     },
