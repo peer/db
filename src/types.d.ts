@@ -354,10 +354,15 @@ export type ValidatorFn<T> = (value: T, options: { signal: AbortSignal; eager: b
 // by useValidationRegistry to decorate errors that lack their own el before
 // they are returned to the caller (so the resulting ValidationError[] is
 // self-contained for focus resolution). reset restores the input to its
-// initial state (model and errors); useValidationRegistry exposes resetAll.
+// initial (empty/default) state; revert restores the input to its recorded
+// baseline. useValidationRegistry exposes resetAll / revertAll.
 export type ValidatedInput = {
   validate: ValidateFn
   reset: () => void
+  // Restores the input to whatever setBaseline last captured, leaving
+  // isDirty false. Used by the per-field "changed" badge so the user can
+  // undo their changes without affecting other fields.
+  revert: () => void
   el: () => HTMLElement | null
   // Reactive flag: true when the input's current value differs from its
   // recorded baseline.

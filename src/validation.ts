@@ -66,7 +66,8 @@ export function useRegisterForValidation(input: ValidatedInput): {
 // useValidationRegistry is called to collect validated inputs from all
 // descendant inputs that called useRegisterForValidation. validateAll runs
 // every input's validator in parallel and returns the flat list of errors.
-// resetAll restores every registered input to its initial state.
+// resetAll restores every registered input to its initial state, revertAll
+// restores every registered input to its recorded baseline.
 //
 // onInteraction is called whenever a registered input notifies that the user
 // has interacted with it (e.g. to clear top-level errors). The triggering
@@ -82,6 +83,7 @@ export function useValidationRegistry(
 ): {
   validateAll: ValidateFn
   resetAll: () => void
+  revertAll: () => void
   focusFirst: () => void
   anyDirty: Readonly<Ref<boolean>>
   snapshotBaselines: () => void
@@ -112,6 +114,12 @@ export function useValidationRegistry(
     }
   }
 
+  function revertAll(): void {
+    for (const input of inputs) {
+      input.revert()
+    }
+  }
+
   function snapshotBaselines(): void {
     for (const input of inputs) {
       input.setBaseline()
@@ -138,6 +146,7 @@ export function useValidationRegistry(
       el,
       validate: validateAll,
       reset: resetAll,
+      revert: revertAll,
       isDirty: anyDirty,
       setBaseline: snapshotBaselines,
     })
@@ -155,7 +164,7 @@ export function useValidationRegistry(
     inputs.delete(input)
   })
 
-  return { validateAll, resetAll, focusFirst: () => focusFirstInput(inputs), anyDirty, snapshotBaselines }
+  return { validateAll, resetAll, revertAll, focusFirst: () => focusFirstInput(inputs), anyDirty, snapshotBaselines }
 }
 
 // isFocusable returns true if calling .focus() on el can meaningfully move
@@ -453,6 +462,14 @@ export function useValidation<T>(
   const validatedInput: ValidatedInput = {
     validate,
     reset,
+    // Built-in revert: restore the model to whatever setBaseline last
+    // captured. We do not clear errors - the model watcher re-runs the
+    // validator on every model change, and a pre-populated baseline value
+    // may have legitimate errors (initial validation runs on mount) that
+    // should stay until validation says otherwise.
+    revert: () => {
+      model.value = baselineValue.value
+    },
     el,
     isDirty: computed(() => !equals(model.value, baselineValue.value)),
     setBaseline: () => {

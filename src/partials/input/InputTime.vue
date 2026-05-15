@@ -457,7 +457,7 @@ const displayValue = ref(model.value)
 // Nested validation registry: the inner InputText registers here instead of
 // bubbling up to the ancestor form. InputTime then proxies its sub-inputs
 // upward as a single ValidatedInput, combining child errors with its own
-// errorMessage-derived ones and running resetAll alongside its own state
+// errorMessage-derived ones and running resetTime alongside its own state
 // cleanup on reset. timePrecision/precision are not sub-inputs (the Listbox
 // is inlined, not extracted), so they are reset manually here.
 //
@@ -472,10 +472,11 @@ const displayValue = ref(model.value)
 // element via inputId, so .focus() lands on the right node in one hop.
 let forwardInteraction: (() => void) | null = null
 const {
-  validateAll,
-  resetAll,
+  validateAll: validateTime,
+  resetAll: resetTime,
+  revertAll: revertTime,
   anyDirty: timeChanged,
-  snapshotBaselines,
+  snapshotBaselines: snapshotTimeBaselines,
 } = useValidationRegistry(() => {
   forwardInteraction?.()
 })
@@ -493,22 +494,28 @@ const precisionChanged = computed(() => !equals(precision.value, precisionBaseli
 
 const validatedInput: ValidatedInput = {
   validate: async (signal) => {
-    const childErrors = await validateAll(signal)
-    return [...errors.value, ...childErrors]
+    const timeErrors = await validateTime(signal)
+    return [...errors.value, ...timeErrors]
   },
   reset: () => {
-    resetAll()
+    resetTime()
     model.value = ""
     precision.value = "y"
     timePrecision.value = "y"
     errorMessage.value = ""
     isEditing.value = false
   },
+  revert: () => {
+    // Precision first so that the canonical-from-display call inside
+    // onRevertTime sees the baseline precision when re-deriving model.
+    onRevertPrecision()
+    onRevertTime()
+  },
   el: () => document.getElementById(inputId),
   isDirty: computed(() => timeChanged.value || precisionChanged.value),
   setBaseline: () => {
     precisionBaselineRef.value = precision.value
-    snapshotBaselines()
+    snapshotTimeBaselines()
   },
 }
 const { onInteraction: notifyOuter } = useRegisterForValidation(validatedInput)
@@ -517,6 +524,25 @@ forwardInteraction = notifyOuter
 // Same shape exposed to the parent so an ancestor form (e.g. via a
 // template ref) sees this InputTime as a single ValidatedInput.
 defineExpose(validatedInput)
+
+// Per-field revert handlers wired to the "changed" badge of each label.
+// The time revert restores the inner InputText to its baseline displayValue
+// and re-derives the canonical model from it. The precision revert restores
+// the precision dropdown to its baseline. Each handler only touches the
+// source-of-truth state of its own field; the model may transiently drift
+// out of sync with precision after a precision revert, but the user can
+// click the time-label badge or edit further to re-sync.
+function onRevertTime(): void {
+  isEditing.value = false
+  revertTime()
+  emitCanonicalDebounce.cancel()
+  emitCanonicalFromDisplay()
+}
+
+function onRevertPrecision(): void {
+  precision.value = precisionBaselineRef.value
+  timePrecision.value = precisionBaselineRef.value
+}
 
 onBeforeMount(() => {
   timePrecision.value = precision.value
@@ -841,7 +867,7 @@ watch(
     <div class="flex grow flex-col">
       <label :for="inputId" class="mb-1 flex flex-row items-center gap-1"
         ><slot name="time-label">{{ t("common.labels.time") }}</slot
-        ><InputBadges :required="required" :changed="timeChanged"
+        ><InputBadges :required="required" :changed="timeChanged" @revert="onRevertTime"
       /></label>
 
       <InputText
@@ -862,7 +888,7 @@ watch(
     <Listbox v-model="timePrecision" :disabled="inactive" as="div" class="flex w-48 flex-col" @update:model-value="onPrecisionSelected">
       <ListboxLabel class="mb-1 flex flex-row items-center gap-1"
         ><slot name="precision-label">{{ t("common.labels.precision") }}</slot
-        ><InputBadges :changed="precisionChanged"
+        ><InputBadges :changed="precisionChanged" @revert="onRevertPrecision"
       /></ListboxLabel>
 
       <div class="relative">

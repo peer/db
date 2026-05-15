@@ -52,6 +52,7 @@ const validatedInput: ValidatedInput = {
     return await inner.validate(signal)
   },
   reset: () => inputTextRef.value?.reset(),
+  revert: () => inputTextRef.value?.revert(),
   el: () => inputTextRef.value?.el() ?? null,
   isDirty: computed<boolean>(() => inputTextRef.value?.isDirty ?? false),
   setBaseline: () => inputTextRef.value?.setBaseline(),
