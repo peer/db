@@ -145,7 +145,7 @@ const el = useTemplateRef<HTMLElement>("el")
 const displayLabelComponent = useTemplateRef<ComponentExposed<typeof DisplayLabel>>("displayLabelComponent")
 const claimFormRef = useTemplateRef<HTMLFormElement>("claimFormRef")
 
-const { resetAll, firstEl, anyDirty, snapshotBaselines } = useValidationRegistry(() => {
+const { resetAll, firstEl, anyDirty, allEmpty, snapshotBaselines } = useValidationRegistry(() => {
   // Any registered-input interaction clears stale form-level errors so the
   // user is not staring at an error message after they have moved on.
   sessionError.value = ""
@@ -1030,7 +1030,7 @@ function canSave(): boolean {
                 </TabGroup>
                 <div v-if="claimFormError" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
                 <div class="mt-4 flex flex-row justify-end gap-4">
-                  <Button type="reset">{{ t("common.buttons.cancel") }}</Button>
+                  <Button type="reset" :disabled="allEmpty">{{ t("common.buttons.cancel") }}</Button>
                   <!--
                     We do enable button even when inputs are invalid because we want the user to
                     attempt a add/update and force validation (and focus to first invalid input).
