@@ -67,6 +67,7 @@ export function useValidationRegistry(
   validateAll: ValidateFn
   resetAll: () => void
   revertAll: () => void
+  snapshotBaselines: () => void
   firstEl: () => HTMLElement | null
   anyDirty: Readonly<Ref<boolean>>
   allEmpty: Readonly<Ref<boolean>>
@@ -74,7 +75,6 @@ export function useValidationRegistry(
   allErrors: Readonly<Ref<ValidationError[]>>
   // Convenience boolean derived from allErrors.length > 0.
   anyError: Readonly<Ref<boolean>>
-  snapshotBaselines: () => void
 } {
   // shallow-reactive Set so iteration inside computeds (e.g. anyDirty)
   // registers membership as a dependency and add/delete trigger
