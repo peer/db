@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ValidatedInput, ValidationError } from "@/types"
 
-import { computed, ref, watch } from "vue"
+import { computed, ref, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
 import CheckBox from "@/components/CheckBox.vue"
@@ -191,10 +191,23 @@ const { onInteraction: notifyOuter } = useRegisterForValidation(validatedInput)
 forwardInteraction = notifyOuter
 
 defineExpose(validatedInput)
+
+// Trigger validation when focus leaves the entire InputMissing (the
+// wrapped input plus the two checkboxes). focusout bubbles, so a single
+// handler on the root catches all internal blur events. If the new focus
+// target is still inside us, this is just internal navigation and we
+// skip. A null relatedTarget (focus moved to body or a non-focusable
+// element) is treated as leaving.
+const rootRef = useTemplateRef<HTMLDivElement>("rootRef")
+async function onFocusOut(event: FocusEvent) {
+  const next = event.relatedTarget as Node | null
+  if (next && rootRef.value?.contains(next)) return
+  await validatedInput.validate()
+}
 </script>
 
 <template>
-  <div class="flex flex-row items-start gap-x-4">
+  <div ref="rootRef" class="flex flex-row items-start gap-x-4" @focusout="onFocusOut">
     <div class="flex min-w-0 grow flex-row">
       <slot v-bind="$attrs" :invalid="showRequired" @errors="(v: ValidationError[]) => (innerErrors = v)" />
     </div>
