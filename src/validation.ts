@@ -1,4 +1,4 @@
-import type { InjectionKey, Ref } from "vue"
+import type { ComputedRef, InjectionKey, Ref } from "vue"
 
 import type { ValidatedInput, ValidateFn, ValidationError, ValidatorFn } from "@/types"
 
@@ -46,6 +46,24 @@ export function useRegisterForValidation(input: ValidatedInput): {
   }
 }
 
+// allErrors builds a flat, decorated list of every input's current
+// errors. Each error keeps its own el if the validator set one. The rest
+// are filled in with the source input's el().
+//
+// Pass an iterable that is reactive on membership and per-input errors
+// (e.g. a useValidationRegistry's inputs) so the computed updates.
+export function allErrors(inputs: Iterable<ValidatedInput>): ComputedRef<ValidationError[]> {
+  return computed(() => {
+    const result: ValidationError[] = []
+    for (const input of inputs) {
+      for (const error of input.errors.value) {
+        result.push(error.el ? error : { ...error, el: input.el() ?? undefined })
+      }
+    }
+    return result
+  })
+}
+
 // useValidationRegistry is called to collect validated inputs from all
 // descendant inputs that called useRegisterForValidation. validateAll runs
 // every input's validator in parallel and returns the flat list of errors.
@@ -73,9 +91,6 @@ export function useValidationRegistry(
   inputs: ReadonlySet<ValidatedInput>
   anyDirty: Readonly<Ref<boolean>>
   allEmpty: Readonly<Ref<boolean>>
-  // Flat list of all current errors across registered inputs.
-  allErrors: Readonly<Ref<ValidationError[]>>
-  // Convenience boolean derived from allErrors.length > 0.
   anyError: Readonly<Ref<boolean>>
 } {
   // shallow-reactive Set so iteration inside computeds (e.g. anyDirty)
@@ -130,17 +145,12 @@ export function useValidationRegistry(
     return false
   })
 
-  const allErrors = computed<ValidationError[]>(() => {
-    const result: ValidationError[] = []
+  const anyError = computed<boolean>(() => {
     for (const input of inputs) {
-      for (const error of input.errors.value) {
-        result.push(error.el ? error : { ...error, el: input.el() ?? undefined })
-      }
+      if (input.errors.value.length > 0) return true
     }
-    return result
+    return false
   })
-
-  const anyError = computed<boolean>(() => allErrors.value.length > 0)
 
   // When el is provided, self-register so this sub-registry appears as one
   // ValidatedInput in the outer registry (its validate/reset combine its
@@ -158,7 +168,7 @@ export function useValidationRegistry(
       revert: revertAll,
       isDirty: anyDirty,
       isEmpty: allEmpty,
-      errors: allErrors,
+      errors: allErrors(inputs),
       setBaseline: snapshotBaselines,
     })
     notifyUp = up
@@ -180,7 +190,7 @@ export function useValidationRegistry(
     return pickEarliestFocusable(Array.from(inputs, (i) => i.el()))
   }
 
-  return { validateAll, resetAll, revertAll, snapshotBaselines, firstEl, inputs: shallowReadonly(inputs), anyDirty, allEmpty, allErrors, anyError }
+  return { validateAll, resetAll, revertAll, snapshotBaselines, firstEl, inputs: shallowReadonly(inputs), anyDirty, allEmpty, anyError }
 }
 
 // isFocusable returns true if calling .focus() on el can meaningfully move

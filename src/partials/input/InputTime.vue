@@ -376,7 +376,7 @@ import InputText from "@/components/InputText.vue"
 import InputBadges from "@/partials/InputBadges.vue"
 import { useLocked } from "@/progress"
 import { equals } from "@/utils"
-import { useRegisterForValidation, useValidationRegistry } from "@/validation"
+import { allErrors, useRegisterForValidation, useValidationRegistry } from "@/validation"
 
 const DEBOUNCE_MS = 2000
 
@@ -479,11 +479,13 @@ const {
   resetAll: resetTime,
   revertAll: revertTime,
   anyDirty: timeChanged,
-  allErrors: childErrors,
+  inputs: timeInputs,
   snapshotBaselines: snapshotTimeBaselines,
 } = useValidationRegistry(() => {
   forwardInteraction?.()
 })
+
+const timeErrors = allErrors(timeInputs)
 
 // Baseline for the precision dropdown - the time-input baseline lives
 // inside the inner InputText, whose isDirty bubbles up through the
@@ -528,7 +530,7 @@ const validatedInput: ValidatedInput = {
   // canonical model rather than displayValue because mid-typing
   // intermediate strings would falsely register as non-empty.
   isEmpty: computed<boolean>(() => !model.value),
-  errors: computed<ValidationError[]>(() => decorateErrors([...errors.value, ...childErrors.value])),
+  errors: computed<ValidationError[]>(() => decorateErrors([...errors.value, ...timeErrors.value])),
   setBaseline: () => {
     precisionBaselineRef.value = precision.value
     snapshotTimeBaselines()
