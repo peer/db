@@ -39,10 +39,13 @@ const props = withDefaults(
   defineProps<{
     readonly?: boolean
     required?: boolean
+    // Presentational override.
+    invalid?: boolean
   }>(),
   {
     readonly: false,
     required: false,
+    invalid: false,
   },
 )
 
@@ -52,7 +55,7 @@ const errors = ref<ValidationError[]>([])
 const emit = defineEmits<{ errors: [ValidationError[]] }>()
 watch(errors, (v) => emit("errors", v), { flush: "sync" })
 
-const invalid = computed(() => errors.value.length > 0)
+const invalid = computed(() => props.invalid || errors.value.length > 0)
 
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()

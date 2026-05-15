@@ -14,9 +14,7 @@ import { useValidation } from "@/validation"
 const props = withDefaults(
   defineProps<{
     readonly?: boolean
-    // Presentational override. The textarea always renders as invalid
-    // when it has its own errors (errors.length > 0); setting this prop
-    // adds an external way to force-invalid styling on top.
+    // Presentational override.
     invalid?: boolean
     // Without a validator the textarea does not drive errors at all:
     // validate() is a no-op that returns the (empty) errors list. Pass a

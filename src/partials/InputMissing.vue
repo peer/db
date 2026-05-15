@@ -10,13 +10,13 @@ import { getParentLock, useLock } from "@/progress"
 import { useRegisterForValidation, useValidationRegistry } from "@/validation"
 
 const props = defineProps<{
-  // We do NOT forward this required directly to the wrapped input. We
-  // own the required check ourselves: a missing-state checkbox already
-  // satisfies "field has a value", so the wrapped input is only
-  // required-when-empty if neither checkbox is checked. When our own
-  // validate() detects that case, showRequired flips on and routes
-  // required=true through to the wrapped input and to the checkboxes
-  // for visual feedback; any subsequent interaction clears it.
+  // We do NOT forward required to the wrapped input - we own the required
+  // check ourselves because a missing-state checkbox already satisfies
+  // "field has a value". When our own validate() detects required-but-empty
+  // (neither checkbox checked, wrapped input also empty), showRequired
+  // flips on and we route :invalid=true through to the wrapped input and
+  // to the checkboxes for visual feedback; any subsequent interaction
+  // clears it.
   required?: boolean
 }>()
 
@@ -193,7 +193,7 @@ defineExpose(validatedInput)
 <template>
   <div class="flex flex-row items-start gap-x-4">
     <div class="flex min-w-0 grow flex-row">
-      <slot v-bind="$attrs" :required="showRequired" @errors="(v: ValidationError[]) => (innerErrors = v)" />
+      <slot v-bind="$attrs" :invalid="showRequired" @errors="(v: ValidationError[]) => (innerErrors = v)" />
     </div>
     <WithLock :lock="getParentLockRef">
       <div class="flex flex-col">

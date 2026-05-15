@@ -384,11 +384,14 @@ const props = withDefaults(
   defineProps<{
     readonly?: boolean
     required?: boolean
+    // Presentational override.
+    invalid?: boolean
     maxPrecision?: "G" | "100M" | "10M" | "M" | "100k" | "10k" | "k" | "100y" | "10y" | "y"
   }>(),
   {
     readonly: false,
     required: false,
+    invalid: false,
     maxPrecision: "G",
   },
 )
@@ -881,7 +884,7 @@ watch(
         autocorrect="off"
         autocapitalize="none"
         :readonly="readonly"
-        :invalid="errors.length > 0"
+        :invalid="invalid || errors.length > 0"
         @focus="onFocus"
         @blur="onBlur"
         @keydown="onKeydown"

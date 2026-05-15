@@ -37,10 +37,13 @@ const props = withDefaults(
   defineProps<{
     readonly?: boolean
     required?: boolean
+    // Presentational override.
+    invalid?: boolean
   }>(),
   {
     readonly: false,
     required: false,
+    invalid: false,
   },
 )
 
@@ -170,7 +173,7 @@ const WithPeerDBDocument = WithDocument<D>
       <div v-else-if="dataLoadingError" class="col-span-2 p-2 text-error-600">{{ t("common.errors.unexpected") }}</div>
       <template v-else>
         <template v-for="result in searchResults" :key="result.id">
-          <RadioButton :id="`${baseId}-${result.id}`" v-model="model" :name="baseId" :value="result.id" :disabled="props.readonly" class="mx-2" />
+          <RadioButton :id="`${baseId}-${result.id}`" v-model="model" :name="baseId" :value="result.id" :disabled="props.readonly" :invalid="invalid" class="mx-2" />
           <div class="flex items-baseline gap-x-1">
             <WithPeerDBDocument :id="result.id" name="DocumentGet">
               <template #default="{ doc, url }">

@@ -14,10 +14,13 @@ const props = withDefaults(
   defineProps<{
     readonly?: boolean
     required?: boolean
+    // Presentational override.
+    invalid?: boolean
   }>(),
   {
     readonly: false,
     required: false,
+    invalid: false,
   },
 )
 
@@ -124,6 +127,7 @@ defineExpose(validatedInput)
       ref="inputTextRef"
       v-model="model"
       :readonly="readonly"
+      :invalid="invalid"
       :validator="validator"
       class="w-full"
       :class="canOpen ? 'pr-9' : ''"

@@ -11,10 +11,13 @@ const props = withDefaults(
   defineProps<{
     readonly?: boolean
     required?: boolean
+    // Presentational override.
+    invalid?: boolean
   }>(),
   {
     readonly: false,
     required: false,
+    invalid: false,
   },
 )
 
@@ -54,5 +57,5 @@ defineExpose(validatedInput)
 </script>
 
 <template>
-  <InputText ref="inputTextRef" v-model="model" :readonly="readonly" :validator="validator" @errors="(v: ValidationError[]) => emit('errors', v)" />
+  <InputText ref="inputTextRef" v-model="model" :readonly="readonly" :invalid="invalid" :validator="validator" @errors="(v: ValidationError[]) => emit('errors', v)" />
 </template>
