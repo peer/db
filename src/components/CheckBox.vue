@@ -12,9 +12,11 @@ import { useLocked } from "@/progress"
 const props = withDefaults(
   defineProps<{
     disabled?: boolean
+    invalid?: boolean
   }>(),
   {
     disabled: false,
+    invalid: false,
   },
 )
 
@@ -37,11 +39,13 @@ defineOptions({
       v-tw-merge
       v-bind="$attrs"
       :disabled="inactive()"
+      :aria-invalid="invalid || undefined"
       type="checkbox"
       class="pd-checkbox -mt-0.5 rounded-sm align-middle"
       :class="{
         'cursor-not-allowed bg-gray-400 text-primary-300': inactive(),
-        'cursor-pointer text-primary-600 focus:ring-primary-500': !inactive(),
+        'cursor-pointer text-primary-600 focus:ring-primary-500': !inactive() && !invalid,
+        'cursor-pointer bg-error-50 text-error-600 focus:ring-error-500': !inactive() && invalid,
       }"
     />
   </div>

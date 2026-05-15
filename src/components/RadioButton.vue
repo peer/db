@@ -14,9 +14,11 @@ import { useLocked } from "@/progress"
 const props = withDefaults(
   defineProps<{
     disabled?: boolean
+    invalid?: boolean
   }>(),
   {
     disabled: false,
+    invalid: false,
   },
 )
 
@@ -72,11 +74,13 @@ function onKeyDown(event: KeyboardEvent) {
       v-tw-merge
       v-bind="$attrs"
       :disabled="inactive()"
+      :aria-invalid="invalid || undefined"
       type="radio"
       class="pd-radiobutton -mt-0.5 align-middle"
       :class="{
         'cursor-not-allowed bg-gray-400 text-primary-300': inactive(),
-        'cursor-pointer text-primary-600 focus:ring-primary-500': !inactive(),
+        'cursor-pointer text-primary-600 focus:ring-primary-500': !inactive() && !invalid,
+        'cursor-pointer bg-error-50 text-error-600 focus:ring-error-500': !inactive() && invalid,
       }"
       @click="onClick"
       @keydown="onKeyDown"
