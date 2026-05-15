@@ -84,7 +84,7 @@ export function useValidationRegistry(
   validateAll: ValidateFn
   resetAll: () => void
   revertAll: () => void
-  focusFirst: () => void
+  firstEl: () => HTMLElement | null
   anyDirty: Readonly<Ref<boolean>>
   allEmpty: Readonly<Ref<boolean>>
   snapshotBaselines: () => void
@@ -173,7 +173,12 @@ export function useValidationRegistry(
     inputs.delete(input)
   })
 
-  return { validateAll, resetAll, revertAll, focusFirst: () => focusFirstInput(inputs), anyDirty, allEmpty, snapshotBaselines }
+  // firstEl is the earliest focusable element across registered inputs.
+  function firstEl(): HTMLElement | null {
+    return pickEarliestFocusable(Array.from(inputs, (i) => i.el()))
+  }
+
+  return { validateAll, resetAll, revertAll, firstEl, anyDirty, allEmpty, snapshotBaselines }
 }
 
 // isFocusable returns true if calling .focus() on el can meaningfully move
@@ -213,14 +218,6 @@ function pickEarliestFocusable(els: Iterable<HTMLElement | null | undefined>): H
 // disabled, are skipped.
 export function focusFirstInvalid(errors: ValidationError[]) {
   pickEarliestFocusable(errors.map((e) => e.el))?.focus()
-}
-
-// focusFirstInput moves focus to the first focusable input among the
-// given ValidatedInputs in document order. Used when programmatically
-// opening a form (e.g. switching into edit mode) so the user can start
-// typing without having to click.
-export function focusFirstInput(inputs: Iterable<ValidatedInput>): void {
-  pickEarliestFocusable(Array.from(inputs, (i) => i.el()))?.focus()
 }
 
 class ValidationAbortedError extends Error {}

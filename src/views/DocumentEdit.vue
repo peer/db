@@ -145,7 +145,7 @@ const el = useTemplateRef<HTMLElement>("el")
 const displayLabelComponent = useTemplateRef<ComponentExposed<typeof DisplayLabel>>("displayLabelComponent")
 const claimFormRef = useTemplateRef<HTMLFormElement>("claimFormRef")
 
-const { resetAll, focusFirst, anyDirty, snapshotBaselines } = useValidationRegistry(() => {
+const { resetAll, firstEl, anyDirty, snapshotBaselines } = useValidationRegistry(() => {
   // Any registered-input interaction clears stale form-level errors so the
   // user is not staring at an error message after they have moved on.
   sessionError.value = ""
@@ -674,7 +674,7 @@ async function onEditClaim(id: string) {
   // Wait for the new panel's inputs to mount and register, then move focus
   // to the first focusable one so the user can start editing immediately.
   await nextTick()
-  focusFirst()
+  firstEl()?.focus()
   // Record the populated values as the baseline so the form is not dirty
   // until the user actually changes something.
   snapshotBaselines()
@@ -696,7 +696,7 @@ async function onSubClaimAdd(id: string) {
   lockedClaimType.value = null
 
   await nextTick()
-  focusFirst()
+  firstEl()?.focus()
   snapshotBaselines()
 }
 
