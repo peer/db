@@ -764,17 +764,21 @@ function canSave(): boolean {
           See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
         -->
         <TabGroup>
-          <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100">
+          <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100 contain-inline-size">
             <Tab
               v-if="classTabId && mergedFieldsData"
               :key="classTabId"
-              class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-              ><DocumentRefInline :id="classTabId" :link="false"
-            /></Tab>
+              class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+              ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%-1rem),transparent)] px-4 py-3 whitespace-nowrap"
+                ><DocumentRefInline :id="classTabId" :link="false" /></span
+            ></Tab>
             <Tab
               v-if="siteContext.features.editButtons"
-              class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-              >{{ t("views.DocumentEdit.tabs.allProperties") }}</Tab
+              :title="t('views.DocumentEdit.tabs.allProperties')"
+              class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+              ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%-1rem),transparent)] px-4 py-3 whitespace-nowrap">{{
+                t("views.DocumentEdit.tabs.allProperties")
+              }}</span></Tab
             >
           </TabList>
           <h1 v-show="displayLabelComponent?.displayLabel" class="mb-4 text-4xl font-bold drop-shadow-xs"><DisplayLabel ref="displayLabelComponent" :doc="doc" /></h1>
@@ -813,13 +817,16 @@ function canSave(): boolean {
                   editingClaimId ? t("views.DocumentEdit.editClaim") : subClaimParentId ? t("views.DocumentEdit.addSubClaim") : t("views.DocumentEdit.addClaim")
                 }}</h2>
                 <TabGroup :selected-index="selectedClaimTab" @change="onChangeClaimTab">
-                  <TabList class="mt-4 flex border-collapse flex-row border border-gray-200 bg-slate-100">
+                  <TabList class="mt-4 flex border-collapse flex-row border border-gray-200 bg-slate-100 contain-inline-size">
                     <Tab
                       v-for="type in claimTypes"
                       :key="type"
                       :disabled="lockedClaimType !== null && lockedClaimType !== type"
-                      class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-selected:bg-white"
-                      >{{ claimTypeLabel(type) }}</Tab
+                      :title="claimTypeLabel(type)"
+                      class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-selected:bg-white"
+                      ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%-1rem),transparent)] px-4 py-3 whitespace-nowrap">{{
+                        claimTypeLabel(type)
+                      }}</span></Tab
                     >
                   </TabList>
                   <TabPanels as="template">
