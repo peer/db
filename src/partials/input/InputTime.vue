@@ -373,6 +373,7 @@ import { useI18n } from "vue-i18n"
 
 import InputStyled from "@/components/InputStyled.vue"
 import InputText from "@/components/InputText.vue"
+import FieldBadges from "@/partials/FieldBadges.vue"
 import { useLocked } from "@/progress"
 import { equals } from "@/utils"
 import { useRegisterForValidation, useValidationRegistry } from "@/validation"
@@ -473,19 +474,22 @@ let forwardInteraction: (() => void) | null = null
 const {
   validateAll,
   resetAll,
-  anyDirty: anyChildDirty,
+  anyDirty: timeChanged,
   snapshotBaselines,
 } = useValidationRegistry(() => {
   forwardInteraction?.()
 })
 
-// Baselines for InputTime's own (non-sub-input) state. The inner InputText
-// has its own baseline via the sub-registry; we additionally track the
-// canonical model and the chosen precision because the canonical model
-// updates lag the InputText during typing (debounced), and precision is
-// driven by the inlined Listbox, not a sub-input.
-const modelBaselineRef = ref(model.value)
+// Baseline for the precision dropdown - the time-input baseline lives
+// inside the inner InputText, whose isDirty bubbles up through the
+// sub-registry as timeChanged.
 const precisionBaselineRef = ref(precision.value)
+
+// Per-field "changed" signal for the precision label. We don't try to
+// attribute cross-field side effects (typing can auto-adapt precision;
+// changing precision rewrites the time text via applyPrecision) - each
+// field's badge just follows its own current-vs-baseline value.
+const precisionChanged = computed(() => !equals(precision.value, precisionBaselineRef.value))
 
 const validatedInput: ValidatedInput = {
   validate: async (signal) => {
@@ -501,9 +505,8 @@ const validatedInput: ValidatedInput = {
     isEditing.value = false
   },
   el: () => document.getElementById(inputId),
-  isDirty: computed(() => !equals(model.value, modelBaselineRef.value) || !equals(precision.value, precisionBaselineRef.value) || anyChildDirty.value),
+  isDirty: computed(() => timeChanged.value || precisionChanged.value),
   setBaseline: () => {
-    modelBaselineRef.value = model.value
     precisionBaselineRef.value = precision.value
     snapshotBaselines()
   },
@@ -514,13 +517,6 @@ forwardInteraction = notifyOuter
 // Same shape exposed to the parent so an ancestor form (e.g. via a
 // template ref) sees this InputTime as a single ValidatedInput.
 defineExpose(validatedInput)
-
-// Dirty signal for the time-label "changed" badge. We bundle the canonical
-// model baseline check with anyChildDirty so the badge shows as soon as the
-// user types in the inner InputText (its model is the unsynced displayValue)
-// without waiting for the debounced canonical-model update to land. Excludes
-// the precision change since the precision Listbox has its own label.
-const timeChanged = computed(() => !equals(model.value, modelBaselineRef.value) || anyChildDirty.value)
 
 onBeforeMount(() => {
   timePrecision.value = precision.value
@@ -843,11 +839,9 @@ watch(
 <template>
   <div class="pd-inputtime flex flex-row gap-x-1 sm:gap-x-4" v-bind="$attrs">
     <div class="flex grow flex-col">
-      <label :for="inputId" class="mb-1 flex flex-row items-center gap-1">
-        <slot name="time-label">{{ t("common.labels.time") }}</slot
-        ><span v-if="required" class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span>
-        <span v-if="timeChanged" class="rounded-xs bg-primary-300 px-1.5 py-0.5 text-xs leading-none text-gray-100 shadow-xs">{{ t("common.labels.changed") }}</span>
-      </label>
+      <label :for="inputId" class="mb-1 flex flex-row items-center gap-1"
+        ><slot name="time-label">{{ t("common.labels.time") }}</slot><FieldBadges :required="required" :changed="timeChanged"
+      /></label>
 
       <InputText
         :id="inputId"
@@ -865,9 +859,9 @@ watch(
     </div>
 
     <Listbox v-model="timePrecision" :disabled="inactive" as="div" class="flex w-48 flex-col" @update:model-value="onPrecisionSelected">
-      <ListboxLabel class="mb-1"
-        ><slot name="precision-label">{{ t("common.labels.precision") }}</slot></ListboxLabel
-      >
+      <ListboxLabel class="mb-1 flex flex-row items-center gap-1"
+        ><slot name="precision-label">{{ t("common.labels.precision") }}</slot><FieldBadges :changed="precisionChanged"
+      /></ListboxLabel>
 
       <div class="relative">
         <!--
