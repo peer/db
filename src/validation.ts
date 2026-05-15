@@ -470,7 +470,16 @@ export function useValidation<T>(
 
   const validatedInput: ValidatedInput = {
     validate,
-    reset,
+    // The component-supplied reset typically clears errors.value
+    // externally. Without invalidating lastValidated, the next validate()
+    // call's entryCovers check would still match (same value, same
+    // validator, same mode) and return the now-empty errors.value as a
+    // false cache hit - the validator never re-runs. Clear the cache key
+    // so subsequent validates rerun against the post-reset state.
+    reset: () => {
+      lastValidated = null
+      reset()
+    },
     // Built-in revert: restore the model to whatever setBaseline last
     // captured. We do not clear errors - the model watcher re-runs the
     // validator on every model change, and a pre-populated baseline value
