@@ -46,6 +46,16 @@ export function useRegisterForValidation(input: ValidatedInput): {
   }
 }
 
+// iterateErrors yields each input's errors with el decorated from the
+// source input when the validator did not already set one.
+function* iterateErrors(inputs: Iterable<ValidatedInput>): Generator<ValidationError> {
+  for (const input of inputs) {
+    for (const error of input.errors.value) {
+      yield error.el ? error : { ...error, el: input.el() ?? undefined }
+    }
+  }
+}
+
 // allErrors builds a flat, decorated list of every input's current
 // errors. Each error keeps its own el if the validator set one. The rest
 // are filled in with the source input's el().
@@ -53,22 +63,15 @@ export function useRegisterForValidation(input: ValidatedInput): {
 // Pass an iterable that is reactive on membership and per-input errors
 // (e.g. a useValidationRegistry's inputs) so the computed updates.
 export function allErrors(inputs: Iterable<ValidatedInput>): ComputedRef<ValidationError[]> {
-  return computed(() => {
-    const result: ValidationError[] = []
-    for (const input of inputs) {
-      for (const error of input.errors.value) {
-        result.push(error.el ? error : { ...error, el: input.el() ?? undefined })
-      }
-    }
-    return result
-  })
+  return computed(() => Array.from(iterateErrors(inputs)))
 }
 
 // useValidationRegistry is called to collect validated inputs from all
 // descendant inputs that called useRegisterForValidation. validateAll runs
-// every input's validator in parallel and returns the flat list of errors.
-// resetAll restores every registered input to its initial state, revertAll
-// restores every registered input to its recorded baseline.
+// every input's validator in parallel. The results land in each input's
+// reactive errors ref, so callers read state from there after awaiting.
+// resetAll restores every registered input to its initial state,
+// revertAll restores every registered input to its recorded baseline.
 //
 // onInteraction is called whenever a registered input notifies that the user
 // has interacted with it (e.g. to clear top-level errors). The triggering
@@ -100,14 +103,12 @@ export function useValidationRegistry(
   // which is a Ref<boolean>) on access, breaking the type.
   const inputs = shallowReactive(new Set<ValidatedInput>())
 
-  const validateAll: ValidateFn = async function (signal?: AbortSignal): Promise<ValidationError[]> {
-    const list = Array.from(inputs)
+  const validateAll: ValidateFn = async function (signal?: AbortSignal): Promise<void> {
     try {
-      const batches = await Promise.all(list.map((input) => input.validate(signal)))
-      return batches.flatMap((errors, i) => errors.map((error) => (error.el ? error : { ...error, el: list[i].el() ?? undefined })))
+      await Promise.all(Array.from(inputs, (input) => input.validate(signal)))
     } catch (err) {
       if (signal?.aborted) {
-        return []
+        return
       }
       throw err
     }
@@ -225,11 +226,12 @@ function pickEarliestFocusable(els: Iterable<HTMLElement | null | undefined>): H
   return earliest
 }
 
-// focusFirstInvalid focuses the error whose el appears earliest in the
-// document and is focusable. Errors without an el, or with an el that is
-// disabled, are skipped.
-export function focusFirstInvalid(errors: ValidationError[]) {
-  pickEarliestFocusable(errors.map((e) => e.el))?.focus()
+// focusFirstInvalid focuses the input whose error appears earliest in the
+// document and is focusable. Errors without their own el fall back to the
+// source input's el. Inputs with no errors are skipped, as are els that
+// are disabled.
+export function focusFirstInvalid(inputs: Iterable<ValidatedInput>) {
+  pickEarliestFocusable(Array.from(iterateErrors(inputs), (e) => e.el))?.focus()
 }
 
 class ValidationAbortedError extends Error {}
@@ -237,9 +239,9 @@ class ValidationAbortedError extends Error {}
 // useValidation is the high-level wrapper for the common "reactive ref +
 // ValidatorFn" shape of input. On top of useRegisterForValidation it owns the
 // validation machinery around the validator (abort-and-restart on every new
-// call, mode-aware caching for eager/initial, in-flight join, model-mutation
-// re-validation loop), watches model and writes results into errors.value,
-// and triggers onInteraction on every model change.
+// call, in-flight join, model-mutation re-validation loop), watches model
+// and writes results into errors.value, and triggers onInteraction on
+// every model change.
 //
 // Use useValidation for simple inputs with a single ValidatorFn<T> over one
 // model ref. For composite inputs whose validate/reset do not fit that shape,
@@ -262,31 +264,17 @@ export function useValidation<T>(
 } {
   let validateAbortController: AbortController | null = null
   let inFlight: { value: T; validator: ValidatorFn<T>; eager: boolean; initial: boolean; promise: Promise<void> } | null = null
-  let lastValidated: { value: T; validator: ValidatorFn<T>; eager: boolean; initial: boolean } | null = null
 
   onBeforeUnmount(() => {
     validateAbortController?.abort()
   })
 
-  // Only treat an entry as covering a request when the value, validator, and
-  // mode flags all match. We don't assume a result from one mode is strictly
-  // stronger than another, because a validator's behavior under each mode is
-  // opaque to us; any mode mismatch always re-runs.
-  function entryCovers(
-    entry: { value: T; validator: ValidatorFn<T>; eager: boolean; initial: boolean } | null,
-    value: T,
-    validator: ValidatorFn<T>,
-    eager: boolean,
-    initial: boolean,
-  ): boolean {
-    if (!entry) return false
-    return entry.value === value && entry.validator === validator && entry.eager === eager && entry.initial === initial
-  }
-
-  // internalValidation uses abort-and-restart: every call aborts any prior in-flight
-  // one and starts a new validator invocation. On successful completion it writes the
-  // result to errors.value and records lastValidated as a cache marker. On abort the
-  // IIFE throws ValidationAbortedError so callers awaiting inFlight.promise can
+  // internalValidation uses abort-and-restart: every call for a different
+  // (value, validator, mode) aborts any prior in-flight one and starts a new
+  // validator invocation; a matching concurrent call joins the existing
+  // in-flight promise instead of re-running. On successful completion it
+  // writes the result to errors.value. On abort the IIFE throws
+  // ValidationAbortedError so callers awaiting inFlight.promise can
   // distinguish validator aborts from real validator errors.
   function internalValidation(options?: { signal?: AbortSignal; eager?: boolean; initial?: boolean }): Promise<void> | null {
     const validator = validatorGetter()
@@ -295,14 +283,11 @@ export function useValidation<T>(
     const eager = options?.eager ?? false
     const initial = options?.initial ?? false
 
-    // Already have a result for this exact (value, validator, mode) in errors.value.
-    if (entryCovers(lastValidated, initialValue, validator, eager, initial)) {
-      return null
-    }
     // Already running the validator for this exact (value, validator, mode): join the in-flight call.
-    if (entryCovers(inFlight, initialValue, validator, eager, initial)) {
-      // The non-null assertion is safe: entryCovers returns false when entry is null.
-      return inFlight!.promise
+    // We do not assume a result from one mode is strictly stronger than another, because a validator's
+    // behavior under each mode is opaque to us. Any mode mismatch starts a new run.
+    if (inFlight && inFlight.value === initialValue && inFlight.validator === validator && inFlight.eager === eager && inFlight.initial === initial) {
+      return inFlight.promise
     }
 
     validateAbortController?.abort()
@@ -321,11 +306,11 @@ export function useValidation<T>(
       try {
         let value = initialValue
         // Validators may mutate model.value as a side effect (ideally gated on
-        // !eager && !initial). If that happens, the cached errors and
-        // lastValidated marker would be for the pre-mutation value while the
-        // model now holds something that has not been validated, so re-run
-        // with the new value until model stabilises. A validator that keeps
-        // mutating model never terminates here - that is a validator bug.
+        // !eager && !initial). If that happens, errors.value would be for the
+        // pre-mutation value while the model now holds something that has not
+        // been validated, so re-run with the new value until model stabilises.
+        // A validator that keeps mutating model never terminates here - that
+        // is a validator bug.
         while (true) {
           let result: ValidationError[]
           try {
@@ -343,7 +328,6 @@ export function useValidation<T>(
           }
 
           errors.value = result.map((error) => (error.el ? error : { ...error, el: el() ?? undefined }))
-          lastValidated = { value, validator, eager, initial }
 
           if (model.value === value) {
             break
@@ -370,30 +354,21 @@ export function useValidation<T>(
     return promise
   }
 
-  // validate is the registry-facing entry point. errors.value is treated as
-  // the cache: if lastValidated matches the current (value, validator), the
-  // result is already in errors.value and we return it without re-invoking the
-  // validator. Otherwise we either await an in-flight validation for the same
-  // pair, or trigger one ourselves, then loop and re-check. Aborts caused by
-  // validator aborts (changing model during await) loop transparently;
-  // real validator errors propagate.
-  async function validate(additionalSignal?: AbortSignal): Promise<ValidationError[]> {
+  // validate is the registry-facing entry point. It triggers a fresh
+  // validation run (joining an in-flight one for the same value/mode) and
+  // resolves once errors.value reflects the result. Validator-aborts caused
+  // by a newer call (e.g. model change during the await) re-enter the loop
+  // to wait for the new run. Real validator errors propagate.
+  async function validate(additionalSignal?: AbortSignal): Promise<void> {
     while (true) {
       if (additionalSignal?.aborted) {
-        // Return last known errors. Caller should check its own
-        // additionalSignal before using the result.
-        return errors.value
+        return
       }
 
-      // internalValidation handles validator-missing and cache-hit by
-      // returning null, and joins an in-flight matching call (eager=false,
-      // since validate represents a caller asking for the final state
-      // including model-mutating side effects) by returning its promise.
       const waitFor = internalValidation({ signal: additionalSignal })
       if (!waitFor) {
-        // No work to do: validator absent or lastValidated already covers the
-        // current (value, validator). errors.value reflects current state.
-        return errors.value
+        // No work to do: validator absent.
+        return
       }
 
       try {
@@ -406,22 +381,14 @@ export function useValidation<T>(
           await waitFor
         }
       } catch (err) {
-        if (additionalSignal?.aborted) {
-          // Return last known errors. Caller should check its own
-          // additionalSignal before using the result.
-          return errors.value
-        }
+        if (additionalSignal?.aborted) return
         if (err instanceof ValidationAbortedError) {
-          // Validator abort.
+          // Validator was aborted by a newer call - loop and join it.
           continue
         }
         throw err
       }
-      if (additionalSignal?.aborted) {
-        // raceWithSignal resolved because additionalSignal aborted.
-        // We return last known errors and let the caller bail.
-        return errors.value
-      }
+      return
     }
   }
 
@@ -482,16 +449,7 @@ export function useValidation<T>(
 
   const validatedInput: ValidatedInput = {
     validate,
-    // The component-supplied reset typically clears errors.value
-    // externally. Without invalidating lastValidated, the next validate()
-    // call's entryCovers check would still match (same value, same
-    // validator, same mode) and return the now-empty errors.value as a
-    // false cache hit - the validator never re-runs. Clear the cache key
-    // so subsequent validates rerun against the post-reset state.
-    reset: () => {
-      lastValidated = null
-      reset()
-    },
+    reset,
     // Built-in revert: restore the model to whatever setBaseline last
     // captured. We do not clear errors - the model watcher re-runs the
     // validator on every model change, and a pre-populated baseline value

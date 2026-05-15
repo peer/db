@@ -324,15 +324,16 @@ export type ValidationError = {
   debugError?: Error
 }
 
-// Resolves to the list of errors for the input's current value (empty = valid).
-// As a side effect, the input sets its errors v-model so callers can read the
-// result reactively instead of (or in addition to) relying on the return value.
-// The optional signal lets callers abort in-flight async validation.
-export type ValidateFn = (signal?: AbortSignal) => Promise<ValidationError[]>
+// Triggers (re-)validation of an input. Implementations write the result
+// into the input's reactive errors field. Callers read it from there after
+// the promise resolves. The optional signal lets callers abort in-flight
+// async validation.
+export type ValidateFn = (signal?: AbortSignal) => Promise<void>
 
-// A user-supplied rule plugged into an input via its :validator prop. Same
-// shape as ValidateFn but receives the value directly instead of reading it
-// off the input's model.
+// A user-supplied rule plugged into an input via its :validator prop. It
+// receives the value directly (instead of reading it off the input's
+// model) and returns the resulting errors. The input's useValidation
+// wrapper writes them into the input's reactive errors field.
 //
 // options.eager is true on re-validation triggered by the model watcher
 // (e.g. when the validator is being called during typing) and false on

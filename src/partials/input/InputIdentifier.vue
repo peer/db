@@ -51,9 +51,7 @@ const validator: ValidatorFn<string> = async function (value, options) {
 const inputTextRef = useTemplateRef<ShallowUnwrapRef<ValidatedInput>>("inputTextRef")
 const validatedInput: ValidatedInput = {
   validate: async (signal) => {
-    const inner = inputTextRef.value
-    if (!inner) return []
-    return await inner.validate(signal)
+    await inputTextRef.value?.validate(signal)
   },
   reset: () => inputTextRef.value?.reset(),
   revert: () => inputTextRef.value?.revert(),

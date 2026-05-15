@@ -499,16 +499,14 @@ const precisionBaselineRef = ref(precision.value)
 const precisionChanged = computed(() => !equals(precision.value, precisionBaselineRef.value))
 
 // Decorate undecorated errors with the inner InputText's element so
-// consumers see consistent { code, el } shape regardless of whether they
-// read from the errors computed below or await validate().
+// consumers see a consistent { code, el } shape on the errors computed.
 function decorateErrors(list: ValidationError[]): ValidationError[] {
   return list.map((error) => (error.el ? error : { ...error, el: document.getElementById(inputId) ?? undefined }))
 }
 
 const validatedInput: ValidatedInput = {
   validate: async (signal) => {
-    const timeErrors = await validateTime(signal)
-    return decorateErrors([...errors.value, ...timeErrors])
+    await validateTime(signal)
   },
   reset: () => {
     resetTime()

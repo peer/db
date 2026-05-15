@@ -42,7 +42,6 @@ const innerErrors = ref<ValidationError[]>([])
 // errors do not represent the field's state.
 const errors = computed<ValidationError[]>(() => {
   if (missingSet.value) {
-    // This is [].
     return ownErrors.value
   }
   return [...ownErrors.value, ...innerErrors.value].map((error) => (error.el ? error : { ...error, el: firstChildEl() ?? undefined }))
@@ -142,20 +141,19 @@ const validatedInput: ValidatedInput = {
     // locked and its value is intentionally "missing" - skip its
     // validation entirely.
     if (missingSet.value) {
+      ownErrors.value = []
       clearShowRequired()
-      return []
+      return
     }
-    const childErrors = await validateChildAll(signal)
+    await validateChildAll(signal)
     if (props.required && allChildEmpty.value) {
       showRequired.value = true
       // TODO: Use standard codes.
-      const own = [{ code: "required" }]
-      ownErrors.value = own
-      // We just re-computed it by assigning to ownErrors, so we can also just return it.
-      return errors.value
+      ownErrors.value = [{ code: "required" }]
+      return
     }
+    ownErrors.value = []
     clearShowRequired()
-    return childErrors
   },
   reset: () => {
     resetChildAll()
