@@ -38,6 +38,7 @@
       "property": "Property",
       "value": "Value",
       "time": "Time",
+      "amount": "Amount",
       "precision": "Precision",
       "required": "required",
       "changed": "changed"
@@ -54,7 +55,9 @@
     },
     "validation": {
       "required": "Required value.",
-      "invalid": "Invalid value."
+      "requiredPrecision": "Required precision.",
+      "invalid": "Invalid value.",
+      "invalidPrecision": "Invalid precision."
     }
   },
   "partials": {

@@ -9,6 +9,10 @@ const errors = ref<ValidationError[]>([])
 const emit = defineEmits<{ errors: [ValidationError[]] }>()
 watch(errors, (v) => emit("errors", v), { flush: "sync" })
 
+defineOptions({
+  inheritAttrs: false,
+})
+
 const { t } = useI18n({ useScope: "global" })
 
 const errorId = useId()
@@ -20,6 +24,8 @@ const errorId = useId()
 const codeMap = computed<Record<string, string>>(() => ({
   required: t("common.validation.required"),
   invalid: t("common.validation.invalid"),
+  requiredPrecision: t("common.validation.requiredPrecision"),
+  invalidPrecision: t("common.validation.invalidPrecision"),
 }))
 
 const message = computed<string | null>(() => {
@@ -38,6 +44,6 @@ const message = computed<string | null>(() => {
 </script>
 
 <template>
-  <slot :aria-describedby="errors.length > 0 ? errorId : undefined" @errors="(v: ValidationError[]) => (errors = v)" />
+  <slot v-bind="$attrs" :aria-describedby="errors.length > 0 ? errorId : undefined" @errors="(v: ValidationError[]) => (errors = v)" />
   <p v-if="message" :id="errorId" class="mt-1 text-sm text-error-600">{{ message }}</p>
 </template>

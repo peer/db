@@ -49,6 +49,7 @@ declare module "vue-i18n" {
         property: string
         value: string
         time: string
+        amount: string
         precision: string
         required: string
         changed: string
@@ -65,7 +66,9 @@ declare module "vue-i18n" {
       }
       validation: {
         required: string
+        requiredPrecision: string
         invalid: string
+        invalidPrecision: string
       }
     }
     partials: {

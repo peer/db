@@ -38,6 +38,7 @@
       "property": "Lastnost",
       "value": "Vrednost",
       "time": "Čas",
+      "amount": "Količina",
       "precision": "Natančnost",
       "required": "obvezno",
       "changed": "spremenjeno"
@@ -54,7 +55,9 @@
     },
     "validation": {
       "required": "Obvezna vrednost.",
-      "invalid": "Neveljavna vrednost."
+      "requiredPrecision": "Obvezna natančnost.",
+      "invalid": "Neveljavna vrednost.",
+      "invalidPrecision": "Neveljavna natančnost."
     }
   },
   "partials": {

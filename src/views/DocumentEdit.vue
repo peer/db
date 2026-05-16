@@ -44,6 +44,7 @@ import DisplayLabel from "@/partials/DisplayLabel.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import FieldsForm from "@/partials/FieldsForm.vue"
 import Footer from "@/partials/Footer.vue"
+import InputAmount from "@/partials/input/InputAmount.vue"
 import InputFile from "@/partials/input/InputFile.vue"
 import InputHTML from "@/partials/input/InputHTML.vue"
 import InputIdentifier from "@/partials/input/InputIdentifier.vue"
@@ -53,6 +54,7 @@ import InputString from "@/partials/input/InputString.vue"
 import InputTime from "@/partials/input/InputTime.vue"
 import InputErrors from "@/partials/InputErrors.vue"
 import InputField from "@/partials/InputField.vue"
+import InputMissing from "@/partials/InputMissing.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
@@ -77,9 +79,13 @@ const claimTimePrecision = ref<TimePrecision>("y")
 const claimFrom = ref("")
 const claimFromAmountPrecision = ref("")
 const claimFromTimePrecision = ref<TimePrecision>("y")
+const claimFromUnknown = ref(false)
+const claimFromNone = ref(false)
 const claimTo = ref("")
 const claimToAmountPrecision = ref("")
 const claimToTimePrecision = ref<TimePrecision>("y")
+const claimToUnknown = ref(false)
+const claimToNone = ref(false)
 
 const claimFormError = ref("")
 const sessionError = ref("")
@@ -508,12 +514,27 @@ function makePatch(): object {
       return { ...shared, html: claimValue.value }
     case "amount":
       return { ...shared, amount: claimValue.value, precision: parseFloat(claimAmountPrecision.value) }
-    case "amountInterval":
-      return {
-        ...shared,
-        ...(claimFrom.value ? { from: claimFrom.value, fromPrecision: parseFloat(claimFromAmountPrecision.value) } : {}),
-        ...(claimTo.value ? { to: claimTo.value, toPrecision: parseFloat(claimToAmountPrecision.value) } : {}),
-      }
+    case "amountInterval": {
+      // Each bound is one of: explicit amount+precision pair, fromIsNone/
+      // toIsNone (explicitly no value), or fromIsUnknown/toIsUnknown
+      // (value exists but is unknown). The InputMissing wrapper guarantees
+      // unknown/none are mutually exclusive per bound.
+      const fromPart = claimFromUnknown.value
+        ? { fromIsUnknown: true }
+        : claimFromNone.value
+          ? { fromIsNone: true }
+          : claimFrom.value
+            ? { from: claimFrom.value, fromPrecision: parseFloat(claimFromAmountPrecision.value) }
+            : {}
+      const toPart = claimToUnknown.value
+        ? { toIsUnknown: true }
+        : claimToNone.value
+          ? { toIsNone: true }
+          : claimTo.value
+            ? { to: claimTo.value, toPrecision: parseFloat(claimToAmountPrecision.value) }
+            : {}
+      return { ...shared, ...fromPart, ...toPart }
+    }
     case "time":
       return { ...shared, time: claimValue.value, precision: claimTimePrecision.value }
     case "timeInterval":
@@ -653,8 +674,12 @@ async function onEditClaim(id: string) {
     claimProp.value = claim.prop.id
     claimFrom.value = claim.from ?? ""
     claimFromAmountPrecision.value = claim.fromPrecision !== undefined ? String(claim.fromPrecision) : ""
+    claimFromUnknown.value = !!claim.fromIsUnknown
+    claimFromNone.value = !!claim.fromIsNone
     claimTo.value = claim.to ?? ""
     claimToAmountPrecision.value = claim.toPrecision !== undefined ? String(claim.toPrecision) : ""
+    claimToUnknown.value = !!claim.toIsUnknown
+    claimToNone.value = !!claim.toIsNone
   } else if (claim instanceof TimeClaim) {
     claimType.value = "time"
     claimProp.value = claim.prop.id
@@ -905,18 +930,15 @@ function canSave(): boolean {
                           <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
-                      <InputField :required="true" class="mt-4">
-                        <template #label>{{ t("views.DocumentEdit.labels.amount") }}</template>
-                        <template #input="inputProps">
-                          <InputString v-bind="inputProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputField :required="true" class="mt-4">
-                        <template #label>{{ t("common.labels.precision") }}</template>
-                        <template #input="inputProps">
-                          <InputString v-bind="inputProps" v-model="claimAmountPrecision" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
+                      <InputErrors v-slot="errorProps">
+                        <InputAmount
+                          v-bind="errorProps"
+                          v-model="claimValue"
+                          v-model:precision="claimAmountPrecision"
+                          :required="true"
+                          class="mt-4 min-w-0 flex-auto grow"
+                        />
+                      </InputErrors>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
                       <InputField :required="true" class="mt-4">
@@ -925,30 +947,24 @@ function canSave(): boolean {
                           <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
-                      <InputField :required="true" class="mt-4">
-                        <template #label>{{ t("views.DocumentEdit.labels.from") }}</template>
-                        <template #input="inputProps">
-                          <InputString v-bind="inputProps" v-model="claimFrom" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputField :required="true" class="mt-4">
-                        <template #label>{{ t("common.labels.precision") }}</template>
-                        <template #input="inputProps">
-                          <InputString v-bind="inputProps" v-model="claimFromAmountPrecision" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputField :required="true" class="mt-4">
-                        <template #label>{{ t("views.DocumentEdit.labels.to") }}</template>
-                        <template #input="inputProps">
-                          <InputString v-bind="inputProps" v-model="claimTo" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputField :required="true" class="mt-4">
-                        <template #label>{{ t("common.labels.precision") }}</template>
-                        <template #input="inputProps">
-                          <InputString v-bind="inputProps" v-model="claimToAmountPrecision" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
+                      <InputErrors v-slot="errorProps" class="mt-4">
+                        <InputMissing v-bind="errorProps" v-model:unknown="claimFromUnknown" v-model:none="claimFromNone" :required="true">
+                          <template #default="missingProps">
+                            <InputAmount v-bind="missingProps" v-model="claimFrom" v-model:precision="claimFromAmountPrecision" class="min-w-0 flex-auto grow">
+                              <template #amount-label>{{ t("views.DocumentEdit.labels.from") }}</template>
+                            </InputAmount>
+                          </template>
+                        </InputMissing>
+                      </InputErrors>
+                      <InputErrors v-slot="errorProps" class="mt-4">
+                        <InputMissing v-bind="errorProps" v-model:unknown="claimToUnknown" v-model:none="claimToNone" :required="true">
+                          <template #default="missingProps">
+                            <InputAmount v-bind="missingProps" v-model="claimTo" v-model:precision="claimToAmountPrecision" class="min-w-0 flex-auto grow">
+                              <template #amount-label>{{ t("views.DocumentEdit.labels.to") }}</template>
+                            </InputAmount>
+                          </template>
+                        </InputMissing>
+                      </InputErrors>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
                       <InputField :required="true" class="mt-4">
