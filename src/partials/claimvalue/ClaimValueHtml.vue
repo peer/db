@@ -18,5 +18,5 @@ const onClick = useInternalLinksClick()
 
 <template>
   <!-- eslint-disable-next-line vue/no-v-html -->
-  <div v-if="claim" class="prose max-w-none prose-slate" @click="onClick" v-html="transformedHtml"></div>
+  <div v-if="claim" class="prose max-w-none prose-gray" @click="onClick" v-html="transformedHtml"></div>
 </template>

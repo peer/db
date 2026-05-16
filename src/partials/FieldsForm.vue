@@ -486,7 +486,7 @@ onBeforeUnmount(() => {
         <!-- Existing entries. -->
         <template v-for="([claimId, entry], eIndex) in entriesForField(field)" :key="claimId">
           <tr>
-            <td v-if="eIndex === 0" class="w-1/5 px-2 py-1 align-top font-medium text-slate-700">
+            <td v-if="eIndex === 0" class="w-1/5 px-2 py-1 align-top font-medium text-gray-700">
               <DocumentRefInline :id="field.propertyId" :link="false" />
               <span v-if="isRequired(field)" class="ml-0.5 text-error-600">*</span>
             </td>
@@ -494,7 +494,7 @@ onBeforeUnmount(() => {
             <td class="px-2 py-1">
               <div class="flex items-center gap-x-1">
                 <div v-if="isIntervalField(field)" class="flex min-w-0 flex-auto grow gap-x-1">
-                  <span class="self-center text-xs text-slate-500">{{ t("partials.FieldsForm.from") }}</span>
+                  <span class="self-center text-xs text-gray-500">{{ t("partials.FieldsForm.from") }}</span>
                   <InputText
                     :model-value="entry.value"
                     :invalid="entryErrors(entry).length > 0"
@@ -502,7 +502,7 @@ onBeforeUnmount(() => {
                     @update:model-value="(v: string) => onEntryInput(claimId, v)"
                     @blur="onEntryBlur(claimId)"
                   />
-                  <span class="self-center text-xs text-slate-500">{{ t("partials.FieldsForm.to") }}</span>
+                  <span class="self-center text-xs text-gray-500">{{ t("partials.FieldsForm.to") }}</span>
                   <InputText
                     :model-value="entry.valueTo"
                     class="min-w-0 flex-1"
@@ -521,7 +521,7 @@ onBeforeUnmount(() => {
                 <button
                   v-if="isRepeatable(field) && canRemoveEntry(field)"
                   type="button"
-                  class="shrink-0 rounded p-1 text-slate-400 hover:text-error-600 focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                  class="shrink-0 rounded p-1 text-gray-400 hover:text-error-600 focus:ring-2 focus:ring-primary-500 focus:outline-none"
                   @click="removeEntry(claimId)"
                 >
                   <XMarkIcon class="size-4" />
@@ -549,7 +549,7 @@ onBeforeUnmount(() => {
           <tr>
             <td
               v-if="entriesForField(field).length === 0 && emptySlotsForField(fieldKey(field))[0]?.[0] === slotId"
-              class="w-1/5 px-2 py-1 align-top font-medium text-slate-700"
+              class="w-1/5 px-2 py-1 align-top font-medium text-gray-700"
             >
               <DocumentRefInline :id="field.propertyId" :link="false" />
               <span v-if="isRequired(field)" class="ml-0.5 text-error-600">*</span>
@@ -558,7 +558,7 @@ onBeforeUnmount(() => {
             <td class="px-2 py-1">
               <div class="flex items-center gap-x-1">
                 <div v-if="isIntervalField(field)" class="flex min-w-0 flex-auto grow gap-x-1">
-                  <span class="self-center text-xs text-slate-500">{{ t("partials.FieldsForm.from") }}</span>
+                  <span class="self-center text-xs text-gray-500">{{ t("partials.FieldsForm.from") }}</span>
                   <InputText
                     :model-value="slotVal.value"
                     :invalid="emptySlotErrors(field, slotVal.value).length > 0"
@@ -566,7 +566,7 @@ onBeforeUnmount(() => {
                     @update:model-value="(v: string) => onEmptySlotInput(slotId, v)"
                     @blur="onEmptySlotBlur(slotId, field)"
                   />
-                  <span class="self-center text-xs text-slate-500">{{ t("partials.FieldsForm.to") }}</span>
+                  <span class="self-center text-xs text-gray-500">{{ t("partials.FieldsForm.to") }}</span>
                   <InputText
                     :model-value="slotVal.valueTo"
                     class="min-w-0 flex-1"
@@ -584,7 +584,7 @@ onBeforeUnmount(() => {
                 />
                 <button
                   type="button"
-                  class="shrink-0 rounded p-1 text-slate-400 hover:text-error-600 focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                  class="shrink-0 rounded p-1 text-gray-400 hover:text-error-600 focus:ring-2 focus:ring-primary-500 focus:outline-none"
                   @click="removeEmptySlot(slotId)"
                 >
                   <XMarkIcon class="size-4" />
@@ -612,14 +612,14 @@ onBeforeUnmount(() => {
           <!-- Existing entries. -->
           <template v-for="([claimId, entry], eIndex) in entriesForField(field)" :key="claimId">
             <tr>
-              <td v-if="eIndex === 0" class="w-1/5 px-2 py-1 align-top font-medium text-slate-700">
+              <td v-if="eIndex === 0" class="w-1/5 px-2 py-1 align-top font-medium text-gray-700">
                 <DocumentRefInline :id="field.propertyId" :link="false" />
                 <span v-if="isRequired(field)" class="ml-0.5 text-error-600">*</span>
               </td>
               <td class="px-2 py-1">
                 <div class="flex items-center gap-x-1">
                   <div v-if="isIntervalField(field)" class="flex min-w-0 flex-auto grow gap-x-1">
-                    <span class="self-center text-xs text-slate-500">{{ t("partials.FieldsForm.from") }}</span>
+                    <span class="self-center text-xs text-gray-500">{{ t("partials.FieldsForm.from") }}</span>
                     <InputText
                       :model-value="entry.value"
                       :invalid="entryErrors(entry).length > 0"
@@ -627,7 +627,7 @@ onBeforeUnmount(() => {
                       @update:model-value="(v: string) => onEntryInput(claimId, v)"
                       @blur="onEntryBlur(claimId)"
                     />
-                    <span class="self-center text-xs text-slate-500">{{ t("partials.FieldsForm.to") }}</span>
+                    <span class="self-center text-xs text-gray-500">{{ t("partials.FieldsForm.to") }}</span>
                     <InputText
                       :model-value="entry.valueTo"
                       class="min-w-0 flex-1"
@@ -646,7 +646,7 @@ onBeforeUnmount(() => {
                   <button
                     v-if="isRepeatable(field) && canRemoveEntry(field)"
                     type="button"
-                    class="shrink-0 rounded p-1 text-slate-400 hover:text-error-600 focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                    class="shrink-0 rounded p-1 text-gray-400 hover:text-error-600 focus:ring-2 focus:ring-primary-500 focus:outline-none"
                     @click="removeEntry(claimId)"
                   >
                     <XMarkIcon class="size-4" />
@@ -674,7 +674,7 @@ onBeforeUnmount(() => {
             <tr>
               <td
                 v-if="entriesForField(field).length === 0 && emptySlotsForField(fieldKey(field))[0]?.[0] === slotId"
-                class="w-1/5 px-2 py-1 align-top font-medium text-slate-700"
+                class="w-1/5 px-2 py-1 align-top font-medium text-gray-700"
               >
                 <DocumentRefInline :id="field.propertyId" :link="false" />
                 <span v-if="isRequired(field)" class="ml-0.5 text-error-600">*</span>
@@ -682,14 +682,14 @@ onBeforeUnmount(() => {
               <td class="px-2 py-1">
                 <div class="flex items-center gap-x-1">
                   <div v-if="isIntervalField(field)" class="flex min-w-0 flex-auto grow gap-x-1">
-                    <span class="self-center text-xs text-slate-500">{{ t("partials.FieldsForm.from") }}</span>
+                    <span class="self-center text-xs text-gray-500">{{ t("partials.FieldsForm.from") }}</span>
                     <InputText
                       :model-value="slotVal.value"
                       class="min-w-0 flex-1"
                       @update:model-value="(v: string) => onEmptySlotInput(slotId, v)"
                       @blur="onEmptySlotBlur(slotId, field)"
                     />
-                    <span class="self-center text-xs text-slate-500">{{ t("partials.FieldsForm.to") }}</span>
+                    <span class="self-center text-xs text-gray-500">{{ t("partials.FieldsForm.to") }}</span>
                     <InputText
                       :model-value="slotVal.valueTo"
                       class="min-w-0 flex-1"
@@ -706,7 +706,7 @@ onBeforeUnmount(() => {
                   />
                   <button
                     type="button"
-                    class="shrink-0 rounded p-1 text-slate-400 hover:text-error-600 focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                    class="shrink-0 rounded p-1 text-gray-400 hover:text-error-600 focus:ring-2 focus:ring-primary-500 focus:outline-none"
                     @click="removeEmptySlot(slotId)"
                   >
                     <XMarkIcon class="size-4" />

@@ -197,7 +197,7 @@ onBeforeUnmount(() => {
       </svg>
     </Button>
     <div v-if="showDropdown" class="absolute top-full right-0 z-50 mt-1 min-w-48 rounded-sm border border-slate-400 bg-white shadow-lg">
-      <div v-if="loading" class="px-3 py-2 text-sm text-slate-500">{{ t("common.status.loading") }}</div>
+      <div v-if="loading" class="px-3 py-2 text-sm text-gray-500">{{ t("common.status.loading") }}</div>
       <template v-else>
         <button
           v-for="cls in classesWithFields"

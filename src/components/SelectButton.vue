@@ -45,7 +45,7 @@ function isDisabled(option: SelectButtonOption<T>) {
       :disabled="isDisabled(option)"
       class="h-full rounded-sm px-2 py-0.5"
       :class="{
-        'cursor-not-allowed text-slate-500': isDisabled(option),
+        'cursor-not-allowed text-gray-500': isDisabled(option),
         'bg-white shadow-xs': model === option.value && !isDisabled(option),
         'bg-slate-100 shadow-xs': model === option.value && isDisabled(option),
         'hover:bg-slate-100': model !== option.value && !isDisabled(option),

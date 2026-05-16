@@ -120,7 +120,7 @@ function countFilters(): number {
       <button
         class="h-full rounded-sm px-2 py-0.5"
         :class="{
-          'cursor-not-allowed text-slate-500': isDownloading, // Disabled style.
+          'cursor-not-allowed text-gray-500': isDownloading, // Disabled style.
           'hover:bg-slate-100': !isDownloading, // Enabled style.
         }"
         :disabled="isDownloading"
@@ -133,7 +133,7 @@ function countFilters(): number {
         v-if="directoryPickerSupported"
         class="h-full rounded-sm px-2 py-0.5"
         :class="{
-          'cursor-not-allowed text-slate-500': isDownloading, // Disabled style.
+          'cursor-not-allowed text-gray-500': isDownloading, // Disabled style.
           'hover:bg-slate-100': !isDownloading, // Enabled style.
         }"
         :disabled="isDownloading"

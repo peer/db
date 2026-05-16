@@ -188,7 +188,7 @@ const rowSpan = computed(() => {
             /></RouterLink>
           </div>
           <!-- eslint-disable-next-line vue/no-v-html -->
-          <p v-if="description" class="prose max-w-none prose-slate" @click="onDescriptionClick" v-html="transformedDescription"></p>
+          <p v-if="description" class="prose max-w-none prose-gray" @click="onDescriptionClick" v-html="transformedDescription"></p>
         </div>
       </template>
       <template #loading>
