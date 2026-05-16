@@ -370,7 +370,7 @@ const WithPeerDBDocument = WithDocument<D>
               <i class="pd-withdocument-error text-error-600" :data-url="url">{{ t("common.status.loadingDataFailed") }}</i>
             </template>
             <template #loading="{ url }">
-              <i class="block h-4 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(selectedDocument?.id ?? '')]"></i>
+              <i class="block h-4 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(selectedDocument?.id ?? '')]" aria-hidden="true"></i>
             </template>
           </WithPeerDBDocument>
         </InputStyled>
@@ -515,7 +515,7 @@ const WithPeerDBDocument = WithDocument<D>
                     </template>
                     <template #loading="{ url }">
                       <div class="w-full">
-                        <i class="block h-4 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></i>
+                        <i class="block h-4 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]" aria-hidden="true"></i>
                       </div>
 
                       <CheckIcon v-if="result.id === selectedDocument?.id" class="size-5 text-primary-600" aria-hidden="true" />

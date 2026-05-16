@@ -35,7 +35,11 @@ defineExpose({
 
 <template>
   <template v-if="isLoading(displayLabel)"
-    ><div v-if="doc" class="pd-displaylabel-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse" :class="[loadingWidth(doc.id)]"
+    ><div
+      v-if="doc"
+      class="pd-displaylabel-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
+      :class="[loadingWidth(doc.id)]"
+      aria-hidden="true"
   /></template>
   <i v-else-if="getError(displayLabel)" class="pd-displaylabel-error text-error-600">{{ t("common.status.error") }}</i>
   <template v-else-if="displayLabel">{{ displayLabel }}</template>

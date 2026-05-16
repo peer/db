@@ -291,6 +291,7 @@ function onCloseFilterModal() {
               <div
                 class="pd-searchresultstable-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
                 :class="[loadingWidth(`${searchSession.id}/0`)]"
+                aria-hidden="true"
               />
             </th>
             <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
@@ -312,6 +313,7 @@ function onCloseFilterModal() {
                       class="pd-withdocument-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
                       :data-url="url"
                       :class="[loadingWidth(filter.id)]"
+                      aria-hidden="true"
                     />
                   </template>
                 </WithDocumentD>
@@ -345,6 +347,7 @@ function onCloseFilterModal() {
                     <div
                       class="pd-searchresultstable-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
                       :class="[loadingWidth(`${searchSession.id}/${index + 1}`)]"
+                      aria-hidden="true"
                     />
                   </td>
                   <template v-for="filter in limitedFiltersResults" v-else :key="`${filter.type}/${filter.id}`">
@@ -409,7 +412,11 @@ function onCloseFilterModal() {
                     }}</RouterLink>
                   </td>
                   <td :colspan="rowColspan" class="p-2">
-                    <div class="pd-withdocument-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse" :class="[loadingWidth(result.id)]" />
+                    <div
+                      class="pd-withdocument-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
+                      :class="[loadingWidth(result.id)]"
+                      aria-hidden="true"
+                    />
                   </td>
                 </tr>
               </template>

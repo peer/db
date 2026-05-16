@@ -51,7 +51,12 @@ const titleAttr = computed<string | undefined>(() => {
       <span v-else :data-url="url" :title="titleAttr" v-bind="$attrs"><DisplayLabel ref="displayLabelRef" :doc="doc" /></span>
     </template>
     <template #loading="{ url }">
-      <div class="pd-documentrefinline-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse" :data-url="url" :class="[loadingWidth(id)]" />
+      <div
+        class="pd-documentrefinline-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
+        :data-url="url"
+        :class="[loadingWidth(id)]"
+        aria-hidden="true"
+      />
     </template>
   </WithDocumentD>
 </template>
