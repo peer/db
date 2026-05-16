@@ -10,6 +10,8 @@ import InputErrors from "@/partials/InputErrors.vue"
 
 defineProps<{
   required?: boolean
+  // Presentational override.
+  invalid?: boolean
 }>()
 
 // Fallthrough attrs land on the label.
@@ -35,6 +37,6 @@ function setInputRef(i: Element | ComponentPublicInstance | null) {
     ><slot name="label" /><InputBadges :required="required" :changed="input?.isDirty ?? false" @revert="input?.revert()"
   /></label>
   <InputErrors v-slot="errorProps">
-    <slot v-bind="errorProps" :id="inputId" :ref="setInputRef" name="input" :required="required" />
+    <slot v-bind="errorProps" :id="inputId" :ref="setInputRef" name="input" :required="required" :invalid="invalid" />
   </InputErrors>
 </template>

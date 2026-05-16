@@ -18,6 +18,8 @@ const props = defineProps<{
   // to the checkboxes for visual feedback; any subsequent interaction
   // clears it.
   required?: boolean
+  // Presentational override.
+  invalid?: boolean
 }>()
 
 // Two independent v-models, one per checkbox. They are kept mutually
@@ -209,15 +211,15 @@ async function onFocusOut(event: FocusEvent) {
 <template>
   <div ref="rootRef" class="flex flex-row items-start gap-x-4" @focusout="onFocusOut">
     <div class="flex min-w-0 grow flex-row">
-      <slot v-bind="$attrs" :invalid="showRequired" @errors="(v: ValidationError[]) => (innerErrors = v)" />
+      <slot v-bind="$attrs" :invalid="invalid || showRequired" @errors="(v: ValidationError[]) => (innerErrors = v)" />
     </div>
     <WithLock :lock="getParentLockRef">
       <div class="flex flex-col">
         <label class="flex items-center gap-1 leading-5"
-          ><CheckBox v-model="isUnknown" :invalid="showRequired" /><span>{{ t("common.values.unknown") }}</span></label
+          ><CheckBox v-model="isUnknown" :invalid="invalid || showRequired" /><span>{{ t("common.values.unknown") }}</span></label
         >
         <label class="flex items-center gap-1 leading-5"
-          ><CheckBox v-model="isNone" :invalid="showRequired" /><span>{{ t("common.values.none") }}</span></label
+          ><CheckBox v-model="isNone" :invalid="invalid || showRequired" /><span>{{ t("common.values.none") }}</span></label
         >
       </div>
     </WithLock>
