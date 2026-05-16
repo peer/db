@@ -81,10 +81,16 @@ const isDragOver = ref(false)
 // stamp it with LINK_CLASS_FILE. The required check is skipped on initial
 // (no user interaction yet), but the file-route check is not - a
 // pre-populated value pointing at something that is not a file should
-// surface immediately.
+// surface immediately. While an upload is in flight the model is "" but
+// the user has already provided a file, so we treat that window as
+// "value incoming" and skip the required check. A watcher on the upload
+// state re-runs validation when the upload settles.
 // eslint-disable-next-line @typescript-eslint/require-await
 const validator: ValidatorFn<string> = async function (value, options) {
   if (value === "") {
+    if (progress.value !== 0) {
+      return []
+    }
     if (!props.required || options.initial) {
       return []
     }
@@ -117,6 +123,19 @@ const { runValidation, validatedInput } = useValidation(
 )
 
 defineExpose(validatedInput)
+
+// Re-validate on the upload-in-flight transitions. We watch the boolean
+// rather than progress itself so the watcher fires on start (0 -> non-zero)
+// and end (non-zero -> 0) but not on every intermediate progress tick.
+// Start: clears a stale required error now that the user has picked a
+// file. End: re-evaluates against the post-upload state, which surfaces
+// the required error again if the upload failed and left model empty.
+watch(
+  () => progress.value !== 0,
+  async () => {
+    await runValidation()
+  },
+)
 
 // Set right before .click() on the hidden file input; consumed by the next
 // blur on the browse Button. Clicking the Button to open the native picker
