@@ -1,4 +1,4 @@
-package transform_test
+package document_test
 
 import (
 	"embed"
@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"gitlab.com/peerdb/peerdb/transform"
+	"gitlab.com/peerdb/peerdb/document"
 )
 
 //go:embed testdata/*.input testdata/*.output
@@ -51,7 +51,7 @@ func TestSanitizeHTML(t *testing.T) {
 			expectedBytes, err := testdataFS.ReadFile(filepath.Join("testdata", tc.outputFile))
 			require.NoError(t, err)
 
-			result := transform.TestingSanitizeHTML(string(inputBytes))
+			result := document.SanitizeHTML(string(inputBytes))
 
 			assert.Equal(t, string(expectedBytes), result)
 		})
@@ -283,7 +283,7 @@ func TestSanitizeHTMLBasic(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result := transform.TestingSanitizeHTML(tt.input)
+			result := document.SanitizeHTML(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

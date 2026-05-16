@@ -288,11 +288,26 @@ func TestClaimValidations(t *testing.T) { //nolint:maintidx
 		c := &document.HTMLClaim{CoreClaim: core, Prop: ref, HTML: "<p>text</p>"}
 		require.NoError(t, c.Validate())
 	})
+	t.Run("HTMLClaim/unsanitized_disallowed_element", func(t *testing.T) {
+		t.Parallel()
+		c := &document.HTMLClaim{CoreClaim: core, Prop: ref, HTML: "<p>text</p><script>x</script>"}
+		assert.EqualError(t, c.Validate(), "HTML is not sanitized")
+	})
+	t.Run("HTMLClaim/unsanitized_disallowed_attribute", func(t *testing.T) {
+		t.Parallel()
+		c := &document.HTMLClaim{CoreClaim: core, Prop: ref, HTML: `<a href="https://example.com" onclick="evil()">x</a>`}
+		assert.EqualError(t, c.Validate(), "HTML is not sanitized")
+	})
+	t.Run("HTMLClaim/unsanitized_disallowed_href", func(t *testing.T) {
+		t.Parallel()
+		c := &document.HTMLClaim{CoreClaim: core, Prop: ref, HTML: `<a href="javascript:alert(1)">x</a>`}
+		assert.EqualError(t, c.Validate(), "HTML is not sanitized")
+	})
 
 	t.Run("LinkClaim/empty", func(t *testing.T) {
 		t.Parallel()
 		c := &document.LinkClaim{CoreClaim: core, Prop: ref, IRI: ""}
-		assert.EqualError(t, c.Validate(), "empty URL")
+		assert.EqualError(t, c.Validate(), "empty IRI")
 	})
 	t.Run("LinkClaim/valid", func(t *testing.T) {
 		t.Parallel()

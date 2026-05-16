@@ -1448,7 +1448,7 @@ func makeClaim(
 		}
 
 		// We still sanitize HTML, so that our user HTML is consistent.
-		sanitized := sanitizeHTML(escapeHTML(string(h)))
+		sanitized := document.SanitizeHTML(escapeHTML(string(h)))
 		if sanitized == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1488,7 +1488,7 @@ func makeClaim(
 		}
 
 		// No escaping for raw HTML, but we do sanitize it.
-		sanitized := sanitizeHTML(string(rawHTML))
+		sanitized := document.SanitizeHTML(string(rawHTML))
 		if sanitized == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1600,7 +1600,7 @@ func makeClaim(
 
 		if typeTag == typeHTML {
 			// We still sanitize HTML, so that our user HTML is consistent.
-			sanitized := sanitizeHTML(escapeHTML(str))
+			sanitized := document.SanitizeHTML(escapeHTML(str))
 			if sanitized == "" {
 				return nil, errors.WithStack(&claimNotMadeError{
 					Default: defaultTag,
@@ -1618,7 +1618,7 @@ func makeClaim(
 
 		if typeTag == typeRawHTML {
 			// No escaping for raw HTML, but we do sanitize it.
-			sanitized := sanitizeHTML(str)
+			sanitized := document.SanitizeHTML(str)
 			if sanitized == "" {
 				return nil, errors.WithStack(&claimNotMadeError{
 					Default: defaultTag,

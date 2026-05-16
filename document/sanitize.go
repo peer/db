@@ -1,4 +1,4 @@
-package transform
+package document
 
 import (
 	"regexp"
@@ -49,7 +49,10 @@ func init() {
 	sanitizer.AllowElements("ul", "ol", "li")
 }
 
-func sanitizeHTML(input string) string {
+// SanitizeHTML strips disallowed elements, attributes, and URL forms from
+// input and returns the canonicalized safe HTML. SanitizeHTML is idempotent
+// on already-canonical input.
+func SanitizeHTML(input string) string {
 	// TODO: Make so that <p> is always closed with </p>, same for <blockquote>.
 	//       So all tags which can be closed should be closed (or self closed).
 	return sanitizer.Sanitize(input)
