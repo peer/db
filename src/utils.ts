@@ -381,6 +381,22 @@ export function parseUrl(input: string): URL {
   return new URL(input)
 }
 
+// normalizeUrl returns the canonical string for a URL. Same-origin URLs are
+// collapsed to "/path?query#hash" so they match the leading-slash convention
+// used by InputFile (which stores StorageGet routes as paths) and by Link.vue
+// (which shows internal links as paths). External URLs are re-stringified
+// through the URL constructor (lowercase host, default port stripped,
+// trailing slash on bare origins, etc.). Idempotent: passing an already
+// normalized value back through normalizeUrl returns it unchanged.
+// Throws (via parseUrl) on unparseable input.
+export function normalizeUrl(input: string): string {
+  const url = parseUrl(input)
+  if (url.origin === window.location.origin) {
+    return url.pathname + url.search + url.hash
+  }
+  return url.toString()
+}
+
 // raceWithSignal settles as soon as the given promise settles or the signal
 // aborts. A settling promise propagates its resolution or rejection through
 // unchanged. An abort resolves with undefined (no error is raised).

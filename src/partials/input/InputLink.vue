@@ -9,6 +9,7 @@ import { useRouter } from "vue-router"
 
 import InputText from "@/components/InputText.vue"
 import { classifyLink, LINK_CLASS_INTERNAL, LINK_CLASS_INTERNAL_NOVIEW } from "@/internal-links"
+import { normalizeUrl, parseUrl } from "@/utils"
 
 const props = withDefaults(
   defineProps<{
@@ -34,7 +35,7 @@ const canOpen = computed(() => {
   const trimmed = model.value.trim()
   if (!trimmed) return false
   try {
-    new URL(trimmed)
+    parseUrl(trimmed)
   } catch {
     return false
   }
@@ -47,19 +48,20 @@ const linkClasses = computed(() => {
 })
 const internalPath = computed<string | null>(() => {
   if (!linkClasses.value.includes(LINK_CLASS_INTERNAL)) return null
-  const trimmed = model.value.trim()
   try {
-    const url = new URL(trimmed)
-    return url.pathname + url.search + url.hash
+    return normalizeUrl(model.value.trim())
   } catch {
     return null
   }
 })
 const useRouterLink = computed(() => internalPath.value !== null && !linkClasses.value.includes(LINK_CLASS_INTERNAL_NOVIEW))
 
-// A link is invalid if it does not parse as an absolute URL via the URL
-// constructor. As a side effect of validation the model is normalized to the
-// re-stringified URL (so "https://Example.com" becomes "https://example.com/",
+// A link is invalid if it does not parse as a URL via parseUrl (which
+// accepts both absolute URLs and site-relative paths beginning with "/").
+// As a side effect of validation the model is normalized: same-origin URLs
+// collapse to "/path?query#hash" so they match the leading-slash convention
+// used by InputFile and by Link.vue's display, and external URLs are
+// re-stringified (so "https://Example.com" becomes "https://example.com/",
 // surrounding whitespace is stripped, etc.). The normalization is gated on
 // !eager so the user is not fighting the input while typing, and on !initial
 // so the field is not mutated before the user has interacted. The required
@@ -80,7 +82,7 @@ const validator: ValidatorFn<string> = async function (value, options) {
   }
   let normalized: string
   try {
-    normalized = new URL(trimmed).toString()
+    normalized = normalizeUrl(trimmed)
   } catch (err) {
     // TODO: Use standard codes.
     return [

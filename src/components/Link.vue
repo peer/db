@@ -3,7 +3,7 @@ import { computed } from "vue"
 import { useRouter } from "vue-router"
 
 import { classifyLink, LINK_CLASS_INTERNAL, LINK_CLASS_INTERNAL_NOVIEW } from "@/internal-links"
-import { parseUrl } from "@/utils"
+import { normalizeUrl } from "@/utils"
 
 const props = defineProps<{
   iri: string
@@ -16,8 +16,7 @@ const linkClasses = computed(() => classifyLink(props.iri, router))
 const internalPath = computed<string | null>(() => {
   if (!linkClasses.value.includes(LINK_CLASS_INTERNAL)) return null
   try {
-    const url = parseUrl(props.iri)
-    return url.pathname + url.search + url.hash
+    return normalizeUrl(props.iri)
   } catch {
     return null
   }
