@@ -782,12 +782,12 @@ function canSave(): boolean {
   </Teleport>
   <div ref="el" class="pd-documentedit mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
     <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
-      <template v-if="doc && (siteContext.features.editButtons || (classTabId && mergedFieldsData))">
+      <template v-if="doc && classesInitialized && (siteContext.features.editButtons || (classTabId && mergedFieldsData))">
         <!--
           TODO: Fix how hover interacts with focused tab.
           See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
         -->
-        <TabGroup>
+        <TabGroup manual>
           <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100 contain-inline-size">
             <Tab
               v-if="classTabId && mergedFieldsData"
