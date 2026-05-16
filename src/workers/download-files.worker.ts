@@ -113,7 +113,8 @@ async function run(files: DownloadFile[], directoryHandle: FileSystemDirectoryHa
       // Cancelled by the main thread: report a clean completion so the overlay closes.
       self.postMessage({ type: "done" } satisfies DownloadFilesWorkerOutput)
     } else {
-      const message = err instanceof Error ? err.message : String(err)
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      const message = `${err}`
       self.postMessage({ type: "error", message } satisfies DownloadFilesWorkerOutput)
     }
   }
