@@ -118,7 +118,7 @@ function countFilters(): number {
 
     <div v-if="siteContext.features.downloadButtons" class="flex shrink-0 items-center gap-1 rounded-sm bg-slate-200 px-1 py-1">
       <button
-        class="h-full rounded-sm px-2 py-0.5"
+        class="h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
         :class="{
           'cursor-not-allowed text-gray-500': isDownloading, // Disabled style.
           'hover:bg-slate-100': !isDownloading, // Enabled style.
@@ -131,7 +131,7 @@ function countFilters(): number {
       </button>
       <button
         v-if="directoryPickerSupported"
-        class="h-full rounded-sm px-2 py-0.5"
+        class="h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
         :class="{
           'cursor-not-allowed text-gray-500': isDownloading, // Disabled style.
           'hover:bg-slate-100': !isDownloading, // Enabled style.

@@ -43,7 +43,7 @@ function isDisabled(option: SelectButtonOption<T>) {
       v-for="option in options"
       :key="option.name"
       :disabled="isDisabled(option)"
-      class="h-full rounded-sm px-2 py-0.5"
+      class="h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
       :class="{
         'cursor-not-allowed text-gray-500': isDisabled(option),
         'bg-white shadow-xs': model === option.value && !isDisabled(option),
