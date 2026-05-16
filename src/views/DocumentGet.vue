@@ -115,8 +115,6 @@ watchEffect(async () => {
       params: {
         id: props.id,
       },
-      // Maybe route.query has non-empty "tab" parameter which we want to keep.
-      query: encodeQuery({ tab: route.query.tab || undefined }),
     })
   }
 })
