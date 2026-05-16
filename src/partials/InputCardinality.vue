@@ -271,32 +271,24 @@ function onFocusOut(event: FocusEvent) {
   <div ref="rootRef" class="flex min-w-0 grow flex-col gap-y-2" @focusout="onFocusOut">
     <template v-for="(id, idx) in rows" :key="id">
       <!--
-        $attrs is forwarded so things like aria-describedby flow to each
-        row's input. The outer "id" (when an ancestor InputField passes
-        one for label-for association) is only forwarded to the first
-        row so html ids stay unique; subsequent rows have no id. We do
-        NOT pass per-row "required" - the required check is at the
-        container level (count of non-empty vs effectiveMin), not per
-        position. The slot's "invalid" combines the explicit invalid
-        prop (forces invalid on every row) with the per-row violation
-        flag from missing.flags (the first N empty rows when below
-        effectiveMin), so the wrapped input renders red on exactly the
-        rows that count toward the deficit.
-      -->
-      <!--
+        $attrs is forwarded so things like aria-describedby flow to
+        each row's input. We do NOT pass per-row "required" - the
+        required check is at the container level (count of non-empty
+        vs effectiveMin), not per position. The slot's "invalid"
+        combines the explicit invalid prop (forces invalid on every
+        row) with the per-row violation flag from missing.flags (the
+        first N empty rows when below effectiveMin), so the wrapped
+        input renders red on exactly the rows that count toward the
+        deficit.
+
         ":input" exposes the row's registered ValidatedInput so the
         slot consumer can pair it with useRepeatedInput's modelFor.
-        Until the row's wrapped input has mounted and registered, this
-        is null - modelFor handles that as a no-op. The consumer
-        should destructure ({ input, ...rest }) so it does not flow to
-        DOM via v-bind="cardinalityProps".
+        Until the row's wrapped input has mounted and registered,
+        this is null - modelFor handles that as a no-op. The consumer
+        should destructure ({ input, ...rest }) so it does not flow
+        to DOM via v-bind="cardinalityProps".
       -->
-      <slot
-        v-bind="$attrs"
-        :id="idx === 0 ? ($attrs.id ?? null) : null"
-        :invalid="invalid || (triggered && missing.flags[idx]) || false"
-        :input="orderedInputs[idx] ?? null"
-      />
+      <slot v-bind="$attrs" :invalid="invalid || (triggered && missing.flags[idx]) || false" :input="orderedInputs[idx] ?? null" />
     </template>
   </div>
 </template>
