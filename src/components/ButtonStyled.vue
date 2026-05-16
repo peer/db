@@ -25,12 +25,17 @@ withDefaults(
     primary?: boolean
     active?: boolean
     invalid?: boolean
+    // focusWithin opts the component into picking up the focused ring when a
+    // descendant is focused, not just when the rendered element itself is
+    // focused.
+    focusWithin?: boolean
   }>(),
   {
     inactive: false,
     primary: false,
     active: false,
     invalid: false,
+    focusWithin: false,
   },
 )
 
@@ -59,6 +64,9 @@ defineOptions({
       'bg-error-50 text-error-600 inset-ring-2 inset-ring-error-600 hover:bg-error-100 hover:text-error-700 hover:inset-ring-error-700 focus:ring-error-500 active:bg-error-200 active:text-error-500 active:inset-ring-error-500':
         !primary && !inactive && !active && invalid,
       'bg-error-200 text-error-500 inset-ring-2 inset-ring-error-500 focus:ring-error-500': !primary && !inactive && active && invalid,
+      'focus-within:ring-2 focus-within:ring-offset-1': focusWithin,
+      'focus-within:ring-primary-500': focusWithin && !inactive && !invalid,
+      'focus-within:ring-error-500': focusWithin && !inactive && invalid,
     }"
   >
     <slot />
