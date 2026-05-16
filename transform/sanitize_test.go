@@ -74,12 +74,88 @@ func TestSanitizeHTMLBasic(t *testing.T) {
 		{
 			name:     "ExternalLinkHTTPS",
 			input:    `<a href="https://example.com">Link</a>`,
-			expected: `<a href="https://example.com" rel="noreferrer">Link</a>`,
+			expected: `<a href="https://example.com">Link</a>`,
 		},
 		{
 			name:     "ExternalLinkHTTP",
 			input:    `<a href="http://example.com">Link</a>`,
-			expected: `<a href="http://example.com" rel="noreferrer">Link</a>`,
+			expected: `<a href="http://example.com">Link</a>`,
+		},
+		{
+			name:     "StripsRelAttribute",
+			input:    `<a href="https://example.com" rel="noreferrer noopener">Link</a>`,
+			expected: `<a href="https://example.com">Link</a>`,
+		},
+		{
+			name:     "AllowsSiteRelativePath",
+			input:    `<a href="/foo/bar">Link</a>`,
+			expected: `<a href="/foo/bar">Link</a>`,
+		},
+		{
+			name:     "AllowsSiteRelativePathOnImg",
+			input:    `<img src="/icons/cat.png" alt="Cat">`,
+			expected: `<img src="/icons/cat.png" alt="Cat">`,
+		},
+		{
+			name:     "RejectsProtocolRelativeURL",
+			input:    `<a href="//evil.com/foo">Link</a>`,
+			expected: `Link`,
+		},
+		{
+			name:     "RejectsParentRelativePath",
+			input:    `<a href="../foo">Link</a>`,
+			expected: `Link`,
+		},
+		{
+			name:     "RejectsFragmentOnly",
+			input:    `<a href="#section">Link</a>`,
+			expected: `Link`,
+		},
+		{
+			name:     "RejectsTelScheme",
+			input:    `<a href="tel:+1234567890">Call</a>`,
+			expected: `Call`,
+		},
+		{
+			name:     "RejectsFtpScheme",
+			input:    `<a href="ftp://example.com">FTP</a>`,
+			expected: `FTP`,
+		},
+		{
+			name: "RejectsDataSchemeOnImg",
+			// src gets dropped (regex mismatch), alt survives, so the tag
+			// stays as a srcless img.
+			input:    `<img src="data:image/png;base64,AAA" alt="d">`,
+			expected: `<img alt="d">`,
+		},
+		{
+			name:     "RejectsTripleSlashHttp",
+			input:    `<a href="http:///example.com">Link</a>`,
+			expected: `Link`,
+		},
+		{
+			name:     "AllowsCiteOnBlockquote",
+			input:    `<blockquote cite="https://example.com">q</blockquote>`,
+			expected: `<blockquote cite="https://example.com">q</blockquote>`,
+		},
+		{
+			name:     "RejectsDisallowedCiteScheme",
+			input:    `<blockquote cite="javascript:alert(1)">q</blockquote>`,
+			expected: `<blockquote>q</blockquote>`,
+		},
+		{
+			name: "RejectsMailtoOnCite",
+			// mailto is allowed on <a href> but not on <blockquote cite>:
+			// an email address is not a meaningful citation source.
+			input:    `<blockquote cite="mailto:test@example.com">q</blockquote>`,
+			expected: `<blockquote>q</blockquote>`,
+		},
+		{
+			name: "RejectsMailtoOnImg",
+			// mailto is allowed on <a href> but not on <img src>: an email
+			// address is not a meaningful image resource.
+			input:    `<img src="mailto:test@example.com" alt="x">`,
+			expected: `<img alt="x">`,
 		},
 		{
 			name:     "MailtoLink",
@@ -109,7 +185,7 @@ func TestSanitizeHTMLBasic(t *testing.T) {
 		{
 			name:     "RemovesOnclickAttribute",
 			input:    `<a href="https://example.com" onclick="evil()">Link</a>`,
-			expected: `<a href="https://example.com" rel="noreferrer">Link</a>`,
+			expected: `<a href="https://example.com">Link</a>`,
 		},
 		{
 			name:     "RemovesOnerrorAttribute",
@@ -189,7 +265,7 @@ func TestSanitizeHTMLBasic(t *testing.T) {
 		{
 			name:     "MultipleExternalLinks",
 			input:    `<a href="https://example.com">Link 1</a> and <a href="http://test.com">Link 2</a>`,
-			expected: `<a href="https://example.com" rel="noreferrer">Link 1</a> and <a href="http://test.com" rel="noreferrer">Link 2</a>`,
+			expected: `<a href="https://example.com">Link 1</a> and <a href="http://test.com">Link 2</a>`,
 		},
 		{
 			name:     "EmptyString",

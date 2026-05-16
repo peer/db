@@ -6,13 +6,76 @@ import (
 	"fmt"
 	"iter"
 	"math"
+	"net/url"
 	"slices"
+	"strings"
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
+
+// allowedLinkClaimSchemes is the set of URI schemes accepted for LinkClaim
+// IRIs. Mirrors ALLOWED_LINK_SCHEMES in src/utils.ts on the frontend; the
+// HTML sanitizer in transform/sanitize.go uses a narrower set for <img src>
+// and <blockquote cite> (no mailto) and the same set for <a href>.
+//
+//nolint:gochecknoglobals
+var allowedLinkClaimSchemes = map[string]bool{
+	"http":   true,
+	"https":  true,
+	"mailto": true,
+}
+
+// validateIRI returns nil if the IRI is acceptable as a LinkClaim target.
+// Allowed forms:
+//   - Same-origin path starting with "/" but not "//" (e.g. "/foo", "/a?b=c#d", "/").
+//   - Absolute URL whose scheme is in allowedLinkClaimSchemes.
+//
+// Rejected (with a descriptive error): empty input, unparseable input,
+// protocol-relative URLs ("//host/path"), document-relative paths ("foo",
+// "../foo"), fragment-only refs ("#section"), and any other scheme
+// (javascript:, data:, tel:, ftp:, ...). Matches parseUrl on the frontend.
+func validateIRI(iri string) errors.E {
+	if iri == "" {
+		return errors.New("empty IRI")
+	}
+	if strings.HasPrefix(iri, "/") && !strings.HasPrefix(iri, "//") {
+		u, err := url.Parse(iri)
+		if err != nil {
+			return errors.WithMessage(err, "invalid IRI")
+		}
+		if u.Scheme != "" || u.Host != "" {
+			return errors.New("invalid IRI")
+		}
+		return nil
+	}
+	u, err := url.Parse(iri)
+	if err != nil {
+		return errors.WithMessage(err, "invalid IRI")
+	}
+	if u.Scheme == "" {
+		return errors.New("invalid IRI")
+	}
+	if !allowedLinkClaimSchemes[strings.ToLower(u.Scheme)] {
+		return errors.Errorf("disallowed IRI scheme: %s", u.Scheme)
+	}
+	// Reject degenerate forms like "http:///path" (no host) and "mailto:".
+	// For http/https we require a non-empty Host; for mailto we require a
+	// non-empty Opaque (the part after "mailto:").
+	switch strings.ToLower(u.Scheme) {
+	case "http", "https":
+		if u.Host == "" {
+			return errors.New("invalid IRI: missing host")
+		}
+	case "mailto":
+		if u.Opaque == "" {
+			return errors.New("invalid IRI: missing address")
+		}
+	}
+	return nil
+}
 
 // sortByConfidence sorts claims in decreasing confidence order.
 func sortByConfidence(claims []Claim) {
@@ -1148,17 +1211,14 @@ func (c *LinkClaim) GetProp() Reference {
 	return c.Prop
 }
 
-// Validate checks that the link claim has a non-empty IRI and valid confidence.
+// Validate checks that the link claim has an IRI in the allowed form
+// and valid confidence. Allowed-IRI rules match the frontend's parseUrl.
 func (c *LinkClaim) Validate() errors.E {
 	errE := c.CoreClaim.Validate()
 	if errE != nil {
 		return errE
 	}
-	if c.IRI == "" {
-		return errors.New("empty IRI")
-	}
-
-	return nil
+	return validateIRI(c.IRI)
 }
 
 // ReferenceClaim represents a claim that relates this document to another document.

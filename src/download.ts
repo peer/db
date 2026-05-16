@@ -163,7 +163,6 @@ export function useDownload(abortController: AbortController, router: Router, re
   // classifyLink function is similar. Keep in sync as needed.
   function matchStorageRoute(iri: string): string | null {
     if (!iri) return null
-    if (iri.startsWith("#")) return null
 
     let url: URL
     try {

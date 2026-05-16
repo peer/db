@@ -367,18 +367,64 @@ export async function delay(ms: number, signal?: AbortSignal): Promise<void> {
   signal?.throwIfAborted()
 }
 
-// parseUrl is a small wrapper over the URL constructor that picks the base
-// argument based on whether input looks site-relative. A leading "/" means
-// the input is an absolute path on the current site, so we resolve it
-// against window.location.href; otherwise the input is expected to be a
-// full absolute URL and is parsed standalone. Throws (via the URL
-// constructor) on inputs that don't fit either shape (e.g. document-relative
-// "foo/bar").
+// Schemes accepted by parseUrl. Mirrors allowedLinkClaimSchemes in
+// document/claims.go on the backend. The HTML sanitizer in
+// transform/sanitize.go uses this set for <a href> (via linkHrefPattern)
+// and the same set minus mailto for <img src> and <blockquote cite> (via
+// resourceURLPattern).
+export const ALLOWED_LINK_CLAIM_SCHEMES = ["http:", "https:", "mailto:"] as const
+
+const URL_HOST_REGEX = /^https?:\/\/\//i
+
+// parseUrl parses an input URL and validates it against the project's link
+// allowlist. It accepts:
+//   - Same-origin paths starting with "/" (but not "//"): "/foo", "/a?b=c#d", "/"
+//   - Absolute URLs whose scheme is in ALLOWED_LINK_CLAIM_SCHEMES.
+//
+// It throws on:
+//   - Empty input
+//   - Unparseable input (via the URL constructor)
+//   - Protocol-relative URLs ("//host/path")
+//   - Document-relative paths ("foo", "../foo")
+//   - Fragment-only refs ("#section")
+//   - Absolute URLs with any other scheme (javascript:, data:, tel:, ftp:, ...)
+//   - Degenerate forms like "http:///x" (the WHATWG URL parser silently
+//     normalizes those to "http://x/", moving the path into the host; we
+//     reject before parsing so the backend, which does not normalize, sees
+//     the same outcome)
+//   - Bare "mailto:" with no address.
+//
+// Leading-slash paths are resolved against window.location.href when
+// available so downstream same-origin checks (normalizeUrl, classifyLink,
+// matchStorageRoute) compare against the current document's origin. In
+// environments without window (Node, isolated tests) a synthetic base is
+// used; the validation rules are syntactic, so the same-origin information
+// is simply not meaningful there.
 export function parseUrl(input: string): URL {
-  if (input.startsWith("/")) {
-    return new URL(input, window.location.href)
+  if (!input) {
+    throw new Error("empty URL")
   }
-  return new URL(input)
+  if (input.startsWith("/") && !input.startsWith("//")) {
+    // For claim validation we might want that it works also outside browser in other JS environments.
+    // normalizeUrl which is used when displaying the link still uses only window.location.
+    const base = typeof window !== "undefined" ? window.location.href : "http://example.invalid/"
+    return new URL(input, base)
+  }
+  // The "///" guard is anchored to the raw input. The URL constructor
+  // would otherwise rewrite "http:///x" to "http://x/" and we would lose
+  // the chance to reject it.
+  if (URL_HOST_REGEX.test(input)) {
+    throw new Error("invalid URL: missing host")
+  }
+  const url = new URL(input)
+  if (!ALLOWED_LINK_CLAIM_SCHEMES.includes(url.protocol)) {
+    throw new Error(`disallowed URL scheme: ${url.protocol}`)
+  }
+  // The URL constructor accepts "mailto:" with no address. Reject it.
+  if (url.protocol === "mailto:" && !url.pathname) {
+    throw new Error("invalid URL: missing address")
+  }
+  return url
 }
 
 // normalizeUrl returns the canonical string for a URL. Same-origin URLs are
@@ -388,7 +434,7 @@ export function parseUrl(input: string): URL {
 // through the URL constructor (lowercase host, default port stripped,
 // trailing slash on bare origins, etc.). Idempotent: passing an already
 // normalized value back through normalizeUrl returns it unchanged.
-// Throws (via parseUrl) on unparseable input.
+// Throws (via parseUrl) on input not in the allowed-link form.
 export function normalizeUrl(input: string): string {
   const url = parseUrl(input)
   if (url.origin === window.location.origin) {

@@ -20,7 +20,6 @@ export const LINK_CLASS_EXTERNAL = "pd-link-external"
 // matchStorageRoute function is similar. Keep in sync as needed.
 export function classifyLink(href: string, router: Router): string[] {
   if (!href) return []
-  if (href.startsWith("#")) return []
 
   let url: URL
   try {
