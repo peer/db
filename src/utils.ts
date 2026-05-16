@@ -368,8 +368,8 @@ export async function delay(ms: number, signal?: AbortSignal): Promise<void> {
 }
 
 // Schemes accepted by parseUrl. Mirrors allowedLinkClaimSchemes in
-// document/claims.go on the backend. The HTML sanitizer in
-// transform/sanitize.go uses this set for <a href> (via linkHrefPattern)
+// document/sanitize.go on the backend. The HTML sanitizer in
+// document/sanitize.go uses this set for <a href> (via linkHrefPattern)
 // and the same set minus mailto for <img src> and <blockquote cite> (via
 // resourceURLPattern).
 export const ALLOWED_LINK_CLAIM_SCHEMES = ["http:", "https:", "mailto:"] as const

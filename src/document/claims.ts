@@ -192,8 +192,8 @@ export class HTMLClaim extends CoreClaim {
 
   // Validate checks that the HTML claim has non-empty HTML and valid confidence.
   // TODO: Mirror the backend's HTMLClaim.Validate sanitize-equality check.
-  //       From (document/claims.go) so a claim constructed on the frontend is
-  //       rejected if its HTML differs from the sanitizer's output.
+  //       A claim constructed on the frontend is rejected if its HTML differs
+  //       from the sanitizer's output.
   //       Needs a JS port of the bluemonday policy in document/sanitize.go.
   async Validate(): Promise<void> {
     await super.Validate()

@@ -316,7 +316,7 @@ func TestClaimValidations(t *testing.T) { //nolint:maintidx
 	})
 
 	// IRI allow/deny rules match parseUrl in src/utils.ts and the regex
-	// used by the HTML sanitizer in transform/sanitize.go.
+	// used by the HTML sanitizer in sanitize.go.
 	linkValid := []string{
 		"https://example.com",
 		"https://example.com/path?q=1#section",

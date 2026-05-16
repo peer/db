@@ -611,8 +611,8 @@ describe("LinkClaim Validate", () => {
     return claim
   }
 
-  // IRI allow/deny rules match validateIRI in document/claims.go and the
-  // regex used by the HTML sanitizer in transform/sanitize.go.
+  // IRI allow/deny rules match validateIRI and the
+  // regex used by the HTML sanitizer in document/sanitize.go.
   test.each([
     "https://example.com",
     "https://example.com/path?q=1#section",
