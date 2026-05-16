@@ -90,10 +90,10 @@ export function useTransformedHtml(html: Ref<string | null | undefined>): Comput
 // pd-link-internal-noview) and routes them through Vue Router. All other
 // link kinds (file, external, internal-noview, unclassified) keep their
 // default browser behaviour.
-export function useInternalLinksClick(): (event: MouseEvent) => void {
+export function useInternalLinksClick(): (event: MouseEvent) => Promise<void> {
   const router = useRouter()
 
-  return (event: MouseEvent): void => {
+  return async (event: MouseEvent) => {
     if (event.defaultPrevented) return
     // Only act on plain left-click without modifier keys.
     if (event.button !== 0) return
@@ -118,6 +118,6 @@ export function useInternalLinksClick(): (event: MouseEvent) => void {
     if (!href) return
 
     event.preventDefault()
-    void router.push(href)
+    await router.push(href)
   }
 }

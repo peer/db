@@ -178,12 +178,12 @@ watch(
     }
     return null
   },
-  (topId) => {
+  async (topId) => {
     if (topId === null) return
     const newHash = `#${topId}`
     if (route.hash === newHash) return
     suppressedHash = newHash
-    void router.replace({ hash: newHash })
+    await router.replace({ hash: newHash })
   },
 )
 
@@ -202,12 +202,12 @@ function scrollToId(id: string) {
   window.scrollTo({ top: targetY, behavior: "smooth" })
 }
 
-function onItemClick(event: MouseEvent, id: string) {
+async function onItemClick(event: MouseEvent, id: string) {
   // Let the browser handle modified clicks (open in new tab/window, save link, etc.).
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
   event.preventDefault()
   // The route.hash watcher does the actual scrolling - pushing a new hash makes back/forward symmetric.
-  void router.push({ hash: `#${id}` })
+  await router.push({ hash: `#${id}` })
 }
 
 // Watch route.hash so click, back/forward, and external hash changes (URL paste) all scroll the same way.

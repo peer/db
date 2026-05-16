@@ -51,7 +51,7 @@ async function uniqueFilename(directoryHandle: FileSystemDirectoryHandle, name: 
 
 let cancelController: AbortController | null = null
 
-self.onmessage = (e: MessageEvent<DownloadFilesWorkerInput>) => {
+self.onmessage = async (e: MessageEvent<DownloadFilesWorkerInput>) => {
   const msg = e.data
   if (msg.type === "cancel") {
     cancelController?.abort()
@@ -62,7 +62,7 @@ self.onmessage = (e: MessageEvent<DownloadFilesWorkerInput>) => {
     return
   }
   cancelController = new AbortController()
-  void run(msg.files, msg.directoryHandle, cancelController.signal)
+  await run(msg.files, msg.directoryHandle, cancelController.signal)
 }
 
 async function run(files: DownloadFile[], directoryHandle: FileSystemDirectoryHandle, signal: AbortSignal) {

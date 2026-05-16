@@ -35,7 +35,7 @@ function isCompressibleType(contentType: string | null): boolean {
 
 let cancelController: AbortController | null = null
 
-self.onmessage = (e: MessageEvent<DownloadZipWorkerInput>) => {
+self.onmessage = async (e: MessageEvent<DownloadZipWorkerInput>) => {
   const msg = e.data
   if (msg.type === "cancel") {
     cancelController?.abort()
@@ -46,7 +46,7 @@ self.onmessage = (e: MessageEvent<DownloadZipWorkerInput>) => {
     return
   }
   cancelController = new AbortController()
-  void run(msg.files, msg.fileHandle, cancelController.signal)
+  await run(msg.files, msg.fileHandle, cancelController.signal)
 }
 
 async function run(files: DownloadFile[], fileHandle: FileSystemFileHandle | null, signal: AbortSignal) {
