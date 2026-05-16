@@ -36,7 +36,7 @@ const abortController = new AbortController()
 
 const searchQuery = ref("")
 
-watchEffect((onCleanup) => {
+watchEffect(() => {
   if (abortController.signal.aborted) {
     return
   }

@@ -98,7 +98,7 @@ const maxCount = computed(() => {
 let slider: API | null = null
 const sliderEl = useTemplateRef<HTMLElement>("sliderEl")
 
-watchEffect((onCleanup) => {
+watchEffect(() => {
   if (slider && slider.target != sliderEl.value) {
     slider.destroy()
     slider = null

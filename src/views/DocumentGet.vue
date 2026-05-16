@@ -107,7 +107,7 @@ const { results, error: searchResultsError } = useSearch(searchSession, el, prog
 
 // See: https://github.com/vuejs/core/issues/14249
 //eslint-disable-next-line @typescript-eslint/no-misused-promises
-watchEffect(async (onCleanup) => {
+watchEffect(async () => {
   if (searchSessionError.value || searchResultsError.value) {
     // Something was not OK, so we redirect to the URL without "s".
     await router.replace({
