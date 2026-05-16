@@ -45,9 +45,12 @@ defineOptions({
       // already inherits color and text-decoration on <a>, so no extra resets needed.
       'appearance-none px-3 py-2 text-left text-base outline-none': true,
       'cursor-not-allowed': inactive,
-      'bg-gray-100': !invalid && inactive,
+      // inactive wins over invalid for the background: when the user
+      // cannot act on the input, red is misleading - we want the
+      // disabled look. Active inputs still surface invalid as red.
+      'bg-gray-100': inactive,
       'bg-white': !invalid && !inactive,
-      'bg-error-50': invalid,
+      'bg-error-50': invalid && !inactive,
       'text-gray-800': inactive,
       'hover:ring-neutral-300 focus:ring-primary-300': inactive,
       'hover:ring-neutral-400 focus:ring-primary-500': !inactive,
