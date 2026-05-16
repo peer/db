@@ -4,6 +4,17 @@ import { shallowReactive } from "vue"
 
 type RepeatedInputOptions<T> = { default?: T }
 
+// v-model binding shape that modelFor returns. For a literal N (e.g.
+// "modelValue" or "precision") it resolves to the precise pair of
+// keys defineModel<N>() expects on the wrapped input - both the prop
+// (T) and the event listener ((v: T) => void). When N is the
+// unconstrained string, which happens only inside this function's
+// impl signature (the public overloads always pin N to a specific
+// literal, so callers never see this branch), it relaxes to a Record
+// so the impl can construct the dynamically-keyed object without
+// per-key type gymnastics.
+type ModelBinding<T, N extends string> = string extends N ? Record<string, T | ((v: T) => void)> : { [K in N]: T } & { [K in `onUpdate:${N}`]: (v: T) => void }
+
 export type RepeatedInput<T, N extends string = string> = {
   // The model name (used also as a key in combineRepeatedInputs output).
   name: N
@@ -15,7 +26,7 @@ export type RepeatedInput<T, N extends string = string> = {
   // v-model binding object to be spread onto the wrapped input via
   // v-bind. The key shape (name vs onUpdate:name) matches the slot
   // input's declared v-model.
-  modelFor: (input: ValidatedInput | null | undefined) => Record<string, T | ((v: T) => void)>
+  modelFor: (input: ValidatedInput | null | undefined) => ModelBinding<T, N>
   // Reads the model's value for the given input. Returns the default
   // when the input is empty (consistent with values and entries,
   // which filter empty inputs out); otherwise the stored value, or
@@ -91,7 +102,7 @@ export function useRepeatedInput<T>(nameOrOptions?: string | RepeatedInputOption
     return store.get(input) as T
   }
 
-  function modelFor(input: ValidatedInput | null | undefined): Record<string, T | ((v: T) => void)> {
+  function modelFor(input: ValidatedInput | null | undefined): ModelBinding<T, string> {
     if (!input) {
       // Pre-registration window: the row's wrapped input has mounted
       // but its ValidatedInput has not registered yet. defineModel
