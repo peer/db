@@ -147,6 +147,8 @@ declare module "vue-i18n" {
         noFilters: string
         filtersAvailable: string
         determiningFilters: string
+        skipToFilters: string
+        skipToResults: string
       }
       SearchResultsTable: {
         expandRow: string

@@ -132,6 +132,10 @@ function onFilters() {
 
   filtersEnabled.value = !filtersEnabled.value
 }
+
+function onSkipTo(targetId: string) {
+  document.getElementById(targetId)?.focus()
+}
 </script>
 
 <template>
@@ -141,9 +145,26 @@ function onFilters() {
     </Button>
   </Teleport>
 
-  <div ref="content" class="pd-searchresultsfeed flex w-full gap-x-1 p-1 sm:gap-x-4 sm:p-4">
+  <div ref="content" class="pd-searchresultsfeed relative flex w-full gap-x-1 p-1 sm:gap-x-4 sm:p-4">
+    <a
+      href="#search-filters"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-1 focus:left-1 focus:z-50 focus:rounded-sm focus:bg-primary-600 focus:px-4 focus:py-2 focus:font-medium focus:text-white focus:shadow-lg focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 focus:outline-none sm:focus:top-4 sm:focus:left-4"
+      @click.prevent="onSkipTo('search-filters')"
+      >{{ t("partials.SearchResultsFeed.skipToFilters") }}</a
+    >
+    <a
+      href="#search-results"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-1 focus:left-1 focus:z-50 focus:rounded-sm focus:bg-primary-600 focus:px-4 focus:py-2 focus:font-medium focus:text-white focus:shadow-lg focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 focus:outline-none sm:focus:top-4 sm:focus:left-4"
+      @click.prevent="onSkipTo('search-results')"
+      >{{ t("partials.SearchResultsFeed.skipToResults") }}</a
+    >
     <!-- Search results column -->
-    <div class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'">
+    <div
+      id="search-results"
+      tabindex="-1"
+      class="flex-auto basis-3/4 flex-col gap-y-1 rounded-sm focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:flex sm:gap-y-4"
+      :class="filtersEnabled ? 'hidden' : 'flex'"
+    >
       <SearchResultsHeader
         :search-session="searchSession"
         :search-total="searchTotal"
@@ -198,7 +219,14 @@ function onFilters() {
     </div>
 
     <!-- Filters column -->
-    <div ref="filtersEl" class="flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'flex' : 'hidden'" :data-url="filtersURL">
+    <div
+      id="search-filters"
+      ref="filtersEl"
+      tabindex="-1"
+      class="flex-auto basis-1/4 flex-col gap-y-1 rounded-sm focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:flex sm:gap-y-4"
+      :class="filtersEnabled ? 'flex' : 'hidden'"
+      :data-url="filtersURL"
+    >
       <div v-if="filtersError" class="pd-searchresultsfeed-filters-error-wrapper my-1 sm:my-4">
         <div class="text-center text-sm"
           ><i class="pd-searchresultsfeed-filters-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i></div
