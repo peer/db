@@ -9,8 +9,8 @@ import { computed, onBeforeUnmount, toRef, useTemplateRef, watchEffect } from "v
 import { useI18n } from "vue-i18n"
 
 import CheckBox from "@/components/CheckBox.vue"
-import TimeDisplay from "@/components/TimeDisplay.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import TimeDisplay from "@/partials/TimeDisplay.vue"
 import { useProgress } from "@/progress"
 import { NONE, useTimeHistogramValues } from "@/search"
 import { equals, formatTime, loadingShortHeights, parseTime, useInitialLoad } from "@/utils"

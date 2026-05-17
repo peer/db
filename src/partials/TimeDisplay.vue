@@ -388,61 +388,61 @@ const relativeDisplay = computed(() => {
   if (info.isPast) {
     switch (info.unit) {
       case "gigaYears":
-        text = t("components.TimeDisplay.relative.gigaYearsAgo", { count: info.count })
+        text = t("partials.TimeDisplay.relative.gigaYearsAgo", { count: info.count })
         break
       case "megaYears":
-        text = t("components.TimeDisplay.relative.megaYearsAgo", { count: info.count })
+        text = t("partials.TimeDisplay.relative.megaYearsAgo", { count: info.count })
         break
       case "kiloYears":
-        text = t("components.TimeDisplay.relative.kiloYearsAgo", { count: info.count })
+        text = t("partials.TimeDisplay.relative.kiloYearsAgo", { count: info.count })
         break
       case "years":
-        text = t("components.TimeDisplay.relative.yearsAgo", { count: info.count })
+        text = t("partials.TimeDisplay.relative.yearsAgo", { count: info.count })
         break
       case "months":
-        text = t("components.TimeDisplay.relative.monthsAgo", { count: info.count })
+        text = t("partials.TimeDisplay.relative.monthsAgo", { count: info.count })
         break
       case "days":
-        text = t("components.TimeDisplay.relative.daysAgo", { count: info.count })
+        text = t("partials.TimeDisplay.relative.daysAgo", { count: info.count })
         break
       case "hours":
-        text = t("components.TimeDisplay.relative.hoursAgo", { count: info.count })
+        text = t("partials.TimeDisplay.relative.hoursAgo", { count: info.count })
         break
       case "minutes":
-        text = t("components.TimeDisplay.relative.minutesAgo", { count: info.count })
+        text = t("partials.TimeDisplay.relative.minutesAgo", { count: info.count })
         break
       case "seconds":
-        text = t("components.TimeDisplay.relative.secondsAgo", { count: info.count })
+        text = t("partials.TimeDisplay.relative.secondsAgo", { count: info.count })
         break
     }
   } else {
     switch (info.unit) {
       case "gigaYears":
-        text = t("components.TimeDisplay.relative.inGigaYears", { count: info.count })
+        text = t("partials.TimeDisplay.relative.inGigaYears", { count: info.count })
         break
       case "megaYears":
-        text = t("components.TimeDisplay.relative.inMegaYears", { count: info.count })
+        text = t("partials.TimeDisplay.relative.inMegaYears", { count: info.count })
         break
       case "kiloYears":
-        text = t("components.TimeDisplay.relative.inKiloYears", { count: info.count })
+        text = t("partials.TimeDisplay.relative.inKiloYears", { count: info.count })
         break
       case "years":
-        text = t("components.TimeDisplay.relative.inYears", { count: info.count })
+        text = t("partials.TimeDisplay.relative.inYears", { count: info.count })
         break
       case "months":
-        text = t("components.TimeDisplay.relative.inMonths", { count: info.count })
+        text = t("partials.TimeDisplay.relative.inMonths", { count: info.count })
         break
       case "days":
-        text = t("components.TimeDisplay.relative.inDays", { count: info.count })
+        text = t("partials.TimeDisplay.relative.inDays", { count: info.count })
         break
       case "hours":
-        text = t("components.TimeDisplay.relative.inHours", { count: info.count })
+        text = t("partials.TimeDisplay.relative.inHours", { count: info.count })
         break
       case "minutes":
-        text = t("components.TimeDisplay.relative.inMinutes", { count: info.count })
+        text = t("partials.TimeDisplay.relative.inMinutes", { count: info.count })
         break
       case "seconds":
-        text = t("components.TimeDisplay.relative.inSeconds", { count: info.count })
+        text = t("partials.TimeDisplay.relative.inSeconds", { count: info.count })
         break
     }
   }

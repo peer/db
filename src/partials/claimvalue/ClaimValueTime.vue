@@ -3,7 +3,7 @@ import type { DeepReadonly } from "vue"
 
 import type { TimeClaim } from "@/document"
 
-import TimeDisplay from "@/components/TimeDisplay.vue"
+import TimeDisplay from "@/partials/TimeDisplay.vue"
 
 defineProps<{
   claim: TimeClaim | DeepReadonly<TimeClaim> | null

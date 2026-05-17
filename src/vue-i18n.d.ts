@@ -141,8 +141,6 @@ declare module "vue-i18n" {
       TableOfContents: {
         label: string
       }
-    }
-    components: {
       TimeDisplay: {
         relative: {
           secondsAgo: string

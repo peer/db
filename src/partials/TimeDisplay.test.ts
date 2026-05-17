@@ -11,7 +11,7 @@ import {
   getRelativeTimeInfo,
   isPrecise,
   parseTimestamp,
-} from "@/components/TimeDisplay.vue"
+} from "@/partials/TimeDisplay.vue"
 
 // Expose functions to avoid eslint errors
 // TODO: Enable once eslint parser for extra files is used.

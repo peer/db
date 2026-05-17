@@ -129,9 +129,7 @@
     },
     "TableOfContents": {
       "label": "Kazalo vsebine"
-    }
-  },
-  "components": {
+    },
     "TimeDisplay": {
       "relative": {
         "secondsAgo": "pred 1 sekundo | pred {count} sekundama | pred {count} sekundami | pred {count} sekundami",

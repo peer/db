@@ -129,9 +129,7 @@
     },
     "TableOfContents": {
       "label": "Table of contents"
-    }
-  },
-  "components": {
+    },
     "TimeDisplay": {
       "relative": {
         "secondsAgo": "1 second ago | {count} seconds ago",
