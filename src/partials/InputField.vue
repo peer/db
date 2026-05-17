@@ -35,12 +35,18 @@ function onLegendClick(event: MouseEvent): void {
   if (target?.closest("a[href], button, input, select, textarea, details, [tabindex]:not([tabindex='-1'])")) return
   input.value?.el()?.focus()
 }
+
+// Revert the input's pending edit and then return focus to the input.
+function onRevert(): void {
+  input.value?.revert()
+  input.value?.el()?.focus()
+}
 </script>
 
 <template>
   <fieldset v-tw-merge class="flex flex-col">
     <legend class="mb-1 flex flex-row items-center gap-1" @click="onLegendClick"
-      ><slot name="label" /><InputBadges :required="required" :changed="input?.isDirty ?? false" @revert="input?.revert()"
+      ><slot name="label" /><InputBadges :required="required" :changed="input?.isDirty ?? false" @revert="onRevert"
     /></legend>
     <InputErrors v-slot="errorProps">
       <slot v-bind="errorProps" :ref="setInputRef" name="input" :required="required" :invalid="invalid" />

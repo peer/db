@@ -237,12 +237,15 @@ const precisionRef = useTemplateRef<ShallowUnwrapRef<ValidatedInput>>("precision
 const amountChanged = computed<boolean>(() => amountRef.value?.isDirty ?? false)
 const precisionChanged = computed<boolean>(() => precisionRef.value?.isDirty ?? false)
 
+// Return focus to the reverted field.
 function onRevertAmount() {
   amountRef.value?.revert()
+  amountRef.value?.el()?.focus()
 }
 
 function onRevertPrecision() {
   precisionRef.value?.revert()
+  precisionRef.value?.el()?.focus()
 }
 
 // Auto-detect precision from the amount whenever the amount changes

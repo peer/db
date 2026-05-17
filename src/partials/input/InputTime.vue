@@ -363,12 +363,14 @@ export function inferPrecisionFromNormalized(
 </script>
 
 <script setup lang="ts">
+import type { ComponentPublicInstance } from "vue"
+
 import type { ValidatedInput, ValidationError } from "@/types"
 
 import { Listbox, ListboxButton, ListboxLabel, ListboxOption, ListboxOptions } from "@headlessui/vue"
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { debounce } from "lodash-es"
-import { computed, nextTick, onBeforeMount, onBeforeUnmount, onMounted, ref, useId, watch } from "vue"
+import { computed, nextTick, onBeforeMount, onBeforeUnmount, onMounted, ref, useId, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
 import InputStyled from "@/components/InputStyled.vue"
@@ -541,6 +543,8 @@ forwardInteraction = notifyOuter
 // template ref) sees this InputTime as a single ValidatedInput.
 defineExpose(validatedInput)
 
+const precisionButtonRef = useTemplateRef<ComponentPublicInstance>("precisionButtonRef")
+
 // Per-field revert handlers wired to the "changed" badge of each label.
 // The time revert restores the inner InputText to its checkpoint
 // displayValue and re-derives the canonical model from it. The precision
@@ -548,16 +552,20 @@ defineExpose(validatedInput)
 // source-of-truth state of its own field; the model may transiently drift
 // out of sync with precision after a precision revert, but the user can
 // click the time-label badge or edit further to re-sync.
+//
+// Both also return focus to their own field afterwards.
 function onRevertTime(): void {
   isEditing.value = false
   revertTime()
   emitCanonicalDebounce.cancel()
   emitCanonicalFromDisplay()
+  document.getElementById(inputId)?.focus()
 }
 
 function onRevertPrecision(): void {
   precision.value = precisionCheckpointRef.value
   timePrecision.value = precisionCheckpointRef.value
+  ;(precisionButtonRef.value?.$el as HTMLElement | null)?.focus()
 }
 
 onBeforeMount(() => {
@@ -912,7 +920,7 @@ watch(
           We add additional padding on the right (pr-10) on top of InputStyled's
           default px-3 to make space for the icon.
         -->
-        <InputStyled :as="ListboxButton" :inactive="inactive" class="relative w-full pr-10">
+        <InputStyled ref="precisionButtonRef" :as="ListboxButton" :inactive="inactive" class="relative w-full pr-10">
           <div class="truncate" :title="precisionLabel(timePrecision)">{{ precisionLabel(timePrecision) }}</div>
 
           <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
