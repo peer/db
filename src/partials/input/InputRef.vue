@@ -279,7 +279,7 @@ const WithPeerDBDocument = WithDocument<D>
 
 <template>
   <div ref="wrapperRef" @focusout="onWrapperFocusout">
-    <Combobox v-slot="{ open }" :model-value="selectedDocument" as="div" :immediate="true" by="id" @update:model-value="onSelect">
+    <Combobox v-slot="{ open }" :model-value="selectedDocument" as="div" immediate by="id" @update:model-value="onSelect">
       <!--
         Grid with a single minmax(0,1fr) column. The "0" min track size
         propagates a min-content of 0 up through the flex ancestors, so the

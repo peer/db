@@ -882,13 +882,13 @@ function canSave(): boolean {
                   <TabPanels as="template">
                     <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField :required="true" class="mt-4">
+                      <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
                           <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
-                      <InputField :required="true" class="mt-4">
+                      <InputField required class="mt-4">
                         <template #label>{{ t("views.DocumentEdit.labels.identifier") }}</template>
                         <template #input="inputProps">
                           <InputIdentifier v-bind="inputProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
@@ -896,13 +896,13 @@ function canSave(): boolean {
                       </InputField>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField :required="true" class="mt-4">
+                      <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
                           <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
-                      <InputField :required="true" class="mt-4">
+                      <InputField required class="mt-4">
                         <template #label>{{ t("views.DocumentEdit.labels.string") }}</template>
                         <template #input="inputProps">
                           <InputString v-bind="inputProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
@@ -910,13 +910,13 @@ function canSave(): boolean {
                       </InputField>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField :required="true" class="mt-4">
+                      <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
                           <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
-                      <InputField :required="true" class="mt-4">
+                      <InputField required class="mt-4">
                         <template #label>{{ t("views.DocumentEdit.labels.html") }}</template>
                         <template #input="inputProps">
                           <InputHTML v-bind="inputProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
@@ -924,31 +924,25 @@ function canSave(): boolean {
                       </InputField>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField :required="true" class="mt-4">
+                      <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
                           <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
                       <InputErrors v-slot="errorProps">
-                        <InputAmount
-                          v-bind="errorProps"
-                          v-model="claimValue"
-                          v-model:precision="claimAmountPrecision"
-                          :required="true"
-                          class="mt-4 min-w-0 flex-auto grow"
-                        />
+                        <InputAmount v-bind="errorProps" v-model="claimValue" v-model:precision="claimAmountPrecision" required class="mt-4 min-w-0 flex-auto grow" />
                       </InputErrors>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField :required="true" class="mt-4">
+                      <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
                           <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
                       <InputErrors v-slot="errorProps" class="mt-4">
-                        <InputMissing v-bind="errorProps" v-model:unknown="claimFromUnknown" v-model:none="claimFromNone" :required="true">
+                        <InputMissing v-bind="errorProps" v-model:unknown="claimFromUnknown" v-model:none="claimFromNone" required>
                           <template #default="missingProps">
                             <InputAmount v-bind="missingProps" v-model="claimFrom" v-model:precision="claimFromAmountPrecision" class="min-w-0 flex-auto grow">
                               <template #amount-label>{{ t("views.DocumentEdit.labels.from") }}</template>
@@ -957,7 +951,7 @@ function canSave(): boolean {
                         </InputMissing>
                       </InputErrors>
                       <InputErrors v-slot="errorProps" class="mt-4">
-                        <InputMissing v-bind="errorProps" v-model:unknown="claimToUnknown" v-model:none="claimToNone" :required="true">
+                        <InputMissing v-bind="errorProps" v-model:unknown="claimToUnknown" v-model:none="claimToNone" required>
                           <template #default="missingProps">
                             <InputAmount v-bind="missingProps" v-model="claimTo" v-model:precision="claimToAmountPrecision" class="min-w-0 flex-auto grow">
                               <template #amount-label>{{ t("views.DocumentEdit.labels.to") }}</template>
@@ -967,48 +961,42 @@ function canSave(): boolean {
                       </InputErrors>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField :required="true" class="mt-4">
+                      <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
                           <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
                       <InputErrors v-slot="errorProps">
-                        <InputTime v-bind="errorProps" v-model="claimValue" v-model:precision="claimTimePrecision" :required="true" class="mt-4 min-w-0 flex-auto grow" />
+                        <InputTime v-bind="errorProps" v-model="claimValue" v-model:precision="claimTimePrecision" required class="mt-4 min-w-0 flex-auto grow" />
                       </InputErrors>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField :required="true" class="mt-4">
+                      <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
                           <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
                       <InputErrors v-slot="errorProps">
-                        <InputTime
-                          v-bind="errorProps"
-                          v-model="claimFrom"
-                          v-model:precision="claimFromTimePrecision"
-                          :required="true"
-                          class="mt-4 min-w-0 flex-auto grow"
-                        >
+                        <InputTime v-bind="errorProps" v-model="claimFrom" v-model:precision="claimFromTimePrecision" required class="mt-4 min-w-0 flex-auto grow">
                           <template #time-label>{{ t("views.DocumentEdit.labels.from") }}</template>
                         </InputTime>
                       </InputErrors>
                       <InputErrors v-slot="errorProps">
-                        <InputTime v-bind="errorProps" v-model="claimTo" v-model:precision="claimToTimePrecision" :required="true" class="mt-4 min-w-0 flex-auto grow">
+                        <InputTime v-bind="errorProps" v-model="claimTo" v-model:precision="claimToTimePrecision" required class="mt-4 min-w-0 flex-auto grow">
                           <template #time-label>{{ t("views.DocumentEdit.labels.to") }}</template>
                         </InputTime>
                       </InputErrors>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField :required="true" class="mt-4">
+                      <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
                           <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
-                      <InputField :required="true" class="mt-4">
+                      <InputField required class="mt-4">
                         <template #label>{{ t("views.DocumentEdit.labels.iri") }}</template>
                         <template #input="inputProps">
                           <InputLink v-bind="inputProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
@@ -1016,13 +1004,13 @@ function canSave(): boolean {
                       </InputField>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField :required="true" class="mt-4">
+                      <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
                           <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
-                      <InputField :required="true" class="mt-4">
+                      <InputField required class="mt-4">
                         <template #label>{{ t("views.DocumentEdit.labels.file") }}</template>
                         <template #input="inputProps">
                           <InputFile v-bind="inputProps" v-model="claimValue" />
@@ -1030,13 +1018,13 @@ function canSave(): boolean {
                       </InputField>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField :required="true" class="mt-4">
+                      <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
                           <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
-                      <InputField :required="true" class="mt-4">
+                      <InputField required class="mt-4">
                         <template #label>{{ t("views.DocumentEdit.labels.to") }}</template>
                         <template #input="inputProps">
                           <InputRef v-bind="inputProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
@@ -1044,7 +1032,7 @@ function canSave(): boolean {
                       </InputField>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField :required="true" class="mt-4">
+                      <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
                           <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
@@ -1052,7 +1040,7 @@ function canSave(): boolean {
                       </InputField>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField :required="true" class="mt-4">
+                      <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
                           <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
@@ -1060,7 +1048,7 @@ function canSave(): boolean {
                       </InputField>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField :required="true" class="mt-4">
+                      <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
                           <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
