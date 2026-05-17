@@ -17,11 +17,13 @@ const props = withDefaults(
     required?: boolean
     // Presentational override.
     invalid?: boolean
+    allowMailto?: boolean
   }>(),
   {
     readonly: false,
     required: false,
     invalid: false,
+    allowMailto: true,
   },
 )
 
@@ -35,7 +37,7 @@ const canOpen = computed(() => {
   const trimmed = model.value.trim()
   if (!trimmed) return false
   try {
-    parseUrl(trimmed)
+    parseUrl(trimmed, { allowMailto: props.allowMailto })
   } catch {
     return false
   }
@@ -49,7 +51,7 @@ const linkClasses = computed(() => {
 const internalPath = computed<string | null>(() => {
   if (!linkClasses.value.includes(LINK_CLASS_INTERNAL)) return null
   try {
-    return normalizeUrl(model.value.trim())
+    return normalizeUrl(model.value.trim(), { allowMailto: props.allowMailto })
   } catch {
     return null
   }
@@ -82,7 +84,7 @@ const validator: ValidatorFn<string> = async function (value, options) {
   }
   let normalized: string
   try {
-    normalized = normalizeUrl(trimmed)
+    normalized = normalizeUrl(trimmed, { allowMailto: props.allowMailto })
   } catch (err) {
     // TODO: Use standard codes.
     return [

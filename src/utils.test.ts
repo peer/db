@@ -212,4 +212,16 @@ describe("parseUrl", () => {
   ])("rejects %s", (input, fragment) => {
     expect(() => parseUrl(input)).toThrow(fragment)
   })
+
+  test("allowMailto=false rejects mailto: even when otherwise valid", () => {
+    // Sanity-check: the same value is accepted with the default (allowMailto=true).
+    expect(parseUrl("mailto:test@example.com")).toBeInstanceOf(URL)
+    expect(() => parseUrl("mailto:test@example.com", { allowMailto: false })).toThrow("disallowed URL scheme: mailto:")
+  })
+
+  test("allowMailto=false still accepts http / https / leading-slash paths", () => {
+    assert.instanceOf(parseUrl("https://example.com", { allowMailto: false }), URL)
+    assert.instanceOf(parseUrl("http://example.com/foo", { allowMailto: false }), URL)
+    assert.instanceOf(parseUrl("/foo", { allowMailto: false }), URL)
+  })
 })
