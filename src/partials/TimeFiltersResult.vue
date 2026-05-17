@@ -13,7 +13,7 @@ import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import TimeDisplay from "@/partials/TimeDisplay.vue"
 import { useProgress } from "@/progress"
 import { NONE, useTimeHistogramValues } from "@/search"
-import { equals, loadingShortHeights, timePrecisionForRange, timeStringFromFloat64, useInitialLoad } from "@/utils"
+import { equals, loadingShortHeights, timePrecisionForRange, timePrecisionForValue, timeStringFromFloat64, useInitialLoad } from "@/utils"
 
 const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
@@ -109,6 +109,20 @@ const rangeDisplay = computed(() => {
     precision,
     from: timeStringFromFloat64(f, precision),
     to: timeStringFromFloat64(t, precision),
+  }
+})
+
+// When the histogram collapses to a single bucket, the bucket's `from` is the
+// claim value itself. Infer its precision from divisibility / calendar fields.
+const singleValueDisplay = computed(() => {
+  if (results.value.length !== 1) {
+    return null
+  }
+  const v = results.value[0].from
+  const precision = timePrecisionForValue(v)
+  return {
+    precision,
+    timestamp: timeStringFromFloat64(v, precision),
   }
 })
 
@@ -234,7 +248,7 @@ onBeforeUnmount(() => {
       </li>
       <li v-else-if="results.length === 1" class="flex items-baseline gap-x-1">
         <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
-        <span class="my-1 leading-none">{{ new Date(results[0].from * 1000).toISOString() }}</span>
+        <TimeDisplay v-if="singleValueDisplay" :timestamp="singleValueDisplay.timestamp" :precision="singleValueDisplay.precision" class="my-1 leading-none" />
         <div class="my-1 leading-none">({{ results[0].count }})</div>
       </li>
       <li v-if="result.count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="error ? 'mt-0' : from === null || to === null ? 'mt-3' : 'mt-4'">

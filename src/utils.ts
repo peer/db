@@ -35,6 +35,41 @@ export function equals<T>(a: T, b: T): boolean {
   return isEqual(a, b)
 }
 
+// timePrecisionForValue picks the coarsest display precision a single float64
+// unix-second timestamp could plausibly be carrying. Anything with a fractional
+// second part (beyond a small float64 tolerance) is sub-second and returns "s".
+// Finer precisions are never returned. Otherwise we check divisibility by
+// 60 / 3600 / 86400 for min/h/d, and then walk the calendar fields (and year
+// divisibility) for the coarser tiers.
+export function timePrecisionForValue(seconds: number): TimePrecision {
+  // Tolerate small float64 rounding error when classifying "is this an integer
+  // number of seconds?". For unix seconds in the human-relevant range the ULP
+  // is well under this threshold.
+  const tol = 1e-6
+  if (Math.abs(seconds - Math.round(seconds)) >= tol) {
+    return "s"
+  }
+  const sec = BigInt(Math.round(seconds))
+  if (sec % 60n !== 0n) return "s"
+  if (sec % (60n * 60n) !== 0n) return "min"
+  if (sec % (60n * 60n * 24n) !== 0n) return "h"
+  // Calendar units (months, years) do not have a fixed second count, so we
+  // switch to inspecting the date components.
+  const [year, month, day] = toDate(sec)
+  if (day > 1) return "d"
+  if (month > 1) return "m"
+  if (year % 10 !== 0) return "y"
+  if (year % 100 !== 0) return "10y"
+  if (year % 1_000 !== 0) return "100y"
+  if (year % 10_000 !== 0) return "k"
+  if (year % 100_000 !== 0) return "10k"
+  if (year % 1_000_000 !== 0) return "100k"
+  if (year % 10_000_000 !== 0) return "M"
+  if (year % 100_000_000 !== 0) return "10M"
+  if (year % 1_000_000_000 !== 0) return "100M"
+  return "G"
+}
+
 // timePrecisionForRange picks a display precision that fits the span between
 // two float64 unix-second timestamps. The result is capped at "s". Finer
 // subsecond precisions are never returned even for very small spans.

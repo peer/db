@@ -1,7 +1,7 @@
 import { assert, describe, test } from "vitest"
 
 import { timeFloat64, validateTime } from "@/document/time"
-import { timePrecisionForRange, timeStringFromFloat64 } from "@/utils"
+import { timePrecisionForRange, timePrecisionForValue, timeStringFromFloat64 } from "@/utils"
 
 // Unix seconds for 2025-03-02 10:30:45 UTC.
 const SAMPLE_SECONDS = Date.UTC(2025, 2, 2, 10, 30, 45) / 1000
@@ -126,5 +126,58 @@ describe("timeStringFromFloat64", () => {
     assert.throws(() => timeStringFromFloat64(SAMPLE_SECONDS, "ms"), /subsecond/)
     assert.throws(() => timeStringFromFloat64(SAMPLE_SECONDS, "us"), /subsecond/)
     assert.throws(() => timeStringFromFloat64(SAMPLE_SECONDS, "ns"), /subsecond/)
+  })
+})
+
+describe("timePrecisionForValue", () => {
+  test("returns s for fractional-second values", () => {
+    assert.equal(timePrecisionForValue(0.5), "s")
+    assert.equal(timePrecisionForValue(0.001), "s")
+    assert.equal(timePrecisionForValue(SAMPLE_SECONDS + 0.5), "s")
+  })
+
+  test("returns s for non-minute-divisible integer seconds", () => {
+    assert.equal(timePrecisionForValue(Date.UTC(2025, 2, 2, 10, 30, 45) / 1000), "s")
+  })
+
+  test("returns min when divisible by 60 but not 3600", () => {
+    assert.equal(timePrecisionForValue(Date.UTC(2025, 2, 2, 10, 30) / 1000), "min")
+  })
+
+  test("returns h when divisible by 3600 but not 86400", () => {
+    assert.equal(timePrecisionForValue(Date.UTC(2025, 2, 2, 10) / 1000), "h")
+  })
+
+  test("returns d when divisible by 86400 and day > 1", () => {
+    assert.equal(timePrecisionForValue(Date.UTC(2025, 2, 2) / 1000), "d")
+  })
+
+  test("returns m when on day 1 of a non-January month", () => {
+    assert.equal(timePrecisionForValue(Date.UTC(2025, 2, 1) / 1000), "m")
+  })
+
+  test("returns y on Jan 1 of a year not divisible by 10", () => {
+    assert.equal(timePrecisionForValue(Date.UTC(2025, 0, 1) / 1000), "y")
+  })
+
+  test("returns 10y on Jan 1 of a decade year not divisible by 100", () => {
+    assert.equal(timePrecisionForValue(Date.UTC(2020, 0, 1) / 1000), "10y")
+    // Unix epoch year 1970 is divisible by 10 but not by 100.
+    assert.equal(timePrecisionForValue(0), "10y")
+  })
+
+  test("returns 100y on Jan 1 of a century year not divisible by 1000", () => {
+    assert.equal(timePrecisionForValue(Date.UTC(2100, 0, 1) / 1000), "100y")
+  })
+
+  test("returns k on Jan 1 of a kiloyear not divisible by 10000", () => {
+    assert.equal(timePrecisionForValue(Date.UTC(2000, 0, 1) / 1000), "k")
+  })
+
+  test("tolerates small float64 rounding error", () => {
+    // 60 + 1e-9 should still be treated as exactly divisible by 60.
+    assert.equal(timePrecisionForValue(60 + 1e-9), "min")
+    // Likewise on the negative side.
+    assert.equal(timePrecisionForValue(60 - 1e-9), "min")
   })
 })
