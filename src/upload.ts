@@ -29,6 +29,8 @@ export async function uploadFile(
   }
 
   const initialProgress = progress?.value ?? 0
+  let succeeded = false
+  let abortListener: (() => void) | null = null
   try {
     // Initially, we show the indeterminate progress bar.
     if (progress) {
@@ -37,8 +39,6 @@ export async function uploadFile(
     if (total) {
       total.value = undefined
     }
-
-    // TODO: If abortSignal is aborted, we should attempt to discard the upload (with fetch's keepalive set).
 
     // TODO: Pass and store lastModified timestamp for the file (as different timestamp than current uploaded "at" timestamp).
     const beginUploadRequest: StorageBeginUploadRequest = {
@@ -54,9 +54,44 @@ export async function uploadFile(
       abortSignal,
       progress,
     )
+
+    // If abortSignal is aborted after the session is created but before the upload
+    // completes, fire a best-effort discard request so the backend can release the session.
+    // We use fetch's keepalive so the request survives even if the page is being unloaded.
+    const discardURL = router.apiResolve({
+      name: "StorageDiscardUpload",
+      params: {
+        session: beginUploadResponse.session,
+      },
+    }).href
+    abortListener = () => {
+      if (succeeded) {
+        return
+      }
+      fetch(discardURL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: "{}",
+        mode: "same-origin",
+        credentials: "same-origin",
+        redirect: "error",
+        referrer: document.location.href,
+        referrerPolicy: "strict-origin-when-cross-origin",
+        keepalive: true,
+      }).catch(() => {
+        // Best-effort; ignore failures.
+      })
+    }
+    abortSignal.addEventListener("abort", abortListener, { once: true })
+    // If abort fired before we attached the listener (e.g., during the begin-upload
+    // request), the listener will not run; trigger the discard manually.
     if (abortSignal.aborted) {
+      abortListener()
       return ""
     }
+
     for (let chunkStart = 0; chunkStart < file.size; chunkStart += MAX_PAYLOAD_SIZE) {
       const chunkEnd = Math.min(chunkStart + MAX_PAYLOAD_SIZE, file.size)
       // TODO: We should switch implementation of postBlob to XMLHttpRequest and obtain progress inside a chunk.
@@ -135,6 +170,7 @@ export async function uploadFile(
           return ""
         }
         if (status.id) {
+          succeeded = true
           return status.id
         }
         if (status.discarded) {
@@ -150,6 +186,9 @@ export async function uploadFile(
     }
     throw err
   } finally {
+    if (abortListener) {
+      abortSignal.removeEventListener("abort", abortListener)
+    }
     if (progress) {
       progress.value = initialProgress
     }
