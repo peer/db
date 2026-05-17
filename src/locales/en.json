@@ -135,7 +135,9 @@
       "filtersNotShown": "1 filter not shown. | {count} filters not shown.",
       "noFilters": "No filters available.",
       "filtersAvailable": "1 filters available. | {count} filters available.",
-      "determiningFilters": "Determining filters..."
+      "determiningFilters": "Determining filters...",
+      "skipToFilters": "Skip to filters",
+      "skipToResults": "Skip to results"
     },
     "SearchResultsTable": {
       "expandRow": "Expand row",

@@ -135,7 +135,9 @@
       "filtersNotShown": "1 filter ni prikazan. | {count} filtra nista prikazana. | {count} filtri niso prikazani. | {count} filtrov ni prikazanih.",
       "noFilters": "Ni filtrov na voljo.",
       "filtersAvailable": "1 filter na voljo. | {count} filtra na voljo. | {count} filtri na voljo. | {count} filtrov na voljo.",
-      "determiningFilters": "Ugotavljanje filtrov..."
+      "determiningFilters": "Ugotavljanje filtrov...",
+      "skipToFilters": "Preskoči na filtre",
+      "skipToResults": "Preskoči na rezultate"
     },
     "SearchResultsTable": {
       "expandRow": "Razširi vrstico",
