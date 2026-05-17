@@ -8,9 +8,28 @@ const timeRegex = /^(-?\d{4,})(?:-(\d{2})-(\d{2})(?: (\d{2}):(\d{2})(?::(\d{2})(
 
 // TIME_PRECISIONS_ORDERED lists precisions from coarsest to finest.
 // Index in this array gives a comparable level (higher = finer precision).
-const TIME_PRECISIONS_ORDERED: TimePrecision[] = ["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s", "ms", "us", "ns"]
+export const TIME_PRECISIONS_ORDERED: TimePrecision[] = [
+  "G",
+  "100M",
+  "10M",
+  "M",
+  "100k",
+  "10k",
+  "k",
+  "100y",
+  "10y",
+  "y",
+  "m",
+  "d",
+  "h",
+  "min",
+  "s",
+  "ms",
+  "us",
+  "ns",
+] as const
 
-const PRECISION_LEVEL = new Map<TimePrecision, number>(TIME_PRECISIONS_ORDERED.map((p, i) => [p, i]))
+export const PRECISION_LEVEL = new Map<TimePrecision, number>(TIME_PRECISIONS_ORDERED.map((p, i) => [p, i]))
 
 // VALID_TIME_PRECISIONS is the set of valid TimePrecision values.
 export const VALID_TIME_PRECISIONS = new Set<string>(TIME_PRECISIONS_ORDERED)
@@ -75,11 +94,14 @@ type TimeParts = {
 // parseTimeString parses the time string into its components. It does not
 // validate against precision; pass the result through validatePrecision
 // for that.
-function parseTimeString(t: string): {
+export function parseTimeString(t: string): {
   parts: TimeParts
+  // Raw year string from the input, preserving leading zeros and the sign.
+  yearStr: string
   // Tracks which components were present in the input (the raw match
   // structure mirrors the Go regex capture groups).
   hasMonth: boolean
+  hasDay: boolean
   hasHours: boolean
   hasSeconds: boolean
   subsecondsLen: number
@@ -89,7 +111,8 @@ function parseTimeString(t: string): {
     throw new Error("unable to parse time")
   }
 
-  const year = parseInt(match[1], 10)
+  const yearStr = match[1]
+  const year = parseInt(yearStr, 10)
   if (!Number.isFinite(year)) {
     throw new Error("unable to parse year")
   }
@@ -161,7 +184,9 @@ function parseTimeString(t: string): {
 
   return {
     parts,
+    yearStr,
     hasMonth: month !== -1,
+    hasDay: day !== 0,
     hasHours: hours !== -1,
     hasSeconds: seconds !== -1,
     subsecondsLen,

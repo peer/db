@@ -11,72 +11,12 @@ import { INSTANCE_OF, NAME, TITLE } from "@/core"
 import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document/claims"
 import { AddClaimChange } from "@/document/patch"
 import { getDisplayLabelFunctions } from "@/registry/display-label"
-import { fromDate, hour, minute, second, toDate } from "@/time"
 
 // If the last increase would be equal or less than this number, just skip to the end.
 const SKIP_TO_END = 2
 
-const timeRegex = /^([+-]?\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/
-
 export function formatValue(amount: number): string {
   return parseFloat(amount.toFixed(5)).toString()
-}
-
-export function formatTime(seconds: number): string {
-  // TODO: Support also nanoseconds.
-  return secondsToTime(BigInt(Math.round(seconds)))
-}
-
-export function parseTime(value: string): number {
-  return Number(timeToSeconds(value))
-}
-
-// TODO: Support also nanoseconds.
-// TODO: Return float.
-export function timeToSeconds(value: string): bigint {
-  const match = timeRegex.exec(value)
-  if (!match) {
-    throw new Error(`unable to parse time "${value}"`)
-  }
-  const year = parseInt(match[1], 10)
-  if (isNaN(year)) {
-    throw new Error(`unable to parse year "${value}"`)
-  }
-  const month = parseInt(match[2], 10)
-  if (isNaN(month)) {
-    throw new Error(`unable to parse month "${value}"`)
-  }
-  const day = parseInt(match[3], 10)
-  if (isNaN(day)) {
-    throw new Error(`unable to parse day "${value}"`)
-  }
-  const hour = parseInt(match[4], 10)
-  if (isNaN(hour)) {
-    throw new Error(`unable to parse hour "${value}"`)
-  }
-  const minute = parseInt(match[5], 10)
-  if (isNaN(minute)) {
-    throw new Error(`unable to parse minute "${value}"`)
-  }
-  const second = parseInt(match[6], 10)
-  if (isNaN(second)) {
-    throw new Error(`unable to parse second "${value}"`)
-  }
-  return fromDate(year, month, day, hour, minute, second)
-}
-
-export function secondsToTime(value: bigint): string {
-  const [year, month, day] = toDate(value)
-  let yearStr
-  if (year < 0) {
-    yearStr = "-" + String(-year).padStart(4, "0")
-  } else {
-    yearStr = String(year).padStart(4, "0")
-  }
-  return `${yearStr}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T${String(hour(value)).padStart(2, "0")}:${String(minute(value)).padStart(
-    2,
-    "0",
-  )}:${String(second(value)).padStart(2, "0")}Z`
 }
 
 export function clone<T>(input: T): Mutable<T> {
@@ -86,13 +26,6 @@ export function clone<T>(input: T): Mutable<T> {
 
 export function equals<T>(a: T, b: T): boolean {
   return isEqual(a, b)
-}
-
-export function bigIntMax(a: bigint, b: bigint): bigint {
-  if (a > b) {
-    return a
-  }
-  return b
 }
 
 // NAMING_PROPERTIES lists the properties considered for display labels.

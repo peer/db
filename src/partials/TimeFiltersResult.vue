@@ -10,10 +10,9 @@ import { useI18n } from "vue-i18n"
 
 import CheckBox from "@/components/CheckBox.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
-import TimeDisplay from "@/partials/TimeDisplay.vue"
 import { useProgress } from "@/progress"
 import { NONE, useTimeHistogramValues } from "@/search"
-import { equals, formatTime, loadingShortHeights, parseTime, useInitialLoad } from "@/utils"
+import { equals, loadingShortHeights, useInitialLoad } from "@/utils"
 
 const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
@@ -127,10 +126,10 @@ watchEffect((onCleanup) => {
       behaviour: "snap",
       format: {
         to: (value: number): string => {
-          return formatTime(value)
+          return new Date(value * 1000).toISOString()
         },
-        from: (value: string): number => {
-          return parseTime(value)
+        from: (): number => {
+          throw new Error("format.from not supported")
         },
       },
     })
@@ -206,14 +205,14 @@ onBeforeUnmount(() => {
           ></rect>
         </svg>
         <div class="flex flex-row justify-between gap-x-1">
-          <TimeDisplay :timestamp="formatTime(from)" />
-          <TimeDisplay :timestamp="formatTime(to)" />
+          <span>{{ new Date(from * 1000).toISOString() }}</span>
+          <span>{{ new Date(to * 1000).toISOString() }}</span>
         </div>
         <div ref="sliderEl"></div>
       </li>
       <li v-else-if="results.length === 1" class="flex items-baseline gap-x-1">
         <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
-        <TimeDisplay :timestamp="formatTime(results[0].from)" class="my-1 leading-none" />
+        <span class="my-1 leading-none">{{ new Date(results[0].from * 1000).toISOString() }}</span>
         <div class="my-1 leading-none">({{ results[0].count }})</div>
       </li>
       <li v-if="result.count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="error ? 'mt-0' : from === null || to === null ? 'mt-3' : 'mt-4'">
