@@ -318,6 +318,8 @@ export type ValidationError = {
   path?: string[]
   code: string
   el?: HTMLElement
+  // It should be localized.
+  userMessage?: string
 
   // Optional debug info.
   debugMessage?: string

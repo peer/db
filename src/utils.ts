@@ -92,7 +92,6 @@ export function timePrecisionForRange(from: number, to: number): TimePrecision {
   return "100M"
 }
 
-// TODO: Use it in InputTime.vue.
 export function formatYearStr(year: number): string {
   if (year < 0) {
     return "-" + String(-year).padStart(4, "0")
@@ -100,7 +99,6 @@ export function formatYearStr(year: number): string {
   return String(year).padStart(4, "0")
 }
 
-// TODO: Use it in InputTime.vue.
 export function pad2(n: number | string): string {
   return String(n).padStart(2, "0")
 }
