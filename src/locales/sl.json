@@ -129,6 +129,28 @@
     },
     "TableOfContents": {
       "label": "Kazalo vsebine"
+    },
+    "TimeDisplay": {
+      "relative": {
+        "secondsAgo": "pred 1 sekundo | pred {count} sekundama | pred {count} sekundami | pred {count} sekundami",
+        "minutesAgo": "pred 1 minuto | pred {count} minutama | pred {count} minutami | pred {count} minutami",
+        "hoursAgo": "pred 1 uro | pred {count} urama | pred {count} urami | pred {count} urami",
+        "daysAgo": "pred 1 dnem | pred {count} dnevoma | pred {count} dnevi | pred {count} dnevi",
+        "monthsAgo": "pred 1 mesecem | pred {count} mesecema | pred {count} meseci | pred {count} meseci",
+        "yearsAgo": "pred 1 letom | pred {count} letoma | pred {count} leti | pred {count} leti",
+        "kiloYearsAgo": "pred 1k leti | pred {count}k leti",
+        "megaYearsAgo": "pred 1M leti | pred {count}M leti",
+        "gigaYearsAgo": "pred 1G leti | pred {count}G leti",
+        "inSeconds": "čez 1 sekundo | čez {count} sekundi | čez {count} sekunde | čez {count} sekund",
+        "inMinutes": "čez 1 minuto | čez {count} minuti | čez {count} minute | čez {count} minut",
+        "inHours": "čez 1 uro | čez {count} uri | čez {count} ure | čez {count} ur",
+        "inDays": "čez 1 dan | čez {count} dneva | čez {count} dni | čez {count} dni",
+        "inMonths": "čez 1 mesec | čez {count} meseca | čez {count} mesece | čez {count} mesecev",
+        "inYears": "čez 1 leto | čez {count} leti | čez {count} leta | čez {count} let",
+        "inKiloYears": "čez 1k let | čez {count}k let",
+        "inMegaYears": "čez 1M let | čez {count}M let",
+        "inGigaYears": "čez 1G let | čez {count}G let"
+      }
     }
   },
   "views": {

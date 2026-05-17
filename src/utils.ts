@@ -1,5 +1,6 @@
 import type { DeepReadonly, Ref } from "vue"
 
+import type { TimePrecision } from "@/document"
 import type { GetDisplayLabel, Mutable, QueryValues, QueryValuesWithOptional } from "@/types"
 
 import { Identifier } from "@tozd/identifier"
@@ -10,73 +11,19 @@ import { onBeforeUnmount, onMounted, readonly, ref, shallowRef, toRaw, watch, wa
 import { INSTANCE_OF, NAME, TITLE } from "@/core"
 import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document/claims"
 import { AddClaimChange } from "@/document/patch"
+import { yearPrecisionMultiple } from "@/document/time"
 import { getDisplayLabelFunctions } from "@/registry/display-label"
-import { fromDate, hour, minute, second, toDate } from "@/time"
+import { hour, minute, second, toDate } from "@/time"
 
 // If the last increase would be equal or less than this number, just skip to the end.
 const SKIP_TO_END = 2
 
-const timeRegex = /^([+-]?\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/
+// Approximate seconds-per-year used when picking a coarser-than-day precision.
+// Exact-year math is unnecessary here. We only need the right order of magnitude.
+const SECONDS_PER_YEAR = 60 * 60 * 24 * 365
 
 export function formatValue(amount: number): string {
   return parseFloat(amount.toFixed(5)).toString()
-}
-
-export function formatTime(seconds: number): string {
-  // TODO: Support also nanoseconds.
-  return secondsToTime(BigInt(Math.round(seconds)))
-}
-
-export function parseTime(value: string): number {
-  return Number(timeToSeconds(value))
-}
-
-// TODO: Support also nanoseconds.
-// TODO: Return float.
-export function timeToSeconds(value: string): bigint {
-  const match = timeRegex.exec(value)
-  if (!match) {
-    throw new Error(`unable to parse time "${value}"`)
-  }
-  const year = parseInt(match[1], 10)
-  if (isNaN(year)) {
-    throw new Error(`unable to parse year "${value}"`)
-  }
-  const month = parseInt(match[2], 10)
-  if (isNaN(month)) {
-    throw new Error(`unable to parse month "${value}"`)
-  }
-  const day = parseInt(match[3], 10)
-  if (isNaN(day)) {
-    throw new Error(`unable to parse day "${value}"`)
-  }
-  const hour = parseInt(match[4], 10)
-  if (isNaN(hour)) {
-    throw new Error(`unable to parse hour "${value}"`)
-  }
-  const minute = parseInt(match[5], 10)
-  if (isNaN(minute)) {
-    throw new Error(`unable to parse minute "${value}"`)
-  }
-  const second = parseInt(match[6], 10)
-  if (isNaN(second)) {
-    throw new Error(`unable to parse second "${value}"`)
-  }
-  return fromDate(year, month, day, hour, minute, second)
-}
-
-export function secondsToTime(value: bigint): string {
-  const [year, month, day] = toDate(value)
-  let yearStr
-  if (year < 0) {
-    yearStr = "-" + String(-year).padStart(4, "0")
-  } else {
-    yearStr = String(year).padStart(4, "0")
-  }
-  return `${yearStr}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T${String(hour(value)).padStart(2, "0")}:${String(minute(value)).padStart(
-    2,
-    "0",
-  )}:${String(second(value)).padStart(2, "0")}Z`
 }
 
 export function clone<T>(input: T): Mutable<T> {
@@ -88,11 +35,112 @@ export function equals<T>(a: T, b: T): boolean {
   return isEqual(a, b)
 }
 
-export function bigIntMax(a: bigint, b: bigint): bigint {
-  if (a > b) {
-    return a
+// timePrecisionForValue picks the coarsest display precision a single float64
+// unix-second timestamp could plausibly be carrying. Anything with a fractional
+// second part (beyond a small float64 tolerance) is sub-second and returns "s".
+// Finer precisions are never returned. Otherwise we check divisibility by
+// 60 / 3600 / 86400 for min/h/d, and then walk the calendar fields (and year
+// divisibility) for the coarser tiers.
+export function timePrecisionForValue(seconds: number): TimePrecision {
+  // Tolerate small float64 rounding error when classifying "is this an integer
+  // number of seconds?". For unix seconds in the human-relevant range the ULP
+  // is well under this threshold.
+  const tol = 1e-6
+  if (Math.abs(seconds - Math.round(seconds)) >= tol) {
+    return "s"
   }
-  return b
+  const sec = BigInt(Math.round(seconds))
+  if (sec % 60n !== 0n) return "s"
+  if (sec % (60n * 60n) !== 0n) return "min"
+  if (sec % (60n * 60n * 24n) !== 0n) return "h"
+  // Calendar units (months, years) do not have a fixed second count, so we
+  // switch to inspecting the date components.
+  const [year, month, day] = toDate(sec)
+  if (day > 1) return "d"
+  if (month > 1) return "m"
+  if (year % 10 !== 0) return "y"
+  if (year % 100 !== 0) return "10y"
+  if (year % 1_000 !== 0) return "100y"
+  if (year % 10_000 !== 0) return "k"
+  if (year % 100_000 !== 0) return "10k"
+  if (year % 1_000_000 !== 0) return "100k"
+  if (year % 10_000_000 !== 0) return "M"
+  if (year % 100_000_000 !== 0) return "10M"
+  if (year % 1_000_000_000 !== 0) return "100M"
+  return "G"
+}
+
+// timePrecisionForRange picks a display precision that fits the span between
+// two float64 unix-second timestamps. The result is capped at "s". Finer
+// subsecond precisions are never returned even for very small spans.
+export function timePrecisionForRange(from: number, to: number): TimePrecision {
+  const delta = Math.abs(to - from)
+  if (delta < 60 * 60) return "s"
+  if (delta < 60 * 60 * 24) return "min"
+  if (delta < 60 * 60 * 24 * 30) return "h"
+  if (delta < SECONDS_PER_YEAR) return "d"
+  const years = delta / SECONDS_PER_YEAR
+  if (years < 10) return "m"
+  if (years < 100) return "y"
+  if (years < 1_000) return "10y"
+  if (years < 10_000) return "100y"
+  if (years < 100_000) return "k"
+  if (years < 1_000_000) return "10k"
+  if (years < 10_000_000) return "100k"
+  if (years < 100_000_000) return "M"
+  if (years < 1_000_000_000) return "10M"
+  return "100M"
+}
+
+// TODO: Use it in InputTime.vue.
+export function formatYearStr(year: number): string {
+  if (year < 0) {
+    return "-" + String(-year).padStart(4, "0")
+  }
+  return String(year).padStart(4, "0")
+}
+
+// TODO: Use it in InputTime.vue.
+export function pad2(n: number | string): string {
+  return String(n).padStart(2, "0")
+}
+
+// timeStringFromFloat64 converts a float64 unix-second timestamp into a claim
+// Time string at the requested precision. Years coarser than "y" are rounded
+// down so the result satisfies validatePrecision. Subsecond precisions are
+// not supported.
+export function timeStringFromFloat64(seconds: number, precision: TimePrecision): string {
+  const sec = BigInt(Math.floor(seconds))
+  const [year, month, day] = toDate(sec)
+  const roundedYear = Math.floor(year / yearPrecisionMultiple(precision)) * yearPrecisionMultiple(precision)
+  const yearStr = formatYearStr(roundedYear)
+  switch (precision) {
+    case "G":
+    case "100M":
+    case "10M":
+    case "M":
+    case "100k":
+    case "10k":
+    case "k":
+    case "100y":
+    case "10y":
+    case "y":
+      return yearStr
+    case "m":
+      return `${yearStr}-${pad2(month)}-00`
+    case "d":
+      return `${yearStr}-${pad2(month)}-${pad2(day)}`
+    case "h":
+      return `${yearStr}-${pad2(month)}-${pad2(day)} ${pad2(hour(sec))}:00`
+    case "min":
+      return `${yearStr}-${pad2(month)}-${pad2(day)} ${pad2(hour(sec))}:${pad2(minute(sec))}`
+    case "s":
+      return `${yearStr}-${pad2(month)}-${pad2(day)} ${pad2(hour(sec))}:${pad2(minute(sec))}:${pad2(second(sec))}`
+    case "ms":
+    case "us":
+    case "ns":
+      throw new Error(`subsecond precision "${precision}" is not supported`)
+  }
 }
 
 // NAMING_PROPERTIES lists the properties considered for display labels.

@@ -1,8 +1,12 @@
 <script lang="ts">
+// TODO: Remove. Workaround for prettier.
+import {} from "vue"
+
 import type { NamedValue } from "vue-i18n"
 
 import type { TimePrecision } from "@/document"
 
+import { PRECISION_LEVEL, TIME_PRECISIONS_ORDERED } from "@/document/time"
 import { daysIn } from "@/time"
 
 const DATE_TIME_WHITESPACE_TRIM_REGEX = /(-?\d+)\s*-\s*(\d{1,2})\s*-\s*(\d{1,2})\s+([0-9])/g
@@ -41,9 +45,6 @@ const matchToSecond = (s: string) => s.match(SECOND_RE)
 const matchToMs = (s: string) => s.match(MS_RE)
 const matchToUs = (s: string) => s.match(US_RE)
 const matchToNs = (s: string) => s.match(NS_RE)
-
-const timePrecisionOptions = ["G", "100M", "10M", "M", "100k", "10k", "k", "100y", "10y", "y", "m", "d", "h", "min", "s", "ms", "us", "ns"] as const
-export const PRECISION_RANK = new Map<TimePrecision, number>(timePrecisionOptions.map((p, i) => [p, i]))
 
 /**
  * Normalizes raw user input into a canonical, progressively-parseable
@@ -278,8 +279,8 @@ export function progressiveValidate(normalized: string, t: (key: string, named?:
 }
 
 export function clampToMax(p: TimePrecision, max: TimePrecision): TimePrecision {
-  const pr = PRECISION_RANK.get(p)
-  const mr = PRECISION_RANK.get(max)
+  const pr = PRECISION_LEVEL.get(p)
+  const mr = PRECISION_LEVEL.get(max)
 
   if (pr == null) throw new Error(`unknown precision: ${p}`)
   if (mr == null) throw new Error(`unknown maxPrecision: ${max}`)
@@ -424,7 +425,7 @@ const isInvalid = computed(() => errorMessage.value !== "")
 const inputId = useId()
 
 const timePrecisionWithMax = computed(() => {
-  const reversed = timePrecisionOptions.toReversed()
+  const reversed = TIME_PRECISIONS_ORDERED.toReversed()
   const maxPrecision = reversed.indexOf(props.maxPrecision)
 
   if (maxPrecision < 0) return reversed

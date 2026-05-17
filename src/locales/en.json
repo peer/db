@@ -129,6 +129,28 @@
     },
     "TableOfContents": {
       "label": "Table of contents"
+    },
+    "TimeDisplay": {
+      "relative": {
+        "secondsAgo": "1 second ago | {count} seconds ago",
+        "minutesAgo": "1 minute ago | {count} minutes ago",
+        "hoursAgo": "1 hour ago | {count} hours ago",
+        "daysAgo": "1 day ago | {count} days ago",
+        "monthsAgo": "1 month ago | {count} months ago",
+        "yearsAgo": "1 year ago | {count} years ago",
+        "kiloYearsAgo": "1k years ago | {count}k years ago",
+        "megaYearsAgo": "1M years ago | {count}M years ago",
+        "gigaYearsAgo": "1G years ago | {count}G years ago",
+        "inSeconds": "in 1 second | in {count} seconds",
+        "inMinutes": "in 1 minute | in {count} minutes",
+        "inHours": "in 1 hour | in {count} hours",
+        "inDays": "in 1 day | in {count} days",
+        "inMonths": "in 1 month | in {count} months",
+        "inYears": "in 1 year | in {count} years",
+        "inKiloYears": "in 1k years | in {count}k years",
+        "inMegaYears": "in 1M years | in {count}M years",
+        "inGigaYears": "in 1G years | in {count}G years"
+      }
     }
   },
   "views": {

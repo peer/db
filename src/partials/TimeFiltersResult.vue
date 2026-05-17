@@ -10,9 +10,10 @@ import { useI18n } from "vue-i18n"
 
 import CheckBox from "@/components/CheckBox.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import TimeDisplay from "@/partials/TimeDisplay.vue"
 import { useProgress } from "@/progress"
 import { NONE, useTimeHistogramValues } from "@/search"
-import { equals, formatTime, loadingShortHeights, parseTime, useInitialLoad } from "@/utils"
+import { equals, loadingShortHeights, timePrecisionForRange, timePrecisionForValue, timeStringFromFloat64, useInitialLoad } from "@/utils"
 
 const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
@@ -91,6 +92,40 @@ const maxCount = computed(() => {
   return Math.max(...results.value.map((r) => r.count))
 })
 
+// Pick a single display precision for both edges so they line up visually,
+// and render each edge as a Time-claim string at that precision.
+const rangeDisplay = computed(() => {
+  if (from.value === null || to.value === null) {
+    return null
+  }
+  let f = Math.floor(from.value)
+  let t = Math.ceil(to.value)
+  if (f === t) {
+    f -= 0.5
+    t += 0.5
+  }
+  const precision = timePrecisionForRange(f, t)
+  return {
+    precision,
+    from: timeStringFromFloat64(f, precision),
+    to: timeStringFromFloat64(t, precision),
+  }
+})
+
+// When the histogram collapses to a single bucket, the bucket's `from` is the
+// claim value itself. Infer its precision from divisibility / calendar fields.
+const singleValueDisplay = computed(() => {
+  if (results.value.length !== 1) {
+    return null
+  }
+  const v = results.value[0].from
+  const precision = timePrecisionForValue(v)
+  return {
+    precision,
+    timestamp: timeStringFromFloat64(v, precision),
+  }
+})
+
 let slider: API | null = null
 const sliderEl = useTemplateRef<HTMLElement>("sliderEl")
 
@@ -126,10 +161,11 @@ watchEffect((onCleanup) => {
       behaviour: "snap",
       format: {
         to: (value: number): string => {
-          return formatTime(value)
+          // This is used for aria tag so we use standard ISO format.
+          return new Date(value * 1000).toISOString()
         },
-        from: (value: string): number => {
-          return parseTime(value)
+        from: (): number => {
+          throw new Error("format.from not supported")
         },
       },
     })
@@ -151,7 +187,7 @@ watchEffect((onCleanup) => {
   }
 })
 
-watchEffect((onCleanup) => {
+watchEffect(() => {
   if (!slider) {
     return
   }
@@ -204,19 +240,15 @@ onBeforeUnmount(() => {
             :x="i * barWidth"
           ></rect>
         </svg>
-        <div class="flex flex-row justify-between gap-x-1">
-          <div>
-            {{ formatTime(from) }}
-          </div>
-          <div>
-            {{ formatTime(to) }}
-          </div>
+        <div v-if="rangeDisplay" class="flex flex-row justify-between gap-x-1">
+          <TimeDisplay :timestamp="rangeDisplay.from" :precision="rangeDisplay.precision" />
+          <TimeDisplay :timestamp="rangeDisplay.to" :precision="rangeDisplay.precision" />
         </div>
         <div ref="sliderEl"></div>
       </li>
       <li v-else-if="results.length === 1" class="flex items-baseline gap-x-1">
         <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
-        <div class="my-1 leading-none">{{ formatTime(results[0].from) }}</div>
+        <TimeDisplay v-if="singleValueDisplay" :timestamp="singleValueDisplay.timestamp" :precision="singleValueDisplay.precision" class="my-1 leading-none" />
         <div class="my-1 leading-none">({{ results[0].count }})</div>
       </li>
       <li v-if="result.count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="error ? 'mt-0' : from === null || to === null ? 'mt-3' : 'mt-4'">
