@@ -141,8 +141,7 @@ function toggleFormat() {
 
 // In absolute mode the tooltip shows the relative phrasing computed from now,
 // but now is only ticked by the relative-mode timer / visibility handler. Refresh
-// it whenever the user hovers or focuses the element so the tooltip shown to
-// them is current rather than stale.
+// it on hover so the tooltip shown to the user is current rather than stale.
 function refreshNowForTooltip() {
   if (currentFormat.value === "absolute") {
     now.value = Date.now()
@@ -209,7 +208,7 @@ const tooltip = computed(() => {
 </script>
 
 <template>
-  <span class="cursor-pointer" :title="tooltip" @click="toggleFormat" @focus="refreshNowForTooltip" @mouseenter="refreshNowForTooltip">
+  <span class="cursor-pointer" :title="tooltip" @click="toggleFormat" @mouseenter="refreshNowForTooltip">
     <template v-if="currentFormat === 'absolute'">
       <span v-for="(part, index) in absoluteDisplay.parts" :key="index" :class="{ 'text-neutral-400': !part.precise }">{{ part.text }}</span>
     </template>
