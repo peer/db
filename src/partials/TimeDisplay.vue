@@ -139,6 +139,16 @@ function toggleFormat() {
   currentFormat.value = currentFormat.value === "absolute" ? "relative" : "absolute"
 }
 
+// In absolute mode the tooltip shows the relative phrasing computed from now,
+// but now is only ticked by the relative-mode timer / visibility handler. Refresh
+// it whenever the user hovers or focuses the element so the tooltip shown to
+// them is current rather than stale.
+function refreshNowForTooltip() {
+  if (currentFormat.value === "absolute") {
+    now.value = Date.now()
+  }
+}
+
 // Schedule the next update for relative time.
 function scheduleUpdate() {
   if (updateTimer !== null) {
@@ -165,8 +175,19 @@ watchEffect(() => {
   scheduleUpdate()
 })
 
-// Clean up timer on unmount.
+// When the tab returns to the foreground refresh now immediately: browsers
+// throttle setTimeout on hidden tabs, so the next scheduled tick could be
+// arbitrarily late, leaving the relative phrasing stale.
+function onVisibilityChange() {
+  if (document.visibilityState === "visible") {
+    now.value = Date.now()
+  }
+}
+document.addEventListener("visibilitychange", onVisibilityChange)
+
+// Clean up timer and listener on unmount.
 onBeforeUnmount(() => {
+  document.removeEventListener("visibilitychange", onVisibilityChange)
   if (updateTimer !== null) {
     clearTimeout(updateTimer)
     updateTimer = null
@@ -188,7 +209,7 @@ const tooltip = computed(() => {
 </script>
 
 <template>
-  <span class="cursor-pointer" :title="tooltip" @click="toggleFormat">
+  <span class="cursor-pointer" :title="tooltip" @click="toggleFormat" @focus="refreshNowForTooltip" @mouseenter="refreshNowForTooltip">
     <template v-if="currentFormat === 'absolute'">
       <span v-for="(part, index) in absoluteDisplay.parts" :key="index" :class="{ 'text-neutral-400': !part.precise }">{{ part.text }}</span>
     </template>
