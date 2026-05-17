@@ -10,9 +10,10 @@ import { useI18n } from "vue-i18n"
 
 import CheckBox from "@/components/CheckBox.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import TimeDisplay from "@/partials/TimeDisplay.vue"
 import { useProgress } from "@/progress"
 import { NONE, useTimeHistogramValues } from "@/search"
-import { equals, loadingShortHeights, useInitialLoad } from "@/utils"
+import { equals, loadingShortHeights, timePrecisionForRange, timeStringFromFloat64, useInitialLoad } from "@/utils"
 
 const props = defineProps<{
   searchSession: DeepReadonly<ClientSearchSession>
@@ -89,6 +90,26 @@ const barWidth = computed(() => {
 })
 const maxCount = computed(() => {
   return Math.max(...results.value.map((r) => r.count))
+})
+
+// Pick a single display precision for both edges so they line up visually,
+// and render each edge as a Time-claim string at that precision.
+const rangeDisplay = computed(() => {
+  if (from.value === null || to.value === null) {
+    return null
+  }
+  let f = Math.floor(from.value)
+  let t = Math.ceil(to.value)
+  if (f === t) {
+    f -= 0.5
+    t += 0.5
+  }
+  const precision = timePrecisionForRange(f, t)
+  return {
+    precision,
+    from: timeStringFromFloat64(f, precision),
+    to: timeStringFromFloat64(t, precision),
+  }
 })
 
 let slider: API | null = null
@@ -205,9 +226,9 @@ onBeforeUnmount(() => {
             :x="i * barWidth"
           ></rect>
         </svg>
-        <div class="flex flex-row justify-between gap-x-1">
-          <span>{{ new Date(from * 1000).toISOString() }}</span>
-          <span>{{ new Date(to * 1000).toISOString() }}</span>
+        <div v-if="rangeDisplay" class="flex flex-row justify-between gap-x-1">
+          <TimeDisplay :timestamp="rangeDisplay.from" :precision="rangeDisplay.precision" />
+          <TimeDisplay :timestamp="rangeDisplay.to" :precision="rangeDisplay.precision" />
         </div>
         <div ref="sliderEl"></div>
       </li>

@@ -48,7 +48,7 @@ function precisionLevel(p: TimePrecision): number {
 
 // yearPrecisionMultiple returns the factor by which the year must be divisible
 // for precisions coarser than a single year. Returns 1 for "y" and finer.
-function yearPrecisionMultiple(p: TimePrecision): number {
+export function yearPrecisionMultiple(p: TimePrecision): number {
   switch (p) {
     case "G":
       return 1_000_000_000
