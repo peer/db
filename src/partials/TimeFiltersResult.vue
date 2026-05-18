@@ -163,13 +163,9 @@ watchEffect(() => {
       keyboardPageMultiplier: 10,
       animate: false,
       behaviour: "snap",
-      format: {
+      ariaFormat: {
         to: (value: number): string => {
-          // This is used for aria tag so we use standard ISO format.
           return new Date(value * 1000).toISOString()
-        },
-        from: (): number => {
-          throw new Error("format.from not supported")
         },
       },
     })

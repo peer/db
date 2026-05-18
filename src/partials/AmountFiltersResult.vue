@@ -128,12 +128,9 @@ watchEffect(() => {
       keyboardPageMultiplier: 10,
       animate: false,
       behaviour: "snap",
-      format: {
+      ariaFormat: {
         to: (value: number): string => {
           return parseFloat(value.toFixed(5)).toString()
-        },
-        from: (value: string): number => {
-          return parseFloat(value)
         },
       },
     })
