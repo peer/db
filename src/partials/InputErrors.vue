@@ -32,9 +32,6 @@ const message = computed<string | null>(() => {
   if (errors.value.length === 0) {
     return null
   }
-  if (errors.value.userMessage) {
-    return errors.value.userMessage
-  }
   const map = codeMap.value
   for (const code of Object.keys(map)) {
     for (const e of errors.value) {
