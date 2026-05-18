@@ -22,10 +22,11 @@ import { useRouter } from "vue-router"
 
 import Button from "@/components/Button.vue"
 import InputStyled from "@/components/InputStyled.vue"
+import WithLock from "@/components/WithLock.vue"
 import { HighConfidence, LinkClaim } from "@/document"
 import { classifyLink, LINK_CLASS_FILE } from "@/internal-links"
 import ClaimValue from "@/partials/ClaimValue.vue"
-import { useLock } from "@/progress"
+import { getParentLock, useLock } from "@/progress"
 import { uploadFile } from "@/upload"
 import { useValidation } from "@/validation"
 
@@ -71,6 +72,13 @@ const total = ref<number | undefined>(undefined)
 // validation so the button locks itself while a validator is in flight.
 const lock = useLock()
 const inactive = computed(() => lock.value > 0 || props.readonly)
+
+// We re-provide that bare parentLock via WithLock around the cancel button
+// to keep the button interactive regardless of our own count.
+const parentLock = getParentLock()
+function getParentLockRef() {
+  return parentLock
+}
 
 const fileInputEl = useTemplateRef<HTMLInputElement>("fileInputEl")
 const browseButtonRef = useTemplateRef<ComponentPublicInstance>("browseButtonRef")
@@ -162,9 +170,12 @@ function onBrowseFocus() {
   openingPicker = false
 }
 
-const abortController = new AbortController()
+// AbortController for the currently active upload, or null when idle.
+// Recreated per upload because once aborted an AbortController cannot
+// be reused.
+let abortController: AbortController | null = null
 onBeforeUnmount(() => {
-  abortController.abort()
+  abortController?.abort()
 })
 
 // Mock claim rendered by ClaimValue once a file has been uploaded.
@@ -194,6 +205,7 @@ async function onUpload(file: File) {
   total.value = undefined
   // Lock the button via the local useLock boundary.
   lock.value += 1
+  abortController = new AbortController()
   try {
     const fileId = await uploadFile(router, file, abortController.signal, progress, total)
     if (abortController.signal.aborted) {
@@ -210,7 +222,14 @@ async function onUpload(file: File) {
     progress.value = 0
     total.value = undefined
     lock.value -= 1
+    abortController = null
   }
+}
+
+// Cancel the in-flight upload. Safe to call when no upload
+// is running - it is a no-op then.
+function onCancel() {
+  abortController?.abort()
 }
 
 async function onFileInputChange() {
@@ -280,25 +299,28 @@ async function onDrop(e: DragEvent) {
       <Button type="button" class="px-2.5 py-1" @click.prevent="onClear" @blur="onBlur">{{ t("common.buttons.clear") }}</Button>
     </div>
   </div>
-  <Button
-    v-else
-    ref="browseButtonRef"
-    v-bind="$attrs"
-    type="button"
-    class="pd-inputfile w-full"
-    :progress="progress"
-    :total="total"
-    :active="isDragOver"
-    :disabled="readonly"
-    :invalid="invalid"
-    :aria-invalid="invalid || undefined"
-    @click.prevent="onBrowse"
-    @dragover.prevent="onDragOver"
-    @dragenter.prevent="onDragOver"
-    @dragleave.prevent="onDragLeave"
-    @drop.prevent="onDrop"
-    @focus="onBrowseFocus"
-    @blur="onBlur"
-    >{{ t("partials.input.InputFile.dropOrBrowse") }}</Button
-  >
+  <div v-else v-tw-merge v-bind="$attrs" class="pd-inputfile flex w-full flex-row gap-2">
+    <Button
+      ref="browseButtonRef"
+      type="button"
+      class="min-w-0 flex-1"
+      :progress="progress"
+      :total="total"
+      :active="isDragOver"
+      :disabled="readonly"
+      :invalid="invalid"
+      :aria-invalid="invalid || undefined"
+      @click.prevent="onBrowse"
+      @dragover.prevent="onDragOver"
+      @dragenter.prevent="onDragOver"
+      @dragleave.prevent="onDragLeave"
+      @drop.prevent="onDrop"
+      @focus="onBrowseFocus"
+      @blur="onBlur"
+      >{{ t("partials.input.InputFile.dropOrBrowse") }}</Button
+    >
+    <WithLock :lock="getParentLockRef">
+      <Button v-if="progress !== 0" type="button" class="shrink-0" @click.prevent="onCancel">{{ t("common.buttons.cancel") }}</Button>
+    </WithLock>
+  </div>
 </template>
