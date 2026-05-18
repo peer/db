@@ -537,12 +537,27 @@ function makePatch(): object {
     }
     case "time":
       return { ...shared, time: claimValue.value, precision: claimTimePrecision.value }
-    case "timeInterval":
-      return {
-        ...shared,
-        ...(claimFrom.value ? { from: claimFrom.value, fromPrecision: claimFromTimePrecision.value } : {}),
-        ...(claimTo.value ? { to: claimTo.value, toPrecision: claimToTimePrecision.value } : {}),
-      }
+    case "timeInterval": {
+      // Each bound is one of: explicit time+precision pair, fromIsNone/
+      // toIsNone (explicitly no value), or fromIsUnknown/toIsUnknown
+      // (value exists but is unknown). The InputMissing wrapper guarantees
+      // unknown/none are mutually exclusive per bound.
+      const fromPart = claimFromUnknown.value
+        ? { fromIsUnknown: true }
+        : claimFromNone.value
+          ? { fromIsNone: true }
+          : claimFrom.value
+            ? { from: claimFrom.value, fromPrecision: claimFromTimePrecision.value }
+            : {}
+      const toPart = claimToUnknown.value
+        ? { toIsUnknown: true }
+        : claimToNone.value
+          ? { toIsNone: true }
+          : claimTo.value
+            ? { to: claimTo.value, toPrecision: claimToTimePrecision.value }
+            : {}
+      return { ...shared, ...fromPart, ...toPart }
+    }
     case "link":
       return { ...shared, iri: claimValue.value }
     case "file":
@@ -690,8 +705,12 @@ async function onEditClaim(id: string) {
     claimProp.value = claim.prop.id
     claimFrom.value = claim.from ?? ""
     claimFromTimePrecision.value = claim.fromPrecision ?? "y"
+    claimFromUnknown.value = !!claim.fromIsUnknown
+    claimFromNone.value = !!claim.fromIsNone
     claimTo.value = claim.to ?? ""
     claimToTimePrecision.value = claim.toPrecision ?? "y"
+    claimToUnknown.value = !!claim.toIsUnknown
+    claimToNone.value = !!claim.toIsNone
   } else if (claim instanceof LinkClaim) {
     // A LinkClaim pointing at a StorageGet URL is what the "file" tab
     // produces on add; route it back to that tab so editing matches the
@@ -978,15 +997,23 @@ function canSave(): boolean {
                           <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
-                      <InputErrors v-slot="errorProps">
-                        <InputTime v-bind="errorProps" v-model="claimFrom" v-model:precision="claimFromTimePrecision" required class="mt-4 min-w-0 flex-auto grow">
-                          <template #time-label>{{ t("views.DocumentEdit.labels.from") }}</template>
-                        </InputTime>
+                      <InputErrors v-slot="errorProps" class="mt-4">
+                        <InputMissing v-bind="errorProps" v-model:unknown="claimFromUnknown" v-model:none="claimFromNone" required>
+                          <template #default="missingProps">
+                            <InputTime v-bind="missingProps" v-model="claimFrom" v-model:precision="claimFromTimePrecision" class="min-w-0 flex-auto grow">
+                              <template #time-label>{{ t("views.DocumentEdit.labels.from") }}</template>
+                            </InputTime>
+                          </template>
+                        </InputMissing>
                       </InputErrors>
-                      <InputErrors v-slot="errorProps">
-                        <InputTime v-bind="errorProps" v-model="claimTo" v-model:precision="claimToTimePrecision" required class="mt-4 min-w-0 flex-auto grow">
-                          <template #time-label>{{ t("views.DocumentEdit.labels.to") }}</template>
-                        </InputTime>
+                      <InputErrors v-slot="errorProps" class="mt-4">
+                        <InputMissing v-bind="errorProps" v-model:unknown="claimToUnknown" v-model:none="claimToNone" required>
+                          <template #default="missingProps">
+                            <InputTime v-bind="missingProps" v-model="claimTo" v-model:precision="claimToTimePrecision" class="min-w-0 flex-auto grow">
+                              <template #time-label>{{ t("views.DocumentEdit.labels.to") }}</template>
+                            </InputTime>
+                          </template>
+                        </InputMissing>
                       </InputErrors>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
