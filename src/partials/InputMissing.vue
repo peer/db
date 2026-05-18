@@ -209,8 +209,8 @@ async function onFocusOut(event: FocusEvent) {
 </script>
 
 <template>
-  <!-- TODO: Change items-end to items-start once we have dynamic column building. -->
-  <div ref="rootRef" class="flex flex-row items-end gap-x-4" @focusout="onFocusOut">
+  <!-- TODO: Change items-center to items-start once we have dynamic column building. -->
+  <div ref="rootRef" class="flex flex-row items-center gap-x-4" @focusout="onFocusOut">
     <div class="flex min-w-0 grow flex-row">
       <slot v-bind="$attrs" :invalid="invalid || showRequired" @errors="(v: ValidationError[]) => (innerErrors = v)" />
     </div>
