@@ -34,8 +34,10 @@ const message = computed<string | null>(() => {
   }
   const map = codeMap.value
   for (const code of Object.keys(map)) {
-    if (errors.value.some((e) => e.code === code)) {
-      return map[code]
+    for (const e of errors.value) {
+      if (e.code === code) {
+        return e.userMessage || map[code]
+      }
     }
   }
   // Fallback when none of the error codes are in the map.
