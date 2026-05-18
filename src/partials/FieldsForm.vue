@@ -373,7 +373,7 @@ function emptySlotErrors(field: FieldData, slotValue: string): ValidationError[]
   if (!isRequired(field)) {
     return []
   }
-  // A required field's empty slot is invalid if the value is empty and the field doesn't have enough non-empty entries.
+  // A required field's empty slot is invalid if the value is empty and the field does not have enough non-empty entries.
   const fieldEntries = entriesForField(field)
   const nonEmpty = fieldEntries.filter(([_, e]) => e.value.trim() !== "").length
   // TODO: Use standard codes.

@@ -148,7 +148,7 @@ watch(
 // Set right before .click() on the hidden file input; consumed by the next
 // blur on the browse Button. Clicking the Button to open the native picker
 // can cause the browser to dispatch a blur on the trigger (Chrome does this
-// when the picker takes focus), and we don't want that synthetic blur to
+// when the picker takes focus), and we do not want that synthetic blur to
 // fire validation while the user is actively in the middle of providing a
 // value. The flag is also cleared on re-focus so it can never outlive its
 // purpose in browsers that keep focus on the Button during the picker.
