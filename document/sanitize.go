@@ -39,9 +39,11 @@ func init() {
 	// paths only.
 	sanitizer.AllowRelativeURLs(true)
 	sanitizer.AllowURLSchemes("mailto", "http", "https")
-	// TODO: Renumber headings.
-	//       See: https://github.com/microcosm-cc/bluemonday/issues/222
-	sanitizer.AllowElements("h1", "h2", "h3", "h4", "h5", "h6")
+	// h5 / h6 are intentionally omitted, because they are not defined
+	// in Tailwind CSS Typography and we do not want to have to modify
+	// whole frontend style to add them in a way that they would match
+	// the rest of the style. They are also probably not really needed.
+	sanitizer.AllowElements("h1", "h2", "h3", "h4")
 	sanitizer.AllowElements("br", "hr", "p")
 	sanitizer.AllowAttrs("href").Matching(linkHrefPattern).OnElements("a")
 	sanitizer.AllowElements("b", "i", "pre", "strike", "tt", "u")

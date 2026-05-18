@@ -84,7 +84,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <!-- We use min-h-22 to show space for 3 lines of text at minimum, so that it is visually distinct from InputText and invites more content. -->
+  <!--
+    We use min-h-22 to show space for 3 lines of text at minimum, so that
+    it is visually distinct from InputText and invites more content.
+    whitespace-break-spaces (rather than the textarea's native pre-wrap)
+    keeps trailing whitespace visible at line ends and matches the
+    InputHTML editor's whitespace handling, so the two whitespace-
+    preserving multi-line inputs render typed content the same way.
+  -->
   <InputStyled
     ref="inputStyledRef"
     v-model-text="model"
@@ -93,7 +100,7 @@ onBeforeUnmount(() => {
     :invalid="invalid"
     :readonly="inactive"
     :aria-invalid="invalid || undefined"
-    class="pd-textarea min-h-22 resize-none"
+    class="pd-textarea min-h-22 resize-none whitespace-break-spaces"
     @update:model-value="model = $event"
     @blur="onBlur"
   />

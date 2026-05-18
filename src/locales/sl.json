@@ -10,6 +10,7 @@
       "save": "Shrani",
       "discard": "Zavrzi",
       "add": "Dodaj",
+      "insert": "Vstavi",
       "update": "Posodobi",
       "clear": "Počisti",
       "remove": "Odstrani",
@@ -19,7 +20,9 @@
       "loadMore": "Naloži več",
       "filters": "Filtri",
       "prev": "Nazaj",
-      "next": "Naprej"
+      "next": "Naprej",
+      "open": "Odpri",
+      "unlink": "Odstrani povezavo"
     },
     "errors": {
       "unexpected": "Nepričakovana napaka. Prosimo, poskusite znova."
@@ -62,6 +65,39 @@
   },
   "partials": {
     "input": {
+      "InputHTML": {
+        "toolbar": {
+          "label": "Oblikovanje",
+          "undo": "Razveljavi",
+          "redo": "Uveljavi",
+          "blockType": "Vrsta bloka",
+          "paragraph": "Odstavek",
+          "heading": "Naslov {level}",
+          "preformatted": "Predoblikovano",
+          "bold": "Krepko",
+          "italic": "Ležeče",
+          "underline": "Podčrtano",
+          "strikethrough": "Prečrtano",
+          "monospace": "Enopresledno",
+          "bulletList": "Označen seznam",
+          "orderedList": "Oštevilčen seznam",
+          "blockquote": "Citat",
+          "indent": "Zamik desno",
+          "outdent": "Zamik levo",
+          "horizontalRule": "Vodoravna črta",
+          "lineBreak": "Prelom vrstice",
+          "link": "Povezava",
+          "attachFile": "Pripni datoteko",
+          "replaceFile": "Za zamenjavo datoteke spustite datoteko ali kliknite za brskanje"
+        },
+        "bottomToolbar": {
+          "linkLabel": "Povezava",
+          "blockquoteLabel": "Vir",
+          "fileLabel": "Datoteka",
+          "uploadingLabel": "Nalagam: {name}",
+          "dropFileLabel": "Spustite datoteko, da jo naložite..."
+        }
+      },
       "InputFile": {
         "dropOrBrowse": "Spustite datoteko sem ali kliknite za brskanje"
       },

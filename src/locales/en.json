@@ -10,6 +10,7 @@
       "save": "Save",
       "discard": "Discard",
       "add": "Add",
+      "insert": "Insert",
       "update": "Update",
       "clear": "Clear",
       "remove": "Remove",
@@ -19,7 +20,9 @@
       "loadMore": "Load more",
       "filters": "Filters",
       "prev": "Prev",
-      "next": "Next"
+      "next": "Next",
+      "open": "Open",
+      "unlink": "Unlink"
     },
     "errors": {
       "unexpected": "Unexpected error. Please try again."
@@ -62,6 +65,39 @@
   },
   "partials": {
     "input": {
+      "InputHTML": {
+        "toolbar": {
+          "label": "Formatting",
+          "undo": "Undo",
+          "redo": "Redo",
+          "blockType": "Block type",
+          "paragraph": "Paragraph",
+          "heading": "Heading {level}",
+          "preformatted": "Preformatted",
+          "bold": "Bold",
+          "italic": "Italic",
+          "underline": "Underline",
+          "strikethrough": "Strikethrough",
+          "monospace": "Monospace",
+          "bulletList": "Bullet list",
+          "orderedList": "Numbered list",
+          "blockquote": "Blockquote",
+          "indent": "Indent",
+          "outdent": "Outdent",
+          "horizontalRule": "Horizontal rule",
+          "lineBreak": "Line break",
+          "link": "Link",
+          "attachFile": "Attach file",
+          "replaceFile": "To replace file, drop file or click to browse"
+        },
+        "bottomToolbar": {
+          "linkLabel": "Link",
+          "blockquoteLabel": "Source",
+          "fileLabel": "File",
+          "uploadingLabel": "Uploading: {name}",
+          "dropFileLabel": "Drop file to upload it..."
+        }
+      },
       "InputFile": {
         "dropOrBrowse": "Drop file here or click to browse"
       },

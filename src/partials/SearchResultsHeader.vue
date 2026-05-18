@@ -11,7 +11,7 @@ import type { DeepReadonly } from "vue"
 
 import type { ClientSearchSession, SelectButtonOption, ViewType } from "@/types"
 
-import { ArchiveBoxArrowDownIcon, ArrowDownTrayIcon, Bars4Icon, TableCellsIcon } from "@heroicons/vue/24/solid"
+import { ArchiveBoxArrowDownIcon, ArrowDownTrayIcon, Bars4Icon, TableCellsIcon } from "@heroicons/vue/24/outline"
 import { useI18n } from "vue-i18n"
 
 import SelectButton from "@/components/SelectButton.vue"

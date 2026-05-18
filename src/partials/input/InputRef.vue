@@ -465,7 +465,7 @@ const WithPeerDBDocument = WithDocument<D>
         <ComboboxOptions
           v-if="open && !inactive"
           static
-          class="absolute top-full z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none"
+          class="absolute top-full z-20 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none"
         >
           <ComboboxOption v-if="searchResults.length === 0">
             <li class="p-2"

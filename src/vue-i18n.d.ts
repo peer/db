@@ -21,6 +21,7 @@ declare module "vue-i18n" {
         save: string
         discard: string
         add: string
+        insert: string
         update: string
         clear: string
         remove: string
@@ -31,6 +32,8 @@ declare module "vue-i18n" {
         filters: string
         prev: string
         next: string
+        open: string
+        unlink: string
       }
       errors: {
         unexpected: string
@@ -73,6 +76,39 @@ declare module "vue-i18n" {
     }
     partials: {
       input: {
+        InputHTML: {
+          toolbar: {
+            label: string
+            undo: string
+            redo: string
+            blockType: string
+            paragraph: string
+            heading: string
+            preformatted: string
+            bold: string
+            italic: string
+            underline: string
+            strikethrough: string
+            monospace: string
+            bulletList: string
+            orderedList: string
+            blockquote: string
+            indent: string
+            outdent: string
+            horizontalRule: string
+            lineBreak: string
+            link: string
+            attachFile: string
+            replaceFile: string
+          }
+          bottomToolbar: {
+            linkLabel: string
+            blockquoteLabel: string
+            fileLabel: string
+            uploadingLabel: string
+            dropFileLabel: string
+          }
+        }
         InputFile: {
           dropOrBrowse: string
         }
