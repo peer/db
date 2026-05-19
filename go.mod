@@ -33,7 +33,7 @@ require (
 	gitlab.com/tozd/go/x v0.0.0-20260325094342-27311bf9bec0
 	gitlab.com/tozd/go/zerolog v0.11.4
 	gitlab.com/tozd/identifier v0.8.2
-	gitlab.com/tozd/waf v0.24.0
+	gitlab.com/tozd/waf v0.24.1-0.20260519064411-adc15e48a5f3
 	gopkg.in/yaml.v3 v3.0.1
 	riverqueue.com/riverui v0.15.0
 )

@@ -16,6 +16,9 @@ import { ref } from "vue"
 import { getURL, headURLDirect } from "@/api"
 import { D, HTMLClaim, LinkClaim } from "@/document"
 import { delay, parseUrl } from "@/utils"
+// Inlined so the library is self-contained.
+import DownloadFilesWorker from "@/workers/download-files.worker.ts?worker&inline"
+import DownloadZipWorker from "@/workers/download-zip.worker.ts?worker&inline"
 
 // RFC 5987 extended form: filename*=<charset>'<lang>'<percent-encoded value>.
 // Capture group 2 holds the percent-encoded value, ending at a ; or end of string.
@@ -345,7 +348,7 @@ export function useDownload(abortController: AbortController, router: Router, re
       total.value = files.length
       currentFile.value = ""
 
-      const worker = new Worker(new URL("@/workers/download-zip.worker.ts", import.meta.url), { type: "module" })
+      const worker = new DownloadZipWorker()
       await runWorker(worker, { type: "start", files, fileHandle })
     } catch (err) {
       // Cancellation (owner abort or user cancel during preparation) is a clean close, not an error.
@@ -418,7 +421,7 @@ export function useDownload(abortController: AbortController, router: Router, re
       total.value = files.length
       currentFile.value = ""
 
-      const worker = new Worker(new URL("@/workers/download-files.worker.ts", import.meta.url), { type: "module" })
+      const worker = new DownloadFilesWorker()
       await runWorker(worker, { type: "start", files, directoryHandle })
     } catch (err) {
       if (abortController.signal.aborted || preparationController.signal.aborted) {
