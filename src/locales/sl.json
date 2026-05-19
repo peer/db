@@ -22,7 +22,9 @@
       "prev": "Nazaj",
       "next": "Naprej",
       "open": "Odpri",
-      "unlink": "Odstrani povezavo"
+      "unlink": "Odstrani povezavo",
+      "signIn": "Prijava",
+      "signOut": "Odjava"
     },
     "errors": {
       "unexpected": "Nepričakovana napaka. Prosimo, poskusite znova."

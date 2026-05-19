@@ -530,6 +530,27 @@ export function redirectServerSide(url: string, replace: boolean, progress: Ref<
   }
 }
 
+// currentAbsoluteURL returns the current location stripped of its origin (the
+// path + search + hash). OIDC sign-in flows persist this so the user lands
+// back where they were after redirecting through the identity provider.
+export function currentAbsoluteURL(): string {
+  return document.location.href.slice(document.location.origin.length)
+}
+
+// replaceLocationSearch replaces the current URL's query string in-place via
+// history.replaceState (no navigation, no page reload). The OIDC callback
+// handler uses this to scrub the "state" and "code" params from the URL once
+// they have been consumed.
+export function replaceLocationSearch(search: string) {
+  if (history.replaceState) {
+    const url = new URL(window.location.href)
+    url.search = search ? "?" + search : ""
+    history.replaceState(null, "", url)
+    return
+  }
+  window.location.search = search ? "?" + search : ""
+}
+
 // asyncToReactive converts an async function to a reactive value.
 //
 // Reactivity is tracked until the first await.

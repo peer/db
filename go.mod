@@ -10,6 +10,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/alecthomas/kong v1.13.1-0.20260401093329-db421839da20
 	github.com/cockroachdb/field-eng-powertools v0.1.3
+	github.com/coreos/go-oidc/v3 v3.16.0
 	github.com/deckarep/golang-set/v2 v2.8.0
 	github.com/elastic/elastic-transport-go/v8 v8.9.0
 	github.com/elastic/go-elasticsearch/v9 v9.3.2
@@ -41,6 +42,7 @@ require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.3.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
@@ -66,6 +68,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.uber.org/goleak v1.3.0 // indirect
+	golang.org/x/oauth2 v0.28.0 // indirect
 	golang.org/x/text v0.36.0 // indirect
 )
 

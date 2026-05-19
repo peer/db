@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SignInButton from "@/auth/SignInButton.vue"
 import ProgressBar from "@/components/ProgressBar.vue"
 import CreateDropdown from "@/partials/CreateDropdown.vue"
 import LanguageSwitcher from "@/partials/LanguageSwitcher.vue"
@@ -16,6 +17,7 @@ const parentProgress = getParentProgress()
       <component :is="c" v-for="(c, i) in navbarComponents" :key="i" home />
       <CreateDropdown />
       <LanguageSwitcher />
+      <SignInButton />
     </div>
   </div>
 </template>

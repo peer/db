@@ -102,6 +102,14 @@ type Config struct {
 	DB       DBCommand       `cmd:""                    help:"Manage database."                  yaml:"db"`
 }
 
+// AuthConfig contains configuration for OIDC-based authentication of API requests.
+//
+//nolint:lll
+type AuthConfig struct {
+	Issuer   string `help:"OIDC issuer URL used to validate bearer JWT access tokens. Required together with auth.client-id to enable OIDC." placeholder:"URL" yaml:"issuer"`
+	ClientID string `help:"OIDC client ID. Bearer JWT access tokens must list it in their audience."                                         placeholder:"ID"  yaml:"clientId"`
+}
+
 // ServeCommand contains configuration for the serve command.
 //
 //nolint:lll
@@ -110,6 +118,8 @@ type ServeCommand struct {
 
 	Username string               `                    help:"Require authentication to access all sites. Its username."                    yaml:"username"`
 	Password kong.FileContentFlag `env:"PASSWORD_PATH" help:"Require authentication to access all sites. Its password." placeholder:"PATH" yaml:"password"`
+
+	Auth AuthConfig `embed:"" envprefix:"AUTH_" prefix:"auth." yaml:"auth"`
 
 	Domain string `                          group:"Let's Encrypt:" help:"Domain name to request for Let's Encrypt's certificate when sites are not configured." name:"tls.domain" placeholder:"STRING"           yaml:"domain"`
 	Title  string `default:"${defaultTitle}"                        help:"Title to be shown to the users when sites are not configured."                                           placeholder:"STRING" short:"T" yaml:"title"`
@@ -130,6 +140,10 @@ func (c *ServeCommand) Validate() error {
 
 	if (c.Username != "" && c.Password == nil) || (c.Username == "" && c.Password != nil) {
 		return errors.New("both username and password have to be set to require authentication, or neither")
+	}
+
+	if (c.Auth.Issuer != "" && c.Auth.ClientID == "") || (c.Auth.Issuer == "" && c.Auth.ClientID != "") {
+		return errors.New("both auth.issuer and auth.client-id have to be set to enable OIDC authentication, or neither")
 	}
 
 	return nil

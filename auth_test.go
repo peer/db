@@ -126,6 +126,7 @@ func TestBasicAuthWithSiteContext(t *testing.T) {
 						DefaultLanguage:  "",
 						LanguageCodes:    nil,
 						Features:         peerdb.SiteFeatures{},
+						OIDC:             nil,
 						Base:             nil,
 						DBPool:           nil,
 						ESClient:         nil,

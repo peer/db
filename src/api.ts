@@ -2,6 +2,7 @@ import type { Ref } from "vue"
 
 import type { Metadata } from "@/types"
 
+import { accessToken } from "@/auth"
 import { decodeMetadata } from "@/metadata"
 import { Queue } from "@/queue"
 
@@ -29,6 +30,18 @@ export class FetchError extends Error {
 
 export function deleteFromCache(url: string) {
   localGetCache.delete(url)
+}
+
+// bearerHeader returns a fresh Headers object carrying the OIDC bearer token
+// when the user is signed in, and an empty one otherwise. We build a new
+// Headers per request because fetch consumes the object - sharing it across
+// requests would couple their lifecycles.
+function bearerHeader(): Headers {
+  const headers = new Headers()
+  if (accessToken.value) {
+    headers.set("Authorization", `Bearer ${accessToken.value}`)
+  }
+  return headers
 }
 
 // TODO: Improve priority with "el".
@@ -83,6 +96,7 @@ export async function getURLDirect<T>(url: string, abortSignal: AbortSignal, pro
       referrer: document.location.href,
       referrerPolicy: "strict-origin-when-cross-origin",
       signal: abortSignal,
+      headers: bearerHeader(),
     })
     const contentType = response.headers.get("Content-Type")
     if (!contentType || !contentType.includes("application/json")) {
@@ -114,6 +128,7 @@ export async function headURLDirect(url: string, abortSignal: AbortSignal, progr
       referrer: document.location.href,
       referrerPolicy: "strict-origin-when-cross-origin",
       signal: abortSignal,
+      headers: bearerHeader(),
     })
     if (!response.ok) {
       throw new FetchError(`fetch HEAD error ${response.status}`, {
@@ -136,11 +151,11 @@ export async function postJSON<T>(url: string, data: object, abortSignal: AbortS
     progress.value += 1
   }
   try {
+    const headers = bearerHeader()
+    headers.set("Content-Type", "application/json")
     const response = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify(data),
       mode: "same-origin",
       credentials: "same-origin",
@@ -181,6 +196,7 @@ export async function postBlob<T>(url: string, data: Blob, abortSignal: AbortSig
       referrer: document.location.href,
       referrerPolicy: "strict-origin-when-cross-origin",
       signal: abortSignal,
+      headers: bearerHeader(),
     })
     const contentType = response.headers.get("Content-Type")
     if (!contentType || !contentType.includes("application/json")) {

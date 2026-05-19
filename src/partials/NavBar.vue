@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SignInButton from "@/auth/SignInButton.vue"
 import ProgressBar from "@/components/ProgressBar.vue"
 import siteContext from "@/context"
 import { useNavbar } from "@/navbar"
@@ -51,6 +52,7 @@ useValidationRegistry()
       <slot name="end" />
       <CreateDropdown />
       <LanguageSwitcher />
+      <SignInButton />
     </div>
   </div>
 </template>
