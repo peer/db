@@ -177,8 +177,7 @@ docker run -d \
 cleanup_peerdb_container=1
 
 echo "8. Waiting for PeerDB service to be ready..."
-
-sleep 10
+for i in $(seq 1 120); do docker exec peerdb-elastic curl -sf -k "https://$PEERDB_CONTAINER:8080/" && break || { [ "$i" -eq 120 ] && exit 1; sleep 1; }; done
 
 echo "9. Running Playwright tests..."
 
