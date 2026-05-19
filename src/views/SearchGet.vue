@@ -1,17 +1,12 @@
 <script setup lang="ts">
-import type { DocumentBeginEditResponse, DocumentCreateResponse, Filter, SearchSessionData, ViewType } from "@/types"
+import type { Filter, SearchSessionData, ViewType } from "@/types"
 import type { DeepReadonly } from "vue"
 
-import { ArrowUpTrayIcon, PlusIcon } from "@heroicons/vue/20/solid"
 import { Identifier } from "@tozd/identifier"
 import { onBeforeUnmount, ref, toRef, useTemplateRef, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
-import { postJSON } from "@/api"
-import Button from "@/components/Button.vue"
-import WithLock from "@/components/WithLock.vue"
-import siteContext from "@/context"
 import { useDownload } from "@/download"
 import DownloadOverlay from "@/partials/DownloadOverlay.vue"
 import Footer from "@/partials/Footer.vue"
@@ -19,10 +14,9 @@ import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import SearchResultsFeed from "@/partials/SearchResultsFeed.vue"
 import SearchResultsTable from "@/partials/SearchResultsTable.vue"
-import { getParentLock, localCounter, lockScope, useBusy } from "@/progress"
+import { useBusy } from "@/progress"
 import { updateSearchSession, useSearch, useSearchSession } from "@/search"
-import { uploadFile } from "@/upload"
-import { clone, redirectServerSide } from "@/utils"
+import { clone } from "@/utils"
 
 const props = defineProps<{
   id: string
@@ -34,23 +28,6 @@ const router = useRouter()
 // Data loading and controls for data loading.
 const busy = useBusy()
 
-// Independent sub-scopes for the Create and Upload buttons.
-// getParentLock here reads from the ancestor's provides (above SearchGet).
-// The *Busy refs are the writable handles used in handlers and as the
-// button's :progress visual: writes update a local counter (for the
-// visual, isolated from any ancestor lock contributions) and propagate
-// into the lockScope for descendant cascade.
-const createLock = lockScope(getParentLock())
-const uploadLock = lockScope(getParentLock())
-const createBusy = localCounter(createLock)
-const uploadBusy = localCounter(uploadLock)
-function getCreateLock() {
-  return createLock
-}
-function getUploadLock() {
-  return uploadLock
-}
-
 const abortController = new AbortController()
 
 onBeforeUnmount(() => {
@@ -58,7 +35,6 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-const uploadEl = useTemplateRef<HTMLInputElement>("uploadEl")
 const searchEl = useTemplateRef<HTMLElement>("searchEl")
 
 const searchSessionVersion = ref(0)
@@ -167,95 +143,6 @@ async function onFilterUpdate(filterId: string, updatedFilter: Filter) {
   }
 }
 
-async function onCreate() {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  createBusy.value += 1
-  try {
-    const createResponse = await postJSON<DocumentCreateResponse>(
-      router.apiResolve({
-        name: "DocumentCreate",
-      }).href,
-      {},
-      abortController.signal,
-      createBusy,
-    )
-    if (abortController.signal.aborted) {
-      return
-    }
-    const editResponse = await postJSON<DocumentBeginEditResponse>(
-      router.apiResolve({
-        name: "DocumentBeginEdit",
-        params: {
-          id: createResponse.id,
-        },
-      }).href,
-      {},
-      abortController.signal,
-      createBusy,
-    )
-    if (abortController.signal.aborted) {
-      return
-    }
-    await router.push({
-      name: "DocumentEdit",
-      params: {
-        id: createResponse.id,
-        session: editResponse.session,
-      },
-    })
-  } catch (err) {
-    if (abortController.signal.aborted) {
-      return
-    }
-    // TODO: Show notification with error.
-    console.error("SearchResults.onCreate", err)
-  } finally {
-    createBusy.value -= 1
-  }
-}
-
-function onUpload() {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  uploadEl.value?.click()
-}
-
-async function onChange() {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  for (const file of uploadEl.value?.files || []) {
-    uploadBusy.value += 1
-    try {
-      const fileId = await uploadFile(router, file, abortController.signal, uploadBusy, null)
-      if (abortController.signal.aborted) {
-        return
-      }
-
-      // We pass busy so that redirectServerSide uses it to locks all controls.
-      redirectServerSide(router.resolve({ name: "StorageGet", params: { id: fileId } }).href, false, busy)
-    } catch (err) {
-      if (abortController.signal.aborted) {
-        return
-      }
-      // TODO: Show notification with error.
-      console.error("SearchResults.onChange", err)
-    } finally {
-      uploadBusy.value -= 1
-    }
-
-    // TODO: Support uploading multiple files.
-    //       Input element does not have "multiple" set, so there should be only one file.
-    break
-  }
-}
-
 async function onQueryChange(query: string) {
   // Checking abortController is done inside onSearchSessionUpdate.
 
@@ -300,23 +187,6 @@ async function onDownloadFiles() {
     <NavBar>
       <template #start>
         <NavBarSearch :search-session="searchSession" @query-change="onQueryChange" />
-      </template>
-      <template #end>
-        <template v-if="siteContext.features.editButtons">
-          <WithLock :lock="getCreateLock">
-            <Button :progress="createBusy" type="button" primary class="px-3.5" @click.prevent="onCreate">
-              <PlusIcon class="size-5 sm:hidden" :alt="t('common.buttons.create')" />
-              <span class="hidden sm:inline">{{ t("common.buttons.create") }}</span>
-            </Button>
-          </WithLock>
-          <WithLock :lock="getUploadLock">
-            <input ref="uploadEl" type="file" class="hidden" @change="onChange" />
-            <Button :progress="uploadBusy" type="button" primary class="px-3.5" @click.prevent="onUpload">
-              <ArrowUpTrayIcon class="size-5 sm:hidden" :alt="t('common.buttons.upload')" />
-              <span class="hidden sm:inline">{{ t("common.buttons.upload") }}</span>
-            </Button>
-          </WithLock>
-        </template>
       </template>
     </NavBar>
   </Teleport>
