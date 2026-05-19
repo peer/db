@@ -178,7 +178,7 @@ cleanup_peerdb_container=1
 
 echo "8. Waiting for PeerDB service to be ready..."
 
-sleep 5
+sleep 10
 
 echo "9. Running Playwright tests..."
 
