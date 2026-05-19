@@ -5,6 +5,7 @@ import { createRouter, createWebHistory } from "vue-router"
 
 import "@/app.css"
 import App from "@/App.vue"
+import { processOIDCRedirect } from "@/auth"
 import RouterLink from "@/components/RouterLink.vue"
 import { configKey } from "@/config"
 import siteContext from "@/context"
@@ -12,6 +13,14 @@ import i18n from "@/i18n"
 import { progressKey, rootProgressKey } from "@/progress"
 import routes from "@/routes"
 import twMerge from "@/tw-merge"
+
+// We complete the OIDC sign-in callback (consuming the "state" query parameter
+// and exchanging the code for tokens) before Vue Router takes over, so the
+// access token is in place by the time any component issues its first API
+// call. processOIDCRedirect short-circuits when there is no callback to
+// process or OIDC is not configured, so the cost on a normal page load is one
+// URL parse.
+await processOIDCRedirect()
 
 // During development when requests are proxied to Vite, placeholders
 // in HTML files are not rendered. So we set them here as well.

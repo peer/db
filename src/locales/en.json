@@ -22,7 +22,9 @@
       "prev": "Prev",
       "next": "Next",
       "open": "Open",
-      "unlink": "Unlink"
+      "unlink": "Unlink",
+      "signIn": "Sign In",
+      "signOut": "Sign Out"
     },
     "errors": {
       "unexpected": "Unexpected error. Please try again."

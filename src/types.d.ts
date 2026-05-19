@@ -140,6 +140,17 @@ export type SearchSessionRef = {
   version: number
 }
 
+export type SiteOIDC = {
+  // OIDC issuer URL the frontend uses to discover OIDC endpoints (it appends
+  // /.well-known/openid-configuration).
+  issuer: string
+  // OAuth client ID the frontend identifies itself with.
+  clientId: string
+  // The redirect URI the frontend sends in the OIDC authorization request.
+  // It must match what the issuer has registered for this client.
+  redirectUri: string
+}
+
 export type SiteContext = {
   domain: string
   build?: {
@@ -161,6 +172,10 @@ export type SiteContext = {
     editButtons?: boolean
     downloadButtons?: boolean
   }
+  // Populated only when the server has been started with --auth.issuer and
+  // --auth.client-id; absence is the frontend's signal that OIDC sign-in is
+  // not available for this site.
+  oidc?: SiteOIDC
 }
 
 export type RouteOptions = {

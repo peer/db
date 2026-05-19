@@ -25,4 +25,6 @@ const (
 	MetricJSONUnmarshal1 = "d1"
 	// MetricJSONUnmarshal2 is an additional metric key for JSON unmarshaling operations.
 	MetricJSONUnmarshal2 = "d2"
+	// MetricHooks is the metric key for hooks tracking.
+	MetricHooks = "h"
 )

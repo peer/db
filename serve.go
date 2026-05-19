@@ -14,6 +14,8 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/waf"
 
+	"gitlab.com/peerdb/peerdb/auth"
+	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
@@ -23,6 +25,15 @@ type Service struct {
 
 	// Is service running in development mode.
 	Development bool
+
+	// Auth verifies OIDC bearer tokens on API requests. It is nil when OIDC
+	// authentication is not configured; handlers should treat that as "no
+	// authentication available" rather than always-allow or always-deny.
+	Auth *auth.Verifier
+
+	// DocumentHooks are called in order to allow for modification of documents
+	// before they are send to the client.
+	DocumentHooks []func(doc *document.D) (*document.D, errors.E)
 }
 
 // Init initializes the HTTP service and is used together with Prepare to implement Run.
@@ -54,6 +65,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			DefaultLanguage:   "",
 			LanguageCodes:     nil,
 			Features:          SiteFeatures{},
+			OIDC:              nil,
 			Base:              nil,
 			DBPool:            nil,
 			ESClient:          nil,
@@ -106,8 +118,40 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 	var middleware []func(http.Handler) http.Handler
 
 	if c.Username != "" && c.Password != nil {
-		middleware = append(middleware, basicAuthHandler(c.Username, strings.TrimSpace(string(c.Password))))
 		globals.Logger.Info().Str("username", c.Username).Msg("authentication enabled for all sites")
+
+		middleware = append(middleware, basicAuthHandler(c.Username, strings.TrimSpace(string(c.Password))))
+	}
+
+	var verifier *auth.Verifier
+	if c.Auth.Issuer != "" {
+		verifier, errE = auth.New(ctx, c.Auth.Issuer, c.Auth.ClientID)
+		if errE != nil {
+			return nil, onShutdown, errE
+		}
+		globals.Logger.Info().Str("issuer", c.Auth.Issuer).Str("clientId", c.Auth.ClientID).Msg("OIDC authentication enabled")
+
+		// We attach the OIDC middleware last so the bearer token is verified
+		// after any preceding gate (e.g. basicAuth) has already let the request
+		// through. The middleware is permissive - it never rejects on its own -
+		// so handlers that require a signed-in caller still have to call
+		// Verifier.RequireAuthenticated explicitly; handlers that adapt to who
+		// is signed in can just read auth.Subject / auth.Roles from ctx.
+		middleware = append(middleware, verifier.Middleware())
+	}
+
+	// We populate per-site OIDC context so the frontend knows how to start a
+	// sign-in flow. Each site reuses the global OIDC config but gets its own
+	// redirect URI rooted in its domain.
+	if verifier != nil {
+		for _, site := range sites {
+			site.OIDC = &SiteOIDC{
+				Issuer:   verifier.Issuer(),
+				ClientID: verifier.ClientID(),
+				// TODO: Allow setting external port.
+				RedirectURI: "https://" + site.Domain + "/",
+			}
+		}
 	}
 
 	service := &Service{ //nolint:forcetypeassert
@@ -142,6 +186,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			},
 		},
 		Development: c.Server.Development,
+		Auth:        verifier,
 	}
 
 	service.setRoutes()

@@ -36,6 +36,16 @@ type SiteFeatures struct {
 	DownloadButtons    bool `json:"downloadButtons,omitempty"    yaml:"downloadButtons,omitempty"`
 }
 
+// SiteOIDC carries the OIDC configuration exposed to the frontend so it can
+// initiate a sign-in flow. The fields are populated by the serve command from
+// the global --auth.issuer and --auth.client-id flags, with the redirect URI
+// derived from the site's own domain.
+type SiteOIDC struct {
+	Issuer      string `json:"issuer"`
+	ClientID    string `json:"clientId"`
+	RedirectURI string `json:"redirectUri"`
+}
+
 // Site represents a single site in the PeerDB application with its configuration and state.
 type Site struct {
 	waf.Site `yaml:",inline"`
@@ -54,6 +64,11 @@ type Site struct {
 	LanguageCodes map[identifier.Identifier]string `json:"languageCodes,omitempty" yaml:"-"`
 
 	Features SiteFeatures `json:"features" yaml:"features"`
+
+	// OIDC is populated at startup when the server is launched with
+	// --auth.issuer and --auth.client-id. It is exposed in the site context
+	// so the frontend can start an OIDC sign-in flow against the issuer.
+	OIDC *SiteOIDC `json:"oidc,omitempty" yaml:"-"`
 
 	Base        *base.B                    `json:"-" yaml:"-"`
 	DBPool      *pgxpool.Pool              `json:"-" yaml:"-"`
