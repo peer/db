@@ -153,6 +153,7 @@ func (v *Verifier) MaybeAuthenticated(w http.ResponseWriter, req *http.Request) 
 func (v *Verifier) Middleware() func(http.Handler) http.Handler {
 	return func(handler http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			waf.SetCanonicalLogMessage(req.Context(), "OIDCAuth")
 			ctx := v.MaybeAuthenticated(w, req)
 			handler.ServeHTTP(w, req.WithContext(ctx)) //nolint:contextcheck
 		})
@@ -168,6 +169,12 @@ func getBearerToken(req *http.Request) string {
 		return ""
 	}
 	return auth[len(prefix):]
+}
+
+// HasBearerToken reports whether req carries an Authorization header using the
+// Bearer scheme. The token itself is not validated; this only inspects the scheme.
+func HasBearerToken(req *http.Request) bool {
+	return getBearerToken(req) != ""
 }
 
 // extractRoles parses the scope claim of the verified token and returns every

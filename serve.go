@@ -112,14 +112,20 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 
 	var middleware []func(http.Handler) http.Handler
 
+	oidcEnabled := c.Auth.Issuer != ""
+
 	if c.Username != "" && c.Password != nil {
 		globals.Logger.Info().Str("username", c.Username).Msg("authentication enabled for all sites")
 
-		middleware = append(middleware, basicAuthHandler(c.Username, strings.TrimSpace(string(c.Password))))
+		// When OIDC is also configured, requests presenting a Bearer token bypass
+		// basic auth so the OIDC middleware downstream can verify them. Without
+		// this, a single Authorization header would have to satisfy basic auth
+		// (which expects the Basic scheme) before the bearer token is ever seen.
+		middleware = append(middleware, basicAuthHandler(c.Username, strings.TrimSpace(string(c.Password)), oidcEnabled))
 	}
 
 	var verifier *auth.Verifier
-	if c.Auth.Issuer != "" {
+	if oidcEnabled {
 		verifier, errE = auth.New(ctx, c.Auth.Issuer, c.Auth.ClientID)
 		if errE != nil {
 			return nil, onShutdown, errE
