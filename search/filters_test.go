@@ -143,6 +143,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 		View:    "",
 		Query:   "",
 		Filters: nil,
+		Reverse: nil,
 	})
 
 	filterResults, metadata, errE := search.FiltersGet(ctx, getSearchService, session)
@@ -255,6 +256,7 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 		View:    "",
 		Query:   "searchable",
 		Filters: nil,
+		Reverse: nil,
 	})
 
 	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session)
@@ -314,6 +316,7 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 		View:    "",
 		Query:   "",
 		Filters: nil,
+		Reverse: nil,
 	})
 
 	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session)

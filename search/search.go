@@ -348,10 +348,14 @@ func (s *Session) GetFilterByID(id identifier.Identifier) (*Filter, errors.E) {
 }
 
 // SessionData represents the data of the search session.
+//
+// When Reverse is set, the session is scoped to documents which have a ref claim
+// (for any property) whose "to" target equals Reverse.
 type SessionData struct {
-	View    ViewType `json:"view,omitempty"`
-	Query   string   `json:"query,omitempty"`
-	Filters []Filter `json:"filters,omitempty"`
+	View    ViewType               `json:"view,omitempty"`
+	Query   string                 `json:"query,omitempty"`
+	Filters []Filter               `json:"filters,omitempty"`
+	Reverse *identifier.Identifier `json:"reverse,omitempty"`
 }
 
 // Validate validates the session data .
@@ -389,13 +393,25 @@ func (s *SessionData) Validate(withoutSession bool) errors.E {
 	return nil
 }
 
+// reverseScopeQuery returns a query matching documents that have a ref claim
+// with "to" equal to the given ID, regardless of which property the ref is for.
+func reverseScopeQuery(id identifier.Identifier) types.QueryVariant { //nolint:ireturn
+	return esdsl.NewNestedQuery(
+		esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(id.String())),
+	).Path("claims.ref")
+}
+
 // ToQuery converts the Session to an ElasticSearch query.
 //
 // TODO: Determine which operator should be the default?
 // TODO: Make sure right analyzers are used for all fields.
 // TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
 func (s *SessionData) ToQuery() types.QueryVariant { //nolint:ireturn
-	musts := make([]types.QueryVariant, 0, len(s.Filters)+1)
+	musts := make([]types.QueryVariant, 0, len(s.Filters)+2) //nolint:mnd
+
+	if s.Reverse != nil {
+		musts = append(musts, reverseScopeQuery(*s.Reverse))
+	}
 
 	if s.Query != "" {
 		musts = append(musts, documentTextSearchQuery(s.Query, operator.Or))
@@ -412,7 +428,11 @@ func (s *SessionData) ToQuery() types.QueryVariant { //nolint:ireturn
 // the filter with the given ID. This is used when fetching filter data so that
 // the current filter's own restrictions do not affect its available values.
 func (s *SessionData) ToQueryExcluding(excludeFilterID identifier.Identifier) types.QueryVariant { //nolint:ireturn
-	musts := make([]types.QueryVariant, 0, len(s.Filters)+1)
+	musts := make([]types.QueryVariant, 0, len(s.Filters)+2) //nolint:mnd
+
+	if s.Reverse != nil {
+		musts = append(musts, reverseScopeQuery(*s.Reverse))
+	}
 
 	if s.Query != "" {
 		musts = append(musts, documentTextSearchQuery(s.Query, operator.Or))

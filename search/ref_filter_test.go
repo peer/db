@@ -71,6 +71,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 				Missing: false,
 			},
 		}},
+		Reverse: nil,
 	})
 
 	results, metadata, errE := session.Filters[0].Ref.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])

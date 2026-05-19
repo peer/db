@@ -494,6 +494,7 @@ func (s *Service) SearchCreatePostAPI(w http.ResponseWriter, req *http.Request, 
 			View:    search.ViewFeed,
 			Query:   "",
 			Filters: nil,
+			Reverse: nil,
 		},
 		ID:      id,
 		Base:    base,
@@ -574,6 +575,9 @@ func (s *Service) SearchUpdatePostAPI(w http.ResponseWriter, req *http.Request, 
 // from query parameters and redirects to the search page. Query parameters are interpreted
 // as ref filters where key is the property ID and value is the value ID.
 // Values for the same property are grouped into a single filter.
+//
+// The "reverse" query parameter is special: its value is a document ID that scopes
+// the session to documents which reference that ID via any property.
 func (s *Service) SearchShortcutGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
@@ -581,7 +585,21 @@ func (s *Service) SearchShortcutGet(w http.ResponseWriter, req *http.Request, _ 
 
 	// Group values by property.
 	filterMap := map[identifier.Identifier][]search.ToValue{}
+	var reverse *identifier.Identifier
 	for prop, values := range req.URL.Query() {
+		if prop == "reverse" {
+			if len(values) != 1 {
+				s.BadRequestWithError(w, req, errors.New(`"reverse" query parameter must be set exactly once`))
+				return
+			}
+			reverseID, errE := identifier.MaybeString(values[0])
+			if errE != nil {
+				s.BadRequestWithError(w, req, errors.WithMessage(errE, `"reverse" query parameter value is not a valid identifier`))
+				return
+			}
+			reverse = &reverseID
+			continue
+		}
 		propID, errE := identifier.MaybeString(prop)
 		if errE != nil {
 			s.BadRequestWithError(w, req, errors.WithMessage(errE, "query parameter key is not a valid identifier"))
@@ -605,6 +623,7 @@ func (s *Service) SearchShortcutGet(w http.ResponseWriter, req *http.Request, _ 
 		View:    search.ViewFeed,
 		Query:   "",
 		Filters: nil,
+		Reverse: reverse,
 	}
 
 	for propID, toValues := range filterMap {

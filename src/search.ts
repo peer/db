@@ -48,7 +48,7 @@ export async function createSearchSession(
   const searchData = await searchDataFn(createResponse.base)
 
   // Step 2: If there is data to set, update the session.
-  if (searchData.query || (searchData.filters && searchData.filters.length > 0) || searchData.view) {
+  if (searchData.query || (searchData.filters && searchData.filters.length > 0) || searchData.view || searchData.reverse) {
     await updateSearchSession(router, createResponse.id, searchData, abortSignal, progress)
     if (abortSignal.aborted) {
       return
@@ -83,6 +83,7 @@ export async function updateSearchSession(
     view: searchData.view,
     query: searchData.query,
     ...(searchData.filters && searchData.filters.length > 0 ? { filters: searchData.filters } : {}),
+    ...(searchData.reverse ? { reverse: searchData.reverse } : {}),
   }
   const response = await postJSON<UpdateSearchSessionResponse>(
     router.apiResolve({

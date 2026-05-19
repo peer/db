@@ -32,10 +32,21 @@ onMounted(async () => {
       async (base) => {
         // Query parameters are interpreted as ref filters where key is the
         // property ID and value is the value ID, matching the backend behavior.
+        // The "reverse" query parameter is special: it scopes the session to
+        // documents referencing that ID via any property.
         const filters: Filter[] = []
+        let reverse: string | undefined
         const query = route.query
         for (const [prop, values] of Object.entries(query)) {
           if (values == null) {
+            continue
+          }
+          if (prop === "reverse") {
+            const arr = Array.isArray(values) ? values : [values]
+            const first = arr.find((v): v is string => v != null)
+            if (first != null) {
+              reverse = first
+            }
             continue
           }
           const arr = Array.isArray(values) ? values : [values]
@@ -52,7 +63,8 @@ onMounted(async () => {
           }
         }
         return {
-          filters: filters.length > 0 ? filters : undefined,
+          ...(filters.length > 0 ? { filters } : {}),
+          ...(reverse ? { reverse } : {}),
         }
       },
       abortController.signal,

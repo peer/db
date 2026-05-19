@@ -65,6 +65,7 @@ func TestAmountFilterGetIntegration(t *testing.T) {
 			Prop:   []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
 		}},
+		Reverse: nil,
 	})
 
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
@@ -283,6 +284,7 @@ func TestAmountFilterGetSameValuesIntegration(t *testing.T) {
 			Prop:   []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
 		}},
+		Reverse: nil,
 	})
 
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
@@ -310,6 +312,7 @@ func TestAmountFilterGetEmptyIntegration(t *testing.T) {
 			Prop:   []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
 		}},
+		Reverse: nil,
 	})
 
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
@@ -349,6 +352,7 @@ func TestAmountFilterGetWithoutUnitIntegration(t *testing.T) {
 			Prop:   []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true},
 		}},
+		Reverse: nil,
 	})
 
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
@@ -405,6 +409,7 @@ func TestAmountFilterGetGapIntegration(t *testing.T) {
 			Prop:   []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
 		}},
+		Reverse: nil,
 	})
 
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
@@ -486,6 +491,7 @@ func TestAmountFilterGetExtendedBoundsIntegration(t *testing.T) {
 				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false,
 			},
 		}},
+		Reverse: nil,
 	})
 
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
@@ -570,6 +576,7 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false,
 			},
 		}},
+		Reverse: nil,
 	})
 
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
@@ -669,6 +676,7 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 			Prop:   []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
 		}},
+		Reverse: nil,
 	})
 
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])

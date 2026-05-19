@@ -479,7 +479,7 @@ func TestSessionValidate(t *testing.T) {
 		t.Parallel()
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		s := &search.Session{
-			SessionData: search.SessionData{View: search.ViewFeed, Query: "test", Filters: nil},
+			SessionData: search.SessionData{View: search.ViewFeed, Query: "test", Filters: nil, Reverse: nil},
 			ID:          identifier.From(base...),
 			Base:        base,
 			Version:     0,
@@ -492,7 +492,7 @@ func TestSessionValidate(t *testing.T) {
 	t.Run("BaseTooShort", func(t *testing.T) {
 		t.Parallel()
 		s := &search.Session{
-			SessionData: search.SessionData{View: "", Query: "test", Filters: nil},
+			SessionData: search.SessionData{View: "", Query: "test", Filters: nil, Reverse: nil},
 			ID:          identifier.From("short"),
 			Base:        []string{"short"},
 			Version:     0,
@@ -507,7 +507,7 @@ func TestSessionValidate(t *testing.T) {
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		wrongID := identifier.New()
 		s := &search.Session{
-			SessionData: search.SessionData{View: "", Query: "test", Filters: nil},
+			SessionData: search.SessionData{View: "", Query: "test", Filters: nil, Reverse: nil},
 			ID:          wrongID,
 			Base:        base,
 			Version:     0,
@@ -521,7 +521,7 @@ func TestSessionValidate(t *testing.T) {
 		t.Parallel()
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		s := &search.Session{
-			SessionData: search.SessionData{View: "", Query: "test", Filters: nil},
+			SessionData: search.SessionData{View: "", Query: "test", Filters: nil, Reverse: nil},
 			ID:          identifier.From(base...),
 			Base:        base,
 			Version:     0,
@@ -535,7 +535,7 @@ func TestSessionValidate(t *testing.T) {
 		t.Parallel()
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		s := &search.Session{
-			SessionData: search.SessionData{View: search.ViewTable, Query: "test", Filters: nil},
+			SessionData: search.SessionData{View: search.ViewTable, Query: "test", Filters: nil, Reverse: nil},
 			ID:          identifier.From(base...),
 			Base:        base,
 			Version:     0,
@@ -549,7 +549,7 @@ func TestSessionValidate(t *testing.T) {
 		t.Parallel()
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		s := &search.Session{
-			SessionData: search.SessionData{View: "grid", Query: "test", Filters: nil},
+			SessionData: search.SessionData{View: "grid", Query: "test", Filters: nil, Reverse: nil},
 			ID:          identifier.From(base...),
 			Base:        base,
 			Version:     0,
@@ -570,6 +570,7 @@ func TestSessionValidate(t *testing.T) {
 				Filters: []search.Filter{
 					makeTestFilter(prop, &search.RefFilter{To: nil, Missing: false}, nil, nil),
 				},
+				Reverse: nil,
 			},
 			ID:      identifier.From(base...),
 			Base:    base,
@@ -591,6 +592,7 @@ func TestSessionValidate(t *testing.T) {
 				Filters: []search.Filter{
 					makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil),
 				},
+				Reverse: nil,
 			},
 			ID:      identifier.From(base...),
 			Base:    base,
@@ -604,7 +606,7 @@ func TestSessionValidate(t *testing.T) {
 		t.Parallel()
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		s := &search.Session{
-			SessionData: search.SessionData{View: "", Query: "test", Filters: nil},
+			SessionData: search.SessionData{View: "", Query: "test", Filters: nil, Reverse: nil},
 			ID:          identifier.From(base...),
 			Base:        base,
 			Version:     0,
@@ -619,7 +621,7 @@ func TestSessionDataValidate(t *testing.T) {
 
 	t.Run("DefaultView", func(t *testing.T) {
 		t.Parallel()
-		data := search.SessionData{View: "", Query: "test", Filters: nil}
+		data := search.SessionData{View: "", Query: "test", Filters: nil, Reverse: nil}
 		err := data.Validate(false)
 		require.NoError(t, err)
 		assert.Equal(t, search.ViewFeed, data.View)
@@ -627,7 +629,7 @@ func TestSessionDataValidate(t *testing.T) {
 
 	t.Run("InvalidView", func(t *testing.T) {
 		t.Parallel()
-		data := search.SessionData{View: "grid", Query: "test", Filters: nil}
+		data := search.SessionData{View: "grid", Query: "test", Filters: nil, Reverse: nil}
 		err := data.Validate(false)
 		require.Error(t, err)
 		assert.EqualError(t, err, "invalid view")
@@ -642,6 +644,7 @@ func TestSessionDataValidate(t *testing.T) {
 			Filters: []search.Filter{
 				makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil),
 			},
+			Reverse: nil,
 		}
 		err := data.Validate(false)
 		require.NoError(t, err)
@@ -655,6 +658,7 @@ func TestSessionDataValidate(t *testing.T) {
 			Filters: []search.Filter{
 				makeTestFilter(prop, &search.RefFilter{To: nil, Missing: false}, nil, nil),
 			},
+			Reverse: nil,
 		}
 		err := data.Validate(false)
 		require.Error(t, err)
@@ -675,13 +679,13 @@ func TestSessionToQuery(t *testing.T) {
 	}{
 		{
 			Name:        "QueryOnly",
-			SessionData: search.SessionData{View: "", Query: "hello", Filters: nil},
+			SessionData: search.SessionData{View: "", Query: "hello", Filters: nil, Reverse: nil},
 			//nolint:lll
 			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.value"],"query":"hello"}}}},{"nested":{"path":"claims.link","query":{"simple_query_string":{"default_operator":"or","fields":["claims.link.iri"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.en"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.pt"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.sl"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.und"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.en"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.pt"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.sl"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.und"],"query":"hello"}}}},{"nested":{"path":"claims.amount","query":{"simple_query_string":{"default_operator":"or","fields":["claims.amount.propDisplay.en^0.2","claims.amount.propDisplay.pt^0.2","claims.amount.propDisplay.sl^0.2","claims.amount.propDisplay.und^0.2","claims.amount.propNaming.en^0.2","claims.amount.propNaming.pt^0.2","claims.amount.propNaming.sl^0.2","claims.amount.propNaming.und^0.2","claims.amount.fromDisplay^0.2","claims.amount.toDisplay^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.has","query":{"simple_query_string":{"default_operator":"or","fields":["claims.has.propDisplay.en^0.2","claims.has.propDisplay.pt^0.2","claims.has.propDisplay.sl^0.2","claims.has.propDisplay.und^0.2","claims.has.propNaming.en^0.2","claims.has.propNaming.pt^0.2","claims.has.propNaming.sl^0.2","claims.has.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.propDisplay.en^0.2","claims.html.propDisplay.pt^0.2","claims.html.propDisplay.sl^0.2","claims.html.propDisplay.und^0.2","claims.html.propNaming.en^0.2","claims.html.propNaming.pt^0.2","claims.html.propNaming.sl^0.2","claims.html.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.propDisplay.en^0.2","claims.id.propDisplay.pt^0.2","claims.id.propDisplay.sl^0.2","claims.id.propDisplay.und^0.2","claims.id.propNaming.en^0.2","claims.id.propNaming.pt^0.2","claims.id.propNaming.sl^0.2","claims.id.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.link","query":{"simple_query_string":{"default_operator":"or","fields":["claims.link.propDisplay.en^0.2","claims.link.propDisplay.pt^0.2","claims.link.propDisplay.sl^0.2","claims.link.propDisplay.und^0.2","claims.link.propNaming.en^0.2","claims.link.propNaming.pt^0.2","claims.link.propNaming.sl^0.2","claims.link.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.none","query":{"simple_query_string":{"default_operator":"or","fields":["claims.none.propDisplay.en^0.2","claims.none.propDisplay.pt^0.2","claims.none.propDisplay.sl^0.2","claims.none.propDisplay.und^0.2","claims.none.propNaming.en^0.2","claims.none.propNaming.pt^0.2","claims.none.propNaming.sl^0.2","claims.none.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.ref","query":{"simple_query_string":{"default_operator":"or","fields":["claims.ref.propDisplay.en^0.2","claims.ref.propDisplay.pt^0.2","claims.ref.propDisplay.sl^0.2","claims.ref.propDisplay.und^0.2","claims.ref.propNaming.en^0.2","claims.ref.propNaming.pt^0.2","claims.ref.propNaming.sl^0.2","claims.ref.propNaming.und^0.2","claims.ref.toDisplay.en^0.2","claims.ref.toDisplay.pt^0.2","claims.ref.toDisplay.sl^0.2","claims.ref.toDisplay.und^0.2","claims.ref.toNaming.en^0.2","claims.ref.toNaming.pt^0.2","claims.ref.toNaming.sl^0.2","claims.ref.toNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.propDisplay.en^0.2","claims.string.propDisplay.pt^0.2","claims.string.propDisplay.sl^0.2","claims.string.propDisplay.und^0.2","claims.string.propNaming.en^0.2","claims.string.propNaming.pt^0.2","claims.string.propNaming.sl^0.2","claims.string.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.time","query":{"simple_query_string":{"default_operator":"or","fields":["claims.time.propDisplay.en^0.2","claims.time.propDisplay.pt^0.2","claims.time.propDisplay.sl^0.2","claims.time.propDisplay.und^0.2","claims.time.propNaming.en^0.2","claims.time.propNaming.pt^0.2","claims.time.propNaming.sl^0.2","claims.time.propNaming.und^0.2","claims.time.fromDisplay^0.2","claims.time.toDisplay^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.unknown","query":{"simple_query_string":{"default_operator":"or","fields":["claims.unknown.propDisplay.en^0.2","claims.unknown.propDisplay.pt^0.2","claims.unknown.propDisplay.sl^0.2","claims.unknown.propDisplay.und^0.2","claims.unknown.propNaming.en^0.2","claims.unknown.propNaming.pt^0.2","claims.unknown.propNaming.sl^0.2","claims.unknown.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.sub","query":{"simple_query_string":{"default_operator":"or","fields":["claims.sub.propDisplay.en^0.2","claims.sub.propDisplay.pt^0.2","claims.sub.propDisplay.sl^0.2","claims.sub.propDisplay.und^0.2","claims.sub.propNaming.en^0.2","claims.sub.propNaming.pt^0.2","claims.sub.propNaming.sl^0.2","claims.sub.propNaming.und^0.2","claims.sub.toDisplay.en^0.2","claims.sub.toDisplay.pt^0.2","claims.sub.toDisplay.sl^0.2","claims.sub.toDisplay.und^0.2","claims.sub.toNaming.en^0.2","claims.sub.toNaming.pt^0.2","claims.sub.toNaming.sl^0.2","claims.sub.toNaming.und^0.2"],"query":"hello"}}}}]}}]}}`,
 		},
 		{
 			Name:        "Empty",
-			SessionData: search.SessionData{View: "", Query: "", Filters: nil},
+			SessionData: search.SessionData{View: "", Query: "", Filters: nil, Reverse: nil},
 			Want:        `{"bool":{}}`,
 		},
 		{
@@ -691,6 +695,7 @@ func TestSessionToQuery(t *testing.T) {
 				Filters: []search.Filter{
 					makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil),
 				},
+				Reverse: nil,
 			},
 			//nolint:lll
 			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.value"],"query":"hello"}}}},{"nested":{"path":"claims.link","query":{"simple_query_string":{"default_operator":"or","fields":["claims.link.iri"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.en"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.pt"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.sl"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.und"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.en"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.pt"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.sl"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.und"],"query":"hello"}}}},{"nested":{"path":"claims.amount","query":{"simple_query_string":{"default_operator":"or","fields":["claims.amount.propDisplay.en^0.2","claims.amount.propDisplay.pt^0.2","claims.amount.propDisplay.sl^0.2","claims.amount.propDisplay.und^0.2","claims.amount.propNaming.en^0.2","claims.amount.propNaming.pt^0.2","claims.amount.propNaming.sl^0.2","claims.amount.propNaming.und^0.2","claims.amount.fromDisplay^0.2","claims.amount.toDisplay^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.has","query":{"simple_query_string":{"default_operator":"or","fields":["claims.has.propDisplay.en^0.2","claims.has.propDisplay.pt^0.2","claims.has.propDisplay.sl^0.2","claims.has.propDisplay.und^0.2","claims.has.propNaming.en^0.2","claims.has.propNaming.pt^0.2","claims.has.propNaming.sl^0.2","claims.has.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.propDisplay.en^0.2","claims.html.propDisplay.pt^0.2","claims.html.propDisplay.sl^0.2","claims.html.propDisplay.und^0.2","claims.html.propNaming.en^0.2","claims.html.propNaming.pt^0.2","claims.html.propNaming.sl^0.2","claims.html.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.propDisplay.en^0.2","claims.id.propDisplay.pt^0.2","claims.id.propDisplay.sl^0.2","claims.id.propDisplay.und^0.2","claims.id.propNaming.en^0.2","claims.id.propNaming.pt^0.2","claims.id.propNaming.sl^0.2","claims.id.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.link","query":{"simple_query_string":{"default_operator":"or","fields":["claims.link.propDisplay.en^0.2","claims.link.propDisplay.pt^0.2","claims.link.propDisplay.sl^0.2","claims.link.propDisplay.und^0.2","claims.link.propNaming.en^0.2","claims.link.propNaming.pt^0.2","claims.link.propNaming.sl^0.2","claims.link.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.none","query":{"simple_query_string":{"default_operator":"or","fields":["claims.none.propDisplay.en^0.2","claims.none.propDisplay.pt^0.2","claims.none.propDisplay.sl^0.2","claims.none.propDisplay.und^0.2","claims.none.propNaming.en^0.2","claims.none.propNaming.pt^0.2","claims.none.propNaming.sl^0.2","claims.none.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.ref","query":{"simple_query_string":{"default_operator":"or","fields":["claims.ref.propDisplay.en^0.2","claims.ref.propDisplay.pt^0.2","claims.ref.propDisplay.sl^0.2","claims.ref.propDisplay.und^0.2","claims.ref.propNaming.en^0.2","claims.ref.propNaming.pt^0.2","claims.ref.propNaming.sl^0.2","claims.ref.propNaming.und^0.2","claims.ref.toDisplay.en^0.2","claims.ref.toDisplay.pt^0.2","claims.ref.toDisplay.sl^0.2","claims.ref.toDisplay.und^0.2","claims.ref.toNaming.en^0.2","claims.ref.toNaming.pt^0.2","claims.ref.toNaming.sl^0.2","claims.ref.toNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.propDisplay.en^0.2","claims.string.propDisplay.pt^0.2","claims.string.propDisplay.sl^0.2","claims.string.propDisplay.und^0.2","claims.string.propNaming.en^0.2","claims.string.propNaming.pt^0.2","claims.string.propNaming.sl^0.2","claims.string.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.time","query":{"simple_query_string":{"default_operator":"or","fields":["claims.time.propDisplay.en^0.2","claims.time.propDisplay.pt^0.2","claims.time.propDisplay.sl^0.2","claims.time.propDisplay.und^0.2","claims.time.propNaming.en^0.2","claims.time.propNaming.pt^0.2","claims.time.propNaming.sl^0.2","claims.time.propNaming.und^0.2","claims.time.fromDisplay^0.2","claims.time.toDisplay^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.unknown","query":{"simple_query_string":{"default_operator":"or","fields":["claims.unknown.propDisplay.en^0.2","claims.unknown.propDisplay.pt^0.2","claims.unknown.propDisplay.sl^0.2","claims.unknown.propDisplay.und^0.2","claims.unknown.propNaming.en^0.2","claims.unknown.propNaming.pt^0.2","claims.unknown.propNaming.sl^0.2","claims.unknown.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.sub","query":{"simple_query_string":{"default_operator":"or","fields":["claims.sub.propDisplay.en^0.2","claims.sub.propDisplay.pt^0.2","claims.sub.propDisplay.sl^0.2","claims.sub.propDisplay.und^0.2","claims.sub.propNaming.en^0.2","claims.sub.propNaming.pt^0.2","claims.sub.propNaming.sl^0.2","claims.sub.propNaming.und^0.2","claims.sub.toDisplay.en^0.2","claims.sub.toDisplay.pt^0.2","claims.sub.toDisplay.sl^0.2","claims.sub.toDisplay.und^0.2","claims.sub.toNaming.en^0.2","claims.sub.toNaming.pt^0.2","claims.sub.toNaming.sl^0.2","claims.sub.toNaming.und^0.2"],"query":"hello"}}}}]}},{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}}]}}`,
@@ -706,6 +711,96 @@ func TestSessionToQuery(t *testing.T) {
 	}
 }
 
+func TestSessionToQueryReverse(t *testing.T) {
+	t.Parallel()
+
+	reverseID := identifier.From("reverseTarget")
+	prop := identifier.From("prop")
+	value := identifier.From("value")
+
+	t.Run("ReverseOnly", func(t *testing.T) {
+		t.Parallel()
+		data := search.SessionData{
+			View: "", Query: "", Filters: nil,
+			Reverse: &reverseID,
+		}
+		q := data.ToQuery()
+		want := `{"bool":{"must":[{"nested":{"path":"claims.ref","query":{"term":{"claims.ref.to":{"value":"` +
+			reverseID.String() + `"}}}}}]}}`
+		assert.Equal(t, want, testutils.QueryJSON(t, q))
+	})
+
+	t.Run("ReverseAndFilter", func(t *testing.T) {
+		t.Parallel()
+		data := search.SessionData{
+			View: "", Query: "",
+			Filters: []search.Filter{
+				makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil),
+			},
+			Reverse: &reverseID,
+		}
+		q := data.ToQuery()
+		j := testutils.QueryJSON(t, q)
+		assert.Contains(t, j, `"claims.ref.to":{"value":"`+reverseID.String()+`"}`)
+		assert.Contains(t, j, `"claims.ref.prop":{"value":"`+prop.String()+`"}`)
+		assert.Contains(t, j, `"claims.ref.to":{"value":"`+value.String()+`"}`)
+	})
+
+	t.Run("ReverseInToQueryExcluding", func(t *testing.T) {
+		t.Parallel()
+		filter := makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil)
+		data := search.SessionData{
+			View: "", Query: "",
+			Filters: []search.Filter{filter},
+			Reverse: &reverseID,
+		}
+		q := data.ToQueryExcluding(*filter.ID)
+		j := testutils.QueryJSON(t, q)
+		// Reverse scope is applied even when filter is excluded.
+		assert.Contains(t, j, `"claims.ref.to":{"value":"`+reverseID.String()+`"}`)
+		// Excluded filter's value is not in the query.
+		assert.NotContains(t, j, `"claims.ref.to":{"value":"`+value.String()+`"}`)
+	})
+
+	t.Run("NoReverse", func(t *testing.T) {
+		t.Parallel()
+		data := search.SessionData{View: "", Query: "", Filters: nil, Reverse: nil}
+		q := data.ToQuery()
+		assert.JSONEq(t, `{"bool":{}}`, testutils.QueryJSON(t, q))
+	})
+}
+
+func TestSessionDataValidateReverse(t *testing.T) {
+	t.Parallel()
+
+	reverseID := identifier.From("reverseTarget")
+
+	t.Run("ReverseSet", func(t *testing.T) {
+		t.Parallel()
+		data := search.SessionData{View: "", Query: "test", Filters: nil, Reverse: &reverseID}
+		err := data.Validate(false)
+		require.NoError(t, err)
+	})
+
+	t.Run("ReverseRoundTrip", func(t *testing.T) {
+		t.Parallel()
+		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
+		s := search.Session{
+			SessionData: search.SessionData{View: search.ViewFeed, Query: "", Filters: nil, Reverse: &reverseID},
+			ID:          identifier.From(base...),
+			Base:        base,
+			Version:     0,
+		}
+		data, errE := x.MarshalWithoutEscapeHTML(s)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		var decoded search.Session
+		errE = x.UnmarshalWithoutUnknownFields(data, &decoded)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		require.NotNil(t, decoded.Reverse)
+		assert.Equal(t, reverseID, *decoded.Reverse)
+	})
+}
+
 func TestCreateSession(t *testing.T) {
 	t.Parallel()
 
@@ -713,7 +808,7 @@ func TestCreateSession(t *testing.T) {
 
 	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 	s := &search.Session{
-		SessionData: search.SessionData{View: "", Query: "test search", Filters: nil},
+		SessionData: search.SessionData{View: "", Query: "test search", Filters: nil, Reverse: nil},
 		ID:          identifier.From(base...),
 		Base:        base,
 		Version:     0,
@@ -736,7 +831,7 @@ func TestCreateSessionValidationError(t *testing.T) {
 
 	// Base with only one element triggers validation error.
 	s := &search.Session{
-		SessionData: search.SessionData{View: "", Query: "test", Filters: nil},
+		SessionData: search.SessionData{View: "", Query: "test", Filters: nil, Reverse: nil},
 		ID:          identifier.From("bad"),
 		Base:        []string{"bad"},
 		Version:     0,
@@ -754,7 +849,7 @@ func TestUpdateSession(t *testing.T) {
 	// First create a session.
 	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 	s := &search.Session{
-		SessionData: search.SessionData{View: "", Query: "original", Filters: nil},
+		SessionData: search.SessionData{View: "", Query: "original", Filters: nil, Reverse: nil},
 		ID:          identifier.From(base...),
 		Base:        base,
 		Version:     0,
@@ -766,7 +861,7 @@ func TestUpdateSession(t *testing.T) {
 
 	// Update it.
 	updated := &search.Session{
-		SessionData: search.SessionData{View: search.ViewTable, Query: "updated", Filters: nil},
+		SessionData: search.SessionData{View: search.ViewTable, Query: "updated", Filters: nil, Reverse: nil},
 		ID:          id,
 		Base:        base,
 		Version:     1,
@@ -788,7 +883,7 @@ func TestUpdateSessionMissingBase(t *testing.T) {
 
 	// Session with no base at all fails validation.
 	s := &search.Session{ //nolint:exhaustruct
-		SessionData: search.SessionData{View: "", Query: "test", Filters: nil},
+		SessionData: search.SessionData{View: "", Query: "test", Filters: nil, Reverse: nil},
 		Version:     0,
 	}
 	errE := search.UpdateSession(ctx, s)
@@ -803,7 +898,7 @@ func TestUpdateSessionValidationError(t *testing.T) {
 
 	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 	s := &search.Session{
-		SessionData: search.SessionData{View: "", Query: "original", Filters: nil},
+		SessionData: search.SessionData{View: "", Query: "original", Filters: nil, Reverse: nil},
 		ID:          identifier.From(base...),
 		Base:        base,
 		Version:     0,
@@ -813,7 +908,7 @@ func TestUpdateSessionValidationError(t *testing.T) {
 	id := s.ID
 
 	updated := &search.Session{
-		SessionData: search.SessionData{View: "invalid", Query: "updated", Filters: nil},
+		SessionData: search.SessionData{View: "invalid", Query: "updated", Filters: nil, Reverse: nil},
 		ID:          id,
 		Base:        base,
 		Version:     1,
@@ -830,7 +925,7 @@ func TestGetSession(t *testing.T) {
 
 	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 	s := &search.Session{
-		SessionData: search.SessionData{View: "", Query: "test", Filters: nil},
+		SessionData: search.SessionData{View: "", Query: "test", Filters: nil, Reverse: nil},
 		ID:          identifier.From(base...),
 		Base:        base,
 		Version:     0,
@@ -855,7 +950,7 @@ func TestGetSessionFromID(t *testing.T) {
 
 	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 	s := &search.Session{
-		SessionData: search.SessionData{View: "", Query: "test", Filters: nil},
+		SessionData: search.SessionData{View: "", Query: "test", Filters: nil, Reverse: nil},
 		ID:          identifier.From(base...),
 		Base:        base,
 		Version:     0,
@@ -888,7 +983,7 @@ func TestCreateAndUpdateSessionRoundTrip(t *testing.T) {
 
 	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 	s := &search.Session{
-		SessionData: search.SessionData{View: search.ViewFeed, Query: "initial", Filters: nil},
+		SessionData: search.SessionData{View: search.ViewFeed, Query: "initial", Filters: nil, Reverse: nil},
 		ID:          identifier.From(base...),
 		Base:        base,
 		Version:     0,
@@ -903,6 +998,7 @@ func TestCreateAndUpdateSessionRoundTrip(t *testing.T) {
 			Filters: []search.Filter{
 				makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil),
 			},
+			Reverse: nil,
 		},
 		ID:      id,
 		Base:    base,
@@ -912,7 +1008,7 @@ func TestCreateAndUpdateSessionRoundTrip(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	s3 := &search.Session{
-		SessionData: search.SessionData{View: "", Query: "updated again", Filters: nil},
+		SessionData: search.SessionData{View: "", Query: "updated again", Filters: nil, Reverse: nil},
 		ID:          id,
 		Base:        base,
 		Version:     2,
@@ -959,6 +1055,7 @@ func TestGetFilterByID(t *testing.T) {
 			View:    "",
 			Query:   "",
 			Filters: []search.Filter{f1, f2},
+			Reverse: nil,
 		},
 	}
 
@@ -1043,6 +1140,7 @@ func TestJSONSerialization(t *testing.T) {
 				Filters: []search.Filter{
 					makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil),
 				},
+				Reverse: nil,
 			},
 			ID: id, Base: base, Version: 3,
 		}

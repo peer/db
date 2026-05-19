@@ -114,10 +114,12 @@ export type SearchSession = {
 } & SearchSessionData
 
 // What the client sends when creating or updating a search session.
+// When reverse is set, the session is scoped to documents referencing that ID via any property.
 export type SearchSessionData = {
   view?: ViewType
   query?: string
   filters?: Filter[]
+  reverse?: string
 }
 
 // Response from creating a new search session.

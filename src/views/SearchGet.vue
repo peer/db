@@ -126,6 +126,7 @@ async function onFiltersUpdate(updatedFilters: Filter[]) {
     view: searchSession.value!.view,
     query: searchSession.value!.query,
     filters: updatedFilters.length > 0 ? updatedFilters : undefined,
+    reverse: searchSession.value!.reverse,
   })
 }
 
@@ -262,6 +263,7 @@ async function onQueryChange(query: string) {
     view: searchSession.value!.view,
     query,
     filters: searchSession.value!.filters,
+    reverse: searchSession.value!.reverse,
   })
 }
 
@@ -272,6 +274,7 @@ async function onViewChange(view: ViewType) {
     view,
     query: searchSession.value!.query,
     filters: searchSession.value!.filters,
+    reverse: searchSession.value!.reverse,
   })
 }
 
