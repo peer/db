@@ -78,7 +78,7 @@ cleanup() {
 
   if [ "$cleanup_certs" -ne 0 ]; then
     echo "Cleaning up temporary files"
-    rm "$ROOT_CA_FILE"
+    rm "$ROOT_CA_FILE" config-e2e.yml
   fi
 }
 
@@ -105,6 +105,9 @@ chmod 644 peerdb-container+2.pem peerdb-container+2-key.pem
 # Copy mkcert CA certificate for Docker build.
 cp "$(mkcert -CAROOT)/rootCA.pem" "$ROOT_CA_FILE"
 cleanup_certs=1
+
+# Use config.yml, replacing localhost domain string with $PEERDB_CONTAINER, to expose all features of PeerDB in e2e tests.
+sed "s/localhost/$PEERDB_CONTAINER/g" config.yml > config-e2e.yml
 
 echo "2. Building Docker images..."
 
@@ -170,6 +173,7 @@ docker run -d \
   -e SSL_CERT_FILE=/data/"$ROOT_CA_FILE" \
   -e SSL_CERT_DIR=/etc/ssl/certs \
   "$PEERDB_IMAGE" \
+  -c /data/config-e2e.yml \
   -k /data/peerdb-container+2.pem \
   -K /data/peerdb-container+2-key.pem \
   -d /data/.postgresql.secret \
@@ -177,8 +181,7 @@ docker run -d \
 cleanup_peerdb_container=1
 
 echo "8. Waiting for PeerDB service to be ready..."
-
-sleep 5
+for i in $(seq 1 120); do docker exec peerdb-elastic curl -sf -k "https://$PEERDB_CONTAINER:8080/" && break || { [ "$i" -eq 120 ] && exit 1; sleep 1; }; done
 
 echo "9. Running Playwright tests..."
 
