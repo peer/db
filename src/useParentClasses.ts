@@ -48,6 +48,9 @@ export function useParentClasses(
       }
       return new D(rawDoc)
     } catch (err) {
+      if (abortController.signal.aborted) {
+        return null
+      }
       // TODO: Do something better?
       console.error("useParentClasses.fetchClassDocument", classId, err)
       return null
