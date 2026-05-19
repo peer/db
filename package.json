@@ -23,17 +23,17 @@
       "types": "./lib/index.d.ts",
       "import": "./lib/index.js"
     },
+    "./auth": {
+      "types": "./lib/auth/index.d.ts",
+      "import": "./lib/auth/index.js"
+    },
+    "./auth/*": {
+      "types": "./lib/auth/*.d.ts",
+      "import": "./lib/auth/*.js"
+    },
     "./components/*": {
       "types": "./lib/components/*.d.ts",
       "import": "./lib/components/*.js"
-    },
-    "./partials/*": {
-      "types": "./lib/partials/*.d.ts",
-      "import": "./lib/partials/*.js"
-    },
-    "./views/*": {
-      "types": "./lib/views/*.d.ts",
-      "import": "./lib/views/*.js"
     },
     "./core": {
       "types": "./lib/core/index.d.ts",
@@ -50,6 +50,18 @@
     "./document/*": {
       "types": "./lib/document/*.d.ts",
       "import": "./lib/document/*.js"
+    },
+    "./partials/*": {
+      "types": "./lib/partials/*.d.ts",
+      "import": "./lib/partials/*.js"
+    },
+    "./registry/*": {
+      "types": "./lib/registry/*.d.ts",
+      "import": "./lib/registry/*.js"
+    },
+    "./views/*": {
+      "types": "./lib/views/*.d.ts",
+      "import": "./lib/views/*.js"
     },
     "./locales/*": {
       "import": "./lib/locales/*.js"
