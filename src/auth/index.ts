@@ -1,7 +1,7 @@
-import type { Ref } from "vue"
+import type { ComputedRef, Ref } from "vue"
 
 import * as client from "openid-client"
-import { ref, watch } from "vue"
+import { computed, ref, watch } from "vue"
 
 // siteContext is fetched eagerly by @/context (the server already sends a
 // preload header for context.json), so importing it here does not add any
@@ -40,6 +40,21 @@ export const accessToken = ref(localStorage.getItem(accessTokenStorageKey) ?? ""
 // decoding the access token themselves.
 export const currentIdentityId = ref(localStorage.getItem(currentIdentityIdStorageKey) ?? "")
 
+// currentRoles is the reactive list of roles granted to the signed-in user,
+// derived from the access token's scope claim (role.<key> entries). It updates
+// automatically on sign-in, sign-out, and on reload once accessToken is rehydrated
+// from localStorage. Use it directly in templates (Vue tracks the .value access)
+// for things like v-if="currentRoles.includes('admin')".
+export const currentRoles: ComputedRef<string[]> = computed(() => extractRolesFromClaims(decodeJWTPayload(accessToken.value)))
+
+// hasRole is the symmetric counterpart of auth.HasRole on the backend: a small
+// convenience for callers that just want to check one role. It is reactive
+// when called from a template or another computed because it reads
+// currentRoles.value, which Vue tracks.
+export function hasRole(role: string): boolean {
+  return currentRoles.value.includes(role)
+}
+
 // Mirror in-memory writes back to localStorage so a reload picks up the same
 // session. Empty values remove the entry rather than storing "" so we do not
 // leak stale keys after sign-out.
@@ -62,6 +77,74 @@ watch(currentIdentityId, (value) => {
 // context.json. Components use this to decide whether to render sign-in UI.
 export function isOIDCConfigured(): boolean {
   return siteContext.oidc !== undefined
+}
+
+// Charon's role-scope convention: every granted scope under "role." names a
+// role the signed-in user holds. We mirror the backend's auth package so the
+// frontend reads the same role set the server will enforce.
+const roleScopePrefix = "role."
+const roleScopeWildcard = "role.*"
+
+// decodeJWTPayload decodes the middle segment of a JWT into a claims object.
+// We intentionally do not verify the signature here - the backend re-validates
+// the token on every API request, and the frontend only needs the claims for
+// UI hints (e.g. which menus to show). Returns null if the token does not look
+// like a JWT or the payload cannot be decoded.
+function decodeJWTPayload(token: string): Record<string, unknown> | null {
+  const parts = token.split(".")
+  if (parts.length !== 3) {
+    return null
+  }
+  try {
+    // JWT uses base64url. atob expects standard base64, so swap the alphabet
+    // and re-pad to a multiple of 4. Then decode UTF-8 explicitly so non-ASCII
+    // claims (e.g. names) round-trip correctly.
+    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/")
+    const padded = b64.padEnd(Math.ceil(b64.length / 4) * 4, "=")
+    const binary = atob(padded)
+    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0))
+    const json = new TextDecoder().decode(bytes)
+    return JSON.parse(json) as Record<string, unknown>
+  } catch {
+    return null
+  }
+}
+
+// extractRolesFromClaims mirrors auth.extractRoles on the backend: take every
+// scope under the "role." namespace, strip the prefix, and dedupe; ignore the
+// bare "role.*" wildcard if it ever shows up.
+function extractRolesFromClaims(payload: Record<string, unknown> | null): string[] {
+  if (!payload) {
+    return []
+  }
+  const scopes: string[] = []
+  if (typeof payload.scope === "string") {
+    scopes.push(...payload.scope.split(/\s+/).filter(Boolean))
+  }
+  if (Array.isArray(payload.scp)) {
+    for (const s of payload.scp) {
+      if (typeof s === "string") {
+        scopes.push(s)
+      }
+    }
+  }
+  const seen = new Set<string>()
+  const roles: string[] = []
+  for (const scope of scopes) {
+    if (scope === roleScopeWildcard) {
+      continue
+    }
+    if (!scope.startsWith(roleScopePrefix)) {
+      continue
+    }
+    const role = scope.slice(roleScopePrefix.length)
+    if (!role || seen.has(role)) {
+      continue
+    }
+    seen.add(role)
+    roles.push(role)
+  }
+  return roles
 }
 
 // isSignedIn reports whether we currently hold a valid-looking access token.
