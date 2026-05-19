@@ -3,11 +3,8 @@ import tailwindcss from "@tailwindcss/vite"
 import vue from "@vitejs/plugin-vue"
 import path from "path"
 import license from "rollup-plugin-license"
-import url from "url"
 import istanbul from "vite-plugin-istanbul"
 import { configDefaults, defineConfig } from "vitest/config"
-
-const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 // https://vitest.dev/config/
@@ -18,7 +15,7 @@ export default defineConfig({
   plugins: [
     vue(),
     VueI18n({
-      include: [path.resolve(__dirname, "src/locales/**")],
+      include: [path.resolve(import.meta.dirname, "src/locales/**")],
       runtimeOnly: true,
       compositionOnly: true,
       dropMessageCompiler: true,
@@ -43,7 +40,7 @@ export default defineConfig({
           failOnViolation: true,
         },
         output: {
-          file: path.join(__dirname, "dist", "NOTICE.txt"),
+          file: path.join(import.meta.dirname, "dist", "NOTICE.txt"),
         },
       },
     }),
