@@ -99,12 +99,19 @@ export async function signIn(progress: Ref<number>) {
   const stateId = client.randomState()
   const nonce = client.randomNonce()
 
+  // role.* is the Charon wildcard scope. Requesting it tells the issuer to
+  // expand it into one role.<key> grant for every role the signed-in user
+  // actually holds in the organization; those grants are what auth.Roles on
+  // the backend reads out of the access token's scope claim. Without it the
+  // backend always sees an empty role set even for users with assigned roles.
+  // The OAuth client must be registered with role.* in its allowed scopes
+  // (Charon's app template "IDScopes") for this to be granted.
   const redirectTo = client
     .buildAuthorizationUrl(config, {
       redirect_uri: oidc.redirectUri,
       code_challenge: codeChallenge,
       code_challenge_method: "S256",
-      scope: "openid profile email",
+      scope: "openid profile email role.*",
       state: stateId,
       nonce,
     })
