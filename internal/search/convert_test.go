@@ -14,7 +14,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
-	internalStore "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 // Helper IDs for tests.
@@ -41,9 +41,9 @@ func makeCoreClaim(confidence document.Confidence, sub *document.ClaimTypes) doc
 }
 
 // newIR creates an InverseRelation with the given fields.
-func newIR(claim, source, sourceProp, targetProp, target identifier.Identifier, confidence document.Confidence) internalStore.InverseRelation {
-	return internalStore.InverseRelation{
-		InverseRelationKey: internalStore.InverseRelationKey{Claim: claim, Source: source, TargetProp: targetProp},
+func newIR(claim, source, sourceProp, targetProp, target identifier.Identifier, confidence document.Confidence) store.InverseRelation {
+	return store.InverseRelation{
+		InverseRelationKey: store.InverseRelationKey{Claim: claim, Source: source, TargetProp: targetProp},
 		SourceProp:         sourceProp,
 		Target:             target,
 		Confidence:         confidence,
@@ -6494,7 +6494,7 @@ func TestInverseRelationClaimIDDeterministic(t *testing.T) {
 	t.Parallel()
 
 	base := []string{"base"}
-	irKey := internalStore.InverseRelationKey{
+	irKey := store.InverseRelationKey{
 		Claim:      identifier.New(),
 		Source:     identifier.New(),
 		TargetProp: identifier.New(),
@@ -6515,8 +6515,8 @@ func TestInverseRelationClaimIDDiffersPerSource(t *testing.T) {
 	sourceA := identifier.New()
 	sourceB := identifier.New()
 
-	idA := inverseReferenceClaimID(base, internalStore.InverseRelationKey{Claim: claim, Source: sourceA, TargetProp: targetProp})
-	idB := inverseReferenceClaimID(base, internalStore.InverseRelationKey{Claim: claim, Source: sourceB, TargetProp: targetProp})
+	idA := inverseReferenceClaimID(base, store.InverseRelationKey{Claim: claim, Source: sourceA, TargetProp: targetProp})
+	idB := inverseReferenceClaimID(base, store.InverseRelationKey{Claim: claim, Source: sourceB, TargetProp: targetProp})
 
 	assert.NotEqual(t, idA, idB)
 }
@@ -6590,7 +6590,7 @@ func TestFromDocumentIncomingInverseRelation(t *testing.T) {
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 	// TargetProp is pre-resolved: property X has inverse Y.
-	inverseRelations := []internalStore.InverseRelation{
+	inverseRelations := []store.InverseRelation{
 		newIR(claimID, sourceDocID, propX, propY, identifier.Identifier{}, document.HighConfidence),
 	}
 
@@ -6632,7 +6632,7 @@ func TestFromDocumentIncomingInverseRelationMultipleInverses(t *testing.T) {
 	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
-	inverseRelations := []internalStore.InverseRelation{
+	inverseRelations := []store.InverseRelation{
 		newIR(claimID, sourceDocID, propB, propA, identifier.Identifier{}, document.HighConfidence),
 		newIR(claimID, sourceDocID, propB, propC, identifier.Identifier{}, document.HighConfidence),
 	}
@@ -6678,7 +6678,7 @@ func TestFromDocumentIncomingInverseRelationBidirectional(t *testing.T) {
 	}
 
 	// Incoming relation with property A, resolved TargetProp is B.
-	inverseRelations := []internalStore.InverseRelation{
+	inverseRelations := []store.InverseRelation{
 		newIR(identifier.New(), sourceDocID, propA, propB, identifier.Identifier{}, document.HighConfidence),
 	}
 
@@ -6694,8 +6694,8 @@ func TestFromDocumentIncomingInverseRelationBidirectional(t *testing.T) {
 func TestDiffOutgoingInverseRelationsBothEmpty(t *testing.T) {
 	t.Parallel()
 
-	current := map[identifier.Identifier][]internalStore.InverseRelation{}
-	parent := map[identifier.Identifier][]internalStore.InverseRelation{}
+	current := map[identifier.Identifier][]store.InverseRelation{}
+	parent := map[identifier.Identifier][]store.InverseRelation{}
 
 	added, removed := diffOutgoingInverseRelations(current, parent)
 	assert.Empty(t, added)
@@ -6710,10 +6710,10 @@ func TestDiffOutgoingInverseRelationsNewClaim(t *testing.T) {
 	claim1 := identifier.New()
 	prop1 := identifier.New()
 
-	current := map[identifier.Identifier][]internalStore.InverseRelation{
+	current := map[identifier.Identifier][]store.InverseRelation{
 		targetB: {newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence)},
 	}
-	parent := map[identifier.Identifier][]internalStore.InverseRelation{}
+	parent := map[identifier.Identifier][]store.InverseRelation{}
 
 	added, removed := diffOutgoingInverseRelations(current, parent)
 
@@ -6730,8 +6730,8 @@ func TestDiffOutgoingInverseRelationsRemovedClaim(t *testing.T) {
 	claim1 := identifier.New()
 	prop1 := identifier.New()
 
-	current := map[identifier.Identifier][]internalStore.InverseRelation{}
-	parent := map[identifier.Identifier][]internalStore.InverseRelation{
+	current := map[identifier.Identifier][]store.InverseRelation{}
+	parent := map[identifier.Identifier][]store.InverseRelation{
 		targetB: {newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence)},
 	}
 
@@ -6751,8 +6751,8 @@ func TestDiffOutgoingInverseRelationsUnchanged(t *testing.T) {
 	prop1 := identifier.New()
 
 	ir := newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence)
-	current := map[identifier.Identifier][]internalStore.InverseRelation{targetB: {ir}}
-	parent := map[identifier.Identifier][]internalStore.InverseRelation{targetB: {ir}}
+	current := map[identifier.Identifier][]store.InverseRelation{targetB: {ir}}
+	parent := map[identifier.Identifier][]store.InverseRelation{targetB: {ir}}
 
 	added, removed := diffOutgoingInverseRelations(current, parent)
 
@@ -6771,10 +6771,10 @@ func TestDiffOutgoingInverseRelationsChangedTarget(t *testing.T) {
 	prop1 := identifier.New()
 
 	// Parent had A -> B, current has A -> C (different claim IDs because the claim was replaced).
-	parent := map[identifier.Identifier][]internalStore.InverseRelation{
+	parent := map[identifier.Identifier][]store.InverseRelation{
 		targetB: {newIR(claimOld, docA, prop1, prop1, targetB, document.HighConfidence)},
 	}
-	current := map[identifier.Identifier][]internalStore.InverseRelation{
+	current := map[identifier.Identifier][]store.InverseRelation{
 		targetC: {newIR(claimNew, docA, prop1, prop1, targetC, document.HighConfidence)},
 	}
 
@@ -6800,13 +6800,13 @@ func TestDiffOutgoingInverseRelationsMultipleParents(t *testing.T) {
 	prop1 := identifier.New()
 
 	// Two parents contributed claims, current keeps claim1 and adds claimNew but drops claim2.
-	parent := map[identifier.Identifier][]internalStore.InverseRelation{
+	parent := map[identifier.Identifier][]store.InverseRelation{
 		targetB: {
 			newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence),
 			newIR(claim2, docA, prop1, prop1, targetB, document.HighConfidence),
 		},
 	}
-	current := map[identifier.Identifier][]internalStore.InverseRelation{
+	current := map[identifier.Identifier][]store.InverseRelation{
 		targetB: {
 			newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence),
 			newIR(claimNew, docA, prop1, prop1, targetB, document.HighConfidence),
@@ -6832,10 +6832,10 @@ func TestDiffOutgoingInverseRelationsSameClaimChangedTarget(t *testing.T) {
 	prop1 := identifier.New()
 
 	// Same claim ID, but target changed from B to C.
-	parent := map[identifier.Identifier][]internalStore.InverseRelation{
+	parent := map[identifier.Identifier][]store.InverseRelation{
 		targetB: {newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence)},
 	}
-	current := map[identifier.Identifier][]internalStore.InverseRelation{
+	current := map[identifier.Identifier][]store.InverseRelation{
 		targetC: {newIR(claim1, docA, prop1, prop1, targetC, document.HighConfidence)},
 	}
 
@@ -6861,10 +6861,10 @@ func TestDiffOutgoingInverseRelationsSameClaimChangedProp(t *testing.T) {
 	prop2 := identifier.New()
 
 	// Same claim ID and target, but property changed.
-	parent := map[identifier.Identifier][]internalStore.InverseRelation{
+	parent := map[identifier.Identifier][]store.InverseRelation{
 		targetB: {newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence)},
 	}
-	current := map[identifier.Identifier][]internalStore.InverseRelation{
+	current := map[identifier.Identifier][]store.InverseRelation{
 		targetB: {newIR(claim1, docA, prop2, prop2, targetB, document.HighConfidence)},
 	}
 
@@ -6887,10 +6887,10 @@ func TestDiffOutgoingInverseRelationsSameClaimChangedConfidence(t *testing.T) {
 	prop1 := identifier.New()
 
 	// Same claim ID, target, and prop, but confidence changed.
-	parent := map[identifier.Identifier][]internalStore.InverseRelation{
+	parent := map[identifier.Identifier][]store.InverseRelation{
 		targetB: {newIR(claim1, docA, prop1, prop1, targetB, document.HighConfidence)},
 	}
-	current := map[identifier.Identifier][]internalStore.InverseRelation{
+	current := map[identifier.Identifier][]store.InverseRelation{
 		targetB: {newIR(claim1, docA, prop1, prop1, targetB, document.LowConfidence)},
 	}
 

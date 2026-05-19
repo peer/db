@@ -10,13 +10,13 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
-	internalStore "gitlab.com/peerdb/peerdb/internal/store"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 // newIR creates an InverseRelation with the given fields.
-func newIR(claim, source, sourceProp, targetProp, target identifier.Identifier) internalStore.InverseRelation {
-	return internalStore.InverseRelation{
-		InverseRelationKey: internalStore.InverseRelationKey{Claim: claim, Source: source, TargetProp: targetProp},
+func newIR(claim, source, sourceProp, targetProp, target identifier.Identifier) store.InverseRelation {
+	return store.InverseRelation{
+		InverseRelationKey: store.InverseRelationKey{Claim: claim, Source: source, TargetProp: targetProp},
 		SourceProp:         sourceProp,
 		Target:             target,
 		Confidence:         document.HighConfidence,
@@ -24,7 +24,7 @@ func newIR(claim, source, sourceProp, targetProp, target identifier.Identifier) 
 }
 
 // newIRNew creates an InverseRelation with random IDs for fields that don't matter in the test.
-func newIRNew() internalStore.InverseRelation {
+func newIRNew() store.InverseRelation {
 	p := identifier.New()
 	return newIR(identifier.New(), identifier.New(), p, p, identifier.Identifier{})
 }
@@ -36,8 +36,8 @@ func TestAddAppendsNew(t *testing.T) {
 	claim1 := identifier.New()
 	prop1 := identifier.New()
 
-	m := &internalStore.DocumentMetadata{}
-	m.AddInverseRelations([]internalStore.InverseRelation{
+	m := &store.DocumentMetadata{}
+	m.AddInverseRelations([]store.InverseRelation{
 		newIR(claim1, sourceA, prop1, prop1, identifier.Identifier{}),
 	})
 
@@ -55,13 +55,13 @@ func TestAddAppendsToExisting(t *testing.T) {
 	propA := identifier.New()
 	propB := identifier.New()
 
-	m := &internalStore.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []internalStore.InverseRelation{
+	m := &store.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []store.InverseRelation{
 			newIR(claimA, sourceA, propA, propA, identifier.Identifier{}),
 		},
 	}
 
-	m.AddInverseRelations([]internalStore.InverseRelation{
+	m.AddInverseRelations([]store.InverseRelation{
 		newIR(claimB, sourceB, propB, propB, identifier.Identifier{}),
 	})
 
@@ -73,14 +73,14 @@ func TestAddAppendsToExisting(t *testing.T) {
 func TestAddEmpty(t *testing.T) {
 	t.Parallel()
 
-	m := &internalStore.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []internalStore.InverseRelation{newIRNew()},
+	m := &store.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []store.InverseRelation{newIRNew()},
 	}
 
 	m.AddInverseRelations(nil)
 	assert.Len(t, m.InverseRelations, 1)
 
-	m.AddInverseRelations([]internalStore.InverseRelation{})
+	m.AddInverseRelations([]store.InverseRelation{})
 	assert.Len(t, m.InverseRelations, 1)
 }
 
@@ -93,12 +93,12 @@ func TestAddSkipsDuplicateClaimID(t *testing.T) {
 
 	ir := newIR(claim1, sourceA, prop1, prop1, identifier.Identifier{})
 
-	m := &internalStore.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []internalStore.InverseRelation{ir},
+	m := &store.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []store.InverseRelation{ir},
 	}
 
 	// Adding the same claim again should be a no-op.
-	m.AddInverseRelations([]internalStore.InverseRelation{ir})
+	m.AddInverseRelations([]store.InverseRelation{ir})
 
 	assert.Len(t, m.InverseRelations, 1)
 }
@@ -111,9 +111,9 @@ func TestAddIdempotentOnRetry(t *testing.T) {
 	claim2 := identifier.New()
 	prop1 := identifier.New()
 
-	m := &internalStore.DocumentMetadata{}
+	m := &store.DocumentMetadata{}
 
-	relations := []internalStore.InverseRelation{
+	relations := []store.InverseRelation{
 		newIR(claim1, sourceA, prop1, prop1, identifier.Identifier{}),
 		newIR(claim2, sourceA, prop1, prop1, identifier.Identifier{}),
 	}
@@ -138,12 +138,12 @@ func TestAddMixedNewAndExisting(t *testing.T) {
 	ir1 := newIR(claim1, sourceA, prop1, prop1, identifier.Identifier{})
 	ir2 := newIR(claim2, sourceA, prop1, prop1, identifier.Identifier{})
 
-	m := &internalStore.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []internalStore.InverseRelation{ir1},
+	m := &store.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []store.InverseRelation{ir1},
 	}
 
 	// Add a mix of existing and new claims.
-	m.AddInverseRelations([]internalStore.InverseRelation{ir1, ir2})
+	m.AddInverseRelations([]store.InverseRelation{ir1, ir2})
 
 	// Only the new claim should be added.
 	assert.Len(t, m.InverseRelations, 2)
@@ -162,12 +162,12 @@ func TestRemoveByClaimID(t *testing.T) {
 	irA := newIR(claimA, sourceA, propA, propA, identifier.Identifier{})
 	irB := newIR(claimB, sourceA, propA, propA, identifier.Identifier{})
 
-	m := &internalStore.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []internalStore.InverseRelation{irA, irB},
+	m := &store.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []store.InverseRelation{irA, irB},
 	}
 
 	// Remove only claimA.
-	m.RemoveInverseRelations([]internalStore.InverseRelation{irA})
+	m.RemoveInverseRelations([]store.InverseRelation{irA})
 
 	assert.Len(t, m.InverseRelations, 1)
 	assert.Equal(t, claimB, m.InverseRelations[0].Claim)
@@ -182,11 +182,11 @@ func TestRemoveAllSetsNil(t *testing.T) {
 
 	ir := newIR(claimA, sourceA, propA, propA, identifier.Identifier{})
 
-	m := &internalStore.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []internalStore.InverseRelation{ir},
+	m := &store.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []store.InverseRelation{ir},
 	}
 
-	m.RemoveInverseRelations([]internalStore.InverseRelation{ir})
+	m.RemoveInverseRelations([]store.InverseRelation{ir})
 
 	assert.Nil(t, m.InverseRelations)
 }
@@ -194,8 +194,8 @@ func TestRemoveAllSetsNil(t *testing.T) {
 func TestRemoveFromEmpty(t *testing.T) {
 	t.Parallel()
 
-	m := &internalStore.DocumentMetadata{}
-	m.RemoveInverseRelations([]internalStore.InverseRelation{newIRNew()})
+	m := &store.DocumentMetadata{}
+	m.RemoveInverseRelations([]store.InverseRelation{newIRNew()})
 
 	assert.Nil(t, m.InverseRelations)
 }
@@ -206,14 +206,14 @@ func TestRemoveEmpty(t *testing.T) {
 	claimA := identifier.New()
 	ir := newIR(claimA, identifier.New(), identifier.New(), identifier.New(), identifier.Identifier{})
 
-	m := &internalStore.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []internalStore.InverseRelation{ir},
+	m := &store.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []store.InverseRelation{ir},
 	}
 
 	m.RemoveInverseRelations(nil)
 	assert.Len(t, m.InverseRelations, 1)
 
-	m.RemoveInverseRelations([]internalStore.InverseRelation{})
+	m.RemoveInverseRelations([]store.InverseRelation{})
 	assert.Len(t, m.InverseRelations, 1)
 }
 
@@ -230,12 +230,12 @@ func TestRemovePreservesOtherSources(t *testing.T) {
 	irA := newIR(claimA, sourceA, propA, propA, identifier.Identifier{})
 	irB := newIR(claimB, sourceB, propB, propB, identifier.Identifier{})
 
-	m := &internalStore.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []internalStore.InverseRelation{irA, irB},
+	m := &store.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []store.InverseRelation{irA, irB},
 	}
 
 	// Remove only sourceA's claim.
-	m.RemoveInverseRelations([]internalStore.InverseRelation{irA})
+	m.RemoveInverseRelations([]store.InverseRelation{irA})
 
 	assert.Len(t, m.InverseRelations, 1)
 	assert.Equal(t, claimB, m.InverseRelations[0].Claim)
@@ -253,19 +253,19 @@ func TestAddThenRemove(t *testing.T) {
 	irA := newIR(claimA, sourceA, propA, propA, identifier.Identifier{})
 	irB := newIR(claimB, sourceA, propA, propA, identifier.Identifier{})
 
-	m := &internalStore.DocumentMetadata{}
+	m := &store.DocumentMetadata{}
 
 	// Add two claims.
-	m.AddInverseRelations([]internalStore.InverseRelation{irA, irB})
+	m.AddInverseRelations([]store.InverseRelation{irA, irB})
 	assert.Len(t, m.InverseRelations, 2)
 
 	// Remove one.
-	m.RemoveInverseRelations([]internalStore.InverseRelation{irA})
+	m.RemoveInverseRelations([]store.InverseRelation{irA})
 	assert.Len(t, m.InverseRelations, 1)
 	assert.Equal(t, claimB, m.InverseRelations[0].Claim)
 
 	// Remove the other.
-	m.RemoveInverseRelations([]internalStore.InverseRelation{irB})
+	m.RemoveInverseRelations([]store.InverseRelation{irB})
 	assert.Nil(t, m.InverseRelations)
 }
 
@@ -279,17 +279,17 @@ func TestAddSameClaimIDDifferentSources(t *testing.T) {
 	targetX := identifier.New()
 	prop1 := identifier.New()
 
-	m := &internalStore.DocumentMetadata{}
+	m := &store.DocumentMetadata{}
 
 	// Add from source A.
-	m.AddInverseRelations([]internalStore.InverseRelation{
+	m.AddInverseRelations([]store.InverseRelation{
 		newIR(sharedClaimID, sourceA, prop1, prop1, targetX),
 	})
 	assert.Len(t, m.InverseRelations, 1)
 
 	// Add from source B with the same claim ID but different source.
 	// Should not be deduplicated because the (source, claim) pair differs.
-	m.AddInverseRelations([]internalStore.InverseRelation{
+	m.AddInverseRelations([]store.InverseRelation{
 		newIR(sharedClaimID, sourceB, prop1, prop1, targetX),
 	})
 	assert.Len(t, m.InverseRelations, 2)
@@ -303,15 +303,15 @@ func TestAddSameClaimIDSameSourceIdempotent(t *testing.T) {
 	claim1 := identifier.New()
 	prop1 := identifier.New()
 
-	m := &internalStore.DocumentMetadata{}
+	m := &store.DocumentMetadata{}
 
 	ir := newIR(claim1, sourceA, prop1, prop1, targetX)
 
-	m.AddInverseRelations([]internalStore.InverseRelation{ir})
+	m.AddInverseRelations([]store.InverseRelation{ir})
 	assert.Len(t, m.InverseRelations, 1)
 
 	// Adding the exact same relation again should be deduplicated.
-	m.AddInverseRelations([]internalStore.InverseRelation{ir})
+	m.AddInverseRelations([]store.InverseRelation{ir})
 	assert.Len(t, m.InverseRelations, 1)
 }
 
@@ -319,7 +319,7 @@ func TestTimeMarshalJSON(t *testing.T) {
 	t.Parallel()
 
 	ts := time.Date(2024, 3, 15, 10, 30, 45, 123000000, time.UTC)
-	st := internalStore.Time(ts)
+	st := store.Time(ts)
 
 	b, err := x.MarshalWithoutEscapeHTML(st)
 	require.NoError(t, err)
@@ -330,7 +330,7 @@ func TestTimeMarshalJSONZeroMillis(t *testing.T) {
 	t.Parallel()
 
 	ts := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
-	st := internalStore.Time(ts)
+	st := store.Time(ts)
 
 	b, err := x.MarshalWithoutEscapeHTML(st)
 	require.NoError(t, err)
@@ -340,7 +340,7 @@ func TestTimeMarshalJSONZeroMillis(t *testing.T) {
 func TestTimeUnmarshalJSON(t *testing.T) {
 	t.Parallel()
 
-	var st internalStore.Time
+	var st store.Time
 	err := x.UnmarshalWithoutUnknownFields([]byte(`"2024-03-15T10:30:45.123Z"`), &st)
 	require.NoError(t, err)
 
@@ -351,7 +351,7 @@ func TestTimeUnmarshalJSON(t *testing.T) {
 func TestTimeUnmarshalJSONNull(t *testing.T) {
 	t.Parallel()
 
-	var st internalStore.Time
+	var st store.Time
 	err := x.UnmarshalWithoutUnknownFields([]byte(`null`), &st)
 	require.NoError(t, err)
 	assert.True(t, time.Time(st).IsZero())
@@ -360,7 +360,7 @@ func TestTimeUnmarshalJSONNull(t *testing.T) {
 func TestTimeUnmarshalJSONInvalid(t *testing.T) {
 	t.Parallel()
 
-	var st internalStore.Time
+	var st store.Time
 	err := x.UnmarshalWithoutUnknownFields([]byte(`12345`), &st)
 	assert.EqualError(t, err, "Time.UnmarshalJSON: input is not a JSON string")
 }
@@ -368,7 +368,7 @@ func TestTimeUnmarshalJSONInvalid(t *testing.T) {
 func TestTimeUnmarshalJSONBadFormat(t *testing.T) {
 	t.Parallel()
 
-	var st internalStore.Time
+	var st store.Time
 	err := x.UnmarshalWithoutUnknownFields([]byte(`"not-a-date"`), &st)
 	assert.EqualError(t, err, `parsing time "not-a-date" as "2006-01-02T15:04:05.000Z07:00": cannot parse "not-a-date" as "2006"`)
 }
@@ -377,12 +377,12 @@ func TestTimeMarshalUnmarshalRoundTrip(t *testing.T) {
 	t.Parallel()
 
 	ts := time.Date(2025, 12, 31, 23, 59, 59, 999000000, time.UTC)
-	original := internalStore.Time(ts)
+	original := store.Time(ts)
 
 	b, err := x.MarshalWithoutEscapeHTML(original)
 	require.NoError(t, err)
 
-	var decoded internalStore.Time
+	var decoded store.Time
 	err = x.UnmarshalWithoutUnknownFields(b, &decoded)
 	require.NoError(t, err)
 
@@ -394,7 +394,7 @@ func TestTimeMarshalWithTimezone(t *testing.T) {
 
 	loc := time.FixedZone("EST", -5*60*60)
 	ts := time.Date(2024, 6, 15, 14, 30, 0, 0, loc)
-	st := internalStore.Time(ts)
+	st := store.Time(ts)
 
 	b, err := x.MarshalWithoutEscapeHTML(st)
 	require.NoError(t, err)
@@ -404,8 +404,8 @@ func TestTimeMarshalWithTimezone(t *testing.T) {
 func TestCarryOverNil(t *testing.T) {
 	t.Parallel()
 
-	m := &internalStore.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []internalStore.InverseRelation{newIRNew()},
+	m := &store.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []store.InverseRelation{newIRNew()},
 	}
 
 	m.CarryOver(nil)
@@ -421,13 +421,13 @@ func TestCarryOverCopiesInverseRelations(t *testing.T) {
 	source1 := identifier.New()
 	prop1 := identifier.New()
 
-	old := &internalStore.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []internalStore.InverseRelation{
+	old := &store.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []store.InverseRelation{
 			newIR(claim1, source1, prop1, prop1, identifier.Identifier{}),
 		},
 	}
 
-	m := &internalStore.DocumentMetadata{}
+	m := &store.DocumentMetadata{}
 	m.CarryOver(old)
 
 	require.Len(t, m.InverseRelations, 1)
@@ -439,13 +439,13 @@ func TestCarryOverReplacesExisting(t *testing.T) {
 	t.Parallel()
 
 	oldRelation := newIRNew()
-	old := &internalStore.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []internalStore.InverseRelation{oldRelation},
+	old := &store.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []store.InverseRelation{oldRelation},
 	}
 
 	newRelation := newIRNew()
-	m := &internalStore.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []internalStore.InverseRelation{newRelation},
+	m := &store.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []store.InverseRelation{newRelation},
 	}
 
 	m.CarryOver(old)
@@ -458,10 +458,10 @@ func TestCarryOverReplacesExisting(t *testing.T) {
 func TestCarryOverEmptyOld(t *testing.T) {
 	t.Parallel()
 
-	old := &internalStore.DocumentMetadata{}
+	old := &store.DocumentMetadata{}
 
-	m := &internalStore.DocumentMetadata{ //nolint:exhaustruct
-		InverseRelations: []internalStore.InverseRelation{newIRNew()},
+	m := &store.DocumentMetadata{ //nolint:exhaustruct
+		InverseRelations: []store.InverseRelation{newIRNew()},
 	}
 
 	m.CarryOver(old)

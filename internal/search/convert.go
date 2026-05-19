@@ -16,7 +16,6 @@ import (
 
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
-	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -1069,7 +1068,7 @@ func (v *convertVisitor) VisitUnknown(claim *document.UnknownClaim) (document.Vi
 // inverseRelations contains reference claims from other documents that point to this document.
 // For each inverse relation, a synthetic reverse reference claim is added to the search document.
 func (c *Converter) FromDocument(
-	ctx context.Context, doc *document.D, inverseRelations []internalStore.InverseRelation,
+	ctx context.Context, doc *document.D, inverseRelations []store.InverseRelation,
 ) (*Document, errors.E) {
 	var errE errors.E
 	for i, hook := range c.Hooks {
@@ -1124,7 +1123,7 @@ func (c *Converter) FromDocument(
 //
 // It uses InverseRelationKey to avoid collisions between claims from
 // different source documents that might share the same claim ID.
-func inverseReferenceClaimID(base []string, irKey internalStore.InverseRelationKey) identifier.Identifier {
+func inverseReferenceClaimID(base []string, irKey store.InverseRelationKey) identifier.Identifier {
 	base = slices.Clone(base)
 	base = append(base, "INVERSE_RELATION", irKey.Source.String(), irKey.Claim.String(), irKey.TargetProp.String())
 	return identifier.From(base...)
@@ -1140,7 +1139,7 @@ type inverseRelationsVisitor struct {
 	// path tracks the current nesting of claim property IDs.
 	path []identifier.Identifier
 	// result maps target document ID to collected inverse relations.
-	result map[identifier.Identifier][]internalStore.InverseRelation
+	result map[identifier.Identifier][]store.InverseRelation
 }
 
 var _ document.Visitor = (*inverseRelationsVisitor)(nil)
@@ -1232,8 +1231,8 @@ func (v *inverseRelationsVisitor) VisitReference(claim *document.ReferenceClaim)
 		SourceProp: claim.Prop.ID,
 	}
 	if targetProp, ok := v.converter.fieldInverseProperties[key]; ok {
-		v.result[claim.To.ID] = append(v.result[claim.To.ID], internalStore.InverseRelation{
-			InverseRelationKey: internalStore.InverseRelationKey{
+		v.result[claim.To.ID] = append(v.result[claim.To.ID], store.InverseRelation{
+			InverseRelationKey: store.InverseRelationKey{
 				Claim:      claim.ID,
 				Source:     v.docID,
 				TargetProp: targetProp,
@@ -1245,8 +1244,8 @@ func (v *inverseRelationsVisitor) VisitReference(claim *document.ReferenceClaim)
 	} else {
 		// Fall back to property-level inverse properties.
 		for _, inversePropID := range v.converter.inverseProperties[claim.Prop.ID] {
-			v.result[claim.To.ID] = append(v.result[claim.To.ID], internalStore.InverseRelation{
-				InverseRelationKey: internalStore.InverseRelationKey{
+			v.result[claim.To.ID] = append(v.result[claim.To.ID], store.InverseRelation{
+				InverseRelationKey: store.InverseRelationKey{
 					Claim:      claim.ID,
 					Source:     v.docID,
 					TargetProp: inversePropID,
@@ -1293,12 +1292,12 @@ func (v *inverseRelationsVisitor) VisitUnknown(claim *document.UnknownClaim) (do
 // the inverse property from field-level INVERSE_PROPERTY (taking precedence) or
 // property-level INVERSE_PROPERTY_OF. Only reference claims with a resolved inverse
 // property produce InverseRelation entries. Returns a map keyed by target document ID.
-func (c *Converter) OutgoingInverseRelations(doc *document.D) map[identifier.Identifier][]internalStore.InverseRelation {
+func (c *Converter) OutgoingInverseRelations(doc *document.D) map[identifier.Identifier][]store.InverseRelation {
 	v := &inverseRelationsVisitor{
 		converter: c,
 		docID:     doc.ID,
 		path:      nil,
-		result:    map[identifier.Identifier][]internalStore.InverseRelation{},
+		result:    map[identifier.Identifier][]store.InverseRelation{},
 	}
 	// Visit cannot return an error from inverseRelationsVisitor.
 	_ = doc.Visit(v)

@@ -99,7 +99,7 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 // retrieves the document from the store, and returns the raw JSON data and metadata.
 func (s *Service) documentGetData(
 	w http.ResponseWriter, req *http.Request, params waf.Params,
-) (json.RawMessage, *internalStore.DocumentMetadata, store.Version, bool) {
+) (json.RawMessage, *store.DocumentMetadata, store.Version, bool) {
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
 
@@ -125,7 +125,7 @@ func (s *Service) documentGetData(
 	site := waf.MustGetSite[*Site](req.Context())
 
 	var dataJSON json.RawMessage
-	var metadata *internalStore.DocumentMetadata
+	var metadata *store.DocumentMetadata
 	var version store.Version
 
 	m := metrics.Duration(internalStore.MetricDatabase).Start()

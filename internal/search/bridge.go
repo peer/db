@@ -149,8 +149,8 @@ func (w *worker) getBridge(schema, prefix string) (bridgeJob, errors.E) { //noli
 type Bridge struct {
 	// Store is the store to read documents from.
 	Store *store.Store[
-		json.RawMessage, *internalStore.DocumentMetadata,
-		*internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata,
+		json.RawMessage, *store.DocumentMetadata,
+		*store.NoMetadata, *store.NoMetadata, *store.CommitMetadata,
 		document.Changes,
 	]
 
@@ -770,9 +770,9 @@ func (b *Bridge) run(ctx context.Context) errors.E {
 func (b *Bridge) indexCommit(
 	ctx context.Context,
 	committed store.CommittedChangesets[
-		json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, document.Changes,
+		json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes,
 	],
-) (map[identifier.Identifier][]internalStore.InverseRelation, map[identifier.Identifier][]internalStore.InverseRelation, errors.E) {
+) (map[identifier.Identifier][]store.InverseRelation, map[identifier.Identifier][]store.InverseRelation, errors.E) {
 	// Reconstruct changesets with the store so we can query them.
 	c, errE := committed.WithStore(ctx, b.Store)
 	if errE != nil {
@@ -785,8 +785,8 @@ func (b *Bridge) indexCommit(
 	bulkService := b.ESClient.Bulk()
 
 	// Collect inverse relations from all processed documents.
-	addedInverseRelations := map[identifier.Identifier][]internalStore.InverseRelation{}
-	removedInverseRelations := map[identifier.Identifier][]internalStore.InverseRelation{}
+	addedInverseRelations := map[identifier.Identifier][]store.InverseRelation{}
+	removedInverseRelations := map[identifier.Identifier][]store.InverseRelation{}
 
 	debugDocs := map[string]*Document{}
 
@@ -804,11 +804,11 @@ func (b *Bridge) indexCommit(
 				// Fetch document at the change version.
 				deleted := false
 				data, metadata, _, parentChangesets, errE := b.Store.Get(ctx, change.ID, change.Version)
-				var currentOutgoing map[identifier.Identifier][]internalStore.InverseRelation
+				var currentOutgoing map[identifier.Identifier][]store.InverseRelation
 				if errors.Is(errE, store.ErrValueDeleted) {
 					// Deleted at this version: no outgoing relations.
 					deleted = true
-					currentOutgoing = map[identifier.Identifier][]internalStore.InverseRelation{}
+					currentOutgoing = map[identifier.Identifier][]store.InverseRelation{}
 				} else if errE != nil {
 					errors.Details(errE)["seq"] = committed.Seq
 					errors.Details(errE)["view"] = committed.View.Name()
@@ -827,7 +827,7 @@ func (b *Bridge) indexCommit(
 				}
 
 				// Fetch document at parent change versions.
-				parentOutgoing := map[identifier.Identifier][]internalStore.InverseRelation{}
+				parentOutgoing := map[identifier.Identifier][]store.InverseRelation{}
 				for _, pv := range parentChangesets {
 					parentData, _, _, _, errE := b.Store.Get(ctx, change.ID, pv)
 					if errors.Is(errE, store.ErrValueDeleted) {
@@ -943,23 +943,23 @@ func (b *Bridge) indexCommit(
 // removed and added) if any of its fields (target, property, confidence) differ,
 // even if the claim ID stays the same.
 func diffOutgoingInverseRelations(
-	current, parent map[identifier.Identifier][]internalStore.InverseRelation,
-) (map[identifier.Identifier][]internalStore.InverseRelation, map[identifier.Identifier][]internalStore.InverseRelation) {
-	currentSet := map[internalStore.InverseRelation]bool{}
+	current, parent map[identifier.Identifier][]store.InverseRelation,
+) (map[identifier.Identifier][]store.InverseRelation, map[identifier.Identifier][]store.InverseRelation) {
+	currentSet := map[store.InverseRelation]bool{}
 	for _, irs := range current {
 		for _, ir := range irs {
 			currentSet[ir] = true
 		}
 	}
 
-	parentSet := map[internalStore.InverseRelation]bool{}
+	parentSet := map[store.InverseRelation]bool{}
 	for _, irs := range parent {
 		for _, ir := range irs {
 			parentSet[ir] = true
 		}
 	}
 
-	added := map[identifier.Identifier][]internalStore.InverseRelation{}
+	added := map[identifier.Identifier][]store.InverseRelation{}
 	for targetID, irs := range current {
 		for _, ir := range irs {
 			if !parentSet[ir] {
@@ -968,7 +968,7 @@ func diffOutgoingInverseRelations(
 		}
 	}
 
-	removed := map[identifier.Identifier][]internalStore.InverseRelation{}
+	removed := map[identifier.Identifier][]store.InverseRelation{}
 	for targetID, irs := range parent {
 		for _, ir := range irs {
 			if !currentSet[ir] {
@@ -982,7 +982,7 @@ func diffOutgoingInverseRelations(
 
 // ConvertDocument unmarshals data into a document.D and calls the converter's
 // FromDocument with inverse relations from metadata.
-func (b *Bridge) ConvertDocument(ctx context.Context, data json.RawMessage, metadata *internalStore.DocumentMetadata) (*Document, errors.E) {
+func (b *Bridge) ConvertDocument(ctx context.Context, data json.RawMessage, metadata *store.DocumentMetadata) (*Document, errors.E) {
 	var doc document.D
 	errE := x.UnmarshalWithoutUnknownFields(data, &doc)
 	if errE != nil {
@@ -992,7 +992,7 @@ func (b *Bridge) ConvertDocument(ctx context.Context, data json.RawMessage, meta
 	return b.converter.Load().FromDocument(ctx, &doc, metadata.InverseRelations)
 }
 
-func (b *Bridge) outgoingInverseRelations(data json.RawMessage) (map[identifier.Identifier][]internalStore.InverseRelation, errors.E) {
+func (b *Bridge) outgoingInverseRelations(data json.RawMessage) (map[identifier.Identifier][]store.InverseRelation, errors.E) {
 	var doc document.D
 	errE := x.UnmarshalWithoutUnknownFields(data, &doc)
 	if errE != nil {
@@ -1016,14 +1016,14 @@ func (b *Bridge) getSeq(ctx context.Context) (int64, errors.E) {
 type preparedUpdate struct {
 	id       identifier.Identifier
 	version  store.Version
-	metadata *internalStore.DocumentMetadata
+	metadata *store.DocumentMetadata
 }
 
 // updateSeq advances the bridge table to seq and updates document metadata with
 // inverse relations, all in a single transaction.
 func (b *Bridge) updateSeq(
 	ctx context.Context, seq int64,
-	addedInverseRelations, removedInverseRelations map[identifier.Identifier][]internalStore.InverseRelation,
+	addedInverseRelations, removedInverseRelations map[identifier.Identifier][]store.InverseRelation,
 ) errors.E {
 	// TODO: How to get MetricDatabaseRetries inside RetryTransaction to be incremented at every loop here?
 	for range internalStore.MaxRetries {

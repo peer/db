@@ -22,15 +22,15 @@ import (
 )
 
 type beginMetadata struct {
-	At        internalStore.Time `json:"at"`
-	Base      []string           `json:"base"`
-	Size      int64              `json:"size"`
-	MediaType string             `json:"mediaType"`
-	Filename  string             `json:"filename,omitempty"`
+	At        store.Time `json:"at"`
+	Base      []string   `json:"base"`
+	Size      int64      `json:"size"`
+	MediaType string     `json:"mediaType"`
+	Filename  string     `json:"filename,omitempty"`
 }
 
 type endMetadata struct {
-	At             internalStore.Time     `json:"at"`
+	At             store.Time             `json:"at"`
 	PrimarySession *identifier.Identifier `json:"primarySession,omitempty"`
 	Discarded      bool                   `json:"discarded,omitempty"`
 }
@@ -55,9 +55,9 @@ type CompleteMetadata struct {
 }
 
 type chunkMetadata struct {
-	At     internalStore.Time `json:"at"`
-	Start  int64              `json:"start"`
-	Length int64              `json:"length"`
+	At     store.Time `json:"at"`
+	Start  int64      `json:"start"`
+	Length int64      `json:"length"`
 }
 
 type chunk struct {
@@ -74,12 +74,12 @@ type chunkPos struct {
 
 // FileMetadata contains metadata about a stored file.
 type FileMetadata struct {
-	At        internalStore.Time `json:"at"`
-	Base      []string           `json:"base"`
-	Size      int64              `json:"size"`
-	MediaType string             `json:"mediaType"`
-	Filename  string             `json:"filename,omitempty"`
-	Etag      string             `json:"etag"`
+	At        store.Time `json:"at"`
+	Base      []string   `json:"base"`
+	Size      int64      `json:"size"`
+	MediaType string     `json:"mediaType"`
+	Filename  string     `json:"filename,omitempty"`
+	Etag      string     `json:"etag"`
 }
 
 // PrimaryCoordinator is an interface enabling uploading files into
@@ -102,7 +102,7 @@ type Storage struct {
 	// upload files into changesets managed by the primary session coordinator.
 	PrimaryCoordinator PrimaryCoordinator
 
-	store       *store.Store[[]byte, *FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, store.None]
+	store       *store.Store[[]byte, *FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None]
 	coordinator *coordinator.Coordinator[[]byte, *chunkMetadata, *beginMetadata, *endMetadata, *completeData, *CompleteMetadata]
 }
 
@@ -114,7 +114,7 @@ func (s *Storage) Init(
 		return errors.New("already initialized")
 	}
 
-	storageStore := &store.Store[[]byte, *FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, store.None]{
+	storageStore := &store.Store[[]byte, *FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None]{
 		Prefix:       s.Prefix,
 		DataType:     "bytea",
 		MetadataType: "jsonb",
@@ -145,7 +145,7 @@ func (s *Storage) Init(
 }
 
 // Store returns the underlying store.Store instance.
-func (s *Storage) Store() *store.Store[[]byte, *FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, store.None] {
+func (s *Storage) Store() *store.Store[[]byte, *FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None] {
 	return s.store
 }
 
@@ -296,7 +296,7 @@ func (s *Storage) completeStorageSessionTx(ctx context.Context, _ pgx.Tx, sessio
 		changesetBase = append(changesetBase, "SESSION", session.String())
 
 		// We do not have to use the "tx" parameter because we access the transaction through ctx.
-		_, errE := s.store.Insert(ctx, id, data.Buffer, data.FileMetadata, &internalStore.CommitMetadata{
+		_, errE := s.store.Insert(ctx, id, data.Buffer, data.FileMetadata, &store.CommitMetadata{
 			Base: changesetBase,
 		})
 		if errE != nil {
@@ -315,7 +315,7 @@ func (s *Storage) completeStorageSessionTx(ctx context.Context, _ pgx.Tx, sessio
 // BeginUploadNew starts a new file upload session.
 func (s *Storage) BeginUploadNew(ctx context.Context, base []string, size int64, mediaType, filename string) (identifier.Identifier, errors.E) {
 	metadata := &beginMetadata{
-		At:        internalStore.Time(time.Now().UTC()),
+		At:        store.Time(time.Now().UTC()),
 		Base:      base,
 		Size:      size,
 		MediaType: mediaType,
@@ -344,7 +344,7 @@ func (s *Storage) UploadChunk(ctx context.Context, session identifier.Identifier
 	}
 
 	metadata := &chunkMetadata{
-		At:     internalStore.Time(time.Now().UTC()),
+		At:     store.Time(time.Now().UTC()),
 		Start:  start,
 		Length: int64(len(chunk)),
 	}
@@ -383,7 +383,7 @@ func (s *Storage) EndUpload(ctx context.Context, session identifier.Identifier, 
 	}
 
 	metadata := &endMetadata{
-		At:             internalStore.Time(time.Now().UTC()),
+		At:             store.Time(time.Now().UTC()),
 		PrimarySession: primarySession,
 		Discarded:      false,
 	}
@@ -464,7 +464,7 @@ func (s *Storage) validateChunks(ctx context.Context, session identifier.Identif
 // DiscardUpload discards an upload session without saving the file.
 func (s *Storage) DiscardUpload(ctx context.Context, session identifier.Identifier) errors.E {
 	metadata := &endMetadata{
-		At:             internalStore.Time(time.Now().UTC()),
+		At:             store.Time(time.Now().UTC()),
 		PrimarySession: nil,
 		Discarded:      true,
 	}

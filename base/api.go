@@ -12,7 +12,6 @@ import (
 
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
-	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -24,7 +23,7 @@ import (
 // contains this revision number), and parent changesets of the document at this version.
 func (b *B) GetDocument(
 	ctx context.Context, id identifier.Identifier, version store.Version,
-) (json.RawMessage, *internalStore.DocumentMetadata, store.Version, []store.Version, errors.E) {
+) (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
 	for _, hook := range b.DocumentPreHooks {
 		errE := hook(ctx, id, &version)
 		if errE != nil {
@@ -44,7 +43,7 @@ func (b *B) GetDocument(
 // changesets of the document at this version.
 func (b *B) GetDocumentLatest(
 	ctx context.Context, id identifier.Identifier,
-) (json.RawMessage, *internalStore.DocumentMetadata, store.Version, []store.Version, errors.E) {
+) (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
 	for _, hook := range b.DocumentPreHooks {
 		errE := hook(ctx, id, nil)
 		if errE != nil {
@@ -62,7 +61,7 @@ func (b *B) GetDocumentLatest(
 //
 // It returns also document metadata, the version of the document, and parent
 // changesets of the document at this version.
-func (b *B) GetDocumentLatestDoc(ctx context.Context, id identifier.Identifier) (*document.D, *internalStore.DocumentMetadata, store.Version, []store.Version, errors.E) {
+func (b *B) GetDocumentLatestDoc(ctx context.Context, id identifier.Identifier) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
 	for _, hook := range b.DocumentPreHooks {
 		errE := hook(ctx, id, nil)
 		if errE != nil {
@@ -104,7 +103,7 @@ func (b *B) GetDocumentChanges(
 // but other returned values are valid as well..
 func (b *B) GetDocumentFromChangeset(
 	ctx context.Context, changesetID, id identifier.Identifier, revision int64,
-) (json.RawMessage, *internalStore.DocumentMetadata, store.Version, []store.Version, errors.E) {
+) (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
 	changeset, errE := b.documents.Changeset(ctx, changesetID)
 	if errE != nil {
 		return nil, nil, store.Version{}, nil, errE
@@ -158,10 +157,10 @@ func (b *B) InsertDocument(ctx context.Context, doc *document.D) errors.E {
 	// (validate above validated the link between ID and Base).
 	changesetBase := slices.Clone(doc.Base)
 	changesetBase = append(changesetBase, "CHANGESET", "FIRST")
-	_, errE = b.documents.Insert(ctx, doc.ID, documentJSON, &internalStore.DocumentMetadata{
-		At:               internalStore.Time(time.Now().UTC()),
+	_, errE = b.documents.Insert(ctx, doc.ID, documentJSON, &store.DocumentMetadata{
+		At:               store.Time(time.Now().UTC()),
 		InverseRelations: nil,
-	}, &internalStore.CommitMetadata{
+	}, &store.CommitMetadata{
 		Base: changesetBase,
 	})
 	return errE
@@ -186,7 +185,7 @@ func (b *B) BeginEditDocumentLatest(ctx context.Context, id identifier.Identifie
 	}
 
 	session, errE := b.coordinator.Begin(ctx, &DocumentBeginMetadata{
-		At:         internalStore.Time(time.Now().UTC()),
+		At:         store.Time(time.Now().UTC()),
 		DocumentID: id,
 		Base:       doc.Base,
 		Version: store.Version{
@@ -222,7 +221,7 @@ func (b *B) AppendDocumentChange(ctx context.Context, session identifier.Identif
 	}
 
 	return b.coordinator.Append(ctx, session, data, &documentChangeMetadata{
-		At: internalStore.Time(time.Now().UTC()),
+		At: store.Time(time.Now().UTC()),
 	}, &seqNo)
 }
 
@@ -240,7 +239,7 @@ func (b *B) GetDocumentChange(ctx context.Context, session identifier.Identifier
 // EndEditDocument ends an edit session, committing or discarding its changes.
 func (b *B) EndEditDocument(ctx context.Context, session identifier.Identifier, discard bool) errors.E {
 	return b.coordinator.End(ctx, session, &documentEndMetadata{
-		At:        internalStore.Time(time.Now().UTC()),
+		At:        store.Time(time.Now().UTC()),
 		Discarded: discard,
 	})
 }

@@ -13,13 +13,12 @@ import (
 
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
-	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
 // DocumentBeginMetadata contains metadata captured at the beginning of document edit session.
 type DocumentBeginMetadata struct {
-	At         internalStore.Time    `json:"at"`
+	At         store.Time            `json:"at"`
 	DocumentID identifier.Identifier `json:"documentId"`
 	Base       []string              `json:"base"`
 	Version    store.Version         `json:"version"`
@@ -27,8 +26,8 @@ type DocumentBeginMetadata struct {
 
 // documentEndMetadata contains metadata captured at the end of document edit session.
 type documentEndMetadata struct {
-	At        internalStore.Time `json:"at"`
-	Discarded bool               `json:"discarded,omitempty"`
+	At        store.Time `json:"at"`
+	Discarded bool       `json:"discarded,omitempty"`
 }
 
 // documentCompleteData contains JSON serialized document with metadata to be
@@ -43,7 +42,7 @@ type documentCompleteData struct {
 	ParentVersion store.Version
 	// Metadata is the new metadata for the updated document, with system-managed
 	// fields carried over from the parent version.
-	Metadata *internalStore.DocumentMetadata
+	Metadata *store.DocumentMetadata
 }
 
 // DocumentCompleteMetadata contains metadata captured when document edit session completes.
@@ -58,7 +57,7 @@ type DocumentCompleteMetadata struct {
 
 // documentChangeMetadata contains metadata about document changes.
 type documentChangeMetadata struct {
-	At internalStore.Time `json:"at"`
+	At store.Time `json:"at"`
 }
 
 func (b *B) completeDocumentSession(ctx context.Context, session identifier.Identifier) (*documentCompleteData, errors.E) {
@@ -149,7 +148,7 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 	}
 
 	// Compute new metadata, carrying over system-managed fields from the parent version.
-	newMetadata := &internalStore.DocumentMetadata{
+	newMetadata := &store.DocumentMetadata{
 		At:               endMetadata.At,
 		InverseRelations: nil,
 	}
@@ -203,7 +202,7 @@ func (b *B) completeDocumentSessionTx(
 	// We do not have to use the "tx" parameter because we access the transaction through ctx.
 	// We use the parent version's changeset so the update is based on the same version (with actual revision)
 	// at which metadata was fetched and changes were validated in completeDocumentSession.
-	commitMetadata := &internalStore.CommitMetadata{
+	commitMetadata := &store.CommitMetadata{
 		Base: changesetBase,
 	}
 	version, errE := b.documents.Update(

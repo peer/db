@@ -13,7 +13,6 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
-	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -32,15 +31,15 @@ func (b *B) InsertOrReplaceDocument(ctx context.Context, doc *document.D) errors
 		return errE
 	}
 
-	metadata := &internalStore.DocumentMetadata{
-		At:               internalStore.Time(time.Now().UTC()),
+	metadata := &store.DocumentMetadata{
+		At:               store.Time(time.Now().UTC()),
 		InverseRelations: nil,
 	}
 
 	// Each doc.Id has to be unique, so each doc.Base is unique as well.
 	changesetBase := slices.Clone(doc.Base)
 	changesetBase = append(changesetBase, "CHANGESET", "FIRST")
-	_, errE = b.documents.Insert(ctx, doc.ID, data, metadata, &internalStore.CommitMetadata{
+	_, errE = b.documents.Insert(ctx, doc.ID, data, metadata, &store.CommitMetadata{
 		Base: changesetBase,
 	})
 	// If commit with ID from changesetBase already exists, this means that also the doc
@@ -54,7 +53,7 @@ func (b *B) InsertOrReplaceDocument(ctx context.Context, doc *document.D) errors
 		changesetBase := slices.Clone(doc.Base)
 		changesetBase = append(changesetBase, "CHANGESET", "REPLACE", version.Changeset.String())
 		// TODO: What to do once we have document melding and target document got melded into some other document?
-		_, errE = b.documents.Replace(ctx, doc.ID, version.Changeset, data, metadata, &internalStore.CommitMetadata{
+		_, errE = b.documents.Replace(ctx, doc.ID, version.Changeset, data, metadata, &store.CommitMetadata{
 			Base: changesetBase,
 		})
 		return errE
@@ -76,7 +75,7 @@ func (b *B) InsertOrReplaceFile(ctx context.Context, base []string, data []byte,
 	}
 
 	metadata := &storage.FileMetadata{
-		At:        internalStore.Time(time.Now().UTC()),
+		At:        store.Time(time.Now().UTC()),
 		Base:      base,
 		Size:      int64(len(data)),
 		MediaType: mediaType,
@@ -87,7 +86,7 @@ func (b *B) InsertOrReplaceFile(ctx context.Context, base []string, data []byte,
 	// Each base is unique.
 	changesetBase := slices.Clone(base)
 	changesetBase = append(changesetBase, "CHANGESET", "FIRST")
-	_, errE := b.files.Store().Insert(ctx, id, data, metadata, &internalStore.CommitMetadata{
+	_, errE := b.files.Store().Insert(ctx, id, data, metadata, &store.CommitMetadata{
 		Base: changesetBase,
 	})
 	// If commit with ID from changesetBase already exists, this means that also the file
@@ -99,7 +98,7 @@ func (b *B) InsertOrReplaceFile(ctx context.Context, base []string, data []byte,
 		}
 		changesetBase := slices.Clone(base)
 		changesetBase = append(changesetBase, "CHANGESET", "REPLACE", version.Changeset.String())
-		_, errE = b.files.Store().Replace(ctx, id, version.Changeset, data, metadata, &internalStore.CommitMetadata{
+		_, errE = b.files.Store().Replace(ctx, id, version.Changeset, data, metadata, &store.CommitMetadata{
 			Base: changesetBase,
 		})
 		return id, errE

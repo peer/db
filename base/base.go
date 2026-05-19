@@ -57,8 +57,8 @@ type B struct {
 
 	// DocumentPostHooks are called after fetching the document from the store.
 	DocumentPostHooks []func(
-		ctx context.Context, data json.RawMessage, metadata *internalStore.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
-	) (json.RawMessage, *internalStore.DocumentMetadata, store.Version, []store.Version, errors.E)
+		ctx context.Context, data json.RawMessage, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
+	) (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E)
 
 	// FilePreHooks are called before fetching the file from the store.
 	FilePreHooks []func(ctx context.Context, id identifier.Identifier, version *store.Version) errors.E
@@ -72,7 +72,7 @@ type B struct {
 	RegisterWorkers func(context.Context, *river.Workers) errors.E
 
 	// Data type for Store is on purpose not document.D so that we can serve it directly without doing first JSON unmarshal just to marshal it again immediately.
-	documents   *store.Store[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, document.Changes]
+	documents   *store.Store[json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes]
 	coordinator *coordinator.Coordinator[json.RawMessage, *documentChangeMetadata, *DocumentBeginMetadata, *documentEndMetadata, *documentCompleteData, *DocumentCompleteMetadata]
 	files       *storage.Storage
 	bridge      *internalSearch.Bridge
@@ -96,7 +96,7 @@ func (b *B) Init(
 	}
 
 	documents := &store.Store[
-		json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, document.Changes,
+		json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes,
 	]{
 		Prefix:        "docs",
 		DataType:      "jsonb",

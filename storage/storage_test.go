@@ -24,7 +24,7 @@ func initDatabase(t *testing.T) (
 	context.Context,
 	*storage.Storage,
 	*testutils.LockableSlice[store.CommittedChangesets[
-		[]byte, *storage.FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, store.None,
+		[]byte, *storage.FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None,
 	]],
 ) {
 	t.Helper()
@@ -83,7 +83,7 @@ func initDatabase(t *testing.T) (
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	channelContents := new(testutils.LockableSlice[store.CommittedChangesets[
-		[]byte, *storage.FileMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, store.None,
+		[]byte, *storage.FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None,
 	]])
 
 	go func() {

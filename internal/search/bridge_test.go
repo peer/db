@@ -27,16 +27,16 @@ import (
 )
 
 // dummyCommitMetadata returns a CommitMetadata with a unique base for testing.
-func dummyCommitMetadata() *internalStore.CommitMetadata {
-	return &internalStore.CommitMetadata{
+func dummyCommitMetadata() *store.CommitMetadata {
+	return &store.CommitMetadata{
 		Base: []string{"test", identifier.New().String()},
 	}
 }
 
 // dummyMetadata returns a minimal DocumentMetadata for testing.
-func dummyMetadata() *internalStore.DocumentMetadata {
-	return &internalStore.DocumentMetadata{
-		At:               internalStore.Time(time.Now().UTC()),
+func dummyMetadata() *store.DocumentMetadata {
+	return &store.DocumentMetadata{
+		At:               store.Time(time.Now().UTC()),
 		InverseRelations: nil,
 	}
 }
@@ -66,7 +66,7 @@ func newTestBridgeConverter(t *testing.T) *internalSearch.Converter {
 
 func initBridge(t *testing.T) (
 	context.Context,
-	*store.Store[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, document.Changes],
+	*store.Store[json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes],
 	*internalSearch.Bridge, *elasticsearch.TypedClient,
 ) {
 	t.Helper()
@@ -121,8 +121,8 @@ func initBridge(t *testing.T) (
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	s := &store.Store[
-		json.RawMessage, *internalStore.DocumentMetadata,
-		*internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata,
+		json.RawMessage, *store.DocumentMetadata,
+		*store.NoMetadata, *store.NoMetadata, *store.CommitMetadata,
 		document.Changes,
 	]{
 		Prefix:        prefix,
@@ -431,7 +431,7 @@ func makeDocWithRelationJSON(t *testing.T, docID, propID, targetID identifier.Id
 // propX has inversePropertyOf propY. The getDocument callback fetches from the store.
 func makeConverterWithInverse(
 	t *testing.T, propX, propY identifier.Identifier,
-	s *store.Store[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, document.Changes],
+	s *store.Store[json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes],
 ) *internalSearch.Converter {
 	t.Helper()
 
