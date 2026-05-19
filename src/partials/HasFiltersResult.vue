@@ -5,7 +5,7 @@ import type { D } from "@/document"
 import type { HasFilterEntry, HasSearchResult, HasValue, SearchSession } from "@/types"
 
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
-import { computed, onBeforeUnmount, toRef, useTemplateRef } from "vue"
+import { computed, onBeforeUnmount, toRef, useId, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
@@ -32,6 +32,8 @@ const emit = defineEmits<{
 const { t } = useI18n({ useScope: "global" })
 
 const el = useTemplateRef<HTMLElement>("el")
+
+const labelId = useId()
 
 const abortController = new AbortController()
 
@@ -97,44 +99,52 @@ const WithDocumentD = WithDocument<D>
 
 <template>
   <div class="pd-hasfiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
-    <div class="flex items-baseline gap-x-1">
+    <div :id="labelId" class="flex items-baseline gap-x-1">
       <span class="mb-1.5 text-lg leading-none">{{ t("partials.HasFiltersResult.title") }}</span>
       ({{ result.count }})
     </div>
-    <ul ref="el">
-      <li v-if="error">
+    <ul ref="el" role="group" :aria-labelledby="labelId" class="grid grid-cols-[max-content_auto] gap-x-1">
+      <li v-if="error" class="col-span-2">
         <i class="pd-hasfiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
       <template v-else-if="total === null">
-        <li v-for="i in 3" :key="i" class="flex items-baseline gap-x-1 motion-safe:animate-pulse">
-          <div class="my-1.5 h-2 w-4 rounded-sm bg-slate-200"></div>
-          <div class="my-1.5 h-2 rounded-sm bg-slate-200" :class="[loadingWidth(`has/${i}`)]"></div>
-          <div class="my-1.5 h-2 w-8 rounded-sm bg-slate-200"></div>
+        <li v-for="i in 3" :key="i" class="contents">
+          <div class="my-1.5 h-2 w-4 rounded-sm bg-slate-200 motion-safe:animate-pulse" aria-hidden="true"></div>
+          <div class="flex items-baseline gap-x-1" aria-hidden="true">
+            <div class="my-1.5 h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse" :class="[loadingWidth(`has/${i}`)]"></div>
+            <div class="my-1.5 h-2 w-8 rounded-sm bg-slate-200 motion-safe:animate-pulse"></div>
+          </div>
         </li>
       </template>
       <template v-else>
-        <li v-for="res in limitedResults" :key="res.id" class="flex items-baseline gap-x-1">
-          <CheckBox :id="'has/' + res.id" v-model="checkboxState" :value="res.id" class="my-1 self-center" />
-          <WithDocumentD :id="res.id" name="DocumentGet">
-            <template #default="{ doc, url }">
-              <label :for="'has/' + res.id" class="my-1 leading-none" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'" :data-url="url"
-                ><DisplayLabel :doc="doc"
-              /></label>
-            </template>
-            <template #loading="{ url }">
-              <div
-                class="pd-withdocument-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
-                :data-url="url"
-                :class="[loadingWidth(res.id)]"
-              ></div>
-            </template>
-          </WithDocumentD>
-          <label :for="'has/' + res.id" class="my-1 leading-none" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-            >({{ res.count }})</label
-          >
-          <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link"
-            ><ArrowTopRightOnSquareIcon :alt="t('common.icons.link')" class="inline size-5 align-text-top"
-          /></RouterLink>
+        <li v-for="res in limitedResults" :key="res.id" class="contents">
+          <CheckBox :id="'has/' + res.id" v-model="checkboxState" :value="res.id" />
+          <div class="flex items-baseline gap-x-1">
+            <WithDocumentD :id="res.id" name="DocumentGet">
+              <template #default="{ doc, url }">
+                <label :for="'has/' + res.id" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'" :data-url="url"
+                  ><DisplayLabel :doc="doc"
+                /></label>
+              </template>
+              <template #loading="{ url }">
+                <div
+                  class="pd-withdocument-loading h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
+                  :data-url="url"
+                  :class="[loadingWidth(res.id)]"
+                  aria-hidden="true"
+                ></div>
+              </template>
+            </WithDocumentD>
+            <label :for="'has/' + res.id" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ res.count }})</label>
+            <!--
+              tabindex="-1" keeps the open-link icon out of the keyboard tab
+              order so Tab jumps between filters without stopping
+              on each row's icon. Mouse users can still click it.
+            -->
+            <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link" tabindex="-1"
+              ><ArrowTopRightOnSquareIcon :alt="t('common.icons.link')" class="inline size-5 align-text-top"
+            /></RouterLink>
+          </div>
         </li>
       </template>
     </ul>
