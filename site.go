@@ -118,14 +118,14 @@ func (s *Site) fetchDocuments(ctx context.Context, classID identifier.Identifier
 	return documents, nil
 }
 
-func (s *Site) updatePropertiesTotal(_ context.Context, documents []*document.D) errors.E {
+func (s *Site) updatePropertiesTotal(_ context.Context, documents []*document.D) errors.E { //nolint:unparam
 	// TODO: Limit properties only to those really used in filters ("rel", "amount", "amountRange")?
 	// TODO: Limit really only to properties.
 	s.propertiesTotal = int64(len(documents))
 	return nil
 }
 
-func (s *Site) updateUnitsTotal(_ context.Context, documents []*document.D) errors.E {
+func (s *Site) updateUnitsTotal(_ context.Context, documents []*document.D) errors.E { //nolint:unparam
 	// TODO: Limit really only to units.
 	s.unitsTotal = int64(len(documents))
 	return nil
@@ -148,7 +148,7 @@ func (s *Site) validateDefaultLanguage() errors.E {
 
 // This should be run before calling service.RouteWith because it freezes site's context.json
 // as static file and updating language codes later means they are not included in context.json.
-func (s *Site) updateLanguageCodes(_ context.Context) errors.E {
+func (s *Site) updateLanguageCodes(_ context.Context) errors.E { //nolint:unparam
 	s.LanguageCodes = s.Base.LanguageCodes()
 
 	return nil
@@ -157,33 +157,37 @@ func (s *Site) updateLanguageCodes(_ context.Context) errors.E {
 // Start starts the base for the site.
 //
 // You have to call this or PopulateAndStart for each site after Init.
-func (s *Site) Start(ctx context.Context, documents []*document.D) errors.E {
+func (s *Site) Start(ctx context.Context, documents []*document.D) (func(), errors.E) {
 	errE := s.updatePropertiesTotal(ctx, documents)
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
 
 	errE = s.updateUnitsTotal(ctx, documents)
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
 
 	errE = s.validateDefaultLanguage()
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
 
-	errE = s.Base.Start(ctx, documents)
+	if s.Base.LanguagePriority == nil {
+		s.Base.LanguagePriority = s.LanguagePriority
+	}
+
+	onShutdown, errE := s.Base.Start(ctx, documents)
 	if errE != nil {
-		return errE
+		return onShutdown, errE
 	}
 
 	errE = s.updateLanguageCodes(ctx)
 	if errE != nil {
-		return errE
+		return onShutdown, errE
 	}
 
-	return nil
+	return onShutdown, nil
 }
 
 // PopulateAndStart for the site: inserts the given documents into the store, starts the base,
@@ -194,31 +198,35 @@ func (s *Site) Start(ctx context.Context, documents []*document.D) errors.E {
 // You have to call this or Start for each site after Init.
 func (s *Site) PopulateAndStart(
 	ctx context.Context, documents []*document.D, progress func(doc *document.D), beforeWait func(ctx context.Context) errors.E, count, size *x.Counter,
-) errors.E {
+) (func(), errors.E) {
 	errE := s.updatePropertiesTotal(ctx, documents)
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
 
 	errE = s.updateUnitsTotal(ctx, documents)
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
 
 	errE = s.validateDefaultLanguage()
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
 
-	errE = s.Base.PopulateAndStart(ctx, documents, progress, beforeWait, count, size)
+	if s.Base.LanguagePriority == nil {
+		s.Base.LanguagePriority = s.LanguagePriority
+	}
+
+	onShutdown, errE := s.Base.PopulateAndStart(ctx, documents, progress, beforeWait, count, size)
 	if errE != nil {
-		return errE
+		return onShutdown, errE
 	}
 
 	errE = s.updateLanguageCodes(ctx)
 	if errE != nil {
-		return errE
+		return onShutdown, errE
 	}
 
-	return nil
+	return onShutdown, nil
 }

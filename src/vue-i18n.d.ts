@@ -64,6 +64,7 @@ declare module "vue-i18n" {
         table: string
       }
       values: {
+        missing: string
         noName: string
         none: string
         unknown: string
@@ -186,6 +187,10 @@ declare module "vue-i18n" {
         determiningFilters: string
         skipToFilters: string
         skipToResults: string
+        resultsRelatedTo: string
+      }
+      HasFiltersResult: {
+        title: string
       }
       SearchResultsTable: {
         expandRow: string

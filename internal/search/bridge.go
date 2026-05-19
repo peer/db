@@ -684,6 +684,17 @@ func (b *Bridge) WaitUntilCaughtUp(ctx context.Context, count, size *x.Counter) 
 }
 
 func (b *Bridge) run(ctx context.Context) errors.E {
+	// We acquire the Committed channel before reading the bridge seq from the database so that
+	// any concurrent Store.Reset (e.g., from ResetSeq during a reindex) closes the channel we are
+	// holding here. That way the real-time select loop below detects the closure and run returns
+	// errCommittedChannelClosed, causing the outer loop to restart run and re-read getSeq.
+	// Otherwise, if we read getSeq first and Store.Reset ran between catch-up and Committed.Get,
+	// we would acquire the freshly recreated channel and miss the reset signal entirely.
+	ch, errE := b.Store.Committed.Get(ctx)
+	if errE != nil {
+		return errE
+	}
+
 	// Determine where we left off.
 	lastSeq, errE := b.getSeq(ctx)
 	if errE != nil {
@@ -713,11 +724,6 @@ func (b *Bridge) run(ctx context.Context) errors.E {
 		if len(commits) < store.MaxPageLength {
 			break
 		}
-	}
-
-	ch, errE := b.Store.Committed.Get(ctx)
-	if errE != nil {
-		return errE
 	}
 
 	// Real-time: process new commits from the channel.

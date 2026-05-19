@@ -9,7 +9,7 @@ its DOM attributes without flickering how the component looks.
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type { ClientSearchSession, SelectButtonOption, ViewType } from "@/types"
+import type { SearchSession, SelectButtonOption, ViewType } from "@/types"
 
 import { ArchiveBoxArrowDownIcon, ArrowDownTrayIcon, Bars4Icon, TableCellsIcon } from "@heroicons/vue/24/outline"
 import { useI18n } from "vue-i18n"
@@ -18,7 +18,7 @@ import SelectButton from "@/components/SelectButton.vue"
 import siteContext from "@/context"
 
 const props = defineProps<{
-  searchSession: DeepReadonly<ClientSearchSession>
+  searchSession: DeepReadonly<SearchSession>
   searchTotal: number | null
   searchMoreThanTotal: boolean
   isDownloading: boolean
@@ -53,28 +53,12 @@ const selectButtonOptions: SelectButtonOption<ViewType>[] = [
   },
 ]
 
-// TODO: Use a computed property instead of computing countFilters multiple times.
-
 function countFilters(): number {
   if (!props.searchSession.filters) {
     return 0
   }
 
-  let n = 0
-  for (const values of Object.values(props.searchSession.filters.ref)) {
-    n += values.length
-  }
-  for (const value of Object.values(props.searchSession.filters.amount)) {
-    if (value) {
-      n++
-    }
-  }
-  for (const value of Object.values(props.searchSession.filters.time)) {
-    if (value) {
-      n++
-    }
-  }
-  return n
+  return props.searchSession.filters.length
 }
 </script>
 

@@ -956,12 +956,13 @@ func (v *convertVisitor) VisitAmountInterval(claim *document.AmountIntervalClaim
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	amountClaims, unknownClaims, errE := v.converter.convertAmountInterval(v.ctx, claim)
+	amountClaims, unknownClaims, subRefs, errE := v.converter.convertAmountInterval(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
 	}
 	v.result.Claims.Amount = append(v.result.Claims.Amount, amountClaims...)
 	v.result.Claims.Unknown = append(v.result.Claims.Unknown, unknownClaims...)
+	v.result.Claims.SubReference = append(v.result.Claims.SubReference, subRefs...)
 	return document.Keep, nil
 }
 
@@ -983,12 +984,13 @@ func (v *convertVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) (d
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	timeClaims, unknownClaims, errE := v.converter.convertTimeInterval(v.ctx, claim)
+	timeClaims, unknownClaims, subRefs, errE := v.converter.convertTimeInterval(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
 	}
 	v.result.Claims.Time = append(v.result.Claims.Time, timeClaims...)
 	v.result.Claims.Unknown = append(v.result.Claims.Unknown, unknownClaims...)
+	v.result.Claims.SubReference = append(v.result.Claims.SubReference, subRefs...)
 	return document.Keep, nil
 }
 
@@ -1010,11 +1012,12 @@ func (v *convertVisitor) VisitReference(claim *document.ReferenceClaim) (documen
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, errE := v.converter.convertReference(v.ctx, claim)
+	claims, subRefs, errE := v.converter.convertReference(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
 	}
 	v.result.Claims.Reference = append(v.result.Claims.Reference, claims...)
+	v.result.Claims.SubReference = append(v.result.Claims.SubReference, subRefs...)
 
 	return document.Keep, nil
 }
@@ -1024,11 +1027,12 @@ func (v *convertVisitor) VisitHas(claim *document.HasClaim) (document.VisitResul
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, errE := v.converter.convertHas(v.ctx, claim)
+	claims, subRefs, errE := v.converter.convertHas(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
 	}
 	v.result.Claims.Has = append(v.result.Claims.Has, claims...)
+	v.result.Claims.SubReference = append(v.result.Claims.SubReference, subRefs...)
 	return document.Keep, nil
 }
 
@@ -1037,11 +1041,12 @@ func (v *convertVisitor) VisitNone(claim *document.NoneClaim) (document.VisitRes
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, errE := v.converter.convertNone(v.ctx, claim)
+	claims, subRefs, errE := v.converter.convertNone(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
 	}
 	v.result.Claims.None = append(v.result.Claims.None, claims...)
+	v.result.Claims.SubReference = append(v.result.Claims.SubReference, subRefs...)
 	return document.Keep, nil
 }
 
@@ -1050,11 +1055,12 @@ func (v *convertVisitor) VisitUnknown(claim *document.UnknownClaim) (document.Vi
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, errE := v.converter.convertUnknown(v.ctx, claim)
+	claims, subRefs, errE := v.converter.convertUnknown(v.ctx, claim)
 	if errE != nil {
 		return document.Keep, errE
 	}
 	v.result.Claims.Unknown = append(v.result.Claims.Unknown, claims...)
+	v.result.Claims.SubReference = append(v.result.Claims.SubReference, subRefs...)
 	return document.Keep, nil
 }
 
@@ -1096,7 +1102,7 @@ func (c *Converter) FromDocument(
 
 	// Process incoming inverse relations from metadata.
 	for _, ir := range inverseRelations {
-		claims, errE := c.convertReference(ctx, &document.ReferenceClaim{
+		claims, subRefs, errE := c.convertReference(ctx, &document.ReferenceClaim{
 			CoreClaim: document.CoreClaim{
 				ID:         inverseReferenceClaimID(doc.Base, ir.InverseRelationKey),
 				Confidence: ir.Confidence,
@@ -1108,6 +1114,7 @@ func (c *Converter) FromDocument(
 			return nil, errE
 		}
 		v.result.Claims.Reference = append(v.result.Claims.Reference, claims...)
+		v.result.Claims.SubReference = append(v.result.Claims.SubReference, subRefs...)
 	}
 
 	return v.result, nil
@@ -1416,16 +1423,19 @@ func (c *Converter) convertAmount(ctx context.Context, claim *document.AmountCla
 	return result, nil
 }
 
-func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.AmountIntervalClaim) ([]AmountClaim, []UnknownClaim, errors.E) { //nolint:cyclop
+//nolint:cyclop
+func (c *Converter) convertAmountInterval(
+	ctx context.Context, claim *document.AmountIntervalClaim,
+) ([]AmountClaim, []UnknownClaim, []SubReferenceClaim, errors.E) {
 	if claim.From != nil && claim.FromPrecision == nil {
 		errE := errors.New("missing from precision in claim")
 		errors.Details(errE)["claim"] = claim
-		return nil, nil, errE
+		return nil, nil, nil, errE
 	}
 	if claim.To != nil && claim.ToPrecision == nil {
 		errE := errors.New("missing to precision in claim")
 		errors.Details(errE)["claim"] = claim
-		return nil, nil, errE
+		return nil, nil, nil, errE
 	}
 
 	// Swap directed-decreasing input to ascending order, before computing
@@ -1444,24 +1454,24 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 			fromValue, errE := workClaim.From.Float64(*workClaim.FromPrecision)
 			if errE != nil {
 				errors.Details(errE)["claim"] = claim
-				return nil, nil, errE
+				return nil, nil, nil, errE
 			}
 			toValue, errE := workClaim.To.Float64(*workClaim.ToPrecision)
 			if errE != nil {
 				errors.Details(errE)["claim"] = claim
-				return nil, nil, errE
+				return nil, nil, nil, errE
 			}
 			swap = fromValue > toValue
 		} else {
 			start, errE := workClaim.From.WindowStartFloat64(*workClaim.FromPrecision, workClaim.FromIsOpen)
 			if errE != nil {
 				errors.Details(errE)["claim"] = claim
-				return nil, nil, errE
+				return nil, nil, nil, errE
 			}
 			end, errE := workClaim.To.WindowEndFloat64(*workClaim.ToPrecision, workClaim.ToIsOpen)
 			if errE != nil {
 				errors.Details(errE)["claim"] = claim
-				return nil, nil, errE
+				return nil, nil, nil, errE
 			}
 			swap = start >= end
 		}
@@ -1487,7 +1497,7 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 		f, errE := workClaim.From.WindowStartFloat64(*workClaim.FromPrecision, workClaim.FromIsOpen)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
-			return nil, nil, errE
+			return nil, nil, nil, errE
 		}
 		from = &f
 		fromDisplay = workClaim.From.String()
@@ -1509,16 +1519,16 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 		}
-		return claims, nil, errE
+		return claims, nil, nil, errE
 	default:
 		// Unknown From with Unknown or None To. We cannot do much here,
 		// so we convert it as an unknown claim. This also handles the case
 		// of invalid claims (e.g., an empty claim without anything set).
-		claims, errE := c.convertUnknown(ctx, &document.UnknownClaim{
+		claims, subRefs, errE := c.convertUnknown(ctx, &document.UnknownClaim{
 			CoreClaim: workClaim.CoreClaim,
 			Prop:      workClaim.Prop,
 		})
-		return nil, claims, errE
+		return nil, claims, subRefs, errE
 	}
 
 	switch {
@@ -1528,7 +1538,7 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 		t, errE := workClaim.To.WindowEndFloat64(*workClaim.ToPrecision, workClaim.ToIsOpen)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
-			return nil, nil, errE
+			return nil, nil, nil, errE
 		}
 		to = &t
 		toDisplay = workClaim.To.String()
@@ -1550,21 +1560,21 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 		}
-		return claims, nil, errE
+		return claims, nil, nil, errE
 	default:
 		// Unknown To with None From. We cannot do much here,
 		// so we convert it as an unknown claim.
-		claims, errE := c.convertUnknown(ctx, &document.UnknownClaim{
+		claims, subRefs, errE := c.convertUnknown(ctx, &document.UnknownClaim{
 			CoreClaim: workClaim.CoreClaim,
 			Prop:      workClaim.Prop,
 		})
-		return nil, claims, errE
+		return nil, claims, subRefs, errE
 	}
 
 	errE := rangeFloat.Validate()
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
-		return nil, nil, errE
+		return nil, nil, nil, errE
 	}
 
 	// TODO: Normalize amounts of units of same measure to same base unit (e.g., cm and mm to m).
@@ -1575,7 +1585,7 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 		propDisplay, errE := c.getDisplayStrings(ctx, pid)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
-			return nil, nil, errE
+			return nil, nil, nil, errE
 		}
 		result = append(result, AmountClaim{
 			Prop:        pid,
@@ -1589,7 +1599,7 @@ func (c *Converter) convertAmountInterval(ctx context.Context, claim *document.A
 			ToDisplay:   toDisplay,
 		})
 	}
-	return result, nil, nil
+	return result, nil, nil, nil
 }
 
 func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) ([]TimeClaim, errors.E) {
@@ -1642,16 +1652,17 @@ func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) 
 	return result, nil
 }
 
-func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.TimeIntervalClaim) ([]TimeClaim, []UnknownClaim, errors.E) { //nolint:cyclop
+//nolint:cyclop
+func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.TimeIntervalClaim) ([]TimeClaim, []UnknownClaim, []SubReferenceClaim, errors.E) {
 	if claim.From != nil && claim.FromPrecision == nil {
 		errE := errors.New("missing from precision in claim")
 		errors.Details(errE)["claim"] = claim
-		return nil, nil, errE
+		return nil, nil, nil, errE
 	}
 	if claim.To != nil && claim.ToPrecision == nil {
 		errE := errors.New("missing to precision in claim")
 		errors.Details(errE)["claim"] = claim
-		return nil, nil, errE
+		return nil, nil, nil, errE
 	}
 
 	// Swap directed-decreasing input to ascending order, before computing
@@ -1666,24 +1677,24 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 			fromValue, errE := workClaim.From.Float64(*workClaim.FromPrecision, nil)
 			if errE != nil {
 				errors.Details(errE)["claim"] = claim
-				return nil, nil, errE
+				return nil, nil, nil, errE
 			}
 			toValue, errE := workClaim.To.Float64(*workClaim.ToPrecision, nil)
 			if errE != nil {
 				errors.Details(errE)["claim"] = claim
-				return nil, nil, errE
+				return nil, nil, nil, errE
 			}
 			swap = fromValue > toValue
 		} else {
 			start, errE := workClaim.From.WindowStartFloat64(*workClaim.FromPrecision, workClaim.FromIsOpen)
 			if errE != nil {
 				errors.Details(errE)["claim"] = claim
-				return nil, nil, errE
+				return nil, nil, nil, errE
 			}
 			end, errE := workClaim.To.WindowEndFloat64(*workClaim.ToPrecision, workClaim.ToIsOpen)
 			if errE != nil {
 				errors.Details(errE)["claim"] = claim
-				return nil, nil, errE
+				return nil, nil, nil, errE
 			}
 			swap = start >= end
 		}
@@ -1709,7 +1720,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		f, errE := workClaim.From.WindowStartFloat64(*workClaim.FromPrecision, workClaim.FromIsOpen)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
-			return nil, nil, errE
+			return nil, nil, nil, errE
 		}
 		from = &f
 		fromDisplay = workClaim.From.String()
@@ -1731,16 +1742,16 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 		}
-		return claims, nil, errE
+		return claims, nil, nil, errE
 	default:
 		// Unknown From with Unknown or None To. We cannot do much here,
 		// so we convert it as an unknown claim. This also handles the case
 		// of invalid claims (e.g., an empty claim without anything set).
-		claims, errE := c.convertUnknown(ctx, &document.UnknownClaim{
+		claims, subRefs, errE := c.convertUnknown(ctx, &document.UnknownClaim{
 			CoreClaim: workClaim.CoreClaim,
 			Prop:      workClaim.Prop,
 		})
-		return nil, claims, errE
+		return nil, claims, subRefs, errE
 	}
 
 	switch {
@@ -1750,7 +1761,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		t, errE := workClaim.To.WindowEndFloat64(*workClaim.ToPrecision, workClaim.ToIsOpen)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
-			return nil, nil, errE
+			return nil, nil, nil, errE
 		}
 		to = &t
 		toDisplay = workClaim.To.String()
@@ -1772,21 +1783,21 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
 		}
-		return claims, nil, errE
+		return claims, nil, nil, errE
 	default:
 		// Unknown To with None From. We cannot do much here,
 		// so we convert it as an unknown claim.
-		claims, errE := c.convertUnknown(ctx, &document.UnknownClaim{
+		claims, subRefs, errE := c.convertUnknown(ctx, &document.UnknownClaim{
 			CoreClaim: workClaim.CoreClaim,
 			Prop:      workClaim.Prop,
 		})
-		return nil, claims, errE
+		return nil, claims, subRefs, errE
 	}
 
 	errE := rangeFloat.Validate()
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
-		return nil, nil, errE
+		return nil, nil, nil, errE
 	}
 
 	props := c.propagateProp(workClaim.Prop.ID)
@@ -1795,7 +1806,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		propDisplay, errE := c.getDisplayStrings(ctx, pid)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
-			return nil, nil, errE
+			return nil, nil, nil, errE
 		}
 		result = append(result, TimeClaim{
 			Prop:        pid,
@@ -1808,7 +1819,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 			ToDisplay:   toDisplay,
 		})
 	}
-	return result, nil, nil
+	return result, nil, nil, nil
 }
 
 func (c *Converter) convertLink(ctx context.Context, claim *document.LinkClaim) ([]LinkClaim, errors.E) {
@@ -1830,22 +1841,43 @@ func (c *Converter) convertLink(ctx context.Context, claim *document.LinkClaim) 
 	return result, nil
 }
 
-func (c *Converter) convertReference(ctx context.Context, claim *document.ReferenceClaim) ([]ReferenceClaim, errors.E) {
-	// Convert sub-claim references to nested search reference claims.
-	subRelations := document.GetAllClaimsOfTypeWithConfidence[document.ReferenceClaim](claim.Sub, document.LowConfidence)
-	nested := make([]NestedReferenceClaim, 0, len(subRelations))
+// Sentinel values for SubReferenceClaim.ParentTo when the parent claim is not a reference claim.
+const (
+	ParentToHas     = "__HAS__"
+	ParentToNone    = "__NONE__"
+	ParentToUnknown = "__UNKNOWN__"
+)
+
+// convertSubRefs extracts reference sub-claims from a claim's sub-claims and produces
+// SubReferenceClaim entries for each (parentProp, parentTo, subRef) combination.
+func (c *Converter) convertSubRefs(
+	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,
+) ([]SubReferenceClaim, errors.E) {
+	subRelations := document.GetAllClaimsOfTypeWithConfidence[document.ReferenceClaim](sub, document.LowConfidence)
+	if len(subRelations) == 0 {
+		return nil, nil
+	}
+
+	// Pre-resolve display strings for each sub-relation.
+	type resolvedSubRef struct {
+		Prop        identifier.Identifier
+		PropDisplay map[string]string
+		PropNaming  map[string][]string
+		To          identifier.Identifier
+		ToDisplay   map[string]string
+		ToNaming    map[string][]string
+	}
+	resolved := make([]resolvedSubRef, 0, len(subRelations))
 	for _, mr := range subRelations {
 		mrPropDisplay, errE := c.getDisplayStrings(ctx, mr.Prop.ID)
 		if errE != nil {
-			errors.Details(errE)["claim"] = claim
 			return nil, errE
 		}
 		mrToDisplay, errE := c.getDisplayStrings(ctx, mr.To.ID)
 		if errE != nil {
-			errors.Details(errE)["claim"] = claim
 			return nil, errE
 		}
-		nested = append(nested, NestedReferenceClaim{
+		resolved = append(resolved, resolvedSubRef{
 			Prop:        mr.Prop.ID,
 			PropDisplay: mrPropDisplay.Display,
 			PropNaming:  mrPropDisplay.Naming,
@@ -1855,34 +1887,55 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 		})
 	}
 
+	// Cross product of parentProps × resolved sub-refs.
+	result := make([]SubReferenceClaim, 0, len(parentProps)*len(resolved))
+	for _, pp := range parentProps {
+		for _, r := range resolved {
+			result = append(result, SubReferenceClaim{
+				ParentProp:  pp,
+				ParentTo:    parentTo,
+				Prop:        r.Prop,
+				PropDisplay: r.PropDisplay,
+				PropNaming:  r.PropNaming,
+				To:          r.To,
+				ToDisplay:   r.ToDisplay,
+				ToNaming:    r.ToNaming,
+			})
+		}
+	}
+
+	return result, nil
+}
+
+func (c *Converter) convertReference(ctx context.Context, claim *document.ReferenceClaim) ([]ReferenceClaim, []SubReferenceClaim, errors.E) {
 	// Cross product of propagated properties x (target + value hierarchy ancestors).
-	propIDs := c.propagateProp(claim.Prop.ID)
+	props := c.propagateProp(claim.Prop.ID)
 
 	// Compute target IDs: the target itself plus ancestors from all value hierarchies.
 	targetInfo, errE := c.getDocumentInfo(ctx, claim.To.ID)
 	if errE != nil {
 		errors.Details(errE)["claim"] = claim
-		return nil, errE
+		return nil, nil, errE
 	}
-	targetIDs := []identifier.Identifier{claim.To.ID}
+	targets := []identifier.Identifier{claim.To.ID}
 	seen := map[identifier.Identifier]bool{claim.To.ID: true}
 	for _, ancestors := range targetInfo.Ancestors {
 		for _, aid := range ancestors {
 			if !seen[aid] {
 				seen[aid] = true
-				targetIDs = append(targetIDs, aid)
+				targets = append(targets, aid)
 			}
 		}
 	}
 
-	result := make([]ReferenceClaim, 0, len(propIDs)*len(targetIDs))
-	for _, pid := range propIDs {
+	result := make([]ReferenceClaim, 0, len(props)*len(targets))
+	for _, pid := range props {
 		propDisplay, errE := c.getDisplayStrings(ctx, pid)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
-			return nil, errE
+			return nil, nil, errE
 		}
-		for _, tid := range targetIDs {
+		for _, tid := range targets {
 			var tidInfo documentInfo
 			if tid == claim.To.ID {
 				tidInfo = targetInfo
@@ -1891,7 +1944,7 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 				tidInfo, errE = c.getDocumentInfo(ctx, tid)
 				if errE != nil {
 					errors.Details(errE)["claim"] = claim
-					return nil, errE
+					return nil, nil, errE
 				}
 			}
 			// Collect hierarchy paths across all value hierarchy types.
@@ -1905,64 +1958,74 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 				ToNaming:      tidInfo.Display.Naming,
 				ToPath:        toPath,
 				ToDisplayPath: toDisplayPath,
-				Reference:     nested,
 			})
 		}
 	}
-	return result, nil
-}
 
-func (c *Converter) convertHas(ctx context.Context, claim *document.HasClaim) ([]HasClaim, errors.E) {
-	// Convert sub-claim references to nested search reference claims.
-	subRelations := document.GetAllClaimsOfTypeWithConfidence[document.ReferenceClaim](claim.Sub, document.LowConfidence)
-	nested := make([]NestedReferenceClaim, 0, len(subRelations))
-	for _, mr := range subRelations {
-		mrPropDisplay, errE := c.getDisplayStrings(ctx, mr.Prop.ID)
-		if errE != nil {
-			errors.Details(errE)["claim"] = claim
-			return nil, errE
+	// Generate subRef entries for each (expandedProp, expandedTarget) × sub-ref combination.
+	var allSubRefs []SubReferenceClaim
+	for _, pid := range props {
+		for _, tid := range targets {
+			subRefs, errE := c.convertSubRefs(ctx, claim.Sub, []identifier.Identifier{pid}, tid.String())
+			if errE != nil {
+				errors.Details(errE)["claim"] = claim
+				return nil, nil, errE
+			}
+			allSubRefs = append(allSubRefs, subRefs...)
 		}
-		mrToDisplay, errE := c.getDisplayStrings(ctx, mr.To.ID)
-		if errE != nil {
-			errors.Details(errE)["claim"] = claim
-			return nil, errE
-		}
-		nested = append(nested, NestedReferenceClaim{
-			Prop:        mr.Prop.ID,
-			PropDisplay: mrPropDisplay.Display,
-			PropNaming:  mrPropDisplay.Naming,
-			To:          mr.To.ID,
-			ToDisplay:   mrToDisplay.Display,
-			ToNaming:    mrToDisplay.Naming,
-		})
 	}
 
+	return result, allSubRefs, nil
+}
+
+func (c *Converter) convertHas(ctx context.Context, claim *document.HasClaim) ([]HasClaim, []SubReferenceClaim, errors.E) {
 	props := c.propagateProp(claim.Prop.ID)
+
+	subRefs, errE := c.convertSubRefs(ctx, claim.Sub, props, ParentToHas)
+	if errE != nil {
+		errors.Details(errE)["claim"] = claim
+		return nil, nil, errE
+	}
+
+	// If the has claim has any sub-claims at all (of any type), do not index it as a HasClaim
+	// entry. Any reference sub-claims have already been extracted into subRefs (with
+	// ParentTo=ParentToHas). This way the has filter (which queries claims.has) automatically
+	// excludes has claims with sub-claims, since only simple has claims are indexed there.
+	if claim.Sub != nil && claim.Sub.Size() > 0 {
+		return nil, subRefs, nil
+	}
+
 	result := make([]HasClaim, 0, len(props))
 	for _, pid := range props {
 		propDisplay, errE := c.getDisplayStrings(ctx, pid)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
-			return nil, errE
+			return nil, nil, errE
 		}
 		result = append(result, HasClaim{
 			Prop:        pid,
 			PropDisplay: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
-			Reference:   nested,
 		})
 	}
-	return result, nil
+	return result, subRefs, nil
 }
 
-func (c *Converter) convertNone(ctx context.Context, claim *document.NoneClaim) ([]NoneClaim, errors.E) {
+func (c *Converter) convertNone(ctx context.Context, claim *document.NoneClaim) ([]NoneClaim, []SubReferenceClaim, errors.E) {
 	props := c.propagateProp(claim.Prop.ID)
+
+	subRefs, errE := c.convertSubRefs(ctx, claim.Sub, props, ParentToNone)
+	if errE != nil {
+		errors.Details(errE)["claim"] = claim
+		return nil, nil, errE
+	}
+
 	result := make([]NoneClaim, 0, len(props))
 	for _, pid := range props {
 		propDisplay, errE := c.getDisplayStrings(ctx, pid)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
-			return nil, errE
+			return nil, nil, errE
 		}
 		result = append(result, NoneClaim{
 			Prop:        pid,
@@ -1970,17 +2033,24 @@ func (c *Converter) convertNone(ctx context.Context, claim *document.NoneClaim) 
 			PropNaming:  propDisplay.Naming,
 		})
 	}
-	return result, nil
+	return result, subRefs, nil
 }
 
-func (c *Converter) convertUnknown(ctx context.Context, claim *document.UnknownClaim) ([]UnknownClaim, errors.E) {
+func (c *Converter) convertUnknown(ctx context.Context, claim *document.UnknownClaim) ([]UnknownClaim, []SubReferenceClaim, errors.E) {
 	props := c.propagateProp(claim.Prop.ID)
+
+	subRefs, errE := c.convertSubRefs(ctx, claim.Sub, props, ParentToUnknown)
+	if errE != nil {
+		errors.Details(errE)["claim"] = claim
+		return nil, nil, errE
+	}
+
 	result := make([]UnknownClaim, 0, len(props))
 	for _, pid := range props {
 		propDisplay, errE := c.getDisplayStrings(ctx, pid)
 		if errE != nil {
 			errors.Details(errE)["claim"] = claim
-			return nil, errE
+			return nil, nil, errE
 		}
 		result = append(result, UnknownClaim{
 			Prop:        pid,
@@ -1988,5 +2058,5 @@ func (c *Converter) convertUnknown(ctx context.Context, claim *document.UnknownC
 			PropNaming:  propDisplay.Naming,
 		})
 	}
-	return result, nil
+	return result, subRefs, nil
 }

@@ -21,8 +21,8 @@ func main() {
 		"defaultShards":       peerdb.DefaultShards,
 		"defaultTitle":        peerdb.DefaultTitle,
 		"developmentModeHelp": peerdb.DevelopmentModeHelp,
-	}, func(ctx *kong.Context) errors.E {
-		return errors.WithStack(ctx.Run(&config.Globals))
+	}, func(ctx *cli.Context) errors.E {
+		return ctx.Run(&config.Globals)
 	},
 		// We have to use BindFor instead of passing it directly to Run because we are using an interface.
 		// See: https://github.com/alecthomas/kong/issues/48

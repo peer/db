@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
+	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"gitlab.com/tozd/go/errors"
@@ -20,6 +20,9 @@ import (
 
 const (
 	histogramBins = 100
+
+	// missingKey is the aggregation/metadata key used for the count of documents missing the filtered property.
+	missingKey = "missing"
 )
 
 // HistogramResult represents count for a single bucket in a filter histogram.
@@ -29,6 +32,8 @@ type HistogramResult struct {
 }
 
 // aggAs extracts a typed aggregation from a map of aggregations.
+//
+// TODO: Contribute upstream. See: https://github.com/elastic/go-elasticsearch/issues/1367
 func aggAs[T any](aggs map[string]types.Aggregate, key string) (*T, errors.E) {
 	raw, ok := aggs[key]
 	if !ok {
@@ -131,33 +136,33 @@ func parseHistogramBuckets(aggs map[string]types.Aggregate, key string) ([]Histo
 
 // histogramFilterGet retrieves histogram filter data for search results.
 // It runs a min/max aggregation followed by a histogram aggregation on the specified nested path.
-// If extractBounds returns non-nil bounds from the search session's filters, those bounds are used
-// for the histogram range instead of (or to override) the min/max from the data. This provides
-// "hard bounds" (session range narrower than data) and "extended bounds" (session range wider than data).
+// The parent filter is excluded from the session query so that the histogram shows values available
+// under the other filters, not restricted by the current filter's own values.
+// If sessionFrom and sessionTo are non-nil, those bounds are used for the histogram range instead of
+// (or to override) the min/max from the data. This provides "hard bounds" (session range narrower than
+// data) and "extended bounds" (session range wider than data).
 func histogramFilterGet(
 	ctx context.Context,
-	getSearchService func() (*search.Search, int64, int64),
-	id identifier.Identifier,
+	getSearchService func() (*esSearch.Search, int64, int64),
+	query types.QueryVariant,
+	prop identifier.Identifier,
 	nestedPath string,
 	filter types.QueryVariant,
 	fromField, toField, rangeField string,
-	extractBounds func(session *Session) (from, to *float64),
+	sessionFrom, sessionTo *float64,
 ) ([]HistogramResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
-	m := metrics.Duration(internalStore.MetricSearchSession).Start()
-	searchSession, errE := GetSession(ctx, id)
-	m.Stop()
-	if errE != nil {
-		return nil, nil, errE
-	}
-
-	query := searchSession.ToQuery()
-
-	// Extract optional bounds from the search session's filters.
-	sessionFrom, sessionTo := extractBounds(searchSession)
+	// Aggregation for documents missing the property.
+	missingAggregation := esdsl.NewAggregations().
+		Filter(esdsl.NewBoolQuery().MustNot(
+			esdsl.NewNestedQuery(
+				esdsl.NewTermQuery(nestedPath+".prop", esdsl.NewFieldValue().String(prop.String())),
+			).Path(nestedPath),
+		))
 
 	var docCount int64
+	var missingCount int64
 	var minValue, maxValue float64
 
 	// If bounds come from the session, we can skip the min/max aggregation (but we still need a doc count).
@@ -171,9 +176,11 @@ func histogramFilterGet(
 				Filter(filter).
 				AddAggregation("docs", esdsl.NewAggregations().
 					ReverseNested(esdsl.NewReverseNestedAggregation())))
-		countSearchService = countSearchService.Size(0).Query(query).AddAggregation("count", countAggregation)
+		countSearchService = countSearchService.Size(0).Query(query).
+			AddAggregation("count", countAggregation).
+			AddAggregation(missingKey, missingAggregation)
 
-		m = metrics.Duration(internalStore.MetricElasticSearch1).Start()
+		m := metrics.Duration(internalStore.MetricElasticSearch1).Start()
 		res, err := countSearchService.Do(ctx)
 		m.Stop()
 		if err != nil {
@@ -186,6 +193,11 @@ func histogramFilterGet(
 		if errE != nil {
 			return nil, nil, errE
 		}
+		missingFilter, errE := aggAs[types.FilterAggregate](res.Aggregations, missingKey)
+		if errE != nil {
+			return nil, nil, errE
+		}
+		missingCount = missingFilter.DocCount
 		// Use session bounds directly.
 		minValue = *sessionFrom
 		maxValue = *sessionTo
@@ -202,9 +214,11 @@ func histogramFilterGet(
 					Max(esdsl.NewMaxAggregation().Field(toField))).
 				AddAggregation("docs", esdsl.NewAggregations().
 					ReverseNested(esdsl.NewReverseNestedAggregation())))
-		minMaxSearchService = minMaxSearchService.Size(0).Query(query).AddAggregation("minMax", minMaxAggregation)
+		minMaxSearchService = minMaxSearchService.Size(0).Query(query).
+			AddAggregation("minMax", minMaxAggregation).
+			AddAggregation(missingKey, missingAggregation)
 
-		m = metrics.Duration(internalStore.MetricElasticSearch1).Start()
+		m := metrics.Duration(internalStore.MetricElasticSearch1).Start()
 		res, err := minMaxSearchService.Do(ctx)
 		m.Stop()
 		if err != nil {
@@ -217,11 +231,17 @@ func histogramFilterGet(
 		if errE != nil {
 			return nil, nil, errE
 		}
+		missingFilter, errE := aggAs[types.FilterAggregate](res.Aggregations, missingKey)
+		if errE != nil {
+			return nil, nil, errE
+		}
+		missingCount = missingFilter.DocCount
 	}
 
 	if docCount == 0 {
 		return []HistogramResult{}, map[string]any{
-			"total": 0,
+			"total":    0,
+			missingKey: missingCount,
 		}, nil
 	}
 
@@ -229,9 +249,10 @@ func histogramFilterGet(
 	if minValue == maxValue {
 		valString := strconv.FormatFloat(minValue, 'f', -1, 64)
 		return []HistogramResult{{From: minValue, Count: docCount}}, map[string]any{
-			"total": "1",
-			"from":  valString,
-			"to":    valString,
+			"total":    "1",
+			"from":     valString,
+			"to":       valString,
+			missingKey: missingCount,
 		}, nil
 	}
 
@@ -264,7 +285,7 @@ func histogramFilterGet(
 			AddAggregation("hist", histAgg))
 	histogramSearchService = histogramSearchService.Size(0).Query(query).AddAggregation("histogram", histogramAggregation)
 
-	m = metrics.Duration(internalStore.MetricElasticSearch2).Start()
+	m := metrics.Duration(internalStore.MetricElasticSearch2).Start()
 	res, err := histogramSearchService.Do(ctx)
 	m.Stop()
 	if err != nil {
@@ -284,6 +305,7 @@ func histogramFilterGet(
 		"from":     strconv.FormatFloat(minValue, 'f', -1, 64),
 		"to":       strconv.FormatFloat(maxValue, 'f', -1, 64),
 		"interval": intervalString,
+		missingKey: missingCount,
 	}
 
 	return results, metadata, nil

@@ -311,8 +311,8 @@ github.com/xanzy/ssh-agent v0.3.3/go.mod h1:6dzNDKs0J9rVPHPhaGCukekBHKqfl+L3KghI
 github.com/xyproto/randomstring v1.0.5 h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU=
 github.com/xyproto/randomstring v1.0.5/go.mod h1:rgmS5DeNXLivK7YprL0pY+lTuhNQW3iGxZ18UQApw/E=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
-gitlab.com/tozd/go/cli v0.6.1 h1:8Pgf1OvcCy0E9nDtSaBGLVbRe8GCxdsvI3XvwFwD4AY=
-gitlab.com/tozd/go/cli v0.6.1/go.mod h1:HrpUbRTANifBK0OfKQrKenZE++SK/S+9wx0FQ1fMcsc=
+gitlab.com/tozd/go/cli v0.7.0 h1:G9p1LB3CNQ1mT1Hy6N4svZSaFAngmAu/2IZ0pLOWNWY=
+gitlab.com/tozd/go/cli v0.7.0/go.mod h1:HrpUbRTANifBK0OfKQrKenZE++SK/S+9wx0FQ1fMcsc=
 gitlab.com/tozd/go/errors v0.11.1 h1:xMPBH+ecV0+8q60QtAGZ1E62FMuOOwpMP0hD4JZfjVo=
 gitlab.com/tozd/go/errors v0.11.1/go.mod h1:9oQ31+x7iUOEVsrXLDR+iMD8794G5uqLp6eEnYtvD8M=
 gitlab.com/tozd/go/x v0.0.0-20260325094342-27311bf9bec0 h1:SqHJZNquFTminQ2hQQjIKL9r0zIQDrAVPv4x8oiVn1A=

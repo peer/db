@@ -52,17 +52,24 @@ func TestAmountFilterGetIntegration(t *testing.T) {
 					},
 					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
 				}},
-				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 			},
 		})
 	}
 	refreshIndex(t, ctx, esClient, index)
 
-	session := &search.Session{ID: nil, Version: 0, View: "", Query: "", Filters: nil}
-	createSession(t, ctx, session)
+	// Create a session with an amount filter.
+	session := createSession(t, ctx, search.SessionData{
+		View: "", Query: "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop:   []identifier.Identifier{amountProp},
+			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
+		}},
+		Reverse: nil,
+	})
 
-	results, metadata, errE := search.AmountFilterGet(ctx, getSearchService, *session.ID, amountProp, &unitID)
-	require.NoError(t, errE)
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "10", metadata["from"])
 	assert.Equal(t, "90", metadata["to"])
@@ -89,6 +96,160 @@ func TestAmountFilterGetIntegration(t *testing.T) {
 	assert.Equal(t, int64(1), results[99].Count)
 }
 
+func TestAmountFilterGetMissingIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	amountProp := identifier.From("amountProp")
+	unitID := identifier.From("unit")
+
+	ten := 10.0
+
+	// Doc with the amount prop.
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		ID: identifier.From("amountDoc1"),
+		Claims: internalSearch.ClaimTypes{
+			Identifier: nil, String: nil, HTML: nil,
+			Amount: internalSearch.AmountClaims{{
+				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
+				Range: internalSearch.RangeFloat{
+					GreaterThan: nil, GreaterThanOrEqual: &ten, LessThan: nil, LessThanOrEqual: &ten,
+				},
+				From: &ten, FromDisplay: "", To: &ten, ToDisplay: "",
+			}},
+			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
+		},
+	})
+	// Doc without the amount prop.
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		ID: identifier.From("amountDoc2"),
+		Claims: internalSearch.ClaimTypes{
+			Identifier: nil, String: nil, HTML: nil,
+			Amount: nil,
+			Time:   nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
+		},
+	})
+	// Another doc without the amount prop.
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		ID: identifier.From("amountDoc3"),
+		Claims: internalSearch.ClaimTypes{
+			Identifier: nil, String: nil, HTML: nil,
+			Amount: nil,
+			Time:   nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
+		},
+	})
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.AmountFilter{Unit: &unitID} //nolint:exhaustruct
+	_, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), amountProp)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Missing count should be 2 (two documents without the amount prop).
+	assert.Equal(t, int64(2), metadata["missing"])
+}
+
+func TestAmountFilterGetNoMissingIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	amountProp := identifier.From("amountProp")
+	unitID := identifier.From("unit")
+
+	ten := 10.0
+
+	// All docs have the amount prop.
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		ID: identifier.From("amountDoc1"),
+		Claims: internalSearch.ClaimTypes{
+			Identifier: nil, String: nil, HTML: nil,
+			Amount: internalSearch.AmountClaims{{
+				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
+				Range: internalSearch.RangeFloat{
+					GreaterThan: nil, GreaterThanOrEqual: &ten, LessThan: nil, LessThanOrEqual: &ten,
+				},
+				From: &ten, FromDisplay: "", To: &ten, ToDisplay: "",
+			}},
+			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
+		},
+	})
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.AmountFilter{Unit: &unitID} //nolint:exhaustruct
+	_, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), amountProp)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// No missing documents.
+	assert.Equal(t, int64(0), metadata["missing"])
+}
+
+func TestAmountFilterGetInactiveIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	amountProp := identifier.From("amountProp")
+	unitID := identifier.From("unit")
+
+	ten := 10.0
+	fifty := 50.0
+	ninety := 90.0
+
+	for _, tc := range []struct {
+		id    string
+		value *float64
+	}{
+		{"amountDoc1", &ten},
+		{"amountDoc2", &fifty},
+		{"amountDoc3", &ninety},
+	} {
+		indexDocument(t, ctx, esClient, index, internalSearch.Document{
+			ID: identifier.From(tc.id),
+			Claims: internalSearch.ClaimTypes{
+				Identifier: nil, String: nil, HTML: nil,
+				Amount: internalSearch.AmountClaims{{
+					Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
+					Range: internalSearch.RangeFloat{
+						GreaterThan: nil, GreaterThanOrEqual: tc.value, LessThan: nil, LessThanOrEqual: tc.value,
+					},
+					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
+				}},
+				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
+			},
+		})
+	}
+	refreshIndex(t, ctx, esClient, index)
+
+	// Create a session without any filters (inactive filter scenario).
+	session := createSession(t, ctx, search.SessionData{})
+
+	// Query for amount histogram using the session's full query, prop and unit from outside the session.
+	f := search.AmountFilter{Unit: &unitID} //nolint:exhaustruct
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), amountProp)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, "10", metadata["from"])
+	assert.Equal(t, "90", metadata["to"])
+	assertIntervalPrefix(t, "0.8", metadata)
+	assert.Equal(t, "100", metadata["total"])
+	require.Len(t, results, 100)
+
+	// Verify total count across all histogram bins equals 3.
+	var totalCount int64
+	for _, r := range results {
+		totalCount += r.Count
+	}
+	assert.Equal(t, int64(3), totalCount)
+}
+
 func TestAmountFilterGetSameValuesIntegration(t *testing.T) {
 	t.Parallel()
 
@@ -111,17 +272,23 @@ func TestAmountFilterGetSameValuesIntegration(t *testing.T) {
 					},
 					From: &fortyTwo, FromDisplay: "", To: &fortyTwo, ToDisplay: "",
 				}},
-				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 			},
 		})
 	}
 	refreshIndex(t, ctx, esClient, index)
 
-	session := &search.Session{ID: nil, Version: 0, View: "", Query: "", Filters: nil}
-	createSession(t, ctx, session)
+	session := createSession(t, ctx, search.SessionData{
+		View: "", Query: "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop:   []identifier.Identifier{amountProp},
+			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
+		}},
+		Reverse: nil,
+	})
 
-	results, metadata, errE := search.AmountFilterGet(ctx, getSearchService, *session.ID, amountProp, &unitID)
-	require.NoError(t, errE)
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// All values the same -> single bucket.
 	assert.Equal(t, "1", metadata["total"])
@@ -139,11 +306,17 @@ func TestAmountFilterGetEmptyIntegration(t *testing.T) {
 	amountProp := identifier.From("amountProp")
 	unitID := identifier.From("unit")
 
-	session := &search.Session{ID: nil, Version: 0, View: "", Query: "", Filters: nil}
-	createSession(t, ctx, session)
+	session := createSession(t, ctx, search.SessionData{
+		View: "", Query: "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop:   []identifier.Identifier{amountProp},
+			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
+		}},
+		Reverse: nil,
+	})
 
-	results, metadata, errE := search.AmountFilterGet(ctx, getSearchService, *session.ID, amountProp, &unitID)
-	require.NoError(t, errE)
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.HistogramResult{}, results)
 	assert.Equal(t, 0, metadata["total"])
 }
@@ -168,16 +341,22 @@ func TestAmountFilterGetWithoutUnitIntegration(t *testing.T) {
 				},
 				From: &twentyFive, FromDisplay: "", To: &twentyFive, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
 
-	session := &search.Session{ID: nil, Version: 0, View: "", Query: "", Filters: nil}
-	createSession(t, ctx, session)
+	session := createSession(t, ctx, search.SessionData{
+		View: "", Query: "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop:   []identifier.Identifier{amountProp},
+			Amount: &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true},
+		}},
+		Reverse: nil,
+	})
 
-	results, metadata, errE := search.AmountFilterGet(ctx, getSearchService, *session.ID, amountProp, nil)
-	require.NoError(t, errE)
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, "1", metadata["total"])
 	assert.Equal(t, "25", metadata["from"])
 	assert.Equal(t, "25", metadata["to"])
@@ -218,17 +397,23 @@ func TestAmountFilterGetGapIntegration(t *testing.T) {
 					},
 					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
 				}},
-				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 			},
 		})
 	}
 	refreshIndex(t, ctx, esClient, index)
 
-	session := &search.Session{ID: nil, Version: 0, View: "", Query: "", Filters: nil}
-	createSession(t, ctx, session)
+	session := createSession(t, ctx, search.SessionData{
+		View: "", Query: "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop:   []identifier.Identifier{amountProp},
+			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
+		}},
+		Reverse: nil,
+	})
 
-	results, metadata, errE := search.AmountFilterGet(ctx, getSearchService, *session.ID, amountProp, &unitID)
-	require.NoError(t, errE)
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "0", metadata["from"])
 	assert.Equal(t, "100", metadata["to"])
@@ -289,7 +474,7 @@ func TestAmountFilterGetExtendedBoundsIntegration(t *testing.T) {
 					},
 					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
 				}},
-				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 			},
 		})
 	}
@@ -298,20 +483,19 @@ func TestAmountFilterGetExtendedBoundsIntegration(t *testing.T) {
 	// Session filter with wider range [0, 100] than data [40, 60].
 	gte := 0.0
 	lte := 100.0
-	session := &search.Session{
-		ID: nil, Version: 0, View: "", Query: "",
-		Filters: &search.Filters{
-			And: nil, Or: nil, Not: nil, Ref: nil,
+	session := createSession(t, ctx, search.SessionData{
+		View: "", Query: "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{
-				Prop: amountProp, Unit: &unitID, Gte: &gte, Lte: &lte, None: false,
+				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false,
 			},
-			Time: nil,
-		},
-	}
-	createSession(t, ctx, session)
+		}},
+		Reverse: nil,
+	})
 
-	results, metadata, errE := search.AmountFilterGet(ctx, getSearchService, *session.ID, amountProp, &unitID)
-	require.NoError(t, errE)
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Histogram uses session bounds [0, 100], not data bounds [40, 60].
 	assert.Equal(t, "0", metadata["from"])
@@ -361,7 +545,7 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 				},
 				From: &zero, FromDisplay: "", To: &twenty, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -375,7 +559,7 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 				},
 				From: &eighty, FromDisplay: "", To: &hundred, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -384,20 +568,19 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 	// Both documents match because their ranges overlap [10, 90].
 	gte := 10.0
 	lte := 90.0
-	session := &search.Session{
-		ID: nil, Version: 0, View: "", Query: "",
-		Filters: &search.Filters{
-			And: nil, Or: nil, Not: nil, Ref: nil,
+	session := createSession(t, ctx, search.SessionData{
+		View: "", Query: "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{
-				Prop: amountProp, Unit: &unitID, Gte: &gte, Lte: &lte, None: false,
+				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false,
 			},
-			Time: nil,
-		},
-	}
-	createSession(t, ctx, session)
+		}},
+		Reverse: nil,
+	})
 
-	results, metadata, errE := search.AmountFilterGet(ctx, getSearchService, *session.ID, amountProp, &unitID)
-	require.NoError(t, errE)
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The session filter provides bounds [10, 90], so the histogram uses those
 	// instead of the data range [0, 100].
@@ -454,7 +637,7 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 				},
 				From: &five, FromDisplay: "", To: &five, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -468,7 +651,7 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 				},
 				From: &twenty, FromDisplay: "", To: &eighty, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -482,16 +665,22 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 				},
 				From: &ninetyFive, FromDisplay: "", To: &ninetyFive, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubReference: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
 
-	session := &search.Session{ID: nil, Version: 0, View: "", Query: "", Filters: nil}
-	createSession(t, ctx, session)
+	session := createSession(t, ctx, search.SessionData{
+		View: "", Query: "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop:   []identifier.Identifier{amountProp},
+			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
+		}},
+		Reverse: nil,
+	})
 
-	results, metadata, errE := search.AmountFilterGet(ctx, getSearchService, *session.ID, amountProp, &unitID)
-	require.NoError(t, errE)
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "5", metadata["from"])
 	assert.Equal(t, "95", metadata["to"])

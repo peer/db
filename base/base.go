@@ -52,11 +52,20 @@ type B struct {
 	// Hooks are called in order to allow for modification of documents before they are indexed.
 	IndexingHooks []func(doc *document.D) (*document.D, errors.E)
 
+	// RegisterWorkers is called to register workers for processing background jobs.
+	RegisterWorkers func(context.Context, *river.Workers) errors.E
+
 	// Data type for Store is on purpose not document.D so that we can serve it directly without doing first JSON unmarshal just to marshal it again immediately.
 	documents   *store.Store[json.RawMessage, *internalStore.DocumentMetadata, *internalStore.NoMetadata, *internalStore.NoMetadata, *internalStore.CommitMetadata, document.Changes]
 	coordinator *coordinator.Coordinator[json.RawMessage, *documentChangeMetadata, *DocumentBeginMetadata, *documentEndMetadata, *documentCompleteData, *DocumentCompleteMetadata]
 	files       *storage.Storage
 	bridge      *internalSearch.Bridge
+
+	// workers is used to register workers before calling Start.
+	workers *river.Workers
+
+	listener    *internalStore.Listener
+	riverClient *river.Client[pgx.Tx]
 }
 
 // Init initializes the base.
@@ -122,6 +131,9 @@ func (b *B) Init(
 	b.coordinator = c
 	b.files = files
 	b.bridge = bridge
+	b.workers = workers
+	b.listener = listener
+	b.riverClient = riverClient
 
 	return nil
 }
@@ -132,7 +144,9 @@ func (b *B) Init(
 // to index documents for search.
 //
 // You have to call this or PopulateAndStart for each base after Init.
-func (b *B) Start(ctx context.Context, documents []*document.D) errors.E {
+func (b *B) Start(ctx context.Context, documents []*document.D) (func(), errors.E) {
+	// We build the converter first so that invalid input (e.g., unsupported
+	// language priority) fails fast without leaving any resources running.
 	converter, errE := internalSearch.NewConverter(
 		documents, documents, documents, b.LanguagePriority,
 		func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
@@ -145,10 +159,35 @@ func (b *B) Start(ctx context.Context, documents []*document.D) errors.E {
 		},
 	)
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
 
 	converter.Hooks = b.IndexingHooks
 
-	return b.bridge.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "bridge"), converter)
+	if b.RegisterWorkers != nil {
+		errE := b.RegisterWorkers(ctx, b.workers)
+		if errE != nil {
+			return nil, errE
+		}
+	}
+
+	// Now we can start the river client.
+	// It will be stopped when ctx is cancelled.
+	err := b.riverClient.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "river"))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	onShutdown := func() {
+		// Wait for the client to stop.
+		<-b.riverClient.Stopped()
+	}
+
+	// After that, we can start the listener.
+	errE = b.listener.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "listener"))
+	if errE != nil {
+		return onShutdown, errE
+	}
+
+	return onShutdown, b.bridge.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "bridge"), converter)
 }

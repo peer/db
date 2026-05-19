@@ -110,10 +110,10 @@ func GenerateCoreDocuments(ctx context.Context, beforeTransform func(context.Con
 // You have to call this or Start for each base after Init.
 func (b *B) PopulateAndStart(
 	ctx context.Context, documents []*document.D, progress func(doc *document.D), beforeWait func(ctx context.Context) errors.E, count, size *x.Counter,
-) errors.E {
+) (func(), errors.E) {
 	for _, doc := range documents {
 		if ctx.Err() != nil {
-			return errors.WithStack(ctx.Err())
+			return nil, errors.WithStack(ctx.Err())
 		}
 
 		if progress != nil {
@@ -122,35 +122,35 @@ func (b *B) PopulateAndStart(
 
 		errE := b.InsertOrReplaceDocument(ctx, doc)
 		if errE != nil {
-			return errE
+			return nil, errE
 		}
 	}
 
 	if ctx.Err() != nil {
-		return errors.WithStack(ctx.Err())
+		return nil, errors.WithStack(ctx.Err())
 	}
 
-	errE := b.Start(ctx, documents)
+	onShutdown, errE := b.Start(ctx, documents)
 	if errE != nil {
-		return errE
+		return onShutdown, errE
 	}
 
 	if beforeWait != nil {
 		errE = beforeWait(ctx)
 		if errE != nil {
-			return errE
+			return onShutdown, errE
 		}
 	}
 
 	errE = b.WaitUntilCaughtUp(ctx, count, size)
 	if errE != nil {
-		return errE
+		return onShutdown, errE
 	}
 
 	_, err := b.bridge.ESClient.Indices.Refresh().Index(b.bridge.Index).Do(ctx)
 	if err != nil {
-		return errors.WithStack(err)
+		return onShutdown, errors.WithStack(err)
 	}
 
-	return nil
+	return onShutdown, nil
 }

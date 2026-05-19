@@ -2,265 +2,71 @@ import type { DeepReadonly, Ref } from "vue"
 import type { Router } from "vue-router"
 
 import type {
-  AmountFilter,
-  AmountSearchResult,
-  ClientSearchSession,
-  CreateSearchSessionRequest,
+  CreateSearchSessionResponse,
   FilterResult,
-  Filters,
-  FiltersState,
+  HasFilterResult,
   HistogramAmountResult,
   HistogramTimeResult,
-  RefFilter,
   RefFilterResult,
-  RefSearchResult,
   Result,
+  SearchSession,
+  SearchSessionData,
   SearchSessionRef,
-  ServerSearchSession,
-  TimeFilter,
-  TimeSearchResult,
-  ViewType,
+  UpdateSearchSessionResponse,
 } from "@/types"
 
 import { computed, onBeforeUnmount, readonly, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
 
 import { getURL, getURLDirect, postJSON } from "@/api"
-import { NONE } from "@/symbols"
 import { anySignal, encodeQuery } from "@/utils"
-
-export { NONE } from "@/symbols"
 
 export const FILTERS_INITIAL_LIMIT = 10
 export const FILTERS_INCREASE = 10
 
-function filtersStateToFilters(filters: FiltersState | DeepReadonly<FiltersState> | undefined): Filters {
-  const f: Filters = {
-    and: [],
-  }
-  if (filters) {
-    for (const [prop, values] of Object.entries(filters.ref)) {
-      // TODO: Support also OR between values.
-      for (const value of values) {
-        if (value === NONE) {
-          f.and.push({ ref: { prop, none: true } })
-        } else {
-          f.and.push({ ref: { prop, value } })
-        }
-      }
-    }
-    for (const [key, value] of Object.entries(filters.amount)) {
-      if (!value) {
-        continue
-      }
-      // Key format is "prop" or "prop/unit".
-      const slashIndex = key.indexOf("/")
-      const prop = slashIndex === -1 ? key : key.substring(0, slashIndex)
-      const unit = slashIndex === -1 ? undefined : key.substring(slashIndex + 1)
-      // TODO: Support also OR between value and none.
-      if (value === NONE) {
-        f.and.push({ amount: { prop, unit, none: true } })
-      } else {
-        f.and.push({ amount: { prop, unit, ...value } })
-      }
-    }
-    for (const [prop, value] of Object.entries(filters.time)) {
-      if (!value) {
-        continue
-      }
-      // TODO: Support also OR between value and none.
-      if (value === NONE) {
-        f.and.push({ time: { prop, none: true } })
-      } else {
-        f.and.push({ time: { prop, ...value } })
-      }
-    }
-  }
-  return f
-}
-
-function clientToServerSearchSession(searchSession: ClientSearchSession | DeepReadonly<ClientSearchSession>): ServerSearchSession {
-  const s: ServerSearchSession = {
-    id: searchSession.id,
-    version: searchSession.version,
-    view: searchSession.view,
-    query: searchSession.query,
-  }
-  const filters = filtersStateToFilters(searchSession.filters)
-  // TODO: Currently assumes only "and" filters are set.
-  if ("and" in filters && filters.and.length > 0) {
-    s.filters = filters
-  }
-  return s
-}
-
-function amountFilterKey(prop: string, unit?: string): string {
-  if (unit) {
-    return `${prop}/${unit}`
-  }
-  return prop
-}
-
-function filtersToFiltersState(filters: Filters): FiltersState {
-  if ("and" in filters) {
-    const state: FiltersState = { ref: {}, amount: {}, time: {} }
-    for (const filter of filters.and) {
-      const s = filtersToFiltersState(filter)
-      for (const [prop, values] of Object.entries(s.ref)) {
-        for (const v of values) {
-          if (!state.ref[prop]) {
-            state.ref[prop] = [v]
-          } else if (!state.ref[prop].includes(v)) {
-            state.ref[prop].push(v)
-          }
-        }
-      }
-      for (const [key, value] of Object.entries(s.amount)) {
-        if (!state.amount[key]) {
-          state.amount[key] = value
-        } else {
-          throw new Error(`duplicate filter for the same amount property "${key}"`)
-        }
-      }
-      for (const [prop, value] of Object.entries(s.time)) {
-        if (!state.time[prop]) {
-          state.time[prop] = value
-        } else {
-          throw new Error(`duplicate filter for the same time property "${prop}"`)
-        }
-      }
-    }
-    return state
-  }
-  if ("not" in filters) {
-    throw new Error(`not filter unsupported`)
-  }
-  if ("or" in filters) {
-    throw new Error(`or filter unsupported`)
-  }
-  if ("ref" in filters) {
-    if ("none" in filters.ref && filters.ref.none) {
-      return {
-        ref: {
-          [filters.ref.prop]: [NONE],
-        },
-        amount: {},
-        time: {},
-      }
-    } else {
-      return {
-        ref: {
-          [filters.ref.prop]: [(filters.ref as RefFilter).value],
-        },
-        amount: {},
-        time: {},
-      }
-    }
-  }
-  if ("amount" in filters) {
-    const key = amountFilterKey(filters.amount.prop, filters.amount.unit)
-    if ("none" in filters.amount && filters.amount.none) {
-      return {
-        ref: {},
-        amount: {
-          [key]: NONE,
-        },
-        time: {},
-      }
-    } else {
-      return {
-        ref: {},
-        amount: {
-          [key]: {
-            gte: (filters.amount as AmountFilter).gte,
-            lte: (filters.amount as AmountFilter).lte,
-          },
-        },
-        time: {},
-      }
-    }
-  }
-  if ("time" in filters) {
-    if ("none" in filters.time && filters.time.none) {
-      return {
-        ref: {},
-        amount: {},
-        time: {
-          [filters.time.prop]: NONE,
-        },
-      }
-    } else {
-      return {
-        ref: {},
-        amount: {},
-        time: {
-          [filters.time.prop]: {
-            gte: (filters.time as TimeFilter).gte,
-            lte: (filters.time as TimeFilter).lte,
-          },
-        },
-      }
-    }
-  }
-  throw new Error(`invalid filter`)
-}
-
-function serverToClientSearchSession(searchSession: ServerSearchSession): ClientSearchSession {
-  const s: ClientSearchSession = {
-    id: searchSession.id,
-    version: searchSession.version,
-    view: searchSession.view,
-    query: searchSession.query,
-  }
-  if (searchSession.filters) {
-    s.filters = filtersToFiltersState(searchSession.filters)
-  }
-  return s
-}
-
+// createSearchSession creates a new empty session, then updates it with the provided data.
 export async function createSearchSession(
   router: Router,
-  createSearchSessionRequest: CreateSearchSessionRequest,
+  searchDataFn: (base: string[]) => Promise<SearchSessionData>,
   abortSignal: AbortSignal,
   progress: Ref<number>,
   replace: boolean,
 ) {
-  const payload: {
-    view?: ViewType
-    query: string
-    filters?: Filters
-  } = {
-    view: createSearchSessionRequest.view,
-    query: createSearchSessionRequest.query,
-  }
-  const filters = filtersStateToFilters(createSearchSessionRequest.filters)
-  // TODO: Currently assumes only "and" filters are set.
-  if ("and" in filters && filters.and.length > 0) {
-    payload.filters = filters
-  }
-  const sessionRef = await postJSON<SearchSessionRef>(
+  // Step 1: Create an empty session to get its Base/ID.
+  const createResponse = await postJSON<CreateSearchSessionResponse>(
     router.apiResolve({
       name: "SearchCreate",
     }).href,
-    payload,
+    {},
     abortSignal,
     progress,
   )
   if (abortSignal.aborted) {
     return
   }
+
+  const searchData = await searchDataFn(createResponse.base)
+
+  // Step 2: If there is data to set, update the session.
+  if (searchData.query || (searchData.filters && searchData.filters.length > 0) || searchData.view || searchData.reverse) {
+    await updateSearchSession(router, createResponse.id, searchData, abortSignal, progress)
+    if (abortSignal.aborted) {
+      return
+    }
+  }
+
   if (replace) {
     await router.replace({
       name: "SearchGet",
       params: {
-        id: sessionRef.id,
+        id: createResponse.id,
       },
     })
   } else {
     await router.push({
       name: "SearchGet",
       params: {
-        id: sessionRef.id,
+        id: createResponse.id,
       },
     })
   }
@@ -268,28 +74,32 @@ export async function createSearchSession(
 
 export async function updateSearchSession(
   router: Router,
-  searchSession: ClientSearchSession | DeepReadonly<ClientSearchSession>,
+  sessionId: string,
+  searchData: DeepReadonly<SearchSessionData>,
   abortSignal: AbortSignal,
   progress: Ref<number>,
-): Promise<SearchSessionRef | null> {
-  const updatedSearchSessionRef = await postJSON<SearchSessionRef>(
+): Promise<UpdateSearchSessionResponse | null> {
+  const payload: DeepReadonly<SearchSessionData> = {
+    view: searchData.view,
+    query: searchData.query,
+    ...(searchData.filters && searchData.filters.length > 0 ? { filters: searchData.filters } : {}),
+    ...(searchData.reverse ? { reverse: searchData.reverse } : {}),
+  }
+  const response = await postJSON<UpdateSearchSessionResponse>(
     router.apiResolve({
       name: "SearchUpdate",
       params: {
-        id: searchSession.id,
+        id: sessionId,
       },
     }).href,
-    clientToServerSearchSession(searchSession),
+    payload,
     abortSignal,
     progress,
   )
   if (abortSignal.aborted) {
     return null
   }
-  if (updatedSearchSessionRef.id !== searchSession.id) {
-    throw new Error(`unexpected search session ID change, new ${updatedSearchSessionRef.id}, old ${searchSession.id}`)
-  }
-  return updatedSearchSessionRef
+  return response
 }
 
 export function useSearch(
@@ -334,7 +144,12 @@ export function useFilters(
 } {
   const router = useRouter()
 
-  return useSearchResults<FilterResult>(el, progress, () => {
+  const {
+    results: rawResults,
+    total,
+    error,
+    url,
+  } = useSearchResults<FilterResult>(el, progress, () => {
     return router.apiResolve({
       name: "SearchFilters",
       params: {
@@ -347,9 +162,26 @@ export function useFilters(
       query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
     }).href
   })
+
+  // Deduplicate by prop/type/unit: prefer active entries (with filterId) over inactive ones.
+  // TODO: Support multiple filters for the same prop/type/unit.
+  const results = computed(() => {
+    const best = new Map<string, FilterResult>()
+    for (const r of rawResults.value) {
+      const unit = r.type === "amount" ? ((r as DeepReadonly<{ unit?: string }>).unit ?? "") : ""
+      const key = `${r.type}/${r.props?.join("/") ?? ""}/${unit}`
+      const existing = best.get(key)
+      if (!existing || (r.filterId && !existing.filterId)) {
+        best.set(key, r as FilterResult)
+      }
+    }
+    return [...best.values()]
+  })
+
+  return { results, total, error, url }
 }
 
-function useSearchResults<T extends Result | FilterResult | RefSearchResult>(
+function useSearchResults<T extends Result | FilterResult | RefFilterResult | HasFilterResult>(
   el: Ref<Element | null>,
   progress: Ref<number>,
   getURL: () => string | null,
@@ -445,9 +277,10 @@ function useSearchResults<T extends Result | FilterResult | RefSearchResult>(
   }
 }
 
-export function useRefFilterValues(
+export function useRefFilters(
   searchSessionRef: Ref<SearchSessionRef>,
-  result: Ref<RefSearchResult>,
+  filterId: Ref<string>,
+  props: Ref<readonly string[]>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
@@ -458,38 +291,84 @@ export function useRefFilterValues(
 } {
   const router = useRouter()
 
-  return useSearchResults<RefSearchResult>(el, progress, () => {
-    const r = result.value
-    if (!r.id || !r.type) {
-      return null
-    }
-    if (r.type === "ref") {
+  return useSearchResults<RefFilterResult>(el, progress, () => {
+    // TODO: Implement proper versioning.
+    //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
+    //       but the backend does not really use the parameter and always returns the latest version.
+    const query = encodeQuery({ version: `${searchSessionRef.value.version}` })
+    const id = filterId.value
+    if (id) {
+      // Active filter: use filter ID route.
       return router.apiResolve({
-        name: "SearchRefFilter",
-        params: {
-          id: searchSessionRef.value.id,
-          prop: r.id,
-        },
-        // TODO: Implement proper versioning.
-        //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
-        //       but the backend does not really use the parameter and always returns the latest version.
-        query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
+        name: "SearchFilterGet",
+        params: { id: searchSessionRef.value.id, filter: id },
+        query,
       }).href
-    } else {
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
     }
+    // Inactive filter: use prop-based route.
+    if (props.value.length === 2) {
+      // Sub-ref filter: use parentProp + prop route.
+      return router.apiResolve({
+        name: "SearchSubRefFilter",
+        params: { id: searchSessionRef.value.id, parentProp: props.value[0], prop: props.value[1] },
+        query,
+      }).href
+    }
+    return router.apiResolve({
+      name: "SearchRefFilter",
+      params: { id: searchSessionRef.value.id, prop: props.value[0] },
+      query,
+    }).href
+  })
+}
+
+export function useHasFilters(
+  searchSessionRef: Ref<SearchSessionRef>,
+  filterId: Ref<string>,
+  el: Ref<Element | null>,
+  progress: Ref<number>,
+): {
+  results: DeepReadonly<Ref<HasFilterResult[]>>
+  total: DeepReadonly<Ref<number | null>>
+  error: DeepReadonly<Ref<string | null>>
+  url: DeepReadonly<Ref<string | null>>
+} {
+  const router = useRouter()
+
+  return useSearchResults<HasFilterResult>(el, progress, () => {
+    // TODO: Implement proper versioning.
+    //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
+    //       but the backend does not really use the parameter and always returns the latest version.
+    const query = encodeQuery({ version: `${searchSessionRef.value.version}` })
+    const id = filterId.value
+    if (id) {
+      // Active filter: use filter ID route.
+      return router.apiResolve({
+        name: "SearchFilterGet",
+        params: { id: searchSessionRef.value.id, filter: id },
+        query,
+      }).href
+    }
+    // Inactive filter: use has-based route.
+    return router.apiResolve({
+      name: "SearchHasFilter",
+      params: { id: searchSessionRef.value.id },
+      query,
+    }).href
   })
 }
 
 export function useAmountHistogramValues(
   searchSessionRef: Ref<SearchSessionRef>,
-  result: Ref<AmountSearchResult>,
+  filterId: Ref<string>,
+  prop: Ref<string>,
+  unit: Ref<string | undefined>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
   results: DeepReadonly<Ref<HistogramAmountResult[]>>
   total: DeepReadonly<Ref<number | null>>
+  missing: DeepReadonly<Ref<number | null>>
   from: DeepReadonly<Ref<number | null>>
   to: DeepReadonly<Ref<number | null>>
   interval: DeepReadonly<Ref<number | null>>
@@ -501,6 +380,7 @@ export function useAmountHistogramValues(
 
   const _results = ref<HistogramAmountResult[]>([])
   const _total = ref<number | null>(null)
+  const _missing = ref<number | null>(null)
   const _from = ref<number | null>(null)
   const _to = ref<number | null>(null)
   const _interval = ref<number | null>(null)
@@ -508,6 +388,7 @@ export function useAmountHistogramValues(
   const _url = ref<string | null>(null)
   const results = process.env.NODE_ENV !== "production" ? readonly(_results) : _results
   const total = process.env.NODE_ENV !== "production" ? readonly(_total) : _total
+  const missing = process.env.NODE_ENV !== "production" ? readonly(_missing) : _missing
   const from = process.env.NODE_ENV !== "production" ? readonly(_from) : _from
   const to = process.env.NODE_ENV !== "production" ? readonly(_to) : _to
   const interval = process.env.NODE_ENV !== "production" ? readonly(_interval) : _interval
@@ -520,32 +401,34 @@ export function useAmountHistogramValues(
   const initialRouteName = route.name
   watch(
     () => {
-      const r = result.value
-      if (!r.id || !r.type) {
-        return null
-      }
-      if (r.type === "amount") {
-        const routeParams: Record<string, string> = {
-          id: searchSessionRef.value.id,
-          prop: r.id,
-        }
-        let routeName = "SearchAmountFilter"
-        if (r.unit) {
-          routeParams.unit = r.unit
-          routeName = "SearchAmountFilterWithUnit"
-        }
+      // TODO: Implement proper versioning.
+      //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
+      //       but the backend does not really use the parameter and always returns the latest version.
+      const query = encodeQuery({ version: `${searchSessionRef.value.version}` })
+      const id = filterId.value
+      if (id) {
+        // Active filter: use filter ID route.
         return router.apiResolve({
-          name: routeName,
-          params: routeParams,
-          // TODO: Implement proper versioning.
-          //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
-          //       but the backend does not really use the parameter and always returns the latest version.
-          query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
+          name: "SearchFilterGet",
+          params: { id: searchSessionRef.value.id, filter: id },
+          query,
         }).href
-      } else {
-        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-        throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
       }
+      // Inactive filter: use prop-based route.
+      const routeParams: Record<string, string> = {
+        id: searchSessionRef.value.id,
+        prop: prop.value,
+      }
+      let routeName = "SearchAmountFilter"
+      if (unit.value) {
+        routeParams.unit = unit.value
+        routeName = "SearchAmountFilterWithUnit"
+      }
+      return router.apiResolve({
+        name: routeName,
+        params: routeParams,
+        query,
+      }).href
     },
     async (newURL, oldURL, onCleanup) => {
       // Watch can continue to run for some time after the route changes.
@@ -560,6 +443,7 @@ export function useAmountHistogramValues(
       if (!newURL) {
         _results.value = []
         _total.value = null
+        _missing.value = null
         _from.value = null
         _to.value = null
         _interval.value = null
@@ -578,6 +462,7 @@ export function useAmountHistogramValues(
         console.error("useAmountHistogramValues", newURL, err)
         _results.value = []
         _total.value = null
+        _missing.value = null
         _from.value = null
         _to.value = null
         _interval.value = null
@@ -590,6 +475,7 @@ export function useAmountHistogramValues(
       }
       _results.value = data.results as HistogramAmountResult[]
       _total.value = data.total
+      _missing.value = data.missing != null ? data.missing : null
       _from.value = data.from != null ? parseFloat(data.from) : null
       _to.value = data.to != null ? parseFloat(data.to) : null
       _interval.value = data.interval != null ? parseFloat(data.interval) : null
@@ -602,6 +488,7 @@ export function useAmountHistogramValues(
   return {
     results,
     total,
+    missing,
     from,
     to,
     interval,
@@ -612,12 +499,14 @@ export function useAmountHistogramValues(
 
 export function useTimeHistogramValues(
   searchSessionRef: Ref<SearchSessionRef>,
-  result: Ref<TimeSearchResult>,
+  filterId: Ref<string>,
+  prop: Ref<string>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
   results: DeepReadonly<Ref<HistogramTimeResult[]>>
   total: DeepReadonly<Ref<number | null>>
+  missing: DeepReadonly<Ref<number | null>>
   from: DeepReadonly<Ref<number | null>>
   to: DeepReadonly<Ref<number | null>>
   interval: DeepReadonly<Ref<number | null>>
@@ -629,6 +518,7 @@ export function useTimeHistogramValues(
 
   const _results = ref<HistogramTimeResult[]>([])
   const _total = ref<number | null>(null)
+  const _missing = ref<number | null>(null)
   const _from = ref<number | null>(null)
   const _to = ref<number | null>(null)
   const _interval = ref<number | null>(null)
@@ -636,6 +526,7 @@ export function useTimeHistogramValues(
   const _url = ref<string | null>(null)
   const results = process.env.NODE_ENV !== "production" ? readonly(_results) : _results
   const total = process.env.NODE_ENV !== "production" ? readonly(_total) : _total
+  const missing = process.env.NODE_ENV !== "production" ? readonly(_missing) : _missing
   const from = process.env.NODE_ENV !== "production" ? readonly(_from) : _from
   const to = process.env.NODE_ENV !== "production" ? readonly(_to) : _to
   const interval = process.env.NODE_ENV !== "production" ? readonly(_interval) : _interval
@@ -648,26 +539,25 @@ export function useTimeHistogramValues(
   const initialRouteName = route.name
   watch(
     () => {
-      const r = result.value
-      if (!r.id || !r.type) {
-        return null
-      }
-      if (r.type === "time") {
+      // TODO: Implement proper versioning.
+      //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
+      //       but the backend does not really use the parameter and always returns the latest version.
+      const query = encodeQuery({ version: `${searchSessionRef.value.version}` })
+      const id = filterId.value
+      if (id) {
+        // Active filter: use filter ID route.
         return router.apiResolve({
-          name: "SearchTimeFilter",
-          params: {
-            id: searchSessionRef.value.id,
-            prop: r.id,
-          },
-          // TODO: Implement proper versioning.
-          //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
-          //       but the backend does not really use the parameter and always returns the latest version.
-          query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
+          name: "SearchFilterGet",
+          params: { id: searchSessionRef.value.id, filter: id },
+          query,
         }).href
-      } else {
-        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-        throw new Error(`unexpected type "${r.type}" for property "${r.id}"`)
       }
+      // Inactive filter: use prop-based route.
+      return router.apiResolve({
+        name: "SearchTimeFilter",
+        params: { id: searchSessionRef.value.id, prop: prop.value },
+        query,
+      }).href
     },
     async (newURL, oldURL, onCleanup) => {
       // Watch can continue to run for some time after the route changes.
@@ -682,6 +572,7 @@ export function useTimeHistogramValues(
       if (!newURL) {
         _results.value = []
         _total.value = null
+        _missing.value = null
         _from.value = null
         _to.value = null
         _interval.value = null
@@ -700,6 +591,7 @@ export function useTimeHistogramValues(
         console.error("useTimeHistogramValues", newURL, err)
         _results.value = []
         _total.value = null
+        _missing.value = null
         _from.value = null
         _to.value = null
         _interval.value = null
@@ -712,6 +604,7 @@ export function useTimeHistogramValues(
       }
       _results.value = data.results as HistogramTimeResult[]
       _total.value = data.total
+      _missing.value = data.missing != null ? data.missing : null
       _from.value = data.from != null ? parseFloat(data.from) : null
       _to.value = data.to != null ? parseFloat(data.to) : null
       _interval.value = data.interval != null ? parseFloat(data.interval) : null
@@ -724,6 +617,7 @@ export function useTimeHistogramValues(
   return {
     results,
     total,
+    missing,
     from,
     to,
     interval,
@@ -732,7 +626,7 @@ export function useTimeHistogramValues(
   }
 }
 
-async function getSearchResults<T extends Result | FilterResult | RefSearchResult>(
+async function getSearchResults<T extends Result | FilterResult | RefFilterResult | HasFilterResult>(
   url: string,
   el: Ref<Element | null> | null,
   abortSignal: AbortSignal,
@@ -758,6 +652,7 @@ async function getHistogramValues<T extends HistogramAmountResult | HistogramTim
 ): Promise<{
   results: T[]
   total: number
+  missing?: number
   from?: string
   to?: string
   interval?: string
@@ -774,9 +669,13 @@ async function getHistogramValues<T extends HistogramAmountResult | HistogramTim
   const res = { results: doc, total: total } as {
     results: T[]
     total: number
+    missing?: number
     from?: string
     to?: string
     interval?: string
+  }
+  if ("missing" in metadata) {
+    res.missing = metadata["missing"] as number
   }
   if ("from" in metadata) {
     res.from = String(metadata["from"])
@@ -795,14 +694,14 @@ export function useSearchSession(
   searchSessionRef: Ref<SearchSessionRef | null>,
   progress: Ref<number>,
 ): {
-  searchSession: DeepReadonly<Ref<ClientSearchSession | null>>
+  searchSession: DeepReadonly<Ref<SearchSession | null>>
   error: DeepReadonly<Ref<string | null>>
   url: DeepReadonly<Ref<string | null>>
 } {
   const router = useRouter()
   const route = useRoute()
 
-  const _searchSession = ref<ClientSearchSession | null>(null)
+  const _searchSession = ref<SearchSession | null>(null)
   const _error = ref<string | null>(null)
   const _url = ref<string | null>(null)
   const searchSession = process.env.NODE_ENV !== "production" ? readonly(_searchSession) : _searchSession
@@ -845,7 +744,7 @@ export function useSearchSession(
       try {
         // TODO: Use the pattern where we construct the URL here and then use it in the watcher once proper versioning is implemented.
         //       For now we use whole searchSessionRef and getURLDirect so that we always load the latest version in DocumentGet which uses fake version.
-        data = await getURLDirect<ServerSearchSession>(newURL, signal, progress)
+        data = await getURLDirect<SearchSession>(newURL, signal, progress)
       } catch (err) {
         if (signal.aborted) {
           return
@@ -859,7 +758,7 @@ export function useSearchSession(
       if (signal.aborted) {
         return
       }
-      _searchSession.value = serverToClientSearchSession(data.doc)
+      _searchSession.value = data.doc
     },
     {
       immediate: true,

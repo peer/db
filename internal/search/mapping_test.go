@@ -112,14 +112,20 @@ func TestMappingNestedReference(t *testing.T) {
 	claimProps, ok := claims["properties"].(map[string]any)
 	require.True(t, ok)
 
-	// Check that ref claim type has nested ref field.
-	refClaim, ok := claimProps["ref"].(map[string]any)
+	// Check that claims.sub exists as a nested field.
+	subRef, ok := claimProps["sub"].(map[string]any)
 	require.True(t, ok)
-	refProps, ok := refClaim["properties"].(map[string]any)
+	assert.Equal(t, "nested", subRef["type"])
+	subRefProps, ok := subRef["properties"].(map[string]any)
 	require.True(t, ok)
-	nestedRef, ok := refProps["ref"].(map[string]any)
-	require.True(t, ok)
-	assert.Equal(t, "nested", nestedRef["type"])
+	_, ok = subRefProps["parentProp"]
+	assert.True(t, ok)
+	_, ok = subRefProps["parentTo"]
+	assert.True(t, ok)
+	_, ok = subRefProps["prop"]
+	assert.True(t, ok)
+	_, ok = subRefProps["to"]
+	assert.True(t, ok)
 }
 
 func TestMappingDynamicDisabled(t *testing.T) {

@@ -521,7 +521,7 @@ const WithPeerDBDocument = WithDocument<D>
                     </template>
                     <template #loading="{ url }">
                       <div class="w-full">
-                        <i class="block h-4 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]" aria-hidden="true"></i>
+                        <i class="block h-4 rounded bg-slate-200 motion-safe:animate-pulse" :data-url="url" :class="[loadingWidth(result.id)]" aria-hidden="true"></i>
                       </div>
 
                       <CheckIcon v-if="result.id === selectedDocument?.id" class="size-5 text-primary-600" aria-hidden="true" />

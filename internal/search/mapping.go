@@ -142,20 +142,6 @@ const propDisplay = `{
 	}
 }`
 
-// We currently have display and naming fields which enable us to search and sort by them if we need that.
-// We currently do not plan to group by them, so we do not have "toPath" or "toDisplayPath" fields.
-const nestedRef = `{
-	"type": "nested",
-	"properties": {
-		"prop": ` + relationID + `,
-		"propDisplay": ` + propDisplay + `,
-		"propNaming": ` + multiLanguageString + `,
-		"to": ` + relationID + `,
-		"toDisplay": ` + propDisplay + `,
-		"toNaming": ` + multiLanguageString + `
-	}
-}`
-
 // TODO: Generate automatically from the Document struct.
 var claimTypes = []claimType{ //nolint:gochecknoglobals
 	{
@@ -417,13 +403,13 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 				"toDisplayPath",
 				displayPath,
 			},
-			{
-				"ref",
-				nestedRef,
-			},
 		},
 	},
 	{
+		// Has claims that have ANY sub-claims (of any type) are NOT indexed here.
+		// Any reference sub-claims are still recorded in claims.sub with parentTo=__HAS__.
+		// This means claims.has only contains simple has claims (without any sub-claims),
+		// so the has filter does not need to filter these out.
 		"has",
 		[]field{
 			{
@@ -437,10 +423,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			{
 				"propNaming",
 				multiLanguageString,
-			},
-			{
-				"ref",
-				nestedRef,
 			},
 		},
 	},
@@ -474,6 +456,44 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			},
 			{
 				"propNaming",
+				multiLanguageString,
+			},
+		},
+	},
+	{
+		// This is a synthetic claim type used to index sub-claims.
+		"sub",
+		[]field{
+			{
+				"parentProp",
+				relationID,
+			},
+			{
+				"parentTo",
+				relationID,
+			},
+			{
+				"prop",
+				relationID,
+			},
+			{
+				"propDisplay",
+				propDisplay,
+			},
+			{
+				"propNaming",
+				multiLanguageString,
+			},
+			{
+				"to",
+				relationID,
+			},
+			{
+				"toDisplay",
+				propDisplay,
+			},
+			{
+				"toNaming",
 				multiLanguageString,
 			},
 		},

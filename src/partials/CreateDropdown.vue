@@ -48,8 +48,8 @@ async function loadClasses() {
     const results = await postJSON<Result[]>(
       router.apiResolve({ name: "SearchJustResults" }).href,
       {
-        query: "",
-        filters: { and: [{ ref: { prop: INSTANCE_OF, value: CLASS } }] },
+        // We do not provide filter IDs and base for SearchJustResults API endpoint.
+        filters: [{ prop: [INSTANCE_OF], ref: { to: [{ id: CLASS }] } }],
       },
       abortController.signal,
       null,

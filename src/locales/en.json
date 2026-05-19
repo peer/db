@@ -53,6 +53,7 @@
       "table": "Table"
     },
     "values": {
+      "missing": "missing",
       "noName": "no name",
       "none": "none",
       "unknown": "unknown"
@@ -174,7 +175,11 @@
       "filtersAvailable": "1 filters available. | {count} filters available.",
       "determiningFilters": "Determining filters...",
       "skipToFilters": "Skip to filters",
-      "skipToResults": "Skip to results"
+      "skipToResults": "Skip to results",
+      "resultsRelatedTo": "Results related to {label}"
+    },
+    "HasFiltersResult": {
+      "title": "has property"
     },
     "SearchResultsTable": {
       "expandRow": "Expand row",

@@ -1,12 +1,14 @@
 package search
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"slices"
 	"strconv"
 	"time"
 
-	"github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
+	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/sortorder"
@@ -17,29 +19,27 @@ import (
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
+// MissingRefFilterID is a special ID used for the "missing" bucket in reference filter results.
+// It represents documents that do not have a value for the filtered property.
+const MissingRefFilterID = "__MISSING__"
+
 // RefFilterResult represents occurrences count for a single reference in a reference filter.
 type RefFilterResult struct {
 	ID    string `json:"id"`
 	Count int64  `json:"count"`
 }
 
-// RefFilterGet retrieves reference filter data for search results.
-func RefFilterGet(
-	ctx context.Context, getSearchService func() (*search.Search, int64, int64), id, prop identifier.Identifier,
+// Get retrieves reference filter data for search results.
+func (f *RefFilter) Get(
+	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64),
+	query types.QueryVariant, prop identifier.Identifier,
 ) ([]RefFilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
-	m := metrics.Duration(internalStore.MetricSearchSession).Start()
-	searchSession, errE := GetSession(ctx, id)
-	m.Stop()
-	if errE != nil {
-		return nil, nil, errE
-	}
-
-	query := searchSession.ToQuery()
-
 	searchService, _, _ := getSearchService()
-	aggregation := esdsl.NewAggregations().
+
+	// Aggregation for documents that have the property: terms on claims.ref.to.
+	refAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.ref")).
 		AddAggregation("filter", esdsl.NewAggregations().
 			Filter(esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String()))).
@@ -53,9 +53,20 @@ func RefFilterGet(
 				// so we use it to get the most accurate approximation. For now we didn't notice any performance issues
 				// at data scale PeerDB is currently being used with, but in the future we might want to make this configurable.
 				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.ref.to").PrecisionThreshold(40000)))) //nolint:mnd
-	searchService = searchService.Size(0).Query(query).AddAggregation("ref", aggregation)
 
-	m = metrics.Duration(internalStore.MetricElasticSearch).Start()
+	// Aggregation for documents missing the property: count documents where the prop does not exist.
+	missingAggregation := esdsl.NewAggregations().
+		Filter(esdsl.NewBoolQuery().MustNot(
+			esdsl.NewNestedQuery(
+				esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String())),
+			).Path("claims.ref"),
+		))
+
+	searchService = searchService.Size(0).Query(query).
+		AddAggregation("ref", refAggregation).
+		AddAggregation("missing", missingAggregation)
+
+	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
@@ -86,7 +97,14 @@ func RefFilterGet(
 		return nil, nil, errE
 	}
 
-	results := make([]RefFilterResult, 0, len(refBuckets))
+	// Parse the missing count.
+	missingFilter, errE := aggAs[types.FilterAggregate](res.Aggregations, "missing")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	missingCount := missingFilter.DocCount
+
+	results := make([]RefFilterResult, 0, len(refBuckets)+1)
 	for _, bucket := range refBuckets {
 		bucketDocs, errE := aggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
 		if errE != nil {
@@ -101,10 +119,188 @@ func RefFilterGet(
 		results = append(results, RefFilterResult{ID: key, Count: bucketDocs.DocCount})
 	}
 
+	// Include the missing bucket if there are documents without this property.
+	if missingCount > 0 {
+		results = append(results, RefFilterResult{ID: MissingRefFilterID, Count: missingCount})
+		// Re-sort by count descending so that missing is in the right position.
+		slices.SortStableFunc(results, func(a, b RefFilterResult) int {
+			return cmp.Compare(b.Count, a.Count)
+		})
+	}
+
 	// Cardinality count is approximate, so we make sure the total is sane.
 	// See: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html#_counts_are_approximate
 	refTotalValue := max(int64(len(refBuckets)), refTotal.Value)
+	// Include missing in the total if present.
+	if missingCount > 0 {
+		refTotalValue++
+	}
 	total := strconv.FormatInt(refTotalValue, 10)
+
+	return results, map[string]any{
+		"total": total,
+	}, nil
+}
+
+// ToSubRefQuery converts the RefFilter to an ElasticSearch query on claims.sub
+// for a sub-reference filter with parentProp and prop.
+func (f *RefFilter) ToSubRefQuery(parentProp, prop identifier.Identifier) types.QueryVariant { //nolint:ireturn
+	missingQuery := esdsl.NewBoolQuery().MustNot(
+		esdsl.NewNestedQuery(
+			esdsl.NewBoolQuery().Must(
+				esdsl.NewTermQuery("claims.sub.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+				esdsl.NewTermQuery("claims.sub.prop", esdsl.NewFieldValue().String(prop.String())),
+			),
+		).Path("claims.sub"),
+	)
+
+	// Missing only.
+	if f.Missing && len(f.To) == 0 {
+		return missingQuery
+	}
+
+	// Build value queries (OR across all To values).
+	shoulds := make([]types.QueryVariant, 0, len(f.To)+1)
+	for _, to := range f.To {
+		shoulds = append(shoulds, esdsl.NewNestedQuery(
+			esdsl.NewBoolQuery().Must(
+				esdsl.NewTermQuery("claims.sub.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+				esdsl.NewTermQuery("claims.sub.prop", esdsl.NewFieldValue().String(prop.String())),
+				esdsl.NewTermQuery("claims.sub.to", esdsl.NewFieldValue().String(to.ID.String())),
+			),
+		).Path("claims.sub"))
+	}
+
+	// Values + missing: OR them together.
+	if f.Missing {
+		shoulds = append(shoulds, missingQuery)
+	}
+
+	if len(shoulds) == 1 {
+		return shoulds[0]
+	}
+	return esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
+}
+
+// GetSubRef retrieves sub-reference filter data for search results.
+// It aggregates claims.sub.to values for a given (parentProp, prop) combination.
+// parentToRestrictions optionally restricts results to specific parentTo values (for cross-filtering).
+func (f *RefFilter) GetSubRef(
+	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64),
+	query types.QueryVariant, parentProp, prop identifier.Identifier,
+	parentToRestrictions []identifier.Identifier,
+) ([]RefFilterResult, map[string]any, errors.E) {
+	metrics, _ := waf.GetMetrics(ctx)
+
+	searchService, _, _ := getSearchService()
+
+	// Build the filter for parentProp + prop (+ optional parentTo restriction).
+	filterMusts := []types.QueryVariant{
+		esdsl.NewTermQuery("claims.sub.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+		esdsl.NewTermQuery("claims.sub.prop", esdsl.NewFieldValue().String(prop.String())),
+	}
+	if len(parentToRestrictions) > 0 {
+		parentToShoulds := make([]types.QueryVariant, 0, len(parentToRestrictions))
+		for _, pto := range parentToRestrictions {
+			parentToShoulds = append(parentToShoulds, esdsl.NewTermQuery("claims.sub.parentTo", esdsl.NewFieldValue().String(pto.String())))
+		}
+		filterMusts = append(filterMusts, esdsl.NewBoolQuery().Should(parentToShoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)))
+	}
+
+	// Aggregation for documents that have matching subRef: terms on claims.sub.to.
+	subRefAggregation := esdsl.NewAggregations().
+		Nested(esdsl.NewNestedAggregation().Path("claims.sub")).
+		AddAggregation("filter", esdsl.NewAggregations().
+			Filter(esdsl.NewBoolQuery().Must(filterMusts...)).
+			AddAggregation("props", esdsl.NewAggregations().
+				Terms(esdsl.NewTermsAggregation().Field("claims.sub.to").Size(MaxResultsCount).
+					Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
+				AddAggregation("docs", esdsl.NewAggregations().
+					ReverseNested(esdsl.NewReverseNestedAggregation()))).
+			AddAggregation("total", esdsl.NewAggregations().
+				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.sub.to").PrecisionThreshold(40000)))) //nolint:mnd
+
+	// Aggregation for documents missing this sub-reference.
+	missingAggregation := esdsl.NewAggregations().
+		Filter(esdsl.NewBoolQuery().MustNot(
+			esdsl.NewNestedQuery(
+				esdsl.NewBoolQuery().Must(
+					esdsl.NewTermQuery("claims.sub.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+					esdsl.NewTermQuery("claims.sub.prop", esdsl.NewFieldValue().String(prop.String())),
+				),
+			).Path("claims.sub"),
+		))
+
+	searchService = searchService.Size(0).Query(query).
+		AddAggregation("subRef", subRefAggregation).
+		AddAggregation("missing", missingAggregation)
+
+	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
+	res, err := searchService.Do(ctx)
+	m.Stop()
+	if err != nil {
+		return nil, nil, errors.WithStack(err)
+	}
+	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
+
+	subRefNested, errE := aggAs[types.NestedAggregate](res.Aggregations, "subRef")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	subRefFilter, errE := aggAs[types.FilterAggregate](subRefNested.Aggregations, "filter")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	subRefTerms, errE := aggAs[types.StringTermsAggregate](subRefFilter.Aggregations, "props")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	subRefBuckets, ok := subRefTerms.Buckets.([]types.StringTermsBucket)
+	if !ok {
+		errE := errors.New("unexpected bucket type for subRef")
+		errors.Details(errE)["type"] = fmt.Sprintf("%T", subRefTerms.Buckets)
+		return nil, nil, errE
+	}
+	subRefTotal, errE := aggAs[types.CardinalityAggregate](subRefFilter.Aggregations, "total")
+	if errE != nil {
+		return nil, nil, errE
+	}
+
+	// Parse the missing count.
+	missingFilter, errE := aggAs[types.FilterAggregate](res.Aggregations, "missing")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	missingCount := missingFilter.DocCount
+
+	results := make([]RefFilterResult, 0, len(subRefBuckets)+1)
+	for _, bucket := range subRefBuckets {
+		bucketDocs, errE := aggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
+		if errE != nil {
+			return nil, nil, errE
+		}
+		key, ok := bucket.Key.(string)
+		if !ok {
+			errE := errors.New("unexpected key type for subRef bucket")
+			errors.Details(errE)["type"] = fmt.Sprintf("%T", bucket.Key)
+			return nil, nil, errE
+		}
+		results = append(results, RefFilterResult{ID: key, Count: bucketDocs.DocCount})
+	}
+
+	// Include the missing bucket if there are documents without this sub-reference.
+	if missingCount > 0 {
+		results = append(results, RefFilterResult{ID: MissingRefFilterID, Count: missingCount})
+		slices.SortStableFunc(results, func(a, b RefFilterResult) int {
+			return cmp.Compare(b.Count, a.Count)
+		})
+	}
+
+	subRefTotalValue := max(int64(len(subRefBuckets)), subRefTotal.Value)
+	if missingCount > 0 {
+		subRefTotalValue++
+	}
+	total := strconv.FormatInt(subRefTotalValue, 10)
 
 	return results, map[string]any{
 		"total": total,

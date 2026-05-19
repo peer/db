@@ -40,6 +40,22 @@ func (s *Service) setRoutes() { //nolint:maintidx
 				},
 			},
 		},
+		"SearchFilterGet": {
+			Path: "/s/filters/:id/:filter",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.SearchFilterGetAPI,
+				},
+			},
+		},
+		"SearchSubRefFilter": {
+			Path: "/s/filters/:id/ref/:parentProp/:prop",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.SearchSubRefFilterGetAPI,
+				},
+			},
+		},
 		"SearchRefFilter": {
 			Path: "/s/filters/:id/ref/:prop",
 			API: waf.RouteOptions{
@@ -69,6 +85,14 @@ func (s *Service) setRoutes() { //nolint:maintidx
 			API: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{
 					http.MethodGet: s.SearchTimeFilterGetAPI,
+				},
+			},
+		},
+		"SearchHasFilter": {
+			Path: "/s/filters/:id/has",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.SearchHasFilterGetAPI,
 				},
 			},
 		},

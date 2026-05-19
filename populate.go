@@ -18,10 +18,21 @@ import (
 	"gitlab.com/peerdb/peerdb/transform"
 )
 
-func (c *PopulateCommand) populateSite(ctx context.Context, site Site) errors.E {
-	logger := zerolog.Ctx(ctx)
-
+func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logger, site Site) errors.E {
 	logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("populating")
+
+	// We use a per-site cancellable context so that we can stop Base (started
+	// inside PopulateAndStart) before returning. Without this, the deferred
+	// populateShutdown below would block forever waiting for Base to be stopped,
+	// since the parent ctx might still be alive when we return.
+	ctx, siteCancel := context.WithCancel(ctx)
+	var populateShutdown func()
+	defer func() {
+		siteCancel()
+		if populateShutdown != nil {
+			populateShutdown()
+		}
+	}()
 
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
 	ctx = WithFallbackDBContext(ctx, site.Schema, "populate")
@@ -31,12 +42,7 @@ func (c *PopulateCommand) populateSite(ctx context.Context, site Site) errors.E 
 		return errE
 	}
 
-	return c.PopulateSite(ctx, site, documents, transformed)
-}
-
-// PopulateSite populates the given site with provided documents.
-func (c *PopulateCommand) PopulateSite(ctx context.Context, site Site, documents []any, transformed []*document.D) errors.E {
-	logger := zerolog.Ctx(ctx)
+	logger.Info().Int("count", len(documents)).Msg("generated all documents")
 
 	if ctx.Err() != nil {
 		return errors.WithStack(ctx.Err())
@@ -94,7 +100,7 @@ func (c *PopulateCommand) PopulateSite(ctx context.Context, site Site, documents
 
 	count := x.NewCounter(0)
 	size := x.NewCounter(int64(len(transformed)))
-	progress := indexer.Progress(logger.With().Logger(), "indexing", nil)
+	progress := indexer.Progress(logger, "indexing", nil)
 	ticker := x.NewTicker(ctx, count, size, indexer.ProgressPrintRate)
 	defer ticker.Stop()
 	go func() {
@@ -103,7 +109,7 @@ func (c *PopulateCommand) PopulateSite(ctx context.Context, site Site, documents
 		}
 	}()
 
-	errE := site.PopulateAndStart(ctx, transformed, func(doc *document.D) {
+	populateShutdown, errE = site.PopulateAndStart(ctx, transformed, func(doc *document.D) {
 		count.Increment()
 		logger.Debug().Str("doc", doc.ID.String()).Msg("saving document")
 	}, nil, count, size)
@@ -133,9 +139,9 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 	ctx, cancel := context.WithCancel(ctx)
 
 	if !c.DryRun {
-		onShutdown, errE := Init(ctx, globals)
-		if onShutdown != nil {
-			defer onShutdown()
+		onShutdownInit, errE := Init(ctx, globals)
+		if onShutdownInit != nil {
+			defer onShutdownInit()
 		}
 		defer cancel()
 		if errE != nil {
@@ -146,7 +152,7 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 	}
 
 	for _, site := range globals.Sites {
-		errE := c.populateSite(ctx, site)
+		errE := c.populateSite(ctx, globals.Logger, site)
 		if errE != nil {
 			return errE
 		}

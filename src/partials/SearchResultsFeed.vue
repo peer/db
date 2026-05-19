@@ -1,20 +1,23 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance, DeepReadonly } from "vue"
 
-import type { ClientSearchSession, FiltersState, FilterStateChange, Result, ViewType } from "@/types"
+import type { D } from "@/document"
+import type { Filter, Result, SearchSession, ViewType } from "@/types"
 
 import { FunnelIcon } from "@heroicons/vue/20/solid"
 import { onBeforeUnmount, ref, toRef, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
+import WithDocument from "@/components/WithDocument.vue"
+import DisplayLabel from "@/partials/DisplayLabel.vue"
 import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResult from "@/partials/SearchResult.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import { useBusy } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search"
-import { useLimitResults, useOnScrollOrResize } from "@/utils"
+import { loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils"
 import { useVisibilityTracking } from "@/visibility"
 
 const props = defineProps<{
@@ -22,15 +25,15 @@ const props = defineProps<{
   searchResults: DeepReadonly<Result[]>
   searchTotal: number | null
   searchMoreThanTotal: boolean
-  searchSession: DeepReadonly<ClientSearchSession>
+  searchSession: DeepReadonly<SearchSession>
   isDownloading: boolean
 
   // Filter props.
-  filtersState: FiltersState
+  filters: Filter[]
 }>()
 
 const $emit = defineEmits<{
-  filterChange: [change: FilterStateChange]
+  filterUpdate: [filterId: string, filter: Filter]
   viewChange: [value: ViewType]
   downloadZip: []
   downloadFiles: []
@@ -136,6 +139,8 @@ function onFilters() {
 function onSkipTo(targetId: string) {
   document.getElementById(targetId)?.focus()
 }
+
+const WithDocumentD = WithDocument<D>
 </script>
 
 <template>
@@ -242,16 +247,35 @@ function onSkipTo(targetId: string) {
       </div>
 
       <template v-else-if="filtersTotal > 0">
+        <div v-if="searchSession.reverse" class="text-center text-sm">
+          <i18n-t keypath="partials.SearchResultsFeed.resultsRelatedTo" scope="global">
+            <template #label>
+              <RouterLink :to="{ name: 'DocumentGet', params: { id: searchSession.reverse } }" class="link">
+                <WithDocumentD :id="searchSession.reverse" name="DocumentGet">
+                  <template #default="{ doc }">
+                    <DisplayLabel :doc="doc" />
+                  </template>
+                  <template #loading>
+                    <span
+                      class="pd-withdocument-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
+                      :class="[loadingWidth(searchSession.reverse!)]"
+                    />
+                  </template>
+                </WithDocumentD>
+              </RouterLink>
+            </template>
+          </i18n-t>
+        </div>
         <div class="text-center text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: filtersTotal }) }}</div>
 
-        <template v-for="filter in limitedFiltersResults" :key="filter.id">
+        <template v-for="filter in limitedFiltersResults" :key="filter.filterId ?? `${filter.props?.join('/') ?? ''}/${'unit' in filter ? (filter.unit ?? '') : ''}`">
           <FiltersResult
             :result="filter"
             :search-session="searchSession"
             :search-total="searchTotal"
-            :filters-state="filtersState"
+            :filters="filters"
             class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
-            @filter-change="(c) => $emit('filterChange', c)"
+            @filter-update="(filterId, filter) => $emit('filterUpdate', filterId, filter)"
           />
         </template>
 

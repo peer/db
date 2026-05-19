@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
+	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/operator"
@@ -39,41 +39,103 @@ const (
 	ViewTable ViewType = "table"
 )
 
-// RefFilter represents a filter for reference claims.
-type RefFilter struct {
-	Prop  identifier.Identifier  `json:"prop"`
-	Value *identifier.Identifier `json:"value,omitempty"`
-	None  bool                   `json:"none,omitempty"`
+// ToValue represents a target value in a reference filter.
+type ToValue struct {
+	ID identifier.Identifier `json:"id"`
 }
 
-// Valid validates the RefFilter to ensure it has a valid configuration.
-func (f RefFilter) Valid() errors.E {
-	if f.Value == nil && !f.None {
-		return errors.New("value or none has to be set")
+// HasValue represents a selected property value in a has filter.
+type HasValue struct {
+	ID identifier.Identifier `json:"id"`
+}
+
+// RefFilter contains values for a reference filter.
+type RefFilter struct {
+	To      []ToValue `json:"to,omitempty"`
+	Missing bool      `json:"missing,omitempty"`
+}
+
+// ToQuery converts the RefFilter to an ElasticSearch query for the given property.
+func (f *RefFilter) ToQuery(prop identifier.Identifier) types.QueryVariant { //nolint:ireturn
+	missingQuery := esdsl.NewBoolQuery().MustNot(
+		esdsl.NewNestedQuery(
+			esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String())),
+		).Path("claims.ref"),
+	)
+
+	// Missing only.
+	if f.Missing && len(f.To) == 0 {
+		return missingQuery
 	}
-	if f.Value != nil && f.None {
-		return errors.New("value and none cannot be both set")
+
+	// Build value queries (OR across all To values).
+	shoulds := make([]types.QueryVariant, 0, len(f.To)+1)
+	for _, to := range f.To {
+		shoulds = append(shoulds, esdsl.NewNestedQuery(
+			esdsl.NewBoolQuery().Must(
+				esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String())),
+				esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(to.ID.String())),
+			),
+		).Path("claims.ref"))
+	}
+
+	// Values + missing: OR them together.
+	if f.Missing {
+		shoulds = append(shoulds, missingQuery)
+	}
+
+	if len(shoulds) == 1 {
+		return shoulds[0]
+	}
+	return esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
+}
+
+// Validate validates the RefFilter.
+func (f *RefFilter) Validate() errors.E {
+	if len(f.To) == 0 && !f.Missing {
+		return errors.New("to or missing has to be set")
 	}
 	return nil
 }
 
-// AmountFilter represents a filter for amount claims.
+// AmountFilter contains values for an amount filter.
 type AmountFilter struct {
-	Prop identifier.Identifier  `json:"prop"`
-	Unit *identifier.Identifier `json:"unit,omitempty"`
-	Gte  *float64               `json:"gte,omitempty"`
-	Lte  *float64               `json:"lte,omitempty"`
-	None bool                   `json:"none,omitempty"`
+	Unit    *identifier.Identifier `json:"unit,omitempty"`
+	Gte     *float64               `json:"gte,omitempty"`
+	Lte     *float64               `json:"lte,omitempty"`
+	Missing bool                   `json:"missing,omitempty"`
 }
 
-// Valid validates the AmountFilter to ensure it has a valid configuration.
-// Both gte and lte must be set together, or none must be true.
-func (f AmountFilter) Valid() errors.E {
-	if f.Gte == nil && f.Lte == nil && !f.None {
-		return errors.New("both gte and lte or none has to be set")
+// ToQuery converts the AmountFilter to an ElasticSearch query for the given property.
+func (f *AmountFilter) ToQuery(prop identifier.Identifier) types.QueryVariant { //nolint:ireturn
+	if f.Missing {
+		return esdsl.NewBoolQuery().MustNot(
+			esdsl.NewNestedQuery(
+				esdsl.NewTermQuery("claims.amount.prop", esdsl.NewFieldValue().String(prop.String())),
+			).Path("claims.amount"),
+		)
 	}
-	if (f.Gte != nil || f.Lte != nil) && f.None {
-		return errors.New("gte/lte and none cannot be both set")
+
+	r := esdsl.NewNumberRangeQuery("claims.amount.range").Gte(types.Float64(*f.Gte)).Lte(types.Float64(*f.Lte))
+	must := []types.QueryVariant{
+		esdsl.NewTermQuery("claims.amount.prop", esdsl.NewFieldValue().String(prop.String())),
+		r,
+	}
+	if f.Unit != nil {
+		must = append(must, esdsl.NewTermQuery("claims.amount.unit", esdsl.NewFieldValue().String(f.Unit.String())))
+	}
+	return esdsl.NewNestedQuery(
+		esdsl.NewBoolQuery().Must(must...),
+	).Path("claims.amount")
+}
+
+// Validate validates the AmountFilter.
+func (f *AmountFilter) Validate() errors.E {
+	if f.Gte == nil && f.Lte == nil && !f.Missing {
+		return errors.New("both gte and lte or missing has to be set")
+	}
+	if (f.Gte != nil || f.Lte != nil) && f.Missing {
+		return errors.New("gte/lte and missing cannot be both set")
 	}
 	if (f.Gte == nil) != (f.Lte == nil) {
 		return errors.New("both gte and lte must be set together")
@@ -81,24 +143,41 @@ func (f AmountFilter) Valid() errors.E {
 	return nil
 }
 
-// TimeFilter represents a filter for time claims.
+// TimeFilter contains values for a time filter.
 //
 // Gte and Lte are in seconds since Unix epoch.
 type TimeFilter struct {
-	Prop identifier.Identifier `json:"prop"`
-	Gte  *float64              `json:"gte,omitempty"`
-	Lte  *float64              `json:"lte,omitempty"`
-	None bool                  `json:"none,omitempty"`
+	Gte     *float64 `json:"gte,omitempty"`
+	Lte     *float64 `json:"lte,omitempty"`
+	Missing bool     `json:"missing,omitempty"`
 }
 
-// Valid validates the TimeFilter to ensure it has a valid configuration.
-// Both gte and lte must be set together, or none must be true.
-func (f TimeFilter) Valid() errors.E {
-	if f.Gte == nil && f.Lte == nil && !f.None {
-		return errors.New("both gte and lte or none has to be set")
+// ToQuery converts the TimeFilter to an ElasticSearch query for the given property.
+func (f *TimeFilter) ToQuery(prop identifier.Identifier) types.QueryVariant { //nolint:ireturn
+	if f.Missing {
+		return esdsl.NewBoolQuery().MustNot(
+			esdsl.NewNestedQuery(
+				esdsl.NewTermQuery("claims.time.prop", esdsl.NewFieldValue().String(prop.String())),
+			).Path("claims.time"),
+		)
 	}
-	if (f.Gte != nil || f.Lte != nil) && f.None {
-		return errors.New("gte/lte and none cannot be both set")
+
+	r := esdsl.NewNumberRangeQuery("claims.time.range").Gte(types.Float64(*f.Gte)).Lte(types.Float64(*f.Lte))
+	return esdsl.NewNestedQuery(
+		esdsl.NewBoolQuery().Must(
+			esdsl.NewTermQuery("claims.time.prop", esdsl.NewFieldValue().String(prop.String())),
+			r,
+		),
+	).Path("claims.time")
+}
+
+// Validate validates the TimeFilter.
+func (f *TimeFilter) Validate() errors.E {
+	if f.Gte == nil && f.Lte == nil && !f.Missing {
+		return errors.New("both gte and lte or missing has to be set")
+	}
+	if (f.Gte != nil || f.Lte != nil) && f.Missing {
+		return errors.New("gte/lte and missing cannot be both set")
 	}
 	if (f.Gte == nil) != (f.Lte == nil) {
 		return errors.New("both gte and lte must be set together")
@@ -106,146 +185,267 @@ func (f TimeFilter) Valid() errors.E {
 	return nil
 }
 
-// Filters represents a collection of search filters.
-type Filters struct {
-	And    []Filters     `json:"and,omitempty"`
-	Or     []Filters     `json:"or,omitempty"`
-	Not    *Filters      `json:"not,omitempty"`
-	Ref    *RefFilter    `json:"ref,omitempty"`
-	Amount *AmountFilter `json:"amount,omitempty"`
-	Time   *TimeFilter   `json:"time,omitempty"`
+// HasFilter contains values for a has filter.
+//
+// The has filter is a global filter where values are the distinct has claim properties.
+// Unlike other filters, it does not filter within a specific property.
+// Only has claims without ref sub-claims are considered (pure "has" claims).
+type HasFilter struct {
+	Props []HasValue `json:"props,omitempty"`
 }
 
-// Valid validates the Filters to ensure it has a valid configuration.
-func (f Filters) Valid() errors.E {
-	nonEmpty := 0
-	if len(f.And) > 0 {
-		nonEmpty++
-		for _, c := range f.And {
-			err := c.Valid()
-			if err != nil {
-				return err
-			}
-		}
+// ToQuery converts the HasFilter to an ElasticSearch query.
+func (f *HasFilter) ToQuery() types.QueryVariant { //nolint:ireturn
+	// Build value queries (OR across all selected props).
+	// Only simple has claims (without sub-claims) are indexed in claims.has,
+	// so we just match by claims.has.prop. Has claims with sub-claims are stored
+	// in claims.sub instead and naturally excluded from this query.
+	shoulds := make([]types.QueryVariant, 0, len(f.Props))
+	for _, p := range f.Props {
+		shoulds = append(shoulds, esdsl.NewNestedQuery(
+			esdsl.NewTermQuery("claims.has.prop", esdsl.NewFieldValue().String(p.ID.String())),
+		).Path("claims.has"))
 	}
-	if len(f.Or) > 0 {
-		nonEmpty++
-		for _, c := range f.Or {
-			err := c.Valid()
-			if err != nil {
-				return err
-			}
-		}
+
+	if len(shoulds) == 1 {
+		return shoulds[0]
 	}
-	if f.Not != nil {
-		nonEmpty++
-		err := f.Not.Valid()
-		if err != nil {
-			return err
-		}
-	}
-	if f.Ref != nil {
-		nonEmpty++
-		err := f.Ref.Valid()
-		if err != nil {
-			return err
-		}
-	}
-	if f.Amount != nil {
-		nonEmpty++
-		err := f.Amount.Valid()
-		if err != nil {
-			return err
-		}
-	}
-	if f.Time != nil {
-		nonEmpty++
-		err := f.Time.Valid()
-		if err != nil {
-			return err
-		}
-	}
-	if nonEmpty > 1 {
-		return errors.New("only one clause can be set")
-	} else if nonEmpty == 0 {
-		return errors.New("no clause is set")
+	return esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
+}
+
+// Validate validates the HasFilter.
+func (f *HasFilter) Validate() errors.E {
+	if len(f.Props) == 0 {
+		return errors.New("props has to be set")
 	}
 	return nil
 }
 
-// ToQuery converts the Filters to an ElasticSearch query.
-func (f Filters) ToQuery() types.QueryVariant { //nolint:ireturn
-	if len(f.And) > 0 {
-		musts := make([]types.QueryVariant, 0, len(f.And))
-		for _, filter := range f.And {
-			musts = append(musts, filter.ToQuery())
+// Filter represents a single active search filter.
+//
+// Exactly one of Ref, Amount, Time, or Has must be set.
+type Filter struct {
+	ID     *identifier.Identifier  `json:"id,omitempty"`
+	Base   []string                `json:"base,omitempty"`
+	Prop   []identifier.Identifier `json:"prop"`
+	Ref    *RefFilter              `json:"ref,omitempty"`
+	Amount *AmountFilter           `json:"amount,omitempty"`
+	Time   *TimeFilter             `json:"time,omitempty"`
+	Has    *HasFilter              `json:"has,omitempty"`
+}
+
+// Validate validates the Filter to ensure it has a valid configuration.
+func (f Filter) Validate(withoutSession bool) errors.E {
+	if !withoutSession {
+		if len(f.Base) < 2 { //nolint:mnd
+			errE := errors.New("base must have at least two elements")
+			errors.Details(errE)["length"] = len(f.Base)
+			return errE
 		}
-		return esdsl.NewBoolQuery().Must(musts...)
-	}
-	if len(f.Or) > 0 {
-		shoulds := make([]types.QueryVariant, 0, len(f.Or))
-		for _, filter := range f.Or {
-			shoulds = append(shoulds, filter.ToQuery())
+
+		expectedID := identifier.From(f.Base...)
+		if f.ID == nil || *f.ID != expectedID {
+			errE := errors.New("invalid filter ID")
+			errors.Details(errE)["got"] = f.ID.String()
+			errors.Details(errE)["expected"] = expectedID.String()
+			return errE
 		}
-		return esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
+	} else {
+		if len(f.Base) > 0 {
+			errE := errors.New("base must be empty")
+			errors.Details(errE)["length"] = len(f.Base)
+			return errE
+		}
+		if f.ID != nil {
+			errE := errors.New("id must be empty")
+			errors.Details(errE)["id"] = f.ID.String()
+			return errE
+		}
 	}
-	if f.Not != nil {
-		boolQuery := esdsl.NewBoolQuery()
-		boolQuery.MustNot(f.Not.ToQuery())
-		return boolQuery
-	}
+
+	nonEmpty := 0
 	if f.Ref != nil {
-		if f.Ref.None {
-			return esdsl.NewBoolQuery().MustNot(
-				esdsl.NewNestedQuery(
-					esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(f.Ref.Prop.String())),
-				).Path("claims.ref"),
-			)
-		}
-		return esdsl.NewNestedQuery(
-			esdsl.NewBoolQuery().Must(
-				esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(f.Ref.Prop.String())),
-				esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(f.Ref.Value.String())),
-			),
-		).Path("claims.ref")
+		nonEmpty++
 	}
 	if f.Amount != nil {
-		if f.Amount.None {
-			return esdsl.NewBoolQuery().MustNot(
-				esdsl.NewNestedQuery(
-					esdsl.NewTermQuery("claims.amount.prop", esdsl.NewFieldValue().String(f.Amount.Prop.String())),
-				).Path("claims.amount"),
-			)
-		}
-		r := esdsl.NewNumberRangeQuery("claims.amount.range").Gte(types.Float64(*f.Amount.Gte)).Lte(types.Float64(*f.Amount.Lte))
-		must := []types.QueryVariant{
-			esdsl.NewTermQuery("claims.amount.prop", esdsl.NewFieldValue().String(f.Amount.Prop.String())),
-			r,
-		}
-		if f.Amount.Unit != nil {
-			must = append(must, esdsl.NewTermQuery("claims.amount.unit", esdsl.NewFieldValue().String(f.Amount.Unit.String())))
-		}
-		return esdsl.NewNestedQuery(
-			esdsl.NewBoolQuery().Must(must...),
-		).Path("claims.amount")
+		nonEmpty++
 	}
 	if f.Time != nil {
-		if f.Time.None {
-			return esdsl.NewBoolQuery().MustNot(
-				esdsl.NewNestedQuery(
-					esdsl.NewTermQuery("claims.time.prop", esdsl.NewFieldValue().String(f.Time.Prop.String())),
-				).Path("claims.time"),
-			)
-		}
-		r := esdsl.NewNumberRangeQuery("claims.time.range").Gte(types.Float64(*f.Time.Gte)).Lte(types.Float64(*f.Time.Lte))
-		return esdsl.NewNestedQuery(
-			esdsl.NewBoolQuery().Must(
-				esdsl.NewTermQuery("claims.time.prop", esdsl.NewFieldValue().String(f.Time.Prop.String())),
-				r,
-			),
-		).Path("claims.time")
+		nonEmpty++
 	}
-	panic(errors.New("invalid filters"))
+	if f.Has != nil {
+		nonEmpty++
+	}
+	if nonEmpty != 1 {
+		return errors.New("exactly one of ref, amount, time, or has must be set")
+	}
+
+	// Has filter does not use Prop (it is a global filter).
+	// Ref filter supports 1 prop (top-level) or 2 props (sub-ref: parentProp + prop).
+	// Amount/Time filters use exactly 1 prop.
+	switch {
+	case f.Has != nil:
+		if len(f.Prop) != 0 {
+			errE := errors.New("prop must be empty for has filter")
+			errors.Details(errE)["length"] = len(f.Prop)
+			return errE
+		}
+	case f.Ref != nil:
+		if len(f.Prop) != 1 && len(f.Prop) != 2 {
+			errE := errors.New("prop must have one or two elements for ref filter")
+			errors.Details(errE)["length"] = len(f.Prop)
+			return errE
+		}
+	default:
+		if len(f.Prop) != 1 {
+			errE := errors.New("prop must have exactly one element")
+			errors.Details(errE)["length"] = len(f.Prop)
+			return errE
+		}
+	}
+
+	if f.Ref != nil {
+		return f.Ref.Validate()
+	}
+	if f.Amount != nil {
+		return f.Amount.Validate()
+	}
+	if f.Time != nil {
+		return f.Time.Validate()
+	}
+	return f.Has.Validate()
+}
+
+// ToQuery converts the Filter to an ElasticSearch query.
+func (f Filter) ToQuery() types.QueryVariant { //nolint:ireturn
+	if f.Has != nil {
+		return f.Has.ToQuery()
+	}
+	if f.Ref != nil {
+		if len(f.Prop) == 2 { //nolint:mnd
+			return f.Ref.ToSubRefQuery(f.Prop[0], f.Prop[1])
+		}
+		return f.Ref.ToQuery(f.Prop[0])
+	}
+	prop := f.Prop[0]
+	if f.Amount != nil {
+		return f.Amount.ToQuery(prop)
+	}
+	if f.Time != nil {
+		return f.Time.ToQuery(prop)
+	}
+	panic(errors.New("invalid filter"))
+}
+
+// GetFilterByID finds a filter by ID in the session's filters.
+func (s *Session) GetFilterByID(id identifier.Identifier) (*Filter, errors.E) {
+	for i := range s.Filters {
+		if s.Filters[i].ID != nil && *s.Filters[i].ID == id {
+			return &s.Filters[i], nil
+		}
+	}
+	return nil, errors.WithDetails(ErrNotFound, "filter", id)
+}
+
+// SessionData represents the data of the search session.
+//
+// When Reverse is set, the session is scoped to documents which have a ref claim
+// (for any property) whose "to" target equals Reverse.
+type SessionData struct {
+	View    ViewType               `json:"view,omitempty"`
+	Query   string                 `json:"query,omitempty"`
+	Filters []Filter               `json:"filters,omitempty"`
+	Reverse *identifier.Identifier `json:"reverse,omitempty"`
+}
+
+// Validate validates the session data .
+func (s *SessionData) Validate(withoutSession bool) errors.E {
+	seenFilters := map[identifier.Identifier]bool{}
+	for i, f := range s.Filters {
+		errE := f.Validate(withoutSession)
+		if errE != nil {
+			errors.Details(errE)["filter"] = i
+			return errE
+		}
+		if !withoutSession {
+			// We checked that f.ID is not nil in f.Validate().
+			if seenFilters[*f.ID] {
+				errE := errors.New("duplicate filter ID")
+				errors.Details(errE)["id"] = f.ID.String()
+				errors.Details(errE)["filter"] = i
+				return errE
+			}
+			seenFilters[*f.ID] = true
+		}
+	}
+
+	if !withoutSession {
+		if s.View == "" {
+			s.View = ViewFeed
+		}
+		if s.View != ViewFeed && s.View != ViewTable {
+			errE := errors.New("invalid view")
+			errors.Details(errE)["view"] = s.View
+			return errE
+		}
+	}
+
+	return nil
+}
+
+// reverseScopeQuery returns a query matching documents that have a ref claim
+// with "to" equal to the given ID, regardless of which property the ref is for.
+func reverseScopeQuery(id identifier.Identifier) types.QueryVariant { //nolint:ireturn
+	return esdsl.NewNestedQuery(
+		esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(id.String())),
+	).Path("claims.ref")
+}
+
+// ToQuery converts the Session to an ElasticSearch query.
+//
+// TODO: Determine which operator should be the default?
+// TODO: Make sure right analyzers are used for all fields.
+// TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
+func (s *SessionData) ToQuery() types.QueryVariant { //nolint:ireturn
+	musts := make([]types.QueryVariant, 0, len(s.Filters)+2) //nolint:mnd
+
+	if s.Reverse != nil {
+		musts = append(musts, reverseScopeQuery(*s.Reverse))
+	}
+
+	if s.Query != "" {
+		musts = append(musts, documentTextSearchQuery(s.Query, operator.Or))
+	}
+
+	for i := range s.Filters {
+		musts = append(musts, s.Filters[i].ToQuery())
+	}
+
+	return esdsl.NewBoolQuery().Must(musts...)
+}
+
+// ToQueryExcluding converts the SessionData to an ElasticSearch query, excluding
+// the filter with the given ID. This is used when fetching filter data so that
+// the current filter's own restrictions do not affect its available values.
+func (s *SessionData) ToQueryExcluding(excludeFilterID identifier.Identifier) types.QueryVariant { //nolint:ireturn
+	musts := make([]types.QueryVariant, 0, len(s.Filters)+2) //nolint:mnd
+
+	if s.Reverse != nil {
+		musts = append(musts, reverseScopeQuery(*s.Reverse))
+	}
+
+	if s.Query != "" {
+		musts = append(musts, documentTextSearchQuery(s.Query, operator.Or))
+	}
+
+	for i := range s.Filters {
+		if s.Filters[i].ID != nil && *s.Filters[i].ID == excludeFilterID {
+			continue
+		}
+		musts = append(musts, s.Filters[i].ToQuery())
+	}
+
+	return esdsl.NewBoolQuery().Must(musts...)
 }
 
 // Session represents a search session.
@@ -253,75 +453,30 @@ func (f Filters) ToQuery() types.QueryVariant { //nolint:ireturn
 // A search session includes WHAT is being searched for and HOW are
 // results shown/visualized, but not WHERE the user is looking at.
 type Session struct {
-	ID      *identifier.Identifier `json:"id"`
-	Version int                    `json:"version"`
-	View    ViewType               `json:"view"`
-	Query   string                 `json:"query"`
-	Filters *Filters               `json:"filters,omitempty"`
-}
+	SessionData
 
-// Validate validates the Session struct.
-func (s *Session) Validate(_ context.Context, existing *Session) errors.E {
-	if existing == nil {
-		if s.ID != nil {
-			errE := errors.New("ID provided for new document")
-			errors.Details(errE)["id"] = *s.ID
-			return errE
-		}
-		// TODO: Compute ID using identifier.From and store what was used to compute it.
-		id := identifier.New()
-		s.ID = &id
-	} else if s.ID == nil {
-		// This should not really happen because we fetch existing based on i.ID.
-		return errors.New("ID missing for existing document")
-	} else if existing.ID == nil {
-		// This should not really happen because we always store documents with ID.
-		return errors.New("ID missing for existing document")
-	} else if *s.ID != *existing.ID {
-		// This should not really happen because we fetch existing based on i.ID.
-		errE := errors.New("payload ID does not match existing ID")
-		errors.Details(errE)["payload"] = *s.ID
-		errors.Details(errE)["existing"] = *existing.ID
-		return errE
-	}
-
-	if existing == nil {
-		// We set the version to zero for new sessions.
-		s.Version = 0
-	} else {
-		// We increase the version by one.
-		// TODO: This is not race safe, needs improvement once we have storage that supports transactions.
-		s.Version = existing.Version + 1
-	}
-
-	if s.Filters != nil {
-		errE := s.Filters.Valid()
-		if errE != nil {
-			return errE
-		}
-	}
-
-	if s.View == "" {
-		s.View = ViewFeed
-	}
-	if s.View != ViewFeed && s.View != ViewTable {
-		errE := errors.New("invalid view")
-		errors.Details(errE)["view"] = s.View
-		return errE
-	}
-
-	return nil
-}
-
-// SessionRef represents a reference to a search session.
-type SessionRef struct {
 	ID      identifier.Identifier `json:"id"`
+	Base    []string              `json:"base"`
 	Version int                   `json:"version"`
 }
 
-// Ref returns a SessionRef reference to this Session.
-func (s *Session) Ref() SessionRef {
-	return SessionRef{ID: *s.ID, Version: s.Version}
+// Validate validates the Session struct.
+func (s *Session) Validate() errors.E {
+	if len(s.Base) < 2 { //nolint:mnd
+		errE := errors.New("base must have at least two elements")
+		errors.Details(errE)["length"] = len(s.Base)
+		return errE
+	}
+
+	expectedID := identifier.From(s.Base...)
+	if s.ID != expectedID {
+		errE := errors.New("invalid session ID")
+		errors.Details(errE)["got"] = s.ID.String()
+		errors.Details(errE)["expected"] = expectedID.String()
+		return errE
+	}
+
+	return s.SessionData.Validate(false)
 }
 
 func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operator) types.QueryVariant { //nolint:ireturn
@@ -376,41 +531,20 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 		q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(fields...).DefaultOperator(defaultOperator)
 		shoulds = append(shoulds, esdsl.NewNestedQuery(q).Path(prefix))
 	}
-	// Display and naming fields in nested ref claims within ref and has claim types.
-	for _, claimType := range []string{"has", "ref"} {
-		outerPrefix := "claims." + claimType
-		innerPrefix := outerPrefix + ".ref"
+	// Display and naming fields in denormalized sub-claims.
+	{
+		prefix := "claims.sub"
 		var fields []string
 		for _, fieldName := range []string{"propDisplay", "propNaming", "toDisplay", "toNaming"} {
 			for _, lang := range langs {
-				fields = append(fields, innerPrefix+"."+fieldName+"."+lang+displayBoost)
+				fields = append(fields, prefix+"."+fieldName+"."+lang+displayBoost)
 			}
 		}
-		innerQ := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(fields...).DefaultOperator(defaultOperator)
-		innerNested := esdsl.NewNestedQuery(innerQ).Path(innerPrefix)
-		shoulds = append(shoulds, esdsl.NewNestedQuery(innerNested).Path(outerPrefix))
+		q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(fields...).DefaultOperator(defaultOperator)
+		shoulds = append(shoulds, esdsl.NewNestedQuery(q).Path(prefix))
 	}
 
 	return esdsl.NewBoolQuery().Should(shoulds...)
-}
-
-// ToQuery converts the Session to an ElasticSearch query.
-//
-// TODO: Determine which operator should be the default?
-// TODO: Make sure right analyzers are used for all fields.
-// TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
-func (s *Session) ToQuery() types.QueryVariant { //nolint:ireturn
-	var musts []types.QueryVariant
-
-	if s.Query != "" {
-		musts = append(musts, documentTextSearchQuery(s.Query, operator.Or))
-	}
-
-	if s.Filters != nil {
-		musts = append(musts, s.Filters.ToQuery())
-	}
-
-	return esdsl.NewBoolQuery().Must(musts...)
 }
 
 // TODO: Use a database instead.
@@ -425,13 +559,13 @@ type field struct {
 // TODO: Return (and log) and error on invalid search requests (e.g., filters).
 
 // CreateSession creates a new search session.
-func CreateSession(ctx context.Context, session *Session) errors.E {
-	errE := session.Validate(ctx, nil)
+func CreateSession(_ context.Context, session *Session) errors.E {
+	errE := session.Validate()
 	if errE != nil {
 		return errors.WrapWith(errE, ErrValidationFailed)
 	}
 
-	searches.Store(*session.ID, session)
+	searches.Store(session.ID, session)
 
 	// TODO: Should we already do the query, to warm up ES cache?
 	//       Maybe we should cache response ourselves so that we do not hit store twice?
@@ -440,23 +574,13 @@ func CreateSession(ctx context.Context, session *Session) errors.E {
 }
 
 // UpdateSession updates an existing search session.
-func UpdateSession(ctx context.Context, session *Session) errors.E {
-	if session.ID == nil {
-		return errors.WithMessage(ErrValidationFailed, "ID is missing")
-	}
-
-	// TODO: This is not race safe, needs improvement once we have storage that supports transactions.
-	existingSession, errE := GetSession(ctx, *session.ID)
-	if errE != nil {
-		return errE
-	}
-
-	errE = session.Validate(ctx, existingSession)
+func UpdateSession(_ context.Context, session *Session) errors.E {
+	errE := session.Validate()
 	if errE != nil {
 		return errors.WrapWith(errE, ErrValidationFailed)
 	}
 
-	searches.Store(*session.ID, session)
+	searches.Store(session.ID, session)
 
 	return nil
 }
@@ -477,7 +601,9 @@ func GetSession(_ context.Context, id identifier.Identifier) (*Session, errors.E
 	if !ok {
 		return nil, errors.WithDetails(ErrNotFound, "id", id)
 	}
-	return session.(*Session), nil //nolint:forcetypeassert,errcheck
+	// We make a shallow copy so that it is closer to how would a real database retrieve it.
+	s := *session.(*Session) //nolint:forcetypeassert,errcheck
+	return &s, nil
 }
 
 // Result represents a search result document.
@@ -487,11 +613,11 @@ type Result struct {
 
 // ResultsGet retrieves search results for a given search session.
 func ResultsGet(
-	ctx context.Context, getSearchService func() (*search.Search, int64, int64), searchSession *Session,
+	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64), searchData *SessionData,
 ) ([]Result, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
-	query := searchSession.ToQuery()
+	query := searchData.ToQuery()
 
 	searchService, _, _ := getSearchService()
 

@@ -4,34 +4,48 @@ import type { Composer } from "vue-i18n"
 import type { Router } from "vue-router"
 
 import type { ClaimTypes } from "@/document/claims"
-import type { NONE } from "@/symbols"
 
 export type RefSearchResult = {
-  id: string
+  props: readonly string[]
   count: number
   type: "ref"
+  filterId?: string
 }
 
 export type AmountSearchResult = {
-  id: string
+  props: readonly string[]
   count: number
   type: "amount"
   unit?: string
+  filterId?: string
 }
 
 export type TimeSearchResult = {
-  id: string
+  props: readonly string[]
   count: number
   type: "time"
+  filterId?: string
 }
 
-export type FilterResult = RefSearchResult | AmountSearchResult | TimeSearchResult
+export type HasSearchResult = {
+  props?: readonly string[]
+  count: number
+  type: "has"
+  filterId?: string
+}
+
+export type FilterResult = RefSearchResult | AmountSearchResult | TimeSearchResult | HasSearchResult
 
 export type Result = {
   id: string
 }
 
 export type RefFilterResult = {
+  id: string
+  count: number
+}
+
+export type HasFilterResult = {
   id: string
   count: number
 }
@@ -46,109 +60,81 @@ export type HistogramTimeResult = {
   count: number
 }
 
-export type RefFilter = {
-  prop: string
-  value: string
+export type ToValue = {
+  id: string
 }
 
-export type RefNoneFilter = {
-  prop: string
-  none: true
+export type HasValue = {
+  id: string
+}
+
+export type RefFilter = {
+  to?: ToValue[]
+  missing?: boolean
 }
 
 export type AmountFilter = {
-  prop: string
   unit?: string
   gte?: number
   lte?: number
-}
-
-export type AmountNoneFilter = {
-  prop: string
-  unit?: string
-  none: true
+  missing?: boolean
 }
 
 export type TimeFilter = {
-  prop: string
   gte?: number
   lte?: number
+  missing?: boolean
 }
 
-export type TimeNoneFilter = {
-  prop: string
-  none: true
+export type HasFilter = {
+  props?: HasValue[]
 }
 
-export type Filters =
-  | {
-      and: Filters[]
-    }
-  | {
-      or: Filters[]
-    }
-  | {
-      not: Filters
-    }
-  | { ref: RefFilter | RefNoneFilter }
-  | { amount: AmountFilter | AmountNoneFilter }
-  | { time: TimeFilter | TimeNoneFilter }
-
-export type RefFilterState = (string | typeof NONE)[]
-
-export type AmountFilterState = null | typeof NONE | { gte?: number; lte?: number }
-
-export type TimeFilterState = null | typeof NONE | { gte?: number; lte?: number }
-
-export type FiltersState = {
-  ref: Record<string, RefFilterState>
-  amount: Record<string, AmountFilterState>
-  time: Record<string, TimeFilterState>
-}
-
-export type RefFilterStateChange = {
-  type: "ref"
+export type FilterBase = {
+  // On frontend, ID and base are always set, except when we send payload to the SearchShortcut API
+  // endpoint (e.g., in CreateDropdown.vue) where we use payload without them (and without this type).
   id: string
-  value: RefFilterState
+  base: string[]
+  prop: string[]
 }
 
-export type AmountFilterStateChange = {
-  type: "amount"
-  id: string
-  unit?: string
-  value: AmountFilterState
-}
+export type RefFilterEntry = FilterBase & { ref: RefFilter }
+export type AmountFilterEntry = FilterBase & { amount: AmountFilter }
+export type TimeFilterEntry = FilterBase & { time: TimeFilter }
+export type HasFilterEntry = FilterBase & { has: HasFilter }
 
-export type TimeFilterStateChange = {
-  type: "time"
-  id: string
-  value: TimeFilterState
-}
+export type Filter = RefFilterEntry | AmountFilterEntry | TimeFilterEntry | HasFilterEntry
 
-export type FilterStateChange = RefFilterStateChange | AmountFilterStateChange | TimeFilterStateChange
-
-export type ServerSearchSession = {
+export type SearchSession = {
   id: string
+  base: string[]
   version: number
+  // View is always set by the backend.
   view: ViewType
-  query: string
-  filters?: Filters
-}
+} & SearchSessionData
 
-export type ClientSearchSession = {
-  id: string
-  version: number
-  view: ViewType
-  query: string
-  filters?: FiltersState
-}
-
-export type CreateSearchSessionRequest = {
+// What the client sends when creating or updating a search session.
+// When reverse is set, the session is scoped to documents referencing that ID via any property.
+export type SearchSessionData = {
   view?: ViewType
-  query: string
-  filters?: FiltersState
+  query?: string
+  filters?: Filter[]
+  reverse?: string
 }
 
+// Response from creating a new search session.
+export type CreateSearchSessionResponse = {
+  id: string
+  base: string[]
+  version: number
+}
+
+// Response from updating an existing search session.
+export type UpdateSearchSessionResponse = {
+  version: number
+}
+
+// Client-side reference to a search session for reactive tracking.
 export type SearchSessionRef = {
   id: string
   version: number

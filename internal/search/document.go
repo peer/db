@@ -30,6 +30,9 @@ type ClaimTypes struct {
 	Has        HasClaims        `json:"has,omitempty"`
 	None       NoneClaims       `json:"none,omitempty"`
 	Unknown    UnknownClaims    `json:"unknown,omitempty"`
+
+	// This is a synthetic claim type used to index sub-claims.
+	SubReference SubReferenceClaims `json:"sub,omitempty"`
 }
 
 // There are no AmountInterval and TimeInterval claims because they are mapped
@@ -56,6 +59,8 @@ type (
 	NoneClaims = []NoneClaim
 	// UnknownClaims is a slice of UnknownClaim.
 	UnknownClaims = []UnknownClaim
+	// SubReferenceClaims is a slice of SubReferenceClaim.
+	SubReferenceClaims = []SubReferenceClaim
 )
 
 // IdentifierClaim represents a claim with a string identifier value.
@@ -229,19 +234,7 @@ type LinkClaim struct {
 	IRI         string                `json:"iri"`
 }
 
-// NestedReferenceClaim represents a nested reference claim.
-type NestedReferenceClaim struct {
-	Prop        identifier.Identifier `json:"prop"`
-	PropDisplay map[string]string     `json:"propDisplay"`
-	PropNaming  map[string][]string   `json:"propNaming"`
-	To          identifier.Identifier `json:"to"`
-	ToDisplay   map[string]string     `json:"toDisplay"`
-	ToNaming    map[string][]string   `json:"toNaming"`
-}
-
 // ReferenceClaim represents a claim that relates this document to another document.
-//
-// In addition, it supports a limited set of nested claims.
 type ReferenceClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
@@ -259,21 +252,18 @@ type ReferenceClaim struct {
 	// target document. Each path is a string of display labels joined by null bytes,
 	// which ensures correct hierarchical sort order.
 	ToDisplayPath map[string][]string `json:"toDisplayPath,omitempty"`
-
-	// Nested claims.
-	Reference []NestedReferenceClaim `json:"ref,omitempty"`
 }
 
 // HasClaim represents a claim with just a property.
 //
-// In addition, it supports a limited set of nested claims.
+// Has claims that have ANY sub-claims (of any type) are NOT indexed as HasClaim entries.
+// Any reference sub-claims are still recorded in SubReferenceClaim entries with
+// ParentTo=ParentToHas. This means HasClaims only contain simple has claims (without
+// any sub-claims), so the has filter does not need to filter these out.
 type HasClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
 	PropNaming  map[string][]string   `json:"propNaming"`
-
-	// Nested claims.
-	Reference []NestedReferenceClaim `json:"ref,omitempty"`
 }
 
 // NoneClaim represents a claim that explicitly states no value exists for a property.
@@ -288,4 +278,17 @@ type UnknownClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
 	PropNaming  map[string][]string   `json:"propNaming"`
+}
+
+// SubReferenceClaim represents a denormalized nested reference sub-claim
+// flattened from parent claims (ref, has, none, unknown) for cross-filtering.
+type SubReferenceClaim struct {
+	ParentProp  identifier.Identifier `json:"parentProp"`
+	ParentTo    string                `json:"parentTo"`
+	Prop        identifier.Identifier `json:"prop"`
+	PropDisplay map[string]string     `json:"propDisplay"`
+	PropNaming  map[string][]string   `json:"propNaming"`
+	To          identifier.Identifier `json:"to"`
+	ToDisplay   map[string]string     `json:"toDisplay"`
+	ToNaming    map[string][]string   `json:"toNaming"`
 }

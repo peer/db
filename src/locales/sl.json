@@ -53,6 +53,7 @@
       "table": "Tabela"
     },
     "values": {
+      "missing": "manjkajoče",
       "noName": "brez imena",
       "none": "brez",
       "unknown": "neznana"
@@ -174,7 +175,11 @@
       "filtersAvailable": "1 filter na voljo. | {count} filtra na voljo. | {count} filtri na voljo. | {count} filtrov na voljo.",
       "determiningFilters": "Ugotavljanje filtrov...",
       "skipToFilters": "Preskoči na filtre",
-      "skipToResults": "Preskoči na rezultate"
+      "skipToResults": "Preskoči na rezultate",
+      "resultsRelatedTo": "Rezultati povezani z {label}"
+    },
+    "HasFiltersResult": {
+      "title": "ima lastnost"
     },
     "SearchResultsTable": {
       "expandRow": "Razširi vrstico",
