@@ -10,8 +10,8 @@ import (
 
 // Mnemonics returns a map between property mnemonic and its base ID.
 //
-// It takes a slice of any structs and extracts the mnemonic (from a field named `Mnemonic`)
-// to base ID (from a field named `ID`, a []string) mapping from them.
+// It takes a slice of any structs and extracts the mnemonic (from a field named Mnemonic)
+// to base ID (from a field named ID, a []string) mapping from them.
 //
 // Returns an error if mnemonics are not unique.
 func Mnemonics(ctx context.Context, documents []any) (map[string][]string, errors.E) {

@@ -163,8 +163,8 @@ type SessionStateChanged struct {
 //   - Then, you call [Coordinator.Append] to append operations to the session.
 //   - Finally, you call [Coordinator.End] to end the session. After the session
 //     has ended, you cannot append new operations to it. After the session ends,
-//     the coordinator runs the `CompleteSession` function followed by `CompleteSessionTx`.
-//   - After `CompleteSessionTx` successfully completes, the session is considered
+//     the coordinator runs the CompleteSession function followed by CompleteSessionTx.
+//   - After CompleteSessionTx successfully completes, the session is considered
 //     completed and all operations for the session are deleted.
 type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata any] struct {
 	// Prefix to use when initializing PostgreSQL objects used by this coordinator.
@@ -430,9 +430,9 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 //
 // Once the session has ended no more operations can be appended to it.
 //
-// After the session ends, the coordinator runs the `CompleteSession` function
-// followed by `CompleteSessionTx`.
-// After `CompleteSessionTx` successfully completes, the session is considered
+// After the session ends, the coordinator runs the CompleteSession function
+// followed by CompleteSessionTx.
+// After CompleteSessionTx successfully completes, the session is considered
 // completed and all operations associated with the session are deleted.
 func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) End(
 	ctx context.Context, session identifier.Identifier, metadata EndMetadata,
