@@ -1,7 +1,7 @@
 import type { Ref } from "vue"
 
 import * as client from "openid-client"
-import { ref } from "vue"
+import { ref, watch } from "vue"
 
 // siteContext is fetched eagerly by @/context (the server already sends a
 // preload header for context.json), so importing it here does not add any
@@ -18,19 +18,45 @@ type State = {
   nonce: string
 }
 
+// localStorage keys for the persisted session. We namespace them with "peerdb-"
+// so they cannot collide with the per-flow OAuth State entries (which are keyed
+// by a random stateId).
+const accessTokenStorageKey = "peerdb-access-token"
+const currentIdentityIdStorageKey = "peerdb-current-identity-id"
+
+// TODO: Move off localStorage.
+//       Persisting the bearer token here lets the session survive page reloads, but it also makes the token an XSS target.
+
 // accessToken is the bearer token attached to API requests in @/api. It is
-// reactive so components can react to sign-in / sign-out, and it lives in
-// memory only - refreshing the page wipes it, which the OIDC redirect dance
-// will recover on its own when the issuer's session is still valid.
+// reactive so components can react to sign-in / sign-out, and is mirrored to
+// localStorage so the session survives reloads.
 //
 // TODO: Wrap fetch in @/api so it transparently refreshes the access token
 //       instead of forcing callers to react to expiry.
-export const accessToken = ref("")
+export const accessToken = ref(localStorage.getItem(accessTokenStorageKey) ?? "")
 
 // currentIdentityId mirrors the sub claim from the ID token returned by the
 // issuer. Useful to components that want to know who is signed in without
 // decoding the access token themselves.
-export const currentIdentityId = ref("")
+export const currentIdentityId = ref(localStorage.getItem(currentIdentityIdStorageKey) ?? "")
+
+// Mirror in-memory writes back to localStorage so a reload picks up the same
+// session. Empty values remove the entry rather than storing "" so we do not
+// leak stale keys after sign-out.
+watch(accessToken, (value) => {
+  if (value) {
+    localStorage.setItem(accessTokenStorageKey, value)
+  } else {
+    localStorage.removeItem(accessTokenStorageKey)
+  }
+})
+watch(currentIdentityId, (value) => {
+  if (value) {
+    localStorage.setItem(currentIdentityIdStorageKey, value)
+  } else {
+    localStorage.removeItem(currentIdentityIdStorageKey)
+  }
+})
 
 // isOIDCConfigured reports whether the server exposed an OIDC config in
 // context.json. Components use this to decide whether to render sign-in UI.
