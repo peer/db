@@ -15,6 +15,7 @@ import (
 	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb/auth"
+	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
@@ -29,6 +30,10 @@ type Service struct {
 	// authentication is not configured; handlers should treat that as "no
 	// authentication available" rather than always-allow or always-deny.
 	Auth *auth.Verifier
+
+	// DocumentHooks are called in order to allow for modification of documents
+	// before they are send to the client.
+	DocumentHooks []func(doc *document.D) (*document.D, errors.E)
 }
 
 // Init initializes the HTTP service and is used together with Prepare to implement Run.
