@@ -228,9 +228,9 @@ export async function processOIDCRedirect() {
 
   const stateJSON = localStorage.getItem(stateId)
   if (!stateJSON) {
-    // TODO: Surface this to the user somehow - losing the localStorage entry
-    //       means the callback cannot complete and we silently drop the
-    //       sign-in attempt.
+    // TODO: Surface this to the user somehow.
+    //       Losing the localStorage entry means the callback cannot complete
+    //       and we silently drop the sign-in attempt.
     return
   }
   localStorage.removeItem(stateId)
@@ -253,12 +253,8 @@ export async function processOIDCRedirect() {
   currentIdentityId.value = claims.sub
 }
 
-// signOut clears the local token state. We do not try to revoke the token
-// against the issuer here - PeerDB does not host its own OIDC introspection
-// or revocation endpoint, so clearing the in-memory token is the strongest
-// guarantee we can offer locally. Components that want issuer-side logout
-// (RP-initiated logout) should add a redirect to the issuer's end_session
-// endpoint on top of this.
+// signOut clears the local token state.
+// TODO: Call into Charon and sign out user there, too?
 export function signOut(_progress: Ref<number>) {
   accessToken.value = ""
   currentIdentityId.value = ""
