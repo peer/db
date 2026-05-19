@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import SignInButton from "@/auth/SignInButton.vue"
 import ProgressBar from "@/components/ProgressBar.vue"
 import siteContext from "@/context"
 import { useNavbar } from "@/navbar"
 import CreateDropdown from "@/partials/CreateDropdown.vue"
 import LanguageSwitcher from "@/partials/LanguageSwitcher.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
+import SignInButton from "@/partials/SignInButton.vue"
 import { getParentProgress } from "@/progress"
 import { getNavbarComponents } from "@/registry/navbar"
 import { useValidationRegistry } from "@/validation"
