@@ -11,10 +11,8 @@ type Holder = {
   [CREDITS_KEY]?: Ref<boolean>
 }
 const g = globalThis as unknown as Holder
-const footerStartComponents: ShallowRef<Raw<Component>[]> =
-  (g[START_KEY] ??= shallowRef<Raw<Component>[]>([]))
-const footerEndComponents: ShallowRef<Raw<Component>[]> =
-  (g[END_KEY] ??= shallowRef<Raw<Component>[]>([]))
+const footerStartComponents: ShallowRef<Raw<Component>[]> = (g[START_KEY] ??= shallowRef<Raw<Component>[]>([]))
+const footerEndComponents: ShallowRef<Raw<Component>[]> = (g[END_KEY] ??= shallowRef<Raw<Component>[]>([]))
 
 export const creditsDisabled: Ref<boolean> = (g[CREDITS_KEY] ??= ref(false))
 
