@@ -1,11 +1,22 @@
-import type { Component, Raw, ShallowRef } from "vue"
+import type { Component, Raw, Ref, ShallowRef } from "vue"
 
 import { markRaw, ref, shallowRef } from "vue"
 
-const footerStartComponents = shallowRef<Raw<Component>[]>([])
-const footerEndComponents = shallowRef<Raw<Component>[]>([])
+const START_KEY = Symbol.for("peerdb-search.registry.footerStartComponents")
+const END_KEY = Symbol.for("peerdb-search.registry.footerEndComponents")
+const CREDITS_KEY = Symbol.for("peerdb-search.registry.creditsDisabled")
+type Holder = {
+  [START_KEY]?: ShallowRef<Raw<Component>[]>
+  [END_KEY]?: ShallowRef<Raw<Component>[]>
+  [CREDITS_KEY]?: Ref<boolean>
+}
+const g = globalThis as unknown as Holder
+const footerStartComponents: ShallowRef<Raw<Component>[]> =
+  (g[START_KEY] ??= shallowRef<Raw<Component>[]>([]))
+const footerEndComponents: ShallowRef<Raw<Component>[]> =
+  (g[END_KEY] ??= shallowRef<Raw<Component>[]>([]))
 
-export const creditsDisabled = ref(false)
+export const creditsDisabled: Ref<boolean> = (g[CREDITS_KEY] ??= ref(false))
 
 export function registerFooterStartComponent(component: Component): void {
   footerStartComponents.value = [...footerStartComponents.value, markRaw(component)]
