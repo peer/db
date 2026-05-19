@@ -599,6 +599,52 @@ describe("TimeIntervalClaim Validate", () => {
   })
 })
 
+describe("LinkClaim Validate", () => {
+  const id = Identifier.new().toString()
+  const prop = Identifier.new().toString()
+
+  // Bypasses the constructor's "iri is required" guard so we can exercise
+  // the disallowed cases directly on Validate.
+  function makeClaim(iri: string): LinkClaim {
+    const claim = new LinkClaim({ id, confidence: 1.0, prop: { id: prop }, iri: "https://placeholder.invalid" })
+    claim.iri = iri
+    return claim
+  }
+
+  // IRI allow/deny rules match validateIRI and the
+  // regex used by the HTML sanitizer in document/sanitize.go.
+  test.each([
+    "https://example.com",
+    "https://example.com/path?q=1#section",
+    "http://example.com/foo",
+    "HTTPS://Example.com",
+    "mailto:test@example.com",
+    "/foo",
+    "/foo/bar?q=1#h",
+    "/",
+  ])("accepts %s", async (iri) => {
+    const claim = makeClaim(iri)
+    await claim.Validate()
+  })
+
+  test.each([
+    ["", "empty URL"],
+    ["#section", "invalid IRI"],
+    ["../foo", "invalid IRI"],
+    ["foo/bar", "invalid IRI"],
+    ["//example.com/foo", "invalid IRI"],
+    ["javascript:alert(1)", "disallowed URL scheme: javascript:"],
+    ["ftp://example.com", "disallowed URL scheme: ftp:"],
+    ["tel:+1234", "disallowed URL scheme: tel:"],
+    ["data:text/html,<x>", "disallowed URL scheme: data:"],
+    ["http:///example.com", "invalid URL: missing host"],
+    ["mailto:", "invalid URL: missing address"],
+  ])("rejects %s", async (iri, fragment) => {
+    const claim = makeClaim(iri)
+    await expect(claim.Validate()).rejects.toThrow(fragment)
+  })
+})
+
 test("ClaimTypes Get", () => {
   const prop = Identifier.new().toString()
   const otherProp = Identifier.new().toString()

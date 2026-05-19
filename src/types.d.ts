@@ -307,3 +307,76 @@ export type DownloadFilesWorkerOutput =
   | { type: "progress"; completed: number; total: number; currentFile: string }
   | { type: "done" }
   | { type: "error"; message: string }
+
+// A single validation failure. Codes (not messages) keep i18n in the
+// presentation layer. Path is a hierarchical address into a composite input
+// (e.g. ["from"] for the lower bound of an interval input). The optional el
+// is the focus target for this specific error (used by composite inputs to
+// point at a particular sub-element); when absent the input's own el getter
+// is used as the fallback.
+export type ValidationError = {
+  path?: string[]
+  code: string
+  el?: HTMLElement
+  // It should be localized.
+  userMessage?: string
+
+  // Optional debug info.
+  debugMessage?: string
+  debugError?: Error
+}
+
+// Triggers (re-)validation of an input. Implementations write the result
+// into the input's reactive errors field. Callers read it from there after
+// the promise resolves. The optional signal lets callers abort in-flight
+// async validation.
+export type ValidateFn = (signal?: AbortSignal) => Promise<void>
+
+// A user-supplied rule plugged into an input via its :validator prop. It
+// receives the value directly (instead of reading it off the input's
+// model) and returns the resulting errors. The input's useValidation
+// wrapper writes them into the input's reactive errors field.
+//
+// options.eager is true on re-validation triggered by the model watcher
+// (e.g. when the validator is being called during typing) and false on
+// validateAll (and underlying validate), but can be overridden when calling
+// runValidation directly. Validators with side effects on the model (e.g.
+// trimming whitespace) should gate those effects on !options.eager so the
+// user is not fighting the input while typing.
+//
+// options.initial is true on the very first validator invocation (triggered
+// by the immediate model watcher on mount) and false on every subsequent
+// call. On initial, validators should report structural errors (e.g. URL
+// parse failure) so a pre-populated invalid value is surfaced immediately,
+// but should skip the required check (the user has not interacted yet) and
+// skip any model-mutating side effects.
+export type ValidatorFn<T> = (value: T, options: { signal: AbortSignal; eager: boolean; initial: boolean }) => Promise<ValidationError[]>
+
+// What an input registers with a parent so the parent can validate it and
+// resolve focus targets. el returns the input's default focus target, used
+// by useValidationRegistry to decorate errors that lack their own el before
+// they are returned to the caller (so the resulting ValidationError[] is
+// self-contained for focus resolution). reset restores the input to its
+// initial (empty/default) state; revert restores the input to its recorded
+// checkpoint. useValidationRegistry exposes resetAll / revertAll.
+export type ValidatedInput = {
+  validate: ValidateFn
+  reset: () => void
+  // Restores the input to whatever checkpoint last captured, leaving
+  // isDirty false. Used by the per-field "changed" badge so the user can
+  // undo their changes without affecting other fields.
+  revert: () => void
+  el: () => HTMLElement | null
+  // Reactive flag: true when the input's current value differs from its
+  // recorded checkpoint.
+  isDirty: Readonly<Ref<boolean>>
+  // Reactive flag: true when the input holds no meaningful value (e.g.
+  // empty string for text inputs, unchecked for checkboxes).
+  isEmpty: Readonly<Ref<boolean>>
+  // The input's current errors.
+  errors: Readonly<Ref<ValidationError[]>>
+  // Snapshots the input's current value as the checkpoint against which
+  // isDirty is compared. Called when an input's controls are shown or
+  // when they are reset so subsequent edits show up as dirty.
+  checkpoint: () => void
+}

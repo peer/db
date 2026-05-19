@@ -8,14 +8,24 @@
       "upload": "Upload",
       "edit": "Edit",
       "save": "Save",
+      "discard": "Discard",
       "add": "Add",
+      "insert": "Insert",
+      "update": "Update",
       "clear": "Clear",
       "remove": "Remove",
+      "revert": "Revert",
+      "subClaim": "Sub-value",
       "loadCountMore": "{count} more",
       "loadMore": "Load more",
       "filters": "Filters",
       "prev": "Prev",
-      "next": "Next"
+      "next": "Next",
+      "open": "Open",
+      "unlink": "Unlink"
+    },
+    "errors": {
+      "unexpected": "Unexpected error. Please try again."
     },
     "status": {
       "editingNotAllowed": "Editing not allowed.",
@@ -31,7 +41,11 @@
       "property": "Property",
       "value": "Value",
       "time": "Time",
-      "precision": "Precision"
+      "amount": "Amount",
+      "precision": "Precision",
+      "required": "required",
+      "multiple": "multiple",
+      "changed": "changed"
     },
     "icons": {
       "link": "Link",
@@ -42,12 +56,58 @@
       "noName": "no name",
       "none": "none",
       "unknown": "unknown"
+    },
+    "validation": {
+      "required": "Required value.",
+      "requiredPrecision": "Required precision.",
+      "invalid": "Invalid value.",
+      "invalidPrecision": "Invalid precision."
     }
   },
   "partials": {
     "input": {
+      "InputHTML": {
+        "toolbar": {
+          "label": "Formatting",
+          "undo": "Undo",
+          "redo": "Redo",
+          "blockType": "Block type",
+          "paragraph": "Paragraph",
+          "heading": "Heading {level}",
+          "preformatted": "Preformatted",
+          "bold": "Bold",
+          "italic": "Italic",
+          "underline": "Underline",
+          "strikethrough": "Strikethrough",
+          "monospace": "Monospace",
+          "bulletList": "Bullet list",
+          "orderedList": "Numbered list",
+          "blockquote": "Blockquote",
+          "indent": "Indent",
+          "outdent": "Outdent",
+          "horizontalRule": "Horizontal rule",
+          "lineBreak": "Line break",
+          "link": "Link",
+          "attachFile": "Attach file",
+          "replaceFile": "To replace file, drop file or click to browse"
+        },
+        "bottomToolbar": {
+          "linkLabel": "Link",
+          "blockquoteLabel": "Source",
+          "fileLabel": "File",
+          "uploadingLabel": "Uploading: {name}",
+          "dropFileLabel": "Drop file to upload it..."
+        }
+      },
+      "InputFile": {
+        "dropOrBrowse": "Drop file here or click to browse"
+      },
       "InputRef": {
+        "invalidValue": "invalid value",
         "noResults": "No results found."
+      },
+      "InputRefSelect": {
+        "noOptions": "No options available."
       },
       "InputTime": {
         "format": "Format: YYYY-MM-DD HH:MM:SS",
@@ -112,7 +172,9 @@
       "filtersNotShown": "1 filter not shown. | {count} filters not shown.",
       "noFilters": "No filters available.",
       "filtersAvailable": "1 filters available. | {count} filters available.",
-      "determiningFilters": "Determining filters..."
+      "determiningFilters": "Determining filters...",
+      "skipToFilters": "Skip to filters",
+      "skipToResults": "Skip to results"
     },
     "SearchResultsTable": {
       "expandRow": "Expand row",
@@ -123,7 +185,6 @@
       "details": "Details"
     },
     "FieldsForm": {
-      "addAnother": "Add another",
       "from": "From",
       "to": "To"
     },
@@ -163,16 +224,19 @@
       "tabs": {
         "allProperties": "@:views.DocumentGet.tabs.allProperties"
       },
-      "addClaim": "Add claim",
+      "addClaim": "Add value",
+      "editClaim": "Edit value",
+      "addSubClaim": "Add sub-value",
       "claimTypes": {
         "identifier": "Identifier",
         "string": "String",
         "html": "HTML",
         "amount": "Amount",
         "amountInterval": "Amount interval",
-        "time": "Timestamp",
+        "time": "Time",
         "timeInterval": "Time interval",
         "link": "Link",
+        "file": "File",
         "reference": "Reference",
         "has": "Has",
         "none": "None",
@@ -180,9 +244,12 @@
       },
       "labels": {
         "link": "Link",
+        "iri": "Link",
         "html": "HTML",
         "string": "String",
+        "identifier": "Identifier",
         "amount": "Amount",
+        "file": "File",
         "from": "From",
         "to": "To"
       }

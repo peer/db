@@ -77,13 +77,13 @@ watch(
 
       _doc.value = response.doc
       _metadata.value = response.metadata
-    } catch (error) {
+    } catch (err) {
       if (abortController.signal.aborted) {
         return
       }
-      console.error("WithDocument", error)
+      console.error("WithDocument", err)
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      _error.value = `${error}`
+      _error.value = `${err}`
       return
     }
   },

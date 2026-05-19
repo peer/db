@@ -54,8 +54,8 @@ function setupTimelines() {
   const bottomOffset = Math.max(0, sidebarInnerHeight - contentHeight)
   sidebar.style.setProperty("--pd-toc-bottom-offset", `${bottomOffset}px`)
 
-  // Length-based animation end (in pixels of cover scroll). Same for every item - animation runs for `bottomOffset`
-  // pixels (or `bottomOffset + |navbar_top|` when navbar is hidden, via calc with --pd-navbar-top in CSS).
+  // Length-based animation end (in pixels of cover scroll). Same for every item - animation runs for bottomOffset
+  // pixels (or bottomOffset + |navbar_top| when navbar is hidden, via calc with --pd-navbar-top in CSS).
   sidebar.style.setProperty("--pd-toc-lockstep-end-base", `${bottomOffset}px`)
 
   const vh = window.innerHeight
@@ -72,7 +72,7 @@ function setupTimelines() {
     el.style.setProperty("view-timeline-name", name)
     el.style.setProperty("view-timeline-axis", "block")
     // Only the top inset shifts by --pd-navbar-top. Bottom stays static so the scrollport grows when navbar hides,
-    // giving the cover range room to span `bottomOffset + |navbar_top|` of scroll. Slope stays 1 -> lockstep exact.
+    // giving the cover range room to span bottomOffset + |navbar_top| of scroll. Slope stays 1 -> lockstep exact.
     el.style.setProperty("view-timeline-inset", `calc(${topStackY}px + var(--pd-navbar-top, 0px)) ${vh - bottomStackY}px`)
     timelineTargets.push(el)
     names.push(name)
@@ -178,12 +178,12 @@ watch(
     }
     return null
   },
-  (topId) => {
+  async (topId) => {
     if (topId === null) return
     const newHash = `#${topId}`
     if (route.hash === newHash) return
     suppressedHash = newHash
-    void router.replace({ hash: newHash })
+    await router.replace({ hash: newHash })
   },
 )
 
@@ -202,12 +202,12 @@ function scrollToId(id: string) {
   window.scrollTo({ top: targetY, behavior: "smooth" })
 }
 
-function onItemClick(event: MouseEvent, id: string) {
+async function onItemClick(event: MouseEvent, id: string) {
   // Let the browser handle modified clicks (open in new tab/window, save link, etc.).
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
   event.preventDefault()
   // The route.hash watcher does the actual scrolling - pushing a new hash makes back/forward symmetric.
-  void router.push({ hash: `#${id}` })
+  await router.push({ hash: `#${id}` })
 }
 
 // Watch route.hash so click, back/forward, and external hash changes (URL paste) all scroll the same way.

@@ -19,6 +19,8 @@ if (siteContext.title) {
   document.title = siteContext.title
 }
 
+const VIEW_PATH_REGEX = /\/views\/(.+)\.vue$/
+
 // Enumerate Vue views known to Vite at build time. Only routes whose name
 // matches one of these views become SPA-routed by useInternalLinksClick.
 // The rest (e.g. /f/:id which is served directly by the backend as a binary
@@ -27,7 +29,7 @@ if (siteContext.title) {
 const viewModules = import.meta.glob<{ default: Component }>("./views/*.vue")
 const viewLoaders = new Map<string, () => Promise<{ default: Component }>>()
 for (const [path, loader] of Object.entries(viewModules)) {
-  const match = /\/views\/(.+)\.vue$/.exec(path)
+  const match = VIEW_PATH_REGEX.exec(path)
   if (match) {
     viewLoaders.set(match[1], loader)
   }

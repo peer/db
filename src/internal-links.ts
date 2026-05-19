@@ -4,6 +4,8 @@ import type { Router } from "vue-router"
 import { computed } from "vue"
 import { useRouter } from "vue-router"
 
+import { parseUrl } from "@/utils"
+
 // CSS classes stamped onto anchor elements during HTML transformation.
 // There is hierarchy between LINK_CLASS_INTERNAL > LINK_CLASS_INTERNAL_NOVIEW > LINK_CLASS_FILE.
 export const LINK_CLASS_INTERNAL = "pd-link-internal"
@@ -18,11 +20,10 @@ export const LINK_CLASS_EXTERNAL = "pd-link-external"
 // matchStorageRoute function is similar. Keep in sync as needed.
 export function classifyLink(href: string, router: Router): string[] {
   if (!href) return []
-  if (href.startsWith("#")) return []
 
   let url: URL
   try {
-    url = new URL(href, window.location.href)
+    url = parseUrl(href)
   } catch {
     return []
   }
@@ -64,6 +65,10 @@ function transformInternalHtml(html: string, router: Router): string {
     if (classes.length === 0) continue
 
     anchor.classList.add(...classes)
+
+    if (classes.includes(LINK_CLASS_EXTERNAL)) {
+      anchor.relList.add("noreferrer")
+    }
   }
 
   // TODO: Instead of transforming HTML string to another HTML string, just use insert the transformed DOM.
@@ -84,10 +89,10 @@ export function useTransformedHtml(html: Ref<string | null | undefined>): Comput
 // pd-link-internal-noview) and routes them through Vue Router. All other
 // link kinds (file, external, internal-noview, unclassified) keep their
 // default browser behaviour.
-export function useInternalLinksClick(): (event: MouseEvent) => void {
+export function useInternalLinksClick(): (event: MouseEvent) => Promise<void> {
   const router = useRouter()
 
-  return (event: MouseEvent): void => {
+  return async (event: MouseEvent) => {
     if (event.defaultPrevented) return
     // Only act on plain left-click without modifier keys.
     if (event.button !== 0) return
@@ -112,6 +117,6 @@ export function useInternalLinksClick(): (event: MouseEvent) => void {
     if (!href) return
 
     event.preventDefault()
-    void router.push(href)
+    await router.push(href)
   }
 }

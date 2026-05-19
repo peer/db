@@ -350,6 +350,10 @@
     @apply my-0;
   }
 
+  .prose li > p {
+    @apply my-0;
+  }
+
   .prose td > ol,
   .prose td > ul {
     @apply my-0;
@@ -388,10 +392,10 @@
 /* stylelint-disable selector-class-pattern */
 
 /*
-Fixing the style would need https://github.com/vitejs/vite/pull/4679 so that we could run
-https://github.com/gridonic/postcss-replace to replace variable in
-https://github.com/leongersen/noUiSlider/blob/master/src/nouislider.core.less without having
-to use less.
+  Fixing the style would need https://github.com/vitejs/vite/pull/4679 so that we could run
+  https://github.com/gridonic/postcss-replace to replace variable in
+  https://github.com/leongersen/noUiSlider/blob/master/src/nouislider.core.less without having
+  to use less.
 */
 
 .noUi-connect {
@@ -436,7 +440,121 @@ to use less.
   @apply cursor-not-allowed bg-primary-300 hover:bg-primary-300 focus:ring-primary-300 active:bg-primary-300;
 }
 
+.pd-inputhtml-editor .ProseMirror {
+  /*
+    Minimum height is three paragraphs of one-line text (similar to text
+    area's minimal height).
+
+    wrap-anywhere (rather than wrap-break-word) break-word only takes effect
+    when a word would actually overflow the line, so in a flex/grid parent
+    (or anywhere the editor's width is derived from content) a long unbroken
+    string just stretches the editor horizontally - no overflow happens, no
+    break is triggered. overflow-wrap: anywhere counts the soft-break
+    opportunities toward the element's intrinsic min-content size too, so
+    the editor's min-content shrinks to a single character and the parent
+    layout can size the editor to the available width, which then makes the
+    line wrap.
+  */
+  @apply min-h-32 wrap-anywhere whitespace-break-spaces outline-none;
+}
+
+/*
+  Focusable descendants of the editor (most commonly an <a href> via
+  Ctrl/Cmd+Click). The browser would otherwise draw its default
+  user-agent outline around them.
+*/
+.pd-inputhtml-editor .ProseMirror :focus {
+  @apply rounded-xs ring-2 ring-primary-500 ring-offset-1 outline-none;
+}
+
+.pd-inputhtml-editor .ProseMirror-selectednode {
+  /* Same style as our focus ring. */
+  @apply ring-2 ring-primary-500 ring-offset-1;
+}
+
 /* stylelint-enable selector-class-pattern */
+
+/*
+  Highlight for the range the bottom toolbar is editing. Drawn by the
+  activeRangeDecorationsPlugin in InputHTML.vue: when the user opens insert
+  mode from a non-empty selection, this paints the would-be-linked text;
+  when the cursor lands on an existing link, this paints the full link-mark
+  range. Without it the user loses sight of what is being acted on once
+  focus moves to the InputLink and the native selection vanishes.
+
+  padding-inline is compensated with a negative margin-inline so adjacent
+  text does not shift when the highlight appears / disappears. box-decoration-break
+  clones the padding onto each line fragment when the highlight wraps,
+  otherwise the padding would only appear at the start of the first line
+  and end of the last line. The vertical padding has no negative-margin
+  counterpart so the highlight grows a couple of pixels into the line gap
+  above and below the text - that is the visible "padding around" effect.
+
+  bg-primary-500/20 keeps the same on-white appearance as the solid
+  bg-primary-100 while letting anything the padding overlaps show through.
+*/
+.pd-inputhtml-editor .pd-inputhtml-active-range {
+  @apply rounded-xs bg-primary-500/20;
+  padding-block: 0.125rem;
+  padding-inline: 0.25rem;
+  margin-inline: -0.25rem;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/*
+  When the active-range decoration covers the same range as a link's icon
+  decoration, ProseMirror merges them into a single span carrying both
+  classes (not a nested pair). For pd-link-file / pd-link-external this
+  matters because the link rule sets padding-left: 1.15em to reserve
+  space for the ::before icon at left: 0. Our base active-range rule
+  above sets padding-inline: 0.25rem, which - being a logical-property
+  shorthand declared later in the cascade - overrides padding-left and
+  collapses the icon-reserved space, causing the icon to paint over the
+  text and the text to shift left. The negative margin-inline also pulls
+  the entire link span left.
+
+  The chained selector below has higher specificity than both base rules
+  and restores the link's original horizontal geometry: padding-inline-start
+  back to 1.15em, padding-inline-end to 0 (the link itself had no right
+  padding), margin-inline to 0 (no negative pull). The active-range's
+  vertical padding and background still apply, so the highlight still
+  shows; the link's layout is unaffected. pd-link-internal /
+  pd-link-internal-noview have no padding-left to preserve, so we leave
+  them on the base rule.
+*/
+.pd-inputhtml-editor .pd-link-file.pd-inputhtml-active-range,
+.pd-inputhtml-editor .pd-link-external.pd-inputhtml-active-range {
+  /*
+    Keep the same "padding around" highlight effect that non-link spans get
+    (bg extends 0.25rem beyond the text on each side, layout width unchanged).
+    The link rule already reserves 1.15em on the inline-start for its ::before
+    icon, so we add the active-range's 0.25rem on TOP of that on the start
+    side. margin-inline: -0.25rem pulls the span's box 0.25rem back on each
+    side so the extra padding is purely visual and adjacent text does not
+    shift. The ::before icon's position is compensated below.
+  */
+  padding-inline-start: calc(1.15em + 0.25rem);
+  padding-inline-end: 0.25rem;
+  margin-inline: -0.25rem;
+}
+
+/*
+  The icon's ::before lives at top: 0.1em / left: 0 of the link span's
+  padding-box. The active-range adds padding-block: 0.125rem and a
+  negative margin-inline on top of padding-inline-start: 1.15em + 0.25rem,
+  which together shift the padding-box origin away from where the icon
+  "naturally" lands. We add matching offsets to top / left so the icon
+  ends up at the same visible position as without the active-range
+  decoration. Values must stay in lockstep with the active-range rule
+  above - if its padding-block or margin-inline changes, this needs to
+  change too.
+*/
+.pd-inputhtml-editor .pd-link-file.pd-inputhtml-active-range::before,
+.pd-inputhtml-editor .pd-link-external.pd-inputhtml-active-range::before {
+  top: calc(0.1em + 0.125rem);
+  left: 0.25rem;
+}
 
 /* Print styles. */
 @media print {

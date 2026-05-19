@@ -6,11 +6,18 @@ import CreateDropdown from "@/partials/CreateDropdown.vue"
 import LanguageSwitcher from "@/partials/LanguageSwitcher.vue"
 import { getParentProgress } from "@/progress"
 import { getNavbarComponents } from "@/registry/navbar"
+import { useValidationRegistry } from "@/validation"
 
 const { attrs: navbarAttrs } = useNavbar()
 
 const navbarComponents = getNavbarComponents()
 const parentProgress = getParentProgress()
+
+// Sink validation registry: navbar-internal inputs (the search box and
+// other navbar widgets) register here rather than bubbling up to whichever
+// view set up its own registry, so view-level operations like focusFirst,
+// validateAll, and resetAll do not reach into the navbar.
+useValidationRegistry()
 </script>
 
 <template>

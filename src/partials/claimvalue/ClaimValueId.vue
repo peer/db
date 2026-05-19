@@ -18,6 +18,7 @@ const props = defineProps<{
 
 const router = useRouter()
 
+// Data loading only, no controls.
 const progress = useProgress()
 
 const linkTemplate = ref<string | null>(null)

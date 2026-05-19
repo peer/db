@@ -1,45 +1,39 @@
-<!--
-We do not use :read-only or :disabled pseudo classes to style the component because
-we want component to retain how it visually looks even if DOM element is read-only or
-disabled attributes are set, unless they are set through component's props.
-This is used during transitions/animations to disable the component by directly setting
-its DOM attributes without flickering how the component looks.
--->
-
 <script setup lang="ts">
+import ButtonStyled from "@/components/ButtonStyled.vue"
 import ProgressBar from "@/components/ProgressBar.vue"
+import { useLocked } from "@/progress"
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
+    // progress drives the visual ProgressBar inside the button only. It does not
+    // participate in disabling the button. Lock state comes from the surrounding
+    // useLock boundary via useLocked. Pass progress when you want to display
+    // in-button progress (e.g. submit button or file upload) and rely on
+    // an enclosing useBusy/useLock to lock the button during the same work.
     progress?: number
+    total?: number | null
     disabled?: boolean
     primary?: boolean
+    active?: boolean
+    invalid?: boolean
   }>(),
   {
     progress: 0,
+    total: null,
     disabled: false,
     primary: false,
+    active: false,
+    invalid: false,
   },
 )
+
+const locked = useLocked()
+const inactive = () => locked.value || props.disabled
 </script>
 
 <template>
-  <button
-    v-tw-merge
-    :disabled="progress > 0 || disabled"
-    class="pd-button relative rounded-sm text-center leading-tight font-medium uppercase shadow-sm outline-none select-none focus:ring-2 focus:ring-offset-1"
-    :class="{
-      'cursor-not-allowed': progress > 0 || disabled,
-      'px-6 py-2.5': primary,
-      'px-[calc(1.5rem_-_2px)] py-[calc(0.625rem_-_2px)]': !primary,
-      'bg-primary-300 text-gray-100': primary && (progress > 0 || disabled),
-      'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 active:bg-primary-500': primary && progress === 0 && !disabled,
-      'border-2 border-neutral-300 bg-gray-100 text-gray-800 shadow-none': !primary && (progress > 0 || disabled),
-      'border-2 border-primary-600 text-primary-600 hover:border-primary-700 hover:bg-primary-50 hover:text-primary-700 focus:ring-primary-500 active:border-primary-500 active:bg-primary-100 active:text-primary-500':
-        !primary && progress === 0 && !disabled,
-    }"
-  >
+  <ButtonStyled as="button" :inactive="inactive()" :primary="primary" :active="active" :invalid="invalid" :disabled="inactive()" class="pd-button">
     <slot />
-    <ProgressBar :progress="progress" class="absolute inset-x-0 bottom-0 rounded-b" />
-  </button>
+    <ProgressBar :progress="progress" :total="total" class="absolute inset-x-0 bottom-0 rounded-b" />
+  </ButtonStyled>
 </template>

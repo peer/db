@@ -5,12 +5,12 @@ import type { DeepReadonly } from "vue"
 import type { AmountFilterState, AmountSearchResult, ClientSearchSession } from "@/types"
 
 import noUiSlider from "nouislider"
-import { computed, onBeforeUnmount, toRef, useTemplateRef, watchEffect } from "vue"
+import { computed, onBeforeUnmount, toRef, useId, useTemplateRef, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 
 import CheckBox from "@/components/CheckBox.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
-import { useProgress } from "@/progress"
+import { useLocked, useProgress } from "@/progress"
 import { NONE, useAmountHistogramValues } from "@/search"
 import { equals, loadingShortHeights, useInitialLoad } from "@/utils"
 
@@ -19,8 +19,9 @@ const props = defineProps<{
   searchTotal: number
   result: AmountSearchResult
   state: AmountFilterState
-  updateProgress: number
 }>()
+
+const locked = useLocked()
 
 const emit = defineEmits<{
   "update:state": [state: AmountFilterState]
@@ -30,12 +31,15 @@ const { t } = useI18n({ useScope: "global" })
 
 const el = useTemplateRef<HTMLElement>("el")
 
+const labelId = useId()
+
 const abortController = new AbortController()
 
 onBeforeUnmount(() => {
   abortController.abort()
 })
 
+// Data loading only, no controls.
 const progress = useProgress()
 const {
   results,
@@ -94,7 +98,7 @@ const maxCount = computed(() => {
 let slider: API | null = null
 const sliderEl = useTemplateRef<HTMLElement>("sliderEl")
 
-watchEffect((onCleanup) => {
+watchEffect(() => {
   if (slider && slider.target != sliderEl.value) {
     slider.destroy()
     slider = null
@@ -124,12 +128,9 @@ watchEffect((onCleanup) => {
       keyboardPageMultiplier: 10,
       animate: false,
       behaviour: "snap",
-      format: {
+      ariaFormat: {
         to: (value: number): string => {
           return parseFloat(value.toFixed(5)).toString()
-        },
-        from: (value: string): number => {
-          return parseFloat(value)
         },
       },
     })
@@ -151,12 +152,12 @@ watchEffect((onCleanup) => {
   }
 })
 
-watchEffect((onCleanup) => {
+watchEffect(() => {
   if (!slider) {
     return
   }
 
-  if (props.updateProgress > 0) {
+  if (locked.value) {
     slider.disable()
   } else {
     slider.enable()
@@ -173,15 +174,15 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="pd-amountfiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
-    <div class="flex items-baseline gap-x-1">
+    <div :id="labelId" class="flex items-baseline gap-x-1">
       <DocumentRefInline :id="result.id" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
     </div>
-    <ul ref="el">
-      <li v-if="error">
+    <ul ref="el" role="group" :aria-labelledby="labelId" class="grid grid-cols-[max-content_auto] gap-x-1 gap-y-3">
+      <li v-if="error" class="col-span-2">
         <i class="pd-amountfiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
-      <li v-else-if="from === null || to === null" class="motion-safe:animate-pulse">
+      <li v-else-if="from === null || to === null" class="col-span-2 motion-safe:animate-pulse" aria-hidden="true">
         <div class="my-1.5 grid grid-cols-10 items-end gap-x-1" :style="`aspect-ratio: ${chartWidth - 1} / ${chartHeight}`">
           <div v-for="(h, i) in loadingShortHeights(result.id, 10)" :key="i" class="w-auto rounded-sm bg-slate-200" :class="h"></div>
         </div>
@@ -191,7 +192,7 @@ onBeforeUnmount(() => {
         </div>
         <div class="my-1.5 h-2 rounded-sm bg-slate-200"></div>
       </li>
-      <li v-else-if="from !== to">
+      <li v-else-if="from !== to" class="col-span-2">
         <!-- We subtract 1 from chartWidth because we subtract 1 from bar width, so there would be a gap after the last one. -->
         <svg :viewBox="`0 0 ${chartWidth - 1} ${chartHeight}`">
           <!-- We subtract 1 from bar width to have a gap between bars. -->
@@ -214,25 +215,23 @@ onBeforeUnmount(() => {
         </div>
         <div ref="sliderEl"></div>
       </li>
-      <li v-else-if="results.length === 1" class="flex items-baseline gap-x-1">
-        <div class="my-1 inline-block h-4 w-4 shrink-0 self-center border border-transparent"></div>
-        <div class="my-1 leading-none">{{ results[0].from }}</div>
-        <div class="my-1 leading-none">({{ results[0].count }})</div>
+      <li v-else-if="results.length === 1" class="contents">
+        <div class="h-4 w-4 shrink-0 border border-transparent"></div>
+        <div class="flex items-baseline gap-x-1">
+          <div>{{ results[0].from }}</div>
+          <div>({{ results[0].count }})</div>
+        </div>
       </li>
-      <li v-if="result.count < searchTotal" class="flex items-baseline gap-x-1 first:mt-0" :class="error ? 'mt-0' : from === null || to === null ? 'mt-3' : 'mt-4'">
-        <CheckBox :id="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'" v-model="noneState" :progress="updateProgress" class="my-1 self-center" />
-        <label
-          :for="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'"
-          class="my-1 leading-none"
-          :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-          ><i>{{ t("common.values.none") }}</i></label
-        >
-        <label
-          :for="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'"
-          class="my-1 leading-none"
-          :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-          >({{ searchTotal - result.count }})</label
-        >
+      <li v-if="result.count < searchTotal" class="contents">
+        <CheckBox :id="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'" v-model="noneState" />
+        <div class="flex items-baseline gap-x-1">
+          <label :for="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            ><i>{{ t("common.values.none") }}</i></label
+          >
+          <label :for="'amount/' + result.id + '/' + (result.unit ?? '') + '/none'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            >({{ searchTotal - result.count }})</label
+          >
+        </div>
       </li>
     </ul>
   </div>

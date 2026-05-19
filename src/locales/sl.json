@@ -8,14 +8,24 @@
       "upload": "Naloži",
       "edit": "Uredi",
       "save": "Shrani",
+      "discard": "Zavrzi",
       "add": "Dodaj",
+      "insert": "Vstavi",
+      "update": "Posodobi",
       "clear": "Počisti",
       "remove": "Odstrani",
+      "revert": "Povrni",
+      "subClaim": "Pod-vrednost",
       "loadCountMore": "{count} več",
       "loadMore": "Naloži več",
       "filters": "Filtri",
       "prev": "Nazaj",
-      "next": "Naprej"
+      "next": "Naprej",
+      "open": "Odpri",
+      "unlink": "Odstrani povezavo"
+    },
+    "errors": {
+      "unexpected": "Nepričakovana napaka. Prosimo, poskusite znova."
     },
     "status": {
       "editingNotAllowed": "Urejanje ni dovoljeno.",
@@ -31,7 +41,11 @@
       "property": "Lastnost",
       "value": "Vrednost",
       "time": "Čas",
-      "precision": "Natančnost"
+      "amount": "Količina",
+      "precision": "Natančnost",
+      "required": "obvezno",
+      "multiple": "večkratno",
+      "changed": "spremenjeno"
     },
     "icons": {
       "link": "Povezava",
@@ -42,12 +56,58 @@
       "noName": "brez imena",
       "none": "brez",
       "unknown": "neznana"
+    },
+    "validation": {
+      "required": "Obvezna vrednost.",
+      "requiredPrecision": "Obvezna natančnost.",
+      "invalid": "Neveljavna vrednost.",
+      "invalidPrecision": "Neveljavna natančnost."
     }
   },
   "partials": {
     "input": {
+      "InputHTML": {
+        "toolbar": {
+          "label": "Oblikovanje",
+          "undo": "Razveljavi",
+          "redo": "Uveljavi",
+          "blockType": "Vrsta bloka",
+          "paragraph": "Odstavek",
+          "heading": "Naslov {level}",
+          "preformatted": "Predoblikovano",
+          "bold": "Krepko",
+          "italic": "Ležeče",
+          "underline": "Podčrtano",
+          "strikethrough": "Prečrtano",
+          "monospace": "Enopresledno",
+          "bulletList": "Označen seznam",
+          "orderedList": "Oštevilčen seznam",
+          "blockquote": "Citat",
+          "indent": "Zamik desno",
+          "outdent": "Zamik levo",
+          "horizontalRule": "Vodoravna črta",
+          "lineBreak": "Prelom vrstice",
+          "link": "Povezava",
+          "attachFile": "Pripni datoteko",
+          "replaceFile": "Za zamenjavo datoteke spustite datoteko ali kliknite za brskanje"
+        },
+        "bottomToolbar": {
+          "linkLabel": "Povezava",
+          "blockquoteLabel": "Vir",
+          "fileLabel": "Datoteka",
+          "uploadingLabel": "Nalagam: {name}",
+          "dropFileLabel": "Spustite datoteko, da jo naložite..."
+        }
+      },
+      "InputFile": {
+        "dropOrBrowse": "Spustite datoteko sem ali kliknite za brskanje"
+      },
       "InputRef": {
+        "invalidValue": "neveljavna vrednost",
         "noResults": "Ni najdenih rezultatov."
+      },
+      "InputRefSelect": {
+        "noOptions": "Ni razpoložljivih možnosti."
       },
       "InputTime": {
         "format": "Oblika: LLLL-MM-DD UU:MM:SS",
@@ -112,7 +172,9 @@
       "filtersNotShown": "1 filter ni prikazan. | {count} filtra nista prikazana. | {count} filtri niso prikazani. | {count} filtrov ni prikazanih.",
       "noFilters": "Ni filtrov na voljo.",
       "filtersAvailable": "1 filter na voljo. | {count} filtra na voljo. | {count} filtri na voljo. | {count} filtrov na voljo.",
-      "determiningFilters": "Ugotavljanje filtrov..."
+      "determiningFilters": "Ugotavljanje filtrov...",
+      "skipToFilters": "Preskoči na filtre",
+      "skipToResults": "Preskoči na rezultate"
     },
     "SearchResultsTable": {
       "expandRow": "Razširi vrstico",
@@ -123,7 +185,6 @@
       "details": "Podrobnosti"
     },
     "FieldsForm": {
-      "addAnother": "Dodaj še enega",
       "from": "Od",
       "to": "Do"
     },
@@ -163,7 +224,9 @@
       "tabs": {
         "allProperties": "@:views.DocumentGet.tabs.allProperties"
       },
-      "addClaim": "Dodaj trditev",
+      "addClaim": "Dodaj vrednost",
+      "editClaim": "Uredi vrednost",
+      "addSubClaim": "Dodaj pod-vrednost",
       "claimTypes": {
         "identifier": "Identifikator",
         "string": "Enostavno besedilo",
@@ -173,6 +236,7 @@
         "time": "Čas",
         "timeInterval": "Časovni interval",
         "link": "Povezava",
+        "file": "Datoteka",
         "reference": "Referenca",
         "has": "Ima",
         "none": "Neobstoječa vrednost",
@@ -180,9 +244,12 @@
       },
       "labels": {
         "link": "Povezava",
+        "iri": "Povezava",
         "html": "HTML",
         "string": "Enostavno besedilo",
+        "identifier": "Identifikator",
         "amount": "Količina",
+        "file": "Datoteka",
         "from": "Od",
         "to": "Do"
       }

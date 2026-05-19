@@ -19,14 +19,24 @@ declare module "vue-i18n" {
         upload: string
         edit: string
         save: string
+        discard: string
         add: string
+        insert: string
+        update: string
         clear: string
         remove: string
+        revert: string
+        subClaim: string
         loadCountMore: string
         loadMore: string
         filters: string
         prev: string
         next: string
+        open: string
+        unlink: string
+      }
+      errors: {
+        unexpected: string
       }
       status: {
         editingNotAllowed: string
@@ -42,7 +52,11 @@ declare module "vue-i18n" {
         property: string
         value: string
         time: string
+        amount: string
         precision: string
+        required: string
+        multiple: string
+        changed: string
       }
       icons: {
         link: string
@@ -54,11 +68,57 @@ declare module "vue-i18n" {
         none: string
         unknown: string
       }
+      validation: {
+        required: string
+        requiredPrecision: string
+        invalid: string
+        invalidPrecision: string
+      }
     }
     partials: {
       input: {
+        InputHTML: {
+          toolbar: {
+            label: string
+            undo: string
+            redo: string
+            blockType: string
+            paragraph: string
+            heading: string
+            preformatted: string
+            bold: string
+            italic: string
+            underline: string
+            strikethrough: string
+            monospace: string
+            bulletList: string
+            orderedList: string
+            blockquote: string
+            indent: string
+            outdent: string
+            horizontalRule: string
+            lineBreak: string
+            link: string
+            attachFile: string
+            replaceFile: string
+          }
+          bottomToolbar: {
+            linkLabel: string
+            blockquoteLabel: string
+            fileLabel: string
+            uploadingLabel: string
+            dropFileLabel: string
+          }
+        }
+        InputFile: {
+          dropOrBrowse: string
+        }
         InputRef: {
+          invalidValue: string
           noResults: string
+        }
+        InputRefSelect: {
+          noOptions: string
         }
         InputTime: {
           format: string
@@ -124,6 +184,8 @@ declare module "vue-i18n" {
         noFilters: string
         filtersAvailable: string
         determiningFilters: string
+        skipToFilters: string
+        skipToResults: string
       }
       SearchResultsTable: {
         expandRow: string
@@ -134,7 +196,6 @@ declare module "vue-i18n" {
         details: string
       }
       FieldsForm: {
-        addAnother: string
         from: string
         to: string
       }
@@ -175,6 +236,8 @@ declare module "vue-i18n" {
           allProperties: string
         }
         addClaim: string
+        editClaim: string
+        addSubClaim: string
         claimTypes: {
           identifier: string
           string: string
@@ -184,6 +247,7 @@ declare module "vue-i18n" {
           time: string
           timeInterval: string
           link: string
+          file: string
           reference: string
           has: string
           none: string
@@ -191,9 +255,12 @@ declare module "vue-i18n" {
         }
         labels: {
           link: string
+          iri: string
           html: string
           string: string
+          identifier: string
           amount: string
+          file: string
           from: string
           to: string
         }

@@ -35,6 +35,7 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
+// Data loading only, no controls.
 const progress = useProgress()
 
 const WithDocumentD = WithDocument<D>
@@ -132,7 +133,7 @@ const rowSpan = computed(() => {
       <template #default="{ doc: resultDoc }">
         <component :is="customResultComponent" v-if="customResultComponent" :doc="resultDoc" :search-session-id="searchSessionId" />
         <div v-else-if="fieldsData && resultDoc.claims">
-          <ButtonLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="float-end px-3.5">{{
+          <ButtonLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="float-end px-4">{{
             t("partials.SearchResult.details")
           }}</ButtonLink>
           <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 text-xl leading-none">
@@ -149,7 +150,12 @@ const rowSpan = computed(() => {
                   </li>
                 </template>
                 <template #loading="{ url }">
-                  <li class="pd-withdocument-loading h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse" :data-url="url" :class="[loadingWidth(tag.id)]"></li>
+                  <li
+                    class="pd-withdocument-loading h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
+                    :data-url="url"
+                    :class="[loadingWidth(tag.id)]"
+                    aria-hidden="true"
+                  ></li>
                 </template>
               </WithDocumentD>
             </template>
@@ -158,7 +164,7 @@ const rowSpan = computed(() => {
         </div>
         <div v-else class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
           <div>
-            <ButtonLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="float-end px-3.5">{{
+            <ButtonLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="float-end px-4">{{
               t("partials.SearchResult.details")
             }}</ButtonLink>
             <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 text-xl leading-none">
@@ -175,7 +181,12 @@ const rowSpan = computed(() => {
                     </li>
                   </template>
                   <template #loading="{ url }">
-                    <li class="pd-withdocument-loading h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse" :data-url="url" :class="[loadingWidth(tag.id)]"></li>
+                    <li
+                      class="pd-withdocument-loading h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
+                      :data-url="url"
+                      :class="[loadingWidth(tag.id)]"
+                      aria-hidden="true"
+                    ></li>
                   </template>
                 </WithDocumentD>
               </template>
@@ -187,11 +198,11 @@ const rowSpan = computed(() => {
             /></RouterLink>
           </div>
           <!-- eslint-disable-next-line vue/no-v-html -->
-          <p v-if="description" class="prose max-w-none prose-slate" @click="onDescriptionClick" v-html="transformedDescription"></p>
+          <p v-if="description" class="prose max-w-none prose-gray" @click="onDescriptionClick" v-html="transformedDescription"></p>
         </div>
       </template>
       <template #loading>
-        <div class="pd-withdocument-loading flex flex-col gap-y-2 motion-safe:animate-pulse">
+        <div class="pd-withdocument-loading flex flex-col gap-y-2 motion-safe:animate-pulse" aria-hidden="true">
           <div class="inline-block h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${result.id}/1`)]"></div>
           <div class="flex gap-x-4">
             <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${result.id}/2`)]"></div>

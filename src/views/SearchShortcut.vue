@@ -10,6 +10,7 @@ import { createSearchSession } from "@/search"
 const route = useRoute()
 const router = useRouter()
 
+// Data loading only, no controls.
 const progress = useProgress()
 
 const abortController = new AbortController()

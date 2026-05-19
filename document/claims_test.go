@@ -288,6 +288,21 @@ func TestClaimValidations(t *testing.T) { //nolint:maintidx
 		c := &document.HTMLClaim{CoreClaim: core, Prop: ref, HTML: "<p>text</p>"}
 		require.NoError(t, c.Validate())
 	})
+	t.Run("HTMLClaim/unsanitized_disallowed_element", func(t *testing.T) {
+		t.Parallel()
+		c := &document.HTMLClaim{CoreClaim: core, Prop: ref, HTML: "<p>text</p><script>x</script>"}
+		assert.EqualError(t, c.Validate(), "HTML is not sanitized")
+	})
+	t.Run("HTMLClaim/unsanitized_disallowed_attribute", func(t *testing.T) {
+		t.Parallel()
+		c := &document.HTMLClaim{CoreClaim: core, Prop: ref, HTML: `<a href="https://example.com" onclick="evil()">x</a>`}
+		assert.EqualError(t, c.Validate(), "HTML is not sanitized")
+	})
+	t.Run("HTMLClaim/unsanitized_disallowed_href", func(t *testing.T) {
+		t.Parallel()
+		c := &document.HTMLClaim{CoreClaim: core, Prop: ref, HTML: `<a href="javascript:alert(1)">x</a>`}
+		assert.EqualError(t, c.Validate(), "HTML is not sanitized")
+	})
 
 	t.Run("LinkClaim/empty", func(t *testing.T) {
 		t.Parallel()
@@ -299,6 +314,50 @@ func TestClaimValidations(t *testing.T) { //nolint:maintidx
 		c := &document.LinkClaim{CoreClaim: core, Prop: ref, IRI: "https://example.com"}
 		require.NoError(t, c.Validate(), "% -+#.1v")
 	})
+
+	// IRI allow/deny rules match parseUrl in src/utils.ts and the regex
+	// used by the HTML sanitizer in sanitize.go.
+	linkValid := []string{
+		"https://example.com",
+		"https://example.com/path?q=1#section",
+		"http://example.com/foo",
+		"HTTPS://Example.com",
+		"mailto:test@example.com",
+		"/foo",
+		"/foo/bar?q=1#h",
+		"/",
+	}
+	for _, iri := range linkValid {
+		t.Run("LinkClaim/valid/"+iri, func(t *testing.T) {
+			t.Parallel()
+			c := &document.LinkClaim{CoreClaim: core, Prop: ref, IRI: iri}
+			require.NoError(t, c.Validate(), "% -+#.1v")
+		})
+	}
+
+	linkInvalid := []struct {
+		iri      string
+		errorMsg string
+	}{
+		{"#section", "invalid IRI"},
+		{"../foo", "invalid IRI"},
+		{"foo/bar", "invalid IRI"},
+		{"//example.com/foo", "invalid IRI"},
+		{"javascript:alert(1)", "disallowed IRI scheme: javascript"},
+		{"ftp://example.com", "disallowed IRI scheme: ftp"},
+		{"tel:+1234", "disallowed IRI scheme: tel"},
+		{"data:text/html,<script>", "disallowed IRI scheme: data"},
+		{"http:///example.com", "invalid IRI: missing host"},
+		{"https:///example.com", "invalid IRI: missing host"},
+		{"mailto:", "invalid IRI: missing address"},
+	}
+	for _, tc := range linkInvalid {
+		t.Run("LinkClaim/invalid/"+tc.iri, func(t *testing.T) {
+			t.Parallel()
+			c := &document.LinkClaim{CoreClaim: core, Prop: ref, IRI: tc.iri}
+			assert.EqualError(t, c.Validate(), tc.errorMsg)
+		})
+	}
 
 	t.Run("TimeClaim/invalid_precision", func(t *testing.T) {
 		t.Parallel()

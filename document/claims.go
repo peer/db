@@ -727,7 +727,12 @@ func (c *HTMLClaim) GetProp() Reference {
 	return c.Prop
 }
 
-// Validate checks that the HTML claim has non-empty HTML and valid confidence.
+// Validate checks that the HTML claim has non-empty, sanitizer-canonical
+// HTML and valid confidence. SanitizeHTML must be idempotent on the stored
+// value. Any difference between the stored HTML and the sanitized output
+// indicates a disallowed element/attribute/URL or a non-canonical form
+// (mixed-case tags, unquoted attributes, etc.). Callers are expected to
+// SanitizeHTML the value before constructing the claim.
 func (c *HTMLClaim) Validate() errors.E {
 	errE := c.CoreClaim.Validate()
 	if errE != nil {
@@ -735,6 +740,11 @@ func (c *HTMLClaim) Validate() errors.E {
 	}
 	if c.HTML == "" {
 		return errors.New("empty HTML")
+	}
+	if SanitizeHTML(c.HTML) != c.HTML {
+		// SanitizeHTML is idempotent on already-canonical input. Validate uses
+		// that property to reject HTML the client has not pre-sanitized.
+		return errors.New("HTML is not sanitized")
 	}
 
 	return nil
@@ -1148,17 +1158,14 @@ func (c *LinkClaim) GetProp() Reference {
 	return c.Prop
 }
 
-// Validate checks that the link claim has a non-empty IRI and valid confidence.
+// Validate checks that the link claim has an IRI in the allowed form
+// and valid confidence. Allowed-IRI rules match the frontend's parseUrl.
 func (c *LinkClaim) Validate() errors.E {
 	errE := c.CoreClaim.Validate()
 	if errE != nil {
 		return errE
 	}
-	if c.IRI == "" {
-		return errors.New("empty IRI")
-	}
-
-	return nil
+	return validateIRI(c.IRI)
 }
 
 // ReferenceClaim represents a claim that relates this document to another document.

@@ -1,7 +1,7 @@
-import { assert, describe, test } from "vitest"
+import { assert, describe, expect, test } from "vitest"
 
 import { timeFloat64, validateTime } from "@/document/time"
-import { timePrecisionForRange, timePrecisionForValue, timeStringFromFloat64 } from "@/utils"
+import { parseUrl, timePrecisionForRange, timePrecisionForValue, timeStringFromFloat64 } from "@/utils"
 
 // Unix seconds for 2025-03-02 10:30:45 UTC.
 const SAMPLE_SECONDS = Date.UTC(2025, 2, 2, 10, 30, 45) / 1000
@@ -179,5 +179,49 @@ describe("timePrecisionForValue", () => {
     assert.equal(timePrecisionForValue(60 + 1e-9), "min")
     // Likewise on the negative side.
     assert.equal(timePrecisionForValue(60 - 1e-9), "min")
+  })
+})
+
+describe("parseUrl", () => {
+  test.each([
+    "https://example.com",
+    "https://example.com/path?q=1#section",
+    "http://example.com/foo",
+    "HTTPS://Example.com",
+    "mailto:test@example.com",
+    "/foo",
+    "/foo/bar?q=1#h",
+    "/",
+  ])("accepts %s", (input) => {
+    const url = parseUrl(input)
+    assert.instanceOf(url, URL)
+  })
+
+  test.each([
+    ["", "empty"],
+    ["#section", "Invalid URL"],
+    ["../foo", "Invalid URL"],
+    ["foo/bar", "Invalid URL"],
+    ["//example.com/foo", "Invalid URL"],
+    ["javascript:alert(1)", "disallowed URL scheme: javascript:"],
+    ["ftp://example.com", "disallowed URL scheme: ftp:"],
+    ["tel:+1234", "disallowed URL scheme: tel:"],
+    ["data:text/html,<x>", "disallowed URL scheme: data:"],
+    ["http:///example.com", "missing host"],
+    ["mailto:", "missing address"],
+  ])("rejects %s", (input, fragment) => {
+    expect(() => parseUrl(input)).toThrow(fragment)
+  })
+
+  test("allowMailto=false rejects mailto: even when otherwise valid", () => {
+    // Sanity-check: the same value is accepted with the default (allowMailto=true).
+    expect(parseUrl("mailto:test@example.com")).toBeInstanceOf(URL)
+    expect(() => parseUrl("mailto:test@example.com", { allowMailto: false })).toThrow("disallowed URL scheme: mailto:")
+  })
+
+  test("allowMailto=false still accepts http / https / leading-slash paths", () => {
+    assert.instanceOf(parseUrl("https://example.com", { allowMailto: false }), URL)
+    assert.instanceOf(parseUrl("http://example.com/foo", { allowMailto: false }), URL)
+    assert.instanceOf(parseUrl("/foo", { allowMailto: false }), URL)
   })
 })

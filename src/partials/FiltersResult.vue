@@ -13,7 +13,6 @@ defineProps<{
   result: FilterResult
   searchSession: DeepReadonly<ClientSearchSession>
   searchTotal: number
-  updateSearchSessionProgress: number
   filtersState: FiltersState
 }>()
 
@@ -72,7 +71,6 @@ function amountFilterKey(id: string, unit?: string): string {
     :search-total="searchTotal"
     :result="result"
     :state="filtersState.ref[result.id] ?? []"
-    :update-progress="updateSearchSessionProgress"
     v-bind="$attrs"
     @update:state="(v) => onRefFiltersStateUpdate(result.id, v)"
   />
@@ -84,7 +82,6 @@ function amountFilterKey(id: string, unit?: string): string {
     :search-total="searchTotal"
     :result="result"
     :state="filtersState.amount[amountFilterKey(result.id, (result as AmountSearchResult).unit)] ?? null"
-    :update-progress="updateSearchSessionProgress"
     v-bind="$attrs"
     @update:state="(v) => onAmountFiltersStateUpdate(result.id, (result as AmountSearchResult).unit, v)"
   />
@@ -96,7 +93,6 @@ function amountFilterKey(id: string, unit?: string): string {
     :search-total="searchTotal"
     :result="result"
     :state="filtersState.time[result.id] ?? null"
-    :update-progress="updateSearchSessionProgress"
     v-bind="$attrs"
     @update:state="(v) => onTimeFiltersStateUpdate(result.id, v)"
   />

@@ -12,7 +12,7 @@ import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResult from "@/partials/SearchResult.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
-import { useProgress } from "@/progress"
+import { useBusy } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search"
 import { useLimitResults, useOnScrollOrResize } from "@/utils"
 import { useVisibilityTracking } from "@/visibility"
@@ -23,8 +23,6 @@ const props = defineProps<{
   searchTotal: number | null
   searchMoreThanTotal: boolean
   searchSession: DeepReadonly<ClientSearchSession>
-  searchProgress: number
-  updateSearchSessionProgress: number
   isDownloading: boolean
 
   // Filter props.
@@ -56,7 +54,8 @@ const {
 const filtersEl = useTemplateRef<HTMLElement>("filtersEl")
 const filtersEnabled = ref(false)
 
-const filtersProgress = useProgress()
+// Data loading and controls for data loading.
+const busy = useBusy()
 const {
   results: filtersResults,
   total: filtersTotal,
@@ -65,7 +64,7 @@ const {
 } = useFilters(
   toRef(() => props.searchSession),
   filtersEl,
-  filtersProgress,
+  busy,
 )
 
 const {
@@ -133,6 +132,10 @@ function onFilters() {
 
   filtersEnabled.value = !filtersEnabled.value
 }
+
+function onSkipTo(targetId: string) {
+  document.getElementById(targetId)?.focus()
+}
 </script>
 
 <template>
@@ -142,9 +145,26 @@ function onFilters() {
     </Button>
   </Teleport>
 
-  <div ref="content" class="pd-searchresultsfeed flex w-full gap-x-1 p-1 sm:gap-x-4 sm:p-4">
+  <div ref="content" class="pd-searchresultsfeed relative flex w-full gap-x-1 p-1 sm:gap-x-4 sm:p-4">
+    <a
+      href="#search-filters"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-1 focus:left-1 focus:z-50 focus:rounded-sm focus:bg-primary-600 focus:px-4 focus:py-2 focus:font-medium focus:text-white focus:shadow-lg focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 focus:outline-none sm:focus:top-4 sm:focus:left-4"
+      @click.prevent="onSkipTo('search-filters')"
+      >{{ t("partials.SearchResultsFeed.skipToFilters") }}</a
+    >
+    <a
+      href="#search-results"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-1 focus:left-1 focus:z-50 focus:rounded-sm focus:bg-primary-600 focus:px-4 focus:py-2 focus:font-medium focus:text-white focus:shadow-lg focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 focus:outline-none sm:focus:top-4 sm:focus:left-4"
+      @click.prevent="onSkipTo('search-results')"
+      >{{ t("partials.SearchResultsFeed.skipToResults") }}</a
+    >
     <!-- Search results column -->
-    <div class="flex-auto basis-3/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'hidden' : 'flex'">
+    <div
+      id="search-results"
+      tabindex="-1"
+      class="flex-auto basis-3/4 flex-col gap-y-1 rounded-sm focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:flex sm:gap-y-4"
+      :class="filtersEnabled ? 'hidden' : 'flex'"
+    >
       <SearchResultsHeader
         :search-session="searchSession"
         :search-total="searchTotal"
@@ -164,8 +184,9 @@ function onFilters() {
             <div v-else-if="searchResults.length == searchTotal" class="pd-count text-center text-sm">{{
               t("partials.SearchResultsFeed.shownResults", { i, count: searchResults.length })
             }}</div>
+            <!-- We do not use ProgressBar here because we plan to make this an interactive bar on which you can click to move to that location. -->
             <div class="pd-track relative h-2 w-full bg-slate-200">
-              <div class="pd-thumb absolute inset-y-0 bg-secondary-400" style="left: 0" :style="{ width: (i / searchResults.length) * 100 + '%' }" />
+              <div class="pd-thumb absolute inset-y-0 left-0 bg-secondary-400" :style="{ width: (i / searchResults.length) * 100 + '%' }" />
             </div>
           </div>
           <SearchResult :ref="track(result.id)" :search-session-id="searchSession.id" :result="result" />
@@ -175,7 +196,6 @@ function onFilters() {
           v-if="searchHasMore"
           id="searchresultsfeed-button-loadmore"
           ref="searchMoreButton"
-          :progress="searchProgress"
           primary
           class="w-1/4 min-w-fit self-center"
           @click.prevent="searchLoadMore"
@@ -199,7 +219,14 @@ function onFilters() {
     </div>
 
     <!-- Filters column -->
-    <div ref="filtersEl" class="flex-auto basis-1/4 flex-col gap-y-1 sm:flex sm:gap-y-4" :class="filtersEnabled ? 'flex' : 'hidden'" :data-url="filtersURL">
+    <div
+      id="search-filters"
+      ref="filtersEl"
+      tabindex="-1"
+      class="flex-auto basis-1/4 flex-col gap-y-1 rounded-sm focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:flex sm:gap-y-4"
+      :class="filtersEnabled ? 'flex' : 'hidden'"
+      :data-url="filtersURL"
+    >
       <div v-if="filtersError" class="pd-searchresultsfeed-filters-error-wrapper my-1 sm:my-4">
         <div class="text-center text-sm"
           ><i class="pd-searchresultsfeed-filters-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i></div
@@ -222,14 +249,13 @@ function onFilters() {
             :result="filter"
             :search-session="searchSession"
             :search-total="searchTotal"
-            :update-search-session-progress="updateSearchSessionProgress"
             :filters-state="filtersState"
             class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
             @filter-change="(c) => $emit('filterChange', c)"
           />
         </template>
 
-        <Button v-if="filtersHasMore" ref="filtersMoreButton" :progress="filtersProgress" primary class="w-1/2 min-w-fit self-center" @click.prevent="filtersLoadMore">{{
+        <Button v-if="filtersHasMore" ref="filtersMoreButton" primary class="w-1/2 min-w-fit self-center" @click.prevent="filtersLoadMore">{{
           t("partials.SearchResultsFeed.moreFilters")
         }}</Button>
 

@@ -8,6 +8,7 @@ import { IN_LANGUAGE, LIST, ORDER_IN_LIST } from "@/core"
 import { amountFloat64, amountWindowEnd, amountWindowStart, validateAmount } from "@/document/amount"
 import { LowConfidence } from "@/document/confidence"
 import { timeFloat64, timeWindowEnd, timeWindowStart, VALID_TIME_PRECISIONS, validateTime } from "@/document/time"
+import { parseUrl } from "@/utils"
 
 // Claims is the interface for types that hold and manipulate a collection of claims.
 export interface Claims {
@@ -190,6 +191,10 @@ export class HTMLClaim extends CoreClaim {
   }
 
   // Validate checks that the HTML claim has non-empty HTML and valid confidence.
+  // TODO: Mirror the backend's HTMLClaim.Validate sanitize-equality check.
+  //       A claim constructed on the frontend is rejected if its HTML differs
+  //       from the sanitizer's output.
+  //       Needs a JS port of the bluemonday policy in document/sanitize.go.
   async Validate(): Promise<void> {
     await super.Validate()
     if (!this.html) {
@@ -544,11 +549,16 @@ export class LinkClaim extends CoreClaim {
     }
   }
 
-  // Validate checks that the link claim has a non-empty IRI and valid confidence.
+  // Validate checks that the link claim has a non-empty IRI in the allowed
+  // form and valid confidence. The allowed-IRI rules match parseUrl on the
+  // frontend and validateIRI on the backend.
   async Validate(): Promise<void> {
     await super.Validate()
-    if (!this.iri) {
-      throw new Error("empty IRI")
+    try {
+      parseUrl(this.iri)
+    } catch (err) {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      throw new Error(`invalid IRI: ${err}`)
     }
   }
 }

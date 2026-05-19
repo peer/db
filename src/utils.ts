@@ -92,7 +92,6 @@ export function timePrecisionForRange(from: number, to: number): TimePrecision {
   return "100M"
 }
 
-// TODO: Use it in InputTime.vue.
 export function formatYearStr(year: number): string {
   if (year < 0) {
     return "-" + String(-year).padStart(4, "0")
@@ -100,7 +99,6 @@ export function formatYearStr(year: number): string {
   return String(year).padStart(4, "0")
 }
 
-// TODO: Use it in InputTime.vue.
 export function pad2(n: number | string): string {
   return String(n).padStart(2, "0")
 }
@@ -367,6 +365,111 @@ export async function delay(ms: number, signal?: AbortSignal): Promise<void> {
   signal?.throwIfAborted()
 }
 
+// Schemes accepted by parseUrl. Mirrors allowedLinkClaimSchemes in
+// document/sanitize.go on the backend. The HTML sanitizer in
+// document/sanitize.go uses this set for <a href> (via linkHrefPattern)
+// and the same set minus mailto for <img src> and <blockquote cite> (via
+// resourceURLPattern). parseUrl callers can pass { allowMailto: false }
+// to drop mailto: from the allowed set.
+export const ALLOWED_LINK_CLAIM_SCHEMES = ["http:", "https:", "mailto:"] as const
+
+const URL_HOST_REGEX = /^https?:\/\/\//i
+
+// Options accepted by parseUrl (and forwarded by normalizeUrl).
+export type ParseUrlOptions = {
+  // Defaults to true.
+  allowMailto?: boolean
+}
+
+// parseUrl parses an input URL and validates it against the project's link
+// allowlist. It accepts:
+//   - Same-origin paths starting with "/" (but not "//"): "/foo", "/a?b=c#d", "/"
+//   - Absolute URLs whose scheme is in ALLOWED_LINK_CLAIM_SCHEMES (mailto
+//     excluded when options.allowMailto is false).
+//
+// It throws on:
+//   - Empty input
+//   - Unparseable input (via the URL constructor)
+//   - Protocol-relative URLs ("//host/path")
+//   - Document-relative paths ("foo", "../foo")
+//   - Fragment-only refs ("#section")
+//   - Absolute URLs with any other scheme (javascript:, data:, tel:, ftp:, ...)
+//   - Degenerate forms like "http:///x" (the WHATWG URL parser silently
+//     normalizes those to "http://x/", moving the path into the host; we
+//     reject before parsing so the backend, which does not normalize, sees
+//     the same outcome)
+//   - Bare "mailto:" with no address.
+//
+// Leading-slash paths are resolved against window.location.href when
+// available so downstream same-origin checks (normalizeUrl, classifyLink,
+// matchStorageRoute) compare against the current document's origin. In
+// environments without window (Node, isolated tests) a synthetic base is
+// used; the validation rules are syntactic, so the same-origin information
+// is simply not meaningful there.
+export function parseUrl(input: string, { allowMailto = true }: ParseUrlOptions = {}): URL {
+  if (!input) {
+    throw new Error("empty URL")
+  }
+  if (input.startsWith("/") && !input.startsWith("//")) {
+    // For claim validation we might want that it works also outside browser in other JS environments.
+    // normalizeUrl which is used when displaying the link still uses only window.location.
+    const base = typeof window !== "undefined" ? window.location.href : "http://example.invalid/"
+    return new URL(input, base)
+  }
+  // The "///" guard is anchored to the raw input. The URL constructor
+  // would otherwise rewrite "http:///x" to "http://x/" and we would lose
+  // the chance to reject it.
+  if (URL_HOST_REGEX.test(input)) {
+    throw new Error("invalid URL: missing host")
+  }
+  const url = new URL(input)
+  if (!ALLOWED_LINK_CLAIM_SCHEMES.includes(url.protocol)) {
+    throw new Error(`disallowed URL scheme: ${url.protocol}`)
+  }
+  if (!allowMailto && url.protocol === "mailto:") {
+    throw new Error(`disallowed URL scheme: ${url.protocol}`)
+  }
+  // The URL constructor accepts "mailto:" with no address. Reject it.
+  if (url.protocol === "mailto:" && !url.pathname) {
+    throw new Error("invalid URL: missing address")
+  }
+  return url
+}
+
+// normalizeUrl returns the canonical string for a URL. Same-origin URLs are
+// collapsed to "/path?query#hash" so they match the leading-slash convention
+// used by InputFile (which stores StorageGet routes as paths) and by Link.vue
+// (which shows internal links as paths). External URLs are re-stringified
+// through the URL constructor (lowercase host, default port stripped,
+// trailing slash on bare origins, etc.). Idempotent: passing an already
+// normalized value back through normalizeUrl returns it unchanged.
+// Throws (via parseUrl) on input not in the allowed-link form.
+export function normalizeUrl(input: string, options: ParseUrlOptions = {}): string {
+  const url = parseUrl(input, options)
+  if (url.origin === window.location.origin) {
+    return url.pathname + url.search + url.hash
+  }
+  return url.toString()
+}
+
+// raceWithSignal settles as soon as the given promise settles or the signal
+// aborts. A settling promise propagates its resolution or rejection through
+// unchanged. An abort resolves with undefined (no error is raised).
+export function raceWithSignal<T>(promise: Promise<T>, signal: AbortSignal): Promise<T | undefined> {
+  if (signal.aborted) return Promise.resolve(undefined)
+  let onAbort: (() => void) | undefined
+  const abortPromise = new Promise<undefined>((resolve) => {
+    onAbort = () => {
+      onAbort = undefined
+      resolve(undefined)
+    }
+    signal.addEventListener("abort", onAbort, { once: true })
+  })
+  return Promise.race<T | undefined>([promise, abortPromise]).finally(() => {
+    if (onAbort) signal.removeEventListener("abort", onAbort)
+  })
+}
+
 // Polyfill for AbortSignal.any.
 export function anySignal(...signals: AbortSignal[]): AbortSignal {
   if ("any" in AbortSignal) {
@@ -490,12 +593,13 @@ export function getError(result: Ref<{ error: unknown } | unknown> | { error: un
   return ""
 }
 
-export async function makeAddClaimChange(base: DeepReadonly<string[]>, session: string, changeIndex: number, patch: object) {
+export async function makeAddClaimChange(base: DeepReadonly<string[]>, session: string, changeIndex: number, patch: object, under?: string) {
   const changeBase = [...base, "SESSION", session, String(changeIndex)]
   const claimID = (await Identifier.from(...changeBase)).toString()
   return new AddClaimChange({
     id: claimID,
     base: changeBase,
     patch,
+    ...(under ? { under } : {}),
   })
 }

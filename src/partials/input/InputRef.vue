@@ -19,15 +19,22 @@ The chip is a contenteditable div (not a button) so it has a real blinking
 caret on focus, the closest match to a native <input readonly>. Real edits
 are blocked (@beforeinput.prevent etc.), so the chip is read-only despite
 contenteditable=true.
+
+We do not use :read-only or :disabled pseudo classes to style the component because
+we want component to retain how it visually looks even if DOM element's read-only or
+disabled attributes are set, unless they are set through component's props.
+This is used during transitions/animations to disable the component by directly setting
+its DOM attributes without flickering how the component looks.
 -->
 
 <script setup lang="ts">
 import type { D } from "@/document"
-import type { Result } from "@/types"
+import type { Result, ValidationError, ValidatorFn } from "@/types"
 import type { ComponentPublicInstance } from "vue"
 
 import { Combobox, ComboboxButton, ComboboxInput, ComboboxOption, ComboboxOptions } from "@headlessui/vue"
 import { ArrowTopRightOnSquareIcon, CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
+import { Identifier } from "@tozd/identifier"
 import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
@@ -38,23 +45,34 @@ import InputStyled from "@/components/InputStyled.vue"
 import ProgressBar from "@/components/ProgressBar.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
+import { useLock } from "@/progress"
 import { anySignal, loadingWidth } from "@/utils"
+import { useValidation } from "@/validation"
 
 // Wildcard to see if a string ends with unicode letter or number.
 const WILDCARD_SEARCH_REGEX = /[\p{L}\p{N}]$/u
 
 const props = withDefaults(
   defineProps<{
-    progress?: number
     readonly?: boolean
+    required?: boolean
+    // Presentational override.
+    invalid?: boolean
   }>(),
   {
-    progress: 0,
     readonly: false,
+    required: false,
+    invalid: false,
   },
 )
 
 const model = defineModel<string>({ default: "" })
+const errors = ref<ValidationError[]>([])
+
+const emit = defineEmits<{ errors: [ValidationError[]] }>()
+watch(errors, (v) => emit("errors", v), { flush: "sync" })
+
+const invalid = computed(() => props.invalid || errors.value.length > 0)
 
 // We want all fallthrough attributes to be passed to the combobox input element.
 defineOptions({
@@ -81,11 +99,14 @@ const selectedDocument = computed<Result | null>({
   },
 })
 const query = ref("")
-// Treats parent-supplied progress like a soft (temporary) readonly: input remains
-// focusable and selectable but cannot be edited or cleared while it's set.
+// Data modification and controls; useValidation writes to this lock during
+// validation. An active enclosing lock (either inherited from a parent
+// useLock or contributed locally) behaves like a soft, temporary readonly:
+// input remains focusable and selectable but cannot be edited or cleared.
 // The Clear button visually appears but is disabled, distinguishing this
 // state from the harder readonly prop where Clear is hidden entirely.
-const isInProgress = computed(() => props.progress > 0)
+const lock = useLock()
+const inactive = computed(() => lock.value > 0 || props.readonly)
 const searchResults = ref<Result[]>([])
 
 // Toggles between the two "selected" visual states: false shows the chip,
@@ -95,6 +116,49 @@ const editMode = ref(false)
 
 const wrapperRef = useTemplateRef<HTMLElement>("wrapperRef")
 const comboboxInputRef = useTemplateRef<ComponentPublicInstance>("comboboxInputRef")
+
+// A reference is invalid if it is empty (when required) or does not parse as
+// a valid document identifier. The required check is skipped on initial (no
+// user interaction yet), but the identifier-shape check is not - a
+// pre-populated value that is not a valid identifier should surface
+// immediately.
+// eslint-disable-next-line @typescript-eslint/require-await
+const validator: ValidatorFn<string> = async function (value, options) {
+  if (value === "") {
+    if (!props.required || options.initial) {
+      return []
+    }
+    // TODO: Use standard codes.
+    return [{ code: "required" }]
+  }
+  if (!Identifier.valid(value)) {
+    // TODO: Use standard codes.
+    return [{ code: "invalid" }]
+  }
+  return []
+}
+
+const { runValidation, validatedInput } = useValidation(
+  model,
+  errors,
+  lock,
+  () => validator,
+  // Focus target: whichever of the two visual states is currently mounted.
+  // role="textbox" is on the contenteditable chip when a doc is selected;
+  // role="combobox" is on the HUI ComboboxInput when no doc is selected
+  // (or the user is re-editing). Validation cares about the latter (the
+  // only failing case is required+empty where the chip is not shown), but
+  // programmatic focus moves (focusFirstInput on edit) hit the chip.
+  () => wrapperRef.value?.querySelector<HTMLElement>('[role="textbox"], [role="combobox"]') ?? null,
+  () => {
+    query.value = ""
+    model.value = ""
+    errors.value = []
+    exitEditMode()
+  },
+)
+
+defineExpose(validatedInput)
 
 const mainAbortController = new AbortController()
 let searchAbortController = new AbortController()
@@ -158,7 +222,7 @@ async function enterEditMode() {
   // focusable for keyboard navigation and text selection. That means
   // click/focus events still fire even when conceptually "disabled", so
   // the gate has to live here rather than in markup.
-  if (props.readonly || isInProgress.value) return
+  if (inactive.value) return
   if (editMode.value) return
   editMode.value = true
   // Wait for the ComboboxInput to render, then focus its underlying input.
@@ -183,12 +247,14 @@ function exitEditMode() {
 // chip back with the same document still picked.
 async function onWrapperFocusout() {
   await nextTick()
-  const wrapper = wrapperRef.value
-  if (!wrapper) return
-  if (wrapper.contains(document.activeElement)) {
+  if (wrapperRef.value?.contains(document.activeElement)) {
     return
   }
   exitEditMode()
+  // Focus has actually left the component (not just moved between its inner
+  // focusables). Run lazy validation now so the required error appears as
+  // soon as the user tabs/clicks away from an empty required field.
+  await runValidation()
 }
 
 function onSelect(value: Result | null) {
@@ -208,48 +274,20 @@ function clearSelection() {
   exitEditMode()
 }
 
-// HUI 1.7.x intentionally disabled its "immediate" prop in the context
-// (immediate: computed(() => false)), so ":immediate="true"" on Combobox does
-// nothing. To still get "open the dropdown on focus" behavior, we dispatch a
-// synthetic ArrowDown keydown on the input when it gains focus and the
-// dropdown is closed. HUI's keydown handler sees ArrowDown with state===1
-// (closed) and runs openCombobox() itself.
-// This workaround has a downside: when "immediate" is honored properly,
-// HUI's onFocus path also calls setActivationTrigger(1), which makes its
-// Tab handler skip selectActiveOption(). Our ArrowDown dispatch only opens
-// the combobox; it leaves activationTrigger at the default value of 2
-// ("Other"). Combined with HUI's openCombobox() setting its internal "just
-// opened" flag to true (which makes activeOptionIndex computed auto-active
-// the first option when no option has been manually navigated to), the
-// first Tab after a focus-open commits that first option via selectActiveOption()
-// and the chip mounts; the user then needs a second Tab to actually move forward.
-// Typing or arrow-key navigation does not suffer from this because typing's
-// pending search empties the options momentarily and arrowing resets "just opened"
-// flag to false, in both cases leaving activeOptionIndex null at Tab time so
-// selectActiveOption() is a no-op.
-// TODO: Remove this workaround when a never version is released.
-//       See: https://github.com/tailwindlabs/headlessui/issues/3862
-function onInputFocus(open: boolean, event: FocusEvent) {
-  if (open) return
-  const inputEl = event.target as HTMLInputElement | null
-  inputEl?.dispatchEvent(
-    new KeyboardEvent("keydown", {
-      key: "ArrowDown",
-      code: "ArrowDown",
-      bubbles: true,
-      cancelable: true,
-    }),
-  )
-}
-
 const WithPeerDBDocument = WithDocument<D>
 </script>
 
 <template>
-  <div ref="wrapperRef" @focusout="onWrapperFocusout">
-    <Combobox v-slot="{ open }" :model-value="selectedDocument" as="div" @update:model-value="onSelect">
+  <!--
+    Default layout classes on the wrapper. inheritAttrs: false above means
+    the parent's class does not auto-merge onto this root (fallthrough attrs
+    target the combobox input), so the wrapper needs explicit flex-item
+    classes to stretch in a row-flex parent the way InputString et al. do.
+  -->
+  <div ref="wrapperRef" class="min-w-0 flex-auto grow" @focusout="onWrapperFocusout">
+    <Combobox v-slot="{ open }" :model-value="selectedDocument" as="div" immediate by="id" @update:model-value="onSelect">
       <!--
-        Grid with a single minmax(0, 1fr) column. The "0" min track size
+        Grid with a single minmax(0,1fr) column. The "0" min track size
         propagates a min-content of 0 up through the flex ancestors, so the
         whole input chain can shrink and the chip's truncate actually clips
         long display labels instead of forcing the input to grow.
@@ -259,7 +297,7 @@ const WithPeerDBDocument = WithDocument<D>
         grid is the chip/input, which means the container's height tracks the
         input's height exactly.
       -->
-      <div class="relative grid w-full grid-cols-[minmax(0,_1fr)]">
+      <div class="relative grid w-full grid-cols-[minmax(0,1fr)]">
         <!--
           Selected + not editing: render the display label inside a
           contenteditable div styled to look like a text input. The
@@ -277,26 +315,71 @@ const WithPeerDBDocument = WithDocument<D>
           on the right; pr-9 is the narrower variant for readonly mode where
           Clear is hidden, leaving only the open-link icon.
         -->
-        <WithPeerDBDocument v-if="selectedDocument?.id && !editMode" :id="selectedDocument.id" name="DocumentGet">
-          <template #default="{ doc }">
-            <InputStyled
-              as="div"
-              role="textbox"
-              contenteditable="true"
-              :inactive="readonly || isInProgress"
-              :aria-readonly="readonly || isInProgress || undefined"
-              class="w-full truncate"
-              :class="readonly ? 'pr-9' : 'pr-29'"
-              @click="enterEditMode"
-              @focus="enterEditMode"
-              @beforeinput.prevent
-              @paste.prevent
-              @drop.prevent
-            >
+        <!--
+          Invalid value (non-empty + validation failed): do not attempt to
+          load the doc; show the red "invalid value" placeholder inside the
+          chip. The chip retains its click/focus to enter edit mode so the
+          user can search for a new doc, and the right-side Clear button
+          still works. Combined with the selectedDocument?.id guard,
+          invalid here can only mean the value failed the identifier-shape
+          check (the required check only fires on empty).
+        -->
+        <InputStyled
+          v-if="selectedDocument?.id && !editMode && invalid"
+          as="div"
+          role="textbox"
+          contenteditable="true"
+          :inactive="inactive"
+          :invalid="invalid"
+          :aria-readonly="inactive || undefined"
+          :aria-invalid="invalid || undefined"
+          class="w-full truncate"
+          :class="readonly ? '' : 'pr-23'"
+          @click="enterEditMode"
+          @focus="enterEditMode"
+          @beforeinput.prevent
+          @paste.prevent
+          @drop.prevent
+        >
+          <i class="text-error-600">{{ t("partials.input.InputRef.invalidValue") }}</i>
+        </InputStyled>
+
+        <!--
+          One stable chip wrapper across the default / loading / error doc
+          states (WithPeerDBDocument swaps only its inner slot content). A
+          stable wrapper keeps role="textbox" continuously present so
+          focusFirstInput can land on the chip even while the doc is still
+          fetching, and keeps focus across the slot transitions.
+        -->
+        <InputStyled
+          v-else-if="selectedDocument?.id && !editMode"
+          as="div"
+          role="textbox"
+          contenteditable="true"
+          :inactive="inactive"
+          :invalid="invalid"
+          :aria-readonly="inactive || undefined"
+          :aria-invalid="invalid || undefined"
+          class="w-full truncate"
+          :class="readonly ? 'pr-9' : 'pr-29'"
+          @click="enterEditMode"
+          @focus="enterEditMode"
+          @beforeinput.prevent
+          @paste.prevent
+          @drop.prevent
+        >
+          <WithPeerDBDocument :id="selectedDocument.id" name="DocumentGet">
+            <template #default="{ doc }">
               <DisplayLabel :doc="doc" />
-            </InputStyled>
-          </template>
-        </WithPeerDBDocument>
+            </template>
+            <template #error="{ url }">
+              <i class="pd-withdocument-error text-error-600" :data-url="url">{{ t("common.status.loadingDataFailed") }}</i>
+            </template>
+            <template #loading="{ url }">
+              <i class="block h-4 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(selectedDocument?.id ?? '')]" aria-hidden="true"></i>
+            </template>
+          </WithPeerDBDocument>
+        </InputStyled>
 
         <!--
           Either no selection yet, or the user is re-editing a selection.
@@ -310,25 +393,22 @@ const WithPeerDBDocument = WithDocument<D>
           the chip's: full padding when Clear is visible, narrow when only
           the chevron is shown.
         -->
-        <ComboboxInput
+        <InputStyled
           v-else
           ref="comboboxInputRef"
-          :readonly="readonly || isInProgress"
+          :as="ComboboxInput"
+          :inactive="inactive"
+          :invalid="invalid"
+          :readonly="inactive"
+          :aria-invalid="invalid || undefined"
           v-bind="$attrs"
-          class="w-full rounded-sm border-none py-2 pl-3 text-left shadow-sm ring-2 ring-neutral-300 focus:ring-2"
+          class="w-full"
           :class="{
             'pr-23': selectedDocument?.id && !readonly,
             'pr-9': !selectedDocument?.id || readonly,
-            'bg-white': !readonly && !isInProgress,
-            'bg-gray-100!': readonly || isInProgress,
-            'cursor-not-allowed bg-gray-100 text-gray-800 hover:ring-neutral-300 focus:ring-primary-300': readonly || isInProgress,
-            'text-gray-800': readonly || isInProgress,
-            'hover:ring-neutral-300! focus:ring-primary-300!': readonly || isInProgress,
-            'hover:ring-neutral-400 focus:ring-primary-500': !readonly && !isInProgress,
           }"
           :display-value="() => query"
           @input="query = ($event.target as HTMLInputElement).value"
-          @focus="onInputFocus(open, $event)"
           @keydown.escape="exitEditMode"
         />
 
@@ -349,16 +429,16 @@ const WithPeerDBDocument = WithDocument<D>
         -->
         <div class="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
           <template v-if="selectedDocument?.id">
-            <RouterLink v-if="!editMode" :to="{ name: 'DocumentGet', params: { id: selectedDocument.id } }" class="link">
+            <RouterLink v-if="!editMode && !invalid" :to="{ name: 'DocumentGet', params: { id: selectedDocument.id } }" class="link">
               <ArrowTopRightOnSquareIcon class="size-5" aria-hidden="true" />
             </RouterLink>
-            <Button v-if="!readonly" type="button" :disabled="isInProgress" class="px-2 py-0.5" @click.prevent="clearSelection">{{ t("common.buttons.clear") }}</Button>
+            <Button v-if="!readonly" type="button" class="px-2.5 py-1" @click.prevent="clearSelection">{{ t("common.buttons.clear") }}</Button>
           </template>
           <ComboboxButton v-else class="inline-flex items-center">
             <ChevronUpDownIcon
               class="size-5 text-gray-400"
               :class="{
-                'cursor-not-allowed': readonly || isInProgress,
+                'cursor-not-allowed': inactive,
               }"
               aria-hidden="true"
             />
@@ -366,10 +446,9 @@ const WithPeerDBDocument = WithDocument<D>
         </div>
 
         <!--
-          Indeterminate progress bar bound only to searchProgress, not to
-          props.progress. Parent-level progress has its own UI in the parent;
-          this bar exists solely to indicate that the inline search is in
-          flight.
+          Indeterminate progress bar bound only to searchProgress.
+          Parent-level loading has its own UI in the parent; this bar exists
+          solely to indicate that the inline search is in flight.
         -->
         <ProgressBar :progress="searchProgress" class="absolute inset-x-0 bottom-0 rounded-b" />
 
@@ -378,10 +457,8 @@ const WithPeerDBDocument = WithDocument<D>
           exposed via v-slot on Combobox. The chevron toggles it via HUI's
           built-in ComboboxButton onClick, typing into the input opens it
           via HUI's onInput, and HUI's blur logic closes it on
-          click-outside. Auto-open on focus is achieved by dispatching a
-          synthetic ArrowDown keydown from onInputFocus (see script), since
-          HUI 1.7.x's ":immediate" prop is intentionally disabled at the
-          library level.
+          click-outside. Auto-open on focus is achieved using ":immediate"
+          prop.
 
           top-full anchors the dropdown to the bottom of the grid container
           rather than its top-left corner. In a relative block parent, an
@@ -392,9 +469,9 @@ const WithPeerDBDocument = WithDocument<D>
           the "below the input" placement.
         -->
         <ComboboxOptions
-          v-if="open && !isInProgress && !readonly"
+          v-if="open && !inactive"
           static
-          class="absolute top-full z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none"
+          class="absolute top-full z-20 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none"
         >
           <ComboboxOption v-if="searchResults.length === 0">
             <li class="p-2"
@@ -403,16 +480,24 @@ const WithPeerDBDocument = WithDocument<D>
           </ComboboxOption>
 
           <template v-if="searchResults.length > 0">
-            <WithPeerDBDocument v-for="result in searchResults" :id="result.id" :key="result.id" name="DocumentGet">
-              <template #default="{ doc }">
-                <ComboboxOption v-slot="{ active }" :value="result" as="template">
-                  <li class="p-1 outline-none select-none">
-                    <!--
-                      We have an additional div so that the ring has the space to be shown.
-                      li element has p-1 for ring space, together with py-1 and px-2 we get the effective padding
-                      for option content of py-2 and px-3, same what InputText and ListboxButton have.
-                    -->
-                    <div class="flex flex-row items-center justify-between rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
+            <!--
+              ComboboxOption is the outer wrapper so that rows register with
+              HUI as soon as searchResults arrives, independent of the per-row
+              doc fetch. That lets the user arrow-navigate and pick a row
+              whose document is still loading, and keeps the active ring and
+              the selected-check icon consistent across the loading, error,
+              and loaded slot variants below.
+            -->
+            <ComboboxOption v-for="result in searchResults" :key="result.id" v-slot="{ active }" :value="result" as="template">
+              <li class="p-1 outline-none select-none">
+                <!--
+                  We have an additional div so that the ring has the space to be shown.
+                  li element has p-1 for ring space, together with py-1 and px-2 we get the effective padding
+                  for option content of py-2 and px-3, same what InputText and ListboxButton have.
+                -->
+                <div class="flex flex-row items-center justify-between rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
+                  <WithPeerDBDocument :id="result.id" name="DocumentGet">
+                    <template #default="{ doc }">
                       <div
                         class="w-full cursor-pointer truncate"
                         :class="{
@@ -430,19 +515,28 @@ const WithPeerDBDocument = WithDocument<D>
                         when the user actually wanted to open the link. The click event is
                         independent and still fires, letting RouterLink navigate normally.
                       -->
-                      <RouterLink v-if="result?.id" :to="{ name: 'DocumentGet', params: { id: result.id } }" class="link" @mousedown.stop>
+                      <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id } }" class="link" @mousedown.stop>
                         <ArrowTopRightOnSquareIcon class="size-5" aria-hidden="true" />
                       </RouterLink>
-                    </div>
-                  </li>
-                </ComboboxOption>
-              </template>
-              <template #loading="{ url }">
-                <li class="p-1 outline-none select-none">
-                  <i class="h-2 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]"></i>
-                </li>
-              </template>
-            </WithPeerDBDocument>
+                    </template>
+                    <template #loading="{ url }">
+                      <div class="w-full">
+                        <i class="block h-4 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(result.id)]" aria-hidden="true"></i>
+                      </div>
+
+                      <CheckIcon v-if="result.id === selectedDocument?.id" class="size-5 text-primary-600" aria-hidden="true" />
+                    </template>
+                    <template #error="{ url }">
+                      <div class="w-full truncate">
+                        <i class="pd-withdocument-error text-error-600" :data-url="url">{{ t("common.status.loadingDataFailed") }}</i>
+                      </div>
+
+                      <CheckIcon v-if="result.id === selectedDocument?.id" class="size-5 text-primary-600" aria-hidden="true" />
+                    </template>
+                  </WithPeerDBDocument>
+                </div>
+              </li>
+            </ComboboxOption>
           </template>
         </ComboboxOptions>
       </div>

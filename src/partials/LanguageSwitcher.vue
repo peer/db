@@ -36,7 +36,7 @@ onBeforeUnmount(() => {
   <div v-if="languages.length > 1" class="pd-language-switcher relative shrink-0 self-center">
     <button
       type="button"
-      class="flex items-center rounded-sm px-2 py-1.5 text-sm leading-tight font-medium text-slate-700 uppercase outline-none hover:bg-slate-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-slate-200"
+      class="flex items-center rounded-sm px-2 py-1.5 text-sm leading-tight font-medium text-gray-700 uppercase outline-none hover:bg-slate-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-slate-200"
       @click="showDropdown = !showDropdown"
     >
       {{ locale.toUpperCase() }}
@@ -54,7 +54,7 @@ onBeforeUnmount(() => {
         :key="lang"
         type="button"
         class="block w-full px-3 py-1.5 text-left text-sm leading-tight font-medium uppercase outline-none hover:bg-slate-300 focus:ring-2 focus:ring-primary-500 focus:ring-inset active:bg-slate-100"
-        :class="{ 'text-primary-600': lang === locale, 'text-slate-700': lang !== locale }"
+        :class="{ 'text-primary-600': lang === locale, 'text-gray-700': lang !== locale }"
         @click="selectLanguage(lang)"
       >
         {{ lang.toUpperCase() }}

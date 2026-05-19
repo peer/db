@@ -2,10 +2,11 @@
 import type { DownloadingPhase } from "@/types"
 
 import { Dialog, DialogPanel } from "@headlessui/vue"
-import { computed, ref, watch } from "vue"
+import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
+import ProgressBar from "@/components/ProgressBar.vue"
 
 const props = defineProps<{
   open: boolean
@@ -22,13 +23,6 @@ const $emit = defineEmits<{
 
 const { t } = useI18n({ useScope: "global" })
 
-const progressPercent = computed(() => {
-  if (props.total === 0) {
-    return 0
-  }
-  return (props.completed / props.total) * 100
-})
-
 // Worker reports completed as the index of the file currently being fetched (0-based, so 0
 // while the first file is downloading). Shift to a 1-based "current file" for the user, and
 // cap at total so the brief final progress message before the overlay closes does not show
@@ -41,24 +35,6 @@ const showProgress = computed(() => !props.error && props.downloadingPhase !== "
 
 // The action button doubles as Close in any terminal state (error or the empty notice).
 const closeOnly = computed(() => props.error !== null || props.downloadingPhase === "empty")
-
-// Skip the bar's width transition when it resets to 0% (e.g., between preparation
-// and downloading). Without this, the bar visibly animates back to the start. With
-// it, the reset snaps back.
-const skipTransition = ref(false)
-watch(
-  progressPercent,
-  (v, prev) => {
-    if (v === 0 && prev !== undefined && prev > 0) {
-      skipTransition.value = true
-    } else {
-      skipTransition.value = false
-    }
-  },
-  {
-    flush: "pre",
-  },
-)
 
 function onClose() {
   // We allow closing with esc key and clicking outside only in terminal states.
@@ -95,12 +71,7 @@ function onCancel() {
           <div v-if="currentFile" class="truncate text-sm text-neutral-500">{{ currentFile }}</div>
 
           <!-- Determinate progress bar. -->
-          <div v-if="showProgress" class="relative h-2 w-full bg-slate-200">
-            <div
-              class="absolute inset-y-0 left-0 bg-secondary-400 transition-all duration-300"
-              :style="{ width: progressPercent + '%', transition: skipTransition ? 'none' : undefined }"
-            />
-          </div>
+          <ProgressBar v-if="showProgress" :progress="completed" :total="total" class="h-2 bg-slate-200" />
 
           <div v-if="error" class="text-error-600">{{ t("partials.DownloadOverlay.error") }}</div>
         </div>

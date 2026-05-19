@@ -17,6 +17,7 @@ import Button from "@/components/Button.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
 import InputTextLink from "@/components/InputTextLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
+import WithLock from "@/components/WithLock.vue"
 import { INSTANCE_OF, NAME, SEARCH_SHORTCUT } from "@/core"
 import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
@@ -26,7 +27,7 @@ import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
-import { getParentProgress, localProgress } from "@/progress"
+import { getParentLock, localCounter, lockScope, useProgress } from "@/progress"
 import { getDocumentComponents } from "@/registry/document"
 import { useSearch, useSearchSession } from "@/search"
 import { useDocumentFields } from "@/useDocumentFields"
@@ -43,9 +44,19 @@ const router = useRouter()
 
 const el = useTemplateRef<HTMLElement>("el")
 
-const parentProgress = getParentProgress()
-const progress = localProgress(parentProgress)
-const editProgress = localProgress(parentProgress)
+// Data loading only, no controls.
+const progress = useProgress()
+
+// Independent lock-scope for the Edit button.
+// getParentLock here reads from the ancestor's provides (above DocumentGet).
+// editBusy is the writable handle used in the handler and as the button's
+// :progress visual. Local count is isolated from any ancestor lock
+// contributions; writes still propagate into editLock for descendant cascade.
+const editLock = lockScope(getParentLock())
+const editBusy = localCounter(editLock)
+function getEditLock() {
+  return editLock
+}
 
 const abortController = new AbortController()
 
@@ -96,7 +107,7 @@ const { results, error: searchResultsError } = useSearch(searchSession, el, prog
 
 // See: https://github.com/vuejs/core/issues/14249
 //eslint-disable-next-line @typescript-eslint/no-misused-promises
-watchEffect(async (onCleanup) => {
+watchEffect(async () => {
   if (searchSessionError.value || searchResultsError.value) {
     // Something was not OK, so we redirect to the URL without "s".
     await router.replace({
@@ -104,8 +115,6 @@ watchEffect(async (onCleanup) => {
       params: {
         id: props.id,
       },
-      // Maybe route.query has non-empty "tab" parameter which we want to keep.
-      query: encodeQuery({ tab: route.query.tab || undefined }),
     })
   }
 })
@@ -220,7 +229,7 @@ async function onEdit() {
     return
   }
 
-  editProgress.value += 1
+  editBusy.value += 1
   try {
     const editResponse = await postJSON<DocumentBeginEditResponse>(
       router.apiResolve({
@@ -231,7 +240,7 @@ async function onEdit() {
       }).href,
       {},
       abortController.signal,
-      editProgress,
+      editBusy,
     )
     if (abortController.signal.aborted) {
       return
@@ -250,7 +259,7 @@ async function onEdit() {
     // TODO: Show notification with error.
     console.error("DocumentGet.onEdit", err)
   } finally {
-    editProgress.value -= 1
+    editBusy.value -= 1
   }
 }
 </script>
@@ -289,10 +298,12 @@ async function onEdit() {
         <NavBarSearch v-else />
       </template>
       <template #end>
-        <Button :progress="editProgress" type="button" primary class="px-3.5" @click.prevent="onEdit">
-          <PencilIcon class="size-5 sm:hidden" :alt="t('common.buttons.edit')" />
-          <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
-        </Button>
+        <WithLock :lock="getEditLock">
+          <Button :progress="editBusy" type="button" primary class="px-3.5" @click.prevent="onEdit">
+            <PencilIcon class="size-5 sm:hidden" :alt="t('common.buttons.edit')" />
+            <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
+          </Button>
+        </WithLock>
       </template>
     </NavBar>
   </Teleport>
@@ -310,36 +321,42 @@ async function onEdit() {
               <Tab
                 v-for="documentTab in documentTabs"
                 :key="documentTab.id"
-                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
                 ><DocumentRefInline :id="documentTab.id" :link="false"
               /></Tab>
               <Tab
                 v-if="documentTabs.length === 0 && classTabId && mergedFieldsData"
-                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
                 ><DocumentRefInline :id="classTabId" :link="false"
               /></Tab>
               <Tab
                 v-for="(searchShortcut, i) of searchShortcuts"
                 :key="i"
-                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
                 >{{ searchShortcut.name }}</Tab
               >
               <Tab
-                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 ui-selected:bg-white ui-not-selected:hover:bg-slate-50"
+                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
                 >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
               >
             </TabList>
             <h1 v-show="displayLabelComponent?.displayLabel" class="mb-4 text-4xl font-bold drop-shadow-xs"><DisplayLabel ref="displayLabelComponent" :doc="doc" /></h1>
             <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
-            <TabPanels>
-              <TabPanel v-for="documentTab in documentTabs" :key="documentTab.id" tabindex="-1">
+            <TabPanels as="template">
+              <!-- Registry tabs. -->
+              <TabPanel v-for="documentTab in documentTabs" :key="documentTab.id" tabindex="-1" class="outline-none">
                 <component :is="documentTab.component" :doc="doc" />
               </TabPanel>
-              <TabPanel v-if="documentTabs.length === 0 && classTabId && mergedFieldsData" tabindex="-1">
+              <!-- Class-specific tab (if there are no registry tabs). -->
+              <TabPanel v-if="documentTabs.length === 0 && classTabId && mergedFieldsData" tabindex="-1" class="outline-none">
                 <FieldsView :fields-data="mergedFieldsData" :claims="doc.claims" sections />
               </TabPanel>
-              <TabPanel v-for="(_, i) of searchShortcuts" :key="i" tabindex="-1"><!-- Empty because this panel should never be rendered. --></TabPanel>
-              <TabPanel tabindex="-1">
+              <!-- Shortcut tabs. -->
+              <TabPanel v-for="(_, i) of searchShortcuts" :key="i" tabindex="-1" class="outline-none"
+                ><!-- Empty because this panel should never be rendered. --></TabPanel
+              >
+              <!-- "All properties" tab panel. -->
+              <TabPanel tabindex="-1" class="outline-none">
                 <table class="w-full table-auto border-collapse">
                   <thead>
                     <tr>
@@ -356,7 +373,7 @@ async function onEdit() {
           </TabGroup>
         </template>
         <template #loading>
-          <div class="pd-documentget-loading flex flex-col gap-y-2 motion-safe:animate-pulse">
+          <div class="pd-documentget-loading flex flex-col gap-y-2 motion-safe:animate-pulse" aria-hidden="true">
             <div class="inline-block h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/1`)]"></div>
             <div class="flex gap-x-4">
               <div class="h-2 rounded-sm bg-slate-200" :class="[loadingLongWidth(`${id}/2`)]"></div>

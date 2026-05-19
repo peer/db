@@ -1,398 +1,73 @@
-<script lang="ts">
-// TODO: Remove. Workaround for prettier.
-import {} from "vue"
-
-import type { NamedValue } from "vue-i18n"
-
-import type { TimePrecision } from "@/document"
-
-import { PRECISION_LEVEL, TIME_PRECISIONS_ORDERED } from "@/document/time"
-import { daysIn } from "@/time"
-
-const DATE_TIME_WHITESPACE_TRIM_REGEX = /(-?\d+)\s*-\s*(\d{1,2})\s*-\s*(\d{1,2})\s+([0-9])/g
-const FIRST_LOWERCASE_T_REGEX = /t/
-const ALL_WHITESPACE_REGEX = /\s+/g
-const T_TO_SPACE = /(\d{4}-\d{1,2}-\d{1,2})T(?=\d)/
-const TRAILING_DASH_YEAR_MONTH = /^(\d{4}|\d{4}-\d{1,2})-\s*$/
-const TRAILING_T = /(\d{4}-\d{1,2}-\d{1,2})T\s*$/
-const TRAILING_SEMICOLON = /(?:^|\s)(\d{1,2}(?::\d{1,2})?):\s*$/
-
-const YEAR_RE = /^(-?\d+)$/
-const MONTH_RE = /^(-?\d+)-(\d{1,2})$/
-const DAY_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2})$/
-const HOUR_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2})$/
-const MINUTE_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2})$/
-const SECOND_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})$/
-const MS_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})\.(\d{3})$/
-const US_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})\.(\d{6})$/
-const NS_RE = /^(-?\d+)-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})\.(\d{9})$/
-
-const YEAR_IN_PROGRESS_REGEX = /^-?\d*$/
-const MONTH_IN_PROGRESS_REGEX = /^-?\d+-\d{0,2}$/
-const DAY_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{0,2}$/
-const MINUTES_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2} \d{1,2}$/
-const SECONDS_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2} \d{1,2}:\d{1,2}$/
-const SUBSECONDS_IN_PROGRESS_REGEX = /^-?\d+-\d{1,2}-\d{1,2} \d{1,2}:\d{1,2}:\d{1,2}\.\d{0,9}$/
-
-const TRAILING_DASH_REGEX = /-$/
-
-const matchToYear = (s: string) => s.match(YEAR_RE)
-const matchToMonth = (s: string) => s.match(MONTH_RE)
-const matchToDay = (s: string) => s.match(DAY_RE)
-const matchToHour = (s: string) => s.match(HOUR_RE)
-const matchToMinute = (s: string) => s.match(MINUTE_RE)
-const matchToSecond = (s: string) => s.match(SECOND_RE)
-const matchToMs = (s: string) => s.match(MS_RE)
-const matchToUs = (s: string) => s.match(US_RE)
-const matchToNs = (s: string) => s.match(NS_RE)
-
-/**
- * Normalizes raw user input into a canonical, progressively-parseable
- * datetime string.
- *
- * This function is intentionally permissive. It accepts loosely formatted
- * date/time input and converts it into a stable canonical form suitable
- * for parsing.
- *
- * Canonical output format:
- *  - Format is `YYYY-MM-DD HH:MM:SS`.
- * - Date and time components may be partial.
- * - Date and time are separated by a single space.
- * - Output contains no `T`, repeated whitespace, or trailing separators.
- *
- * Guarantees:
- * - Collapses whitespace.
- * - Normalizes `T` / `t` to a space.
- * - Removes trailing `-`, `T`, and `:`.
- *
- * Non-goals:
- * - Does not validate semantic correctness.
- * - Does not pad numeric components.
- *
- * @param raw - Raw user input string.
- *
- * @returns A normalized datetime string in canonical format, or an empty
- *          string if the input is empty or whitespace.
- *
- * @example
- * normalizeForParsing("2022")                  // "2022"
- * normalizeForParsing("2022-")                 // "2022"
- * normalizeForParsing("2022-01-")              // "2022-01"
- *
- * @example
- * normalizeForParsing("2022-01-01T")            // "2022-01-01"
- * normalizeForParsing("2022-01-01T12:34:")      // "2022-01-01 12:34"
- * normalizeForParsing("2022-1-1t9:5")           // "2022-1-1 9:5"
- *
- * @example
- * normalizeForParsing("  2022   ")              // "2022"
- * normalizeForParsing("2022-01-01    12:00")    // "2022-01-01 12:00"
- */
-export function normalizeForParsing(raw: string): string {
-  if (!raw) return ""
-
-  let r = raw
-
-  // Normalize date + time boundary whitespace.
-  r = r.replace(DATE_TIME_WHITESPACE_TRIM_REGEX, "$1-$2-$3 $4")
-
-  // Normalize lowercase 't' to 'T'.
-  r = r.replace(FIRST_LOWERCASE_T_REGEX, "T")
-
-  // Convert only valid date–time boundary T to space.
-  r = r.replace(T_TO_SPACE, "$1 ")
-
-  // Cosmetic whitespace cleanup.
-  r = r.replace(ALL_WHITESPACE_REGEX, " ").trim()
-
-  // Accepts 'YYYY-' or 'YYYY-MM-'.
-  r = r.replace(TRAILING_DASH_YEAR_MONTH, "$1")
-
-  // Converts 'YYYY-MM-DDT' to 'YYYY-MM-DD'.
-  r = r.replace(TRAILING_T, "$1")
-
-  // Accepts 'HH:' or 'HH:MM:'.
-  r = r.replace(TRAILING_SEMICOLON, " $1")
-
-  return r
-}
-
-/**
- * Performs progressive validation of a partially entered
- * datetime string.
- *
- * This validator is designed for live input scenarios. It
- * allows **incomplete but structurally valid** timestamps and
- * only reports errors once a component’s intent is clear.
- *
- * IMPORTANT:
- * - The input must already be normalized using `normalizeForParsing`.
- * - This function assumes canonical formatting and does not attempt to
- *   sanitize input.
- *
- * @Example - Valid output.
- * progressiveValidate("")                    // ""
- * progressiveValidate("202")                 // ""
- * progressiveValidate("2023-1")              // ""
- * progressiveValidate("2023-12-31 12")       // ""
- * progressiveValidate("2023-12-31 12:34")    // ""
- *
- * @Example - Error messages.
- * progressiveValidate("2023-13")              // "Months need to be between 0-12."
- * progressiveValidate("2023-0-1")             // "Months cannot be 0 when days are not 0."
- * progressiveValidate("2023-2-30")            // "Day must be between 0-28."
- * progressiveValidate("2023-12-31 24")        // "Hours needs to be between 0-23."
- * progressiveValidate("foo")                  // "Invalid time structure."
- *
- *
- * @param normalized - Canonical datetime string produced by `normalizeForParsing`.
- * @param t - Translation function.
- *
- * @returns
- * - `""` if the input is valid or still incomplete.
- * - A descriptive error message if the input is invalid.
- */
-export function progressiveValidate(normalized: string, t: (key: string, named?: NamedValue) => string): string {
-  if (!normalized) return ""
-
-  // Year in progress: "202", "2023".
-  if (YEAR_IN_PROGRESS_REGEX.test(normalized)) return ""
-
-  // Month in progress: "2023-1", "2023-12".
-  if (MONTH_IN_PROGRESS_REGEX.test(normalized)) {
-    const m = matchToMonth(normalized.replace(TRAILING_DASH_REGEX, ""))
-    if (!m) return ""
-    const month = Number(m[2])
-    if (month === 0) return ""
-    return month >= 0 && month <= 12 ? "" : t("partials.input.InputTime.errors.months0")
-  }
-
-  // Day in progress: "2023-1-1".
-  if (DAY_IN_PROGRESS_REGEX.test(normalized)) {
-    const asDay = matchToDay(normalized)
-    if (!asDay) return ""
-    const year = Number(asDay[1])
-    const month = Number(asDay[2])
-    const day = Number(asDay[3])
-
-    if (month == 0 && day != 0) return t("partials.input.InputTime.errors.daysNotZero")
-    if (month < 0 || month > 12) return t("partials.input.InputTime.errors.months0")
-
-    if (day === 0) return ""
-    const maxDay = daysIn(month, year)
-    if (day < 0 || day > maxDay) return t("partials.input.InputTime.errors.days0", { maxDay })
-
-    return ""
-  }
-
-  const toHour = matchToHour(normalized)
-  if (toHour) {
-    const year = Number(toHour[1])
-    const month = Number(toHour[2])
-    const day = Number(toHour[3])
-    const hour = Number(toHour[4])
-
-    if (month < 1 || month > 12) return t("partials.input.InputTime.errors.months")
-    const maxDay = daysIn(month, year)
-    if (day < 1 || day > maxDay) return t("partials.input.InputTime.errors.days", { maxDay })
-    if (hour < 0 || hour > 23) return t("partials.input.InputTime.errors.hours")
-
-    return ""
-  }
-
-  // Minutes in progress.
-  if (MINUTES_IN_PROGRESS_REGEX.test(normalized)) return ""
-  const toMinute = matchToMinute(normalized)
-  if (toMinute) {
-    const year = Number(toMinute[1])
-    const month = Number(toMinute[2])
-    const day = Number(toMinute[3])
-    const hour = Number(toMinute[4])
-    const minute = Number(toMinute[5])
-
-    if (month < 1 || month > 12) return t("partials.input.InputTime.errors.months")
-    const maxDay = daysIn(month, year)
-    if (day < 1 || day > maxDay) return t("partials.input.InputTime.errors.days", { maxDay })
-    if (hour < 0 || hour > 23) return t("partials.input.InputTime.errors.hours")
-    if (minute < 0 || minute > 59) return t("partials.input.InputTime.errors.minutes")
-
-    return ""
-  }
-
-  // Seconds in progress.
-  if (SECONDS_IN_PROGRESS_REGEX.test(normalized)) return ""
-  const toSecond = matchToSecond(normalized)
-  if (toSecond) {
-    const year = Number(toSecond[1])
-    const month = Number(toSecond[2])
-    const day = Number(toSecond[3])
-    const hour = Number(toSecond[4])
-    const minute = Number(toSecond[5])
-    const second = Number(toSecond[6])
-
-    if (month < 1 || month > 12) return t("partials.input.InputTime.errors.months")
-    const maxDay = daysIn(month, year)
-    if (day < 1 || day > maxDay) return t("partials.input.InputTime.errors.days", { maxDay })
-    if (hour < 0 || hour > 23) return t("partials.input.InputTime.errors.hours")
-    if (minute < 0 || minute > 59) return t("partials.input.InputTime.errors.minutes")
-    if (second < 0 || second > 59) return t("partials.input.InputTime.errors.seconds")
-
-    return ""
-  }
-
-  // Subseconds in progress (e.g. "2024-01-15 12:34:56." up to 9 digits).
-  if (SUBSECONDS_IN_PROGRESS_REGEX.test(normalized)) {
-    // Validate the date/time portion before the dot.
-    const dotIdx = normalized.indexOf(".")
-    const beforeDot = normalized.slice(0, dotIdx)
-    const toSec = matchToSecond(beforeDot)
-    if (toSec) {
-      const year = Number(toSec[1])
-      const month = Number(toSec[2])
-      const day = Number(toSec[3])
-      const hour = Number(toSec[4])
-      const minute = Number(toSec[5])
-      const second = Number(toSec[6])
-
-      if (month < 1 || month > 12) return t("partials.input.InputTime.errors.months")
-      const maxDay = daysIn(month, year)
-      if (day < 1 || day > maxDay) return t("partials.input.InputTime.errors.days", { maxDay })
-      if (hour < 0 || hour > 23) return t("partials.input.InputTime.errors.hours")
-      if (minute < 0 || minute > 59) return t("partials.input.InputTime.errors.minutes")
-      if (second < 0 || second > 59) return t("partials.input.InputTime.errors.seconds")
-    }
-
-    // Allow only fully-typed groups of 3, 6, 9 digits as completed input;
-    // intermediate digit-counts are still "in progress".
-    const subLen = normalized.length - dotIdx - 1
-    if (subLen === 0 || subLen === 1 || subLen === 2 || subLen === 4 || subLen === 5 || subLen === 7 || subLen === 8) {
-      // Still in progress.
-      return ""
-    }
-    if (subLen === 3 || subLen === 6 || subLen === 9) {
-      return ""
-    }
-    return t("partials.input.InputTime.errors.subseconds")
-  }
-
-  return t("partials.input.InputTime.errors.invalid")
-}
-
-export function clampToMax(p: TimePrecision, max: TimePrecision): TimePrecision {
-  const pr = PRECISION_LEVEL.get(p)
-  const mr = PRECISION_LEVEL.get(max)
-
-  if (pr == null) throw new Error(`unknown precision: ${p}`)
-  if (mr == null) throw new Error(`unknown maxPrecision: ${max}`)
-
-  return pr < mr ? max : p
-}
-
-export function inferYearPrecision(yearStr: string, max: TimePrecision): TimePrecision {
-  if (!yearStr) return clampToMax("y", max)
-
-  const year = BigInt(yearStr)
-  const abs = year < 0n ? -year : year
-
-  const candidates: Array<[TimePrecision, bigint]> = [
-    ["G", 1_000_000_000n],
-    ["100M", 100_000_000n],
-    ["10M", 10_000_000n],
-    ["M", 1_000_000n],
-    ["100k", 100_000n],
-    ["10k", 10_000n],
-    ["k", 1_000n],
-    ["100y", 100n],
-    ["10y", 10n],
-  ]
-
-  for (const [p, factor] of candidates) {
-    if (abs >= factor && year % factor === 0n && abs > 9999n) {
-      return clampToMax(p, max)
-    }
-  }
-
-  return clampToMax("y", max)
-}
-
-export function inferPrecisionFromNormalized(
-  normalized: string,
-  timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string; sub: string },
-  maxPrecision: TimePrecision,
-  precision: TimePrecision,
-): TimePrecision {
-  let inferred: TimePrecision
-
-  if (matchToNs(normalized)) {
-    inferred = "ns"
-  } else if (matchToUs(normalized)) {
-    inferred = "us"
-  } else if (matchToMs(normalized)) {
-    inferred = "ms"
-  } else if (matchToSecond(normalized)) {
-    inferred = "s"
-  } else if (matchToMinute(normalized)) {
-    inferred = "min"
-  } else if (matchToHour(normalized)) {
-    inferred = "h"
-  } else if (matchToDay(normalized)) {
-    // Months are defined, but days are not.
-    if (Number(timeStruct.m) > 0 && (!timeStruct.d || timeStruct.d == "0" || timeStruct.d == "00")) return "m"
-    // Days can be "00" or "0" for year precision.
-    else if (timeStruct.d == "00" || timeStruct.d == "0") inferred = "y"
-    else inferred = "d"
-  } else if (matchToMonth(normalized)) {
-    // Months can be "00" or "0" for year precision.
-    if (timeStruct.m == "00" || timeStruct.m == "0") inferred = "y"
-    else inferred = "m"
-  } else {
-    const y = matchToYear(normalized)
-    inferred = y ? inferYearPrecision(y[1], maxPrecision) : precision
-  }
-
-  return clampToMax(inferred, maxPrecision)
-}
-</script>
+<!--
+We do not use :read-only or :disabled pseudo classes to style the component because
+we want component to retain how it visually looks even if DOM element's read-only or
+disabled attributes are set, unless they are set through component's props.
+This is used during transitions/animations to disable the component by directly setting
+its DOM attributes without flickering how the component looks.
+-->
 
 <script setup lang="ts">
+import type { ComponentPublicInstance, ShallowUnwrapRef } from "vue"
+
+import type { TimePrecision } from "@/document"
+import type { ValidatedInput, ValidationError, ValidatorFn } from "@/types"
+
 import { Listbox, ListboxButton, ListboxLabel, ListboxOption, ListboxOptions } from "@headlessui/vue"
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
-import { debounce } from "lodash-es"
-import { computed, nextTick, onBeforeMount, onBeforeUnmount, onMounted, ref, useId, watch } from "vue"
+import { computed, ref, useId, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
+import InputStyled from "@/components/InputStyled.vue"
 import InputText from "@/components/InputText.vue"
-
-const DEBOUNCE_MS = 2000
+import { TIME_PRECISIONS_ORDERED } from "@/document/time"
+import {
+  applyPrecision,
+  getStructuredTime,
+  inferPrecisionFromNormalized,
+  normalizeForParsing,
+  progressiveValidate,
+  toCanonicalString,
+} from "@/partials/input/InputTime.format"
+import InputBadges from "@/partials/InputBadges.vue"
+import { useLocked } from "@/progress"
+import { allErrors, useRegisterForValidation, useValidationRegistry } from "@/validation"
 
 const props = withDefaults(
   defineProps<{
-    progress?: number
     readonly?: boolean
+    required?: boolean
+    // Presentational override.
+    invalid?: boolean
     maxPrecision?: "G" | "100M" | "10M" | "M" | "100k" | "10k" | "k" | "100y" | "10y" | "y"
   }>(),
   {
-    progress: 0,
     readonly: false,
+    required: false,
+    invalid: false,
     maxPrecision: "G",
   },
 )
 
+// Two v-models: the time string and the precision value. Both are kept in
+// sync by the inner watchers (time -> precision derivation, precision ->
+// time reformat). Time is stored in canonical form once the validator
+// canonicalizes on blur. Precision is one of the TIME_PRECISIONS_ORDERED
+// values accepted by the backend.
 const model = defineModel<string>({ default: "" })
 const precision = defineModel<TimePrecision>("precision", { default: "y" })
 
-// We want all fallthrough attributes to be passed to the main input element.
 defineOptions({
   inheritAttrs: false,
 })
 
+const emit = defineEmits<{ errors: [ValidationError[]] }>()
+
 const { t } = useI18n({ useScope: "global" })
 
-const abortController = new AbortController()
+const locked = useLocked()
+const inactive = computed(() => locked.value || props.readonly)
 
-onBeforeUnmount(() => {
-  abortController.abort()
-})
+const timeInputId = useId()
 
 const precisionLabels: Record<TimePrecision, string> = {
   G: t("partials.input.InputTime.precision.G"),
@@ -415,415 +90,303 @@ const precisionLabels: Record<TimePrecision, string> = {
   ns: t("partials.input.InputTime.precision.ns"),
 }
 
-const timePrecision = ref<TimePrecision>("y")
-
-const isEditing = ref(false)
-const errorMessage = ref("")
-
-const isInvalid = computed(() => errorMessage.value !== "")
-
-const inputId = useId()
-
-const timePrecisionWithMax = computed(() => {
-  const reversed = TIME_PRECISIONS_ORDERED.toReversed()
-  const maxPrecision = reversed.indexOf(props.maxPrecision)
-
-  if (maxPrecision < 0) return reversed
-
-  return reversed.slice(0, maxPrecision + 1)
-})
-
-const displayValue = ref(model.value)
-
-onBeforeMount(() => {
-  timePrecision.value = precision.value
-  displayValue.value = model.value
-})
-
-onMounted(async () => {
-  if (!displayValue.value) return
-
-  // We want to validate and emit the canonical value on mount.
-  // However, we must not overwrite the text shown in the input.
-  // The model->display watcher only syncs when isEditing is false, so we temporarily
-  // mark the component as "editing" to block that sync during this initial emit.
-  isEditing.value = true
-
-  // Update the precision based on the initial text
-  // and emit the canonical model value.
-  autoAdaptPrecisionFromDisplay()
-  emitCanonicalFromDisplay()
-
-  // Wait one tick so the parent can process the emitted update and push the new model back.
-  await nextTick()
-
-  // Re-enable normal model->display syncing for future external updates.
-  isEditing.value = false
-})
-
-watch(
-  () => model.value,
-  (v) => {
-    // If parent updates model value externally, reflect it unless user is actively editing.
-    if (!isEditing.value) displayValue.value = v ?? ""
-  },
-)
-
-const pad2 = (n: string) => n.padStart(2, "0")
-
 function precisionLabel(p: TimePrecision): string {
   return precisionLabels[p]
 }
 
-function getStructuredTime(normalized: string): { y: string; m: string; d: string; h: string; min: string; s: string; sub: string } {
-  const timeStruct = { y: "", m: "", d: "", h: "", min: "", s: "", sub: "" }
-  if (!normalized) return timeStruct
+const timePrecisionWithMax = computed(() => {
+  const reversed = TIME_PRECISIONS_ORDERED.toReversed()
+  const maxIdx = reversed.indexOf(props.maxPrecision)
 
-  const toYear = matchToYear(normalized)
-  if (toYear) {
-    timeStruct.y = toYear[1]
-    return timeStruct
+  if (maxIdx < 0) return reversed
+
+  return reversed.slice(0, maxIdx + 1)
+})
+
+// timeAuthoritative tracks who edited last so the cross-field auto-sync
+// (time -> precision via watch(model), precision -> time via watch(precision))
+// only runs in one direction per change. Flips to true on a time keystroke,
+// false when the user selects a precision from the dropdown.
+const timeAuthoritative = ref(true)
+const timeAuthoritativeCheckpoint = ref(timeAuthoritative.value)
+
+// Gate: the time validator surfaces "required" only after the user has
+// left the whole widget at least once (focusout to outside, or an
+// external validate via parent submit). Tabbing between the time input
+// and the precision dropdown does NOT trip this, so the pair only goes
+// red once the user is really done editing the field. Reset clears the
+// gate so a cancelled form starts fresh.
+const triggered = ref(false)
+
+// One-shot suppression for watch(model)'s precision re-inference. Holds
+// the canonical value the validator just wrote so the watcher can
+// recognize and skip that specific update (e.g. the validator rewriting
+// "1995-01-15 10" to "1995-01-15 10:00" for hour precision. Re-inferring
+// would clobber the user's "h" pick).
+let suppressedCanonical: string | null = null
+
+// Time validator: parses, validates, canonicalizes on blur (!eager).
+// While typing (eager) only structural errors surface; canonicalization
+// is gated on blur to avoid fighting the user mid-type. The required
+// check is also gated on triggered so the field only goes red once the
+// user has left the widget.
+// eslint-disable-next-line @typescript-eslint/require-await
+const timeValidator: ValidatorFn<string> = async (value, options) => {
+  const trimmed = value.trim()
+  if (trimmed === "") {
+    if (!options.eager && !options.initial && trimmed !== model.value) {
+      model.value = trimmed
+    }
+    if (!props.required || options.initial || !triggered.value) return []
+    // TODO: Use standard codes.
+    return [{ code: "required" }]
   }
-
-  const toMonth = matchToMonth(normalized)
-  if (toMonth) {
-    timeStruct.y = toMonth[1]
-    timeStruct.m = toMonth[2]
-    return timeStruct
-  }
-
-  const toDay = matchToDay(normalized)
-  if (toDay) {
-    timeStruct.y = toDay[1]
-    timeStruct.m = toDay[2]
-    timeStruct.d = toDay[3]
-    return timeStruct
-  }
-
-  const toHour = matchToHour(normalized)
-  if (toHour) {
-    timeStruct.y = toHour[1]
-    timeStruct.m = toHour[2]
-    timeStruct.d = toHour[3]
-    timeStruct.h = toHour[4]
-    return timeStruct
-  }
-
-  const toMinute = matchToMinute(normalized)
-  if (toMinute) {
-    timeStruct.y = toMinute[1]
-    timeStruct.m = toMinute[2]
-    timeStruct.d = toMinute[3]
-    timeStruct.h = toMinute[4]
-    timeStruct.min = toMinute[5]
-    return timeStruct
-  }
-
-  const toSecond = matchToSecond(normalized)
-  if (toSecond) {
-    timeStruct.y = toSecond[1]
-    timeStruct.m = toSecond[2]
-    timeStruct.d = toSecond[3]
-    timeStruct.h = toSecond[4]
-    timeStruct.min = toSecond[5]
-    timeStruct.s = toSecond[6]
-    return timeStruct
-  }
-
-  // Subsecond formats (3, 6, or 9 digits after the dot).
-  const toSub = matchToMs(normalized) ?? matchToUs(normalized) ?? matchToNs(normalized)
-  if (toSub) {
-    timeStruct.y = toSub[1]
-    timeStruct.m = toSub[2]
-    timeStruct.d = toSub[3]
-    timeStruct.h = toSub[4]
-    timeStruct.min = toSub[5]
-    timeStruct.s = toSub[6]
-    timeStruct.sub = toSub[7]
-    return timeStruct
-  }
-
-  return timeStruct
-}
-
-function toCanonicalString(timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string; sub: string }, precision: TimePrecision): string {
-  const y = timeStruct.y || "0000"
-
-  if (
-    precision === "G" ||
-    precision === "100M" ||
-    precision === "10M" ||
-    precision === "M" ||
-    precision === "100k" ||
-    precision === "10k" ||
-    precision === "k" ||
-    precision === "100y" ||
-    precision === "10y" ||
-    precision === "y"
-  ) {
-    return y
-  }
-
-  const m = pad2(timeStruct.m || "01")
-  if (precision === "m") return `${y}-${m}`
-
-  const d = pad2(timeStruct.d || "01")
-  if (precision === "d") return `${y}-${m}-${d}`
-
-  const h = pad2(timeStruct.h || "00")
-  if (precision === "h") return `${y}-${m}-${d} ${h}`
-
-  const min = pad2(timeStruct.min || "00")
-  if (precision === "min") return `${y}-${m}-${d} ${h}:${min}`
-
-  const s = pad2(timeStruct.s || "00")
-  if (precision === "s") return `${y}-${m}-${d} ${h}:${min}:${s}`
-
-  // For sub-second precisions, pad/truncate the subseconds field to the
-  // required number of digits.
-  const padSubs = (raw: string, len: number): string => {
-    if (raw.length >= len) return raw.slice(0, len)
-    return raw.padEnd(len, "0")
-  }
-  if (precision === "ms") return `${y}-${m}-${d} ${h}:${min}:${s}.${padSubs(timeStruct.sub, 3)}`
-  if (precision === "us") return `${y}-${m}-${d} ${h}:${min}:${s}.${padSubs(timeStruct.sub, 6)}`
-  if (precision === "ns") return `${y}-${m}-${d} ${h}:${min}:${s}.${padSubs(timeStruct.sub, 9)}`
-
-  return ""
-}
-
-function formatYear(year: number): string {
-  const sign = year < 0 ? "-" : ""
-  const abs = Math.abs(year)
-  return sign + String(abs).padStart(4, "0")
-}
-
-function roundDown(value: number, factor: number) {
-  return Math.floor(value / factor) * factor
-}
-
-function applyPrecision(timeStruct: { y: string; m: string; d: string; h: string; min: string; s: string; sub: string }, precision: TimePrecision): string {
-  const year = parseInt(timeStruct.y || "0000", 10)
-
-  switch (precision) {
-    case "G":
-      return formatYear(roundDown(year, 1_000_000_000))
-    case "100M":
-      return formatYear(roundDown(year, 100_000_000))
-    case "10M":
-      return formatYear(roundDown(year, 10_000_000))
-    case "M":
-      return formatYear(roundDown(year, 1_000_000))
-    case "100k":
-      return formatYear(roundDown(year, 100_000))
-    case "10k":
-      return formatYear(roundDown(year, 10_000))
-    case "k":
-      return formatYear(roundDown(year, 1_000))
-    case "100y":
-      return formatYear(roundDown(year, 100))
-    case "10y":
-      return formatYear(roundDown(year, 10))
-    case "y":
-      return timeStruct.y || "0000"
-    case "m":
-    case "d":
-    case "h":
-    case "min":
-    case "s":
-    case "ms":
-    case "us":
-    case "ns":
-      return toCanonicalString(timeStruct, precision)
-    default:
-      return ""
-  }
-}
-
-function emitCanonicalFromDisplay(): void {
-  if (!displayValue.value) {
-    model.value = ""
-    return
-  }
-
-  const normalized = normalizeForParsing(displayValue.value)
-
+  const normalized = normalizeForParsing(trimmed)
   const validationErrorMessage = progressiveValidate(normalized, t)
-  errorMessage.value = validationErrorMessage
-
-  if (validationErrorMessage) return
-
-  const struct = getStructuredTime(normalized)
-  const inferredPrecision = inferPrecisionFromNormalized(normalized, struct, props.maxPrecision, timePrecision.value)
-
-  const canonical = toCanonicalString(struct, inferredPrecision)
-  if (canonical && canonical !== model.value) {
-    model.value = canonical
+  if (validationErrorMessage) {
+    // TODO: Use standard codes.
+    return [{ code: "invalid", userMessage: validationErrorMessage }]
   }
+  if (!options.eager && !options.initial) {
+    const struct = getStructuredTime(normalized)
+    const inferredPrecision = inferPrecisionFromNormalized(normalized, struct, props.maxPrecision, precision.value)
+    const canonical = toCanonicalString(struct, inferredPrecision)
+    if (canonical && canonical !== model.value) {
+      // Mark the upcoming model change as canonicalization, not user input,
+      // so watch(model) does not re-infer precision from it. Without this,
+      // hour-precision input "1995-01-15 10" gets rewritten to
+      // "1995-01-15 10:00", which the watcher would then re-infer as
+      // minute precision, clobbering the user's intent.
+      suppressedCanonical = canonical
+      model.value = canonical
+    }
+  }
+  return []
 }
 
-function autoAdaptPrecisionFromDisplay(): void {
-  const normalized = normalizeForParsing(displayValue.value)
+// Sub-registry: the inner InputText registers here instead of bubbling up
+// to the ancestor form. We proxy it upward as a single ValidatedInput
+// that combines its dirty/validate state with the precision Listbox's.
+// The Listbox is managed manually (it is not a component that registers
+// itself, so it sits outside the sub-registry) and composed into the
+// outer validatedInput's isDirty / revert / checkpoint paths.
+let forwardInteraction: (() => void) | null = null
+const {
+  validateAll: validateChildAll,
+  resetAll: resetChildAll,
+  revertAll: revertChildAll,
+  inputs: childInputs,
+  anyDirty: anyChildDirty,
+  checkpointAll: checkpointChildAll,
+} = useValidationRegistry(() => {
+  forwardInteraction?.()
+})
 
-  const validationErrorMessage = progressiveValidate(normalized, t)
-  // Only adapt when the structure isn't clearly broken.
-  if (validationErrorMessage && validationErrorMessage !== "") return
+const childErrors = allErrors(childInputs)
 
+watch(childErrors, (v) => emit("errors", v), { flush: "sync" })
+
+// Auto-disarm: once every gated error has cleared (typically because the
+// user has fixed the time), drop back into lazy mode so the next round
+// behaves like the initial one - no flashes while the user edits.
+watch(
+  () => childErrors.value.length === 0,
+  (cleared) => {
+    if (cleared) triggered.value = false
+  },
+)
+
+const timeRef = useTemplateRef<ShallowUnwrapRef<ValidatedInput>>("timeRef")
+const precisionButtonRef = useTemplateRef<ComponentPublicInstance>("precisionButtonRef")
+
+// timeChanged tracks the inner InputText's checkpoint via its exposed
+// ValidatedInput. precisionChanged tracks the precision dropdown via its
+// own local checkpoint ref.
+const timeChanged = computed<boolean>(() => timeRef.value?.isDirty ?? false)
+const precisionCheckpointRef = ref<TimePrecision>(precision.value)
+const precisionChanged = computed<boolean>(() => precision.value !== precisionCheckpointRef.value)
+
+// Return focus to the reverted field.
+function onRevertTime() {
+  timeRef.value?.revert()
+  timeRef.value?.el()?.focus()
+}
+
+function onRevertPrecision() {
+  precision.value = precisionCheckpointRef.value
+  ;(precisionButtonRef.value?.$el as HTMLElement | null)?.focus()
+}
+
+// Auto-derive precision from the time whenever the time changes AND the
+// time is the authoritative side. The timeAuthoritative guard prevents
+// looping with the precision watcher below. The suppressedCanonical
+// guard skips the one tick where the change came from the validator's
+// canonicalization (which would otherwise re-infer e.g. "min" from
+// "1995-01-15 10:00" and clobber the user's "h" pick). The marker is
+// cleared unconditionally so it can never linger. If the value the
+// watcher fires with does not match (because Vue coalesced this update
+// with an unrelated write), the suppression is treated as stale and
+// inference runs as usual.
+watch(model, (value) => {
+  const expected = suppressedCanonical
+  suppressedCanonical = null
+  if (expected !== null && value === expected) return
+  if (!timeAuthoritative.value) return
+  if (!value) return
+  const normalized = normalizeForParsing(value)
+  if (progressiveValidate(normalized, t)) return
   const struct = getStructuredTime(normalized)
-  const inferred = inferPrecisionFromNormalized(normalized, struct, props.maxPrecision, timePrecision.value)
-
-  if (inferred !== timePrecision.value) {
-    timePrecision.value = inferred
+  const inferred = inferPrecisionFromNormalized(normalized, struct, props.maxPrecision, precision.value)
+  if (inferred !== precision.value) {
     precision.value = inferred
   }
-}
+})
 
-const emitCanonicalDebounce = debounce(() => {
-  if (abortController.signal.aborted) {
-    return
+// Reformat the time to match the new precision whenever the user is the
+// authoritative side for precision. Mirrors NewTime on the backend:
+// truncate/pad components to the precision window.
+watch(precision, (value) => {
+  if (timeAuthoritative.value) return
+  if (!model.value) return
+  const normalized = normalizeForParsing(model.value)
+  if (progressiveValidate(normalized, t)) return
+  const struct = getStructuredTime(normalized)
+  const next = applyPrecision(struct, value)
+  if (next !== model.value) {
+    model.value = next
   }
+})
 
-  emitCanonicalFromDisplay()
-}, DEBOUNCE_MS)
-
-function onKeydown() {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  errorMessage.value = ""
-  emitCanonicalDebounce.cancel()
-}
-
-function onInput() {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  // While user types: precision adapts, but text in the input never changes.
-  autoAdaptPrecisionFromDisplay()
-  emitCanonicalDebounce()
-}
-
-function onFocus() {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  isEditing.value = true
-}
-
-function onBlur() {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  isEditing.value = false
-  emitCanonicalDebounce.cancel()
-  emitCanonicalFromDisplay()
+// Route user updates through these handlers so we can flip the
+// authoritative side. Programmatic mutations (validator canonicalization,
+// watcher-driven reformat) bypass these and set the model/precision
+// directly, leaving timeAuthoritative as the user last set it.
+function onTimeUpdate(v: string) {
+  timeAuthoritative.value = true
+  model.value = v
 }
 
 function onPrecisionSelected(p: TimePrecision) {
-  if (abortController.signal.aborted) {
-    return
-  }
-
-  // v-model will already update timePrecision, but we treat this as a manual intent.
-  const normalized = normalizeForParsing(displayValue.value)
-
-  const validationErrorMessage = progressiveValidate(normalized, t)
-  errorMessage.value = validationErrorMessage
-
+  timeAuthoritative.value = false
   precision.value = p
-
-  if (validationErrorMessage) return
-
-  const struct = getStructuredTime(normalized)
-  const next = applyPrecision(struct, p)
-
-  displayValue.value = next
-  model.value = next
 }
 
-watch(
-  () => precision.value,
-  (p) => {
-    if (p && p !== timePrecision.value) timePrecision.value = p
+const validatedInput: ValidatedInput = {
+  validate: async (signal) => {
+    triggered.value = true
+    await validateChildAll(signal)
   },
-)
+  reset: () => {
+    resetChildAll()
+    model.value = ""
+    precision.value = "y"
+    precisionCheckpointRef.value = "y"
+    timeAuthoritative.value = true
+    timeAuthoritativeCheckpoint.value = true
+    triggered.value = false
+    suppressedCanonical = null
+  },
+  revert: () => {
+    revertChildAll()
+    precision.value = precisionCheckpointRef.value
+    timeAuthoritative.value = timeAuthoritativeCheckpoint.value
+  },
+  // Focus target is the time input - precision is auto-detected by
+  // default so external focus should land on the primary field.
+  el: () => document.getElementById(timeInputId),
+  isDirty: computed<boolean>(() => anyChildDirty.value || precisionChanged.value),
+  // Empty iff the canonical time is empty. Precision always has a
+  // default value, so it never counts as "empty" on its own.
+  isEmpty: computed<boolean>(() => !model.value),
+  errors: childErrors,
+  checkpoint: () => {
+    checkpointChildAll()
+    precisionCheckpointRef.value = precision.value
+    timeAuthoritativeCheckpoint.value = timeAuthoritative.value
+  },
+}
+
+const { onInteraction: notifyOuter } = useRegisterForValidation(validatedInput)
+forwardInteraction = notifyOuter
+
+defineExpose(validatedInput)
+
+// Trip the "triggered" gate (and validate) once focus actually leaves
+// the whole widget. focusout bubbles, so a single root handler catches
+// every internal blur; if the new focus target is still inside us, it
+// is just inter-input navigation (time <-> precision) and we skip. A
+// null relatedTarget (focus moved to body or a non-focusable element)
+// counts as leaving.
+const rootRef = useTemplateRef<HTMLDivElement>("rootRef")
+async function onFocusOut(event: FocusEvent) {
+  const next = event.relatedTarget as Node | null
+  if (next && rootRef.value?.contains(next)) return
+  await validatedInput.validate()
+}
 </script>
 
 <template>
-  <div class="pd-inputtime flex flex-row gap-x-1 sm:gap-x-4" v-bind="$attrs">
-    <div class="flex grow flex-col">
-      <label :for="inputId" class="mb-1"
-        ><slot name="time-label">{{ t("common.labels.time") }}</slot></label
-      >
+  <div ref="rootRef" class="pd-inputtime flex flex-col" v-bind="$attrs" @focusout="onFocusOut">
+    <div class="flex flex-row gap-x-1 sm:gap-x-4">
+      <div class="flex grow flex-col">
+        <label :for="timeInputId" class="mb-1 flex flex-row items-center gap-1"
+          ><slot name="time-label">{{ t("common.labels.time") }}</slot
+          ><InputBadges :required="required" :changed="timeChanged" @revert="onRevertTime"
+        /></label>
 
-      <InputText
-        :id="inputId"
-        v-model="displayValue"
-        spellcheck="false"
-        autocorrect="off"
-        autocapitalize="none"
-        :readonly="readonly"
-        :invalid="isInvalid"
-        :progress="progress"
-        @focus="onFocus"
-        @blur="onBlur"
-        @keydown="onKeydown"
-        @input="onInput"
-      />
+        <InputText
+          :id="timeInputId"
+          ref="timeRef"
+          :model-value="model"
+          :readonly="readonly"
+          :invalid="invalid"
+          :validator="timeValidator"
+          spellcheck="false"
+          autocorrect="off"
+          autocapitalize="none"
+          @update:model-value="onTimeUpdate"
+        />
+      </div>
+
+      <Listbox v-model="precision" :disabled="inactive" as="div" class="flex w-48 flex-col" @update:model-value="onPrecisionSelected">
+        <ListboxLabel class="mb-1 flex flex-row items-center gap-1"
+          ><slot name="precision-label">{{ t("common.labels.precision") }}</slot
+          ><InputBadges :changed="precisionChanged" @revert="onRevertPrecision"
+        /></ListboxLabel>
+
+        <div class="relative">
+          <!--
+            We add additional padding on the right (pr-10) on top of InputStyled's
+            default px-3 to make space for the icon.
+          -->
+          <InputStyled ref="precisionButtonRef" :as="ListboxButton" :inactive="inactive" :invalid="invalid" class="relative w-full pr-10">
+            <div class="truncate" :title="precisionLabel(precision)">{{ precisionLabel(precision) }}</div>
+
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+              <ChevronUpDownIcon class="size-5 text-gray-400" aria-hidden="true" />
+            </div>
+          </InputStyled>
+
+          <ListboxOptions class="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none">
+            <ListboxOption v-for="tp in timePrecisionWithMax" :key="tp" v-slot="{ active, selected }" :value="tp" as="template">
+              <li class="cursor-pointer p-1 outline-none select-none">
+                <!--
+                  We have an additional div so that the ring has the space to be shown.
+                  li element has p-1 for ring space, together with py-1 and px-2 we get the effective padding
+                  for option content of py-2 and px-3, same what InputText and ListboxButton have.
+                -->
+                <div class="flex flex-row justify-between gap-x-1 rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
+                  <div class="truncate" :class="selected ? 'font-medium' : ''" :title="precisionLabel(tp)">{{ precisionLabel(tp) }}</div>
+
+                  <CheckIcon v-if="selected" class="size-5 text-primary-600" aria-hidden="true" />
+                </div>
+              </li>
+            </ListboxOption>
+          </ListboxOptions>
+        </div>
+      </Listbox>
     </div>
 
-    <Listbox v-model="timePrecision" :disabled="progress > 0 || readonly" as="div" class="flex w-48 flex-col" @update:model-value="onPrecisionSelected">
-      <ListboxLabel class="mb-1"
-        ><slot name="precision-label">{{ t("common.labels.precision") }}</slot></ListboxLabel
-      >
-
-      <div class="relative">
-        <!--
-          Expected padding is py-2 and px-3, same what InputText has, but we add additional
-          padding on the right to make space for the icon.
-        -->
-        <ListboxButton
-          class="relative w-full rounded-sm border-none py-2 pr-10 pl-3 text-left shadow-sm ring-2 ring-neutral-300 outline-none focus:ring-2"
-          :class="{
-            'cursor-not-allowed': progress > 0 || readonly,
-            'bg-gray-100': progress > 0 || readonly,
-            'bg-white': progress === 0 && !readonly,
-            'text-gray-800': progress > 0 || readonly,
-            'hover:ring-neutral-300 focus:ring-primary-300': progress > 0 || readonly,
-            'hover:ring-neutral-400 focus:ring-primary-500': progress === 0 && !readonly,
-          }"
-        >
-          <div class="truncate" :title="precisionLabel(timePrecision)">{{ precisionLabel(timePrecision) }}</div>
-
-          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-            <ChevronUpDownIcon class="size-5 text-gray-400" aria-hidden="true" />
-          </div>
-        </ListboxButton>
-
-        <ListboxOptions class="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none">
-          <ListboxOption v-for="tp in timePrecisionWithMax" :key="tp" v-slot="{ active, selected }" :value="tp" as="template">
-            <li class="cursor-pointer p-1 outline-none select-none">
-              <!--
-                We have an additional div so that the ring has the space to be shown.
-                li element has p-1 for ring space, together with py-1 and px-2 we get the effective padding
-                for option content of py-2 and px-3, same what InputText and ListboxButton have.
-              -->
-              <div class="flex flex-row justify-between gap-x-1 rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
-                <div class="truncate" :class="selected ? 'font-medium' : ''" :title="precisionLabel(tp)">{{ precisionLabel(tp) }}</div>
-
-                <CheckIcon v-if="selected" class="size-5 text-primary-600" aria-hidden="true" />
-              </div>
-            </li>
-          </ListboxOption>
-        </ListboxOptions>
-      </div>
-    </Listbox>
+    <div v-if="childErrors.length === 0" class="pd-inputtime-hint mt-1 text-sm text-neutral-500 italic">{{ t("partials.input.InputTime.format") }}</div>
   </div>
-
-  <div v-if="errorMessage" class="pd-inputtime-error mt-1 text-sm text-error-600">{{ errorMessage }}</div>
-  <div v-else class="pd-inputtime-hint mt-1 text-sm text-neutral-500 italic">{{ t("partials.input.InputTime.format") }}</div>
 </template>

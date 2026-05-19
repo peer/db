@@ -15,10 +15,10 @@ import { ref } from "vue"
 
 import { getURL, headURLDirect } from "@/api"
 import { D, HTMLClaim, LinkClaim } from "@/document"
-import { delay } from "@/utils"
+import { delay, parseUrl } from "@/utils"
 
 // RFC 5987 extended form: filename*=<charset>'<lang>'<percent-encoded value>.
-// Capture group 2 holds the percent-encoded value, ending at a `;` or end of string.
+// Capture group 2 holds the percent-encoded value, ending at a ; or end of string.
 const CONTENT_DISPOSITION_FILENAME_EXT = /filename\*=([^']*)'[^']*'([^;]+)/i
 // Plain form: filename="quoted" or filename=token. Capture group 2 is the quoted body
 // (without surrounding quotes), capture group 3 is the unquoted token.
@@ -163,11 +163,10 @@ export function useDownload(abortController: AbortController, router: Router, re
   // classifyLink function is similar. Keep in sync as needed.
   function matchStorageRoute(iri: string): string | null {
     if (!iri) return null
-    if (iri.startsWith("#")) return null
 
     let url: URL
     try {
-      url = new URL(iri, window.location.href)
+      url = parseUrl(iri)
     } catch {
       return null
     }

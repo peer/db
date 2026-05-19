@@ -6,12 +6,12 @@ if the writer if the sanitizer is unaware of this, it can lead
 to security holes).
 
 clicky
-<a href="http://www.cnn.com/index.html%5C" rel="noreferrer">clicky</a>
+<a href="http://www.cnn.com/index.html%5C">clicky</a>
 clicky
 
 clicky
 clicky
-<a href="http://www.cnn.com/index.html%5C" rel="noreferrer">clicky</a>
+<a href="http://www.cnn.com/index.html%5C">clicky</a>
 
 
 <img src="http://www.cnn.com/good.jpg%5C">

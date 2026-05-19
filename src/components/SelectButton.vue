@@ -38,14 +38,14 @@ function isDisabled(option: SelectButtonOption<T>) {
 </script>
 
 <template>
-  <div class="pd-selectbutton flex items-center gap-1 rounded-sm bg-slate-200 px-1 py-1">
+  <div v-tw-merge class="pd-selectbutton flex items-center gap-1 rounded-sm bg-slate-200 px-1 py-1">
     <button
       v-for="option in options"
       :key="option.name"
       :disabled="isDisabled(option)"
-      class="h-full rounded-sm px-2 py-0.5"
+      class="h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
       :class="{
-        'cursor-not-allowed text-slate-500': isDisabled(option),
+        'cursor-not-allowed text-gray-500': isDisabled(option),
         'bg-white shadow-xs': model === option.value && !isDisabled(option),
         'bg-slate-100 shadow-xs': model === option.value && isDisabled(option),
         'hover:bg-slate-100': model !== option.value && !isDisabled(option),

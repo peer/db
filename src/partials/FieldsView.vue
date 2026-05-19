@@ -90,11 +90,11 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
         <template v-if="hasValues(field)">
           <template v-for="(claim, cIndex) in claimsForField(field).claims" :key="claim.GetID()">
             <tr>
-              <td v-if="cIndex === 0" class="w-1/5 px-2 py-1 align-top font-medium text-slate-700">
+              <td v-if="cIndex === 0" class="w-1/5 px-2 py-1 align-top font-medium text-gray-700">
                 <DocumentRefInline :id="field.propertyId" :link="false" />
               </td>
               <td v-else></td>
-              <td class="px-2 py-1">
+              <td class="px-2 py-1 text-gray-700">
                 <ClaimValue :claim="claim" :type="claimsForField(field).claimType" />
               </td>
             </tr>
@@ -120,11 +120,11 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
               <template v-if="hasValues(field)">
                 <template v-for="(claim, cIndex) in claimsForField(field).claims" :key="claim.GetID()">
                   <tr>
-                    <td v-if="cIndex === 0" class="w-1/5 px-2 py-1 align-top font-medium text-slate-700">
+                    <td v-if="cIndex === 0" class="w-1/5 px-2 py-1 align-top font-medium text-gray-700">
                       <DocumentRefInline :id="field.propertyId" :link="false" />
                     </td>
                     <td v-else></td>
-                    <td class="px-2 py-1">
+                    <td class="px-2 py-1 text-gray-700">
                       <ClaimValue :claim="claim" :type="claimsForField(field).claimType" />
                     </td>
                   </tr>
