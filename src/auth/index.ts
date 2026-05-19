@@ -170,44 +170,49 @@ function getConfig(): Promise<client.Configuration> {
   return configPromise
 }
 
-export async function signIn(progress: Ref<number>) {
-  const oidc = siteContext.oidc
-  if (!oidc) {
-    return
-  }
-  const config = await getConfig()
+export async function signIn(lock: Ref<number>) {
+  lock.value += 1
+  try {
+    const oidc = siteContext.oidc
+    if (!oidc) {
+      return
+    }
+    const config = await getConfig()
 
-  const codeVerifier = client.randomPKCECodeVerifier()
-  const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier)
-  const stateId = client.randomState()
-  const nonce = client.randomNonce()
+    const codeVerifier = client.randomPKCECodeVerifier()
+    const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier)
+    const stateId = client.randomState()
+    const nonce = client.randomNonce()
 
-  // role.* is the Charon wildcard scope. Requesting it tells the issuer to
-  // expand it into one role.<key> grant for every role the signed-in user
-  // actually holds in the organization; those grants are what auth.Roles on
-  // the backend reads out of the access token's scope claim. Without it the
-  // backend always sees an empty role set even for users with assigned roles.
-  // The OAuth client must be registered with role.* in its allowed scopes
-  // (Charon's app template "IDScopes") for this to be granted.
-  const redirectTo = client
-    .buildAuthorizationUrl(config, {
-      redirect_uri: oidc.redirectUri,
-      code_challenge: codeChallenge,
-      code_challenge_method: "S256",
-      scope: "openid profile email role.*",
-      state: stateId,
+    // role.* is the Charon wildcard scope. Requesting it tells the issuer to
+    // expand it into one role.<key> grant for every role the signed-in user
+    // actually holds in the organization; those grants are what auth.Roles on
+    // the backend reads out of the access token's scope claim. Without it the
+    // backend always sees an empty role set even for users with assigned roles.
+    // The OAuth client must be registered with role.* in its allowed scopes
+    // (Charon's app template "IDScopes") for this to be granted.
+    const redirectTo = client
+      .buildAuthorizationUrl(config, {
+        redirect_uri: oidc.redirectUri,
+        code_challenge: codeChallenge,
+        code_challenge_method: "S256",
+        scope: "openid profile email role.*",
+        state: stateId,
+        nonce,
+      })
+      .toString()
+
+    const state: State = {
+      redirect: currentAbsoluteURL(),
+      codeVerifier,
       nonce,
-    })
-    .toString()
+    }
+    localStorage.setItem(stateId, JSON.stringify(state))
 
-  const state: State = {
-    redirect: currentAbsoluteURL(),
-    codeVerifier,
-    nonce,
+    redirectServerSide(redirectTo, false, lock)
+  } finally {
+    lock.value -= 1
   }
-  localStorage.setItem(stateId, JSON.stringify(state))
-
-  redirectServerSide(redirectTo, false, progress)
 }
 
 // processOIDCRedirect runs unconditionally on app startup and short-circuits
@@ -255,7 +260,7 @@ export async function processOIDCRedirect() {
 
 // signOut clears the local token state.
 // TODO: Call into Charon and sign out user there, too?
-export function signOut(_progress: Ref<number>) {
+export function signOut(_lock: Ref<number>) {
   accessToken.value = ""
   currentIdentityId.value = ""
 }

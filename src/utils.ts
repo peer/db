@@ -517,9 +517,9 @@ export function useOnScrollOrResize(el: Ref<Element | null>, callback: () => voi
   })
 }
 
-export function redirectServerSide(url: string, replace: boolean, progress: Ref<number>) {
-  // We increase the progress and never decrease it to wait for browser to do the redirect.
-  progress.value += 1
+export function redirectServerSide(url: string, replace: boolean, lock: Ref<number>) {
+  // We increase the lock and never decrease it to wait for browser to do the redirect.
+  lock.value += 1
 
   // We do not use Vue Router to force a server-side request which might return updated cookies
   // or redirect on its own somewhere because of new (or lack thereof) cookies.

@@ -19,17 +19,7 @@ async function onSignIn() {
   if (abortController.signal.aborted) {
     return
   }
-  busy.value += 1
-  try {
-    await signIn(busy)
-  } finally {
-    // We never decrement when the redirect actually fires (signIn redirects
-    // away), but if it threw early we need to release the lock so the button
-    // becomes usable again.
-    if (!abortController.signal.aborted) {
-      busy.value -= 1
-    }
-  }
+  await signIn(busy)
 }
 
 function onSignOut() {
