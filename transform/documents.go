@@ -1187,15 +1187,14 @@ func makeClaim(
 			return nil, errors.New("location tag is not supported for core.Interval[core.Amount[T]] fields")
 		}
 
-		// Interval struct field indices: 0=From, 1=FromIsOpen, 2=FromIsUnknown, 3=FromIsNone, 4=To, 5=ToIsOpen, 6=ToIsUnknown, 7=ToIsNone.
-		fromField := fieldValue.Field(0)
-		fromIsOpen := fieldValue.Field(1).Bool()
-		fromIsUnknown := fieldValue.Field(2).Bool() //nolint:mnd
-		fromIsNone := fieldValue.Field(3).Bool()    //nolint:mnd
-		toField := fieldValue.Field(4)              //nolint:mnd
-		toIsOpen := fieldValue.Field(5).Bool()      //nolint:mnd
-		toIsUnknown := fieldValue.Field(6).Bool()   //nolint:mnd
-		toIsNone := fieldValue.Field(7).Bool()      //nolint:mnd
+		fromField := fieldValue.Field(internalCore.IntervalFromIdx)
+		fromIsOpen := fieldValue.Field(internalCore.IntervalFromIsOpenIdx).Bool()
+		fromIsUnknown := fieldValue.Field(internalCore.IntervalFromIsUnknownIdx).Bool()
+		fromIsNone := fieldValue.Field(internalCore.IntervalFromIsNoneIdx).Bool()
+		toField := fieldValue.Field(internalCore.IntervalToIdx)
+		toIsOpen := fieldValue.Field(internalCore.IntervalToIsOpenIdx).Bool()
+		toIsUnknown := fieldValue.Field(internalCore.IntervalToIsUnknownIdx).Bool()
+		toIsNone := fieldValue.Field(internalCore.IntervalToIsNoneIdx).Bool()
 
 		// Return claimNotMadeError if interval is completely zero (no bounds, no flags).
 		if fromField.IsNil() && !fromIsOpen && !fromIsUnknown && !fromIsNone &&

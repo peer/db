@@ -8,9 +8,6 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/elastic/go-elasticsearch/v9"
-	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
-	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
-	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/sortorder"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
@@ -22,7 +19,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/base"
 	"gitlab.com/peerdb/peerdb/document"
-	internalCore "gitlab.com/peerdb/peerdb/internal/core"
+	"gitlab.com/peerdb/peerdb/internal/search"
 )
 
 // Build contains version and build metadata.
@@ -99,66 +96,8 @@ func (s *Site) Decode(ctx *kong.DecodeContext) error {
 	return nil
 }
 
-const fetchDocumentIDsPageSize = 5000
-
 func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifier) ([]identifier.Identifier, errors.E) {
-	boolQuery := esdsl.NewBoolQuery().Must(
-		esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(internalCore.InstanceOfPropID.String())),
-		esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(classID.String())),
-	)
-	query := esdsl.NewNestedQuery(boolQuery).Path("claims.ref")
-
-	pit, err := s.ESClient.OpenPointInTime(s.Index).KeepAlive("1m").Do(ctx)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	pitID := pit.Id
-
-	defer func() {
-		_, _ = s.ESClient.ClosePointInTime().Id(pitID).Do(ctx)
-	}()
-
-	var allIDs []identifier.Identifier
-	var searchAfter []types.FieldValue
-
-	for {
-		searchService := s.ESClient.Search().Source_(esdsl.NewSourceConfig().Bool(false)).AllowPartialSearchResults(false).
-			Query(query).
-			Size(fetchDocumentIDsPageSize).
-			Pit(esdsl.NewPointInTimeReference().Id(pitID).KeepAlive(esdsl.NewDuration().String("1m"))).
-			Sort(esdsl.NewSortOptions().AddSortOption("_shard_doc", esdsl.NewFieldSort(sortorder.Asc)))
-
-		if searchAfter != nil {
-			searchService = searchService.SearchAfterValues(searchAfter)
-		}
-
-		res, err := searchService.Do(ctx)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-
-		hits := res.Hits.Hits
-
-		for _, hit := range hits {
-			if hit.Id_ == nil {
-				return nil, errors.New("hit has no ID")
-			}
-			id, errE := identifier.MaybeString(*hit.Id_)
-			if errE != nil {
-				return nil, errE
-			}
-			allIDs = append(allIDs, id)
-		}
-
-		if len(hits) < fetchDocumentIDsPageSize {
-			break
-		}
-
-		lastHit := hits[len(hits)-1]
-		searchAfter = lastHit.Sort
-	}
-
-	return allIDs, nil
+	return search.FetchDocumentIDs(ctx, s.ESClient, s.Index, []identifier.Identifier{classID})
 }
 
 func (s *Site) fetchDocuments(ctx context.Context, classID identifier.Identifier) ([]*document.D, errors.E) {

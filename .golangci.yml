@@ -53,6 +53,7 @@ linters:
         - "total"
         - "und"
         - "UNIT"
+        - "value"
         - "unknown"
         - "VALUE_TYPE"
         - "VOCABULARY"

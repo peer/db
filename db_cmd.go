@@ -3,6 +3,7 @@ package peerdb
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,10 +14,13 @@ import (
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
+	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
+	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/indexer"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
+	internalExport "gitlab.com/peerdb/peerdb/internal/export"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
@@ -192,6 +196,76 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 	}
 
 	globals.Logger.Info().Msg("db reindex done")
+
+	return nil
+}
+
+// Run executes the db export command which exports documents to CSV or JSON.
+func (c *DBExportCommand) Run(globals *Globals) (returnErr errors.E) { //nolint:nonamedreturns
+	// We stop gracefully on ctrl-c and TERM signal.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	ctx = globals.Logger.WithContext(ctx)
+
+	InitSites(globals)
+
+	ctx, cancel := context.WithCancel(ctx)
+
+	onShutdown, errE := Init(ctx, globals)
+	if onShutdown != nil {
+		defer onShutdown()
+	}
+	defer cancel()
+	if errE != nil {
+		return errE
+	}
+
+	// Determine output writer.
+	var w io.Writer
+	if c.Output == "-" {
+		w = os.Stdout
+	} else {
+		f, err := os.Create(c.Output)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		defer func() {
+			errE := f.Close()
+			if errE != nil && returnErr == nil {
+				returnErr = errors.WithStack(errE)
+			}
+		}()
+		w = f
+	}
+
+	for _, site := range globals.Sites {
+		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("exporting")
+
+		// We set fallback context values which are used to set application name on PostgreSQL connections.
+		siteCtx := WithFallbackDBContext(ctx, site.Schema, "export")
+
+		errE := startAndWaitSite(siteCtx, globals.Logger, site, nil)
+		if errE != nil {
+			return errE
+		}
+
+		getDoc := func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
+			doc, _, _, _, errE := site.Base.GetDocumentLatestDoc(ctx, id)
+			return doc, errE
+		}
+
+		errE = internalExport.Export(siteCtx, w, site.ESClient, site.Index, getDoc, internalExport.Config{
+			Format:     c.Format,
+			InstanceOf: c.InstanceOf,
+			Properties: c.Property,
+		})
+		if errE != nil {
+			return errE
+		}
+	}
+
+	globals.Logger.Info().Msg("db export done")
 
 	return nil
 }

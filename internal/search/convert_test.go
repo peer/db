@@ -2477,7 +2477,7 @@ func TestConvertTimeIntervalToIsOpenExcludesWindow(t *testing.T) {
 }
 
 // TestConvertTimeIntervalCoarseFromOpen verifies that FromIsOpen=true with a
-// coarse-precision From advances both the scalar `from` and the range lower
+// coarse-precision From advances both the scalar from and the range lower
 // to the end of the from-window.
 func TestConvertTimeIntervalCoarseFromOpen(t *testing.T) {
 	t.Parallel()
