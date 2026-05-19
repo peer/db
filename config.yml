@@ -6,5 +6,4 @@ globals:
       features:
         searchResultsTable: true
         createButtons: true
-        editButtons: true
         downloadButtons: true

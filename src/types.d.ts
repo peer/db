@@ -170,7 +170,6 @@ export type SiteContext = {
   features: {
     searchResultsTable?: boolean
     createButtons?: boolean
-    editButtons?: boolean
     downloadButtons?: boolean
   }
   // Populated only when the server has been started with --auth.issuer and

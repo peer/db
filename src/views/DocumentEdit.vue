@@ -20,7 +20,6 @@ import { useRouter } from "vue-router"
 
 import { deleteFromCache, getURL, getURLDirect, postJSON } from "@/api"
 import Button from "@/components/Button.vue"
-import siteContext from "@/context"
 import {
   AmountClaim,
   AmountIntervalClaim,
@@ -905,7 +904,7 @@ function canSave(): boolean {
   </Teleport>
   <div ref="el" class="pd-documentedit mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
     <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
-      <template v-if="doc && classesInitialized && (siteContext.features.editButtons || (classTabId && mergedFieldsData))">
+      <template v-if="doc && classesInitialized">
         <!--
           TODO: Fix how hover interacts with focused tab.
           See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
@@ -920,7 +919,6 @@ function canSave(): boolean {
                 ><DocumentRefInline :id="classTabId" :link="false" title /></span
             ></Tab>
             <Tab
-              v-if="siteContext.features.editButtons"
               :title="t('views.DocumentEdit.tabs.allProperties')"
               class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
               ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%-1rem),transparent)] px-4 py-3 whitespace-nowrap">{{
@@ -944,7 +942,7 @@ function canSave(): boolean {
               />
             </TabPanel>
             <!-- "All properties" tab panel. -->
-            <TabPanel v-if="siteContext.features.editButtons" tabindex="-1" class="outline-none">
+            <TabPanel tabindex="-1" class="outline-none">
               <table class="w-full table-auto border-collapse">
                 <thead>
                   <tr>
