@@ -7338,8 +7338,8 @@ func TestFromDocumentHookModifies(t *testing.T) {
 	c := newTestConverter(t, nil, nil, extraDocs)
 
 	// Hook adds a string claim to the document.
-	c.Hooks = []func(doc *document.D) (*document.D, errors.E){
-		func(doc *document.D) (*document.D, errors.E) {
+	c.Hooks = []func(ctx context.Context, doc *document.D) (*document.D, errors.E){
+		func(_ context.Context, doc *document.D) (*document.D, errors.E) {
 			if doc.Claims == nil {
 				doc.Claims = &document.ClaimTypes{}
 			}
@@ -7369,8 +7369,8 @@ func TestFromDocumentHookError(t *testing.T) {
 
 	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
-	c.Hooks = []func(doc *document.D) (*document.D, errors.E){
-		func(_ *document.D) (*document.D, errors.E) {
+	c.Hooks = []func(ctx context.Context, doc *document.D) (*document.D, errors.E){
+		func(_ context.Context, _ *document.D) (*document.D, errors.E) {
 			return nil, errors.New("hook failed")
 		},
 	}
@@ -7391,8 +7391,8 @@ func TestFromDocumentHookReturnsNil(t *testing.T) {
 
 	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
-	c.Hooks = []func(doc *document.D) (*document.D, errors.E){
-		func(_ *document.D) (*document.D, errors.E) {
+	c.Hooks = []func(ctx context.Context, doc *document.D) (*document.D, errors.E){
+		func(_ context.Context, _ *document.D) (*document.D, errors.E) {
 			return nil, nil //nolint:nilnil
 		},
 	}
@@ -7419,8 +7419,8 @@ func TestFromDocumentMultipleHooks(t *testing.T) {
 
 	// First hook adds a string claim.
 	// Second hook adds another string claim.
-	c.Hooks = []func(doc *document.D) (*document.D, errors.E){
-		func(doc *document.D) (*document.D, errors.E) {
+	c.Hooks = []func(ctx context.Context, doc *document.D) (*document.D, errors.E){
+		func(_ context.Context, doc *document.D) (*document.D, errors.E) {
 			if doc.Claims == nil {
 				doc.Claims = &document.ClaimTypes{}
 			}
@@ -7431,7 +7431,7 @@ func TestFromDocumentMultipleHooks(t *testing.T) {
 			})
 			return doc, nil
 		},
-		func(doc *document.D) (*document.D, errors.E) {
+		func(_ context.Context, doc *document.D) (*document.D, errors.E) {
 			doc.Claims.String = append(doc.Claims.String, document.StringClaim{
 				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 				Prop:      document.Reference{ID: testPropID},
@@ -7463,8 +7463,8 @@ func TestFromDocumentHookReplaces(t *testing.T) {
 	replacementID := identifier.New()
 
 	// Hook replaces the entire document.
-	c.Hooks = []func(doc *document.D) (*document.D, errors.E){
-		func(_ *document.D) (*document.D, errors.E) {
+	c.Hooks = []func(ctx context.Context, doc *document.D) (*document.D, errors.E){
+		func(_ context.Context, _ *document.D) (*document.D, errors.E) {
 			return &document.D{
 				CoreDocument: document.CoreDocument{ID: replacementID}, //nolint:exhaustruct
 				Claims: &document.ClaimTypes{
@@ -7510,11 +7510,11 @@ func TestFromDocumentMultipleHooksErrorInSecond(t *testing.T) {
 	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
 
 	// First hook succeeds, second fails.
-	c.Hooks = []func(doc *document.D) (*document.D, errors.E){
-		func(doc *document.D) (*document.D, errors.E) {
+	c.Hooks = []func(ctx context.Context, doc *document.D) (*document.D, errors.E){
+		func(_ context.Context, doc *document.D) (*document.D, errors.E) {
 			return doc, nil
 		},
-		func(_ *document.D) (*document.D, errors.E) {
+		func(_ context.Context, _ *document.D) (*document.D, errors.E) {
 			return nil, errors.New("second hook failed")
 		},
 	}

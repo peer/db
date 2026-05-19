@@ -80,7 +80,7 @@ type fieldInverseKey struct {
 // Converter holds preprocessed data for converting document.D to search Document.
 type Converter struct {
 	// Hooks are called in order to allow for modification of documents before they are converted.
-	Hooks []func(doc *document.D) (*document.D, errors.E)
+	Hooks []func(ctx context.Context, doc *document.D) (*document.D, errors.E)
 	// LanguageCodes is a map that maps language document ID to primary language subtag (e.g., "en").
 	LanguageCodes map[identifier.Identifier]string
 
@@ -1072,7 +1072,7 @@ func (c *Converter) FromDocument(
 ) (*Document, errors.E) {
 	var errE errors.E
 	for i, hook := range c.Hooks {
-		doc, errE = hook(doc)
+		doc, errE = hook(ctx, doc)
 		if errE != nil {
 			errors.Details(errE)["hook"] = i
 			return nil, errE

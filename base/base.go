@@ -18,6 +18,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/coordinator"
@@ -50,15 +51,15 @@ type B struct {
 	LanguagePriority map[string][]string
 
 	// Hooks are called in order to allow for modification of documents before they are indexed.
-	IndexingHooks []func(doc *document.D) (*document.D, errors.E)
+	IndexingHooks []func(ctx context.Context, doc *document.D) (*document.D, errors.E)
 
 	// DocumentPreHooks are called before fetching the document from the store.
 	DocumentPreHooks []func(ctx context.Context, id identifier.Identifier, version *store.Version) errors.E
 
 	// DocumentPostHooks are called after fetching the document from the store.
 	DocumentPostHooks []func(
-		ctx context.Context, data json.RawMessage, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
-	) (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E)
+		ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
+	) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E)
 
 	// FilePreHooks are called before fetching the file from the store.
 	FilePreHooks []func(ctx context.Context, id identifier.Identifier, version *store.Version) errors.E
@@ -167,11 +168,16 @@ func (b *B) Start(ctx context.Context, documents []*document.D) (func(), errors.
 		documents, documents, documents, b.LanguagePriority,
 		func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
 			// TODO: Make sure once we have permissions, that the public has the permission to read the document.
-			doc, _, _, _, errE := b.GetDocumentLatestDoc(ctx, id)
+			data, _, _, _, errE := b.documents.GetLatest(ctx, id)
 			if errE != nil {
 				return nil, errE
 			}
-			return doc, nil
+			var doc document.D
+			errE = x.UnmarshalWithoutUnknownFields(data, &doc)
+			if errE != nil {
+				return nil, errE
+			}
+			return &doc, nil
 		},
 	)
 	if errE != nil {
