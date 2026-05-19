@@ -185,8 +185,9 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 				}
 			},
 		},
-		Development: c.Server.Development,
-		Auth:        verifier,
+		Development:   c.Server.Development,
+		Auth:          verifier,
+		DocumentHooks: nil,
 	}
 
 	service.setRoutes()
