@@ -5,5 +5,4 @@ globals:
       schema: peerdb
       features:
         searchResultsTable: true
-        createButtons: true
         downloadButtons: true

@@ -32,7 +32,6 @@ type Build struct {
 // SiteFeatures contains enabled feature flags.
 type SiteFeatures struct {
 	SearchResultsTable bool `json:"searchResultsTable,omitempty" yaml:"searchResultsTable,omitempty"`
-	CreateButtons      bool `json:"createButtons,omitempty"      yaml:"createButtons,omitempty"`
 	DownloadButtons    bool `json:"downloadButtons,omitempty"    yaml:"downloadButtons,omitempty"`
 }
 

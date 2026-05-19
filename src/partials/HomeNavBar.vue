@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import ProgressBar from "@/components/ProgressBar.vue"
-import siteContext from "@/context"
 import CreateDropdown from "@/partials/CreateDropdown.vue"
 import LanguageSwitcher from "@/partials/LanguageSwitcher.vue"
 import SignInButton from "@/partials/SignInButton.vue"
@@ -16,7 +15,7 @@ const parentProgress = getParentProgress()
   <div class="pd-navbar-wrapper">
     <div id="navbar" class="pd-navbar w-container flex min-h-12 grow justify-end gap-x-1 p-1 sm:min-h-18 sm:gap-x-4 sm:p-4">
       <component :is="c" v-for="(c, i) in navbarComponents" :key="i" home />
-      <CreateDropdown v-if="siteContext.features.createButtons" />
+      <CreateDropdown />
       <LanguageSwitcher />
       <SignInButton />
     </div>

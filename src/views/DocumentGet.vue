@@ -18,7 +18,6 @@ import ButtonLink from "@/components/ButtonLink.vue"
 import InputTextLink from "@/components/InputTextLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import WithLock from "@/components/WithLock.vue"
-import siteContext from "@/context"
 import { INSTANCE_OF, NAME, SEARCH_SHORTCUT } from "@/core"
 import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
@@ -307,7 +306,7 @@ async function onEdit() {
       </template>
       <template #end>
         <WithLock :lock="getEditLock">
-          <Button v-if="siteContext.features.createButtons" :progress="editBusy" type="button" primary class="px-3.5" @click.prevent="onEdit">
+          <Button :progress="editBusy" type="button" primary class="px-3.5" @click.prevent="onEdit">
             <PencilIcon class="size-5 sm:hidden" :alt="t('common.buttons.edit')" />
             <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
           </Button>

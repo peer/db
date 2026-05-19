@@ -50,7 +50,7 @@ useValidationRegistry()
       <slot name="start"><NavBarSearch /></slot>
       <component :is="c" v-for="(c, i) in navbarComponents" :key="i" :home="false" />
       <slot name="end" />
-      <CreateDropdown v-if="siteContext.features.createButtons" />
+      <CreateDropdown />
       <LanguageSwitcher />
       <SignInButton />
     </div>
