@@ -314,7 +314,7 @@ function onCloseFilterModal() {
                   </template>
                   <template #loading="{ url }">
                     <div
-                      class="pd-withdocument-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200"
+                      class="pd-withdocument-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
                       :data-url="url"
                       :class="[loadingWidth(filter.props?.[0] ?? '')]"
                       aria-hidden="true"

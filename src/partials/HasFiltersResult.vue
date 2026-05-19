@@ -105,7 +105,7 @@ const WithDocumentD = WithDocument<D>
         <i class="pd-hasfiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
       <template v-else-if="total === null">
-        <li v-for="i in 3" :key="i" class="flex animate-pulse items-baseline gap-x-1">
+        <li v-for="i in 3" :key="i" class="flex items-baseline gap-x-1 motion-safe:animate-pulse">
           <div class="my-1.5 h-2 w-4 rounded-sm bg-slate-200"></div>
           <div class="my-1.5 h-2 rounded-sm bg-slate-200" :class="[loadingWidth(`has/${i}`)]"></div>
           <div class="my-1.5 h-2 w-8 rounded-sm bg-slate-200"></div>
@@ -121,7 +121,11 @@ const WithDocumentD = WithDocument<D>
               /></label>
             </template>
             <template #loading="{ url }">
-              <div class="pd-withdocument-loading inline-block h-2 animate-pulse rounded-sm bg-slate-200" :data-url="url" :class="[loadingWidth(res.id)]"></div>
+              <div
+                class="pd-withdocument-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
+                :data-url="url"
+                :class="[loadingWidth(res.id)]"
+              ></div>
             </template>
           </WithDocumentD>
           <label :for="'has/' + res.id" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
