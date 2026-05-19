@@ -152,7 +152,7 @@ func (s *Service) documentGetData(
 			return nil, nil, store.Version{}, true
 		}
 		for i, hook := range s.DocumentHooks {
-			doc, errE = hook(doc)
+			doc, errE = hook(ctx, doc)
 			if errE != nil {
 				m.Stop()
 				errors.Details(errE)["hook"] = i

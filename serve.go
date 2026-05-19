@@ -33,7 +33,7 @@ type Service struct {
 
 	// DocumentHooks are called in order to allow for modification of documents
 	// before they are send to the client.
-	DocumentHooks []func(doc *document.D) (*document.D, errors.E)
+	DocumentHooks []func(ctx context.Context, doc *document.D) (*document.D, errors.E)
 }
 
 // Init initializes the HTTP service and is used together with Prepare to implement Run.
