@@ -25,7 +25,17 @@ import (
 func (b *B) GetDocument(
 	ctx context.Context, id identifier.Identifier, version store.Version,
 ) (json.RawMessage, *internalStore.DocumentMetadata, store.Version, []store.Version, errors.E) {
-	return b.documents.Get(ctx, id, version)
+	for _, hook := range b.DocumentPreHooks {
+		errE := hook(ctx, id, &version)
+		if errE != nil {
+			return nil, nil, store.Version{}, nil, errE
+		}
+	}
+	data, metadata, version, parentChangesets, errE := b.documents.Get(ctx, id, version)
+	for _, hook := range b.DocumentPostHooks {
+		data, metadata, version, parentChangesets, errE = hook(ctx, data, metadata, version, parentChangesets, errE)
+	}
+	return data, metadata, version, parentChangesets, errE
 }
 
 // GetDocumentLatest returns the latest version of the document as raw JSON.
@@ -35,7 +45,17 @@ func (b *B) GetDocument(
 func (b *B) GetDocumentLatest(
 	ctx context.Context, id identifier.Identifier,
 ) (json.RawMessage, *internalStore.DocumentMetadata, store.Version, []store.Version, errors.E) {
-	return b.documents.GetLatest(ctx, id)
+	for _, hook := range b.DocumentPreHooks {
+		errE := hook(ctx, id, nil)
+		if errE != nil {
+			return nil, nil, store.Version{}, nil, errE
+		}
+	}
+	data, metadata, version, parentChangesets, errE := b.documents.GetLatest(ctx, id)
+	for _, hook := range b.DocumentPostHooks {
+		data, metadata, version, parentChangesets, errE = hook(ctx, data, metadata, version, parentChangesets, errE)
+	}
+	return data, metadata, version, parentChangesets, errE
 }
 
 // GetDocumentLatestDoc returns the latest version of the document as document.D.
@@ -43,13 +63,22 @@ func (b *B) GetDocumentLatest(
 // It returns also document metadata, the version of the document, and parent
 // changesets of the document at this version.
 func (b *B) GetDocumentLatestDoc(ctx context.Context, id identifier.Identifier) (*document.D, *internalStore.DocumentMetadata, store.Version, []store.Version, errors.E) {
+	for _, hook := range b.DocumentPreHooks {
+		errE := hook(ctx, id, nil)
+		if errE != nil {
+			return nil, nil, store.Version{}, nil, errE
+		}
+	}
 	data, metadata, version, parentChangesets, errE := b.documents.GetLatest(ctx, id)
+	for _, hook := range b.DocumentPostHooks {
+		data, metadata, version, parentChangesets, errE = hook(ctx, data, metadata, version, parentChangesets, errE)
+	}
 	var doc *document.D
 	if data != nil {
 		doc = new(document.D)
 		errE2 := x.UnmarshalWithoutUnknownFields(data, doc)
 		if errE2 != nil {
-			return nil, nil, store.Version{}, nil, errors.Join(errE, errE2)
+			return nil, metadata, version, parentChangesets, errors.Join(errE, errE2)
 		}
 	}
 	return doc, metadata, version, parentChangesets, errE
@@ -290,7 +319,17 @@ func (b *B) GetUploadSession(ctx context.Context, session identifier.Identifier)
 func (b *B) GetFile(
 	ctx context.Context, id identifier.Identifier, version store.Version,
 ) ([]byte, *storage.FileMetadata, store.Version, []store.Version, errors.E) {
-	return b.files.Store().Get(ctx, id, version)
+	for _, hook := range b.FilePreHooks {
+		errE := hook(ctx, id, &version)
+		if errE != nil {
+			return nil, nil, store.Version{}, nil, errE
+		}
+	}
+	data, metadata, version, parentChangesets, errE := b.files.Store().Get(ctx, id, version)
+	for _, hook := range b.FilePostHooks {
+		data, metadata, version, parentChangesets, errE = hook(ctx, data, metadata, version, parentChangesets, errE)
+	}
+	return data, metadata, version, parentChangesets, errE
 }
 
 // GetFileLatest returns the latest version of a stored file.
@@ -298,5 +337,15 @@ func (b *B) GetFile(
 // It returns also file metadata, the version of the file, and parent
 // changesets of the file at this version.
 func (b *B) GetFileLatest(ctx context.Context, id identifier.Identifier) ([]byte, *storage.FileMetadata, store.Version, []store.Version, errors.E) {
-	return b.files.Store().GetLatest(ctx, id)
+	for _, hook := range b.FilePreHooks {
+		errE := hook(ctx, id, nil)
+		if errE != nil {
+			return nil, nil, store.Version{}, nil, errE
+		}
+	}
+	data, metadata, version, parentChangesets, errE := b.files.Store().GetLatest(ctx, id)
+	for _, hook := range b.FilePostHooks {
+		data, metadata, version, parentChangesets, errE = hook(ctx, data, metadata, version, parentChangesets, errE)
+	}
+	return data, metadata, version, parentChangesets, errE
 }

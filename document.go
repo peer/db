@@ -84,6 +84,9 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 		// This includes ErrValueDeleted, too.
 		s.NotFoundWithError(w, req, errE)
 		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		waf.Error(w, req, http.StatusUnauthorized)
+		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -137,43 +140,12 @@ func (s *Service) documentGetData(
 		// This includes ErrValueDeleted, too.
 		s.NotFoundWithError(w, req, errE)
 		return nil, nil, store.Version{}, true
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		waf.Error(w, req, http.StatusUnauthorized)
+		return nil, nil, store.Version{}, true
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return nil, nil, store.Version{}, true
-	}
-
-	if len(s.DocumentHooks) > 0 {
-		m := metrics.Duration(internalStore.MetricHooks).Start()
-		doc := new(document.D)
-		errE := x.UnmarshalWithoutUnknownFields(dataJSON, doc)
-		if errE != nil {
-			m.Stop()
-			s.InternalServerErrorWithError(w, req, errE)
-			return nil, nil, store.Version{}, true
-		}
-		for i, hook := range s.DocumentHooks {
-			doc, errE = hook(ctx, doc)
-			if errE != nil {
-				m.Stop()
-				errors.Details(errE)["hook"] = i
-				s.InternalServerErrorWithError(w, req, errE)
-				return nil, nil, store.Version{}, true
-			}
-			if doc == nil {
-				m.Stop()
-				errE = errors.New("hook returned nil document")
-				errors.Details(errE)["hook"] = i
-				s.InternalServerErrorWithError(w, req, errE)
-				return nil, nil, store.Version{}, true
-			}
-		}
-		dataJSON, errE = x.MarshalWithoutEscapeHTML(doc)
-		if errE != nil {
-			m.Stop()
-			s.InternalServerErrorWithError(w, req, errE)
-			return nil, nil, store.Version{}, true
-		}
-		m.Stop()
 	}
 
 	return dataJSON, metadata, version, false

@@ -52,6 +52,22 @@ type B struct {
 	// Hooks are called in order to allow for modification of documents before they are indexed.
 	IndexingHooks []func(doc *document.D) (*document.D, errors.E)
 
+	// DocumentPreHooks are called before fetching the document from the store.
+	DocumentPreHooks []func(ctx context.Context, id identifier.Identifier, version *store.Version) errors.E
+
+	// DocumentPostHooks are called after fetching the document from the store.
+	DocumentPostHooks []func(
+		ctx context.Context, data json.RawMessage, metadata *internalStore.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
+	) (json.RawMessage, *internalStore.DocumentMetadata, store.Version, []store.Version, errors.E)
+
+	// FilePreHooks are called before fetching the file from the store.
+	FilePreHooks []func(ctx context.Context, id identifier.Identifier, version *store.Version) errors.E
+
+	// FilePostHooks are called after fetching the file from the store.
+	FilePostHooks []func(
+		ctx context.Context, data []byte, metadata *storage.FileMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
+	) ([]byte, *storage.FileMetadata, store.Version, []store.Version, errors.E)
+
 	// RegisterWorkers is called to register workers for processing background jobs.
 	RegisterWorkers func(context.Context, *river.Workers) errors.E
 
