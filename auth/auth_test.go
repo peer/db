@@ -273,6 +273,143 @@ func TestMustSubjectPanics(t *testing.T) {
 	})
 }
 
+func TestMaybeAuthenticatedAttachesValidToken(t *testing.T) {
+	t.Parallel()
+
+	const audience = "peerdb"
+	verifier, issuer, priv := newTestVerifier(t)
+
+	token := signedToken(t, priv, map[string]any{
+		"iss":   issuer,
+		"aud":   audience,
+		"sub":   "user-42",
+		"exp":   strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10),
+		"scope": "role.editor",
+	})
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+
+	ctx := verifier.MaybeAuthenticated(w, req)
+
+	subject, ok := auth.Subject(ctx)
+	require.True(t, ok)
+	assert.Equal(t, "user-42", subject)
+	assert.Equal(t, []string{"editor"}, auth.Roles(ctx))
+	// The response is left untouched apart from the Vary header.
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, []string{"Authorization"}, w.Header().Values("Vary"))
+}
+
+func TestMaybeAuthenticatedSilentlyDropsBadToken(t *testing.T) {
+	t.Parallel()
+
+	const audience = "peerdb"
+	verifier, issuer, priv := newTestVerifier(t)
+
+	tests := []struct {
+		name   string
+		header string
+	}{
+		{"no header", ""},
+		{"malformed bearer", "Bearer not-a-jwt"},
+		{
+			"expired",
+			"Bearer " + signedToken(t, priv, map[string]any{
+				"iss": issuer,
+				"aud": audience,
+				"sub": "user-42",
+				"exp": strconv.FormatInt(time.Now().Add(-time.Hour).Unix(), 10),
+			}),
+		},
+		{
+			"wrong audience",
+			"Bearer " + signedToken(t, priv, map[string]any{
+				"iss": issuer,
+				"aud": "someone-else",
+				"sub": "user-42",
+				"exp": strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10),
+			}),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
+			if tt.header != "" {
+				req.Header.Set("Authorization", tt.header)
+			}
+			w := httptest.NewRecorder()
+
+			ctx := verifier.MaybeAuthenticated(w, req)
+
+			// No response written, ctx carries no identity.
+			assert.Equal(t, http.StatusOK, w.Code)
+			_, ok := auth.Subject(ctx)
+			assert.False(t, ok)
+			assert.Empty(t, auth.Roles(ctx))
+			// Vary is still set even when no token was presented so cached
+			// responses correctly key on Authorization.
+			assert.Equal(t, []string{"Authorization"}, w.Header().Values("Vary"))
+		})
+	}
+}
+
+func TestMiddlewareAttachesIdentityToDownstreamHandler(t *testing.T) {
+	t.Parallel()
+
+	const audience = "peerdb"
+	verifier, issuer, priv := newTestVerifier(t)
+
+	token := signedToken(t, priv, map[string]any{
+		"iss":   issuer,
+		"aud":   audience,
+		"sub":   "user-77",
+		"exp":   strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10),
+		"scope": "role.admin",
+	})
+
+	var seenSubject string
+	var seenRoles []string
+	handler := verifier.Middleware()(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		seenSubject, _ = auth.Subject(r.Context())
+		seenRoles = auth.Roles(r.Context())
+	}))
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "user-77", seenSubject)
+	assert.Equal(t, []string{"admin"}, seenRoles)
+}
+
+func TestMiddlewareLeavesAnonymousRequestsAlone(t *testing.T) {
+	t.Parallel()
+
+	verifier, _, _ := newTestVerifier(t)
+
+	called := false
+	handler := verifier.Middleware()(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		called = true
+		_, ok := auth.Subject(r.Context())
+		assert.False(t, ok)
+		assert.Empty(t, auth.Roles(r.Context()))
+	}))
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	assert.True(t, called, "downstream handler must run for anonymous requests")
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
 func TestIssuerAndClientIDExposedOnVerifier(t *testing.T) {
 	t.Parallel()
 

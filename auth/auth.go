@@ -86,38 +86,77 @@ func (v *Verifier) ClientID() string {
 	return v.clientID
 }
 
-// RequireAuthenticated verifies the request's bearer token. On success it
-// returns the request context enriched with the subject and roles claimed by
-// the token. On failure it writes a 401 Unauthorized response and returns nil.
-func (v *Verifier) RequireAuthenticated(w http.ResponseWriter, req *http.Request) context.Context {
+// authenticate verifies the bearer token attached to req, if any. On success
+// it returns the request ctx enriched with the subject and roles claimed by
+// the token and ok=true. On any failure (no token, malformed, expired, wrong
+// audience, signature mismatch, claim parse error) it returns the original
+// request ctx unchanged and ok=false, without writing to w - the caller
+// decides whether the failure is a 401 or just an anonymous request.
+//
+// Vary: Authorization is set regardless so that responses cached upstream
+// reflect that they depend on whether the caller presented a token.
+func (v *Verifier) authenticate(w http.ResponseWriter, req *http.Request) (context.Context, bool) {
 	ctx := req.Context()
 
-	// Responses depend on the Authorization header.
 	if !slices.Contains(w.Header().Values("Vary"), "Authorization") {
 		w.Header().Add("Vary", "Authorization")
 	}
 
 	token := getBearerToken(req)
 	if token == "" {
-		waf.Error(w, req, http.StatusUnauthorized)
-		return nil
+		return ctx, false
 	}
 
 	idToken, err := v.verifier.Verify(ctx, token)
 	if err != nil {
-		waf.Error(w, req, http.StatusUnauthorized)
-		return nil
+		return ctx, false
 	}
 
 	roles, errE := extractRoles(idToken)
 	if errE != nil {
-		waf.Error(w, req, http.StatusUnauthorized)
-		return nil
+		return ctx, false
 	}
 
 	ctx = WithSubject(ctx, idToken.Subject)
 	ctx = WithRoles(ctx, roles)
+	return ctx, true
+}
+
+// RequireAuthenticated verifies the request's bearer token. On success it
+// returns the request context enriched with the subject and roles claimed by
+// the token. On failure it writes a 401 Unauthorized response and returns nil.
+func (v *Verifier) RequireAuthenticated(w http.ResponseWriter, req *http.Request) context.Context {
+	ctx, ok := v.authenticate(w, req)
+	if !ok {
+		waf.Error(w, req, http.StatusUnauthorized)
+		return nil
+	}
 	return ctx
+}
+
+// MaybeAuthenticated is the non-rejecting counterpart of RequireAuthenticated.
+// It verifies the bearer token if one is present and returns ctx with subject
+// and roles attached, but treats any failure (missing, malformed, expired,
+// wrong audience) as an anonymous request and returns the original ctx
+// unchanged. No response is written. Use this for endpoints whose behaviour
+// merely depends on who is signed in (and may also serve anonymous users).
+func (v *Verifier) MaybeAuthenticated(w http.ResponseWriter, req *http.Request) context.Context {
+	ctx, _ := v.authenticate(w, req)
+	return ctx
+}
+
+// Middleware returns an http.Handler middleware that runs MaybeAuthenticated
+// on every request and forwards the (possibly enriched) ctx to the wrapped
+// handler. Use it as a global middleware so handlers downstream can rely on
+// auth.Subject / auth.Roles being populated whenever the caller presented a
+// valid token, without having to call the Verifier themselves.
+func (v *Verifier) Middleware() func(http.Handler) http.Handler {
+	return func(handler http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			ctx := v.MaybeAuthenticated(w, req)
+			handler.ServeHTTP(w, req.WithContext(ctx)) //nolint:contextcheck
+		})
+	}
 }
 
 // getBearerToken extracts the bearer token from the request's Authorization

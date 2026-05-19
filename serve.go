@@ -113,8 +113,9 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 	var middleware []func(http.Handler) http.Handler
 
 	if c.Username != "" && c.Password != nil {
-		middleware = append(middleware, basicAuthHandler(c.Username, strings.TrimSpace(string(c.Password))))
 		globals.Logger.Info().Str("username", c.Username).Msg("authentication enabled for all sites")
+
+		middleware = append(middleware, basicAuthHandler(c.Username, strings.TrimSpace(string(c.Password))))
 	}
 
 	var verifier *auth.Verifier
@@ -124,6 +125,14 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			return nil, onShutdown, errE
 		}
 		globals.Logger.Info().Str("issuer", c.Auth.Issuer).Str("clientId", c.Auth.ClientID).Msg("OIDC authentication enabled")
+
+		// We attach the OIDC middleware last so the bearer token is verified
+		// after any preceding gate (e.g. basicAuth) has already let the request
+		// through. The middleware is permissive - it never rejects on its own -
+		// so handlers that require a signed-in caller still have to call
+		// Verifier.RequireAuthenticated explicitly; handlers that adapt to who
+		// is signed in can just read auth.Subject / auth.Roles from ctx.
+		middleware = append(middleware, verifier.Middleware())
 	}
 
 	// We populate per-site OIDC context so the frontend knows how to start a
