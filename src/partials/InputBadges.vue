@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n"
 
 defineProps<{
   required?: boolean
+  multiple?: boolean
   changed?: boolean
 }>()
 
@@ -16,6 +17,7 @@ const { t } = useI18n({ useScope: "global" })
 
 <template>
   <span v-if="required" class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.required") }}</span>
+  <span v-if="multiple" class="rounded-xs bg-slate-100 px-1.5 py-0.5 text-xs leading-none text-gray-600 shadow-xs">{{ t("common.labels.multiple") }}</span>
   <!--
     The "changed" badge doubles as a per-field revert button. At rest it looks
     identical to the original static badge; on hover/focus it picks up the

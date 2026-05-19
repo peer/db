@@ -1,6 +1,6 @@
 import type { DeepReadonly, InjectionKey } from "vue"
 
-import type { Claim, ClaimTypeName } from "@/document"
+import type { Claim, ClaimTypeName, TimePrecision } from "@/document"
 
 import {
   CARDINALITY,
@@ -313,61 +313,135 @@ export const saveChangeKey: InjectionKey<(change: object, changeNumber: number) 
 export const registerForFlushKey: InjectionKey<(instance: FlushFn) => void> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-registerForFlush") : Symbol()
 export const unregisterForFlushKey: InjectionKey<(instance: FlushFn) => void> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-unregisterForFlush") : Symbol()
 
-// ExistingClaimValue represents an existing claim's value extracted for display in form fields.
-export interface ExistingClaimValue {
-  claimId: string
-  // Primary value (or "from" for interval types).
+// FieldEntryValue is the per-entry state edited by FieldsForm. The fields
+// are wide enough to cover every claim type the form handles - non-relevant
+// fields stay at their default values. Intervals split into "from" (value/
+// amountPrecision/timePrecision) and "to" (valueTo/amountPrecisionTo/
+// timePrecisionTo); the missing-state flags pair with each side and are
+// kept mutually exclusive by the InputMissing wrapper that drives them.
+export interface FieldEntryValue {
   value: string
-  // Secondary value ("to" for interval types, empty for non-interval types).
   valueTo: string
+  amountPrecision: string
+  amountPrecisionTo: string
+  timePrecision: TimePrecision
+  timePrecisionTo: TimePrecision
+  fromUnknown: boolean
+  fromNone: boolean
+  toUnknown: boolean
+  toNone: boolean
 }
 
-// getClaimValues extracts the primary and secondary (for intervals) string values from a claim.
-function getClaimValues(claim: DeepReadonly<Claim>): { value: string; valueTo: string } {
+// emptyFieldEntryValue returns a fresh FieldEntryValue for a new (blank) entry.
+export function emptyFieldEntryValue(): FieldEntryValue {
+  return {
+    value: "",
+    valueTo: "",
+    amountPrecision: "",
+    amountPrecisionTo: "",
+    timePrecision: "y",
+    timePrecisionTo: "y",
+    fromUnknown: false,
+    fromNone: false,
+    toUnknown: false,
+    toNone: false,
+  }
+}
+
+// ExistingClaimValue is FieldEntryValue with the claim's ID attached.
+export interface ExistingClaimValue extends FieldEntryValue {
+  claimId: string
+}
+
+// getClaimValues extracts a FieldEntryValue from an existing claim.
+function getClaimValues(claim: DeepReadonly<Claim>): FieldEntryValue {
+  const v = emptyFieldEntryValue()
   if (claim instanceof IdentifierClaim) {
-    return { value: claim.value, valueTo: "" }
+    v.value = claim.value
+    return v
   }
   if (claim instanceof StringClaim) {
-    return { value: claim.string, valueTo: "" }
+    v.value = claim.string
+    return v
   }
   if (claim instanceof HTMLClaim) {
-    return { value: claim.html, valueTo: "" }
+    v.value = claim.html
+    return v
   }
   if (claim instanceof AmountClaim) {
-    return { value: claim.amount, valueTo: "" }
+    v.value = claim.amount
+    v.amountPrecision = String(claim.precision)
+    return v
   }
   if (claim instanceof AmountIntervalClaim) {
-    return { value: claim.from ?? "", valueTo: claim.to ?? "" }
+    v.value = claim.from ?? ""
+    v.valueTo = claim.to ?? ""
+    v.amountPrecision = claim.fromPrecision !== undefined ? String(claim.fromPrecision) : ""
+    v.amountPrecisionTo = claim.toPrecision !== undefined ? String(claim.toPrecision) : ""
+    v.fromUnknown = !!claim.fromIsUnknown
+    v.fromNone = !!claim.fromIsNone
+    v.toUnknown = !!claim.toIsUnknown
+    v.toNone = !!claim.toIsNone
+    return v
   }
   if (claim instanceof TimeClaim) {
-    return { value: claim.time, valueTo: "" }
+    v.value = claim.time
+    v.timePrecision = claim.precision
+    return v
   }
   if (claim instanceof TimeIntervalClaim) {
-    return { value: claim.from ?? "", valueTo: claim.to ?? "" }
+    v.value = claim.from ?? ""
+    v.valueTo = claim.to ?? ""
+    v.timePrecision = claim.fromPrecision ?? "y"
+    v.timePrecisionTo = claim.toPrecision ?? "y"
+    v.fromUnknown = !!claim.fromIsUnknown
+    v.fromNone = !!claim.fromIsNone
+    v.toUnknown = !!claim.toIsUnknown
+    v.toNone = !!claim.toIsNone
+    return v
   }
   if (claim instanceof LinkClaim) {
-    return { value: claim.iri, valueTo: "" }
+    v.value = claim.iri
+    return v
   }
   if (claim instanceof ReferenceClaim) {
-    return { value: claim.to.id, valueTo: "" }
+    v.value = claim.to.id
+    return v
   }
   if (claim instanceof HasClaim || claim instanceof NoneClaim || claim instanceof UnknownClaim) {
-    return { value: "", valueTo: "" }
+    return v
   }
   throw new Error("unsupported claim type")
 }
 
-// getExistingClaimValues finds existing claims for a field and returns their IDs and string values.
+// equalFieldEntryValue returns true if two FieldEntryValues are materially
+// equivalent (same value, same precision, same missing-state flags).
+// Used by FieldsFormField to detect whether a property has any session-level
+// modification relative to its pre-session baseline.
+export function equalFieldEntryValue(a: FieldEntryValue, b: FieldEntryValue): boolean {
+  return (
+    a.value === b.value &&
+    a.valueTo === b.valueTo &&
+    a.amountPrecision === b.amountPrecision &&
+    a.amountPrecisionTo === b.amountPrecisionTo &&
+    a.timePrecision === b.timePrecision &&
+    a.timePrecisionTo === b.timePrecisionTo &&
+    a.fromUnknown === b.fromUnknown &&
+    a.fromNone === b.fromNone &&
+    a.toUnknown === b.toUnknown &&
+    a.toNone === b.toNone
+  )
+}
+
+// getExistingClaimValues finds existing claims for a field and returns their IDs
+// and full FieldEntryValue state.
 export function getExistingClaimValues(claims: DeepReadonly<ClaimTypes> | undefined | null, field: FieldData): ExistingClaimValue[] {
   if (!claims) {
     return []
   }
   const claimType = valueTypeToClaimType(field.valueType)
   const existing = getClaimsOfTypeWithConfidence(claims, claimType, field.propertyId)
-  return existing.map((claim) => {
-    const { value, valueTo } = getClaimValues(claim)
-    return { claimId: claim.GetID(), value, valueTo }
-  })
+  return existing.map((claim) => ({ claimId: claim.GetID(), ...getClaimValues(claim) }))
 }
 
 // isIntervalField returns true if the field's value type is an interval (amount interval or time interval).
@@ -376,64 +450,79 @@ export function isIntervalField(field: FieldData): boolean {
   return claimType === "amountInterval" || claimType === "timeInterval"
 }
 
-// makePatchForField creates a patch object for a field based on its value type.
-// For interval fields, valueTo is the "to" bound.
-export function makePatchForField(field: FieldData, value: string, valueTo?: string): object {
+// makePatchForField creates a patch object for a field from a FieldEntryValue.
+// Per-side missing-state flags (fromUnknown/fromNone/toUnknown/toNone) take
+// precedence over a typed value for that side.
+export function makePatchForField(field: FieldData, data: FieldEntryValue): object {
   const claimType = valueTypeToClaimType(field.valueType)
   const base = { type: claimType, confidence: HighConfidence, prop: field.propertyId }
   switch (claimType) {
     case "id":
-      return { ...base, value }
+      return { ...base, value: data.value }
     case "string":
-      return { ...base, string: value }
+      return { ...base, string: data.value }
     case "html":
-      return { ...base, html: value }
-    case "amount":
-      // TODO: Handle precision properly.
-      return { ...base, amount: value, precision: 1 }
+      return { ...base, html: data.value }
+    case "amount": {
+      const p = parseFloat(data.amountPrecision)
+      return { ...base, amount: data.value, precision: isFinite(p) && p > 0 ? p : 1 }
+    }
     case "amountInterval": {
       const patch: Record<string, unknown> = { ...base }
-      if (value) {
-        patch.from = value
-        // TODO: Handle precision properly.
-        patch.fromPrecision = 1
+      if (data.fromUnknown) {
+        patch.fromIsUnknown = true
+      } else if (data.fromNone) {
+        patch.fromIsNone = true
+      } else if (data.value) {
+        patch.from = data.value
+        const fp = parseFloat(data.amountPrecision)
+        patch.fromPrecision = isFinite(fp) && fp > 0 ? fp : 1
       } else {
         patch.fromIsNone = true
       }
-      if (valueTo) {
-        patch.to = valueTo
-        // TODO: Handle precision properly.
-        patch.toPrecision = 1
+      if (data.toUnknown) {
+        patch.toIsUnknown = true
+      } else if (data.toNone) {
+        patch.toIsNone = true
+      } else if (data.valueTo) {
+        patch.to = data.valueTo
+        const tp = parseFloat(data.amountPrecisionTo)
+        patch.toPrecision = isFinite(tp) && tp > 0 ? tp : 1
       } else {
         patch.toIsNone = true
       }
       return patch
     }
     case "time":
-      // TODO: Handle precision properly.
-      return { ...base, time: value, precision: "d" }
+      return { ...base, time: data.value, precision: data.timePrecision }
     case "timeInterval": {
       const patch: Record<string, unknown> = { ...base }
-      if (value) {
-        patch.from = value
-        // TODO: Handle precision properly.
-        patch.fromPrecision = "d"
+      if (data.fromUnknown) {
+        patch.fromIsUnknown = true
+      } else if (data.fromNone) {
+        patch.fromIsNone = true
+      } else if (data.value) {
+        patch.from = data.value
+        patch.fromPrecision = data.timePrecision
       } else {
         patch.fromIsNone = true
       }
-      if (valueTo) {
-        patch.to = valueTo
-        // TODO: Handle precision properly.
-        patch.toPrecision = "d"
+      if (data.toUnknown) {
+        patch.toIsUnknown = true
+      } else if (data.toNone) {
+        patch.toIsNone = true
+      } else if (data.valueTo) {
+        patch.to = data.valueTo
+        patch.toPrecision = data.timePrecisionTo
       } else {
         patch.toIsNone = true
       }
       return patch
     }
     case "link":
-      return { ...base, iri: value }
+      return { ...base, iri: data.value }
     case "ref":
-      return { ...base, to: value }
+      return { ...base, to: data.value }
     case "has":
     case "none":
     case "unknown":

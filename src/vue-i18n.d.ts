@@ -55,6 +55,7 @@ declare module "vue-i18n" {
         amount: string
         precision: string
         required: string
+        multiple: string
         changed: string
       }
       icons: {
@@ -195,7 +196,6 @@ declare module "vue-i18n" {
         details: string
       }
       FieldsForm: {
-        addAnother: string
         from: string
         to: string
       }

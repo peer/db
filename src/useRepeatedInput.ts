@@ -32,6 +32,16 @@ export type RepeatedInput<T, N extends string = string> = {
   // which filter empty inputs out); otherwise the stored value, or
   // the default if nothing has been stored (yet) for the input.
   valueFor: (input: ValidatedInput) => T
+  // Writes the model's value for the given input from outside the v-model
+  // path. Useful when a caller needs to seed existing values into the
+  // input's row before the row's wrapped input registers its own change.
+  // The wrapped input's v-model picks up the change on the next render.
+  setFor: (input: ValidatedInput, value: T) => void
+  // Reads the stored value for the given input, ignoring isEmpty. Returns
+  // the default when nothing has been stored. Useful to read every model's
+  // raw value at flush time without losing the "user typed precision but
+  // not amount" half-state that valueFor would suppress.
+  rawFor: (input: ValidatedInput) => T
 }
 
 // useRepeatedInput maintains a per-input value store for ONE model on a
@@ -125,6 +135,14 @@ export function useRepeatedInput<T>(nameOrOptions?: string | RepeatedInputOption
     return stored(input)
   }
 
+  function setFor(input: ValidatedInput, value: T): void {
+    store.set(input, value)
+  }
+
+  function rawFor(input: ValidatedInput): T {
+    return stored(input)
+  }
+
   function entries(): [ValidatedInput, T][] {
     const list: [ValidatedInput, T][] = []
     for (const [input, value] of store) {
@@ -147,7 +165,7 @@ export function useRepeatedInput<T>(nameOrOptions?: string | RepeatedInputOption
     return entries().map(([, v]) => v)
   }
 
-  return { name, values, entries, modelFor, valueFor }
+  return { name, values, entries, modelFor, valueFor, setFor, rawFor }
 }
 
 // Combined row: one record per non-empty primary entry, keyed by each

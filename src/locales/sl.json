@@ -44,6 +44,7 @@
       "amount": "Količina",
       "precision": "Natančnost",
       "required": "obvezno",
+      "multiple": "večkratno",
       "changed": "spremenjeno"
     },
     "icons": {
@@ -184,7 +185,6 @@
       "details": "Podrobnosti"
     },
     "FieldsForm": {
-      "addAnother": "Dodaj še enega",
       "from": "Od",
       "to": "Do"
     },

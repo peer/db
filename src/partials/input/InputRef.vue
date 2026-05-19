@@ -278,7 +278,13 @@ const WithPeerDBDocument = WithDocument<D>
 </script>
 
 <template>
-  <div ref="wrapperRef" @focusout="onWrapperFocusout">
+  <!--
+    Default layout classes on the wrapper. inheritAttrs: false above means
+    the parent's class does not auto-merge onto this root (fallthrough attrs
+    target the combobox input), so the wrapper needs explicit flex-item
+    classes to stretch in a row-flex parent the way InputString et al. do.
+  -->
+  <div ref="wrapperRef" class="min-w-0 flex-auto grow" @focusout="onWrapperFocusout">
     <Combobox v-slot="{ open }" :model-value="selectedDocument" as="div" immediate by="id" @update:model-value="onSelect">
       <!--
         Grid with a single minmax(0,1fr) column. The "0" min track size

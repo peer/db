@@ -1312,7 +1312,14 @@ onMounted(() => {
       updateActiveState(newState)
       if (!transaction.docChanged) return
       isStructurallyEmpty.value = isDocEmpty(newState.doc)
-      const html = docToHtml(newState.doc)
+      // Canonicalise the structurally-empty serialisation to "" rather than
+      // PM's "<p></p>". This keeps isDirty=false for a row that the user
+      // typed into and then cleared back out (whose checkpoint is the empty
+      // default "") - structurally the row is unchanged, the value string
+      // should reflect that. An existing claim seeded with non-empty HTML
+      // still flips isDirty=true on clear, since its checkpoint is the
+      // seeded HTML.
+      const html = isDocEmpty(newState.doc) ? "" : docToHtml(newState.doc)
       if (html === model.value) return
       suppressModelWatcher = true
       model.value = html

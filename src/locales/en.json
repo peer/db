@@ -44,6 +44,7 @@
       "amount": "Amount",
       "precision": "Precision",
       "required": "required",
+      "multiple": "multiple",
       "changed": "changed"
     },
     "icons": {
@@ -184,7 +185,6 @@
       "details": "Details"
     },
     "FieldsForm": {
-      "addAnother": "Add another",
       "from": "From",
       "to": "To"
     },

@@ -22,12 +22,19 @@ const props = withDefaults(
     required?: boolean
     // Presentational override forwarded to every row.
     invalid?: boolean
+    // Initial row count override. Use when the caller has external data
+    // to pre-populate into the rows (e.g. existing claims): pass the
+    // count and the caller will seed each row's models via the
+    // useRepeatedInput's setFor as inputs register. Falls back to
+    // max(1, effectiveMin) when omitted. Clamped to max.
+    initial?: number
   }>(),
   {
     min: 0,
     max: null,
     required: false,
     invalid: false,
+    initial: undefined,
   },
 )
 
@@ -56,13 +63,15 @@ function newId(): number {
   return nextId++
 }
 
-// initialRowCount: effectiveMin, but with a floor of 1 so the user always
-// has at least one row to type into. We do NOT add a trailing row up
-// front - the user has not interacted yet, so an extra empty row would
-// just clutter the UI. The trailing row appears the first time the user
-// types into the last row (via adjustRows on interaction).
+// initialRowCount: the explicit initial prop, or effectiveMin with a floor
+// of 1 so the user always has at least one row to type into. We do NOT add
+// a trailing row up front - the user has not interacted yet, so an extra
+// empty row would just clutter the UI. The trailing row appears the first
+// time the user types into the last row (via adjustRows on interaction).
+// initial is what callers pass when they have N existing values to seed
+// into rows on mount (e.g. FieldsFormField's existing-claim rows).
 function initialRowCount(): number {
-  let count = Math.max(1, effectiveMin.value)
+  let count = Math.max(1, props.initial ?? effectiveMin.value)
   if (props.max !== null) count = Math.min(count, props.max)
   return count
 }
@@ -124,7 +133,11 @@ const orderedInputs = computed<ValidatedInput[]>(() => {
 function adjustRows(): void {
   if (props.max === null || rows.value.length < props.max) {
     const arr = orderedInputs.value
-    if (arr.length === rows.value.length && arr.length > 0 && arr.every((i) => !i.isEmpty.value)) {
+    // arr.every on an empty array vacuously returns true, which is the
+    // behaviour we want post-removeRow: when every row was a delete-on-empty
+    // claim that has been dismissed, we still want one trailing empty row so
+    // the user can immediately type a fresh value.
+    if (arr.length === rows.value.length && arr.every((i) => !i.isEmpty.value)) {
       rows.value.push(newId())
       return
     }
@@ -147,6 +160,20 @@ function adjustRows(): void {
     len--
   }
 }
+
+// Reactively re-run adjustRows whenever any row's emptiness changes. The
+// onInteraction path already covers interactive typing in inputs whose
+// isEmpty flips synchronously with model (InputText et al.). But inputs
+// like InputHTML expose an isEmpty derived from a separate state ref that
+// is updated AFTER useValidation's model watcher fires - so by the time
+// onInteraction-driven adjustRows runs, isEmpty is still stale. A direct
+// watch on the per-row isEmpty values catches that asynchronous transition
+// and grows/shrinks rows correctly.
+watch(
+  () => orderedInputs.value.map((i) => i.isEmpty.value),
+  () => adjustRows(),
+  { flush: "post" },
+)
 
 // Required-violation computation, aligned with rendered (document) order
 // via orderedInputs, so flags[idx] is the violation flag for rows[idx].
@@ -234,10 +261,17 @@ const validatedInput: ValidatedInput = {
     }
   },
   el: firstChildEl,
-  isDirty: computed<boolean>(() => {
-    if (rows.value.length !== checkpointRowCount.value) return true
-    return anyChildDirty.value
-  }),
+  // Dirty state is driven purely by the rows' own inputs. We deliberately
+  // do NOT also compare rows.length against the checkpoint, because seed-
+  // driven setups (e.g. FieldsFormField pre-populating N existing values)
+  // trigger adjustRows to auto-push a trailing empty during mount; that
+  // bumps rows.length to N+1 while checkpointRowCount stays at the
+  // initial-prop's N, which would falsely mark the cardinality dirty from
+  // the start. anyChildDirty already captures every user-driven change
+  // because the user cannot add or remove a row without typing something
+  // into it (or clearing something previously typed), and clearing is
+  // exactly what flips an inner input to dirty.
+  isDirty: anyChildDirty,
   isEmpty: allChildEmpty,
   errors,
   checkpoint: () => {
@@ -249,7 +283,26 @@ const validatedInput: ValidatedInput = {
 const { onInteraction: notifyOuter } = useRegisterForValidation(validatedInput)
 forwardInteraction = notifyOuter
 
-defineExpose(validatedInput)
+// removeRow drops the row whose input identity matches `input` from the
+// rows array. Used by callers that map rows to external identity (e.g. a
+// claim ID) and want a full row removal when the underlying value is
+// deleted - the auto-shrink logic only pops empty trailing rows, so a
+// middle row that the user emptied would otherwise stay behind.
+function removeRow(input: ValidatedInput): void {
+  const idx = orderedInputs.value.indexOf(input)
+  if (idx === -1) return
+  rows.value.splice(idx, 1)
+}
+
+// Expose the registered child inputs (in DOM order) alongside the standard
+// ValidatedInput so a caller can pair each row with external metadata, e.g.
+// a claim ID, that the cardinality itself does not know about. removeRow
+// lets the caller dismiss a specific row after committing its deletion.
+defineExpose({
+  ...validatedInput,
+  inputs: orderedInputs,
+  removeRow,
+})
 
 // Trigger the required check when focus leaves the entire
 // InputCardinality (the rows plus anything else inside us). focusout

@@ -11,7 +11,7 @@ import type { ComponentExposed } from "vue-component-type-helpers"
 
 import type { TimePrecision } from "@/document"
 import type { FieldsFormSaveChange, FlushFn } from "@/fields"
-import type { DocumentBeginMetadata, DocumentEditStatus, DocumentEndEditResponse } from "@/types"
+import type { DocumentBeginMetadata, DocumentEditStatus, DocumentEndEditResponse, ValidatedInput, ValidateFn } from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { computed, nextTick, onBeforeUnmount, provide, readonly, ref, toRef, useTemplateRef, watch } from "vue"
@@ -164,6 +164,19 @@ const saveBusy = localCounter(lock)
 const el = useTemplateRef<HTMLElement>("el")
 const displayLabelComponent = useTemplateRef<ComponentExposed<typeof DisplayLabel>>("displayLabelComponent")
 const claimFormRef = useTemplateRef<HTMLFormElement>("claimFormRef")
+// Explicit handle type for the FieldsForm ref. ComponentExposed<typeof FieldsForm>
+// loses the parameter types of its exposed methods, which trips the unsafe-call
+// lint rule. Spelling the shape out matches FieldsForm's defineExpose.
+const fieldsFormRef = useTemplateRef<{
+  validateAll: ValidateFn
+  inputs: ReadonlySet<ValidatedInput>
+  // anyDirty is exposed by FieldsForm as a ref but defineExpose's proxy
+  // unwraps refs on access from the parent's template ref - so we read it
+  // as a plain boolean here. Used by canSave to also enable Save when the
+  // only pending changes are deferred deletes (emptied existing-claim rows
+  // that have not produced a saveChange yet).
+  anyDirty: boolean
+}>("fieldsFormRef")
 
 const { resetAll, firstEl, allEmpty, anyDirty, anyError, inputs, validateAll, checkpointAll } = useValidationRegistry(() => {
   // Any registered-input interaction clears stale form-level errors so the
@@ -184,6 +197,15 @@ onBeforeUnmount(() => {
 
 const _doc = ref<D | null>(null)
 const doc = process.env.NODE_ENV !== "production" ? readonly(_doc) : _doc
+// Pristine snapshot of the doc as it was BEFORE any session changes
+// were applied (i.e. the doc fetched at beginMetadata.version, untouched).
+// FieldsForm uses this as the baseline against which the per-property
+// "changed" badge and the Revert action diff: a reload mid-session must
+// still see existing committed-in-session changes as "changed" relative
+// to the session's starting point, not relative to the freshly-reloaded
+// (already-changes-applied) doc.
+const _initialDoc = ref<D | null>(null)
+const initialDoc = process.env.NODE_ENV !== "production" ? readonly(_initialDoc) : _initialDoc
 
 // Tracks the change number which was committed in the backend.
 // A ref so canSave reactively follows whether anything has been added to
@@ -226,6 +248,48 @@ const docRef = toRef(() => doc.value ?? null)
 const { classDocs, instanceOfClassIds, initialized: classesInitialized } = useParentClasses(docRef, el, busy)
 const { fieldsData: mergedFieldsData, classTabId } = useDocumentFields(classDocs, instanceOfClassIds)
 
+// Applies session changes [fromChange+1 .. latest] to target. Returns the
+// new highest applied change number. Caller owns publishing target into
+// reactive state - this helper deliberately does not touch _doc.value or
+// committedChange, so the initial load can build the doc off-tree and
+// publish it atomically (see loadAndSubscribe).
+async function applyPendingChanges(target: D, fromChange: number): Promise<number> {
+  const { doc: changesList } = await getURLDirect<number[]>(
+    router.apiResolve({
+      name: "DocumentListChanges",
+      params: {
+        session: props.session,
+      },
+    }).href,
+    abortController.signal,
+    null,
+  )
+  if (abortController.signal.aborted) {
+    return fromChange
+  }
+  let current = fromChange
+  for (; changesList.length > 0 && current < changesList[0]; current++) {
+    const { doc: changeDoc } = await getURL<object>(
+      router.apiResolve({
+        name: "DocumentGetChange",
+        params: {
+          session: props.session,
+          change: current + 1,
+        },
+      }).href,
+      null,
+      abortController.signal,
+      null,
+    )
+    if (abortController.signal.aborted) {
+      return current
+    }
+    const change = changeFrom(changeDoc)
+    await change.Apply(target)
+  }
+  return current
+}
+
 let running = false
 async function loadChanges() {
   if (running) {
@@ -233,38 +297,11 @@ async function loadChanges() {
   }
   running = true
   try {
-    const { doc: changesList } = await getURLDirect<number[]>(
-      router.apiResolve({
-        name: "DocumentListChanges",
-        params: {
-          session: props.session,
-        },
-      }).href,
-      abortController.signal,
-      null,
-    )
+    const next = await applyPendingChanges(_doc.value!, committedChange.value)
     if (abortController.signal.aborted) {
       return
     }
-    for (; changesList.length > 0 && committedChange.value < changesList[0]; committedChange.value++) {
-      const { doc: changeDoc } = await getURL<object>(
-        router.apiResolve({
-          name: "DocumentGetChange",
-          params: {
-            session: props.session,
-            change: committedChange.value + 1,
-          },
-        }).href,
-        null,
-        abortController.signal,
-        null,
-      )
-      if (abortController.signal.aborted) {
-        return
-      }
-      const change = changeFrom(changeDoc)
-      await change.Apply(_doc.value!)
-    }
+    committedChange.value = next
   } finally {
     running = false
   }
@@ -303,7 +340,33 @@ async function loadAndSubscribe() {
     return
   }
 
-  _doc.value = new D(initialDoc)
+  // Build the doc locally and apply the session's pending changes
+  // before publishing _doc. Otherwise reactive consumers
+  // (useParentClasses, useDocumentFields) observe a transient state
+  // where the doc exists but its claims have not been applied yet -
+  // for fresh sessions the instance_of ref arrives via the first
+  // change, so the empty-classIds branch in useParentClasses would
+  // briefly mark classes as initialized with no class tab, causing
+  // a tab-mount race where the class tab is registered late and
+  // ends up at a non-selected index.
+  //
+  // We also keep a pristine D instance constructed from the same raw
+  // JSON (deep-cloned so applyPendingChanges below cannot mutate it
+  // through shared object references) as _initialDoc - that one
+  // remains the baseline for the per-property "changed" badge and
+  // Revert in FieldsForm, regardless of how many session changes the
+  // user has already accumulated on a previous load of this same
+  // session.
+  const localDoc = new D(initialDoc)
+  const pristine = new D(structuredClone(initialDoc))
+  const initialChange = await applyPendingChanges(localDoc, 0)
+  if (abortController.signal.aborted) {
+    return
+  }
+  _doc.value = localDoc
+  _initialDoc.value = pristine
+  committedChange.value = initialChange
+  nextChangeToSubmit = initialChange + 1
 
   // TODO: Use websocket to watch for new changes.
   const timer = setInterval(() => {
@@ -315,10 +378,6 @@ async function loadAndSubscribe() {
   abortController.signal.addEventListener("abort", () => {
     clearInterval(timer)
   })
-  // Load initial changes.
-  await loadChanges()
-  // Initialize next change counter after loading existing changes.
-  nextChangeToSubmit = committedChange.value + 1
 }
 // Re-initialize when route params change.
 watch(
@@ -330,6 +389,7 @@ watch(
 
     // Reset state.
     _doc.value = null
+    _initialDoc.value = null
     committedChange.value = 0
     nextChangeToSubmit = 1
     fieldsFormInvalid.value = false
@@ -350,9 +410,23 @@ async function onSave() {
     return
   }
 
-  // TODO: Do validation of fields form.
-
   sessionError.value = ""
+
+  // Validate the FieldsForm tab before saving (only mounted when that tab is
+  // active - the All-properties tab does not need this gate because its claim
+  // form is submitted independently). If validation finds errors, focus the
+  // first invalid input and abort the save - no changes flushed, the session
+  // stays open for the user to fix the field.
+  if (fieldsFormRef.value) {
+    await fieldsFormRef.value.validateAll(abortController.signal)
+    if (abortController.signal.aborted) {
+      return
+    }
+    if (fieldsFormInvalid.value) {
+      focusFirstInvalid(fieldsFormRef.value.inputs)
+      return
+    }
+  }
 
   // Flush any pending edits from all FieldsForm instances before saving.
   // Flush returns only valid changes; invalid fields remain and set fieldsFormInvalid.
@@ -379,7 +453,9 @@ async function onSave() {
     }
   }
 
-  // Check if any FieldsForm is invalid after flush. Abort save but keep the valid changes posted above.
+  // Re-check after flush: validateAll above clears stale state, but flush itself
+  // might surface new invalidity if mutation watchers fired. Abort save but keep
+  // the valid changes posted above.
   if (fieldsFormInvalid.value) {
     return
   }
@@ -812,7 +888,10 @@ function canSave(): boolean {
   // Save commits the edit session's changes - nothing to commit, nothing to save.
   // We do enable button even when inputs are invalid because we want the user to
   // attempt a save and force validation (and focus to first invalid input).
-  return committedChange.value > 0
+  // FieldsForm defers existing-claim deletes to flush, so a session whose only
+  // pending change is an emptied claim row has committedChange === 0 but
+  // anyDirty === true; treat that as savable too.
+  return committedChange.value > 0 || (fieldsFormRef.value?.anyDirty ?? false)
 }
 </script>
 
@@ -854,7 +933,15 @@ function canSave(): boolean {
           <TabPanels as="template">
             <!-- Class-specific tab. -->
             <TabPanel v-if="classTabId && mergedFieldsData" :key="classTabId" tabindex="-1" class="outline-none">
-              <FieldsForm v-model:invalid="fieldsFormInvalid" :fields-data="mergedFieldsData" :claims="doc.claims" :base="doc.base" :session="session" />
+              <FieldsForm
+                ref="fieldsFormRef"
+                v-model:invalid="fieldsFormInvalid"
+                :fields-data="mergedFieldsData"
+                :claims="doc.claims"
+                :initial-claims="initialDoc?.claims ?? doc.claims"
+                :base="doc.base"
+                :session="session"
+              />
             </TabPanel>
             <!-- "All properties" tab panel. -->
             <TabPanel v-if="siteContext.features.editButtons" tabindex="-1" class="outline-none">
