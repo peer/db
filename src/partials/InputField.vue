@@ -45,7 +45,7 @@ function onRevert(): void {
 
 <template>
   <fieldset v-tw-merge class="flex flex-col">
-    <legend class="mb-1 flex flex-row items-center gap-1" @click="onLegendClick"
+    <legend class="mb-1 flex flex-row flex-wrap items-center gap-1" @click="onLegendClick"
       ><slot name="label" /><InputBadges :required="required" :changed="input?.isDirty ?? false" @revert="onRevert"
     /></legend>
     <InputErrors v-slot="errorProps">

@@ -1886,7 +1886,9 @@ watch(
         -->
         <div class="flex shrink-0 flex-col items-start gap-1 pt-0.5" @click="onLabelClick">
           <span class="leading-none text-gray-700">{{ bottomLabel }}</span>
-          <InputBadges :changed="isLinkInputDirty" @revert="onRevertLinkInput" />
+          <div class="flex flex-row flex-wrap gap-1">
+            <InputBadges :changed="isLinkInputDirty" @revert="onRevertLinkInput" />
+          </div>
         </div>
         <div class="flex min-w-0 flex-1 flex-col">
           <InputErrors v-slot="errorProps">
