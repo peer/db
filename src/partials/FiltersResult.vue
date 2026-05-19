@@ -111,7 +111,6 @@ function onFilterUpdate(filterId: string, filter: Filter) {
     :search-total="searchTotal"
     :result="result"
     :filter="findHasFilter(result)"
-    :update-progress="updateSearchSessionProgress"
     v-bind="$attrs"
     @filter-update="onFilterUpdate"
   />

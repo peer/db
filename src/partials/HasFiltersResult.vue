@@ -12,7 +12,7 @@ import Button from "@/components/Button.vue"
 import CheckBox from "@/components/CheckBox.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
-import { useProgress } from "@/progress"
+import { useLocked, useProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useHasFilters } from "@/search"
 import { equals, loadingWidth, useInitialLoad, useLimitResults } from "@/utils"
 
@@ -21,8 +21,9 @@ const props = defineProps<{
   searchTotal: number
   result: HasSearchResult
   filter?: HasFilterEntry
-  updateProgress: number
 }>()
+
+const locked = useLocked()
 
 const emit = defineEmits<{
   filterUpdate: [filterId: string, filter: HasFilterEntry]
@@ -113,10 +114,10 @@ const WithDocumentD = WithDocument<D>
       </template>
       <template v-else>
         <li v-for="res in limitedResults" :key="res.id" class="flex items-baseline gap-x-1">
-          <CheckBox :id="'has/' + res.id" v-model="checkboxState" :progress="updateProgress" :value="res.id" class="my-1 self-center" />
+          <CheckBox :id="'has/' + res.id" v-model="checkboxState" :value="res.id" class="my-1 self-center" />
           <WithDocumentD :id="res.id" name="DocumentGet">
             <template #default="{ doc, url }">
-              <label :for="'has/' + res.id" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'" :data-url="url"
+              <label :for="'has/' + res.id" class="my-1 leading-none" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'" :data-url="url"
                 ><DisplayLabel :doc="doc"
               /></label>
             </template>
@@ -128,7 +129,7 @@ const WithDocumentD = WithDocument<D>
               ></div>
             </template>
           </WithDocumentD>
-          <label :for="'has/' + res.id" class="my-1 leading-none" :class="updateProgress > 0 ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label :for="'has/' + res.id" class="my-1 leading-none" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             >({{ res.count }})</label
           >
           <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link"
