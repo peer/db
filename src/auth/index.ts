@@ -51,7 +51,13 @@ export const currentRoles: ComputedRef<string[]> = computed(() => extractRolesFr
 // convenience for callers that just want to check one role. It is reactive
 // when called from a template or another computed because it reads
 // currentRoles.value, which Vue tracks.
+//
+// If OIDC is not configured, we always return true.
 export function hasRole(role: string): boolean {
+  if (!isOIDCConfigured()) {
+    return true
+  }
+
   return currentRoles.value.includes(role)
 }
 
@@ -150,7 +156,13 @@ function extractRolesFromClaims(payload: Record<string, unknown> | null): string
 // isSignedIn reports whether we currently hold a valid-looking access token.
 // "Valid-looking" because we do not check expiry here; the backend will reject
 // expired tokens and the UI will surface a 401 like any other error.
+//
+// If OIDC is not configured, we always return true.
 export function isSignedIn(): boolean {
+  if (!isOIDCConfigured()) {
+    return true
+  }
+
   return accessToken.value !== ""
 }
 
