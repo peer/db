@@ -81,6 +81,13 @@ async function changeTab(index: number) {
     })
     return
   }
+  if (index == offset + searchShortcuts.value.length) {
+    await router.push({
+      name: "SearchShortcut",
+      query: encodeQuery({ reverse: props.id }),
+    })
+    return
+  }
   selectedTab.value = index
 }
 
@@ -338,6 +345,10 @@ async function onEdit() {
               >
               <Tab
                 class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                >{{ t("views.DocumentGet.tabs.referencedBy") }}</Tab
+              >
+              <Tab
+                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
                 >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
               >
             </TabList>
@@ -356,6 +367,8 @@ async function onEdit() {
               <TabPanel v-for="(_, i) of searchShortcuts" :key="i" tabindex="-1" class="outline-none"
                 ><!-- Empty because this panel should never be rendered. --></TabPanel
               >
+              <!-- "All referants" tab panel. -->
+              <TabPanel tabindex="-1" class="outline-none"><!-- Empty because this panel should never be rendered. --></TabPanel>
               <!-- "All properties" tab panel. -->
               <TabPanel tabindex="-1" class="outline-none">
                 <table class="w-full table-auto border-collapse">
