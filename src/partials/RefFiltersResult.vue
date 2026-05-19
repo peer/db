@@ -19,7 +19,6 @@ import { equals, loadingWidth, useInitialLoad, useLimitResults } from "@/utils"
 
 const props = defineProps<{
   searchSession: DeepReadonly<SearchSession>
-  searchTotal: number
   result: RefSearchResult
   filter?: RefFilterEntry
 }>()
@@ -151,7 +150,7 @@ const WithDocumentD = WithDocument<D>
               <label :for="'ref/' + propsKey + '/missing'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ res.count }})</label>
             </div>
           </template>
-          <template v-else-if="res.count != searchTotal || selectedIds.includes(res.id)">
+          <template v-else>
             <CheckBox :id="'ref/' + propsKey + '/' + res.id" v-model="checkboxState" :value="res.id" />
             <div class="flex items-baseline gap-x-1">
               <WithDocumentD :id="res.id" name="DocumentGet">
@@ -170,33 +169,6 @@ const WithDocumentD = WithDocument<D>
                 </template>
               </WithDocumentD>
               <label :for="'ref/' + propsKey + '/' + res.id" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ res.count }})</label>
-              <!--
-                tabindex="-1" keeps the open-link icon out of the keyboard tab
-                order so Tab jumps between filters without stopping
-                on each row's icon. Mouse users can still click it.
-              -->
-              <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link" tabindex="-1"
-                ><ArrowTopRightOnSquareIcon :alt="t('common.icons.link')" class="inline size-5 align-text-top"
-              /></RouterLink>
-            </div>
-          </template>
-          <template v-else>
-            <div class="h-4 w-4"></div>
-            <div class="flex items-baseline gap-x-1">
-              <WithDocumentD :id="res.id" name="DocumentGet">
-                <template #default="{ doc, url }">
-                  <div :data-url="url"><DisplayLabel :doc="doc" /></div>
-                </template>
-                <template #loading="{ url }">
-                  <div
-                    class="pd-withdocument-loading h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
-                    :data-url="url"
-                    :class="[loadingWidth(res.id)]"
-                    aria-hidden="true"
-                  ></div>
-                </template>
-              </WithDocumentD>
-              <div>({{ res.count }})</div>
               <!--
                 tabindex="-1" keeps the open-link icon out of the keyboard tab
                 order so Tab jumps between filters without stopping

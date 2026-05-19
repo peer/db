@@ -16,7 +16,6 @@ import { equals, loadingShortHeights, useInitialLoad } from "@/utils"
 
 const props = defineProps<{
   searchSession: DeepReadonly<SearchSession>
-  searchTotal: number
   result: AmountSearchResult
   filter?: AmountFilterEntry
 }>()

@@ -13,7 +13,6 @@ import TimeFiltersResult from "@/partials/TimeFiltersResult.vue"
 const props = defineProps<{
   result: FilterResult
   searchSession: DeepReadonly<SearchSession>
-  searchTotal: number
   filters: Filter[]
 }>()
 
@@ -75,7 +74,6 @@ function onFilterUpdate(filterId: string, filter: Filter) {
     v-if="result.type === 'ref'"
     class="pd-filterresult"
     :search-session="searchSession"
-    :search-total="searchTotal"
     :result="result"
     :filter="findRefFilter(result)"
     v-bind="$attrs"
@@ -86,7 +84,6 @@ function onFilterUpdate(filterId: string, filter: Filter) {
     v-if="result.type === 'amount'"
     class="pd-filterresult"
     :search-session="searchSession"
-    :search-total="searchTotal"
     :result="result"
     :filter="findAmountFilter(result)"
     v-bind="$attrs"
@@ -97,7 +94,6 @@ function onFilterUpdate(filterId: string, filter: Filter) {
     v-if="result.type === 'time'"
     class="pd-filterresult"
     :search-session="searchSession"
-    :search-total="searchTotal"
     :result="result"
     :filter="findTimeFilter(result)"
     v-bind="$attrs"
@@ -108,7 +104,6 @@ function onFilterUpdate(filterId: string, filter: Filter) {
     v-if="result.type === 'has'"
     class="pd-filterresult"
     :search-session="searchSession"
-    :search-total="searchTotal"
     :result="result"
     :filter="findHasFilter(result)"
     v-bind="$attrs"

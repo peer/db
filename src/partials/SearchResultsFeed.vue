@@ -272,7 +272,6 @@ const WithDocumentD = WithDocument<D>
           <FiltersResult
             :result="filter"
             :search-session="searchSession"
-            :search-total="searchTotal"
             :filters="filters"
             class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
             @filter-update="(filterId, filter) => $emit('filterUpdate', filterId, filter)"

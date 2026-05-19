@@ -495,7 +495,6 @@ function onCloseFilterModal() {
         <FiltersResult
           :result="activeFilter!"
           :search-session="searchSession"
-          :search-total="searchTotal!"
           :filters="filters"
           @filter-update="(filterId, filter) => $emit('filterUpdate', filterId, filter)"
         />

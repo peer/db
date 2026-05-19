@@ -17,7 +17,6 @@ import { equals, loadingShortHeights, timePrecisionForRange, timePrecisionForVal
 
 const props = defineProps<{
   searchSession: DeepReadonly<SearchSession>
-  searchTotal: number
   result: TimeSearchResult
   filter?: TimeFilterEntry
 }>()
