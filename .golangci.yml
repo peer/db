@@ -21,6 +21,9 @@ linters:
       check-type-assertions: true
     exhaustruct:
       allow-empty: true
+    gocritic:
+      disabled-checks:
+        - ifElseChain
     goconst:
       ignore-string-values:
         - "add"
@@ -57,9 +60,6 @@ linters:
         - "unknown"
         - "VALUE_TYPE"
         - "VOCABULARY"
-    gocritic:
-      disabled-checks:
-        - ifElseChain
     godot:
       scope: all
     govet:

@@ -81,6 +81,7 @@
     "serve": "vite serve",
     "build": "vite build",
     "build-lib": "vite build --config vite.config.lib.ts && vue-tsc -p tsconfig.lib.json && resolve-tspaths -p tsconfig.lib.json && node generate-vue-dts-proxies.js",
+    "build-lib-watch": "vite build --config vite.config.lib.ts --watch",
     "lint": "eslint --fix src tests",
     "lint-ci": "eslint --fix --format gitlab src tests",
     "lint-style": "stylelint --fix src/**/*.{css,scss,vue,html}",
@@ -177,8 +178,5 @@
   },
   "publishConfig": {
     "access": "public"
-  },
-  "overrides": {
-    "uuid": "^14.0.0"
   }
 }

@@ -250,8 +250,8 @@ func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
 	if initShutdown != nil {
 		defer initShutdown()
 	}
-	// It is safe to call cancel multiple times. We want it to be
-	// called before any onShutdown waits.
+	// It is safe to call cancel multiple times. We want it to be called before
+	// any onShutdown waits so that anything blocked on ctx unblocks first.
 	defer cancel()
 	if errE != nil {
 		return errE
@@ -261,8 +261,8 @@ func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
 	if prepareShutdown != nil {
 		defer prepareShutdown()
 	}
-	// It is safe to call cancel multiple times. We want it to be
-	// called before any onShutdown waits.
+	// It is safe to call cancel multiple times. We want it to be called before
+	// any onShutdown waits so that anything blocked on ctx unblocks first.
 	defer cancel()
 	if errE != nil {
 		return errE
