@@ -101,6 +101,18 @@ type IntervalBound interface {
 	intervalBound()
 }
 
+// Interval field indices for reflect access.
+const (
+	IntervalFromIdx          = 0
+	IntervalFromIsOpenIdx    = 1
+	IntervalFromIsUnknownIdx = 2
+	IntervalFromIsNoneIdx    = 3
+	IntervalToIdx            = 4
+	IntervalToIsOpenIdx      = 5
+	IntervalToIsUnknownIdx   = 6
+	IntervalToIsNoneIdx      = 7
+)
+
 // Interval represents an interval between two values.
 //
 // If From or To is nil, it is zero value, unless *IsUnknown or *IsNone is true, respectively.

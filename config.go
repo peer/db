@@ -151,14 +151,14 @@ type DBReindexCommand struct{}
 // DBWipeCommand drops PostgreSQL schemas and deletes ElasticSearch indices for all sites.
 type DBWipeCommand struct{}
 
-// DBExportCommand exports documents to CSV or JSON.
+// DBExportCommand exports documents to CSV, JSON, or struct.
 //
 //nolint:lll
 type DBExportCommand struct {
-	Output     string   `default:"-"                   help:"Output file path. Use - for stdout."                                                                  placeholder:"PATH"   short:"o" type:"path" yaml:"output"`
-	Format     string   `default:"csv" enum:"csv,json" help:"Output format."                                                                                       placeholder:"FORMAT" short:"f"             yaml:"format"`
-	InstanceOf []string `                              help:"Limit to instances of class (mnemonic or ID)."                                     name:"instance-of" placeholder:"STRING" short:"i"             yaml:"instanceOf"`
-	Property   []string `                              help:"Properties to export (a.b.c path, * for single-level wildcard, ** for recursive)." name:"property"    placeholder:"STRING" short:"p"             yaml:"property"`
+	Output     string   `default:"-"                          help:"Output file path. Use - for stdout."                                                                  placeholder:"PATH"   short:"o" type:"path" yaml:"output"`
+	Format     string   `default:"csv" enum:"csv,json,struct" help:"Output format."                                                                                       placeholder:"FORMAT" short:"f"             yaml:"format"`
+	InstanceOf []string `                                     help:"Limit to instances of class (mnemonic or ID)."                                     name:"instance-of" placeholder:"STRING" short:"i"             yaml:"instanceOf"`
+	Property   []string `                                     help:"Properties to export (a.b.c path, * for single-level wildcard, ** for recursive)." name:"property"    placeholder:"STRING" short:"p"             yaml:"property"`
 }
 
 // DBCommand contains sub-commands for managing database.
@@ -166,5 +166,5 @@ type DBCommand struct {
 	Wait    DBWaitCommand    `cmd:"" help:"Wait for pending indexing to complete and exit."    yaml:"wait"`
 	Reindex DBReindexCommand `cmd:"" help:"Force full reindex of all documents."               yaml:"reindex"`
 	Wipe    DBWipeCommand    `cmd:"" help:"Wipe PostgreSQL schemas and ElasticSearch indices." yaml:"wipe"`
-	Export  DBExportCommand  `cmd:"" help:"Export documents to CSV or JSON."                   yaml:"export"`
+	Export  DBExportCommand  `cmd:"" help:"Export documents to CSV, JSON, or struct."          yaml:"export"`
 }

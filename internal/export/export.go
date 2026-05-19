@@ -288,6 +288,8 @@ func ClaimValue(claim document.Claim) string {
 		return NoneValue
 	case *document.UnknownClaim:
 		return UnknownValue
+	case *document.HasClaim:
+		return ""
 	default:
 		errE := errors.New("claim type not supported")
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", claim)
@@ -402,6 +404,8 @@ func Export(ctx context.Context, w io.Writer, esClient *elasticsearch.TypedClien
 		return CSV(ctx, w, docIDs, specs, names, getDoc)
 	case "json":
 		return JSON(ctx, w, docIDs, specs, names, getDoc)
+	case "struct":
+		return Struct(ctx, w, docIDs, mnemonics, getDoc)
 	default:
 		errE := errors.New("unsupported format")
 		errors.Details(errE)["format"] = config.Format
