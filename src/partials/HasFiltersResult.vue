@@ -122,9 +122,7 @@ const WithDocumentD = WithDocument<D>
           <div class="flex items-baseline gap-x-1">
             <WithDocumentD :id="res.id" name="DocumentGet">
               <template #default="{ doc, url }">
-                <label :for="'has/' + res.id" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'" :data-url="url"
-                  ><DisplayLabel :doc="doc"
-                /></label>
+                <label :for="'has/' + res.id" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'" :data-url="url"><DisplayLabel :doc="doc" /></label>
               </template>
               <template #loading="{ url }">
                 <div
