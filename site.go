@@ -33,6 +33,11 @@ type Build struct {
 type SiteFeatures struct {
 	SearchResultsTable bool `json:"searchResultsTable,omitempty" yaml:"searchResultsTable,omitempty"`
 	DownloadButtons    bool `json:"downloadButtons,omitempty"    yaml:"downloadButtons,omitempty"`
+
+	// IndexAncestorProperties enables claim propagation to transitive super-properties
+	// when indexing: a claim for property X is also indexed for every ancestor of X
+	// via SUBPROPERTY_OF. Disabled by default. Backend-only; not exposed to the frontend.
+	IndexAncestorProperties bool `json:"-" yaml:"indexAncestorProperties,omitempty"`
 }
 
 // SiteOIDC carries the OIDC configuration exposed to the frontend so it can
@@ -194,6 +199,10 @@ func (s *Site) Start(ctx context.Context, documents []*document.D) (func(), erro
 		s.Base.LanguagePriority = s.LanguagePriority
 	}
 
+	if !s.Base.IndexAncestorProperties {
+		s.Base.IndexAncestorProperties = s.Features.IndexAncestorProperties
+	}
+
 	onShutdown, errE := s.Base.Start(ctx, documents)
 	if errE != nil {
 		return onShutdown, errE
@@ -233,6 +242,10 @@ func (s *Site) PopulateAndStart(
 
 	if s.Base.LanguagePriority == nil {
 		s.Base.LanguagePriority = s.LanguagePriority
+	}
+
+	if !s.Base.IndexAncestorProperties {
+		s.Base.IndexAncestorProperties = s.Features.IndexAncestorProperties
 	}
 
 	onShutdown, errE := s.Base.PopulateAndStart(ctx, documents, progress, beforeWait, count, size)

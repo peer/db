@@ -83,6 +83,10 @@ type Converter struct {
 	Hooks []func(ctx context.Context, doc *document.D) (*document.D, errors.E)
 	// LanguageCodes is a map that maps language document ID to primary language subtag (e.g., "en").
 	LanguageCodes map[identifier.Identifier]string
+	// IndexAncestorProperties enables claim propagation to transitive super-properties:
+	// when set, a claim for property X is also indexed for every ancestor of X via
+	// SUBPROPERTY_OF. Disabled by default; only the original property is indexed.
+	IndexAncestorProperties bool
 
 	// propertyDescendants maps a property ID to all its transitive sub-property IDs.
 	propertyDescendants map[identifier.Identifier][]identifier.Identifier
@@ -150,6 +154,7 @@ func NewConverter(
 	c := &Converter{
 		Hooks:                    nil,
 		LanguageCodes:            nil,
+		IndexAncestorProperties:  false,
 		propertyDescendants:      nil,
 		propertyAncestors:        nil,
 		valueHierarchyProperties: nil,
@@ -877,10 +882,14 @@ func (c *Converter) extractInUnit(sub *document.ClaimTypes) *identifier.Identifi
 	return nil
 }
 
-// propagateProp returns the property IDs to create claims for:
-// the original property plus all its transitive super-properties.
-// If X is a sub-property of Y, a claim for X also produces a claim for Y.
+// propagateProp returns the property IDs to create claims for. When
+// IndexAncestorProperties is set, this is the original property plus all its
+// transitive super-properties (so a claim for sub-property X also produces a
+// claim for Y); otherwise only the original property is returned.
 func (c *Converter) propagateProp(propID identifier.Identifier) []identifier.Identifier {
+	if !c.IndexAncestorProperties {
+		return []identifier.Identifier{propID}
+	}
 	result := make([]identifier.Identifier, 0, 1+len(c.propertyAncestors[propID]))
 	result = append(result, propID)
 	result = append(result, c.propertyAncestors[propID]...)

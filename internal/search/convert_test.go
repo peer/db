@@ -1074,6 +1074,7 @@ func TestPropagateProp(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
+		IndexAncestorProperties: true,
 		propertyAncestors: map[identifier.Identifier][]identifier.Identifier{
 			testPropID: {testParentProp},
 		},
@@ -1088,6 +1089,14 @@ func TestPropagateProp(t *testing.T) {
 	result = c.propagateProp(testPropID2)
 	assert.Len(t, result, 1)
 	assert.Equal(t, testPropID2, result[0])
+
+	// With ancestor indexing disabled (the default), only the original
+	// property is returned, even when ancestors are known.
+	c.IndexAncestorProperties = false
+	result = c.propagateProp(testPropID)
+	assert.Equal(t, []identifier.Identifier{testPropID}, result)
+	result = c.propagateProp(testPropID2)
+	assert.Equal(t, []identifier.Identifier{testPropID2}, result)
 }
 
 func TestNamingStrings(t *testing.T) {
@@ -1297,6 +1306,7 @@ func TestConvertIdentifierWithPropagation(t *testing.T) {
 	}
 
 	c := newTestConverter(t, nil, nil, extraDocs)
+	c.IndexAncestorProperties = true
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {testParentProp},
 	}
@@ -3160,6 +3170,7 @@ func TestConvertRelationWithPropertyMutualCycle(t *testing.T) {
 		testTargetDocID: targetDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
+	c.IndexAncestorProperties = true
 	c.buildPropertyHierarchy([]*document.D{propADoc, propBDoc})
 
 	ctx := t.Context()
@@ -3198,6 +3209,7 @@ func TestConvertStringWithPropertyCycle(t *testing.T) {
 		propB: propBNaming,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
+	c.IndexAncestorProperties = true
 	c.buildPropertyHierarchy([]*document.D{propADoc, propBDoc})
 
 	ctx := t.Context()
@@ -4305,6 +4317,7 @@ func TestConvertStringPropagationError(t *testing.T) {
 		testPropID: propDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
+	c.IndexAncestorProperties = true
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -4330,6 +4343,7 @@ func TestConvertHTMLPropagationError(t *testing.T) {
 		testPropID: propDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
+	c.IndexAncestorProperties = true
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -4377,6 +4391,7 @@ func TestConvertAmountPropagationError(t *testing.T) {
 		testPropID: propDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
+	c.IndexAncestorProperties = true
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -4403,6 +4418,7 @@ func TestConvertAmountIntervalPropagationError(t *testing.T) {
 		testPropID: propDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
+	c.IndexAncestorProperties = true
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -4487,6 +4503,7 @@ func TestConvertTimePropagationError(t *testing.T) {
 		testPropID: propDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
+	c.IndexAncestorProperties = true
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -4535,6 +4552,7 @@ func TestConvertTimeIntervalPropagationError(t *testing.T) {
 		testPropID: propDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
+	c.IndexAncestorProperties = true
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -4757,6 +4775,7 @@ func TestConvertHasPropagationError(t *testing.T) {
 		testPropID: propDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
+	c.IndexAncestorProperties = true
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -4783,6 +4802,7 @@ func TestConvertRelationPropagationPropError(t *testing.T) {
 		testTargetDocID: targetDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
+	c.IndexAncestorProperties = true
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -4808,6 +4828,7 @@ func TestConvertReferencePropagationError(t *testing.T) {
 		testPropID: propDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
+	c.IndexAncestorProperties = true
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -4833,6 +4854,7 @@ func TestConvertNonePropagationError(t *testing.T) {
 		testPropID: propDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
+	c.IndexAncestorProperties = true
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},
@@ -4857,6 +4879,7 @@ func TestConvertUnknownPropagationError(t *testing.T) {
 		testPropID: propDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
+	c.IndexAncestorProperties = true
 	unknownParent := identifier.New()
 	c.propertyAncestors = map[identifier.Identifier][]identifier.Identifier{
 		testPropID: {unknownParent},

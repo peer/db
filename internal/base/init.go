@@ -41,15 +41,16 @@ func InitComponents(
 	}
 
 	b := &base.B{
-		Schema:            schema,
-		Index:             index,
-		LanguagePriority:  nil,
-		IndexingHooks:     nil,
-		DocumentPreHooks:  nil,
-		DocumentPostHooks: nil,
-		FilePreHooks:      nil,
-		FilePostHooks:     nil,
-		RegisterWorkers:   nil,
+		Schema:                  schema,
+		Index:                   index,
+		LanguagePriority:        nil,
+		IndexAncestorProperties: false,
+		IndexingHooks:           nil,
+		DocumentPreHooks:        nil,
+		DocumentPostHooks:       nil,
+		FilePreHooks:            nil,
+		FilePostHooks:           nil,
+		RegisterWorkers:         nil,
 	}
 	errE = b.Init(ctx, dbpool, listener, esClient, riverClient, workers)
 	if errE != nil {

@@ -50,6 +50,11 @@ type B struct {
 	// All languages with keys in LanguagePriority are seen as enabled.
 	LanguagePriority map[string][]string
 
+	// IndexAncestorProperties enables claim propagation to transitive super-properties
+	// when indexing: a claim for property X is also indexed for every ancestor of X
+	// via SUBPROPERTY_OF. Disabled by default.
+	IndexAncestorProperties bool
+
 	// Hooks are called in order to allow for modification of documents before they are indexed.
 	IndexingHooks []func(ctx context.Context, doc *document.D) (*document.D, errors.E)
 
@@ -185,6 +190,7 @@ func (b *B) Start(ctx context.Context, documents []*document.D) (func(), errors.
 	}
 
 	converter.Hooks = b.IndexingHooks
+	converter.IndexAncestorProperties = b.IndexAncestorProperties
 
 	if b.RegisterWorkers != nil {
 		errE := b.RegisterWorkers(ctx, b.workers)
