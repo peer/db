@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"slices"
+	"strings"
 
 	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
@@ -571,10 +572,21 @@ func (s *Service) SearchUpdatePostAPI(w http.ResponseWriter, req *http.Request, 
 	}, nil)
 }
 
+// shortcutPropKey identifies a filter group in SearchShortcutGet. When nested is true,
+// parent and prop together identify a sub-ref filter; otherwise prop is a top-level prop.
+type shortcutPropKey struct {
+	parent identifier.Identifier
+	prop   identifier.Identifier
+	nested bool
+}
+
 // SearchShortcutGet is a GET/HEAD HTTP request handler which creates a new search session
 // from query parameters and redirects to the search page. Query parameters are interpreted
 // as ref filters where key is the property ID and value is the value ID.
 // Values for the same property are grouped into a single filter.
+//
+// A key of the form "parentProp:prop" creates a nested (sub-ref) filter, matching
+// reference sub-claims under parentProp whose property is prop.
 //
 // The "reverse" query parameter is special: its value is a document ID that scopes
 // the session to documents which reference that ID via any property.
@@ -584,7 +596,7 @@ func (s *Service) SearchShortcutGet(w http.ResponseWriter, req *http.Request, _ 
 	site := waf.MustGetSite[*Site](ctx)
 
 	// Group values by property.
-	filterMap := map[identifier.Identifier][]search.ToValue{}
+	filterMap := map[shortcutPropKey][]search.ToValue{}
 	var reverse *identifier.Identifier
 	for prop, values := range req.URL.Query() {
 		if prop == "reverse" {
@@ -600,10 +612,26 @@ func (s *Service) SearchShortcutGet(w http.ResponseWriter, req *http.Request, _ 
 			reverse = &reverseID
 			continue
 		}
-		propID, errE := identifier.MaybeString(prop)
-		if errE != nil {
-			s.BadRequestWithError(w, req, errors.WithMessage(errE, "query parameter key is not a valid identifier"))
-			return
+		var key shortcutPropKey
+		if parentStr, propStr, ok := strings.Cut(prop, ":"); ok {
+			parentID, errE := identifier.MaybeString(parentStr)
+			if errE != nil {
+				s.BadRequestWithError(w, req, errors.WithMessage(errE, "query parameter key parent prop is not a valid identifier"))
+				return
+			}
+			propID, errE := identifier.MaybeString(propStr)
+			if errE != nil {
+				s.BadRequestWithError(w, req, errors.WithMessage(errE, "query parameter key nested prop is not a valid identifier"))
+				return
+			}
+			key = shortcutPropKey{parent: parentID, prop: propID, nested: true}
+		} else {
+			propID, errE := identifier.MaybeString(prop)
+			if errE != nil {
+				s.BadRequestWithError(w, req, errors.WithMessage(errE, "query parameter key is not a valid identifier"))
+				return
+			}
+			key = shortcutPropKey{parent: identifier.Identifier{}, prop: propID, nested: false}
 		}
 		for _, value := range values {
 			valueID, errE := identifier.MaybeString(value)
@@ -611,7 +639,7 @@ func (s *Service) SearchShortcutGet(w http.ResponseWriter, req *http.Request, _ 
 				s.BadRequestWithError(w, req, errors.WithMessage(errE, "query parameter value is not a valid identifier"))
 				return
 			}
-			filterMap[propID] = append(filterMap[propID], search.ToValue{ID: valueID})
+			filterMap[key] = append(filterMap[key], search.ToValue{ID: valueID})
 		}
 	}
 
@@ -626,13 +654,19 @@ func (s *Service) SearchShortcutGet(w http.ResponseWriter, req *http.Request, _ 
 		Reverse: reverse,
 	}
 
-	for propID, toValues := range filterMap {
+	for key, toValues := range filterMap {
 		filterBase := append(slices.Clone(base), "FILTER", identifier.New().String())
 		filterID := identifier.From(filterBase...)
+		var props []identifier.Identifier
+		if key.nested {
+			props = []identifier.Identifier{key.parent, key.prop}
+		} else {
+			props = []identifier.Identifier{key.prop}
+		}
 		searchData.Filters = append(searchData.Filters, search.Filter{
 			ID:   &filterID,
 			Base: filterBase,
-			Prop: []identifier.Identifier{propID},
+			Prop: props,
 			Ref: &search.RefFilter{
 				To:      toValues,
 				Missing: false,
