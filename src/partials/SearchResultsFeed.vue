@@ -243,11 +243,7 @@ const WithDocumentD = WithDocument<D>
         <div class="text-center text-sm">{{ t("partials.SearchResultsFeed.determiningFilters") }}</div>
       </div>
 
-      <div v-else-if="filtersTotal === 0" class="my-1 sm:my-4">
-        <div class="text-center text-sm">{{ t("partials.SearchResultsFeed.noFilters") }}</div>
-      </div>
-
-      <template v-else-if="filtersTotal > 0 || searchSession.reverse">
+      <template v-else>
         <div v-if="searchSession.reverse" class="text-center text-sm">
           <Button
             type="button"
@@ -275,25 +271,32 @@ const WithDocumentD = WithDocument<D>
             </template>
           </i18n-t>
         </div>
-        <div class="text-center text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: filtersTotal }) }}</div>
 
-        <template v-for="filter in limitedFiltersResults" :key="filter.filterId ?? `${filter.props?.join('/') ?? ''}/${'unit' in filter ? (filter.unit ?? '') : ''}`">
-          <FiltersResult
-            :result="filter"
-            :search-session="searchSession"
-            :filters="filters"
-            class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
-            @filter-update="(filterId, filter) => $emit('filterUpdate', filterId, filter)"
-          />
+        <div v-if="filtersTotal === 0" class="my-1 sm:my-4">
+          <div class="text-center text-sm">{{ t("partials.SearchResultsFeed.noFilters") }}</div>
+        </div>
+
+        <template v-else-if="filtersTotal > 0 || searchSession.reverse">
+          <div class="text-center text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: filtersTotal }) }}</div>
+
+          <template v-for="filter in limitedFiltersResults" :key="filter.filterId ?? `${filter.props?.join('/') ?? ''}/${'unit' in filter ? (filter.unit ?? '') : ''}`">
+            <FiltersResult
+              :result="filter"
+              :search-session="searchSession"
+              :filters="filters"
+              class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
+              @filter-update="(filterId, filter) => $emit('filterUpdate', filterId, filter)"
+            />
+          </template>
+
+          <Button v-if="filtersHasMore" ref="filtersMoreButton" primary class="w-1/2 min-w-fit self-center" @click.prevent="filtersLoadMore">{{
+            t("partials.SearchResultsFeed.moreFilters")
+          }}</Button>
+
+          <div v-else-if="filtersTotal > limitedFiltersResults.length" class="text-center text-sm">{{
+            t("partials.SearchResultsFeed.filtersNotShown", { count: filtersTotal - limitedFiltersResults.length })
+          }}</div>
         </template>
-
-        <Button v-if="filtersHasMore" ref="filtersMoreButton" primary class="w-1/2 min-w-fit self-center" @click.prevent="filtersLoadMore">{{
-          t("partials.SearchResultsFeed.moreFilters")
-        }}</Button>
-
-        <div v-else-if="filtersTotal > limitedFiltersResults.length" class="text-center text-sm">{{
-          t("partials.SearchResultsFeed.filtersNotShown", { count: filtersTotal - limitedFiltersResults.length })
-        }}</div>
       </template>
     </div>
   </div>
