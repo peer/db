@@ -1193,7 +1193,6 @@ function canSave(): boolean {
       </template>
       <div v-else-if="!hasPermission(CAN_EDIT)" class="my-1 text-center sm:my-4">{{ t("common.status.editingNotAllowed") }}</div>
       <div v-else-if="!classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
-      <div v-else-if="doc" class="my-1 text-center sm:my-4">{{ t("common.status.editingNotAllowed") }}</div>
       <div v-else class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
     </div>
   </div>
