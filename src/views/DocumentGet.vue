@@ -173,10 +173,12 @@ const documentTabs = computed(() => {
   return tabs
 })
 
+type SearchShortcut = { name: string; filter: Record<string, string>; reverse: boolean }
+
 const searchShortcuts = ref<{ name: string; query: QueryValues }[]>([])
 watch(
   () => {
-    const result: { name: string; filter: Record<string, string> }[] = []
+    const result: SearchShortcut[] = []
     for (const classDoc of classDocs.value) {
       const shortcuts = getClaimsOfTypeWithConfidence(classDoc.claims, "string", SEARCH_SHORTCUT)
       for (const shortcut of shortcuts) {
@@ -188,8 +190,13 @@ watch(
           continue
         }
         const parts = shortcut.string.split(";")
+        let reverse = false
         const filter: Record<string, string> = {}
         for (const part of parts) {
+          if (part === "reverse") {
+            reverse = true
+            continue
+          }
           const f = part.split(":")
           if (f.length != 2) {
             console.error("invalid search shortcut", classDoc.id, shortcut.string)
@@ -200,12 +207,12 @@ watch(
         if (Object.keys(filter).length === 0) {
           continue
         }
-        result.push({ name: name[0].string, filter })
+        result.push({ name: name[0].string, filter, reverse })
       }
     }
     return result
   },
-  async (shortcuts: { name: string; filter: Record<string, string> }[]) => {
+  async (shortcuts: SearchShortcut[]) => {
     try {
       const result = []
       for (const shortcut of shortcuts) {
@@ -214,6 +221,9 @@ watch(
           const k = await Identifier.from(...key.split(","))
           const v = await Identifier.from(...value.split(","))
           filter[k.toString()] = v.toString()
+        }
+        if (shortcut.reverse) {
+          filter.reverse = props.id
         }
         // We could make computing the query be moved to changeTab which is already async,
         // but we prefer that any exceptions happen here so that we then set documentSearchShortcuts
