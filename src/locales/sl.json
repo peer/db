@@ -178,7 +178,8 @@
       "determiningFilters": "Ugotavljanje filtrov...",
       "skipToFilters": "Preskoči na filtre",
       "skipToResults": "Preskoči na rezultate",
-      "resultsRelatedTo": "Rezultati povezani z {label}"
+      "resultsReferencing": "Rezultati sklicujoči na {label}",
+      "clearReferencing": "Počisti omejitev na sklicujoče"
     },
     "HasFiltersResult": {
       "title": "ima lastnost"

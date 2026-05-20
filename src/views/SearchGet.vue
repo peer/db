@@ -165,6 +165,17 @@ async function onViewChange(view: ViewType) {
   })
 }
 
+async function onReverseClear() {
+  // Checking abortController is done inside onSearchSessionUpdate.
+
+  await onSearchSessionUpdate({
+    view: searchSession.value!.view,
+    query: searchSession.value!.query,
+    filters: searchSession.value!.filters,
+    reverse: undefined,
+  })
+}
+
 async function onDownloadZip() {
   if (abortController.signal.aborted) {
     return
@@ -209,6 +220,7 @@ async function onDownloadFiles() {
       @view-change="onViewChange"
       @download-zip="onDownloadZip"
       @download-files="onDownloadFiles"
+      @reverse-clear="onReverseClear"
     />
 
     <SearchResultsTable

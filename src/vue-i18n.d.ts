@@ -189,7 +189,8 @@ declare module "vue-i18n" {
         determiningFilters: string
         skipToFilters: string
         skipToResults: string
-        resultsRelatedTo: string
+        resultsReferencing: string
+        clearReferencing: string
       }
       HasFiltersResult: {
         title: string

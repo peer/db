@@ -178,7 +178,8 @@
       "determiningFilters": "Determining filters...",
       "skipToFilters": "Skip to filters",
       "skipToResults": "Skip to results",
-      "resultsRelatedTo": "Results related to {label}"
+      "resultsReferencing": "Results referencing {label}",
+      "clearReferencing": "Clear referencing scope"
     },
     "HasFiltersResult": {
       "title": "has property"

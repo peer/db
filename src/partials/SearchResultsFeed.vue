@@ -37,6 +37,7 @@ const $emit = defineEmits<{
   viewChange: [value: ViewType]
   downloadZip: []
   downloadFiles: []
+  reverseClear: []
 }>()
 
 const { t } = useI18n({ useScope: "global" })
@@ -246,9 +247,17 @@ const WithDocumentD = WithDocument<D>
         <div class="text-center text-sm">{{ t("partials.SearchResultsFeed.noFilters") }}</div>
       </div>
 
-      <template v-else-if="filtersTotal > 0">
+      <template v-else-if="filtersTotal > 0 || searchSession.reverse">
         <div v-if="searchSession.reverse" class="text-center text-sm">
-          <i18n-t keypath="partials.SearchResultsFeed.resultsRelatedTo" scope="global">
+          <Button
+            type="button"
+            class="float-right ml-2 px-2.5 py-1"
+            :title="t('partials.SearchResultsFeed.clearReferencing')"
+            :aria-label="t('partials.SearchResultsFeed.clearReferencing')"
+            @click.prevent="$emit('reverseClear')"
+            >{{ t("common.buttons.clear") }}</Button
+          >
+          <i18n-t keypath="partials.SearchResultsFeed.resultsReferencing" scope="global">
             <template #label>
               <RouterLink :to="{ name: 'DocumentGet', params: { id: searchSession.reverse } }" class="link">
                 <WithDocumentD :id="searchSession.reverse" name="DocumentGet">
