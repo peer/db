@@ -207,6 +207,12 @@ const doc = process.env.NODE_ENV !== "production" ? readonly(_doc) : _doc
 const _initialDoc = ref<D | null>(null)
 const initialDoc = process.env.NODE_ENV !== "production" ? readonly(_initialDoc) : _initialDoc
 
+// True for create sessions (document not yet materialized), false for
+// edit sessions on an existing document. Drives the primary button label
+// (Create vs. Update). Null until loadAndSubscribe has fetched the
+// session's edit status.
+const isCreating = ref<boolean | null>(null)
+
 // Tracks the change number which was committed in the backend.
 // A ref so canSave reactively follows whether anything has been added to
 // the session yet (Save is disabled when the session has no changes).
@@ -330,6 +336,7 @@ async function loadAndSubscribe() {
   // id/base. Pending session changes (instance_of plus anything the user added
   // in this or a prior load of the same session) are then applied locally below.
   let initialDoc: object
+  isCreating.value = !editStatus.version
   if (editStatus.version) {
     const fetched = await getURL<object>(
       router.apiResolve({
@@ -401,6 +408,7 @@ watch(
     // Reset state.
     _doc.value = null
     _initialDoc.value = null
+    isCreating.value = null
     committedChange.value = 0
     nextChangeToSubmit = 1
     fieldsFormInvalid.value = false
@@ -1198,7 +1206,7 @@ function canSave(): boolean {
         <div class="mt-4 flex flex-row justify-between gap-4">
           <Button id="documentedit-button-discard" type="button" :progress="saveBusy" @click.prevent="onDiscard">{{ t("common.buttons.discard") }}</Button>
           <Button id="documentedit-button-save" type="submit" primary :disabled="!canSave()" :progress="saveBusy" @click.prevent="onSave">{{
-            t("common.buttons.save")
+            isCreating ? t("common.buttons.create") : t("common.buttons.update")
           }}</Button>
         </div>
       </template>
