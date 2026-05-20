@@ -192,8 +192,18 @@ declare module "vue-i18n" {
         resultsReferencing: string
         clearReferencing: string
       }
+      AmountFiltersResult: {
+        clearFilter: string
+      }
       HasFiltersResult: {
         title: string
+        clearFilter: string
+      }
+      RefFiltersResult: {
+        clearFilter: string
+      }
+      TimeFiltersResult: {
+        clearFilter: string
       }
       SearchResultsTable: {
         expandRow: string

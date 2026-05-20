@@ -80,6 +80,18 @@ const isMissingSelected = computed((): boolean => {
   return props.filter?.ref?.missing === true
 })
 
+function clearFilter() {
+  if (abortController.signal.aborted || !props.filter) {
+    return
+  }
+  emit("filterUpdate", props.filter.id, {
+    id: props.filter.id,
+    base: props.filter.base,
+    prop: props.filter.prop,
+    ref: { to: undefined, missing: undefined },
+  })
+}
+
 const checkboxState = computed({
   get(): string[] {
     const ids = [...selectedIds.value]
@@ -117,7 +129,16 @@ const WithDocumentD = WithDocument<D>
 
 <template>
   <div class="pd-reffiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
-    <div :id="labelId" class="flex items-baseline gap-x-1">
+    <div :id="labelId">
+      <Button
+        v-if="filter"
+        type="button"
+        class="float-right ml-2 px-2.5 py-1"
+        :title="t('partials.RefFiltersResult.clearFilter')"
+        :aria-label="t('partials.RefFiltersResult.clearFilter')"
+        @click.prevent="clearFilter"
+        >{{ t("common.buttons.clear") }}</Button
+      >
       <template v-if="result.props.length === 2">
         <DocumentRefInline :id="result.props[0]" class="mb-1.5 text-lg leading-none" />
         <span class="mb-1.5 text-lg leading-none">&gt;</span>

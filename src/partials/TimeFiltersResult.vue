@@ -8,6 +8,7 @@ import noUiSlider from "nouislider"
 import { computed, onBeforeUnmount, toRef, useId, useTemplateRef, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 
+import Button from "@/components/Button.vue"
 import CheckBox from "@/components/CheckBox.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import TimeDisplay from "@/partials/TimeDisplay.vue"
@@ -60,6 +61,18 @@ const {
   progress,
 )
 const { laterLoad } = useInitialLoad(progress)
+
+function clearFilter() {
+  if (abortController.signal.aborted || !props.filter) {
+    return
+  }
+  emit("filterUpdate", props.filter.id, {
+    id: props.filter.id,
+    base: props.filter.base,
+    prop: props.filter.prop,
+    time: {},
+  })
+}
 
 function onSliderChange(values: (number | string)[], handle: number, unencoded: number[], tap: boolean, positions: number[], noUiSlider: API) {
   if (abortController.signal.aborted) {
@@ -227,7 +240,16 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="pd-timefiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
-    <div :id="labelId" class="flex items-baseline gap-x-1">
+    <div :id="labelId">
+      <Button
+        v-if="filter"
+        type="button"
+        class="float-right ml-2 px-2.5 py-1"
+        :title="t('partials.TimeFiltersResult.clearFilter')"
+        :aria-label="t('partials.TimeFiltersResult.clearFilter')"
+        @click.prevent="clearFilter"
+        >{{ t("common.buttons.clear") }}</Button
+      >
       <DocumentRefInline :id="result.props[0]" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
     </div>

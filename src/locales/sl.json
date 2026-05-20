@@ -181,8 +181,18 @@
       "resultsReferencing": "Rezultati sklicujoči na {label}",
       "clearReferencing": "Počisti omejitev na sklicujoče"
     },
+    "AmountFiltersResult": {
+      "clearFilter": "Počisti filter"
+    },
     "HasFiltersResult": {
-      "title": "ima lastnost"
+      "title": "ima lastnost",
+      "clearFilter": "@:partials.AmountFiltersResult.clearFilter"
+    },
+    "RefFiltersResult": {
+      "clearFilter": "@:partials.AmountFiltersResult.clearFilter"
+    },
+    "TimeFiltersResult": {
+      "clearFilter": "@:partials.AmountFiltersResult.clearFilter"
     },
     "SearchResultsTable": {
       "expandRow": "Razširi vrstico",

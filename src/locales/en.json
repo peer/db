@@ -181,8 +181,18 @@
       "resultsReferencing": "Results referencing {label}",
       "clearReferencing": "Clear referencing scope"
     },
+    "AmountFiltersResult": {
+      "clearFilter": "Clear filter"
+    },
     "HasFiltersResult": {
-      "title": "has property"
+      "title": "has property",
+      "clearFilter": "@:partials.AmountFiltersResult.clearFilter"
+    },
+    "RefFiltersResult": {
+      "clearFilter": "@:partials.AmountFiltersResult.clearFilter"
+    },
+    "TimeFiltersResult": {
+      "clearFilter": "@:partials.AmountFiltersResult.clearFilter"
     },
     "SearchResultsTable": {
       "expandRow": "Expand row",

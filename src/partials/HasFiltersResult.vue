@@ -68,6 +68,18 @@ const selectedIds = computed((): string[] => {
   return props.filter.has.props.map((p: HasValue) => p.id)
 })
 
+function clearFilter() {
+  if (abortController.signal.aborted || !props.filter) {
+    return
+  }
+  emit("filterUpdate", props.filter.id, {
+    id: props.filter.id,
+    base: props.filter.base,
+    prop: [],
+    has: { props: undefined },
+  })
+}
+
 const checkboxState = computed({
   get(): string[] {
     return [...selectedIds.value]
@@ -98,7 +110,16 @@ const WithDocumentD = WithDocument<D>
 
 <template>
   <div class="pd-hasfiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
-    <div :id="labelId" class="flex items-baseline gap-x-1">
+    <div :id="labelId">
+      <Button
+        v-if="filter"
+        type="button"
+        class="float-right ml-2 px-2.5 py-1"
+        :title="t('partials.HasFiltersResult.clearFilter')"
+        :aria-label="t('partials.HasFiltersResult.clearFilter')"
+        @click.prevent="clearFilter"
+        >{{ t("common.buttons.clear") }}</Button
+      >
       <span class="mb-1.5 text-lg leading-none">{{ t("partials.HasFiltersResult.title") }}</span>
       ({{ result.count }})
     </div>
