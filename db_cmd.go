@@ -43,6 +43,7 @@ func InitSites(globals *Globals) {
 			DefaultLanguage:   "",
 			LanguageCodes:     nil,
 			Features:          SiteFeatures{},
+			Roles:             nil,
 			OIDC:              nil,
 			Base:              nil,
 			DBPool:            nil,

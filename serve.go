@@ -60,6 +60,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			DefaultLanguage:   "",
 			LanguageCodes:     nil,
 			Features:          SiteFeatures{},
+			Roles:             nil,
 			OIDC:              nil,
 			Base:              nil,
 			DBPool:            nil,
