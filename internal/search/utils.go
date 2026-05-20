@@ -33,12 +33,26 @@ type indexConfigurationStruct struct {
 }
 
 // LogRoundTrip logs the request and response details using zerolog.
+//
+// It prefers the per-request context logger from req.Context() so that debug
+// entries (including request and response bodies for successful calls) are
+// buffered by the TriggerLevelWriter and only flushed when something later in
+// the request emits at error level. Failed ES requests are logged at error
+// level here, which both records the body details and triggers the flush of
+// any prior buffered entries.
 func (a loggerAdapter) LogRoundTrip(req *http.Request, res *http.Response, err error, start time.Time, dur time.Duration) error {
-	event := a.log.Debug()
+	log := a.log
+	if req != nil {
+		log = *zerolog.Ctx(req.Context())
+	}
+
+	var event *zerolog.Event
 	if err != nil {
-		event = a.log.Error().Err(err)
+		event = log.Error().Err(err)
 	} else if res != nil && res.StatusCode >= http.StatusBadRequest {
-		event = a.log.Error()
+		event = log.Error()
+	} else {
+		event = log.Debug()
 	}
 
 	event.
@@ -59,29 +73,35 @@ func (a loggerAdapter) LogRoundTrip(req *http.Request, res *http.Response, err e
 		} else {
 			buf.ReadFrom(req.Body) //nolint:errcheck,gosec
 		}
-		event.Str("request", buf.String())
+		event.RawJSON("request", buf.Bytes())
 	}
 
 	if a.ResponseBodyEnabled() && res != nil && res.Body != nil && res.Body != http.NoBody {
 		defer res.Body.Close() //nolint:errcheck
 		var buf bytes.Buffer
 		buf.ReadFrom(res.Body) //nolint:errcheck,gosec
-		event.Str("response", buf.String())
+		event.RawJSON("response", buf.Bytes())
 	}
 
-	event.Msg("elasticsearch request")
+	event.Msg("elasticsearch")
 
 	return nil
 }
 
-// RequestBodyEnabled returns false because we do not log request bodies.
+// RequestBodyEnabled returns true so the transport tees the request body to us;
+// the body is then attached at debug level and buffered by the context logger,
+// surfacing only when a later error triggers the buffer flush.
 func (a loggerAdapter) RequestBodyEnabled() bool {
-	return false
+	return true
 }
 
-// ResponseBodyEnabled returns false because we do not log response bodies.
+// ResponseBodyEnabled returns true so the transport tees the response body to us;
+// the body is then attached at debug level and buffered by the context logger,
+// surfacing only when a later error triggers the buffer flush. ES error
+// responses (4xx/5xx) are logged at error level directly, which both attaches
+// the body and fires the trigger.
 func (a loggerAdapter) ResponseBodyEnabled() bool {
-	return false
+	return true
 }
 
 var _ elastictransport.Logger = (*loggerAdapter)(nil)
