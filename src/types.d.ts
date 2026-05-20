@@ -217,8 +217,13 @@ export type StorageUploadStatus = {
   discarded?: boolean
 }
 
+// DocumentEditStatus is the response shape of GET /d/edit/:id/:session (DocumentEdit API).
+// For active sessions, base is always set; version is absent for create sessions and
+// present for edit sessions.
 export type DocumentEditStatus = {
   active: boolean
+  base?: string[]
+  version?: string
   changeset?: string
   discarded?: boolean
 }
@@ -226,6 +231,7 @@ export type DocumentEditStatus = {
 export type DocumentCreateResponse = {
   id: string
   base: string[]
+  session: string
 }
 
 export type DocumentBeginEditResponse = {
@@ -240,7 +246,9 @@ export type DocumentEndEditResponse = {
 export type DocumentBeginMetadata = {
   at: string
   id: string
-  version: string
+  base: string[]
+  // Absent for create sessions (no parent version yet).
+  version?: string
 }
 
 export type ViewType = "table" | "feed"

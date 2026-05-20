@@ -15,7 +15,6 @@ import (
 
 	"gitlab.com/peerdb/peerdb/base"
 	"gitlab.com/peerdb/peerdb/coordinator"
-	"gitlab.com/peerdb/peerdb/document"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/search"
 	"gitlab.com/peerdb/peerdb/store"
@@ -168,11 +167,20 @@ func (s *Service) DocumentGetGetAPI(w http.ResponseWriter, req *http.Request, pa
 }
 
 type documentCreateResponse struct {
-	ID   identifier.Identifier `json:"id"`
-	Base []string              `json:"base"`
+	ID      identifier.Identifier `json:"id"`
+	Base    []string              `json:"base"`
+	Session identifier.Identifier `json:"session"`
 }
 
-// DocumentCreatePostAPI handles POST requests to create a new empty document.
+// DocumentCreatePostAPI handles POST requests to start creating a new document.
+//
+// It does not insert anything into the store. Instead, it pre-allocates a document
+// ID and base, opens a coordinator "create" session, and returns id + base + session.
+// The actual document is materialized in the store only when the client ends the
+// session with EndEditDocument (Save). At that point an empty document is inserted
+// and the session's accumulated changes are applied as the second changeset, so the
+// patch history records the transition from empty to populated. Discarding the
+// session leaves the store untouched.
 func (s *Service) DocumentCreatePostAPI(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
@@ -190,23 +198,17 @@ func (s *Service) DocumentCreatePostAPI(w http.ResponseWriter, req *http.Request
 
 	// TODO: Support configuring base and not just use the domain.
 	base := []string{site.Domain, "DOCUMENT", identifier.New().String()}
-	id := identifier.From(base...)
-	doc := &document.D{
-		CoreDocument: document.CoreDocument{
-			ID:   id,
-			Base: base,
-		},
-	}
 
-	errE = site.Base.InsertDocument(ctx, doc)
+	session, errE := site.Base.BeginCreateDocument(ctx, base)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
 
 	s.WriteJSON(w, req, documentCreateResponse{
-		ID:   id,
-		Base: base,
+		ID:      identifier.From(base...),
+		Base:    base,
+		Session: session,
 	}, nil)
 }
 
@@ -435,7 +437,7 @@ func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, para
 
 	site := waf.MustGetSite[*Site](req.Context())
 
-	documentID, _, completeMetadata, errE := site.Base.GetEditDocumentSession(ctx, session)
+	beginMetadata, _, completeMetadata, errE := site.Base.GetEditDocumentSession(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -444,7 +446,7 @@ func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, para
 		return
 	}
 
-	if documentID != id {
+	if beginMetadata.DocumentID != id {
 		// TODO: Should we redirect to the correct ID?
 		s.NotFoundWithError(w, req, errors.New(`"session" does not match "id"`))
 		return
@@ -481,7 +483,7 @@ func (s *Service) DocumentEditGetAPI(w http.ResponseWriter, req *http.Request, p
 
 	site := waf.MustGetSite[*Site](req.Context())
 
-	documentID, sessionEnded, completeMetadata, errE := site.Base.GetEditDocumentSession(ctx, session)
+	beginMetadata, sessionEnded, completeMetadata, errE := site.Base.GetEditDocumentSession(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
@@ -490,7 +492,7 @@ func (s *Service) DocumentEditGetAPI(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	if documentID != id {
+	if beginMetadata.DocumentID != id {
 		// TODO: Should we redirect to the correct ID?
 		s.NotFoundWithError(w, req, errors.New(`"session" does not match "id"`))
 		return
@@ -508,7 +510,18 @@ func (s *Service) DocumentEditGetAPI(w http.ResponseWriter, req *http.Request, p
 	} else if sessionEnded {
 		s.WriteJSON(w, req, `{"active":false}`, nil)
 	} else {
-		s.WriteJSON(w, req, `{"active":true}`, nil)
+		// Active session: include base and (for edit sessions) version, so the
+		// client can rebuild claim IDs from base and decide whether to fetch the
+		// parent document. Absent version signals a create session.
+		s.WriteJSON(w, req, struct {
+			Active  bool           `json:"active"`
+			Base    []string       `json:"base"`
+			Version *store.Version `json:"version,omitempty"`
+		}{
+			Active:  true,
+			Base:    beginMetadata.Base,
+			Version: beginMetadata.Version,
+		}, nil)
 	}
 }
 

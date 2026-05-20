@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { HighConfidence, type D } from "@/document"
-import type { DocumentBeginEditResponse, DocumentCreateResponse, Result } from "@/types"
+import type { DocumentCreateResponse, Result } from "@/types"
 
 import { PlusIcon } from "@heroicons/vue/20/solid"
 import { onBeforeUnmount, onMounted, ref } from "vue"
@@ -105,44 +105,29 @@ async function onCreate(classId: string) {
   showDropdown.value = false
   busy.value += 1
   try {
-    // Create a new document.
+    // Open a create session. The document is not yet inserted in the store;
+    // the session holds all pending changes (starting with instance_of below)
+    // and the backend materializes the document only on Save.
     const createResponse = await postJSON<DocumentCreateResponse>(router.apiResolve({ name: "DocumentCreate" }).href, {}, abortController.signal, busy)
     if (abortController.signal.aborted) {
       return
     }
 
-    // Begin editing.
-    const editResponse = await postJSON<DocumentBeginEditResponse>(
-      router.apiResolve({
-        name: "DocumentBeginEdit",
-        params: {
-          id: createResponse.id,
-        },
-      }).href,
-      {},
-      abortController.signal,
-      busy,
-    )
-    if (abortController.signal.aborted) {
-      return
-    }
-
-    // Add claim for "instance of" class.
+    // Add claim for "instance of" class as the first change in the session.
     await postJSON(
       router.apiResolve({
         name: "DocumentSaveChange",
         params: {
-          session: editResponse.session,
+          session: createResponse.session,
         },
         query: encodeQuery({ change: "1" }),
       }).href,
-      await makeAddClaimChange(createResponse.base, editResponse.session, 1, {
+      await makeAddClaimChange(createResponse.base, createResponse.session, 1, {
         type: "ref",
         confidence: HighConfidence,
         prop: INSTANCE_OF,
         to: classId,
       }),
-      // await makeAddClaimChange(latestChange + 1, makePatch()),
       abortController.signal,
       null,
     )
@@ -155,7 +140,7 @@ async function onCreate(classId: string) {
       name: "DocumentEdit",
       params: {
         id: createResponse.id,
-        session: editResponse.session,
+        session: createResponse.session,
       },
     })
   } catch (err) {

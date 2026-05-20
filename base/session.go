@@ -17,11 +17,14 @@ import (
 )
 
 // DocumentBeginMetadata contains metadata captured at the beginning of document edit session.
+//
+// Version is nil for create sessions (the session creates a new document; no parent
+// version exists in the store yet). Otherwise it is the parent version the edit branches from.
 type DocumentBeginMetadata struct {
 	At         store.Time            `json:"at"`
 	DocumentID identifier.Identifier `json:"documentId"`
 	Base       []string              `json:"base"`
-	Version    store.Version         `json:"version"`
+	Version    *store.Version        `json:"version,omitempty"`
 }
 
 // documentEndMetadata contains metadata captured at the end of document edit session.
@@ -113,21 +116,36 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 		changes = append(changes, change)
 	}
 
-	// Version has Revision 0, so Get returns the latest revision for the changeset,
-	// picking up any metadata updates made by the system (e.g., bridge) since the session began.
-	docJSON, oldMetadata, resolvedVersion, _, errE := b.documents.Get(ctx, beginMetadata.DocumentID, beginMetadata.Version)
-	if errE != nil {
-		return nil, errE
-	}
-
 	var doc document.D
-	errE = x.UnmarshalWithoutUnknownFields(docJSON, &doc)
-	if errE != nil {
-		return nil, errE
+	var oldMetadata *store.DocumentMetadata
+	var resolvedVersion store.Version
+	if beginMetadata.Version != nil {
+		// Edit session: load parent document at the session's begin version.
+		// Version has Revision 0, so Get returns the latest revision for the changeset,
+		// picking up any metadata updates made by the system (e.g., bridge) since the session began.
+		var docJSON json.RawMessage
+		docJSON, oldMetadata, resolvedVersion, _, errE = b.documents.Get(ctx, beginMetadata.DocumentID, *beginMetadata.Version)
+		if errE != nil {
+			return nil, errE
+		}
+
+		errE = x.UnmarshalWithoutUnknownFields(docJSON, &doc)
+		if errE != nil {
+			return nil, errE
+		}
+	} else {
+		// Create session: start from an empty document with the pre-allocated id/base.
+		// The actual store insert happens in completeDocumentSessionTx.
+		doc = document.D{
+			CoreDocument: document.CoreDocument{
+				ID:   beginMetadata.DocumentID,
+				Base: slices.Clone(beginMetadata.Base),
+			},
+		}
 	}
 
 	// doc.Base should be equal to beginMetadata.Base.
-	// We use doc.Base here on purpose, to validate that use of
+	// For edit sessions we use doc.Base here on purpose, to validate that use of
 	// beginMetadata.Base in AppendDocumentChange matches.
 	base := slices.Clone(doc.Base)
 	base = append(base, "SESSION", session.String())
@@ -142,12 +160,13 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 		return nil, errE
 	}
 
-	docJSON, errE = x.MarshalWithoutEscapeHTML(doc)
+	docJSON, errE := x.MarshalWithoutEscapeHTML(doc)
 	if errE != nil {
 		return nil, errE
 	}
 
-	// Compute new metadata, carrying over system-managed fields from the parent version.
+	// Compute new metadata, carrying over system-managed fields from the parent version
+	// (no-op when oldMetadata is nil, which is the create-session case).
 	newMetadata := &store.DocumentMetadata{
 		At:               endMetadata.At,
 		InverseRelations: nil,
@@ -200,13 +219,49 @@ func (b *B) completeDocumentSessionTx(
 	}
 
 	// We do not have to use the "tx" parameter because we access the transaction through ctx.
-	// We use the parent version's changeset so the update is based on the same version (with actual revision)
-	// at which metadata was fetched and changes were validated in completeDocumentSession.
 	commitMetadata := &store.CommitMetadata{
 		Base: changesetBase,
 	}
+
+	// Resolve the parent changeset the Update will branch from. For edit sessions
+	// it is the parent version's changeset (so the update is based on the same
+	// version, with actual revision, at which metadata was fetched and changes
+	// were validated in completeDocumentSession). For create sessions the parent
+	// is the FIRST changeset we synthesize here by inserting an empty document.
+	// We do the insert + update in the same River-job transaction so a discard
+	// or failure in the second step leaves the store unchanged.
+	var parentChangeset identifier.Identifier
+	if data.BeginMetadata.Version != nil {
+		parentChangeset = data.ParentVersion.Changeset
+	} else {
+		emptyDoc := &document.D{
+			CoreDocument: document.CoreDocument{
+				ID:   data.BeginMetadata.DocumentID,
+				Base: data.BeginMetadata.Base,
+			},
+		}
+		emptyJSON, errE := x.MarshalWithoutEscapeHTML(emptyDoc)
+		if errE != nil {
+			return nil, errE
+		}
+		firstBase := slices.Clone(data.BeginMetadata.Base)
+		firstBase = append(firstBase, "CHANGESET", "FIRST")
+		firstVersion, errE := b.documents.Insert(
+			ctx, data.BeginMetadata.DocumentID, emptyJSON,
+			&store.DocumentMetadata{
+				At:               data.EndMetadata.At,
+				InverseRelations: nil,
+			},
+			&store.CommitMetadata{Base: firstBase},
+		)
+		if errE != nil {
+			return nil, errE
+		}
+		parentChangeset = firstVersion.Changeset
+	}
+
 	version, errE := b.documents.Update(
-		ctx, data.BeginMetadata.DocumentID, data.ParentVersion.Changeset,
+		ctx, data.BeginMetadata.DocumentID, parentChangeset,
 		data.Document, data.Changes, data.Metadata, commitMetadata,
 	)
 	if errE != nil {

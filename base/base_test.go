@@ -323,9 +323,11 @@ func TestDocumentEditSession(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Verify session is active.
-	documentID, sessionEnded, completeMetadata, errE := b.GetEditDocumentSession(ctx, session)
+	beginMetadata, sessionEnded, completeMetadata, errE := b.GetEditDocumentSession(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, docID, documentID)
+	require.NotNil(t, beginMetadata)
+	assert.Equal(t, docID, beginMetadata.DocumentID)
+	require.NotNil(t, beginMetadata.Version)
 	assert.False(t, sessionEnded)
 	assert.Nil(t, completeMetadata)
 
@@ -368,9 +370,10 @@ func TestDocumentEditSession(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Session should be ended now but not yet completed.
-	documentID2, sessionEnded2, completeMetadata2, errE2 := b.GetEditDocumentSession(ctx, session)
+	beginMetadata2, sessionEnded2, completeMetadata2, errE2 := b.GetEditDocumentSession(ctx, session)
 	require.NoError(t, errE2, "% -+#.1v", errE2)
-	assert.Equal(t, docID, documentID2)
+	require.NotNil(t, beginMetadata2)
+	assert.Equal(t, docID, beginMetadata2.DocumentID)
 	assert.True(t, sessionEnded2)
 	// Complete metadata may or may not be available yet (async).
 
@@ -384,9 +387,10 @@ func TestDocumentEditSession(t *testing.T) {
 	}, 30*time.Second, 100*time.Millisecond)
 
 	// After completion, GetEditDocumentSession should return complete metadata.
-	documentID3, sessionEnded3, completeMetadata3, errE3 := b.GetEditDocumentSession(ctx, session)
+	beginMetadata3, sessionEnded3, completeMetadata3, errE3 := b.GetEditDocumentSession(ctx, session)
 	require.NoError(t, errE3, "% -+#.1v", errE3)
-	assert.Equal(t, docID, documentID3)
+	require.NotNil(t, beginMetadata3)
+	assert.Equal(t, docID, beginMetadata3.DocumentID)
 	assert.True(t, sessionEnded3)
 	if assert.NotNil(t, completeMetadata3) {
 		assert.False(t, completeMetadata3.Discarded)
@@ -453,11 +457,13 @@ func TestDocumentEditSessionDiscard(t *testing.T) {
 
 	// Wait for async completion using GetEditDocumentSession.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		documentID, sessionEnded, completeMetadata, errE := b.GetEditDocumentSession(ctx, session)
+		beginMetadata, sessionEnded, completeMetadata, errE := b.GetEditDocumentSession(ctx, session)
 		if !assert.NoError(c, errE, "% -+#.1v", errE) {
 			return
 		}
-		assert.Equal(c, docID, documentID)
+		if assert.NotNil(c, beginMetadata) {
+			assert.Equal(c, docID, beginMetadata.DocumentID)
+		}
 		assert.True(c, sessionEnded)
 		if assert.NotNil(c, completeMetadata) {
 			assert.True(c, completeMetadata.Discarded)
@@ -473,6 +479,155 @@ func TestDocumentEditSessionDiscard(t *testing.T) {
 	updatedDoc, _, _, _, errE := b.GetDocumentLatestDoc(ctx, docID) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, updatedDoc.Claims, "document should have no claims after discarded session")
+}
+
+func TestDocumentCreateSession(t *testing.T) {
+	t.Parallel()
+
+	ctx, b := initBase(t)
+
+	// Pre-allocate the document ID and base, just like DocumentCreatePostAPI does.
+	docID, docBase := newDocID()
+
+	// The document should not yet exist in the store.
+	_, _, _, _, errE := b.GetDocumentLatest(ctx, docID) //nolint:dogsled
+	require.ErrorIs(t, errE, store.ErrValueNotFound)
+
+	session, errE := b.BeginCreateDocument(ctx, docBase)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Active session has nil Version (create session marker).
+	beginMetadata, sessionEnded, completeMetadata, errE := b.GetEditDocumentSession(ctx, session)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotNil(t, beginMetadata)
+	assert.Equal(t, docID, beginMetadata.DocumentID)
+	assert.Equal(t, docBase, beginMetadata.Base)
+	assert.Nil(t, beginMetadata.Version, "create session should have nil Version")
+	assert.False(t, sessionEnded)
+	assert.Nil(t, completeMetadata)
+
+	// Append a single string-claim change against the session.
+	confidence := document.HighConfidence
+	propID := identifier.New()
+	changeBase := append(append([]string{}, docBase...), "SESSION", session.String(), "1")
+	claimID := identifier.From(changeBase...)
+	changeJSON := marshalChange(t, document.AddClaimChange{ //nolint:exhaustruct
+		ID:   claimID,
+		Base: changeBase,
+		Patch: document.StringClaimPatch{
+			Confidence: &confidence,
+			Prop:       &propID,
+			String:     "first value",
+		},
+	})
+	_, errE = b.AppendDocumentChange(ctx, session, changeJSON, 1)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Save (end without discard).
+	errE = b.EndEditDocument(ctx, session, false)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Wait for async completion.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, _, completeMetadata, errE := b.GetEditDocumentSession(ctx, session)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		if assert.NotNil(c, completeMetadata) {
+			assert.False(c, completeMetadata.Discarded)
+			assert.NotNil(c, completeMetadata.Changeset)
+		}
+	}, 30*time.Second, 100*time.Millisecond)
+
+	// The materialized document has the appended claim.
+	updatedDoc, _, latestVersion, parents, errE := b.GetDocumentLatestDoc(ctx, docID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotNil(t, updatedDoc.Claims)
+	require.Len(t, updatedDoc.Claims.String, 1)
+	assert.Equal(t, "first value", updatedDoc.Claims.String[0].String)
+	assert.Equal(t, claimID, updatedDoc.Claims.String[0].ID)
+
+	// Latest version sits at the SESSION changeset; its parent is the FIRST changeset.
+	expectedSessionChangeset := identifier.From(append(append([]string{}, docBase...), "SESSION", session.String())...)
+	expectedFirstChangeset := identifier.From(append(append([]string{}, docBase...), "CHANGESET", "FIRST")...)
+	assert.Equal(t, expectedSessionChangeset, latestVersion.Changeset)
+	require.Len(t, parents, 1)
+	assert.Equal(t, expectedFirstChangeset, parents[0].Changeset)
+}
+
+func TestDocumentCreateSessionDiscard(t *testing.T) {
+	t.Parallel()
+
+	ctx, b := initBase(t)
+
+	docID, docBase := newDocID()
+
+	session, errE := b.BeginCreateDocument(ctx, docBase)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Append a change so we can also exercise the "had changes but discarded" branch.
+	confidence := document.HighConfidence
+	propID := identifier.New()
+	changeBase := append(append([]string{}, docBase...), "SESSION", session.String(), "1")
+	claimID := identifier.From(changeBase...)
+	changeJSON := marshalChange(t, document.AddClaimChange{ //nolint:exhaustruct
+		ID:   claimID,
+		Base: changeBase,
+		Patch: document.StringClaimPatch{
+			Confidence: &confidence,
+			Prop:       &propID,
+			String:     "thrown away",
+		},
+	})
+	_, errE = b.AppendDocumentChange(ctx, session, changeJSON, 1)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.EndEditDocument(ctx, session, true)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, _, completeMetadata, errE := b.GetEditDocumentSession(ctx, session)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		if assert.NotNil(c, completeMetadata) {
+			assert.True(c, completeMetadata.Discarded)
+			assert.Nil(c, completeMetadata.Changeset)
+		}
+	}, 30*time.Second, 100*time.Millisecond)
+
+	// No document was ever materialized in the store.
+	_, _, _, _, errE = b.GetDocumentLatest(ctx, docID) //nolint:dogsled
+	require.ErrorIs(t, errE, store.ErrValueNotFound)
+}
+
+func TestDocumentCreateSessionNoChanges(t *testing.T) {
+	t.Parallel()
+
+	ctx, b := initBase(t)
+
+	docID, docBase := newDocID()
+
+	session, errE := b.BeginCreateDocument(ctx, docBase)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// End without appending any change. Same effect as discard: no document inserted.
+	errE = b.EndEditDocument(ctx, session, false)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, _, completeMetadata, errE := b.GetEditDocumentSession(ctx, session)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		if assert.NotNil(c, completeMetadata) {
+			assert.True(c, completeMetadata.Discarded)
+			assert.Nil(c, completeMetadata.Changeset)
+		}
+	}, 30*time.Second, 100*time.Millisecond)
+
+	_, _, _, _, errE = b.GetDocumentLatest(ctx, docID) //nolint:dogsled
+	require.ErrorIs(t, errE, store.ErrValueNotFound)
 }
 
 func TestDocumentEditSessionCarriesOverMetadata(t *testing.T) {
@@ -1428,11 +1583,13 @@ func TestEndEditDocumentEmptyNoDiscard(t *testing.T) {
 
 	// Wait for completion and verify it is treated as discarded (no changes).
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		documentID, sessionEnded, completeMetadata, errE := b.GetEditDocumentSession(ctx, session)
+		beginMetadata, sessionEnded, completeMetadata, errE := b.GetEditDocumentSession(ctx, session)
 		if !assert.NoError(c, errE, "% -+#.1v", errE) {
 			return
 		}
-		assert.Equal(c, docID, documentID)
+		if assert.NotNil(c, beginMetadata) {
+			assert.Equal(c, docID, beginMetadata.DocumentID)
+		}
 		assert.True(c, sessionEnded)
 		if assert.NotNil(c, completeMetadata) {
 			// Empty changes are treated as discard.
@@ -1812,11 +1969,13 @@ func TestGetEditDocumentSessionCompleted(t *testing.T) {
 
 	// Wait for completion and verify complete metadata.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		documentID, sessionEnded, completeMetadata, errE := b.GetEditDocumentSession(ctx, session)
+		beginMetadata, sessionEnded, completeMetadata, errE := b.GetEditDocumentSession(ctx, session)
 		if !assert.NoError(c, errE, "% -+#.1v", errE) {
 			return
 		}
-		assert.Equal(c, docID, documentID)
+		if assert.NotNil(c, beginMetadata) {
+			assert.Equal(c, docID, beginMetadata.DocumentID)
+		}
 		assert.True(c, sessionEnded)
 		if assert.NotNil(c, completeMetadata) {
 			assert.False(c, completeMetadata.Discarded)

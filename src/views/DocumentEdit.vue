@@ -11,7 +11,7 @@ import type { ComponentExposed } from "vue-component-type-helpers"
 
 import type { TimePrecision } from "@/document"
 import type { FieldsFormSaveChange, FlushFn } from "@/fields"
-import type { DocumentBeginMetadata, DocumentEditStatus, DocumentEndEditResponse, ValidatedInput, ValidateFn } from "@/types"
+import type { DocumentEditStatus, DocumentEndEditResponse, ValidatedInput, ValidateFn } from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { computed, nextTick, onBeforeUnmount, provide, readonly, ref, toRef, useTemplateRef, watch } from "vue"
@@ -308,7 +308,7 @@ async function loadChanges() {
 }
 
 async function loadAndSubscribe() {
-  const { doc: beginMetadata } = await getURL<DocumentBeginMetadata>(
+  const { doc: editStatus } = await getURL<DocumentEditStatus>(
     router.apiResolve({
       name: "DocumentEdit",
       params: {
@@ -324,20 +324,31 @@ async function loadAndSubscribe() {
     return
   }
 
-  const { doc: initialDoc } = await getURL<object>(
-    router.apiResolve({
-      name: "DocumentGet",
-      params: {
-        id: props.id,
-      },
-      query: encodeQuery({ version: beginMetadata.version }),
-    }).href,
-    null,
-    abortController.signal,
-    null,
-  )
-  if (abortController.signal.aborted) {
-    return
+  // For edit sessions the API returns a parent version we fetch the document
+  // at. For create sessions there is no parent yet (the document is materialized
+  // on Save), so we start with an empty document built from the session-allocated
+  // id/base. Pending session changes (instance_of plus anything the user added
+  // in this or a prior load of the same session) are then applied locally below.
+  let initialDoc: object
+  if (editStatus.version) {
+    const fetched = await getURL<object>(
+      router.apiResolve({
+        name: "DocumentGet",
+        params: {
+          id: props.id,
+        },
+        query: encodeQuery({ version: editStatus.version }),
+      }).href,
+      null,
+      abortController.signal,
+      null,
+    )
+    if (abortController.signal.aborted) {
+      return
+    }
+    initialDoc = fetched.doc
+  } else {
+    initialDoc = { id: props.id, base: editStatus.base ?? [], claims: {} }
   }
 
   // Build the doc locally and apply the session's pending changes

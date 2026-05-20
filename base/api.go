@@ -208,7 +208,7 @@ func (b *B) BeginEditDocumentLatest(ctx context.Context, id identifier.Identifie
 		At:         store.Time(time.Now().UTC()),
 		DocumentID: id,
 		Base:       doc.Base,
-		Version: store.Version{
+		Version: &store.Version{
 			Changeset: version.Changeset,
 			// We set revision to 0 so that system metadata updates (e.g., inverse relations)
 			// that bump the revision do not invalidate the session.
@@ -216,6 +216,23 @@ func (b *B) BeginEditDocumentLatest(ctx context.Context, id identifier.Identifie
 		},
 	})
 	return session, version, errE
+}
+
+// BeginCreateDocument opens a coordinator session for creating a brand-new document.
+//
+// The document is not inserted into the store at this point. The session
+// accumulates changes (claim additions, etc.) and EndEditDocument commits them
+// by inserting an empty document with the given id/base and then applying the
+// accumulated changes as a second changeset (so the patch history records the
+// transition from empty to populated).
+func (b *B) BeginCreateDocument(ctx context.Context, base []string) (identifier.Identifier, errors.E) {
+	id := identifier.From(base...)
+	return b.coordinator.Begin(ctx, &DocumentBeginMetadata{
+		At:         store.Time(time.Now().UTC()),
+		DocumentID: id,
+		Base:       base,
+		Version:    nil,
+	})
 }
 
 // AppendDocumentChange appends a change to an edit session at the given sequence number.
@@ -264,13 +281,17 @@ func (b *B) EndEditDocument(ctx context.Context, session identifier.Identifier, 
 	})
 }
 
-// GetEditDocumentSession returns ID of the document edited, flag if edit session has ended and the complete metadata if completed.
-func (b *B) GetEditDocumentSession(ctx context.Context, session identifier.Identifier) (identifier.Identifier, bool, *DocumentCompleteMetadata, errors.E) {
+// GetEditDocumentSession returns the begin metadata of the edit session, a flag indicating
+// whether the session has ended, and the complete metadata if the session has completed.
+//
+// The begin metadata's Version is nil for create sessions and non-nil for edit sessions,
+// which lets callers distinguish the two without a separate flag.
+func (b *B) GetEditDocumentSession(ctx context.Context, session identifier.Identifier) (*DocumentBeginMetadata, bool, *DocumentCompleteMetadata, errors.E) {
 	beginMetadata, endMetadata, completeMetadata, errE := b.coordinator.Get(ctx, session)
 	if errE != nil {
-		return identifier.Identifier{}, false, nil, errE
+		return nil, false, nil, errE
 	}
-	return beginMetadata.DocumentID, endMetadata != nil, completeMetadata, nil
+	return beginMetadata, endMetadata != nil, completeMetadata, nil
 }
 
 // BeginUploadNew begins a chunked file upload session for a new file.
