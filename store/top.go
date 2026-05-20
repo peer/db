@@ -204,6 +204,18 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 	return view.List(ctx, after)
 }
 
+// Count returns the number of distinct values currently committed to the MainView,
+// excluding values whose latest committed version has been deleted.
+func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Count(
+	ctx context.Context,
+) (int64, errors.E) {
+	view, errE := s.View(ctx, MainView)
+	if errE != nil {
+		return 0, errE
+	}
+	return view.Count(ctx)
+}
+
 // Changes returns up to MaxPageLength changesets for the value committed to the MainView, ordered first by depth
 // in increasing order (newest changes first) and then by changeset ID, after optional changeset ID, to
 // support keyset pagination.

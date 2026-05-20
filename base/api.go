@@ -351,6 +351,12 @@ func (b *B) GetUploadSession(ctx context.Context, session identifier.Identifier)
 	return endMetadata != nil, completeMetadata, errE
 }
 
+// CountFiles returns the number of stored files currently in storage,
+// excluding files whose latest committed version has been deleted.
+func (b *B) CountFiles(ctx context.Context) (int64, errors.E) {
+	return b.files.Store().Count(ctx)
+}
+
 // GetFile returns a stored file at the given version.
 //
 // It returns also file metadata, the version of the file (if requested version
