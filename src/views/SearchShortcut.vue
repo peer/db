@@ -32,6 +32,7 @@ onMounted(async () => {
       async (base) => {
         // Query parameters are interpreted as ref filters where key is the
         // property ID and value is the value ID, matching the backend behavior.
+        // A key of the form "parentProp:prop" is a nested (sub-ref) filter.
         // The "reverse" query parameter is special: it scopes the session to
         // documents referencing that ID via any property.
         const filters: Filter[] = []
@@ -52,12 +53,13 @@ onMounted(async () => {
           const arr = Array.isArray(values) ? values : [values]
           const toValues = arr.filter((v): v is string => v != null).map((v) => ({ id: v }))
           if (toValues.length > 0) {
+            const propParts = prop.split(":")
             const filterBase = [...base, "FILTER", Identifier.new().toString()]
             const id = (await Identifier.from(...filterBase)).toString()
             filters.push({
               id: id,
               base: filterBase,
-              prop: [prop],
+              prop: propParts,
               ref: { to: toValues },
             })
           }

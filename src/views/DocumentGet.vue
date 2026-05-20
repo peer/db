@@ -174,7 +174,7 @@ const documentTabs = computed(() => {
   return tabs
 })
 
-type SearchShortcut = { name: string; filter: Record<string, string>; reverse: boolean }
+type SearchShortcut = { name: string; filter: Record<string, string> }
 
 const searchShortcuts = ref<{ name: string; query: QueryValues }[]>([])
 watch(
@@ -190,41 +190,55 @@ watch(
         if (!name || name.length === 0) {
           continue
         }
-        const parts = shortcut.string.split(";")
-        let reverse = false
+        const parts = shortcut.string.split("&")
         const filter: Record<string, string> = {}
         for (const part of parts) {
-          if (part === "reverse") {
-            reverse = true
-            continue
-          }
-          const f = part.split(":")
-          if (f.length != 2) {
+          const eq = part.indexOf("=")
+          if (eq <= 0 || eq === part.length - 1) {
             console.error("invalid search shortcut", classDoc.id, shortcut.string)
             continue
           }
-          filter[f[0]] = f[1]
+          const key = part.substring(0, eq)
+          const value = part.substring(eq + 1)
+          const keyParts = key.split(":")
+          if (keyParts.length > 2) {
+            console.error("invalid search shortcut", classDoc.id, shortcut.string)
+            continue
+          }
+          if (keyParts.length === 2 && (keyParts[0] === "reverse" || keyParts[1] === "reverse")) {
+            console.error("invalid search shortcut", classDoc.id, shortcut.string)
+            continue
+          }
+          filter[key] = value
         }
         if (Object.keys(filter).length === 0) {
           continue
         }
-        result.push({ name: name[0].string, filter, reverse })
+        result.push({ name: name[0].string, filter })
       }
     }
     return result
   },
   async (shortcuts: SearchShortcut[]) => {
+    // Resolve a mnemonic-or-id token: comma-separated parts go through Identifier.from,
+    // otherwise the token is assumed to already be an identifier and used as-is.
+    const resolveID = async (s: string) => (s.includes(",") ? (await Identifier.from(...s.split(","))).toString() : s)
     try {
       const result = []
       for (const shortcut of shortcuts) {
         const filter: Record<string, string> = {}
         for (const [key, value] of Object.entries(shortcut.filter)) {
-          const k = await Identifier.from(...key.split(","))
-          const v = await Identifier.from(...value.split(","))
-          filter[k.toString()] = v.toString()
-        }
-        if (shortcut.reverse) {
-          filter.reverse = props.id
+          let k: string
+          if (key === "reverse") {
+            k = "reverse"
+          } else if (key.includes(":")) {
+            const [parentKey, nestedKey] = key.split(":")
+            k = `${await resolveID(parentKey)}:${await resolveID(nestedKey)}`
+          } else {
+            k = await resolveID(key)
+          }
+          const v = value === "self" ? props.id : await resolveID(value)
+          filter[k] = v
         }
         // We could make computing the query be moved to changeTab which is already async,
         // but we prefer that any exceptions happen here so that we then set documentSearchShortcuts
