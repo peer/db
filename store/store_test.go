@@ -207,6 +207,11 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Empty(t, parentChangesets)
 	}
 
+	count, errE := s.Count(ctx)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, int64(1), count)
+	}
+
 	testChanges(t, ctx, s, expectedID, []identifier.Identifier{
 		insertVersion.Changeset,
 	})
@@ -410,6 +415,13 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		}
 	}
 
+	// After deletion the value is no longer counted as alive even though it
+	// remains in List (which includes deleted IDs).
+	count, errE = s.Count(ctx)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, int64(0), count)
+	}
+
 	testChanges(t, ctx, s, expectedID, []identifier.Identifier{
 		deleteVersion.Changeset,
 		replaceVersion.Changeset,
@@ -596,6 +608,12 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.ElementsMatch(t, []identifier.Identifier{expectedID, newID, newID2}, ids)
 	}
+
+	// List includes the deleted expectedID; Count excludes it.
+	count, errE = s.Count(ctx)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, int64(2), count)
+	}
 }
 
 func TestListPagination(t *testing.T) {
@@ -618,6 +636,11 @@ func TestListPagination(t *testing.T) {
 
 	_, errE = s.Commit(ctx, changeset, testutils.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
+
+	count, errE := s.Count(ctx)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, int64(6000), count)
+	}
 
 	page1, errE := s.List(ctx, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -642,6 +665,8 @@ func TestListPagination(t *testing.T) {
 	v, errE := s.View(ctx, "unknown")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = v.List(ctx, nil)
+	assert.ErrorIs(t, errE, store.ErrViewNotFound)
+	_, errE = v.Count(ctx)
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 
 	// Having no more values is not an error.
@@ -894,6 +919,13 @@ func TestInterdependentChangesets(t *testing.T) {
 		[]store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]{changeset1, changeset2},
 		changesets,
 	)
+
+	// Both changesets were committed together (interdependent), so we have
+	// two alive values now.
+	count, errE := s.Count(ctx)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, int64(2), count)
+	}
 }
 
 func TestGetCurrent(t *testing.T) {
@@ -1117,6 +1149,17 @@ func TestMultipleViews(t *testing.T) {
 		sortIDs(updated.Changeset, updated2.Changeset)[1],
 		version.Changeset,
 	})
+
+	// Both views ultimately resolve to the same merged value: one alive
+	// value in each view, exercising the closest-view-in-path resolution.
+	count, errE := s.Count(ctx)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, int64(1), count)
+	}
+	count, errE = v.Count(ctx)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, int64(1), count)
+	}
 }
 
 func TestChangeAcrossViews(t *testing.T) {
@@ -1240,6 +1283,16 @@ func TestChangeAcrossViews(t *testing.T) {
 		updated.Changeset,
 		version.Changeset,
 	})
+
+	// Both views resolve to the same alive value (no deletions in this test).
+	count, errE := s.Count(ctx)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, int64(1), count)
+	}
+	count, errE = v.Count(ctx)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, int64(1), count)
+	}
 }
 
 func TestView(t *testing.T) {
@@ -1270,6 +1323,9 @@ func TestView(t *testing.T) {
 
 	errE = v.Release(ctx, testutils.DummyData)
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
+
+	_, errE = v.Count(ctx)
+	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 }
 
 func TestDuplicateValues(t *testing.T) {
@@ -1294,6 +1350,13 @@ func TestDuplicateValues(t *testing.T) {
 	// which auto-commit to original view.
 	_, errE = s.Update(ctx, newID, version.Changeset, testutils.DummyData, testutils.DummyData, testutils.DummyData, testutils.DummyData)
 	assert.ErrorIs(t, errE, store.ErrConflict)
+
+	// Despite the failed updates and the conflicting insert above, we have
+	// exactly one alive value in the store.
+	count, errE := s.Count(ctx)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, int64(1), count)
+	}
 }
 
 func TestDiscardAfterCommit(t *testing.T) {
@@ -1332,6 +1395,11 @@ func TestEmptyChangeset(t *testing.T) {
 
 	errE = changeset.Discard(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
+
+	count, errE := s.Count(ctx)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, int64(0), count)
+	}
 }
 
 func TestDiscardInUseChangeset(t *testing.T) {
@@ -1513,6 +1581,9 @@ func TestErrors(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, errE = changeset.Commit(ctx, v, testutils.DummyData)
+	assert.ErrorIs(t, errE, store.ErrViewNotFound)
+
+	_, errE = v.Count(ctx)
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 
 	_, errE = s.Commit(ctx, changeset, testutils.DummyData)

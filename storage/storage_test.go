@@ -194,6 +194,12 @@ func TestHappyPath(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	changesetBase := append(append([]string{}, expectedBase...), "SESSION", session.String())
 	assert.Equal(t, identifier.From(changesetBase...), version.Changeset)
+
+	// Storage now holds exactly the one stored file.
+	count, errE := s.Store().Count(ctx)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, int64(1), count)
+	}
 }
 
 func TestErrors(t *testing.T) {
@@ -225,4 +231,10 @@ func TestErrors(t *testing.T) {
 
 	errE = s.DiscardUpload(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// No upload completed: storage remains empty.
+	count, errE := s.Store().Count(ctx)
+	if assert.NoError(t, errE, "% -+#.1v", errE) {
+		assert.Equal(t, int64(0), count)
+	}
 }
