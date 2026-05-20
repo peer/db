@@ -235,9 +235,9 @@
   "views": {
     "DocumentGet": {
       "tabs": {
-        "allProperties": "Vse lastnosti",
-        "referencedBy": "Sklicujoči se"
-      }
+        "allProperties": "Vse lastnosti"
+      },
+      "referencedBy": "Sklicujoči se"
     },
     "DocumentEdit": {
       "tabs": {

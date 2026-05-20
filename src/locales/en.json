@@ -235,9 +235,9 @@
   "views": {
     "DocumentGet": {
       "tabs": {
-        "allProperties": "All properties",
-        "referencedBy": "Referenced by"
-      }
+        "allProperties": "All properties"
+      },
+      "referencedBy": "Referenced by"
     },
     "DocumentEdit": {
       "tabs": {

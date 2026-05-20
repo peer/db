@@ -69,28 +69,6 @@ const WithDocumentD = WithDocument<D>
 const withDocument = useTemplateRef<ComponentExposed<typeof WithDocumentD>>("withDocument")
 const displayLabelComponent = useTemplateRef<ComponentExposed<typeof DisplayLabel>>("displayLabelComponent")
 
-const selectedTab = ref(0)
-
-async function changeTab(index: number) {
-  const offset = (classTabId.value && mergedFieldsData.value ? 1 : 0) + documentTabs.value.length
-  const searchShortcut = searchShortcuts.value[index - offset]
-  if (searchShortcut) {
-    await router.push({
-      name: "SearchShortcut",
-      query: searchShortcut.query,
-    })
-    return
-  }
-  if (index == offset + searchShortcuts.value.length) {
-    await router.push({
-      name: "SearchShortcut",
-      query: encodeQuery({ reverse: props.id }),
-    })
-    return
-  }
-  selectedTab.value = index
-}
-
 // Resolve field definitions for this document's class(es).
 const docRef = toRef(() => withDocument.value?.doc ?? null)
 const { classDocs, instanceOfClassIds, initialized: classesInitialized } = useParentClasses(docRef, el, progress)
@@ -174,6 +152,17 @@ const documentTabs = computed(() => {
   return tabs
 })
 
+// Whether the class-based FieldsView tab panel is rendered.
+// Side links (search shortcuts + "referenced by") render inside this panel
+// when available, otherwise inside the "all properties" panel.
+const hasFieldsViewPanel = computed(() => documentTabs.value.length === 0 && classTabId.value !== null && mergedFieldsData.value !== null)
+
+// Resolve a mnemonic-or-id token: comma-separated parts go through Identifier.from,
+// otherwise the token is assumed to already be an identifier and used as-is.
+async function resolveID(s: string) {
+  return s.includes(",") ? (await Identifier.from(...s.split(","))).toString() : s
+}
+
 type SearchShortcut = { name: string; filter: Record<string, string> }
 
 const searchShortcuts = ref<{ name: string; query: QueryValues }[]>([])
@@ -220,12 +209,9 @@ watch(
     return result
   },
   async (shortcuts: SearchShortcut[]) => {
-    // Resolve a mnemonic-or-id token: comma-separated parts go through Identifier.from,
-    // otherwise the token is assumed to already be an identifier and used as-is.
-    const resolveID = async (s: string) => (s.includes(",") ? (await Identifier.from(...s.split(","))).toString() : s)
-    try {
-      const result = []
-      for (const shortcut of shortcuts) {
+    const result = []
+    for (const shortcut of shortcuts) {
+      try {
         const filter: Record<string, string> = {}
         for (const [key, value] of Object.entries(shortcut.filter)) {
           let k: string
@@ -240,16 +226,12 @@ watch(
           const v = value === "self" ? props.id : await resolveID(value)
           filter[k] = v
         }
-        // We could make computing the query be moved to changeTab which is already async,
-        // but we prefer that any exceptions happen here so that we then set documentSearchShortcuts
-        // to [] here and not even show tabs with problematic shortcuts.
         result.push({ name: shortcut.name, query: encodeQuery(filter) })
+      } catch (err) {
+        console.error("DocumentGet.searchShortcuts", shortcut, err)
       }
-      searchShortcuts.value = result
-    } catch (err) {
-      console.error("documentSearchShortcuts.watch", err)
-      searchShortcuts.value = []
     }
+    searchShortcuts.value = result
   },
   {
     immediate: true,
@@ -348,7 +330,7 @@ async function onEdit() {
             TODO: Fix how hover interacts with focused tab.
             See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
           -->
-          <TabGroup v-else :selected-index="selectedTab" manual @change="changeTab">
+          <TabGroup v-else manual>
             <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100">
               <Tab
                 v-for="documentTab in documentTabs"
@@ -357,20 +339,10 @@ async function onEdit() {
                 ><DocumentRefInline :id="documentTab.id" :link="false"
               /></Tab>
               <Tab
-                v-if="documentTabs.length === 0 && classTabId && mergedFieldsData"
+                v-if="hasFieldsViewPanel"
                 class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                ><DocumentRefInline :id="classTabId" :link="false"
+                ><DocumentRefInline :id="classTabId!" :link="false"
               /></Tab>
-              <Tab
-                v-for="(searchShortcut, i) of searchShortcuts"
-                :key="i"
-                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                >{{ searchShortcut.name }}</Tab
-              >
-              <Tab
-                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                >{{ t("views.DocumentGet.tabs.referencedBy") }}</Tab
-              >
               <Tab
                 class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
                 >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
@@ -384,28 +356,36 @@ async function onEdit() {
                 <component :is="documentTab.component" :doc="doc" />
               </TabPanel>
               <!-- Class-specific tab (if there are no registry tabs). -->
-              <TabPanel v-if="documentTabs.length === 0 && classTabId && mergedFieldsData" tabindex="-1" class="outline-none">
-                <FieldsView :fields-data="mergedFieldsData" :claims="doc.claims" sections />
+              <TabPanel v-if="hasFieldsViewPanel" tabindex="-1" class="outline-none">
+                <div class="flex flex-row items-start gap-4">
+                  <div class="min-w-0 grow"><FieldsView :fields-data="mergedFieldsData!" :claims="doc.claims" sections /></div>
+                  <div class="flex shrink-0 flex-col gap-2">
+                    <ButtonLink v-for="(shortcut, i) of searchShortcuts" :key="i" :to="{ name: 'SearchShortcut', query: shortcut.query }">{{ shortcut.name }}</ButtonLink>
+                    <ButtonLink :to="{ name: 'SearchShortcut', query: encodeQuery({ reverse: id }) }">{{ t("views.DocumentGet.referencedBy") }}</ButtonLink>
+                  </div>
+                </div>
               </TabPanel>
-              <!-- Shortcut tabs. -->
-              <TabPanel v-for="(_, i) of searchShortcuts" :key="i" tabindex="-1" class="outline-none"
-                ><!-- Empty because this panel should never be rendered. --></TabPanel
-              >
-              <!-- "All referants" tab panel. -->
-              <TabPanel tabindex="-1" class="outline-none"><!-- Empty because this panel should never be rendered. --></TabPanel>
               <!-- "All properties" tab panel. -->
               <TabPanel tabindex="-1" class="outline-none">
-                <table class="w-full table-auto border-collapse">
-                  <thead>
-                    <tr>
-                      <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.property") }}</th>
-                      <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.value") }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <PropertiesRows :claims="doc.claims" />
-                  </tbody>
-                </table>
+                <div class="flex flex-row items-start gap-4">
+                  <div class="min-w-0 grow">
+                    <table class="w-full table-auto border-collapse">
+                      <thead>
+                        <tr>
+                          <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.property") }}</th>
+                          <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.value") }}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <PropertiesRows :claims="doc.claims" />
+                      </tbody>
+                    </table>
+                  </div>
+                  <div v-if="!hasFieldsViewPanel" class="flex shrink-0 flex-col gap-2">
+                    <ButtonLink v-for="(shortcut, i) of searchShortcuts" :key="i" :to="{ name: 'SearchShortcut', query: shortcut.query }">{{ shortcut.name }}</ButtonLink>
+                    <ButtonLink :to="{ name: 'SearchShortcut', query: encodeQuery({ reverse: id }) }">{{ t("views.DocumentGet.referencedBy") }}</ButtonLink>
+                  </div>
+                </div>
               </TabPanel>
             </TabPanels>
           </TabGroup>
