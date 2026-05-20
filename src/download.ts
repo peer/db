@@ -214,7 +214,8 @@ export function useDownload(abortController: AbortController, router: Router, re
   // HEAD a file to read its Content-Disposition filename and build a DownloadFile.
   // Falls back to the file id as the name when no usable filename is advertised.
   async function fetchFileMetadata(id: string, signal: AbortSignal): Promise<DownloadFile> {
-    const url = router.resolve({ name: "StorageGet", params: { id } }).href
+    // Absolute URL so the worker (which has no document base) can fetch it.
+    const url = new URL(router.resolve({ name: "StorageGet", params: { id } }).href, window.location.origin).href
     const headers = await headURLDirect(url, signal, null)
     const name = parseContentDispositionFilename(headers.get("content-disposition")) ?? id
     completed.value += 1
