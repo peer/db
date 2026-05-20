@@ -64,6 +64,9 @@ type Site struct {
 
 	Features SiteFeatures `json:"features" yaml:"features"`
 
+	// Roles is a map of role names to permissions.
+	Roles map[string][]string `json:"roles,omitempty" yaml:"roles,omitempty"`
+
 	// OIDC is populated at startup when the server is launched with
 	// --auth.issuer and --auth.client-id. It is exposed in the site context
 	// so the frontend can start an OIDC sign-in flow against the issuer.

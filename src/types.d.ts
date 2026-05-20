@@ -171,6 +171,9 @@ export type SiteContext = {
     searchResultsTable?: boolean
     downloadButtons?: boolean
   }
+  roles?: {
+    [roleName: string]: string[]
+  }
   // Populated only when the server has been started with --auth.issuer and
   // --auth.client-id; absence is the frontend's signal that OIDC sign-in is
   // not available for this site.
