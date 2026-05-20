@@ -284,7 +284,7 @@ func TestEscapeHTML(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result := transform.TestingEscapeHTML(tt.input)
+			result := transform.EscapeHTML(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

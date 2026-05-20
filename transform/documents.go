@@ -1448,7 +1448,7 @@ func makeClaim(
 		}
 
 		// We still sanitize HTML, so that our user HTML is consistent.
-		sanitized := document.SanitizeHTML(escapeHTML(string(h)))
+		sanitized := document.SanitizeHTML(EscapeHTML(string(h)))
 		if sanitized == "" {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
@@ -1600,7 +1600,7 @@ func makeClaim(
 
 		if typeTag == typeHTML {
 			// We still sanitize HTML, so that our user HTML is consistent.
-			sanitized := document.SanitizeHTML(escapeHTML(str))
+			sanitized := document.SanitizeHTML(EscapeHTML(str))
 			if sanitized == "" {
 				return nil, errors.WithStack(&claimNotMadeError{
 					Default: defaultTag,

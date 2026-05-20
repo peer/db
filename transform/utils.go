@@ -76,7 +76,12 @@ func linkify(input string) string {
 	})
 }
 
-func escapeHTML(input string) string {
+// EscapeHTML escapes HTML, linkifies URLs and email addresses, and converts
+// newlines to <br> tags in plain text, making it suitable as HTML rendering
+// of otherwise assuming plain text.
+//
+// It does not sanitize HTML.
+func EscapeHTML(input string) string {
 	result := html.EscapeString(input)
 
 	result = linkify(result)
