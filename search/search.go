@@ -394,11 +394,17 @@ func (s *SessionData) Validate(withoutSession bool) errors.E {
 }
 
 // reverseScopeQuery returns a query matching documents that have a ref claim
-// with "to" equal to the given ID, regardless of which property the ref is for.
+// or a sub-reference claim with "to" equal to the given ID, regardless of which
+// property the ref is for.
 func reverseScopeQuery(id identifier.Identifier) types.QueryVariant { //nolint:ireturn
-	return esdsl.NewNestedQuery(
-		esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(id.String())),
-	).Path("claims.ref")
+	return esdsl.NewBoolQuery().Should(
+		esdsl.NewNestedQuery(
+			esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(id.String())),
+		).Path("claims.ref"),
+		esdsl.NewNestedQuery(
+			esdsl.NewTermQuery("claims.sub.to", esdsl.NewFieldValue().String(id.String())),
+		).Path("claims.sub"),
+	).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
 }
 
 // ToQuery converts the Session to an ElasticSearch query.

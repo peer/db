@@ -725,8 +725,10 @@ func TestSessionToQueryReverse(t *testing.T) {
 			Reverse: &reverseID,
 		}
 		q := data.ToQuery()
-		want := `{"bool":{"must":[{"nested":{"path":"claims.ref","query":{"term":{"claims.ref.to":{"value":"` +
-			reverseID.String() + `"}}}}}]}}`
+		want := `{"bool":{"must":[{"bool":{"minimum_should_match":1,"should":[` +
+			`{"nested":{"path":"claims.ref","query":{"term":{"claims.ref.to":{"value":"` + reverseID.String() + `"}}}}},` +
+			`{"nested":{"path":"claims.sub","query":{"term":{"claims.sub.to":{"value":"` + reverseID.String() + `"}}}}}` +
+			`]}}]}}`
 		assert.Equal(t, want, testutils.QueryJSON(t, q))
 	})
 
