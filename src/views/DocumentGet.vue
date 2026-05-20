@@ -13,6 +13,7 @@ import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
 import { postJSON } from "@/api"
+import { CAN_EDIT, hasPermission } from "@/auth"
 import Button from "@/components/Button.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
 import InputTextLink from "@/components/InputTextLink.vue"
@@ -315,7 +316,7 @@ async function onEdit() {
         <NavBarSearch v-else />
       </template>
       <template #end>
-        <WithLock :lock="getEditLock">
+        <WithLock v-if="hasPermission(CAN_EDIT)" :lock="getEditLock">
           <Button :progress="editBusy" type="button" primary class="px-3.5" @click.prevent="onEdit">
             <PencilIcon class="size-5 sm:hidden" :alt="t('common.buttons.edit')" />
             <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
