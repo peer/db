@@ -247,8 +247,8 @@ declare module "vue-i18n" {
       DocumentGet: {
         tabs: {
           allProperties: string
-          referencedBy: string
         }
+        referencedBy: string
       }
       DocumentEdit: {
         tabs: {
