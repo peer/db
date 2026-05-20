@@ -61,6 +61,30 @@ export function hasRole(role: string): boolean {
   return currentRoles.value.includes(role)
 }
 
+// PeerDB permissions.
+export const CAN_EDIT = "canEdit"
+export const CAN_DOWNLOAD = "canDownload"
+
+type Permission = "canEdit" | "canDownload"
+
+// hasPermission returns true if current user has the given permission.
+export function hasPermission(permission: Permission): boolean {
+  if (!isOIDCConfigured()) {
+    return true
+  }
+
+  const roles = siteContext.roles
+  if (!roles) {
+    return false
+  }
+  for (const role of currentRoles.value) {
+    if (roles[role]?.includes(permission)) {
+      return true
+    }
+  }
+  return false
+}
+
 // Mirror in-memory writes back to localStorage so a reload picks up the same
 // session. Empty values remove the entry rather than storing "" so we do not
 // leak stale keys after sign-out.
