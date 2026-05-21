@@ -133,7 +133,7 @@ const rowSpan = computed(() => {
       <template #default="{ doc: resultDoc }">
         <component :is="customResultComponent" v-if="customResultComponent" :doc="resultDoc" :search-session-id="searchSessionId" />
         <div v-else-if="fieldsData && resultDoc.claims">
-          <ButtonLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="float-end px-4">{{
+          <ButtonLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="float-end mb-1 ml-4 px-4">{{
             t("partials.SearchResult.details")
           }}</ButtonLink>
           <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 text-xl leading-none">
