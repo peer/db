@@ -184,7 +184,7 @@ func DisplayNameFromDoc(doc *document.D) string {
 	return doc.ID.String()
 }
 
-// BuildMnemonicMap builds a mnemonic→ID map from property documents.
+// BuildMnemonicMap builds a mnemonic->ID map from property documents.
 func BuildMnemonicMap(properties []*document.D) map[string]identifier.Identifier {
 	mnemonics := make(map[string]identifier.Identifier, len(properties))
 	for _, prop := range properties {
