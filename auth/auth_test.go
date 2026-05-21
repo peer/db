@@ -52,124 +52,31 @@ func newTestVerifier(t *testing.T) (*auth.Verifier, string, *rsa.PrivateKey) {
 	t.Cleanup(ts.Close)
 	server.SetIssuer(ts.URL)
 
-	verifier, errE := auth.New(t.Context(), ts.URL, testAudience)
+	cb := func() string { return "https://example.test/auth/callback" }
+	verifier, errE := auth.New(t.Context(), ts.URL, testAudience, "test-secret", cb)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	return verifier, ts.URL, priv
 }
 
-func TestNewRequiresIssuerAndClientID(t *testing.T) {
+func TestNewRequiresIssuerClientIDSecretAndRedirect(t *testing.T) {
 	t.Parallel()
 
-	_, errE := auth.New(t.Context(), "", "client")
+	cb := func() string { return "https://example.test/cb" }
+
+	_, errE := auth.New(t.Context(), "", "client", "secret", cb)
 	require.Error(t, errE)
 
-	_, errE = auth.New(t.Context(), "https://example.test", "")
+	_, errE = auth.New(t.Context(), "https://example.test", "", "secret", cb)
+	require.Error(t, errE)
+
+	_, errE = auth.New(t.Context(), "https://example.test", "client", "", cb)
+	require.Error(t, errE)
+
+	_, errE = auth.New(t.Context(), "https://example.test", "client", "secret", nil)
 	require.Error(t, errE)
 }
 
-func TestRequireAuthenticatedHappyPath(t *testing.T) {
-	t.Parallel()
-
-	const audience = "peerdb"
-	verifier, issuer, priv := newTestVerifier(t)
-
-	token := signedToken(t, priv, map[string]any{
-		"iss":   issuer,
-		"aud":   audience,
-		"sub":   "user-123",
-		"exp":   strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10),
-		"scope": "openid profile email role.admin role.editor",
-	})
-
-	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-	w := httptest.NewRecorder()
-
-	ctx := verifier.RequireAuthenticated(w, req)
-	require.NotNil(t, ctx, "expected authentication to succeed; response: %d %s", w.Code, w.Body.String())
-
-	subject, ok := auth.Subject(ctx)
-	require.True(t, ok)
-	assert.Equal(t, "user-123", subject)
-	assert.ElementsMatch(t, []string{"admin", "editor"}, auth.Roles(ctx))
-	assert.True(t, auth.HasRole(ctx, "admin"))
-	assert.False(t, auth.HasRole(ctx, "viewer"))
-
-	// Responses depend on the Authorization header, so the Verifier must say so.
-	assert.Equal(t, []string{"Authorization"}, w.Header().Values("Vary"))
-}
-
-func TestRequireAuthenticatedRejectsWrongAudience(t *testing.T) {
-	t.Parallel()
-
-	verifier, issuer, priv := newTestVerifier(t)
-
-	token := signedToken(t, priv, map[string]any{
-		"iss": issuer,
-		"aud": "someone-else",
-		"sub": "user-123",
-		"exp": strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10),
-	})
-
-	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-	w := httptest.NewRecorder()
-
-	ctx := verifier.RequireAuthenticated(w, req)
-	assert.Nil(t, ctx)
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
-func TestRequireAuthenticatedRejectsExpiredToken(t *testing.T) {
-	t.Parallel()
-
-	const audience = "peerdb"
-	verifier, issuer, priv := newTestVerifier(t)
-
-	token := signedToken(t, priv, map[string]any{
-		"iss": issuer,
-		"aud": audience,
-		"sub": "user-123",
-		"exp": strconv.FormatInt(time.Now().Add(-time.Hour).Unix(), 10),
-	})
-
-	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-	w := httptest.NewRecorder()
-
-	ctx := verifier.RequireAuthenticated(w, req)
-	assert.Nil(t, ctx)
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
-func TestRequireAuthenticatedRejectsMissingHeader(t *testing.T) {
-	t.Parallel()
-
-	verifier, _, _ := newTestVerifier(t)
-
-	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
-	w := httptest.NewRecorder()
-
-	ctx := verifier.RequireAuthenticated(w, req)
-	assert.Nil(t, ctx)
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
-func TestRequireAuthenticatedRejectsMalformedToken(t *testing.T) {
-	t.Parallel()
-
-	verifier, _, _ := newTestVerifier(t)
-
-	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
-	req.Header.Set("Authorization", "Bearer not-a-jwt")
-	w := httptest.NewRecorder()
-
-	ctx := verifier.RequireAuthenticated(w, req)
-	assert.Nil(t, ctx)
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
-}
-
-func TestRequireAuthenticatedNoRoles(t *testing.T) {
+func TestAuthenticateNoRoles(t *testing.T) {
 	t.Parallel()
 
 	const audience = "peerdb"
@@ -187,12 +94,14 @@ func TestRequireAuthenticatedNoRoles(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
-	ctx := verifier.RequireAuthenticated(w, req)
-	require.NotNil(t, ctx)
+	ctx := verifier.Authenticate(w, req, "")
+	subject, ok := auth.Subject(ctx)
+	require.True(t, ok)
+	assert.Equal(t, "user-123", subject)
 	assert.Empty(t, auth.Roles(ctx))
 }
 
-func TestRequireAuthenticatedFiltersRoleWildcard(t *testing.T) {
+func TestAuthenticateFiltersRoleWildcard(t *testing.T) {
 	t.Parallel()
 
 	// In practice a granted scope is never the bare "role.*" wildcard - Charon
@@ -213,12 +122,11 @@ func TestRequireAuthenticatedFiltersRoleWildcard(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
-	ctx := verifier.RequireAuthenticated(w, req)
-	require.NotNil(t, ctx)
+	ctx := verifier.Authenticate(w, req, "")
 	assert.Equal(t, []string{"editor"}, auth.Roles(ctx))
 }
 
-func TestRequireAuthenticatedReadsScpArray(t *testing.T) {
+func TestAuthenticateReadsScpArray(t *testing.T) {
 	t.Parallel()
 
 	const audience = "peerdb"
@@ -236,73 +144,11 @@ func TestRequireAuthenticatedReadsScpArray(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
-	ctx := verifier.RequireAuthenticated(w, req)
-	require.NotNil(t, ctx)
+	ctx := verifier.Authenticate(w, req, "")
 	assert.ElementsMatch(t, []string{"admin", "viewer"}, auth.Roles(ctx))
 }
 
-func TestSubjectAndRolesEmptyContext(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.Background()
-	_, ok := auth.Subject(ctx)
-	assert.False(t, ok)
-	assert.Empty(t, auth.Roles(ctx))
-	assert.False(t, auth.HasRole(ctx, "admin"))
-}
-
-func TestWithSubjectAndRoles(t *testing.T) {
-	t.Parallel()
-
-	ctx := auth.WithSubject(context.Background(), "user-42")
-	ctx = auth.WithRoles(ctx, []string{"admin", "editor"})
-
-	subject, ok := auth.Subject(ctx)
-	require.True(t, ok)
-	assert.Equal(t, "user-42", subject)
-	assert.Equal(t, "user-42", auth.MustSubject(ctx))
-	assert.Equal(t, []string{"admin", "editor"}, auth.Roles(ctx))
-	assert.True(t, auth.HasRole(ctx, "editor"))
-}
-
-func TestMustSubjectPanics(t *testing.T) {
-	t.Parallel()
-
-	assert.Panics(t, func() {
-		auth.MustSubject(context.Background())
-	})
-}
-
-func TestMaybeAuthenticatedAttachesValidToken(t *testing.T) {
-	t.Parallel()
-
-	const audience = "peerdb"
-	verifier, issuer, priv := newTestVerifier(t)
-
-	token := signedToken(t, priv, map[string]any{
-		"iss":   issuer,
-		"aud":   audience,
-		"sub":   "user-42",
-		"exp":   strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10),
-		"scope": "role.editor",
-	})
-
-	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-	w := httptest.NewRecorder()
-
-	ctx := verifier.MaybeAuthenticated(w, req)
-
-	subject, ok := auth.Subject(ctx)
-	require.True(t, ok)
-	assert.Equal(t, "user-42", subject)
-	assert.Equal(t, []string{"editor"}, auth.Roles(ctx))
-	// The response is left untouched apart from the Vary header.
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, []string{"Authorization"}, w.Header().Values("Vary"))
-}
-
-func TestMaybeAuthenticatedSilentlyDropsBadToken(t *testing.T) {
+func TestAuthenticateSilentlyDropsBadToken(t *testing.T) {
 	t.Parallel()
 
 	const audience = "peerdb"
@@ -312,7 +158,6 @@ func TestMaybeAuthenticatedSilentlyDropsBadToken(t *testing.T) {
 		name   string
 		header string
 	}{
-		{"no header", ""},
 		{"malformed bearer", "Bearer not-a-jwt"},
 		{
 			"expired",
@@ -339,26 +184,52 @@ func TestMaybeAuthenticatedSilentlyDropsBadToken(t *testing.T) {
 			t.Parallel()
 
 			req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
-			if tt.header != "" {
-				req.Header.Set("Authorization", tt.header)
-			}
+			req.Header.Set("Authorization", tt.header)
 			w := httptest.NewRecorder()
 
-			ctx := verifier.MaybeAuthenticated(w, req)
-
-			// No response written, ctx carries no identity.
-			assert.Equal(t, http.StatusOK, w.Code)
+			ctx := verifier.Authenticate(w, req, "")
 			_, ok := auth.Subject(ctx)
 			assert.False(t, ok)
 			assert.Empty(t, auth.Roles(ctx))
-			// Vary is still set even when no token was presented so cached
-			// responses correctly key on Authorization.
-			assert.Equal(t, []string{"Authorization"}, w.Header().Values("Vary"))
+			assert.Empty(t, w.Header().Get("Roles"))
+			assert.Empty(t, w.Header().Get("Userinfo"))
 		})
 	}
 }
 
-func TestMiddlewareAttachesIdentityToDownstreamHandler(t *testing.T) {
+func TestSubjectAndRolesEmptyContext(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	_, ok := auth.Subject(ctx)
+	assert.False(t, ok)
+	assert.Empty(t, auth.Roles(ctx))
+	assert.False(t, auth.HasRole(ctx, "admin"))
+}
+
+func TestWithSubjectAndRoles(t *testing.T) {
+	t.Parallel()
+
+	ctx := auth.TestingWithSubject(context.Background(), "user-42")
+	ctx = auth.TestingWithRoles(ctx, []string{"admin", "editor"})
+
+	subject, ok := auth.Subject(ctx)
+	require.True(t, ok)
+	assert.Equal(t, "user-42", subject)
+	assert.Equal(t, "user-42", auth.MustSubject(ctx))
+	assert.Equal(t, []string{"admin", "editor"}, auth.Roles(ctx))
+	assert.True(t, auth.HasRole(ctx, "editor"))
+}
+
+func TestMustSubjectPanics(t *testing.T) {
+	t.Parallel()
+
+	assert.Panics(t, func() {
+		auth.MustSubject(context.Background())
+	})
+}
+
+func TestAuthenticateAttachesIdentityToContext(t *testing.T) {
 	t.Parallel()
 
 	const audience = "peerdb"
@@ -372,41 +243,30 @@ func TestMiddlewareAttachesIdentityToDownstreamHandler(t *testing.T) {
 		"scope": "role.admin",
 	})
 
-	var seenSubject string
-	var seenRoles []string
-	handler := verifier.Middleware()(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
-		seenSubject, _ = auth.Subject(r.Context())
-		seenRoles = auth.Roles(r.Context())
-	}))
-
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "user-77", seenSubject)
-	assert.Equal(t, []string{"admin"}, seenRoles)
+	ctx := verifier.Authenticate(w, req, "")
+
+	subject, ok := auth.Subject(ctx)
+	require.True(t, ok)
+	assert.Equal(t, "user-77", subject)
+	assert.Equal(t, []string{"admin"}, auth.Roles(ctx))
 }
 
-func TestMiddlewareLeavesAnonymousRequestsAlone(t *testing.T) {
+func TestAuthenticateLeavesAnonymousRequestsAlone(t *testing.T) {
 	t.Parallel()
 
 	verifier, _, _ := newTestVerifier(t)
 
-	called := false
-	handler := verifier.Middleware()(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
-		called = true
-		_, ok := auth.Subject(r.Context())
-		assert.False(t, ok)
-		assert.Empty(t, auth.Roles(r.Context()))
-	}))
-
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
 	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
 
-	assert.True(t, called, "downstream handler must run for anonymous requests")
+	ctx := verifier.Authenticate(w, req, "")
+	_, ok := auth.Subject(ctx)
+	assert.False(t, ok)
+	assert.Empty(t, auth.Roles(ctx))
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
@@ -417,4 +277,103 @@ func TestIssuerAndClientIDExposedOnVerifier(t *testing.T) {
 	verifier, issuer, _ := newTestVerifier(t)
 	assert.Equal(t, issuer, verifier.Issuer())
 	assert.Equal(t, audience, verifier.ClientID())
+}
+
+func TestResolveAccessTokenPrefersAuthorizationOverCookie(t *testing.T) {
+	t.Parallel()
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
+	req.Header.Set("Authorization", "Bearer header-token")
+	req.AddCookie(&http.Cookie{Name: auth.TestingAccessTokenCookieName, Value: "cookie-token"}) //nolint:exhaustruct,gosec
+	w := httptest.NewRecorder()
+
+	token, fromCookie := auth.TestingResolveAccessToken(w, req)
+	assert.Equal(t, "header-token", token)
+	assert.False(t, fromCookie)
+
+	// The Bearer path short-circuits, so only Authorization is read and advertised.
+	vary := w.Header().Values("Vary")
+	assert.Contains(t, vary, "Authorization")
+	assert.NotContains(t, vary, "Cookie")
+}
+
+func TestResolveAccessTokenFallsBackToCookie(t *testing.T) {
+	t.Parallel()
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
+	req.AddCookie(&http.Cookie{Name: auth.TestingAccessTokenCookieName, Value: "cookie-token"}) //nolint:exhaustruct,gosec
+	w := httptest.NewRecorder()
+
+	token, fromCookie := auth.TestingResolveAccessToken(w, req)
+	assert.Equal(t, "cookie-token", token)
+	assert.True(t, fromCookie)
+
+	vary := w.Header().Values("Vary")
+	assert.Contains(t, vary, "Authorization")
+	assert.Contains(t, vary, "Cookie")
+}
+
+func TestResolveAccessTokenNothingPresent(t *testing.T) {
+	t.Parallel()
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
+	w := httptest.NewRecorder()
+	token, fromCookie := auth.TestingResolveAccessToken(w, req)
+	assert.Empty(t, token)
+	assert.False(t, fromCookie)
+
+	// Even without a token we declared the dependency, so a later
+	// authenticated request to the same URL is not served from a stale
+	// cached anonymous response.
+	vary := w.Header().Values("Vary")
+	assert.Contains(t, vary, "Authorization")
+	assert.Contains(t, vary, "Cookie")
+}
+
+func TestAuthenticateValidatesCookieToken(t *testing.T) {
+	t.Parallel()
+
+	const audience = "peerdb"
+	verifier, issuer, priv := newTestVerifier(t)
+
+	token := signedToken(t, priv, map[string]any{
+		"iss":   issuer,
+		"aud":   audience,
+		"sub":   "user-cookie",
+		"exp":   strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10),
+		"scope": "role.editor",
+	})
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
+	req.AddCookie(&http.Cookie{Name: auth.TestingAccessTokenCookieName, Value: token}) //nolint:exhaustruct,gosec
+	w := httptest.NewRecorder()
+
+	ctx := verifier.Authenticate(w, req, "")
+
+	subject, ok := auth.Subject(ctx)
+	require.True(t, ok)
+	assert.Equal(t, "user-cookie", subject)
+	assert.Equal(t, []string{"editor"}, auth.Roles(ctx))
+
+	// Identity headers are written for both header- and cookie-borne tokens.
+	// Roles is a top-level SFV list of strings; UserInfo carries the
+	// signed-in signal via the presence of subject.
+	assert.Equal(t, `"editor"`, w.Header().Get("Roles"))
+	userInfoHeader := w.Header().Get("Userinfo")
+	assert.Contains(t, userInfoHeader, `subject="user-cookie"`)
+}
+
+func TestAuthenticateSkipsHeadersForAnonymousRequest(t *testing.T) {
+	t.Parallel()
+
+	verifier, _, _ := newTestVerifier(t)
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
+	w := httptest.NewRecorder()
+
+	ctx := verifier.Authenticate(w, req, "")
+	_, ok := auth.Subject(ctx)
+	assert.False(t, ok)
+	assert.Empty(t, w.Header().Get("Roles"))
+	assert.Empty(t, w.Header().Get("Userinfo"))
 }

@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 
 	"gitlab.com/tozd/go/cli"
@@ -24,11 +25,6 @@ type Service struct {
 
 	// Is service running in development mode.
 	Development bool
-
-	// Auth verifies OIDC bearer tokens on API requests. It is nil when OIDC
-	// authentication is not configured; handlers should treat that as "no
-	// authentication available" rather than always-allow or always-deny.
-	Auth *auth.Verifier
 }
 
 // Init initializes the HTTP service and is used together with Prepare to implement Run.
@@ -51,25 +47,29 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 				CertFile: "",
 				KeyFile:  "",
 			},
-			Build:             nil,
-			Index:             globals.Elastic.Index,
-			Schema:            globals.Postgres.Schema,
-			Title:             c.Title,
-			Logo:              "",
-			LanguagePriority:  nil,
-			DefaultLanguage:   "",
-			LanguageCodes:     nil,
-			Features:          SiteFeatures{},
-			Roles:             nil,
-			OIDC:              nil,
-			Base:              nil,
-			DBPool:            nil,
-			ESClient:          nil,
-			RiverClient:       nil,
-			debugRiverHandler: nil,
-			initialized:       false,
-			propertiesTotal:   0,
-			unitsTotal:        0,
+			Build:                nil,
+			Index:                globals.Elastic.Index,
+			Schema:               globals.Postgres.Schema,
+			Title:                c.Title,
+			Logo:                 "",
+			LanguagePriority:     nil,
+			DefaultLanguage:      "",
+			LanguageCodes:        nil,
+			Features:             SiteFeatures{},
+			Roles:                nil,
+			Auth:                 SiteAuthConfig{},
+			AuthEnabled:          false,
+			MetadataHeaderPrefix: "",
+			verifier:             nil,
+			Base:                 nil,
+			DBPool:               nil,
+			ESClient:             nil,
+			RiverClient:          nil,
+			flowStore:            nil,
+			debugRiverHandler:    nil,
+			initialized:          false,
+			propertiesTotal:      0,
+			unitsTotal:           0,
 		}}
 		sites[c.Domain] = &globals.Sites[0]
 	}
@@ -111,51 +111,6 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 		return nil, onShutdown, errE
 	}
 
-	var middleware []func(http.Handler) http.Handler
-
-	oidcEnabled := c.Auth.Issuer != ""
-
-	if c.Username != "" && c.Password != nil {
-		globals.Logger.Info().Str("username", c.Username).Msg("authentication enabled for all sites")
-
-		// When OIDC is also configured, requests presenting a Bearer token bypass
-		// basic auth so the OIDC middleware downstream can verify them. Without
-		// this, a single Authorization header would have to satisfy basic auth
-		// (which expects the Basic scheme) before the bearer token is ever seen.
-		middleware = append(middleware, basicAuthHandler(c.Username, strings.TrimSpace(string(c.Password)), oidcEnabled))
-	}
-
-	var verifier *auth.Verifier
-	if oidcEnabled {
-		verifier, errE = auth.New(ctx, c.Auth.Issuer, c.Auth.ClientID)
-		if errE != nil {
-			return nil, onShutdown, errE
-		}
-		globals.Logger.Info().Str("issuer", c.Auth.Issuer).Str("clientId", c.Auth.ClientID).Msg("OIDC authentication enabled")
-
-		// We attach the OIDC middleware last so the bearer token is verified
-		// after any preceding gate (e.g. basicAuth) has already let the request
-		// through. The middleware is permissive - it never rejects on its own -
-		// so handlers that require a signed-in caller still have to call
-		// Verifier.RequireAuthenticated explicitly; handlers that adapt to who
-		// is signed in can just read auth.Subject / auth.Roles from ctx.
-		middleware = append(middleware, verifier.Middleware())
-	}
-
-	// We populate per-site OIDC context so the frontend knows how to start a
-	// sign-in flow. Each site reuses the global OIDC config but gets its own
-	// redirect URI rooted in its domain.
-	if verifier != nil {
-		for _, site := range sites {
-			site.OIDC = &SiteOIDC{
-				Issuer:   verifier.Issuer(),
-				ClientID: verifier.ClientID(),
-				// TODO: Allow setting external port.
-				RedirectURI: "https://" + site.Domain + "/",
-			}
-		}
-	}
-
 	service := &Service{ //nolint:forcetypeassert
 		Service: waf.Service[*Site]{
 			Logger:          globals.Logger,
@@ -164,7 +119,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			StaticFiles:     files.(fs.ReadFileFS), //nolint:errcheck
 			Routes:          nil,
 			Sites:           sites,
-			Middleware:      middleware,
+			Middleware:      nil,
 			SiteContextPath: "/context.json",
 			RoutesPath:      "/routes.json",
 			ProxyStaticTo:   c.Server.ProxyToInDevelopment(),
@@ -188,8 +143,78 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			},
 		},
 		Development: c.Server.Development,
-		Auth:        verifier,
 	}
+
+	// We expose the canonical metadata-header prefix on each site so the
+	// frontend can compose the right header names without having to guess.
+	// It is global to the service but the site context is the only
+	// per-site JSON the frontend receives.
+	for _, site := range sites {
+		site.MetadataHeaderPrefix = service.MetadataHeaderPrefix
+	}
+
+	var middleware []func(http.Handler) http.Handler
+	if c.Username != "" && c.Password != nil {
+		globals.Logger.Info().Str("username", c.Username).Msg("authentication enabled for all sites")
+
+		// Basic auth is a strict outer gate that applies to every request,
+		// regardless of whether the caller also presents OIDC credentials
+		// via cookie.
+		middleware = append(middleware, auth.BasicAuthHandler(
+			c.Username,
+			strings.TrimSpace(string(c.Password)),
+			func(req *http.Request) string {
+				return waf.MustGetSite[*Site](req.Context()).Title
+			},
+		))
+	}
+
+	// Configure OIDC auth.
+	anyAuthEnabled := true
+	for _, site := range sites {
+		if site.Auth.Issuer == "" {
+			continue
+		}
+
+		site.AuthEnabled = true
+		anyAuthEnabled = true
+
+		site.flowStore = auth.NewFlowStore(site.DBPool)
+		// We use a fallback DB context here because we are still in the init path and no request
+		// is in flight yet, so search_path has to be driven from the site's schema.
+		siteCtx := WithFallbackDBContext(ctx, site.Schema, "init")
+		errE = site.flowStore.Init(siteCtx)
+		if errE != nil {
+			return nil, onShutdown, errE
+		}
+
+		site.verifier, errE = auth.New(ctx, site.Auth.Issuer, site.Auth.ClientID, site.Auth.ClientSecret, sync.OnceValue(func() string {
+			host, errE := c.Server.Host(site.Domain)
+			if errE != nil {
+				return ""
+			}
+			callbackPath, errE := service.Reverse("AuthCallback", nil, nil)
+			if errE != nil {
+				return ""
+			}
+			return "https://" + host + callbackPath
+		}))
+		if errE != nil {
+			return nil, onShutdown, errE
+		}
+
+		globals.Logger.Info().Str("domain", site.Domain).Str("issuer", site.Auth.Issuer).Str("clientId", site.Auth.ClientID).Msg("OIDC authentication enabled")
+	}
+
+	if anyAuthEnabled {
+		// We attach the OIDC middleware last so the access token is verified
+		// after any preceding gate (e.g. basicAuth) has already let the request
+		// through. The middleware looks up the per-site Verifier on every
+		// request, so a site without OIDC config simply does nothing.
+		middleware = append(middleware, service.oidcAuthMiddleware(service.MetadataHeaderPrefix))
+	}
+
+	service.Middleware = middleware
 
 	service.setRoutes()
 

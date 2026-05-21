@@ -531,8 +531,8 @@ export function redirectServerSide(url: string, replace: boolean, lock: Ref<numb
 }
 
 // currentAbsoluteURL returns the current location stripped of its origin (the
-// path + search + hash). OIDC sign-in flows persist this so the user lands
-// back where they were after redirecting through the identity provider.
+// path + search + hash). Sign-in flow persist this so the user lands back
+// where they were after sign-in.
 export function currentAbsoluteURL(): string {
   return document.location.href.slice(document.location.origin.length)
 }

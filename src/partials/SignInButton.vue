@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { onBeforeUnmount } from "vue"
 import { useI18n } from "vue-i18n"
+import { useRouter } from "vue-router"
 
-import { isOIDCConfigured, isSignedIn, signIn, signOut } from "@/auth"
+import { isAuthEnabled, isSignedIn, signIn, signOut } from "@/auth"
 import Button from "@/components/Button.vue"
 import { useBusy } from "@/progress"
 
 const { t } = useI18n({ useScope: "global" })
+const router = useRouter()
 
 const busy = useBusy()
 
@@ -15,23 +17,23 @@ onBeforeUnmount(() => {
   abortController.abort()
 })
 
-async function onSignIn() {
+function onSignIn() {
   if (abortController.signal.aborted) {
     return
   }
-  await signIn(busy)
+  signIn(router, busy)
 }
 
-function onSignOut() {
+async function onSignOut() {
   if (abortController.signal.aborted) {
     return
   }
-  signOut(busy)
+  await signOut(router, abortController.signal, busy)
 }
 </script>
 
 <template>
-  <template v-if="isOIDCConfigured()">
+  <template v-if="isAuthEnabled()">
     <Button v-if="isSignedIn()" id="navbar-button-signout" primary type="button" :progress="busy" @click.prevent="onSignOut">
       {{ t("common.buttons.signOut") }}
     </Button>

@@ -33,7 +33,8 @@ require (
 	gitlab.com/tozd/go/x v0.0.0-20260325094342-27311bf9bec0
 	gitlab.com/tozd/go/zerolog v0.11.4
 	gitlab.com/tozd/identifier v0.8.2
-	gitlab.com/tozd/waf v0.24.1-0.20260519115428-dce34ce4a712
+	gitlab.com/tozd/waf v0.24.1-0.20260522095423-68c8fff66280
+	golang.org/x/oauth2 v0.28.0
 	gopkg.in/yaml.v3 v3.0.1
 	riverqueue.com/riverui v0.15.0
 )
@@ -68,7 +69,6 @@ require (
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.uber.org/goleak v1.3.0 // indirect
-	golang.org/x/oauth2 v0.28.0 // indirect
 	golang.org/x/text v0.36.0 // indirect
 )
 
