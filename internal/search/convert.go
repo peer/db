@@ -830,6 +830,67 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 		}
 		return tc.Time.String(), nil
 	}
+	// referenceClaimDoc resolves the target document of a ReferenceClaim.
+	funcs["referenceClaimDoc"] = func(claim *document.ReferenceClaim) (*document.D, error) {
+		if claim == nil {
+			return nil, nil //nolint:nilnil
+		}
+		d, errE := c.getDocument(ctx, claim.To.ID)
+		if errE != nil && errors.Is(errE, store.ErrValueNotFound) {
+			zerolog.Ctx(ctx).Warn().Err(errE).
+				Str("referenceId", claim.To.ID.String()).
+				Msg("referenceClaimDoc: reference not found, returning nil")
+			return nil, nil //nolint:nilnil
+		}
+		return d, errE
+	}
+	// bestSubTimeInterval returns the best TimeIntervalClaim from the sub-claims of a
+	// ReferenceClaim for a given sub-property ID.
+	funcs["bestSubTimeInterval"] = func(subPropID identifier.Identifier, claim *document.ReferenceClaim) *document.TimeIntervalClaim {
+		if claim == nil {
+			return nil
+		}
+		return document.GetBestClaimOfType[document.TimeIntervalClaim](claim, subPropID)
+	}
+	// pickReferenceByEarliestSubInterval picks the ReferenceClaim for propID whose
+	// sub-claim TimeIntervalClaim for subPropID has the earliest From time. Time strings
+	// follow a format where lexicographic comparison is monotonic, so direct string
+	// comparison gives the correct ordering. If no claim has a defined sub-interval From,
+	// returns the first ReferenceClaim by confidence. Returns nil if no ReferenceClaims
+	// exist for propID.
+	funcs["pickReferenceByEarliestSubInterval"] = func(propID, subPropID identifier.Identifier, doc *document.D) *document.ReferenceClaim {
+		if doc == nil {
+			return nil
+		}
+		refClaims := document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, propID, document.LowConfidence)
+		if len(refClaims) == 0 {
+			return nil
+		}
+		var best *document.ReferenceClaim
+		var bestFrom *document.Time
+		for _, rc := range refClaims {
+			ti := document.GetBestClaimOfType[document.TimeIntervalClaim](rc, subPropID)
+			if ti == nil || ti.From == nil {
+				continue
+			}
+			if bestFrom == nil || string(*ti.From) < string(*bestFrom) {
+				best = rc
+				bestFrom = ti.From
+			}
+		}
+		if best != nil {
+			return best
+		}
+		return refClaims[0]
+	}
+	// formatTimeInterval renders a TimeIntervalClaim's starting date as a display string.
+	// Returns "" if the claim is nil or has no defined From.
+	funcs["formatTimeInterval"] = func(claim *document.TimeIntervalClaim) string {
+		if claim == nil || claim.From == nil {
+			return ""
+		}
+		return string(*claim.From)
+	}
 	return funcs
 }
 
