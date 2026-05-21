@@ -1,6 +1,6 @@
 package transform //nolint:testpackage
 
-//nolint:gochecknoglobals,errname
+//nolint:errname
 var (
 	TestingErrClaimNotMade error = errClaimNotMade
 )
