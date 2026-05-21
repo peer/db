@@ -249,6 +249,7 @@ declare module "vue-i18n" {
           allProperties: string
         }
         referencedBy: string
+        shortcutWithCount: string
       }
       DocumentEdit: {
         tabs: {

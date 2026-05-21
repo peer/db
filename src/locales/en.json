@@ -237,7 +237,8 @@
       "tabs": {
         "allProperties": "All properties"
       },
-      "referencedBy": "Referenced by"
+      "referencedBy": "Referenced by",
+      "shortcutWithCount": "{name} ({count})"
     },
     "DocumentEdit": {
       "tabs": {

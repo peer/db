@@ -1,8 +1,10 @@
 package peerdb
 
 import (
+	"context"
 	"io"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 
@@ -464,6 +466,32 @@ func (s *Service) SearchJustResultsPostAPI(w http.ResponseWriter, req *http.Requ
 	s.WriteJSON(w, req, data, metadata)
 }
 
+// SearchJustResultsGetAPI is a GET/HEAD HTTP request API handler which searches the
+// ElasticSearch index without creating a search session. It accepts the same query
+// parameter grammar as SearchShortcutGet and returns to the client a JSON with an
+// array of IDs of found documents. It returns search metadata (e.g., total results)
+// as waf HTTP response header.
+func (s *Service) SearchJustResultsGetAPI(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+	ctx := req.Context()
+
+	searchSession, errE := parseSearchShortcutQuery(ctx, req.URL.Query())
+	if errE != nil {
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+
+	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchSession.SessionData)
+	if errors.Is(errE, search.ErrValidationFailed) {
+		s.BadRequestWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.WriteJSON(w, req, data, metadata)
+}
+
 type createSessionResponse struct {
 	ID      identifier.Identifier `json:"id"`
 	Base    []string              `json:"base"`
@@ -572,42 +600,31 @@ func (s *Service) SearchUpdatePostAPI(w http.ResponseWriter, req *http.Request, 
 	}, nil)
 }
 
-// shortcutPropKey identifies a filter group in SearchShortcutGet. When nested is true,
-// parent and prop together identify a sub-ref filter; otherwise prop is a top-level prop.
+// shortcutPropKey identifies a filter group parsed from search shortcut query parameters.
+// When nested is true, parent and prop together identify a sub-ref filter; otherwise
+// prop is a top-level prop.
 type shortcutPropKey struct {
 	parent identifier.Identifier
 	prop   identifier.Identifier
 	nested bool
 }
 
-// SearchShortcutGet is a GET/HEAD HTTP request handler which creates a new search session
-// from query parameters and redirects to the search page. Query parameters are interpreted
-// as ref filters where key is the property ID and value is the value ID.
-// Values for the same property are grouped into a single filter.
-//
-// A key of the form "parentProp:prop" creates a nested (sub-ref) filter, matching
-// reference sub-claims under parentProp whose property is prop.
-//
-// The "reverse" query parameter is special: its value is a document ID that scopes
-// the session to documents which reference that ID via any property.
-func (s *Service) SearchShortcutGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
-	ctx := req.Context()
-	metrics := waf.MustGetMetrics(ctx)
+// parseSearchShortcutQuery parses query parameters using the search shortcut grammar
+// described on SearchShortcutGet into a search.Session.
+func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Session, errors.E) {
 	site := waf.MustGetSite[*Site](ctx)
 
 	// Group values by property.
 	filterMap := map[shortcutPropKey][]search.ToValue{}
 	var reverse *identifier.Identifier
-	for prop, values := range req.URL.Query() {
+	for prop, values := range query {
 		if prop == "reverse" {
 			if len(values) != 1 {
-				s.BadRequestWithError(w, req, errors.New(`"reverse" query parameter must be set exactly once`))
-				return
+				return nil, errors.New(`"reverse" query parameter must be set exactly once`)
 			}
 			reverseID, errE := identifier.MaybeString(values[0])
 			if errE != nil {
-				s.BadRequestWithError(w, req, errors.WithMessage(errE, `"reverse" query parameter value is not a valid identifier`))
-				return
+				return nil, errors.WithMessage(errE, `"reverse" query parameter value is not a valid identifier`)
 			}
 			reverse = &reverseID
 			continue
@@ -616,28 +633,24 @@ func (s *Service) SearchShortcutGet(w http.ResponseWriter, req *http.Request, _ 
 		if parentStr, propStr, ok := strings.Cut(prop, ":"); ok {
 			parentID, errE := identifier.MaybeString(parentStr)
 			if errE != nil {
-				s.BadRequestWithError(w, req, errors.WithMessage(errE, "query parameter key parent prop is not a valid identifier"))
-				return
+				return nil, errors.WithMessage(errE, "query parameter key parent prop is not a valid identifier")
 			}
 			propID, errE := identifier.MaybeString(propStr)
 			if errE != nil {
-				s.BadRequestWithError(w, req, errors.WithMessage(errE, "query parameter key nested prop is not a valid identifier"))
-				return
+				return nil, errors.WithMessage(errE, "query parameter key nested prop is not a valid identifier")
 			}
 			key = shortcutPropKey{parent: parentID, prop: propID, nested: true}
 		} else {
 			propID, errE := identifier.MaybeString(prop)
 			if errE != nil {
-				s.BadRequestWithError(w, req, errors.WithMessage(errE, "query parameter key is not a valid identifier"))
-				return
+				return nil, errors.WithMessage(errE, "query parameter key is not a valid identifier")
 			}
 			key = shortcutPropKey{parent: identifier.Identifier{}, prop: propID, nested: false}
 		}
 		for _, value := range values {
 			valueID, errE := identifier.MaybeString(value)
 			if errE != nil {
-				s.BadRequestWithError(w, req, errors.WithMessage(errE, "query parameter value is not a valid identifier"))
-				return
+				return nil, errors.WithMessage(errE, "query parameter value is not a valid identifier")
 			}
 			filterMap[key] = append(filterMap[key], search.ToValue{ID: valueID})
 		}
@@ -684,15 +697,43 @@ func (s *Service) SearchShortcutGet(w http.ResponseWriter, req *http.Request, _ 
 		Version:     0,
 	}
 
+	errE := searchSession.Validate()
+	if errE != nil {
+		return nil, errors.WrapWith(errE, search.ErrValidationFailed)
+	}
+
+	return searchSession, nil
+}
+
+// SearchShortcutGet is a GET/HEAD HTTP request handler which creates a new search session
+// from query parameters and redirects to the search page. Query parameters are interpreted
+// as ref filters where key is the property ID and value is the value ID.
+// Values for the same property are grouped into a single filter.
+//
+// A key of the form "parentProp:prop" creates a nested (sub-ref) filter, matching
+// reference sub-claims under parentProp whose property is prop.
+//
+// The "reverse" query parameter is special: its value is a document ID that scopes
+// the session to documents which reference that ID via any property.
+func (s *Service) SearchShortcutGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+	ctx := req.Context()
+	metrics := waf.MustGetMetrics(ctx)
+
+	searchSession, errE := parseSearchShortcutQuery(ctx, req.URL.Query())
+	if errE != nil {
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+
 	m := metrics.Duration(internalStore.MetricSearchSession).Start()
-	errE := search.CreateSession(ctx, searchSession)
+	errE = search.CreateSession(ctx, searchSession)
 	m.Stop()
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
 
-	path, errE := s.Reverse("SearchGet", waf.Params{"id": id.String()}, nil)
+	path, errE := s.Reverse("SearchGet", waf.Params{"id": searchSession.ID.String()}, nil)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return

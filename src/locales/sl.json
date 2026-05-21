@@ -237,7 +237,8 @@
       "tabs": {
         "allProperties": "Vse lastnosti"
       },
-      "referencedBy": "Sklicujoči se"
+      "referencedBy": "Sklicujoči se",
+      "shortcutWithCount": "{name} ({count})"
     },
     "DocumentEdit": {
       "tabs": {

@@ -116,6 +116,7 @@ func (s *Service) setRoutes() { //nolint:maintidx
 			Path: "/s/results",
 			API: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{
+					http.MethodGet:  s.SearchJustResultsGetAPI,
 					http.MethodPost: s.SearchJustResultsPostAPI,
 				},
 			},

@@ -12,7 +12,7 @@ import { computed, onBeforeUnmount, ref, toRef, useTemplateRef, watch, watchEffe
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
-import { postJSON } from "@/api"
+import { headURLDirect, postJSON } from "@/api"
 import { CAN_EDIT, hasPermission } from "@/auth"
 import Button from "@/components/Button.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
@@ -21,6 +21,7 @@ import WithDocument from "@/components/WithDocument.vue"
 import WithLock from "@/components/WithLock.vue"
 import { INSTANCE_OF, NAME, SEARCH_SHORTCUT } from "@/core"
 import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
+import { decodeMetadata } from "@/metadata"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import FieldsView from "@/partials/FieldsView.vue"
@@ -33,7 +34,7 @@ import { getDocumentComponents } from "@/registry/document"
 import { useSearch, useSearchSession } from "@/search"
 import { useDocumentFields } from "@/useDocumentFields"
 import { useParentClasses } from "@/useParentClasses"
-import { encodeQuery, loadingLongWidth } from "@/utils"
+import { anySignal, encodeQuery, loadingLongWidth } from "@/utils"
 
 const props = defineProps<{
   id: string
@@ -164,8 +165,23 @@ async function resolveID(s: string) {
 }
 
 type SearchShortcut = { name: string; filter: Record<string, string> }
+type ResolvedShortcut = { name: string; query: QueryValues; count: string | null }
 
-const searchShortcuts = ref<{ name: string; query: QueryValues }[]>([])
+async function fetchShortcutCount(query: QueryValues, signal: AbortSignal): Promise<string | null> {
+  const url = router.apiResolve({ name: "SearchJustResults", query }).href
+  // TODO: Use headURL when it will be available.
+  const headers = await headURLDirect(url, signal, null)
+  if (signal.aborted) {
+    return null
+  }
+  const metadata = decodeMetadata(headers)
+  if ("total" in metadata) {
+    return String(metadata["total"])
+  }
+  return null
+}
+
+const searchShortcuts = ref<ResolvedShortcut[]>([])
 watch(
   () => {
     const result: SearchShortcut[] = []
@@ -208,8 +224,8 @@ watch(
     }
     return result
   },
-  async (shortcuts: SearchShortcut[]) => {
-    const result = []
+  async (shortcuts: SearchShortcut[], _old, onCleanup) => {
+    const result: ResolvedShortcut[] = []
     for (const shortcut of shortcuts) {
       try {
         const filter: Record<string, string> = {}
@@ -226,17 +242,81 @@ watch(
           const v = value === "self" ? props.id : await resolveID(value)
           filter[k] = v
         }
-        result.push({ name: shortcut.name, query: encodeQuery(filter) })
+        result.push({ name: shortcut.name, query: encodeQuery(filter), count: null })
       } catch (err) {
         console.error("DocumentGet.searchShortcuts", shortcut, err)
       }
     }
     searchShortcuts.value = result
+
+    // Abort in-flight count fetches when this watcher re-fires or stops, and
+    // also when the component unmounts.
+    const controller = new AbortController()
+    onCleanup(() => controller.abort())
+    const signal = anySignal(abortController.signal, controller.signal)
+
+    // Fetch counts in parallel.
+    // TODO: Instead of fetching it here, fetch it as a component inside the link.
+    //       This allows us to show a placeholder while data is being fetched.
+    //       Also we can set data-url attribute on the count.
+    //       Another idea: all our links to internal pages could have a "preview" view
+    //       defined and we could automatically do HEAD on them and display that preview.
+    //       For search session links that would be the count of results.
+    for (const sc of result) {
+      void (async () => {
+        try {
+          const count = await fetchShortcutCount(sc.query, signal)
+          if (signal.aborted) {
+            return
+          }
+          sc.count = count
+        } catch (err) {
+          if (signal.aborted) {
+            return
+          }
+          console.error("DocumentGet.shortcutCount", sc, err)
+        }
+      })()
+    }
   },
   {
     immediate: true,
   },
 )
+
+// TODO: Instead of fetching it here, fetch it as a component inside the link.
+const referencedByCount = ref<string | null>(null)
+watch(
+  () => props.id,
+  async (id, _old, onCleanup) => {
+    referencedByCount.value = null
+    const controller = new AbortController()
+    onCleanup(() => controller.abort())
+    const signal = anySignal(abortController.signal, controller.signal)
+    try {
+      const count = await fetchShortcutCount(encodeQuery({ reverse: id }), signal)
+      if (signal.aborted) {
+        return
+      }
+      referencedByCount.value = count
+    } catch (err) {
+      if (signal.aborted) {
+        return
+      }
+      console.error("DocumentGet.referencedByCount", err)
+    }
+  },
+  {
+    immediate: true,
+  },
+)
+
+function shortcutLabel(name: string, count: number | string | null): string {
+  if (count === null) {
+    return name
+  }
+  return t("views.DocumentGet.shortcutWithCount", { name, count })
+}
 
 async function onEdit() {
   if (abortController.signal.aborted) {
@@ -360,8 +440,12 @@ async function onEdit() {
                 <div class="flex flex-row items-start gap-4">
                   <div class="min-w-0 grow"><FieldsView :fields-data="mergedFieldsData!" :claims="doc.claims" sections /></div>
                   <div class="flex shrink-0 flex-col gap-2">
-                    <ButtonLink v-for="(shortcut, i) of searchShortcuts" :key="i" :to="{ name: 'SearchShortcut', query: shortcut.query }">{{ shortcut.name }}</ButtonLink>
-                    <ButtonLink :to="{ name: 'SearchShortcut', query: encodeQuery({ reverse: id }) }">{{ t("views.DocumentGet.referencedBy") }}</ButtonLink>
+                    <ButtonLink v-for="(shortcut, i) of searchShortcuts" :key="i" :to="{ name: 'SearchShortcut', query: shortcut.query }">{{
+                      shortcutLabel(shortcut.name, shortcut.count)
+                    }}</ButtonLink>
+                    <ButtonLink :to="{ name: 'SearchShortcut', query: encodeQuery({ reverse: id }) }">{{
+                      shortcutLabel(t("views.DocumentGet.referencedBy"), referencedByCount)
+                    }}</ButtonLink>
                   </div>
                 </div>
               </TabPanel>
@@ -382,8 +466,12 @@ async function onEdit() {
                     </table>
                   </div>
                   <div v-if="!hasFieldsViewPanel" class="flex shrink-0 flex-col gap-2">
-                    <ButtonLink v-for="(shortcut, i) of searchShortcuts" :key="i" :to="{ name: 'SearchShortcut', query: shortcut.query }">{{ shortcut.name }}</ButtonLink>
-                    <ButtonLink :to="{ name: 'SearchShortcut', query: encodeQuery({ reverse: id }) }">{{ t("views.DocumentGet.referencedBy") }}</ButtonLink>
+                    <ButtonLink v-for="(shortcut, i) of searchShortcuts" :key="i" :to="{ name: 'SearchShortcut', query: shortcut.query }">{{
+                      shortcutLabel(shortcut.name, shortcut.count)
+                    }}</ButtonLink>
+                    <ButtonLink :to="{ name: 'SearchShortcut', query: encodeQuery({ reverse: id }) }">{{
+                      shortcutLabel(t("views.DocumentGet.referencedBy"), referencedByCount)
+                    }}</ButtonLink>
                   </div>
                 </div>
               </TabPanel>
