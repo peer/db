@@ -196,7 +196,7 @@ func TestHappyPath(t *testing.T) {
 	assert.Equal(t, identifier.From(changesetBase...), version.Changeset)
 
 	// Storage now holds exactly the one stored file.
-	count, errE := s.Store().Count(ctx)
+	count, errE := s.Store().Count(ctx, false)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(1), count)
 	}
@@ -233,7 +233,7 @@ func TestErrors(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// No upload completed: storage remains empty.
-	count, errE := s.Store().Count(ctx)
+	count, errE := s.Store().Count(ctx, false)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(0), count)
 	}

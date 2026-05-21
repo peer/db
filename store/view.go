@@ -508,43 +508,61 @@ func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMeta
 	return values, errE
 }
 
-// Count returns the number of distinct values currently committed to the view,
-// excluding values whose latest committed version has been deleted.
+// Count returns the number of distinct values currently committed to the view.
 //
-// For each value the latest committed version is determined the same way as in
-// GetLatest: the closest ancestor view in the path that has the value at
-// depth=0. If that latest version's data is NULL (the value has been deleted)
-// the value is not counted.
+// When includeDeleted is false (the default callers should pass), values whose
+// latest committed version has been deleted are excluded. For each value the
+// latest committed version is determined the same way as in GetLatest: the
+// closest ancestor view in the path that has the value at depth=0. If that
+// latest version's data is NULL (the value has been deleted) the value is not
+// counted.
+//
+// When includeDeleted is true, every distinct value ID that appears in any
+// view in the path is counted, matching the set of IDs returned by List
+// (which also includes deleted values).
 func (v View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Count(
-	ctx context.Context,
+	ctx context.Context, includeDeleted bool,
 ) (int64, errors.E) {
 	var count int64
 	errE := internalStore.RetryTransaction(ctx, v.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		count = 0
 
-		err := tx.QueryRow(ctx, `
-			WITH "viewPath" AS (
-				-- We care about order of views so we annotate views in the path with view's index.
-				SELECT p.*
-					FROM "`+v.store.Prefix+`CurrentViews" JOIN "`+v.store.Prefix+`Views" USING ("view", "revision"),
-						UNNEST("path") WITH ORDINALITY AS p("view", "depth")
-					WHERE "`+v.store.Prefix+`CurrentViews"."name"=$1
-			), "latestPerId" AS (
-				-- For each value pick the closest view in the path that has it at depth=0.
-				SELECT DISTINCT ON ("id") "id", "changeset"
-					FROM "viewPath" JOIN "`+v.store.Prefix+`CommittedValues" USING ("view")
-					WHERE "`+v.store.Prefix+`CommittedValues"."depth"=0
-					ORDER BY "id", "viewPath"."depth" ASC
-			)
-			SELECT COUNT(*)
-				FROM "latestPerId"
-					JOIN (
-						-- This gives us current revisions. And corresponding data and metadata.
-						"`+v.store.Prefix+`CurrentChanges" JOIN "`+v.store.Prefix+`Changes" USING ("changeset", "id", "revision")
-					) USING ("changeset", "id")
-				WHERE "data" IS NOT NULL
-		`, v.name).Scan(&count)
+		var query string
+		if includeDeleted {
+			query = `
+				WITH "viewPath" AS (
+					SELECT UNNEST("path") AS "view" FROM "` + v.store.Prefix + `CurrentViews" JOIN "` + v.store.Prefix + `Views" USING ("view", "revision")
+						WHERE "` + v.store.Prefix + `CurrentViews"."name"=$1
+				)
+				SELECT COUNT(DISTINCT "id")
+					FROM "viewPath" JOIN "` + v.store.Prefix + `CommittedValues" USING ("view")
+			`
+		} else {
+			query = `
+				WITH "viewPath" AS (
+					-- We care about order of views so we annotate views in the path with view's index.
+					SELECT p.*
+						FROM "` + v.store.Prefix + `CurrentViews" JOIN "` + v.store.Prefix + `Views" USING ("view", "revision"),
+							UNNEST("path") WITH ORDINALITY AS p("view", "depth")
+						WHERE "` + v.store.Prefix + `CurrentViews"."name"=$1
+				), "latestPerId" AS (
+					-- For each value pick the closest view in the path that has it at depth=0.
+					SELECT DISTINCT ON ("id") "id", "changeset"
+						FROM "viewPath" JOIN "` + v.store.Prefix + `CommittedValues" USING ("view")
+						WHERE "` + v.store.Prefix + `CommittedValues"."depth"=0
+						ORDER BY "id", "viewPath"."depth" ASC
+				)
+				SELECT COUNT(*)
+					FROM "latestPerId"
+						JOIN (
+							-- This gives us current revisions. And corresponding data and metadata.
+							"` + v.store.Prefix + `CurrentChanges" JOIN "` + v.store.Prefix + `Changes" USING ("changeset", "id", "revision")
+						) USING ("changeset", "id")
+					WHERE "data" IS NOT NULL
+			`
+		}
+		err := tx.QueryRow(ctx, query, v.name).Scan(&count)
 		if err != nil {
 			return internalStore.WithPgxError(err)
 		}

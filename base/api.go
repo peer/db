@@ -354,7 +354,7 @@ func (b *B) GetUploadSession(ctx context.Context, session identifier.Identifier)
 // CountFiles returns the number of stored files currently in storage,
 // excluding files whose latest committed version has been deleted.
 func (b *B) CountFiles(ctx context.Context) (int64, errors.E) {
-	return b.files.Store().Count(ctx)
+	return b.files.Store().Count(ctx, false)
 }
 
 // GetFile returns a stored file at the given version.

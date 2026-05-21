@@ -211,7 +211,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 		assert.Empty(t, parentChangesets)
 	}
 
-	count, errE := s.Count(ctx)
+	count, errE := s.Count(ctx, false)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(1), count)
 	}
@@ -421,7 +421,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 
 	// After deletion the value is no longer counted as alive even though it
 	// remains in List (which includes deleted IDs).
-	count, errE = s.Count(ctx)
+	count, errE = s.Count(ctx, false)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(0), count)
 	}
@@ -614,7 +614,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 	}
 
 	// List includes the deleted expectedID; Count excludes it.
-	count, errE = s.Count(ctx)
+	count, errE = s.Count(ctx, false)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(2), count)
 	}
@@ -641,7 +641,7 @@ func TestListPagination(t *testing.T) {
 	_, errE = s.Commit(ctx, changeset, testutils.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	count, errE := s.Count(ctx)
+	count, errE := s.Count(ctx, false)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(6000), count)
 	}
@@ -670,7 +670,7 @@ func TestListPagination(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = v.List(ctx, nil)
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
-	_, errE = v.Count(ctx)
+	_, errE = v.Count(ctx, false)
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 
 	// Having no more values is not an error.
@@ -926,7 +926,7 @@ func TestInterdependentChangesets(t *testing.T) {
 
 	// Both changesets were committed together (interdependent), so we have
 	// two alive values now.
-	count, errE := s.Count(ctx)
+	count, errE := s.Count(ctx, false)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(2), count)
 	}
@@ -1156,11 +1156,11 @@ func TestMultipleViews(t *testing.T) {
 
 	// Both views ultimately resolve to the same merged value: one alive
 	// value in each view, exercising the closest-view-in-path resolution.
-	count, errE := s.Count(ctx)
+	count, errE := s.Count(ctx, false)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(1), count)
 	}
-	count, errE = v.Count(ctx)
+	count, errE = v.Count(ctx, false)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(1), count)
 	}
@@ -1289,11 +1289,11 @@ func TestChangeAcrossViews(t *testing.T) {
 	})
 
 	// Both views resolve to the same alive value (no deletions in this test).
-	count, errE := s.Count(ctx)
+	count, errE := s.Count(ctx, false)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(1), count)
 	}
-	count, errE = v.Count(ctx)
+	count, errE = v.Count(ctx, false)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(1), count)
 	}
@@ -1328,7 +1328,7 @@ func TestView(t *testing.T) {
 	errE = v.Release(ctx, testutils.DummyData)
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 
-	_, errE = v.Count(ctx)
+	_, errE = v.Count(ctx, false)
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 }
 
@@ -1357,7 +1357,7 @@ func TestDuplicateValues(t *testing.T) {
 
 	// Despite the failed updates and the conflicting insert above, we have
 	// exactly one alive value in the store.
-	count, errE := s.Count(ctx)
+	count, errE := s.Count(ctx, false)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(1), count)
 	}
@@ -1400,7 +1400,7 @@ func TestEmptyChangeset(t *testing.T) {
 	errE = changeset.Discard(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	count, errE := s.Count(ctx)
+	count, errE := s.Count(ctx, false)
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(0), count)
 	}
@@ -1587,7 +1587,7 @@ func TestErrors(t *testing.T) {
 	_, errE = changeset.Commit(ctx, v, testutils.DummyData)
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 
-	_, errE = v.Count(ctx)
+	_, errE = v.Count(ctx, false)
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 
 	_, errE = s.Commit(ctx, changeset, testutils.DummyData)
@@ -2300,7 +2300,10 @@ func TestCountViewNotFound(t *testing.T) {
 	v, errE := s.View(ctx, "notexist")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, errE = v.Count(ctx)
+	_, errE = v.Count(ctx, false)
+	assert.ErrorIs(t, errE, store.ErrViewNotFound)
+
+	_, errE = v.Count(ctx, true)
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 }
 
@@ -2325,11 +2328,11 @@ func TestCountAcrossViewsWithDeletions(t *testing.T) {
 	_, errE = child.Delete(ctx, idA, vA.Changeset, testutils.DummyData, testutils.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	mainCount, errE := s.Count(ctx)
+	mainCount, errE := s.Count(ctx, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(1), mainCount, "main counts alive A")
 
-	childCount, errE := child.Count(ctx)
+	childCount, errE := child.Count(ctx, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(0), childCount, "child shadows main with delete")
 
@@ -2339,12 +2342,12 @@ func TestCountAcrossViewsWithDeletions(t *testing.T) {
 	deleteMainV, errE := s.Delete(ctx, idA, vA.Changeset, testutils.DummyData, testutils.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	mainCount, errE = s.Count(ctx)
+	mainCount, errE = s.Count(ctx, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(0), mainCount, "main now sees A as deleted")
 
 	// child's delete still shadows for the child view.
-	childCount, errE = child.Count(ctx)
+	childCount, errE = child.Count(ctx, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(0), childCount, "child still sees A as deleted")
 
@@ -2355,22 +2358,37 @@ func TestCountAcrossViewsWithDeletions(t *testing.T) {
 	_, errE = child.Update(ctx, idB, vB.Changeset, testutils.DummyData, testutils.DummyData, testutils.DummyData, testutils.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	mainCount, errE = s.Count(ctx)
+	mainCount, errE = s.Count(ctx, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(1), mainCount, "main counts B (A is deleted)")
 
-	childCount, errE = child.Count(ctx)
+	childCount, errE = child.Count(ctx, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(1), childCount, "child counts B (A is deleted; B shadowed)")
+
+	// With includeDeleted=true Count must match the set of ids returned by List
+	// for the same view, regardless of which versions have been deleted.
+	mainList, errE := s.List(ctx, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	mainCount, errE = s.Count(ctx, true)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(len(mainList)), mainCount, "main Count(true) matches List")
+
+	childList, errE := child.List(ctx, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	childCount, errE = child.Count(ctx, true)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(len(childList)), childCount, "child Count(true) matches List")
 
 	// Suppress unused variable for clarity.
 	_ = deleteMainV
 }
 
-// TestListIncludesDeletedCountExcludes locks in the documented (and asymmetric)
-// contract: List returns ids even after their latest version is deleted,
-// while Count filters them out.
-func TestListIncludesDeletedCountExcludes(t *testing.T) {
+// TestListIncludesDeletedCountIncludeDeletedFlag locks in the documented
+// contract between List and Count: List always returns ids even after their
+// latest version is deleted; Count(ctx, false) filters them out, while
+// Count(ctx, true) matches List by including deleted ids.
+func TestListIncludesDeletedCountIncludeDeletedFlag(t *testing.T) {
 	t.Parallel()
 
 	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
@@ -2386,9 +2404,14 @@ func TestListIncludesDeletedCountExcludes(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Contains(t, list, id, "List includes deleted id")
 
-	count, errE := s.Count(ctx)
+	count, errE := s.Count(ctx, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, int64(0), count, "Count excludes deleted id")
+	assert.Equal(t, int64(0), count, "Count(includeDeleted=false) excludes deleted id")
+
+	countWithDeleted, errE := s.Count(ctx, true)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(len(list)), countWithDeleted, "Count(includeDeleted=true) matches List")
+	assert.Equal(t, int64(1), countWithDeleted, "Count(includeDeleted=true) includes deleted id")
 }
 
 // TestStaleViewAfterRelease confirms that an in-memory View object that has
@@ -2422,7 +2445,7 @@ func TestStaleViewAfterRelease(t *testing.T) {
 	_, errE = child.List(ctx, nil)
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 
-	_, errE = child.Count(ctx)
+	_, errE = child.Count(ctx, false)
 	assert.ErrorIs(t, errE, store.ErrViewNotFound)
 
 	_, errE = child.Changes(ctx, id, nil)
@@ -2596,7 +2619,7 @@ func TestDeepViewHierarchy(t *testing.T) {
 		require.NoError(t, errE, "% -+#.1v", errE)
 		assert.Equal(t, versionMain, version, "view %s resolves to main", v.Name())
 
-		count, errE := v.Count(ctx)
+		count, errE := v.Count(ctx, false)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		assert.Equal(t, int64(1), count, "view %s Count=1", v.Name())
 	}
@@ -2627,12 +2650,12 @@ func TestDeepViewHierarchy(t *testing.T) {
 	// v1 sees X as deleted (shadows main).
 	_, _, _, _, errE = v1.GetLatest(ctx, id) //nolint:dogsled
 	assert.ErrorIs(t, errE, store.ErrValueDeleted)
-	countV1, errE := v1.Count(ctx)
+	countV1, errE := v1.Count(ctx, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(0), countV1)
 
 	// main still sees X alive.
-	countMain, errE := mainView.Count(ctx)
+	countMain, errE := mainView.Count(ctx, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, int64(1), countMain)
 

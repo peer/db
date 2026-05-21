@@ -204,16 +204,20 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 	return view.List(ctx, after)
 }
 
-// Count returns the number of distinct values currently committed to the MainView,
-// excluding values whose latest committed version has been deleted.
+// Count returns the number of distinct values currently committed to the MainView.
+//
+// When includeDeleted is false, values whose latest committed version has been
+// deleted are excluded. When includeDeleted is true, every distinct value ID
+// that has been committed to the view is counted, matching the set of IDs
+// returned by List.
 func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Count(
-	ctx context.Context,
+	ctx context.Context, includeDeleted bool,
 ) (int64, errors.E) {
 	view, errE := s.View(ctx, MainView)
 	if errE != nil {
 		return 0, errE
 	}
-	return view.Count(ctx)
+	return view.Count(ctx, includeDeleted)
 }
 
 // Changes returns up to MaxPageLength changesets for the value committed to the MainView, ordered first by depth
