@@ -66,8 +66,6 @@ const {
 )
 const { laterLoad } = useInitialLoad(progress)
 
-const { limitedResults, hasMore, loadMore } = useLimitResults(results, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
-
 // Extract the selected "to" IDs from the filter value.
 const selectedIds = computed((): string[] => {
   if (!props.filter?.ref?.to) {
@@ -79,6 +77,17 @@ const selectedIds = computed((): string[] => {
 const isMissingSelected = computed((): boolean => {
   return props.filter?.ref?.missing === true
 })
+
+// Reorder so selected options come first (each group keeps the count-desc order from the API).
+const sortedResults = computed(() => {
+  const selected = new Set<string>(selectedIds.value)
+  if (isMissingSelected.value) {
+    selected.add("__MISSING__")
+  }
+  return [...results.value.filter((res) => selected.has(res.id)), ...results.value.filter((res) => !selected.has(res.id))]
+})
+
+const { limitedResults, hasMore, loadMore } = useLimitResults(sortedResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
 
 function clearFilter() {
   if (abortController.signal.aborted || !props.filter) {

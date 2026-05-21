@@ -58,8 +58,6 @@ const {
 )
 const { laterLoad } = useInitialLoad(progress)
 
-const { limitedResults, hasMore, loadMore } = useLimitResults(results, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
-
 // Extract the selected prop IDs from the filter value.
 const selectedIds = computed((): string[] => {
   if (!props.filter?.has?.props) {
@@ -67,6 +65,14 @@ const selectedIds = computed((): string[] => {
   }
   return props.filter.has.props.map((p: HasValue) => p.id)
 })
+
+// Reorder so selected options come first (each group keeps the count-desc order from the API).
+const sortedResults = computed(() => {
+  const selected = new Set<string>(selectedIds.value)
+  return [...results.value.filter((res) => selected.has(res.id)), ...results.value.filter((res) => !selected.has(res.id))]
+})
+
+const { limitedResults, hasMore, loadMore } = useLimitResults(sortedResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
 
 function clearFilter() {
   if (abortController.signal.aborted || !props.filter) {
