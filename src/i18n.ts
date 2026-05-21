@@ -53,7 +53,9 @@ export const i18n = createI18n({
   locale: await getInitialLocale(),
   fallbackLocale: siteContext.languagePriority,
   globalInjection: false,
-  escapeParameter: true,
+  // We have to always use i18n-t component when we translate HTML fragments.
+  // And for regular strings we rely on Vue to escape HTML entities.
+  escapeParameter: false,
   messages,
   pluralRules: {
     sl: (choice: number, choicesLength: number) => {
