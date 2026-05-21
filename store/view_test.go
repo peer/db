@@ -29,7 +29,7 @@ func (m testCommitMetadata) ChangesetID() identifier.Identifier {
 func TestChangesetIDInsert(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, channelContents := initDatabase[
+	ctx, s, channelContents, _ := initDatabase[
 		*testutils.TestData, *testutils.TestMetadata, *testutils.TestMetadata,
 		*testutils.TestMetadata, *testCommitMetadata, *testutils.TestPatch,
 	](t, "jsonb")
@@ -74,7 +74,7 @@ func TestChangesetIDInsert(t *testing.T) {
 func TestChangesetIDReplace(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[
+	ctx, s, _, _ := initDatabase[
 		*testutils.TestData, *testutils.TestMetadata, *testutils.TestMetadata,
 		*testutils.TestMetadata, *testCommitMetadata, *testutils.TestPatch,
 	](t, "jsonb")
@@ -124,7 +124,7 @@ func TestChangesetIDReplace(t *testing.T) {
 func TestChangesetIDUpdate(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[
+	ctx, s, _, _ := initDatabase[
 		*testutils.TestData, *testutils.TestMetadata, *testutils.TestMetadata,
 		*testutils.TestMetadata, *testCommitMetadata, *testutils.TestPatch,
 	](t, "jsonb")
@@ -163,7 +163,7 @@ func TestChangesetIDUpdate(t *testing.T) {
 func TestChangesetIDMerge(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[
+	ctx, s, _, _ := initDatabase[
 		*testutils.TestData, *testutils.TestMetadata, *testutils.TestMetadata,
 		*testutils.TestMetadata, *testCommitMetadata, *testutils.TestPatch,
 	](t, "jsonb")
@@ -231,7 +231,7 @@ func TestChangesetIDMerge(t *testing.T) {
 func TestChangesetIDDelete(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[
+	ctx, s, _, _ := initDatabase[
 		*testutils.TestData, *testutils.TestMetadata, *testutils.TestMetadata,
 		*testutils.TestMetadata, *testCommitMetadata, *testutils.TestPatch,
 	](t, "jsonb")
@@ -273,7 +273,7 @@ func TestChangesetIDDelete(t *testing.T) {
 func TestChangesetIDWithoutInterface(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[
+	ctx, s, _, _ := initDatabase[
 		*testutils.TestData, *testutils.TestMetadata, *testutils.TestMetadata,
 		*testutils.TestMetadata, *testutils.TestMetadata, *testutils.TestPatch,
 	](t, "jsonb")

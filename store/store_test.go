@@ -7,10 +7,13 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -113,6 +116,7 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 ) (
 	context.Context, *store.Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
 	*testutils.LockableSlice[store.CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]],
+	*pgxpool.Pool,
 ) {
 	t.Helper()
 
@@ -173,13 +177,13 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		}
 	}()
 
-	return ctx, s, channelContents
+	return ctx, s, channelContents, dbpool
 }
 
 func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata, Patch], dataType string) { //nolint:maintidx
 	t.Helper()
 
-	ctx, s, channelContents := initDatabase[Data, Metadata, Metadata, Metadata, Metadata, Patch](t, dataType)
+	ctx, s, channelContents, _ := initDatabase[Data, Metadata, Metadata, Metadata, Metadata, Patch](t, dataType)
 
 	_, _, _, _, errE := s.GetLatest(ctx, identifier.New()) //nolint:dogsled
 	assert.ErrorIs(t, errE, store.ErrValueNotFound)
@@ -619,7 +623,7 @@ func testTop[Data, Metadata, Patch any](t *testing.T, d testCase[Data, Metadata,
 func TestListPagination(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, channelContents := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, channelContents, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	ids := []identifier.Identifier{}
 
@@ -727,7 +731,7 @@ func TestListPagination(t *testing.T) {
 func TestChangesPagination(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, channelContents := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, channelContents, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	changesets := []identifier.Identifier{} //nolint:prealloc
 
@@ -807,7 +811,7 @@ func TestChangesPagination(t *testing.T) {
 func TestTwoChangesToSameValueInOneChangeset(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
@@ -849,7 +853,7 @@ func TestTwoChangesToSameValueInOneChangeset(t *testing.T) {
 func TestCycles(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
@@ -889,7 +893,7 @@ func TestInterdependentChangesets(t *testing.T) {
 
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 	secondID := identifier.New()
@@ -931,7 +935,7 @@ func TestInterdependentChangesets(t *testing.T) {
 func TestGetCurrent(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
@@ -951,7 +955,7 @@ func TestGetCurrent(t *testing.T) {
 func TestGet(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
@@ -980,7 +984,7 @@ func TestGet(t *testing.T) {
 func TestMultipleViews(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
@@ -1165,7 +1169,7 @@ func TestMultipleViews(t *testing.T) {
 func TestChangeAcrossViews(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
@@ -1298,7 +1302,7 @@ func TestChangeAcrossViews(t *testing.T) {
 func TestView(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	v, errE := s.View(ctx, store.MainView)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -1331,7 +1335,7 @@ func TestView(t *testing.T) {
 func TestDuplicateValues(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
@@ -1362,7 +1366,7 @@ func TestDuplicateValues(t *testing.T) {
 func TestDiscardAfterCommit(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
@@ -1382,7 +1386,7 @@ func TestDiscardAfterCommit(t *testing.T) {
 func TestEmptyChangeset(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	changeset, errE := s.Begin(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -1405,7 +1409,7 @@ func TestEmptyChangeset(t *testing.T) {
 func TestDiscardInUseChangeset(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
@@ -1471,7 +1475,7 @@ func testChangesView[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Co
 func TestMultiplePathsToSameChangeset(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
@@ -1521,7 +1525,7 @@ func TestMultiplePathsToSameChangeset(t *testing.T) {
 func TestMultiplePathsSameLengthToSameChangeset(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	newID := identifier.New()
 
@@ -1564,7 +1568,7 @@ func TestMultiplePathsSameLengthToSameChangeset(t *testing.T) {
 func TestErrors(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	anotherVersion, errE := s.Insert(ctx, identifier.New(), testutils.DummyData, testutils.DummyData, testutils.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -1663,7 +1667,7 @@ func TestErrors(t *testing.T) {
 func TestParallelChange(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	firstID := identifier.New()
 	secondID := identifier.New()
@@ -1704,7 +1708,7 @@ func TestParallelChange(t *testing.T) {
 func TestCommittedOrdering(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, channelContents := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, channelContents, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	const n = 10
 	for range n {
@@ -1729,7 +1733,7 @@ func TestCommittedOrdering(t *testing.T) {
 func TestCommittedSeqSameForCommit(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, channelContents := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, channelContents, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	// Prepare a chain: first insert two values in separate changesets,
 	// then commit only the second, which also commits the first.
@@ -1767,7 +1771,7 @@ func TestCommittedSeqSameForCommit(t *testing.T) {
 func TestCommitLog(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	// Empty log initially.
 	entries, errE := s.CommitLog(ctx, nil, nil)
@@ -1850,7 +1854,7 @@ func TestCommitLog(t *testing.T) {
 func TestCommitLogViewFilter(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	// Commit to main view.
 	idMain := identifier.New()
@@ -2030,7 +2034,7 @@ func TestNotifyRecovery(t *testing.T) {
 func TestUpdateExistingMetadata(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	id := identifier.New()
 	insertData := json.RawMessage(`{"data": "original"}`)
@@ -2067,7 +2071,7 @@ func TestUpdateExistingMetadata(t *testing.T) {
 func TestGetRevisionZero(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	id := identifier.New()
 	insertData := json.RawMessage(`{"data": "original"}`)
@@ -2168,7 +2172,7 @@ func TestGetRevisionZero(t *testing.T) {
 func TestGetRevisionZeroView(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	id := identifier.New()
 
@@ -2235,7 +2239,7 @@ func TestGetRevisionZeroView(t *testing.T) {
 func TestUpdateExistingMetadataRevisionMismatch(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	id := identifier.New()
 	insertVersion, errE := s.Insert(ctx, id, json.RawMessage(`{}`), json.RawMessage(`{}`), json.RawMessage(`{}`))
@@ -2254,7 +2258,7 @@ func TestUpdateExistingMetadataRevisionMismatch(t *testing.T) {
 func TestUpdateExistingMetadataChangesetNotFound(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	// Try to update a non-existent changeset.
 	fakeVersion := store.Version{
@@ -2268,7 +2272,7 @@ func TestUpdateExistingMetadataChangesetNotFound(t *testing.T) {
 func TestUpdateExistingMetadataNonExistentRevision(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
 
 	id := identifier.New()
 	insertVersion, errE := s.Insert(ctx, id, json.RawMessage(`{}`), json.RawMessage(`{}`), json.RawMessage(`{}`))
@@ -2283,4 +2287,796 @@ func TestUpdateExistingMetadataNonExistentRevision(t *testing.T) {
 	}
 	_, errE = s.UpdateExistingMetadata(ctx, id, nonExistentVersion, json.RawMessage(`{"meta": "new"}`))
 	assert.ErrorIs(t, errE, store.ErrChangesetNotFound)
+}
+
+// TestCountViewNotFound covers Count on a view name that does not exist.
+// All other view read operations return ErrViewNotFound in this case; Count
+// should too.
+func TestCountViewNotFound(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	v, errE := s.View(ctx, "notexist")
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = v.Count(ctx)
+	assert.ErrorIs(t, errE, store.ErrViewNotFound)
+}
+
+// TestCountAcrossViewsWithDeletions exercises the multi-view + delete
+// interactions of Count. Each scenario maps directly to a corner of the
+// closest-view-in-path resolution that GetLatest uses.
+func TestCountAcrossViewsWithDeletions(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	mainView, errE := s.View(ctx, store.MainView)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	child, errE := mainView.Create(ctx, "child", testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Scenario 1: alive in main, deleted in child.
+	idA := identifier.New()
+	vA, errE := s.Insert(ctx, idA, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = child.Delete(ctx, idA, vA.Changeset, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	mainCount, errE := s.Count(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(1), mainCount, "main counts alive A")
+
+	childCount, errE := child.Count(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(0), childCount, "child shadows main with delete")
+
+	// Scenario 2: deleted in main, the SAME id is then re-introduced into the
+	// child by committing a new update from the parent of the delete.
+	// (We piggy-back on the same idA since main already has it.)
+	deleteMainV, errE := s.Delete(ctx, idA, vA.Changeset, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	mainCount, errE = s.Count(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(0), mainCount, "main now sees A as deleted")
+
+	// child's delete still shadows for the child view.
+	childCount, errE = child.Count(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(0), childCount, "child still sees A as deleted")
+
+	// Scenario 3: insert a fresh id and override the main version in the child.
+	idB := identifier.New()
+	vB, errE := s.Insert(ctx, idB, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = child.Update(ctx, idB, vB.Changeset, testutils.DummyData, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	mainCount, errE = s.Count(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(1), mainCount, "main counts B (A is deleted)")
+
+	childCount, errE = child.Count(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(1), childCount, "child counts B (A is deleted; B shadowed)")
+
+	// Suppress unused variable for clarity.
+	_ = deleteMainV
+}
+
+// TestListIncludesDeletedCountExcludes locks in the documented (and asymmetric)
+// contract: List returns ids even after their latest version is deleted,
+// while Count filters them out.
+func TestListIncludesDeletedCountExcludes(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	id := identifier.New()
+	version, errE := s.Insert(ctx, id, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = s.Delete(ctx, id, version.Changeset, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	list, errE := s.List(ctx, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Contains(t, list, id, "List includes deleted id")
+
+	count, errE := s.Count(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(0), count, "Count excludes deleted id")
+}
+
+// TestStaleViewAfterRelease confirms that an in-memory View object that has
+// since been released is correctly recognized as no longer existing.
+func TestStaleViewAfterRelease(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	mainView, errE := s.View(ctx, store.MainView)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	child, errE := mainView.Create(ctx, "child", testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Insert via the child view so there is data to query.
+	id := identifier.New()
+	version, errE := child.Insert(ctx, id, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = child.Release(ctx, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// All read operations on the stale View should return ErrViewNotFound.
+	_, _, _, _, errE = child.GetLatest(ctx, id) //nolint:dogsled
+	assert.ErrorIs(t, errE, store.ErrViewNotFound)
+
+	_, _, _, _, errE = child.Get(ctx, id, version) //nolint:dogsled
+	assert.ErrorIs(t, errE, store.ErrViewNotFound)
+
+	_, errE = child.List(ctx, nil)
+	assert.ErrorIs(t, errE, store.ErrViewNotFound)
+
+	_, errE = child.Count(ctx)
+	assert.ErrorIs(t, errE, store.ErrViewNotFound)
+
+	_, errE = child.Changes(ctx, id, nil)
+	assert.ErrorIs(t, errE, store.ErrViewNotFound)
+
+	// Releasing an already-released name should also fail.
+	errE = child.Release(ctx, testutils.DummyData)
+	assert.ErrorIs(t, errE, store.ErrViewNotFound)
+
+	// Creating a sub-view of a released view should fail too.
+	_, errE = child.Create(ctx, "grandchild", testutils.DummyData)
+	assert.ErrorIs(t, errE, store.ErrViewNotFound)
+}
+
+// TestInsertAfterDeleteConflict documents how the store handles an attempt to
+// "resurrect" a deleted id via a fresh Insert (which has no parent changeset
+// and therefore conflicts with the existing depth=0 delete row).
+func TestInsertAfterDeleteConflict(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	id := identifier.New()
+
+	version, errE := s.Insert(ctx, id, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	deleteVersion, errE := s.Delete(ctx, id, version.Changeset, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// A bare Insert has no parent and cannot legally produce a new depth=0
+	// for an id that already has a depth=0 (currently deleted) row.
+	_, errE = s.Insert(ctx, id, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	assert.ErrorIs(t, errE, store.ErrConflict)
+
+	// The supported "resurrection" path is to Replace from the delete changeset.
+	resurrected, errE := s.Replace(ctx, id, deleteVersion.Changeset, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// And the value is now alive again.
+	_, _, latest, _, errE := s.GetLatest(ctx, id) //nolint:dogsled
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, resurrected, latest)
+}
+
+// TestConcurrentCommitConflict exercises the EXCLUDE-constraint path: two
+// concurrent commits both try to introduce a new depth=0 version for the same
+// value from the same parent. Exactly one should succeed; the other should
+// either succeed (if PostgreSQL serialized them as if sequential, which the
+// constraint then rejects via a unique/exclusion violation surfaced as
+// ErrConflict) or fail with ErrConflict.
+func TestConcurrentCommitConflict(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	id := identifier.New()
+	version, errE := s.Insert(ctx, id, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Two independent uncommitted changesets, both updating the same value
+	// from the same parent (so they are concurrent branches).
+	csA, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = csA.Update(ctx, id, version.Changeset, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	csB, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = csB.Update(ctx, id, version.Changeset, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	var (
+		wg     sync.WaitGroup
+		mu     sync.Mutex
+		errs   []errors.E
+		okWins int
+	)
+	commit := func(cs store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]) {
+		_, errE := s.Commit(ctx, cs, testutils.DummyData)
+		mu.Lock()
+		defer mu.Unlock()
+		if errE == nil {
+			okWins++
+		} else {
+			errs = append(errs, errE)
+		}
+	}
+	wg.Go(func() { commit(csA) })
+	wg.Go(func() { commit(csB) })
+	wg.Wait()
+
+	assert.Equal(t, 1, okWins, "exactly one concurrent commit should succeed")
+	if assert.Len(t, errs, 1) {
+		assert.ErrorIs(t, errs[0], store.ErrConflict, "loser sees ErrConflict; got % -+#.1v", errs[0])
+	}
+}
+
+// TestConcurrentUpdateExistingMetadata: two goroutines try to bump the same
+// changeset+id metadata from revision 1. SSI + the explicit revision-mismatch
+// check should ensure exactly one succeeds and the other observes the new
+// revision or ErrRevisionMismatch.
+func TestConcurrentUpdateExistingMetadata(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	id := identifier.New()
+	version, errE := s.Insert(ctx, id, json.RawMessage(`{}`), json.RawMessage(`{"meta":"v1"}`), json.RawMessage(`{}`))
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	var (
+		wg              sync.WaitGroup
+		mu              sync.Mutex
+		successes       int
+		mismatchOrRetry int
+	)
+	bump := func(label string) {
+		_, errE := s.UpdateExistingMetadata(ctx, id, version, json.RawMessage(`{"meta": "`+label+`"}`))
+		mu.Lock()
+		defer mu.Unlock()
+		switch {
+		case errE == nil:
+			successes++
+		case errors.Is(errE, store.ErrRevisionMismatch):
+			mismatchOrRetry++
+		default:
+			t.Errorf("unexpected error from concurrent UpdateExistingMetadata: % -+#.1v", errE)
+		}
+	}
+	wg.Go(func() { bump("a") })
+	wg.Go(func() { bump("b") })
+	wg.Wait()
+
+	// Exactly one race winner. The other gets ErrRevisionMismatch after seeing
+	// the bumped revision (or after SSI-retry detects the new revision).
+	assert.Equal(t, 1, successes, "exactly one UpdateExistingMetadata succeeds")
+	assert.Equal(t, 1, mismatchOrRetry, "loser gets ErrRevisionMismatch")
+
+	// Final state: revision is 2.
+	_, _, latest, _, errE := s.GetLatest(ctx, id) //nolint:dogsled
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(2), latest.Revision)
+}
+
+// TestDeepViewHierarchy validates path resolution through 4 view levels
+// (main -> v1 -> v2 -> v3), including shadowing and deletion semantics across
+// the chain.
+func TestDeepViewHierarchy(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	mainView, errE := s.View(ctx, store.MainView)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	v1, errE := mainView.Create(ctx, "v1", testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	v2, errE := v1.Create(ctx, "v2", testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	v3, errE := v2.Create(ctx, "v3", testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Commit X only to main.
+	id := identifier.New()
+	versionMain, errE := s.Insert(ctx, id, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// All four views see X (resolution through the path).
+	for _, v := range []store.View[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]{mainView, v1, v2, v3} {
+		_, _, version, _, errE := v.GetLatest(ctx, id)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.Equal(t, versionMain, version, "view %s resolves to main", v.Name())
+
+		count, errE := v.Count(ctx)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.Equal(t, int64(1), count, "view %s Count=1", v.Name())
+	}
+
+	// Override X in v2.
+	versionV2, errE := v2.Update(ctx, id, versionMain.Changeset, testutils.DummyData, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// v3 now sees v2's version (v2 is the closest view in v3's path with X).
+	_, _, gotV3, _, errE := v3.GetLatest(ctx, id) //nolint:dogsled
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, versionV2, gotV3, "v3 shadows main via v2")
+
+	// v1 still sees main's version because v2 is NOT in v1's path.
+	_, _, gotV1, _, errE := v1.GetLatest(ctx, id) //nolint:dogsled
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, versionMain, gotV1, "v1 unaffected by v2")
+
+	// main is untouched.
+	_, _, gotMain, _, errE := mainView.GetLatest(ctx, id) //nolint:dogsled
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, versionMain, gotMain)
+
+	// Delete X in v1.
+	_, errE = v1.Delete(ctx, id, versionMain.Changeset, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// v1 sees X as deleted (shadows main).
+	_, _, _, _, errE = v1.GetLatest(ctx, id) //nolint:dogsled
+	assert.ErrorIs(t, errE, store.ErrValueDeleted)
+	countV1, errE := v1.Count(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(0), countV1)
+
+	// main still sees X alive.
+	countMain, errE := mainView.Count(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(1), countMain)
+
+	// v3 still sees v2's version (v2 closer than v1 in v3's path).
+	_, _, gotV3, _, errE = v3.GetLatest(ctx, id) //nolint:dogsled
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, versionV2, gotV3, "v3 sees v2's version, not v1's delete")
+}
+
+// TestConcurrentCreateSameName: N goroutines simultaneously creating views
+// with the same name -> exactly one succeeds, the rest get ErrConflict.
+func TestConcurrentCreateSameName(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	mainView, errE := s.View(ctx, store.MainView)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	const n = 8
+	var (
+		wg        sync.WaitGroup
+		mu        sync.Mutex
+		successes int
+		conflicts int
+		other     []errors.E
+	)
+	for range n {
+		wg.Go(func() {
+			_, errE := mainView.Create(ctx, "racey", testutils.DummyData)
+			mu.Lock()
+			defer mu.Unlock()
+			switch {
+			case errE == nil:
+				successes++
+			case errors.Is(errE, store.ErrConflict):
+				conflicts++
+			default:
+				other = append(other, errE)
+			}
+		})
+	}
+	wg.Wait()
+
+	assert.Empty(t, other, "no unexpected errors")
+	assert.Equal(t, 1, successes, "exactly one Create wins")
+	assert.Equal(t, n-1, conflicts, "all losers see ErrConflict")
+}
+
+// TestNotificationLargePayloadFallback exercises the >7900-byte NOTIFY payload
+// fallback path: when the trigger detects the payload is too large it sends
+// only {"seq":N} and the handler fetches the full set from CommitLog.
+//
+// We construct a commit large enough that the inline payload would exceed the
+// threshold, then verify the consumer still receives all changesets and the
+// correct view name.
+func TestNotificationLargePayloadFallback(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, channelContents, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	id := identifier.New()
+	version, errE := s.Insert(ctx, id, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Drain the small initial notification.
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
+	_ = channelContents.Prune()
+
+	// Build a chain of ~320 uncommitted update changesets. Each identifier is
+	// 22 characters; JSON-encoded with quotes+comma each contributes ~25 bytes,
+	// so >320 changesets pushes the inline payload past the 7900-byte limit.
+	const chainLen = 320
+	var cs store.Changeset[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]
+	for i := range chainLen {
+		cs, errE = s.Begin(ctx)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		version, errE = cs.Update(ctx, id, version.Changeset, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+		require.NoError(t, errE, "%d % -+#.1v", i, errE)
+	}
+
+	// Committing the last changeset in the chain also commits all of its
+	// uncommitted ancestors in one transaction.
+	committed, errE := s.Commit(ctx, cs, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, committed, chainLen)
+
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 10*time.Second, 10*time.Millisecond)
+	c := channelContents.Prune()
+	require.Len(t, c, 1, "exactly one CommittedChangesets received")
+	assert.Equal(t, store.MainView, c[0].View.Name(), "view name preserved via CommitLog fallback")
+	assert.Len(t, c[0].Changesets, chainLen, "all changesets present after fallback fetch")
+	assert.Positive(t, c[0].Seq)
+}
+
+// TestNotificationFallbackFailureCallsReset confirms that when the >7900-byte
+// fallback DB query fails, the handler signals consumers via Reset() (a closed
+// channel) so they know they must resync via the CommitLog API.
+func TestNotificationFallbackFailureCallsReset(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	oldCh, errE := s.Committed.Get(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Craft a notification that forces the fallback path (no "changesets" key)
+	// with a seq that does not exist in CommitLog. The QueryRow Scan will
+	// return pgx.ErrNoRows which the handler treats as a failure and calls
+	// Reset() before propagating.
+	notification := &pgconn.Notification{
+		PID:     0,
+		Channel: s.Prefix + "CommittedChangesets",
+		Payload: `{"seq":999999999}`,
+	}
+	err := s.HandleNotification(ctx, notification, nil)
+	require.Error(t, err)
+
+	// Old channel must be closed by the Reset() invocation.
+	select {
+	case _, ok := <-oldCh:
+		require.False(t, ok, "old channel should be closed after fallback failure")
+	case <-time.After(2 * time.Second):
+		t.Fatal("old channel was not closed by fallback-failure Reset()")
+	}
+
+	// A new channel must be available.
+	newCh, errE := s.Committed.Get(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotEqual(t, oldCh, newCh, "Reset() created a new channel")
+}
+
+// TestUpdateExistingMetadataOnCommittedChangeset verifies that metadata can
+// be updated on an already-committed changeset and that doing so bumps the
+// revision; the changeset must remain committed (still cannot be discarded).
+func TestUpdateExistingMetadataOnCommittedChangeset(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	id := identifier.New()
+	// Use the jsonb canonical formatting (space after colon) so direct
+	// json.RawMessage comparisons work after a round-trip through the column.
+	insertVersion, errE := s.Insert(ctx, id, json.RawMessage(`{"data": "d"}`), json.RawMessage(`{"meta": "m1"}`), json.RawMessage(`{}`))
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Equal(t, int64(1), insertVersion.Revision)
+
+	// Insert auto-commits, so the changeset is committed.
+	cs, errE := s.Changeset(ctx, insertVersion.Changeset)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = cs.Discard(ctx)
+	require.ErrorIs(t, errE, store.ErrAlreadyCommitted)
+
+	// Bump metadata. Revision must increment.
+	newVersion, errE := s.UpdateExistingMetadata(ctx, id, insertVersion, json.RawMessage(`{"meta": "m2"}`))
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, insertVersion.Changeset, newVersion.Changeset)
+	assert.Equal(t, int64(2), newVersion.Revision)
+
+	// Latest reflects the bumped revision and new metadata.
+	_, metadata, latest, _, errE := s.GetLatest(ctx, id)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, newVersion, latest)
+	assert.Equal(t, json.RawMessage(`{"meta": "m2"}`), metadata) //nolint:testifylint
+
+	// Old revision is still retrievable with its original metadata.
+	_, oldMetadata, resolved, _, errE := s.Get(ctx, id, insertVersion)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, insertVersion, resolved)
+	assert.Equal(t, json.RawMessage(`{"meta": "m1"}`), oldMetadata) //nolint:testifylint
+
+	// The changeset stays committed.
+	errE = cs.Discard(ctx)
+	require.ErrorIs(t, errE, store.ErrAlreadyCommitted)
+}
+
+// TestChangesPaginationDepthBoundary verifies pagination correctness when the
+// after-cursor lands at the last changeset of one depth and the next page must
+// begin with the first changeset of the next depth.
+//
+// Graph constructed:
+//
+//	insert (depth 2) ─┬─ cA (depth 1) ─┐
+//	                  └─ cB (depth 1) ─┴─ merged (depth 0)
+//
+// Sort order inside Changes(): depth ASC, then changeset ASC. So:
+//
+//	[merged, sortIDs(cA,cB)[0], sortIDs(cA,cB)[1], insert]
+//
+// Pagination after the last of depth 1 should return just [insert].
+func TestChangesPaginationDepthBoundary(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	id := identifier.New()
+	insert, errE := s.Insert(ctx, id, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	csA, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = csA.Update(ctx, id, insert.Changeset, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	csB, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = csB.Update(ctx, id, insert.Changeset, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	merged, errE := s.Merge(
+		ctx, id,
+		[]identifier.Identifier{csA.ID(), csB.ID()},
+		testutils.DummyData,
+		[]json.RawMessage{testutils.DummyData, testutils.DummyData},
+		testutils.DummyData,
+		testutils.DummyData,
+	)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	sortedAB := sortIDs(csA.ID(), csB.ID())
+
+	// Full listing in graph-traversal order: depth 0, depth 1 sorted, depth 2.
+	all, errE := s.Changes(ctx, id, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Equal(t, []identifier.Identifier{
+		merged.Changeset,
+		sortedAB[0],
+		sortedAB[1],
+		insert.Changeset,
+	}, all)
+
+	// After the *first* depth-1 changeset, we expect the second depth-1 then
+	// the depth-2 insert.
+	after0 := sortedAB[0]
+	page, errE := s.Changes(ctx, id, &after0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []identifier.Identifier{sortedAB[1], insert.Changeset}, page)
+
+	// After the LAST depth-1 changeset, only the depth-2 insert remains.
+	// This is the depth-boundary crossing: the WHERE clause must move to the
+	// "distinctChangesets.depth > changesetDepth.depth" branch.
+	after1 := sortedAB[1]
+	page, errE = s.Changes(ctx, id, &after1)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []identifier.Identifier{insert.Changeset}, page)
+
+	// After the depth-2 insert there is nothing.
+	page, errE = s.Changes(ctx, id, &insert.Changeset)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Empty(t, page)
+}
+
+// TestDiscardChain validates the in-use chain enforcement: a parent cannot be
+// discarded while any descendant exists; descendants must be discarded first
+// (in reverse dependency order).
+func TestDiscardChain(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	id := identifier.New()
+
+	// c1 (uncommitted) inserts X.
+	c1, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = c1.Insert(ctx, id, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// c2 (uncommitted) updates X from c1.
+	c2, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = c2.Update(ctx, id, c1.ID(), testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// c3 (uncommitted) updates X from c2.
+	c3, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = c3.Update(ctx, id, c2.ID(), testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// In-order discard fails because each has a descendant.
+	errE = c1.Discard(ctx)
+	assert.ErrorIs(t, errE, store.ErrInUse)
+	errE = c2.Discard(ctx)
+	assert.ErrorIs(t, errE, store.ErrInUse)
+
+	// Discard in reverse dependency order.
+	require.NoError(t, c3.Discard(ctx), "% -+#.1v", c3.Discard(ctx))
+	require.NoError(t, c2.Discard(ctx), "% -+#.1v", c2.Discard(ctx))
+	require.NoError(t, c1.Discard(ctx), "% -+#.1v", c1.Discard(ctx))
+
+	// A second Discard of an already-discarded leaf is a no-op (not an error).
+	require.NoError(t, c1.Discard(ctx), "% -+#.1v", c1.Discard(ctx))
+}
+
+// TestMergeWithPatchesDisabled: with Patch=store.None the patches parameter is
+// ignored entirely; the length check between parentChangesets and patches is
+// skipped, and nil patches are accepted.
+func TestMergeWithPatchesDisabled(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _, _ := initDatabase[[]byte, []byte, []byte, []byte, []byte, store.None](t, "bytea")
+
+	id := identifier.New()
+	insert, errE := s.Insert(ctx, id, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	csA, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = csA.Update(ctx, id, insert.Changeset, testutils.DummyData, nil, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	csB, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = csB.Update(ctx, id, insert.Changeset, testutils.DummyData, nil, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// nil patches accepted because patches are disabled.
+	merged, errE := s.Merge(
+		ctx, id,
+		[]identifier.Identifier{csA.ID(), csB.ID()},
+		testutils.DummyData,
+		nil,
+		testutils.DummyData,
+		testutils.DummyData,
+	)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, _, latest, _, errE := s.GetLatest(ctx, id) //nolint:dogsled
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, merged, latest)
+}
+
+// TestWithStoreIdempotent: WithStore on a View/Changeset/CommittedChangesets
+// returns a functionally equivalent object when the store is already set.
+func TestWithStoreIdempotent(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, channelContents, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	mainView, errE := s.View(ctx, store.MainView)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	mainView2, errE := mainView.WithStore(ctx, s)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, mainView.Name(), mainView2.Name())
+
+	id := identifier.New()
+	version, errE := s.Insert(ctx, id, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	cs, errE := s.Changeset(ctx, version.Changeset)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	cs2, errE := cs.WithStore(ctx, s)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, cs.ID(), cs2.ID())
+
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
+	c := channelContents.Prune()
+	require.Len(t, c, 1)
+
+	committed := c[0]
+	require.Nil(t, committed.View.Store(), "received CommittedChangesets has nil store")
+
+	withStore, errE := committed.WithStore(ctx, s)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, committed.Seq, withStore.Seq)
+	require.Len(t, withStore.Changesets, len(committed.Changesets))
+	for i := range committed.Changesets {
+		assert.Equal(t, committed.Changesets[i].ID(), withStore.Changesets[i].ID())
+		assert.NotNil(t, withStore.Changesets[i].Store(), "rehydrated changeset has store")
+	}
+	assert.Equal(t, committed.View.Name(), withStore.View.Name())
+	assert.NotNil(t, withStore.View.Store(), "rehydrated view has store")
+
+	// Idempotent: calling WithStore on the rehydrated value returns the same shape.
+	again, errE := withStore.WithStore(ctx, s)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, withStore.Seq, again.Seq)
+	assert.Len(t, again.Changesets, len(withStore.Changesets))
+}
+
+// TestResetFromUserCode: calling Reset() directly from user code closes the
+// current channel (signaling consumers) and provisions a new one. Subsequent
+// commits arrive on the new channel and are forwarded to the consumer running
+// in initDatabase.
+func TestResetFromUserCode(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, channelContents, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	oldCh, errE := s.Committed.Get(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	s.Reset()
+
+	// The previous channel must be closed so any holder of it (a slow consumer,
+	// for instance) can detect the gap.
+	select {
+	case _, ok := <-oldCh:
+		require.False(t, ok, "old channel should be closed after Reset()")
+	case <-time.After(2 * time.Second):
+		t.Fatal("old channel was not closed by Reset()")
+	}
+
+	// A new channel is now installed.
+	newCh, errE := s.Committed.Get(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotEqual(t, oldCh, newCh, "Reset() created a new channel")
+
+	// Commits after Reset arrive on the new channel. The consumer goroutine
+	// from initDatabase reads from the live channel and records the commit
+	// into channelContents. We observe via that side rather than racing it
+	// for the receive.
+	id := identifier.New()
+	_, errE = s.Insert(ctx, id, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
+	c := channelContents.Prune()
+	require.Len(t, c, 1)
+	assert.Equal(t, store.MainView, c[0].View.Name())
+}
+
+// TestReadOnlyRejectsWrites pins the contract that read-paths in the store
+// use pgx.ReadOnly transactions and that PostgreSQL enforces it.
+func TestReadOnlyRejectsWrites(t *testing.T) {
+	t.Parallel()
+
+	ctx, _, _, dbpool := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	// We exercise the same RetryTransaction wrapper the store uses, with the
+	// ReadOnly access mode, and try a write. PostgreSQL must reject it.
+	errE := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// CREATE TEMP TABLE is a write and is disallowed in a read-only transaction.
+		_, err := tx.Exec(ctx, `CREATE TEMP TABLE rotest(id int)`)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		return nil
+	})
+	require.Error(t, errE)
+	pgError, ok := errors.AsType[*pgconn.PgError](errE)
+	require.True(t, ok, "expected pg error, got % -+#.1v", errE)
+	// "25006" = read_only_sql_transaction.
+	assert.Equal(t, "25006", pgError.Code, "PostgreSQL rejects writes in ReadOnly transactions")
 }

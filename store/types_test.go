@@ -469,3 +469,143 @@ func TestCarryOverEmptyOld(t *testing.T) {
 	// CarryOver sets InverseRelations to old's value (nil).
 	assert.Nil(t, m.InverseRelations)
 }
+
+// Pinned identifier used by Version tests so that parsing and formatting are
+// fully deterministic.
+const versionTestChangesetStr = "11111111111111111111AB"
+
+func TestVersionStringWithRevision(t *testing.T) {
+	t.Parallel()
+
+	cs, errE := identifier.MaybeString(versionTestChangesetStr)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	v := store.Version{Changeset: cs, Revision: 7}
+	assert.Equal(t, versionTestChangesetStr+"-7", v.String())
+}
+
+func TestVersionStringRevisionZero(t *testing.T) {
+	t.Parallel()
+
+	cs, errE := identifier.MaybeString(versionTestChangesetStr)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	v := store.Version{Changeset: cs, Revision: 0}
+	// Zero revision still serializes with explicit "-0" suffix.
+	assert.Equal(t, versionTestChangesetStr+"-0", v.String())
+}
+
+func TestVersionMarshalUnmarshalRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	cs, errE := identifier.MaybeString(versionTestChangesetStr)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	for _, rev := range []int64{0, 1, 2, 100, 1<<62 - 1} {
+		original := store.Version{Changeset: cs, Revision: rev}
+
+		b, err := original.MarshalText()
+		require.NoError(t, err)
+
+		var decoded store.Version
+		err = decoded.UnmarshalText(b)
+		require.NoError(t, err)
+
+		assert.Equal(t, original, decoded)
+	}
+}
+
+func TestVersionFromStringWithoutDash(t *testing.T) {
+	t.Parallel()
+
+	// No "-" -> revision defaults to 0 (meaning "latest" in read paths).
+	v, errE := store.VersionFromString(versionTestChangesetStr)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, versionTestChangesetStr, v.Changeset.String())
+	assert.Equal(t, int64(0), v.Revision)
+}
+
+func TestVersionFromStringWithExplicitRevision(t *testing.T) {
+	t.Parallel()
+
+	v, errE := store.VersionFromString(versionTestChangesetStr + "-3")
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, versionTestChangesetStr, v.Changeset.String())
+	assert.Equal(t, int64(3), v.Revision)
+}
+
+func TestVersionFromStringExplicitZero(t *testing.T) {
+	t.Parallel()
+
+	v, errE := store.VersionFromString(versionTestChangesetStr + "-0")
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, versionTestChangesetStr, v.Changeset.String())
+	assert.Equal(t, int64(0), v.Revision)
+}
+
+func TestVersionFromStringEmptyRevisionAfterDash(t *testing.T) {
+	t.Parallel()
+
+	// "<cs>-" parses revisionStr as "" which fails strconv.ParseInt.
+	_, errE := store.VersionFromString(versionTestChangesetStr + "-")
+	require.Error(t, errE)
+}
+
+func TestVersionFromStringDoubleDash(t *testing.T) {
+	t.Parallel()
+
+	// strings.Cut splits on the first "-" so revisionStr is "-3", which parses
+	// to a negative integer and is rejected.
+	_, errE := store.VersionFromString(versionTestChangesetStr + "--3")
+	require.Error(t, errE)
+	assert.Contains(t, errE.Error(), "invalid version revision")
+}
+
+func TestVersionFromStringBadChangeset(t *testing.T) {
+	t.Parallel()
+
+	_, errE := store.VersionFromString("not-an-identifier")
+	require.Error(t, errE)
+}
+
+func TestVersionFromStringEmpty(t *testing.T) {
+	t.Parallel()
+
+	_, errE := store.VersionFromString("")
+	require.Error(t, errE)
+}
+
+func TestVersionFromStringOverflow(t *testing.T) {
+	t.Parallel()
+
+	// Revision larger than int64.
+	_, errE := store.VersionFromString(versionTestChangesetStr + "-99999999999999999999")
+	require.Error(t, errE)
+}
+
+func TestVersionFromStringNegativeRevision(t *testing.T) {
+	t.Parallel()
+
+	_, errE := store.VersionFromString(versionTestChangesetStr + "-" + "-1")
+	require.Error(t, errE)
+	// "-1" -> invalid (we reject negative).
+	assert.Contains(t, errE.Error(), "invalid version revision")
+}
+
+func TestVersionUnmarshalTextRoundTripThroughMarshalText(t *testing.T) {
+	t.Parallel()
+
+	cs, errE := identifier.MaybeString(versionTestChangesetStr)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	original := store.Version{Changeset: cs, Revision: 42}
+
+	b, err := original.MarshalText()
+	require.NoError(t, err)
+	assert.Equal(t, versionTestChangesetStr+"-42", string(b))
+
+	var decoded store.Version
+	err = decoded.UnmarshalText(b)
+	require.NoError(t, err)
+	assert.Equal(t, original, decoded)
+}

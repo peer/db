@@ -243,6 +243,256 @@ func TestRetryTransactionNestedFnCommits(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 }
 
+// createKVTable creates a small key/value table inside its own transaction.
+// Used by the nested-transaction tests below to observe row-level effects.
+func createKVTable(t *testing.T, ctx context.Context, dbpool *pgxpool.Pool, table string) { //nolint:revive
+	t.Helper()
+	errE := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		_, err := tx.Exec(ctx, `CREATE TABLE "`+table+`" ("k" text PRIMARY KEY, "v" text NOT NULL)`)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		return nil
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+}
+
+func countRows(t *testing.T, ctx context.Context, dbpool *pgxpool.Pool, table, key string) int { //nolint:revive
+	t.Helper()
+	var c int
+	err := dbpool.QueryRow(ctx, `SELECT count(*) FROM "`+table+`" WHERE "k"=$1`, key).Scan(&c)
+	require.NoError(t, err)
+	return c
+}
+
+// TestNestedTransactionSavepointIsolation: when the nested fn errors, only its
+// writes are rolled back (via SAVEPOINT/ROLLBACK TO); the outer transaction
+// continues and its writes (both before and after the failed nested block)
+// persist.
+func TestNestedTransactionSavepointIsolation(t *testing.T) {
+	t.Parallel()
+
+	ctx, dbpool := initTestPool(t)
+	table := "kv_" + strings.ToLower(identifier.New().String())
+	createKVTable(t, ctx, dbpool, table)
+
+	intentional := errors.Base("intentional")
+
+	errE := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Outer write A. Pre-nested.
+		_, err := tx.Exec(ctx, `INSERT INTO "`+table+`" VALUES ('A','outer-a')`)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+
+		// Nested fn writes B and then errors. The savepoint rolls back B.
+		nestedErr := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+			_, err := tx.Exec(ctx, `INSERT INTO "`+table+`" VALUES ('B','nested-b')`)
+			if err != nil {
+				return internalStore.WithPgxError(err)
+			}
+			return errors.WithStack(intentional)
+		})
+		require.ErrorIs(t, nestedErr, intentional)
+
+		// Within the same outer transaction, A is still visible and B is gone.
+		var aSeen, bSeen int
+		err = tx.QueryRow(ctx, `SELECT count(*) FROM "`+table+`" WHERE "k"='A'`).Scan(&aSeen)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		err = tx.QueryRow(ctx, `SELECT count(*) FROM "`+table+`" WHERE "k"='B'`).Scan(&bSeen)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		assert.Equal(t, 1, aSeen, "outer still sees its pre-nested write")
+		assert.Equal(t, 0, bSeen, "nested write rolled back by savepoint")
+
+		// Outer continues with another write. Savepoint failure must not poison
+		// the outer transaction.
+		_, err = tx.Exec(ctx, `INSERT INTO "`+table+`" VALUES ('C','outer-c')`)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		return nil
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// After commit: A and C persist, B does not.
+	assert.Equal(t, 1, countRows(t, ctx, dbpool, table, "A"))
+	assert.Equal(t, 0, countRows(t, ctx, dbpool, table, "B"))
+	assert.Equal(t, 1, countRows(t, ctx, dbpool, table, "C"))
+}
+
+// TestNestedTransactionCommitVisibleToOuter: when the nested fn returns nil,
+// the savepoint is released and the nested writes become part of the outer
+// transaction, visible to subsequent outer queries and durable after outer
+// commit.
+func TestNestedTransactionCommitVisibleToOuter(t *testing.T) {
+	t.Parallel()
+
+	ctx, dbpool := initTestPool(t)
+	table := "kv_" + strings.ToLower(identifier.New().String())
+	createKVTable(t, ctx, dbpool, table)
+
+	errE := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		_, err := tx.Exec(ctx, `INSERT INTO "`+table+`" VALUES ('A','outer-a')`)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+
+		nestedErr := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+			_, err := tx.Exec(ctx, `INSERT INTO "`+table+`" VALUES ('B','nested-b')`)
+			if err != nil {
+				return internalStore.WithPgxError(err)
+			}
+			return nil
+		})
+		require.NoError(t, nestedErr, "% -+#.1v", nestedErr)
+
+		// Both visible to outer after savepoint release.
+		var aSeen, bSeen int
+		err = tx.QueryRow(ctx, `SELECT count(*) FROM "`+table+`" WHERE "k"='A'`).Scan(&aSeen)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		err = tx.QueryRow(ctx, `SELECT count(*) FROM "`+table+`" WHERE "k"='B'`).Scan(&bSeen)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		assert.Equal(t, 1, aSeen)
+		assert.Equal(t, 1, bSeen)
+		return nil
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, 1, countRows(t, ctx, dbpool, table, "A"))
+	assert.Equal(t, 1, countRows(t, ctx, dbpool, table, "B"))
+}
+
+// TestNestedTransactionOuterRollbackDiscardsNested: a successful nested
+// savepoint release is not durable on its own; if the outer transaction is
+// then aborted (by the outer fn returning an error), all writes (both outer
+// and nested) are rolled back together.
+func TestNestedTransactionOuterRollbackDiscardsNested(t *testing.T) {
+	t.Parallel()
+
+	ctx, dbpool := initTestPool(t)
+	table := "kv_" + strings.ToLower(identifier.New().String())
+	createKVTable(t, ctx, dbpool, table)
+
+	outerErr := errors.Base("outer aborts")
+
+	errE := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		_, err := tx.Exec(ctx, `INSERT INTO "`+table+`" VALUES ('A','outer-a')`)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+
+		// Nested fn succeeds and releases its savepoint.
+		nestedErr := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+			_, err := tx.Exec(ctx, `INSERT INTO "`+table+`" VALUES ('B','nested-b')`)
+			if err != nil {
+				return internalStore.WithPgxError(err)
+			}
+			return nil
+		})
+		require.NoError(t, nestedErr, "% -+#.1v", nestedErr)
+
+		// Outer aborts.
+		return errors.WithStack(outerErr)
+	})
+	assert.ErrorIs(t, errE, outerErr)
+
+	// Neither row should be present: outer rollback discards the entire tx.
+	assert.Equal(t, 0, countRows(t, ctx, dbpool, table, "A"))
+	assert.Equal(t, 0, countRows(t, ctx, dbpool, table, "B"))
+}
+
+// TestNestedTransactionThreeLevelsSuccess: three levels of nesting succeed and
+// all writes persist after the outermost commit.
+func TestNestedTransactionThreeLevelsSuccess(t *testing.T) {
+	t.Parallel()
+
+	ctx, dbpool := initTestPool(t)
+	table := "kv_" + strings.ToLower(identifier.New().String())
+	createKVTable(t, ctx, dbpool, table)
+
+	errE := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		_, err := tx.Exec(ctx, `INSERT INTO "`+table+`" VALUES ('L0','top')`)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		return internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+			_, err := tx.Exec(ctx, `INSERT INTO "`+table+`" VALUES ('L1','mid')`)
+			if err != nil {
+				return internalStore.WithPgxError(err)
+			}
+			return internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+				_, err := tx.Exec(ctx, `INSERT INTO "`+table+`" VALUES ('L2','deep')`)
+				if err != nil {
+					return internalStore.WithPgxError(err)
+				}
+				return nil
+			})
+		})
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	for _, k := range []string{"L0", "L1", "L2"} {
+		assert.Equal(t, 1, countRows(t, ctx, dbpool, table, k), "row %q persisted", k)
+	}
+}
+
+// TestNestedTransactionInnermostRollbackPreservesMiddleAndOuter: 3-level
+// nesting where the innermost errors. The middle catches and continues with
+// another write. The outer also writes. Innermost's write is rolled back via
+// its savepoint; middle and outer writes persist.
+func TestNestedTransactionInnermostRollbackPreservesMiddleAndOuter(t *testing.T) {
+	t.Parallel()
+
+	ctx, dbpool := initTestPool(t)
+	table := "kv_" + strings.ToLower(identifier.New().String())
+	createKVTable(t, ctx, dbpool, table)
+
+	intentional := errors.Base("innermost fails")
+
+	errE := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		_, err := tx.Exec(ctx, `INSERT INTO "`+table+`" VALUES ('outer','o')`)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		return internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+			_, err := tx.Exec(ctx, `INSERT INTO "`+table+`" VALUES ('middle','m')`)
+			if err != nil {
+				return internalStore.WithPgxError(err)
+			}
+			// Innermost fails after writing.
+			innerErr := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+				_, err := tx.Exec(ctx, `INSERT INTO "`+table+`" VALUES ('inner','i')`)
+				if err != nil {
+					return internalStore.WithPgxError(err)
+				}
+				return errors.WithStack(intentional)
+			})
+			require.ErrorIs(t, innerErr, intentional)
+
+			// Middle writes again after catching the failure.
+			_, err = tx.Exec(ctx, `INSERT INTO "`+table+`" VALUES ('middle2','m2')`)
+			if err != nil {
+				return internalStore.WithPgxError(err)
+			}
+			return nil
+		})
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, 1, countRows(t, ctx, dbpool, table, "outer"))
+	assert.Equal(t, 1, countRows(t, ctx, dbpool, table, "middle"))
+	assert.Equal(t, 1, countRows(t, ctx, dbpool, table, "middle2"))
+	assert.Equal(t, 0, countRows(t, ctx, dbpool, table, "inner"), "innermost write rolled back by its savepoint")
+}
+
 type mockHandler struct {
 	ready chan struct{}
 }

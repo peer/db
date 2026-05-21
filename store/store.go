@@ -654,6 +654,10 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 		// Payload exceeded 7900 bytes: fetch changesets and view name from CommitLog.
 		err := s.dbpool.QueryRow(ctx, `SELECT "changesets", "name" FROM "`+s.Prefix+`CommitLog" WHERE "seq"=$1`, payload.Seq).Scan(&changesets, &viewName)
 		if err != nil {
+			// The notification has been consumed from the listener but we could not
+			// resolve its full contents. Signal consumers that they should resync
+			// (e.g., by walking CommitLog) by recreating the channel.
+			s.Reset()
 			return errors.WithStack(err)
 		}
 	}
