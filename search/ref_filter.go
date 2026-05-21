@@ -144,13 +144,37 @@ func (f *RefFilter) Get(
 
 // ToSubRefQuery converts the RefFilter to an ElasticSearch query on claims.sub
 // for a sub-reference filter with parentProp and prop.
-func (f *RefFilter) ToSubRefQuery(parentProp, prop identifier.Identifier) types.QueryVariant { //nolint:ireturn
+//
+// parentToRestrictions, when non-empty, restricts the sub-claim match to entries
+// whose claims.sub.parentTo is one of the listed values. This enables cross-
+// filter joins: when a session has both a parent-level ref filter (e.g.
+// HAS_LOCATION = L1) and a sub-ref filter (e.g. HAS_LOCATION > HAS_ARTIST = A),
+// the sub-claim is required to live under one of the same parent values, so the
+// result is "A under L1" rather than the looser "A anywhere AND L1 anywhere".
+func (f *RefFilter) ToSubRefQuery(parentProp, prop identifier.Identifier, parentToRestrictions []identifier.Identifier) types.QueryVariant { //nolint:ireturn
+	// withParentTo appends the parentTo restriction clause (if any) to a slice
+	// of must-clauses building a single nested sub-claim match. The clause is
+	// "claims.sub.parentTo is one of the restriction values", joined with the
+	// existing parentProp/prop (and optional to) constraints inside the same
+	// nested query so the join happens within a single sub-claim record.
+	withParentTo := func(must []types.QueryVariant) []types.QueryVariant {
+		if len(parentToRestrictions) == 0 {
+			return must
+		}
+		shoulds := make([]types.QueryVariant, 0, len(parentToRestrictions))
+		for _, pto := range parentToRestrictions {
+			shoulds = append(shoulds, esdsl.NewTermQuery("claims.sub.parentTo", esdsl.NewFieldValue().String(pto.String())))
+		}
+		return append(must, esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)))
+	}
+
+	missingMust := withParentTo([]types.QueryVariant{
+		esdsl.NewTermQuery("claims.sub.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+		esdsl.NewTermQuery("claims.sub.prop", esdsl.NewFieldValue().String(prop.String())),
+	})
 	missingQuery := esdsl.NewBoolQuery().MustNot(
 		esdsl.NewNestedQuery(
-			esdsl.NewBoolQuery().Must(
-				esdsl.NewTermQuery("claims.sub.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
-				esdsl.NewTermQuery("claims.sub.prop", esdsl.NewFieldValue().String(prop.String())),
-			),
+			esdsl.NewBoolQuery().Must(missingMust...),
 		).Path("claims.sub"),
 	)
 
@@ -162,12 +186,13 @@ func (f *RefFilter) ToSubRefQuery(parentProp, prop identifier.Identifier) types.
 	// Build value queries (OR across all To values).
 	shoulds := make([]types.QueryVariant, 0, len(f.To)+1)
 	for _, to := range f.To {
+		valueMust := withParentTo([]types.QueryVariant{
+			esdsl.NewTermQuery("claims.sub.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+			esdsl.NewTermQuery("claims.sub.prop", esdsl.NewFieldValue().String(prop.String())),
+			esdsl.NewTermQuery("claims.sub.to", esdsl.NewFieldValue().String(to.ID.String())),
+		})
 		shoulds = append(shoulds, esdsl.NewNestedQuery(
-			esdsl.NewBoolQuery().Must(
-				esdsl.NewTermQuery("claims.sub.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
-				esdsl.NewTermQuery("claims.sub.prop", esdsl.NewFieldValue().String(prop.String())),
-				esdsl.NewTermQuery("claims.sub.to", esdsl.NewFieldValue().String(to.ID.String())),
-			),
+			esdsl.NewBoolQuery().Must(valueMust...),
 		).Path("claims.sub"))
 	}
 

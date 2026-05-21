@@ -348,104 +348,146 @@ func TestFilterValid(t *testing.T) {
 	}
 }
 
-func TestFilterToQuery(t *testing.T) {
+// The per-filter-type ToQuery shapes are unit-tested directly against the
+// builder methods on each filter type. Session-level dispatch (and the
+// cross-filter wiring on top of these shapes) is covered by
+// TestSessionToQuery, TestRefFilterToSubRefQuery, and
+// TestSessionToQueryCrossFilter.
+
+func TestRefFilterToQuery(t *testing.T) {
 	t.Parallel()
 
 	prop := identifier.From("prop")
 	value := identifier.From("value")
-	unit := identifier.From("unit")
-	gte := 1.0
-	lte := 10.0
-	gteTime := float64(1000)
-	lteTime := float64(2000)
 
 	tests := []struct {
 		Name   string
-		Filter search.Filter
+		Filter *search.RefFilter
 		Want   string
 	}{
 		{
-			Name:   "RefTo",
-			Filter: makeTestFilter(prop, &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil),
+			Name:   "To",
+			Filter: &search.RefFilter{To: []search.ToValue{{ID: value}}, Missing: false},
 			//nolint:lll
 			Want: `{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}}`,
 		},
 		{
-			Name:   "RefNone",
-			Filter: makeTestFilter(prop, &search.RefFilter{To: nil, Missing: true}, nil, nil),
+			Name:   "MissingOnly",
+			Filter: &search.RefFilter{To: nil, Missing: true},
 			Want:   `{"bool":{"must_not":[{"nested":{"path":"claims.ref","query":{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
 		},
 		{
-			Name: "RefMultipleTo",
-			Filter: makeTestFilter(prop, &search.RefFilter{
+			Name: "MultipleTo",
+			Filter: &search.RefFilter{
 				To:      []search.ToValue{{ID: value}, {ID: identifier.From("value2")}},
 				Missing: false,
-			}, nil, nil),
+			},
 			//nolint:lll
 			Want: `{"bool":{"minimum_should_match":1,"should":[{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}},{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"1eNbijZLjE6RCP9J3v6yz1"}}}]}}}}]}}`,
 		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.Want, testutils.QueryJSON(t, tt.Filter.ToQuery(prop)))
+		})
+	}
+}
+
+func TestAmountFilterToQuery(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.From("prop")
+	unit := identifier.From("unit")
+	gte := 1.0
+	lte := 10.0
+
+	tests := []struct {
+		Name   string
+		Filter *search.AmountFilter
+		Want   string
+	}{
 		{
-			Name:   "AmountGteLteUnit",
-			Filter: makeTestFilter(prop, nil, &search.AmountFilter{Unit: &unit, Gte: &gte, Lte: &lte, Missing: false}, nil),
+			Name:   "GteLteUnit",
+			Filter: &search.AmountFilter{Unit: &unit, Gte: &gte, Lte: &lte, Missing: false},
 			//nolint:lll
 			Want: `{"nested":{"path":"claims.amount","query":{"bool":{"must":[{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.amount.range":{"gte":1,"lte":10}}},{"term":{"claims.amount.unit":{"value":"7xgMSp3wauK811A8Fwk3rY"}}}]}}}}`,
 		},
 		{
-			Name:   "AmountNone",
-			Filter: makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true}, nil),
+			Name:   "MissingOnly",
+			Filter: &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true},
 			Want:   `{"bool":{"must_not":[{"nested":{"path":"claims.amount","query":{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
 		},
 		{
-			Name:   "AmountGteLteNoUnit",
-			Filter: makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false}, nil),
+			Name:   "GteLteNoUnit",
+			Filter: &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false},
 			//nolint:lll
 			Want: `{"nested":{"path":"claims.amount","query":{"bool":{"must":[{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.amount.range":{"gte":1,"lte":10}}}]}}}}`,
 		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.Want, testutils.QueryJSON(t, tt.Filter.ToQuery(prop)))
+		})
+	}
+}
+
+func TestTimeFilterToQuery(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.From("prop")
+	gte := float64(1000)
+	lte := float64(2000)
+
+	tests := []struct {
+		Name   string
+		Filter *search.TimeFilter
+		Want   string
+	}{
 		{
-			Name:   "TimeGteLte",
-			Filter: makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: &gteTime, Lte: &lteTime, Missing: false}),
+			Name:   "GteLte",
+			Filter: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false},
 			//nolint:lll
 			Want: `{"nested":{"path":"claims.time","query":{"bool":{"must":[{"term":{"claims.time.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.time.range":{"gte":1000,"lte":2000}}}]}}}}`,
 		},
 		{
-			Name:   "TimeNone",
-			Filter: makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: nil, Lte: nil, Missing: true}),
+			Name:   "MissingOnly",
+			Filter: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true},
 			Want:   `{"bool":{"must_not":[{"nested":{"path":"claims.time","query":{"term":{"claims.time.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
 		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.Want, testutils.QueryJSON(t, tt.Filter.ToQuery(prop)))
+		})
+	}
+}
+
+func TestHasFilterToQuery(t *testing.T) {
+	t.Parallel()
+
+	value := identifier.From("value")
+
+	tests := []struct {
+		Name   string
+		Filter *search.HasFilter
+		Want   string
+	}{
 		{
-			Name: "HasSingleProp",
-			Filter: func() search.Filter {
-				base := []string{"test.example.com", "SEARCH", "testsession", "FILTER", identifier.New().String()}
-				filterID := identifier.From(base...)
-				return search.Filter{
-					ID:     &filterID,
-					Base:   base,
-					Prop:   nil,
-					Ref:    nil,
-					Amount: nil,
-					Time:   nil,
-					Has:    &search.HasFilter{Props: []search.HasValue{{ID: value}}},
-				}
-			}(),
-			Want: `{"nested":{"path":"claims.has","query":{"term":{"claims.has.prop":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}}}`,
+			Name:   "SingleProp",
+			Filter: &search.HasFilter{Props: []search.HasValue{{ID: value}}},
+			Want:   `{"nested":{"path":"claims.has","query":{"term":{"claims.has.prop":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}}}`,
 		},
 		{
-			Name: "HasMultipleProps",
-			Filter: func() search.Filter {
-				base := []string{"test.example.com", "SEARCH", "testsession", "FILTER", identifier.New().String()}
-				filterID := identifier.From(base...)
-				return search.Filter{
-					ID:     &filterID,
-					Base:   base,
-					Prop:   nil,
-					Ref:    nil,
-					Amount: nil,
-					Time:   nil,
-					Has: &search.HasFilter{
-						Props: []search.HasValue{{ID: value}, {ID: identifier.From("value2")}},
-					},
-				}
-			}(),
+			Name: "MultipleProps",
+			Filter: &search.HasFilter{
+				Props: []search.HasValue{{ID: value}, {ID: identifier.From("value2")}},
+			},
 			//nolint:lll
 			Want: `{"bool":{"minimum_should_match":1,"should":[{"nested":{"path":"claims.has","query":{"term":{"claims.has.prop":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}}},{"nested":{"path":"claims.has","query":{"term":{"claims.has.prop":{"value":"1eNbijZLjE6RCP9J3v6yz1"}}}}}]}}`,
 		},
@@ -454,13 +496,15 @@ func TestFilterToQuery(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
-			q := tt.Filter.ToQuery()
-			assert.Equal(t, tt.Want, testutils.QueryJSON(t, q))
+			assert.Equal(t, tt.Want, testutils.QueryJSON(t, tt.Filter.ToQuery()))
 		})
 	}
 }
 
-func TestFilterToQueryPanicsOnInvalid(t *testing.T) {
+// TestSessionToQueryPanicsOnInvalidFilter ensures the session-level dispatch
+// panics on an unreachable Filter shape (a state Validate is supposed to
+// catch).
+func TestSessionToQueryPanicsOnInvalidFilter(t *testing.T) {
 	t.Parallel()
 
 	assert.Panics(t, func() {
@@ -468,7 +512,8 @@ func TestFilterToQueryPanicsOnInvalid(t *testing.T) {
 		f.Ref = nil
 		f.Amount = nil
 		f.Time = nil
-		f.ToQuery()
+		data := search.SessionData{Filters: []search.Filter{f}}
+		_ = data.ToQuery()
 	})
 }
 
@@ -1153,5 +1198,210 @@ func TestJSONSerialization(t *testing.T) {
 		require.NoError(t, errE, "% -+#.1v", errE)
 		assert.Equal(t, s.Query, decoded.Query)
 		assert.Equal(t, s.ID, decoded.ID)
+	})
+}
+
+// makeTestSubRefFilter builds a valid two-prop sub-ref Filter with proper
+// Base/ID for testing.
+func makeTestSubRefFilter(parentProp, prop identifier.Identifier, ref *search.RefFilter) search.Filter {
+	base := []string{"test.example.com", "SEARCH", "testsession", "FILTER", identifier.New().String()}
+	filterID := identifier.From(base...)
+	return search.Filter{
+		ID:     &filterID,
+		Base:   base,
+		Prop:   []identifier.Identifier{parentProp, prop},
+		Ref:    ref,
+		Amount: nil,
+		Time:   nil,
+		Has:    nil,
+	}
+}
+
+// TestRefFilterToSubRefQuery exercises ToSubRefQuery directly, including the
+// new parentToRestrictions argument that constrains the sub-claim match to
+// matching parent values inside the same nested record.
+func TestRefFilterToSubRefQuery(t *testing.T) {
+	t.Parallel()
+
+	parentProp := identifier.From("parentProp")
+	prop := identifier.From("prop")
+	a := identifier.From("a")
+	l1 := identifier.From("l1")
+	l2 := identifier.From("l2")
+
+	tests := []struct {
+		Name         string
+		Filter       *search.RefFilter
+		Restrictions []identifier.Identifier
+		WantContains []string
+		WantAbsent   []string
+	}{
+		{
+			Name:         "ToWithoutRestrictions",
+			Filter:       &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false},
+			Restrictions: nil,
+			WantContains: []string{
+				`"claims.sub.parentProp":{"value":"` + parentProp.String() + `"}`,
+				`"claims.sub.prop":{"value":"` + prop.String() + `"}`,
+				`"claims.sub.to":{"value":"` + a.String() + `"}`,
+			},
+			WantAbsent: []string{
+				`"claims.sub.parentTo"`,
+			},
+		},
+		{
+			Name:         "ToWithSingleRestriction",
+			Filter:       &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false},
+			Restrictions: []identifier.Identifier{l1},
+			WantContains: []string{
+				`"claims.sub.parentProp":{"value":"` + parentProp.String() + `"}`,
+				`"claims.sub.prop":{"value":"` + prop.String() + `"}`,
+				`"claims.sub.to":{"value":"` + a.String() + `"}`,
+				`"claims.sub.parentTo":{"value":"` + l1.String() + `"}`,
+			},
+			WantAbsent: nil,
+		},
+		{
+			Name:         "ToWithMultipleRestrictions",
+			Filter:       &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false},
+			Restrictions: []identifier.Identifier{l1, l2},
+			WantContains: []string{
+				`"claims.sub.parentTo":{"value":"` + l1.String() + `"}`,
+				`"claims.sub.parentTo":{"value":"` + l2.String() + `"}`,
+				`"minimum_should_match":1`,
+			},
+			WantAbsent: nil,
+		},
+		{
+			Name:         "MissingOnlyWithRestriction",
+			Filter:       &search.RefFilter{To: nil, Missing: true},
+			Restrictions: []identifier.Identifier{l1},
+			WantContains: []string{
+				`"must_not"`,
+				`"claims.sub.parentTo":{"value":"` + l1.String() + `"}`,
+			},
+			WantAbsent: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			t.Parallel()
+			q := tt.Filter.ToSubRefQuery(parentProp, prop, tt.Restrictions)
+			j := testutils.QueryJSON(t, q)
+			for _, s := range tt.WantContains {
+				assert.Contains(t, j, s, "rendered JSON should contain %q", s)
+			}
+			for _, s := range tt.WantAbsent {
+				assert.NotContains(t, j, s, "rendered JSON should NOT contain %q", s)
+			}
+		})
+	}
+}
+
+// TestSessionToQueryCrossFilter verifies that SessionData.ToQuery composes a
+// sub-ref filter together with a sibling parent-level ref filter on the same
+// parentProp: the sub-claim match must include the parent-level To values as
+// a parentTo restriction so that "parent=X AND parent>child=Y" matches only
+// documents where Y is nested under X.
+func TestSessionToQueryCrossFilter(t *testing.T) {
+	t.Parallel()
+
+	parentProp := identifier.From("parentProp")
+	otherProp := identifier.From("otherProp")
+	subProp := identifier.From("subProp")
+	l1 := identifier.From("l1")
+	l2 := identifier.From("l2")
+	a := identifier.From("a")
+	x := identifier.From("x")
+
+	t.Run("SubRefAlone_NoRestriction", func(t *testing.T) {
+		t.Parallel()
+		data := search.SessionData{
+			Filters: []search.Filter{
+				makeTestSubRefFilter(parentProp, subProp, &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false}),
+			},
+		}
+		j := testutils.QueryJSON(t, data.ToQuery())
+		assert.Contains(t, j, `"claims.sub.to":{"value":"`+a.String()+`"}`)
+		assert.NotContains(t, j, `"claims.sub.parentTo"`)
+	})
+
+	t.Run("SubRefWithSiblingParentRef_RestrictedToParentTo", func(t *testing.T) {
+		t.Parallel()
+		data := search.SessionData{
+			Filters: []search.Filter{
+				makeTestFilter(parentProp, &search.RefFilter{To: []search.ToValue{{ID: l1}}, Missing: false}, nil, nil),
+				makeTestSubRefFilter(parentProp, subProp, &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false}),
+			},
+		}
+		j := testutils.QueryJSON(t, data.ToQuery())
+		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
+		assert.Contains(t, j, `"claims.sub.to":{"value":"`+a.String()+`"}`)
+		assert.Contains(t, j, `"claims.sub.parentTo":{"value":"`+l1.String()+`"}`)
+	})
+
+	t.Run("SubRefWithSiblingParentRef_MultipleParentTo", func(t *testing.T) {
+		t.Parallel()
+		data := search.SessionData{
+			Filters: []search.Filter{
+				makeTestFilter(parentProp, &search.RefFilter{To: []search.ToValue{{ID: l1}, {ID: l2}}, Missing: false}, nil, nil),
+				makeTestSubRefFilter(parentProp, subProp, &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false}),
+			},
+		}
+		j := testutils.QueryJSON(t, data.ToQuery())
+		assert.Contains(t, j, `"claims.sub.parentTo":{"value":"`+l1.String()+`"}`)
+		assert.Contains(t, j, `"claims.sub.parentTo":{"value":"`+l2.String()+`"}`)
+	})
+
+	t.Run("SubRefWithSiblingOnDifferentProp_NoRestriction", func(t *testing.T) {
+		t.Parallel()
+		data := search.SessionData{
+			Filters: []search.Filter{
+				makeTestFilter(otherProp, &search.RefFilter{To: []search.ToValue{{ID: x}}, Missing: false}, nil, nil),
+				makeTestSubRefFilter(parentProp, subProp, &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false}),
+			},
+		}
+		j := testutils.QueryJSON(t, data.ToQuery())
+		assert.NotContains(t, j, `"claims.sub.parentTo"`)
+	})
+
+	t.Run("SubRefWithSiblingMissingParentRef_NoRestriction", func(t *testing.T) {
+		t.Parallel()
+		// Sibling parent ref filter has Missing=true and no To values, so
+		// there is nothing to restrict by.
+		data := search.SessionData{
+			Filters: []search.Filter{
+				makeTestFilter(parentProp, &search.RefFilter{To: nil, Missing: true}, nil, nil),
+				makeTestSubRefFilter(parentProp, subProp, &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false}),
+			},
+		}
+		j := testutils.QueryJSON(t, data.ToQuery())
+		assert.NotContains(t, j, `"claims.sub.parentTo"`)
+	})
+
+	t.Run("ToQueryExcludingParentRef_NoRestriction", func(t *testing.T) {
+		t.Parallel()
+		parentRef := makeTestFilter(parentProp, &search.RefFilter{To: []search.ToValue{{ID: l1}}, Missing: false}, nil, nil)
+		subRef := makeTestSubRefFilter(parentProp, subProp, &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false})
+		data := search.SessionData{
+			Filters: []search.Filter{parentRef, subRef},
+		}
+		j := testutils.QueryJSON(t, data.ToQueryExcluding(*parentRef.ID))
+		assert.NotContains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
+		assert.Contains(t, j, `"claims.sub.to":{"value":"`+a.String()+`"}`)
+		assert.NotContains(t, j, `"claims.sub.parentTo"`)
+	})
+
+	t.Run("ToQueryExcludingSubRef_ParentStillPresent", func(t *testing.T) {
+		t.Parallel()
+		parentRef := makeTestFilter(parentProp, &search.RefFilter{To: []search.ToValue{{ID: l1}}, Missing: false}, nil, nil)
+		subRef := makeTestSubRefFilter(parentProp, subProp, &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false})
+		data := search.SessionData{
+			Filters: []search.Filter{parentRef, subRef},
+		}
+		j := testutils.QueryJSON(t, data.ToQueryExcluding(*subRef.ID))
+		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
+		assert.NotContains(t, j, `"claims.sub.to"`)
 	})
 }

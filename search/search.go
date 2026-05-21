@@ -316,27 +316,6 @@ func (f Filter) Validate(withoutSession bool) errors.E {
 	return f.Has.Validate()
 }
 
-// ToQuery converts the Filter to an ElasticSearch query.
-func (f Filter) ToQuery() types.QueryVariant { //nolint:ireturn
-	if f.Has != nil {
-		return f.Has.ToQuery()
-	}
-	if f.Ref != nil {
-		if len(f.Prop) == 2 { //nolint:mnd
-			return f.Ref.ToSubRefQuery(f.Prop[0], f.Prop[1])
-		}
-		return f.Ref.ToQuery(f.Prop[0])
-	}
-	prop := f.Prop[0]
-	if f.Amount != nil {
-		return f.Amount.ToQuery(prop)
-	}
-	if f.Time != nil {
-		return f.Time.ToQuery(prop)
-	}
-	panic(errors.New("invalid filter"))
-}
-
 // GetFilterByID finds a filter by ID in the session's filters.
 func (s *Session) GetFilterByID(id identifier.Identifier) (*Filter, errors.E) {
 	for i := range s.Filters {
@@ -424,7 +403,7 @@ func (s *SessionData) ToQuery() types.QueryVariant { //nolint:ireturn
 	}
 
 	for i := range s.Filters {
-		musts = append(musts, s.Filters[i].ToQuery())
+		musts = append(musts, s.filterQuery(i, nil))
 	}
 
 	return esdsl.NewBoolQuery().Must(musts...)
@@ -448,10 +427,63 @@ func (s *SessionData) ToQueryExcluding(excludeFilterID identifier.Identifier) ty
 		if s.Filters[i].ID != nil && *s.Filters[i].ID == excludeFilterID {
 			continue
 		}
-		musts = append(musts, s.Filters[i].ToQuery())
+		musts = append(musts, s.filterQuery(i, &excludeFilterID))
 	}
 
 	return esdsl.NewBoolQuery().Must(musts...)
+}
+
+// filterQuery builds the ES query for the filter at idx, dispatching to the
+// matching per-filter-type query builder and applying cross-filter
+// restrictions for sub-claim filters: when the filter is a sub-claim filter
+// on (parentProp, prop) and the session has sibling top-level ref filters on
+// the same parentProp with To values, the sub-claim match is constrained so
+// its parentTo is one of those values. This way "location=L1 AND
+// location > artist=A" matches only documents where A is nested under L1.
+//
+// excludeID, when non-nil, is the ID of a filter excluded from the session
+// (the caller of ToQueryExcluding) and is also skipped when collecting parent
+// ref filters that contribute restrictions.
+func (s *SessionData) filterQuery(idx int, excludeID *identifier.Identifier) types.QueryVariant { //nolint:ireturn
+	f := s.Filters[idx]
+	switch {
+	case f.Has != nil:
+		return f.Has.ToQuery()
+	case f.Ref != nil:
+		if len(f.Prop) == 2 { //nolint:mnd
+			return f.Ref.ToSubRefQuery(f.Prop[0], f.Prop[1], s.collectParentToRestrictions(idx, f.Prop[0], excludeID))
+		}
+		return f.Ref.ToQuery(f.Prop[0])
+	case f.Amount != nil:
+		return f.Amount.ToQuery(f.Prop[0])
+	case f.Time != nil:
+		return f.Time.ToQuery(f.Prop[0])
+	}
+	panic(errors.New("invalid filter"))
+}
+
+// collectParentToRestrictions returns the set of parentTo values that a
+// sub-claim filter at idx should be restricted to, gathered from sibling
+// top-level ref filters on the same parentProp. The filter at idx and (if
+// non-nil) the filter with excludeID are skipped.
+func (s *SessionData) collectParentToRestrictions(idx int, parentProp identifier.Identifier, excludeID *identifier.Identifier) []identifier.Identifier {
+	var restrictions []identifier.Identifier
+	for i := range s.Filters {
+		if i == idx {
+			continue
+		}
+		other := &s.Filters[i]
+		if excludeID != nil && other.ID != nil && *other.ID == *excludeID {
+			continue
+		}
+		if other.Ref == nil || len(other.Prop) != 1 || other.Prop[0] != parentProp {
+			continue
+		}
+		for _, to := range other.Ref.To {
+			restrictions = append(restrictions, to.ID)
+		}
+	}
+	return restrictions
 }
 
 // Session represents a search session.
