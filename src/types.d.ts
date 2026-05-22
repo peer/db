@@ -43,6 +43,14 @@ export type Result = {
 export type RefFilterResult = {
   id: string
   count: number
+  paths?: string[][]
+}
+
+export type RefFilterTreeNode = {
+  res: RefFilterResult
+  // res.id for the canonical placement; res.id + "|" + ancestorKey for diamond duplicates.
+  key: string
+  children: RefFilterTreeNode[]
 }
 
 export type HasFilterResult = {

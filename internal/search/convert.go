@@ -1927,14 +1927,16 @@ func (c *Converter) convertSubRefs(
 		return nil, nil
 	}
 
-	// Pre-resolve display strings for each sub-relation.
+	// Pre-resolve display strings and hierarchy paths for each sub-relation.
 	type resolvedSubRef struct {
-		Prop        identifier.Identifier
-		PropDisplay map[string]string
-		PropNaming  map[string][]string
-		To          identifier.Identifier
-		ToDisplay   map[string]string
-		ToNaming    map[string][]string
+		Prop          identifier.Identifier
+		PropDisplay   map[string]string
+		PropNaming    map[string][]string
+		To            identifier.Identifier
+		ToDisplay     map[string]string
+		ToNaming      map[string][]string
+		ToPath        []string
+		ToDisplayPath map[string][]string
 	}
 	resolved := make([]resolvedSubRef, 0, len(subRelations))
 	for _, mr := range subRelations {
@@ -1942,33 +1944,38 @@ func (c *Converter) convertSubRefs(
 		if errE != nil {
 			return nil, errE
 		}
-		mrToDisplay, errE := c.getDisplayStrings(ctx, mr.To.ID)
+		mrToInfo, errE := c.getDocumentInfo(ctx, mr.To.ID)
 		if errE != nil {
 			return nil, errE
 		}
+		toPath, toDisplayPath := mrToInfo.CollectHierarchyPaths()
 		resolved = append(resolved, resolvedSubRef{
-			Prop:        mr.Prop.ID,
-			PropDisplay: mrPropDisplay.Display,
-			PropNaming:  mrPropDisplay.Naming,
-			To:          mr.To.ID,
-			ToDisplay:   mrToDisplay.Display,
-			ToNaming:    mrToDisplay.Naming,
+			Prop:          mr.Prop.ID,
+			PropDisplay:   mrPropDisplay.Display,
+			PropNaming:    mrPropDisplay.Naming,
+			To:            mr.To.ID,
+			ToDisplay:     mrToInfo.Display.Display,
+			ToNaming:      mrToInfo.Display.Naming,
+			ToPath:        toPath,
+			ToDisplayPath: toDisplayPath,
 		})
 	}
 
-	// Cross product of parentProps × resolved sub-refs.
+	// Cross product of parentProps x resolved sub-refs.
 	result := make([]SubReferenceClaim, 0, len(parentProps)*len(resolved))
 	for _, pp := range parentProps {
 		for _, r := range resolved {
 			result = append(result, SubReferenceClaim{
-				ParentProp:  pp,
-				ParentTo:    parentTo,
-				Prop:        r.Prop,
-				PropDisplay: r.PropDisplay,
-				PropNaming:  r.PropNaming,
-				To:          r.To,
-				ToDisplay:   r.ToDisplay,
-				ToNaming:    r.ToNaming,
+				ParentProp:    pp,
+				ParentTo:      parentTo,
+				Prop:          r.Prop,
+				PropDisplay:   r.PropDisplay,
+				PropNaming:    r.PropNaming,
+				To:            r.To,
+				ToDisplay:     r.ToDisplay,
+				ToNaming:      r.ToNaming,
+				ToPath:        r.ToPath,
+				ToDisplayPath: r.ToDisplayPath,
 			})
 		}
 	}

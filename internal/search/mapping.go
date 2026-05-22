@@ -496,6 +496,14 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 				"toNaming",
 				multiLanguageString,
 			},
+			{
+				"toPath",
+				idPath,
+			},
+			{
+				"toDisplayPath",
+				displayPath,
+			},
 		},
 	},
 }

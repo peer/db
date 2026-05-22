@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
@@ -24,9 +25,98 @@ import (
 const MissingRefFilterID = "__MISSING__"
 
 // RefFilterResult represents occurrences count for a single reference in a reference filter.
+// Paths lists hierarchy chains from root to immediate parent for this value, one entry
+// per parent path the value participates in (multiple entries for diamond hierarchies
+// or when the value sits in more than one value-hierarchy property). The frontend uses
+// these to render filter values as a tree.
 type RefFilterResult struct {
-	ID    string `json:"id"`
-	Count int64  `json:"count"`
+	ID    string     `json:"id"`
+	Count int64      `json:"count"`
+	Paths [][]string `json:"paths,omitempty"`
+}
+
+// parseToPath turns one indexed hierarchy path string into its ancestor chain.
+// The input format is "<hierarchy_property_id>:<root_id>/<parent_id>/.../<this_id>".
+// The hierarchy-property prefix is dropped (the consumer does not care which hierarchy
+// the path belongs to), and the trailing segment is dropped (it is the value's own id).
+// The returned slice is ordered from root to immediate parent. Returns nil when the
+// input has no ":" separator or when the chain contains a single segment (the value
+// itself has no ancestors in that hierarchy).
+func parseToPath(raw string) []string {
+	_, chain, ok := strings.Cut(raw, ":")
+	if !ok {
+		return nil
+	}
+	parts := strings.Split(chain, "/")
+	if len(parts) <= 1 {
+		return nil
+	}
+	ancestors := make([]string, len(parts)-1)
+	copy(ancestors, parts[:len(parts)-1])
+	return ancestors
+}
+
+// collectPaths extracts all distinct hierarchy paths for a single filter bucket
+// from a "paths" terms sub-aggregation on a toPath field. Each input bucket key
+// is one raw path string; this function parses each and drops empty results.
+func collectPaths(buckets []types.StringTermsBucket) [][]string {
+	if len(buckets) == 0 {
+		return nil
+	}
+	out := make([][]string, 0, len(buckets))
+	for _, b := range buckets {
+		key, ok := b.Key.(string)
+		if !ok {
+			continue
+		}
+		ancestors := parseToPath(key)
+		if len(ancestors) == 0 {
+			continue
+		}
+		out = append(out, ancestors)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// bucketsToRefFilterResults turns the top-level terms-aggregation buckets of a
+// ref or sub-ref filter aggregation into RefFilterResult entries. Each bucket
+// is expected to expose a "docs" reverse_nested sub-aggregation for the count
+// and a "paths" terms sub-aggregation on the corresponding toPath field. The
+// kind label is woven into error messages so an unexpected aggregation shape is
+// attributable to either ref or sub-ref handling.
+func bucketsToRefFilterResults(buckets []types.StringTermsBucket, kind string) ([]RefFilterResult, errors.E) {
+	results := make([]RefFilterResult, 0, len(buckets))
+	for _, bucket := range buckets {
+		bucketDocs, errE := aggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
+		if errE != nil {
+			return nil, errE
+		}
+		key, ok := bucket.Key.(string)
+		if !ok {
+			errE := errors.New("unexpected key type for " + kind + " bucket")
+			errors.Details(errE)["type"] = fmt.Sprintf("%T", bucket.Key)
+			return nil, errE
+		}
+		bucketPaths, errE := aggAs[types.StringTermsAggregate](bucket.Aggregations, "paths")
+		if errE != nil {
+			return nil, errE
+		}
+		pathBuckets, ok := bucketPaths.Buckets.([]types.StringTermsBucket)
+		if !ok {
+			errE := errors.New("unexpected bucket type for " + kind + " paths")
+			errors.Details(errE)["type"] = fmt.Sprintf("%T", bucketPaths.Buckets)
+			return nil, errE
+		}
+		results = append(results, RefFilterResult{
+			ID:    key,
+			Count: bucketDocs.DocCount,
+			Paths: collectPaths(pathBuckets),
+		})
+	}
+	return results, nil
 }
 
 // Get retrieves reference filter data for search results.
@@ -39,6 +129,13 @@ func (f *RefFilter) Get(
 	searchService, _, _ := getSearchService()
 
 	// Aggregation for documents that have the property: terms on claims.ref.to.
+	// The "paths" sub-aggregation extracts the indexed hierarchy paths for each
+	// value so the frontend can render filter results as a tree. Within a single
+	// claims.ref.to bucket all nested ref records share the same toPath array
+	// (it is computed from the target value, not the source doc), so a terms
+	// aggregation on claims.ref.toPath effectively returns that value's path set.
+	// Size 100 caps the distinct path strings per filter value, which only matters
+	// for diamond or multi-hierarchy values.
 	refAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.ref")).
 		AddAggregation("filter", esdsl.NewAggregations().
@@ -47,7 +144,9 @@ func (f *RefFilter) Get(
 				Terms(esdsl.NewTermsAggregation().Field("claims.ref.to").Size(MaxResultsCount).
 					Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
 				AddAggregation("docs", esdsl.NewAggregations().
-					ReverseNested(esdsl.NewReverseNestedAggregation()))).
+					ReverseNested(esdsl.NewReverseNestedAggregation())).
+				AddAggregation("paths", esdsl.NewAggregations().
+					Terms(esdsl.NewTermsAggregation().Field("claims.ref.toPath").Size(100)))). //nolint:mnd
 			AddAggregation("total", esdsl.NewAggregations().
 				// Cardinality aggregation returns the count of all buckets. 40000 is the maximum precision threshold,
 				// so we use it to get the most accurate approximation. For now we didn't notice any performance issues
@@ -104,24 +203,14 @@ func (f *RefFilter) Get(
 	}
 	missingCount := missingFilter.DocCount
 
-	results := make([]RefFilterResult, 0, len(refBuckets)+1)
-	for _, bucket := range refBuckets {
-		bucketDocs, errE := aggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
-		if errE != nil {
-			return nil, nil, errE
-		}
-		key, ok := bucket.Key.(string)
-		if !ok {
-			errE := errors.New("unexpected key type for ref bucket")
-			errors.Details(errE)["type"] = fmt.Sprintf("%T", bucket.Key)
-			return nil, nil, errE
-		}
-		results = append(results, RefFilterResult{ID: key, Count: bucketDocs.DocCount})
+	results, errE := bucketsToRefFilterResults(refBuckets, "ref")
+	if errE != nil {
+		return nil, nil, errE
 	}
 
 	// Include the missing bucket if there are documents without this property.
 	if missingCount > 0 {
-		results = append(results, RefFilterResult{ID: MissingRefFilterID, Count: missingCount})
+		results = append(results, RefFilterResult{ID: MissingRefFilterID, Count: missingCount, Paths: nil})
 		// Re-sort by count descending so that missing is in the right position.
 		slices.SortStableFunc(results, func(a, b RefFilterResult) int {
 			return cmp.Compare(b.Count, a.Count)
@@ -233,6 +322,9 @@ func (f *RefFilter) GetSubRef(
 	}
 
 	// Aggregation for documents that have matching subRef: terms on claims.sub.to.
+	// The "paths" sub-aggregation extracts the indexed hierarchy paths for each
+	// value so the frontend can render filter results as a tree. See RefFilter.Get
+	// for the rationale and parsing rules.
 	subRefAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.sub")).
 		AddAggregation("filter", esdsl.NewAggregations().
@@ -241,7 +333,9 @@ func (f *RefFilter) GetSubRef(
 				Terms(esdsl.NewTermsAggregation().Field("claims.sub.to").Size(MaxResultsCount).
 					Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
 				AddAggregation("docs", esdsl.NewAggregations().
-					ReverseNested(esdsl.NewReverseNestedAggregation()))).
+					ReverseNested(esdsl.NewReverseNestedAggregation())).
+				AddAggregation("paths", esdsl.NewAggregations().
+					Terms(esdsl.NewTermsAggregation().Field("claims.sub.toPath").Size(100)))). //nolint:mnd
 			AddAggregation("total", esdsl.NewAggregations().
 				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.sub.to").PrecisionThreshold(40000)))) //nolint:mnd
 
@@ -298,24 +392,14 @@ func (f *RefFilter) GetSubRef(
 	}
 	missingCount := missingFilter.DocCount
 
-	results := make([]RefFilterResult, 0, len(subRefBuckets)+1)
-	for _, bucket := range subRefBuckets {
-		bucketDocs, errE := aggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
-		if errE != nil {
-			return nil, nil, errE
-		}
-		key, ok := bucket.Key.(string)
-		if !ok {
-			errE := errors.New("unexpected key type for subRef bucket")
-			errors.Details(errE)["type"] = fmt.Sprintf("%T", bucket.Key)
-			return nil, nil, errE
-		}
-		results = append(results, RefFilterResult{ID: key, Count: bucketDocs.DocCount})
+	results, errE := bucketsToRefFilterResults(subRefBuckets, "subRef")
+	if errE != nil {
+		return nil, nil, errE
 	}
 
 	// Include the missing bucket if there are documents without this sub-reference.
 	if missingCount > 0 {
-		results = append(results, RefFilterResult{ID: MissingRefFilterID, Count: missingCount})
+		results = append(results, RefFilterResult{ID: MissingRefFilterID, Count: missingCount, Paths: nil})
 		slices.SortStableFunc(results, func(a, b RefFilterResult) int {
 			return cmp.Compare(b.Count, a.Count)
 		})

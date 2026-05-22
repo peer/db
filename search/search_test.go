@@ -512,7 +512,7 @@ func TestSessionToQueryPanicsOnInvalidFilter(t *testing.T) {
 		f.Ref = nil
 		f.Amount = nil
 		f.Time = nil
-		data := search.SessionData{Filters: []search.Filter{f}}
+		data := search.SessionData{View: "", Query: "", Filters: []search.Filter{f}, Reverse: nil}
 		_ = data.ToQuery()
 	})
 }
@@ -1144,7 +1144,7 @@ func TestJSONSerialization(t *testing.T) {
 
 	t.Run("RefFilterResult", func(t *testing.T) {
 		t.Parallel()
-		rfr := search.RefFilterResult{ID: "test-id", Count: 10}
+		rfr := search.RefFilterResult{ID: "test-id", Count: 10, Paths: nil}
 		data, errE := x.MarshalWithoutEscapeHTML(rfr)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		var decoded search.RefFilterResult
@@ -1318,9 +1318,12 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 	t.Run("SubRefAlone_NoRestriction", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{
+			View:  "",
+			Query: "",
 			Filters: []search.Filter{
 				makeTestSubRefFilter(parentProp, subProp, &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false}),
 			},
+			Reverse: nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQuery())
 		assert.Contains(t, j, `"claims.sub.to":{"value":"`+a.String()+`"}`)
@@ -1330,10 +1333,13 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 	t.Run("SubRefWithSiblingParentRef_RestrictedToParentTo", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{
+			View:  "",
+			Query: "",
 			Filters: []search.Filter{
 				makeTestFilter(parentProp, &search.RefFilter{To: []search.ToValue{{ID: l1}}, Missing: false}, nil, nil),
 				makeTestSubRefFilter(parentProp, subProp, &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false}),
 			},
+			Reverse: nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQuery())
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
@@ -1344,10 +1350,13 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 	t.Run("SubRefWithSiblingParentRef_MultipleParentTo", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{
+			View:  "",
+			Query: "",
 			Filters: []search.Filter{
 				makeTestFilter(parentProp, &search.RefFilter{To: []search.ToValue{{ID: l1}, {ID: l2}}, Missing: false}, nil, nil),
 				makeTestSubRefFilter(parentProp, subProp, &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false}),
 			},
+			Reverse: nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQuery())
 		assert.Contains(t, j, `"claims.sub.parentTo":{"value":"`+l1.String()+`"}`)
@@ -1357,10 +1366,13 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 	t.Run("SubRefWithSiblingOnDifferentProp_NoRestriction", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{
+			View:  "",
+			Query: "",
 			Filters: []search.Filter{
 				makeTestFilter(otherProp, &search.RefFilter{To: []search.ToValue{{ID: x}}, Missing: false}, nil, nil),
 				makeTestSubRefFilter(parentProp, subProp, &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false}),
 			},
+			Reverse: nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQuery())
 		assert.NotContains(t, j, `"claims.sub.parentTo"`)
@@ -1371,10 +1383,13 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 		// Sibling parent ref filter has Missing=true and no To values, so
 		// there is nothing to restrict by.
 		data := search.SessionData{
+			View:  "",
+			Query: "",
 			Filters: []search.Filter{
 				makeTestFilter(parentProp, &search.RefFilter{To: nil, Missing: true}, nil, nil),
 				makeTestSubRefFilter(parentProp, subProp, &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false}),
 			},
+			Reverse: nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQuery())
 		assert.NotContains(t, j, `"claims.sub.parentTo"`)
@@ -1385,7 +1400,10 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 		parentRef := makeTestFilter(parentProp, &search.RefFilter{To: []search.ToValue{{ID: l1}}, Missing: false}, nil, nil)
 		subRef := makeTestSubRefFilter(parentProp, subProp, &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false})
 		data := search.SessionData{
+			View:    "",
+			Query:   "",
 			Filters: []search.Filter{parentRef, subRef},
+			Reverse: nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQueryExcluding(*parentRef.ID))
 		assert.NotContains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
@@ -1398,7 +1416,10 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 		parentRef := makeTestFilter(parentProp, &search.RefFilter{To: []search.ToValue{{ID: l1}}, Missing: false}, nil, nil)
 		subRef := makeTestSubRefFilter(parentProp, subProp, &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false})
 		data := search.SessionData{
+			View:    "",
+			Query:   "",
 			Filters: []search.Filter{parentRef, subRef},
+			Reverse: nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQueryExcluding(*subRef.ID))
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)

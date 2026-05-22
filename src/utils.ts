@@ -16,7 +16,7 @@ import { getDisplayLabelFunctions } from "@/registry/display-label"
 import { hour, minute, second, toDate } from "@/time"
 
 // If the last increase would be equal or less than this number, just skip to the end.
-const SKIP_TO_END = 2
+export const SKIP_TO_END = 2
 
 // Approximate seconds-per-year used when picking a coarser-than-day precision.
 // Exact-year math is unnecessary here. We only need the right order of magnitude.

@@ -13,10 +13,12 @@ const props = withDefaults(
   defineProps<{
     disabled?: boolean
     invalid?: boolean
+    indeterminate?: boolean
   }>(),
   {
     disabled: false,
     invalid: false,
+    indeterminate: false,
   },
 )
 
@@ -40,6 +42,7 @@ defineOptions({
       v-bind="$attrs"
       :disabled="inactive()"
       :aria-invalid="invalid || undefined"
+      :indeterminate="indeterminate"
       type="checkbox"
       class="pd-checkbox -mt-0.5 rounded-sm align-middle"
       :class="{

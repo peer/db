@@ -1,29 +1,25 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
-import type { D } from "@/document"
-import type { RefFilterEntry, RefSearchResult, SearchSession, ToValue } from "@/types"
+import type { RefFilterEntry, RefFilterResult, RefFilterTreeNode, RefSearchResult, SearchSession, ToValue } from "@/types"
 
-import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 import { computed, onBeforeUnmount, toRef, useId, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
-import CheckBox from "@/components/CheckBox.vue"
-import WithDocument from "@/components/WithDocument.vue"
-import DisplayLabel from "@/partials/DisplayLabel.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
-import { useLocked, useProgress } from "@/progress"
+import RefFilterTreeRow from "@/partials/RefFilterTreeRow.vue"
+import { useProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useRefFilters } from "@/search"
-import { equals, loadingWidth, useInitialLoad, useLimitResults } from "@/utils"
+import { equals, loadingWidth, SKIP_TO_END, useInitialLoad, useLimitResults } from "@/utils"
+
+type FlatEntry = { node: RefFilterTreeNode; depth: number }
 
 const props = defineProps<{
   searchSession: DeepReadonly<SearchSession>
   result: RefSearchResult
   filter?: RefFilterEntry
 }>()
-
-const locked = useLocked()
 
 const emit = defineEmits<{
   filterUpdate: [filterId: string, filter: RefFilterEntry]
@@ -78,29 +74,6 @@ const isMissingSelected = computed((): boolean => {
   return props.filter?.ref?.missing === true
 })
 
-// Reorder so selected options come first (each group keeps the count-desc order from the API).
-const sortedResults = computed(() => {
-  const selected = new Set<string>(selectedIds.value)
-  if (isMissingSelected.value) {
-    selected.add("__MISSING__")
-  }
-  return [...results.value.filter((res) => selected.has(res.id)), ...results.value.filter((res) => !selected.has(res.id))]
-})
-
-const { limitedResults, hasMore, loadMore } = useLimitResults(sortedResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
-
-function clearFilter() {
-  if (abortController.signal.aborted || !props.filter) {
-    return
-  }
-  emit("filterUpdate", props.filter.id, {
-    id: props.filter.id,
-    base: props.filter.base,
-    prop: props.filter.prop,
-    ref: { to: undefined, missing: undefined },
-  })
-}
-
 const checkboxState = computed({
   get(): string[] {
     const ids = [...selectedIds.value]
@@ -133,7 +106,211 @@ const checkboxState = computed({
   },
 })
 
-const WithDocumentD = WithDocument<D>
+const selectedSet = computed(() => new Set<string>(checkboxState.value))
+
+// Build the static tree from the full result set. Iteration order is the
+// count-desc order returned by the API. For each result, find which of its paths
+// reaches an already-placed ancestor; attach under each such ancestor as a child,
+// or push as a root. Diamond duplicates share res.id with their canonical
+// placement and only carry rendered children at the canonical position.
+const tree = computed((): RefFilterTreeNode[] => {
+  const roots: RefFilterTreeNode[] = []
+  const firstNodeById: Record<string, RefFilterTreeNode> = {}
+  for (const res of results.value as RefFilterResult[]) {
+    const paths = res.paths ?? []
+    const attachTo: RefFilterTreeNode[] = []
+    const seenAncestorIds = new Set<string>()
+    for (const path of paths) {
+      for (let i = path.length - 1; i >= 0; i--) {
+        const ancestorId = path[i]
+        if (firstNodeById[ancestorId]) {
+          if (!seenAncestorIds.has(ancestorId)) {
+            attachTo.push(firstNodeById[ancestorId])
+            seenAncestorIds.add(ancestorId)
+          }
+          break
+        }
+      }
+    }
+    if (attachTo.length === 0) {
+      const node: RefFilterTreeNode = { res, key: res.id, children: [] }
+      roots.push(node)
+      if (!firstNodeById[res.id]) {
+        firstNodeById[res.id] = node
+      }
+    } else {
+      attachTo.forEach((ancestorNode, idx) => {
+        const key = idx === 0 ? res.id : res.id + "|" + ancestorNode.key
+        const node: RefFilterTreeNode = { res, key, children: [] }
+        ancestorNode.children.push(node)
+        if (!firstNodeById[res.id]) {
+          firstNodeById[res.id] = node
+        }
+      })
+    }
+  }
+  return roots
+})
+
+// Bottom-up "any of this subtree (including self) is selected" map. A node
+// counts as "selected" for sort purposes when its own id is in the selection
+// or any of its descendants is, which covers both fully-checked and
+// indeterminate visuals.
+function buildHasSelected(nodes: RefFilterTreeNode[], selected: ReadonlySet<string>, out: Map<RefFilterTreeNode, boolean>): boolean {
+  let any = false
+  for (const node of nodes) {
+    const childHas = buildHasSelected(node.children, selected, out)
+    const has = childHas || selected.has(node.res.id)
+    out.set(node, has)
+    if (has) {
+      any = true
+    }
+  }
+  return any
+}
+
+const hasSelectedInSubtree = computed(() => {
+  const out = new Map<RefFilterTreeNode, boolean>()
+  buildHasSelected(tree.value, selectedSet.value, out)
+  return out
+})
+
+// Pre-order DFS that sorts each level by (any subtree selection first, then
+// the original count-desc order). Fully checked and indeterminate nodes both
+// bubble to the top of their sibling group.
+function flattenSorted(nodes: RefFilterTreeNode[], depth: number, hasSelected: Map<RefFilterTreeNode, boolean>, out: FlatEntry[]): void {
+  const ordered = [...nodes]
+  ordered.sort((a, b) => {
+    const aSel = hasSelected.get(a) ? 0 : 1
+    const bSel = hasSelected.get(b) ? 0 : 1
+    return aSel - bSel
+  })
+  for (const node of ordered) {
+    out.push({ node, depth })
+    if (node.children.length > 0) {
+      flattenSorted(node.children, depth + 1, hasSelected, out)
+    }
+  }
+}
+
+const flatTree = computed((): FlatEntry[] => {
+  const out: FlatEntry[] = []
+  flattenSorted(tree.value, 0, hasSelectedInSubtree.value, out)
+  return out
+})
+
+const { limitedResults, hasMore, loadMore } = useLimitResults(flatTree, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
+
+const uniqueShown = computed(() => new Set(limitedResults.value.map((e) => e.node.res.id)).size)
+
+const optionsRemaining = computed(() => {
+  if (total.value === null) {
+    return 0
+  }
+  return Math.max(0, total.value - uniqueShown.value)
+})
+
+// effectiveLimited is what we actually render. It mirrors useLimitResults'
+// SKIP_TO_END short-circuit at the unique-options layer: when SKIP_TO_END or
+// fewer reachable options are still hidden, expose every remaining tree row in
+// one go.
+const effectiveLimited = computed((): FlatEntry[] => {
+  if (results.value.length - uniqueShown.value <= SKIP_TO_END) {
+    return flatTree.value
+  }
+  return limitedResults.value as FlatEntry[]
+})
+
+// The render-time tree: a stack walk over effectiveLimited that rebuilds parent
+// links only for visible nodes. Hidden subtrees are simply absent. The parallel
+// parents map (keyed by node.key so diamond duplicates stay distinguishable)
+// powers the ancestor walk used during an uncheck cascade.
+const partial = computed((): { roots: RefFilterTreeNode[]; parents: Record<string, RefFilterTreeNode | undefined> } => {
+  const roots: RefFilterTreeNode[] = []
+  const stack: RefFilterTreeNode[] = []
+  const parents: Record<string, RefFilterTreeNode | undefined> = {}
+  for (const { node, depth } of effectiveLimited.value) {
+    const cloned: RefFilterTreeNode = { res: node.res, key: node.key, children: [] }
+    if (depth === 0) {
+      roots.push(cloned)
+      parents[cloned.key] = undefined
+    } else {
+      const parent = stack[depth - 1]
+      parent.children.push(cloned)
+      parents[cloned.key] = parent
+    }
+    stack[depth] = cloned
+    stack.length = depth + 1
+  }
+  return { roots, parents }
+})
+
+const partialTree = computed(() => partial.value.roots)
+
+// Whether anything is still hidden behind the row limit.
+const moreRowsAvailable = computed(() => effectiveLimited.value.length < flatTree.value.length)
+
+function clearFilter() {
+  if (abortController.signal.aborted || !props.filter) {
+    return
+  }
+  emit("filterUpdate", props.filter.id, {
+    id: props.filter.id,
+    base: props.filter.base,
+    prop: props.filter.prop,
+    ref: { to: undefined, missing: undefined },
+  })
+}
+
+function collectSubtreeIds(n: RefFilterTreeNode, out: Set<string>): Set<string> {
+  out.add(n.res.id)
+  for (const c of n.children) {
+    collectSubtreeIds(c, out)
+  }
+  return out
+}
+
+// Cascade: clicking a node toggles its whole rendered subtree as a unit. After
+// the toggle, propagate up through the rendered ancestors so the parent's state
+// stays in sync with its visible children:
+//
+//  - On uncheck, drop every ancestor from the selection so a parent does not
+//    linger as an indeterminate ghost after the user empties its children.
+//  - On check, add an ancestor when all of its visible children become
+//    selected, so the parent flips to a checked visual instead of staying
+//    indeterminate after the user fills in every child individually.
+function onToggle(node: RefFilterTreeNode) {
+  if (abortController.signal.aborted) {
+    return
+  }
+  const subtree = collectSubtreeIds(node, new Set<string>())
+  const allSelected = [...subtree].every((id) => selectedSet.value.has(id))
+  const next = new Set(checkboxState.value)
+  if (allSelected) {
+    for (const id of subtree) {
+      next.delete(id)
+    }
+    let ancestor = partial.value.parents[node.key]
+    while (ancestor !== undefined) {
+      next.delete(ancestor.res.id)
+      ancestor = partial.value.parents[ancestor.key]
+    }
+  } else {
+    for (const id of subtree) {
+      next.add(id)
+    }
+    let ancestor = partial.value.parents[node.key]
+    while (ancestor !== undefined) {
+      if (ancestor.children.every((c) => next.has(c.res.id))) {
+        next.add(ancestor.res.id)
+        ancestor = partial.value.parents[ancestor.key]
+      } else {
+        break
+      }
+    }
+  }
+  checkboxState.value = [...next]
+}
 </script>
 
 <template>
@@ -156,67 +333,26 @@ const WithDocumentD = WithDocument<D>
       <DocumentRefInline v-else :id="result.props[0]" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
     </div>
-    <ul ref="el" role="group" :aria-labelledby="labelId" class="grid grid-cols-[max-content_auto] gap-x-1">
-      <li v-if="error" class="col-span-2">
+    <ul ref="el" role="group" :aria-labelledby="labelId" class="flex flex-col">
+      <li v-if="error">
         <i class="pd-reffiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
       <template v-else-if="total === null">
-        <li v-for="i in 3" :key="i" class="contents">
-          <div class="my-1.5 h-2 w-4 rounded-sm bg-slate-200 motion-safe:animate-pulse" aria-hidden="true"></div>
-          <div class="flex items-baseline gap-x-1" aria-hidden="true">
-            <div class="my-1.5 h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse" :class="[loadingWidth(`${propsKey}/${i}`)]"></div>
-            <div class="my-1.5 h-2 w-8 rounded-sm bg-slate-200 motion-safe:animate-pulse"></div>
-          </div>
+        <li v-for="i in 3" :key="i" class="flex items-baseline gap-x-1" aria-hidden="true">
+          <div class="my-1.5 h-2 w-4 rounded-sm bg-slate-200 motion-safe:animate-pulse"></div>
+          <div class="my-1.5 h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse" :class="[loadingWidth(`${propsKey}/${i}`)]"></div>
+          <div class="my-1.5 h-2 w-8 rounded-sm bg-slate-200 motion-safe:animate-pulse"></div>
         </li>
       </template>
       <template v-else>
-        <li v-for="res in limitedResults" :key="res.id" class="contents">
-          <template v-if="res.id === '__MISSING__'">
-            <CheckBox :id="'ref/' + propsKey + '/missing'" v-model="checkboxState" value="__MISSING__" />
-            <div class="flex items-baseline gap-x-1">
-              <label :for="'ref/' + propsKey + '/missing'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-                ><i>{{ t("common.values.missing") }}</i></label
-              >
-              <label :for="'ref/' + propsKey + '/missing'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ res.count }})</label>
-            </div>
-          </template>
-          <template v-else>
-            <CheckBox :id="'ref/' + propsKey + '/' + res.id" v-model="checkboxState" :value="res.id" />
-            <div class="flex items-baseline gap-x-1">
-              <WithDocumentD :id="res.id" name="DocumentGet">
-                <template #default="{ doc, url }">
-                  <label :for="'ref/' + propsKey + '/' + res.id" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'" :data-url="url"
-                    ><DisplayLabel :doc="doc"
-                  /></label>
-                </template>
-                <template #loading="{ url }">
-                  <div
-                    class="pd-withdocument-loading h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
-                    :data-url="url"
-                    :class="[loadingWidth(res.id)]"
-                    aria-hidden="true"
-                  ></div>
-                </template>
-              </WithDocumentD>
-              <label :for="'ref/' + propsKey + '/' + res.id" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ res.count }})</label>
-              <!--
-                tabindex="-1" keeps the open-link icon out of the keyboard tab
-                order so Tab jumps between filters without stopping
-                on each row's icon. Mouse users can still click it.
-              -->
-              <RouterLink :to="{ name: 'DocumentGet', params: { id: res.id } }" class="link" tabindex="-1"
-                ><ArrowTopRightOnSquareIcon :alt="t('common.icons.link')" class="inline size-5 align-text-top"
-              /></RouterLink>
-            </div>
-          </template>
-        </li>
+        <RefFilterTreeRow v-for="node in partialTree" :key="node.key" :node="node" :props-key="propsKey" :selected-set="selectedSet" :on-toggle="onToggle" />
       </template>
     </ul>
-    <Button v-if="total !== null && hasMore" primary class="mt-2 w-1/2 min-w-fit self-center" @click.prevent="loadMore">{{
-      t("common.buttons.loadCountMore", { count: total - limitedResults.length })
+    <Button v-if="total !== null && hasMore && moreRowsAvailable && optionsRemaining > 0" primary class="mt-2 w-1/2 min-w-fit self-center" @click.prevent="loadMore">{{
+      t("common.buttons.loadCountMore", { count: optionsRemaining })
     }}</Button>
-    <div v-else-if="total !== null && total > limitedResults.length" class="mt-2 text-center text-sm">
-      {{ t("common.status.valuesNotShown", { count: total - limitedResults.length }) }}
+    <div v-else-if="total !== null && optionsRemaining > 0" class="mt-2 text-center text-sm">
+      {{ t("common.status.valuesNotShown", { count: optionsRemaining }) }}
     </div>
   </div>
 </template>
