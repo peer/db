@@ -8,23 +8,31 @@
 // "role.*" is ignored if encountered.
 //
 // The package also drives the backend-side OIDC authorization code flow used
-// by the sign-in routes: it builds authorize URLs, exchanges authorization
-// codes for tokens, and caches userinfo lookups. Identity gathered from a
-// validated token (subject, roles, profile) is exposed to downstream
-// responses as SFV-encoded HTTP headers ("Roles" and "UserInfo", prefixed by
-// the WAF service's MetadataHeaderPrefix).
+// by the sign-in routes via Start and Callback. Both methods are backed by an
+// internal per-site flow store so callers do not need to thread flow state
+// around. Identity gathered from a validated token (subject, roles, profile)
+// is exposed to downstream responses as SFV-encoded HTTP headers ("Roles"
+// and "UserInfo", prefixed by the WAF service's MetadataHeaderPrefix).
+//
+// Two implementations of the Authenticator interface are provided.
+// OIDCAuthenticator drives a real OpenID Connect authorization-code flow
+// against an external issuer. MockAuthenticator short-circuits the flow
+// for development by minting JWTs against an in-process key pair. It is
+// intended for development only.
 package auth
 
 import (
 	"bytes"
 	"context"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/hashicorp/go-cleanhttp"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 	"golang.org/x/oauth2"
 )
@@ -46,102 +54,53 @@ const (
 	userInfoHeader = "UserInfo"
 )
 
-// Verifier validates OIDC bearer tokens against a configured issuer and audience.
-// It also bundles the supporting state needed to drive the authorization-code
-// flow and to enrich responses with identity headers (userinfo cache). One
-// Verifier is built per site because each site has its own client ID and redirect URI.
-type Verifier struct {
-	issuer        string
-	clientID      string
-	verifier      *oidc.IDTokenVerifier
-	httpClient    *http.Client
-	oauth         *oauth2.Config
-	redirectURI   func() string
+// ErrSignInFailed marks every client-side failure from Callback: malformed
+// callback parameters, an "error" response from the issuer, a replayed or
+// expired flow row, or a token-exchange / JWT-validation failure. Route
+// handlers should map errors that wrap this sentinel to HTTP 400 and treat
+// any other Callback error as an internal-server (500) condition.
+var ErrSignInFailed = errors.Base("sign-in failed")
+
+// Authenticator validates access-token credentials and drives the
+// backend-side sign-in flow. Concrete implementations: OIDCAuthenticator
+// (real OpenID Connect against an external issuer) and MockAuthenticator
+// (in-process JWT minting for development). One Authenticator is built per
+// site because each site has its own client and per-domain redirect URI.
+type Authenticator interface {
+	// Authenticate validates the caller's access token and, on success,
+	// returns the request context enriched with subject and roles AND
+	// writes the Roles / UserInfo response headers consumed by the
+	// frontend. On failure the original ctx is returned unchanged and no
+	// headers are written.
+	Authenticate(w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string][]string) context.Context
+
+	// SignIn begins a fresh sign-in flow.
+	SignIn(ctx context.Context, redirect string) (authURL string, errE errors.E)
+
+	// Callback finishes a sign-in flow.
+	//
+	// Every client-side failure is wrapped with ErrSignInFailed. Internal errors
+	// are returned without that wrapping.
+	Callback(ctx context.Context, values url.Values) (token string, expiry time.Time, redirect string, errE errors.E)
+
+	// SignOut releases any per-session state the Authenticator holds
+	// for the caller.
+	SignOut(ctx context.Context) errors.E
+}
+
+// baseAuthenticator holds the state shared between OIDCAuthenticator and
+// MockAuthenticator: the token verifier (which key set differs but the
+// validation contract is the same), the userinfo cache (mock primes it at
+// sign-in so the cache is always warm, OIDC re-fetches from the issuer on
+// miss), and the per-site flow store.
+type baseAuthenticator struct {
+	tokenVerifier *oidc.IDTokenVerifier
 	userInfoCache *userInfoCache
-}
-
-// New creates a Verifier that uses OIDC discovery to fetch keys from issuer.
-// clientID is the expected audience of presented access tokens. clientSecret
-// authenticates the backend during the authorization-code exchange (the
-// backend is a confidential client). redirectURI is a thunk that resolves
-// to the absolute callback URL the issuer should send the user back to.
-//
-// The returned Verifier holds a pooled HTTP client used for JWKS refreshes,
-// userinfo lookups, and token exchanges; it does not own a shutdown hook
-// because the underlying client uses idle connection pooling that releases
-// resources passively.
-func New(ctx context.Context, issuer, clientID, clientSecret string, redirectURI func() string) (*Verifier, errors.E) {
-	if issuer == "" {
-		return nil, errors.New("issuer is required")
-	}
-	if clientID == "" {
-		return nil, errors.New("client ID is required")
-	}
-	if clientSecret == "" {
-		return nil, errors.New("client secret is required")
-	}
-	if redirectURI == nil {
-		return nil, errors.New("redirect URI thunk is required")
-	}
-
-	// We use a pooled client so that JWKS, userinfo, and token-exchange
-	// refreshes can reuse connections.
-	// TODO: Set User-Agent header.
-	client := cleanhttp.DefaultPooledClient()
-	ctx = oidc.ClientContext(ctx, client)
-
-	provider, err := oidc.NewProvider(ctx, issuer)
-	if err != nil {
-		errE := errors.WithStack(err)
-		errors.Details(errE)["issuer"] = issuer
-		return nil, errE
-	}
-
-	// Discovery exposes userinfo_endpoint as a JSON claim. We pull it once
-	// at startup so the userinfo cache and the per-request middleware have
-	// a stable URL even if Provider.Claims is later reshaped.
-	var discovered struct {
-		UserInfoEndpoint string `json:"userinfo_endpoint"` //nolint:tagliatelle
-	}
-	err = provider.Claims(&discovered)
-	if err != nil {
-		errE := errors.WithStack(err)
-		errors.Details(errE)["issuer"] = issuer
-		return nil, errE
-	}
-
-	return &Verifier{
-		issuer:   issuer,
-		clientID: clientID,
-		verifier: provider.Verifier(&oidc.Config{ //nolint:exhaustruct
-			ClientID: clientID,
-		}),
-		httpClient: client,
-		oauth: &oauth2.Config{
-			ClientID:     clientID,
-			ClientSecret: clientSecret,
-			// RedirectURL is filled in per call via redirectURI().
-			RedirectURL: "",
-			Endpoint:    provider.Endpoint(),
-			Scopes:      signInScopes,
-		},
-		redirectURI:   redirectURI,
-		userInfoCache: newUserInfoCache(discovered.UserInfoEndpoint, client),
-	}, nil
-}
-
-// Issuer returns the issuer URL the Verifier was configured with.
-func (v *Verifier) Issuer() string {
-	return v.issuer
-}
-
-// ClientID returns the client ID the Verifier was configured with.
-func (v *Verifier) ClientID() string {
-	return v.clientID
+	flowStore     *flowStore
 }
 
 // Authenticate validates the caller's access token (Authorization Bearer
-// first, falling back to the access-token cookie) and, on success, returns
+// first, falling back to the session cookie) and, on success, returns
 // the request context enriched with subject and roles AND writes two
 // response headers consumed by the frontend:
 //
@@ -153,25 +112,25 @@ func (v *Verifier) ClientID() string {
 // the auth headers stack with the existing Metadata header pattern.
 //
 // allowedRoles is the allowlist of role names the caller is permitted to
-// receive; any role granted by the token that is not a key in this map is
-// silently dropped. Only keys are consulted; values are ignored. A nil or
+// receive. Any role granted by the token that is not a key in this map is
+// silently dropped. Only keys are consulted, values are ignored. A nil or
 // empty map yields an empty role set even when the token carries role
 // scopes.
 //
-// The userinfo for the UserInfo header is read from an in-memory cache;
-// concurrent requests for the same subject coalesce into a single upstream
+// The userinfo for the UserInfo header is read from an in-memory cache.
+// Concurrent requests for the same subject coalesce into a single upstream
 // call to the issuer's userinfo endpoint (singleflight).
 //
 // On any validation failure the original ctx is returned unchanged and no
-// headers are written; callers (eg. the PeerDB-level middleware) should
-// treat that as an anonymous request and continue handling.
-func (v *Verifier) Authenticate(w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string][]string) context.Context {
+// headers are written. Callers should treat that as an anonymous request
+// and continue handling.
+func (b *baseAuthenticator) Authenticate(w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string][]string) context.Context {
 	ctx := req.Context()
 	token, _ := resolveAccessToken(w, req)
 	if token == "" {
 		return ctx
 	}
-	idToken, err := v.verifier.Verify(ctx, token)
+	idToken, err := b.tokenVerifier.Verify(ctx, token)
 	if err != nil {
 		return ctx
 	}
@@ -181,9 +140,9 @@ func (v *Verifier) Authenticate(w http.ResponseWriter, req *http.Request, metada
 	}
 	ctx = withSubject(ctx, idToken.Subject)
 	ctx = withRoles(ctx, roles)
-	v.writeRolesHeader(w, metadataHeaderPrefix, roles)
-	v.writeUserInfoHeader(ctx, w, metadataHeaderPrefix, idToken.Subject, token)
-	// Authenticated responses carry per-user data; keep them out of
+	b.writeRolesHeader(w, metadataHeaderPrefix, roles)
+	b.writeUserInfoHeader(ctx, w, metadataHeaderPrefix, idToken.Subject, token)
+	// Authenticated responses carry per-user data, keep them out of
 	// shared caches. Browser caches still store them (keyed by
 	// Authorization / Cookie via the Vary headers resolveAccessToken
 	// sets).
@@ -196,7 +155,7 @@ func (v *Verifier) Authenticate(w http.ResponseWriter, req *http.Request, metada
 // The frontend should use the presence of the UserInfo header (always
 // set when authenticated) to tell "anonymous" from "signed in" and not
 // Roles header.
-func (v *Verifier) writeRolesHeader(w http.ResponseWriter, prefix string, roles []string) {
+func (b *baseAuthenticator) writeRolesHeader(w http.ResponseWriter, prefix string, roles []string) {
 	if len(roles) == 0 {
 		return
 	}
@@ -204,12 +163,12 @@ func (v *Verifier) writeRolesHeader(w http.ResponseWriter, prefix string, roles 
 	for i, r := range roles {
 		list[i] = r
 	}
-	b := &bytes.Buffer{}
-	errE := waf.EncodeMetadataList(list, b)
+	buf := &bytes.Buffer{}
+	errE := waf.EncodeMetadataList(list, buf)
 	if errE != nil {
 		return
 	}
-	w.Header().Add(prefix+rolesHeader, b.String())
+	w.Header().Add(prefix+rolesHeader, buf.String())
 }
 
 // writeUserInfoHeader emits the UserInfo response header, falling back to
@@ -217,8 +176,8 @@ func (v *Verifier) writeRolesHeader(w http.ResponseWriter, prefix string, roles 
 // yet populated the cache. Subject is guaranteed to be present so the
 // frontend can always learn the identity of the signed-in user, even when
 // the issuer is unreachable.
-func (v *Verifier) writeUserInfoHeader(ctx context.Context, w http.ResponseWriter, prefix, subject, token string) {
-	info, _ := v.userInfoCache.Get(ctx, subject, token)
+func (b *baseAuthenticator) writeUserInfoHeader(ctx context.Context, w http.ResponseWriter, prefix, subject, token string) {
+	info, _ := b.userInfoCache.Get(ctx, subject, token)
 	if info.Subject == "" {
 		info.Subject = subject
 	}
@@ -228,21 +187,138 @@ func (v *Verifier) writeUserInfoHeader(ctx context.Context, w http.ResponseWrite
 		metadata["username"] = info.Username
 	}
 
-	b := &bytes.Buffer{}
-	errE := waf.EncodeMetadata(metadata, b)
+	buf := &bytes.Buffer{}
+	errE := waf.EncodeMetadata(metadata, buf)
 	if errE != nil {
 		return
 	}
-	w.Header().Add(prefix+userInfoHeader, b.String())
+	w.Header().Add(prefix+userInfoHeader, buf.String())
+}
+
+// signInFlow is the shared body of OIDCAuthenticator.SignIn and
+// MockAuthenticator.SignIn. It sanitises the redirect, generates
+// fresh state / PKCE verifier / nonce values, persists them, and
+// delegates to the authenticator-specific authCodeURL builder
+// for the final URL.
+func signInFlow(
+	ctx context.Context,
+	fs *flowStore,
+	redirect string,
+	authCodeURL func(state, codeVerifier, nonce string) string,
+) (string, errors.E) {
+	if fs == nil {
+		return "", errors.New("authenticator has no flow store")
+	}
+
+	redirect = safeRedirectPath(redirect)
+
+	state := identifier.New().String()
+	codeVerifier := oauth2.GenerateVerifier()
+	nonce := identifier.New().String()
+
+	errE := fs.BeginFlow(ctx, state, flowState{
+		codeVerifier: codeVerifier,
+		nonce:        nonce,
+		redirect:     redirect,
+	})
+	if errE != nil {
+		return "", errE
+	}
+
+	return authCodeURL(state, codeVerifier, nonce), nil
+}
+
+// callbackFlow is the shared body of OIDCAuthenticator.Callback and
+// MockAuthenticator.Callback. It validates the query parameters, consumes
+// the matching flow row, and delegates to the authenticator-specific
+// exchangeCode for the actual code-to-token exchange.
+//
+// Every client-side failure is wrapped with ErrSignInFailed so the route
+// handler can distinguish "user-induced" (HTTP 400) from "internal" (HTTP
+// 500) without parsing the underlying cause.
+func callbackFlow(
+	ctx context.Context,
+	fs *flowStore,
+	values url.Values,
+	exchangeCode func(ctx context.Context, code, codeVerifier, nonce string) (string, time.Time, errors.E),
+) (string, time.Time, string, errors.E) {
+	if fs == nil {
+		return "", time.Time{}, "", errors.New("authenticator has no flow store")
+	}
+
+	// If the issuer signals an error, surface it as a 400 rather than
+	// pretending the flow succeeded. The "error" and "error_description"
+	// parameters are OIDC-standard.
+	if issuerErr := values.Get("error"); issuerErr != "" {
+		errE := errors.WithStack(ErrSignInFailed)
+		errors.Details(errE)["error"] = issuerErr
+		if desc := values.Get("error_description"); desc != "" {
+			errors.Details(errE)["description"] = desc
+		}
+		return "", time.Time{}, "", errE
+	}
+
+	state := values.Get("state")
+	code := values.Get("code")
+	if state == "" || code == "" {
+		errE := errors.WithStack(ErrSignInFailed)
+		errors.Details(errE)["reason"] = `missing "state" or "code" in callback`
+		return "", time.Time{}, "", errE
+	}
+
+	flow, errE := fs.ConsumeFlow(ctx, state)
+	if errE != nil {
+		if errors.Is(errE, errFlowNotFound) {
+			// Single-use, expired, or never existed: surface as
+			// client error so the handler does not 500.
+			return "", time.Time{}, "", errors.WrapWith(errE, ErrSignInFailed)
+		}
+		// DB or other internal failure: pass through unwrapped so
+		// the handler maps it to 500.
+		return "", time.Time{}, "", errE
+	}
+
+	token, expiry, errE := exchangeCode(ctx, code, flow.codeVerifier, flow.nonce)
+	if errE != nil {
+		// Token exchange / JWT validation failures are caller-induced
+		// (bad code, signature mismatch, nonce mismatch, ...).
+		return "", time.Time{}, "", errors.WrapWith(errE, ErrSignInFailed)
+	}
+
+	return token, expiry, flow.redirect, nil
+}
+
+// safeRedirectPath validates the caller-supplied post-sign-in landing path.
+// Only relative same-site paths are accepted: anything starting with a
+// scheme, a "//" authority, or empty falls back to "/" so a hostile sign-in
+// URL cannot bounce the user off-site after the callback.
+func safeRedirectPath(raw string) string {
+	if raw == "" {
+		return "/"
+	}
+	if !strings.HasPrefix(raw, "/") || strings.HasPrefix(raw, "//") {
+		return "/"
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "/"
+	}
+	if u.Scheme != "" || u.Host != "" {
+		return "/"
+	}
+	// Re-stringify so any URL-decoded curiosities (escaped slashes, etc.)
+	// land back in canonical form.
+	return u.String()
 }
 
 // resolveAccessToken extracts the caller's access token from the request,
 // preferring an Authorization: Bearer header and falling back to the
 // session cookie.
 //
-// Tokens are returned as-is without further validation; callers feed them
-// into the verifier. The second return value reports whether the token came
-// from the cookie - useful for telemetry but not for auth decisions.
+// Tokens are returned as-is without further validation. Callers feed them
+// into the authenticator. The second return value reports whether the
+// token came from the cookie - useful for telemetry but not for auth
+// decisions.
 func resolveAccessToken(w http.ResponseWriter, req *http.Request) (string, bool) {
 	const prefix = "Bearer "
 

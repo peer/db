@@ -5,8 +5,6 @@ import type { Metadata } from "@/types"
 // TODO: Consider moving to https://www.npmjs.com/package/structured-headers, once it supports parsing timestamps.
 import { decodeDict, decodeList } from "structured-field-values"
 
-import siteContext from "@/context"
-
 // The canonical Metadata header's unprefixed name.
 const metadataHeader = "Metadata"
 
@@ -24,10 +22,10 @@ function convertItem(item: Item): BareItem | BareItem[] {
 }
 
 // decodeMetadataNamed parses a single SFV-dictionary HTTP header into a
-// flat metadata map. Pass the prefix-less header name; the
-// MetadataHeaderPrefix the backend prepends is added automatically.
-export function decodeMetadataNamed(headers: Headers, name: string): Metadata {
-  const header = headers.get((siteContext.metadataHeaderPrefix || "") + name) || ""
+// flat metadata map. The caller supplies the MetadataHeaderPrefix
+// configured for the site. We read the header at "<prefix><name>".
+export function decodeMetadataNamed(headers: Headers, prefix: string, name: string): Metadata {
+  const header = headers.get(prefix + name) || ""
   const result: Metadata = {}
   for (const [key, item] of Object.entries(decodeDict(header))) {
     result[key] = convertItem(item as Item)
@@ -38,14 +36,14 @@ export function decodeMetadataNamed(headers: Headers, name: string): Metadata {
 // decodeMetadataListNamed parses an SFV-list HTTP header into a flat array
 // of items. An absent header (or an empty list value, which SFV serialises
 // as the empty string) returns an empty array.
-export function decodeMetadataListNamed(headers: Headers, name: string): (BareItem | BareItem[])[] {
-  const header = headers.get((siteContext.metadataHeaderPrefix || "") + name) || ""
+export function decodeMetadataListNamed(headers: Headers, prefix: string, name: string): (BareItem | BareItem[])[] {
+  const header = headers.get(prefix + name) || ""
   if (header === "") {
     return []
   }
   return decodeList(header).map((item) => convertItem(item as Item))
 }
 
-export function decodeMetadata(headers: Headers): Metadata {
-  return decodeMetadataNamed(headers, metadataHeader)
+export function decodeMetadata(headers: Headers, prefix: string): Metadata {
+  return decodeMetadataNamed(headers, prefix, metadataHeader)
 }

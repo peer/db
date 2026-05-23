@@ -128,7 +128,6 @@ func TestBasicAuthWithSiteContext(t *testing.T) {
 						Features:             peerdb.SiteFeatures{},
 						Roles:                nil,
 						Auth:                 peerdb.SiteAuthConfig{},
-						AuthEnabled:          false,
 						MetadataHeaderPrefix: "",
 						Base:                 nil,
 						DBPool:               nil,

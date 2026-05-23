@@ -67,16 +67,10 @@ type Site struct {
 	Roles map[string][]string `json:"roles,omitempty" yaml:"roles,omitempty"`
 
 	// Auth carries per-site OIDC configuration. When all three fields
-	// (issuer, clientId, clientSecret) are set the site participates in
-	// sign-in. When none are set the site is anonymous-only. Each site
-	// gets its own OIDC client because the redirect URI is per-domain.
+	// (issuer, clientId, clientSecret) are set the site uses OIDC for
+	// sign-in. Otherwise the site falls back to the MockAuthenticator
+	// (intended for development).
 	Auth SiteAuthConfig `json:"-" yaml:"auth,omitempty"`
-
-	// AuthEnabled is true when Auth is fully configured. It is the
-	// frontend's signal (via the site context) to render the sign-in
-	// button. The OIDC flow itself runs entirely on the backend. The
-	// frontend never sees issuer URLs or client secrets.
-	AuthEnabled bool `json:"authEnabled,omitempty" yaml:"-"`
 
 	// MetadataHeaderPrefix mirrors waf.Service.MetadataHeaderPrefix so
 	// that the frontend can compose the right header names when reading
@@ -90,13 +84,9 @@ type Site struct {
 	ESClient    *elasticsearch.TypedClient `json:"-" yaml:"-"`
 	RiverClient *river.Client[pgx.Tx]      `json:"-" yaml:"-"`
 
-	// verifier holds the per-site OIDC verifier.
-	verifier *auth.Verifier
-
-	// flowStore persists OIDC sign-in flow state (PKCE verifier, nonce,
-	// post-login redirect) between the authorize redirect and the callback.
-	// It is nil when AuthEnabled is false.
-	flowStore *auth.FlowStore
+	// authenticator drives sign-in (SignIn / Callback), sign-out (SignOut)
+	// and request-time token validation (Authenticate) for this site.
+	authenticator auth.Authenticator
 
 	// debugRiverHandler is the River UI handler mounted at /debug/river.
 	// Populated only in development mode.

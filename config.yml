@@ -6,3 +6,7 @@ globals:
       features:
         searchResultsTable: true
         downloadButtons: true
+      roles:
+        admin:
+          - canEdit
+          - canDownload

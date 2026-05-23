@@ -2,6 +2,7 @@ import type { Ref } from "vue"
 
 import type { Metadata } from "@/types"
 
+import siteContext from "@/context"
 import { decodeMetadata } from "@/metadata"
 import { Queue } from "@/queue"
 
@@ -94,7 +95,7 @@ export async function getURLDirect<T>(url: string, abortSignal: AbortSignal, pro
         requestID: response.headers.get("Request-ID"),
       })
     }
-    return { doc: (await response.json()) as T, metadata: decodeMetadata(response.headers) }
+    return { doc: (await response.json()) as T, metadata: decodeMetadata(response.headers, siteContext.metadataHeaderPrefix ?? "") }
   } finally {
     if (progress) {
       progress.value -= 1

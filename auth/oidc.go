@@ -1,0 +1,215 @@
+package auth
+
+import (
+	"context"
+	"net/http"
+	"net/url"
+	"time"
+
+	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"gitlab.com/tozd/go/errors"
+	"golang.org/x/oauth2"
+)
+
+// signInScopes are the scopes the backend requests during the OIDC
+// authorization flow. "role.*" is Charon's wildcard that expands into the
+// individual "role.<key>" grants the access token actually carries.
+var signInScopes = []string{ //nolint:gochecknoglobals
+	oidc.ScopeOpenID,
+	"profile",
+	"email",
+	"role.*",
+}
+
+// OIDCAuthenticator authenticates the user against an ODIC-compliant issue
+// and validates its tokens.
+type OIDCAuthenticator struct {
+	baseAuthenticator
+
+	issuer      string
+	clientID    string
+	httpClient  *http.Client
+	oauth       *oauth2.Config
+	redirectURI func() string
+}
+
+// NewOIDCAuthenticator creates an Authenticator that uses OIDC discovery to
+// fetch keys from issuer.
+//
+// clientID is the expected audience of presented access tokens.
+// clientSecret authenticates the backend during the authorization-code exchange
+// (the backend is a confidential client). redirectURI is a thunk that resolves
+// to the absolute callback URL the issuer should send the user back to.
+//
+// dbpool is used to construct and initialise the flow store.
+//
+// The returned OIDCAuthenticator holds a pooled HTTP client used for JWKS
+// refreshes, userinfo lookups, and token exchanges. It does not own a
+// shutdown hook because the underlying client uses idle connection pooling
+// that releases resources passively.
+func NewOIDCAuthenticator(ctx context.Context, dbpool *pgxpool.Pool, issuer, clientID, clientSecret string, redirectURI func() string) (*OIDCAuthenticator, errors.E) {
+	if issuer == "" {
+		return nil, errors.New("issuer is required")
+	}
+	if clientID == "" {
+		return nil, errors.New("client ID is required")
+	}
+	if clientSecret == "" {
+		return nil, errors.New("client secret is required")
+	}
+	if redirectURI == nil {
+		return nil, errors.New("redirect URI thunk is required")
+	}
+
+	// We use a pooled client so that JWKS, userinfo, and token-exchange
+	// refreshes can reuse connections.
+	// TODO: Set User-Agent header.
+	client := cleanhttp.DefaultPooledClient()
+	ctx = oidc.ClientContext(ctx, client)
+
+	provider, err := oidc.NewProvider(ctx, issuer)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["issuer"] = issuer
+		return nil, errE
+	}
+
+	// Discovery exposes userinfo_endpoint as a JSON claim.
+	var discovered struct {
+		UserInfoEndpoint string `json:"userinfo_endpoint"` //nolint:tagliatelle
+	}
+	err = provider.Claims(&discovered)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["issuer"] = issuer
+		return nil, errE
+	}
+
+	// We allow nil for dbpool for testing purposes. Authenticate continues to work,
+	// but SignIn and Callback return an error. Production code MUST pass a non-nil pool.
+	// Tests that exercise only Authenticate or the low-level token paths may pass nil
+	// to avoid pulling in a database dependency.
+	var fs *flowStore
+	if dbpool != nil {
+		fs = newFlowStore(dbpool)
+		errE := fs.Init(ctx)
+		if errE != nil {
+			return nil, errE
+		}
+	}
+
+	return &OIDCAuthenticator{
+		baseAuthenticator: baseAuthenticator{
+			tokenVerifier: provider.Verifier(&oidc.Config{ //nolint:exhaustruct
+				ClientID: clientID,
+			}),
+			userInfoCache: newUserInfoCache(discovered.UserInfoEndpoint, client),
+			flowStore:     fs,
+		},
+		issuer:     issuer,
+		clientID:   clientID,
+		httpClient: client,
+		oauth: &oauth2.Config{
+			ClientID:     clientID,
+			ClientSecret: clientSecret,
+			// RedirectURL is filled in per call via redirectURI().
+			RedirectURL: "",
+			Endpoint:    provider.Endpoint(),
+			Scopes:      signInScopes,
+		},
+		redirectURI: redirectURI,
+	}, nil
+}
+
+// SignIn begins an authorization-code flow against the configured issuer.
+func (a *OIDCAuthenticator) SignIn(ctx context.Context, redirect string) (string, errors.E) {
+	return signInFlow(ctx, a.flowStore, redirect, a.authCodeURL)
+}
+
+// Callback finishes an authorization-code flow.
+func (a *OIDCAuthenticator) Callback(ctx context.Context, values url.Values) (string, time.Time, string, errors.E) {
+	return callbackFlow(ctx, a.flowStore, values, a.exchangeCode)
+}
+
+// SignOut is called on sign-out.
+func (*OIDCAuthenticator) SignOut(_ context.Context) errors.E {
+	// TODO: Call the issuer's end_session_endpoint to terminate the upstream session as part of RP-initiated sign-out.
+	return nil
+}
+
+// oauthConfig returns a copy of the stored oauth2.Config with the redirect
+// URL resolved via the thunk. We copy rather than mutate because the
+// underlying config is shared across goroutines.
+func (a *OIDCAuthenticator) oauthConfig() oauth2.Config {
+	c := *a.oauth
+	c.RedirectURL = a.redirectURI()
+	return c
+}
+
+// authCodeURL builds the issuer-bound URL the browser should be redirected
+// to in order to start an authorization-code flow. state, codeVerifier, and
+// nonce must be generated by the caller. The PKCE verifier should come from
+// oauth2.GenerateVerifier so the S256 challenge derivation matches what the
+// issuer expects.
+func (a *OIDCAuthenticator) authCodeURL(state, codeVerifier, nonce string) string {
+	cfg := a.oauthConfig()
+	return cfg.AuthCodeURL(
+		state,
+		oauth2.AccessTypeOnline,
+		oauth2.S256ChallengeOption(codeVerifier),
+		oidc.Nonce(nonce),
+	)
+}
+
+// exchangeCode finishes the authorization-code flow.
+func (a *OIDCAuthenticator) exchangeCode(ctx context.Context, code, codeVerifier, expectedNonce string) (string, time.Time, errors.E) {
+	// The pooled HTTP client is shared with JWKS / userinfo so token
+	// exchanges benefit from the same keep-alive pool.
+	tokenCtx := oidc.ClientContext(ctx, a.httpClient)
+	cfg := a.oauthConfig()
+	response, err := cfg.Exchange(tokenCtx, code, oauth2.VerifierOption(codeVerifier))
+	if err != nil {
+		return "", time.Time{}, errors.WithStack(err)
+	}
+
+	rawIDToken, ok := response.Extra("id_token").(string)
+	if !ok || rawIDToken == "" {
+		return "", time.Time{}, errors.New("issuer did not return an id_token")
+	}
+
+	idToken, err := a.tokenVerifier.Verify(ctx, rawIDToken)
+	if err != nil {
+		return "", time.Time{}, errors.WithStack(err)
+	}
+	if idToken.Nonce != expectedNonce {
+		return "", time.Time{}, errors.New("id_token nonce mismatch")
+	}
+	// If the issuer included an at_hash claim, verify it matches the
+	// access token. The claim is optional in the authorization-code flow,
+	// so we only verify when present.
+	if idToken.AccessTokenHash != "" {
+		err = idToken.VerifyAccessToken(response.AccessToken)
+		if err != nil {
+			return "", time.Time{}, errors.WithStack(err)
+		}
+	}
+
+	// Prime the userinfo cache from the ID-token claims so the first
+	// authenticated request after sign-in does not pay an extra
+	// /auth/oidc/userinfo round-trip.
+	var profile struct {
+		PreferredUsername string `json:"preferred_username"` //nolint:tagliatelle
+	}
+	err = idToken.Claims(&profile)
+	if err != nil {
+		return "", time.Time{}, errors.WithStack(err)
+	}
+	a.userInfoCache.set(idToken.Subject, userInfo{
+		Subject:  idToken.Subject,
+		Username: profile.PreferredUsername,
+	})
+
+	return response.AccessToken, response.Expiry, nil
+}

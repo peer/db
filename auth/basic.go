@@ -15,7 +15,7 @@ func hasherSHA256(s string) []byte {
 	return val[:]
 }
 
-// BasicAuthHandler returns a middleware that gates requests with HTTP Basic
+// BasicAuthMiddleware returns a middleware that gates requests with HTTP Basic
 // auth. It is unconditional: when configured, every request must satisfy
 // the basic-auth challenge regardless of whether the caller also presents
 // OIDC credentials.
@@ -28,7 +28,7 @@ func hasherSHA256(s string) []byte {
 // key on the Authorization header because the basic-auth check reads it)
 // and Cache-Control: private on successful gates so shared caches do not
 // store the protected content.
-func BasicAuthHandler(username, password string, realm func(req *http.Request) string) func(http.Handler) http.Handler {
+func BasicAuthMiddleware(username, password string, realm func(req *http.Request) string) func(http.Handler) http.Handler {
 	usernameHash := hasherSHA256(username)
 	passwordHash := hasherSHA256(password)
 	return func(handler http.Handler) http.Handler {

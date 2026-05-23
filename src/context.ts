@@ -17,18 +17,20 @@ const response = await fetch("/context.json", {
 
 const siteContext = (await response.json()) as SiteContext
 
+const prefix = siteContext.metadataHeaderPrefix ?? ""
+
 // The auth middleware emits Roles and UserInfo response headers on every
 // request that carries a validated access token. We read them off the
 // context.json fetch (which happens once on app boot) to seed the reactive
 // auth state in @/auth without an extra round-trip. Absent headers are
 // treated as "anonymous": empty roles and a null UserInfo.
 function parseRoles(): string[] {
-  const items = decodeMetadataListNamed(response.headers, "Roles")
+  const items = decodeMetadataListNamed(response.headers, prefix, "Roles")
   return items.filter((s): s is string => typeof s === "string")
 }
 
 function parseUserInfo(): UserInfo | null {
-  const md = decodeMetadataNamed(response.headers, "UserInfo")
+  const md = decodeMetadataNamed(response.headers, prefix, "UserInfo")
   const subject = md.subject
   if (typeof subject !== "string" || subject === "") {
     return null

@@ -19,6 +19,7 @@ import ButtonLink from "@/components/ButtonLink.vue"
 import InputTextLink from "@/components/InputTextLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import WithLock from "@/components/WithLock.vue"
+import siteContext from "@/context"
 import { INSTANCE_OF, NAME, SEARCH_SHORTCUT } from "@/core"
 import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
 import { decodeMetadata } from "@/metadata"
@@ -174,7 +175,7 @@ async function fetchShortcutCount(query: QueryValues, signal: AbortSignal): Prom
   if (signal.aborted) {
     return null
   }
-  const metadata = decodeMetadata(headers)
+  const metadata = decodeMetadata(headers, siteContext.metadataHeaderPrefix ?? "")
   if ("total" in metadata) {
     return String(metadata["total"])
   }

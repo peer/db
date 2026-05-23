@@ -26,12 +26,6 @@ export const currentIdentityId = computed(() => currentUserInfo.value?.subject ?
 // currentUsername is the currentUserInfo's username.
 export const currentUsername = computed(() => currentUserInfo.value?.username ?? "")
 
-// isAuthEnabled reports whether the backend was started with authentication
-// configuration.
-export function isAuthEnabled(): boolean {
-  return siteContext.authEnabled === true
-}
-
 // PeerDB permissions.
 //
 // Keep in sync with auth/permissions.go.
@@ -41,25 +35,12 @@ export const CAN_DOWNLOAD = "canDownload"
 type Permission = "canEdit" | "canDownload"
 
 // hasRole is the symmetric counterpart of auth.HasRole on the backend.
-//
-// When auth is not enabled we always return true so single-user / dev
-// deployments are not blocked.
 export function hasRole(role: string): boolean {
-  if (!isAuthEnabled()) {
-    return true
-  }
   return currentRoles.value.includes(role)
 }
 
 // hasPermission returns true if the current user has the given permission.
-//
-// When auth is not enabled we always return true so single-user / dev
-// deployments are not blocked.
 export function hasPermission(permission: Permission): boolean {
-  if (!isAuthEnabled()) {
-    return true
-  }
-
   const roles = siteContext.roles
   if (!roles) {
     return false
@@ -73,13 +54,7 @@ export function hasPermission(permission: Permission): boolean {
 }
 
 // isSignedIn reports whether the user has a validated cookie session.
-//
-// When auth is not enabled we return true so handlers stay accessible.
 export function isSignedIn(): boolean {
-  if (!isAuthEnabled()) {
-    return true
-  }
-
   return currentUserInfo.value !== null
 }
 
@@ -89,10 +64,6 @@ export function isSignedIn(): boolean {
 // token cookie set. We use a server-side redirect because the browser must
 // follow the issuer's 3xx to its sign-in form, which a fetch cannot do.
 export function signIn(router: Router, lock: Ref<number>, redirect?: string) {
-  if (!isAuthEnabled()) {
-    return
-  }
-
   if (!redirect) {
     redirect = currentAbsoluteURL()
   }
@@ -108,9 +79,6 @@ export function signIn(router: Router, lock: Ref<number>, redirect?: string) {
 // the cookie, then clears the local reactive state so the UI updates
 // immediately. A 200/204 is the success case. We ignore the body.
 export async function signOut(router: Router, abortSignal: AbortSignal, lock: Ref<number>) {
-  if (!isAuthEnabled()) {
-    return
-  }
   lock.value += 1
   try {
     const url = router.apiResolve({ name: "AuthSignOut" }).href

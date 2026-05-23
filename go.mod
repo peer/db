@@ -16,6 +16,7 @@ require (
 	github.com/elastic/go-elasticsearch/v9 v9.3.2
 	github.com/foolin/pagser v0.1.6
 	github.com/gabriel-vasile/mimetype v1.4.13
+	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/hashicorp/go-cleanhttp v0.5.3-0.20250908122250-455ae7932232
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
 	github.com/jackc/pgx/v5 v5.9.2
@@ -43,7 +44,6 @@ require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.3.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect

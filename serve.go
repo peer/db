@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"slices"
 	"strings"
 	"sync"
 	"syscall"
@@ -25,6 +26,25 @@ type Service struct {
 
 	// Is service running in development mode.
 	Development bool
+}
+
+// lookupSiteAuthenticator resolves the per-request Authenticator and role
+// allowlist for the auth middleware.
+//
+//nolint:ireturn
+func (s *Service) lookupSiteAuthenticator(w http.ResponseWriter, req *http.Request) (auth.Authenticator, map[string][]string, bool) {
+	site, ok := waf.GetSite[*Site](req.Context())
+	if !ok {
+		s.InternalServerErrorWithError(w, req, errors.New("no site in request context"))
+		return nil, nil, true
+	}
+	if site.authenticator == nil {
+		errE := errors.New("site has no authenticator configured")
+		errors.Details(errE)["domain"] = site.Domain
+		s.InternalServerErrorWithError(w, req, errE)
+		return nil, nil, true
+	}
+	return site.authenticator, site.Roles, false
 }
 
 // Init initializes the HTTP service and is used together with Prepare to implement Run.
@@ -58,14 +78,12 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			Features:             SiteFeatures{},
 			Roles:                nil,
 			Auth:                 SiteAuthConfig{},
-			AuthEnabled:          false,
 			MetadataHeaderPrefix: "",
-			verifier:             nil,
+			authenticator:        nil,
 			Base:                 nil,
 			DBPool:               nil,
 			ESClient:             nil,
 			RiverClient:          nil,
-			flowStore:            nil,
 			debugRiverHandler:    nil,
 			initialized:          false,
 			propertiesTotal:      0,
@@ -153,14 +171,14 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 		site.MetadataHeaderPrefix = service.MetadataHeaderPrefix
 	}
 
-	var middleware []func(http.Handler) http.Handler
+	service.Middleware = []func(http.Handler) http.Handler{}
 	if c.Username != "" && c.Password != nil {
 		globals.Logger.Info().Str("username", c.Username).Msg("authentication enabled for all sites")
 
 		// Basic auth is a strict outer gate that applies to every request,
 		// regardless of whether the caller also presents OIDC credentials
 		// via cookie.
-		middleware = append(middleware, auth.BasicAuthHandler(
+		service.Middleware = append(service.Middleware, auth.BasicAuthMiddleware(
 			c.Username,
 			strings.TrimSpace(string(c.Password)),
 			func(req *http.Request) string {
@@ -169,26 +187,26 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 		))
 	}
 
-	// Configure OIDC auth.
-	anyAuthEnabled := true
+	// We attach the auth middleware last so the access token is verified
+	// after any preceding gate (e.g. basicAuth) has already let the request
+	// through. The lookup hands the middleware the per-site Authenticator
+	// and role allowlist on every request.
+	service.Middleware = append(service.Middleware, auth.Middleware(
+		service.MetadataHeaderPrefix,
+		service.lookupSiteAuthenticator,
+	))
+
+	// Each site needs an Authenticator. If the site declares an OIDC
+	// issuer we validate tokens against it. Otherwise we fall back to
+	// MockAuthenticator which short-circuits the flow in-process. Mock
+	// is intended for development. Production sites are expected to set
+	// Auth.Issuer.
 	for _, site := range sites {
-		if site.Auth.Issuer == "" {
-			continue
-		}
-
-		site.AuthEnabled = true
-		anyAuthEnabled = true
-
-		site.flowStore = auth.NewFlowStore(site.DBPool)
 		// We use a fallback DB context here because we are still in the init path and no request
 		// is in flight yet, so search_path has to be driven from the site's schema.
 		siteCtx := WithFallbackDBContext(ctx, site.Schema, "init")
-		errE = site.flowStore.Init(siteCtx)
-		if errE != nil {
-			return nil, onShutdown, errE
-		}
 
-		site.verifier, errE = auth.New(ctx, site.Auth.Issuer, site.Auth.ClientID, site.Auth.ClientSecret, sync.OnceValue(func() string {
+		redirectURI := sync.OnceValue(func() string {
 			host, errE := c.Server.Host(site.Domain)
 			if errE != nil {
 				return ""
@@ -198,23 +216,28 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 				return ""
 			}
 			return "https://" + host + callbackPath
-		}))
-		if errE != nil {
-			return nil, onShutdown, errE
+		})
+
+		// Site.Validate makes sure that or all three settings are set or none.
+		if site.Auth.Issuer != "" {
+			site.authenticator, errE = auth.NewOIDCAuthenticator(siteCtx, site.DBPool, site.Auth.Issuer, site.Auth.ClientID, site.Auth.ClientSecret, redirectURI)
+			if errE != nil {
+				return nil, onShutdown, errE
+			}
+			globals.Logger.Info().Str("domain", site.Domain).Str("issuer", site.Auth.Issuer).Str("clientId", site.Auth.ClientID).Msg("OIDC authentication enabled")
+		} else {
+			grantedRoles := make([]string, 0, len(site.Roles))
+			for role := range site.Roles {
+				grantedRoles = append(grantedRoles, role)
+			}
+			slices.Sort(grantedRoles)
+			site.authenticator, errE = auth.NewMockAuthenticator(siteCtx, site.DBPool, site.Domain, grantedRoles, redirectURI)
+			if errE != nil {
+				return nil, onShutdown, errE
+			}
+			globals.Logger.Info().Str("domain", site.Domain).Strs("roles", grantedRoles).Msg("mock authentication enabled")
 		}
-
-		globals.Logger.Info().Str("domain", site.Domain).Str("issuer", site.Auth.Issuer).Str("clientId", site.Auth.ClientID).Msg("OIDC authentication enabled")
 	}
-
-	if anyAuthEnabled {
-		// We attach the OIDC middleware last so the access token is verified
-		// after any preceding gate (e.g. basicAuth) has already let the request
-		// through. The middleware looks up the per-site Verifier on every
-		// request, so a site without OIDC config simply does nothing.
-		middleware = append(middleware, service.oidcAuthMiddleware(service.MetadataHeaderPrefix))
-	}
-
-	service.Middleware = middleware
 
 	service.setRoutes()
 

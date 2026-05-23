@@ -179,10 +179,6 @@ export type SiteContext = {
   roles?: {
     [roleName: string]: string[]
   }
-  // True when the server has been started with authentication enabled.
-  // Absence (or false) is the frontend's signal that sign-in is not
-  // available for this site.
-  authEnabled?: boolean
   metadataHeaderPrefix?: string
 }
 

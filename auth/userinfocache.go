@@ -47,7 +47,7 @@ type userInfoCache struct {
 }
 
 // newUserInfoCache builds a cache backed by the given userinfo endpoint. The
-// HTTP client should be pooled so JWKS refreshes (in the verifier) and
+// HTTP client should be pooled so JWKS refreshes (in the authenticator) and
 // userinfo lookups share connections.
 func newUserInfoCache(endpoint string, client *http.Client) *userInfoCache {
 	return &userInfoCache{ //nolint:exhaustruct

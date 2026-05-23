@@ -3,7 +3,7 @@ import { onBeforeUnmount } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
-import { isAuthEnabled, isSignedIn, signIn, signOut } from "@/auth"
+import { isSignedIn, signIn, signOut } from "@/auth"
 import Button from "@/components/Button.vue"
 import { useBusy } from "@/progress"
 
@@ -33,12 +33,10 @@ async function onSignOut() {
 </script>
 
 <template>
-  <template v-if="isAuthEnabled()">
-    <Button v-if="isSignedIn()" id="navbar-button-signout" primary type="button" :progress="busy" @click.prevent="onSignOut">
-      {{ t("common.buttons.signOut") }}
-    </Button>
-    <Button v-else id="navbar-button-signin" primary type="button" :progress="busy" @click.prevent="onSignIn">
-      {{ t("common.buttons.signIn") }}
-    </Button>
-  </template>
+  <Button v-if="isSignedIn()" id="navbar-button-signout" primary type="button" :progress="busy" @click.prevent="onSignOut">
+    {{ t("common.buttons.signOut") }}
+  </Button>
+  <Button v-else id="navbar-button-signin" primary type="button" :progress="busy" @click.prevent="onSignIn">
+    {{ t("common.buttons.signIn") }}
+  </Button>
 </template>
