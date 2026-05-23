@@ -363,10 +363,7 @@ func (c *DBWipeCommand) Run(globals *Globals) errors.E {
 
 		errE = internalStore.RetryTransaction(siteCtx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 			_, err := tx.Exec(ctx, fmt.Sprintf(`DROP SCHEMA IF EXISTS "%s" CASCADE`, site.Schema))
-			if err != nil {
-				return internalStore.WithPgxError(err)
-			}
-			return nil
+			return internalStore.WithPgxError(err)
 		})
 		if errE != nil {
 			return errE

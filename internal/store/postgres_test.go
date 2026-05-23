@@ -117,10 +117,7 @@ func TestRetryTransactionSuccess(t *testing.T) {
 		called++
 		var result int
 		err := tx.QueryRow(ctx, "SELECT 1").Scan(&result)
-		if err != nil {
-			return internalStore.WithPgxError(err)
-		}
-		return nil
+		return internalStore.WithPgxError(err)
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, 1, called)
@@ -168,10 +165,7 @@ func TestRetryTransactionNestedTransaction(t *testing.T) {
 		return internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 			var result int
 			err := tx.QueryRow(ctx, "SELECT 2").Scan(&result)
-			if err != nil {
-				return internalStore.WithPgxError(err)
-			}
-			return nil
+			return internalStore.WithPgxError(err)
 		})
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -201,10 +195,7 @@ func TestRetryTransactionFnCommits(t *testing.T) {
 	// Function that commits the transaction itself.
 	errE := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		err := tx.Commit(ctx)
-		if err != nil {
-			return internalStore.WithPgxError(err)
-		}
-		return nil
+		return internalStore.WithPgxError(err)
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 }
@@ -217,10 +208,7 @@ func TestRetryTransactionFnRollbacks(t *testing.T) {
 	// Function that rolls back the transaction itself.
 	errE := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		err := tx.Rollback(ctx)
-		if err != nil {
-			return internalStore.WithPgxError(err)
-		}
-		return nil
+		return internalStore.WithPgxError(err)
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 }
@@ -234,10 +222,7 @@ func TestRetryTransactionNestedFnCommits(t *testing.T) {
 		// Nested transaction where fn commits itself.
 		return internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 			err := tx.Commit(ctx)
-			if err != nil {
-				return internalStore.WithPgxError(err)
-			}
-			return nil
+			return internalStore.WithPgxError(err)
 		})
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -249,10 +234,7 @@ func createKVTable(t *testing.T, ctx context.Context, dbpool *pgxpool.Pool, tabl
 	t.Helper()
 	errE := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `CREATE TABLE "`+table+`" ("k" text PRIMARY KEY, "v" text NOT NULL)`)
-		if err != nil {
-			return internalStore.WithPgxError(err)
-		}
-		return nil
+		return internalStore.WithPgxError(err)
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 }
@@ -311,10 +293,7 @@ func TestNestedTransactionSavepointIsolation(t *testing.T) {
 		// Outer continues with another write. Savepoint failure must not poison
 		// the outer transaction.
 		_, err = tx.Exec(ctx, `INSERT INTO "`+table+`" VALUES ('C','outer-c')`)
-		if err != nil {
-			return internalStore.WithPgxError(err)
-		}
-		return nil
+		return internalStore.WithPgxError(err)
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -343,10 +322,7 @@ func TestNestedTransactionCommitVisibleToOuter(t *testing.T) {
 
 		nestedErr := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 			_, err := tx.Exec(ctx, `INSERT INTO "`+table+`" VALUES ('B','nested-b')`)
-			if err != nil {
-				return internalStore.WithPgxError(err)
-			}
-			return nil
+			return internalStore.WithPgxError(err)
 		})
 		require.NoError(t, nestedErr, "% -+#.1v", nestedErr)
 
@@ -392,10 +368,7 @@ func TestNestedTransactionOuterRollbackDiscardsNested(t *testing.T) {
 		// Nested fn succeeds and releases its savepoint.
 		nestedErr := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 			_, err := tx.Exec(ctx, `INSERT INTO "`+table+`" VALUES ('B','nested-b')`)
-			if err != nil {
-				return internalStore.WithPgxError(err)
-			}
-			return nil
+			return internalStore.WithPgxError(err)
 		})
 		require.NoError(t, nestedErr, "% -+#.1v", nestedErr)
 
@@ -430,10 +403,7 @@ func TestNestedTransactionThreeLevelsSuccess(t *testing.T) {
 			}
 			return internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 				_, err := tx.Exec(ctx, `INSERT INTO "`+table+`" VALUES ('L2','deep')`)
-				if err != nil {
-					return internalStore.WithPgxError(err)
-				}
-				return nil
+				return internalStore.WithPgxError(err)
 			})
 		})
 	})
@@ -479,10 +449,7 @@ func TestNestedTransactionInnermostRollbackPreservesMiddleAndOuter(t *testing.T)
 
 			// Middle writes again after catching the failure.
 			_, err = tx.Exec(ctx, `INSERT INTO "`+table+`" VALUES ('middle2','m2')`)
-			if err != nil {
-				return internalStore.WithPgxError(err)
-			}
-			return nil
+			return internalStore.WithPgxError(err)
 		})
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)

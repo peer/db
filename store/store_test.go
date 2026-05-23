@@ -3092,10 +3092,7 @@ func TestReadOnlyRejectsWrites(t *testing.T) {
 	errE := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// CREATE TEMP TABLE is a write and is disallowed in a read-only transaction.
 		_, err := tx.Exec(ctx, `CREATE TEMP TABLE rotest(id int)`)
-		if err != nil {
-			return internalStore.WithPgxError(err)
-		}
-		return nil
+		return internalStore.WithPgxError(err)
 	})
 	require.Error(t, errE)
 	pgError, ok := errors.AsType[*pgconn.PgError](errE)

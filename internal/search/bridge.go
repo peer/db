@@ -1104,11 +1104,7 @@ func (b *Bridge) updateSeq(
 
 			// Advance the bridge seq last, so its notification arrives after BridgeInverseRelationsMinSeq.
 			_, err := tx.Exec(ctx, `UPDATE "`+b.Store.Prefix+`Bridge" SET "seq" = $1 WHERE "seq" < $1`, seq)
-			if err != nil {
-				return internalStore.WithPgxError(err)
-			}
-
-			return nil
+			return internalStore.WithPgxError(err)
 		})
 		if errors.Is(errE, store.ErrRevisionMismatch) {
 			// Concurrent update changed a revision, refetch and retry.

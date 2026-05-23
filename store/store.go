@@ -533,11 +533,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 
 		viewID := identifier.New()
 		_, err = tx.Exec(ctx, `INSERT INTO "`+s.Prefix+`Views" VALUES ($1, 1, $2, $3, '{}')`, viewID.String(), MainView, []string{viewID.String()})
-		if err != nil {
-			return internalStore.WithPgxError(err)
-		}
-
-		return nil
+		return internalStore.WithPgxError(err)
 	})
 	if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 		switch pgError.Code {

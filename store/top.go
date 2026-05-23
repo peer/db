@@ -308,10 +308,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 			commits = append(commits, commit)
 			return nil
 		})
-		if err != nil {
-			return internalStore.WithPgxError(err)
-		}
-		return nil
+		return internalStore.WithPgxError(err)
 	})
 	if errE != nil {
 		if after != nil {

@@ -338,11 +338,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 				END;
 			$$;
 		`)
-		if err != nil {
-			return internalStore.WithPgxError(err)
-		}
-
-		return nil
+		return internalStore.WithPgxError(err)
 	})
 	if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
 		switch pgError.Code {
