@@ -152,6 +152,12 @@ func (v *Verifier) ClientID() string {
 // metadataHeaderPrefix should be the WAF service's MetadataHeaderPrefix so
 // the auth headers stack with the existing Metadata header pattern.
 //
+// allowedRoles is the allowlist of role names the caller is permitted to
+// receive; any role granted by the token that is not a key in this map is
+// silently dropped. Only keys are consulted; values are ignored. A nil or
+// empty map yields an empty role set even when the token carries role
+// scopes.
+//
 // The userinfo for the UserInfo header is read from an in-memory cache;
 // concurrent requests for the same subject coalesce into a single upstream
 // call to the issuer's userinfo endpoint (singleflight).
@@ -159,7 +165,7 @@ func (v *Verifier) ClientID() string {
 // On any validation failure the original ctx is returned unchanged and no
 // headers are written; callers (eg. the PeerDB-level middleware) should
 // treat that as an anonymous request and continue handling.
-func (v *Verifier) Authenticate(w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string) context.Context {
+func (v *Verifier) Authenticate(w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string][]string) context.Context {
 	ctx := req.Context()
 	token, _ := resolveAccessToken(w, req)
 	if token == "" {
@@ -169,7 +175,7 @@ func (v *Verifier) Authenticate(w http.ResponseWriter, req *http.Request, metada
 	if err != nil {
 		return ctx
 	}
-	roles, errE := extractRoles(idToken)
+	roles, errE := extractRoles(idToken, allowedRoles)
 	if errE != nil {
 		return ctx
 	}
@@ -264,13 +270,18 @@ func addVary(w http.ResponseWriter, header string) {
 }
 
 // extractRoles parses the scope claim of the verified token and returns every
-// role granted via the "role.<key>" namespace.
+// role granted via the "role.<key>" namespace that is also present as a key
+// in allowedRoles.
 //
 // We support both the standard OAuth 2.0 "scope" string claim (space-separated)
 // and the RFC 8693 "scp" array claim. If neither is present we return an empty
 // (non-nil) slice rather than an error so authenticated tokens without any
 // roles still authorize.
-func extractRoles(idToken *oidc.IDToken) ([]string, errors.E) {
+//
+// allowedRoles acts as a allowlist: only roles whose name is a key in the map
+// pass through. Values are ignored. A nil or empty map drops every role. This
+// guarantees that auth.Roles never carries a role the site has not declared.
+func extractRoles(idToken *oidc.IDToken, allowedRoles map[string][]string) ([]string, errors.E) {
 	var claims struct {
 		Scope string   `json:"scope"`
 		SCP   []string `json:"scp"`
@@ -297,6 +308,9 @@ func extractRoles(idToken *oidc.IDToken) ([]string, errors.E) {
 		}
 		role := strings.TrimPrefix(scope, roleScopePrefix)
 		if role == "" {
+			continue
+		}
+		if _, ok := allowedRoles[role]; !ok {
 			continue
 		}
 		if seen[role] {

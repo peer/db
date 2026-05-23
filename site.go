@@ -60,7 +60,10 @@ type Site struct {
 
 	Features SiteFeatures `json:"features" yaml:"features"`
 
-	// Roles is a map of role names to permissions.
+	// Roles is a map of role names to permissions. Its keys also act as
+	// the allowlist of roles a token may bind to a request: any role a
+	// token claims that is not a key here is dropped at authentication
+	// time so it cannot leak into auth.Roles or the Roles response header.
 	Roles map[string][]string `json:"roles,omitempty" yaml:"roles,omitempty"`
 
 	// Auth carries per-site OIDC configuration. When all three fields

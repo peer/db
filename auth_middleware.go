@@ -27,7 +27,7 @@ func (s *Service) oidcAuthMiddleware(metadataHeaderPrefix string) func(http.Hand
 			ctx := req.Context()
 			site, ok := waf.GetSite[*Site](ctx)
 			if ok && site.verifier != nil {
-				ctx = site.verifier.Authenticate(w, req, metadataHeaderPrefix)
+				ctx = site.verifier.Authenticate(w, req, metadataHeaderPrefix, site.Roles)
 				next.ServeHTTP(w, req.WithContext(ctx))
 			} else {
 				next.ServeHTTP(w, req)

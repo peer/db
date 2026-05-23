@@ -94,7 +94,7 @@ func TestAuthenticateNoRoles(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
-	ctx := verifier.Authenticate(w, req, "")
+	ctx := verifier.Authenticate(w, req, "", nil)
 	subject, ok := auth.Subject(ctx)
 	require.True(t, ok)
 	assert.Equal(t, "user-123", subject)
@@ -122,7 +122,7 @@ func TestAuthenticateFiltersRoleWildcard(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
-	ctx := verifier.Authenticate(w, req, "")
+	ctx := verifier.Authenticate(w, req, "", map[string][]string{"editor": nil})
 	assert.Equal(t, []string{"editor"}, auth.Roles(ctx))
 }
 
@@ -144,7 +144,7 @@ func TestAuthenticateReadsScpArray(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
-	ctx := verifier.Authenticate(w, req, "")
+	ctx := verifier.Authenticate(w, req, "", map[string][]string{"admin": nil, "viewer": nil})
 	assert.ElementsMatch(t, []string{"admin", "viewer"}, auth.Roles(ctx))
 }
 
@@ -187,7 +187,7 @@ func TestAuthenticateSilentlyDropsBadToken(t *testing.T) {
 			req.Header.Set("Authorization", tt.header)
 			w := httptest.NewRecorder()
 
-			ctx := verifier.Authenticate(w, req, "")
+			ctx := verifier.Authenticate(w, req, "", nil)
 			_, ok := auth.Subject(ctx)
 			assert.False(t, ok)
 			assert.Empty(t, auth.Roles(ctx))
@@ -247,7 +247,7 @@ func TestAuthenticateAttachesIdentityToContext(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
-	ctx := verifier.Authenticate(w, req, "")
+	ctx := verifier.Authenticate(w, req, "", map[string][]string{"admin": nil})
 
 	subject, ok := auth.Subject(ctx)
 	require.True(t, ok)
@@ -263,7 +263,7 @@ func TestAuthenticateLeavesAnonymousRequestsAlone(t *testing.T) {
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
 	w := httptest.NewRecorder()
 
-	ctx := verifier.Authenticate(w, req, "")
+	ctx := verifier.Authenticate(w, req, "", nil)
 	_, ok := auth.Subject(ctx)
 	assert.False(t, ok)
 	assert.Empty(t, auth.Roles(ctx))
@@ -348,7 +348,7 @@ func TestAuthenticateValidatesCookieToken(t *testing.T) {
 	req.AddCookie(&http.Cookie{Name: auth.TestingAccessTokenCookieName, Value: token}) //nolint:exhaustruct,gosec
 	w := httptest.NewRecorder()
 
-	ctx := verifier.Authenticate(w, req, "")
+	ctx := verifier.Authenticate(w, req, "", map[string][]string{"editor": nil})
 
 	subject, ok := auth.Subject(ctx)
 	require.True(t, ok)
@@ -371,9 +371,72 @@ func TestAuthenticateSkipsHeadersForAnonymousRequest(t *testing.T) {
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
 	w := httptest.NewRecorder()
 
-	ctx := verifier.Authenticate(w, req, "")
+	ctx := verifier.Authenticate(w, req, "", nil)
 	_, ok := auth.Subject(ctx)
 	assert.False(t, ok)
 	assert.Empty(t, w.Header().Get("Roles"))
 	assert.Empty(t, w.Header().Get("Userinfo"))
+}
+
+// TestAuthenticateDropsRolesNotInAllowedSet covers the allowlist behaviour:
+// a token may claim arbitrary "role.<key>" scopes, but the Verifier only
+// surfaces those that the caller has declared as legitimate via the
+// allowedRoles set. Roles the token claims but the site has not declared
+// are silently dropped so they cannot leak into auth.Roles or the Roles
+// response header.
+func TestAuthenticateDropsRolesNotInAllowedSet(t *testing.T) {
+	t.Parallel()
+
+	const audience = "peerdb"
+	verifier, issuer, priv := newTestVerifier(t)
+
+	token := signedToken(t, priv, map[string]any{
+		"iss":   issuer,
+		"aud":   audience,
+		"sub":   "user-filter",
+		"exp":   strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10),
+		"scope": "role.admin role.editor role.unknown",
+	})
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+
+	ctx := verifier.Authenticate(w, req, "", map[string][]string{"admin": nil, "editor": nil})
+
+	subject, ok := auth.Subject(ctx)
+	require.True(t, ok)
+	assert.Equal(t, "user-filter", subject)
+	assert.ElementsMatch(t, []string{"admin", "editor"}, auth.Roles(ctx))
+	assert.False(t, auth.HasRole(ctx, "unknown"))
+}
+
+// TestAuthenticateNilAllowedRolesDropsAll covers the secure-by-default case:
+// a site that does not declare any roles passes nil for allowedRoles. The
+// caller is authenticated (subject still attaches) but no role claim is
+// honoured.
+func TestAuthenticateNilAllowedRolesDropsAll(t *testing.T) {
+	t.Parallel()
+
+	const audience = "peerdb"
+	verifier, issuer, priv := newTestVerifier(t)
+
+	token := signedToken(t, priv, map[string]any{
+		"iss":   issuer,
+		"aud":   audience,
+		"sub":   "user-noroles",
+		"exp":   strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10),
+		"scope": "role.admin role.editor",
+	})
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+
+	ctx := verifier.Authenticate(w, req, "", nil)
+
+	subject, ok := auth.Subject(ctx)
+	require.True(t, ok)
+	assert.Equal(t, "user-noroles", subject)
+	assert.Empty(t, auth.Roles(ctx))
 }
