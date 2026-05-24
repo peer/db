@@ -20,6 +20,7 @@ import { computed, onBeforeUnmount, ref, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
+import { CAN_EDIT_FILES, hasPermission } from "@/auth"
 import Button from "@/components/Button.vue"
 import InputStyled from "@/components/InputStyled.vue"
 import WithLock from "@/components/WithLock.vue"
@@ -197,6 +198,7 @@ async function onUpload(file: File) {
   // Handling of progress here is slightly different from the rest of the codebase
   // and we set it explicitly to 1 instead of increasing it (and in finally then to 0).
   // This is because uploadFile manages progress and total specially.
+  if (!hasPermission(CAN_EDIT_FILES)) return
   if (progress.value !== 0) {
     throw new Error("upload already in progress")
   }
@@ -299,6 +301,9 @@ async function onDrop(e: DragEvent) {
       <Button type="button" class="px-2.5 py-1" @click.prevent="onClear" @blur="onBlur">{{ t("common.buttons.clear") }}</Button>
     </div>
   </div>
+  <div v-else-if="!hasPermission(CAN_EDIT_FILES)" v-tw-merge v-bind="$attrs" class="pd-inputfile text-gray-500 italic">{{
+    t("partials.input.InputFile.noPermission")
+  }}</div>
   <div v-else v-tw-merge v-bind="$attrs" class="pd-inputfile flex w-full flex-row gap-2">
     <Button
       ref="browseButtonRef"

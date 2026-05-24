@@ -103,7 +103,8 @@
         }
       },
       "InputFile": {
-        "dropOrBrowse": "Spustite datoteko sem ali kliknite za brskanje"
+        "dropOrBrowse": "Spustite datoteko sem ali kliknite za brskanje",
+        "noPermission": "Nalaganje datotek ni dovoljeno."
       },
       "InputRef": {
         "invalidValue": "neveljavna vrednost",

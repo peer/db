@@ -103,7 +103,8 @@
         }
       },
       "InputFile": {
-        "dropOrBrowse": "Drop file here or click to browse"
+        "dropOrBrowse": "Drop file here or click to browse",
+        "noPermission": "Uploading files not allowed."
       },
       "InputRef": {
         "invalidValue": "invalid value",
