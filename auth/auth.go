@@ -91,6 +91,12 @@ type Authenticator interface {
 
 	// SignOut revokes the access token the caller presented.
 	SignOut(w http.ResponseWriter, req *http.Request) errors.E
+
+	// CleanupExpired prunes rows that have aged out of the
+	// Authenticator's internal flow and revocation stores. It is meant
+	// to be called from a periodic background job. Errors from either
+	// store are joined so a partial failure is still surfaced.
+	CleanupExpired(ctx context.Context) errors.E
 }
 
 // baseAuthenticator holds the state shared between OIDCAuthenticator and
@@ -218,6 +224,16 @@ func (b *baseAuthenticator) writeUserInfoHeader(ctx context.Context, w http.Resp
 		return
 	}
 	w.Header().Add(prefix+userInfoHeader, buf.String())
+}
+
+// CleanupExpired prunes expired rows from both the flow store and the
+// revocation store. Each store is asked to clean up independently so a
+// transient failure in one does not leave the other unpruned. Errors
+// from the two stores are joined so the caller learns about both.
+func (b *baseAuthenticator) CleanupExpired(ctx context.Context) errors.E {
+	errFlow := b.flowStore.cleanupExpired(ctx)
+	errRevocation := b.revocationStore.cleanupExpired(ctx)
+	return errors.Join(errFlow, errRevocation)
 }
 
 // signInFlow is the shared body of OIDCAuthenticator.SignIn and

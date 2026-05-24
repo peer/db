@@ -11,7 +11,9 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
+	"github.com/riverqueue/river"
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/waf"
@@ -19,6 +21,12 @@ import (
 	"gitlab.com/peerdb/peerdb/auth"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
+
+// authCleanupInterval is how often the per-site auth cleanup job runs.
+// Expired rows do not affect correctness. The cleanup job exists purely
+// to bound table and index growth, so once a day is more than enough.
+// Skipping a run only leaves dead rows lying around for an extra day.
+const authCleanupInterval = 24 * time.Hour
 
 // Service is the main HTTP service for PeerDB.
 type Service struct {
@@ -237,6 +245,17 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			}
 			globals.Logger.Info().Str("domain", site.Domain).Strs("roles", grantedRoles).Msg("mock authentication enabled")
 		}
+
+		// Register the per-site auth cleanup worker. The actual periodic
+		// scheduling happens in Run, after the river client has been
+		// started by Prepare. Here we only make sure the worker type is
+		// known to the client when it starts.
+		site.Base.RegisterWorkers = append(site.Base.RegisterWorkers, func(_ context.Context, workers *river.Workers) errors.E {
+			return errors.WithStack(river.AddWorkerSafely(workers, &authCleanupWorker{
+				Site:           site,
+				WorkerDefaults: river.WorkerDefaults[authCleanupJobArgs]{},
+			}))
+		})
 	}
 
 	service.setRoutes()
@@ -315,6 +334,24 @@ func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
 	defer cancel()
 	if errE != nil {
 		return errE
+	}
+
+	// Register the daily auth-cleanup periodic job on each site's river
+	// client. Prepare has already started the client, so RunOnStart
+	// fires the first cleanup shortly after startup.
+	for _, site := range service.Sites {
+		_, err := site.RiverClient.PeriodicJobs().AddSafely(river.NewPeriodicJob(
+			river.PeriodicInterval(authCleanupInterval),
+			func() (river.JobArgs, *river.InsertOpts) {
+				return authCleanupJobArgs{}, nil
+			},
+			&river.PeriodicJobOpts{ //nolint:exhaustruct
+				RunOnStart: true,
+			},
+		))
+		if err != nil {
+			return errors.WithStack(err)
+		}
 	}
 
 	// It returns only on error or if the server is gracefully shut down using ctrl-c.

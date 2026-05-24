@@ -47,6 +47,10 @@ func (*fakeAuthenticator) SignOut(_ http.ResponseWriter, _ *http.Request) errors
 	return errors.New("not implemented")
 }
 
+func (*fakeAuthenticator) CleanupExpired(_ context.Context) errors.E {
+	return errors.New("not implemented")
+}
+
 // TestMiddlewareCallsAuthenticateAndNext covers the happy path: lookup
 // returns handled=false plus a non-nil Authenticator, Authenticate runs,
 // and next.ServeHTTP fires with the request whose context Authenticate

@@ -74,8 +74,11 @@ type B struct {
 		ctx context.Context, data []byte, metadata *storage.FileMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
 	) ([]byte, *storage.FileMetadata, store.Version, []store.Version, errors.E)
 
-	// RegisterWorkers is called to register workers for processing background jobs.
-	RegisterWorkers func(context.Context, *river.Workers) errors.E
+	// RegisterWorkers are called in order to register workers for processing
+	// background jobs before the river client is started. Each callback is
+	// invoked once with the same *river.Workers. Downstream packages append
+	// rather than assign so PeerDB's built-in workers are not silently overwritten.
+	RegisterWorkers []func(context.Context, *river.Workers) errors.E
 
 	// Data type for Store is on purpose not document.D so that we can serve it directly without doing first JSON unmarshal just to marshal it again immediately.
 	documents   *store.Store[json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes]
@@ -192,8 +195,8 @@ func (b *B) Start(ctx context.Context, documents []*document.D) (func(), errors.
 	converter.Hooks = b.IndexingHooks
 	converter.IndexAncestorProperties = b.IndexAncestorProperties
 
-	if b.RegisterWorkers != nil {
-		errE := b.RegisterWorkers(ctx, b.workers)
+	for _, register := range b.RegisterWorkers {
+		errE := register(ctx, b.workers)
 		if errE != nil {
 			return nil, errE
 		}
