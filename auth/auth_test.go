@@ -4,17 +4,23 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strconv"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/coreos/go-oidc/v3/oidc/oidctest"
+	jose "github.com/go-jose/go-jose/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/tozd/go/errors"
 
 	"gitlab.com/peerdb/peerdb/auth"
 )
@@ -657,4 +663,289 @@ func TestSignOutWithInvalidTokenIsNoOp(t *testing.T) {
 	w := httptest.NewRecorder()
 	errE = a.SignOut(w, req)
 	assert.NoError(t, errE, "SignOut with an unparseable token must not error")
+}
+
+// TestMockAuthenticatorSignInCallbackRoundTrip exercises the full
+// SignIn -> Callback round-trip via the mock, end-to-end through the
+// flow store. SignIn returns a URL whose query carries the state and
+// code; feeding the same query back into Callback consumes the flow
+// row and yields a valid access token plus the original redirect.
+func TestMockAuthenticatorSignInCallbackRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	ctx, dbpool := auth.TestingInitPool(t)
+	cb := func() string { return "https://example.test/auth/callback" }
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", []string{"admin"}, cb)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	authURL, errE := a.SignIn(ctx, "/landing")
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	u, err := url.Parse(authURL)
+	require.NoError(t, err)
+	require.NotEmpty(t, u.Query().Get("state"))
+	require.NotEmpty(t, u.Query().Get("code"))
+
+	token, expiry, redirect, errE := a.Callback(ctx, u.Query())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.NotEmpty(t, token)
+	assert.True(t, expiry.After(time.Now()))
+	assert.Equal(t, "/landing", redirect)
+
+	// Single-use: a second Callback with the same state must return
+	// the client-error sentinel so the route handler maps it to 400.
+	_, _, _, errE = a.Callback(ctx, u.Query()) //nolint:dogsled
+	require.Error(t, errE)
+	assert.True(t, errors.Is(errE, auth.ErrSignInFailed), "second consume must wrap ErrSignInFailed")
+}
+
+// TestMockAuthenticatorSignInUnsafeRedirectFallsBackToRoot covers the
+// open-redirect guard at SignIn: an off-site post-sign-in path is
+// silently rewritten to "/" before being stored. Callback then returns
+// the safe path.
+func TestMockAuthenticatorSignInUnsafeRedirectFallsBackToRoot(t *testing.T) {
+	t.Parallel()
+
+	ctx, dbpool := auth.TestingInitPool(t)
+	cb := func() string { return "https://example.test/auth/callback" }
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, cb)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	authURL, errE := a.SignIn(ctx, "//evil.example/phish")
+	require.NoError(t, errE, "% -+#.1v", errE)
+	u, err := url.Parse(authURL)
+	require.NoError(t, err)
+
+	_, _, redirect, errE := a.Callback(ctx, u.Query())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "/", redirect, "protocol-relative redirect must collapse to /")
+}
+
+// TestMockAuthenticatorCallbackMissingParams covers two malformed
+// callback inputs: no state, no code. Both must wrap ErrSignInFailed.
+func TestMockAuthenticatorCallbackMissingParams(t *testing.T) {
+	t.Parallel()
+
+	ctx, dbpool := auth.TestingInitPool(t)
+	cb := func() string { return "https://example.test/auth/callback" }
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, cb)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	cases := []url.Values{
+		{},                       // neither state nor code.
+		{"state": []string{"s"}}, // missing code.
+		{"code": []string{"c"}},  // missing state.
+		{"state": []string{""}, "code": []string{"c"}}, // empty state.
+	}
+	for _, q := range cases {
+		_, _, _, errE := a.Callback(ctx, q)
+		require.Error(t, errE)
+		assert.True(t, errors.Is(errE, auth.ErrSignInFailed), "missing params must wrap ErrSignInFailed: %v", q)
+	}
+}
+
+// TestMockAuthenticatorCallbackIssuerError covers the OIDC-spec error
+// path: when the issuer reports back via ?error=...&error_description=...
+// the Callback surfaces ErrSignInFailed with both fields attached to
+// errors.Details so the handler can log them.
+func TestMockAuthenticatorCallbackIssuerError(t *testing.T) {
+	t.Parallel()
+
+	ctx, dbpool := auth.TestingInitPool(t)
+	cb := func() string { return "https://example.test/auth/callback" }
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, cb)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	values := url.Values{
+		"error":             []string{"access_denied"},
+		"error_description": []string{"user clicked no"},
+	}
+	_, _, _, errE = a.Callback(ctx, values) //nolint:dogsled
+	require.Error(t, errE)
+	assert.True(t, errors.Is(errE, auth.ErrSignInFailed))
+	assert.Equal(t, "access_denied", errors.Details(errE)["error"])
+	assert.Equal(t, "user clicked no", errors.Details(errE)["description"])
+}
+
+// TestOIDCAuthenticatorSignOutCallsRevocationEndpoint covers the
+// RFC 7009 round-trip from the OIDCAuthenticator side: we stand up a
+// minimal OIDC-issuer mock that advertises a revocation_endpoint and
+// records the POST it receives, mint a JWT with the same key the mock
+// publishes via JWKS, and call SignOut. The middleware-level local
+// revocation is best-effort goroutine, so we wait via Eventually.
+func TestOIDCAuthenticatorSignOutCallsRevocationEndpoint(t *testing.T) {
+	t.Parallel()
+
+	ctx, dbpool := auth.TestingInitPool(t)
+
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	var (
+		revokeCalls    atomic.Int32
+		lastAuthHeader string
+		lastBody       url.Values
+		lastBodyMu     sync.Mutex
+	)
+
+	mux := http.NewServeMux()
+	var issuerURL string
+
+	mux.HandleFunc("/.well-known/openid-configuration", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"issuer":                                issuerURL,
+			"jwks_uri":                              issuerURL + "/keys",
+			"authorization_endpoint":                issuerURL + "/auth",
+			"token_endpoint":                        issuerURL + "/token",
+			"revocation_endpoint":                   issuerURL + "/revoke",
+			"response_types_supported":              []string{"code"},
+			"subject_types_supported":               []string{"public"},
+			"id_token_signing_alg_values_supported": []string{"RS256"},
+		})
+	})
+
+	mux.HandleFunc("/keys", func(w http.ResponseWriter, _ *http.Request) {
+		jwks := struct {
+			Keys []jose.JSONWebKey `json:"keys"`
+		}{
+			Keys: []jose.JSONWebKey{{ //nolint:exhaustruct
+				Key:       priv.Public(),
+				KeyID:     "test-key",
+				Algorithm: "RS256",
+				Use:       "sig",
+			}},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(jwks)
+	})
+
+	mux.HandleFunc("/revoke", func(w http.ResponseWriter, r *http.Request) {
+		revokeCalls.Add(1)
+		// require.* calls FailNow on the test goroutine and is unsafe
+		// from a handler goroutine; use assert here and let the rest of
+		// the test surface the failure.
+		assert.NoError(t, r.ParseForm())
+		lastBodyMu.Lock()
+		lastAuthHeader = r.Header.Get("Authorization")
+		lastBody = r.Form
+		lastBodyMu.Unlock()
+		w.WriteHeader(http.StatusOK)
+	})
+
+	ts := httptest.NewServer(mux)
+	t.Cleanup(ts.Close)
+	issuerURL = ts.URL
+
+	cb := func() string { return "https://example.test/auth/callback" }
+	a, errE := auth.NewOIDCAuthenticator(ctx, dbpool, ts.URL, "test-client", "test-secret", cb)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Mint an access token directly with claims the OIDCAuthenticator's
+	// tokenVerifier will accept (issuer matches, audience matches the
+	// configured clientID, unexpired).
+	token := signedToken(t, priv, map[string]any{
+		"iss": ts.URL,
+		"aud": "test-client",
+		"sub": "user-1",
+		"iat": time.Now().Unix(),
+		"exp": time.Now().Add(time.Hour).Unix(),
+	})
+
+	req := httptest.NewRequestWithContext(ctx, http.MethodPost, "/auth/signOut", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	errE = a.SignOut(w, req)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// SignOut fires revokeUpstream in a goroutine so the response can
+	// return immediately. Wait for the upstream POST to land.
+	require.Eventually(t, func() bool {
+		return revokeCalls.Load() == 1
+	}, 5*time.Second, 50*time.Millisecond, "expected exactly one upstream revocation call")
+
+	lastBodyMu.Lock()
+	defer lastBodyMu.Unlock()
+
+	assert.Equal(t, token, lastBody.Get("token"))
+	assert.Equal(t, "access_token", lastBody.Get("token_type_hint"))
+
+	// RFC 6749 §2.3.1: client_id and client_secret are URL-encoded
+	// before being used as the Basic-auth credentials.
+	expectedAuth := "Basic " + base64.StdEncoding.EncodeToString([]byte(
+		url.QueryEscape("test-client")+":"+url.QueryEscape("test-secret"),
+	))
+	assert.Equal(t, expectedAuth, lastAuthHeader)
+}
+
+// TestOIDCAuthenticatorSignOutSwallowsUpstreamFailure covers the
+// best-effort contract: when the issuer's revocation_endpoint returns
+// a non-200, the local revocation has already succeeded and SignOut
+// must still return nil. The user is locally signed out regardless of
+// whether the upstream cooperates.
+func TestOIDCAuthenticatorSignOutSwallowsUpstreamFailure(t *testing.T) {
+	t.Parallel()
+
+	ctx, dbpool := auth.TestingInitPool(t)
+
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	var revokeCalls atomic.Int32
+	mux := http.NewServeMux()
+	var issuerURL string
+
+	mux.HandleFunc("/.well-known/openid-configuration", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"issuer":                                issuerURL,
+			"jwks_uri":                              issuerURL + "/keys",
+			"authorization_endpoint":                issuerURL + "/auth",
+			"token_endpoint":                        issuerURL + "/token",
+			"revocation_endpoint":                   issuerURL + "/revoke",
+			"response_types_supported":              []string{"code"},
+			"subject_types_supported":               []string{"public"},
+			"id_token_signing_alg_values_supported": []string{"RS256"},
+		})
+	})
+	mux.HandleFunc("/keys", func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(struct {
+			Keys []jose.JSONWebKey `json:"keys"`
+		}{Keys: []jose.JSONWebKey{{ //nolint:exhaustruct
+			Key: priv.Public(), KeyID: "test-key", Algorithm: "RS256", Use: "sig",
+		}}})
+	})
+	mux.HandleFunc("/revoke", func(w http.ResponseWriter, _ *http.Request) {
+		revokeCalls.Add(1)
+		http.Error(w, "issuer is down", http.StatusServiceUnavailable)
+	})
+
+	ts := httptest.NewServer(mux)
+	t.Cleanup(ts.Close)
+	issuerURL = ts.URL
+
+	cb := func() string { return "https://example.test/auth/callback" }
+	a, errE := auth.NewOIDCAuthenticator(ctx, dbpool, ts.URL, "test-client", "test-secret", cb)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	token := signedToken(t, priv, map[string]any{
+		"iss": ts.URL,
+		"aud": "test-client",
+		"sub": "user-1",
+		"iat": time.Now().Unix(),
+		"exp": time.Now().Add(time.Hour).Unix(),
+	})
+
+	req := httptest.NewRequestWithContext(ctx, http.MethodPost, "/auth/signOut", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+
+	// SignOut must not surface the upstream failure - local revocation
+	// has already succeeded.
+	errE = a.SignOut(w, req)
+	require.NoError(t, errE, "upstream 503 must not propagate to SignOut: % -+#.1v", errE)
+
+	require.Eventually(t, func() bool {
+		return revokeCalls.Load() == 1
+	}, 5*time.Second, 50*time.Millisecond, "upstream endpoint should still be called even when it will fail")
 }

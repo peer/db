@@ -145,3 +145,45 @@ func TestRevocationStoreRevokePrimesCache(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, revoked, "Revoke must populate the cache so a follow-up IsRevoked needs no DB call")
 }
+
+// TestRevocationStoreCleanupExpired covers the cleanup path: rows
+// whose expiresAt is in the past are deleted, rows still in their
+// window stay. We forcibly age one row via a direct UPDATE so we do
+// not have to wait out the real TTL. The cache is not consulted here -
+// we read the surviving row count directly via SQL.
+func TestRevocationStoreCleanupExpired(t *testing.T) {
+	t.Parallel()
+
+	ctx, rs := newTestRevocationStore(t)
+
+	expiredToken := "expired-" + identifier.New().String()
+	freshToken := "fresh-" + identifier.New().String()
+	exp := time.Now().Add(time.Hour)
+
+	require.NoError(t, rs.Revoke(ctx, expiredToken, exp), "% -+#.1v")
+	require.NoError(t, rs.Revoke(ctx, freshToken, exp), "% -+#.1v")
+
+	// Age the first row out of its window.
+	errE := internalStore.RetryTransaction(ctx, rs.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		_, err := tx.Exec(ctx, `UPDATE "RevokedTokens" SET "expiresAt" = now() - interval '1 second' WHERE "tokenHash" = $1`, hashToken(expiredToken))
+		return internalStore.WithPgxError(err)
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = rs.cleanupExpired(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Verify directly via SQL: the aged row is gone, the fresh row stays.
+	var expiredCount, freshCount int
+	errE = internalStore.RetryTransaction(ctx, rs.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM "RevokedTokens" WHERE "tokenHash" = $1`, hashToken(expiredToken)).Scan(&expiredCount)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		err = tx.QueryRow(ctx, `SELECT COUNT(*) FROM "RevokedTokens" WHERE "tokenHash" = $1`, hashToken(freshToken)).Scan(&freshCount)
+		return internalStore.WithPgxError(err)
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, 0, expiredCount, "expired row must be deleted")
+	assert.Equal(t, 1, freshCount, "fresh row must stay")
+}
