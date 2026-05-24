@@ -12,6 +12,7 @@ import Button from "@/components/Button.vue"
 import CheckBox from "@/components/CheckBox.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
+import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import { useLocked, useProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useHasFilters } from "@/search"
 import { equals, loadingWidth, useInitialLoad, useLimitResults } from "@/utils"
@@ -53,6 +54,7 @@ const {
 } = useHasFilters(
   toRef(() => props.searchSession),
   filterId,
+  computed(() => props.result.props ?? []),
   el,
   progress,
 )
@@ -81,7 +83,7 @@ function clearFilter() {
   emit("filterUpdate", props.filter.id, {
     id: props.filter.id,
     base: props.filter.base,
-    prop: [],
+    prop: props.filter.prop,
     has: { props: undefined },
   })
 }
@@ -97,11 +99,12 @@ const checkboxState = computed({
 
     const hasProps: HasValue[] | undefined = value.length > 0 ? value.map((id) => ({ id })) : undefined
 
-    // Build the updated filter.
+    // Build the updated filter. prop carries the parentProp for sub-has filters,
+    // and is empty for top-level has filters.
     const updatedFilter: HasFilterEntry = {
       id: props.filter?.id ?? "",
       base: props.filter?.base ?? [],
-      prop: [],
+      prop: props.filter?.prop ?? (props.result.props ? [...props.result.props] : []),
       has: { props: hasProps },
     }
 
@@ -126,6 +129,10 @@ const WithDocumentD = WithDocument<D>
         @click.prevent="clearFilter"
         >{{ t("common.buttons.clear") }}</Button
       >
+      <template v-if="result.props && result.props.length === 1">
+        <DocumentRefInline :id="result.props[0]" class="mb-1.5 text-lg leading-none" />
+        <span class="mb-1.5 text-lg leading-none">&gt;</span>
+      </template>
       <span class="mb-1.5 text-lg leading-none">{{ t("partials.HasFiltersResult.title") }}</span>
       ({{ result.count }})
     </div>
@@ -144,11 +151,16 @@ const WithDocumentD = WithDocument<D>
       </template>
       <template v-else>
         <li v-for="res in limitedResults" :key="res.id" class="contents">
-          <CheckBox :id="'has/' + res.id" v-model="checkboxState" :value="res.id" />
+          <CheckBox :id="'has/' + (result.props?.join('/') ?? '') + '/' + res.id" v-model="checkboxState" :value="res.id" />
           <div class="flex items-baseline gap-x-1">
             <WithDocumentD :id="res.id" name="DocumentGet">
               <template #default="{ doc, url }">
-                <label :for="'has/' + res.id" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'" :data-url="url"><DisplayLabel :doc="doc" /></label>
+                <label
+                  :for="'has/' + (result.props?.join('/') ?? '') + '/' + res.id"
+                  :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+                  :data-url="url"
+                  ><DisplayLabel :doc="doc"
+                /></label>
               </template>
               <template #loading="{ url }">
                 <div
@@ -159,7 +171,9 @@ const WithDocumentD = WithDocument<D>
                 ></div>
               </template>
             </WithDocumentD>
-            <label :for="'has/' + res.id" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ res.count }})</label>
+            <label :for="'has/' + (result.props?.join('/') ?? '') + '/' + res.id" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+              >({{ res.count }})</label
+            >
             <!--
               tabindex="-1" keeps the open-link icon out of the keyboard tab
               order so Tab jumps between filters without stopping

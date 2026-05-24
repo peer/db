@@ -18,7 +18,10 @@ type Document struct {
 	Claims ClaimTypes `json:"claims,omitzero"`
 }
 
-// ClaimTypes organizes claims by their type.
+// ClaimTypes organizes claims by their type. Synthetic sub-claim types
+// (SubRef, SubAmount, SubTime, SubHas) flatten nested sub-claims from
+// parent claims (ref, has, none, unknown) so they can be matched by sub-claim
+// filters without ES join queries.
 type ClaimTypes struct {
 	Identifier IdentifierClaims `json:"id,omitempty"`
 	String     StringClaims     `json:"string,omitempty"`
@@ -31,12 +34,16 @@ type ClaimTypes struct {
 	None       NoneClaims       `json:"none,omitempty"`
 	Unknown    UnknownClaims    `json:"unknown,omitempty"`
 
-	// This is a synthetic claim type used to index sub-claims.
-	SubReference SubReferenceClaims `json:"sub,omitempty"`
+	SubRef    SubRefClaims    `json:"subRef,omitempty"`
+	SubAmount SubAmountClaims `json:"subAmount,omitempty"`
+	SubTime   SubTimeClaims   `json:"subTime,omitempty"`
+	SubHas    SubHasClaims    `json:"subHas,omitempty"`
 }
 
-// There are no AmountInterval and TimeInterval claims because they are mapped
-// to Amount and Time claims here, respectively.
+// AmountInterval and TimeInterval source claims are mapped to AmountClaim and
+// TimeClaim records respectively (top-level and sub-claim alike): a point
+// claim becomes a range whose endpoints coincide, while an interval claim
+// becomes a range over its bounds.
 
 type (
 	// IdentifierClaims is a slice of IdentifierClaim.
@@ -59,8 +66,14 @@ type (
 	NoneClaims = []NoneClaim
 	// UnknownClaims is a slice of UnknownClaim.
 	UnknownClaims = []UnknownClaim
-	// SubReferenceClaims is a slice of SubReferenceClaim.
-	SubReferenceClaims = []SubReferenceClaim
+	// SubRefClaims is a slice of SubRefClaim.
+	SubRefClaims = []SubRefClaim
+	// SubAmountClaims is a slice of SubAmountClaim.
+	SubAmountClaims = []SubAmountClaim
+	// SubTimeClaims is a slice of SubTimeClaim.
+	SubTimeClaims = []SubTimeClaim
+	// SubHasClaims is a slice of SubHasClaim.
+	SubHasClaims = []SubHasClaim
 )
 
 // IdentifierClaim represents a claim with a string identifier value.
@@ -256,10 +269,10 @@ type ReferenceClaim struct {
 
 // HasClaim represents a claim with just a property.
 //
-// Has claims that have ANY sub-claims (of any type) are NOT indexed as HasClaim entries.
-// Any reference sub-claims are still recorded in SubReferenceClaim entries with
-// ParentTo=ParentToHas. This means HasClaims only contain simple has claims (without
-// any sub-claims), so the has filter does not need to filter these out.
+// HasClaim entries hold simple has claims with no sub-claims. Any sub-claims of
+// a has claim are flattened into the appropriate Sub* records on the parent
+// document with ParentTo=ParentToHas, so the has filter that queries claims.has
+// naturally sees only simple has claims.
 type HasClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
@@ -280,9 +293,9 @@ type UnknownClaim struct {
 	PropNaming  map[string][]string   `json:"propNaming"`
 }
 
-// SubReferenceClaim represents a denormalized nested reference sub-claim
+// SubRefClaim represents a denormalized nested reference sub-claim
 // flattened from parent claims (ref, has, none, unknown) for cross-filtering.
-type SubReferenceClaim struct {
+type SubRefClaim struct {
 	ParentProp  identifier.Identifier `json:"parentProp"`
 	ParentTo    string                `json:"parentTo"`
 	Prop        identifier.Identifier `json:"prop"`
@@ -301,4 +314,54 @@ type SubReferenceClaim struct {
 	// target document. Each path is a string of display labels joined by null bytes,
 	// which ensures correct hierarchical sort order.
 	ToDisplayPath map[string][]string `json:"toDisplayPath,omitempty"`
+}
+
+// SubAmountClaim represents a denormalized nested amount sub-claim flattened
+// from parent claims (ref, has, none, unknown) so sub-amount filters can
+// match without ES join queries. AmountInterval source claims are stored
+// here too as a range over their bounds.
+type SubAmountClaim struct {
+	ParentProp  identifier.Identifier  `json:"parentProp"`
+	ParentTo    string                 `json:"parentTo"`
+	Prop        identifier.Identifier  `json:"prop"`
+	PropDisplay map[string]string      `json:"propDisplay"`
+	PropNaming  map[string][]string    `json:"propNaming"`
+	Unit        *identifier.Identifier `json:"unit"`
+	Range       RangeFloat             `json:"range"`
+	From        *float64               `json:"from,omitempty"`
+	FromDisplay string                 `json:"fromDisplay,omitempty"`
+	To          *float64               `json:"to,omitempty"`
+	ToDisplay   string                 `json:"toDisplay,omitempty"`
+}
+
+// SubTimeClaim represents a denormalized nested time sub-claim flattened from
+// parent claims (ref, has, none, unknown) so sub-time filters can match
+// without ES join queries. TimeInterval source claims are stored here too as
+// a range over their bounds. Times are stored as float64 seconds since Unix
+// epoch.
+type SubTimeClaim struct {
+	ParentProp  identifier.Identifier `json:"parentProp"`
+	ParentTo    string                `json:"parentTo"`
+	Prop        identifier.Identifier `json:"prop"`
+	PropDisplay map[string]string     `json:"propDisplay"`
+	PropNaming  map[string][]string   `json:"propNaming"`
+	Range       RangeFloat            `json:"range"`
+	From        *float64              `json:"from,omitempty"`
+	FromDisplay string                `json:"fromDisplay,omitempty"`
+	To          *float64              `json:"to,omitempty"`
+	ToDisplay   string                `json:"toDisplay,omitempty"`
+}
+
+// SubHasClaim represents a denormalized nested has-only sub-claim flattened
+// from parent claims (ref, has, none, unknown) so sub-has filters can match
+// without ES join queries. Only simple has sub-claims (those with no further
+// sub-claims of their own) are recorded here; has sub-claims with their own
+// sub-claims contribute to the appropriate Sub* records of their content
+// types but do not themselves appear as SubHasClaim entries.
+type SubHasClaim struct {
+	ParentProp  identifier.Identifier `json:"parentProp"`
+	ParentTo    string                `json:"parentTo"`
+	Prop        identifier.Identifier `json:"prop"`
+	PropDisplay map[string]string     `json:"propDisplay"`
+	PropNaming  map[string][]string   `json:"propNaming"`
 }

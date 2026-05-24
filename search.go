@@ -41,6 +41,22 @@ func (s *Service) getSearchServiceClosure(req *http.Request) func() (*esSearch.S
 	}
 }
 
+// collectParentToFromSession returns the To values of any active top-level
+// ref filter on parentProp in the given filter set. These values supply
+// cross-filter parentTo restrictions for sub-claim filters and aggregations
+// keyed on the same parentProp.
+func collectParentToFromSession(filters []search.Filter, parentProp identifier.Identifier) []identifier.Identifier {
+	var out []identifier.Identifier
+	for _, f := range filters {
+		if f.Ref != nil && len(f.Prop) == 1 && f.Prop[0] == parentProp {
+			for _, to := range f.Ref.To {
+				out = append(out, to.ID)
+			}
+		}
+	}
+	return out
+}
+
 // SearchFilterGetAPI handles GET requests for individual active (those in the session) filter search endpoint.
 //
 // It dispatches to the appropriate filter handler based on the filter type.
@@ -90,25 +106,32 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 	switch {
 	case f.Ref != nil:
 		if len(f.Prop) == 2 { //nolint:mnd
-			// Sub-ref filter: find parentTo restrictions from active parent ref filter.
-			var parentToRestrictions []identifier.Identifier
-			for _, other := range searchSession.Filters {
-				if other.Ref != nil && len(other.Prop) == 1 && other.Prop[0] == f.Prop[0] {
-					for _, to := range other.Ref.To {
-						parentToRestrictions = append(parentToRestrictions, to.ID)
-					}
-				}
-			}
-			data, metadata, errE = f.Ref.GetSubRef(ctx, searchService, query, f.Prop[0], f.Prop[1], parentToRestrictions)
+			data, metadata, errE = f.Ref.GetSubRef(ctx, searchService, query, f.Prop[0], f.Prop[1],
+				collectParentToFromSession(searchSession.Filters, f.Prop[0]))
 		} else {
 			data, metadata, errE = f.Ref.Get(ctx, searchService, query, f.Prop[0])
 		}
 	case f.Amount != nil:
-		data, metadata, errE = f.Amount.Get(ctx, searchService, query, f.Prop[0])
+		if len(f.Prop) == 2 { //nolint:mnd
+			data, metadata, errE = f.Amount.GetSubAmount(ctx, searchService, query, f.Prop[0], f.Prop[1],
+				collectParentToFromSession(searchSession.Filters, f.Prop[0]))
+		} else {
+			data, metadata, errE = f.Amount.Get(ctx, searchService, query, f.Prop[0])
+		}
 	case f.Time != nil:
-		data, metadata, errE = f.Time.Get(ctx, searchService, query, f.Prop[0])
+		if len(f.Prop) == 2 { //nolint:mnd
+			data, metadata, errE = f.Time.GetSubTime(ctx, searchService, query, f.Prop[0], f.Prop[1],
+				collectParentToFromSession(searchSession.Filters, f.Prop[0]))
+		} else {
+			data, metadata, errE = f.Time.Get(ctx, searchService, query, f.Prop[0])
+		}
 	case f.Has != nil:
-		data, metadata, errE = f.Has.Get(ctx, searchService, query)
+		if len(f.Prop) == 1 {
+			data, metadata, errE = f.Has.GetSubHas(ctx, searchService, query, f.Prop[0],
+				collectParentToFromSession(searchSession.Filters, f.Prop[0]))
+		} else {
+			data, metadata, errE = f.Has.Get(ctx, searchService, query)
+		}
 	default:
 		panic(errors.New("invalid filter"))
 	}
@@ -263,6 +286,8 @@ func (s *Service) SearchTimeFilterGetAPI(w http.ResponseWriter, req *http.Reques
 // SearchSubRefFilterGetAPI handles GET requests for sub-reference filter data by parentProp and prop.
 //
 // Used for inactive filters (not yet in the session).
+//
+//nolint:dupl
 func (s *Service) SearchSubRefFilterGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
@@ -296,19 +321,115 @@ func (s *Service) SearchSubRefFilterGetAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	// Find parentTo restrictions from active parent ref filter for cross-filtering.
-	var parentToRestrictions []identifier.Identifier
-	for _, f := range searchSession.Filters {
-		if f.Ref != nil && len(f.Prop) == 1 && f.Prop[0] == parentProp {
-			for _, to := range f.Ref.To {
-				parentToRestrictions = append(parentToRestrictions, to.ID)
-			}
-		}
-	}
+	parentToRestrictions := collectParentToFromSession(searchSession.Filters, parentProp)
 
 	query := searchSession.ToQuery()
 	f := search.RefFilter{}
 	data, metadata, errE := f.GetSubRef(ctx, s.getSearchServiceClosure(req), query, parentProp, prop, parentToRestrictions)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.WriteJSON(w, req, data, metadata)
+}
+
+// SearchSubAmountFilterGetAPI handles GET requests for sub-amount filter data by parentProp and prop.
+//
+// Used for inactive filters (not yet in the session).
+func (s *Service) SearchSubAmountFilterGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	ctx := req.Context()
+
+	id, errE := identifier.MaybeString(params["id"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
+		return
+	}
+
+	parentProp, errE := identifier.MaybeString(params["parentProp"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"parentProp" is not a valid identifier`))
+		return
+	}
+
+	prop, errE := identifier.MaybeString(params["prop"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"prop" is not a valid identifier`))
+		return
+	}
+
+	var unit *identifier.Identifier
+	if unitStr, ok := params["unit"]; ok {
+		u, errE := identifier.MaybeString(unitStr)
+		if errE != nil {
+			s.BadRequestWithError(w, req, errors.WithMessage(errE, `"unit" is not a valid identifier`))
+			return
+		}
+		unit = &u
+	}
+
+	searchSession, errE := search.GetSession(ctx, id)
+	if errors.Is(errE, search.ErrNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	parentToRestrictions := collectParentToFromSession(searchSession.Filters, parentProp)
+
+	query := searchSession.ToQuery()
+	f := search.AmountFilter{Unit: unit} //nolint:exhaustruct
+	data, metadata, errE := f.GetSubAmount(ctx, s.getSearchServiceClosure(req), query, parentProp, prop, parentToRestrictions)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.WriteJSON(w, req, data, metadata)
+}
+
+// SearchSubTimeFilterGetAPI handles GET requests for sub-time filter data by parentProp and prop.
+//
+// Used for inactive filters (not yet in the session).
+//
+//nolint:dupl
+func (s *Service) SearchSubTimeFilterGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	ctx := req.Context()
+
+	id, errE := identifier.MaybeString(params["id"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
+		return
+	}
+
+	parentProp, errE := identifier.MaybeString(params["parentProp"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"parentProp" is not a valid identifier`))
+		return
+	}
+
+	prop, errE := identifier.MaybeString(params["prop"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"prop" is not a valid identifier`))
+		return
+	}
+
+	searchSession, errE := search.GetSession(ctx, id)
+	if errors.Is(errE, search.ErrNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	parentToRestrictions := collectParentToFromSession(searchSession.Filters, parentProp)
+
+	query := searchSession.ToQuery()
+	f := search.TimeFilter{}
+	data, metadata, errE := f.GetSubTime(ctx, s.getSearchServiceClosure(req), query, parentProp, prop, parentToRestrictions)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -344,6 +465,46 @@ func (s *Service) SearchHasFilterGetAPI(w http.ResponseWriter, req *http.Request
 	query := searchSession.ToQuery()
 	f := search.HasFilter{}
 	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req), query)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.WriteJSON(w, req, data, metadata)
+}
+
+// SearchSubHasFilterGetAPI handles GET requests for sub-has filter data by parentProp.
+//
+// Used for inactive filters (not yet in the session).
+func (s *Service) SearchSubHasFilterGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	ctx := req.Context()
+
+	id, errE := identifier.MaybeString(params["id"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
+		return
+	}
+
+	parentProp, errE := identifier.MaybeString(params["parentProp"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"parentProp" is not a valid identifier`))
+		return
+	}
+
+	searchSession, errE := search.GetSession(ctx, id)
+	if errors.Is(errE, search.ErrNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	parentToRestrictions := collectParentToFromSession(searchSession.Filters, parentProp)
+
+	query := searchSession.ToQuery()
+	f := search.HasFilter{}
+	data, metadata, errE := f.GetSubHas(ctx, s.getSearchServiceClosure(req), query, parentProp, parentToRestrictions)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return

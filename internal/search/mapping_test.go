@@ -112,8 +112,8 @@ func TestMappingNestedReference(t *testing.T) {
 	claimProps, ok := claims["properties"].(map[string]any)
 	require.True(t, ok)
 
-	// Check that claims.sub exists as a nested field.
-	subRef, ok := claimProps["sub"].(map[string]any)
+	// Check that claims.subRef exists as a nested field.
+	subRef, ok := claimProps["subRef"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "nested", subRef["type"])
 	subRefProps, ok := subRef["properties"].(map[string]any)
@@ -126,6 +126,29 @@ func TestMappingNestedReference(t *testing.T) {
 	assert.True(t, ok)
 	_, ok = subRefProps["to"]
 	assert.True(t, ok)
+
+	// Check claims.subAmount, claims.subTime, claims.subHas are nested fields
+	// with parentProp / parentTo / prop indexed for cross-filter matching.
+	for _, name := range []string{"subAmount", "subTime", "subHas"} {
+		sub, ok := claimProps[name].(map[string]any)
+		require.True(t, ok, "missing claims.%s", name)
+		assert.Equal(t, "nested", sub["type"], "claims.%s should be a nested field", name)
+		subProps, ok := sub["properties"].(map[string]any)
+		require.True(t, ok)
+		for _, f := range []string{"parentProp", "parentTo", "prop"} {
+			_, ok = subProps[f]
+			assert.True(t, ok, "missing claims.%s.%s", name, f)
+		}
+	}
+
+	// subAmount and subTime also expose a range field for numeric filtering.
+	for _, name := range []string{"subAmount", "subTime"} {
+		sub := claimProps[name].(map[string]any)       //nolint:errcheck,forcetypeassert
+		subProps := sub["properties"].(map[string]any) //nolint:errcheck,forcetypeassert
+		rangeField, ok := subProps["range"].(map[string]any)
+		require.True(t, ok, "missing claims.%s.range", name)
+		assert.Equal(t, "double_range", rangeField["type"], "claims.%s.range should be a double_range", name)
+	}
 }
 
 func TestMappingDynamicDisabled(t *testing.T) {

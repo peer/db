@@ -56,7 +56,7 @@ const {
 } = useTimeHistogramValues(
   toRef(() => props.searchSession),
   filterId,
-  computed(() => props.result.props[0]),
+  computed(() => props.result.props),
   el,
   progress,
 )
@@ -250,7 +250,12 @@ onBeforeUnmount(() => {
         @click.prevent="clearFilter"
         >{{ t("common.buttons.clear") }}</Button
       >
-      <DocumentRefInline :id="result.props[0]" class="mb-1.5 text-lg leading-none" />
+      <template v-if="result.props.length === 2">
+        <DocumentRefInline :id="result.props[0]" class="mb-1.5 text-lg leading-none" />
+        <span class="mb-1.5 text-lg leading-none">&gt;</span>
+        <DocumentRefInline :id="result.props[1]" class="mb-1.5 text-lg leading-none" />
+      </template>
+      <DocumentRefInline v-else :id="result.props[0]" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
     </div>
     <ul ref="el" role="group" :aria-labelledby="labelId" class="grid grid-cols-[max-content_auto] gap-x-1 gap-y-3">
@@ -259,7 +264,7 @@ onBeforeUnmount(() => {
       </li>
       <li v-else-if="from === null || to === null" class="col-span-2 motion-safe:animate-pulse" aria-hidden="true">
         <div class="my-1.5 grid grid-cols-10 items-end gap-x-1" :style="`aspect-ratio: ${chartWidth - 1} / ${chartHeight}`">
-          <div v-for="(h, i) in loadingShortHeights(result.props[0], 10)" :key="i" class="w-auto rounded-sm bg-slate-200" :class="h"></div>
+          <div v-for="(h, i) in loadingShortHeights(result.props.join('/'), 10)" :key="i" class="w-auto rounded-sm bg-slate-200" :class="h"></div>
         </div>
         <div class="flex flex-row justify-between gap-x-1">
           <div class="my-1.5 h-2 w-8 rounded-sm bg-slate-200"></div>
@@ -294,12 +299,14 @@ onBeforeUnmount(() => {
         </div>
       </li>
       <li v-if="(missingCount != null && missingCount > 0) || missingState" class="contents">
-        <CheckBox :id="'time/' + result.props[0] + '/missing'" v-model="missingState" />
+        <CheckBox :id="'time/' + result.props.join('/') + '/missing'" v-model="missingState" />
         <div class="flex items-baseline gap-x-1">
-          <label :for="'time/' + result.props[0] + '/missing'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label :for="'time/' + result.props.join('/') + '/missing'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             ><i>{{ t("common.values.missing") }}</i></label
           >
-          <label :for="'time/' + result.props[0] + '/missing'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ missingCount ?? 0 }})</label>
+          <label :for="'time/' + result.props.join('/') + '/missing'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            >({{ missingCount ?? 0 }})</label
+          >
         </div>
       </li>
     </ul>

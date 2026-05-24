@@ -43,7 +43,7 @@ func TestTimeFilterGetIntegration(t *testing.T) {
 					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
 				}},
 				Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
-				SubReference: nil,
+				SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 			},
 		})
 	}
@@ -110,7 +110,7 @@ func TestTimeFilterGetMissingIntegration(t *testing.T) {
 				From: &t1000, FromDisplay: "", To: &t1000, ToDisplay: "",
 			}},
 			Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	// Doc without the time prop.
@@ -120,7 +120,7 @@ func TestTimeFilterGetMissingIntegration(t *testing.T) {
 			Identifier: nil, String: nil, HTML: nil, Amount: nil,
 			Time: nil,
 			Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -158,7 +158,7 @@ func TestTimeFilterGetNoMissingIntegration(t *testing.T) {
 				From: &t1000, FromDisplay: "", To: &t1000, ToDisplay: "",
 			}},
 			Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -205,7 +205,7 @@ func TestTimeFilterGetInactiveIntegration(t *testing.T) {
 					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
 				}},
 				Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
-				SubReference: nil,
+				SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 			},
 		})
 	}
@@ -255,7 +255,7 @@ func TestTimeFilterGetSameValuesIntegration(t *testing.T) {
 					From: &t5000, FromDisplay: "", To: &t5000, ToDisplay: "",
 				}},
 				Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
-				SubReference: nil,
+				SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 			},
 		})
 	}
@@ -300,7 +300,7 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 				From: &tNeg500, FromDisplay: "", To: &tNeg500, ToDisplay: "",
 			}},
 			Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -315,7 +315,7 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 				From: &t500, FromDisplay: "", To: &t500, ToDisplay: "",
 			}},
 			Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -410,7 +410,7 @@ func TestTimeFilterGetExtendedBoundsIntegration(t *testing.T) {
 					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
 				}},
 				Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
-				SubReference: nil,
+				SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 			},
 		})
 	}
@@ -480,7 +480,7 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 				From: &t0, FromDisplay: "", To: &t2000, ToDisplay: "",
 			}},
 			Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -495,7 +495,7 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 				From: &t8000, FromDisplay: "", To: &t10000, ToDisplay: "",
 			}},
 			Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -569,7 +569,7 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 				From: &t500, FromDisplay: "", To: &t500, ToDisplay: "",
 			}},
 			Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -584,7 +584,7 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 				From: &t2000, FromDisplay: "", To: &t8000, ToDisplay: "",
 			}},
 			Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -599,7 +599,7 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 				From: &t9500, FromDisplay: "", To: &t9500, ToDisplay: "",
 			}},
 			Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)

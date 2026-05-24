@@ -280,7 +280,7 @@ func TestFilterValid(t *testing.T) {
 				f.Prop = nil
 				return f
 			}(),
-			WantErr: "prop must have one or two elements for ref filter",
+			WantErr: "prop must have one or two elements",
 		},
 		{
 			Name: "HasFilter",
@@ -317,7 +317,7 @@ func TestFilterValid(t *testing.T) {
 			WantErr: "props has to be set",
 		},
 		{
-			Name: "HasFilterWithPropNotEmpty",
+			Name: "HasFilterSubHas",
 			Filter: func() search.Filter {
 				base := []string{"test.example.com", "SEARCH", "testsession", "FILTER", identifier.New().String()}
 				filterID := identifier.From(base...)
@@ -331,7 +331,24 @@ func TestFilterValid(t *testing.T) {
 					Has:    &search.HasFilter{Props: []search.HasValue{{ID: value}}},
 				}
 			}(),
-			WantErr: "prop must be empty for has filter",
+			WantErr: "",
+		},
+		{
+			Name: "HasFilterTooManyProps",
+			Filter: func() search.Filter {
+				base := []string{"test.example.com", "SEARCH", "testsession", "FILTER", identifier.New().String()}
+				filterID := identifier.From(base...)
+				return search.Filter{
+					ID:     &filterID,
+					Base:   base,
+					Prop:   []identifier.Identifier{prop, value},
+					Ref:    nil,
+					Amount: nil,
+					Time:   nil,
+					Has:    &search.HasFilter{Props: []search.HasValue{{ID: value}}},
+				}
+			}(),
+			WantErr: "prop must have zero or one elements for has filter",
 		},
 	}
 
@@ -726,7 +743,7 @@ func TestSessionToQuery(t *testing.T) {
 			Name:        "QueryOnly",
 			SessionData: search.SessionData{View: "", Query: "hello", Filters: nil, Reverse: nil},
 			//nolint:lll
-			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.value"],"query":"hello"}}}},{"nested":{"path":"claims.link","query":{"simple_query_string":{"default_operator":"or","fields":["claims.link.iri"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.en"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.pt"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.sl"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.und"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.en"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.pt"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.sl"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.und"],"query":"hello"}}}},{"nested":{"path":"claims.amount","query":{"simple_query_string":{"default_operator":"or","fields":["claims.amount.propDisplay.en^0.2","claims.amount.propDisplay.pt^0.2","claims.amount.propDisplay.sl^0.2","claims.amount.propDisplay.und^0.2","claims.amount.propNaming.en^0.2","claims.amount.propNaming.pt^0.2","claims.amount.propNaming.sl^0.2","claims.amount.propNaming.und^0.2","claims.amount.fromDisplay^0.2","claims.amount.toDisplay^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.has","query":{"simple_query_string":{"default_operator":"or","fields":["claims.has.propDisplay.en^0.2","claims.has.propDisplay.pt^0.2","claims.has.propDisplay.sl^0.2","claims.has.propDisplay.und^0.2","claims.has.propNaming.en^0.2","claims.has.propNaming.pt^0.2","claims.has.propNaming.sl^0.2","claims.has.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.propDisplay.en^0.2","claims.html.propDisplay.pt^0.2","claims.html.propDisplay.sl^0.2","claims.html.propDisplay.und^0.2","claims.html.propNaming.en^0.2","claims.html.propNaming.pt^0.2","claims.html.propNaming.sl^0.2","claims.html.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.propDisplay.en^0.2","claims.id.propDisplay.pt^0.2","claims.id.propDisplay.sl^0.2","claims.id.propDisplay.und^0.2","claims.id.propNaming.en^0.2","claims.id.propNaming.pt^0.2","claims.id.propNaming.sl^0.2","claims.id.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.link","query":{"simple_query_string":{"default_operator":"or","fields":["claims.link.propDisplay.en^0.2","claims.link.propDisplay.pt^0.2","claims.link.propDisplay.sl^0.2","claims.link.propDisplay.und^0.2","claims.link.propNaming.en^0.2","claims.link.propNaming.pt^0.2","claims.link.propNaming.sl^0.2","claims.link.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.none","query":{"simple_query_string":{"default_operator":"or","fields":["claims.none.propDisplay.en^0.2","claims.none.propDisplay.pt^0.2","claims.none.propDisplay.sl^0.2","claims.none.propDisplay.und^0.2","claims.none.propNaming.en^0.2","claims.none.propNaming.pt^0.2","claims.none.propNaming.sl^0.2","claims.none.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.ref","query":{"simple_query_string":{"default_operator":"or","fields":["claims.ref.propDisplay.en^0.2","claims.ref.propDisplay.pt^0.2","claims.ref.propDisplay.sl^0.2","claims.ref.propDisplay.und^0.2","claims.ref.propNaming.en^0.2","claims.ref.propNaming.pt^0.2","claims.ref.propNaming.sl^0.2","claims.ref.propNaming.und^0.2","claims.ref.toDisplay.en^0.2","claims.ref.toDisplay.pt^0.2","claims.ref.toDisplay.sl^0.2","claims.ref.toDisplay.und^0.2","claims.ref.toNaming.en^0.2","claims.ref.toNaming.pt^0.2","claims.ref.toNaming.sl^0.2","claims.ref.toNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.propDisplay.en^0.2","claims.string.propDisplay.pt^0.2","claims.string.propDisplay.sl^0.2","claims.string.propDisplay.und^0.2","claims.string.propNaming.en^0.2","claims.string.propNaming.pt^0.2","claims.string.propNaming.sl^0.2","claims.string.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.time","query":{"simple_query_string":{"default_operator":"or","fields":["claims.time.propDisplay.en^0.2","claims.time.propDisplay.pt^0.2","claims.time.propDisplay.sl^0.2","claims.time.propDisplay.und^0.2","claims.time.propNaming.en^0.2","claims.time.propNaming.pt^0.2","claims.time.propNaming.sl^0.2","claims.time.propNaming.und^0.2","claims.time.fromDisplay^0.2","claims.time.toDisplay^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.unknown","query":{"simple_query_string":{"default_operator":"or","fields":["claims.unknown.propDisplay.en^0.2","claims.unknown.propDisplay.pt^0.2","claims.unknown.propDisplay.sl^0.2","claims.unknown.propDisplay.und^0.2","claims.unknown.propNaming.en^0.2","claims.unknown.propNaming.pt^0.2","claims.unknown.propNaming.sl^0.2","claims.unknown.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.sub","query":{"simple_query_string":{"default_operator":"or","fields":["claims.sub.propDisplay.en^0.2","claims.sub.propDisplay.pt^0.2","claims.sub.propDisplay.sl^0.2","claims.sub.propDisplay.und^0.2","claims.sub.propNaming.en^0.2","claims.sub.propNaming.pt^0.2","claims.sub.propNaming.sl^0.2","claims.sub.propNaming.und^0.2","claims.sub.toDisplay.en^0.2","claims.sub.toDisplay.pt^0.2","claims.sub.toDisplay.sl^0.2","claims.sub.toDisplay.und^0.2","claims.sub.toNaming.en^0.2","claims.sub.toNaming.pt^0.2","claims.sub.toNaming.sl^0.2","claims.sub.toNaming.und^0.2"],"query":"hello"}}}}]}}]}}`,
+			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.value"],"query":"hello"}}}},{"nested":{"path":"claims.link","query":{"simple_query_string":{"default_operator":"or","fields":["claims.link.iri"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.en"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.pt"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.sl"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.und"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.en"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.pt"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.sl"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.und"],"query":"hello"}}}},{"nested":{"path":"claims.amount","query":{"simple_query_string":{"default_operator":"or","fields":["claims.amount.propDisplay.en^0.2","claims.amount.propDisplay.pt^0.2","claims.amount.propDisplay.sl^0.2","claims.amount.propDisplay.und^0.2","claims.amount.propNaming.en^0.2","claims.amount.propNaming.pt^0.2","claims.amount.propNaming.sl^0.2","claims.amount.propNaming.und^0.2","claims.amount.fromDisplay^0.2","claims.amount.toDisplay^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.has","query":{"simple_query_string":{"default_operator":"or","fields":["claims.has.propDisplay.en^0.2","claims.has.propDisplay.pt^0.2","claims.has.propDisplay.sl^0.2","claims.has.propDisplay.und^0.2","claims.has.propNaming.en^0.2","claims.has.propNaming.pt^0.2","claims.has.propNaming.sl^0.2","claims.has.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.propDisplay.en^0.2","claims.html.propDisplay.pt^0.2","claims.html.propDisplay.sl^0.2","claims.html.propDisplay.und^0.2","claims.html.propNaming.en^0.2","claims.html.propNaming.pt^0.2","claims.html.propNaming.sl^0.2","claims.html.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.propDisplay.en^0.2","claims.id.propDisplay.pt^0.2","claims.id.propDisplay.sl^0.2","claims.id.propDisplay.und^0.2","claims.id.propNaming.en^0.2","claims.id.propNaming.pt^0.2","claims.id.propNaming.sl^0.2","claims.id.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.link","query":{"simple_query_string":{"default_operator":"or","fields":["claims.link.propDisplay.en^0.2","claims.link.propDisplay.pt^0.2","claims.link.propDisplay.sl^0.2","claims.link.propDisplay.und^0.2","claims.link.propNaming.en^0.2","claims.link.propNaming.pt^0.2","claims.link.propNaming.sl^0.2","claims.link.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.none","query":{"simple_query_string":{"default_operator":"or","fields":["claims.none.propDisplay.en^0.2","claims.none.propDisplay.pt^0.2","claims.none.propDisplay.sl^0.2","claims.none.propDisplay.und^0.2","claims.none.propNaming.en^0.2","claims.none.propNaming.pt^0.2","claims.none.propNaming.sl^0.2","claims.none.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.ref","query":{"simple_query_string":{"default_operator":"or","fields":["claims.ref.propDisplay.en^0.2","claims.ref.propDisplay.pt^0.2","claims.ref.propDisplay.sl^0.2","claims.ref.propDisplay.und^0.2","claims.ref.propNaming.en^0.2","claims.ref.propNaming.pt^0.2","claims.ref.propNaming.sl^0.2","claims.ref.propNaming.und^0.2","claims.ref.toDisplay.en^0.2","claims.ref.toDisplay.pt^0.2","claims.ref.toDisplay.sl^0.2","claims.ref.toDisplay.und^0.2","claims.ref.toNaming.en^0.2","claims.ref.toNaming.pt^0.2","claims.ref.toNaming.sl^0.2","claims.ref.toNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.propDisplay.en^0.2","claims.string.propDisplay.pt^0.2","claims.string.propDisplay.sl^0.2","claims.string.propDisplay.und^0.2","claims.string.propNaming.en^0.2","claims.string.propNaming.pt^0.2","claims.string.propNaming.sl^0.2","claims.string.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.time","query":{"simple_query_string":{"default_operator":"or","fields":["claims.time.propDisplay.en^0.2","claims.time.propDisplay.pt^0.2","claims.time.propDisplay.sl^0.2","claims.time.propDisplay.und^0.2","claims.time.propNaming.en^0.2","claims.time.propNaming.pt^0.2","claims.time.propNaming.sl^0.2","claims.time.propNaming.und^0.2","claims.time.fromDisplay^0.2","claims.time.toDisplay^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.unknown","query":{"simple_query_string":{"default_operator":"or","fields":["claims.unknown.propDisplay.en^0.2","claims.unknown.propDisplay.pt^0.2","claims.unknown.propDisplay.sl^0.2","claims.unknown.propDisplay.und^0.2","claims.unknown.propNaming.en^0.2","claims.unknown.propNaming.pt^0.2","claims.unknown.propNaming.sl^0.2","claims.unknown.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.subRef","query":{"simple_query_string":{"default_operator":"or","fields":["claims.subRef.propDisplay.en^0.2","claims.subRef.propDisplay.pt^0.2","claims.subRef.propDisplay.sl^0.2","claims.subRef.propDisplay.und^0.2","claims.subRef.propNaming.en^0.2","claims.subRef.propNaming.pt^0.2","claims.subRef.propNaming.sl^0.2","claims.subRef.propNaming.und^0.2","claims.subRef.toDisplay.en^0.2","claims.subRef.toDisplay.pt^0.2","claims.subRef.toDisplay.sl^0.2","claims.subRef.toDisplay.und^0.2","claims.subRef.toNaming.en^0.2","claims.subRef.toNaming.pt^0.2","claims.subRef.toNaming.sl^0.2","claims.subRef.toNaming.und^0.2"],"query":"hello"}}}}]}}]}}`,
 		},
 		{
 			Name:        "Empty",
@@ -743,7 +760,7 @@ func TestSessionToQuery(t *testing.T) {
 				Reverse: nil,
 			},
 			//nolint:lll
-			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.value"],"query":"hello"}}}},{"nested":{"path":"claims.link","query":{"simple_query_string":{"default_operator":"or","fields":["claims.link.iri"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.en"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.pt"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.sl"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.und"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.en"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.pt"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.sl"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.und"],"query":"hello"}}}},{"nested":{"path":"claims.amount","query":{"simple_query_string":{"default_operator":"or","fields":["claims.amount.propDisplay.en^0.2","claims.amount.propDisplay.pt^0.2","claims.amount.propDisplay.sl^0.2","claims.amount.propDisplay.und^0.2","claims.amount.propNaming.en^0.2","claims.amount.propNaming.pt^0.2","claims.amount.propNaming.sl^0.2","claims.amount.propNaming.und^0.2","claims.amount.fromDisplay^0.2","claims.amount.toDisplay^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.has","query":{"simple_query_string":{"default_operator":"or","fields":["claims.has.propDisplay.en^0.2","claims.has.propDisplay.pt^0.2","claims.has.propDisplay.sl^0.2","claims.has.propDisplay.und^0.2","claims.has.propNaming.en^0.2","claims.has.propNaming.pt^0.2","claims.has.propNaming.sl^0.2","claims.has.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.propDisplay.en^0.2","claims.html.propDisplay.pt^0.2","claims.html.propDisplay.sl^0.2","claims.html.propDisplay.und^0.2","claims.html.propNaming.en^0.2","claims.html.propNaming.pt^0.2","claims.html.propNaming.sl^0.2","claims.html.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.propDisplay.en^0.2","claims.id.propDisplay.pt^0.2","claims.id.propDisplay.sl^0.2","claims.id.propDisplay.und^0.2","claims.id.propNaming.en^0.2","claims.id.propNaming.pt^0.2","claims.id.propNaming.sl^0.2","claims.id.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.link","query":{"simple_query_string":{"default_operator":"or","fields":["claims.link.propDisplay.en^0.2","claims.link.propDisplay.pt^0.2","claims.link.propDisplay.sl^0.2","claims.link.propDisplay.und^0.2","claims.link.propNaming.en^0.2","claims.link.propNaming.pt^0.2","claims.link.propNaming.sl^0.2","claims.link.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.none","query":{"simple_query_string":{"default_operator":"or","fields":["claims.none.propDisplay.en^0.2","claims.none.propDisplay.pt^0.2","claims.none.propDisplay.sl^0.2","claims.none.propDisplay.und^0.2","claims.none.propNaming.en^0.2","claims.none.propNaming.pt^0.2","claims.none.propNaming.sl^0.2","claims.none.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.ref","query":{"simple_query_string":{"default_operator":"or","fields":["claims.ref.propDisplay.en^0.2","claims.ref.propDisplay.pt^0.2","claims.ref.propDisplay.sl^0.2","claims.ref.propDisplay.und^0.2","claims.ref.propNaming.en^0.2","claims.ref.propNaming.pt^0.2","claims.ref.propNaming.sl^0.2","claims.ref.propNaming.und^0.2","claims.ref.toDisplay.en^0.2","claims.ref.toDisplay.pt^0.2","claims.ref.toDisplay.sl^0.2","claims.ref.toDisplay.und^0.2","claims.ref.toNaming.en^0.2","claims.ref.toNaming.pt^0.2","claims.ref.toNaming.sl^0.2","claims.ref.toNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.propDisplay.en^0.2","claims.string.propDisplay.pt^0.2","claims.string.propDisplay.sl^0.2","claims.string.propDisplay.und^0.2","claims.string.propNaming.en^0.2","claims.string.propNaming.pt^0.2","claims.string.propNaming.sl^0.2","claims.string.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.time","query":{"simple_query_string":{"default_operator":"or","fields":["claims.time.propDisplay.en^0.2","claims.time.propDisplay.pt^0.2","claims.time.propDisplay.sl^0.2","claims.time.propDisplay.und^0.2","claims.time.propNaming.en^0.2","claims.time.propNaming.pt^0.2","claims.time.propNaming.sl^0.2","claims.time.propNaming.und^0.2","claims.time.fromDisplay^0.2","claims.time.toDisplay^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.unknown","query":{"simple_query_string":{"default_operator":"or","fields":["claims.unknown.propDisplay.en^0.2","claims.unknown.propDisplay.pt^0.2","claims.unknown.propDisplay.sl^0.2","claims.unknown.propDisplay.und^0.2","claims.unknown.propNaming.en^0.2","claims.unknown.propNaming.pt^0.2","claims.unknown.propNaming.sl^0.2","claims.unknown.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.sub","query":{"simple_query_string":{"default_operator":"or","fields":["claims.sub.propDisplay.en^0.2","claims.sub.propDisplay.pt^0.2","claims.sub.propDisplay.sl^0.2","claims.sub.propDisplay.und^0.2","claims.sub.propNaming.en^0.2","claims.sub.propNaming.pt^0.2","claims.sub.propNaming.sl^0.2","claims.sub.propNaming.und^0.2","claims.sub.toDisplay.en^0.2","claims.sub.toDisplay.pt^0.2","claims.sub.toDisplay.sl^0.2","claims.sub.toDisplay.und^0.2","claims.sub.toNaming.en^0.2","claims.sub.toNaming.pt^0.2","claims.sub.toNaming.sl^0.2","claims.sub.toNaming.und^0.2"],"query":"hello"}}}}]}},{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}}]}}`,
+			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.value"],"query":"hello"}}}},{"nested":{"path":"claims.link","query":{"simple_query_string":{"default_operator":"or","fields":["claims.link.iri"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.en"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.pt"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.sl"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.string.und"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.en"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.pt"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.sl"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.html.und"],"query":"hello"}}}},{"nested":{"path":"claims.amount","query":{"simple_query_string":{"default_operator":"or","fields":["claims.amount.propDisplay.en^0.2","claims.amount.propDisplay.pt^0.2","claims.amount.propDisplay.sl^0.2","claims.amount.propDisplay.und^0.2","claims.amount.propNaming.en^0.2","claims.amount.propNaming.pt^0.2","claims.amount.propNaming.sl^0.2","claims.amount.propNaming.und^0.2","claims.amount.fromDisplay^0.2","claims.amount.toDisplay^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.has","query":{"simple_query_string":{"default_operator":"or","fields":["claims.has.propDisplay.en^0.2","claims.has.propDisplay.pt^0.2","claims.has.propDisplay.sl^0.2","claims.has.propDisplay.und^0.2","claims.has.propNaming.en^0.2","claims.has.propNaming.pt^0.2","claims.has.propNaming.sl^0.2","claims.has.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.html","query":{"simple_query_string":{"default_operator":"or","fields":["claims.html.propDisplay.en^0.2","claims.html.propDisplay.pt^0.2","claims.html.propDisplay.sl^0.2","claims.html.propDisplay.und^0.2","claims.html.propNaming.en^0.2","claims.html.propNaming.pt^0.2","claims.html.propNaming.sl^0.2","claims.html.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.id","query":{"simple_query_string":{"default_operator":"or","fields":["claims.id.propDisplay.en^0.2","claims.id.propDisplay.pt^0.2","claims.id.propDisplay.sl^0.2","claims.id.propDisplay.und^0.2","claims.id.propNaming.en^0.2","claims.id.propNaming.pt^0.2","claims.id.propNaming.sl^0.2","claims.id.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.link","query":{"simple_query_string":{"default_operator":"or","fields":["claims.link.propDisplay.en^0.2","claims.link.propDisplay.pt^0.2","claims.link.propDisplay.sl^0.2","claims.link.propDisplay.und^0.2","claims.link.propNaming.en^0.2","claims.link.propNaming.pt^0.2","claims.link.propNaming.sl^0.2","claims.link.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.none","query":{"simple_query_string":{"default_operator":"or","fields":["claims.none.propDisplay.en^0.2","claims.none.propDisplay.pt^0.2","claims.none.propDisplay.sl^0.2","claims.none.propDisplay.und^0.2","claims.none.propNaming.en^0.2","claims.none.propNaming.pt^0.2","claims.none.propNaming.sl^0.2","claims.none.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.ref","query":{"simple_query_string":{"default_operator":"or","fields":["claims.ref.propDisplay.en^0.2","claims.ref.propDisplay.pt^0.2","claims.ref.propDisplay.sl^0.2","claims.ref.propDisplay.und^0.2","claims.ref.propNaming.en^0.2","claims.ref.propNaming.pt^0.2","claims.ref.propNaming.sl^0.2","claims.ref.propNaming.und^0.2","claims.ref.toDisplay.en^0.2","claims.ref.toDisplay.pt^0.2","claims.ref.toDisplay.sl^0.2","claims.ref.toDisplay.und^0.2","claims.ref.toNaming.en^0.2","claims.ref.toNaming.pt^0.2","claims.ref.toNaming.sl^0.2","claims.ref.toNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.string","query":{"simple_query_string":{"default_operator":"or","fields":["claims.string.propDisplay.en^0.2","claims.string.propDisplay.pt^0.2","claims.string.propDisplay.sl^0.2","claims.string.propDisplay.und^0.2","claims.string.propNaming.en^0.2","claims.string.propNaming.pt^0.2","claims.string.propNaming.sl^0.2","claims.string.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.time","query":{"simple_query_string":{"default_operator":"or","fields":["claims.time.propDisplay.en^0.2","claims.time.propDisplay.pt^0.2","claims.time.propDisplay.sl^0.2","claims.time.propDisplay.und^0.2","claims.time.propNaming.en^0.2","claims.time.propNaming.pt^0.2","claims.time.propNaming.sl^0.2","claims.time.propNaming.und^0.2","claims.time.fromDisplay^0.2","claims.time.toDisplay^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.unknown","query":{"simple_query_string":{"default_operator":"or","fields":["claims.unknown.propDisplay.en^0.2","claims.unknown.propDisplay.pt^0.2","claims.unknown.propDisplay.sl^0.2","claims.unknown.propDisplay.und^0.2","claims.unknown.propNaming.en^0.2","claims.unknown.propNaming.pt^0.2","claims.unknown.propNaming.sl^0.2","claims.unknown.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.subRef","query":{"simple_query_string":{"default_operator":"or","fields":["claims.subRef.propDisplay.en^0.2","claims.subRef.propDisplay.pt^0.2","claims.subRef.propDisplay.sl^0.2","claims.subRef.propDisplay.und^0.2","claims.subRef.propNaming.en^0.2","claims.subRef.propNaming.pt^0.2","claims.subRef.propNaming.sl^0.2","claims.subRef.propNaming.und^0.2","claims.subRef.toDisplay.en^0.2","claims.subRef.toDisplay.pt^0.2","claims.subRef.toDisplay.sl^0.2","claims.subRef.toDisplay.und^0.2","claims.subRef.toNaming.en^0.2","claims.subRef.toNaming.pt^0.2","claims.subRef.toNaming.sl^0.2","claims.subRef.toNaming.und^0.2"],"query":"hello"}}}}]}},{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}}]}}`,
 		},
 	}
 
@@ -772,7 +789,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 		q := data.ToQuery()
 		want := `{"bool":{"must":[{"bool":{"minimum_should_match":1,"should":[` +
 			`{"nested":{"path":"claims.ref","query":{"term":{"claims.ref.to":{"value":"` + reverseID.String() + `"}}}}},` +
-			`{"nested":{"path":"claims.sub","query":{"term":{"claims.sub.to":{"value":"` + reverseID.String() + `"}}}}}` +
+			`{"nested":{"path":"claims.subRef","query":{"term":{"claims.subRef.to":{"value":"` + reverseID.String() + `"}}}}}` +
 			`]}}]}}`
 		assert.Equal(t, want, testutils.QueryJSON(t, q))
 	})
@@ -1241,12 +1258,12 @@ func TestRefFilterToSubRefQuery(t *testing.T) {
 			Filter:       &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false},
 			Restrictions: nil,
 			WantContains: []string{
-				`"claims.sub.parentProp":{"value":"` + parentProp.String() + `"}`,
-				`"claims.sub.prop":{"value":"` + prop.String() + `"}`,
-				`"claims.sub.to":{"value":"` + a.String() + `"}`,
+				`"claims.subRef.parentProp":{"value":"` + parentProp.String() + `"}`,
+				`"claims.subRef.prop":{"value":"` + prop.String() + `"}`,
+				`"claims.subRef.to":{"value":"` + a.String() + `"}`,
 			},
 			WantAbsent: []string{
-				`"claims.sub.parentTo"`,
+				`"claims.subRef.parentTo"`,
 			},
 		},
 		{
@@ -1254,10 +1271,10 @@ func TestRefFilterToSubRefQuery(t *testing.T) {
 			Filter:       &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false},
 			Restrictions: []identifier.Identifier{l1},
 			WantContains: []string{
-				`"claims.sub.parentProp":{"value":"` + parentProp.String() + `"}`,
-				`"claims.sub.prop":{"value":"` + prop.String() + `"}`,
-				`"claims.sub.to":{"value":"` + a.String() + `"}`,
-				`"claims.sub.parentTo":{"value":"` + l1.String() + `"}`,
+				`"claims.subRef.parentProp":{"value":"` + parentProp.String() + `"}`,
+				`"claims.subRef.prop":{"value":"` + prop.String() + `"}`,
+				`"claims.subRef.to":{"value":"` + a.String() + `"}`,
+				`"claims.subRef.parentTo":{"value":"` + l1.String() + `"}`,
 			},
 			WantAbsent: nil,
 		},
@@ -1266,8 +1283,8 @@ func TestRefFilterToSubRefQuery(t *testing.T) {
 			Filter:       &search.RefFilter{To: []search.ToValue{{ID: a}}, Missing: false},
 			Restrictions: []identifier.Identifier{l1, l2},
 			WantContains: []string{
-				`"claims.sub.parentTo":{"value":"` + l1.String() + `"}`,
-				`"claims.sub.parentTo":{"value":"` + l2.String() + `"}`,
+				`"claims.subRef.parentTo":{"value":"` + l1.String() + `"}`,
+				`"claims.subRef.parentTo":{"value":"` + l2.String() + `"}`,
 				`"minimum_should_match":1`,
 			},
 			WantAbsent: nil,
@@ -1278,7 +1295,7 @@ func TestRefFilterToSubRefQuery(t *testing.T) {
 			Restrictions: []identifier.Identifier{l1},
 			WantContains: []string{
 				`"must_not"`,
-				`"claims.sub.parentTo":{"value":"` + l1.String() + `"}`,
+				`"claims.subRef.parentTo":{"value":"` + l1.String() + `"}`,
 			},
 			WantAbsent: nil,
 		},
@@ -1326,8 +1343,8 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			Reverse: nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQuery())
-		assert.Contains(t, j, `"claims.sub.to":{"value":"`+a.String()+`"}`)
-		assert.NotContains(t, j, `"claims.sub.parentTo"`)
+		assert.Contains(t, j, `"claims.subRef.to":{"value":"`+a.String()+`"}`)
+		assert.NotContains(t, j, `"claims.subRef.parentTo"`)
 	})
 
 	t.Run("SubRefWithSiblingParentRef_RestrictedToParentTo", func(t *testing.T) {
@@ -1343,8 +1360,8 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 		}
 		j := testutils.QueryJSON(t, data.ToQuery())
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
-		assert.Contains(t, j, `"claims.sub.to":{"value":"`+a.String()+`"}`)
-		assert.Contains(t, j, `"claims.sub.parentTo":{"value":"`+l1.String()+`"}`)
+		assert.Contains(t, j, `"claims.subRef.to":{"value":"`+a.String()+`"}`)
+		assert.Contains(t, j, `"claims.subRef.parentTo":{"value":"`+l1.String()+`"}`)
 	})
 
 	t.Run("SubRefWithSiblingParentRef_MultipleParentTo", func(t *testing.T) {
@@ -1359,8 +1376,8 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			Reverse: nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQuery())
-		assert.Contains(t, j, `"claims.sub.parentTo":{"value":"`+l1.String()+`"}`)
-		assert.Contains(t, j, `"claims.sub.parentTo":{"value":"`+l2.String()+`"}`)
+		assert.Contains(t, j, `"claims.subRef.parentTo":{"value":"`+l1.String()+`"}`)
+		assert.Contains(t, j, `"claims.subRef.parentTo":{"value":"`+l2.String()+`"}`)
 	})
 
 	t.Run("SubRefWithSiblingOnDifferentProp_NoRestriction", func(t *testing.T) {
@@ -1375,7 +1392,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			Reverse: nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQuery())
-		assert.NotContains(t, j, `"claims.sub.parentTo"`)
+		assert.NotContains(t, j, `"claims.subRef.parentTo"`)
 	})
 
 	t.Run("SubRefWithSiblingMissingParentRef_NoRestriction", func(t *testing.T) {
@@ -1392,7 +1409,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			Reverse: nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQuery())
-		assert.NotContains(t, j, `"claims.sub.parentTo"`)
+		assert.NotContains(t, j, `"claims.subRef.parentTo"`)
 	})
 
 	t.Run("ToQueryExcludingParentRef_NoRestriction", func(t *testing.T) {
@@ -1407,8 +1424,8 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 		}
 		j := testutils.QueryJSON(t, data.ToQueryExcluding(*parentRef.ID))
 		assert.NotContains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
-		assert.Contains(t, j, `"claims.sub.to":{"value":"`+a.String()+`"}`)
-		assert.NotContains(t, j, `"claims.sub.parentTo"`)
+		assert.Contains(t, j, `"claims.subRef.to":{"value":"`+a.String()+`"}`)
+		assert.NotContains(t, j, `"claims.subRef.parentTo"`)
 	})
 
 	t.Run("ToQueryExcludingSubRef_ParentStillPresent", func(t *testing.T) {
@@ -1423,6 +1440,322 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 		}
 		j := testutils.QueryJSON(t, data.ToQueryExcluding(*subRef.ID))
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
-		assert.NotContains(t, j, `"claims.sub.to"`)
+		assert.NotContains(t, j, `"claims.subRef.to"`)
+	})
+}
+
+// makeTestSubAmountFilter, makeTestSubTimeFilter, makeTestSubHasFilter build
+// valid two-prop sub-claim filters of each non-Ref type with proper Base/ID.
+
+func makeTestSubAmountFilter(parentProp, prop identifier.Identifier, amount *search.AmountFilter) search.Filter {
+	base := []string{"test.example.com", "SEARCH", "testsession", "FILTER", identifier.New().String()}
+	filterID := identifier.From(base...)
+	return search.Filter{
+		ID:     &filterID,
+		Base:   base,
+		Prop:   []identifier.Identifier{parentProp, prop},
+		Ref:    nil,
+		Amount: amount,
+		Time:   nil,
+		Has:    nil,
+	}
+}
+
+func makeTestSubTimeFilter(parentProp, prop identifier.Identifier, t *search.TimeFilter) search.Filter {
+	base := []string{"test.example.com", "SEARCH", "testsession", "FILTER", identifier.New().String()}
+	filterID := identifier.From(base...)
+	return search.Filter{
+		ID:     &filterID,
+		Base:   base,
+		Prop:   []identifier.Identifier{parentProp, prop},
+		Ref:    nil,
+		Amount: nil,
+		Time:   t,
+		Has:    nil,
+	}
+}
+
+func makeTestSubHasFilter(parentProp identifier.Identifier, has *search.HasFilter) search.Filter {
+	base := []string{"test.example.com", "SEARCH", "testsession", "FILTER", identifier.New().String()}
+	filterID := identifier.From(base...)
+	return search.Filter{
+		ID:     &filterID,
+		Base:   base,
+		Prop:   []identifier.Identifier{parentProp},
+		Ref:    nil,
+		Amount: nil,
+		Time:   nil,
+		Has:    has,
+	}
+}
+
+// TestAmountFilterToSubAmountQuery exercises ToSubAmountQuery directly,
+// including the parentToRestrictions argument that constrains the sub-claim
+// match to matching parent values inside the same nested record.
+func TestAmountFilterToSubAmountQuery(t *testing.T) {
+	t.Parallel()
+
+	parentProp := identifier.From("parentProp")
+	prop := identifier.From("prop")
+	unit := identifier.From("unit")
+	l1 := identifier.From("l1")
+	l2 := identifier.From("l2")
+	gte := 1.0
+	lte := 10.0
+
+	tests := []struct {
+		Name         string
+		Filter       *search.AmountFilter
+		Restrictions []identifier.Identifier
+		WantContains []string
+		WantAbsent   []string
+	}{
+		{
+			Name:         "GteLteUnitWithoutRestrictions",
+			Filter:       &search.AmountFilter{Unit: &unit, Gte: &gte, Lte: &lte, Missing: false},
+			Restrictions: nil,
+			WantContains: []string{
+				`"claims.subAmount.parentProp":{"value":"` + parentProp.String() + `"}`,
+				`"claims.subAmount.prop":{"value":"` + prop.String() + `"}`,
+				`"claims.subAmount.unit":{"value":"` + unit.String() + `"}`,
+				`"claims.subAmount.range":{"gte":1,"lte":10}`,
+			},
+			WantAbsent: []string{
+				`"claims.subAmount.parentTo"`,
+			},
+		},
+		{
+			Name:         "GteLteWithMultipleRestrictions",
+			Filter:       &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false},
+			Restrictions: []identifier.Identifier{l1, l2},
+			WantContains: []string{
+				`"claims.subAmount.parentTo":{"value":"` + l1.String() + `"}`,
+				`"claims.subAmount.parentTo":{"value":"` + l2.String() + `"}`,
+				`"minimum_should_match":1`,
+			},
+			WantAbsent: nil,
+		},
+		{
+			Name:         "MissingWithRestriction",
+			Filter:       &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true},
+			Restrictions: []identifier.Identifier{l1},
+			WantContains: []string{
+				`"must_not"`,
+				`"claims.subAmount.parentTo":{"value":"` + l1.String() + `"}`,
+			},
+			WantAbsent: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			t.Parallel()
+			q := tt.Filter.ToSubAmountQuery(parentProp, prop, tt.Restrictions)
+			j := testutils.QueryJSON(t, q)
+			for _, s := range tt.WantContains {
+				assert.Contains(t, j, s, "rendered JSON should contain %q", s)
+			}
+			for _, s := range tt.WantAbsent {
+				assert.NotContains(t, j, s, "rendered JSON should NOT contain %q", s)
+			}
+		})
+	}
+}
+
+// TestTimeFilterToSubTimeQuery exercises ToSubTimeQuery directly, including
+// the parentToRestrictions argument that constrains the sub-claim match to
+// matching parent values inside the same nested record.
+func TestTimeFilterToSubTimeQuery(t *testing.T) {
+	t.Parallel()
+
+	parentProp := identifier.From("parentProp")
+	prop := identifier.From("prop")
+	l1 := identifier.From("l1")
+	l2 := identifier.From("l2")
+	gte := float64(1000)
+	lte := float64(2000)
+
+	tests := []struct {
+		Name         string
+		Filter       *search.TimeFilter
+		Restrictions []identifier.Identifier
+		WantContains []string
+		WantAbsent   []string
+	}{
+		{
+			Name:         "GteLteWithoutRestrictions",
+			Filter:       &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false},
+			Restrictions: nil,
+			WantContains: []string{
+				`"claims.subTime.parentProp":{"value":"` + parentProp.String() + `"}`,
+				`"claims.subTime.prop":{"value":"` + prop.String() + `"}`,
+				`"claims.subTime.range":{"gte":1000,"lte":2000}`,
+			},
+			WantAbsent: []string{
+				`"claims.subTime.parentTo"`,
+			},
+		},
+		{
+			Name:         "GteLteWithMultipleRestrictions",
+			Filter:       &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false},
+			Restrictions: []identifier.Identifier{l1, l2},
+			WantContains: []string{
+				`"claims.subTime.parentTo":{"value":"` + l1.String() + `"}`,
+				`"claims.subTime.parentTo":{"value":"` + l2.String() + `"}`,
+				`"minimum_should_match":1`,
+			},
+			WantAbsent: nil,
+		},
+		{
+			Name:         "MissingWithRestriction",
+			Filter:       &search.TimeFilter{Gte: nil, Lte: nil, Missing: true},
+			Restrictions: []identifier.Identifier{l1},
+			WantContains: []string{
+				`"must_not"`,
+				`"claims.subTime.parentTo":{"value":"` + l1.String() + `"}`,
+			},
+			WantAbsent: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			t.Parallel()
+			q := tt.Filter.ToSubTimeQuery(parentProp, prop, tt.Restrictions)
+			j := testutils.QueryJSON(t, q)
+			for _, s := range tt.WantContains {
+				assert.Contains(t, j, s, "rendered JSON should contain %q", s)
+			}
+			for _, s := range tt.WantAbsent {
+				assert.NotContains(t, j, s, "rendered JSON should NOT contain %q", s)
+			}
+		})
+	}
+}
+
+// TestHasFilterToSubHasQuery exercises ToSubHasQuery directly. A sub-has
+// filter matches simple has sub-claims nested under a parent claim with the
+// given parentProp, OR'd over HasFilter.Props.
+func TestHasFilterToSubHasQuery(t *testing.T) {
+	t.Parallel()
+
+	parentProp := identifier.From("parentProp")
+	value := identifier.From("value")
+	value2 := identifier.From("value2")
+	l1 := identifier.From("l1")
+
+	tests := []struct {
+		Name         string
+		Filter       *search.HasFilter
+		Restrictions []identifier.Identifier
+		WantContains []string
+		WantAbsent   []string
+	}{
+		{
+			Name:         "SinglePropWithoutRestrictions",
+			Filter:       &search.HasFilter{Props: []search.HasValue{{ID: value}}},
+			Restrictions: nil,
+			WantContains: []string{
+				`"claims.subHas.parentProp":{"value":"` + parentProp.String() + `"}`,
+				`"claims.subHas.prop":{"value":"` + value.String() + `"}`,
+			},
+			WantAbsent: []string{
+				`"claims.subHas.parentTo"`,
+			},
+		},
+		{
+			Name:         "MultiplePropsWithRestriction",
+			Filter:       &search.HasFilter{Props: []search.HasValue{{ID: value}, {ID: value2}}},
+			Restrictions: []identifier.Identifier{l1},
+			WantContains: []string{
+				`"claims.subHas.prop":{"value":"` + value.String() + `"}`,
+				`"claims.subHas.prop":{"value":"` + value2.String() + `"}`,
+				`"claims.subHas.parentTo":{"value":"` + l1.String() + `"}`,
+				`"minimum_should_match":1`,
+			},
+			WantAbsent: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			t.Parallel()
+			q := tt.Filter.ToSubHasQuery(parentProp, tt.Restrictions)
+			j := testutils.QueryJSON(t, q)
+			for _, s := range tt.WantContains {
+				assert.Contains(t, j, s, "rendered JSON should contain %q", s)
+			}
+			for _, s := range tt.WantAbsent {
+				assert.NotContains(t, j, s, "rendered JSON should NOT contain %q", s)
+			}
+		})
+	}
+}
+
+// TestSessionToQueryCrossFilterAllTypes verifies that SessionData.ToQuery
+// composes a sub-claim filter of any supported type with a sibling
+// parent-level ref filter on the same parentProp, attaching the parent's To
+// values as a parentTo restriction inside the sub-claim's nested match.
+func TestSessionToQueryCrossFilterAllTypes(t *testing.T) {
+	t.Parallel()
+
+	parentProp := identifier.From("parentProp")
+	subProp := identifier.From("subProp")
+	l1 := identifier.From("l1")
+	gte := 1.0
+	lte := 10.0
+	gteTime := float64(1000)
+	lteTime := float64(2000)
+	value := identifier.From("value")
+
+	t.Run("SubAmount", func(t *testing.T) {
+		t.Parallel()
+		data := search.SessionData{
+			View:  "",
+			Query: "",
+			Filters: []search.Filter{
+				makeTestFilter(parentProp, &search.RefFilter{To: []search.ToValue{{ID: l1}}, Missing: false}, nil, nil),
+				makeTestSubAmountFilter(parentProp, subProp, &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false}),
+			},
+			Reverse: nil,
+		}
+		j := testutils.QueryJSON(t, data.ToQuery())
+		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
+		assert.Contains(t, j, `"claims.subAmount.range":{"gte":1,"lte":10}`)
+		assert.Contains(t, j, `"claims.subAmount.parentTo":{"value":"`+l1.String()+`"}`)
+	})
+
+	t.Run("SubTime", func(t *testing.T) {
+		t.Parallel()
+		data := search.SessionData{
+			View:  "",
+			Query: "",
+			Filters: []search.Filter{
+				makeTestFilter(parentProp, &search.RefFilter{To: []search.ToValue{{ID: l1}}, Missing: false}, nil, nil),
+				makeTestSubTimeFilter(parentProp, subProp, &search.TimeFilter{Gte: &gteTime, Lte: &lteTime, Missing: false}),
+			},
+			Reverse: nil,
+		}
+		j := testutils.QueryJSON(t, data.ToQuery())
+		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
+		assert.Contains(t, j, `"claims.subTime.range":{"gte":1000,"lte":2000}`)
+		assert.Contains(t, j, `"claims.subTime.parentTo":{"value":"`+l1.String()+`"}`)
+	})
+
+	t.Run("SubHas", func(t *testing.T) {
+		t.Parallel()
+		data := search.SessionData{
+			View:  "",
+			Query: "",
+			Filters: []search.Filter{
+				makeTestFilter(parentProp, &search.RefFilter{To: []search.ToValue{{ID: l1}}, Missing: false}, nil, nil),
+				makeTestSubHasFilter(parentProp, &search.HasFilter{Props: []search.HasValue{{ID: value}}}),
+			},
+			Reverse: nil,
+		}
+		j := testutils.QueryJSON(t, data.ToQuery())
+		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
+		assert.Contains(t, j, `"claims.subHas.prop":{"value":"`+value.String()+`"}`)
+		assert.Contains(t, j, `"claims.subHas.parentTo":{"value":"`+l1.String()+`"}`)
 	})
 }

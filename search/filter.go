@@ -134,18 +134,51 @@ func parseHistogramBuckets(aggs map[string]types.Aggregate, key string) ([]Histo
 	return results, nil
 }
 
+// histogramSubFilterGet retrieves histogram filter data for sub-claim
+// (amount or time) filters. It mirrors histogramFilterGet but its missing
+// query identifies entries by parentProp and prop on the given nestedPath
+// (the sub-claim ES nested path, e.g., "claims.subAmount" or "claims.subTime").
+func histogramSubFilterGet(
+	ctx context.Context,
+	getSearchService func() (*esSearch.Search, int64, int64),
+	query types.QueryVariant,
+	parentProp, prop identifier.Identifier,
+	nestedPath string,
+	filter types.QueryVariant,
+	fromField, toField, rangeField string,
+	sessionFrom, sessionTo *float64,
+) ([]HistogramResult, map[string]any, errors.E) {
+	missingNestedQuery := esdsl.NewBoolQuery().Must(
+		esdsl.NewTermQuery(nestedPath+".parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+		esdsl.NewTermQuery(nestedPath+".prop", esdsl.NewFieldValue().String(prop.String())),
+	)
+	return histogramFilterGet(
+		ctx, getSearchService, query,
+		missingNestedQuery, nestedPath, filter,
+		fromField, toField, rangeField,
+		sessionFrom, sessionTo,
+	)
+}
+
 // histogramFilterGet retrieves histogram filter data for search results.
-// It runs a min/max aggregation followed by a histogram aggregation on the specified nested path.
-// The parent filter is excluded from the session query so that the histogram shows values available
-// under the other filters, not restricted by the current filter's own values.
-// If sessionFrom and sessionTo are non-nil, those bounds are used for the histogram range instead of
-// (or to override) the min/max from the data. This provides "hard bounds" (session range narrower than
-// data) and "extended bounds" (session range wider than data).
+// It runs a min/max aggregation followed by a histogram aggregation on the
+// specified nested path. The parent filter is excluded from the session query
+// so that the histogram shows values available under the other filters, not
+// restricted by the current filter's own values. If sessionFrom and sessionTo
+// are non-nil, those bounds are used for the histogram range instead of (or
+// to override) the min/max from the data. This provides "hard bounds"
+// (session range narrower than data) and "extended bounds" (session range
+// wider than data).
+//
+// missingNestedQuery is the nested-path inner query that identifies an entry
+// matching the filter's identity (e.g., prop term for top-level filters, or
+// parentProp+prop combination for sub-claim filters). Documents are counted
+// as missing when no nested entry under nestedPath satisfies this query.
 func histogramFilterGet(
 	ctx context.Context,
 	getSearchService func() (*esSearch.Search, int64, int64),
 	query types.QueryVariant,
-	prop identifier.Identifier,
+	missingNestedQuery types.QueryVariant,
 	nestedPath string,
 	filter types.QueryVariant,
 	fromField, toField, rangeField string,
@@ -156,9 +189,7 @@ func histogramFilterGet(
 	// Aggregation for documents missing the property.
 	missingAggregation := esdsl.NewAggregations().
 		Filter(esdsl.NewBoolQuery().MustNot(
-			esdsl.NewNestedQuery(
-				esdsl.NewTermQuery(nestedPath+".prop", esdsl.NewFieldValue().String(prop.String())),
-			).Path(nestedPath),
+			esdsl.NewNestedQuery(missingNestedQuery).Path(nestedPath),
 		))
 
 	var docCount int64

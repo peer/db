@@ -3266,12 +3266,12 @@ func TestConvertRelationWithSubRelations(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	result, subRefs, errE := c.convertReference(ctx, claim)
+	result, subs, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result, 1)
-	require.Len(t, subRefs, 1)
-	assert.Equal(t, subPropID, subRefs[0].Prop)
-	assert.Equal(t, subTargetID, subRefs[0].To)
+	require.Len(t, subs.Refs, 1)
+	assert.Equal(t, subPropID, subs.Refs[0].Prop)
+	assert.Equal(t, subTargetID, subs.Refs[0].To)
 }
 
 func TestConvertHas(t *testing.T) {
@@ -3327,12 +3327,12 @@ func TestConvertHasWithSubRelations(t *testing.T) {
 	}
 	errE := claim.Validate()
 	require.NoError(t, errE, "% -+#.1v", errE)
-	result, subRefs, errE := c.convertHas(ctx, claim)
+	result, subs, errE := c.convertHas(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Has claims with sub-ref claims are not indexed as HasClaim entries.
-	// They are recorded only in subRefs.
+	// They are recorded only in subs.Refs.
 	require.Empty(t, result)
-	require.Len(t, subRefs, 1)
+	require.Len(t, subs.Refs, 1)
 }
 
 func TestConvertNone(t *testing.T) {
@@ -3414,11 +3414,11 @@ func TestConvertReferenceSubClaimFields(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
-	_, subRefs, errE := c.convertReference(ctx, claim)
+	_, subs, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	require.Len(t, subRefs, 1)
-	sr := subRefs[0]
+	require.Len(t, subs.Refs, 1)
+	sr := subs.Refs[0]
 	assert.Equal(t, testPropID, sr.ParentProp)
 	assert.Equal(t, testTargetDocID.String(), sr.ParentTo)
 	assert.Equal(t, subPropID, sr.Prop)
@@ -3428,7 +3428,7 @@ func TestConvertReferenceSubClaimFields(t *testing.T) {
 }
 
 // TestConvertReferenceMultipleSubClaims verifies that multiple reference sub-claims
-// each produce a separate SubReferenceClaim entry.
+// each produce a separate SubRefClaim entry.
 func TestConvertReferenceMultipleSubClaims(t *testing.T) {
 	t.Parallel()
 
@@ -3468,23 +3468,23 @@ func TestConvertReferenceMultipleSubClaims(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: testTargetDocID},
 	}
-	_, subRefs, errE := c.convertReference(ctx, claim)
+	_, subs, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	require.Len(t, subRefs, 2)
-	// All subRefs have the same parent.
-	for _, sr := range subRefs {
+	require.Len(t, subs.Refs, 2)
+	// All subs.Refs have the same parent.
+	for _, sr := range subs.Refs {
 		assert.Equal(t, testPropID, sr.ParentProp)
 		assert.Equal(t, testTargetDocID.String(), sr.ParentTo)
 	}
 	// Collect the inner props to verify both are present.
-	innerProps := []identifier.Identifier{subRefs[0].Prop, subRefs[1].Prop}
+	innerProps := []identifier.Identifier{subs.Refs[0].Prop, subs.Refs[1].Prop}
 	assert.Contains(t, innerProps, subPropID1)
 	assert.Contains(t, innerProps, subPropID2)
 }
 
 // TestConvertReferenceSubClaimHierarchyExpansion verifies that when the parent reference claim's
-// target has hierarchy ancestors, a SubReferenceClaim is generated for each (expanded target × sub-ref)
+// target has hierarchy ancestors, a SubRefClaim is generated for each (expanded target × sub-ref)
 // combination, with ParentTo set to each expanded target ID.
 func TestConvertReferenceSubClaimHierarchyExpansion(t *testing.T) {
 	t.Parallel()
@@ -3543,16 +3543,16 @@ func TestConvertReferenceSubClaimHierarchyExpansion(t *testing.T) {
 		Prop:      document.Reference{ID: testPropID},
 		To:        document.Reference{ID: target},
 	}
-	_, subRefs, errE := c.convertReference(ctx, claim)
+	_, subs, errE := c.convertReference(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// 1 sub-ref × 2 expanded targets (target + classParent) = 2 SubReferenceClaim entries.
-	require.Len(t, subRefs, 2)
-	parentTos := []string{subRefs[0].ParentTo, subRefs[1].ParentTo}
+	// 1 sub-ref × 2 expanded targets (target + classParent) = 2 SubRefClaim entries.
+	require.Len(t, subs.Refs, 2)
+	parentTos := []string{subs.Refs[0].ParentTo, subs.Refs[1].ParentTo}
 	assert.Contains(t, parentTos, target.String())
 	assert.Contains(t, parentTos, classParent.String())
-	// All subRefs share the same inner prop and to.
-	for _, sr := range subRefs {
+	// All subs.Refs share the same inner prop and to.
+	for _, sr := range subs.Refs {
 		assert.Equal(t, testPropID, sr.ParentProp)
 		assert.Equal(t, subPropID, sr.Prop)
 		assert.Equal(t, subTargetID, sr.To)
@@ -3560,7 +3560,7 @@ func TestConvertReferenceSubClaimHierarchyExpansion(t *testing.T) {
 }
 
 // TestConvertHasSubClaimParentToSentinel verifies that has claims with reference sub-claims
-// produce SubReferenceClaim entries with ParentTo set to the ParentToHas sentinel.
+// produce SubRefClaim entries with ParentTo set to the ParentToHas sentinel.
 func TestConvertHasSubClaimParentToSentinel(t *testing.T) {
 	t.Parallel()
 
@@ -3588,16 +3588,16 @@ func TestConvertHasSubClaimParentToSentinel(t *testing.T) {
 		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
 		Prop:      document.Reference{ID: testPropID},
 	}
-	result, subRefs, errE := c.convertHas(ctx, claim)
+	result, subs, errE := c.convertHas(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Has claim with sub-claims is not indexed as HasClaim.
 	assert.Empty(t, result)
-	require.Len(t, subRefs, 1)
-	assert.Equal(t, testPropID, subRefs[0].ParentProp)
-	assert.Equal(t, ParentToHas, subRefs[0].ParentTo)
-	assert.Equal(t, subPropID, subRefs[0].Prop)
-	assert.Equal(t, subTargetID, subRefs[0].To)
+	require.Len(t, subs.Refs, 1)
+	assert.Equal(t, testPropID, subs.Refs[0].ParentProp)
+	assert.Equal(t, ParentToHas, subs.Refs[0].ParentTo)
+	assert.Equal(t, subPropID, subs.Refs[0].Prop)
+	assert.Equal(t, subTargetID, subs.Refs[0].To)
 }
 
 // TestConvertHasSkippedForNonRefSubClaim verifies that a has claim with any sub-claim
@@ -3627,17 +3627,17 @@ func TestConvertHasSkippedForNonRefSubClaim(t *testing.T) {
 		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
 		Prop:      document.Reference{ID: testPropID},
 	}
-	result, subRefs, errE := c.convertHas(ctx, claim)
+	result, subs, errE := c.convertHas(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Has claim with ANY sub-claim (even non-ref) is not indexed.
 	assert.Empty(t, result)
-	// No reference sub-claims, so no SubReferenceClaim entries either.
-	assert.Empty(t, subRefs)
+	// No reference sub-claims, so no SubRefClaim entries either.
+	assert.Empty(t, subs.Refs)
 }
 
 // TestConvertNoneSubClaimParentToSentinel verifies that none claims with reference sub-claims
-// produce SubReferenceClaim entries with ParentTo set to the ParentToNone sentinel.
+// produce SubRefClaim entries with ParentTo set to the ParentToNone sentinel.
 //
 //nolint:dupl
 func TestConvertNoneSubClaimParentToSentinel(t *testing.T) {
@@ -3667,20 +3667,20 @@ func TestConvertNoneSubClaimParentToSentinel(t *testing.T) {
 		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
 		Prop:      document.Reference{ID: testPropID},
 	}
-	result, subRefs, errE := c.convertNone(ctx, claim)
+	result, subs, errE := c.convertNone(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Unlike has claims, none claims are still indexed even when they have sub-claims.
 	require.Len(t, result, 1)
-	require.Len(t, subRefs, 1)
-	assert.Equal(t, testPropID, subRefs[0].ParentProp)
-	assert.Equal(t, ParentToNone, subRefs[0].ParentTo)
-	assert.Equal(t, subPropID, subRefs[0].Prop)
-	assert.Equal(t, subTargetID, subRefs[0].To)
+	require.Len(t, subs.Refs, 1)
+	assert.Equal(t, testPropID, subs.Refs[0].ParentProp)
+	assert.Equal(t, ParentToNone, subs.Refs[0].ParentTo)
+	assert.Equal(t, subPropID, subs.Refs[0].Prop)
+	assert.Equal(t, subTargetID, subs.Refs[0].To)
 }
 
 // TestConvertUnknownSubClaimParentToSentinel verifies that unknown claims with reference sub-claims
-// produce SubReferenceClaim entries with ParentTo set to the ParentToUnknown sentinel.
+// produce SubRefClaim entries with ParentTo set to the ParentToUnknown sentinel.
 //
 //nolint:dupl
 func TestConvertUnknownSubClaimParentToSentinel(t *testing.T) {
@@ -3710,19 +3710,19 @@ func TestConvertUnknownSubClaimParentToSentinel(t *testing.T) {
 		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
 		Prop:      document.Reference{ID: testPropID},
 	}
-	result, subRefs, errE := c.convertUnknown(ctx, claim)
+	result, subs, errE := c.convertUnknown(ctx, claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Unlike has claims, unknown claims are still indexed even when they have sub-claims.
 	require.Len(t, result, 1)
-	require.Len(t, subRefs, 1)
-	assert.Equal(t, testPropID, subRefs[0].ParentProp)
-	assert.Equal(t, ParentToUnknown, subRefs[0].ParentTo)
-	assert.Equal(t, subPropID, subRefs[0].Prop)
-	assert.Equal(t, subTargetID, subRefs[0].To)
+	require.Len(t, subs.Refs, 1)
+	assert.Equal(t, testPropID, subs.Refs[0].ParentProp)
+	assert.Equal(t, ParentToUnknown, subs.Refs[0].ParentTo)
+	assert.Equal(t, subPropID, subs.Refs[0].Prop)
+	assert.Equal(t, subTargetID, subs.Refs[0].To)
 }
 
-// TestConvertSubClaimsEmpty verifies that convert functions return no SubReferenceClaim entries
+// TestConvertSubClaimsEmpty verifies that convert functions return no SubRefClaim entries
 // when the parent claim has no reference sub-claims.
 func TestConvertSubClaimsEmpty(t *testing.T) {
 	t.Parallel()
@@ -3744,9 +3744,9 @@ func TestConvertSubClaimsEmpty(t *testing.T) {
 			Prop:      document.Reference{ID: testPropID},
 			To:        document.Reference{ID: testTargetDocID},
 		}
-		_, subRefs, errE := c.convertReference(ctx, claim)
+		_, subs, errE := c.convertReference(ctx, claim)
 		require.NoError(t, errE, "% -+#.1v", errE)
-		assert.Empty(t, subRefs)
+		assert.Empty(t, subs.Refs)
 	})
 
 	t.Run("Has", func(t *testing.T) {
@@ -3755,11 +3755,11 @@ func TestConvertSubClaimsEmpty(t *testing.T) {
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 			Prop:      document.Reference{ID: testPropID},
 		}
-		result, subRefs, errE := c.convertHas(ctx, claim)
+		result, subs, errE := c.convertHas(ctx, claim)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		// Has claim without sub-claims IS indexed.
 		require.Len(t, result, 1)
-		assert.Empty(t, subRefs)
+		assert.Empty(t, subs.Refs)
 	})
 
 	t.Run("None", func(t *testing.T) {
@@ -3768,9 +3768,9 @@ func TestConvertSubClaimsEmpty(t *testing.T) {
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 			Prop:      document.Reference{ID: testPropID},
 		}
-		_, subRefs, errE := c.convertNone(ctx, claim)
+		_, subs, errE := c.convertNone(ctx, claim)
 		require.NoError(t, errE, "% -+#.1v", errE)
-		assert.Empty(t, subRefs)
+		assert.Empty(t, subs.Refs)
 	})
 
 	t.Run("Unknown", func(t *testing.T) {
@@ -3779,9 +3779,9 @@ func TestConvertSubClaimsEmpty(t *testing.T) {
 			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
 			Prop:      document.Reference{ID: testPropID},
 		}
-		_, subRefs, errE := c.convertUnknown(ctx, claim)
+		_, subs, errE := c.convertUnknown(ctx, claim)
 		require.NoError(t, errE, "% -+#.1v", errE)
-		assert.Empty(t, subRefs)
+		assert.Empty(t, subs.Refs)
 	})
 }
 
@@ -4981,6 +4981,206 @@ func TestConvertTimeIntervalToUnknownFromError(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, _, _, errE = c.convertTimeInterval(ctx, claim) //nolint:dogsled
 	assert.EqualError(t, errE, "document not found")
+}
+
+// TestConvertReferenceWithSubAmountClaim verifies that an amount sub-claim on
+// a reference parent claim is flattened into SubAmountClaim entries with the
+// parent's prop / target as parentProp / parentTo.
+func TestConvertReferenceWithSubAmountClaim(t *testing.T) {
+	t.Parallel()
+
+	subPropID := identifier.New()
+	propDoc := makeNamingDoc(testPropID, "Rel Prop")
+	targetDoc := makeNamingDoc(testTargetDocID, "Target")
+	subPropDoc := makeNamingDoc(subPropID, "Sub Amount Prop")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID:      propDoc,
+		testTargetDocID: targetDoc,
+		subPropID:       subPropDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+	sub := &document.ClaimTypes{
+		Amount: []document.AmountClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: subPropID},
+				Amount:    document.Amount("42"),
+				Precision: 1,
+			},
+		},
+	}
+	claim := &document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+		Prop:      document.Reference{ID: testPropID},
+		To:        document.Reference{ID: testTargetDocID},
+	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, subs, errE := c.convertReference(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, subs.Amounts, 1)
+	assert.Equal(t, testPropID, subs.Amounts[0].ParentProp)
+	assert.Equal(t, testTargetDocID.String(), subs.Amounts[0].ParentTo)
+	assert.Equal(t, subPropID, subs.Amounts[0].Prop)
+	require.NotNil(t, subs.Amounts[0].From)
+	assert.Equal(t, 41.5, *subs.Amounts[0].From) //nolint:testifylint
+	require.NotNil(t, subs.Amounts[0].To)
+	assert.Equal(t, 42.5, *subs.Amounts[0].To) //nolint:testifylint
+	assert.Empty(t, subs.Refs)
+	assert.Empty(t, subs.Times)
+	assert.Empty(t, subs.Has)
+}
+
+// TestConvertReferenceWithSubTimeIntervalClaim verifies that a time-interval
+// sub-claim on a reference parent claim is flattened into a SubTimeClaim
+// (mapped to a range) with the parent's prop / target as parentProp /
+// parentTo.
+func TestConvertReferenceWithSubTimeIntervalClaim(t *testing.T) {
+	t.Parallel()
+
+	subPropID := identifier.New()
+	propDoc := makeNamingDoc(testPropID, "Rel Prop")
+	targetDoc := makeNamingDoc(testTargetDocID, "Target")
+	subPropDoc := makeNamingDoc(subPropID, "Period")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID:      propDoc,
+		testTargetDocID: targetDoc,
+		subPropID:       subPropDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+	fromTime := document.Time("2020")
+	toTime := document.Time("2022")
+	fromPrec := document.TimePrecisionYear
+	toPrec := document.TimePrecisionYear
+	sub := &document.ClaimTypes{
+		TimeInterval: []document.TimeIntervalClaim{
+			{
+				CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
+				Prop:          document.Reference{ID: subPropID},
+				From:          &fromTime,
+				FromPrecision: &fromPrec,
+				FromIsOpen:    false,
+				FromIsUnknown: false,
+				FromIsNone:    false,
+				To:            &toTime,
+				ToPrecision:   &toPrec,
+				ToIsOpen:      false,
+				ToIsUnknown:   false,
+				ToIsNone:      false,
+			},
+		},
+	}
+	claim := &document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+		Prop:      document.Reference{ID: testPropID},
+		To:        document.Reference{ID: testTargetDocID},
+	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, subs, errE := c.convertReference(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, subs.Times, 1)
+	assert.Equal(t, testPropID, subs.Times[0].ParentProp)
+	assert.Equal(t, testTargetDocID.String(), subs.Times[0].ParentTo)
+	assert.Equal(t, subPropID, subs.Times[0].Prop)
+	require.NotNil(t, subs.Times[0].From)
+	require.NotNil(t, subs.Times[0].To)
+	// From is start of 2020, To is start of 2023 (exclusive end of 2022).
+	assert.Less(t, *subs.Times[0].From, *subs.Times[0].To)
+	assert.Empty(t, subs.Refs)
+	assert.Empty(t, subs.Amounts)
+	assert.Empty(t, subs.Has)
+}
+
+// TestConvertReferenceWithSubHasClaim verifies that a simple has sub-claim on
+// a reference parent claim is flattened into a SubHasClaim with the parent's
+// prop / target as parentProp / parentTo.
+func TestConvertReferenceWithSubHasClaim(t *testing.T) {
+	t.Parallel()
+
+	subPropID := identifier.New()
+	propDoc := makeNamingDoc(testPropID, "Rel Prop")
+	targetDoc := makeNamingDoc(testTargetDocID, "Target")
+	subPropDoc := makeNamingDoc(subPropID, "Has Prop")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID:      propDoc,
+		testTargetDocID: targetDoc,
+		subPropID:       subPropDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+	sub := &document.ClaimTypes{
+		Has: []document.HasClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: subPropID},
+			},
+		},
+	}
+	claim := &document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+		Prop:      document.Reference{ID: testPropID},
+		To:        document.Reference{ID: testTargetDocID},
+	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, subs, errE := c.convertReference(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, subs.Has, 1)
+	assert.Equal(t, testPropID, subs.Has[0].ParentProp)
+	assert.Equal(t, testTargetDocID.String(), subs.Has[0].ParentTo)
+	assert.Equal(t, subPropID, subs.Has[0].Prop)
+	assert.Empty(t, subs.Refs)
+	assert.Empty(t, subs.Amounts)
+	assert.Empty(t, subs.Times)
+}
+
+// TestConvertHasWithSubHasClaim verifies that a has sub-claim under a has
+// parent claim is flattened into a SubHasClaim with ParentTo=ParentToHas.
+func TestConvertHasWithSubHasClaim(t *testing.T) {
+	t.Parallel()
+
+	subPropID := identifier.New()
+	propDoc := makeNamingDoc(testPropID, "Has Prop")
+	subPropDoc := makeNamingDoc(subPropID, "Sub Has Prop")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID: propDoc,
+		subPropID:  subPropDoc,
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+	sub := &document.ClaimTypes{
+		Has: []document.HasClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: subPropID},
+			},
+		},
+	}
+	claim := &document.HasClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+		Prop:      document.Reference{ID: testPropID},
+	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	result, subs, errE := c.convertHas(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// Has claim with sub-claims is not indexed as a HasClaim entry.
+	require.Empty(t, result)
+	require.Len(t, subs.Has, 1)
+	assert.Equal(t, testPropID, subs.Has[0].ParentProp)
+	assert.Equal(t, ParentToHas, subs.Has[0].ParentTo)
+	assert.Equal(t, subPropID, subs.Has[0].Prop)
 }
 
 // makeClassDocWithTemplate creates a class document with an INSTANCE_OF PROPERTY

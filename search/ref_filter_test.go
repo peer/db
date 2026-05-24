@@ -31,7 +31,10 @@ func TestRefFilterGetIntegration(t *testing.T) {
 				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
 			}},
 			Has: nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -43,7 +46,10 @@ func TestRefFilterGetIntegration(t *testing.T) {
 				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
 			}},
 			Has: nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -55,7 +61,10 @@ func TestRefFilterGetIntegration(t *testing.T) {
 				To: target2, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
 			}},
 			Has: nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -104,7 +113,10 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
 			}},
 			Has: nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -116,7 +128,10 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 				To: target2, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
 			}},
 			Has: nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -156,7 +171,10 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
 			}},
 			Has: nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	// Doc without the ref prop.
@@ -166,7 +184,10 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 			Identifier: nil, String: nil, HTML: nil, Amount: nil, Time: nil, Link: nil,
 			Reference: nil,
 			Has:       nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	// Another doc without the ref prop.
@@ -176,7 +197,10 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 			Identifier: nil, String: nil, HTML: nil, Amount: nil, Time: nil, Link: nil,
 			Reference: nil,
 			Has:       nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -215,7 +239,10 @@ func TestRefFilterGetNoMissingIntegration(t *testing.T) {
 				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
 			}},
 			Has: nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -277,7 +304,10 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 				{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: animal, ToDisplay: nil, ToNaming: nil, ToPath: []string{animalPath}, ToDisplayPath: nil},
 			},
 			Has: nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -322,7 +352,10 @@ func TestRefFilterGetDiamondIntegration(t *testing.T) {
 				{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: leaf, ToDisplay: nil, ToNaming: nil, ToPath: []string{leafPathA, leafPathB}, ToDisplayPath: nil},
 			},
 			Has: nil, None: nil, Unknown: nil,
-			SubReference: nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -367,7 +400,7 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 			Identifier: nil, String: nil, HTML: nil, Amount: nil, Time: nil, Link: nil,
 			Reference: nil,
 			Has:       nil, None: nil, Unknown: nil,
-			SubReference: internalSearch.SubReferenceClaims{
+			SubRef: internalSearch.SubRefClaims{
 				{
 					ParentProp: parentProp, ParentTo: parentTo,
 					Prop: subProp, PropDisplay: nil, PropNaming: nil,
@@ -387,6 +420,9 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 					ToPath: []string{animalPath}, ToDisplayPath: nil,
 				},
 			},
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)

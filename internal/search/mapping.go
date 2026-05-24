@@ -406,10 +406,9 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		},
 	},
 	{
-		// Has claims that have ANY sub-claims (of any type) are NOT indexed here.
-		// Any reference sub-claims are still recorded in claims.sub with parentTo=__HAS__.
-		// This means claims.has only contains simple has claims (without any sub-claims),
-		// so the has filter does not need to filter these out.
+		// claims.has only contains simple has claims (those with no
+		// sub-claims). Sub-claims of a has claim are flattened into the
+		// matching claims.sub* records with parentTo=__HAS__.
 		"has",
 		[]field{
 			{
@@ -461,8 +460,9 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 		},
 	},
 	{
-		// This is a synthetic claim type used to index sub-claims.
-		"sub",
+		// Synthetic claim type indexing nested reference sub-claims from
+		// parent claims (ref, has, none, unknown).
+		"subRef",
 		[]field{
 			{
 				"parentProp",
@@ -503,6 +503,155 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 			{
 				"toDisplayPath",
 				displayPath,
+			},
+		},
+	},
+	{
+		// Synthetic claim type indexing nested amount sub-claims (including
+		// AmountInterval sources mapped to a range) from parent claims.
+		"subAmount",
+		[]field{
+			{
+				"parentProp",
+				relationID,
+			},
+			{
+				"parentTo",
+				relationID,
+			},
+			{
+				"prop",
+				relationID,
+			},
+			{
+				"propDisplay",
+				propDisplay,
+			},
+			{
+				"propNaming",
+				multiLanguageString,
+			},
+			{
+				"unit",
+				relationID,
+			},
+			{
+				"range",
+				`{
+					"type": "double_range"
+				}`,
+			},
+			{
+				"from",
+				`{
+					"type": "double"
+				}`,
+			},
+			{
+				"fromDisplay",
+				`{
+					"type": "text",
+					"analyzer": "standard_string"
+				}`,
+			},
+			{
+				"to",
+				`{
+					"type": "double"
+				}`,
+			},
+			{
+				"toDisplay",
+				`{
+					"type": "text",
+					"analyzer": "standard_string"
+				}`,
+			},
+		},
+	},
+	{
+		// Synthetic claim type indexing nested time sub-claims (including
+		// TimeInterval sources mapped to a range) from parent claims.
+		"subTime",
+		[]field{
+			{
+				"parentProp",
+				relationID,
+			},
+			{
+				"parentTo",
+				relationID,
+			},
+			{
+				"prop",
+				relationID,
+			},
+			{
+				"propDisplay",
+				propDisplay,
+			},
+			{
+				"propNaming",
+				multiLanguageString,
+			},
+			{
+				"range",
+				`{
+					"type": "double_range"
+				}`,
+			},
+			{
+				"from",
+				`{
+					"type": "double"
+				}`,
+			},
+			{
+				"fromDisplay",
+				`{
+					"type": "text",
+					"analyzer": "standard_string"
+				}`,
+			},
+			{
+				"to",
+				`{
+					"type": "double"
+				}`,
+			},
+			{
+				"toDisplay",
+				`{
+					"type": "text",
+					"analyzer": "standard_string"
+				}`,
+			},
+		},
+	},
+	{
+		// Synthetic claim type indexing simple has sub-claims (those with no
+		// sub-claims of their own) from parent claims.
+		"subHas",
+		[]field{
+			{
+				"parentProp",
+				relationID,
+			},
+			{
+				"parentTo",
+				relationID,
+			},
+			{
+				"prop",
+				relationID,
+			},
+			{
+				"propDisplay",
+				propDisplay,
+			},
+			{
+				"propNaming",
+				multiLanguageString,
 			},
 		},
 	},

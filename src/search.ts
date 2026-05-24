@@ -325,6 +325,7 @@ export function useRefFilters(
 export function useHasFilters(
   searchSessionRef: Ref<SearchSessionRef>,
   filterId: Ref<string>,
+  props: Ref<readonly string[]>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
@@ -349,7 +350,15 @@ export function useHasFilters(
         query,
       }).href
     }
-    // Inactive filter: use has-based route.
+    if (props.value.length === 1) {
+      // Sub-has filter: use parentProp route.
+      return router.apiResolve({
+        name: "SearchSubHasFilter",
+        params: { id: searchSessionRef.value.id, parentProp: props.value[0] },
+        query,
+      }).href
+    }
+    // Inactive top-level filter: use has-based route.
     return router.apiResolve({
       name: "SearchHasFilter",
       params: { id: searchSessionRef.value.id },
@@ -361,7 +370,7 @@ export function useHasFilters(
 export function useAmountHistogramValues(
   searchSessionRef: Ref<SearchSessionRef>,
   filterId: Ref<string>,
-  prop: Ref<string>,
+  props: Ref<readonly string[]>,
   unit: Ref<string | undefined>,
   el: Ref<Element | null>,
   progress: Ref<number>,
@@ -414,15 +423,25 @@ export function useAmountHistogramValues(
           query,
         }).href
       }
-      // Inactive filter: use prop-based route.
-      const routeParams: Record<string, string> = {
-        id: searchSessionRef.value.id,
-        prop: prop.value,
-      }
-      let routeName = "SearchAmountFilter"
-      if (unit.value) {
-        routeParams.unit = unit.value
-        routeName = "SearchAmountFilterWithUnit"
+      // Inactive filter: use prop-based route. Sub-amount uses parentProp + prop.
+      const isSub = props.value.length === 2
+      const routeParams: Record<string, string> = { id: searchSessionRef.value.id }
+      let routeName: string
+      if (isSub) {
+        routeParams.parentProp = props.value[0]
+        routeParams.prop = props.value[1]
+        routeName = "SearchSubAmountFilter"
+        if (unit.value) {
+          routeParams.unit = unit.value
+          routeName = "SearchSubAmountFilterWithUnit"
+        }
+      } else {
+        routeParams.prop = props.value[0]
+        routeName = "SearchAmountFilter"
+        if (unit.value) {
+          routeParams.unit = unit.value
+          routeName = "SearchAmountFilterWithUnit"
+        }
       }
       return router.apiResolve({
         name: routeName,
@@ -500,7 +519,7 @@ export function useAmountHistogramValues(
 export function useTimeHistogramValues(
   searchSessionRef: Ref<SearchSessionRef>,
   filterId: Ref<string>,
-  prop: Ref<string>,
+  props: Ref<readonly string[]>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
@@ -552,10 +571,17 @@ export function useTimeHistogramValues(
           query,
         }).href
       }
-      // Inactive filter: use prop-based route.
+      // Inactive filter: use prop-based route. Sub-time uses parentProp + prop.
+      if (props.value.length === 2) {
+        return router.apiResolve({
+          name: "SearchSubTimeFilter",
+          params: { id: searchSessionRef.value.id, parentProp: props.value[0], prop: props.value[1] },
+          query,
+        }).href
+      }
       return router.apiResolve({
         name: "SearchTimeFilter",
-        params: { id: searchSessionRef.value.id, prop: prop.value },
+        params: { id: searchSessionRef.value.id, prop: props.value[0] },
         query,
       }).href
     },
