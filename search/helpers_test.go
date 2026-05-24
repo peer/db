@@ -22,7 +22,7 @@ import (
 
 // initES creates and configures an ES client and a test index.
 // It returns the client, a search service factory, and the index name.
-func initES(t *testing.T) (*elasticsearch.TypedClient, func() (*esSearch.Search, int64, int64), string) {
+func initES(t *testing.T) (*elasticsearch.TypedClient, func() *esSearch.Search, string) {
 	t.Helper()
 
 	if os.Getenv("ELASTIC") == "" {
@@ -47,8 +47,8 @@ func initES(t *testing.T) (*elasticsearch.TypedClient, func() (*esSearch.Search,
 	errE = internalSearch.EnsureIndex(ctx, esClient, index, 1)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	getSearchService := func() (*esSearch.Search, int64, int64) {
-		return esClient.Search().Index(index), 100, 10
+	getSearchService := func() *esSearch.Search {
+		return esClient.Search().Index(index)
 	}
 
 	return esClient, getSearchService, index

@@ -28,6 +28,11 @@ const (
 	// displayBoost is the boost factor for display and naming fields in text search queries.
 	// The value is multiplied with the field's relevance score.
 	displayBoost = "^0.2"
+
+	// 40000 is the maximum precision threshold ES supports, so we use it to get the most accurate approximation.
+	// For now we didn't notice any performance issues at data scale PeerDB is currently being used with, but
+	// in the future we might want to make this configurable.
+	maxPrecisionThreshold = 40000
 )
 
 // ViewType represents the type of search view.
@@ -783,13 +788,13 @@ type Result struct {
 
 // ResultsGet retrieves search results for a given search session.
 func ResultsGet(
-	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64), searchData *SessionData,
+	ctx context.Context, getSearchService func() *esSearch.Search, searchData *SessionData,
 ) ([]Result, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
 	query := searchData.ToQuery()
 
-	searchService, _, _ := getSearchService()
+	searchService := getSearchService()
 
 	searchService = searchService.From(0).Size(MaxResultsCount).Query(query)
 

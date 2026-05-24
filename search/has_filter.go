@@ -28,13 +28,13 @@ type HasFilterResult struct {
 // parentProp, optionally restricted to listed parentTo values for
 // cross-filtering with a sibling parent ref filter.
 func (f *HasFilter) GetSubHas(
-	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64),
+	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, parentProp identifier.Identifier,
 	parentToRestrictions []identifier.Identifier,
 ) ([]HasFilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
-	searchService, propertiesTotal, _ := getSearchService()
+	searchService := getSearchService()
 
 	filterMusts := []types.QueryVariant{
 		esdsl.NewTermQuery("claims.subHas.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
@@ -57,7 +57,7 @@ func (f *HasFilter) GetSubHas(
 				AddAggregation("docs", esdsl.NewAggregations().
 					ReverseNested(esdsl.NewReverseNestedAggregation()))).
 			AddAggregation("total", esdsl.NewAggregations().
-				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.subHas.prop").PrecisionThreshold(int(2*propertiesTotal))))) //nolint:mnd
+				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.subHas.prop").PrecisionThreshold(maxPrecisionThreshold))))
 
 	searchService = searchService.Size(0).Query(query).
 		AddAggregation("subHas", subHasAggregation)
@@ -118,12 +118,12 @@ func (f *HasFilter) GetSubHas(
 
 // Get retrieves has filter data for search results.
 func (f *HasFilter) Get(
-	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64),
+	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant,
 ) ([]HasFilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
-	searchService, propertiesTotal, _ := getSearchService()
+	searchService := getSearchService()
 
 	// Aggregation for has claims: terms on claims.has.prop.
 	// Only simple has claims (without sub-claims) are indexed in claims.has, so no
@@ -136,9 +136,7 @@ func (f *HasFilter) Get(
 			AddAggregation("docs", esdsl.NewAggregations().
 				ReverseNested(esdsl.NewReverseNestedAggregation()))).
 		AddAggregation("total", esdsl.NewAggregations().
-			// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
-			// so we set precision threshold to twice as much to try to always get precise counts.
-			Cardinality(esdsl.NewCardinalityAggregation().Field("claims.has.prop").PrecisionThreshold(int(2*propertiesTotal)))) //nolint:mnd
+			Cardinality(esdsl.NewCardinalityAggregation().Field("claims.has.prop").PrecisionThreshold(maxPrecisionThreshold)))
 
 	searchService = searchService.Size(0).Query(query).
 		AddAggregation("has", hasAggregation)

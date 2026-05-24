@@ -43,7 +43,7 @@ func computeInterval(from, to float64) (float64, float64, string) {
 
 // Get retrieves amount filter data for search results.
 func (f *AmountFilter) Get(
-	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64),
+	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, prop identifier.Identifier,
 ) ([]HistogramResult, map[string]any, errors.E) {
 	filter := esdsl.NewBoolQuery().Must(
@@ -73,7 +73,7 @@ func subAmountUnitFilter(unit *identifier.Identifier) types.QueryVariant { //nol
 // combination, optionally restricted to listed parentTo values for
 // cross-filtering with a sibling parent ref filter.
 func (f *AmountFilter) GetSubAmount(
-	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64),
+	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, parentProp, prop identifier.Identifier,
 	parentToRestrictions []identifier.Identifier,
 ) ([]HistogramResult, map[string]any, errors.E) {

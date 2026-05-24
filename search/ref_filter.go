@@ -121,12 +121,12 @@ func bucketsToRefFilterResults(buckets []types.StringTermsBucket, kind string) (
 
 // Get retrieves reference filter data for search results.
 func (f *RefFilter) Get(
-	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64),
+	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, prop identifier.Identifier,
 ) ([]RefFilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
-	searchService, _, _ := getSearchService()
+	searchService := getSearchService()
 
 	// Aggregation for documents that have the property: terms on claims.ref.to.
 	// The "paths" sub-aggregation extracts the indexed hierarchy paths for each
@@ -148,10 +148,7 @@ func (f *RefFilter) Get(
 				AddAggregation("paths", esdsl.NewAggregations().
 					Terms(esdsl.NewTermsAggregation().Field("claims.ref.toPath").Size(100)))). //nolint:mnd
 			AddAggregation("total", esdsl.NewAggregations().
-				// Cardinality aggregation returns the count of all buckets. 40000 is the maximum precision threshold,
-				// so we use it to get the most accurate approximation. For now we didn't notice any performance issues
-				// at data scale PeerDB is currently being used with, but in the future we might want to make this configurable.
-				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.ref.to").PrecisionThreshold(40000)))) //nolint:mnd
+				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.ref.to").PrecisionThreshold(maxPrecisionThreshold))))
 
 	// Aggregation for documents missing the property: count documents where the prop does not exist.
 	missingAggregation := esdsl.NewAggregations().
@@ -300,13 +297,13 @@ func (f *RefFilter) ToSubRefQuery(parentProp, prop identifier.Identifier, parent
 // It aggregates claims.subRef.to values for a given (parentProp, prop) combination.
 // parentToRestrictions optionally restricts results to specific parentTo values (for cross-filtering).
 func (f *RefFilter) GetSubRef(
-	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64),
+	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, parentProp, prop identifier.Identifier,
 	parentToRestrictions []identifier.Identifier,
 ) ([]RefFilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
-	searchService, _, _ := getSearchService()
+	searchService := getSearchService()
 
 	// Build the filter for parentProp + prop (+ optional parentTo restriction).
 	filterMusts := []types.QueryVariant{
@@ -337,7 +334,7 @@ func (f *RefFilter) GetSubRef(
 				AddAggregation("paths", esdsl.NewAggregations().
 					Terms(esdsl.NewTermsAggregation().Field("claims.subRef.toPath").Size(100)))). //nolint:mnd
 			AddAggregation("total", esdsl.NewAggregations().
-				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.subRef.to").PrecisionThreshold(40000)))) //nolint:mnd
+				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.subRef.to").PrecisionThreshold(maxPrecisionThreshold))))
 
 	// Aggregation for documents missing this sub-reference.
 	missingAggregation := esdsl.NewAggregations().

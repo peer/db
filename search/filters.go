@@ -152,13 +152,13 @@ func parseMultiTermsBuckets(buckets []types.MultiTermsBucket) ([]FilterResult, e
 
 // FiltersGet retrieves all available filters for the current search.
 func FiltersGet( //nolint:maintidx
-	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64), searchSession *Session,
+	ctx context.Context, getSearchService func() *esSearch.Search, searchSession *Session,
 ) ([]FilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
 	query := searchSession.ToQuery()
 
-	searchService, propertiesTotal, unitsTotal := getSearchService()
+	searchService := getSearchService()
 	refAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.ref")).
 		AddAggregation("props", esdsl.NewAggregations().
@@ -167,9 +167,7 @@ func FiltersGet( //nolint:maintidx
 			AddAggregation("docs", esdsl.NewAggregations().
 				ReverseNested(esdsl.NewReverseNestedAggregation()))).
 		AddAggregation("total", esdsl.NewAggregations().
-			// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
-			// so we set precision threshold to twice as much to try to always get precise counts.
-			Cardinality(esdsl.NewCardinalityAggregation().Field("claims.ref.prop").PrecisionThreshold(int(2*propertiesTotal)))) //nolint:mnd
+			Cardinality(esdsl.NewCardinalityAggregation().Field("claims.ref.prop").PrecisionThreshold(maxPrecisionThreshold)))
 	amountAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.amount")).
 		AddAggregation("props", esdsl.NewAggregations().
@@ -181,8 +179,6 @@ func FiltersGet( //nolint:maintidx
 			AddAggregation("docs", esdsl.NewAggregations().
 				ReverseNested(esdsl.NewReverseNestedAggregation()))).
 		AddAggregation("total", esdsl.NewAggregations().
-			// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal*unitsTotal,
-			// so we set precision threshold to twice as much to try to always get precise counts.
 			// TODO: Use a runtime field.
 			//       See: https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-aggregations-metrics-cardinality-aggregation.html#_script_4
 			Cardinality(esdsl.NewCardinalityAggregation().Script(
@@ -191,7 +187,7 @@ func FiltersGet( //nolint:maintidx
 				esdsl.NewScript().Source(esdsl.NewScriptSource().String(
 					`return doc['claims.amount.prop'].value + '|' + (doc['claims.amount.unit'].size() > 0 ? doc['claims.amount.unit'].value : '__missing__')`,
 				)),
-			).PrecisionThreshold(int(2*propertiesTotal*unitsTotal))))
+			).PrecisionThreshold(maxPrecisionThreshold)))
 	timeAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.time")).
 		AddAggregation("props", esdsl.NewAggregations().
@@ -200,9 +196,7 @@ func FiltersGet( //nolint:maintidx
 			AddAggregation("docs", esdsl.NewAggregations().
 				ReverseNested(esdsl.NewReverseNestedAggregation()))).
 		AddAggregation("total", esdsl.NewAggregations().
-			// Cardinality aggregation returns the count of all buckets. It can be at most propertiesTotal,
-			// so we set precision threshold to twice as much to try to always get precise counts.
-			Cardinality(esdsl.NewCardinalityAggregation().Field("claims.time.prop").PrecisionThreshold(int(2*propertiesTotal)))) //nolint:mnd
+			Cardinality(esdsl.NewCardinalityAggregation().Field("claims.time.prop").PrecisionThreshold(maxPrecisionThreshold)))
 	// Has aggregation counts documents that have at least one has claim.
 	// Only simple has claims (without sub-claims) are indexed in claims.has, so no
 	// additional filtering is needed. Unlike other filter types, has produces a single
@@ -226,7 +220,7 @@ func FiltersGet( //nolint:maintidx
 				esdsl.NewScript().Source(esdsl.NewScriptSource().String(
 					`return doc['claims.subRef.parentProp'].value + '|' + doc['claims.subRef.prop'].value`,
 				)),
-			).PrecisionThreshold(int(2*propertiesTotal*propertiesTotal))))
+			).PrecisionThreshold(maxPrecisionThreshold)))
 	// SubAmount aggregation discovers available (parentProp, prop, unit) combinations
 	// across all sub-amounts. Units are document IDs, so "__missing__" is safe as the
 	// missing-unit placeholder.
@@ -248,7 +242,7 @@ func FiltersGet( //nolint:maintidx
 					`return doc['claims.subAmount.parentProp'].value + '|' + doc['claims.subAmount.prop'].value + '|' + `+
 						`(doc['claims.subAmount.unit'].size() > 0 ? doc['claims.subAmount.unit'].value : '__missing__')`,
 				)),
-			).PrecisionThreshold(int(2*propertiesTotal*propertiesTotal*unitsTotal))))
+			).PrecisionThreshold(maxPrecisionThreshold)))
 	// SubTime aggregation discovers available (parentProp, prop) combinations across all sub-times.
 	subTimeAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.subTime")).
@@ -264,7 +258,7 @@ func FiltersGet( //nolint:maintidx
 				esdsl.NewScript().Source(esdsl.NewScriptSource().String(
 					`return doc['claims.subTime.parentProp'].value + '|' + doc['claims.subTime.prop'].value`,
 				)),
-			).PrecisionThreshold(int(2*propertiesTotal*propertiesTotal))))
+			).PrecisionThreshold(maxPrecisionThreshold)))
 	// SubHas aggregation discovers parent properties under which sub-has filters
 	// can be applied. The user later selects which has-properties to match via
 	// HasFilter.Props, so discovery only enumerates parentProp.
@@ -276,7 +270,7 @@ func FiltersGet( //nolint:maintidx
 			AddAggregation("docs", esdsl.NewAggregations().
 				ReverseNested(esdsl.NewReverseNestedAggregation()))).
 		AddAggregation("total", esdsl.NewAggregations().
-			Cardinality(esdsl.NewCardinalityAggregation().Field("claims.subHas.parentProp").PrecisionThreshold(int(2*propertiesTotal)))) //nolint:mnd
+			Cardinality(esdsl.NewCardinalityAggregation().Field("claims.subHas.parentProp").PrecisionThreshold(maxPrecisionThreshold)))
 	searchService = searchService.Size(0).Query(query).
 		AddAggregation("ref", refAggregation).
 		AddAggregation("amount", amountAggregation).

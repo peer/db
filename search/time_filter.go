@@ -12,7 +12,7 @@ import (
 
 // Get retrieves time filter data for search results.
 func (f *TimeFilter) Get(
-	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64),
+	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, prop identifier.Identifier,
 ) ([]HistogramResult, map[string]any, errors.E) {
 	filter := esdsl.NewTermQuery("claims.time.prop", esdsl.NewFieldValue().String(prop.String()))
@@ -30,7 +30,7 @@ func (f *TimeFilter) Get(
 // optionally restricted to listed parentTo values for cross-filtering with a
 // sibling parent ref filter.
 func (f *TimeFilter) GetSubTime(
-	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64),
+	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, parentProp, prop identifier.Identifier,
 	parentToRestrictions []identifier.Identifier,
 ) ([]HistogramResult, map[string]any, errors.E) {

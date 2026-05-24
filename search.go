@@ -20,7 +20,7 @@ import (
 	"gitlab.com/peerdb/peerdb/store"
 )
 
-func (s *Service) getSearchService(req *http.Request) (*esSearch.Search, int64, int64) {
+func (s *Service) getSearchService(req *http.Request) *esSearch.Search {
 	ctx := req.Context()
 
 	site := waf.MustGetSite[*Site](ctx)
@@ -32,11 +32,11 @@ func (s *Service) getSearchService(req *http.Request) (*esSearch.Search, int64, 
 		Preference(getHost(req.RemoteAddr)).
 		Header("X-Opaque-ID", waf.MustRequestID(ctx).String()).
 		TrackTotalHits(esdsl.NewTrackHits().Bool(true)).
-		AllowPartialSearchResults(false), site.propertiesTotal, site.unitsTotal
+		AllowPartialSearchResults(false)
 }
 
-func (s *Service) getSearchServiceClosure(req *http.Request) func() (*esSearch.Search, int64, int64) {
-	return func() (*esSearch.Search, int64, int64) {
+func (s *Service) getSearchServiceClosure(req *http.Request) func() *esSearch.Search {
+	return func() *esSearch.Search {
 		return s.getSearchService(req)
 	}
 }

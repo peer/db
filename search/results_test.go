@@ -749,8 +749,8 @@ func TestResultsGetTotalGteIntegration(t *testing.T) {
 	})
 	refreshIndex(t, ctx, esClient, index)
 
-	getSearchServiceTracked := func() (*esSearch.Search, int64, int64) {
-		return esClient.Search().Index(index).TrackTotalHits(esdsl.NewTrackHits().Bool(true)), 100, 10
+	getSearchServiceTracked := func() *esSearch.Search {
+		return esClient.Search().Index(index).TrackTotalHits(esdsl.NewTrackHits().Bool(true))
 	}
 
 	session := createSession(t, ctx, search.SessionData{
@@ -797,8 +797,8 @@ func TestResultsGetTotalGteRelationIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	// Set TrackTotalHits to 1 so ES returns "gte" relation when there are more than 1 hit.
-	getSearchServiceLimited := func() (*esSearch.Search, int64, int64) {
-		return esClient.Search().Index(index).TrackTotalHits(esdsl.NewTrackHits().Int(1)), 100, 10
+	getSearchServiceLimited := func() *esSearch.Search {
+		return esClient.Search().Index(index).TrackTotalHits(esdsl.NewTrackHits().Int(1))
 	}
 
 	session := createSession(t, ctx, search.SessionData{

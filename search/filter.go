@@ -140,7 +140,7 @@ func parseHistogramBuckets(aggs map[string]types.Aggregate, key string) ([]Histo
 // (the sub-claim ES nested path, e.g., "claims.subAmount" or "claims.subTime").
 func histogramSubFilterGet(
 	ctx context.Context,
-	getSearchService func() (*esSearch.Search, int64, int64),
+	getSearchService func() *esSearch.Search,
 	query types.QueryVariant,
 	parentProp, prop identifier.Identifier,
 	nestedPath string,
@@ -176,7 +176,7 @@ func histogramSubFilterGet(
 // as missing when no nested entry under nestedPath satisfies this query.
 func histogramFilterGet(
 	ctx context.Context,
-	getSearchService func() (*esSearch.Search, int64, int64),
+	getSearchService func() *esSearch.Search,
 	query types.QueryVariant,
 	missingNestedQuery types.QueryVariant,
 	nestedPath string,
@@ -200,7 +200,7 @@ func histogramFilterGet(
 	if sessionFrom != nil && sessionTo != nil {
 		// We still need to know if there are any matching documents.
 		// Run a count-only aggregation.
-		countSearchService, _, _ := getSearchService()
+		countSearchService := getSearchService()
 		countAggregation := esdsl.NewAggregations().
 			Nested(esdsl.NewNestedAggregation().Path(nestedPath)).
 			AddAggregation("filter", esdsl.NewAggregations().
@@ -234,7 +234,7 @@ func histogramFilterGet(
 		maxValue = *sessionTo
 	} else {
 		// Run min/max aggregation to determine data range and doc count.
-		minMaxSearchService, _, _ := getSearchService()
+		minMaxSearchService := getSearchService()
 		minMaxAggregation := esdsl.NewAggregations().
 			Nested(esdsl.NewNestedAggregation().Path(nestedPath)).
 			AddAggregation("filter", esdsl.NewAggregations().
@@ -308,7 +308,7 @@ func histogramFilterGet(
 			ReverseNested(esdsl.NewReverseNestedAggregation()))
 
 	// Second query: histogram.
-	histogramSearchService, _, _ := getSearchService()
+	histogramSearchService := getSearchService()
 	histogramAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path(nestedPath)).
 		AddAggregation("filter", esdsl.NewAggregations().
