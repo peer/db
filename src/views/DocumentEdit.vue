@@ -247,7 +247,7 @@ provide(unregisterForFlushKey, (instance: FlushFn) => {
 })
 
 // Poll interval in milliseconds.
-const pollInterval = 1000
+const pollInterval = 100
 
 // Resolve field definitions for the document's class(es).
 const docRef = toRef(() => doc.value ?? null)
