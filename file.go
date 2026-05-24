@@ -457,7 +457,11 @@ func (s *Service) StorageChangesGetAPI(w http.ResponseWriter, req *http.Request,
 	}
 
 	s.changesetChangesGetAPI(w, req, params, func(ctx context.Context, changesetID identifier.Identifier, after *identifier.Identifier) ([]store.Change, errors.E) {
-		return waf.MustGetSite[*Site](ctx).Base.GetFileChangesetChanges(ctx, changesetID, after)
+		cs, errE := waf.MustGetSite[*Site](ctx).Base.FileChangeset(ctx, changesetID)
+		if errE != nil {
+			return nil, errE
+		}
+		return cs.Changes(ctx, after)
 	})
 }
 

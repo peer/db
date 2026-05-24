@@ -648,7 +648,11 @@ func (s *Service) DocumentChangesGetAPI(w http.ResponseWriter, req *http.Request
 	}
 
 	s.changesetChangesGetAPI(w, req, params, func(ctx context.Context, changesetID identifier.Identifier, after *identifier.Identifier) ([]store.Change, errors.E) {
-		return waf.MustGetSite[*Site](ctx).Base.GetDocumentChanges(ctx, changesetID, after)
+		cs, errE := waf.MustGetSite[*Site](ctx).Base.DocumentChangeset(ctx, changesetID)
+		if errE != nil {
+			return nil, errE
+		}
+		return cs.Changes(ctx, after)
 	})
 }
 

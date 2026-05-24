@@ -104,16 +104,12 @@ func (b *B) GetDocumentLatestDoc(ctx context.Context, id identifier.Identifier) 
 	return doc, metadata, version, parentChangesets, errE
 }
 
-// GetDocumentChanges returns up to MaxPageLength changes of the document changeset,
-// ordered by document ID, after optional document ID, to support keyset pagination.
-func (b *B) GetDocumentChanges(
-	ctx context.Context, changesetID identifier.Identifier, after *identifier.Identifier,
-) ([]store.Change, errors.E) {
-	changeset, errE := b.documents.Changeset(ctx, changesetID)
-	if errE != nil {
-		return nil, errE
-	}
-	return changeset.Changes(ctx, after)
+// DocumentChangeset returns the requested changeset from the document store.
+func (b *B) DocumentChangeset(ctx context.Context, id identifier.Identifier) (
+	store.Changeset[json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes],
+	errors.E,
+) {
+	return b.documents.Changeset(ctx, id)
 }
 
 // GetDocumentFromChangeset returns the document at the given revision in the changeset as raw JSON.
@@ -132,16 +128,12 @@ func (b *B) GetDocumentFromChangeset(
 	return changeset.Get(ctx, id, revision)
 }
 
-// GetFileChangesetChanges returns up to MaxPageLength changes of the file changeset,
-// ordered by file ID, after optional file ID, to support keyset pagination.
-func (b *B) GetFileChangesetChanges(
-	ctx context.Context, changesetID identifier.Identifier, after *identifier.Identifier,
-) ([]store.Change, errors.E) {
-	changeset, errE := b.files.Store().Changeset(ctx, changesetID)
-	if errE != nil {
-		return nil, errE
-	}
-	return changeset.Changes(ctx, after)
+// FileChangeset returns the requested changeset from the file store.
+func (b *B) FileChangeset(ctx context.Context, id identifier.Identifier) (
+	store.Changeset[[]byte, *storage.FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None],
+	errors.E,
+) {
+	return b.files.Store().Changeset(ctx, id)
 }
 
 // GetFileFromChangeset returns the file at the given revision in the changeset.
