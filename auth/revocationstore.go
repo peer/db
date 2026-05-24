@@ -16,6 +16,8 @@ import (
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
+// TODO: Use LISTEN/NOTIFY to be informed sooner about revocations.
+
 // notRevokedCacheTTL is how long a "this token is not revoked" decision is
 // trusted before we re-check the database. A revoked token whose JWT is
 // still inside this window can keep authenticating until the cached
