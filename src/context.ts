@@ -23,7 +23,7 @@ const prefix = siteContext.metadataHeaderPrefix ?? ""
 // request that carries a validated access token. We read them off the
 // context.json fetch (which happens once on app boot) to seed the reactive
 // auth state in @/auth without an extra round-trip. Absent headers are
-// treated as "anonymous": empty roles and a null UserInfo.
+// treated as "unauthenticated": empty roles and a null UserInfo.
 function parseRoles(): string[] {
   const items = decodeMetadataListNamed(response.headers, prefix, "Roles")
   return items.filter((s): s is string => typeof s === "string")

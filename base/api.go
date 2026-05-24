@@ -12,6 +12,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -177,11 +178,14 @@ func (b *B) InsertDocument(ctx context.Context, doc *document.D) errors.E {
 	// (validate above validated the link between ID and Base).
 	changesetBase := slices.Clone(doc.Base)
 	changesetBase = append(changesetBase, "CHANGESET", "FIRST")
+	user := store.UserFromContext(ctx)
 	_, errE = b.documents.Insert(ctx, doc.ID, documentJSON, &store.DocumentMetadata{
 		At:               store.Time(time.Now().UTC()),
+		Users:            internalStore.SortedUniqueUsers([]*store.User{user}),
 		InverseRelations: nil,
 	}, &store.CommitMetadata{
 		Base: changesetBase,
+		User: user,
 	})
 	return errE
 }
@@ -214,6 +218,7 @@ func (b *B) BeginEditDocumentLatest(ctx context.Context, id identifier.Identifie
 			// that bump the revision do not invalidate the session.
 			Revision: 0,
 		},
+		User: store.UserFromContext(ctx),
 	})
 	return session, version, errE
 }
@@ -232,6 +237,7 @@ func (b *B) BeginCreateDocument(ctx context.Context, base []string) (identifier.
 		DocumentID: id,
 		Base:       base,
 		Version:    nil,
+		User:       store.UserFromContext(ctx),
 	})
 }
 
@@ -258,7 +264,8 @@ func (b *B) AppendDocumentChange(ctx context.Context, session identifier.Identif
 	}
 
 	return b.coordinator.Append(ctx, session, data, &documentChangeMetadata{
-		At: store.Time(time.Now().UTC()),
+		At:   store.Time(time.Now().UTC()),
+		User: store.UserFromContext(ctx),
 	}, &seqNo)
 }
 
@@ -278,6 +285,7 @@ func (b *B) EndEditDocument(ctx context.Context, session identifier.Identifier, 
 	return b.coordinator.End(ctx, session, &documentEndMetadata{
 		At:        store.Time(time.Now().UTC()),
 		Discarded: discard,
+		User:      store.UserFromContext(ctx),
 	})
 }
 

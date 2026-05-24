@@ -33,6 +33,7 @@ func (b *B) InsertOrReplaceDocument(ctx context.Context, doc *document.D) errors
 
 	metadata := &store.DocumentMetadata{
 		At:               store.Time(time.Now().UTC()),
+		Users:            nil,
 		InverseRelations: nil,
 	}
 
@@ -41,6 +42,7 @@ func (b *B) InsertOrReplaceDocument(ctx context.Context, doc *document.D) errors
 	changesetBase = append(changesetBase, "CHANGESET", "FIRST")
 	_, errE = b.documents.Insert(ctx, doc.ID, data, metadata, &store.CommitMetadata{
 		Base: changesetBase,
+		User: nil,
 	})
 	// If commit with ID from changesetBase already exists, this means that also the doc
 	// with its ID already exist. So we replace the doc.
@@ -55,6 +57,7 @@ func (b *B) InsertOrReplaceDocument(ctx context.Context, doc *document.D) errors
 		// TODO: What to do once we have document melding and target document got melded into some other document?
 		_, errE = b.documents.Replace(ctx, doc.ID, version.Changeset, data, metadata, &store.CommitMetadata{
 			Base: changesetBase,
+			User: nil,
 		})
 		return errE
 	}
@@ -81,6 +84,7 @@ func (b *B) InsertOrReplaceFile(ctx context.Context, base []string, data []byte,
 		MediaType: mediaType,
 		Filename:  filename,
 		Etag:      x.ComputeEtag(data),
+		Users:     nil,
 	}
 
 	// Each base is unique.
@@ -88,6 +92,7 @@ func (b *B) InsertOrReplaceFile(ctx context.Context, base []string, data []byte,
 	changesetBase = append(changesetBase, "CHANGESET", "FIRST")
 	_, errE := b.files.Store().Insert(ctx, id, data, metadata, &store.CommitMetadata{
 		Base: changesetBase,
+		User: nil,
 	})
 	// If commit with ID from changesetBase already exists, this means that also the file
 	// with its ID already exist. So we replace the file.
@@ -100,6 +105,7 @@ func (b *B) InsertOrReplaceFile(ctx context.Context, base []string, data []byte,
 		changesetBase = append(changesetBase, "CHANGESET", "REPLACE", version.Changeset.String())
 		_, errE = b.files.Store().Replace(ctx, id, version.Changeset, data, metadata, &store.CommitMetadata{
 			Base: changesetBase,
+			User: nil,
 		})
 		return id, errE
 	}

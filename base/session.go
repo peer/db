@@ -13,6 +13,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -25,12 +26,19 @@ type DocumentBeginMetadata struct {
 	DocumentID identifier.Identifier `json:"documentId"`
 	Base       []string              `json:"base"`
 	Version    *store.Version        `json:"version,omitempty"`
+	// User is the user who opened the edit session. nil when unauthenticated.
+	// Feeds the per-changeset Users union assembled at completion.
+	User *store.User `json:"user,omitempty"`
 }
 
 // documentEndMetadata contains metadata captured at the end of document edit session.
 type documentEndMetadata struct {
 	At        store.Time `json:"at"`
 	Discarded bool       `json:"discarded,omitempty"`
+	// User is the user who ended the session (the committer). nil when
+	// unauthenticated. Lands in CommitMetadata.User at completion. NOT included in
+	// the Users union on changeset metadata.
+	User *store.User `json:"user,omitempty"`
 }
 
 // documentCompleteData contains JSON serialized document with metadata to be
@@ -61,6 +69,9 @@ type DocumentCompleteMetadata struct {
 // documentChangeMetadata contains metadata about document changes.
 type documentChangeMetadata struct {
 	At store.Time `json:"at"`
+	// User is the user who appended this change. nil when unauthenticated.
+	// Feeds the per-changeset Users union assembled at completion.
+	User *store.User `json:"user,omitempty"`
 }
 
 func (b *B) completeDocumentSession(ctx context.Context, session identifier.Identifier) (*documentCompleteData, errors.E) {
@@ -102,8 +113,13 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 	}
 
 	changes := make(document.Changes, 0, len(changesList))
+	// changeUsers collects the begin user and every per-change user. The end
+	// user is intentionally excluded (it belongs on CommitMetadata.User).
+	// internalStore.SortedUniqueUsers drops nils, so unauthenticated participants are skipped.
+	changeUsers := make([]*store.User, 0, len(changesList)+1)
+	changeUsers = append(changeUsers, beginMetadata.User)
 	for _, ch := range changesList {
-		data, _, errE := b.coordinator.GetData(ctx, session, ch)
+		data, changeMetadata, errE := b.coordinator.GetData(ctx, session, ch)
 		if errE != nil {
 			errors.Details(errE)["change"] = ch
 			return nil, errE
@@ -114,6 +130,7 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 			return nil, errE
 		}
 		changes = append(changes, change)
+		changeUsers = append(changeUsers, changeMetadata.User)
 	}
 
 	var doc document.D
@@ -169,6 +186,7 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 	// (no-op when oldMetadata is nil, which is the create-session case).
 	newMetadata := &store.DocumentMetadata{
 		At:               endMetadata.At,
+		Users:            internalStore.SortedUniqueUsers(changeUsers),
 		InverseRelations: nil,
 	}
 	newMetadata.CarryOver(oldMetadata)
@@ -221,6 +239,7 @@ func (b *B) completeDocumentSessionTx(
 	// We do not have to use the "tx" parameter because we access the transaction through ctx.
 	commitMetadata := &store.CommitMetadata{
 		Base: changesetBase,
+		User: data.EndMetadata.User,
 	}
 
 	// Resolve the parent changeset the Update will branch from. For edit sessions
@@ -246,13 +265,17 @@ func (b *B) completeDocumentSessionTx(
 		}
 		firstBase := slices.Clone(data.BeginMetadata.Base)
 		firstBase = append(firstBase, "CHANGESET", "FIRST")
+		// The synthesized empty-document insert is attributed to the begin user
+		// (sole contributor at this synthetic step) and committed by the end user
+		// as part of the same End call.
 		firstVersion, errE := b.documents.Insert(
 			ctx, data.BeginMetadata.DocumentID, emptyJSON,
 			&store.DocumentMetadata{
 				At:               data.EndMetadata.At,
+				Users:            internalStore.SortedUniqueUsers([]*store.User{data.BeginMetadata.User}),
 				InverseRelations: nil,
 			},
-			&store.CommitMetadata{Base: firstBase},
+			&store.CommitMetadata{Base: firstBase, User: data.EndMetadata.User},
 		)
 		if errE != nil {
 			return nil, errE

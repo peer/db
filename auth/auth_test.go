@@ -330,7 +330,7 @@ func TestResolveAccessTokenNothingPresent(t *testing.T) {
 
 	// Even without a token we declared the dependency, so a later
 	// authenticated request to the same URL is not served from a stale
-	// cached anonymous response.
+	// cached unauthenticated response.
 	vary := w.Header().Values("Vary")
 	assert.Contains(t, vary, "Authorization")
 	assert.Contains(t, vary, "Cookie")
@@ -564,7 +564,7 @@ func TestMockAuthenticatorIsolatesPerSite(t *testing.T) {
 
 	// Site B sees the token but its tokenVerifier expects a different
 	// issuer/audience and a different signing key, so the request is
-	// treated as anonymous: no subject, no roles, no UserInfo header.
+	// treated as unauthenticated: no subject, no roles, no UserInfo header.
 	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/whatever", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenA)
 	w := httptest.NewRecorder()
@@ -580,7 +580,7 @@ func TestMockAuthenticatorIsolatesPerSite(t *testing.T) {
 // TestSignOutRevokesToken covers the end-to-end revocation path: a
 // freshly minted token authenticates, SignOut writes it to the
 // revocation store (and primes the cache), and a subsequent
-// Authenticate carrying the same token is treated as anonymous.
+// Authenticate carrying the same token is treated as unauthenticated.
 func TestSignOutRevokesToken(t *testing.T) {
 	t.Parallel()
 

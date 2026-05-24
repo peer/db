@@ -13,7 +13,7 @@ import { currentAbsoluteURL, redirectServerSide } from "@/utils"
 // user's identity. It is populated from the UserInfo response header
 // the auth middleware emits on /context.json (read at boot in @/context).
 //
-// A null value means "anonymous": no validated access token cookie was
+// A null value means "unauthenticated": no validated access token cookie was
 // presented when the boot fetch was made.
 export const currentUserInfo = ref<UserInfo | null>(initialUserInfo)
 

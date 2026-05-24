@@ -135,7 +135,7 @@ type baseAuthenticator struct {
 // call to the issuer's userinfo endpoint (singleflight).
 //
 // On any validation failure the original ctx is returned unchanged and no
-// headers are written. Callers should treat that as an anonymous request
+// headers are written. Callers should treat that as an unauthenticated request
 // and continue handling.
 func (b *baseAuthenticator) Authenticate(w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string][]string) context.Context {
 	ctx := req.Context()
@@ -184,7 +184,7 @@ func (b *baseAuthenticator) Authenticate(w http.ResponseWriter, req *http.Reques
 // writeRolesHeader emits the Roles response header as an SFV list of
 // strings (one entry per role). Empty role sets do not emit a header.
 // The frontend should use the presence of the UserInfo header (always
-// set when authenticated) to tell "anonymous" from "signed in" and not
+// set when authenticated) to tell "unauthenticated" from "signed in" and not
 // Roles header.
 func (b *baseAuthenticator) writeRolesHeader(w http.ResponseWriter, prefix string, roles []string) {
 	if len(roles) == 0 {
