@@ -83,7 +83,7 @@ func (s *Service) AuthSignOutPostAPI(w http.ResponseWriter, req *http.Request, _
 	ctx := req.Context()
 	site := waf.MustGetSite[*Site](ctx)
 
-	errE := site.authenticator.SignOut(ctx)
+	errE := site.authenticator.SignOut(w, req)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return

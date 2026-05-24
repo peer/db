@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
@@ -61,6 +62,11 @@ const (
 // any other Callback error as an internal-server (500) condition.
 var ErrSignInFailed = errors.Base("sign-in failed")
 
+// upstreamRevokeTimeout caps how long the background upstream
+// revocation call may run. A slow or dead issuer cannot accumulate
+// blocked goroutines beyond this bound.
+const upstreamRevokeTimeout = 30 * time.Second
+
 // Authenticator validates access-token credentials and drives the
 // backend-side sign-in flow. Concrete implementations: OIDCAuthenticator
 // (real OpenID Connect against an external issuer) and MockAuthenticator
@@ -83,20 +89,21 @@ type Authenticator interface {
 	// are returned without that wrapping.
 	Callback(ctx context.Context, values url.Values) (token string, expiry time.Time, redirect string, errE errors.E)
 
-	// SignOut releases any per-session state the Authenticator holds
-	// for the caller.
-	SignOut(ctx context.Context) errors.E
+	// SignOut revokes the access token the caller presented.
+	SignOut(w http.ResponseWriter, req *http.Request) errors.E
 }
 
 // baseAuthenticator holds the state shared between OIDCAuthenticator and
 // MockAuthenticator: the token verifier (which key set differs but the
 // validation contract is the same), the userinfo cache (mock primes it at
 // sign-in so the cache is always warm, OIDC re-fetches from the issuer on
-// miss), and the per-site flow store.
+// miss), the per-site flow store, and the per-site revocation store that
+// remembers which tokens were explicitly signed out.
 type baseAuthenticator struct {
-	tokenVerifier *oidc.IDTokenVerifier
-	userInfoCache *userInfoCache
-	flowStore     *flowStore
+	tokenVerifier   *oidc.IDTokenVerifier
+	userInfoCache   *userInfoCache
+	flowStore       *flowStore
+	revocationStore *revocationStore
 }
 
 // Authenticate validates the caller's access token (Authorization Bearer
@@ -130,18 +137,36 @@ func (b *baseAuthenticator) Authenticate(w http.ResponseWriter, req *http.Reques
 	if token == "" {
 		return ctx
 	}
-	idToken, err := b.tokenVerifier.Verify(ctx, token)
+	// The token is an access token (what the cookie / Bearer header
+	// carries), not an ID token. go-oidc only exposes IDTokenVerifier
+	// for JWT validation, so the returned *oidc.IDToken is just a
+	// parsed-JWT struct here. The validation contract (signature,
+	// issuer, audience, expiry) is the same either way.
+	claims, err := b.tokenVerifier.Verify(ctx, token)
 	if err != nil {
 		return ctx
 	}
-	roles, errE := extractRoles(idToken, allowedRoles)
+	// Revocation check: a token that passed the JWT signature/exp gate
+	// may still have been explicitly signed out.
+	revoked, errE := b.revocationStore.IsRevoked(ctx, token, claims.Expiry)
+	if errE == nil && revoked {
+		return ctx
+	}
+	// Database errors fail open: trust the JWT validation we already
+	// passed rather than locking everyone out on a transient outage.
+	// IsRevoked deliberately does not cache the result on error so
+	// the next request will try again.
+	if errE != nil {
+		zerolog.Ctx(ctx).Warn().Err(errE).Msg("revocation store error")
+	}
+	roles, errE := extractRoles(claims, allowedRoles)
 	if errE != nil {
 		return ctx
 	}
-	ctx = withSubject(ctx, idToken.Subject)
+	ctx = withSubject(ctx, claims.Subject)
 	ctx = withRoles(ctx, roles)
 	b.writeRolesHeader(w, metadataHeaderPrefix, roles)
-	b.writeUserInfoHeader(ctx, w, metadataHeaderPrefix, idToken.Subject, token)
+	b.writeUserInfoHeader(ctx, w, metadataHeaderPrefix, claims.Subject, token)
 	// Authenticated responses carry per-user data, keep them out of
 	// shared caches. Browser caches still store them (keyed by
 	// Authorization / Cookie via the Vary headers resolveAccessToken
@@ -286,6 +311,63 @@ func callbackFlow(
 	}
 
 	return token, expiry, flow.redirect, nil
+}
+
+// signOutFlow is the shared body of OIDCAuthenticator.SignOut and
+// MockAuthenticator.SignOut. It extracts the access token from the request,
+// writes the revocation row + cache entry, and (if provided) delegates
+// to the authenticator-specific upstreamRevoke which is called in a goroutine.
+//
+// A request with no token attached or a request that fails JWT
+// validation (already expired/tampered) is a no-op. A failed upstream
+// revocation does not fail the sign-out: the local revocation has
+// already succeeded and the user is signed out for us regardless of
+// whether the issuer cooperates.
+func signOutFlow(
+	w http.ResponseWriter,
+	req *http.Request,
+	tokenVerifier *oidc.IDTokenVerifier,
+	rs *revocationStore,
+	upstreamRevoke func(ctx context.Context, token string) errors.E,
+) errors.E {
+	if rs == nil {
+		return errors.New("authenticator has no revocation store")
+	}
+
+	ctx := req.Context()
+	token, _ := resolveAccessToken(w, req)
+	if token == "" {
+		return nil
+	}
+
+	// The token is the access token from the cookie / Bearer header.
+	claims, err := tokenVerifier.Verify(ctx, token)
+	if err != nil {
+		// Token does not validate (expired or tampered): the JWT
+		// validator will reject it on every subsequent request without
+		// us needing to remember anything.
+		return nil //nolint:nilerr
+	}
+
+	errE := rs.Revoke(ctx, token, claims.Expiry)
+	if errE != nil {
+		return errE
+	}
+
+	if upstreamRevoke != nil {
+		// Run upstreamRevoke in a goroutine so it does not block the
+		// HTTP response.
+		go func() {
+			backgroundCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), upstreamRevokeTimeout)
+			defer cancel()
+			errE := upstreamRevoke(backgroundCtx, token)
+			if errE != nil {
+				zerolog.Ctx(backgroundCtx).Warn().Err(errE).Msg("upstream revocation failed")
+			}
+		}()
+	}
+
+	return nil
 }
 
 // safeRedirectPath validates the caller-supplied post-sign-in landing path.

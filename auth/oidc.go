@@ -2,8 +2,10 @@ package auth
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -12,6 +14,10 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"golang.org/x/oauth2"
 )
+
+// TODO: Support "OpenID Connect Back-Channel Logout" so that issuers (OPs) can inform us that the token is revoked.
+//       We can set it as revoked in our revocationStore until it expires.
+//       Or we can also implement "Security Event Tokens" instead for same purpose.
 
 // signInScopes are the scopes the backend requests during the OIDC
 // authorization flow. "role.*" is Charon's wildcard that expands into the
@@ -28,11 +34,12 @@ var signInScopes = []string{ //nolint:gochecknoglobals
 type OIDCAuthenticator struct {
 	baseAuthenticator
 
-	issuer      string
-	clientID    string
-	httpClient  *http.Client
-	oauth       *oauth2.Config
-	redirectURI func() string
+	issuer             string
+	clientID           string
+	httpClient         *http.Client
+	oauth              *oauth2.Config
+	redirectURI        func() string
+	revocationEndpoint string
 }
 
 // NewOIDCAuthenticator creates an Authenticator that uses OIDC discovery to
@@ -43,7 +50,7 @@ type OIDCAuthenticator struct {
 // (the backend is a confidential client). redirectURI is a thunk that resolves
 // to the absolute callback URL the issuer should send the user back to.
 //
-// dbpool is used to construct and initialise the flow store.
+// dbpool is used to construct and initialise the flow and revocation stores.
 //
 // The returned OIDCAuthenticator holds a pooled HTTP client used for JWKS
 // refreshes, userinfo lookups, and token exchanges. It does not own a
@@ -76,9 +83,12 @@ func NewOIDCAuthenticator(ctx context.Context, dbpool *pgxpool.Pool, issuer, cli
 		return nil, errE
 	}
 
-	// Discovery exposes userinfo_endpoint as a JSON claim.
+	// Discovery exposes userinfo_endpoint and revocation_endpoint as JSON claims on
+	// the discovery document. The revocation endpoint is optional. Issuers that do
+	// not advertise one leave it empty and SignOut's upstream call becomes a no-op.
 	var discovered struct {
-		UserInfoEndpoint string `json:"userinfo_endpoint"` //nolint:tagliatelle
+		UserInfoEndpoint   string `json:"userinfo_endpoint"`   //nolint:tagliatelle
+		RevocationEndpoint string `json:"revocation_endpoint"` //nolint:tagliatelle
 	}
 	err = provider.Claims(&discovered)
 	if err != nil {
@@ -87,17 +97,18 @@ func NewOIDCAuthenticator(ctx context.Context, dbpool *pgxpool.Pool, issuer, cli
 		return nil, errE
 	}
 
-	// We allow nil for dbpool for testing purposes. Authenticate continues to work,
-	// but SignIn and Callback return an error. Production code MUST pass a non-nil pool.
-	// Tests that exercise only Authenticate or the low-level token paths may pass nil
-	// to avoid pulling in a database dependency.
-	var fs *flowStore
-	if dbpool != nil {
-		fs = newFlowStore(dbpool)
-		errE := fs.Init(ctx)
-		if errE != nil {
-			return nil, errE
-		}
+	if dbpool == nil {
+		return nil, errors.New("dbpool is required")
+	}
+	fs := newFlowStore(dbpool)
+	errE := fs.Init(ctx)
+	if errE != nil {
+		return nil, errE
+	}
+	rs := newRevocationStore(dbpool)
+	errE = rs.Init(ctx)
+	if errE != nil {
+		return nil, errE
 	}
 
 	return &OIDCAuthenticator{
@@ -105,12 +116,14 @@ func NewOIDCAuthenticator(ctx context.Context, dbpool *pgxpool.Pool, issuer, cli
 			tokenVerifier: provider.Verifier(&oidc.Config{ //nolint:exhaustruct
 				ClientID: clientID,
 			}),
-			userInfoCache: newUserInfoCache(discovered.UserInfoEndpoint, client),
-			flowStore:     fs,
+			userInfoCache:   newUserInfoCache(discovered.UserInfoEndpoint, client),
+			flowStore:       fs,
+			revocationStore: rs,
 		},
-		issuer:     issuer,
-		clientID:   clientID,
-		httpClient: client,
+		issuer:             issuer,
+		clientID:           clientID,
+		httpClient:         client,
+		revocationEndpoint: discovered.RevocationEndpoint,
 		oauth: &oauth2.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
@@ -133,9 +146,55 @@ func (a *OIDCAuthenticator) Callback(ctx context.Context, values url.Values) (st
 	return callbackFlow(ctx, a.flowStore, values, a.exchangeCode)
 }
 
-// SignOut is called on sign-out.
-func (*OIDCAuthenticator) SignOut(_ context.Context) errors.E {
-	// TODO: Call the issuer's end_session_endpoint to terminate the upstream session as part of RP-initiated sign-out.
+// TODO: Consider invoking also the issuer-side session using RP-Initiated Logout (end_session_endpoint).
+//       It requires a browser-side redirect so maybe we should use something non-standard like Keycloak and Auth0 use to kill
+//       the session server-to-server using its sid. Then Charon can set its session's cookie as revoked in its revocation store.
+
+// SignOut revokes the request's access token. The local revocation store
+// records the token (so any future request presenting the same cookie or
+// bearer credential is rejected) and, when the issuer advertises a
+// revocation_endpoint, it also informs the issuer to revoke the token.
+//
+// Upstream revocation is best-effort: if the call fails (network error,
+// endpoint not configured, 4xx response) the local revocation has
+// already succeeded and SignOut returns nil. The user is signed out for
+// us regardless of whether the issuer cooperates.
+func (a *OIDCAuthenticator) SignOut(w http.ResponseWriter, req *http.Request) errors.E {
+	return signOutFlow(w, req, a.tokenVerifier, a.revocationStore, a.revokeUpstream)
+}
+
+// revokeUpstream POSTs to the issuer's revocation_endpoint. Returns the
+// request error. The caller treats it as best-effort and only logs it.
+//
+// revokeUpstream is safe to run in a separate goroutine.
+func (a *OIDCAuthenticator) revokeUpstream(ctx context.Context, token string) errors.E {
+	if a.revocationEndpoint == "" {
+		return nil
+	}
+	form := url.Values{
+		"token":           {token},
+		"token_type_hint": {"access_token"},
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.revocationEndpoint, strings.NewReader(form.Encode()))
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
+	req.SetBasicAuth(url.QueryEscape(a.clientID), url.QueryEscape(a.oauth.ClientSecret))
+
+	resp, err := a.httpClient.Do(req)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	defer resp.Body.Close()              //nolint:errcheck
+	defer io.Copy(io.Discard, resp.Body) //nolint:errcheck
+
+	if resp.StatusCode != http.StatusOK {
+		errE := errors.New("revocation endpoint returned non-200")
+		errors.Details(errE)["status"] = resp.StatusCode
+		return errE
+	}
 	return nil
 }
 

@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -83,7 +84,7 @@ type MockAuthenticator struct {
 // mock (in addition to the per-instance RSA key that already isolates
 // signatures).
 //
-// dbpool is used to construct and initialise the flow store.
+// dbpool is used to construct and initialise the flow and revocation stores.
 //
 // grantedRoles is the set of role names a successful mock sign-in should
 // claim. Typically the keys of the site's Roles map, so a mock user holds
@@ -120,24 +121,26 @@ func NewMockAuthenticator(ctx context.Context, dbpool *pgxpool.Pool, siteDomain 
 	// the primed entry (or subject-only).
 	cache := newUserInfoCache("", nil)
 
-	// We allow nil for dbpool for testing purposes. Authenticate continues to work,
-	// but SignIn and Callback return an error. Production code MUST pass a non-nil pool.
-	// Tests that exercise only Authenticate or the low-level token paths may pass nil
-	// to avoid pulling in a database dependency.
-	var fs *flowStore
-	if dbpool != nil {
-		fs = newFlowStore(dbpool)
-		errE := fs.Init(ctx)
-		if errE != nil {
-			return nil, errE
-		}
+	if dbpool == nil {
+		return nil, errors.New("dbpool is required")
+	}
+	fs := newFlowStore(dbpool)
+	errE := fs.Init(ctx)
+	if errE != nil {
+		return nil, errE
+	}
+	rs := newRevocationStore(dbpool)
+	errE = rs.Init(ctx)
+	if errE != nil {
+		return nil, errE
 	}
 
 	return &MockAuthenticator{
 		baseAuthenticator: baseAuthenticator{
-			tokenVerifier: tokenVerifier,
-			userInfoCache: cache,
-			flowStore:     fs,
+			tokenVerifier:   tokenVerifier,
+			userInfoCache:   cache,
+			flowStore:       fs,
+			revocationStore: rs,
 		},
 		issuer:       issuer,
 		clientID:     clientID,
@@ -167,9 +170,12 @@ func (a *MockAuthenticator) Callback(ctx context.Context, values url.Values) (st
 	return callbackFlow(ctx, a.flowStore, values, a.exchangeCode)
 }
 
-// SignOut is called on sign-out.
-func (*MockAuthenticator) SignOut(_ context.Context) errors.E {
-	return nil
+// SignOut revokes the request's access token. The mock has no upstream
+// to notify, it only writes to the local revocation store (and its
+// cache). The user is thereafter rejected by Authenticate even though
+// the JWT signature/exp are still valid.
+func (a *MockAuthenticator) SignOut(w http.ResponseWriter, req *http.Request) errors.E {
+	return signOutFlow(w, req, a.tokenVerifier, a.revocationStore, nil)
 }
 
 // authCodeURL returns a self-redirect URL: the local callback path with

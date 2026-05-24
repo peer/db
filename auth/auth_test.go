@@ -35,9 +35,13 @@ const testAudience = "peerdb"
 
 // newTestAuthenticator spins up an oidctest server and returns an
 // Authenticator wired to it, along with the issuer URL and the private
-// signing key callers can use to mint tokens.
+// signing key callers can use to mint tokens. The Authenticator's flow
+// store and revocation store are initialised against a per-test
+// PostgreSQL schema. The test is skipped when POSTGRES is unavailable.
 func newTestAuthenticator(t *testing.T) (*auth.OIDCAuthenticator, string, *rsa.PrivateKey) {
 	t.Helper()
+
+	ctx, dbpool := auth.TestingInitPool(t)
 
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	require.NoError(t, err)
@@ -54,9 +58,7 @@ func newTestAuthenticator(t *testing.T) (*auth.OIDCAuthenticator, string, *rsa.P
 	server.SetIssuer(ts.URL)
 
 	cb := func() string { return "https://example.test/auth/callback" }
-	// nil dbpool: these tests exercise only Authenticate / the low-level
-	// token helpers, never SignIn / Callback, so no flow store is needed.
-	a, errE := auth.NewOIDCAuthenticator(t.Context(), nil, ts.URL, testAudience, "test-secret", cb)
+	a, errE := auth.NewOIDCAuthenticator(ctx, dbpool, ts.URL, testAudience, "test-secret", cb)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	return a, ts.URL, priv
 }
@@ -64,18 +66,22 @@ func newTestAuthenticator(t *testing.T) (*auth.OIDCAuthenticator, string, *rsa.P
 func TestNewOIDCAuthenticatorRequiresIssuerClientIDSecretAndRedirect(t *testing.T) {
 	t.Parallel()
 
+	ctx, dbpool := auth.TestingInitPool(t)
 	cb := func() string { return "https://example.test/cb" }
 
-	_, errE := auth.NewOIDCAuthenticator(t.Context(), nil, "", "client", "secret", cb)
+	_, errE := auth.NewOIDCAuthenticator(ctx, dbpool, "", "client", "secret", cb)
 	require.Error(t, errE)
 
-	_, errE = auth.NewOIDCAuthenticator(t.Context(), nil, "https://example.test", "", "secret", cb)
+	_, errE = auth.NewOIDCAuthenticator(ctx, dbpool, "https://example.test", "", "secret", cb)
 	require.Error(t, errE)
 
-	_, errE = auth.NewOIDCAuthenticator(t.Context(), nil, "https://example.test", "client", "", cb)
+	_, errE = auth.NewOIDCAuthenticator(ctx, dbpool, "https://example.test", "client", "", cb)
 	require.Error(t, errE)
 
-	_, errE = auth.NewOIDCAuthenticator(t.Context(), nil, "https://example.test", "client", "secret", nil)
+	_, errE = auth.NewOIDCAuthenticator(ctx, dbpool, "https://example.test", "client", "secret", nil)
+	require.Error(t, errE)
+
+	_, errE = auth.NewOIDCAuthenticator(ctx, nil, "https://example.test", "client", "secret", cb)
 	require.Error(t, errE)
 }
 
@@ -442,20 +448,21 @@ func TestAuthenticateNilAllowedRolesDropsAll(t *testing.T) {
 func TestMockAuthenticatorMintsValidJWT(t *testing.T) {
 	t.Parallel()
 
+	ctx, dbpool := auth.TestingInitPool(t)
 	cb := func() string { return "https://example.test/auth/callback" }
-	a, errE := auth.NewMockAuthenticator(t.Context(), nil, "example.test", []string{"admin", "editor"}, cb)
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", []string{"admin", "editor"}, cb)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	token, expiry, errE := a.TestingExchangeCode(t.Context(), "mock", "verifier", "nonce-abc")
+	token, expiry, errE := a.TestingExchangeCode(ctx, "mock", "verifier", "nonce-abc")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotEmpty(t, token)
 	assert.True(t, expiry.After(time.Now()))
 
-	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
+	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/whatever", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
-	ctx := a.Authenticate(w, req, "", map[string][]string{"admin": nil, "editor": nil})
+	ctx = a.Authenticate(w, req, "", map[string][]string{"admin": nil, "editor": nil})
 
 	_, ok := auth.Subject(ctx)
 	require.True(t, ok)
@@ -475,8 +482,9 @@ func TestMockAuthenticatorMintsValidJWT(t *testing.T) {
 func TestMockAuthenticatorAuthCodeURLPointsAtCallback(t *testing.T) {
 	t.Parallel()
 
+	ctx, dbpool := auth.TestingInitPool(t)
 	cb := func() string { return "https://example.test/auth/callback" }
-	a, errE := auth.NewMockAuthenticator(t.Context(), nil, "example.test", nil, cb)
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, cb)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	url := a.TestingAuthCodeURL("state-xyz", "verifier", "nonce")
@@ -492,20 +500,21 @@ func TestMockAuthenticatorAuthCodeURLPointsAtCallback(t *testing.T) {
 func TestMockAuthenticatorFiltersRolesByAllowedSet(t *testing.T) {
 	t.Parallel()
 
+	ctx, dbpool := auth.TestingInitPool(t)
 	cb := func() string { return "https://example.test/auth/callback" }
-	a, errE := auth.NewMockAuthenticator(t.Context(), nil, "example.test", []string{"admin", "editor"}, cb)
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", []string{"admin", "editor"}, cb)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	token, _, errE := a.TestingExchangeCode(t.Context(), "mock", "", "nonce")
+	token, _, errE := a.TestingExchangeCode(ctx, "mock", "", "nonce")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
+	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/whatever", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
 	// Allowed set excludes "editor": even though the mock-minted JWT
 	// claimed both, Authenticate must drop the unallowed one.
-	ctx := a.Authenticate(w, req, "", map[string][]string{"admin": nil})
+	ctx = a.Authenticate(w, req, "", map[string][]string{"admin": nil})
 
 	assert.Equal(t, []string{"admin"}, auth.Roles(ctx))
 }
@@ -516,12 +525,16 @@ func TestMockAuthenticatorFiltersRolesByAllowedSet(t *testing.T) {
 func TestMockAuthenticatorRequiresDomainAndRedirectURI(t *testing.T) {
 	t.Parallel()
 
+	ctx, dbpool := auth.TestingInitPool(t)
 	cb := func() string { return "https://example.test/auth/callback" }
 
-	_, errE := auth.NewMockAuthenticator(t.Context(), nil, "", nil, cb)
+	_, errE := auth.NewMockAuthenticator(ctx, dbpool, "", nil, cb)
 	require.Error(t, errE)
 
-	_, errE = auth.NewMockAuthenticator(t.Context(), nil, "example.test", nil, nil)
+	_, errE = auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, nil)
+	require.Error(t, errE)
+
+	_, errE = auth.NewMockAuthenticator(ctx, nil, "example.test", nil, cb)
 	require.Error(t, errE)
 }
 
@@ -533,26 +546,115 @@ func TestMockAuthenticatorRequiresDomainAndRedirectURI(t *testing.T) {
 func TestMockAuthenticatorIsolatesPerSite(t *testing.T) {
 	t.Parallel()
 
+	ctx, dbpool := auth.TestingInitPool(t)
 	cb := func() string { return "https://example.test/auth/callback" }
-	siteA, errE := auth.NewMockAuthenticator(t.Context(), nil, "a.example", []string{"admin"}, cb)
+	siteA, errE := auth.NewMockAuthenticator(ctx, dbpool, "a.example", []string{"admin"}, cb)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	siteB, errE := auth.NewMockAuthenticator(t.Context(), nil, "b.example", []string{"admin"}, cb)
+	siteB, errE := auth.NewMockAuthenticator(ctx, dbpool, "b.example", []string{"admin"}, cb)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	tokenA, _, errE := siteA.TestingExchangeCode(t.Context(), "mock", "", "nonce")
+	tokenA, _, errE := siteA.TestingExchangeCode(ctx, "mock", "", "nonce")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Site B sees the token but its tokenVerifier expects a different
 	// issuer/audience and a different signing key, so the request is
 	// treated as anonymous: no subject, no roles, no UserInfo header.
-	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
+	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/whatever", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenA)
 	w := httptest.NewRecorder()
 
-	ctx := siteB.Authenticate(w, req, "", map[string][]string{"admin": nil})
+	ctx = siteB.Authenticate(w, req, "", map[string][]string{"admin": nil})
 
 	_, ok := auth.Subject(ctx)
 	assert.False(t, ok)
 	assert.Empty(t, auth.Roles(ctx))
 	assert.Empty(t, w.Header().Get("Userinfo"))
+}
+
+// TestSignOutRevokesToken covers the end-to-end revocation path: a
+// freshly minted token authenticates, SignOut writes it to the
+// revocation store (and primes the cache), and a subsequent
+// Authenticate carrying the same token is treated as anonymous.
+func TestSignOutRevokesToken(t *testing.T) {
+	t.Parallel()
+
+	ctx, dbpool := auth.TestingInitPool(t)
+	cb := func() string { return "https://example.test/auth/callback" }
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", []string{"admin"}, cb)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	token, _, errE := a.TestingExchangeCode(ctx, "mock", "", "nonce")
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Baseline: Authenticate accepts the token (revocation store is
+	// empty, IsRevoked returns false, cache memoises that as "not
+	// revoked").
+	{
+		req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/whatever", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		w := httptest.NewRecorder()
+		authCtx := a.Authenticate(w, req, "", map[string][]string{"admin": nil})
+		_, ok := auth.Subject(authCtx)
+		require.True(t, ok, "first Authenticate should accept the token")
+	}
+
+	// Revoke the same token via SignOut. The cookie carries the
+	// access token in production - here we put it on Authorization
+	// for test convenience; the extraction logic accepts either.
+	soReq := httptest.NewRequestWithContext(ctx, http.MethodPost, "/auth/signOut", nil)
+	soReq.Header.Set("Authorization", "Bearer "+token)
+	soW := httptest.NewRecorder()
+	errE = a.SignOut(soW, soReq)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// After SignOut: Authenticate must reject the same token. The
+	// JWT itself is still signature-valid and unexpired (mockTokenTTL
+	// is 24h); only the revocation entry blocks it.
+	{
+		req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/whatever", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		w := httptest.NewRecorder()
+		authCtx := a.Authenticate(w, req, "", map[string][]string{"admin": nil})
+		_, ok := auth.Subject(authCtx)
+		assert.False(t, ok, "Authenticate should reject the revoked token")
+		assert.Empty(t, auth.Roles(authCtx))
+		assert.Empty(t, w.Header().Get("Userinfo"))
+	}
+}
+
+// TestSignOutWithoutTokenIsNoOp covers the early-return path: a
+// request that carries no access token at all (no Bearer header, no
+// cookie) signs out without error and without writing anything.
+func TestSignOutWithoutTokenIsNoOp(t *testing.T) {
+	t.Parallel()
+
+	ctx, dbpool := auth.TestingInitPool(t)
+	cb := func() string { return "https://example.test/auth/callback" }
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, cb)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	req := httptest.NewRequestWithContext(ctx, http.MethodPost, "/auth/signOut", nil)
+	w := httptest.NewRecorder()
+	errE = a.SignOut(w, req)
+	assert.NoError(t, errE, "SignOut with no token attached must not error")
+}
+
+// TestSignOutWithInvalidTokenIsNoOp covers the JWT-validation guard:
+// SignOut never writes a revocation for a token that fails JWT
+// validation (forged, signed with a different key, etc.) so we cannot
+// be tricked into populating the revocation store with arbitrary
+// caller-controlled hashes.
+func TestSignOutWithInvalidTokenIsNoOp(t *testing.T) {
+	t.Parallel()
+
+	ctx, dbpool := auth.TestingInitPool(t)
+	cb := func() string { return "https://example.test/auth/callback" }
+	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, cb)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	req := httptest.NewRequestWithContext(ctx, http.MethodPost, "/auth/signOut", nil)
+	req.Header.Set("Authorization", "Bearer not-a-real-jwt")
+	w := httptest.NewRecorder()
+	errE = a.SignOut(w, req)
+	assert.NoError(t, errE, "SignOut with an unparseable token must not error")
 }
