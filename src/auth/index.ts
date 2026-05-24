@@ -29,11 +29,13 @@ export const currentUsername = computed(() => currentUserInfo.value?.username ??
 // PeerDB permissions.
 //
 // Keep in sync with auth/permissions.go.
-export const CAN_EDIT_DOCUMENTS = "canEditDocuments"
-export const CAN_GET_FILES = "canGetFiles"
-export const CAN_EDIT_FILES = "canEditFiles"
+export const CAN_EDIT_DOCUMENT = "canEditDocument"
+export const CAN_CHANGES_DOCUMENT = "canChangesDocument"
+export const CAN_GET_FILE = "canGetFile"
+export const CAN_CHANGES_FILE = "canChangesFile"
+export const CAN_EDIT_FILE = "canEditFile"
 
-type Permission = "canEditDocuments" | "canGetFiles" | "canEditFiles"
+type Permission = "canEditDocument" | "canChangesDocument" | "canGetFile" | "canChangesFile" | "canEditFile"
 
 // hasRole is the symmetric counterpart of auth.HasRole on the backend.
 export function hasRole(role: string): boolean {
@@ -41,6 +43,7 @@ export function hasRole(role: string): boolean {
 }
 
 // hasPermission returns true if the current user has the given permission.
+// In sync with auth/permissions.go.
 export function hasPermission(permission: Permission): boolean {
   const roles = siteContext.roles
   if (!roles) {

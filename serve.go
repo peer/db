@@ -55,6 +55,24 @@ func (s *Service) lookupSiteAuthenticator(w http.ResponseWriter, req *http.Reque
 	return site.authenticator, site.Roles, false
 }
 
+// HasPermission reports whether the caller currently holds the given
+// permission on the site this request targets. A permission is granted
+// when any role bound to the request (auth.Roles) maps via Site.Roles
+// to a permission list that contains it. Returns false when no site is
+// in ctx. In sync with src/auth/index.ts.
+func (s *Service) HasPermission(ctx context.Context, permission string) bool {
+	site, ok := waf.GetSite[*Site](ctx)
+	if !ok {
+		return false
+	}
+	for _, role := range auth.Roles(ctx) {
+		if slices.Contains(site.Roles[role], permission) {
+			return true
+		}
+	}
+	return false
+}
+
 // Init initializes the HTTP service and is used together with Prepare to implement Run.
 func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) (*Service, func(), errors.E) {
 	c.Server.Logger = globals.Logger

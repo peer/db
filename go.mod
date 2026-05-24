@@ -34,7 +34,7 @@ require (
 	gitlab.com/tozd/go/x v0.0.0-20260325094342-27311bf9bec0
 	gitlab.com/tozd/go/zerolog v0.11.4
 	gitlab.com/tozd/identifier v0.8.2
-	gitlab.com/tozd/waf v0.24.1-0.20260522095423-68c8fff66280
+	gitlab.com/tozd/waf v0.24.1-0.20260524082236-3d6aeb640007
 	golang.org/x/oauth2 v0.28.0
 	gopkg.in/yaml.v3 v3.0.1
 	riverqueue.com/riverui v0.15.0

@@ -8,6 +8,8 @@ globals:
         downloadButtons: true
       roles:
         admin:
-          - canEditDocuments
-          - canGetFiles
-          - canEditFiles
+          - canEditDocument
+          - canChangesDocument
+          - canGetFile
+          - canChangesFile
+          - canEditFile

@@ -84,7 +84,7 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 		s.NotFoundWithError(w, req, errE)
 		return
 	} else if errors.Is(errE, store.ErrAccessDenied) {
-		waf.Error(w, req, http.StatusUnauthorized)
+		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -140,7 +140,7 @@ func (s *Service) documentGetData(
 		s.NotFoundWithError(w, req, errE)
 		return nil, nil, store.Version{}, true
 	} else if errors.Is(errE, store.ErrAccessDenied) {
-		waf.Error(w, req, http.StatusUnauthorized)
+		s.ForbiddenWithError(w, req, errE)
 		return nil, nil, store.Version{}, true
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)

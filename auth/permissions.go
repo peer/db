@@ -4,7 +4,9 @@ package auth
 //
 // Keep in sync with src/auth/index.ts.
 const (
-	CanEditDocuments = "canEditDocuments"
-	CanGetFiles      = "canGetFiles"
-	CanEditFiles     = "canEditFiles"
+	CanEditDocument    = "canEditDocument"
+	CanChangesDocument = "canChangesDocument"
+	CanGetFile         = "canGetFile"
+	CanChangesFile     = "canChangesFile"
+	CanEditFile        = "canEditFile"
 )

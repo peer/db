@@ -8,7 +8,7 @@ import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import { getURL, postJSON } from "@/api"
-import { CAN_EDIT_DOCUMENTS, hasPermission } from "@/auth"
+import { CAN_EDIT_DOCUMENT, hasPermission } from "@/auth"
 import Button from "@/components/Button.vue"
 import { CLASS, INSTANCE_OF } from "@/core"
 import { hasFields, isAbstractClass } from "@/fields"
@@ -171,7 +171,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    v-if="hasPermission(CAN_EDIT_DOCUMENTS) && (initial || loading || (loaded && classesWithFields.length > 0))"
+    v-if="hasPermission(CAN_EDIT_DOCUMENT) && (initial || loading || (loaded && classesWithFields.length > 0))"
     class="pd-create-dropdown relative shrink-0 self-center"
   >
     <Button :progress="busy" type="button" primary class="px-3.5" @click.prevent="onToggle">

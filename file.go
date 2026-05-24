@@ -357,7 +357,7 @@ func (s *Service) StorageGetGet(w http.ResponseWriter, req *http.Request, params
 		s.NotFoundWithError(w, req, errE)
 		return
 	} else if errors.Is(errE, store.ErrAccessDenied) {
-		waf.Error(w, req, http.StatusUnauthorized)
+		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
