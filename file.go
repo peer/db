@@ -15,6 +15,7 @@ import (
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
+	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
@@ -53,6 +54,11 @@ func (s *Service) StorageBeginUploadPostAPI(w http.ResponseWriter, req *http.Req
 
 	ctx := req.Context()
 
+	if !s.HasPermission(ctx, auth.CanEditFile) {
+		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+		return
+	}
+
 	var payload storageBeginUploadRequest
 	errE := x.DecodeJSONWithoutUnknownFields(req.Body, &payload)
 	if errE != nil {
@@ -66,7 +72,10 @@ func (s *Service) StorageBeginUploadPostAPI(w http.ResponseWriter, req *http.Req
 	base := []string{site.Domain}
 
 	session, errE := site.Base.BeginUploadNew(ctx, base, payload.Size, payload.MediaType, payload.Filename)
-	if errE != nil {
+	if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
@@ -80,6 +89,11 @@ func (s *Service) StorageUploadChunkPostAPI(w http.ResponseWriter, req *http.Req
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
+
+	if !s.HasPermission(ctx, auth.CanEditFile) {
+		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+		return
+	}
 
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
@@ -127,6 +141,9 @@ func (s *Service) StorageUploadChunkPostAPI(w http.ResponseWriter, req *http.Req
 	} else if errors.Is(errE, storage.ErrInvalidChunk) {
 		s.BadRequestWithError(w, req, errE)
 		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -136,8 +153,15 @@ func (s *Service) StorageUploadChunkPostAPI(w http.ResponseWriter, req *http.Req
 }
 
 // StorageListChunksGetAPI handles GET requests to list all uploaded chunks for a file upload session.
+//
+//nolint:dupl
 func (s *Service) StorageListChunksGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
+
+	if !s.HasPermission(ctx, auth.CanEditFile) {
+		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+		return
+	}
 
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
@@ -153,6 +177,9 @@ func (s *Service) StorageListChunksGetAPI(w http.ResponseWriter, req *http.Reque
 		return
 	} else if errors.Is(errE, coordinator.ErrAlreadyEnded) {
 		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -170,6 +197,11 @@ type storageGetChunkResponse struct {
 // StorageGetChunkGetAPI handles GET requests to retrieve start position and length of a specific chunk in a file upload session.
 func (s *Service) StorageGetChunkGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
+
+	if !s.HasPermission(ctx, auth.CanEditFile) {
+		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+		return
+	}
 
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
@@ -195,6 +227,9 @@ func (s *Service) StorageGetChunkGetAPI(w http.ResponseWriter, req *http.Request
 	} else if errors.Is(errE, coordinator.ErrOperationNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -211,6 +246,11 @@ func (s *Service) StorageEndUploadPostAPI(w http.ResponseWriter, req *http.Reque
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
+
+	if !s.HasPermission(ctx, auth.CanEditFile) {
+		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+		return
+	}
 
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
@@ -237,6 +277,9 @@ func (s *Service) StorageEndUploadPostAPI(w http.ResponseWriter, req *http.Reque
 	} else if errors.Is(errE, storage.ErrEndNotPossible) {
 		s.BadRequestWithError(w, req, errE)
 		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -251,6 +294,11 @@ func (s *Service) StorageDiscardUploadPostAPI(w http.ResponseWriter, req *http.R
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
+
+	if !s.HasPermission(ctx, auth.CanEditFile) {
+		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+		return
+	}
 
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
@@ -274,6 +322,9 @@ func (s *Service) StorageDiscardUploadPostAPI(w http.ResponseWriter, req *http.R
 	} else if errors.Is(errE, coordinator.ErrAlreadyEnded) {
 		s.NotFoundWithError(w, req, errE)
 		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -286,6 +337,11 @@ func (s *Service) StorageDiscardUploadPostAPI(w http.ResponseWriter, req *http.R
 func (s *Service) StorageUploadGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
+	if !s.HasPermission(ctx, auth.CanEditFile) {
+		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+		return
+	}
+
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
@@ -297,6 +353,9 @@ func (s *Service) StorageUploadGetAPI(w http.ResponseWriter, req *http.Request, 
 	sessionEnded, completeMetadata, errE := site.Base.GetUploadSession(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -324,6 +383,11 @@ func (s *Service) StorageUploadGetAPI(w http.ResponseWriter, req *http.Request, 
 // An optional "version" query parameter can be used to retrieve a specific version.
 func (s *Service) StorageGetGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
+
+	if !s.HasPermission(ctx, auth.CanGetFile) {
+		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+		return
+	}
 
 	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
@@ -378,6 +442,11 @@ func (s *Service) StorageGetGet(w http.ResponseWriter, req *http.Request, params
 
 // StorageChangesGetAPI handles GET requests to list changes in a file changeset.
 func (s *Service) StorageChangesGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	if !s.HasPermission(req.Context(), auth.CanChangesFile) {
+		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+		return
+	}
+
 	s.changesetChangesGetAPI(w, req, params, func(ctx context.Context, changesetID identifier.Identifier, after *identifier.Identifier) ([]store.Change, errors.E) {
 		return waf.MustGetSite[*Site](ctx).Base.GetFileChangesetChanges(ctx, changesetID, after)
 	})
@@ -386,6 +455,11 @@ func (s *Service) StorageChangesGetAPI(w http.ResponseWriter, req *http.Request,
 // StorageChangesGetGet handles GET requests to retrieve a file from a changeset.
 func (s *Service) StorageChangesGetGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
+
+	if !s.HasPermission(ctx, auth.CanChangesFile) {
+		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+		return
+	}
 
 	changesetID, errE := identifier.MaybeString(params["changeset"])
 	if errE != nil {
@@ -409,6 +483,9 @@ func (s *Service) StorageChangesGetGet(w http.ResponseWriter, req *http.Request,
 		return
 	} else if errors.Is(errE, store.ErrChangesetNotFound) {
 		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)

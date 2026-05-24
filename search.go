@@ -17,6 +17,7 @@ import (
 
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/search"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 func (s *Service) getSearchService(req *http.Request) (*esSearch.Search, int64, int64) {
@@ -62,6 +63,9 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 	searchSession, errE := search.GetSession(ctx, id)
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -143,6 +147,9 @@ func (s *Service) SearchRefFilterGetAPI(w http.ResponseWriter, req *http.Request
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -191,6 +198,9 @@ func (s *Service) SearchAmountFilterGetAPI(w http.ResponseWriter, req *http.Requ
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -230,6 +240,9 @@ func (s *Service) SearchTimeFilterGetAPI(w http.ResponseWriter, req *http.Reques
 	searchSession, errE := search.GetSession(ctx, id)
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -275,6 +288,9 @@ func (s *Service) SearchSubRefFilterGetAPI(w http.ResponseWriter, req *http.Requ
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -317,6 +333,9 @@ func (s *Service) SearchHasFilterGetAPI(w http.ResponseWriter, req *http.Request
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -345,6 +364,10 @@ func (s *Service) SearchGetGet(w http.ResponseWriter, req *http.Request, params 
 		// TODO: We should show some nice 404 error page here.
 		s.NotFoundWithError(w, req, errE)
 		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		// TODO: We should show some nice 403 error page here.
+		s.ForbiddenWithError(w, req, errE)
+		return
 	} else if errE != nil {
 		// TODO: We should show some nice 500 error page here.
 		s.InternalServerErrorWithError(w, req, errE)
@@ -365,6 +388,9 @@ func (s *Service) SearchGetGetAPI(w http.ResponseWriter, req *http.Request, para
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -383,6 +409,9 @@ func (s *Service) SearchFiltersGetAPI(w http.ResponseWriter, req *http.Request, 
 	m.Stop()
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -413,6 +442,9 @@ func (s *Service) SearchResultsGetAPI(w http.ResponseWriter, req *http.Request, 
 	m.Stop()
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -533,7 +565,10 @@ func (s *Service) SearchCreatePostAPI(w http.ResponseWriter, req *http.Request, 
 	m := metrics.Duration(internalStore.MetricSearchSession).Start()
 	errE = search.CreateSession(ctx, searchSession)
 	m.Stop()
-	if errE != nil {
+	if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
@@ -568,6 +603,9 @@ func (s *Service) SearchUpdatePostAPI(w http.ResponseWriter, req *http.Request, 
 	if errors.Is(errE, search.ErrNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -589,6 +627,9 @@ func (s *Service) SearchUpdatePostAPI(w http.ResponseWriter, req *http.Request, 
 		return
 	} else if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -728,7 +769,10 @@ func (s *Service) SearchShortcutGet(w http.ResponseWriter, req *http.Request, _ 
 	m := metrics.Duration(internalStore.MetricSearchSession).Start()
 	errE = search.CreateSession(ctx, searchSession)
 	m.Stop()
-	if errE != nil {
+	if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
