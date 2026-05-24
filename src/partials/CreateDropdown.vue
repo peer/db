@@ -8,7 +8,7 @@ import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import { getURL, postJSON } from "@/api"
-import { CAN_EDIT, hasPermission } from "@/auth"
+import { CAN_EDIT_DOCUMENTS, hasPermission } from "@/auth"
 import Button from "@/components/Button.vue"
 import { CLASS, INSTANCE_OF } from "@/core"
 import { hasFields, isAbstractClass } from "@/fields"
@@ -170,7 +170,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div v-if="hasPermission(CAN_EDIT) && (initial || loading || (loaded && classesWithFields.length > 0))" class="pd-create-dropdown relative shrink-0 self-center">
+  <div
+    v-if="hasPermission(CAN_EDIT_DOCUMENTS) && (initial || loading || (loaded && classesWithFields.length > 0))"
+    class="pd-create-dropdown relative shrink-0 self-center"
+  >
     <Button :progress="busy" type="button" primary class="px-3.5" @click.prevent="onToggle">
       <PlusIcon class="size-5 sm:hidden" :alt="t('common.buttons.create')" />
       <span class="hidden sm:inline">{{ t("common.buttons.create") }}</span>

@@ -29,10 +29,11 @@ export const currentUsername = computed(() => currentUserInfo.value?.username ??
 // PeerDB permissions.
 //
 // Keep in sync with auth/permissions.go.
-export const CAN_EDIT = "canEdit"
-export const CAN_DOWNLOAD = "canDownload"
+export const CAN_EDIT_DOCUMENTS = "canEditDocuments"
+export const CAN_GET_FILES = "canGetFiles"
+export const CAN_EDIT_FILES = "canEditFiles"
 
-type Permission = "canEdit" | "canDownload"
+type Permission = "canEditDocuments" | "canGetFiles" | "canEditFiles"
 
 // hasRole is the symmetric counterpart of auth.HasRole on the backend.
 export function hasRole(role: string): boolean {
