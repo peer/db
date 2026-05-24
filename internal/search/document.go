@@ -293,6 +293,31 @@ type UnknownClaim struct {
 	PropNaming  map[string][]string   `json:"propNaming"`
 }
 
+// TODO: Index the parent claim's own ID alongside ParentTo.
+//       ParentTo on the four Sub* claim types is the parent claim's target identity
+//       (the ref's To, or the ParentToHas/None/Unknown sentinel). It is NOT the
+//       parent claim's own claim ID. This is fine when a document carries at most
+//       one parent claim with a given (parentProp, parentTo) - cross-filter joins
+//       between two sub-claim filters that share the same parent prop then narrow
+//       to entries under the same parent record.
+//       When a document carries multiple parent claims that share the same
+//       (parentProp, parentTo) - e.g. the same venue listed twice under HAS_LOCATION
+//       with different periods - the cross-filter cannot distinguish them: each
+//       sub-claim filter independently matches "some entry under any of those
+//       parents", so a session like:
+//       HAS_LOCATION = L
+//       HAS_LOCATION > HAS_ARTIST = A
+//       HAS_LOCATION > PERIOD in [X,Y]
+//       matches an exhibition where one of its L-entries lists A and another of its
+//       L-entries has period in [X,Y], rather than requiring the same L-entry to
+//       satisfy both.
+//       Fix: add a ParentID identifier.Identifier on each Sub* type, populated by
+//       extractSubClaims from the parent CoreClaim.ID. Sub-claim filter queries
+//       would then group their per-(parentProp, sub-claim-type) restrictions by
+//       ParentID, so the joins narrow to the same parent record. Cross-filter
+//       against a sibling top-level ref filter would still key on ParentTo (since
+//       the top-level filter selects by target identity).
+
 // SubRefClaim represents a denormalized nested reference sub-claim
 // flattened from parent claims (ref, has, none, unknown) for cross-filtering.
 type SubRefClaim struct {
