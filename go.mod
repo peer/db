@@ -16,6 +16,7 @@ require (
 	github.com/elastic/go-elasticsearch/v9 v9.3.2
 	github.com/foolin/pagser v0.1.6
 	github.com/gabriel-vasile/mimetype v1.4.13
+	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/hashicorp/go-cleanhttp v0.5.3-0.20250908122250-455ae7932232
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
 	github.com/jackc/pgx/v5 v5.9.2
@@ -33,7 +34,8 @@ require (
 	gitlab.com/tozd/go/x v0.0.0-20260325094342-27311bf9bec0
 	gitlab.com/tozd/go/zerolog v0.11.4
 	gitlab.com/tozd/identifier v0.8.2
-	gitlab.com/tozd/waf v0.24.1-0.20260519115428-dce34ce4a712
+	gitlab.com/tozd/waf v0.24.1-0.20260524082236-3d6aeb640007
+	golang.org/x/oauth2 v0.28.0
 	gopkg.in/yaml.v3 v3.0.1
 	riverqueue.com/riverui v0.15.0
 )
@@ -42,7 +44,6 @@ require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.3.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
@@ -68,7 +69,6 @@ require (
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.uber.org/goleak v1.3.0 // indirect
-	golang.org/x/oauth2 v0.28.0 // indirect
 	golang.org/x/text v0.36.0 // indirect
 )
 

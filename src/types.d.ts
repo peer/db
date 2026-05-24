@@ -148,15 +148,12 @@ export type SearchSessionRef = {
   version: number
 }
 
-export type SiteOIDC = {
-  // OIDC issuer URL the frontend uses to discover OIDC endpoints (it appends
-  // /.well-known/openid-configuration).
-  issuer: string
-  // OAuth client ID the frontend identifies itself with.
-  clientId: string
-  // The redirect URI the frontend sends in the OIDC authorization request.
-  // It must match what the issuer has registered for this client.
-  redirectUri: string
+// UserInfo carries the profile fields the backend exposes for the
+// currently signed-in user. Optional fields are present only when the
+// upstream userinfo lookup succeeded; subject is always set.
+export type UserInfo = {
+  subject: string
+  username?: string
 }
 
 export type SiteContext = {
@@ -182,10 +179,7 @@ export type SiteContext = {
   roles?: {
     [roleName: string]: string[]
   }
-  // Populated only when the server has been started with --auth.issuer and
-  // --auth.client-id; absence is the frontend's signal that OIDC sign-in is
-  // not available for this site.
-  oidc?: SiteOIDC
+  metadataHeaderPrefix?: string
 }
 
 export type RouteOptions = {

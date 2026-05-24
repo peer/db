@@ -27,12 +27,19 @@ type beginMetadata struct {
 	Size      int64      `json:"size"`
 	MediaType string     `json:"mediaType"`
 	Filename  string     `json:"filename,omitempty"`
+	// User is the user who opened the upload session. nil when unauthenticated.
+	// Feeds the per-file Users union assembled at completion.
+	User *store.User `json:"user,omitempty"`
 }
 
 type endMetadata struct {
 	At             store.Time             `json:"at"`
 	PrimarySession *identifier.Identifier `json:"primarySession,omitempty"`
 	Discarded      bool                   `json:"discarded,omitempty"`
+	// User is the user who ended the upload session (the committer). nil when
+	// unauthenticated. Lands in CommitMetadata.User when the file is committed
+	// standalone. NOT included in the Users union on FileMetadata.
+	User *store.User `json:"user,omitempty"`
 }
 
 type completeData struct {
@@ -58,6 +65,9 @@ type chunkMetadata struct {
 	At     store.Time `json:"at"`
 	Start  int64      `json:"start"`
 	Length int64      `json:"length"`
+	// User is the user who uploaded this chunk. nil when unauthenticated.
+	// Feeds the per-file Users union assembled at completion.
+	User *store.User `json:"user,omitempty"`
 }
 
 type chunk struct {
@@ -80,6 +90,11 @@ type FileMetadata struct {
 	MediaType string     `json:"mediaType"`
 	Filename  string     `json:"filename,omitempty"`
 	Etag      string     `json:"etag"`
+	// Users is the deduplicated, sorted-by-ID union of users who contributed
+	// to this upload: the user who began the session plus every user who
+	// uploaded a chunk. The user who ended the session is NOT included; that
+	// user goes to CommitMetadata.User on the committing changeset instead.
+	Users []store.User `json:"users,omitempty"`
 }
 
 // PrimaryCoordinator is an interface enabling uploading files into
@@ -238,6 +253,15 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 	base := slices.Clone(beginMetadata.Base)
 	base = append(base, "STORAGE", session.String())
 
+	// chunkUsers collects the begin user and every per-chunk user. The end
+	// user is intentionally excluded (it belongs on CommitMetadata.User).
+	// internalStore.SortedUniqueUsers drops nils, so unauthenticated participants are skipped.
+	chunkUsers := make([]*store.User, 0, len(chunks)+1)
+	chunkUsers = append(chunkUsers, beginMetadata.User)
+	for i := range chunks {
+		chunkUsers = append(chunkUsers, chunks[i].Metadata.User)
+	}
+
 	metadata := &FileMetadata{
 		At:        endMetadata.At,
 		Base:      base,
@@ -245,6 +269,7 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 		MediaType: beginMetadata.MediaType,
 		Filename:  beginMetadata.Filename,
 		Etag:      x.ComputeEtag(buffer),
+		Users:     internalStore.SortedUniqueUsers(chunkUsers),
 	}
 
 	return &completeData{
@@ -298,6 +323,7 @@ func (s *Storage) completeStorageSessionTx(ctx context.Context, _ pgx.Tx, sessio
 		// We do not have to use the "tx" parameter because we access the transaction through ctx.
 		_, errE := s.store.Insert(ctx, id, data.Buffer, data.FileMetadata, &store.CommitMetadata{
 			Base: changesetBase,
+			User: data.EndMetadata.User,
 		})
 		if errE != nil {
 			return nil, errE
@@ -320,6 +346,7 @@ func (s *Storage) BeginUploadNew(ctx context.Context, base []string, size int64,
 		Size:      size,
 		MediaType: mediaType,
 		Filename:  filename,
+		User:      store.UserFromContext(ctx),
 	}
 	return s.coordinator.Begin(ctx, metadata)
 }
@@ -347,6 +374,7 @@ func (s *Storage) UploadChunk(ctx context.Context, session identifier.Identifier
 		At:     store.Time(time.Now().UTC()),
 		Start:  start,
 		Length: int64(len(chunk)),
+		User:   store.UserFromContext(ctx),
 	}
 	_, errE = s.coordinator.Append(ctx, session, chunk, metadata, nil)
 	return errE
@@ -386,6 +414,7 @@ func (s *Storage) EndUpload(ctx context.Context, session identifier.Identifier, 
 		At:             store.Time(time.Now().UTC()),
 		PrimarySession: primarySession,
 		Discarded:      false,
+		User:           store.UserFromContext(ctx),
 	}
 	return s.coordinator.End(ctx, session, metadata)
 }
@@ -467,6 +496,7 @@ func (s *Storage) DiscardUpload(ctx context.Context, session identifier.Identifi
 		At:             store.Time(time.Now().UTC()),
 		PrimarySession: nil,
 		Discarded:      true,
+		User:           store.UserFromContext(ctx),
 	}
 	return s.coordinator.End(ctx, session, metadata)
 }

@@ -14,13 +14,10 @@ import (
 
 // TODO: We build query strings again and again based on patchesEnabled. We should create them once during Init and reuse them here.
 
-// Changeset is a batch of changes done to values.
-//
-// It can be prepared and later on committed to a view or discarded.
-// It can be committed to multiple views.
-//
-// Only one change per value is allowed for a changeset.
-type Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any] struct {
+// baseChangeset holds the identity and store association shared by Changeset
+// and CommittedChangeset. The read-only accessors live here so both outer
+// types get them via embedding.
+type baseChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any] struct {
 	id    identifier.Identifier
 	store *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
 }
@@ -28,12 +25,12 @@ type Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 // ID of this changeset.
 //
 // Each changeset has an immutable ID.
-func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) ID() identifier.Identifier {
-	return c.id
+func (b baseChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) ID() identifier.Identifier {
+	return b.id
 }
 
-func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) String() string {
-	return c.id.String()
+func (b baseChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) String() string {
+	return b.id.String()
 }
 
 // Store returns the Store associated with the changeset.
@@ -42,8 +39,18 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 // You can use WithStore to associate it.
 //
 //nolint:lll
-func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Store() *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch] {
-	return c.store
+func (b baseChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Store() *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch] {
+	return b.store
+}
+
+// Changeset is a batch of changes done to values.
+//
+// It can be prepared and later on committed to a view or discarded.
+// It can be committed to multiple views.
+//
+// Only one change per value is allowed for a changeset.
+type Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any] struct {
+	baseChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
 }
 
 // WithStore returns a new Changeset object associated with the given Store.
@@ -51,6 +58,79 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	ctx context.Context, store *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
 ) (Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], errors.E) {
 	return store.Changeset(ctx, c.id)
+}
+
+// CommittedChangeset represents a changeset that has been committed to a view.
+type CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any] struct {
+	baseChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
+
+	view string
+}
+
+// View returns the view this changeset is committed to.
+func (cc CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) View() View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch] { //nolint:lll
+	return View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
+		name:  cc.view,
+		store: cc.store,
+	}
+}
+
+// Metadata returns the commit metadata persisted when this changeset was
+// committed to the view.
+func (cc CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Metadata( //nolint:ireturn
+	ctx context.Context,
+) (CommitMetadata, errors.E) {
+	arguments := []any{
+		cc.id.String(), cc.view,
+	}
+	var metadata CommitMetadata
+	errE := internalStore.RetryTransaction(ctx, cc.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		metadata = *new(CommitMetadata)
+
+		err := tx.QueryRow(ctx, `
+			SELECT cc."metadata"
+				FROM "`+cc.store.Prefix+`CurrentCommittedChangesets" cur
+				JOIN "`+cc.store.Prefix+`CurrentViews" v ON v."view"=cur."view"
+				JOIN "`+cc.store.Prefix+`CommittedChangesets" cc
+					ON cc."changeset"=cur."changeset" AND cc."view"=cur."view" AND cc."revision"=cur."revision"
+				WHERE cur."changeset"=$1 AND v."name"=$2`,
+			arguments...).Scan(&metadata)
+		if err != nil {
+			errE := internalStore.WithPgxError(err)
+			if errors.Is(err, pgx.ErrNoRows) {
+				// This store has no record of the changeset being committed to this view.
+				// Commits are append-only, so this should normally not happen for a
+				// CommittedChangeset obtained from Views on the same store. The typical
+				// trigger is re-attaching via WithStore to a different store that does
+				// not have this commit, or the view being renamed since this
+				// CommittedChangeset was fetched.
+				return errors.WrapWith(errE, ErrChangesetNotFound)
+			}
+			return errE
+		}
+		return nil
+	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["changeset"] = cc.id.String()
+		details["view"] = cc.view
+	}
+	return metadata, errE
+}
+
+// WithStore returns a new CommittedChangeset object associated with the given Store.
+func (cc CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) WithStore(
+	ctx context.Context, store *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch],
+) (CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], errors.E) {
+	c, errE := store.Changeset(ctx, cc.id)
+	if errE != nil {
+		return CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{}, errE
+	}
+	return CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
+		baseChangeset: c.baseChangeset,
+		view:          cc.view,
+	}, nil
 }
 
 // We allow changing changesets even after they have been used as a parent changeset in some
@@ -437,6 +517,47 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 //       When they will not be used anymore, but we should keep them around (and we want to
 //       prevent accidentally changing them.)
 
+// Views returns one CommittedChangeset per view this changeset has been committed to.
+//
+// The result is empty (with no error) when the changeset has not been committed anywhere.
+func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Views(
+	ctx context.Context,
+) ([]CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch], errors.E) {
+	arguments := []any{
+		c.String(),
+	}
+	var committed []CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
+	errE := internalStore.RetryTransaction(ctx, c.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		committed = nil
+
+		rows, err := tx.Query(ctx, `
+			SELECT v."name"
+				FROM "`+c.store.Prefix+`CurrentCommittedChangesets" cur
+				JOIN "`+c.store.Prefix+`CurrentViews" v USING ("view")
+				WHERE cur."changeset"=$1
+				ORDER BY v."name"
+		`, arguments...)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		var view string
+		_, err = pgx.ForEachRow(rows, []any{&view}, func() error {
+			committed = append(committed, CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
+				baseChangeset: c.baseChangeset,
+				view:          view,
+			})
+			return nil
+		})
+		return internalStore.WithPgxError(err)
+	})
+	if errE != nil {
+		details := errors.Details(errE)
+		details["changeset"] = c.String()
+	}
+	return committed, errE
+}
+
 // Change represents a change to the value.
 type Change struct {
 	// ID of the value.
@@ -447,25 +568,25 @@ type Change struct {
 }
 
 // Changes returns up to MaxPageLength changes of the changeset, ordered by ID, after optional ID, to support keyset pagination.
-func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Changes(
+func (b baseChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Changes(
 	ctx context.Context, after *identifier.Identifier,
 ) ([]Change, errors.E) {
 	arguments := []any{
-		c.String(),
+		b.String(),
 	}
 	afterCondition := ""
 	if after != nil {
 		arguments = append(arguments, after.String())
 		// We want to make sure that after value really exists.
-		afterCondition = `AND EXISTS (SELECT 1 FROM "` + c.store.Prefix + `CurrentChanges" WHERE "changeset"=$1 AND "id"=$2) AND "id">$2`
+		afterCondition = `AND EXISTS (SELECT 1 FROM "` + b.store.Prefix + `CurrentChanges" WHERE "changeset"=$1 AND "id"=$2) AND "id">$2`
 	}
 	var changes []Change
-	errE := internalStore.RetryTransaction(ctx, c.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, b.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		changes = nil
 
 		rows, err := tx.Query(ctx, `
-			SELECT "id", "revision"	FROM "`+c.store.Prefix+`CurrentChanges"
+			SELECT "id", "revision"	FROM "`+b.store.Prefix+`CurrentChanges"
 			WHERE "changeset"=$1
 			`+afterCondition+`
 			ORDER BY "id"
@@ -479,7 +600,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 			changes = append(changes, Change{
 				ID: identifier.String(id),
 				Version: Version{
-					Changeset: c.id,
+					Changeset: b.id,
 					Revision:  revision,
 				},
 			})
@@ -494,13 +615,13 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 			}
 			// TODO: Is there a better way to check without doing another query?
 			var exists bool
-			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+c.store.Prefix+`CurrentChanges" WHERE "changeset"=$1)`, c.String()).Scan(&exists)
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+b.store.Prefix+`CurrentChanges" WHERE "changeset"=$1)`, b.String()).Scan(&exists)
 			if err != nil {
 				return internalStore.WithPgxError(err)
 			} else if !exists {
 				return errors.WithStack(ErrChangesetNotFound)
 			}
-			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+c.store.Prefix+`CurrentChanges" WHERE "changeset"=$1 AND "id"=$2)`, arguments...).Scan(&exists)
+			err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+b.store.Prefix+`CurrentChanges" WHERE "changeset"=$1 AND "id"=$2)`, arguments...).Scan(&exists)
 			if err != nil {
 				return internalStore.WithPgxError(err)
 			} else if !exists {
@@ -512,7 +633,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	})
 	if errE != nil {
 		details := errors.Details(errE)
-		details["changeset"] = c.String()
+		details["changeset"] = b.String()
 	}
 	return changes, errE
 }
@@ -526,11 +647,11 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 //
 // If value has been deleted at a given version, ErrValueDeleted error is returned,
 // but other returned values are valid as well.
-func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Get( //nolint:ireturn
+func (b baseChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) Get( //nolint:ireturn
 	ctx context.Context, id identifier.Identifier, revision int64,
 ) (Data, Metadata, Version, []Version, errors.E) {
 	arguments := []any{
-		id.String(), c.String(),
+		id.String(), b.String(),
 	}
 	revisionCondition := ""
 	if revision > 0 {
@@ -543,7 +664,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	var metadata Metadata
 	var resolved Version
 	var parentChangesets []Version
-	errE := internalStore.RetryTransaction(ctx, c.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransaction(ctx, b.store.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
 		data = *new(Data)
 		metadata = *new(Metadata)
@@ -555,7 +676,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		var parentChangesetsString []string
 		err := tx.QueryRow(ctx, `
 			SELECT "revision", "data", "data" IS NULL, "metadata", "parentChangesets"
-				FROM "`+c.store.Prefix+`Changes"
+				FROM "`+b.store.Prefix+`Changes"
 				WHERE "id"=$1 AND "changeset"=$2
 				`+revisionCondition,
 			arguments...).Scan(&resolvedRevision, &data, &dataIsNull, &metadata, &parentChangesetsString)
@@ -566,7 +687,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 			}
 			return errE
 		}
-		resolved.Changeset = c.id
+		resolved.Changeset = b.id
 		resolved.Revision = resolvedRevision
 		for _, s := range parentChangesetsString {
 			parentChangesets = append(parentChangesets, Version{Changeset: identifier.String(s), Revision: 0})
@@ -581,7 +702,7 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	if errE != nil {
 		details := errors.Details(errE)
 		details["id"] = id.String()
-		details["changeset"] = c.String()
+		details["changeset"] = b.String()
 		details["revision"] = revision
 	}
 	return data, metadata, resolved, parentChangesets, errE

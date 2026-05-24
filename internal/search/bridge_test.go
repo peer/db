@@ -30,6 +30,7 @@ import (
 func dummyCommitMetadata() *store.CommitMetadata {
 	return &store.CommitMetadata{
 		Base: []string{"test", identifier.New().String()},
+		User: nil,
 	}
 }
 
@@ -37,6 +38,7 @@ func dummyCommitMetadata() *store.CommitMetadata {
 func dummyMetadata() *store.DocumentMetadata {
 	return &store.DocumentMetadata{
 		At:               store.Time(time.Now().UTC()),
+		Users:            nil,
 		InverseRelations: nil,
 	}
 }

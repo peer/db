@@ -19,7 +19,7 @@ import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import { deleteFromCache, getURL, getURLDirect, postJSON } from "@/api"
-import { CAN_EDIT, hasPermission } from "@/auth"
+import { CAN_EDIT_DOCUMENT, hasPermission } from "@/auth"
 import Button from "@/components/Button.vue"
 import {
   AmountClaim,
@@ -924,7 +924,7 @@ function canSave(): boolean {
   </Teleport>
   <div ref="el" class="pd-documentedit mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
     <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
-      <template v-if="hasPermission(CAN_EDIT) && doc && classesInitialized">
+      <template v-if="hasPermission(CAN_EDIT_DOCUMENT) && doc && classesInitialized">
         <!--
           TODO: Fix how hover interacts with focused tab.
           See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
@@ -1210,7 +1210,7 @@ function canSave(): boolean {
           }}</Button>
         </div>
       </template>
-      <div v-else-if="!hasPermission(CAN_EDIT)" class="my-1 text-center sm:my-4">{{ t("common.status.editingNotAllowed") }}</div>
+      <div v-else-if="!hasPermission(CAN_EDIT_DOCUMENT)" class="my-1 text-center sm:my-4">{{ t("common.status.editingNotAllowed") }}</div>
       <div v-else-if="!classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
       <div v-else class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
     </div>

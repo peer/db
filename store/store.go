@@ -670,8 +670,10 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 	// There might be more than just one changeset committed if its parent changesets were not committed before.
 	for _, changesetID := range changesets {
 		commit.Changesets = append(commit.Changesets, Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
-			id:    identifier.String(changesetID),
-			store: nil,
+			baseChangeset: baseChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
+				id:    identifier.String(changesetID),
+				store: nil,
+			},
 		})
 	}
 	select {

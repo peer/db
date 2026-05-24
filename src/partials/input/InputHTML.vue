@@ -42,6 +42,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowReadonly, u
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
+import { CAN_EDIT_FILE, hasPermission } from "@/auth"
 import Button from "@/components/Button.vue"
 import ButtonStyled from "@/components/ButtonStyled.vue"
 import InputStyled from "@/components/InputStyled.vue"
@@ -588,6 +589,7 @@ function onAttachFile() {
 // files inserted before the error stay.
 async function startAttachUpload(files: File[]) {
   if (files.length === 0) return
+  if (!hasPermission(CAN_EDIT_FILE)) return
   uploadAbort = new AbortController()
   try {
     for (let i = 0; i < files.length; i++) {
@@ -665,7 +667,7 @@ function onWrapperDragEnter(event: DragEvent) {
   // link / cite edit) still count toward the depth so dragleave stays
   // balanced and the drop is still claimed (in dragover / drop) - we
   // just do not light up a target the user cannot use.
-  if (isInactive.value || uploadingFile.value !== null || isLinkInputDirty.value) return
+  if (isInactive.value || uploadingFile.value !== null || isLinkInputDirty.value || !hasPermission(CAN_EDIT_FILE)) return
   isDraggingFile.value = true
 }
 
@@ -708,7 +710,7 @@ async function onWrapperDrop(event: DragEvent) {
   if (files.length === 0) return
   event.preventDefault()
   resetDragState()
-  if (isInactive.value || uploadingFile.value !== null || isLinkInputDirty.value || !view) return
+  if (isInactive.value || uploadingFile.value !== null || isLinkInputDirty.value || !view || !hasPermission(CAN_EDIT_FILE)) return
   if (bottomMode.value === "file-edit") {
     const range = resolveLinkRange(view.state, editPin.value)
     if (!range) return
@@ -782,6 +784,7 @@ function onReplaceFileClick() {
 // failure leaves the editor untouched.
 async function startReplaceUpload(file: File) {
   if (!view || editPin.value?.kind !== "link") return
+  if (!hasPermission(CAN_EDIT_FILE)) return
   uploadingFile.value = file
   uploadProgress.value = 1
   uploadTotal.value = undefined
@@ -1760,22 +1763,24 @@ watch(
         >
           <LinkIcon class="size-6" aria-hidden="true" />
         </button>
-        <button
-          type="button"
-          class="rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
-          :disabled="isInactive || !canApplyLinkMark || uploadingFile !== null || isLinkInputDirty"
-          :aria-label="t('partials.input.InputHTML.toolbar.attachFile')"
-          :title="t('partials.input.InputHTML.toolbar.attachFile')"
-          @click.prevent="onAttachFile"
-        >
-          <PaperClipIcon class="size-6" aria-hidden="true" />
-        </button>
-        <!--
-          Hidden file input the Attach button triggers programmatically.
-          translate="no" mirrors the contenteditable root so any browser
-          translation layer leaves the filename alone.
-        -->
-        <input ref="fileInputRef" type="file" multiple class="hidden" @change="onFilePicked" />
+        <template v-if="hasPermission(CAN_EDIT_FILE)">
+          <button
+            type="button"
+            class="rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
+            :disabled="isInactive || !canApplyLinkMark || uploadingFile !== null || isLinkInputDirty"
+            :aria-label="t('partials.input.InputHTML.toolbar.attachFile')"
+            :title="t('partials.input.InputHTML.toolbar.attachFile')"
+            @click.prevent="onAttachFile"
+          >
+            <PaperClipIcon class="size-6" aria-hidden="true" />
+          </button>
+          <!--
+            Hidden file input the Attach button triggers programmatically.
+            translate="no" mirrors the contenteditable root so any browser
+            translation layer leaves the filename alone.
+          -->
+          <input ref="fileInputRef" type="file" multiple class="hidden" @change="onFilePicked" />
+        </template>
         <button
           type="button"
           class="rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
@@ -1860,17 +1865,19 @@ watch(
           semantics. target="_blank" sends the user to the file in a fresh tab.
         -->
         <ButtonStyled as="a" :href="currentLinkValue" target="_blank" class="shrink-0 px-3 py-2">{{ t("common.buttons.open") }}</ButtonStyled>
-        <Button
-          type="button"
-          class="min-w-0 flex-1 px-3 py-2"
-          :active="isReplaceDragOver"
-          :disabled="isInactive"
-          @click.prevent="onReplaceFileClick"
-          @dragover.prevent="onReplaceDragOver"
-          @dragenter.prevent="onReplaceDragOver"
-          @dragleave.prevent="onReplaceDragLeave"
-          >{{ t("partials.input.InputHTML.toolbar.replaceFile") }}</Button
-        >
+        <template v-if="hasPermission(CAN_EDIT_FILE)">
+          <Button
+            type="button"
+            class="min-w-0 flex-1 px-3 py-2"
+            :active="isReplaceDragOver"
+            :disabled="isInactive"
+            @click.prevent="onReplaceFileClick"
+            @dragover.prevent="onReplaceDragOver"
+            @dragenter.prevent="onReplaceDragOver"
+            @dragleave.prevent="onReplaceDragLeave"
+            >{{ t("partials.input.InputHTML.toolbar.replaceFile") }}</Button
+          >
+        </template>
         <Button type="button" class="shrink-0 px-3 py-2" :disabled="isInactive" @click.prevent="onUnlinkFileLink">{{ t("common.buttons.unlink") }}</Button>
         <Button type="button" class="shrink-0 px-3 py-2" :disabled="isInactive" @click.prevent="onDeleteFileLink">{{ t("common.buttons.remove") }}</Button>
         <!--

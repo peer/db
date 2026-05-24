@@ -17,13 +17,14 @@ var subjectContextKey = &contextKey{"subject"} //nolint:gochecknoglobals
 // rolesContextKey carries the list of roles granted to the caller.
 var rolesContextKey = &contextKey{"roles"} //nolint:gochecknoglobals
 
-// WithSubject returns ctx with the given subject attached.
+// WithSubject returns ctx with the given subject attached. Called by the auth
+// middleware after token verification.
 func WithSubject(ctx context.Context, subject string) context.Context {
 	return context.WithValue(ctx, subjectContextKey, subject)
 }
 
-// WithRoles returns ctx with the given roles attached. The slice is stored as-is;
-// callers should not retain or mutate it after passing it in.
+// WithRoles returns ctx with the given roles attached. The slice is stored
+// as-is. Callers should not retain or mutate it after passing it in.
 func WithRoles(ctx context.Context, roles []string) context.Context {
 	return context.WithValue(ctx, rolesContextKey, roles)
 }
@@ -35,7 +36,7 @@ func Subject(ctx context.Context) (string, bool) {
 }
 
 // MustSubject returns the verified subject from ctx and panics if no subject is set.
-// Use only in handlers that have already gated on RequireAuthenticated.
+// Use only in handlers that have already gated on Subject being present.
 func MustSubject(ctx context.Context) string {
 	s, ok := Subject(ctx)
 	if !ok {

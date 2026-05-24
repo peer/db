@@ -13,6 +13,7 @@ import (
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
+	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/base"
 	"gitlab.com/peerdb/peerdb/coordinator"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
@@ -39,7 +40,7 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 		m := metrics.Duration(internalStore.MetricSearchSession).Start()
 		_, errE = search.GetSessionFromID(ctx, req.Form.Get("s"))
 		m.Stop()
-		if errors.Is(errE, search.ErrNotFound) {
+		if errors.Is(errE, search.ErrNotFound) || errors.Is(errE, store.ErrAccessDenied) {
 			// Session not found, so we redirect to the URL without "s".
 			path, errE := s.Reverse("DocumentGet", waf.Params{"id": id.String()}, url.Values{"tab": req.Form["tab"]})
 			if errE != nil {
@@ -84,7 +85,7 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 		s.NotFoundWithError(w, req, errE)
 		return
 	} else if errors.Is(errE, store.ErrAccessDenied) {
-		waf.Error(w, req, http.StatusUnauthorized)
+		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -140,7 +141,7 @@ func (s *Service) documentGetData(
 		s.NotFoundWithError(w, req, errE)
 		return nil, nil, store.Version{}, true
 	} else if errors.Is(errE, store.ErrAccessDenied) {
-		waf.Error(w, req, http.StatusUnauthorized)
+		s.ForbiddenWithError(w, req, errE)
 		return nil, nil, store.Version{}, true
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -187,8 +188,14 @@ func (s *Service) DocumentCreatePostAPI(w http.ResponseWriter, req *http.Request
 
 	ctx := req.Context()
 
+	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	}
+
 	var ea emptyRequest
-	errE := x.DecodeJSONWithoutUnknownFields(req.Body, &ea)
+	errE = x.DecodeJSONWithoutUnknownFields(req.Body, &ea)
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -224,6 +231,12 @@ func (s *Service) DocumentBeginEditPostAPI(w http.ResponseWriter, req *http.Requ
 
 	ctx := req.Context()
 
+	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	}
+
 	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
@@ -240,7 +253,10 @@ func (s *Service) DocumentBeginEditPostAPI(w http.ResponseWriter, req *http.Requ
 	site := waf.MustGetSite[*Site](ctx)
 
 	session, version, errE := site.Base.BeginEditDocumentLatest(ctx, id)
-	if errE != nil {
+	if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
@@ -254,6 +270,12 @@ func (s *Service) DocumentSaveChangePostAPI(w http.ResponseWriter, req *http.Req
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
+
+	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	}
 
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
@@ -301,6 +323,9 @@ func (s *Service) DocumentSaveChangePostAPI(w http.ResponseWriter, req *http.Req
 	} else if errors.Is(errE, coordinator.ErrConflict) {
 		waf.Error(w, req, http.StatusConflict)
 		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -310,8 +335,16 @@ func (s *Service) DocumentSaveChangePostAPI(w http.ResponseWriter, req *http.Req
 }
 
 // DocumentListChangesGetAPI handles GET requests to list all changes in an edit session.
+//
+//nolint:dupl
 func (s *Service) DocumentListChangesGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
+
+	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	}
 
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
@@ -329,6 +362,9 @@ func (s *Service) DocumentListChangesGetAPI(w http.ResponseWriter, req *http.Req
 	} else if errors.Is(errE, coordinator.ErrAlreadyEnded) {
 		s.NotFoundWithError(w, req, errE)
 		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -340,6 +376,12 @@ func (s *Service) DocumentListChangesGetAPI(w http.ResponseWriter, req *http.Req
 // DocumentGetChangeGetAPI handles GET requests to retrieve a specific change from an edit session.
 func (s *Service) DocumentGetChangeGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
+
+	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	}
 
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
@@ -365,6 +407,9 @@ func (s *Service) DocumentGetChangeGetAPI(w http.ResponseWriter, req *http.Reque
 	} else if errors.Is(errE, coordinator.ErrOperationNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -389,6 +434,12 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 
 	ctx := req.Context()
 
+	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	}
+
 	session, errE := identifier.MaybeString(params["session"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"session" is not a valid identifier`))
@@ -411,6 +462,9 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 	} else if errors.Is(errE, coordinator.ErrAlreadyEnded) {
 		s.NotFoundWithError(w, req, errE)
 		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -422,6 +476,12 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 // DocumentEditGet is a GET/HEAD HTTP request handler which returns HTML frontend for editing documents.
 func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
+
+	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	}
 
 	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
@@ -440,6 +500,9 @@ func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, para
 	beginMetadata, _, completeMetadata, errE := site.Base.GetEditDocumentSession(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -469,6 +532,12 @@ func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, para
 func (s *Service) DocumentEditGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
+	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	}
+
 	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
@@ -486,6 +555,9 @@ func (s *Service) DocumentEditGetAPI(w http.ResponseWriter, req *http.Request, p
 	beginMetadata, sessionEnded, completeMetadata, errE := site.Base.GetEditDocumentSession(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -556,6 +628,9 @@ func (s *Service) changesetChangesGetAPI(
 		// This happens when "after" is not found.
 		s.NotFoundWithError(w, req, errE)
 		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -566,14 +641,30 @@ func (s *Service) changesetChangesGetAPI(
 
 // DocumentChangesGetAPI handles GET requests to list changes in a document changeset.
 func (s *Service) DocumentChangesGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	errE := s.HasPermission(req.Context(), auth.CanChangesDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	}
+
 	s.changesetChangesGetAPI(w, req, params, func(ctx context.Context, changesetID identifier.Identifier, after *identifier.Identifier) ([]store.Change, errors.E) {
-		return waf.MustGetSite[*Site](ctx).Base.GetDocumentChanges(ctx, changesetID, after)
+		cs, errE := waf.MustGetSite[*Site](ctx).Base.DocumentChangeset(ctx, changesetID)
+		if errE != nil {
+			return nil, errE
+		}
+		return cs.Changes(ctx, after)
 	})
 }
 
 // DocumentChangesGetGetAPI handles GET requests to retrieve a document from a changeset.
 func (s *Service) DocumentChangesGetGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
+
+	errE := s.HasPermission(ctx, auth.CanChangesDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	}
 
 	changesetID, errE := identifier.MaybeString(params["changeset"])
 	if errE != nil {
@@ -597,6 +688,9 @@ func (s *Service) DocumentChangesGetGetAPI(w http.ResponseWriter, req *http.Requ
 		return
 	} else if errors.Is(errE, store.ErrChangesetNotFound) {
 		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)

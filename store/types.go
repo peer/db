@@ -79,6 +79,12 @@ type InverseRelation struct {
 type DocumentMetadata struct {
 	At Time `json:"at"`
 
+	// Users is the deduplicated, sorted-by-ID union of users who contributed
+	// to this version: the user who began the edit session plus every user who
+	// appended a change. The user who ended the session (committer) is NOT
+	// included here; that user goes to CommitMetadata.User instead.
+	Users []User `json:"users,omitempty"`
+
 	// InverseRelations contains inverse relation data for relation claims from other
 	// documents that point to this document.
 	InverseRelations []InverseRelation `json:"inverseRelations,omitempty"`
@@ -87,6 +93,10 @@ type DocumentMetadata struct {
 // CommitMetadata contains metadata about a commit.
 type CommitMetadata struct {
 	Base []string `json:"base,omitempty"`
+
+	// User is the user who invoked the End that produced this commit.
+	// nil when the commit was made by an unauthenticated caller.
+	User *User `json:"user,omitempty"`
 }
 
 // ChangesetID implements store.ChangesetID interface.

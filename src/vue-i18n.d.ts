@@ -115,6 +115,7 @@ declare module "vue-i18n" {
         }
         InputFile: {
           dropOrBrowse: string
+          noPermission: string
         }
         InputRef: {
           invalidValue: string

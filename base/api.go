@@ -12,6 +12,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -103,16 +104,12 @@ func (b *B) GetDocumentLatestDoc(ctx context.Context, id identifier.Identifier) 
 	return doc, metadata, version, parentChangesets, errE
 }
 
-// GetDocumentChanges returns up to MaxPageLength changes of the document changeset,
-// ordered by document ID, after optional document ID, to support keyset pagination.
-func (b *B) GetDocumentChanges(
-	ctx context.Context, changesetID identifier.Identifier, after *identifier.Identifier,
-) ([]store.Change, errors.E) {
-	changeset, errE := b.documents.Changeset(ctx, changesetID)
-	if errE != nil {
-		return nil, errE
-	}
-	return changeset.Changes(ctx, after)
+// DocumentChangeset returns the requested changeset from the document store.
+func (b *B) DocumentChangeset(ctx context.Context, id identifier.Identifier) (
+	store.Changeset[json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes],
+	errors.E,
+) {
+	return b.documents.Changeset(ctx, id)
 }
 
 // GetDocumentFromChangeset returns the document at the given revision in the changeset as raw JSON.
@@ -131,16 +128,12 @@ func (b *B) GetDocumentFromChangeset(
 	return changeset.Get(ctx, id, revision)
 }
 
-// GetFileChangesetChanges returns up to MaxPageLength changes of the file changeset,
-// ordered by file ID, after optional file ID, to support keyset pagination.
-func (b *B) GetFileChangesetChanges(
-	ctx context.Context, changesetID identifier.Identifier, after *identifier.Identifier,
-) ([]store.Change, errors.E) {
-	changeset, errE := b.files.Store().Changeset(ctx, changesetID)
-	if errE != nil {
-		return nil, errE
-	}
-	return changeset.Changes(ctx, after)
+// FileChangeset returns the requested changeset from the file store.
+func (b *B) FileChangeset(ctx context.Context, id identifier.Identifier) (
+	store.Changeset[[]byte, *storage.FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None],
+	errors.E,
+) {
+	return b.files.Store().Changeset(ctx, id)
 }
 
 // GetFileFromChangeset returns the file at the given revision in the changeset.
@@ -177,11 +170,14 @@ func (b *B) InsertDocument(ctx context.Context, doc *document.D) errors.E {
 	// (validate above validated the link between ID and Base).
 	changesetBase := slices.Clone(doc.Base)
 	changesetBase = append(changesetBase, "CHANGESET", "FIRST")
+	user := store.UserFromContext(ctx)
 	_, errE = b.documents.Insert(ctx, doc.ID, documentJSON, &store.DocumentMetadata{
 		At:               store.Time(time.Now().UTC()),
+		Users:            internalStore.SortedUniqueUsers([]*store.User{user}),
 		InverseRelations: nil,
 	}, &store.CommitMetadata{
 		Base: changesetBase,
+		User: user,
 	})
 	return errE
 }
@@ -214,6 +210,7 @@ func (b *B) BeginEditDocumentLatest(ctx context.Context, id identifier.Identifie
 			// that bump the revision do not invalidate the session.
 			Revision: 0,
 		},
+		User: store.UserFromContext(ctx),
 	})
 	return session, version, errE
 }
@@ -232,6 +229,7 @@ func (b *B) BeginCreateDocument(ctx context.Context, base []string) (identifier.
 		DocumentID: id,
 		Base:       base,
 		Version:    nil,
+		User:       store.UserFromContext(ctx),
 	})
 }
 
@@ -258,7 +256,8 @@ func (b *B) AppendDocumentChange(ctx context.Context, session identifier.Identif
 	}
 
 	return b.coordinator.Append(ctx, session, data, &documentChangeMetadata{
-		At: store.Time(time.Now().UTC()),
+		At:   store.Time(time.Now().UTC()),
+		User: store.UserFromContext(ctx),
 	}, &seqNo)
 }
 
@@ -278,6 +277,7 @@ func (b *B) EndEditDocument(ctx context.Context, session identifier.Identifier, 
 	return b.coordinator.End(ctx, session, &documentEndMetadata{
 		At:        store.Time(time.Now().UTC()),
 		Discarded: discard,
+		User:      store.UserFromContext(ctx),
 	})
 }
 

@@ -1,4 +1,4 @@
-import type { SiteContext } from "@/types"
+import type { SiteContext, UserInfo } from "@/types"
 
 import { Identifier } from "@tozd/identifier"
 
@@ -17,5 +17,11 @@ const siteContext: SiteContext = {
   },
   features: {},
 }
+
+// Mirror the named exports of the real @/context so modules that read
+// initialRoles / initialUserInfo (eg. @/auth) work under the test mock.
+// Tests can override these via vi.doMock if they need a signed-in state.
+export const initialRoles: string[] = []
+export const initialUserInfo: UserInfo | null = null
 
 export default siteContext

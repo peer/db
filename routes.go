@@ -328,6 +328,30 @@ func (s *Service) setRoutes() { //nolint:maintidx
 				},
 			},
 		},
+		"AuthSignIn": {
+			RouteOptions: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.AuthSignInGet,
+				},
+			},
+			Path: "/auth/signIn",
+		},
+		"AuthCallback": {
+			RouteOptions: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.AuthCallbackGet,
+				},
+			},
+			Path: "/auth/callback",
+		},
+		"AuthSignOut": {
+			Path: "/auth/signOut",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodPost: s.AuthSignOutPostAPI,
+				},
+			},
+		},
 	}
 
 	// We add debugging routes only in development mode.

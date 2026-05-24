@@ -7,9 +7,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"slices"
 	"strings"
+	"sync"
 	"syscall"
+	"time"
 
+	"github.com/riverqueue/river"
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/waf"
@@ -18,17 +22,56 @@ import (
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
+// authCleanupInterval is how often the per-site auth cleanup job runs.
+// Expired rows do not affect correctness. The cleanup job exists purely
+// to bound table and index growth, so once a day is more than enough.
+// Skipping a run only leaves dead rows lying around for an extra day.
+const authCleanupInterval = 24 * time.Hour
+
 // Service is the main HTTP service for PeerDB.
 type Service struct {
 	waf.Service[*Site]
 
 	// Is service running in development mode.
 	Development bool
+}
 
-	// Auth verifies OIDC bearer tokens on API requests. It is nil when OIDC
-	// authentication is not configured; handlers should treat that as "no
-	// authentication available" rather than always-allow or always-deny.
-	Auth *auth.Verifier
+// lookupSiteAuthenticator resolves the per-request Authenticator and role
+// allowlist for the auth middleware.
+//
+//nolint:ireturn
+func (s *Service) lookupSiteAuthenticator(w http.ResponseWriter, req *http.Request) (auth.Authenticator, map[string][]string, bool) {
+	site, ok := waf.GetSite[*Site](req.Context())
+	if !ok {
+		s.InternalServerErrorWithError(w, req, errors.New("no site in request context"))
+		return nil, nil, true
+	}
+	if site.authenticator == nil {
+		errE := errors.New("site has no authenticator configured")
+		errors.Details(errE)["domain"] = site.Domain
+		s.InternalServerErrorWithError(w, req, errE)
+		return nil, nil, true
+	}
+	return site.authenticator, site.Roles, false
+}
+
+// HasPermission reports whether the caller currently holds the given
+// permission on the site this request targets. A permission is granted
+// when any role bound to the request (auth.Roles) maps via Site.Roles
+// to a permission list that contains it. Returns nil on success and a
+// "permission denied" error otherwise (including when no site is in
+// ctx). In sync with src/auth/index.ts.
+func (s *Service) HasPermission(ctx context.Context, permission string) errors.E {
+	site, ok := waf.GetSite[*Site](ctx)
+	if !ok {
+		return errors.New("permission denied")
+	}
+	for _, role := range auth.Roles(ctx) {
+		if slices.Contains(site.Roles[role], permission) {
+			return nil
+		}
+	}
+	return errors.New("permission denied")
 }
 
 // Init initializes the HTTP service and is used together with Prepare to implement Run.
@@ -51,25 +94,27 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 				CertFile: "",
 				KeyFile:  "",
 			},
-			Build:             nil,
-			Index:             globals.Elastic.Index,
-			Schema:            globals.Postgres.Schema,
-			Title:             c.Title,
-			Logo:              "",
-			LanguagePriority:  nil,
-			DefaultLanguage:   "",
-			LanguageCodes:     nil,
-			Features:          SiteFeatures{},
-			Roles:             nil,
-			OIDC:              nil,
-			Base:              nil,
-			DBPool:            nil,
-			ESClient:          nil,
-			RiverClient:       nil,
-			debugRiverHandler: nil,
-			initialized:       false,
-			propertiesTotal:   0,
-			unitsTotal:        0,
+			Build:                nil,
+			Index:                globals.Elastic.Index,
+			Schema:               globals.Postgres.Schema,
+			Title:                c.Title,
+			Logo:                 "",
+			LanguagePriority:     nil,
+			DefaultLanguage:      "",
+			LanguageCodes:        nil,
+			Features:             SiteFeatures{},
+			Roles:                nil,
+			Auth:                 SiteAuthConfig{},
+			MetadataHeaderPrefix: "",
+			authenticator:        nil,
+			Base:                 nil,
+			DBPool:               nil,
+			ESClient:             nil,
+			RiverClient:          nil,
+			debugRiverHandler:    nil,
+			initialized:          false,
+			propertiesTotal:      0,
+			unitsTotal:           0,
 		}}
 		sites[c.Domain] = &globals.Sites[0]
 	}
@@ -111,51 +156,6 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 		return nil, onShutdown, errE
 	}
 
-	var middleware []func(http.Handler) http.Handler
-
-	oidcEnabled := c.Auth.Issuer != ""
-
-	if c.Username != "" && c.Password != nil {
-		globals.Logger.Info().Str("username", c.Username).Msg("authentication enabled for all sites")
-
-		// When OIDC is also configured, requests presenting a Bearer token bypass
-		// basic auth so the OIDC middleware downstream can verify them. Without
-		// this, a single Authorization header would have to satisfy basic auth
-		// (which expects the Basic scheme) before the bearer token is ever seen.
-		middleware = append(middleware, basicAuthHandler(c.Username, strings.TrimSpace(string(c.Password)), oidcEnabled))
-	}
-
-	var verifier *auth.Verifier
-	if oidcEnabled {
-		verifier, errE = auth.New(ctx, c.Auth.Issuer, c.Auth.ClientID)
-		if errE != nil {
-			return nil, onShutdown, errE
-		}
-		globals.Logger.Info().Str("issuer", c.Auth.Issuer).Str("clientId", c.Auth.ClientID).Msg("OIDC authentication enabled")
-
-		// We attach the OIDC middleware last so the bearer token is verified
-		// after any preceding gate (e.g. basicAuth) has already let the request
-		// through. The middleware is permissive - it never rejects on its own -
-		// so handlers that require a signed-in caller still have to call
-		// Verifier.RequireAuthenticated explicitly; handlers that adapt to who
-		// is signed in can just read auth.Subject / auth.Roles from ctx.
-		middleware = append(middleware, verifier.Middleware())
-	}
-
-	// We populate per-site OIDC context so the frontend knows how to start a
-	// sign-in flow. Each site reuses the global OIDC config but gets its own
-	// redirect URI rooted in its domain.
-	if verifier != nil {
-		for _, site := range sites {
-			site.OIDC = &SiteOIDC{
-				Issuer:   verifier.Issuer(),
-				ClientID: verifier.ClientID(),
-				// TODO: Allow setting external port.
-				RedirectURI: "https://" + site.Domain + "/",
-			}
-		}
-	}
-
 	service := &Service{ //nolint:forcetypeassert
 		Service: waf.Service[*Site]{
 			Logger:          globals.Logger,
@@ -164,7 +164,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			StaticFiles:     files.(fs.ReadFileFS), //nolint:errcheck
 			Routes:          nil,
 			Sites:           sites,
-			Middleware:      middleware,
+			Middleware:      nil,
 			SiteContextPath: "/context.json",
 			RoutesPath:      "/routes.json",
 			ProxyStaticTo:   c.Server.ProxyToInDevelopment(),
@@ -188,7 +188,93 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			},
 		},
 		Development: c.Server.Development,
-		Auth:        verifier,
+	}
+
+	// We expose the canonical metadata-header prefix on each site so the
+	// frontend can compose the right header names without having to guess.
+	// It is global to the service but the site context is the only
+	// per-site JSON the frontend receives.
+	for _, site := range sites {
+		site.MetadataHeaderPrefix = service.MetadataHeaderPrefix
+	}
+
+	service.Middleware = []func(http.Handler) http.Handler{}
+	if c.Username != "" && c.Password != nil {
+		globals.Logger.Info().Str("username", c.Username).Msg("authentication enabled for all sites")
+
+		// Basic auth is a strict outer gate that applies to every request,
+		// regardless of whether the caller also presents OIDC credentials
+		// via cookie.
+		service.Middleware = append(service.Middleware, auth.BasicAuthMiddleware(
+			c.Username,
+			strings.TrimSpace(string(c.Password)),
+			func(req *http.Request) string {
+				return waf.MustGetSite[*Site](req.Context()).Title
+			},
+		))
+	}
+
+	// We attach the auth middleware last so the access token is verified
+	// after any preceding gate (e.g. basicAuth) has already let the request
+	// through. The lookup hands the middleware the per-site Authenticator
+	// and role allowlist on every request.
+	service.Middleware = append(service.Middleware, auth.Middleware(
+		service.MetadataHeaderPrefix,
+		service.lookupSiteAuthenticator,
+	))
+
+	// Each site needs an Authenticator. If the site declares an OIDC
+	// issuer we validate tokens against it. Otherwise we fall back to
+	// MockAuthenticator which short-circuits the flow in-process. Mock
+	// is intended for development. Production sites are expected to set
+	// Auth.Issuer.
+	for _, site := range sites {
+		// We use a fallback DB context here because we are still in the init path and no request
+		// is in flight yet, so search_path has to be driven from the site's schema.
+		siteCtx := WithFallbackDBContext(ctx, site.Schema, "init")
+
+		redirectURI := sync.OnceValue(func() string {
+			host, errE := c.Server.Host(site.Domain)
+			if errE != nil {
+				return ""
+			}
+			callbackPath, errE := service.Reverse("AuthCallback", nil, nil)
+			if errE != nil {
+				return ""
+			}
+			return "https://" + host + callbackPath
+		})
+
+		// Site.Validate makes sure that or all three settings are set or none.
+		if site.Auth.Issuer != "" {
+			site.authenticator, errE = auth.NewOIDCAuthenticator(siteCtx, site.DBPool, site.Auth.Issuer, site.Auth.ClientID, site.Auth.ClientSecret, redirectURI)
+			if errE != nil {
+				return nil, onShutdown, errE
+			}
+			globals.Logger.Info().Str("domain", site.Domain).Str("issuer", site.Auth.Issuer).Str("clientId", site.Auth.ClientID).Msg("OIDC authentication enabled")
+		} else {
+			grantedRoles := make([]string, 0, len(site.Roles))
+			for role := range site.Roles {
+				grantedRoles = append(grantedRoles, role)
+			}
+			slices.Sort(grantedRoles)
+			site.authenticator, errE = auth.NewMockAuthenticator(siteCtx, site.DBPool, site.Domain, grantedRoles, redirectURI)
+			if errE != nil {
+				return nil, onShutdown, errE
+			}
+			globals.Logger.Info().Str("domain", site.Domain).Strs("roles", grantedRoles).Msg("mock authentication enabled")
+		}
+
+		// Register the per-site auth cleanup worker. The actual periodic
+		// scheduling happens in Run, after the river client has been
+		// started by Prepare. Here we only make sure the worker type is
+		// known to the client when it starts.
+		site.Base.RegisterWorkers = append(site.Base.RegisterWorkers, func(_ context.Context, workers *river.Workers) errors.E {
+			return errors.WithStack(river.AddWorkerSafely(workers, &authCleanupWorker{
+				Site:           site,
+				WorkerDefaults: river.WorkerDefaults[authCleanupJobArgs]{},
+			}))
+		})
 	}
 
 	service.setRoutes()
@@ -267,6 +353,24 @@ func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
 	defer cancel()
 	if errE != nil {
 		return errE
+	}
+
+	// Register the daily auth-cleanup periodic job on each site's river
+	// client. Prepare has already started the client, so RunOnStart
+	// fires the first cleanup shortly after startup.
+	for _, site := range service.Sites {
+		_, err := site.RiverClient.PeriodicJobs().AddSafely(river.NewPeriodicJob(
+			river.PeriodicInterval(authCleanupInterval),
+			func() (river.JobArgs, *river.InsertOpts) {
+				return authCleanupJobArgs{}, nil
+			},
+			&river.PeriodicJobOpts{ //nolint:exhaustruct
+				RunOnStart: true,
+			},
+		))
+		if err != nil {
+			return errors.WithStack(err)
+		}
 	}
 
 	// It returns only on error or if the server is gracefully shut down using ctrl-c.
