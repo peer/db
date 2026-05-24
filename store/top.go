@@ -170,8 +170,10 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 	// We do not care if the changeset exists at this point. It all
 	// depends what we will be doing with it and we do checks then.
 	return Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
-		id:    id,
-		store: s,
+		baseChangeset: baseChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
+			id:    id,
+			store: s,
+		},
 	}, nil
 }
 
@@ -301,8 +303,10 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 			}
 			for _, changesetID := range changesets {
 				commit.Changesets = append(commit.Changesets, Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
-					id:    identifier.String(changesetID),
-					store: nil,
+					baseChangeset: baseChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
+						id:    identifier.String(changesetID),
+						store: nil,
+					},
 				})
 			}
 			commits = append(commits, commit)
