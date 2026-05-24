@@ -225,8 +225,8 @@ func TestSubjectAndRolesEmptyContext(t *testing.T) {
 func TestWithSubjectAndRoles(t *testing.T) {
 	t.Parallel()
 
-	ctx := auth.TestingWithSubject(context.Background(), "user-42")
-	ctx = auth.TestingWithRoles(ctx, []string{"admin", "editor"})
+	ctx := auth.WithSubject(context.Background(), "user-42")
+	ctx = auth.WithRoles(ctx, []string{"admin", "editor"})
 
 	subject, ok := auth.Subject(ctx)
 	require.True(t, ok)

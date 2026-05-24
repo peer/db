@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/base"
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
@@ -311,6 +312,8 @@ func TestDocumentEditSession(t *testing.T) {
 	t.Parallel()
 
 	ctx, b := initBase(t)
+	const editorSubject = "user-editor"
+	ctx = auth.WithSubject(ctx, editorSubject)
 
 	// Create a document.
 	doc := newDoc()
@@ -398,11 +401,14 @@ func TestDocumentEditSession(t *testing.T) {
 	}
 
 	// Verify the document has the new claim.
-	updatedDoc, _, newVersion, _, errE := b.GetDocumentLatestDoc(ctx, docID)
+	updatedDoc, metadata, newVersion, _, errE := b.GetDocumentLatestDoc(ctx, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotNil(t, updatedDoc.Claims)
 	require.Len(t, updatedDoc.Claims.String, 1)
 	assert.Equal(t, "test value", updatedDoc.Claims.String[0].String)
+
+	// Single editor session: Users union is the begin+per-change user (same subject).
+	assert.Equal(t, []store.User{{ID: editorSubject}}, metadata.Users)
 
 	// Verify changeset ID is derived from doc Base + "SESSION" + session.
 	expectedChangesetBase := append(append([]string{}, doc.Base...), "SESSION", session.String())
@@ -540,12 +546,15 @@ func TestDocumentCreateSession(t *testing.T) {
 	}, 30*time.Second, 100*time.Millisecond)
 
 	// The materialized document has the appended claim.
-	updatedDoc, _, latestVersion, parents, errE := b.GetDocumentLatestDoc(ctx, docID)
+	updatedDoc, metadata, latestVersion, parents, errE := b.GetDocumentLatestDoc(ctx, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotNil(t, updatedDoc.Claims)
 	require.Len(t, updatedDoc.Claims.String, 1)
 	assert.Equal(t, "first value", updatedDoc.Claims.String[0].String)
 	assert.Equal(t, claimID, updatedDoc.Claims.String[0].ID)
+
+	// Unauthenticated session (no subject attached to ctx): Users union is empty.
+	assert.Empty(t, metadata.Users)
 
 	// Latest version sits at the SESSION changeset; its parent is the FIRST changeset.
 	expectedSessionChangeset := identifier.From(append(append([]string{}, docBase...), "SESSION", session.String())...)
@@ -674,8 +683,12 @@ func TestDocumentEditSessionCarriesOverMetadata(t *testing.T) {
 		assert.NotEmpty(c, metadata.InverseRelations, "docB should have inverse relations")
 	}, 30*time.Second, 100*time.Millisecond)
 
+	// Run the edit session as an authenticated user.
+	const editorSubject = "user-editor"
+	sessionCtx := auth.WithSubject(ctx, editorSubject)
+
 	// Begin edit session for docB.
-	session, versionB, errE := b.BeginEditDocumentLatest(ctx, docB)
+	session, versionB, errE := b.BeginEditDocumentLatest(sessionCtx, docB)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Add a string claim to docB through the edit session.
@@ -693,11 +706,11 @@ func TestDocumentEditSessionCarriesOverMetadata(t *testing.T) {
 		},
 	})
 	seqNo := int64(1)
-	_, errE = b.AppendDocumentChange(ctx, session, changeJSON, seqNo)
+	_, errE = b.AppendDocumentChange(sessionCtx, session, changeJSON, seqNo)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// End session (commit).
-	errE = b.EndEditDocument(ctx, session, false)
+	errE = b.EndEditDocument(sessionCtx, session, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for async completion to update the document.
@@ -717,6 +730,8 @@ func TestDocumentEditSessionCarriesOverMetadata(t *testing.T) {
 	require.Len(t, updatedDoc.Claims.String, 1)
 	assert.Equal(t, "edited via session", updatedDoc.Claims.String[0].String)
 	assert.NotEmpty(t, metadata.InverseRelations, "inverse relations should be carried over after edit session")
+	// Single editor session: Users union is the begin+per-change user (same subject).
+	assert.Equal(t, []store.User{{ID: editorSubject}}, metadata.Users)
 }
 
 func TestDocumentEditSessionMetadataChangedDuringEdit(t *testing.T) {
@@ -740,8 +755,12 @@ func TestDocumentEditSessionMetadataChangedDuringEdit(t *testing.T) {
 	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
+	// Run the edit session as an authenticated user.
+	const editorSubject = "user-editor"
+	sessionCtx := auth.WithSubject(ctx, editorSubject)
+
 	// Begin edit session for docB BEFORE any inverse relations exist.
-	session, versionB, errE := b.BeginEditDocumentLatest(ctx, docB)
+	session, versionB, errE := b.BeginEditDocumentLatest(sessionCtx, docB)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Now insert docA with relation A --X--> B, which causes the bridge to update
@@ -793,11 +812,11 @@ func TestDocumentEditSessionMetadataChangedDuringEdit(t *testing.T) {
 		},
 	})
 	seqNo := int64(1)
-	_, errE = b.AppendDocumentChange(ctx, session, changeJSON, seqNo)
+	_, errE = b.AppendDocumentChange(sessionCtx, session, changeJSON, seqNo)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// End session (commit). This should NOT fail despite metadata revision change.
-	errE = b.EndEditDocument(ctx, session, false)
+	errE = b.EndEditDocument(sessionCtx, session, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for async completion.
@@ -818,6 +837,8 @@ func TestDocumentEditSessionMetadataChangedDuringEdit(t *testing.T) {
 	assert.Equal(t, "added after metadata change", updatedDoc.Claims.String[0].String)
 	assert.NotEmpty(t, metadata.InverseRelations,
 		"new metadata (with inverse relations added during edit) should be carried over")
+	// Single editor session: Users union is the begin+per-change user (same subject).
+	assert.Equal(t, []store.User{{ID: editorSubject}}, metadata.Users)
 }
 
 func TestDocumentEditSessionIndexing(t *testing.T) {
@@ -970,6 +991,8 @@ func TestFileUpload(t *testing.T) {
 	t.Parallel()
 
 	ctx, b := initBase(t)
+	const uploaderSubject = "user-uploader"
+	ctx = auth.WithSubject(ctx, uploaderSubject)
 
 	data := []byte("hello world, this is a test file")
 
@@ -1016,6 +1039,8 @@ func TestFileUpload(t *testing.T) {
 		// Verify file metadata Base is recorded and file ID is derivable from it.
 		assert.Equal(c, expectedBase, metadata.Base)
 		assert.Equal(c, expectedFileID, identifier.From(metadata.Base...))
+		// Single uploader: Users union is the begin+per-chunk user (same subject).
+		assert.Equal(c, []store.User{{ID: uploaderSubject}}, metadata.Users)
 	}, 30*time.Second, 100*time.Millisecond)
 }
 

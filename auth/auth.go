@@ -169,8 +169,8 @@ func (b *baseAuthenticator) Authenticate(w http.ResponseWriter, req *http.Reques
 	if errE != nil {
 		return ctx
 	}
-	ctx = withSubject(ctx, claims.Subject)
-	ctx = withRoles(ctx, roles)
+	ctx = WithSubject(ctx, claims.Subject)
+	ctx = WithRoles(ctx, roles)
 	b.writeRolesHeader(w, metadataHeaderPrefix, roles)
 	b.writeUserInfoHeader(ctx, w, metadataHeaderPrefix, claims.Subject, token)
 	// Authenticated responses carry per-user data, keep them out of

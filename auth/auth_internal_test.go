@@ -17,11 +17,7 @@ import (
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
-var (
-	TestingResolveAccessToken = resolveAccessToken //nolint:gochecknoglobals
-	TestingWithSubject        = withSubject        //nolint:gochecknoglobals
-	TestingWithRoles          = withRoles          //nolint:gochecknoglobals
-)
+var TestingResolveAccessToken = resolveAccessToken //nolint:gochecknoglobals
 
 const TestingAccessTokenCookieName = accessTokenCookieName
 
