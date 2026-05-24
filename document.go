@@ -188,13 +188,14 @@ func (s *Service) DocumentCreatePostAPI(w http.ResponseWriter, req *http.Request
 
 	ctx := req.Context()
 
-	if !s.HasPermission(ctx, auth.CanEditDocument) {
-		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	}
 
 	var ea emptyRequest
-	errE := x.DecodeJSONWithoutUnknownFields(req.Body, &ea)
+	errE = x.DecodeJSONWithoutUnknownFields(req.Body, &ea)
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -230,8 +231,9 @@ func (s *Service) DocumentBeginEditPostAPI(w http.ResponseWriter, req *http.Requ
 
 	ctx := req.Context()
 
-	if !s.HasPermission(ctx, auth.CanEditDocument) {
-		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	}
 
@@ -269,8 +271,9 @@ func (s *Service) DocumentSaveChangePostAPI(w http.ResponseWriter, req *http.Req
 
 	ctx := req.Context()
 
-	if !s.HasPermission(ctx, auth.CanEditDocument) {
-		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	}
 
@@ -337,8 +340,9 @@ func (s *Service) DocumentSaveChangePostAPI(w http.ResponseWriter, req *http.Req
 func (s *Service) DocumentListChangesGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	if !s.HasPermission(ctx, auth.CanEditDocument) {
-		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	}
 
@@ -373,8 +377,9 @@ func (s *Service) DocumentListChangesGetAPI(w http.ResponseWriter, req *http.Req
 func (s *Service) DocumentGetChangeGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	if !s.HasPermission(ctx, auth.CanEditDocument) {
-		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	}
 
@@ -429,8 +434,9 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 
 	ctx := req.Context()
 
-	if !s.HasPermission(ctx, auth.CanEditDocument) {
-		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	}
 
@@ -471,8 +477,9 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	if !s.HasPermission(ctx, auth.CanEditDocument) {
-		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	}
 
@@ -525,8 +532,9 @@ func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, para
 func (s *Service) DocumentEditGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	if !s.HasPermission(ctx, auth.CanEditDocument) {
-		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	}
 
@@ -633,8 +641,9 @@ func (s *Service) changesetChangesGetAPI(
 
 // DocumentChangesGetAPI handles GET requests to list changes in a document changeset.
 func (s *Service) DocumentChangesGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
-	if !s.HasPermission(req.Context(), auth.CanChangesDocument) {
-		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+	errE := s.HasPermission(req.Context(), auth.CanChangesDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	}
 
@@ -647,8 +656,9 @@ func (s *Service) DocumentChangesGetAPI(w http.ResponseWriter, req *http.Request
 func (s *Service) DocumentChangesGetGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	if !s.HasPermission(ctx, auth.CanChangesDocument) {
-		s.ForbiddenWithError(w, req, errors.New("permission denied"))
+	errE := s.HasPermission(ctx, auth.CanChangesDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
 		return
 	}
 
