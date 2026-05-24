@@ -3100,3 +3100,133 @@ func TestReadOnlyRejectsWrites(t *testing.T) {
 	// "25006" = read_only_sql_transaction.
 	assert.Equal(t, "25006", pgError.Code, "PostgreSQL rejects writes in ReadOnly transactions")
 }
+
+// TestChangesetViewsAfterMainViewInsert verifies that Changeset.Views returns
+// the MainView for a changeset that was committed there via Store.Insert, and
+// that CommittedChangeset.Metadata returns the same commit metadata that was
+// passed in.
+func TestChangesetViewsAfterMainViewInsert(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	commitMeta := json.RawMessage(`{"who":"tester"}`)
+	id := identifier.New()
+	version, errE := s.Insert(ctx, id, testutils.DummyData, testutils.DummyData, commitMeta)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	cs, errE := s.Changeset(ctx, version.Changeset)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	views, errE := cs.Views(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, views, 1, "changeset should be committed to exactly one view")
+	assert.Equal(t, store.MainView, views[0].View().Name())
+	assert.Equal(t, cs.ID(), views[0].ID(), "CommittedChangeset preserves the changeset id")
+	assert.NotNil(t, views[0].View().Store(), "returned View carries the changeset's store")
+
+	gotMeta, errE := views[0].Metadata(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.JSONEq(t, string(commitMeta), string(gotMeta))
+}
+
+// TestChangesetViewsUncommitted verifies that Views returns an empty slice
+// (with no error) for a changeset that has not been committed anywhere.
+func TestChangesetViewsUncommitted(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	// Begin a fresh changeset and put a change in it, but never commit.
+	cs, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = cs.Insert(ctx, identifier.New(), testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	views, errE := cs.Views(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Empty(t, views, "uncommitted changeset has no committed views")
+}
+
+// TestChangesetViewsAcrossMultipleViews verifies that Views returns one
+// CommittedChangeset per view when the same changeset is committed to multiple
+// views, sorted by view name, each carrying its own commit metadata.
+func TestChangesetViewsAcrossMultipleViews(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	// Set up an ancestor commit that subordinate views can branch from.
+	parentID := identifier.New()
+	parentVersion, errE := s.Insert(ctx, parentID, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	mainView, errE := s.View(ctx, store.MainView)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// Two sibling child views off MainView. We pick names so the ORDER BY in Views is observable.
+	viewA, errE := mainView.Create(ctx, "a-view", testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	viewB, errE := mainView.Create(ctx, "b-view", testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Build a fresh changeset that updates parentID; do NOT commit via the
+	// convenience Update on a view (which auto-commits). Instead, prepare the
+	// changeset and commit explicitly to two views with different metadata.
+	cs, errE := s.Begin(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = cs.Update(ctx, parentID, parentVersion.Changeset, testutils.DummyData, testutils.DummyData, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	metaA := json.RawMessage(`{"view":"a"}`)
+	metaB := json.RawMessage(`{"view":"b"}`)
+	_, errE = cs.Commit(ctx, viewA, metaA)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = cs.Commit(ctx, viewB, metaB)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	views, errE := cs.Views(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, views, 2)
+	// SQL orders by view name ascending.
+	assert.Equal(t, "a-view", views[0].View().Name())
+	assert.Equal(t, "b-view", views[1].View().Name())
+
+	gotA, errE := views[0].Metadata(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.JSONEq(t, string(metaA), string(gotA))
+
+	gotB, errE := views[1].Metadata(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.JSONEq(t, string(metaB), string(gotB))
+}
+
+// TestCommittedChangesetWithStore verifies that CommittedChangeset.WithStore
+// rehydrates the store association while preserving the changeset id and view.
+// Metadata is fetched lazily and remains accessible through the new store.
+func TestCommittedChangesetWithStore(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	commitMeta := json.RawMessage(`{"hello":"world"}`)
+	version, errE := s.Insert(ctx, identifier.New(), testutils.DummyData, testutils.DummyData, commitMeta)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	cs, errE := s.Changeset(ctx, version.Changeset)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	views, errE := cs.Views(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, views, 1)
+
+	cc := views[0]
+	rehydrated, errE := cc.WithStore(ctx, s)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, cc.ID(), rehydrated.ID())
+	assert.Equal(t, cc.View().Name(), rehydrated.View().Name())
+	require.NotNil(t, rehydrated.Store())
+
+	// Metadata is still retrievable via the rehydrated CommittedChangeset.
+	gotMeta, errE := rehydrated.Metadata(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.JSONEq(t, string(commitMeta), string(gotMeta))
+}

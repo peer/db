@@ -67,9 +67,12 @@ type CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata,
 	view string
 }
 
-// View returns the name of the view this changeset is committed to.
-func (cc CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) View() string {
-	return cc.view
+// View returns the view this changeset is committed to.
+func (cc CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) View() View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch] { //nolint:lll
+	return View[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
+		name:  cc.view,
+		store: cc.store,
+	}
 }
 
 // Metadata returns the commit metadata persisted when this changeset was
@@ -88,8 +91,10 @@ func (cc CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetad
 		err := tx.QueryRow(ctx, `
 			SELECT cc."metadata"
 				FROM "`+cc.store.Prefix+`CurrentCommittedChangesets" cur
-				JOIN "`+cc.store.Prefix+`CommittedChangesets" cc USING ("changeset", "view", "revision")
-				WHERE cc."changeset"=$1 AND cc."view"=$2`,
+				JOIN "`+cc.store.Prefix+`CurrentViews" v ON v."view"=cur."view"
+				JOIN "`+cc.store.Prefix+`CommittedChangesets" cc
+					ON cc."changeset"=cur."changeset" AND cc."view"=cur."view" AND cc."revision"=cur."revision"
+				WHERE cur."changeset"=$1 AND v."name"=$2`,
 			arguments...).Scan(&metadata)
 		if err != nil {
 			errE := internalStore.WithPgxError(err)
@@ -98,7 +103,8 @@ func (cc CommittedChangeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetad
 				// Commits are append-only, so this should normally not happen for a
 				// CommittedChangeset obtained from Views on the same store. The typical
 				// trigger is re-attaching via WithStore to a different store that does
-				// not have this commit.
+				// not have this commit, or the view being renamed since this
+				// CommittedChangeset was fetched.
 				return errors.WrapWith(errE, ErrChangesetNotFound)
 			}
 			return errE
@@ -526,10 +532,11 @@ func (c Changeset[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 		committed = nil
 
 		rows, err := tx.Query(ctx, `
-			SELECT "view"
-				FROM "`+c.store.Prefix+`CurrentCommittedChangesets"
-				WHERE "changeset"=$1
-				ORDER BY "view"
+			SELECT v."name"
+				FROM "`+c.store.Prefix+`CurrentCommittedChangesets" cur
+				JOIN "`+c.store.Prefix+`CurrentViews" v USING ("view")
+				WHERE cur."changeset"=$1
+				ORDER BY v."name"
 		`, arguments...)
 		if err != nil {
 			return internalStore.WithPgxError(err)
