@@ -4,46 +4,34 @@ import type { DeepReadonly } from "vue"
 import type { ClaimTypes } from "@/document"
 import type { FieldsData } from "@/fields"
 
-import { useTemplateRef, watch } from "vue"
+import { watch } from "vue"
 
 import { fieldKey } from "@/fields"
 import FieldsFormField from "@/partials/FieldsFormField.vue"
 import { useValidationRegistry } from "@/validation"
 
-const props = withDefaults(
-  defineProps<{
-    fieldsData: DeepReadonly<FieldsData>
-    claims: DeepReadonly<ClaimTypes>
-    // The session's starting claims: the doc as it was BEFORE any
-    // changes in this edit session were applied. Used to detect
-    // session-wide "changed" status and to compute revert diffs.
-    initialClaims: DeepReadonly<ClaimTypes>
-    base: DeepReadonly<string[]>
-    session: string
-    parentClaimId?: string
-  }>(),
-  {
-    parentClaimId: undefined,
-  },
-)
+defineProps<{
+  fieldsData: DeepReadonly<FieldsData>
+  claims: DeepReadonly<ClaimTypes>
+  // The session's starting claims: the doc as it was BEFORE any
+  // changes in this edit session were applied. Used to detect
+  // session-wide "changed" status and to compute revert diffs.
+  initialClaims: DeepReadonly<ClaimTypes>
+  base: DeepReadonly<string[]>
+  session: string
+}>()
 
 const invalid = defineModel<boolean>("invalid", { default: false })
 
-// rootRef is the DOM identity for nested FieldsForm self-registration. The
-// top-level FieldsForm has no parentClaimId and therefore no elGetter: its
-// consumer (DocumentEdit) calls validateAll explicitly through defineExpose.
-// Nested FieldsForms (rendered inside a parent FieldsFormField for a HAS
-// claim's sub-fields) self-register so the outermost validateAll cascades
-// through every level without a per-component template ref chain.
-const rootRef = useTemplateRef<HTMLElement>("rootRef")
-const elGetter = props.parentClaimId !== undefined ? () => rootRef.value : undefined
-
-const { validateAll, resetAll, revertAll, checkpointAll, anyError, anyDirty, firstEl, inputs } = useValidationRegistry(undefined, elGetter)
+// Top-level FieldsForm: its consumer (DocumentEdit) calls validateAll /
+// revertAll / checkpointAll explicitly through defineExpose. There are no
+// recursive FieldsForm instances anymore - sub-claim rendering lives in
+// ClaimInput / ClaimCardinality, which provide their own registries.
+const { validateAll, resetAll, revertAll, checkpointAll, anyError, anyDirty, firstEl, inputs } = useValidationRegistry()
 
 // invalid bubbles per-input format errors up to the parent (DocumentEdit).
 // Cardinality-level "field has too few values" is reported by each
-// FieldsFormField's wrapped InputCardinality, whose own missing check
-// surfaces as a row error and feeds into anyError too.
+// FieldsFormField's wrapped ClaimCardinality and feeds into anyError too.
 watch(anyError, (v) => (invalid.value = v), { immediate: true, flush: "sync" })
 
 function sortedByOrder<T extends { orderInList: number }>(items: readonly T[]): T[] {
@@ -73,7 +61,7 @@ defineExpose({
         children participate in the tbody's grid directly.
     Section header sits between tbodies as its own flex item.
   -->
-  <table ref="rootRef" class="flex w-full flex-col gap-y-4">
+  <table class="flex w-full flex-col gap-y-4">
     <FieldsFormField
       v-for="field in sortedByOrder(fieldsData.fields)"
       :key="fieldKey(field)"
@@ -82,7 +70,6 @@ defineExpose({
       :initial-claims="initialClaims"
       :base="base"
       :session="session"
-      :parent-claim-id="parentClaimId"
     />
 
     <template v-for="section in sortedByOrder(fieldsData.sections)" :key="'section-' + section.id">
@@ -99,7 +86,6 @@ defineExpose({
         :initial-claims="initialClaims"
         :base="base"
         :session="session"
-        :parent-claim-id="parentClaimId"
       />
     </template>
   </table>

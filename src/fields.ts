@@ -313,6 +313,13 @@ export const saveChangeKey: InjectionKey<(change: object, changeNumber: number) 
 export const registerForFlushKey: InjectionKey<(instance: FlushFn) => void> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-registerForFlush") : Symbol()
 export const unregisterForFlushKey: InjectionKey<(instance: FlushFn) => void> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-unregisterForFlush") : Symbol()
 
+// fieldLabelCellKey provides the field's label cell element. ClaimInput's
+// focusout handler uses it to skip the per-slot commit when focus is on
+// its way to a control inside the label cell (the field-level Revert
+// button). Without that skip, the commit's async saveChange races with
+// the Revert click and Revert sees stale state on the first click.
+export const fieldLabelCellKey: InjectionKey<() => HTMLElement | null> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-fieldLabelCell") : Symbol()
+
 // FieldEntryValue is the per-entry state edited by FieldsForm. The fields
 // are wide enough to cover every claim type the form handles - non-relevant
 // fields stay at their default values. Intervals split into "from" (value/
@@ -354,7 +361,7 @@ export interface ExistingClaimValue extends FieldEntryValue {
 }
 
 // getClaimValues extracts a FieldEntryValue from an existing claim.
-function getClaimValues(claim: DeepReadonly<Claim>): FieldEntryValue {
+export function getClaimValues(claim: DeepReadonly<Claim>): FieldEntryValue {
   const v = emptyFieldEntryValue()
   if (claim instanceof IdentifierClaim) {
     v.value = claim.value
