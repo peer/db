@@ -1310,8 +1310,9 @@ func TestVisitStringPopulatesTextDefaultsToUnd(t *testing.T) {
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []string{testDocID.String(), "hello world"}, result.Text["und"])
-	_, hasEn := result.Text["en"]
-	assert.False(t, hasEn)
+	// The document ID is seeded into every language bucket; the String
+	// claim with no IN_LANGUAGE goes only to "und".
+	assert.Equal(t, []string{testDocID.String()}, result.Text["en"])
 }
 
 func TestVisitStringPopulatesTextWithLanguage(t *testing.T) {
@@ -1340,8 +1341,9 @@ func TestVisitStringPopulatesTextWithLanguage(t *testing.T) {
 	}
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, []string{"hello"}, result.Text["en"])
-	// The document ID is always seeded under "und", even when no claim is.
+	// The document ID is seeded into every language bucket; the English-
+	// tagged String claim adds "hello" to text["en"] on top.
+	assert.Equal(t, []string{testDocID.String(), "hello"}, result.Text["en"])
 	assert.Equal(t, []string{testDocID.String()}, result.Text["und"])
 }
 
@@ -3821,8 +3823,14 @@ func TestFromDocumentNilClaims(t *testing.T) {
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
-	// The document ID is always seeded under "und", so Text is not empty.
-	assert.Equal(t, map[string][]string{"und": {testDocID.String()}}, result.Text)
+	// The document ID is seeded into every language bucket, so Text has
+	// one entry per supported language.
+	assert.Equal(t, map[string][]string{
+		"en":  {testDocID.String()},
+		"sl":  {testDocID.String()},
+		"pt":  {testDocID.String()},
+		"und": {testDocID.String()},
+	}, result.Text)
 }
 
 func makeDocWithAllClaimTypes(t *testing.T, confidence document.Confidence) *document.D {
@@ -3964,9 +3972,16 @@ func TestFromDocumentAllClaimTypesConfidence(t *testing.T) {
 			result, errE := c.FromDocument(ctx, doc, nil)
 			require.NoError(t, errE, "% -+#.1v", errE)
 			assert.Equal(t, testDocID, result.ID)
-			// The document ID is seeded into text["und"] once, then
-			// Identifier+String+HTML(stripped)+Link each contribute one entry.
-			assert.Len(t, result.Text["und"], 1+4*tt.expected)
+			// text["und"] aggregates:
+			//   1   - the document ID (seeded into every language bucket)
+			// per included-claim group (expected = 1 unless skipped):
+			//   4   - Identifier+String+HTML(stripped)+Link source claims
+			//   17  - non-text claim displays folded into text:
+			//         2 Amount  × (PropDisplay["und"] + From + To) = 6
+			//         2 Time    × (PropDisplay["und"] + From + To) = 6
+			//         1 Ref     × (PropDisplay["und"] + ToDisplay["und"]) = 2
+			//         Has+None+Unknown × PropDisplay["und"] each = 3
+			assert.Len(t, result.Text["und"], 1+21*tt.expected)
 			// Amount + AmountInterval each contribute one claim.
 			assert.Len(t, result.Claims.Amount, 2*tt.expected)
 			// Time + TimeInterval each contribute one claim.

@@ -1074,6 +1074,73 @@ func (v *convertVisitor) addText(lang, value string) {
 	v.result.Text[lang] = append(v.result.Text[lang], value)
 }
 
+// addTextAllLanguages appends value to the top-level text bucket of every
+// supported language, including "und". Used for content that is genuinely
+// language-neutral (numeric / temporal renderings, document IDs) so a search
+// in any language analyzer can match it.
+func (v *convertVisitor) addTextAllLanguages(value string) {
+	for lang := range SupportedLanguages {
+		v.addText(lang, value)
+	}
+}
+
+// appendClaimDisplaysToText folds every display label from non-text claim
+// records (Amount, Time, Reference, Has, None, Unknown, and their Sub*
+// counterparts) into the document's top-level text bucket so the text-search
+// query can match against property names, referenced-document names, and
+// numeric/temporal boundary strings. Per-language PropDisplay / ToDisplay
+// maps fold into text[lang] for each language key present in the map.
+// Language-neutral FromDisplay / ToDisplay strings on Amount/Time/SubAmount/
+// SubTime fan out via addTextAllLanguages so every language analyzer can
+// match the canonical numeric/temporal rendering regardless of locale.
+func (v *convertVisitor) appendClaimDisplaysToText() {
+	addPerLang := func(m map[string]string) {
+		for lang, val := range m {
+			v.addText(lang, val)
+		}
+	}
+	for _, c := range v.result.Claims.Amount {
+		addPerLang(c.PropDisplay)
+		v.addTextAllLanguages(c.FromDisplay)
+		v.addTextAllLanguages(c.ToDisplay)
+	}
+	for _, c := range v.result.Claims.Time {
+		addPerLang(c.PropDisplay)
+		v.addTextAllLanguages(c.FromDisplay)
+		v.addTextAllLanguages(c.ToDisplay)
+	}
+	for _, c := range v.result.Claims.Reference {
+		addPerLang(c.PropDisplay)
+		addPerLang(c.ToDisplay)
+	}
+	for _, c := range v.result.Claims.Has {
+		addPerLang(c.PropDisplay)
+	}
+	for _, c := range v.result.Claims.None {
+		addPerLang(c.PropDisplay)
+	}
+	for _, c := range v.result.Claims.Unknown {
+		addPerLang(c.PropDisplay)
+	}
+	for _, c := range v.result.Claims.SubRef {
+		addPerLang(c.PropDisplay)
+		addPerLang(c.ToDisplay)
+	}
+	for _, c := range v.result.Claims.SubAmount {
+		addPerLang(c.PropDisplay)
+		v.addTextAllLanguages(c.FromDisplay)
+		v.addTextAllLanguages(c.ToDisplay)
+	}
+	for _, c := range v.result.Claims.SubTime {
+		addPerLang(c.PropDisplay)
+		v.addTextAllLanguages(c.FromDisplay)
+		v.addTextAllLanguages(c.ToDisplay)
+	}
+	for _, c := range v.result.Claims.SubHas {
+		addPerLang(c.PropDisplay)
+	}
+}
+
 // VisitIdentifier folds the identifier value into the document's top-level
 // text field under the undetermined-language bucket so the text-search query
 // can score it together with other textual content.
@@ -1286,9 +1353,10 @@ func (c *Converter) FromDocument(
 		v.result.Display = displayStrings.Display
 	}
 
-	// Index the document's own ID under "und" so a user typing the ID
-	// (or a URL containing it) can locate the document via text search.
-	v.addText(document.UndeterminedLanguage, doc.ID.String())
+	// Index the document's own ID into every language bucket so a user typing
+	// the ID (or a URL containing it) can locate the document via text search
+	// regardless of which language analyzer the search hits.
+	v.addTextAllLanguages(doc.ID.String())
 
 	errE = doc.Visit(v)
 	if errE != nil {
@@ -1311,6 +1379,12 @@ func (c *Converter) FromDocument(
 		v.result.Claims.Reference = append(v.result.Claims.Reference, claims...)
 		v.appendSubClaims(subs)
 	}
+
+	// Fold every non-text-claim display label into the top-level text bucket
+	// so the text-search query can match against property names, referenced-
+	// document names, and amount/time boundary strings without depending only
+	// on the per-claim-type nested queries.
+	v.appendClaimDisplaysToText()
 
 	return v.result, nil
 }
