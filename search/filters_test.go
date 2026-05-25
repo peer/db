@@ -30,11 +30,9 @@ func TestFiltersGetIntegration(t *testing.T) {
 	t2000 := float64(2000)
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:dupl
-		ID: identifier.From("filterDoc1"),
+		ID:   identifier.From("filterDoc1"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
 				PropDisplay: nil,
@@ -66,7 +64,6 @@ func TestFiltersGetIntegration(t *testing.T) {
 				To:          &t1000,
 				ToDisplay:   "",
 			}},
-			Link: nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop:          refProp,
 				PropDisplay:   nil,
@@ -87,11 +84,9 @@ func TestFiltersGetIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:dupl
-		ID: identifier.From("filterDoc2"),
+		ID:   identifier.From("filterDoc2"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
 				PropDisplay: nil,
@@ -123,7 +118,6 @@ func TestFiltersGetIntegration(t *testing.T) {
 				To:          &t2000,
 				ToDisplay:   "",
 			}},
-			Link: nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop:          refProp,
 				PropDisplay:   nil,
@@ -194,22 +188,13 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 
 	refProp := identifier.From("refProp")
 	refTarget := identifier.From("refTarget")
-	stringProp := identifier.From("stringProp")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("queryDoc1"),
+		ID:   identifier.From("queryDoc1"),
+		Text: map[string][]string{"en": {"searchable text"}},
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String: internalSearch.StringClaims{{
-				Prop:        stringProp,
-				PropDisplay: nil,
-				PropNaming:  nil,
-				String:      map[string]string{"en": "searchable text"},
-			}},
-			HTML:   nil,
 			Amount: nil,
 			Time:   nil,
-			Link:   nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop:          refProp,
 				PropDisplay:   nil,
@@ -230,19 +215,11 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("queryDoc2"),
+		ID:   identifier.From("queryDoc2"),
+		Text: map[string][]string{"en": {"other content"}},
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String: internalSearch.StringClaims{{
-				Prop:        stringProp,
-				PropDisplay: nil,
-				PropNaming:  nil,
-				String:      map[string]string{"en": "other content"},
-			}},
-			HTML:   nil,
 			Amount: nil,
 			Time:   nil,
-			Link:   nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop:          refProp,
 				PropDisplay:   nil,
@@ -292,11 +269,9 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 	ten := 10.0
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("noUnitDoc"),
+		ID:   identifier.From("noUnitDoc"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
 				PropDisplay: nil,
@@ -314,7 +289,6 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 				ToDisplay:   "",
 			}},
 			Time:      nil,
-			Link:      nil,
 			Reference: nil,
 			Has:       nil,
 			None:      nil,

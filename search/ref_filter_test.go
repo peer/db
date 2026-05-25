@@ -23,9 +23,10 @@ func TestRefFilterGetIntegration(t *testing.T) {
 	target2 := identifier.From("target2")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("refDoc1"),
+		ID:   identifier.From("refDoc1"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil, Amount: nil, Time: nil, Link: nil,
+			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil,
 				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
@@ -38,9 +39,10 @@ func TestRefFilterGetIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("refDoc2"),
+		ID:   identifier.From("refDoc2"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil, Amount: nil, Time: nil, Link: nil,
+			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil,
 				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
@@ -53,9 +55,10 @@ func TestRefFilterGetIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("refDoc3"),
+		ID:   identifier.From("refDoc3"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil, Amount: nil, Time: nil, Link: nil,
+			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil,
 				To: target2, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
@@ -105,9 +108,10 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 	target2 := identifier.From("target2")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("refDoc1"),
+		ID:   identifier.From("refDoc1"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil, Amount: nil, Time: nil, Link: nil,
+			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil,
 				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
@@ -120,9 +124,10 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("refDoc2"),
+		ID:   identifier.From("refDoc2"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil, Amount: nil, Time: nil, Link: nil,
+			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil,
 				To: target2, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
@@ -163,9 +168,10 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 
 	// Doc with the ref prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("refDoc1"),
+		ID:   identifier.From("refDoc1"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil, Amount: nil, Time: nil, Link: nil,
+			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil,
 				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
@@ -179,9 +185,10 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 	})
 	// Doc without the ref prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("refDoc2"),
+		ID:   identifier.From("refDoc2"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil, Amount: nil, Time: nil, Link: nil,
+			Amount: nil, Time: nil,
 			Reference: nil,
 			Has:       nil, None: nil, Unknown: nil,
 			SubRef:    nil,
@@ -192,9 +199,10 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 	})
 	// Another doc without the ref prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("refDoc3"),
+		ID:   identifier.From("refDoc3"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil, Amount: nil, Time: nil, Link: nil,
+			Amount: nil, Time: nil,
 			Reference: nil,
 			Has:       nil, None: nil, Unknown: nil,
 			SubRef:    nil,
@@ -231,9 +239,10 @@ func TestRefFilterGetNoMissingIntegration(t *testing.T) {
 
 	// All docs have the ref prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("refDoc1"),
+		ID:   identifier.From("refDoc1"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil, Amount: nil, Time: nil, Link: nil,
+			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil,
 				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
@@ -295,9 +304,10 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 	// One source doc with three reference claims, one per target in the chain, as
 	// produced at index time by ancestor expansion in convertReference.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("dogDoc"),
+		ID:   identifier.From("dogDoc"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil, Amount: nil, Time: nil, Link: nil,
+			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{
 				{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: dog, ToDisplay: nil, ToNaming: nil, ToPath: []string{dogPath}, ToDisplayPath: nil},
 				{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: mammal, ToDisplay: nil, ToNaming: nil, ToPath: []string{mammalPath}, ToDisplayPath: nil},
@@ -345,9 +355,10 @@ func TestRefFilterGetDiamondIntegration(t *testing.T) {
 	leafPathB := hierProp.String() + ":" + root.String() + "/" + parentB.String() + "/" + leaf.String()
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("leafDoc"),
+		ID:   identifier.From("leafDoc"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil, Amount: nil, Time: nil, Link: nil,
+			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{
 				{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: leaf, ToDisplay: nil, ToNaming: nil, ToPath: []string{leafPathA, leafPathB}, ToDisplayPath: nil},
 			},
@@ -395,9 +406,10 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 
 	// Three sub-reference claims on the same doc, one per target in the chain.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("subDog"),
+		ID:   identifier.From("subDog"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil, Amount: nil, Time: nil, Link: nil,
+			Amount: nil, Time: nil,
 			Reference: nil,
 			Has:       nil, None: nil, Unknown: nil,
 			SubRef: internalSearch.SubRefClaims{

@@ -2,19 +2,6 @@
   "settings": {
     "analysis": {
       "analyzer": {
-        "standard_html": {
-          "type": "custom",
-          "tokenizer": "icu_tokenizer",
-          "char_filter": [
-            "html_strip"
-          ],
-          "filter": [
-            "lowercase",
-            "icu_folding",
-            "decimal_digit",
-            "truncate_token_filter"
-          ]
-        },
         "standard_string": {
           "type": "custom",
           "tokenizer": "icu_tokenizer",
@@ -22,22 +9,6 @@
             "lowercase",
             "icu_folding",
             "decimal_digit",
-            "truncate_token_filter"
-          ]
-        },
-        "english_html": {
-          "type": "custom",
-          "tokenizer": "icu_tokenizer",
-          "char_filter": [
-            "html_strip"
-          ],
-          "filter": [
-            "english_possessive_stemmer",
-            "lowercase",
-            "icu_folding",
-            "decimal_digit",
-            "english_stop",
-            "english_stemmer",
             "truncate_token_filter"
           ]
         },
@@ -54,20 +25,6 @@
             "truncate_token_filter"
           ]
         },
-        "slovenian_html": {
-          "type": "custom",
-          "tokenizer": "icu_tokenizer",
-          "char_filter": [
-            "html_strip"
-          ],
-          "filter": [
-            "lowercase",
-            "icu_folding",
-            "decimal_digit",
-            "slovenian_lemmatizer",
-            "truncate_token_filter"
-          ]
-        },
         "slovenian_string": {
           "type": "custom",
           "tokenizer": "icu_tokenizer",
@@ -76,21 +33,6 @@
             "icu_folding",
             "decimal_digit",
             "slovenian_lemmatizer",
-            "truncate_token_filter"
-          ]
-        },
-        "portuguese_html": {
-          "type": "custom",
-          "tokenizer": "icu_tokenizer",
-          "char_filter": [
-            "html_strip"
-          ],
-          "filter": [
-            "lowercase",
-            "icu_folding",
-            "decimal_digit",
-            "portuguese_stop",
-            "portuguese_stemmer",
             "truncate_token_filter"
           ]
         },
@@ -138,27 +80,6 @@
         }
       },
       "normalizer": {
-        "id_normalizer": {
-          "type": "custom",
-          "char_filter": [
-            "zeros_prefix_trim",
-            "truncate_token_filter"
-          ],
-          "filter": [
-            "trim",
-            "lowercase"
-          ]
-        },
-        "iri_normalizer": {
-          "type": "custom",
-          "char_filter": [
-            "truncate_token_filter"
-          ],
-          "filter": [
-            "trim",
-            "lowercase"
-          ]
-        },
         "display_label_normalizer": {
           "type": "custom",
           "char_filter": [
@@ -176,11 +97,6 @@
         }
       },
       "char_filter": {
-        "zeros_prefix_trim": {
-          "type": "pattern_replace",
-          "pattern": "^[0\\s]+",
-          "replacement": ""
-        },
         "truncate_token_filter": {
           "type": "pattern_replace",
           "pattern": "^(.{0,2048}).*$",
@@ -197,6 +113,26 @@
     "properties": {
       "id": {
         "type": "keyword"
+      },
+      "text": {
+        "properties": {
+          "en": {
+            "type": "text",
+            "analyzer": "english_string"
+          },
+          "sl": {
+            "type": "text",
+            "analyzer": "slovenian_string"
+          },
+          "pt": {
+            "type": "text",
+            "analyzer": "portuguese_string"
+          },
+          "und": {
+            "type": "text",
+            "analyzer": "standard_string"
+          }
+        }
       },
       "claims": {
         "properties": {

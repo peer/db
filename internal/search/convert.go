@@ -13,11 +13,33 @@ import (
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
+	"golang.org/x/net/html"
 
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	"gitlab.com/peerdb/peerdb/store"
 )
+
+// stripHTML extracts plain text from HTML, separating text from distinct
+// elements with a single space so tokenizers see word boundaries between
+// adjacent block elements. Non-text tokens (StartTag/EndTag/Comment/Doctype)
+// are dropped. Returns "" for input that contains no text.
+func stripHTML(s string) string {
+	tokenizer := html.NewTokenizer(strings.NewReader(s))
+	var buf strings.Builder
+	for {
+		tt := tokenizer.Next()
+		if tt == html.ErrorToken {
+			return strings.TrimSpace(buf.String())
+		}
+		if tt == html.TextToken {
+			if buf.Len() > 0 {
+				buf.WriteByte(' ')
+			}
+			buf.Write(tokenizer.Text())
+		}
+	}
+}
 
 type displayStrings struct {
 	Display map[string]string
@@ -968,42 +990,54 @@ type convertVisitor struct {
 
 var _ document.Visitor = (*convertVisitor)(nil)
 
-// VisitIdentifier converts an identifier claim to search identifier claims.
+// addText appends value to the document's top-level text bucket for the given
+// language, skipping empty/whitespace-only values and lazily initializing the
+// map.
+func (v *convertVisitor) addText(lang, value string) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return
+	}
+	if v.result.Text == nil {
+		v.result.Text = map[string][]string{}
+	}
+	v.result.Text[lang] = append(v.result.Text[lang], value)
+}
+
+// VisitIdentifier folds the identifier value into the document's top-level
+// text field under the undetermined-language bucket so the text-search query
+// can score it together with other textual content.
 func (v *convertVisitor) VisitIdentifier(claim *document.IdentifierClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, errE := v.converter.convertIdentifier(v.ctx, claim)
-	if errE != nil {
-		return document.Keep, errE
-	}
-	v.result.Claims.Identifier = append(v.result.Claims.Identifier, claims...)
+	v.addText(document.UndeterminedLanguage, claim.Value)
 	return document.Keep, nil
 }
 
-// VisitString converts a string claim to search string claims.
+// VisitString folds the string value into the document's top-level text field
+// under every language the claim's IN_LANGUAGE sub-claims resolve to.
 func (v *convertVisitor) VisitString(claim *document.StringClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, errE := v.converter.convertString(v.ctx, claim)
-	if errE != nil {
-		return document.Keep, errE
+	for _, lang := range v.converter.extractInLanguages(claim.Sub) {
+		v.addText(lang, claim.String)
 	}
-	v.result.Claims.String = append(v.result.Claims.String, claims...)
 	return document.Keep, nil
 }
 
-// VisitHTML converts an HTML claim to search HTML claims.
+// VisitHTML strips HTML tags from the claim's value and folds the plain-text
+// result into the document's top-level text field under every language the
+// claim's IN_LANGUAGE sub-claims resolve to.
 func (v *convertVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, errE := v.converter.convertHTML(v.ctx, claim)
-	if errE != nil {
-		return document.Keep, errE
+	stripped := stripHTML(claim.HTML)
+	for _, lang := range v.converter.extractInLanguages(claim.Sub) {
+		v.addText(lang, stripped)
 	}
-	v.result.Claims.HTML = append(v.result.Claims.HTML, claims...)
 	return document.Keep, nil
 }
 
@@ -1063,16 +1097,13 @@ func (v *convertVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) (d
 	return document.Keep, nil
 }
 
-// VisitLink converts a link claim to search link claims.
+// VisitLink folds the link IRI into the document's top-level text field under
+// the undetermined-language bucket so the URL components are searchable.
 func (v *convertVisitor) VisitLink(claim *document.LinkClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	claims, errE := v.converter.convertLink(v.ctx, claim)
-	if errE != nil {
-		return document.Keep, errE
-	}
-	v.result.Claims.Link = append(v.result.Claims.Link, claims...)
+	v.addText(document.UndeterminedLanguage, claim.IRI)
 	return document.Keep, nil
 }
 
@@ -1168,6 +1199,7 @@ func (c *Converter) FromDocument(
 		converter: c,
 		result: &Document{
 			ID:     doc.ID,
+			Text:   nil,
 			Claims: ClaimTypes{},
 		},
 		docID: doc.ID,
@@ -1381,71 +1413,6 @@ func (c *Converter) OutgoingInverseRelations(doc *document.D) map[identifier.Ide
 	// Visit cannot return an error from inverseRelationsVisitor.
 	_ = doc.Visit(v)
 	return v.result
-}
-
-func (c *Converter) convertIdentifier(ctx context.Context, claim *document.IdentifierClaim) ([]IdentifierClaim, errors.E) {
-	props := c.propagateProp(claim.Prop.ID)
-	result := make([]IdentifierClaim, 0, len(props))
-	for _, pid := range props {
-		propDisplay, errE := c.getDisplayStrings(ctx, pid)
-		if errE != nil {
-			errors.Details(errE)["claim"] = claim
-			return nil, errE
-		}
-		result = append(result, IdentifierClaim{
-			Prop:        pid,
-			PropDisplay: propDisplay.Display,
-			PropNaming:  propDisplay.Naming,
-			Value:       claim.Value,
-		})
-	}
-	return result, nil
-}
-
-func (c *Converter) convertString(ctx context.Context, claim *document.StringClaim) ([]StringClaim, errors.E) {
-	str := map[string]string{}
-	for _, lang := range c.extractInLanguages(claim.Sub) {
-		str[lang] = claim.String
-	}
-	props := c.propagateProp(claim.Prop.ID)
-	result := make([]StringClaim, 0, len(props))
-	for _, pid := range props {
-		propDisplay, errE := c.getDisplayStrings(ctx, pid)
-		if errE != nil {
-			errors.Details(errE)["claim"] = claim
-			return nil, errE
-		}
-		result = append(result, StringClaim{
-			Prop:        pid,
-			PropDisplay: propDisplay.Display,
-			PropNaming:  propDisplay.Naming,
-			String:      str,
-		})
-	}
-	return result, nil
-}
-
-func (c *Converter) convertHTML(ctx context.Context, claim *document.HTMLClaim) ([]HTMLClaim, errors.E) {
-	html := map[string]string{}
-	for _, lang := range c.extractInLanguages(claim.Sub) {
-		html[lang] = claim.HTML
-	}
-	props := c.propagateProp(claim.Prop.ID)
-	result := make([]HTMLClaim, 0, len(props))
-	for _, pid := range props {
-		propDisplay, errE := c.getDisplayStrings(ctx, pid)
-		if errE != nil {
-			errors.Details(errE)["claim"] = claim
-			return nil, errE
-		}
-		result = append(result, HTMLClaim{
-			Prop:        pid,
-			PropDisplay: propDisplay.Display,
-			PropNaming:  propDisplay.Naming,
-			HTML:        html,
-		})
-	}
-	return result, nil
 }
 
 func (c *Converter) convertAmount(ctx context.Context, claim *document.AmountClaim) ([]AmountClaim, errors.E) {
@@ -1898,25 +1865,6 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		})
 	}
 	return result, nil, subClaims{}, nil
-}
-
-func (c *Converter) convertLink(ctx context.Context, claim *document.LinkClaim) ([]LinkClaim, errors.E) {
-	props := c.propagateProp(claim.Prop.ID)
-	result := make([]LinkClaim, 0, len(props))
-	for _, pid := range props {
-		propDisplay, errE := c.getDisplayStrings(ctx, pid)
-		if errE != nil {
-			errors.Details(errE)["claim"] = claim
-			return nil, errE
-		}
-		result = append(result, LinkClaim{
-			Prop:        pid,
-			PropDisplay: propDisplay.Display,
-			PropNaming:  propDisplay.Naming,
-			IRI:         claim.IRI,
-		})
-	}
-	return result, nil
 }
 
 // Sentinel values for sub-claim ParentTo when the parent claim is not a reference claim.

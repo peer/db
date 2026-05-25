@@ -662,28 +662,17 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 	shoulds := []types.QueryVariant{
 		esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(searchQuery)),
 	}
-	for _, f := range []field{
-		{"claims.id", "value"},
-		{"claims.link", "iri"},
-	} {
-		// TODO: Can we use simple query for keyword fields? Which analyzer is used?
-		q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(f.Prefix + "." + f.Field).DefaultOperator(defaultOperator)
-		shoulds = append(shoulds, esdsl.NewNestedQuery(q).Path(f.Prefix))
-	}
-	// Search string and HTML claims across all supported languages.
+	// Search aggregated textual content (string, html-stripped, identifier, link)
+	// across all supported languages. Single per-language non-nested queries let
+	// ES score documents higher when multiple terms match the same field.
 	// Languages are sorted for deterministic query generation.
 	langs := slices.Sorted(maps.Keys(internalSearch.SupportedLanguages))
-	for _, f := range []field{
-		{"claims.string", "string"},
-		{"claims.html", "html"},
-	} {
-		for _, lang := range langs {
-			q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(f.Prefix + "." + f.Field + "." + lang).DefaultOperator(defaultOperator)
-			shoulds = append(shoulds, esdsl.NewNestedQuery(q).Path(f.Prefix))
-		}
+	for _, lang := range langs {
+		q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields("text." + lang).DefaultOperator(defaultOperator)
+		shoulds = append(shoulds, q)
 	}
 	// Search display and naming fields across all claim types with reduced boost.
-	for _, claimType := range []string{"amount", "has", "html", "id", "link", "none", "ref", "string", "time", "unknown"} {
+	for _, claimType := range []string{"amount", "has", "none", "ref", "time", "unknown"} {
 		prefix := "claims." + claimType
 		var fields []string
 		// propDisplay and propNaming exist on all claim types.
@@ -724,12 +713,6 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 
 // TODO: Use a database instead.
 var searches = sync.Map{} //nolint:gochecknoglobals
-
-// field describes a nested field for ElasticSearch to search on.
-type field struct {
-	Prefix string
-	Field  string
-}
 
 // TODO: Return (and log) and error on invalid search requests (e.g., filters).
 

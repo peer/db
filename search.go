@@ -286,8 +286,6 @@ func (s *Service) SearchTimeFilterGetAPI(w http.ResponseWriter, req *http.Reques
 // SearchSubRefFilterGetAPI handles GET requests for sub-reference filter data by parentProp and prop.
 //
 // Used for inactive filters (not yet in the session).
-//
-//nolint:dupl
 func (s *Service) SearchSubRefFilterGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
@@ -393,8 +391,6 @@ func (s *Service) SearchSubAmountFilterGetAPI(w http.ResponseWriter, req *http.R
 // SearchSubTimeFilterGetAPI handles GET requests for sub-time filter data by parentProp and prop.
 //
 // Used for inactive filters (not yet in the session).
-//
-//nolint:dupl
 func (s *Service) SearchSubTimeFilterGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 

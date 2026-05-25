@@ -145,93 +145,6 @@ const propDisplay = `{
 // TODO: Generate automatically from the Document struct.
 var claimTypes = []claimType{ //nolint:gochecknoglobals
 	{
-		"id",
-		[]field{
-			{
-				"prop",
-				relationID,
-			},
-			{
-				"propDisplay",
-				propDisplay,
-			},
-			{
-				"propNaming",
-				multiLanguageString,
-			},
-			{
-				"value",
-				`{
-					"type": "keyword",
-					"doc_values": false,
-					"split_queries_on_whitespace": true,
-					"normalizer": "id_normalizer"
-				}`,
-			},
-		},
-	},
-	{
-		"string",
-		[]field{
-			{
-				"prop",
-				relationID,
-			},
-			{
-				"propDisplay",
-				propDisplay,
-			},
-			{
-				"propNaming",
-				multiLanguageString,
-			},
-			{
-				"string",
-				multiLanguageString,
-			},
-		},
-	},
-	{
-		"html",
-		[]field{
-			{
-				"prop",
-				relationID,
-			},
-			{
-				"propDisplay",
-				propDisplay,
-			},
-			{
-				"propNaming",
-				multiLanguageString,
-			},
-			{
-				"html",
-				`{
-					"properties": {
-						"en": {
-							"type": "text",
-							"analyzer": "english_html"
-						},
-						"sl": {
-							"type": "text",
-							"analyzer": "slovenian_html"
-						},
-						"pt": {
-							"type": "text",
-							"analyzer": "portuguese_html"
-						},
-						"und": {
-							"type": "text",
-							"analyzer": "standard_html"
-						}
-					}
-				}`,
-			},
-		},
-	},
-	{
 		"amount",
 		[]field{
 			{
@@ -338,32 +251,6 @@ var claimTypes = []claimType{ //nolint:gochecknoglobals
 				`{
 					"type": "text",
 					"analyzer": "standard_string"
-				}`,
-			},
-		},
-	},
-	{
-		"link",
-		[]field{
-			{
-				"prop",
-				relationID,
-			},
-			{
-				"propDisplay",
-				propDisplay,
-			},
-			{
-				"propNaming",
-				multiLanguageString,
-			},
-			{
-				"iri",
-				`{
-					"type": "keyword",
-					"doc_values": false,
-					"split_queries_on_whitespace": true,
-					"normalizer": "iri_normalizer"
 				}`,
 			},
 		},

@@ -33,7 +33,6 @@ func TestAmountFilterGetIntegration(t *testing.T) {
 	fifty := 50.0
 	ninety := 90.0
 
-	//nolint:dupl
 	for _, tc := range []struct {
 		id    string
 		value *float64
@@ -43,9 +42,9 @@ func TestAmountFilterGetIntegration(t *testing.T) {
 		{"amountDoc3", &ninety},
 	} {
 		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID: identifier.From(tc.id),
+			ID:   identifier.From(tc.id),
+			Text: nil,
 			Claims: internalSearch.ClaimTypes{
-				Identifier: nil, String: nil, HTML: nil,
 				Amount: internalSearch.AmountClaims{{
 					Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
 					Range: internalSearch.RangeFloat{
@@ -53,7 +52,7 @@ func TestAmountFilterGetIntegration(t *testing.T) {
 					},
 					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
 				}},
-				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+				Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 			},
 		})
 	}
@@ -110,9 +109,9 @@ func TestAmountFilterGetMissingIntegration(t *testing.T) {
 
 	// Doc with the amount prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("amountDoc1"),
+		ID:   identifier.From("amountDoc1"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
 				Range: internalSearch.RangeFloat{
@@ -120,25 +119,25 @@ func TestAmountFilterGetMissingIntegration(t *testing.T) {
 				},
 				From: &ten, FromDisplay: "", To: &ten, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	// Doc without the amount prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("amountDoc2"),
+		ID:   identifier.From("amountDoc2"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil,
 			Amount: nil,
-			Time:   nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Time:   nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	// Another doc without the amount prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("amountDoc3"),
+		ID:   identifier.From("amountDoc3"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil,
 			Amount: nil,
-			Time:   nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Time:   nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -166,9 +165,9 @@ func TestAmountFilterGetNoMissingIntegration(t *testing.T) {
 
 	// All docs have the amount prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("amountDoc1"),
+		ID:   identifier.From("amountDoc1"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
 				Range: internalSearch.RangeFloat{
@@ -176,7 +175,7 @@ func TestAmountFilterGetNoMissingIntegration(t *testing.T) {
 				},
 				From: &ten, FromDisplay: "", To: &ten, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -204,7 +203,6 @@ func TestAmountFilterGetInactiveIntegration(t *testing.T) {
 	fifty := 50.0
 	ninety := 90.0
 
-	//nolint:dupl
 	for _, tc := range []struct {
 		id    string
 		value *float64
@@ -214,9 +212,9 @@ func TestAmountFilterGetInactiveIntegration(t *testing.T) {
 		{"amountDoc3", &ninety},
 	} {
 		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID: identifier.From(tc.id),
+			ID:   identifier.From(tc.id),
+			Text: nil,
 			Claims: internalSearch.ClaimTypes{
-				Identifier: nil, String: nil, HTML: nil,
 				Amount: internalSearch.AmountClaims{{
 					Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
 					Range: internalSearch.RangeFloat{
@@ -224,7 +222,7 @@ func TestAmountFilterGetInactiveIntegration(t *testing.T) {
 					},
 					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
 				}},
-				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+				Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 			},
 		})
 	}
@@ -264,9 +262,9 @@ func TestAmountFilterGetSameValuesIntegration(t *testing.T) {
 
 	for i := range 2 {
 		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID: identifier.From("sameDoc", string(rune('0'+i))),
+			ID:   identifier.From("sameDoc", string(rune('0'+i))),
+			Text: nil,
 			Claims: internalSearch.ClaimTypes{
-				Identifier: nil, String: nil, HTML: nil,
 				Amount: internalSearch.AmountClaims{{
 					Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
 					Range: internalSearch.RangeFloat{
@@ -274,7 +272,7 @@ func TestAmountFilterGetSameValuesIntegration(t *testing.T) {
 					},
 					From: &fortyTwo, FromDisplay: "", To: &fortyTwo, ToDisplay: "",
 				}},
-				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+				Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 			},
 		})
 	}
@@ -333,9 +331,9 @@ func TestAmountFilterGetWithoutUnitIntegration(t *testing.T) {
 	twentyFive := 25.0
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("noUnitDoc"),
+		ID:   identifier.From("noUnitDoc"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: nil,
 				Range: internalSearch.RangeFloat{
@@ -343,7 +341,7 @@ func TestAmountFilterGetWithoutUnitIntegration(t *testing.T) {
 				},
 				From: &twentyFive, FromDisplay: "", To: &twentyFive, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -380,7 +378,6 @@ func TestAmountFilterGetGapIntegration(t *testing.T) {
 	one := 1.0
 	hundred := 100.0
 
-	//nolint:dupl
 	for _, tc := range []struct {
 		id    string
 		value *float64
@@ -390,9 +387,9 @@ func TestAmountFilterGetGapIntegration(t *testing.T) {
 		{"gapDoc3", &hundred},
 	} {
 		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID: identifier.From(tc.id),
+			ID:   identifier.From(tc.id),
+			Text: nil,
 			Claims: internalSearch.ClaimTypes{
-				Identifier: nil, String: nil, HTML: nil,
 				Amount: internalSearch.AmountClaims{{
 					Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
 					Range: internalSearch.RangeFloat{
@@ -400,7 +397,7 @@ func TestAmountFilterGetGapIntegration(t *testing.T) {
 					},
 					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
 				}},
-				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+				Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 			},
 		})
 	}
@@ -467,9 +464,9 @@ func TestAmountFilterGetExtendedBoundsIntegration(t *testing.T) {
 		{"extDoc2", &sixty},
 	} {
 		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID: identifier.From(tc.id),
+			ID:   identifier.From(tc.id),
+			Text: nil,
 			Claims: internalSearch.ClaimTypes{
-				Identifier: nil, String: nil, HTML: nil,
 				Amount: internalSearch.AmountClaims{{
 					Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
 					Range: internalSearch.RangeFloat{
@@ -477,7 +474,7 @@ func TestAmountFilterGetExtendedBoundsIntegration(t *testing.T) {
 					},
 					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
 				}},
-				Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+				Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 			},
 		})
 	}
@@ -538,9 +535,9 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 	hundred := 100.0
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("hardDoc1"),
+		ID:   identifier.From("hardDoc1"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
 				Range: internalSearch.RangeFloat{
@@ -548,13 +545,13 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 				},
 				From: &zero, FromDisplay: "", To: &twenty, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("hardDoc2"),
+		ID:   identifier.From("hardDoc2"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
 				Range: internalSearch.RangeFloat{
@@ -562,7 +559,7 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 				},
 				From: &eighty, FromDisplay: "", To: &hundred, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -630,9 +627,9 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 	ninetyFive := 95.0
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("wideDoc1"),
+		ID:   identifier.From("wideDoc1"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
 				Range: internalSearch.RangeFloat{
@@ -640,13 +637,13 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 				},
 				From: &five, FromDisplay: "", To: &five, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("wideDoc2"),
+		ID:   identifier.From("wideDoc2"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
 				Range: internalSearch.RangeFloat{
@@ -654,13 +651,13 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 				},
 				From: &twenty, FromDisplay: "", To: &eighty, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: identifier.From("wideDoc3"),
+		ID:   identifier.From("wideDoc3"),
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil, String: nil, HTML: nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
 				Range: internalSearch.RangeFloat{
@@ -668,7 +665,7 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 				},
 				From: &ninetyFive, FromDisplay: "", To: &ninetyFive, ToDisplay: "",
 			}},
-			Time: nil, Link: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
