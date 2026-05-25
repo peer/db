@@ -305,6 +305,7 @@ function onInput() {
 
   <!-- ref -->
   <InputErrors v-else-if="claimType === 'ref'" v-slot="errorProps" class="min-w-0 flex-auto grow">
+    <!-- TODO: Pass "self" prop as the current document's ID. -->
     <InputRef v-bind="errorProps" v-model="value" :filter="field.values" :required="required" :invalid="invalid" @update:model-value="onInput" />
   </InputErrors>
 </template>
