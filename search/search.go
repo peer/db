@@ -29,6 +29,13 @@ const (
 	// The value is multiplied with the field's relevance score.
 	displayBoost = "^0.2"
 
+	// textDisMaxTieBreaker is the tie_breaker for the per-language text.<lang>
+	// dis_max wrapper. dis_max scores a doc as max(per-clause score) +
+	// tie_breaker * sum(other matching scores); a small non-zero value rewards
+	// docs that match in multiple languages slightly, without letting language
+	// tagging redundancy dominate the ranking.
+	textDisMaxTieBreaker = 0.1
+
 	// 40000 is the maximum precision threshold ES supports, so we use it to get the most accurate approximation.
 	// For now we didn't notice any performance issues at data scale PeerDB is currently being used with, but
 	// in the future we might want to make this configurable.
@@ -663,14 +670,22 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 		esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(searchQuery)),
 	}
 	// Search aggregated textual content (string, html-stripped, identifier, link)
-	// across all supported languages. Single per-language non-nested queries let
-	// ES score documents higher when multiple terms match the same field.
+	// across all supported languages. Each language uses its own analyzer, so the
+	// same content can land in multiple text.<lang> buckets when claims are tagged
+	// with multiple IN_LANGUAGE values. Wrapping the per-language clauses in
+	// dis_max picks the highest-scoring language per doc instead of summing
+	// across them, so language-tagging redundancy doesn't inflate relevance.
+	// tie_breaker adds a small bonus when multiple languages match, rewarding
+	// (but not overweighting) cross-lingual coverage.
 	// Languages are sorted for deterministic query generation.
 	langs := slices.Sorted(maps.Keys(internalSearch.SupportedLanguages))
+	textQueries := make([]types.QueryVariant, 0, len(langs))
 	for _, lang := range langs {
-		q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields("text." + lang).DefaultOperator(defaultOperator)
-		shoulds = append(shoulds, q)
+		textQueries = append(textQueries,
+			esdsl.NewSimpleQueryStringQuery(searchQuery).Fields("text."+lang).DefaultOperator(defaultOperator),
+		)
 	}
+	shoulds = append(shoulds, esdsl.NewDisMaxQuery().Queries(textQueries...).TieBreaker(textDisMaxTieBreaker))
 	// Search display and naming fields across all claim types with reduced boost.
 	for _, claimType := range []string{"amount", "has", "none", "ref", "time", "unknown"} {
 		prefix := "claims." + claimType
