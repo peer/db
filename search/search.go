@@ -25,10 +25,6 @@ const (
 	// MaxResultsCount is the maximum number of search results that can be returned.
 	MaxResultsCount = 1000
 
-	// displayBoost is the boost factor for display and naming fields in text search queries.
-	// The value is multiplied with the field's relevance score.
-	displayBoost = "^0.2"
-
 	// topDisplayBoost is the boost factor applied to the document's top-level
 	// rendered display label (per-language "display.<lang>") relative to the
 	// main text field. Matches against the user-visible label of the document
@@ -672,9 +668,8 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 		return esdsl.NewBoolQuery()
 	}
 
-	shoulds := []types.QueryVariant{
-		esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(searchQuery)),
-	}
+	shoulds := make([]types.QueryVariant, 0, 3) //nolint:mnd
+	shoulds = append(shoulds, esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(searchQuery)))
 	// Search aggregated textual content (string, html-stripped, identifier, link)
 	// across all supported languages. Each language has up to three analyzers
 	// indexed via multi-fields:
@@ -761,42 +756,6 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 		)
 	}
 	shoulds = append(shoulds, esdsl.NewDisMaxQuery().Queries(displayQueries...).TieBreaker(textDisMaxTieBreaker))
-	// Search display and naming fields across all claim types with reduced boost.
-	for _, claimType := range []string{"amount", "has", "none", "ref", "time", "unknown"} {
-		prefix := "claims." + claimType
-		var fields []string
-		// propDisplay and propNaming exist on all claim types.
-		for _, fieldName := range []string{"propDisplay", "propNaming"} {
-			for _, lang := range langs {
-				fields = append(fields, prefix+"."+fieldName+"."+lang+displayBoost)
-			}
-		}
-		// Type-specific display/naming fields.
-		switch claimType {
-		case "ref":
-			for _, fieldName := range []string{"toDisplay", "toNaming"} {
-				for _, lang := range langs {
-					fields = append(fields, prefix+"."+fieldName+"."+lang+displayBoost)
-				}
-			}
-		case "amount", "time":
-			fields = append(fields, prefix+".fromDisplay"+displayBoost, prefix+".toDisplay"+displayBoost)
-		}
-		q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(fields...).DefaultOperator(defaultOperator)
-		shoulds = append(shoulds, esdsl.NewNestedQuery(q).Path(prefix))
-	}
-	// Display and naming fields in denormalized sub-claims.
-	{
-		prefix := "claims.subRef"
-		var fields []string
-		for _, fieldName := range []string{"propDisplay", "propNaming", "toDisplay", "toNaming"} {
-			for _, lang := range langs {
-				fields = append(fields, prefix+"."+fieldName+"."+lang+displayBoost)
-			}
-		}
-		q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(fields...).DefaultOperator(defaultOperator)
-		shoulds = append(shoulds, esdsl.NewNestedQuery(q).Path(prefix))
-	}
 
 	return esdsl.NewBoolQuery().Should(shoulds...)
 }
