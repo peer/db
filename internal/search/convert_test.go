@@ -1288,7 +1288,7 @@ func TestVisitIdentifierPopulatesText(t *testing.T) {
 	}
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, []string{"Q42"}, result.Text["und"])
+	assert.Equal(t, []string{testDocID.String(), "Q42"}, result.Text["und"])
 }
 
 func TestVisitStringPopulatesTextDefaultsToUnd(t *testing.T) {
@@ -1309,7 +1309,7 @@ func TestVisitStringPopulatesTextDefaultsToUnd(t *testing.T) {
 	}
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, []string{"hello world"}, result.Text["und"])
+	assert.Equal(t, []string{testDocID.String(), "hello world"}, result.Text["und"])
 	_, hasEn := result.Text["en"]
 	assert.False(t, hasEn)
 }
@@ -1341,8 +1341,8 @@ func TestVisitStringPopulatesTextWithLanguage(t *testing.T) {
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []string{"hello"}, result.Text["en"])
-	_, hasUnd := result.Text["und"]
-	assert.False(t, hasUnd)
+	// The document ID is always seeded under "und", even when no claim is.
+	assert.Equal(t, []string{testDocID.String()}, result.Text["und"])
 }
 
 func TestVisitHTMLStripsAndPopulatesText(t *testing.T) {
@@ -1364,9 +1364,11 @@ func TestVisitHTMLStripsAndPopulatesText(t *testing.T) {
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// HTML tags are stripped in Go and adjacent block elements get a separating
-	// space so the tokenizer treats the words as distinct tokens.
-	require.Len(t, result.Text["und"], 1)
-	assert.Equal(t, "hello world", result.Text["und"][0])
+	// space so the tokenizer treats the words as distinct tokens. The first
+	// entry is the document's own ID, always seeded under "und".
+	require.Len(t, result.Text["und"], 2)
+	assert.Equal(t, testDocID.String(), result.Text["und"][0])
+	assert.Equal(t, "hello world", result.Text["und"][1])
 }
 
 // TestTextAggregatesAcrossClaims verifies that multiple textual claims of any
@@ -1399,7 +1401,7 @@ func TestTextAggregatesAcrossClaims(t *testing.T) {
 	}
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.ElementsMatch(t, []string{"Q42", "alpha", "https://example.com"}, result.Text["und"])
+	assert.ElementsMatch(t, []string{testDocID.String(), "Q42", "alpha", "https://example.com"}, result.Text["und"])
 }
 
 func TestStripHTML(t *testing.T) {
@@ -3803,7 +3805,7 @@ func TestFromDocument(t *testing.T) {
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
-	assert.ElementsMatch(t, []string{"Q42", "hello"}, result.Text["und"])
+	assert.ElementsMatch(t, []string{testDocID.String(), "Q42", "hello"}, result.Text["und"])
 }
 
 func TestFromDocumentNilClaims(t *testing.T) {
@@ -3819,7 +3821,8 @@ func TestFromDocumentNilClaims(t *testing.T) {
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
-	assert.Empty(t, result.Text)
+	// The document ID is always seeded under "und", so Text is not empty.
+	assert.Equal(t, map[string][]string{"und": {testDocID.String()}}, result.Text)
 }
 
 func makeDocWithAllClaimTypes(t *testing.T, confidence document.Confidence) *document.D {
@@ -3961,8 +3964,9 @@ func TestFromDocumentAllClaimTypesConfidence(t *testing.T) {
 			result, errE := c.FromDocument(ctx, doc, nil)
 			require.NoError(t, errE, "% -+#.1v", errE)
 			assert.Equal(t, testDocID, result.ID)
-			// Identifier+String+HTML(stripped)+Link each contribute one entry to text["und"].
-			assert.Len(t, result.Text["und"], 4*tt.expected)
+			// The document ID is seeded into text["und"] once, then
+			// Identifier+String+HTML(stripped)+Link each contribute one entry.
+			assert.Len(t, result.Text["und"], 1+4*tt.expected)
 			// Amount + AmountInterval each contribute one claim.
 			assert.Len(t, result.Claims.Amount, 2*tt.expected)
 			// Time + TimeInterval each contribute one claim.
@@ -7392,7 +7396,7 @@ func TestFromDocumentHookModifies(t *testing.T) {
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
-	assert.Equal(t, []string{"injected"}, result.Text["und"])
+	assert.Equal(t, []string{testDocID.String(), "injected"}, result.Text["und"])
 }
 
 func TestFromDocumentHookError(t *testing.T) {
@@ -7479,7 +7483,7 @@ func TestFromDocumentMultipleHooks(t *testing.T) {
 
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.ElementsMatch(t, []string{"first", "second"}, result.Text["und"])
+	assert.ElementsMatch(t, []string{testDocID.String(), "first", "second"}, result.Text["und"])
 }
 
 func TestFromDocumentHookReplaces(t *testing.T) {
@@ -7531,8 +7535,9 @@ func TestFromDocumentHookReplaces(t *testing.T) {
 	assert.Equal(t, replacementID, result.ID)
 	// The replacement carries the REPLACED identifier value, indexed into text["und"].
 	// The original "original" string from the input document is gone because the hook
-	// substituted the whole document.
-	assert.Equal(t, []string{"REPLACED"}, result.Text["und"])
+	// substituted the whole document. The seeded ID is the replacement's, not the input's,
+	// because FromDocument seeds the ID after hooks have run.
+	assert.Equal(t, []string{replacementID.String(), "REPLACED"}, result.Text["und"])
 }
 
 func TestFromDocumentMultipleHooksErrorInSecond(t *testing.T) {
@@ -7589,5 +7594,5 @@ func TestFromDocumentNilHooks(t *testing.T) {
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
-	assert.Equal(t, []string{"hello"}, result.Text["und"])
+	assert.Equal(t, []string{testDocID.String(), "hello"}, result.Text["und"])
 }

@@ -1275,6 +1275,10 @@ func (c *Converter) FromDocument(
 		docID: doc.ID,
 	}
 
+	// Index the document's own ID under "und" so a user typing the ID
+	// (or a URL containing it) can locate the document via text search.
+	v.addText(document.UndeterminedLanguage, doc.ID.String())
+
 	errE = doc.Visit(v)
 	if errE != nil {
 		return nil, errE
