@@ -144,7 +144,7 @@ const rangeDisplay = computed(() => {
   }
 })
 
-// When the histogram collapses to a single bucket, the bucket's `from` is the
+// When the histogram collapses to a single bucket, the bucket's from is the
 // claim value itself. Infer its precision from divisibility / calendar fields.
 const singleValueDisplay = computed(() => {
   if (results.value.length !== 1) {

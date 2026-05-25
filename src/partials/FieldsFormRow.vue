@@ -24,17 +24,16 @@ component for those.
 -->
 
 <script setup lang="ts">
-import type { DeepReadonly } from "vue"
+import type { DeepReadonly, WritableComputedRef } from "vue"
 
-import type { TimePrecision } from "@/document"
-import type { FieldData } from "@/fields"
+import type { FieldData, FieldEntryValue } from "@/fields"
 import type { ValidatedInput } from "@/types"
 
-import { computed } from "vue"
+import { computed, onMounted, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
 import { VT_FILE } from "@/core"
-import { valueTypeToClaimType } from "@/fields"
+import { emptyFieldEntryValue, valueTypeToClaimType } from "@/fields"
 import InputAmount from "@/partials/input/InputAmount.vue"
 import InputFile from "@/partials/input/InputFile.vue"
 import InputHTML from "@/partials/input/InputHTML.vue"
@@ -62,16 +61,30 @@ const props = defineProps<{
 // inner input's @update:model-value handler.
 const emit = defineEmits<{ input: [] }>()
 
-const value = defineModel<string>("value", { default: "" })
-const valueTo = defineModel<string>("valueTo", { default: "" })
-const amountPrecision = defineModel<string>("amountPrecision", { default: "" })
-const amountPrecisionTo = defineModel<string>("amountPrecisionTo", { default: "" })
-const timePrecision = defineModel<TimePrecision>("timePrecision", { default: "y" })
-const timePrecisionTo = defineModel<TimePrecision>("timePrecisionTo", { default: "y" })
-const fromUnknown = defineModel<boolean>("fromUnknown", { default: false })
-const fromNone = defineModel<boolean>("fromNone", { default: false })
-const toUnknown = defineModel<boolean>("toUnknown", { default: false })
-const toNone = defineModel<boolean>("toNone", { default: false })
+// One v-model for the whole entry. Parent (ClaimInput) owns a single
+// reactive FieldEntryValue; each inner input updates its own slice via
+// the computed wrappers below, which spread the entry and emit it back.
+const entry = defineModel<FieldEntryValue>("entry", { default: () => emptyFieldEntryValue() })
+
+function fieldRef<K extends keyof FieldEntryValue>(key: K): WritableComputedRef<FieldEntryValue[K]> {
+  return computed({
+    get: () => entry.value[key],
+    set: (v) => {
+      entry.value = { ...entry.value, [key]: v }
+    },
+  })
+}
+
+const value = fieldRef("value")
+const valueTo = fieldRef("valueTo")
+const amountPrecision = fieldRef("amountPrecision")
+const amountPrecisionTo = fieldRef("amountPrecisionTo")
+const timePrecision = fieldRef("timePrecision")
+const timePrecisionTo = fieldRef("timePrecisionTo")
+const fromUnknown = fieldRef("fromUnknown")
+const fromNone = fieldRef("fromNone")
+const toUnknown = fieldRef("toUnknown")
+const toNone = fieldRef("toNone")
 
 const { t } = useI18n({ useScope: "global" })
 
@@ -120,6 +133,32 @@ const { onInteraction: notifyOuter } = useRegisterForValidation(validatedInput)
 forwardInteraction = notifyOuter
 
 defineExpose(validatedInput)
+
+// The inner inputs' validators (e.g. InputString) close over props.required,
+// but useValidation only re-runs on model changes, not on prop changes.
+// Watch props.required and re-run validateAll so toggling the prop (from
+// ClaimCardinality flipping the missing-min indicator on) immediately
+// surfaces or clears each input's "Required value." text - instead of
+// waiting for the next model edit or blur.
+watch(
+  () => props.required,
+  () => {
+    void validateAll()
+  },
+)
+
+// Also run validation on mount once the inner inputs have registered.
+// Without this, a fresh row mounted with required=true already set (e.g.
+// the cardinality dropped the row the user just cleared and grew a new
+// trailing-empty in its place) would not surface "Required value." until
+// the next user interaction - useValidation's own immediate watch runs
+// with options.initial=true, which the validator skips on purpose to
+// avoid yelling at form-load.
+onMounted(() => {
+  if (props.required) {
+    void validateAll()
+  }
+})
 
 function onInput() {
   emit("input")
