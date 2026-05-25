@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -56,18 +57,25 @@ type OIDCAuthenticator struct {
 // refreshes, userinfo lookups, and token exchanges. It does not own a
 // shutdown hook because the underlying client uses idle connection pooling
 // that releases resources passively.
-func NewOIDCAuthenticator(ctx context.Context, dbpool *pgxpool.Pool, issuer, clientID, clientSecret string, redirectURI func() string) (*OIDCAuthenticator, errors.E) {
+func NewOIDCAuthenticator(ctx context.Context, dbpool *pgxpool.Pool, issuer, clientID, clientSecretPath string, redirectURI func() string) (*OIDCAuthenticator, errors.E) {
 	if issuer == "" {
 		return nil, errors.New("issuer is required")
 	}
 	if clientID == "" {
 		return nil, errors.New("client ID is required")
 	}
-	if clientSecret == "" {
+	if clientSecretPath == "" {
 		return nil, errors.New("client secret is required")
 	}
 	if redirectURI == nil {
 		return nil, errors.New("redirect URI thunk is required")
+	}
+
+	clientSecret, err := ioutil.ReadFile(clientSecretPath)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = clientSecretPath
+		return nil, errE
 	}
 
 	// We use a pooled client so that JWKS, userinfo, and token-exchange
@@ -126,7 +134,7 @@ func NewOIDCAuthenticator(ctx context.Context, dbpool *pgxpool.Pool, issuer, cli
 		revocationEndpoint: discovered.RevocationEndpoint,
 		oauth: &oauth2.Config{
 			ClientID:     clientID,
-			ClientSecret: clientSecret,
+			ClientSecret: strings.TrimSpace(string(clientSecret)),
 			// RedirectURL is filled in per call via redirectURI().
 			RedirectURL: "",
 			Endpoint:    provider.Endpoint(),
