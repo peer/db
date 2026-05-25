@@ -60,7 +60,7 @@ type FieldsWithSection struct {
 
 type SectionA struct {
 	First  core.HTML `cardinality:"1"    json:"first"  property:"FIRST"`
-	Second core.Ref  `cardinality:"0..1" json:"second" property:"SECOND" values:"test.example.com,YES_NO"`
+	Second core.Ref  `cardinality:"0..1" json:"second" property:"SECOND" values:"ns.example.com,KIND=test.example.com,YES_NO"`
 }
 
 type SectionB struct {
@@ -83,8 +83,8 @@ type FieldsWithEmbedded struct {
 }
 
 type RefFieldWithValues struct {
-	Choice  core.Ref   `cardinality:"1"   json:"choice"  property:"CHOICE" values:"ns.example.com,OPT_A;ns.example.com,OPT_B"`
-	Choices []core.Ref `cardinality:"0.." json:"choices" property:"STATUS" values:"ns.example.com,STATUS_A"`
+	Choice  core.Ref   `cardinality:"1"   json:"choice"  property:"CHOICE" values:"ns.example.com,KIND=ns.example.com,OPT_A&ns.example.com,KIND=ns.example.com,OPT_B"`
+	Choices []core.Ref `cardinality:"0.." json:"choices" property:"STATUS" values:"ns.example.com,KIND=ns.example.com,STATUS_A;ns.example.com,KIND=ns.example.com,STATUS_B"`
 }
 
 type AllTypeFields struct {
@@ -139,7 +139,7 @@ type FieldsWithValuesOnNonRef struct {
 }
 
 type ValuesOnValueStruct struct {
-	Value core.Ref `json:"value"                 value:"" values:"test.example.com,FOO"`
+	Value core.Ref `json:"value"                 value:"" values:"ns.example.com,KIND=test.example.com,FOO"`
 	Name  string   `json:"name"  property:"NAME"`
 }
 
@@ -507,7 +507,7 @@ func TestFieldsMultipleSections(t *testing.T) {
 
 	// Check values on SECOND field.
 	require.Len(t, sA.Field[1].Values, 1)
-	assert.Equal(t, core.Ref{ID: []string{"test.example.com", "YES_NO"}}, sA.Field[1].Values[0])
+	assert.Equal(t, "ns.example.com,KIND=test.example.com,YES_NO", sA.Field[1].Values[0])
 
 	// Section B.
 	sB := result.Section[1]
@@ -657,14 +657,14 @@ func TestFieldsRefWithValues(t *testing.T) {
 
 	require.Len(t, result.Field, 2)
 
-	// Choice: two values.
-	require.Len(t, result.Field[0].Values, 2)
-	assert.Equal(t, core.Ref{ID: []string{"ns.example.com", "OPT_A"}}, result.Field[0].Values[0])
-	assert.Equal(t, core.Ref{ID: []string{"ns.example.com", "OPT_B"}}, result.Field[0].Values[1])
+	// Choice: one entry with two OR'd filter values inside.
+	require.Len(t, result.Field[0].Values, 1)
+	assert.Equal(t, "ns.example.com,KIND=ns.example.com,OPT_A&ns.example.com,KIND=ns.example.com,OPT_B", result.Field[0].Values[0])
 
-	// Choices: one value.
-	require.Len(t, result.Field[1].Values, 1)
-	assert.Equal(t, core.Ref{ID: []string{"ns.example.com", "STATUS_A"}}, result.Field[1].Values[0])
+	// Choices: two entries (";" separator).
+	require.Len(t, result.Field[1].Values, 2)
+	assert.Equal(t, "ns.example.com,KIND=ns.example.com,STATUS_A", result.Field[1].Values[0])
+	assert.Equal(t, "ns.example.com,KIND=ns.example.com,STATUS_B", result.Field[1].Values[1])
 }
 
 func TestFieldsValuesOnNonRefError(t *testing.T) {
@@ -688,7 +688,7 @@ func TestFieldsValuesOnValueField(t *testing.T) {
 	require.Len(t, result.Field, 1)
 	// Values come from the value:"" field inside the struct.
 	require.Len(t, result.Field[0].Values, 1)
-	assert.Equal(t, core.Ref{ID: []string{"test.example.com", "FOO"}}, result.Field[0].Values[0])
+	assert.Equal(t, "ns.example.com,KIND=test.example.com,FOO", result.Field[0].Values[0])
 }
 
 func TestFieldsValuesOnNonRefValueError(t *testing.T) {

@@ -93,10 +93,6 @@ type Site struct {
 	debugRiverHandler http.Handler
 
 	initialized bool
-
-	// TODO: How to keep propertiesTotal and unitsTotal in sync with the number of properties and units available, if they are added or removed after initialization?
-	propertiesTotal int64
-	unitsTotal      int64
 }
 
 // Decode implements kong.MapperValue to decode Site from JSON/YAML configuration.
@@ -167,19 +163,6 @@ func (s *Site) fetchDocuments(ctx context.Context, classID identifier.Identifier
 	return documents, nil
 }
 
-func (s *Site) updatePropertiesTotal(_ context.Context, documents []*document.D) errors.E { //nolint:unparam
-	// TODO: Limit properties only to those really used in filters ("rel", "amount", "amountRange")?
-	// TODO: Limit really only to properties.
-	s.propertiesTotal = int64(len(documents))
-	return nil
-}
-
-func (s *Site) updateUnitsTotal(_ context.Context, documents []*document.D) errors.E { //nolint:unparam
-	// TODO: Limit really only to units.
-	s.unitsTotal = int64(len(documents))
-	return nil
-}
-
 func (s *Site) validateDefaultLanguage() errors.E {
 	if s.DefaultLanguage == "" {
 		if len(s.LanguagePriority) < 1 {
@@ -207,17 +190,7 @@ func (s *Site) updateLanguageCodes(_ context.Context) errors.E { //nolint:unpara
 //
 // You have to call this or PopulateAndStart for each site after Init.
 func (s *Site) Start(ctx context.Context, documents []*document.D) (func(), errors.E) {
-	errE := s.updatePropertiesTotal(ctx, documents)
-	if errE != nil {
-		return nil, errE
-	}
-
-	errE = s.updateUnitsTotal(ctx, documents)
-	if errE != nil {
-		return nil, errE
-	}
-
-	errE = s.validateDefaultLanguage()
+	errE := s.validateDefaultLanguage()
 	if errE != nil {
 		return nil, errE
 	}
@@ -252,17 +225,7 @@ func (s *Site) Start(ctx context.Context, documents []*document.D) (func(), erro
 func (s *Site) PopulateAndStart(
 	ctx context.Context, documents []*document.D, progress func(doc *document.D), beforeWait func(ctx context.Context) errors.E, count, size *x.Counter,
 ) (func(), errors.E) {
-	errE := s.updatePropertiesTotal(ctx, documents)
-	if errE != nil {
-		return nil, errE
-	}
-
-	errE = s.updateUnitsTotal(ctx, documents)
-	if errE != nil {
-		return nil, errE
-	}
-
-	errE = s.validateDefaultLanguage()
+	errE := s.validateDefaultLanguage()
 	if errE != nil {
 		return nil, errE
 	}

@@ -46,9 +46,23 @@ func TestMappingContainsClaimTypes(t *testing.T) {
 	claimProps, ok := claims["properties"].(map[string]any)
 	require.True(t, ok)
 
-	expectedTypes := []string{"id", "string", "html", "amount", "time", "link", "ref", "has", "none", "unknown"}
+	// Textual claim types (id, string, html, link) no longer have per-claim ES
+	// records; their content is folded into the top-level "text" field instead.
+	expectedTypes := []string{"amount", "time", "ref", "has", "none", "unknown"}
 	for _, ct := range expectedTypes {
 		assert.Contains(t, claimProps, ct, "missing claim type: %s", ct)
+	}
+	for _, ct := range []string{"id", "string", "html", "link"} {
+		assert.NotContains(t, claimProps, ct, "unexpected per-claim type left in mapping: %s", ct)
+	}
+
+	// Top-level text field with per-language sub-properties.
+	text, ok := properties["text"].(map[string]any)
+	require.True(t, ok, "missing top-level text field")
+	textProps, ok := text["properties"].(map[string]any)
+	require.True(t, ok)
+	for _, lang := range []string{"en", "sl", "pt", "und"} {
+		assert.Contains(t, textProps, lang, "missing text.%s sub-property", lang)
 	}
 }
 
@@ -69,14 +83,17 @@ func TestMappingContainsAnalyzers(t *testing.T) {
 	analyzers, ok := analysis["analyzer"].(map[string]any)
 	require.True(t, ok)
 
+	// *_html analyzers have been removed: HTML stripping happens in Go before
+	// the value reaches ES, and the top-level text field uses the *_string
+	// analyzers like everything else.
 	expectedAnalyzers := []string{
-		"standard_html", "standard_string",
-		"english_html", "english_string",
-		"slovenian_html", "slovenian_string",
-		"portuguese_html", "portuguese_string",
+		"standard_string", "english_string", "slovenian_string", "portuguese_string",
 	}
 	for _, a := range expectedAnalyzers {
 		assert.Contains(t, analyzers, a, "missing analyzer: %s", a)
+	}
+	for _, a := range []string{"standard_html", "english_html", "slovenian_html", "portuguese_html"} {
+		assert.NotContains(t, analyzers, a, "unexpected analyzer left: %s", a)
 	}
 }
 
@@ -112,8 +129,8 @@ func TestMappingNestedReference(t *testing.T) {
 	claimProps, ok := claims["properties"].(map[string]any)
 	require.True(t, ok)
 
-	// Check that claims.sub exists as a nested field.
-	subRef, ok := claimProps["sub"].(map[string]any)
+	// Check that claims.subRef exists as a nested field.
+	subRef, ok := claimProps["subRef"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "nested", subRef["type"])
 	subRefProps, ok := subRef["properties"].(map[string]any)
@@ -126,6 +143,29 @@ func TestMappingNestedReference(t *testing.T) {
 	assert.True(t, ok)
 	_, ok = subRefProps["to"]
 	assert.True(t, ok)
+
+	// Check claims.subAmount, claims.subTime, claims.subHas are nested fields
+	// with parentProp / parentTo / prop indexed for cross-filter matching.
+	for _, name := range []string{"subAmount", "subTime", "subHas"} {
+		sub, ok := claimProps[name].(map[string]any)
+		require.True(t, ok, "missing claims.%s", name)
+		assert.Equal(t, "nested", sub["type"], "claims.%s should be a nested field", name)
+		subProps, ok := sub["properties"].(map[string]any)
+		require.True(t, ok)
+		for _, f := range []string{"parentProp", "parentTo", "prop"} {
+			_, ok = subProps[f]
+			assert.True(t, ok, "missing claims.%s.%s", name, f)
+		}
+	}
+
+	// subAmount and subTime also expose a range field for numeric filtering.
+	for _, name := range []string{"subAmount", "subTime"} {
+		sub := claimProps[name].(map[string]any)       //nolint:errcheck,forcetypeassert
+		subProps := sub["properties"].(map[string]any) //nolint:errcheck,forcetypeassert
+		rangeField, ok := subProps["range"].(map[string]any)
+		require.True(t, ok, "missing claims.%s.range", name)
+		assert.Equal(t, "double_range", rangeField["type"], "claims.%s.range should be a double_range", name)
+	}
 }
 
 func TestMappingDynamicDisabled(t *testing.T) {

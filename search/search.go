@@ -28,6 +28,11 @@ const (
 	// displayBoost is the boost factor for display and naming fields in text search queries.
 	// The value is multiplied with the field's relevance score.
 	displayBoost = "^0.2"
+
+	// 40000 is the maximum precision threshold ES supports, so we use it to get the most accurate approximation.
+	// For now we didn't notice any performance issues at data scale PeerDB is currently being used with, but
+	// in the future we might want to make this configurable.
+	maxPrecisionThreshold = 40000
 )
 
 // ViewType represents the type of search view.
@@ -143,6 +148,50 @@ func (f *AmountFilter) Validate() errors.E {
 	return nil
 }
 
+// ToSubAmountQuery converts the AmountFilter to an ElasticSearch query on
+// claims.subAmount for a sub-amount filter with parentProp and prop.
+//
+// parentToRestrictions, when non-empty, restricts the sub-claim match to
+// entries whose claims.subAmount.parentTo is one of the listed values.
+func (f *AmountFilter) ToSubAmountQuery(parentProp, prop identifier.Identifier, parentToRestrictions []identifier.Identifier) types.QueryVariant { //nolint:ireturn
+	addRestriction := func(must []types.QueryVariant) []types.QueryVariant {
+		if len(parentToRestrictions) == 0 {
+			return must
+		}
+		shoulds := make([]types.QueryVariant, 0, len(parentToRestrictions))
+		for _, pto := range parentToRestrictions {
+			shoulds = append(shoulds, esdsl.NewTermQuery("claims.subAmount.parentTo", esdsl.NewFieldValue().String(pto.String())))
+		}
+		return append(must, esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)))
+	}
+
+	if f.Missing {
+		missingMust := addRestriction([]types.QueryVariant{
+			esdsl.NewTermQuery("claims.subAmount.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+			esdsl.NewTermQuery("claims.subAmount.prop", esdsl.NewFieldValue().String(prop.String())),
+		})
+		return esdsl.NewBoolQuery().MustNot(
+			esdsl.NewNestedQuery(
+				esdsl.NewBoolQuery().Must(missingMust...),
+			).Path("claims.subAmount"),
+		)
+	}
+
+	r := esdsl.NewNumberRangeQuery("claims.subAmount.range").Gte(types.Float64(*f.Gte)).Lte(types.Float64(*f.Lte))
+	must := []types.QueryVariant{
+		esdsl.NewTermQuery("claims.subAmount.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+		esdsl.NewTermQuery("claims.subAmount.prop", esdsl.NewFieldValue().String(prop.String())),
+		r,
+	}
+	if f.Unit != nil {
+		must = append(must, esdsl.NewTermQuery("claims.subAmount.unit", esdsl.NewFieldValue().String(f.Unit.String())))
+	}
+	must = addRestriction(must)
+	return esdsl.NewNestedQuery(
+		esdsl.NewBoolQuery().Must(must...),
+	).Path("claims.subAmount")
+}
+
 // TimeFilter contains values for a time filter.
 //
 // Gte and Lte are in seconds since Unix epoch.
@@ -185,26 +234,102 @@ func (f *TimeFilter) Validate() errors.E {
 	return nil
 }
 
+// ToSubTimeQuery converts the TimeFilter to an ElasticSearch query on
+// claims.subTime for a sub-time filter with parentProp and prop.
+//
+// parentToRestrictions, when non-empty, restricts the sub-claim match to
+// entries whose claims.subTime.parentTo is one of the listed values.
+func (f *TimeFilter) ToSubTimeQuery(parentProp, prop identifier.Identifier, parentToRestrictions []identifier.Identifier) types.QueryVariant { //nolint:ireturn
+	addRestriction := func(must []types.QueryVariant) []types.QueryVariant {
+		if len(parentToRestrictions) == 0 {
+			return must
+		}
+		shoulds := make([]types.QueryVariant, 0, len(parentToRestrictions))
+		for _, pto := range parentToRestrictions {
+			shoulds = append(shoulds, esdsl.NewTermQuery("claims.subTime.parentTo", esdsl.NewFieldValue().String(pto.String())))
+		}
+		return append(must, esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)))
+	}
+
+	if f.Missing {
+		missingMust := addRestriction([]types.QueryVariant{
+			esdsl.NewTermQuery("claims.subTime.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+			esdsl.NewTermQuery("claims.subTime.prop", esdsl.NewFieldValue().String(prop.String())),
+		})
+		return esdsl.NewBoolQuery().MustNot(
+			esdsl.NewNestedQuery(
+				esdsl.NewBoolQuery().Must(missingMust...),
+			).Path("claims.subTime"),
+		)
+	}
+
+	r := esdsl.NewNumberRangeQuery("claims.subTime.range").Gte(types.Float64(*f.Gte)).Lte(types.Float64(*f.Lte))
+	must := addRestriction([]types.QueryVariant{
+		esdsl.NewTermQuery("claims.subTime.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+		esdsl.NewTermQuery("claims.subTime.prop", esdsl.NewFieldValue().String(prop.String())),
+		r,
+	})
+	return esdsl.NewNestedQuery(
+		esdsl.NewBoolQuery().Must(must...),
+	).Path("claims.subTime")
+}
+
 // HasFilter contains values for a has filter.
 //
-// The has filter is a global filter where values are the distinct has claim properties.
-// Unlike other filters, it does not filter within a specific property.
-// Only has claims without ref sub-claims are considered (pure "has" claims).
+// Props lists the has-claim property IDs the filter matches against. The
+// values are OR'd together: a document matches the filter when any of the
+// listed properties is present as a simple has claim (top-level form) or as
+// a sub-has under a parent property (sub-has form).
 type HasFilter struct {
 	Props []HasValue `json:"props,omitempty"`
 }
 
-// ToQuery converts the HasFilter to an ElasticSearch query.
+// ToQuery converts the HasFilter to an ElasticSearch query against the
+// top-level claims.has nested field.
 func (f *HasFilter) ToQuery() types.QueryVariant { //nolint:ireturn
-	// Build value queries (OR across all selected props).
-	// Only simple has claims (without sub-claims) are indexed in claims.has,
-	// so we just match by claims.has.prop. Has claims with sub-claims are stored
-	// in claims.sub instead and naturally excluded from this query.
+	// Build value queries (OR across all selected props). claims.has only
+	// contains simple has claims; has claims with their own sub-claims are
+	// flattened into the matching Sub* records on the parent document, so
+	// the filter does not need to exclude them here.
 	shoulds := make([]types.QueryVariant, 0, len(f.Props))
 	for _, p := range f.Props {
 		shoulds = append(shoulds, esdsl.NewNestedQuery(
 			esdsl.NewTermQuery("claims.has.prop", esdsl.NewFieldValue().String(p.ID.String())),
 		).Path("claims.has"))
+	}
+
+	if len(shoulds) == 1 {
+		return shoulds[0]
+	}
+	return esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
+}
+
+// ToSubHasQuery converts the HasFilter to an ElasticSearch query on
+// claims.subHas for a sub-has filter under the given parentProp.
+//
+// parentToRestrictions, when non-empty, restricts the sub-claim match to
+// entries whose claims.subHas.parentTo is one of the listed values.
+func (f *HasFilter) ToSubHasQuery(parentProp identifier.Identifier, parentToRestrictions []identifier.Identifier) types.QueryVariant { //nolint:ireturn
+	addRestriction := func(must []types.QueryVariant) []types.QueryVariant {
+		if len(parentToRestrictions) == 0 {
+			return must
+		}
+		shoulds := make([]types.QueryVariant, 0, len(parentToRestrictions))
+		for _, pto := range parentToRestrictions {
+			shoulds = append(shoulds, esdsl.NewTermQuery("claims.subHas.parentTo", esdsl.NewFieldValue().String(pto.String())))
+		}
+		return append(must, esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)))
+	}
+
+	shoulds := make([]types.QueryVariant, 0, len(f.Props))
+	for _, p := range f.Props {
+		must := addRestriction([]types.QueryVariant{
+			esdsl.NewTermQuery("claims.subHas.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+			esdsl.NewTermQuery("claims.subHas.prop", esdsl.NewFieldValue().String(p.ID.String())),
+		})
+		shoulds = append(shoulds, esdsl.NewNestedQuery(
+			esdsl.NewBoolQuery().Must(must...),
+		).Path("claims.subHas"))
 	}
 
 	if len(shoulds) == 1 {
@@ -223,7 +348,11 @@ func (f *HasFilter) Validate() errors.E {
 
 // Filter represents a single active search filter.
 //
-// Exactly one of Ref, Amount, Time, or Has must be set.
+// Exactly one of Ref, Amount, Time, or Has must be set. Sub-claim filters use
+// a two-element Prop: Prop[0] is the parent claim's property, Prop[1] is the
+// sub-claim's property. The Has filter takes a single Prop element in its
+// sub-claim form (the parent claim's property); HasFilter.Props selects the
+// sub-claim properties to match.
 type Filter struct {
 	ID     *identifier.Identifier  `json:"id,omitempty"`
 	Base   []string                `json:"base,omitempty"`
@@ -280,25 +409,21 @@ func (f Filter) Validate(withoutSession bool) errors.E {
 		return errors.New("exactly one of ref, amount, time, or has must be set")
 	}
 
-	// Has filter does not use Prop (it is a global filter).
-	// Ref filter supports 1 prop (top-level) or 2 props (sub-ref: parentProp + prop).
-	// Amount/Time filters use exactly 1 prop.
+	// Ref, Amount, and Time filters take one prop at top level (the claim's
+	// property) and two props in their sub-claim form (parentProp + prop).
+	// The Has filter takes no prop at top level and a single prop (parentProp)
+	// in its sub-has form; HasFilter.Props selects which sub-claim properties
+	// to match.
 	switch {
 	case f.Has != nil:
-		if len(f.Prop) != 0 {
-			errE := errors.New("prop must be empty for has filter")
-			errors.Details(errE)["length"] = len(f.Prop)
-			return errE
-		}
-	case f.Ref != nil:
-		if len(f.Prop) != 1 && len(f.Prop) != 2 {
-			errE := errors.New("prop must have one or two elements for ref filter")
+		if len(f.Prop) > 1 {
+			errE := errors.New("prop must have zero or one elements for has filter")
 			errors.Details(errE)["length"] = len(f.Prop)
 			return errE
 		}
 	default:
-		if len(f.Prop) != 1 {
-			errE := errors.New("prop must have exactly one element")
+		if len(f.Prop) != 1 && len(f.Prop) != 2 {
+			errE := errors.New("prop must have one or two elements")
 			errors.Details(errE)["length"] = len(f.Prop)
 			return errE
 		}
@@ -381,8 +506,8 @@ func reverseScopeQuery(id identifier.Identifier) types.QueryVariant { //nolint:i
 			esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(id.String())),
 		).Path("claims.ref"),
 		esdsl.NewNestedQuery(
-			esdsl.NewTermQuery("claims.sub.to", esdsl.NewFieldValue().String(id.String())),
-		).Path("claims.sub"),
+			esdsl.NewTermQuery("claims.subRef.to", esdsl.NewFieldValue().String(id.String())),
+		).Path("claims.subRef"),
 	).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
 }
 
@@ -436,18 +561,24 @@ func (s *SessionData) ToQueryExcluding(excludeFilterID identifier.Identifier) ty
 // filterQuery builds the ES query for the filter at idx, dispatching to the
 // matching per-filter-type query builder and applying cross-filter
 // restrictions for sub-claim filters: when the filter is a sub-claim filter
-// on (parentProp, prop) and the session has sibling top-level ref filters on
-// the same parentProp with To values, the sub-claim match is constrained so
-// its parentTo is one of those values. This way "location=L1 AND
-// location > artist=A" matches only documents where A is nested under L1.
+// and the session has sibling top-level ref filters on the same parent
+// property with To values, the sub-claim match is constrained so its parentTo
+// is one of those values. This way "location=L1 AND location > artist=A"
+// matches only documents where A is nested under L1.
 //
 // excludeID, when non-nil, is the ID of a filter excluded from the session
 // (the caller of ToQueryExcluding) and is also skipped when collecting parent
 // ref filters that contribute restrictions.
+//
+// This is the single point that knows how to render any filter shape; it is
+// the only place SessionData.ToQuery and ToQueryExcluding go through.
 func (s *SessionData) filterQuery(idx int, excludeID *identifier.Identifier) types.QueryVariant { //nolint:ireturn
 	f := s.Filters[idx]
 	switch {
 	case f.Has != nil:
+		if len(f.Prop) == 1 {
+			return f.Has.ToSubHasQuery(f.Prop[0], s.collectParentToRestrictions(idx, f.Prop[0], excludeID))
+		}
 		return f.Has.ToQuery()
 	case f.Ref != nil:
 		if len(f.Prop) == 2 { //nolint:mnd
@@ -455,8 +586,14 @@ func (s *SessionData) filterQuery(idx int, excludeID *identifier.Identifier) typ
 		}
 		return f.Ref.ToQuery(f.Prop[0])
 	case f.Amount != nil:
+		if len(f.Prop) == 2 { //nolint:mnd
+			return f.Amount.ToSubAmountQuery(f.Prop[0], f.Prop[1], s.collectParentToRestrictions(idx, f.Prop[0], excludeID))
+		}
 		return f.Amount.ToQuery(f.Prop[0])
 	case f.Time != nil:
+		if len(f.Prop) == 2 { //nolint:mnd
+			return f.Time.ToSubTimeQuery(f.Prop[0], f.Prop[1], s.collectParentToRestrictions(idx, f.Prop[0], excludeID))
+		}
 		return f.Time.ToQuery(f.Prop[0])
 	}
 	panic(errors.New("invalid filter"))
@@ -525,28 +662,17 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 	shoulds := []types.QueryVariant{
 		esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(searchQuery)),
 	}
-	for _, f := range []field{
-		{"claims.id", "value"},
-		{"claims.link", "iri"},
-	} {
-		// TODO: Can we use simple query for keyword fields? Which analyzer is used?
-		q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(f.Prefix + "." + f.Field).DefaultOperator(defaultOperator)
-		shoulds = append(shoulds, esdsl.NewNestedQuery(q).Path(f.Prefix))
-	}
-	// Search string and HTML claims across all supported languages.
+	// Search aggregated textual content (string, html-stripped, identifier, link)
+	// across all supported languages. Single per-language non-nested queries let
+	// ES score documents higher when multiple terms match the same field.
 	// Languages are sorted for deterministic query generation.
 	langs := slices.Sorted(maps.Keys(internalSearch.SupportedLanguages))
-	for _, f := range []field{
-		{"claims.string", "string"},
-		{"claims.html", "html"},
-	} {
-		for _, lang := range langs {
-			q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(f.Prefix + "." + f.Field + "." + lang).DefaultOperator(defaultOperator)
-			shoulds = append(shoulds, esdsl.NewNestedQuery(q).Path(f.Prefix))
-		}
+	for _, lang := range langs {
+		q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields("text." + lang).DefaultOperator(defaultOperator)
+		shoulds = append(shoulds, q)
 	}
 	// Search display and naming fields across all claim types with reduced boost.
-	for _, claimType := range []string{"amount", "has", "html", "id", "link", "none", "ref", "string", "time", "unknown"} {
+	for _, claimType := range []string{"amount", "has", "none", "ref", "time", "unknown"} {
 		prefix := "claims." + claimType
 		var fields []string
 		// propDisplay and propNaming exist on all claim types.
@@ -571,7 +697,7 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 	}
 	// Display and naming fields in denormalized sub-claims.
 	{
-		prefix := "claims.sub"
+		prefix := "claims.subRef"
 		var fields []string
 		for _, fieldName := range []string{"propDisplay", "propNaming", "toDisplay", "toNaming"} {
 			for _, lang := range langs {
@@ -587,12 +713,6 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 
 // TODO: Use a database instead.
 var searches = sync.Map{} //nolint:gochecknoglobals
-
-// field describes a nested field for ElasticSearch to search on.
-type field struct {
-	Prefix string
-	Field  string
-}
 
 // TODO: Return (and log) and error on invalid search requests (e.g., filters).
 
@@ -651,13 +771,13 @@ type Result struct {
 
 // ResultsGet retrieves search results for a given search session.
 func ResultsGet(
-	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64), searchData *SessionData,
+	ctx context.Context, getSearchService func() *esSearch.Search, searchData *SessionData,
 ) ([]Result, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
 	query := searchData.ToQuery()
 
-	searchService, _, _ := getSearchService()
+	searchService := getSearchService()
 
 	searchService = searchService.From(0).Size(MaxResultsCount).Query(query)
 

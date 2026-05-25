@@ -113,6 +113,16 @@ export type HasFilterEntry = FilterBase & { has: HasFilter }
 
 export type Filter = RefFilterEntry | AmountFilterEntry | TimeFilterEntry | HasFilterEntry
 
+// A single parsed key/value pair from a search shortcut string. Nested keys
+// keep the raw "parent:prop" form; callers resolve each side individually.
+export type ShortcutPair = { key: string; value: string }
+
+// Payload shape for the SearchJustResults POST endpoint built.
+export type JustResultsFilters = {
+  reverse?: string
+  filters?: { prop: string[]; ref: { to: { id: string }[] } }[]
+}
+
 export type SearchSession = {
   id: string
   base: string[]

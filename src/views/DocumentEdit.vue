@@ -21,6 +21,7 @@ import { useRouter } from "vue-router"
 import { deleteFromCache, getURL, getURLDirect, postJSON } from "@/api"
 import { CAN_EDIT_DOCUMENT, hasPermission } from "@/auth"
 import Button from "@/components/Button.vue"
+import { INSTANCE_OF, PROPERTY } from "@/core"
 import {
   AmountClaim,
   AmountIntervalClaim,
@@ -71,6 +72,10 @@ const props = defineProps<{
 
 type ClaimType = "id" | "string" | "html" | "amount" | "amountInterval" | "time" | "timeInterval" | "link" | "file" | "ref" | "has" | "none" | "unknown"
 const claimTypes: ClaimType[] = ["id", "string", "html", "amount", "amountInterval", "time", "timeInterval", "link", "file", "ref", "has", "none", "unknown"]
+
+// Restricts the property-picker InputRef to documents that are instances of PROPERTY.
+const PROPERTY_FILTER = `${INSTANCE_OF}=${PROPERTY}`
+
 const claimType = ref<ClaimType>("id")
 const claimProp = ref("")
 const claimValue = ref("")
@@ -1009,7 +1014,7 @@ function canSave(): boolean {
                       <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
                       <InputField required class="mt-4">
@@ -1023,7 +1028,7 @@ function canSave(): boolean {
                       <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
                       <InputField required class="mt-4">
@@ -1037,7 +1042,7 @@ function canSave(): boolean {
                       <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
                       <InputField required class="mt-4">
@@ -1051,7 +1056,7 @@ function canSave(): boolean {
                       <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
                       <InputErrors v-slot="errorProps">
@@ -1062,7 +1067,7 @@ function canSave(): boolean {
                       <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
                       <InputErrors v-slot="errorProps" class="mt-4">
@@ -1088,7 +1093,7 @@ function canSave(): boolean {
                       <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
                       <InputErrors v-slot="errorProps">
@@ -1099,7 +1104,7 @@ function canSave(): boolean {
                       <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
                       <InputErrors v-slot="errorProps" class="mt-4">
@@ -1125,7 +1130,7 @@ function canSave(): boolean {
                       <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
                       <InputField required class="mt-4">
@@ -1139,7 +1144,7 @@ function canSave(): boolean {
                       <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
                       <InputField required class="mt-4">
@@ -1153,7 +1158,7 @@ function canSave(): boolean {
                       <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
                       <InputField required class="mt-4">
@@ -1167,7 +1172,7 @@ function canSave(): boolean {
                       <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
                     </TabPanel>
@@ -1175,7 +1180,7 @@ function canSave(): boolean {
                       <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
                     </TabPanel>
@@ -1183,7 +1188,7 @@ function canSave(): boolean {
                       <InputField required class="mt-4">
                         <template #label>{{ t("common.labels.property") }}</template>
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
                         </template>
                       </InputField>
                     </TabPanel>

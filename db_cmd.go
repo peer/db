@@ -53,8 +53,6 @@ func InitSites(globals *Globals) {
 			RiverClient:          nil,
 			debugRiverHandler:    nil,
 			initialized:          false,
-			propertiesTotal:      0,
-			unitsTotal:           0,
 		}}
 	}
 

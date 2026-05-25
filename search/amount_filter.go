@@ -43,17 +43,57 @@ func computeInterval(from, to float64) (float64, float64, string) {
 
 // Get retrieves amount filter data for search results.
 func (f *AmountFilter) Get(
-	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64),
+	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, prop identifier.Identifier,
 ) ([]HistogramResult, map[string]any, errors.E) {
 	filter := esdsl.NewBoolQuery().Must(
 		esdsl.NewTermQuery("claims.amount.prop", esdsl.NewFieldValue().String(prop.String())),
 		amountUnitFilter(f.Unit),
 	)
+	missingNestedQuery := esdsl.NewTermQuery("claims.amount.prop", esdsl.NewFieldValue().String(prop.String()))
 	return histogramFilterGet(
 		ctx, getSearchService, query,
-		prop, "claims.amount", filter,
+		missingNestedQuery, "claims.amount", filter,
 		"claims.amount.from", "claims.amount.to", "claims.amount.range",
+		f.Gte, f.Lte,
+	)
+}
+
+// subAmountUnitFilter returns a query that matches the unit field of a
+// sub-amount entry.
+func subAmountUnitFilter(unit *identifier.Identifier) types.QueryVariant { //nolint:ireturn
+	if unit != nil {
+		return esdsl.NewTermQuery("claims.subAmount.unit", esdsl.NewFieldValue().String(unit.String()))
+	}
+	return esdsl.NewBoolQuery().MustNot(esdsl.NewExistsQuery().Field("claims.subAmount.unit"))
+}
+
+// GetSubAmount retrieves sub-amount filter data for search results. It
+// aggregates claims.subAmount values for a given (parentProp, prop)
+// combination, optionally restricted to listed parentTo values for
+// cross-filtering with a sibling parent ref filter.
+func (f *AmountFilter) GetSubAmount(
+	ctx context.Context, getSearchService func() *esSearch.Search,
+	query types.QueryVariant, parentProp, prop identifier.Identifier,
+	parentToRestrictions []identifier.Identifier,
+) ([]HistogramResult, map[string]any, errors.E) {
+	filterMusts := []types.QueryVariant{
+		esdsl.NewTermQuery("claims.subAmount.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+		esdsl.NewTermQuery("claims.subAmount.prop", esdsl.NewFieldValue().String(prop.String())),
+		subAmountUnitFilter(f.Unit),
+	}
+	if len(parentToRestrictions) > 0 {
+		shoulds := make([]types.QueryVariant, 0, len(parentToRestrictions))
+		for _, pto := range parentToRestrictions {
+			shoulds = append(shoulds, esdsl.NewTermQuery("claims.subAmount.parentTo", esdsl.NewFieldValue().String(pto.String())))
+		}
+		filterMusts = append(filterMusts, esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)))
+	}
+	filter := esdsl.NewBoolQuery().Must(filterMusts...)
+	return histogramSubFilterGet(
+		ctx, getSearchService, query,
+		parentProp, prop, "claims.subAmount", filter,
+		"claims.subAmount.from", "claims.subAmount.to", "claims.subAmount.range",
 		f.Gte, f.Lte,
 	)
 }

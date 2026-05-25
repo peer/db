@@ -24,69 +24,52 @@ func TestResultsGetIntegration(t *testing.T) {
 	doc2ID := identifier.From("doc2")
 	doc3ID := identifier.From("doc3")
 
-	stringProp := identifier.From("stringProp")
-
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: doc1ID,
+		ID:   doc1ID,
+		Text: map[string][]string{"en": {"hello world"}},
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String: internalSearch.StringClaims{{
-				Prop:        stringProp,
-				PropDisplay: nil,
-				PropNaming:  nil,
-				String:      map[string]string{"en": "hello world"},
-			}},
-			HTML:         nil,
-			Amount:       nil,
-			Time:         nil,
-			Link:         nil,
-			Reference:    nil,
-			Has:          nil,
-			None:         nil,
-			Unknown:      nil,
-			SubReference: nil,
+			Amount:    nil,
+			Time:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: doc2ID,
+		ID:   doc2ID,
+		Text: map[string][]string{"en": {"goodbye world"}},
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String: internalSearch.StringClaims{{
-				Prop:        stringProp,
-				PropDisplay: nil,
-				PropNaming:  nil,
-				String:      map[string]string{"en": "goodbye world"},
-			}},
-			HTML:         nil,
-			Amount:       nil,
-			Time:         nil,
-			Link:         nil,
-			Reference:    nil,
-			Has:          nil,
-			None:         nil,
-			Unknown:      nil,
-			SubReference: nil,
+			Amount:    nil,
+			Time:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: doc3ID,
+		ID:   doc3ID,
+		Text: map[string][]string{"en": {"hello there"}},
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String: internalSearch.StringClaims{{
-				Prop:        stringProp,
-				PropDisplay: nil,
-				PropNaming:  nil,
-				String:      map[string]string{"en": "hello there"},
-			}},
-			HTML:         nil,
-			Amount:       nil,
-			Time:         nil,
-			Link:         nil,
-			Reference:    nil,
-			Has:          nil,
-			None:         nil,
-			Unknown:      nil,
-			SubReference: nil,
+			Amount:    nil,
+			Time:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -176,14 +159,11 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 	doc2ID := identifier.From("doc2")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: doc1ID,
+		ID:   doc1ID,
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
+			Amount: nil,
+			Time:   nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop:          refProp,
 				PropDisplay:   nil,
@@ -194,26 +174,29 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 				ToPath:        nil,
 				ToDisplayPath: nil,
 			}},
-			Has:          nil,
-			None:         nil,
-			Unknown:      nil,
-			SubReference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: doc2ID,
+		ID:   doc2ID,
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier:   nil,
-			String:       nil,
-			HTML:         nil,
-			Amount:       nil,
-			Time:         nil,
-			Link:         nil,
-			Reference:    nil,
-			Has:          nil,
-			None:         nil,
-			Unknown:      nil,
-			SubReference: nil,
+			Amount:    nil,
+			Time:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -271,11 +254,9 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 	fifteen := 15.0
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: doc1ID,
+		ID:   doc1ID,
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
 				PropDisplay: nil,
@@ -292,21 +273,21 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 				To:          &five,
 				ToDisplay:   "",
 			}},
-			Time:         nil,
-			Link:         nil,
-			Reference:    nil,
-			Has:          nil,
-			None:         nil,
-			Unknown:      nil,
-			SubReference: nil,
+			Time:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: doc2ID,
+		ID:   doc2ID,
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
 				PropDisplay: nil,
@@ -323,29 +304,31 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 				To:          &fifteen,
 				ToDisplay:   "",
 			}},
-			Time:         nil,
-			Link:         nil,
-			Reference:    nil,
-			Has:          nil,
-			None:         nil,
-			Unknown:      nil,
-			SubReference: nil,
+			Time:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: doc3ID,
+		ID:   doc3ID,
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier:   nil,
-			String:       nil,
-			HTML:         nil,
-			Amount:       nil,
-			Time:         nil,
-			Link:         nil,
-			Reference:    nil,
-			Has:          nil,
-			None:         nil,
-			Unknown:      nil,
-			SubReference: nil,
+			Amount:    nil,
+			Time:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -430,12 +413,10 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 	t2000 := float64(2000)
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: doc1ID,
+		ID:   doc1ID,
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
+			Amount: nil,
 			Time: internalSearch.TimeClaims{{
 				Prop:        timeProp,
 				PropDisplay: nil,
@@ -451,21 +432,21 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 				To:          &t1000,
 				ToDisplay:   "",
 			}},
-			Link:         nil,
-			Reference:    nil,
-			Has:          nil,
-			None:         nil,
-			Unknown:      nil,
-			SubReference: nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: doc2ID,
+		ID:   doc2ID,
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
+			Amount: nil,
 			Time: internalSearch.TimeClaims{{
 				Prop:        timeProp,
 				PropDisplay: nil,
@@ -481,28 +462,30 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 				To:          &t2000,
 				ToDisplay:   "",
 			}},
-			Link:         nil,
-			Reference:    nil,
-			Has:          nil,
-			None:         nil,
-			Unknown:      nil,
-			SubReference: nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: doc3ID,
+		ID:   doc3ID,
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier:   nil,
-			String:       nil,
-			HTML:         nil,
-			Amount:       nil,
-			Time:         nil,
-			Link:         nil,
-			Reference:    nil,
-			Has:          nil,
-			None:         nil,
-			Unknown:      nil,
-			SubReference: nil,
+			Amount:    nil,
+			Time:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -563,14 +546,11 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 	doc3ID := identifier.From("doc3")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: doc1ID,
+		ID:   doc1ID,
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
+			Amount: nil,
+			Time:   nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop:          refProp1,
 				PropDisplay:   nil,
@@ -581,21 +561,21 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 				ToPath:        nil,
 				ToDisplayPath: nil,
 			}},
-			Has:          nil,
-			None:         nil,
-			Unknown:      nil,
-			SubReference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: doc2ID,
+		ID:   doc2ID,
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
+			Amount: nil,
+			Time:   nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop:          refProp2,
 				PropDisplay:   nil,
@@ -606,21 +586,21 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 				ToPath:        nil,
 				ToDisplayPath: nil,
 			}},
-			Has:          nil,
-			None:         nil,
-			Unknown:      nil,
-			SubReference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: doc3ID,
+		ID:   doc3ID,
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time:       nil,
-			Link:       nil,
+			Amount: nil,
+			Time:   nil,
 			Reference: internalSearch.ReferenceClaims{
 				{
 					Prop:          refProp1,
@@ -643,10 +623,13 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 					ToDisplayPath: nil,
 				},
 			},
-			Has:          nil,
-			None:         nil,
-			Unknown:      nil,
-			SubReference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -687,25 +670,25 @@ func TestResultsGetTotalGteIntegration(t *testing.T) {
 
 	docID := identifier.From("doc1")
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID: docID,
+		ID:   docID,
+		Text: nil,
 		Claims: internalSearch.ClaimTypes{
-			Identifier:   nil,
-			String:       nil,
-			HTML:         nil,
-			Amount:       nil,
-			Time:         nil,
-			Link:         nil,
-			Reference:    nil,
-			Has:          nil,
-			None:         nil,
-			Unknown:      nil,
-			SubReference: nil,
+			Amount:    nil,
+			Time:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
 
-	getSearchServiceTracked := func() (*esSearch.Search, int64, int64) {
-		return esClient.Search().Index(index).TrackTotalHits(esdsl.NewTrackHits().Bool(true)), 100, 10
+	getSearchServiceTracked := func() *esSearch.Search {
+		return esClient.Search().Index(index).TrackTotalHits(esdsl.NewTrackHits().Bool(true))
 	}
 
 	session := createSession(t, ctx, search.SessionData{
@@ -730,27 +713,27 @@ func TestResultsGetTotalGteRelationIntegration(t *testing.T) {
 	// Index multiple documents with deterministic IDs.
 	for i := range 5 {
 		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID: identifier.From("gteDoc", string(rune('0'+i))),
+			ID:   identifier.From("gteDoc", string(rune('0'+i))),
+			Text: nil,
 			Claims: internalSearch.ClaimTypes{
-				Identifier:   nil,
-				String:       nil,
-				HTML:         nil,
-				Amount:       nil,
-				Time:         nil,
-				Link:         nil,
-				Reference:    nil,
-				Has:          nil,
-				None:         nil,
-				Unknown:      nil,
-				SubReference: nil,
+				Amount:    nil,
+				Time:      nil,
+				Reference: nil,
+				Has:       nil,
+				None:      nil,
+				Unknown:   nil,
+				SubRef:    nil,
+				SubAmount: nil,
+				SubTime:   nil,
+				SubHas:    nil,
 			},
 		})
 	}
 	refreshIndex(t, ctx, esClient, index)
 
 	// Set TrackTotalHits to 1 so ES returns "gte" relation when there are more than 1 hit.
-	getSearchServiceLimited := func() (*esSearch.Search, int64, int64) {
-		return esClient.Search().Index(index).TrackTotalHits(esdsl.NewTrackHits().Int(1)), 100, 10
+	getSearchServiceLimited := func() *esSearch.Search {
+		return esClient.Search().Index(index).TrackTotalHits(esdsl.NewTrackHits().Int(1))
 	}
 
 	session := createSession(t, ctx, search.SessionData{

@@ -63,7 +63,7 @@ type Fields = internalCore.Fields
 type DocumentFields struct {
 	ID []string `documentid:"" json:"id"`
 	// We set "order" to not allow "instance of" to be changed directly through fields.
-	InstanceOf []Ref `cardinality:"0.." json:"instanceOf,omitempty" order:"-" property:"INSTANCE_OF"`
+	InstanceOf []Ref `cardinality:"0.." json:"instanceOf,omitempty" order:"-" property:"INSTANCE_OF" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,CLASS"`
 }
 
 // AmountWithUnit represents an amount with its unit.
@@ -71,7 +71,7 @@ type AmountWithUnit[T AmountType] struct {
 	Value Amount[T] `json:"value" value:""`
 
 	// We set "order" to hide the field. It should not be set manually.
-	InUnit []Ref `cardinality:"0.." json:"inUnit,omitempty" order:"-" property:"IN_UNIT"`
+	InUnit []Ref `cardinality:"0.." json:"inUnit,omitempty" order:"-" property:"IN_UNIT" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,UNIT"`
 }
 
 // AmountIntervalWithUnit represents an amount interval with its unit.
@@ -79,7 +79,7 @@ type AmountIntervalWithUnit[T AmountType] struct {
 	Value Interval[Amount[T]] `json:"value" value:""`
 
 	// We set "order" to hide the field. It should not be set manually.
-	InUnit []Ref `cardinality:"0.." json:"inUnit,omitempty" order:"-" property:"IN_UNIT"`
+	InUnit []Ref `cardinality:"0.." json:"inUnit,omitempty" order:"-" property:"IN_UNIT" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,UNIT"`
 }
 
 // TimeWithLocation represents a time with location information.
@@ -103,7 +103,7 @@ type HTMLWithLanguage struct {
 	Value HTML `json:"value" value:""`
 
 	// We set "order" to hide the field. It should not be set manually.
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"-" property:"IN_LANGUAGE"`
+	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"-" property:"IN_LANGUAGE" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE"`
 }
 
 // RawHTMLWithLanguage represents raw HTML with language information.
@@ -111,7 +111,7 @@ type RawHTMLWithLanguage struct {
 	Value RawHTML `json:"value" value:""`
 
 	// We set "order" to hide the field. It should not be set manually.
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"-" property:"IN_LANGUAGE"`
+	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"-" property:"IN_LANGUAGE" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE"`
 }
 
 // SearchShortcut represents a search shortcut with its name.
@@ -130,6 +130,8 @@ type LinkWithMediaType struct {
 }
 
 // PropertyFields contains fields specific to properties.
+//
+//nolint:lll
 type PropertyFields struct {
 	Name                   []StringWithLanguage  `cardinality:"1.."  json:"name"                             property:"NAME"`
 	ShortName              []StringWithLanguage  `cardinality:"0.."  json:"shortName,omitempty"              property:"SHORT_NAME"`
@@ -138,8 +140,8 @@ type PropertyFields struct {
 	Description            []RawHTMLWithLanguage `cardinality:"0.."  json:"description,omitempty"            property:"DESCRIPTION"`
 	Instruction            []RawHTMLWithLanguage `cardinality:"0.."  json:"instruction,omitempty"            property:"INSTRUCTION"`
 	IdentifierLinkTemplate string                `cardinality:"0..1" json:"identifierLinkTemplate,omitempty" property:"IDENTIFIER_LINK_TEMPLATE"`
-	SubpropertyOf          []Ref                 `cardinality:"0.."  json:"subpropertyOf,omitempty"          property:"SUBPROPERTY_OF"`
-	InversePropertyOf      *Ref                  `cardinality:"0..1" json:"inversePropertyOf,omitempty"      property:"INVERSE_PROPERTY_OF"`
+	SubpropertyOf          []Ref                 `cardinality:"0.."  json:"subpropertyOf,omitempty"          property:"SUBPROPERTY_OF"           values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
+	InversePropertyOf      *Ref                  `cardinality:"0..1" json:"inversePropertyOf,omitempty"      property:"INVERSE_PROPERTY_OF"      values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
 }
 
 // Property represents a property document.
@@ -149,13 +151,15 @@ type Property struct {
 }
 
 // ClassFields contains fields specific to classes.
+//
+//nolint:lll
 type ClassFields struct {
 	Name                 []StringWithLanguage  `cardinality:"1.."  json:"name"                           property:"NAME"`
 	ShortName            []StringWithLanguage  `cardinality:"0.."  json:"shortName,omitempty"            property:"SHORT_NAME"`
 	AlternativeName      []StringWithLanguage  `cardinality:"0.."  json:"alternativeName,omitempty"      property:"ALTERNATIVE_NAME"`
 	Mnemonic             string                `cardinality:"0..1" json:"mnemonic,omitempty"             property:"MNEMONIC"`
 	Description          []RawHTMLWithLanguage `cardinality:"0.."  json:"description,omitempty"          property:"DESCRIPTION"`
-	SubclassOf           []Ref                 `cardinality:"0.."  json:"subclassOf,omitempty"           property:"SUBCLASS_OF"`
+	SubclassOf           []Ref                 `cardinality:"0.."  json:"subclassOf,omitempty"           property:"SUBCLASS_OF"            values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,CLASS"`
 	AbstractClass        bool                  `cardinality:"0..1" json:"abstractClass,omitempty"        property:"ABSTRACT_CLASS"`
 	DisplayLabelTemplate []StringWithLanguage  `cardinality:"0.."  json:"displayLabelTemplate,omitempty" property:"DISPLAY_LABEL_TEMPLATE"`
 	SearchShortcut       []SearchShortcut      `cardinality:"0.."  json:"searchShortcut,omitempty"       property:"SEARCH_SHORTCUT"`

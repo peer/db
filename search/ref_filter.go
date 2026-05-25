@@ -121,12 +121,12 @@ func bucketsToRefFilterResults(buckets []types.StringTermsBucket, kind string) (
 
 // Get retrieves reference filter data for search results.
 func (f *RefFilter) Get(
-	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64),
+	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, prop identifier.Identifier,
 ) ([]RefFilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
-	searchService, _, _ := getSearchService()
+	searchService := getSearchService()
 
 	// Aggregation for documents that have the property: terms on claims.ref.to.
 	// The "paths" sub-aggregation extracts the indexed hierarchy paths for each
@@ -148,10 +148,7 @@ func (f *RefFilter) Get(
 				AddAggregation("paths", esdsl.NewAggregations().
 					Terms(esdsl.NewTermsAggregation().Field("claims.ref.toPath").Size(100)))). //nolint:mnd
 			AddAggregation("total", esdsl.NewAggregations().
-				// Cardinality aggregation returns the count of all buckets. 40000 is the maximum precision threshold,
-				// so we use it to get the most accurate approximation. For now we didn't notice any performance issues
-				// at data scale PeerDB is currently being used with, but in the future we might want to make this configurable.
-				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.ref.to").PrecisionThreshold(40000)))) //nolint:mnd
+				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.ref.to").PrecisionThreshold(maxPrecisionThreshold))))
 
 	// Aggregation for documents missing the property: count documents where the prop does not exist.
 	missingAggregation := esdsl.NewAggregations().
@@ -231,11 +228,11 @@ func (f *RefFilter) Get(
 	}, nil
 }
 
-// ToSubRefQuery converts the RefFilter to an ElasticSearch query on claims.sub
+// ToSubRefQuery converts the RefFilter to an ElasticSearch query on claims.subRef
 // for a sub-reference filter with parentProp and prop.
 //
 // parentToRestrictions, when non-empty, restricts the sub-claim match to entries
-// whose claims.sub.parentTo is one of the listed values. This enables cross-
+// whose claims.subRef.parentTo is one of the listed values. This enables cross-
 // filter joins: when a session has both a parent-level ref filter (e.g.
 // HAS_LOCATION = L1) and a sub-ref filter (e.g. HAS_LOCATION > HAS_ARTIST = A),
 // the sub-claim is required to live under one of the same parent values, so the
@@ -243,7 +240,7 @@ func (f *RefFilter) Get(
 func (f *RefFilter) ToSubRefQuery(parentProp, prop identifier.Identifier, parentToRestrictions []identifier.Identifier) types.QueryVariant { //nolint:ireturn
 	// withParentTo appends the parentTo restriction clause (if any) to a slice
 	// of must-clauses building a single nested sub-claim match. The clause is
-	// "claims.sub.parentTo is one of the restriction values", joined with the
+	// "claims.subRef.parentTo is one of the restriction values", joined with the
 	// existing parentProp/prop (and optional to) constraints inside the same
 	// nested query so the join happens within a single sub-claim record.
 	withParentTo := func(must []types.QueryVariant) []types.QueryVariant {
@@ -252,19 +249,19 @@ func (f *RefFilter) ToSubRefQuery(parentProp, prop identifier.Identifier, parent
 		}
 		shoulds := make([]types.QueryVariant, 0, len(parentToRestrictions))
 		for _, pto := range parentToRestrictions {
-			shoulds = append(shoulds, esdsl.NewTermQuery("claims.sub.parentTo", esdsl.NewFieldValue().String(pto.String())))
+			shoulds = append(shoulds, esdsl.NewTermQuery("claims.subRef.parentTo", esdsl.NewFieldValue().String(pto.String())))
 		}
 		return append(must, esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)))
 	}
 
 	missingMust := withParentTo([]types.QueryVariant{
-		esdsl.NewTermQuery("claims.sub.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
-		esdsl.NewTermQuery("claims.sub.prop", esdsl.NewFieldValue().String(prop.String())),
+		esdsl.NewTermQuery("claims.subRef.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+		esdsl.NewTermQuery("claims.subRef.prop", esdsl.NewFieldValue().String(prop.String())),
 	})
 	missingQuery := esdsl.NewBoolQuery().MustNot(
 		esdsl.NewNestedQuery(
 			esdsl.NewBoolQuery().Must(missingMust...),
-		).Path("claims.sub"),
+		).Path("claims.subRef"),
 	)
 
 	// Missing only.
@@ -276,13 +273,13 @@ func (f *RefFilter) ToSubRefQuery(parentProp, prop identifier.Identifier, parent
 	shoulds := make([]types.QueryVariant, 0, len(f.To)+1)
 	for _, to := range f.To {
 		valueMust := withParentTo([]types.QueryVariant{
-			esdsl.NewTermQuery("claims.sub.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
-			esdsl.NewTermQuery("claims.sub.prop", esdsl.NewFieldValue().String(prop.String())),
-			esdsl.NewTermQuery("claims.sub.to", esdsl.NewFieldValue().String(to.ID.String())),
+			esdsl.NewTermQuery("claims.subRef.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+			esdsl.NewTermQuery("claims.subRef.prop", esdsl.NewFieldValue().String(prop.String())),
+			esdsl.NewTermQuery("claims.subRef.to", esdsl.NewFieldValue().String(to.ID.String())),
 		})
 		shoulds = append(shoulds, esdsl.NewNestedQuery(
 			esdsl.NewBoolQuery().Must(valueMust...),
-		).Path("claims.sub"))
+		).Path("claims.subRef"))
 	}
 
 	// Values + missing: OR them together.
@@ -297,57 +294,57 @@ func (f *RefFilter) ToSubRefQuery(parentProp, prop identifier.Identifier, parent
 }
 
 // GetSubRef retrieves sub-reference filter data for search results.
-// It aggregates claims.sub.to values for a given (parentProp, prop) combination.
+// It aggregates claims.subRef.to values for a given (parentProp, prop) combination.
 // parentToRestrictions optionally restricts results to specific parentTo values (for cross-filtering).
 func (f *RefFilter) GetSubRef(
-	ctx context.Context, getSearchService func() (*esSearch.Search, int64, int64),
+	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, parentProp, prop identifier.Identifier,
 	parentToRestrictions []identifier.Identifier,
 ) ([]RefFilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
-	searchService, _, _ := getSearchService()
+	searchService := getSearchService()
 
 	// Build the filter for parentProp + prop (+ optional parentTo restriction).
 	filterMusts := []types.QueryVariant{
-		esdsl.NewTermQuery("claims.sub.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
-		esdsl.NewTermQuery("claims.sub.prop", esdsl.NewFieldValue().String(prop.String())),
+		esdsl.NewTermQuery("claims.subRef.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+		esdsl.NewTermQuery("claims.subRef.prop", esdsl.NewFieldValue().String(prop.String())),
 	}
 	if len(parentToRestrictions) > 0 {
 		parentToShoulds := make([]types.QueryVariant, 0, len(parentToRestrictions))
 		for _, pto := range parentToRestrictions {
-			parentToShoulds = append(parentToShoulds, esdsl.NewTermQuery("claims.sub.parentTo", esdsl.NewFieldValue().String(pto.String())))
+			parentToShoulds = append(parentToShoulds, esdsl.NewTermQuery("claims.subRef.parentTo", esdsl.NewFieldValue().String(pto.String())))
 		}
 		filterMusts = append(filterMusts, esdsl.NewBoolQuery().Should(parentToShoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)))
 	}
 
-	// Aggregation for documents that have matching subRef: terms on claims.sub.to.
+	// Aggregation for documents that have matching subRef: terms on claims.subRef.to.
 	// The "paths" sub-aggregation extracts the indexed hierarchy paths for each
 	// value so the frontend can render filter results as a tree. See RefFilter.Get
 	// for the rationale and parsing rules.
 	subRefAggregation := esdsl.NewAggregations().
-		Nested(esdsl.NewNestedAggregation().Path("claims.sub")).
+		Nested(esdsl.NewNestedAggregation().Path("claims.subRef")).
 		AddAggregation("filter", esdsl.NewAggregations().
 			Filter(esdsl.NewBoolQuery().Must(filterMusts...)).
 			AddAggregation("props", esdsl.NewAggregations().
-				Terms(esdsl.NewTermsAggregation().Field("claims.sub.to").Size(MaxResultsCount).
+				Terms(esdsl.NewTermsAggregation().Field("claims.subRef.to").Size(MaxResultsCount).
 					Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
 				AddAggregation("docs", esdsl.NewAggregations().
 					ReverseNested(esdsl.NewReverseNestedAggregation())).
 				AddAggregation("paths", esdsl.NewAggregations().
-					Terms(esdsl.NewTermsAggregation().Field("claims.sub.toPath").Size(100)))). //nolint:mnd
+					Terms(esdsl.NewTermsAggregation().Field("claims.subRef.toPath").Size(100)))). //nolint:mnd
 			AddAggregation("total", esdsl.NewAggregations().
-				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.sub.to").PrecisionThreshold(40000)))) //nolint:mnd
+				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.subRef.to").PrecisionThreshold(maxPrecisionThreshold))))
 
 	// Aggregation for documents missing this sub-reference.
 	missingAggregation := esdsl.NewAggregations().
 		Filter(esdsl.NewBoolQuery().MustNot(
 			esdsl.NewNestedQuery(
 				esdsl.NewBoolQuery().Must(
-					esdsl.NewTermQuery("claims.sub.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
-					esdsl.NewTermQuery("claims.sub.prop", esdsl.NewFieldValue().String(prop.String())),
+					esdsl.NewTermQuery("claims.subRef.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+					esdsl.NewTermQuery("claims.subRef.prop", esdsl.NewFieldValue().String(prop.String())),
 				),
-			).Path("claims.sub"),
+			).Path("claims.subRef"),
 		))
 
 	searchService = searchService.Size(0).Query(query).

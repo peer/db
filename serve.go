@@ -113,8 +113,6 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			RiverClient:          nil,
 			debugRiverHandler:    nil,
 			initialized:          false,
-			propertiesTotal:      0,
-			unitsTotal:           0,
 		}}
 		sites[c.Domain] = &globals.Sites[0]
 	}

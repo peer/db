@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { HighConfidence, type D } from "@/document"
-import type { DocumentCreateResponse, Result } from "@/types"
+import type { DocumentCreateResponse, JustResultsFilters, Result } from "@/types"
 
 import { PlusIcon } from "@heroicons/vue/20/solid"
 import { onBeforeUnmount, onMounted, ref } from "vue"
@@ -51,7 +51,7 @@ async function loadClasses() {
       {
         // We do not provide filter IDs and base for SearchJustResults API endpoint.
         filters: [{ prop: [INSTANCE_OF], ref: { to: [{ id: CLASS }] } }],
-      },
+      } satisfies JustResultsFilters,
       abortController.signal,
       null,
     )

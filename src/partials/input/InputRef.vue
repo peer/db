@@ -29,7 +29,7 @@ its DOM attributes without flickering how the component looks.
 
 <script setup lang="ts">
 import type { D } from "@/document"
-import type { Result, ValidationError, ValidatorFn } from "@/types"
+import type { JustResultsFilters, Result, ValidationError, ValidatorFn } from "@/types"
 import type { ComponentPublicInstance } from "vue"
 
 import { Combobox, ComboboxButton, ComboboxInput, ComboboxOption, ComboboxOptions } from "@headlessui/vue"
@@ -46,6 +46,7 @@ import ProgressBar from "@/components/ProgressBar.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import { useLock } from "@/progress"
+import { shortcutToFilters } from "@/shortcut"
 import { anySignal, loadingWidth } from "@/utils"
 import { useValidation } from "@/validation"
 
@@ -58,11 +59,19 @@ const props = withDefaults(
     required?: boolean
     // Presentational override.
     invalid?: boolean
+    // Optional search shortcut string (same grammar as FIELD_VALUES claims)
+    // that constrains the autocomplete to documents matching its filters.
+    filter?: string
+    // ID of the document hosting this input. Required when filter references
+    // the magic "self" value; an error is thrown otherwise.
+    self?: string
   }>(),
   {
     readonly: false,
     required: false,
     invalid: false,
+    filter: undefined,
+    self: undefined,
   },
 )
 
@@ -163,6 +172,25 @@ defineExpose(validatedInput)
 const mainAbortController = new AbortController()
 let searchAbortController = new AbortController()
 
+// Resolved filter payload derived from the filter and self props. Null when
+// no filter is configured; updated asynchronously when filter or self change.
+const filterPayload = ref<JustResultsFilters | null>(null)
+
+watch(
+  [() => props.filter, () => props.self],
+  async ([filter, self]) => {
+    if (!filter) {
+      filterPayload.value = null
+      return
+    }
+    // shortcutToFilters throws synchronously if filter references "self"
+    // without a self prop, and on any structural parse error. We let the
+    // throw propagate so misconfigured callers surface immediately.
+    filterPayload.value = await shortcutToFilters(filter, self)
+  },
+  { immediate: true },
+)
+
 async function search(q: string) {
   const signal = anySignal(mainAbortController.signal, searchAbortController.signal)
 
@@ -181,6 +209,7 @@ async function search(q: string) {
       router.apiResolve({ name: "SearchJustResults" }).href,
       {
         query: q,
+        ...(filterPayload.value ?? {}),
       },
       signal,
       searchProgress,
@@ -203,11 +232,11 @@ async function search(q: string) {
 }
 
 watch(
-  query,
-  async (value) => {
+  [query, filterPayload],
+  async ([q]) => {
     searchAbortController.abort()
     searchAbortController = new AbortController()
-    await search(value)
+    await search(q)
   },
   { immediate: true },
 )

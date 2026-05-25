@@ -205,7 +205,7 @@ type Field struct {
 	ValueType       Ref                   `cardinality:"1"    json:"valueType"                 property:"HAS_VALUE_TYPE"`
 	OrderInList     Amount[float64]       `cardinality:"1"    json:"orderInList"               property:"ORDER_IN_LIST"`
 	Cardinality     Interval[Amount[int]] `cardinality:"1"    json:"cardinality"               property:"CARDINALITY"`
-	Values          []Ref                 `cardinality:"0.."  json:"values,omitempty"          property:"FIELD_VALUES"`
+	Values          []string              `cardinality:"0.."  json:"values,omitempty"          property:"FIELD_VALUES"`
 	SubField        []Field               `cardinality:"0.."  json:"subField,omitempty"        property:"SUB_FIELD"`
 	InverseProperty *Ref                  `cardinality:"0..1" json:"inverseProperty,omitempty" property:"INVERSE_PROPERTY"`
 }
