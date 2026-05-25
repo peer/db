@@ -5,6 +5,7 @@ import type { Claim, ClaimTypeName, TimePrecision } from "@/document"
 import {
   CARDINALITY,
   FIELD,
+  FIELD_VALUES,
   FIELDS,
   HAS_PROPERTY,
   HAS_VALUE_TYPE,
@@ -65,6 +66,9 @@ export interface FieldData {
   // [parentPropertyId, ..., thisPropertyId]. Used as a unique key
   // to distinguish sub-fields with the same propertyId under different parents.
   path: readonly string[]
+  // Highest-confidence FIELD_VALUES search shortcut string, if any. Consumed
+  // by InputRef as a filter that constrains which documents may be picked.
+  values?: string
 }
 
 // fieldKey returns a unique string key for a field, derived from its path.
@@ -134,6 +138,8 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
   }
   subFields.sort((a, b) => a.orderInList - b.orderInList)
 
+  const valueClaim = getBestClaimOfType(claimsTypes, "string", FIELD_VALUES)
+
   return {
     propertyId: propRef.to.id,
     valueType: valueTypeRef.to.id,
@@ -142,6 +148,7 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
     maxCardinality,
     subFields,
     path: thisPath,
+    values: valueClaim?.string || undefined,
   }
 }
 
