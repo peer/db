@@ -1,4 +1,4 @@
-import type { QueryValues, ShortcutPair, JustResultsFilters } from "@/types"
+import type { JustResultsFilters, QueryValues, ShortcutPair } from "@/types"
 
 import { Identifier } from "@tozd/identifier"
 

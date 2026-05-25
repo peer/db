@@ -29,7 +29,7 @@ its DOM attributes without flickering how the component looks.
 
 <script setup lang="ts">
 import type { D } from "@/document"
-import type { Result, JustResultsFilters, ValidationError, ValidatorFn } from "@/types"
+import type { JustResultsFilters, Result, ValidationError, ValidatorFn } from "@/types"
 import type { ComponentPublicInstance } from "vue"
 
 import { Combobox, ComboboxButton, ComboboxInput, ComboboxOption, ComboboxOptions } from "@headlessui/vue"
