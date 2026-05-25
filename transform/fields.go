@@ -696,12 +696,18 @@ func parseFieldsCardinality(cardinality string, fieldType reflect.Type) (int, in
 	return minCardinality, maxCardinality, nil
 }
 
-// parseValuesTag parses the "values" struct tag into a slice of core.Ref.
+// parseValuesTag parses the "values" struct tag into a slice of search shortcut strings.
 //
-// The format is "namespace,mnemonic;namespace2,part1,part2".
+// Each entry is a search shortcut query string (the same grammar consumed by
+// SearchShortcutGet) and entries are separated by ";". Identifier tokens within
+// an entry may be either a 22-character base58 identifier or a comma-separated
+// list of base parts (hashed via [identifier.From]).
+//
+// Each entry is validated by parsing but stored as-is; the frontend interprets it
+// at render time.
 //
 // The values tag can only be used with core.Ref field type.
-func parseValuesTag(field reflect.StructField) ([]internalCore.Ref, errors.E) {
+func parseValuesTag(field reflect.StructField) ([]string, errors.E) {
 	tag := field.Tag.Get("values")
 	if tag == "" {
 		return nil, nil
@@ -722,28 +728,27 @@ func parseValuesTag(field reflect.StructField) ([]internalCore.Ref, errors.E) {
 	}
 
 	entries := strings.Split(tag, ";")
-	refs := make([]internalCore.Ref, 0, len(entries))
+	values := make([]string, 0, len(entries))
 	for _, entry := range entries {
 		entry = strings.TrimSpace(entry)
 		if entry == "" {
 			continue
 		}
-		parts := strings.Split(entry, ",")
-		for i := range parts {
-			parts[i] = strings.TrimSpace(parts[i])
+		errE := validateShortcut(entry)
+		if errE != nil {
+			errors.Details(errE)["entry"] = entry
+			return nil, errE
 		}
-		refs = append(refs, internalCore.Ref{
-			ID: parts,
-		})
+		values = append(values, entry)
 	}
 
-	return refs, nil
+	return values, nil
 }
 
 // parseStructValueFieldValues looks inside a struct type for a value:"" field
 // and parses its values tag. Returns nil if the type is not a struct or has
 // no value field with a values tag.
-func parseStructValueFieldValues(fieldType reflect.Type) ([]internalCore.Ref, errors.E) {
+func parseStructValueFieldValues(fieldType reflect.Type) ([]string, errors.E) {
 	// Unwrap slice.
 	if fieldType.Kind() == reflect.Slice {
 		fieldType = fieldType.Elem()
@@ -766,9 +771,9 @@ func parseStructValueFieldValues(fieldType reflect.Type) ([]internalCore.Ref, er
 
 		// Recurse into embedded structs.
 		if field.Anonymous && field.Type.Kind() == reflect.Struct {
-			refs, errE := parseStructValueFieldValues(field.Type)
-			if refs != nil || errE != nil {
-				return refs, errE
+			values, errE := parseStructValueFieldValues(field.Type)
+			if values != nil || errE != nil {
+				return values, errE
 			}
 		}
 	}
