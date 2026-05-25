@@ -60,7 +60,16 @@ const locked = useLocked()
 // Slots: the user-facing list of editable rows. Each has a stable key
 // so Vue's v-for can re-anchor across claim renames; claim is the
 // committed claim (or null for an as-yet-unfilled trailing slot).
-type Slot = { key: string; claim: DeepReadonly<Claim> | null }
+// baseline is the session-start claim this slot represents (or null for
+// a session-added / trailing-empty slot). It is set at mount from
+// initialClaims and again whenever revertField resurrects a previously
+// removed baseline. Tracking it explicitly is important: after a
+// resurrect the slot's claim has a brand-new content-addressed id (a
+// re-Add cannot reuse the original id), so a naive lookup by claim.id
+// would miss the baseline and mis-classify the slot as session-added on
+// the next revert click - which would immediately remove what we just
+// added back.
+type Slot = { key: string; claim: DeepReadonly<Claim> | null; baseline: DeepReadonly<Claim> | null }
 
 let slotKeyCounter = 0
 function nextSlotKey(): string {
@@ -75,10 +84,23 @@ const slots = ref<Slot[]>([])
 // requiring the component to unmount.
 const slotsCheckpoint = ref<readonly DeepReadonly<Claim>[]>(props.initialClaims)
 
+// reanchorSlotBaselines re-resolves slot.baseline against the current
+// slotsCheckpoint so a re-anchor (props.initialClaims change, or
+// checkpoint() after Save) makes existing slots correctly reflect what
+// they represent against the new baseline.
+function reanchorSlotBaselines(): void {
+  const baselineById = new Map<string, DeepReadonly<Claim>>()
+  for (const b of slotsCheckpoint.value) baselineById.set(b.id, b)
+  for (const slot of slots.value) {
+    slot.baseline = slot.claim ? (baselineById.get(slot.claim.id) ?? null) : null
+  }
+}
+
 watch(
   () => props.initialClaims,
   (v) => {
     slotsCheckpoint.value = v
+    reanchorSlotBaselines()
   },
   { flush: "sync" },
 )
@@ -181,14 +203,21 @@ function reconcileSlots(): void {
 
   // Grow: append empty trailing if we're under desired.
   while (slots.value.length < desired) {
-    slots.value.push({ key: nextSlotKey(), claim: null })
+    slots.value.push({ key: nextSlotKey(), claim: null, baseline: null })
   }
 }
 
 // Initial population: do it eagerly on setup so the first render already
-// has the right slots.
-for (const claim of props.modelValue) {
-  slots.value.push({ key: nextSlotKey(), claim })
+// has the right slots. Each slot's baseline is resolved by id from
+// slotsCheckpoint; modelValue claims that aren't in the baseline are
+// session-added (e.g. a mid-session reload picking up changes already
+// committed during the session).
+{
+  const baselineById = new Map<string, DeepReadonly<Claim>>()
+  for (const b of slotsCheckpoint.value) baselineById.set(b.id, b)
+  for (const claim of props.modelValue) {
+    slots.value.push({ key: nextSlotKey(), claim, baseline: baselineById.get(claim.id) ?? null })
+  }
 }
 reconcileSlots()
 
@@ -218,15 +247,12 @@ function updateSlotClaim(slotKey: string, claim: DeepReadonly<Claim> | null): vo
   slot.claim = claim
 }
 
-// initialClaimForSlot finds the baseline claim that corresponds to a
-// given slot. Matches by current slot.claim.id against initialClaims;
-// new (session-added) slots see null.
+// initialClaimForSlot returns the slot's baseline claim. This is set on
+// the slot itself (at mount or revert-resurrect), so a resurrected slot
+// whose claim has a fresh id still correctly points back at the original
+// baseline.
 function initialClaimForSlot(slot: Slot): DeepReadonly<Claim> | null {
-  if (!slot.claim) return null
-  for (const baseline of slotsCheckpoint.value) {
-    if (baseline.id === slot.claim.id) return baseline
-  }
-  return null
+  return slot.baseline
 }
 
 // Required-violation computation: if fewer than minCardinality slots
@@ -290,17 +316,21 @@ function onFocusOut(event: FocusEvent): void {
   }
 }
 
-// slotsDirtyByDiff: the multiset of claim ids in current slots differs
-// from the baseline. This catches session-level adds and removes.
+// slotsDirtyByDiff: the set of baselines represented by current slots
+// differs from slotsCheckpoint. We key by slot.baseline (not slot.claim.id)
+// so a resurrected slot - whose claim has a fresh id after the re-Add -
+// is still recognised as representing the original baseline rather than
+// looking session-added.
 const slotsDirtyByDiff = computed<boolean>(() => {
   const baselineIds = new Set(slotsCheckpoint.value.map((c) => c.id))
-  const currentIds = new Set<string>()
+  const representedIds = new Set<string>()
   for (const slot of slots.value) {
-    if (slot.claim) currentIds.add(slot.claim.id)
+    if (!slot.claim) continue
+    if (slot.baseline === null) return true // session-added
+    representedIds.add(slot.baseline.id)
   }
-  if (currentIds.size !== baselineIds.size) return true
-  for (const id of currentIds) {
-    if (!baselineIds.has(id)) return true
+  for (const id of baselineIds) {
+    if (!representedIds.has(id)) return true // baseline removed
   }
   return false
 })
@@ -321,8 +351,10 @@ const validatedInput: ValidatedInput = {
     resetChildAll()
     // Rebuild slots from current modelValue + one trailing empty.
     slots.value = []
+    const baselineById = new Map<string, DeepReadonly<Claim>>()
+    for (const b of slotsCheckpoint.value) baselineById.set(b.id, b)
     for (const claim of props.modelValue) {
-      slots.value.push({ key: nextSlotKey(), claim })
+      slots.value.push({ key: nextSlotKey(), claim, baseline: baselineById.get(claim.id) ?? null })
     }
     reconcileSlots()
     triggered.value = false
@@ -340,8 +372,11 @@ const validatedInput: ValidatedInput = {
   checkpoint: () => {
     // Move the baseline forward to the current claims (mirroring what
     // <DocumentEdit> does after Save). Cascade child checkpoints so each
-    // <ClaimInput> re-anchors too.
+    // <ClaimInput> re-anchors too, and re-resolve every slot.baseline so
+    // session-added rows that just got saved now count as "represents
+    // baseline".
     slotsCheckpoint.value = props.modelValue
+    reanchorSlotBaselines()
     checkpointChildAll()
   },
 }
@@ -358,20 +393,22 @@ defineExpose({
 
 // revertField runs the field-level Revert: re-add removed baseline
 // claims, remove session-added claims, then cascade revert into each
-// surviving slot's ClaimInput.
+// surviving slot's ClaimInput. We classify slots by slot.baseline, not
+// by claim id, so a slot resurrected on a previous revert click (its
+// claim has a fresh content-addressed id) is still correctly recognised
+// as representing its original baseline.
 async function revertField(): Promise<void> {
-  const currentById = new Map<string, DeepReadonly<Claim>>()
+  // Snapshot which baselines are already represented before any of our
+  // mutations. The new (resurrected) slots we push below get
+  // baseline:set so the next-click revert correctly classifies them.
+  const representedBaselineIds = new Set<string>()
   for (const slot of slots.value) {
-    if (slot.claim) currentById.set(slot.claim.id, slot.claim)
-  }
-  const baselineById = new Map<string, DeepReadonly<Claim>>()
-  for (const baseline of slotsCheckpoint.value) {
-    baselineById.set(baseline.id, baseline)
+    if (slot.claim && slot.baseline) representedBaselineIds.add(slot.baseline.id)
   }
 
-  // 1) Re-add claims that were removed during the session.
+  // 1) Re-add baseline claims that no current slot represents.
   for (const baseline of slotsCheckpoint.value) {
-    if (currentById.has(baseline.id)) continue
+    if (representedBaselineIds.has(baseline.id)) continue
     const num = getNextChangeNumber()
     const changeBase = [...props.base, "SESSION", props.session, String(num)]
     const newId = (await Identifier.from(...changeBase)).toString()
@@ -383,24 +420,25 @@ async function revertField(): Promise<void> {
     }
     await saveChange(addChange, num)
     const newClaim = claimPatchFrom(patch).New(newId)
-    slots.value.push({ key: nextSlotKey(), claim: newClaim })
+    slots.value.push({ key: nextSlotKey(), claim: newClaim, baseline })
   }
 
-  // 2) Remove session-added claims.
-  for (const [id, current] of currentById) {
-    if (baselineById.has(id)) continue
+  // 2) Remove session-added claims (slots whose baseline is null).
+  // Iterate backwards so splicing while iterating doesn't skip entries.
+  for (let i = slots.value.length - 1; i >= 0; i--) {
+    const slot = slots.value[i]
+    if (!slot.claim) continue
+    if (slot.baseline !== null) continue
     const num = getNextChangeNumber()
-    await saveChange(new RemoveClaimChange({ id: current.id }), num)
-    const idx = slots.value.findIndex((s) => s.claim?.id === id)
-    if (idx >= 0) {
-      slots.value.splice(idx, 1)
-    }
+    await saveChange(new RemoveClaimChange({ id: slot.claim.id }), num)
+    slots.value.splice(i, 1)
   }
 
-  // 3) Cascade revert into surviving slots. ClaimInput exposes the async
-  // revert via defineExpose so we await each one. The cascade fans out
-  // serially here for simplicity (parallel awaits could race on
-  // saveChange's change-number sequencing).
+  // 3) Cascade revert into surviving slots. Each ClaimInput's revertField
+  // sees its baseline (via initialClaimForSlot -> slot.baseline) and
+  // computes the Add / Set / no-op accordingly. For a slot whose values
+  // already match its baseline (resurrected slot, or untouched
+  // original), this is a no-op.
   for (const slot of slots.value) {
     if (!slot.claim) continue
     const input = slotInputs.get(slot.key)
@@ -408,7 +446,16 @@ async function revertField(): Promise<void> {
     await input.revert()
   }
 
-  // 4) Make sure we still have a trailing empty slot.
+  // 4) Cleanup: drop leftover empty (claim-less) slots, then let
+  // reconcileSlots grow exactly one trailing empty. The empties cleaned
+  // up here include the trailing-empty that the cardinality auto-grew
+  // earlier (e.g. after the user cleared a claim and updateSlotClaim
+  // spliced its row), and any extra empties the per-await reconcileSlots
+  // re-runs may have inserted in between our resurrected rows. Doing
+  // this AT THE END keeps the awaits in step 1 from triggering a
+  // mid-revertField reconcile that would otherwise create stranded
+  // empties between filled slots.
+  slots.value = slots.value.filter((s) => s.claim !== null)
   reconcileSlots()
 }
 

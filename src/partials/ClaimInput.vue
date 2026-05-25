@@ -196,13 +196,18 @@ const {
 // Whether this slot's local raw values differ from the checkpoint values.
 const localDirty = computed(() => !equalFieldEntryValue(local.value, checkpointEntry.value))
 
-// Whether the slot's claim identity (committed vs not) differs from the
-// checkpoint's. Used together with localDirty so the dirty flag also
-// flips when the slot was added or removed during the session.
+// Whether the slot's claim presence (committed vs not) differs from the
+// checkpoint's. This catches session-added (no baseline + committed
+// claim) and session-removed (had baseline + now nothing). We compare
+// by HAS-A-CLAIM rather than by claim id because a resurrected slot has
+// a fresh content-addressed id (a re-Add cannot reuse the original id),
+// yet conceptually it represents the same baseline claim — comparing
+// by id would falsely flag it as dirty and leave "Changed" lit after
+// the user reverts.
 const identityDirty = computed(() => {
-  const currentId = props.modelValue?.id ?? null
-  const baselineId = checkpointClaim.value?.id ?? null
-  return currentId !== baselineId
+  const hasCurrent = props.modelValue !== null
+  const hasBaseline = checkpointClaim.value !== null
+  return hasCurrent !== hasBaseline
 })
 
 // isEmpty: presence-only slots are empty iff there are no sub-claims; non-
