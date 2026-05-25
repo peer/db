@@ -1084,60 +1084,82 @@ func (v *convertVisitor) addTextAllLanguages(value string) {
 	}
 }
 
-// appendClaimDisplaysToText folds every display label from non-text claim
-// records (Amount, Time, Reference, Has, None, Unknown, and their Sub*
-// counterparts) into the document's top-level text bucket so the text-search
-// query can match against property names, referenced-document names, and
-// numeric/temporal boundary strings. Per-language PropDisplay / ToDisplay
-// maps fold into text[lang] for each language key present in the map.
+// appendClaimDisplaysToText folds every display label and naming string from
+// non-text claim records (Amount, Time, Reference, Has, None, Unknown, and
+// their Sub* counterparts) into the document's top-level text bucket so the
+// text-search query can match against property names, alternative names,
+// referenced-document names, and numeric/temporal boundary strings.
+//
+// Per-language PropDisplay / ToDisplay (one rendered string per language) and
+// PropNaming / ToNaming (multiple naming strings per language, e.g. alternative
+// labels) fold into text[lang] for each language key present in the map.
 // Language-neutral FromDisplay / ToDisplay strings on Amount/Time/SubAmount/
 // SubTime fan out via addTextAllLanguages so every language analyzer can
 // match the canonical numeric/temporal rendering regardless of locale.
 func (v *convertVisitor) appendClaimDisplaysToText() {
-	addPerLang := func(m map[string]string) {
+	addDisplay := func(m map[string]string) {
 		for lang, val := range m {
 			v.addText(lang, val)
 		}
 	}
+	addNaming := func(m map[string][]string) {
+		for lang, vals := range m {
+			for _, val := range vals {
+				v.addText(lang, val)
+			}
+		}
+	}
 	for _, c := range v.result.Claims.Amount {
-		addPerLang(c.PropDisplay)
+		addDisplay(c.PropDisplay)
+		addNaming(c.PropNaming)
 		v.addTextAllLanguages(c.FromDisplay)
 		v.addTextAllLanguages(c.ToDisplay)
 	}
 	for _, c := range v.result.Claims.Time {
-		addPerLang(c.PropDisplay)
+		addDisplay(c.PropDisplay)
+		addNaming(c.PropNaming)
 		v.addTextAllLanguages(c.FromDisplay)
 		v.addTextAllLanguages(c.ToDisplay)
 	}
 	for _, c := range v.result.Claims.Reference {
-		addPerLang(c.PropDisplay)
-		addPerLang(c.ToDisplay)
+		addDisplay(c.PropDisplay)
+		addNaming(c.PropNaming)
+		addDisplay(c.ToDisplay)
+		addNaming(c.ToNaming)
 	}
 	for _, c := range v.result.Claims.Has {
-		addPerLang(c.PropDisplay)
+		addDisplay(c.PropDisplay)
+		addNaming(c.PropNaming)
 	}
 	for _, c := range v.result.Claims.None {
-		addPerLang(c.PropDisplay)
+		addDisplay(c.PropDisplay)
+		addNaming(c.PropNaming)
 	}
 	for _, c := range v.result.Claims.Unknown {
-		addPerLang(c.PropDisplay)
+		addDisplay(c.PropDisplay)
+		addNaming(c.PropNaming)
 	}
 	for _, c := range v.result.Claims.SubRef {
-		addPerLang(c.PropDisplay)
-		addPerLang(c.ToDisplay)
+		addDisplay(c.PropDisplay)
+		addNaming(c.PropNaming)
+		addDisplay(c.ToDisplay)
+		addNaming(c.ToNaming)
 	}
 	for _, c := range v.result.Claims.SubAmount {
-		addPerLang(c.PropDisplay)
+		addDisplay(c.PropDisplay)
+		addNaming(c.PropNaming)
 		v.addTextAllLanguages(c.FromDisplay)
 		v.addTextAllLanguages(c.ToDisplay)
 	}
 	for _, c := range v.result.Claims.SubTime {
-		addPerLang(c.PropDisplay)
+		addDisplay(c.PropDisplay)
+		addNaming(c.PropNaming)
 		v.addTextAllLanguages(c.FromDisplay)
 		v.addTextAllLanguages(c.ToDisplay)
 	}
 	for _, c := range v.result.Claims.SubHas {
-		addPerLang(c.PropDisplay)
+		addDisplay(c.PropDisplay)
+		addNaming(c.PropNaming)
 	}
 }
 

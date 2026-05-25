@@ -3981,7 +3981,12 @@ func TestFromDocumentAllClaimTypesConfidence(t *testing.T) {
 			//         2 Time    × (PropDisplay["und"] + From + To) = 6
 			//         1 Ref     × (PropDisplay["und"] + ToDisplay["und"]) = 2
 			//         Has+None+Unknown × PropDisplay["und"] each = 3
-			assert.Len(t, result.Text["und"], 1+21*tt.expected)
+			//   9   - non-text claim naming strings folded into text:
+			//         2 Amount  × PropNaming["und"] each = 2
+			//         2 Time    × PropNaming["und"] each = 2
+			//         1 Ref     × (PropNaming["und"] + ToNaming["und"]) = 2
+			//         Has+None+Unknown × PropNaming["und"] each = 3
+			assert.Len(t, result.Text["und"], 1+30*tt.expected)
 			// Amount + AmountInterval each contribute one claim.
 			assert.Len(t, result.Claims.Amount, 2*tt.expected)
 			// Time + TimeInterval each contribute one claim.
