@@ -107,9 +107,9 @@ type Config struct {
 // most OIDC providers register redirect URIs as fixed strings rather than
 // templates.
 type SiteAuthConfig struct {
-	Issuer       string `json:"issuer,omitempty"       yaml:"issuer,omitempty"`
-	ClientID     string `json:"clientId,omitempty"     yaml:"clientId,omitempty"`
-	ClientSecret string `json:"clientSecret,omitempty" yaml:"clientSecret,omitempty"`
+	Issuer       string `json:"-" yaml:"issuer,omitempty"`
+	ClientID     string `json:"-" yaml:"clientId,omitempty"`
+	ClientSecret string `json:"-" yaml:"clientSecret,omitempty"`
 }
 
 // ServeCommand contains configuration for the serve command.
