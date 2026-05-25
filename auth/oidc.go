@@ -3,9 +3,9 @@ package auth
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -57,7 +57,9 @@ type OIDCAuthenticator struct {
 // refreshes, userinfo lookups, and token exchanges. It does not own a
 // shutdown hook because the underlying client uses idle connection pooling
 // that releases resources passively.
-func NewOIDCAuthenticator(ctx context.Context, dbpool *pgxpool.Pool, issuer, clientID, clientSecretPath string, redirectURI func() string) (*OIDCAuthenticator, errors.E) {
+func NewOIDCAuthenticator(
+	ctx context.Context, dbpool *pgxpool.Pool, issuer, clientID, clientSecretPath string, redirectURI func() string,
+) (*OIDCAuthenticator, errors.E) {
 	if issuer == "" {
 		return nil, errors.New("issuer is required")
 	}
@@ -71,7 +73,7 @@ func NewOIDCAuthenticator(ctx context.Context, dbpool *pgxpool.Pool, issuer, cli
 		return nil, errors.New("redirect URI thunk is required")
 	}
 
-	clientSecret, err := ioutil.ReadFile(clientSecretPath)
+	clientSecret, err := os.ReadFile(clientSecretPath) //nolint:gosec
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["path"] = clientSecretPath
