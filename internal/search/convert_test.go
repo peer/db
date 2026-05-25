@@ -1410,12 +1410,59 @@ func TestStripHTML(t *testing.T) {
 		in   string
 		want string
 	}{
+		// Baseline.
 		{"plain text", "hello world", "hello world"},
-		{"single element", "<p>hello</p>", "hello"},
-		{"adjacent blocks get space", "<p>hello</p><p>world</p>", "hello world"},
-		{"nested tags", "<div><b>foo</b> <i>bar</i></div>", "foo   bar"},
 		{"empty", "", ""},
 		{"tags only", "<br/><br/>", ""},
+		{"single block element", "<p>hello</p>", "hello"},
+
+		// Block tags insert a single space between text fragments.
+		{"adjacent paragraphs", "<p>hello</p><p>world</p>", "hello world"},
+		{"line break splits", "foo<br>bar", "foo bar"},
+		{"horizontal rule splits", "foo<hr>bar", "foo bar"},
+		{"list items split", "<ul><li>foo</li><li>bar</li></ul>", "foo bar"},
+		{"heading and paragraph", "<h1>Title</h1><p>body</p>", "Title body"},
+		{"blockquote splits", "intro<blockquote>quoted</blockquote>outro", "intro quoted outro"},
+		{"pre splits", "before<pre>code</pre>after", "before code after"},
+
+		// Inline tags do NOT insert a space: text fragments are concatenated.
+		{"inline anchor", `foo<a href="">bar</a>`, "foobar"},
+		{"inline bold then italic", "<b>foo</b><i>bar</i>", "foobar"},
+		{"inline strike, tt, u", "<strike>a</strike><tt>b</tt><u>c</u>", "abc"},
+		{"void img is inline", `text<img src="x" alt="y"/>more`, "textmore"},
+		{"inline inside block", "<p>foo<b>bar</b></p>", "foobar"},
+		{"block surrounding inline-only run", "<p><b>foo</b><i>bar</i></p><p><b>baz</b></p>", "foobar baz"},
+
+		// Whitespace-only text tokens between tags do not add their own space;
+		// the block tag still provides the single separator.
+		{"whitespace between blocks collapses", "<p>foo</p>   <p>bar</p>", "foo bar"},
+		{"inner whitespace preserved", "<p>foo bar</p>", "foo bar"},
+
+		// Per HTML spec, vertical tab (\v) and NBSP are NOT whitespace, so
+		// they should not be trimmed or treated as separator-only tokens.
+		{"vertical tab is content not whitespace", "   \v   ", "\v"},
+		{"vertical tab between blocks is content", "<p>foo</p>\v<p>bar</p>", "foo \v bar"},
+		{"nbsp is content not whitespace", "     ", " "},
+
+		// Source-side whitespace adjacent to an inline tag is significant: it's
+		// the only signal that visually-rendered text had a gap.
+		{"whitespace before inline", "foo<a>bar</a>", "foobar"},
+		{"whitespace between inline elements", "<b>foo</b> <i>bar</i>", "foo bar"},
+		{"trailing whitespace before inline tag", "foo  <a>bar</a>", "foo bar"},
+		{"leading whitespace inside inline tag", "foo<a>  bar</a>", "foo bar"},
+
+		// Real-world-ish: a sanitizer-shaped fragment with mixed inline.
+		{"mixed inline run with link", `<b>Drago</b> <a href="x">Tršar</a>`, "Drago Tršar"},
+		{"link concatenated to text", `text<a href="">link</a>more`, "textlinkmore"},
+
+		// Unknown tags default to inserting a space (block-like). The
+		// sanitizer normally strips these, but on raw input we prefer
+		// over-tokenizing to silently merging unrelated words.
+		{"unknown tag splits adjacent text", "foo<unknown>bar</unknown>baz", "foo bar baz"},
+		{"unknown tag between inline runs", "<b>foo</b><span>bar</span><i>baz</i>", "foo bar baz"},
+		{"adjacent unknown blocks split", "<div>foo</div><div>bar</div>", "foo bar"},
+		{"unknown wrapper around inline run", "<div><b>foo</b><i>bar</i></div>", "foobar"},
+		{"unknown wrapper with whitespace", "<div><b>foo</b> <i>bar</i></div>", "foo bar"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
