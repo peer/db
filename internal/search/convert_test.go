@@ -1467,7 +1467,44 @@ func TestStripHTML(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tc.want, stripHTML(tc.in))
+			assert.Equal(t, tc.want, stripHTML(tc.in, document.UndeterminedLanguage))
+		})
+	}
+}
+
+// TestStripHTMLNoBlockSpace exercises the no-block-space language branch by
+// temporarily adding a synthetic language code to noBlockSpaceLanguages. It
+// cannot run in parallel because it mutates a package-level map; for the same
+// reason no other tests should mutate this map.
+//
+//nolint:paralleltest
+func TestStripHTMLNoBlockSpace(t *testing.T) {
+	const fakeLang = "test-noblockspace"
+
+	noBlockSpaceLanguages[fakeLang] = true
+	t.Cleanup(func() { delete(noBlockSpaceLanguages, fakeLang) })
+
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		// Block tags do NOT insert a space for no-block-space languages.
+		{"adjacent paragraphs concatenate", "<p>foo</p><p>bar</p>", "foobar"},
+		{"line break does not split", "foo<br>bar", "foobar"},
+		{"unknown tag does not split", "foo<div>bar</div>baz", "foobarbaz"},
+		// Inline tags still concatenate (unchanged from the default branch).
+		{"inline still concatenates", `foo<a href="">bar</a>`, "foobar"},
+		// Source whitespace inside text tokens IS still preserved. The
+		// language switch only changes the implicit-block-separator behavior,
+		// not literal whitespace the author wrote.
+		{"explicit whitespace preserved", "<p>foo</p> <p>bar</p>", "foo bar"},
+		{"inner whitespace preserved", "<p>foo bar</p>", "foo bar"},
+	}
+	for _, tc := range tests {
+		//nolint:paralleltest
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, stripHTML(tc.in, fakeLang))
 		})
 	}
 }

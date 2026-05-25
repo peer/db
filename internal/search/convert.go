@@ -36,6 +36,14 @@ var inlineHTMLTags = map[string]bool{ //nolint:gochecknoglobals
 	"u":      true,
 }
 
+// noBlockSpaceLanguages is the set of language codes whose writing system does
+// not use spaces between words / blocks (CJK, Thai, Lao, ...). For these
+// languages stripHTML concatenates text across non-inline tag boundaries
+// instead of inserting a space, because a stray ASCII space would split a
+// token that the language analyzer treats as a single run. Inline tags behave
+// the same regardless of language.
+var noBlockSpaceLanguages = map[string]bool{} //nolint:gochecknoglobals
+
 // isHTMLWhitespace reports whether r is one of the ASCII whitespace characters
 // the HTML spec treats as collapsible whitespace: SPACE, TAB, LF, FF, CR.
 // Notably this excludes vertical tab (U+000B) and all non-ASCII whitespace
@@ -56,7 +64,12 @@ func isHTMLWhitespace(r rune) bool {
 // fragment. Only the known inline tags do not insert a separator on their own.
 // Unknown tags default to inserting a space. Non-text tokens (Comment/Doctype)
 // are dropped. Returns "" for input that contains no text.
-func stripHTML(s string) string {
+//
+// lang is the language code the resulting text will be indexed under. for
+// languages listed in noBlockSpaceLanguages, non-inline tag boundaries do not
+// insert a space (their scripts do not use word spaces).
+func stripHTML(s, lang string) string {
+	insertBlockSpace := !noBlockSpaceLanguages[lang]
 	tokenizer := html.NewTokenizer(strings.NewReader(s))
 	var buf bytes.Buffer
 	needSpace := false
@@ -68,7 +81,7 @@ func stripHTML(s string) string {
 		switch tt { //nolint:exhaustive
 		case html.StartTagToken, html.EndTagToken, html.SelfClosingTagToken:
 			name, _ := tokenizer.TagName()
-			if !inlineHTMLTags[string(name)] {
+			if insertBlockSpace && !inlineHTMLTags[string(name)] {
 				needSpace = true
 			}
 		case html.TextToken:
@@ -1086,14 +1099,14 @@ func (v *convertVisitor) VisitString(claim *document.StringClaim) (document.Visi
 
 // VisitHTML strips HTML tags from the claim's value and folds the plain-text
 // result into the document's top-level text field under every language the
-// claim's IN_LANGUAGE sub-claims resolve to.
+// claim's IN_LANGUAGE sub-claims resolve to. stripHTML is called per-language
+// because the language controls whether block-tag boundaries become spaces.
 func (v *convertVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	stripped := stripHTML(claim.HTML)
 	for _, lang := range v.converter.extractInLanguages(claim.Sub) {
-		v.addText(lang, stripped)
+		v.addText(lang, stripHTML(claim.HTML, lang))
 	}
 	return document.Keep, nil
 }
