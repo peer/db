@@ -33,14 +33,16 @@ func TestTextSearchUndWildcardCaseAndDiacritic(t *testing.T) {
 
 	// doc1 has the literal diacritic form; doc2 has the folded form.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:     doc1ID,
-		Text:   map[string][]string{"und": {"Žagar Špela"}},
-		Claims: internalSearch.ClaimTypes{},
+		ID:      doc1ID,
+		Display: nil,
+		Text:    map[string][]string{"und": {"Žagar Špela"}},
+		Claims:  internalSearch.ClaimTypes{},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:     doc2ID,
-		Text:   map[string][]string{"und": {"Zagar Ivan"}},
-		Claims: internalSearch.ClaimTypes{},
+		ID:      doc2ID,
+		Display: nil,
+		Text:    map[string][]string{"und": {"Zagar Ivan"}},
+		Claims:  internalSearch.ClaimTypes{},
 	})
 	refreshIndex(t, ctx, esClient, index)
 
@@ -76,14 +78,16 @@ func TestTextSearchUndQuotedExactVsFolded(t *testing.T) {
 	doc2ID := identifier.From("doc2") // folded "Zagar".
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:     doc1ID,
-		Text:   map[string][]string{"und": {"Žagar"}},
-		Claims: internalSearch.ClaimTypes{},
+		ID:      doc1ID,
+		Display: nil,
+		Text:    map[string][]string{"und": {"Žagar"}},
+		Claims:  internalSearch.ClaimTypes{},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:     doc2ID,
-		Text:   map[string][]string{"und": {"Zagar"}},
-		Claims: internalSearch.ClaimTypes{},
+		ID:      doc2ID,
+		Display: nil,
+		Text:    map[string][]string{"und": {"Zagar"}},
+		Claims:  internalSearch.ClaimTypes{},
 	})
 	refreshIndex(t, ctx, esClient, index)
 
@@ -135,14 +139,16 @@ func TestTextSearchUndUnquotedFoldsBoth(t *testing.T) {
 	doc2ID := identifier.From("doc2")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:     doc1ID,
-		Text:   map[string][]string{"und": {"Žagar"}},
-		Claims: internalSearch.ClaimTypes{},
+		ID:      doc1ID,
+		Display: nil,
+		Text:    map[string][]string{"und": {"Žagar"}},
+		Claims:  internalSearch.ClaimTypes{},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:     doc2ID,
-		Text:   map[string][]string{"und": {"Zagar"}},
-		Claims: internalSearch.ClaimTypes{},
+		ID:      doc2ID,
+		Display: nil,
+		Text:    map[string][]string{"und": {"Zagar"}},
+		Claims:  internalSearch.ClaimTypes{},
 	})
 	refreshIndex(t, ctx, esClient, index)
 
@@ -175,18 +181,20 @@ func TestTextSearchStemmedPhraseEnglish(t *testing.T) {
 	// (run / shoe), so phrase positions line up after stemming.
 	doc1ID := identifier.From("doc1")
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:     doc1ID,
-		Text:   map[string][]string{"en": {"running shoes"}},
-		Claims: internalSearch.ClaimTypes{},
+		ID:      doc1ID,
+		Display: nil,
+		Text:    map[string][]string{"en": {"running shoes"}},
+		Claims:  internalSearch.ClaimTypes{},
 	})
 
 	// doc2 is a control: contains "running" but not "shoes". Should not match
 	// a quoted phrase that requires both terms adjacent.
 	doc2ID := identifier.From("doc2")
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:     doc2ID,
-		Text:   map[string][]string{"en": {"running fast"}},
-		Claims: internalSearch.ClaimTypes{},
+		ID:      doc2ID,
+		Display: nil,
+		Text:    map[string][]string{"en": {"running fast"}},
+		Claims:  internalSearch.ClaimTypes{},
 	})
 	refreshIndex(t, ctx, esClient, index)
 
@@ -225,19 +233,22 @@ func TestTextSearchExactFieldRejectsFolded(t *testing.T) {
 	doc3ID := identifier.From("doc3")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:     doc1ID,
-		Text:   map[string][]string{"und": {"Müller"}}, // German umlaut.
-		Claims: internalSearch.ClaimTypes{},
+		ID:      doc1ID,
+		Display: nil,
+		Text:    map[string][]string{"und": {"Müller"}}, // German umlaut.
+		Claims:  internalSearch.ClaimTypes{},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:     doc2ID,
-		Text:   map[string][]string{"und": {"Muller"}}, // ASCII.
-		Claims: internalSearch.ClaimTypes{},
+		ID:      doc2ID,
+		Display: nil,
+		Text:    map[string][]string{"und": {"Muller"}}, // ASCII.
+		Claims:  internalSearch.ClaimTypes{},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:     doc3ID,
-		Text:   map[string][]string{"und": {"Smith"}}, // unrelated.
-		Claims: internalSearch.ClaimTypes{},
+		ID:      doc3ID,
+		Display: nil,
+		Text:    map[string][]string{"und": {"Smith"}}, // unrelated.
+		Claims:  internalSearch.ClaimTypes{},
 	})
 	refreshIndex(t, ctx, esClient, index)
 

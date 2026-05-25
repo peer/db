@@ -1268,11 +1268,22 @@ func (c *Converter) FromDocument(
 		ctx:       ctx,
 		converter: c,
 		result: &Document{
-			ID:     doc.ID,
-			Text:   nil,
-			Claims: ClaimTypes{},
+			ID:      doc.ID,
+			Display: nil,
+			Text:    nil,
+			Claims:  ClaimTypes{},
 		},
 		docID: doc.ID,
+	}
+
+	// Render the document's display label per supported language and store
+	// the non-empty results in the top-level "display" field.
+	displayStrings, errE := c.makeDisplayStrings(ctx, doc)
+	if errE != nil {
+		return nil, errE
+	}
+	if len(displayStrings.Display) > 0 {
+		v.result.Display = displayStrings.Display
 	}
 
 	// Index the document's own ID under "und" so a user typing the ID

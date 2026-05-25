@@ -119,6 +119,26 @@
       "id": {
         "type": "keyword"
       },
+      "display": {
+        "properties": {
+          "en": {
+            "type": "text",
+            "analyzer": "standard_string"
+          },
+          "sl": {
+            "type": "text",
+            "analyzer": "standard_string"
+          },
+          "pt": {
+            "type": "text",
+            "analyzer": "standard_string"
+          },
+          "und": {
+            "type": "text",
+            "analyzer": "standard_string"
+          }
+        }
+      },
       "text": {
         "properties": {
           "en": {

@@ -29,6 +29,12 @@ const (
 	// The value is multiplied with the field's relevance score.
 	displayBoost = "^0.2"
 
+	// topDisplayBoost is the boost factor applied to the document's top-level
+	// rendered display label (per-language "display.<lang>") relative to the
+	// main text field. Matches against the user-visible label of the document
+	// itself rank higher than incidental matches inside aggregated text.
+	topDisplayBoost = float32(3.0)
+
 	// textDisMaxTieBreaker is the tie_breaker for the per-language text.<lang>
 	// dis_max wrapper. dis_max scores a doc as max(per-clause score) +
 	// tie_breaker * sum(other matching scores); a small non-zero value rewards
@@ -740,6 +746,21 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 		)
 	}
 	shoulds = append(shoulds, esdsl.NewDisMaxQuery().Queries(textQueries...).TieBreaker(textDisMaxTieBreaker))
+	// Search the document's top-level rendered display label across languages.
+	// Each language is a separate clause inside a dis_max so per-doc the best
+	// matching language wins (instead of summing across redundant translations),
+	// and each clause is boosted so a match against the document's user-visible
+	// label outranks an incidental match inside aggregated text.
+	displayQueries := make([]types.QueryVariant, 0, len(langs))
+	for _, lang := range langs {
+		displayQueries = append(displayQueries,
+			esdsl.NewSimpleQueryStringQuery(searchQuery).
+				Fields("display."+lang).
+				DefaultOperator(defaultOperator).
+				Boost(topDisplayBoost),
+		)
+	}
+	shoulds = append(shoulds, esdsl.NewDisMaxQuery().Queries(displayQueries...).TieBreaker(textDisMaxTieBreaker))
 	// Search display and naming fields across all claim types with reduced boost.
 	for _, claimType := range []string{"amount", "has", "none", "ref", "time", "unknown"} {
 		prefix := "claims." + claimType

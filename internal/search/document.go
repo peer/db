@@ -17,8 +17,15 @@ import (
 // LinkClaim source claims) into per-language arrays at the document root so the
 // text-search query can score multiple terms in the same field together and
 // reward documents where matches come from several textual claims.
+//
+// Display holds the rendered display label per supported language.
+// It is produced from the display-label template (or naming-string fallback) and
+// indexed with standard_string analyzer per language because they might contain
+// mixed-language content.
 type Document struct {
 	ID identifier.Identifier `json:"id"`
+
+	Display map[string]string `json:"display,omitempty"`
 
 	Text map[string][]string `json:"text,omitempty"`
 

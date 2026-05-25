@@ -25,8 +25,9 @@ func TestResultsGetIntegration(t *testing.T) {
 	doc3ID := identifier.From("doc3")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   doc1ID,
-		Text: map[string][]string{"en": {"hello world"}},
+		ID:      doc1ID,
+		Display: nil,
+		Text:    map[string][]string{"en": {"hello world"}},
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -41,8 +42,9 @@ func TestResultsGetIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   doc2ID,
-		Text: map[string][]string{"en": {"goodbye world"}},
+		ID:      doc2ID,
+		Display: nil,
+		Text:    map[string][]string{"en": {"goodbye world"}},
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -57,8 +59,9 @@ func TestResultsGetIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   doc3ID,
-		Text: map[string][]string{"en": {"hello there"}},
+		ID:      doc3ID,
+		Display: nil,
+		Text:    map[string][]string{"en": {"hello there"}},
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -159,8 +162,9 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 	doc2ID := identifier.From("doc2")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   doc1ID,
-		Text: nil,
+		ID:      doc1ID,
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil,
@@ -184,8 +188,9 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   doc2ID,
-		Text: nil,
+		ID:      doc2ID,
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -254,8 +259,9 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 	fifteen := 15.0
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   doc1ID,
-		Text: nil,
+		ID:      doc1ID,
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
@@ -285,8 +291,9 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   doc2ID,
-		Text: nil,
+		ID:      doc2ID,
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
@@ -316,8 +323,9 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   doc3ID,
-		Text: nil,
+		ID:      doc3ID,
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -413,8 +421,9 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 	t2000 := float64(2000)
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   doc1ID,
-		Text: nil,
+		ID:      doc1ID,
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -443,8 +452,9 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   doc2ID,
-		Text: nil,
+		ID:      doc2ID,
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -473,8 +483,9 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   doc3ID,
-		Text: nil,
+		ID:      doc3ID,
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -546,8 +557,9 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 	doc3ID := identifier.From("doc3")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   doc1ID,
-		Text: nil,
+		ID:      doc1ID,
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil,
@@ -571,8 +583,9 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   doc2ID,
-		Text: nil,
+		ID:      doc2ID,
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil,
@@ -596,8 +609,9 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   doc3ID,
-		Text: nil,
+		ID:      doc3ID,
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil,
@@ -670,8 +684,9 @@ func TestResultsGetTotalGteIntegration(t *testing.T) {
 
 	docID := identifier.From("doc1")
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   docID,
-		Text: nil,
+		ID:      docID,
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -713,8 +728,9 @@ func TestResultsGetTotalGteRelationIntegration(t *testing.T) {
 	// Index multiple documents with deterministic IDs.
 	for i := range 5 {
 		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID:   identifier.From("gteDoc", string(rune('0'+i))),
-			Text: nil,
+			ID:      identifier.From("gteDoc", string(rune('0'+i))),
+			Display: nil,
+			Text:    nil,
 			Claims: internalSearch.ClaimTypes{
 				Amount:    nil,
 				Time:      nil,
