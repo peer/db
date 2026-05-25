@@ -47,6 +47,14 @@
             "portuguese_stemmer",
             "truncate_token_filter"
           ]
+        },
+        "exact_string": {
+          "type": "custom",
+          "tokenizer": "icu_tokenizer",
+          "filter": [
+            "lowercase",
+            "truncate_token_filter"
+          ]
         }
       },
       "filter": {
@@ -118,19 +126,55 @@
         "properties": {
           "en": {
             "type": "text",
-            "analyzer": "english_string"
+            "analyzer": "english_string",
+            "fields": {
+              "unstemmed": {
+                "type": "text",
+                "analyzer": "standard_string"
+              },
+              "exact": {
+                "type": "text",
+                "analyzer": "exact_string"
+              }
+            }
           },
           "sl": {
             "type": "text",
-            "analyzer": "slovenian_string"
+            "analyzer": "slovenian_string",
+            "fields": {
+              "unstemmed": {
+                "type": "text",
+                "analyzer": "standard_string"
+              },
+              "exact": {
+                "type": "text",
+                "analyzer": "exact_string"
+              }
+            }
           },
           "pt": {
             "type": "text",
-            "analyzer": "portuguese_string"
+            "analyzer": "portuguese_string",
+            "fields": {
+              "unstemmed": {
+                "type": "text",
+                "analyzer": "standard_string"
+              },
+              "exact": {
+                "type": "text",
+                "analyzer": "exact_string"
+              }
+            }
           },
           "und": {
             "type": "text",
-            "analyzer": "standard_string"
+            "analyzer": "standard_string",
+            "fields": {
+              "exact": {
+                "type": "text",
+                "analyzer": "exact_string"
+              }
+            }
           }
         }
       },

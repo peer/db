@@ -61,8 +61,26 @@ func TestMappingContainsClaimTypes(t *testing.T) {
 	require.True(t, ok, "missing top-level text field")
 	textProps, ok := text["properties"].(map[string]any)
 	require.True(t, ok)
-	for _, lang := range []string{"en", "sl", "pt", "und"} {
+	for lang := range internalSearch.SupportedLanguages {
 		assert.Contains(t, textProps, lang, "missing text.%s sub-property", lang)
+	}
+
+	// Each text.<lang> is a multi-field. The stemmed languages have both an
+	// .unstemmed sub-field (standard_string, no stemming, for analyzed-wildcard
+	// routing) and an .exact sub-field (exact_string, diacritic-preserved, for
+	// quote_field_suffix routing). text.und only needs .exact because its main
+	// analyzer is already standard_string.
+	for lang := range internalSearch.SupportedLanguages {
+		entry, entryOK := textProps[lang].(map[string]any)
+		require.True(t, entryOK, "missing text.%s entry", lang)
+		fields, fieldsOK := entry["fields"].(map[string]any)
+		require.True(t, fieldsOK, "missing text.%s.fields multi-field block", lang)
+		assert.Contains(t, fields, "exact", "missing text.%s.exact sub-field", lang)
+		if lang == "und" {
+			assert.NotContains(t, fields, "unstemmed", "text.und should not have .unstemmed (would be identical to main analyzer)")
+			continue
+		}
+		assert.Contains(t, fields, "unstemmed", "missing text.%s.unstemmed sub-field", lang)
 	}
 }
 
@@ -88,6 +106,7 @@ func TestMappingContainsAnalyzers(t *testing.T) {
 	// analyzers like everything else.
 	expectedAnalyzers := []string{
 		"standard_string", "english_string", "slovenian_string", "portuguese_string",
+		"exact_string",
 	}
 	for _, a := range expectedAnalyzers {
 		assert.Contains(t, analyzers, a, "missing analyzer: %s", a)
