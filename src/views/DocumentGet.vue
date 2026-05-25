@@ -7,7 +7,6 @@ import type { DocumentBeginEditResponse, QueryValues } from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { ChevronLeftIcon, ChevronRightIcon, PencilIcon } from "@heroicons/vue/20/solid"
-import { Identifier } from "@tozd/identifier"
 import { computed, onBeforeUnmount, ref, toRef, useTemplateRef, watch, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
@@ -33,6 +32,7 @@ import PropertiesRows from "@/partials/PropertiesRows.vue"
 import { getParentLock, localCounter, lockScope, useProgress } from "@/progress"
 import { getDocumentComponents } from "@/registry/document"
 import { useSearch, useSearchSession } from "@/search"
+import { shortcutToQuery } from "@/shortcut"
 import { useDocumentFields } from "@/useDocumentFields"
 import { useParentClasses } from "@/useParentClasses"
 import { anySignal, encodeQuery, loadingLongWidth } from "@/utils"
@@ -159,13 +159,7 @@ const documentTabs = computed(() => {
 // when available, otherwise inside the "all properties" panel.
 const hasFieldsViewPanel = computed(() => documentTabs.value.length === 0 && classTabId.value !== null && mergedFieldsData.value !== null)
 
-// Resolve a mnemonic-or-id token: comma-separated parts go through Identifier.from,
-// otherwise the token is assumed to already be an identifier and used as-is.
-async function resolveID(s: string) {
-  return s.includes(",") ? (await Identifier.from(...s.split(","))).toString() : s
-}
-
-type SearchShortcut = { name: string; filter: Record<string, string> }
+type SearchShortcut = { name: string; raw: string }
 type ResolvedShortcut = { name: string; query: QueryValues; count: string | null }
 
 async function fetchShortcutCount(query: QueryValues, signal: AbortSignal): Promise<string | null> {
@@ -196,31 +190,7 @@ watch(
         if (!name || name.length === 0) {
           continue
         }
-        const parts = shortcut.string.split("&")
-        const filter: Record<string, string> = {}
-        for (const part of parts) {
-          const eq = part.indexOf("=")
-          if (eq <= 0 || eq === part.length - 1) {
-            console.error("invalid search shortcut", classDoc.id, shortcut.string)
-            continue
-          }
-          const key = part.substring(0, eq)
-          const value = part.substring(eq + 1)
-          const keyParts = key.split(":")
-          if (keyParts.length > 2) {
-            console.error("invalid search shortcut", classDoc.id, shortcut.string)
-            continue
-          }
-          if (keyParts.length === 2 && (keyParts[0] === "reverse" || keyParts[1] === "reverse")) {
-            console.error("invalid search shortcut", classDoc.id, shortcut.string)
-            continue
-          }
-          filter[key] = value
-        }
-        if (Object.keys(filter).length === 0) {
-          continue
-        }
-        result.push({ name: name[0].string, filter })
+        result.push({ name: name[0].string, raw: shortcut.string })
       }
     }
     return result
@@ -229,21 +199,7 @@ watch(
     const result: ResolvedShortcut[] = []
     for (const shortcut of shortcuts) {
       try {
-        const filter: Record<string, string> = {}
-        for (const [key, value] of Object.entries(shortcut.filter)) {
-          let k: string
-          if (key === "reverse") {
-            k = "reverse"
-          } else if (key.includes(":")) {
-            const [parentKey, nestedKey] = key.split(":")
-            k = `${await resolveID(parentKey)}:${await resolveID(nestedKey)}`
-          } else {
-            k = await resolveID(key)
-          }
-          const v = value === "self" ? props.id : await resolveID(value)
-          filter[k] = v
-        }
-        result.push({ name: shortcut.name, query: encodeQuery(filter), count: null })
+        result.push({ name: shortcut.name, query: await shortcutToQuery(shortcut.raw, props.id), count: null })
       } catch (err) {
         console.error("DocumentGet.searchShortcuts", shortcut, err)
       }
