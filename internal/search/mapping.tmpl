@@ -123,19 +123,43 @@
         "properties": {
           "en": {
             "type": "text",
-            "analyzer": "standard_string"
+            "analyzer": "standard_string",
+            "fields": {
+              "exact": {
+                "type": "text",
+                "analyzer": "exact_string"
+              }
+            }
           },
           "sl": {
             "type": "text",
-            "analyzer": "standard_string"
+            "analyzer": "standard_string",
+            "fields": {
+              "exact": {
+                "type": "text",
+                "analyzer": "exact_string"
+              }
+            }
           },
           "pt": {
             "type": "text",
-            "analyzer": "standard_string"
+            "analyzer": "standard_string",
+            "fields": {
+              "exact": {
+                "type": "text",
+                "analyzer": "exact_string"
+              }
+            }
           },
           "und": {
             "type": "text",
-            "analyzer": "standard_string"
+            "analyzer": "standard_string",
+            "fields": {
+              "exact": {
+                "type": "text",
+                "analyzer": "exact_string"
+              }
+            }
           }
         }
       },

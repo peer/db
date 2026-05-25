@@ -746,12 +746,20 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 	// matching language wins (instead of summing across redundant translations),
 	// and each clause is boosted so a match against the document's user-visible
 	// label outranks an incidental match inside aggregated text.
+	//
+	// Each display.<lang> main analyzer is standard_string (no stemming) and
+	// has an .exact sub-field with diacritic preservation, mirroring text.und.
+	// quote_field_suffix routes quoted phrases to .exact. analyze_wildcard
+	// keeps wildcards on the main field so the typed prefix gets lowercased
+	// and ICU-folded before prefix matching.
 	displayQueries := make([]types.QueryVariant, 0, len(langs))
 	for _, lang := range langs {
 		displayQueries = append(displayQueries,
 			esdsl.NewSimpleQueryStringQuery(searchQuery).
 				Fields("display."+lang).
 				DefaultOperator(defaultOperator).
+				QuoteFieldSuffix(".exact").
+				AnalyzeWildcard(true).
 				Boost(topDisplayBoost),
 		)
 	}
