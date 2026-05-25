@@ -524,7 +524,7 @@ func (s *SessionData) ToQuery() types.QueryVariant { //nolint:ireturn
 	}
 
 	if s.Query != "" {
-		musts = append(musts, documentTextSearchQuery(s.Query, operator.Or))
+		musts = append(musts, documentTextSearchQuery(s.Query, operator.And))
 	}
 
 	for i := range s.Filters {
@@ -545,7 +545,7 @@ func (s *SessionData) ToQueryExcluding(excludeFilterID identifier.Identifier) ty
 	}
 
 	if s.Query != "" {
-		musts = append(musts, documentTextSearchQuery(s.Query, operator.Or))
+		musts = append(musts, documentTextSearchQuery(s.Query, operator.And))
 	}
 
 	for i := range s.Filters {
