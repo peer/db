@@ -6,7 +6,6 @@
           "type": "custom",
           "tokenizer": "icu_tokenizer",
           "filter": [
-            "lowercase",
             "icu_folding",
             "decimal_digit",
             "truncate_token_filter"
@@ -17,7 +16,6 @@
           "tokenizer": "icu_tokenizer",
           "filter": [
             "english_possessive_stemmer",
-            "lowercase",
             "icu_folding",
             "decimal_digit",
             "english_stop",
@@ -29,7 +27,6 @@
           "type": "custom",
           "tokenizer": "icu_tokenizer",
           "filter": [
-            "lowercase",
             "icu_folding",
             "decimal_digit",
             "slovenian_lemmatizer",
@@ -40,7 +37,6 @@
           "type": "custom",
           "tokenizer": "icu_tokenizer",
           "filter": [
-            "lowercase",
             "icu_folding",
             "decimal_digit",
             "portuguese_stop",
@@ -94,7 +90,8 @@
             "truncate_token_filter"
           ],
           "filter": [
-            "lowercase"
+            "icu_folding",
+            "decimal_digit"
           ]
         },
         "id_path_normalizer": {
