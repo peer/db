@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -37,6 +38,20 @@ const (
 	// docs that match in multiple languages slightly, without letting language
 	// tagging redundancy dominate the ranking.
 	textDisMaxTieBreaker = 0.1
+
+	// phraseBoost is the multiplicative bonus applied to the proximity-phrase
+	// clauses on top of the base text/display recall score. The phrase clauses
+	// only fire on docs already admitted by the recall layer (the bool's must),
+	// so this boost rewards docs where the query terms appear close together
+	// without affecting which docs are returned.
+	phraseBoost = float32(2.0)
+
+	// phraseSlop is the position tolerance for the match_phrase proximity
+	// clauses: terms may be at most this many positions apart (and may appear
+	// in any order, at a slop cost) and still count as a phrase match. Tuned
+	// to allow short stop-word gaps and minor reordering while still requiring
+	// physical adjacency in the doc.
+	phraseSlop = 5
 
 	// 40000 is the maximum precision threshold ES supports, so we use it to get the most accurate approximation.
 	// For now we didn't notice any performance issues at data scale PeerDB is currently being used with, but
@@ -764,8 +779,36 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 		)
 	}
 	shoulds = append(shoulds, esdsl.NewDisMaxQuery().Queries(displayQueries...).TieBreaker(textDisMaxTieBreaker))
+	recall := esdsl.NewBoolQuery().Should(shoulds...)
 
-	return esdsl.NewBoolQuery().Should(shoulds...)
+	// Phrase proximity boost. Single-term queries get no benefit (match_phrase
+	// with one token degenerates to a term match that's already covered by the
+	// recall layer), so we skip them.
+	if len(strings.Fields(searchQuery)) < 2 { //nolint:mnd
+		return recall
+	}
+
+	// Build per-language match_phrase clauses against text and display. The
+	// analyzer of each field tokenizes the input the same way it tokenized
+	// indexed content, so any simple_query_string operator characters in the
+	// query are dropped as punctuation here. That's fine because the phrase
+	// clauses are gated by the recall layer below: they only contribute score
+	// to docs the simple_query_string-driven recall already admitted.
+	// dis_max picks the best language per doc instead of summing across
+	// translations. tie_breaker rewards multi-language matches lightly.
+	phraseQueries := make([]types.QueryVariant, 0, len(langs)*2) //nolint:mnd
+	for _, lang := range langs {
+		phraseQueries = append(phraseQueries,
+			esdsl.NewMatchPhraseQuery("text."+lang, searchQuery).Slop(phraseSlop),
+			esdsl.NewMatchPhraseQuery("display."+lang, searchQuery).Slop(phraseSlop).Boost(topDisplayBoost),
+		)
+	}
+	phrase := esdsl.NewDisMaxQuery().Queries(phraseQueries...).TieBreaker(textDisMaxTieBreaker).Boost(phraseBoost)
+
+	// must wraps the recall query so only docs admitted by simple_query_string
+	// can score. The outer should adds the phrase clause as a pure boost on
+	// top of the recall score.
+	return esdsl.NewBoolQuery().Must(recall).Should(phrase)
 }
 
 // TODO: Use a database instead.
