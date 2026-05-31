@@ -189,7 +189,7 @@ type StringWithLanguage struct {
 	Value string `json:"value" value:""`
 
 	// We set "order" to hide the field. It should not be set manually.
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"-" property:"IN_LANGUAGE"`
+	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"-" property:"IN_LANGUAGE" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE"`
 }
 
 // Section represents a section of fields of an entity.
@@ -200,14 +200,16 @@ type Section struct {
 }
 
 // Field represents a field of an entity.
+//
+//nolint:lll
 type Field struct {
-	Property        Ref                   `cardinality:"1"    json:"property"                  property:"HAS_PROPERTY"`
-	ValueType       Ref                   `cardinality:"1"    json:"valueType"                 property:"HAS_VALUE_TYPE"`
+	Property        Ref                   `cardinality:"1"    json:"property"                  property:"HAS_PROPERTY"     values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
+	ValueType       Ref                   `cardinality:"1"    json:"valueType"                 property:"HAS_VALUE_TYPE"   values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,VALUE_TYPE"`
 	OrderInList     Amount[float64]       `cardinality:"1"    json:"orderInList"               property:"ORDER_IN_LIST"`
 	Cardinality     Interval[Amount[int]] `cardinality:"1"    json:"cardinality"               property:"CARDINALITY"`
 	Values          []string              `cardinality:"0.."  json:"values,omitempty"          property:"FIELD_VALUES"`
 	SubField        []Field               `cardinality:"0.."  json:"subField,omitempty"        property:"SUB_FIELD"`
-	InverseProperty *Ref                  `cardinality:"0..1" json:"inverseProperty,omitempty" property:"INVERSE_PROPERTY"`
+	InverseProperty *Ref                  `cardinality:"0..1" json:"inverseProperty,omitempty" property:"INVERSE_PROPERTY" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
 }
 
 // Fields represents a list of fields of an entity.
