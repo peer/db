@@ -323,6 +323,28 @@ func (c *DBExportCommand) Run(globals *Globals) (returnErr errors.E) { //nolint:
 	return nil
 }
 
+// Run executes the db diagram command which writes a Mermaid ER diagram describing classes and fields.
+func (c *DBDiagramCommand) Run(globals *Globals) (returnErr errors.E) { //nolint:nonamedreturns
+	var w io.Writer
+	if c.Output == "-" {
+		w = os.Stdout
+	} else {
+		f, err := os.Create(c.Output)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		defer func() {
+			errE := f.Close()
+			if errE != nil && returnErr == nil {
+				returnErr = errors.WithStack(errE)
+			}
+		}()
+		w = f
+	}
+
+	return internalExport.Diagram(globals.Logger, w, c.SkipCore)
+}
+
 // Run executes the db wipe command which drops PostgreSQL schemas
 // and deletes ElasticSearch indices for all configured sites.
 func (c *DBWipeCommand) Run(globals *Globals) errors.E {

@@ -291,65 +291,6 @@ import (
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
-//nolint:gochecknoglobals
-var (
-	coreRef          = reflect.TypeFor[internalCore.Ref]()
-	coreTime         = reflect.TypeFor[internalCore.Time]()
-	timeTime         = reflect.TypeFor[time.Time]()
-	coreTimeInterval = reflect.TypeFor[internalCore.Interval[internalCore.Time]]()
-	coreIdentifier   = reflect.TypeFor[internalCore.Identifier]()
-	coreLink         = reflect.TypeFor[internalCore.Link]()
-	coreFile         = reflect.TypeFor[internalCore.File]()
-	coreHTML         = reflect.TypeFor[internalCore.HTML]()
-	coreRawHTML      = reflect.TypeFor[internalCore.RawHTML]()
-	coreNone         = reflect.TypeFor[internalCore.None]()
-	coreUnknown      = reflect.TypeFor[internalCore.Unknown]()
-
-	coreStructTypes = map[reflect.Type]bool{
-		coreRef:          true,
-		coreTime:         true,
-		timeTime:         true,
-		coreTimeInterval: true,
-		coreIdentifier:   true,
-		coreLink:         true,
-		coreFile:         true,
-		coreHTML:         true,
-		coreRawHTML:      true,
-		coreNone:         true,
-		coreUnknown:      true,
-	}
-
-	coreAmountTypes = map[reflect.Type]bool{
-		reflect.TypeFor[internalCore.Amount[int]]():     true,
-		reflect.TypeFor[internalCore.Amount[int8]]():    true,
-		reflect.TypeFor[internalCore.Amount[int16]]():   true,
-		reflect.TypeFor[internalCore.Amount[int32]]():   true,
-		reflect.TypeFor[internalCore.Amount[int64]]():   true,
-		reflect.TypeFor[internalCore.Amount[uint]]():    true,
-		reflect.TypeFor[internalCore.Amount[uint8]]():   true,
-		reflect.TypeFor[internalCore.Amount[uint16]]():  true,
-		reflect.TypeFor[internalCore.Amount[uint32]]():  true,
-		reflect.TypeFor[internalCore.Amount[uint64]]():  true,
-		reflect.TypeFor[internalCore.Amount[float32]](): true,
-		reflect.TypeFor[internalCore.Amount[float64]](): true,
-	}
-
-	coreAmountIntervalTypes = map[reflect.Type]bool{
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int]]]():     true,
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int8]]]():    true,
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int16]]]():   true,
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int32]]]():   true,
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int64]]]():   true,
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint]]]():    true,
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint8]]]():   true,
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint16]]]():  true,
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint32]]]():  true,
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint64]]]():  true,
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[float32]]](): true,
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[float64]]](): true,
-	}
-)
-
 var ErrDocumentIDNotFound = errors.Base("document ID not found")
 
 type claimNotMadeError struct {
@@ -999,7 +940,7 @@ func makeClaim(
 	claims map[identifier.Identifier]int,
 ) (document.Claim, errors.E) {
 	// Handle core.Ref.
-	if t == coreRef {
+	if t == internalCore.RefType {
 		if typeTag != "" {
 			return nil, errors.New("type tag is not supported for core.Ref fields")
 		}
@@ -1032,7 +973,7 @@ func makeClaim(
 	}
 
 	// Handle time.Time.
-	if t == timeTime {
+	if t == internalCore.StdTimeType {
 		if typeTag != "" {
 			return nil, errors.New("type tag is not supported for time.Time fields")
 		}
@@ -1073,7 +1014,7 @@ func makeClaim(
 	}
 
 	// Handle core.Time.
-	if t == coreTime {
+	if t == internalCore.TimeType {
 		if typeTag != "" {
 			return nil, errors.New("type tag is not supported for core.Time fields")
 		}
@@ -1087,8 +1028,8 @@ func makeClaim(
 			return nil, errE
 		}
 
-		coreTime := fieldValue.Interface().(internalCore.Time) //nolint:errcheck,forcetypeassert
-		if coreTime.Time.IsZero() {
+		timeVal := fieldValue.Interface().(internalCore.Time) //nolint:errcheck,forcetypeassert
+		if timeVal.Time.IsZero() {
 			return nil, errors.WithStack(&claimNotMadeError{
 				Default: defaultTag,
 			})
@@ -1101,13 +1042,13 @@ func makeClaim(
 				Confidence: confidence,
 			},
 			Prop:      document.Reference{ID: propertyID},
-			Time:      document.NewTime(coreTime.Time, coreTime.Precision, loc),
-			Precision: coreTime.Precision,
+			Time:      document.NewTime(timeVal.Time, timeVal.Precision, loc),
+			Precision: timeVal.Precision,
 		}, nil
 	}
 
 	// Handle core.Interval[core.Time].
-	if t == coreTimeInterval {
+	if t == internalCore.TimeIntervalType {
 		if typeTag != "" {
 			return nil, errors.New("type tag is not supported for core.Interval[core.Time] fields")
 		}
@@ -1174,7 +1115,7 @@ func makeClaim(
 	}
 
 	// Handle core.Interval[core.Amount[T]].
-	if coreAmountIntervalTypes[t] { //nolint:nestif
+	if internalCore.AmountIntervalTypes[t] { //nolint:nestif
 		if typeTag != "" {
 			return nil, errors.New("type tag is not supported for core.Interval[core.Amount[T]] fields")
 		}
@@ -1279,7 +1220,7 @@ func makeClaim(
 	}
 
 	// Handle core.Amount[T].
-	if coreAmountTypes[t] {
+	if internalCore.AmountTypes[t] {
 		if typeTag != "" {
 			return nil, errors.New("type tag is not supported for core.Amount[T] fields")
 		}
@@ -1330,7 +1271,7 @@ func makeClaim(
 	}
 
 	// Handle core.Identifier.
-	if t == coreIdentifier {
+	if t == internalCore.IdentifierType {
 		if precisionTag != "" {
 			return nil, errors.New("precision tag is not supported for core.Identifier fields")
 		}
@@ -1363,7 +1304,7 @@ func makeClaim(
 	}
 
 	// Handle core.Link.
-	if t == coreLink {
+	if t == internalCore.LinkType {
 		if precisionTag != "" {
 			return nil, errors.New("precision tag is not supported for core.Link fields")
 		}
@@ -1395,7 +1336,7 @@ func makeClaim(
 	}
 
 	// Handle core.File.
-	if t == coreFile {
+	if t == internalCore.FileType {
 		if precisionTag != "" {
 			return nil, errors.New("precision tag is not supported for core.File fields")
 		}
@@ -1427,7 +1368,7 @@ func makeClaim(
 	}
 
 	// Handle core.HTML.
-	if t == coreHTML {
+	if t == internalCore.HTMLType {
 		if precisionTag != "" {
 			return nil, errors.New("precision tag is not supported for core.HTML fields")
 		}
@@ -1467,7 +1408,7 @@ func makeClaim(
 	}
 
 	// Handle core.RawHTML.
-	if t == coreRawHTML {
+	if t == internalCore.RawHTMLType {
 		if precisionTag != "" {
 			return nil, errors.New("precision tag is not supported for core.RawHTML fields")
 		}
@@ -1507,7 +1448,7 @@ func makeClaim(
 	}
 
 	// Handle core.None.
-	if t == coreNone {
+	if t == internalCore.NoneType {
 		if precisionTag != "" {
 			return nil, errors.New("precision tag is not supported for core.None fields")
 		}
@@ -1538,7 +1479,7 @@ func makeClaim(
 	}
 
 	// Handle core.Unknown.
-	if t == coreUnknown {
+	if t == internalCore.UnknownType {
 		if precisionTag != "" {
 			return nil, errors.New("precision tag is not supported for core.Unknown fields")
 		}
@@ -1796,87 +1737,6 @@ func getNumericValue(v reflect.Value) (float64, bool) {
 	}
 }
 
-// parseCardinalityTag parses a cardinality tag string and returns min and max values.
-//
-// Supported formats:
-//   - "1" - exactly one (min=1, max=1)
-//   - "1.." - one or more (min=1, max=-1 for unbounded)
-//   - "0..1" - zero or one (min=0, max=1)
-//   - "0.." - zero or more (min=0, max=-1 for unbounded)
-//   - "2..5" - between 2 and 5 (min=2, max=5)
-//
-// If cardinality is empty, returns (0, -1) where -1 means unbounded.
-//
-// Returns (minCardinality, maxCardinality) where maxCardinality=-1 means unbounded.
-func parseCardinalityTag(cardinality string) (int, int, errors.E) {
-	if cardinality == "" {
-		return 0, -1, nil
-	}
-
-	if strings.Contains(cardinality, "..") {
-		parts := strings.Split(cardinality, "..")
-		if len(parts) != 2 { //nolint:mnd
-			errE := errors.New("invalid cardinality format")
-			errors.Details(errE)["cardinality"] = cardinality
-			return 0, 0, errE
-		}
-		minStr := strings.TrimSpace(parts[0])
-		if minStr == "" {
-			errE := errors.New("cardinality min value is empty")
-			errors.Details(errE)["cardinality"] = cardinality
-			return 0, 0, errE
-		}
-		minCardinality, err := strconv.Atoi(minStr)
-		if err != nil {
-			errE := errors.New("cardinality min value is not a valid integer")
-			errors.Details(errE)["cardinality"] = cardinality
-			return 0, 0, errors.WrapWith(err, errE)
-		}
-		if minCardinality < 0 {
-			errE := errors.New("cardinality min value cannot be negative")
-			errors.Details(errE)["cardinality"] = cardinality
-			return 0, 0, errE
-		}
-
-		maxCardinality := -1
-		maxStr := strings.TrimSpace(parts[1])
-		if maxStr != "" {
-			maxCardinality, err = strconv.Atoi(maxStr)
-			if err != nil {
-				errE := errors.New("cardinality max value is not a valid integer")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errors.WrapWith(err, errE)
-			}
-			if maxCardinality <= 0 {
-				errE := errors.New("cardinality max value cannot be negative or zero")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errE
-			}
-			if maxCardinality < minCardinality {
-				errE := errors.New("cardinality max value cannot be less than min")
-				errors.Details(errE)["cardinality"] = cardinality
-				return 0, 0, errE
-			}
-		}
-
-		return minCardinality, maxCardinality, nil
-	}
-
-	val, err := strconv.Atoi(strings.TrimSpace(cardinality))
-	if err != nil {
-		errE := errors.New("cardinality value is not a valid integer")
-		errors.Details(errE)["cardinality"] = cardinality
-		return 0, 0, errors.WrapWith(err, errE)
-	}
-	if val <= 0 {
-		errE := errors.New("cardinality value cannot be negative or zero")
-		errors.Details(errE)["cardinality"] = cardinality
-		return 0, 0, errE
-	}
-
-	return val, val, nil
-}
-
 // parseCardinality parses a cardinality tag string and validates it against the Go field type.
 //
 // It enforces that pointer and single-value fields have max cardinality <= 1,
@@ -1884,7 +1744,7 @@ func parseCardinalityTag(cardinality string) (int, int, errors.E) {
 //
 // Returns (minCardinality, maxCardinality) where maxCardinality=-1 means unbounded.
 func parseCardinality(cardinality string, fieldValue reflect.Value, hasDefault bool) (int, int, errors.E) {
-	minCardinality, maxCardinality, errE := parseCardinalityTag(cardinality)
+	minCardinality, maxCardinality, errE := internalCore.ParseCardinalityTag(cardinality)
 	if errE != nil {
 		return 0, 0, errE
 	}

@@ -27,10 +27,16 @@ import (
 // Every referenced section must have its order defined via an embedded struct with
 // the section tag. Sub-fields cannot have sections.
 //
-// The mnemonics parameter maps property mnemonic names to property document base IDs.
+// The mnemonics parameter maps property mnemonic names to property document
+// base IDs. Passing nil for mnemonics short-circuits the function and returns
+// (nil, nil).
 func Fields[T any](
 	mnemonics map[string][]string,
 ) (*internalCore.Fields, errors.E) {
+	if mnemonics == nil {
+		return nil, nil //nolint:nilnil
+	}
+
 	v := reflect.ValueOf(new(T)).Elem() //nolint:varnamelen
 	t := v.Type()
 
@@ -464,22 +470,14 @@ func (fc *fieldsCollector) makeField(
 // Sub-fields are non-value fields within a nested struct that has a property tag.
 // Returns nil if the type is not a struct or has no sub-fields.
 func (fc *fieldsCollector) collectSubFields(fieldType reflect.Type, fieldPath []string, structPath []reflect.Type) ([]internalCore.Field, errors.E) {
-	// Unwrap slice.
-	if fieldType.Kind() == reflect.Slice {
-		fieldType = fieldType.Elem()
-	}
-
-	// Unwrap pointer.
-	if fieldType.Kind() == reflect.Pointer {
-		fieldType = fieldType.Elem()
-	}
+	fieldType = internalCore.UnwrapSliceAndPointer(fieldType)
 
 	if fieldType.Kind() != reflect.Struct {
 		return nil, nil
 	}
 
 	// Skip known core types that are not user-defined structs with sub-fields.
-	if isKnownCoreType(fieldType) {
+	if internalCore.IsKnownType(fieldType) {
 		return nil, nil
 	}
 
@@ -504,12 +502,6 @@ func (fc *fieldsCollector) collectSubFields(fieldType reflect.Type, fieldPath []
 	return subFields, nil
 }
 
-// isKnownCoreType returns true for core types that should not be
-// inspected for sub-fields.
-func isKnownCoreType(t reflect.Type) bool {
-	return coreStructTypes[t] || coreAmountTypes[t] || coreAmountIntervalTypes[t]
-}
-
 // valueTypeRef creates a core.Ref pointing to a VALUE_TYPE vocabulary entry.
 func valueTypeRef(code string) internalCore.Ref {
 	return internalCore.Ref{ID: []string{internalCore.Namespace, "VALUE_TYPE", code}}
@@ -527,43 +519,35 @@ func determineValueType(field reflect.StructField) (internalCore.Ref, errors.E) 
 //
 //nolint:cyclop
 func determineValueTypeFromReflect(fieldType reflect.Type, typeTag string) (internalCore.Ref, errors.E) {
-	// Unwrap slice.
-	if fieldType.Kind() == reflect.Slice {
-		fieldType = fieldType.Elem()
-	}
-
-	// Unwrap pointer.
-	if fieldType.Kind() == reflect.Pointer {
-		fieldType = fieldType.Elem()
-	}
+	fieldType = internalCore.UnwrapSliceAndPointer(fieldType)
 
 	// Check core types first.
 	switch {
-	case fieldType == coreRef:
+	case fieldType == internalCore.RefType:
 		return valueTypeRef("REFERENCE"), nil
-	case fieldType == coreTime:
+	case fieldType == internalCore.TimeType:
 		return valueTypeRef("TIME"), nil
-	case fieldType == timeTime:
+	case fieldType == internalCore.StdTimeType:
 		return valueTypeRef("TIME"), nil
-	case fieldType == coreTimeInterval:
+	case fieldType == internalCore.TimeIntervalType:
 		return valueTypeRef("TIME_INTERVAL"), nil
-	case fieldType == coreIdentifier:
+	case fieldType == internalCore.IdentifierType:
 		return valueTypeRef("IDENTIFIER"), nil
-	case fieldType == coreLink:
+	case fieldType == internalCore.LinkType:
 		return valueTypeRef("LINK"), nil
-	case fieldType == coreFile:
+	case fieldType == internalCore.FileType:
 		return valueTypeRef("FILE"), nil
-	case fieldType == coreHTML:
+	case fieldType == internalCore.HTMLType:
 		return valueTypeRef("HTML"), nil
-	case fieldType == coreRawHTML:
+	case fieldType == internalCore.RawHTMLType:
 		return valueTypeRef("HTML"), nil
-	case fieldType == coreNone:
+	case fieldType == internalCore.NoneType:
 		return valueTypeRef("NONE"), nil
-	case fieldType == coreUnknown:
+	case fieldType == internalCore.UnknownType:
 		return valueTypeRef("UNKNOWN"), nil
-	case coreAmountTypes[fieldType]:
+	case internalCore.AmountTypes[fieldType]:
 		return valueTypeRef("AMOUNT"), nil
-	case coreAmountIntervalTypes[fieldType]:
+	case internalCore.AmountIntervalTypes[fieldType]:
 		return valueTypeRef("AMOUNT_INTERVAL"), nil
 	}
 
@@ -674,7 +658,7 @@ func parseFieldCardinality(field reflect.StructField) (internalCore.Interval[int
 // It is similar to [parseCardinality], but applies default cardinality
 // based on Go type without enforcing Go-type constraints on explicit values.
 func parseFieldsCardinality(cardinality string, fieldType reflect.Type) (int, int, errors.E) {
-	minCardinality, maxCardinality, errE := parseCardinalityTag(cardinality)
+	minCardinality, maxCardinality, errE := internalCore.ParseCardinalityTag(cardinality)
 	if errE != nil {
 		return 0, 0, errE
 	}
@@ -714,14 +698,8 @@ func parseValuesTag(field reflect.StructField) ([]string, errors.E) {
 	}
 
 	// Validate that the field type is internalCore.Ref (or slice/pointer of internalCore.Ref).
-	baseType := field.Type
-	if baseType.Kind() == reflect.Slice {
-		baseType = baseType.Elem()
-	}
-	if baseType.Kind() == reflect.Pointer {
-		baseType = baseType.Elem()
-	}
-	if baseType != coreRef {
+	baseType := internalCore.UnwrapSliceAndPointer(field.Type)
+	if baseType != internalCore.RefType {
 		errE := errors.New("values tag can only be used with core.Ref field type")
 		errors.Details(errE)["type"] = field.Type.String()
 		return nil, errE
@@ -749,15 +727,7 @@ func parseValuesTag(field reflect.StructField) ([]string, errors.E) {
 // and parses its values tag. Returns nil if the type is not a struct or has
 // no value field with a values tag.
 func parseStructValueFieldValues(fieldType reflect.Type) ([]string, errors.E) {
-	// Unwrap slice.
-	if fieldType.Kind() == reflect.Slice {
-		fieldType = fieldType.Elem()
-	}
-
-	// Unwrap pointer.
-	if fieldType.Kind() == reflect.Pointer {
-		fieldType = fieldType.Elem()
-	}
+	fieldType = internalCore.UnwrapSliceAndPointer(fieldType)
 
 	if fieldType.Kind() != reflect.Struct {
 		return nil, nil

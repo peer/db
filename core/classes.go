@@ -9,7 +9,9 @@ import (
 
 // Classes returns core classes.
 //
-// The mnemonics parameter maps property mnemonic names to property document base IDs.
+// The mnemonics parameter maps property mnemonic names to property document
+// base IDs. When mnemonics is nil the returned classes are still complete in
+// every other respect but their Fields schema is not generated.
 //
 //nolint:maintidx
 func Classes(mnemonics map[string][]string) ([]any, errors.E) {
