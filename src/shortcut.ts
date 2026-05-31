@@ -92,15 +92,26 @@ async function resolveShortcut(s: string, self?: string): Promise<resolvedPair[]
 // identifier token into a payload suitable for the SearchJustResults POST
 // endpoint. The "self" value is substituted with the supplied self ID; if
 // self is undefined and the shortcut references "self", an Error is thrown.
+// Multiple values for the same property are grouped into a single filter's
+// "to" list (OR-ed within that filter). Filters are ordered by first appearance.
 export async function shortcutToFilters(s: string, self?: string): Promise<JustResultsFilters> {
   const payload: JustResultsFilters = {}
   const filters: NonNullable<JustResultsFilters["filters"]> = []
+  const byProp = new Map<string, NonNullable<JustResultsFilters["filters"]>[number]>()
   for (const r of await resolveShortcut(s, self)) {
     if (r.reverse) {
       payload.reverse = r.value
       continue
     }
-    filters.push({ prop: r.prop, ref: { to: [{ id: r.value }] } })
+    const key = r.prop.join(":")
+    const existing = byProp.get(key)
+    if (existing) {
+      existing.ref.to.push({ id: r.value })
+    } else {
+      const filter = { prop: r.prop, ref: { to: [{ id: r.value }] } }
+      byProp.set(key, filter)
+      filters.push(filter)
+    }
   }
   if (filters.length > 0) {
     payload.filters = filters

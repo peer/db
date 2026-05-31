@@ -82,6 +82,27 @@ describe("shortcutToFilters", () => {
     assert.deepEqual(payload.filters, [{ prop: [parent, nested], ref: { to: [{ id: value }] } }])
   })
 
+  test("groups repeated keys into one filter's 'to' list", async () => {
+    const payload = await shortcutToFilters("ns.example.com,KIND=ns.example.com,A&ns.example.com,KIND=ns.example.com,B")
+    const prop = (await Identifier.from("ns.example.com", "KIND")).toString()
+    const a = (await Identifier.from("ns.example.com", "A")).toString()
+    const b = (await Identifier.from("ns.example.com", "B")).toString()
+    assert.deepEqual(payload.filters, [{ prop: [prop], ref: { to: [{ id: a }, { id: b }] } }])
+  })
+
+  test("keeps distinct properties as separate filters in first-appearance order", async () => {
+    const payload = await shortcutToFilters("ns.example.com,KIND=ns.example.com,A&ns.example.com,OTHER=ns.example.com,B&ns.example.com,KIND=ns.example.com,C")
+    const kind = (await Identifier.from("ns.example.com", "KIND")).toString()
+    const other = (await Identifier.from("ns.example.com", "OTHER")).toString()
+    const a = (await Identifier.from("ns.example.com", "A")).toString()
+    const b = (await Identifier.from("ns.example.com", "B")).toString()
+    const c = (await Identifier.from("ns.example.com", "C")).toString()
+    assert.deepEqual(payload.filters, [
+      { prop: [kind], ref: { to: [{ id: a }, { id: c }] } },
+      { prop: [other], ref: { to: [{ id: b }] } },
+    ])
+  })
+
   test("substitutes 'self' with the supplied self ID", async () => {
     const self = Identifier.new().toString()
     const payload = await shortcutToFilters("ns.example.com,KIND=self", self)
