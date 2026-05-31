@@ -116,10 +116,10 @@ export async function shortcutToFilters(s: string, self?: string): Promise<JustR
 // the supplied self ID; if self is undefined and the shortcut references
 // "self", an Error is thrown.
 export async function shortcutToQuery(s: string, self?: string): Promise<QueryValues> {
-  const filter: Record<string, string> = {}
+  const filter: Record<string, string[]> = {}
   for (const r of await resolveShortcut(s, self)) {
     const k = r.reverse ? RESERVED_REVERSE : r.prop.join(":")
-    filter[k] = r.value
+    ;(filter[k] ??= []).push(r.value)
   }
   return encodeQuery(filter)
 }

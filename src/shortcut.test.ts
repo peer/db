@@ -123,11 +123,11 @@ describe("shortcutToFilters", () => {
 })
 
 describe("shortcutToQuery", () => {
-  test("emits a single key=value pair with resolved identifiers", async () => {
+  test("emits a single key with a one-element list of resolved identifiers", async () => {
     const query = await shortcutToQuery("ns.example.com,KIND=ns.example.com,A")
     const prop = (await Identifier.from("ns.example.com", "KIND")).toString()
     const value = (await Identifier.from("ns.example.com", "A")).toString()
-    assert.deepEqual(query, { [prop]: value })
+    assert.deepEqual(query, { [prop]: [value] })
   })
 
   test("joins nested keys with ':'", async () => {
@@ -135,20 +135,28 @@ describe("shortcutToQuery", () => {
     const parent = (await Identifier.from("ns.example.com", "P")).toString()
     const nested = (await Identifier.from("ns.example.com", "Q")).toString()
     const value = (await Identifier.from("ns.example.com", "V")).toString()
-    assert.deepEqual(query, { [`${parent}:${nested}`]: value })
+    assert.deepEqual(query, { [`${parent}:${nested}`]: [value] })
+  })
+
+  test("groups repeated keys into a list of values", async () => {
+    const query = await shortcutToQuery("ns.example.com,KIND=ns.example.com,A&ns.example.com,KIND=ns.example.com,B")
+    const prop = (await Identifier.from("ns.example.com", "KIND")).toString()
+    const a = (await Identifier.from("ns.example.com", "A")).toString()
+    const b = (await Identifier.from("ns.example.com", "B")).toString()
+    assert.deepEqual(query, { [prop]: [a, b] })
   })
 
   test("preserves 'reverse' as the literal key", async () => {
     const query = await shortcutToQuery("reverse=ns.example.com,DOC")
     const value = (await Identifier.from("ns.example.com", "DOC")).toString()
-    assert.deepEqual(query, { reverse: value })
+    assert.deepEqual(query, { reverse: [value] })
   })
 
   test("substitutes 'self' with the supplied self ID", async () => {
     const self = Identifier.new().toString()
     const query = await shortcutToQuery("ns.example.com,KIND=self", self)
     const prop = (await Identifier.from("ns.example.com", "KIND")).toString()
-    assert.deepEqual(query, { [prop]: self })
+    assert.deepEqual(query, { [prop]: [self] })
   })
 
   test("throws when 'self' is referenced without a self prop", async () => {
