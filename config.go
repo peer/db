@@ -171,10 +171,17 @@ type DBExportCommand struct {
 	Property   []string `                                     help:"Properties to export (a.b.c path, * for single-level wildcard, ** for recursive)." name:"property"    placeholder:"STRING" short:"p"             yaml:"property"`
 }
 
+// DBDiagramCommand outputs a Mermaid ER diagram of classes and fields.
+type DBDiagramCommand struct {
+	Output   string `default:"-" help:"Output file path. Use - for stdout."                                        placeholder:"PATH" short:"o" type:"path" yaml:"output"`
+	SkipCore bool   `            help:"Exclude core entities and INSTANCE_OF references to them." name:"skip-core"                                          yaml:"skipCore"`
+}
+
 // DBCommand contains sub-commands for managing database.
 type DBCommand struct {
 	Wait    DBWaitCommand    `cmd:"" help:"Wait for pending indexing to complete and exit."    yaml:"wait"`
 	Reindex DBReindexCommand `cmd:"" help:"Force full reindex of all documents."               yaml:"reindex"`
 	Wipe    DBWipeCommand    `cmd:"" help:"Wipe PostgreSQL schemas and ElasticSearch indices." yaml:"wipe"`
 	Export  DBExportCommand  `cmd:"" help:"Export documents to CSV, JSON, or struct."          yaml:"export"`
+	Diagram DBDiagramCommand `cmd:"" help:"Output Mermaid ER diagram of classes and fields."   yaml:"diagram"`
 }

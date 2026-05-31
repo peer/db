@@ -448,11 +448,8 @@ func setKnownCoreType(
 	classID identifier.Identifier,
 	mnemonic string,
 ) bool {
-	coreRefType := reflect.TypeFor[internalCore.Ref]()
-	coreTimeType := reflect.TypeFor[internalCore.Time]()
-
 	switch fieldType {
-	case coreRefType:
+	case internalCore.RefType:
 		if refClaim, ok := claim.(*document.ReferenceClaim); ok {
 			base, errE := cache.getBase(ctx, refClaim.To.ID)
 			if errE != nil {
@@ -467,7 +464,7 @@ func setKnownCoreType(
 		}
 		return true
 
-	case coreTimeType:
+	case internalCore.TimeType:
 		if timeClaim, ok := claim.(*document.TimeClaim); ok {
 			fieldVal.Set(reflect.ValueOf(internalCore.Time{
 				Time:      mustParseDocTime(timeClaim.Time, timeClaim.Precision),
@@ -633,14 +630,14 @@ func setAmountStructValue(
 	amountClaim, ok := claim.(*document.AmountClaim)
 	if !ok {
 		// Check if this is an Amount type at all.
-		if isAmountType(fieldType) {
+		if internalCore.AmountTypes[fieldType] {
 			logger.Info().Str("mnemonic", mnemonic).Str("classID", classID.String()).Str("claimType", fmt.Sprintf("%T", claim)).Msg("expected AmountClaim for Amount field")
 			return true
 		}
 		return false
 	}
 
-	if !isAmountType(fieldType) {
+	if !internalCore.AmountTypes[fieldType] {
 		return false
 	}
 
@@ -658,25 +655,6 @@ func setAmountStructValue(
 	setNumericField(precisionField, amountClaim.Precision)
 
 	return true
-}
-
-// isAmountType checks whether the given type is one of the Amount[T] types.
-func isAmountType(t reflect.Type) bool {
-	amountTypes := []reflect.Type{
-		reflect.TypeFor[internalCore.Amount[int]](),
-		reflect.TypeFor[internalCore.Amount[int8]](),
-		reflect.TypeFor[internalCore.Amount[int16]](),
-		reflect.TypeFor[internalCore.Amount[int32]](),
-		reflect.TypeFor[internalCore.Amount[int64]](),
-		reflect.TypeFor[internalCore.Amount[uint]](),
-		reflect.TypeFor[internalCore.Amount[uint8]](),
-		reflect.TypeFor[internalCore.Amount[uint16]](),
-		reflect.TypeFor[internalCore.Amount[uint32]](),
-		reflect.TypeFor[internalCore.Amount[uint64]](),
-		reflect.TypeFor[internalCore.Amount[float32]](),
-		reflect.TypeFor[internalCore.Amount[float64]](),
-	}
-	return slices.Contains(amountTypes, t)
 }
 
 // setNumericField sets a numeric reflect.Value from a float64.
@@ -701,8 +679,7 @@ func setIntervalValue(
 	logger *zerolog.Logger,
 ) bool {
 	// Check for TimeIntervalClaim -> Interval[Time].
-	coreTimeIntervalType := reflect.TypeFor[internalCore.Interval[internalCore.Time]]()
-	if fieldType == coreTimeIntervalType {
+	if fieldType == internalCore.TimeIntervalType {
 		if tic, ok := claim.(*document.TimeIntervalClaim); ok {
 			setTimeIntervalValue(fieldVal, tic)
 		} else {
@@ -714,7 +691,7 @@ func setIntervalValue(
 	}
 
 	// Check for AmountIntervalClaim -> Interval[Amount[T]].
-	if isAmountIntervalType(fieldType) {
+	if internalCore.AmountIntervalTypes[fieldType] {
 		if aic, ok := claim.(*document.AmountIntervalClaim); ok {
 			setAmountIntervalValue(fieldVal, fieldType, aic, classID, mnemonic, logger)
 		} else {
@@ -726,25 +703,6 @@ func setIntervalValue(
 	}
 
 	return false
-}
-
-// isAmountIntervalType checks whether the given type is one of the Interval[Amount[T]] types.
-func isAmountIntervalType(t reflect.Type) bool {
-	intervalTypes := []reflect.Type{
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int]]](),
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int8]]](),
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int16]]](),
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int32]]](),
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[int64]]](),
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint]]](),
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint8]]](),
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint16]]](),
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint32]]](),
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[uint64]]](),
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[float32]]](),
-		reflect.TypeFor[internalCore.Interval[internalCore.Amount[float64]]](),
-	}
-	return slices.Contains(intervalTypes, t)
 }
 
 // setTimeIntervalValue sets an Interval[Time] struct from a TimeIntervalClaim.
@@ -839,8 +797,7 @@ func setReferenceValue(
 	mnemonic string,
 	logger *zerolog.Logger,
 ) errors.E {
-	coreRefType := reflect.TypeFor[internalCore.Ref]()
-	if fieldType == coreRefType {
+	if fieldType == internalCore.RefType {
 		base, errE := cache.getBase(ctx, claim.To.ID)
 		if errE != nil {
 			return errE
