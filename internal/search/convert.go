@@ -204,6 +204,11 @@ type Converter struct {
 	// If a language is not a key, fallback is only the undetermined language.
 	// If a language has an empty slice, no fallback is attempted at all.
 	languagePriority map[string][]string
+	// enabledLanguages is the set of languages this site enables. Derived from
+	// the languagePriority keys (plus "und") when set, otherwise the package-level
+	// SupportedLanguages default. The converter populates per-language indexed
+	// content only for these languages.
+	enabledLanguages map[string]bool
 	// getDocument fetches a document by ID from the store.
 	getDocument func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E)
 	// documentInfoMu protects documentInfoCache for concurrent access.
@@ -229,20 +234,7 @@ func NewConverter(
 	if errE != nil {
 		return nil, errE
 	}
-	// Ensure all supported languages are keys in languagePriority, matching the
-	// frontend pattern where languagePriority keys define the set of enabled
-	// languages. On the backend, we enable all supported languages.
-	// Languages without explicit fallbacks get default fallback behavior.
-	fullPriority := make(map[string][]string, len(SupportedLanguages))
-	for lang := range SupportedLanguages {
-		if fallbacks, ok := languagePriority[lang]; ok {
-			fullPriority[lang] = fallbacks
-		} else if lang != document.UndeterminedLanguage {
-			fullPriority[lang] = []string{document.UndeterminedLanguage}
-		} else {
-			fullPriority[lang] = nil
-		}
-	}
+	enabledLanguages, languagePriority := enabledLanguagesFromLanguagePriority(languagePriority)
 	c := &Converter{
 		Hooks:                    nil,
 		LanguageCodes:            nil,
@@ -253,7 +245,8 @@ func NewConverter(
 		namingProperties:         nil,
 		inverseProperties:        nil,
 		fieldInverseProperties:   nil,
-		languagePriority:         fullPriority,
+		languagePriority:         languagePriority,
+		enabledLanguages:         enabledLanguages,
 		getDocument:              getDocument,
 		documentInfoCache:        map[identifier.Identifier]documentInfo{},
 		documentInfoMu:           sync.RWMutex{},
@@ -406,10 +399,12 @@ func (c *Converter) buildLanguageCodes(allDocuments []*document.D) {
 			continue
 		}
 		// Extract the CODE identifier claim and use the primary language subtag.
+		// Only register codes that are enabled for this site so that IN_LANGUAGE
+		// resolution for a disabled language quietly falls back to "und".
 		ids := document.GetClaimsOfTypeWithConfidence[document.IdentifierClaim](doc, internalCore.CodePropID, document.LowConfidence)
 		for _, id := range ids {
 			code, _, _ := strings.Cut(id.Value, "-")
-			if SupportedLanguages[code] {
+			if c.enabledLanguages[code] {
 				c.LanguageCodes[doc.ID] = code
 			}
 		}
@@ -626,7 +621,7 @@ func (c *Converter) extendDisplayPaths(
 	parentInfo documentInfo, hierProp identifier.Identifier,
 	display displayStrings,
 ) {
-	for lang := range SupportedLanguages {
+	for lang := range c.enabledLanguages {
 		// If lang does not exist in Display, this just means it is an empty string and we have not stored
 		// it in the map. So reading a zero value from the map makes the right thing and we get an empty string back.
 		thisDisplay := display.Display[lang]
@@ -672,7 +667,7 @@ func (c *Converter) makeDisplayStrings(ctx context.Context, doc *document.D) (di
 		Naming:  c.namingStrings(doc),
 	}
 
-	for lang := range SupportedLanguages {
+	for lang := range c.enabledLanguages {
 		if tmplStr, ok := templates[lang]; ok {
 			// Template exists for this language: render it with the target language so that
 			// template functions (e.g., bestString) use that language's fallback chain.
@@ -778,9 +773,9 @@ func (c *Converter) displayLabelTemplate(ctx context.Context, doc *document.D) (
 		return nil, nil //nolint:nilnil
 	}
 
-	// For each supported language, find the best template using the fallback chain.
-	result := make(map[string]string, len(SupportedLanguages))
-	for lang := range SupportedLanguages {
+	// For each enabled language, find the best template using the fallback chain.
+	result := make(map[string]string, len(c.enabledLanguages))
+	for lang := range c.enabledLanguages {
 		chain := []string{lang}
 		if fallbacks, ok := c.languagePriority[lang]; ok {
 			chain = append(chain, fallbacks...)
@@ -1017,7 +1012,7 @@ func (c *Converter) extractInLanguages(claims document.Claims) []string {
 	refs := document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](claims, internalCore.InLanguagePropID, document.LowConfidence)
 	var codes []string
 	for _, ref := range refs {
-		if code, ok := c.LanguageCodes[ref.To.ID]; ok && SupportedLanguages[code] {
+		if code, ok := c.LanguageCodes[ref.To.ID]; ok && c.enabledLanguages[code] {
 			codes = append(codes, code)
 		}
 	}
@@ -1075,11 +1070,11 @@ func (v *convertVisitor) addText(lang, value string) {
 }
 
 // addTextAllLanguages appends value to the top-level text bucket of every
-// supported language, including "und". Used for content that is genuinely
+// enabled language, including "und". Used for content that is genuinely
 // language-neutral (numeric / temporal renderings, document IDs) so a search
 // in any language analyzer can match it.
 func (v *convertVisitor) addTextAllLanguages(value string) {
-	for lang := range SupportedLanguages {
+	for lang := range v.converter.enabledLanguages {
 		v.addText(lang, value)
 	}
 }

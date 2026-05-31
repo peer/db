@@ -898,6 +898,7 @@ func TestBuildLanguageCodes(t *testing.T) {
 	slDoc := makeLanguageDoc(slID, "sl")
 
 	c := &Converter{ //nolint:exhaustruct
+		enabledLanguages:  SupportedLanguages,
 		documentInfoCache: map[identifier.Identifier]documentInfo{},
 	}
 	c.buildLanguageCodes([]*document.D{enDoc, slDoc})
@@ -913,6 +914,7 @@ func TestBuildLanguageCodesSubtag(t *testing.T) {
 	langDoc := makeLanguageDoc(testLangDocID, "en-US")
 
 	c := &Converter{ //nolint:exhaustruct
+		enabledLanguages:  SupportedLanguages,
 		documentInfoCache: map[identifier.Identifier]documentInfo{},
 	}
 	c.buildLanguageCodes([]*document.D{langDoc})
@@ -949,6 +951,7 @@ func TestExtractInLanguages(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
+		enabledLanguages: SupportedLanguages,
 		LanguageCodes: map[identifier.Identifier]string{
 			testLangDocID: "en",
 		},
@@ -1016,6 +1019,7 @@ func TestExtractInLanguagesMultiple(t *testing.T) {
 	enLangID := identifier.New()
 	slLangID := identifier.New()
 	c := &Converter{ //nolint:exhaustruct
+		enabledLanguages: SupportedLanguages,
 		LanguageCodes: map[identifier.Identifier]string{
 			enLangID: "en",
 			slLangID: "sl",
@@ -1166,6 +1170,7 @@ func TestMakeDisplayStrings(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
+		enabledLanguages: SupportedLanguages,
 		namingProperties: []identifier.Identifier{internalCore.NamingPropID},
 		LanguageCodes:    map[identifier.Identifier]string{},
 	}
@@ -1201,6 +1206,7 @@ func TestMakeDisplayStringsSanitizesNullBytes(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
+		enabledLanguages: SupportedLanguages,
 		namingProperties: []identifier.Identifier{internalCore.NamingPropID},
 		LanguageCodes:    map[identifier.Identifier]string{},
 	}
@@ -6118,9 +6124,12 @@ func TestGetDocumentInfoWithLanguagePriority(t *testing.T) {
 		docID: doc,
 	}
 
-	// Priority: en falls back to sl, pt has no fallback.
+	// Priority: en falls back to sl, sl enabled without fallback, pt enabled
+	// without fallback. All three appear as keys so they are in the enabled
+	// language set (LanguagePriority keys + "und" = enabled languages).
 	priority := map[string][]string{
 		"en": {"sl", "und"},
+		"sl": {},
 		"pt": {},
 	}
 	c := newTestConverterWithPriority(t, nil, languages, extraDocs, priority)
@@ -6224,8 +6233,11 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 		childID:  childDoc,
 	}
 
-	// Priority: sl falls back to en. No fallback for pt.
+	// Priority: en enabled (no fallback), sl falls back to en, pt enabled with
+	// no fallback. All three appear as keys so they are part of the enabled
+	// language set (LanguagePriority keys + "und" = enabled languages).
 	priority := map[string][]string{
+		"en": {},
 		"sl": {"en"},
 		"pt": {},
 	}

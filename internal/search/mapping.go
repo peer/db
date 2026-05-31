@@ -4,18 +4,52 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
+	"maps"
 	"text/template"
 
 	"gitlab.com/tozd/go/errors"
+
+	"gitlab.com/peerdb/peerdb/document"
 )
 
-// SupportedLanguages is a set of supported languages in ElasticSearch mapping.
+// SupportedLanguages is the set of supported languages in ElasticSearch mapping
+// and is the default when a site does not specify its own LanguagePriority.
 // Includes the undetermined language ("und") for content without a specific language.
+//
+// Sites that set LanguagePriority enable only the languages listed in its keys (plus "und").
 var SupportedLanguages = map[string]bool{ //nolint:gochecknoglobals
 	"en":  true,
 	"sl":  true,
 	"pt":  true,
 	"und": true,
+}
+
+// enabledLanguagesFromLanguagePriority returns the set of enabled languages and the per-language
+// fallback chains to use for display label resolution, given its LanguagePriority configuration.
+//
+// When priority is non-empty, the enabled set is its keys plus "und", and the returned fallback
+// chains are priority verbatim. When priority is nil/empty, the default SupportedLanguages set is
+// enabled and each non-"und" language falls back to "und".
+func enabledLanguagesFromLanguagePriority(priority map[string][]string) (map[string]bool, map[string][]string) {
+	if len(priority) == 0 {
+		out := make(map[string]bool, len(SupportedLanguages))
+		maps.Copy(out, SupportedLanguages)
+		fullPriority := make(map[string][]string, len(SupportedLanguages))
+		for lang := range SupportedLanguages {
+			if lang != document.UndeterminedLanguage {
+				fullPriority[lang] = []string{document.UndeterminedLanguage}
+			} else {
+				fullPriority[lang] = nil
+			}
+		}
+		return out, fullPriority
+	}
+	out := make(map[string]bool, len(priority)+1)
+	for lang := range priority {
+		out[lang] = true
+	}
+	out[document.UndeterminedLanguage] = true
+	return out, priority
 }
 
 //go:embed mapping.tmpl
