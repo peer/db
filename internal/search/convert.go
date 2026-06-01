@@ -1204,12 +1204,69 @@ func (v *convertVisitor) addText(lang, value string) {
 	v.result.Text[lang] = append(v.result.Text[lang], value)
 }
 
+// deduplicateResult removes duplicate values from the result's display and text
+// buckets after all folding is done. Folding appends the same label from several
+// sources (a referenced document's ToDisplay, ToNaming, and ToDisplayPath often
+// render to the same string, and sibling claims repeat shared ancestors), so the
+// raw buckets accumulate repeats. Each display and text bucket is deduplicated in
+// place, preserving first-seen order.
+//
+// In addition, any "und" text value that also appears in a language-specific text
+// bucket is dropped from "und": the search query unions each language field with
+// "und", so such a value is already reachable through its language field, and the
+// "und" copy would only bloat the index and inflate term frequencies.
+func (v *convertVisitor) deduplicateResult() {
+	for lang, vals := range v.result.Display {
+		v.result.Display[lang] = deduplicateStrings(vals)
+	}
+	for lang, vals := range v.result.Text {
+		v.result.Text[lang] = deduplicateStrings(vals)
+	}
+	inLanguage := map[string]bool{}
+	for lang, vals := range v.result.Text {
+		if lang == document.UndeterminedLanguage {
+			continue
+		}
+		for _, val := range vals {
+			inLanguage[val] = true
+		}
+	}
+	und := v.result.Text[document.UndeterminedLanguage]
+	filtered := und[:0]
+	for _, val := range und {
+		if inLanguage[val] {
+			continue
+		}
+		filtered = append(filtered, val)
+	}
+	if len(filtered) == 0 {
+		delete(v.result.Text, document.UndeterminedLanguage)
+		return
+	}
+	v.result.Text[document.UndeterminedLanguage] = filtered
+}
+
+// deduplicateStrings returns vals with duplicates removed, preserving first-seen order.
+// It filters in place, reusing the backing array.
+func deduplicateStrings(vals []string) []string {
+	seen := make(map[string]bool, len(vals))
+	out := vals[:0]
+	for _, val := range vals {
+		if seen[val] {
+			continue
+		}
+		seen[val] = true
+		out = append(out, val)
+	}
+	return out
+}
+
 // addDisplay populates the top-level display field: for each enabled language it
 // adds the rendered display label and the labels of the document's ancestor
-// hierarchy paths (split on hierarchyPathSeparator), deduplicated. The display
-// field uses the und_text analyzer for every language, so the per-language
-// ancestor labels (which may be fallback-resolved and mixed-language) are kept
-// under their own language rather than collapsed into "und".
+// hierarchy paths (split on hierarchyPathSeparator). The display field uses the
+// und_text analyzer for every language, so the per-language ancestor labels
+// (which may be fallback-resolved and mixed-language) are kept under their own
+// language rather than collapsed into "und".
 func (v *convertVisitor) addDisplay(labels map[string]string, paths map[string][]string) {
 	add := func(lang, val string) {
 		val = strings.TrimSpace(val)
@@ -1218,9 +1275,6 @@ func (v *convertVisitor) addDisplay(labels map[string]string, paths map[string][
 		}
 		if v.result.Display == nil {
 			v.result.Display = map[string][]string{}
-		}
-		if slices.Contains(v.result.Display[lang], val) {
-			return
 		}
 		v.result.Display[lang] = append(v.result.Display[lang], val)
 	}
@@ -1241,16 +1295,10 @@ func (v *convertVisitor) addDisplay(labels map[string]string, paths map[string][
 // joined by hierarchyPathSeparator; the labels are split out and added
 // individually so each ancestor name is searchable. Like other display labels,
 // they go to "und" because they are fallback-resolved and may mix languages.
-// Duplicates within the map are dropped.
 func (v *convertVisitor) addDisplayPathLabels(paths map[string][]string) {
-	seen := map[string]bool{}
 	for _, langPaths := range paths {
 		for _, path := range langPaths {
 			for label := range strings.SplitSeq(path, hierarchyPathSeparator) {
-				if seen[label] {
-					continue
-				}
-				seen[label] = true
 				v.addText(document.UndeterminedLanguage, label)
 			}
 		}
@@ -1281,16 +1329,9 @@ func (v *convertVisitor) addDisplayPathLabels(paths map[string][]string) {
 // extracted per their own language, so they fold into that language's bucket
 // where the matching analyzer applies.
 func (v *convertVisitor) appendClaimDisplaysToText() {
-	// Display values across the per-language map collapse into "und"; we drop
-	// duplicates that arise when fallback resolves multiple languages to the
-	// same rendered string.
+	// Display values across the per-language map all collapse into "und";
 	addDisplay := func(m map[string]string) {
-		seen := map[string]bool{}
 		for _, val := range m {
-			if seen[val] {
-				continue
-			}
-			seen[val] = true
 			v.addText(document.UndeterminedLanguage, val)
 		}
 	}
@@ -1586,6 +1627,8 @@ func (c *Converter) FromDocument(
 	// document names, and amount/time boundary strings without depending only
 	// on the per-claim-type nested queries.
 	v.appendClaimDisplaysToText()
+
+	v.deduplicateResult()
 
 	return v.result, nil
 }

@@ -3979,19 +3979,20 @@ func TestFromDocumentAllClaimTypesConfidence(t *testing.T) {
 			result, errE := c.FromDocument(ctx, doc, nil)
 			require.NoError(t, errE, "% -+#.1v", errE)
 			assert.Equal(t, testDocID, result.ID)
-			// text["und"] aggregates the following. Property labels (PropDisplay/
-			// PropNaming) are not folded; only referenced-document labels and
-			// numeric/temporal bounds are. This doc's referenced docs carry only
-			// "und" labels, so every value resolves to a single "und" string.
+			// text["und"] aggregates the following, after dedupeResult drops
+			// duplicates. Property labels of value claims (PropDisplay/PropNaming)
+			// are not folded; only referenced-document labels and numeric/temporal
+			// bounds are. This doc's referenced docs carry only "und" labels, so
+			// every value resolves to a single "und" string.
 			//   1   - the document ID (folded into "und")
 			// per included-claim group (expected = 1 unless skipped):
 			//   4   - Identifier+String+HTML(stripped)+Link source claims
-			//   2 Amount × (From + To)              = 4
-			//   2 Time   × (From + To)              = 4
-			//   1 Ref    × (ToDisplay + ToNaming)   = 2
-			//   1 Has    × (PropDisplay + PropNaming) = 2
+			//   Amount point (From == To dedup) + AmountInterval (From, To)  = 3
+			//   Time   point (From == To dedup) + TimeInterval   (From, To)  = 3
+			//   1 Ref  (ToDisplay == ToNaming dedup)                         = 1
+			//   1 Has  (PropDisplay == PropNaming dedup)                     = 1
 			//   None+Unknown contribute nothing (absence assertions).
-			assert.Len(t, result.Text["und"], 1+16*tt.expected)
+			assert.Len(t, result.Text["und"], 1+12*tt.expected)
 			// Amount + AmountInterval each contribute one claim.
 			assert.Len(t, result.Claims.Amount, 2*tt.expected)
 			// Time + TimeInterval each contribute one claim.
@@ -4002,6 +4003,56 @@ func TestFromDocumentAllClaimTypesConfidence(t *testing.T) {
 			assert.Len(t, result.Claims.Unknown, tt.expected)
 		})
 	}
+}
+
+// TestDedupeResultDeMirrorsUnd verifies the final dedup pass drops a value from
+// "und" when the same value is already indexed in a language-specific text
+// bucket. The search query unions each language field with "und", so the value
+// stays reachable through its language field and the "und" copy is redundant.
+func TestDedupeResultDeMirrorsUnd(t *testing.T) {
+	t.Parallel()
+
+	enLangDoc := makeLanguageDoc(testLangDocID, "en")
+	c := newTestConverter(t, nil, []*document.D{enLangDoc}, map[identifier.Identifier]*document.D{})
+
+	ctx := t.Context()
+
+	enSub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
+				To:        document.Reference{ID: testLangDocID},
+			},
+		},
+	}
+
+	// The same value is tagged English on one claim (routes to text.en) and left
+	// untagged on another (routes to text.und before the de-mirror pass).
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, enSub),
+					Prop:      document.Reference{ID: testPropID},
+					String:    "shared value",
+				},
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+					String:    "shared value",
+				},
+			},
+		},
+	}
+	result, errE := c.FromDocument(ctx, doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, []string{"shared value"}, result.Text["en"])
+	assert.NotContains(t, result.Text["und"], "shared value", "a value in text.en must be de-mirrored out of text.und")
+	// und-only content (the document ID) is kept.
+	assert.Contains(t, result.Text["und"], testDocID.String())
 }
 
 // Tests for error propagation through Visit* methods and FromDocument.
