@@ -6189,7 +6189,7 @@ func TestRecognizedNotIndexedLanguageFallback(t *testing.T) {
 
 	// The English display label resolves to the Slovenian name via the en->sl
 	// fallback, even though "sl" is not indexed.
-	assert.Equal(t, "Slovensko Ime", result.Display["en"])
+	assert.Equal(t, []string{"Slovensko Ime"}, result.Display["en"])
 
 	// The Slovenian content is dropped from text: there is no "sl" bucket, and it
 	// is not folded into "und". Only the document ID lands in "und".
@@ -6279,8 +6279,16 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 	}
 
 	extraDocs := map[identifier.Identifier]*document.D{
-		parentID: parentDoc,
-		childID:  childDoc,
+		parentID:                         parentDoc,
+		childID:                          childDoc,
+		internalCore.SubentityOfPropID:   subentityDoc,
+		internalCore.SubclassOfPropID:    subclassDoc,
+		internalCore.SubpropertyOfPropID: subpropDoc,
+		internalCore.InstanceOfPropID:    instanceDoc,
+		enLangID:                         makeLanguageDoc(enLangID, "en"),
+		slLangID:                         makeLanguageDoc(slLangID, "sl"),
+		//nolint:exhaustruct
+		internalCore.PropertyClassID: {CoreDocument: document.CoreDocument{ID: internalCore.PropertyClassID}},
 	}
 
 	// Priority: en enabled (no fallback), sl falls back to en, pt enabled with
@@ -6309,6 +6317,15 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 	// Path is still created with empty strings.
 	require.Contains(t, info.DisplayPaths[internalCore.SubclassOfPropID], "pt")
 	assert.Equal(t, []string{"\x00"}, info.DisplayPaths[internalCore.SubclassOfPropID]["pt"])
+
+	// FromDocument folds the document's own ancestor display labels into the
+	// per-language display field: its own label plus its ancestors' labels.
+	// ("Parent EN" also appears in text independently, via the SUBCLASS_OF
+	// reference claim's ToDisplay/ToNaming, which is a separate mechanism.)
+	result, errE := c.FromDocument(ctx, childDoc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.ElementsMatch(t, []string{"Child EN", "Parent EN"}, result.Display["en"])
+	assert.ElementsMatch(t, []string{"Child SL", "Parent EN"}, result.Display["sl"])
 }
 
 func TestDisplayPathsEmptyAppend(t *testing.T) {

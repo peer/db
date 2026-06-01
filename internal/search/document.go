@@ -18,14 +18,15 @@ import (
 // text-search query can score multiple terms in the same field together and
 // reward documents where matches come from several textual claims.
 //
-// Display holds the rendered display label per supported language.
-// It is produced from the display-label template (or naming-string fallback) and
-// indexed with und_text analyzer per language because they might contain
-// mixed-language content.
+// Display holds, per supported language, the document's rendered display label
+// together with its ancestor display labels (its hierarchy paths, split into
+// individual labels), so the document is also findable and boosted by its
+// categories/ancestors. It is indexed with the und_text analyzer per language
+// because the values might contain mixed-language content.
 type Document struct {
 	ID identifier.Identifier `json:"id"`
 
-	Display map[string]string `json:"display,omitempty"`
+	Display map[string][]string `json:"display,omitempty"`
 
 	Text map[string][]string `json:"text,omitempty"`
 

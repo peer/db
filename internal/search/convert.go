@@ -1102,6 +1102,38 @@ func (v *convertVisitor) addText(lang, value string) {
 	v.result.Text[lang] = append(v.result.Text[lang], value)
 }
 
+// addDisplay populates the top-level display field: for each enabled language it
+// adds the rendered display label and the labels of the document's ancestor
+// hierarchy paths (split on hierarchyPathSeparator), deduplicated. The display
+// field uses the und_text analyzer for every language, so the per-language
+// ancestor labels (which may be fallback-resolved and mixed-language) are kept
+// under their own language rather than collapsed into "und".
+func (v *convertVisitor) addDisplay(labels map[string]string, paths map[string][]string) {
+	add := func(lang, val string) {
+		val = strings.TrimSpace(val)
+		if val == "" || !v.converter.enabledLanguages[lang] {
+			return
+		}
+		if v.result.Display == nil {
+			v.result.Display = map[string][]string{}
+		}
+		if slices.Contains(v.result.Display[lang], val) {
+			return
+		}
+		v.result.Display[lang] = append(v.result.Display[lang], val)
+	}
+	for lang, label := range labels {
+		add(lang, label)
+	}
+	for lang, langPaths := range paths {
+		for _, path := range langPaths {
+			for label := range strings.SplitSeq(path, hierarchyPathSeparator) {
+				add(lang, label)
+			}
+		}
+	}
+}
+
 // addDisplayPathLabels folds the labels of per-language display hierarchy paths
 // into the "und" text bucket. Each path is a chain of ancestor display labels
 // joined by hierarchyPathSeparator; the labels are split out and added
@@ -1411,15 +1443,11 @@ func (c *Converter) FromDocument(
 	if errE != nil {
 		return nil, errE
 	}
-	// Store the rendered display label per supported language in the top-level
-	// "display" field.
-	if len(info.Display.Display) > 0 {
-		v.result.Display = info.Display.Display
-	}
-	// Fold the document's own ancestor display labels (its hierarchy paths)
-	// into the text bucket so it can be found by its categories/ancestors.
+	// Build the top-level "display" field per language: the rendered display
+	// label plus the document's ancestor display labels (its hierarchy paths),
+	// so the document is also findable by its categories/ancestors.
 	_, docDisplayPaths := info.CollectHierarchyPaths()
-	v.addDisplayPathLabels(docDisplayPaths)
+	v.addDisplay(info.Display.Display, docDisplayPaths)
 
 	// Index the document's own ID into the "und" bucket so a user typing the ID
 	// (or a URL containing it) can locate the document via text search. The
