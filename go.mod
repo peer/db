@@ -22,6 +22,7 @@ require (
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/jackc/pgxlisten v0.0.0-20250802141604-12b92425684c
 	github.com/microcosm-cc/bluemonday v1.0.26
+	github.com/pemistahl/lingua-go v1.4.0
 	github.com/riverqueue/river v0.31.0
 	github.com/riverqueue/river/riverdriver v0.31.0
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.31.0
@@ -69,7 +70,9 @@ require (
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.uber.org/goleak v1.3.0 // indirect
+	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/text v0.36.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 )
 
 require (

@@ -6255,6 +6255,103 @@ func TestConversionIndexesOnlyEnabledLanguages(t *testing.T) {
 	assert.ElementsMatch(t, []string{docID.String(), "slovensko", "portuguese"}, result.Text["und"])
 }
 
+// TestDetectLanguageRoutesUntaggedContent verifies that, with DetectLanguages enabled, a long
+// untagged String claim whose content is clearly one enabled language is routed to that
+// language's text bucket instead of "und", while short content stays in "und".
+func TestDetectLanguageRoutesUntaggedContent(t *testing.T) {
+	t.Parallel()
+
+	// Default priority enables en/sl/pt/und, so the detector covers en, sl, pt.
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
+	c.DetectLanguages = true
+
+	ctx := t.Context()
+
+	// A clearly-English sentence (no IN_LANGUAGE) should land in text.en.
+	enText := "The quick brown fox jumps over the lazy dog near the river."
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: testPropID},
+				String:    enText,
+			}},
+		},
+	}
+	result, errE := c.FromDocument(ctx, doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Contains(t, result.Text["en"], enText, "clearly-English content should route to text.en")
+	assert.NotContains(t, result.Text["und"], enText, "detected content should not also land in und")
+
+	// A short untagged value stays in "und" (below the detection length guard).
+	short := "hello"
+	shortDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: testPropID},
+				String:    short,
+			}},
+		},
+	}
+	result, errE = c.FromDocument(ctx, shortDoc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Contains(t, result.Text["und"], short, "short content stays in und")
+	_, hasEn := result.Text["en"]
+	assert.False(t, hasEn, "short content should not be language-detected")
+}
+
+// TestDetectLanguageSingleEnabled verifies that, when a site enables exactly one
+// detector-supported language, untagged content is scored directly against that language with a
+// confidence threshold: content that matches routes to it, while content that clearly does not
+// (here Slovenian on an English-only site) stays in "und".
+func TestDetectLanguageSingleEnabled(t *testing.T) {
+	t.Parallel()
+
+	// Only English is enabled, so detection uses the single-language confidence path.
+	c := newTestConverterWithPriority(t, nil, nil, map[identifier.Identifier]*document.D{}, map[string][]string{"en": {}})
+	c.DetectLanguages = true
+
+	ctx := t.Context()
+
+	enText := "The quick brown fox jumps over the lazy dog near the river."
+	enDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: testPropID},
+				String:    enText,
+			}},
+		},
+	}
+	result, errE := c.FromDocument(ctx, enDoc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Contains(t, result.Text["en"], enText, "clearly-English content should route to text.en")
+	assert.NotContains(t, result.Text["und"], enText, "detected content should not also land in und")
+
+	// Clearly-Slovenian content on an English-only site does not match English well enough and
+	// stays in "und" rather than being forced into the English analyzer.
+	slText := "Danes je lep sončen dan in ptice veselo prepevajo na visokih drevesih ob reki."
+	slDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: testPropID},
+				String:    slText,
+			}},
+		},
+	}
+	result, errE = c.FromDocument(ctx, slDoc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Contains(t, result.Text["und"], slText, "non-English content stays in und on an English-only site")
+	_, hasEn := result.Text["en"]
+	assert.False(t, hasEn, "non-English content should not route to text.en")
+}
+
 func TestDisplayPathsNoFallback(t *testing.T) {
 	t.Parallel()
 

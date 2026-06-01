@@ -10,6 +10,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/pemistahl/lingua-go"
 	"gitlab.com/tozd/go/errors"
 
 	"gitlab.com/peerdb/peerdb/document"
@@ -25,6 +26,15 @@ var SupportedLanguages = map[string]bool{ //nolint:gochecknoglobals
 	"sl":  true,
 	"pt":  true,
 	"und": true,
+}
+
+// codeToLingua maps our language codes to lingua languages for language detection. Only
+// languages lingua supports appear here; "und" has no entry. Used to build the detector
+// and to map detection results back to our codes.
+var codeToLingua = map[string]lingua.Language{ //nolint:gochecknoglobals
+	"en": lingua.English,
+	"sl": lingua.Slovene,
+	"pt": lingua.Portuguese,
 }
 
 // enabledLanguagesFromLanguagePriority returns the set of enabled languages and the per-language

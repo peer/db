@@ -8,8 +8,10 @@ import (
 	"strings"
 	"sync"
 	"text/template"
+	"unicode/utf8"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/pemistahl/lingua-go"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
@@ -179,6 +181,19 @@ type Converter struct {
 	// when set, a claim for property X is also indexed for every ancestor of X via
 	// SUBPROPERTY_OF. Disabled by default; only the original property is indexed.
 	IndexAncestorProperties bool
+	// DetectLanguages enables automatic language detection for textual content that
+	// carries no IN_LANGUAGE sub-claim. When a high-confidence single enabled language
+	// is detected, the content is routed to that language instead of "und"; mixed or
+	// uncertain content stays in "und". Disabled by default (so tests are deterministic
+	// and do not load language models); enabled on the production indexing converter.
+	DetectLanguages bool
+
+	// languageDetector detects the language of untagged content. It is built over all supported
+	// languages (not only the enabled ones) so that confidence is meaningful, and is nil only
+	// when fewer than two languages are supported. linguaToCode maps the detector's lingua
+	// languages back to our language codes.
+	languageDetector lingua.LanguageDetector
+	linguaToCode     map[lingua.Language]string
 
 	// propertyDescendants maps a property ID to all its transitive sub-property IDs.
 	propertyDescendants map[identifier.Identifier][]identifier.Identifier
@@ -258,6 +273,9 @@ func NewConverter(
 		Hooks:                    nil,
 		LanguageCodes:            nil,
 		IndexAncestorProperties:  false,
+		DetectLanguages:          false,
+		languageDetector:         nil,
+		linguaToCode:             nil,
 		propertyDescendants:      nil,
 		propertyAncestors:        nil,
 		valueHierarchyProperties: nil,
@@ -271,6 +289,7 @@ func NewConverter(
 		documentInfoCache:        map[identifier.Identifier]documentInfo{},
 		documentInfoMu:           sync.RWMutex{},
 	}
+	c.buildLanguageDetector()
 	c.buildPropertyHierarchy(properties)
 	c.discoverValueHierarchyProperties()
 	c.buildNamingProperties()
@@ -278,6 +297,85 @@ func NewConverter(
 	c.buildInverseProperties(properties)
 	c.buildFieldInverseProperties(classes)
 	return c, nil
+}
+
+// minDetectRunes is the minimum trimmed length (in runes) for language detection. Detection
+// on short snippets is unreliable, so shorter content stays in "und".
+const minDetectRunes = 20
+
+// minDetectConfidence is the minimum confidence required to route untagged content to a detected
+// language. Lingua confidence is relative across the detector's supported languages, so this is
+// "best fit among the supported languages" rather than an absolute score.
+const minDetectConfidence = 0.90
+
+// buildLanguageDetector constructs the lingua detector over all supported languages, not only the
+// ones this site enables. Lingua's confidence is relative across the detector's languages, so a
+// detector restricted to a single enabled language would label everything that language; competing
+// against the other real language models is what lets detection express how well content fits one
+// language. The detected language is mapped back to our codes in detectLanguage, where a result
+// that is not enabled or scores below the confidence threshold falls back to "und". Language models
+// are preloaded at build time so the first detection does not pay the model-loading cost.
+func (c *Converter) buildLanguageDetector() {
+	langs := make([]lingua.Language, 0, len(codeToLingua))
+	c.linguaToCode = map[lingua.Language]string{}
+	for code, l := range codeToLingua {
+		langs = append(langs, l)
+		c.linguaToCode[l] = code
+	}
+	if len(langs) < 2 { //nolint:mnd
+		c.languageDetector = nil
+		return
+	}
+	c.languageDetector = lingua.NewLanguageDetectorBuilder().FromLanguages(langs...).WithPreloadedLanguageModels().Build()
+}
+
+// detectLanguage returns the enabled language code of text when a single language is detected
+// with confidence, or "" (meaning "und") when detection is disabled, the text is too short, or
+// the text is empty, mixed-language, uncertain, or detected as a language this site does not
+// enable. Detecting a non-enabled language (for example Slovenian content on an English-only
+// site) routes to "und" rather than forcing it into an enabled language's analyzer.
+func (c *Converter) detectLanguage(text string) string {
+	if !c.DetectLanguages || c.languageDetector == nil {
+		return ""
+	}
+	text = strings.TrimSpace(text)
+	if utf8.RuneCountInString(text) < minDetectRunes {
+		return ""
+	}
+	// DetectMultipleLanguagesOf splits the text by language; a single-language snippet yields
+	// one result, mixed content yields several. We route only when the whole snippet is one
+	// enabled language and that language also scores above the confidence threshold.
+	distinct := map[lingua.Language]bool{}
+	for _, r := range c.languageDetector.DetectMultipleLanguagesOf(text) {
+		distinct[r.Language()] = true
+	}
+	if len(distinct) != 1 {
+		return ""
+	}
+	for lang := range distinct {
+		code := c.linguaToCode[lang]
+		if !c.enabledLanguages[code] {
+			return ""
+		}
+		if c.languageDetector.ComputeLanguageConfidence(text, lang) < minDetectConfidence {
+			return ""
+		}
+		return code
+	}
+	return ""
+}
+
+// textLanguages resolves the languages a textual value should be indexed under: the explicit
+// IN_LANGUAGE languages when present, otherwise the detected language when detection yields a
+// single enabled language, otherwise "und".
+func (c *Converter) textLanguages(sub *document.ClaimTypes, text string) []string {
+	langs := c.extractInLanguages(sub)
+	if len(langs) == 1 && langs[0] == document.UndeterminedLanguage {
+		if detected := c.detectLanguage(text); detected != "" {
+			return []string{detected}
+		}
+	}
+	return langs
 }
 
 // validateLanguagePriority checks that all languages in priority are supported.
@@ -1252,7 +1350,7 @@ func (v *convertVisitor) VisitString(claim *document.StringClaim) (document.Visi
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	for _, lang := range v.converter.extractInLanguages(claim.Sub) {
+	for _, lang := range v.converter.textLanguages(claim.Sub, claim.String) {
 		v.addText(lang, claim.String)
 	}
 	return document.Keep, nil
@@ -1266,7 +1364,9 @@ func (v *convertVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitRes
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	for _, lang := range v.converter.extractInLanguages(claim.Sub) {
+	// Detection runs on the plain-text strip; stripHTML's language argument only affects
+	// no-block-space scripts, so the "und" strip is a valid detection input.
+	for _, lang := range v.converter.textLanguages(claim.Sub, stripHTML(claim.HTML, document.UndeterminedLanguage)) {
 		v.addText(lang, stripHTML(claim.HTML, lang))
 	}
 	return document.Keep, nil
