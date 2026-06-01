@@ -518,13 +518,17 @@ func (c *Converter) processFieldInverse(parentPath []identifier.Identifier, fiel
 // caching it on first access. It computes display strings and lazily walks
 // value hierarchy ancestors (e.g., SUBCLASS_OF). It is safe for concurrent use.
 func (c *Converter) getDocumentInfo(ctx context.Context, id identifier.Identifier) (documentInfo, errors.E) {
-	return c.computeDocumentInfo(ctx, id, map[identifier.Identifier]bool{})
+	return c.computeDocumentInfo(ctx, id, nil, map[identifier.Identifier]bool{})
 }
 
-// computeDocumentInfo fetches a document, computes its display strings, and lazily
-// walks value hierarchy ancestors. The computing set prevents infinite recursion
-// when cycles exist in hierarchy data. Results are cached for reuse.
-func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Identifier, computing map[identifier.Identifier]bool) (documentInfo, errors.E) {
+// computeDocumentInfo computes a document's display strings and lazily walks value
+// hierarchy ancestors. When doc is non-nil it is used directly (the caller already
+// has it, e.g., the document being indexed); otherwise the document is fetched by id.
+// The computing set prevents infinite recursion when cycles exist in hierarchy data.
+// Results are cached for reuse.
+func (c *Converter) computeDocumentInfo(
+	ctx context.Context, id identifier.Identifier, doc *document.D, computing map[identifier.Identifier]bool,
+) (documentInfo, errors.E) {
 	// Check cache.
 	c.documentInfoMu.RLock()
 	if info, ok := c.documentInfoCache[id]; ok {
@@ -539,17 +543,20 @@ func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Ident
 	}
 	computing[id] = true
 
-	doc, errE := c.getDocument(ctx, id)
-	if errE != nil {
-		if errors.Is(errE, store.ErrValueNotFound) {
-			// Referenced document does not exist (or was deleted). Return empty
-			// info without caching so that a later re-index can pick it up.
-			zerolog.Ctx(ctx).Warn().Err(errE).
-				Str("id", id.String()).
-				Msg("referenced document not found, using empty info")
-			return documentInfo{}, nil
+	if doc == nil {
+		var errE errors.E
+		doc, errE = c.getDocument(ctx, id)
+		if errE != nil {
+			if errors.Is(errE, store.ErrValueNotFound) {
+				// Referenced document does not exist (or was deleted). Return empty
+				// info without caching so that a later re-index can pick it up.
+				zerolog.Ctx(ctx).Warn().Err(errE).
+					Str("id", id.String()).
+					Msg("referenced document not found, using empty info")
+				return documentInfo{}, nil
+			}
+			return documentInfo{}, errE
 		}
-		return documentInfo{}, errE
 	}
 	display, errE := c.makeDisplayStrings(ctx, doc)
 	if errE != nil {
@@ -578,7 +585,7 @@ func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Ident
 			seen[parentID] = true
 			hierAncestors = append(hierAncestors, parentID)
 			// Recursively get parent info to collect transitive ancestors and paths.
-			parentInfo, errE := c.computeDocumentInfo(ctx, parentID, computing)
+			parentInfo, errE := c.computeDocumentInfo(ctx, parentID, nil, computing)
 			if errE != nil {
 				return documentInfo{}, errE
 			}
@@ -1095,9 +1102,31 @@ func (v *convertVisitor) addText(lang, value string) {
 	v.result.Text[lang] = append(v.result.Text[lang], value)
 }
 
+// addDisplayPathLabels folds the labels of per-language display hierarchy paths
+// into the "und" text bucket. Each path is a chain of ancestor display labels
+// joined by hierarchyPathSeparator; the labels are split out and added
+// individually so each ancestor name is searchable. Like other display labels,
+// they go to "und" because they are fallback-resolved and may mix languages.
+// Duplicates within the map are dropped.
+func (v *convertVisitor) addDisplayPathLabels(paths map[string][]string) {
+	seen := map[string]bool{}
+	for _, langPaths := range paths {
+		for _, path := range langPaths {
+			for label := range strings.SplitSeq(path, hierarchyPathSeparator) {
+				if seen[label] {
+					continue
+				}
+				seen[label] = true
+				v.addText(document.UndeterminedLanguage, label)
+			}
+		}
+	}
+}
+
 // appendClaimDisplaysToText folds claim values into the document's top-level
 // text bucket so the text-search query can match against referenced-document
-// names, numeric/temporal boundary strings, and has-claim property labels.
+// names (including their ancestor hierarchy labels), numeric/temporal boundary
+// strings, and has-claim property labels.
 //
 // For value claims (Amount, Time, Reference, and their Sub* counterparts) the
 // property label (PropDisplay/PropNaming) is deliberately not folded: a property
@@ -1149,6 +1178,7 @@ func (v *convertVisitor) appendClaimDisplaysToText() {
 	for _, c := range v.result.Claims.Reference {
 		addDisplay(c.ToDisplay)
 		addNaming(c.ToNaming)
+		v.addDisplayPathLabels(c.ToDisplayPath)
 	}
 	for _, c := range v.result.Claims.Has {
 		addDisplay(c.PropDisplay)
@@ -1157,6 +1187,7 @@ func (v *convertVisitor) appendClaimDisplaysToText() {
 	for _, c := range v.result.Claims.SubRef {
 		addDisplay(c.ToDisplay)
 		addNaming(c.ToNaming)
+		v.addDisplayPathLabels(c.ToDisplayPath)
 	}
 	for _, c := range v.result.Claims.SubHas {
 		addDisplay(c.PropDisplay)
@@ -1374,15 +1405,21 @@ func (c *Converter) FromDocument(
 		docID: doc.ID,
 	}
 
-	// Render the document's display label per supported language and store
-	// the non-empty results in the top-level "display" field.
-	displayStrings, errE := c.makeDisplayStrings(ctx, doc)
+	// Compute the document's info (display label and hierarchy paths) from the
+	// in-memory document, which may differ from what is in the store (hooks).
+	info, errE := c.computeDocumentInfo(ctx, doc.ID, doc, map[identifier.Identifier]bool{})
 	if errE != nil {
 		return nil, errE
 	}
-	if len(displayStrings.Display) > 0 {
-		v.result.Display = displayStrings.Display
+	// Store the rendered display label per supported language in the top-level
+	// "display" field.
+	if len(info.Display.Display) > 0 {
+		v.result.Display = info.Display.Display
 	}
+	// Fold the document's own ancestor display labels (its hierarchy paths)
+	// into the text bucket so it can be found by its categories/ancestors.
+	_, docDisplayPaths := info.CollectHierarchyPaths()
+	v.addDisplayPathLabels(docDisplayPaths)
 
 	// Index the document's own ID into the "und" bucket so a user typing the ID
 	// (or a URL containing it) can locate the document via text search. The
