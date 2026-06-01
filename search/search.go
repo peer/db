@@ -18,6 +18,7 @@ import (
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
+	"gitlab.com/peerdb/peerdb/document"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
@@ -685,72 +686,67 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 
 	shoulds := make([]types.QueryVariant, 0, 3) //nolint:mnd
 	shoulds = append(shoulds, esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(searchQuery)))
-	// Search aggregated textual content (string, html-stripped, identifier, link)
-	// across all supported languages. Each language has up to three analyzers
-	// indexed via multi-fields:
+	// Search aggregated textual content (string, html-stripped, identifier, link).
+	// Language-tagged content lives in its own text.<lang> bucket; language-neutral
+	// content (IDs, numbers, dates, fallback-resolved display labels) lives only in
+	// text.und. Each per-language clause searches [text.<lang>, text.und] together:
+	// a multi-field simple_query_string ORs each term across the two fields, so an
+	// AND query can satisfy one term from the language field and another from und
+	// within the same clause, and the score is their sum. The outer dis_max then
+	// picks the best language per doc.
+	//
+	// Each language has multi-fields indexed alongside the main field:
 	//   - text.<lang>            stemmed/lemmatized (language-specific, ICU folded)
-	//                            -- for "und" this is ICU folded only, no stemming
 	//   - text.<lang>.unstemmed  surface form (ICU folded only, no stemming)
-	//                            -- absent on "und" (would equal the main field)
 	//   - text.<lang>.exact      diacritic-preserved (lowercase only, no folding)
-	// Per stemmed language the dis_max gets three clauses; for "und"
-	// it gets two. The pattern:
-	//   - Exact-routed clause hits text.<lang> with quote_field_suffix=".exact"
-	//     so unquoted terms use the main analyzer and quoted phrases route to
-	//     .exact for diacritic-preserved matching. Wildcards stay literal here.
-	//   - Stemmed-phrase clause (stemmed languages only) hits text.<lang> with
-	//     no quote_field_suffix so quoted phrases get phrase matching with the
-	//     language stemmer applied (matching inflected forms). For unquoted
-	//     terms it duplicates the exact-routed clause. dis_max collapses the
-	//     duplicate to one score. "und" has no stemmer, so this clause is not
-	//     needed there.
-	//   - Unstemmed clause hits text.<lang>.unstemmed with analyze_wildcard=true
-	//     so wildcards get lowercased and ICU-folded before prefix matching.
-	//     Quoted phrases here use folded surface forms (no diacritics). For
-	//     "und" the equivalent clause hits text.und directly.
-	// dis_max picks the highest-scoring clause per doc instead of default summing,
-	// so language-tagging redundancy and overlapping analyzers do not inflate
-	// relevance. tie_breaker adds a small bonus when multiple clauses match.
-	// Languages are sorted for deterministic query generation.
+	// text.und uses the standard (ICU-folded, unstemmed) analyzer as its main field
+	// and has a .exact sub-field but no .unstemmed (its main field already is the
+	// unstemmed analyzer). Per language we emit three clauses, each combined with
+	// text.und:
+	//   - Exact-routed: [text.<lang>, text.und] with quote_field_suffix=".exact".
+	//     Unquoted terms hit the main analyzers; quoted phrases route to the .exact
+	//     sub-fields (both text.<lang>.exact and text.und.exact exist) for
+	//     diacritic-preserved matching. Wildcards stay literal here.
+	//   - Stemmed-phrase: [text.<lang>, text.und] with no suffix. Quoted phrases get
+	//     stemmed-phrase matching on text.<lang> (inflected forms) and folded-phrase
+	//     matching on text.und. Unquoted terms duplicate the exact-routed clause;
+	//     dis_max collapses the duplicate.
+	//   - Unstemmed/wildcard: [text.<lang>.unstemmed, text.und] with
+	//     analyze_wildcard=true. Both are standard_string, so wildcards get folded
+	//     before prefix matching. The und companion is text.und directly.
+	// "und" rides inside every clause via its main field or .exact, so it needs no
+	// standalone clauses. Languages are sorted for deterministic query generation.
+	// The global SupportedLanguages always contains non-und languages, so the loop
+	// always emits clauses.
+	const undField = "text." + document.UndeterminedLanguage
 	langs := slices.Sorted(maps.Keys(internalSearch.SupportedLanguages))
 	textQueries := make([]types.QueryVariant, 0, len(langs)*3) //nolint:mnd
 	for _, lang := range langs {
+		if lang == document.UndeterminedLanguage {
+			continue
+		}
 		field := "text." + lang
 		// Exact-routed clause: quoted phrases go to .exact (diacritic-preserved),
-		// unquoted terms hit the main field.
+		// unquoted terms hit the main fields.
 		textQueries = append(textQueries,
 			esdsl.NewSimpleQueryStringQuery(searchQuery).
-				Fields(field).
+				Fields(field, undField).
 				DefaultOperator(defaultOperator).
 				QuoteFieldSuffix(".exact"),
 		)
-		if lang == "und" {
-			// text.und uses standard_string for its main analyzer, identical to
-			// what .unstemmed would be elsewhere. The "stemmed-phrase" clause is
-			// not needed (no stemmer). The unstemmed-equivalent clause hits
-			// text.und directly with analyze_wildcard so wildcards get folded
-			// and quoted phrases get folded-surface phrase matching.
-			textQueries = append(textQueries,
-				esdsl.NewSimpleQueryStringQuery(searchQuery).
-					Fields(field).
-					DefaultOperator(defaultOperator).
-					AnalyzeWildcard(true),
-			)
-			continue
-		}
-		// Stemmed-phrase clause: quoted phrases match against the stemmed field
-		// (catches inflected forms). Unquoted terms duplicate the exact-routed
-		// clause; dis_max collapses the duplicate score.
+		// Stemmed-phrase clause: quoted phrases match the stemmed language field
+		// (inflected forms) and the folded und field. Unquoted terms duplicate the
+		// exact-routed clause; dis_max collapses the duplicate score.
 		textQueries = append(textQueries,
 			esdsl.NewSimpleQueryStringQuery(searchQuery).
-				Fields(field).
+				Fields(field, undField).
 				DefaultOperator(defaultOperator),
 		)
-		// Unstemmed clause: wildcards analyzed against surface tokens; quoted
-		// phrases match folded surface (no diacritic preservation).
+		// Unstemmed clause: wildcards analyzed against surface tokens; both fields
+		// are standard_string so the typed prefix gets lowercased and ICU-folded.
 		textQueries = append(textQueries,
 			esdsl.NewSimpleQueryStringQuery(searchQuery).
-				Fields(field+".unstemmed").
+				Fields(field+".unstemmed", undField).
 				DefaultOperator(defaultOperator).
 				AnalyzeWildcard(true),
 		)

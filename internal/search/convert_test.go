@@ -1316,9 +1316,10 @@ func TestVisitStringPopulatesTextDefaultsToUnd(t *testing.T) {
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []string{testDocID.String(), "hello world"}, result.Text["und"])
-	// The document ID is seeded into every language bucket; the String
-	// claim with no IN_LANGUAGE goes only to "und".
-	assert.Equal(t, []string{testDocID.String()}, result.Text["en"])
+	// The document ID and the String claim with no IN_LANGUAGE both go only to
+	// "und", so no other language bucket exists.
+	_, hasEn := result.Text["en"]
+	assert.False(t, hasEn)
 }
 
 func TestVisitStringPopulatesTextWithLanguage(t *testing.T) {
@@ -1347,9 +1348,9 @@ func TestVisitStringPopulatesTextWithLanguage(t *testing.T) {
 	}
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	// The document ID is seeded into every language bucket; the English-
-	// tagged String claim adds "hello" to text["en"] on top.
-	assert.Equal(t, []string{testDocID.String(), "hello"}, result.Text["en"])
+	// The English-tagged String claim goes to text["en"]; the document ID goes
+	// only to "und".
+	assert.Equal(t, []string{"hello"}, result.Text["en"])
 	assert.Equal(t, []string{testDocID.String()}, result.Text["und"])
 }
 
@@ -3829,14 +3830,8 @@ func TestFromDocumentNilClaims(t *testing.T) {
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
-	// The document ID is seeded into every language bucket, so Text has
-	// one entry per supported language.
-	assert.Equal(t, map[string][]string{
-		"en":  {testDocID.String()},
-		"sl":  {testDocID.String()},
-		"pt":  {testDocID.String()},
-		"und": {testDocID.String()},
-	}, result.Text)
+	// The document ID goes only to the "und" bucket, so that is the sole entry.
+	assert.Equal(t, map[string][]string{"und": {testDocID.String()}}, result.Text)
 }
 
 func makeDocWithAllClaimTypes(t *testing.T, confidence document.Confidence) *document.D {
@@ -3978,20 +3973,22 @@ func TestFromDocumentAllClaimTypesConfidence(t *testing.T) {
 			result, errE := c.FromDocument(ctx, doc, nil)
 			require.NoError(t, errE, "% -+#.1v", errE)
 			assert.Equal(t, testDocID, result.ID)
-			// text["und"] aggregates:
-			//   1   - the document ID (seeded into every language bucket)
+			// text["und"] aggregates the following. This doc's properties carry
+			// only "und" labels (no per-language naming docs), so every display
+			// and naming string resolves to a single "und" value.
+			//   1   - the document ID (folded into "und")
 			// per included-claim group (expected = 1 unless skipped):
 			//   4   - Identifier+String+HTML(stripped)+Link source claims
-			//   17  - non-text claim displays folded into text:
-			//         2 Amount  × (PropDisplay["und"] + From + To) = 6
-			//         2 Time    × (PropDisplay["und"] + From + To) = 6
-			//         1 Ref     × (PropDisplay["und"] + ToDisplay["und"]) = 2
-			//         Has+None+Unknown × PropDisplay["und"] each = 3
-			//   9   - non-text claim naming strings folded into text:
-			//         2 Amount  × PropNaming["und"] each = 2
-			//         2 Time    × PropNaming["und"] each = 2
-			//         1 Ref     × (PropNaming["und"] + ToNaming["und"]) = 2
-			//         Has+None+Unknown × PropNaming["und"] each = 3
+			//   17  - non-text claim display labels folded into "und":
+			//         2 Amount  × (PropDisplay + From + To) = 6
+			//         2 Time    × (PropDisplay + From + To) = 6
+			//         1 Ref     × (PropDisplay + ToDisplay) = 2
+			//         Has+None+Unknown × PropDisplay each = 3
+			//   9   - non-text claim naming strings folded into their language ("und" here):
+			//         2 Amount  × PropNaming = 2
+			//         2 Time    × PropNaming = 2
+			//         1 Ref     × (PropNaming + ToNaming) = 2
+			//         Has+None+Unknown × PropNaming each = 3
 			assert.Len(t, result.Text["und"], 1+30*tt.expected)
 			// Amount + AmountInterval each contribute one claim.
 			assert.Len(t, result.Claims.Amount, 2*tt.expected)

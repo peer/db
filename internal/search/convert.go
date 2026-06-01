@@ -37,7 +37,7 @@ var inlineHTMLTags = map[string]bool{ //nolint:gochecknoglobals
 }
 
 // noBlockSpaceLanguages is the set of language codes whose writing system does
-// not use spaces between words / blocks (CJK, Thai, Lao, ...). For these
+// not use spaces between words/blocks (CJK, Thai, Lao, ...). For these
 // languages stripHTML concatenates text across non-inline tag boundaries
 // instead of inserting a space, because a stray ASCII space would split a
 // token that the language analyzer treats as a single run. Inline tags behave
@@ -1069,32 +1069,30 @@ func (v *convertVisitor) addText(lang, value string) {
 	v.result.Text[lang] = append(v.result.Text[lang], value)
 }
 
-// addTextAllLanguages appends value to the top-level text bucket of every
-// enabled language, including "und". Used for content that is genuinely
-// language-neutral (numeric / temporal renderings, document IDs) so a search
-// in any language analyzer can match it.
-func (v *convertVisitor) addTextAllLanguages(value string) {
-	for lang := range v.converter.enabledLanguages {
-		v.addText(lang, value)
-	}
-}
-
-// appendClaimDisplaysToText folds every display label and naming string from
+// appendClaimDisplaysToText folds display labels and naming strings from
 // non-text claim records (Amount, Time, Reference, Has, None, Unknown, and
 // their Sub* counterparts) into the document's top-level text bucket so the
 // text-search query can match against property names, alternative names,
 // referenced-document names, and numeric/temporal boundary strings.
 //
-// Per-language PropDisplay / ToDisplay (one rendered string per language) and
-// PropNaming / ToNaming (multiple naming strings per language, e.g. alternative
-// labels) fold into text[lang] for each language key present in the map.
-// Language-neutral FromDisplay / ToDisplay strings on Amount/Time/SubAmount/
-// SubTime fan out via addTextAllLanguages so every language analyzer can
-// match the canonical numeric/temporal rendering regardless of locale.
+// Display labels (PropDisplay/ToDisplay, and the language-neutral
+// FromDisplay/ToDisplay) are fallback-resolved and may mix languages, so they
+// fold into the "und" bucket only (standard_string analyzer), never into a
+// language-specific bucket where a foreign stemmer would mangle them. Naming
+// strings (PropNaming/ToNaming) are extracted per their own language, so they
+// fold into that language's bucket where the matching analyzer applies.
 func (v *convertVisitor) appendClaimDisplaysToText() {
+	// Display values across the per-language map collapse into "und"; we drop
+	// duplicates that arise when fallback resolves multiple languages to the
+	// same rendered string.
 	addDisplay := func(m map[string]string) {
-		for lang, val := range m {
-			v.addText(lang, val)
+		seen := map[string]bool{}
+		for _, val := range m {
+			if seen[val] {
+				continue
+			}
+			seen[val] = true
+			v.addText(document.UndeterminedLanguage, val)
 		}
 	}
 	addNaming := func(m map[string][]string) {
@@ -1107,14 +1105,14 @@ func (v *convertVisitor) appendClaimDisplaysToText() {
 	for _, c := range v.result.Claims.Amount {
 		addDisplay(c.PropDisplay)
 		addNaming(c.PropNaming)
-		v.addTextAllLanguages(c.FromDisplay)
-		v.addTextAllLanguages(c.ToDisplay)
+		v.addText(document.UndeterminedLanguage, c.FromDisplay)
+		v.addText(document.UndeterminedLanguage, c.ToDisplay)
 	}
 	for _, c := range v.result.Claims.Time {
 		addDisplay(c.PropDisplay)
 		addNaming(c.PropNaming)
-		v.addTextAllLanguages(c.FromDisplay)
-		v.addTextAllLanguages(c.ToDisplay)
+		v.addText(document.UndeterminedLanguage, c.FromDisplay)
+		v.addText(document.UndeterminedLanguage, c.ToDisplay)
 	}
 	for _, c := range v.result.Claims.Reference {
 		addDisplay(c.PropDisplay)
@@ -1143,14 +1141,14 @@ func (v *convertVisitor) appendClaimDisplaysToText() {
 	for _, c := range v.result.Claims.SubAmount {
 		addDisplay(c.PropDisplay)
 		addNaming(c.PropNaming)
-		v.addTextAllLanguages(c.FromDisplay)
-		v.addTextAllLanguages(c.ToDisplay)
+		v.addText(document.UndeterminedLanguage, c.FromDisplay)
+		v.addText(document.UndeterminedLanguage, c.ToDisplay)
 	}
 	for _, c := range v.result.Claims.SubTime {
 		addDisplay(c.PropDisplay)
 		addNaming(c.PropNaming)
-		v.addTextAllLanguages(c.FromDisplay)
-		v.addTextAllLanguages(c.ToDisplay)
+		v.addText(document.UndeterminedLanguage, c.FromDisplay)
+		v.addText(document.UndeterminedLanguage, c.ToDisplay)
 	}
 	for _, c := range v.result.Claims.SubHas {
 		addDisplay(c.PropDisplay)
@@ -1370,10 +1368,11 @@ func (c *Converter) FromDocument(
 		v.result.Display = displayStrings.Display
 	}
 
-	// Index the document's own ID into every language bucket so a user typing
-	// the ID (or a URL containing it) can locate the document via text search
-	// regardless of which language analyzer the search hits.
-	v.addTextAllLanguages(doc.ID.String())
+	// Index the document's own ID into the "und" bucket so a user typing the ID
+	// (or a URL containing it) can locate the document via text search. The
+	// query searches "und" alongside every per-language field, so it is reachable
+	// from any language.
+	v.addText(document.UndeterminedLanguage, doc.ID.String())
 
 	errE = doc.Visit(v)
 	if errE != nil {
