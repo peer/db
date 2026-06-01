@@ -67,7 +67,7 @@ func initBaseInfra(t *testing.T, languagePriority map[string][]string) (context.
 		require.NoError(t, err)
 	})
 
-	b, _, errE := internalBase.InitComponents(ctx, logger, dbpool, esClient, schema, index, 1)
+	b, _, errE := internalBase.InitComponents(ctx, logger, dbpool, esClient, schema, index, 1, nil)
 	b.LanguagePriority = languagePriority
 	require.NoError(t, errE, "% -+#.1v", errE)
 

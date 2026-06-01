@@ -2,7 +2,7 @@
   "settings": {
     "analysis": {
       "analyzer": {
-        "standard_string": {
+        "und_text": {
           "type": "custom",
           "tokenizer": "icu_tokenizer",
           "filter": [
@@ -11,7 +11,7 @@
             "truncate_token_filter"
           ]
         },
-        "english_string": {
+        "en_text": {
           "type": "custom",
           "tokenizer": "icu_tokenizer",
           "filter": [
@@ -23,7 +23,7 @@
             "truncate_token_filter"
           ]
         },
-        "slovenian_string": {
+        "sl_text": {
           "type": "custom",
           "tokenizer": "icu_tokenizer",
           "filter": [
@@ -33,7 +33,7 @@
             "truncate_token_filter"
           ]
         },
-        "portuguese_string": {
+        "pt_text": {
           "type": "custom",
           "tokenizer": "icu_tokenizer",
           "filter": [
@@ -44,7 +44,7 @@
             "truncate_token_filter"
           ]
         },
-        "exact_string": {
+        "exact_text": {
           "type": "custom",
           "tokenizer": "icu_tokenizer",
           "filter": [
@@ -119,109 +119,11 @@
       "id": {
         "type": "keyword"
       },
-      "display": {
-        "properties": {
-          "en": {
-            "type": "text",
-            "analyzer": "standard_string",
-            "fields": {
-              "exact": {
-                "type": "text",
-                "analyzer": "exact_string"
-              }
-            }
-          },
-          "sl": {
-            "type": "text",
-            "analyzer": "standard_string",
-            "fields": {
-              "exact": {
-                "type": "text",
-                "analyzer": "exact_string"
-              }
-            }
-          },
-          "pt": {
-            "type": "text",
-            "analyzer": "standard_string",
-            "fields": {
-              "exact": {
-                "type": "text",
-                "analyzer": "exact_string"
-              }
-            }
-          },
-          "und": {
-            "type": "text",
-            "analyzer": "standard_string",
-            "fields": {
-              "exact": {
-                "type": "text",
-                "analyzer": "exact_string"
-              }
-            }
-          }
-        }
-      },
-      "text": {
-        "properties": {
-          "en": {
-            "type": "text",
-            "analyzer": "english_string",
-            "fields": {
-              "unstemmed": {
-                "type": "text",
-                "analyzer": "standard_string"
-              },
-              "exact": {
-                "type": "text",
-                "analyzer": "exact_string"
-              }
-            }
-          },
-          "sl": {
-            "type": "text",
-            "analyzer": "slovenian_string",
-            "fields": {
-              "unstemmed": {
-                "type": "text",
-                "analyzer": "standard_string"
-              },
-              "exact": {
-                "type": "text",
-                "analyzer": "exact_string"
-              }
-            }
-          },
-          "pt": {
-            "type": "text",
-            "analyzer": "portuguese_string",
-            "fields": {
-              "unstemmed": {
-                "type": "text",
-                "analyzer": "standard_string"
-              },
-              "exact": {
-                "type": "text",
-                "analyzer": "exact_string"
-              }
-            }
-          },
-          "und": {
-            "type": "text",
-            "analyzer": "standard_string",
-            "fields": {
-              "exact": {
-                "type": "text",
-                "analyzer": "exact_string"
-              }
-            }
-          }
-        }
-      },
+      "display": {{.Display}},
+      "text": {{.Text}},
       "claims": {
         "properties": {
-          {{range $i, $claimType := $}}
+          {{range $i, $claimType := .ClaimTypes}}
             {{if $i}},{{end}}
             "{{$claimType.Name}}": {
               "type": "nested",

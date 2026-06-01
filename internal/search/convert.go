@@ -1103,7 +1103,7 @@ func (v *convertVisitor) addText(lang, value string) {
 //
 // Display labels (PropDisplay/ToDisplay, and the language-neutral
 // FromDisplay/ToDisplay) are fallback-resolved and may mix languages, so they
-// fold into the "und" bucket only (standard_string analyzer), never into a
+// fold into the "und" bucket only (und_text analyzer), never into a
 // language-specific bucket where a foreign stemmer would mangle them. Naming
 // strings (PropNaming/ToNaming) are extracted per their own language, so they
 // fold into that language's bucket where the matching analyzer applies.

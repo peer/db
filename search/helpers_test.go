@@ -44,7 +44,7 @@ func initES(t *testing.T) (*elasticsearch.TypedClient, func() *esSearch.Search, 
 		assert.NoError(t, err)
 	})
 
-	errE = internalSearch.EnsureIndex(ctx, esClient, index, 1)
+	errE = internalSearch.EnsureIndex(ctx, esClient, index, 1, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	getSearchService := func() *esSearch.Search {

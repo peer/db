@@ -85,7 +85,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData)
+	results, metadata, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Len(t, results, 3)
 	assert.Equal(t, int64(3), metadata["total"])
@@ -108,7 +108,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &helloSession.SessionData)
+	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &helloSession.SessionData, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Len(t, results, 2)
 	assert.Equal(t, int64(2), metadata["total"])
@@ -131,7 +131,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &goodbyeSession.SessionData)
+	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &goodbyeSession.SessionData, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc2ID.String()}}, results)
 	assert.Equal(t, int64(1), metadata["total"])
@@ -144,7 +144,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &noResultsSession.SessionData)
+	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &noResultsSession.SessionData, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{}, results)
 	assert.Equal(t, int64(0), metadata["total"])
@@ -220,7 +220,7 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc1ID.String()}}, results)
 
@@ -238,7 +238,7 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, _, errE = search.ResultsGet(ctx, getSearchService, &noneSession.SessionData)
+	results, _, errE = search.ResultsGet(ctx, getSearchService, &noneSession.SessionData, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc2ID.String()}}, results)
 }
@@ -359,7 +359,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc2ID.String()}}, results)
 
@@ -381,7 +381,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, _, errE = search.ResultsGet(ctx, getSearchService, &session2.SessionData)
+	results, _, errE = search.ResultsGet(ctx, getSearchService, &session2.SessionData, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc1ID.String()}}, results)
 
@@ -401,7 +401,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, _, errE = search.ResultsGet(ctx, getSearchService, &session3.SessionData)
+	results, _, errE = search.ResultsGet(ctx, getSearchService, &session3.SessionData, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc3ID.String()}}, results)
 }
@@ -518,7 +518,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc2ID.String()}}, results)
 
@@ -537,7 +537,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, _, errE = search.ResultsGet(ctx, getSearchService, &session2.SessionData)
+	results, _, errE = search.ResultsGet(ctx, getSearchService, &session2.SessionData, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc3ID.String()}}, results)
 }
@@ -671,7 +671,7 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, _, errE := search.ResultsGet(ctx, getSearchService, &andSession.SessionData)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &andSession.SessionData, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc3ID.String()}}, results)
 }
@@ -713,7 +713,7 @@ func TestResultsGetTotalGteIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := search.ResultsGet(ctx, getSearchServiceTracked, &session.SessionData)
+	results, metadata, errE := search.ResultsGet(ctx, getSearchServiceTracked, &session.SessionData, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: docID.String()}}, results)
 	assert.Equal(t, int64(1), metadata["total"])
@@ -759,7 +759,7 @@ func TestResultsGetTotalGteRelationIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := search.ResultsGet(ctx, getSearchServiceLimited, &session.SessionData)
+	results, metadata, errE := search.ResultsGet(ctx, getSearchServiceLimited, &session.SessionData, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Len(t, results, 5)
 	// With TrackTotalHits(1), ES returns relation "gte" and value 1, so total should be "1+".

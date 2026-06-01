@@ -20,7 +20,7 @@ import (
 //
 // Display holds the rendered display label per supported language.
 // It is produced from the display-label template (or naming-string fallback) and
-// indexed with standard_string analyzer per language because they might contain
+// indexed with und_text analyzer per language because they might contain
 // mixed-language content.
 type Document struct {
 	ID identifier.Identifier `json:"id"`

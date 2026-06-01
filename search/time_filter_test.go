@@ -61,7 +61,7 @@ func TestTimeFilterGetIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "1000", metadata["from"])
@@ -134,7 +134,7 @@ func TestTimeFilterGetMissingIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.TimeFilter{}
-	_, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), timeProp)
+	_, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), timeProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Missing count should be 1 (one document without the time prop).
@@ -174,7 +174,7 @@ func TestTimeFilterGetNoMissingIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.TimeFilter{}
-	_, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), timeProp)
+	_, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), timeProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// No missing documents.
@@ -226,7 +226,7 @@ func TestTimeFilterGetInactiveIntegration(t *testing.T) {
 
 	// Query for time histogram using the session's full query and prop from outside the session.
 	f := search.TimeFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), timeProp)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), timeProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "1000", metadata["from"])
@@ -282,7 +282,7 @@ func TestTimeFilterGetSameValuesIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, "1", metadata["total"])
 	assert.Equal(t, "5000", metadata["from"])
@@ -345,7 +345,7 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "-500", metadata["from"])
@@ -388,7 +388,7 @@ func TestTimeFilterGetEmptyIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.HistogramResult{}, results)
 	assert.Equal(t, 0, metadata["total"])
@@ -446,7 +446,7 @@ func TestTimeFilterGetExtendedBoundsIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "0", metadata["from"])
@@ -535,7 +535,7 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The session filter provides bounds [1000, 9000], so the histogram uses those.
@@ -641,7 +641,7 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "500", metadata["from"])

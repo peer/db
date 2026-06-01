@@ -69,7 +69,7 @@ func TestAmountFilterGetIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "10", metadata["from"])
@@ -149,7 +149,7 @@ func TestAmountFilterGetMissingIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.AmountFilter{Unit: &unitID} //nolint:exhaustruct
-	_, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), amountProp)
+	_, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), amountProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Missing count should be 2 (two documents without the amount prop).
@@ -188,7 +188,7 @@ func TestAmountFilterGetNoMissingIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.AmountFilter{Unit: &unitID} //nolint:exhaustruct
-	_, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), amountProp)
+	_, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), amountProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// No missing documents.
@@ -239,7 +239,7 @@ func TestAmountFilterGetInactiveIntegration(t *testing.T) {
 
 	// Query for amount histogram using the session's full query, prop and unit from outside the session.
 	f := search.AmountFilter{Unit: &unitID} //nolint:exhaustruct
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), amountProp)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), amountProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "10", metadata["from"])
@@ -294,7 +294,7 @@ func TestAmountFilterGetSameValuesIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// All values the same -> single bucket.
@@ -322,7 +322,7 @@ func TestAmountFilterGetEmptyIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.HistogramResult{}, results)
 	assert.Equal(t, 0, metadata["total"])
@@ -363,7 +363,7 @@ func TestAmountFilterGetWithoutUnitIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, "1", metadata["total"])
 	assert.Equal(t, "25", metadata["from"])
@@ -421,7 +421,7 @@ func TestAmountFilterGetGapIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "0", metadata["from"])
@@ -504,7 +504,7 @@ func TestAmountFilterGetExtendedBoundsIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Histogram uses session bounds [0, 100], not data bounds [40, 60].
@@ -591,7 +591,7 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The session filter provides bounds [10, 90], so the histogram uses those
@@ -694,7 +694,7 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "5", metadata["from"])

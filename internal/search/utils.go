@@ -122,15 +122,16 @@ func GetClient(httpClient *http.Client, logger zerolog.Logger, url string) (*ela
 // EnsureIndex makes sure the index for PeerDB documents exists. If not, it creates it.
 // It does not update configuration of an existing index if it is different from
 // what current implementation of EnsureIndex would otherwise create.
-// The shards parameter specifies the number of primary shards for the index.
-func EnsureIndex(ctx context.Context, esClient *elasticsearch.TypedClient, index string, shards int) errors.E {
+// The shards parameter specifies the number of primary shards for the index. languagePriority
+// selects which languages the index mapping covers (nil yields the default all-language mapping).
+func EnsureIndex(ctx context.Context, esClient *elasticsearch.TypedClient, index string, shards int, languagePriority map[string][]string) errors.E {
 	exists, err := esClient.Indices.Exists(index).IsSuccess(ctx)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	if !exists {
-		indexConfiguration, errE := Mapping()
+		indexConfiguration, errE := Mapping(languagePriority)
 		if errE != nil {
 			return errE
 		}

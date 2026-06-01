@@ -89,7 +89,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Ref.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Ref.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Results are sorted by count descending: target1 (count 2) first, target2 (count 1) second.
@@ -151,7 +151,7 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 
 	// Query for ref filter values using the session's full query and prop from outside the session.
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), refProp)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Results order is non-deterministic when counts are equal.
@@ -224,7 +224,7 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), refProp)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Results should include target1 (count 1) and __MISSING__ (count 2), sorted by count descending.
@@ -268,7 +268,7 @@ func TestRefFilterGetNoMissingIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), refProp)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// No missing bucket since all documents have the prop.
@@ -335,7 +335,7 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), refProp)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// One source doc per bucket; order among equal counts is non-deterministic.
@@ -385,7 +385,7 @@ func TestRefFilterGetDiamondIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(), refProp)
+	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, results, 1)
@@ -454,7 +454,7 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(), parentProp, subProp, nil)
+	results, metadata, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.ElementsMatch(t, []search.RefFilterResult{

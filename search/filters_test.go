@@ -148,7 +148,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	filterResults, metadata, errE := search.FiltersGet(ctx, getSearchService, session)
+	filterResults, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// We should have 3 filters: ref, amount, and time.
@@ -252,7 +252,7 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session)
+	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// With query "searchable", only 1 doc matches, so ref filter should have count 1.
@@ -313,7 +313,7 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session)
+	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have exactly one amount filter with empty unit and count 1.

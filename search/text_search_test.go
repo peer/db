@@ -59,7 +59,7 @@ func TestTextSearchUndWildcardCaseAndDiacritic(t *testing.T) {
 				Filters: nil,
 				Reverse: nil,
 			})
-			results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData)
+			results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil)
 			require.NoError(t, errE, "% -+#.1v", errE)
 			ids := resultIDs(results)
 			assert.ElementsMatch(t, []string{doc1ID.String(), doc2ID.String()}, ids,
@@ -104,7 +104,7 @@ func TestTextSearchUndQuotedExactVsFolded(t *testing.T) {
 		Filters: nil,
 		Reverse: nil,
 	})
-	results, _, errE := search.ResultsGet(ctx, getSearchService, &quotedSession.SessionData)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &quotedSession.SessionData, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 2)
 	assert.Equal(t, doc1ID.String(), results[0].ID,
@@ -122,7 +122,7 @@ func TestTextSearchUndQuotedExactVsFolded(t *testing.T) {
 		Filters: nil,
 		Reverse: nil,
 	})
-	results, _, errE = search.ResultsGet(ctx, getSearchService, &quotedFoldedSession.SessionData)
+	results, _, errE = search.ResultsGet(ctx, getSearchService, &quotedFoldedSession.SessionData, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 2)
 	assert.Equal(t, doc2ID.String(), results[0].ID,
@@ -152,7 +152,7 @@ func TestTextSearchUndUnquotedFoldsBoth(t *testing.T) {
 	})
 	refreshIndex(t, ctx, esClient, index)
 
-	// Unquoted "žagar" is folded to "zagar" by standard_string on both query and
+	// Unquoted "žagar" is folded to "zagar" by und_text on both query and
 	// index sides. Both docs match (their indexed tokens also fold to "zagar").
 	session := createSession(t, ctx, search.SessionData{
 		View:    "",
@@ -160,12 +160,12 @@ func TestTextSearchUndUnquotedFoldsBoth(t *testing.T) {
 		Filters: nil,
 		Reverse: nil,
 	})
-	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t,
 		[]string{doc1ID.String(), doc2ID.String()},
 		resultIDs(results),
-		"unquoted žagar should match both via folded standard_string on text.und",
+		"unquoted žagar should match both via folded und_text on text.und",
 	)
 }
 
@@ -206,7 +206,7 @@ func TestTextSearchStemmedPhraseEnglish(t *testing.T) {
 		Filters: nil,
 		Reverse: nil,
 	})
-	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	ids := resultIDs(results)
 	assert.Contains(t, ids, doc1ID.String(),
@@ -261,7 +261,7 @@ func TestTextSearchExactFieldRejectsFolded(t *testing.T) {
 		Filters: nil,
 		Reverse: nil,
 	})
-	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 2)
 	assert.Equal(t, doc1ID.String(), results[0].ID, "literal Müller should rank first")

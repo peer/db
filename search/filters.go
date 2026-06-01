@@ -152,11 +152,11 @@ func parseMultiTermsBuckets(buckets []types.MultiTermsBucket) ([]FilterResult, e
 
 // FiltersGet retrieves all available filters for the current search.
 func FiltersGet( //nolint:maintidx
-	ctx context.Context, getSearchService func() *esSearch.Search, searchSession *Session,
+	ctx context.Context, getSearchService func() *esSearch.Search, searchSession *Session, enabledLanguages []string,
 ) ([]FilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
-	query := searchSession.ToQuery()
+	query := searchSession.ToQuery(enabledLanguages)
 
 	searchService := getSearchService()
 	refAggregation := esdsl.NewAggregations().
@@ -293,7 +293,7 @@ func FiltersGet( //nolint:maintidx
 			// Top-level has filter: no specific prop, count documents with any simple has claim.
 			// Only simple has claims (without sub-claims) are indexed in claims.has.
 			activeAgg := esdsl.NewAggregations().
-				Filter(searchSession.ToQueryExcluding(*f.ID)).
+				Filter(searchSession.ToQueryExcluding(*f.ID, enabledLanguages)).
 				AddAggregation("count", esdsl.NewAggregations().
 					Filter(esdsl.NewNestedQuery(
 						esdsl.NewMatchAllQuery(),
@@ -304,7 +304,7 @@ func FiltersGet( //nolint:maintidx
 		if f.Has != nil && len(f.Prop) == 1 {
 			// Sub-has filter: aggregate on claims.subHas with parentProp filter.
 			activeAgg := esdsl.NewAggregations().
-				Filter(searchSession.ToQueryExcluding(*f.ID)).
+				Filter(searchSession.ToQueryExcluding(*f.ID, enabledLanguages)).
 				AddAggregation("count", esdsl.NewAggregations().
 					Filter(esdsl.NewNestedQuery(
 						esdsl.NewTermQuery("claims.subHas.parentProp", esdsl.NewFieldValue().String(f.Prop[0].String())),
@@ -328,7 +328,7 @@ func FiltersGet( //nolint:maintidx
 				continue
 			}
 			activeAgg := esdsl.NewAggregations().
-				Filter(searchSession.ToQueryExcluding(*f.ID)).
+				Filter(searchSession.ToQueryExcluding(*f.ID, enabledLanguages)).
 				AddAggregation("count", esdsl.NewAggregations().
 					Filter(esdsl.NewNestedQuery(
 						esdsl.NewBoolQuery().Must(
@@ -353,7 +353,7 @@ func FiltersGet( //nolint:maintidx
 			continue
 		}
 		activeAgg := esdsl.NewAggregations().
-			Filter(searchSession.ToQueryExcluding(*f.ID)).
+			Filter(searchSession.ToQueryExcluding(*f.ID, enabledLanguages)).
 			AddAggregation("nested", esdsl.NewAggregations().
 				Nested(esdsl.NewNestedAggregation().Path(nestedPath)).
 				AddAggregation("filter", esdsl.NewAggregations().

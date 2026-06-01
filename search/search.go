@@ -541,7 +541,9 @@ func reverseScopeQuery(id identifier.Identifier) types.QueryVariant { //nolint:i
 // TODO: Determine which operator should be the default?
 // TODO: Make sure right analyzers are used for all fields.
 // TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
-func (s *SessionData) ToQuery() types.QueryVariant { //nolint:ireturn
+// enabledLanguages is the site's indexed language set, used to scope the text-search query
+// to the languages the index actually has (empty falls back to the global default).
+func (s *SessionData) ToQuery(enabledLanguages []string) types.QueryVariant { //nolint:ireturn
 	musts := make([]types.QueryVariant, 0, len(s.Filters)+2) //nolint:mnd
 
 	if s.Reverse != nil {
@@ -549,7 +551,7 @@ func (s *SessionData) ToQuery() types.QueryVariant { //nolint:ireturn
 	}
 
 	if s.Query != "" {
-		musts = append(musts, documentTextSearchQuery(s.Query, operator.And))
+		musts = append(musts, documentTextSearchQuery(s.Query, operator.And, enabledLanguages))
 	}
 
 	for i := range s.Filters {
@@ -562,7 +564,8 @@ func (s *SessionData) ToQuery() types.QueryVariant { //nolint:ireturn
 // ToQueryExcluding converts the SessionData to an ElasticSearch query, excluding
 // the filter with the given ID. This is used when fetching filter data so that
 // the current filter's own restrictions do not affect its available values.
-func (s *SessionData) ToQueryExcluding(excludeFilterID identifier.Identifier) types.QueryVariant { //nolint:ireturn
+// enabledLanguages scopes the text-search query as in ToQuery.
+func (s *SessionData) ToQueryExcluding(excludeFilterID identifier.Identifier, enabledLanguages []string) types.QueryVariant { //nolint:ireturn
 	musts := make([]types.QueryVariant, 0, len(s.Filters)+2) //nolint:mnd
 
 	if s.Reverse != nil {
@@ -570,7 +573,7 @@ func (s *SessionData) ToQueryExcluding(excludeFilterID identifier.Identifier) ty
 	}
 
 	if s.Query != "" {
-		musts = append(musts, documentTextSearchQuery(s.Query, operator.And))
+		musts = append(musts, documentTextSearchQuery(s.Query, operator.And, enabledLanguages))
 	}
 
 	for i := range s.Filters {
@@ -679,7 +682,7 @@ func (s *Session) Validate() errors.E {
 	return s.SessionData.Validate(false)
 }
 
-func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operator) types.QueryVariant { //nolint:ireturn
+func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operator, enabledLanguages []string) types.QueryVariant { //nolint:ireturn
 	if searchQuery == "" {
 		return esdsl.NewBoolQuery()
 	}
@@ -712,14 +715,17 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 	//     matching on text.und. Unquoted terms duplicate the exact-routed clause;
 	//     dis_max collapses the duplicate.
 	//   - Unstemmed/wildcard: [text.<lang>.unstemmed, text.und] with
-	//     analyze_wildcard=true. Both are standard_string, so wildcards get folded
+	//     analyze_wildcard=true. Both are und_text, so wildcards get folded
 	//     before prefix matching. The und companion is text.und directly.
 	// "und" rides inside every clause via its main field or .exact, so it needs no
-	// standalone clauses. Languages are sorted for deterministic query generation.
-	// The global SupportedLanguages always contains non-und languages, so the loop
-	// always emits clauses.
+	// standalone clauses. enabledLanguages is the site's indexed set; it falls back to the
+	// global SupportedLanguages when empty. Both always contain non-und languages, so the
+	// loop always emits clauses.
 	const undField = "text." + document.UndeterminedLanguage
-	langs := slices.Sorted(maps.Keys(internalSearch.SupportedLanguages))
+	langs := enabledLanguages
+	if len(langs) == 0 {
+		langs = slices.Sorted(maps.Keys(internalSearch.SupportedLanguages))
+	}
 	textQueries := make([]types.QueryVariant, 0, len(langs)*3) //nolint:mnd
 	for _, lang := range langs {
 		if lang == document.UndeterminedLanguage {
@@ -743,12 +749,20 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 				DefaultOperator(defaultOperator),
 		)
 		// Unstemmed clause: wildcards analyzed against surface tokens; both fields
-		// are standard_string so the typed prefix gets lowercased and ICU-folded.
+		// are und_text so the typed prefix gets lowercased and ICU-folded.
 		textQueries = append(textQueries,
 			esdsl.NewSimpleQueryStringQuery(searchQuery).
 				Fields(field+".unstemmed", undField).
 				DefaultOperator(defaultOperator).
 				AnalyzeWildcard(true),
+		)
+	}
+	if len(textQueries) == 0 {
+		// Only "und" is enabled, so the loop above emitted nothing. Search text.und
+		// directly: exact-routed for quoted phrases, analyze_wildcard for the rest.
+		textQueries = append(textQueries,
+			esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(undField).DefaultOperator(defaultOperator).QuoteFieldSuffix(".exact"),
+			esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(undField).DefaultOperator(defaultOperator).AnalyzeWildcard(true),
 		)
 	}
 	shoulds = append(shoulds, esdsl.NewDisMaxQuery().Queries(textQueries...).TieBreaker(textDisMaxTieBreaker))
@@ -758,7 +772,7 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 	// and each clause is boosted so a match against the document's user-visible
 	// label outranks an incidental match inside aggregated text.
 	//
-	// Each display.<lang> main analyzer is standard_string (no stemming) and
+	// Each display.<lang> main analyzer is und_text (no stemming) and
 	// has an .exact sub-field with diacritic preservation, mirroring text.und.
 	// quote_field_suffix routes quoted phrases to .exact. analyze_wildcard
 	// keeps wildcards on the main field so the typed prefix gets lowercased
@@ -867,11 +881,11 @@ type Result struct {
 
 // ResultsGet retrieves search results for a given search session.
 func ResultsGet(
-	ctx context.Context, getSearchService func() *esSearch.Search, searchData *SessionData,
+	ctx context.Context, getSearchService func() *esSearch.Search, searchData *SessionData, enabledLanguages []string,
 ) ([]Result, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
-	query := searchData.ToQuery()
+	query := searchData.ToQuery(enabledLanguages)
 
 	searchService := getSearchService()
 

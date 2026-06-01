@@ -530,7 +530,7 @@ func TestSessionToQueryPanicsOnInvalidFilter(t *testing.T) {
 		f.Amount = nil
 		f.Time = nil
 		data := search.SessionData{View: "", Query: "", Filters: []search.Filter{f}, Reverse: nil}
-		_ = data.ToQuery()
+		_ = data.ToQuery(nil)
 	})
 }
 
@@ -767,7 +767,7 @@ func TestSessionToQuery(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
-			q := tt.SessionData.ToQuery()
+			q := tt.SessionData.ToQuery(nil)
 			assert.Equal(t, tt.Want, testutils.QueryJSON(t, q))
 		})
 	}
@@ -786,7 +786,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 			View: "", Query: "", Filters: nil,
 			Reverse: &reverseID,
 		}
-		q := data.ToQuery()
+		q := data.ToQuery(nil)
 		want := `{"bool":{"must":[{"bool":{"minimum_should_match":1,"should":[` +
 			`{"nested":{"path":"claims.ref","query":{"term":{"claims.ref.to":{"value":"` + reverseID.String() + `"}}}}},` +
 			`{"nested":{"path":"claims.subRef","query":{"term":{"claims.subRef.to":{"value":"` + reverseID.String() + `"}}}}}` +
@@ -803,7 +803,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 			},
 			Reverse: &reverseID,
 		}
-		q := data.ToQuery()
+		q := data.ToQuery(nil)
 		j := testutils.QueryJSON(t, q)
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+reverseID.String()+`"}`)
 		assert.Contains(t, j, `"claims.ref.prop":{"value":"`+prop.String()+`"}`)
@@ -818,7 +818,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 			Filters: []search.Filter{filter},
 			Reverse: &reverseID,
 		}
-		q := data.ToQueryExcluding(*filter.ID)
+		q := data.ToQueryExcluding(*filter.ID, nil)
 		j := testutils.QueryJSON(t, q)
 		// Reverse scope is applied even when filter is excluded.
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+reverseID.String()+`"}`)
@@ -829,7 +829,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 	t.Run("NoReverse", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{View: "", Query: "", Filters: nil, Reverse: nil}
-		q := data.ToQuery()
+		q := data.ToQuery(nil)
 		assert.JSONEq(t, `{"bool":{}}`, testutils.QueryJSON(t, q))
 	})
 }
@@ -1342,7 +1342,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQuery())
+		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.Contains(t, j, `"claims.subRef.to":{"value":"`+a.String()+`"}`)
 		assert.NotContains(t, j, `"claims.subRef.parentTo"`)
 	})
@@ -1358,7 +1358,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQuery())
+		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
 		assert.Contains(t, j, `"claims.subRef.to":{"value":"`+a.String()+`"}`)
 		assert.Contains(t, j, `"claims.subRef.parentTo":{"value":"`+l1.String()+`"}`)
@@ -1375,7 +1375,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQuery())
+		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.Contains(t, j, `"claims.subRef.parentTo":{"value":"`+l1.String()+`"}`)
 		assert.Contains(t, j, `"claims.subRef.parentTo":{"value":"`+l2.String()+`"}`)
 	})
@@ -1391,7 +1391,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQuery())
+		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.NotContains(t, j, `"claims.subRef.parentTo"`)
 	})
 
@@ -1408,7 +1408,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQuery())
+		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.NotContains(t, j, `"claims.subRef.parentTo"`)
 	})
 
@@ -1422,7 +1422,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			Filters: []search.Filter{parentRef, subRef},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQueryExcluding(*parentRef.ID))
+		j := testutils.QueryJSON(t, data.ToQueryExcluding(*parentRef.ID, nil))
 		assert.NotContains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
 		assert.Contains(t, j, `"claims.subRef.to":{"value":"`+a.String()+`"}`)
 		assert.NotContains(t, j, `"claims.subRef.parentTo"`)
@@ -1438,7 +1438,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			Filters: []search.Filter{parentRef, subRef},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQueryExcluding(*subRef.ID))
+		j := testutils.QueryJSON(t, data.ToQueryExcluding(*subRef.ID, nil))
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
 		assert.NotContains(t, j, `"claims.subRef.to"`)
 	})
@@ -1719,7 +1719,7 @@ func TestSessionToQueryCrossFilterAllTypes(t *testing.T) {
 			},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQuery())
+		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
 		assert.Contains(t, j, `"claims.subAmount.range":{"gte":1,"lte":10}`)
 		assert.Contains(t, j, `"claims.subAmount.parentTo":{"value":"`+l1.String()+`"}`)
@@ -1736,7 +1736,7 @@ func TestSessionToQueryCrossFilterAllTypes(t *testing.T) {
 			},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQuery())
+		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
 		assert.Contains(t, j, `"claims.subTime.range":{"gte":1000,"lte":2000}`)
 		assert.Contains(t, j, `"claims.subTime.parentTo":{"value":"`+l1.String()+`"}`)
@@ -1753,7 +1753,7 @@ func TestSessionToQueryCrossFilterAllTypes(t *testing.T) {
 			},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQuery())
+		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
 		assert.Contains(t, j, `"claims.subHas.prop":{"value":"`+value.String()+`"}`)
 		assert.Contains(t, j, `"claims.subHas.parentTo":{"value":"`+l1.String()+`"}`)

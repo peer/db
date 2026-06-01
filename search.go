@@ -15,10 +15,18 @@ import (
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
+	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/search"
 	"gitlab.com/peerdb/peerdb/store"
 )
+
+// enabledSearchLanguages returns the indexed language set for the site serving the request,
+// used to scope the text-search query to the languages the index actually has.
+func enabledSearchLanguages(ctx context.Context) []string {
+	site := waf.MustGetSite[*Site](ctx)
+	return internalSearch.EnabledLanguages(site.LanguagePriority)
+}
 
 func (s *Service) getSearchService(req *http.Request) *esSearch.Search {
 	ctx := req.Context()
@@ -97,7 +105,7 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	query := searchSession.ToQueryExcluding(filterID)
+	query := searchSession.ToQueryExcluding(filterID, enabledSearchLanguages(ctx))
 
 	var data any
 	var metadata map[string]any
@@ -178,7 +186,7 @@ func (s *Service) SearchRefFilterGetAPI(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	query := searchSession.ToQuery()
+	query := searchSession.ToQuery(enabledSearchLanguages(ctx))
 	f := search.RefFilter{}
 	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req), query, prop)
 	if errE != nil {
@@ -229,7 +237,7 @@ func (s *Service) SearchAmountFilterGetAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	query := searchSession.ToQuery()
+	query := searchSession.ToQuery(enabledSearchLanguages(ctx))
 	f := search.AmountFilter{Unit: unit} //nolint:exhaustruct
 	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req), query, prop)
 	if errE != nil {
@@ -272,7 +280,7 @@ func (s *Service) SearchTimeFilterGetAPI(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	query := searchSession.ToQuery()
+	query := searchSession.ToQuery(enabledSearchLanguages(ctx))
 	f := search.TimeFilter{}
 	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req), query, prop)
 	if errE != nil {
@@ -321,7 +329,7 @@ func (s *Service) SearchSubRefFilterGetAPI(w http.ResponseWriter, req *http.Requ
 
 	parentToRestrictions := collectParentToFromSession(searchSession.Filters, parentProp)
 
-	query := searchSession.ToQuery()
+	query := searchSession.ToQuery(enabledSearchLanguages(ctx))
 	f := search.RefFilter{}
 	data, metadata, errE := f.GetSubRef(ctx, s.getSearchServiceClosure(req), query, parentProp, prop, parentToRestrictions)
 	if errE != nil {
@@ -377,7 +385,7 @@ func (s *Service) SearchSubAmountFilterGetAPI(w http.ResponseWriter, req *http.R
 
 	parentToRestrictions := collectParentToFromSession(searchSession.Filters, parentProp)
 
-	query := searchSession.ToQuery()
+	query := searchSession.ToQuery(enabledSearchLanguages(ctx))
 	f := search.AmountFilter{Unit: unit} //nolint:exhaustruct
 	data, metadata, errE := f.GetSubAmount(ctx, s.getSearchServiceClosure(req), query, parentProp, prop, parentToRestrictions)
 	if errE != nil {
@@ -423,7 +431,7 @@ func (s *Service) SearchSubTimeFilterGetAPI(w http.ResponseWriter, req *http.Req
 
 	parentToRestrictions := collectParentToFromSession(searchSession.Filters, parentProp)
 
-	query := searchSession.ToQuery()
+	query := searchSession.ToQuery(enabledSearchLanguages(ctx))
 	f := search.TimeFilter{}
 	data, metadata, errE := f.GetSubTime(ctx, s.getSearchServiceClosure(req), query, parentProp, prop, parentToRestrictions)
 	if errE != nil {
@@ -458,7 +466,7 @@ func (s *Service) SearchHasFilterGetAPI(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	query := searchSession.ToQuery()
+	query := searchSession.ToQuery(enabledSearchLanguages(ctx))
 	f := search.HasFilter{}
 	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req), query)
 	if errE != nil {
@@ -498,7 +506,7 @@ func (s *Service) SearchSubHasFilterGetAPI(w http.ResponseWriter, req *http.Requ
 
 	parentToRestrictions := collectParentToFromSession(searchSession.Filters, parentProp)
 
-	query := searchSession.ToQuery()
+	query := searchSession.ToQuery(enabledSearchLanguages(ctx))
 	f := search.HasFilter{}
 	data, metadata, errE := f.GetSubHas(ctx, s.getSearchServiceClosure(req), query, parentProp, parentToRestrictions)
 	if errE != nil {
@@ -575,7 +583,7 @@ func (s *Service) SearchFiltersGetAPI(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	data, metadata, errE := search.FiltersGet(ctx, s.getSearchServiceClosure(req), searchSession)
+	data, metadata, errE := search.FiltersGet(ctx, s.getSearchServiceClosure(req), searchSession, enabledSearchLanguages(ctx))
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -608,7 +616,7 @@ func (s *Service) SearchResultsGetAPI(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchSession.SessionData)
+	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchSession.SessionData, enabledSearchLanguages(ctx))
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -643,7 +651,7 @@ func (s *Service) SearchJustResultsPostAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchData)
+	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchData, enabledSearchLanguages(ctx))
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -669,7 +677,7 @@ func (s *Service) SearchJustResultsGetAPI(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchSession.SessionData)
+	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchSession.SessionData, enabledSearchLanguages(ctx))
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
