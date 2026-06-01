@@ -898,8 +898,9 @@ func TestBuildLanguageCodes(t *testing.T) {
 	slDoc := makeLanguageDoc(slID, "sl")
 
 	c := &Converter{ //nolint:exhaustruct
-		enabledLanguages:  SupportedLanguages,
-		documentInfoCache: map[identifier.Identifier]documentInfo{},
+		enabledLanguages:    SupportedLanguages,
+		recognizedLanguages: SupportedLanguages,
+		documentInfoCache:   map[identifier.Identifier]documentInfo{},
 	}
 	c.buildLanguageCodes([]*document.D{enDoc, slDoc})
 
@@ -914,8 +915,9 @@ func TestBuildLanguageCodesSubtag(t *testing.T) {
 	langDoc := makeLanguageDoc(testLangDocID, "en-US")
 
 	c := &Converter{ //nolint:exhaustruct
-		enabledLanguages:  SupportedLanguages,
-		documentInfoCache: map[identifier.Identifier]documentInfo{},
+		enabledLanguages:    SupportedLanguages,
+		recognizedLanguages: SupportedLanguages,
+		documentInfoCache:   map[identifier.Identifier]documentInfo{},
 	}
 	c.buildLanguageCodes([]*document.D{langDoc})
 
@@ -951,7 +953,8 @@ func TestExtractInLanguages(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
-		enabledLanguages: SupportedLanguages,
+		enabledLanguages:    SupportedLanguages,
+		recognizedLanguages: SupportedLanguages,
 		LanguageCodes: map[identifier.Identifier]string{
 			testLangDocID: "en",
 		},
@@ -1019,7 +1022,8 @@ func TestExtractInLanguagesMultiple(t *testing.T) {
 	enLangID := identifier.New()
 	slLangID := identifier.New()
 	c := &Converter{ //nolint:exhaustruct
-		enabledLanguages: SupportedLanguages,
+		enabledLanguages:    SupportedLanguages,
+		recognizedLanguages: SupportedLanguages,
 		LanguageCodes: map[identifier.Identifier]string{
 			enLangID: "en",
 			slLangID: "sl",
@@ -1170,9 +1174,10 @@ func TestMakeDisplayStrings(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
-		enabledLanguages: SupportedLanguages,
-		namingProperties: []identifier.Identifier{internalCore.NamingPropID},
-		LanguageCodes:    map[identifier.Identifier]string{},
+		enabledLanguages:    SupportedLanguages,
+		recognizedLanguages: SupportedLanguages,
+		namingProperties:    []identifier.Identifier{internalCore.NamingPropID},
+		LanguageCodes:       map[identifier.Identifier]string{},
 	}
 
 	// Two naming strings: first becomes Display, Naming contains all strings.
@@ -1206,9 +1211,10 @@ func TestMakeDisplayStringsSanitizesNullBytes(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
-		enabledLanguages: SupportedLanguages,
-		namingProperties: []identifier.Identifier{internalCore.NamingPropID},
-		LanguageCodes:    map[identifier.Identifier]string{},
+		enabledLanguages:    SupportedLanguages,
+		recognizedLanguages: SupportedLanguages,
+		namingProperties:    []identifier.Identifier{internalCore.NamingPropID},
+		LanguageCodes:       map[identifier.Identifier]string{},
 	}
 
 	// Naming string with null byte should have it stripped.
@@ -6142,6 +6148,58 @@ func TestGetDocumentInfoWithLanguagePriority(t *testing.T) {
 	assert.Empty(t, info.Display.Display["pt"])
 	// "und" not in priority: no fallback for "und" itself (no "und" naming exists).
 	assert.Empty(t, info.Display.Display["und"])
+}
+
+// TestRecognizedNotIndexedLanguageFallback verifies that a language listed only as a
+// fallback target (here "sl" in {en: {sl}}) is recognized but not indexed: its content
+// resolves the display label of the language that falls back to it, but the raw content
+// is dropped from the text buckets (no per-language field and not folded into "und").
+func TestRecognizedNotIndexedLanguageFallback(t *testing.T) {
+	t.Parallel()
+
+	enLangID := identifier.New()
+	slLangID := identifier.New()
+	enLangDoc := makeLanguageDoc(enLangID, "en")
+	slLangDoc := makeLanguageDoc(slLangID, "sl")
+
+	slSub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: internalCore.InLanguagePropID},
+			To:        document.Reference{ID: slLangID},
+		}},
+	}
+
+	docID := identifier.New()
+	// The document has only a Slovenian-tagged name.
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: docID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{{
+				CoreClaim: makeCoreClaim(document.HighConfidence, slSub),
+				Prop:      document.Reference{ID: internalCore.NamingPropID},
+				String:    "Slovensko Ime",
+			}},
+		},
+	}
+
+	// "en" is enabled and indexed; "sl" is only a fallback target, so it is
+	// recognized but not indexed.
+	priority := map[string][]string{"en": {"sl"}}
+	c := newTestConverterWithPriority(t, nil, []*document.D{enLangDoc, slLangDoc}, map[identifier.Identifier]*document.D{docID: doc}, priority)
+
+	result, errE := c.FromDocument(t.Context(), doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The English display label resolves to the Slovenian name via the en->sl
+	// fallback, even though "sl" is not indexed.
+	assert.Equal(t, "Slovensko Ime", result.Display["en"])
+
+	// The Slovenian content is dropped from text: there is no "sl" bucket, and it
+	// is not folded into "und". Only the document ID lands in "und".
+	_, hasSl := result.Text["sl"]
+	assert.False(t, hasSl)
+	assert.Equal(t, map[string][]string{"und": {docID.String()}}, result.Text)
 }
 
 func TestDisplayPathsNoFallback(t *testing.T) {

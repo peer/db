@@ -204,11 +204,18 @@ type Converter struct {
 	// If a language is not a key, fallback is only the undetermined language.
 	// If a language has an empty slice, no fallback is attempted at all.
 	languagePriority map[string][]string
-	// enabledLanguages is the set of languages this site enables. Derived from
+	// enabledLanguages is the set of languages this site indexes. Derived from
 	// the languagePriority keys (plus "und") when set, otherwise the package-level
 	// SupportedLanguages default. The converter populates per-language indexed
 	// content only for these languages.
 	enabledLanguages map[string]bool
+	// recognizedLanguages is the set of languages whose content the converter
+	// identifies: the enabled languages plus any language that appears only as a
+	// fallback target in languagePriority. A fallback-target-only language is
+	// recognized (its content is grouped under its own code so it can serve as a
+	// display fallback) but not enabled (it gets no index field, and its content
+	// is dropped from the text buckets).
+	recognizedLanguages map[string]bool
 	// getDocument fetches a document by ID from the store.
 	getDocument func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E)
 	// documentInfoMu protects documentInfoCache for concurrent access.
@@ -235,6 +242,18 @@ func NewConverter(
 		return nil, errE
 	}
 	enabledLanguages, languagePriority := enabledLanguagesFromLanguagePriority(languagePriority)
+	// Recognized languages are the enabled ones plus any language that appears
+	// only as a fallback target. Those are identified (so they can serve as a
+	// display fallback) but not indexed.
+	recognizedLanguages := make(map[string]bool, len(enabledLanguages))
+	for lang := range enabledLanguages {
+		recognizedLanguages[lang] = true
+	}
+	for _, fallbacks := range languagePriority {
+		for _, fb := range fallbacks {
+			recognizedLanguages[fb] = true
+		}
+	}
 	c := &Converter{
 		Hooks:                    nil,
 		LanguageCodes:            nil,
@@ -247,6 +266,7 @@ func NewConverter(
 		fieldInverseProperties:   nil,
 		languagePriority:         languagePriority,
 		enabledLanguages:         enabledLanguages,
+		recognizedLanguages:      recognizedLanguages,
 		getDocument:              getDocument,
 		documentInfoCache:        map[identifier.Identifier]documentInfo{},
 		documentInfoMu:           sync.RWMutex{},
@@ -399,12 +419,13 @@ func (c *Converter) buildLanguageCodes(allDocuments []*document.D) {
 			continue
 		}
 		// Extract the CODE identifier claim and use the primary language subtag.
-		// Only register codes that are enabled for this site so that IN_LANGUAGE
-		// resolution for a disabled language quietly falls back to "und".
+		// Register codes that are recognized (enabled or a fallback target) so a
+		// fallback-only language is identified for display resolution; an
+		// unrecognized language quietly falls back to "und".
 		ids := document.GetClaimsOfTypeWithConfidence[document.IdentifierClaim](doc, internalCore.CodePropID, document.LowConfidence)
 		for _, id := range ids {
 			code, _, _ := strings.Cut(id.Value, "-")
-			if c.enabledLanguages[code] {
+			if c.recognizedLanguages[code] {
 				c.LanguageCodes[doc.ID] = code
 			}
 		}
@@ -1012,7 +1033,7 @@ func (c *Converter) extractInLanguages(claims document.Claims) []string {
 	refs := document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](claims, internalCore.InLanguagePropID, document.LowConfidence)
 	var codes []string
 	for _, ref := range refs {
-		if code, ok := c.LanguageCodes[ref.To.ID]; ok && c.enabledLanguages[code] {
+		if code, ok := c.LanguageCodes[ref.To.ID]; ok && c.recognizedLanguages[code] {
 			codes = append(codes, code)
 		}
 	}
@@ -1057,8 +1078,13 @@ var _ document.Visitor = (*convertVisitor)(nil)
 
 // addText appends value to the document's top-level text bucket for the given
 // language, skipping empty/whitespace-only values and lazily initializing the
-// map.
+// map. Content in a recognized-but-not-enabled language (a fallback-target-only
+// language) is dropped: it has no index field, and it reaches search only
+// through the display labels it resolves to.
 func (v *convertVisitor) addText(lang, value string) {
+	if !v.converter.enabledLanguages[lang] {
+		return
+	}
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return

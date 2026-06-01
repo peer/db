@@ -177,10 +177,26 @@ func GetClaimsOfTypeWithConfidence[T any, PT interface {
 // UndeterminedLanguage is the language code used for claims without a specific language.
 const UndeterminedLanguage = "und"
 
+// isRecognizedLanguage reports whether code is recognized by languagePriority: a code is
+// recognized if it is a key (an enabled language) or appears as a fallback target of some
+// key. A fallback-target-only language is recognized so its content can be grouped under
+// its own code and serve as a display fallback, even though it is not itself enabled.
+func isRecognizedLanguage(code string, languagePriority map[string][]string) bool {
+	if _, ok := languagePriority[code]; ok {
+		return true
+	}
+	for _, fallbacks := range languagePriority {
+		if slices.Contains(fallbacks, code) {
+			return true
+		}
+	}
+	return false
+}
+
 // extractClaimLanguages extracts language codes from a claim's IN_LANGUAGE references.
 //
-// It maps language document IDs to codes using languageCodes, and checks that the code
-// is a key in languagePriority (i.e., an enabled language).
+// It maps language document IDs to codes using languageCodes, and keeps codes recognized by
+// languagePriority (a key or a fallback target).
 //
 // Returns UndeterminedLanguage if no languages are specified or none can be resolved.
 func extractClaimLanguages(claims Claims, languageCodes map[identifier.Identifier]string, languagePriority map[string][]string) []string {
@@ -188,7 +204,7 @@ func extractClaimLanguages(claims Claims, languageCodes map[identifier.Identifie
 	var codes []string
 	for _, ref := range refs {
 		if code, ok := languageCodes[ref.To.ID]; ok {
-			if _, ok := languagePriority[code]; ok {
+			if isRecognizedLanguage(code, languagePriority) {
 				codes = append(codes, code)
 			}
 		}
@@ -203,7 +219,7 @@ func extractClaimLanguages(claims Claims, languageCodes map[identifier.Identifie
 // property IDs, filtered by minimum confidence, sorted by decreasing confidence,
 // grouped by language. Languages are extracted from each claim's IN_LANGUAGE sub-claim
 // references using languageCodes to map language document IDs to codes. Only languages
-// that are keys in languagePriority are considered supported.
+// recognized by languagePriority (a key or a fallback target) are kept.
 //
 // Because Go does not support generic interface methods, this is a top-level function.
 func GetClaimsAndLanguageOfTypeWithConfidence[T any, PT interface {
