@@ -4821,7 +4821,7 @@ func TestConvertTimeIntervalToUnknownFromError(t *testing.T) {
 
 // TestConvertReferenceWithSubAmountClaim verifies that an amount sub-claim on
 // a reference parent claim is flattened into SubAmountClaim entries with the
-// parent's prop / target as parentProp / parentTo.
+// parent's prop/target as parentProp/parentTo.
 func TestConvertReferenceWithSubAmountClaim(t *testing.T) {
 	t.Parallel()
 
@@ -4872,8 +4872,7 @@ func TestConvertReferenceWithSubAmountClaim(t *testing.T) {
 
 // TestConvertReferenceWithSubTimeIntervalClaim verifies that a time-interval
 // sub-claim on a reference parent claim is flattened into a SubTimeClaim
-// (mapped to a range) with the parent's prop / target as parentProp /
-// parentTo.
+// (mapped to a range) with the parent's prop/target as parentProp/parentTo.
 func TestConvertReferenceWithSubTimeIntervalClaim(t *testing.T) {
 	t.Parallel()
 
@@ -4936,7 +4935,7 @@ func TestConvertReferenceWithSubTimeIntervalClaim(t *testing.T) {
 
 // TestConvertReferenceWithSubHasClaim verifies that a simple has sub-claim on
 // a reference parent claim is flattened into a SubHasClaim with the parent's
-// prop / target as parentProp / parentTo.
+// prop/target as parentProp/parentTo.
 func TestConvertReferenceWithSubHasClaim(t *testing.T) {
 	t.Parallel()
 

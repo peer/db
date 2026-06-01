@@ -2167,7 +2167,7 @@ func (c *Converter) convertSubRefs(
 // convertSubAmounts extracts amount and amount-interval sub-claims from a
 // parent claim's sub-tree and produces SubAmountClaim entries for each
 // (parentProp, parentTo, sub-claim) combination. Source claims are passed
-// through convertAmount / convertAmountInterval so single-point and interval
+// through convertAmount/convertAmountInterval so single-point and interval
 // values use the same indexed range shape as the top-level amounts.
 func (c *Converter) convertSubAmounts(
 	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,
@@ -2218,7 +2218,7 @@ func (c *Converter) convertSubAmounts(
 // convertSubTimes extracts time and time-interval sub-claims from a parent
 // claim's sub-tree and produces SubTimeClaim entries for each (parentProp,
 // parentTo, sub-claim) combination. Source claims are passed through
-// convertTime / convertTimeInterval for the same single-point-or-interval
+// convertTime/convertTimeInterval for the same single-point-or-interval
 // range mapping the top-level times use.
 func (c *Converter) convertSubTimes(
 	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,
