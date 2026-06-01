@@ -229,7 +229,7 @@ func TestMappingNestedReference(t *testing.T) {
 	}
 }
 
-func TestMappingDynamicDisabled(t *testing.T) {
+func TestMappingDynamicStrict(t *testing.T) {
 	t.Parallel()
 
 	data, errE := internalSearch.Mapping(nil)
@@ -241,7 +241,9 @@ func TestMappingDynamicDisabled(t *testing.T) {
 
 	mappings, ok := parsed["mappings"].(map[string]any)
 	require.True(t, ok)
-	assert.Equal(t, false, mappings["dynamic"])
+	// strict makes ElasticSearch reject documents with fields not in the mapping,
+	// catching schema drift instead of silently dropping data.
+	assert.Equal(t, "strict", mappings["dynamic"])
 }
 
 func TestMappingSourceDisabled(t *testing.T) {
