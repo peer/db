@@ -74,6 +74,18 @@ func (s *Service) HasPermission(ctx context.Context, permission string) errors.E
 	return errors.New("permission denied")
 }
 
+// siteRoleNames returns the sorted names of the roles the site declares.
+// It is the set a mock sign-in grants, resolved lazily at sign-in time so
+// roles configured on the site after Init are still picked up.
+func siteRoleNames(site *Site) []string {
+	roles := make([]string, 0, len(site.Roles))
+	for role := range site.Roles {
+		roles = append(roles, role)
+	}
+	slices.Sort(roles)
+	return roles
+}
+
 // Init initializes the HTTP service and is used together with Prepare to implement Run.
 func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) (*Service, func(), errors.E) {
 	c.Server.Logger = globals.Logger
@@ -251,16 +263,11 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			}
 			globals.Logger.Info().Str("domain", site.Domain).Str("issuer", site.Auth.Issuer).Str("clientId", site.Auth.ClientID).Msg("OIDC authentication enabled")
 		} else {
-			grantedRoles := make([]string, 0, len(site.Roles))
-			for role := range site.Roles {
-				grantedRoles = append(grantedRoles, role)
-			}
-			slices.Sort(grantedRoles)
-			site.authenticator, errE = auth.NewMockAuthenticator(siteCtx, site.DBPool, site.Domain, grantedRoles, redirectURI)
+			site.authenticator, errE = auth.NewMockAuthenticator(siteCtx, site.DBPool, site.Domain, func() []string { return siteRoleNames(site) }, redirectURI)
 			if errE != nil {
 				return nil, onShutdown, errE
 			}
-			globals.Logger.Info().Str("domain", site.Domain).Strs("roles", grantedRoles).Msg("mock authentication enabled")
+			globals.Logger.Info().Str("domain", site.Domain).Msg("mock authentication enabled")
 		}
 
 		// Register the per-site auth cleanup worker. The actual periodic

@@ -72,7 +72,7 @@ type MockAuthenticator struct {
 	subject      string
 	privateKey   *rsa.PrivateKey
 	keyID        string
-	grantedRoles []string
+	grantedRoles func() []string
 	redirectURI  func() string
 }
 
@@ -86,11 +86,16 @@ type MockAuthenticator struct {
 //
 // dbpool is used to construct and initialise the flow and revocation stores.
 //
-// grantedRoles is the set of role names a successful mock sign-in should
-// claim. Typically the keys of the site's Roles map, so a mock user holds
-// every role the site recognises. redirectURI is a thunk that resolves to
-// a URL the post-sign-in browser should land on.
-func NewMockAuthenticator(ctx context.Context, dbpool *pgxpool.Pool, siteDomain string, grantedRoles []string, redirectURI func() string) (*MockAuthenticator, errors.E) {
+// grantedRoles is a thunk that resolves to the set of role names a
+// successful mock sign-in should claim. It is evaluated at sign-in time,
+// not at construction, so a caller may populate the site's roles after
+// this authenticator has been built and the mock will still pick them up.
+// Typically it returns the keys of the site's Roles map, so a mock user
+// holds every role the site recognises. redirectURI is a thunk that
+// resolves to a URL the post-sign-in browser should land on.
+func NewMockAuthenticator(
+	ctx context.Context, dbpool *pgxpool.Pool, siteDomain string, grantedRoles func() []string, redirectURI func() string,
+) (*MockAuthenticator, errors.E) {
 	if siteDomain == "" {
 		return nil, errors.New("site domain is required")
 	}
@@ -147,7 +152,7 @@ func NewMockAuthenticator(ctx context.Context, dbpool *pgxpool.Pool, siteDomain 
 		subject:      subject,
 		privateKey:   privateKey,
 		keyID:        keyID,
-		grantedRoles: append([]string(nil), grantedRoles...),
+		grantedRoles: grantedRoles,
 		redirectURI:  redirectURI,
 	}, nil
 }
@@ -218,12 +223,18 @@ func (a *MockAuthenticator) exchangeCode(_ context.Context, _, _, _ string) (str
 	// we set Max-Age from. The cookie anyway deletes itself first.
 	jwtExpiry := cookieExpiry.Add(time.Minute)
 
-	// Base claims we always advertise plus one role.<key> entry per
-	// granted role. Pre-sized so the appends below do not grow the slice.
+	// Base claims we always advertise plus one role.<key> entry per granted
+	// role. The granted roles are resolved here, at sign-in time, so roles
+	// configured on the site after this authenticator was built are still
+	// picked up. Pre-sized so the appends below do not grow the slice.
+	var granted []string
+	if a.grantedRoles != nil {
+		granted = a.grantedRoles()
+	}
 	baseScopes := []string{oidc.ScopeOpenID, "profile", "email"}
-	scopes := make([]string, 0, len(baseScopes)+len(a.grantedRoles))
+	scopes := make([]string, 0, len(baseScopes)+len(granted))
 	scopes = append(scopes, baseScopes...)
-	for _, role := range a.grantedRoles {
+	for _, role := range granted {
 		scopes = append(scopes, roleScopePrefix+role)
 	}
 
