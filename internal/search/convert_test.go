@@ -6198,6 +6198,63 @@ func TestRecognizedNotIndexedLanguageFallback(t *testing.T) {
 	assert.Equal(t, map[string][]string{"und": {docID.String()}}, result.Text)
 }
 
+// TestConversionIndexesOnlyEnabledLanguages verifies that when LanguagePriority
+// restricts the enabled languages, FromDocument produces per-language text only
+// for those languages: content tagged in a non-enabled language collapses to
+// "und" and no bucket is created for the non-enabled language.
+func TestConversionIndexesOnlyEnabledLanguages(t *testing.T) {
+	t.Parallel()
+
+	enLangID := identifier.New()
+	slLangID := identifier.New()
+	ptLangID := identifier.New()
+	langs := []*document.D{
+		makeLanguageDoc(enLangID, "en"),
+		makeLanguageDoc(slLangID, "sl"),
+		makeLanguageDoc(ptLangID, "pt"),
+	}
+
+	inLang := func(langID identifier.Identifier) *document.ClaimTypes {
+		return &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
+				To:        document.Reference{ID: langID},
+			}},
+		}
+	}
+
+	docID := identifier.New()
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: docID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{CoreClaim: makeCoreClaim(document.HighConfidence, inLang(enLangID)), Prop: document.Reference{ID: testPropID}, String: "english"},
+				{CoreClaim: makeCoreClaim(document.HighConfidence, inLang(slLangID)), Prop: document.Reference{ID: testPropID}, String: "slovensko"},
+				{CoreClaim: makeCoreClaim(document.HighConfidence, inLang(ptLangID)), Prop: document.Reference{ID: testPropID}, String: "portuguese"},
+			},
+		},
+	}
+
+	// Only "en" is enabled (plus "und"); sl and pt are neither keys nor fallback
+	// targets, so they are not recognized.
+	priority := map[string][]string{"en": {"und"}}
+	c := newTestConverterWithPriority(t, nil, langs, map[identifier.Identifier]*document.D{docID: doc}, priority)
+
+	result, errE := c.FromDocument(t.Context(), doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// English content is indexed under "en".
+	assert.Equal(t, []string{"english"}, result.Text["en"])
+	// sl and pt are not enabled, so no buckets exist for them.
+	_, hasSl := result.Text["sl"]
+	_, hasPt := result.Text["pt"]
+	assert.False(t, hasSl, "non-enabled language sl should not be indexed")
+	assert.False(t, hasPt, "non-enabled language pt should not be indexed")
+	// Their content collapses into "und", alongside the document ID.
+	assert.ElementsMatch(t, []string{docID.String(), "slovensko", "portuguese"}, result.Text["und"])
+}
+
 func TestDisplayPathsNoFallback(t *testing.T) {
 	t.Parallel()
 
