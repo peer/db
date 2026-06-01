@@ -1095,18 +1095,28 @@ func (v *convertVisitor) addText(lang, value string) {
 	v.result.Text[lang] = append(v.result.Text[lang], value)
 }
 
-// appendClaimDisplaysToText folds display labels and naming strings from
-// non-text claim records (Amount, Time, Reference, Has, None, Unknown, and
-// their Sub* counterparts) into the document's top-level text bucket so the
-// text-search query can match against property names, alternative names,
-// referenced-document names, and numeric/temporal boundary strings.
+// appendClaimDisplaysToText folds claim values into the document's top-level
+// text bucket so the text-search query can match against referenced-document
+// names, numeric/temporal boundary strings, and has-claim property labels.
 //
-// Display labels (PropDisplay/ToDisplay, and the language-neutral
-// FromDisplay/ToDisplay) are fallback-resolved and may mix languages, so they
-// fold into the "und" bucket only (und_text analyzer), never into a
-// language-specific bucket where a foreign stemmer would mangle them. Naming
-// strings (PropNaming/ToNaming) are extracted per their own language, so they
-// fold into that language's bucket where the matching analyzer applies.
+// For value claims (Amount, Time, Reference, and their Sub* counterparts) the
+// property label (PropDisplay/PropNaming) is deliberately not folded: a property
+// name like "date of birth" is structural, not document content, and folding it
+// would make every document with such a claim match a search for the property
+// name. Only the values fold: referenced-document labels (ToDisplay/ToNaming)
+// and numeric/temporal bounds (FromDisplay/ToDisplay).
+//
+// Has claims (and their SubHas counterparts) are property-only: the assertion
+// that the document "has" the property is itself the content, so their property
+// labels do fold. None and Unknown claims, which assert the absence or
+// ignorance of a value, are not folded.
+//
+// Display labels (ToDisplay, and the language-neutral FromDisplay/ToDisplay) are
+// fallback-resolved and may mix languages, so they fold into the "und" bucket
+// only (und_text analyzer), never into a language-specific bucket where a
+// foreign stemmer would mangle them. Naming strings (ToNaming, PropNaming) are
+// extracted per their own language, so they fold into that language's bucket
+// where the matching analyzer applies.
 func (v *convertVisitor) appendClaimDisplaysToText() {
 	// Display values across the per-language map collapse into "und"; we drop
 	// duplicates that arise when fallback resolves multiple languages to the
@@ -1129,20 +1139,14 @@ func (v *convertVisitor) appendClaimDisplaysToText() {
 		}
 	}
 	for _, c := range v.result.Claims.Amount {
-		addDisplay(c.PropDisplay)
-		addNaming(c.PropNaming)
 		v.addText(document.UndeterminedLanguage, c.FromDisplay)
 		v.addText(document.UndeterminedLanguage, c.ToDisplay)
 	}
 	for _, c := range v.result.Claims.Time {
-		addDisplay(c.PropDisplay)
-		addNaming(c.PropNaming)
 		v.addText(document.UndeterminedLanguage, c.FromDisplay)
 		v.addText(document.UndeterminedLanguage, c.ToDisplay)
 	}
 	for _, c := range v.result.Claims.Reference {
-		addDisplay(c.PropDisplay)
-		addNaming(c.PropNaming)
 		addDisplay(c.ToDisplay)
 		addNaming(c.ToNaming)
 	}
@@ -1150,35 +1154,21 @@ func (v *convertVisitor) appendClaimDisplaysToText() {
 		addDisplay(c.PropDisplay)
 		addNaming(c.PropNaming)
 	}
-	for _, c := range v.result.Claims.None {
-		addDisplay(c.PropDisplay)
-		addNaming(c.PropNaming)
-	}
-	for _, c := range v.result.Claims.Unknown {
-		addDisplay(c.PropDisplay)
-		addNaming(c.PropNaming)
-	}
 	for _, c := range v.result.Claims.SubRef {
-		addDisplay(c.PropDisplay)
-		addNaming(c.PropNaming)
 		addDisplay(c.ToDisplay)
 		addNaming(c.ToNaming)
-	}
-	for _, c := range v.result.Claims.SubAmount {
-		addDisplay(c.PropDisplay)
-		addNaming(c.PropNaming)
-		v.addText(document.UndeterminedLanguage, c.FromDisplay)
-		v.addText(document.UndeterminedLanguage, c.ToDisplay)
-	}
-	for _, c := range v.result.Claims.SubTime {
-		addDisplay(c.PropDisplay)
-		addNaming(c.PropNaming)
-		v.addText(document.UndeterminedLanguage, c.FromDisplay)
-		v.addText(document.UndeterminedLanguage, c.ToDisplay)
 	}
 	for _, c := range v.result.Claims.SubHas {
 		addDisplay(c.PropDisplay)
 		addNaming(c.PropNaming)
+	}
+	for _, c := range v.result.Claims.SubAmount {
+		v.addText(document.UndeterminedLanguage, c.FromDisplay)
+		v.addText(document.UndeterminedLanguage, c.ToDisplay)
+	}
+	for _, c := range v.result.Claims.SubTime {
+		v.addText(document.UndeterminedLanguage, c.FromDisplay)
+		v.addText(document.UndeterminedLanguage, c.ToDisplay)
 	}
 }
 

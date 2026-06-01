@@ -3979,23 +3979,19 @@ func TestFromDocumentAllClaimTypesConfidence(t *testing.T) {
 			result, errE := c.FromDocument(ctx, doc, nil)
 			require.NoError(t, errE, "% -+#.1v", errE)
 			assert.Equal(t, testDocID, result.ID)
-			// text["und"] aggregates the following. This doc's properties carry
-			// only "und" labels (no per-language naming docs), so every display
-			// and naming string resolves to a single "und" value.
+			// text["und"] aggregates the following. Property labels (PropDisplay/
+			// PropNaming) are not folded; only referenced-document labels and
+			// numeric/temporal bounds are. This doc's referenced docs carry only
+			// "und" labels, so every value resolves to a single "und" string.
 			//   1   - the document ID (folded into "und")
 			// per included-claim group (expected = 1 unless skipped):
 			//   4   - Identifier+String+HTML(stripped)+Link source claims
-			//   17  - non-text claim display labels folded into "und":
-			//         2 Amount  × (PropDisplay + From + To) = 6
-			//         2 Time    × (PropDisplay + From + To) = 6
-			//         1 Ref     × (PropDisplay + ToDisplay) = 2
-			//         Has+None+Unknown × PropDisplay each = 3
-			//   9   - non-text claim naming strings folded into their language ("und" here):
-			//         2 Amount  × PropNaming = 2
-			//         2 Time    × PropNaming = 2
-			//         1 Ref     × (PropNaming + ToNaming) = 2
-			//         Has+None+Unknown × PropNaming each = 3
-			assert.Len(t, result.Text["und"], 1+30*tt.expected)
+			//   2 Amount × (From + To)              = 4
+			//   2 Time   × (From + To)              = 4
+			//   1 Ref    × (ToDisplay + ToNaming)   = 2
+			//   1 Has    × (PropDisplay + PropNaming) = 2
+			//   None+Unknown contribute nothing (absence assertions).
+			assert.Len(t, result.Text["und"], 1+16*tt.expected)
 			// Amount + AmountInterval each contribute one claim.
 			assert.Len(t, result.Claims.Amount, 2*tt.expected)
 			// Time + TimeInterval each contribute one claim.
