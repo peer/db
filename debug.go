@@ -16,7 +16,8 @@ func (s *Service) DebugMappingGetAPI(w http.ResponseWriter, req *http.Request, _
 		return
 	}
 
-	indexConfiguration, errE := internalSearch.Mapping()
+	site := waf.MustGetSite[*Site](req.Context())
+	indexConfiguration, errE := internalSearch.Mapping(site.LanguagePriority)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return

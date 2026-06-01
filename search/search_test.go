@@ -530,7 +530,7 @@ func TestSessionToQueryPanicsOnInvalidFilter(t *testing.T) {
 		f.Amount = nil
 		f.Time = nil
 		data := search.SessionData{View: "", Query: "", Filters: []search.Filter{f}, Reverse: nil}
-		_ = data.ToQuery()
+		_ = data.ToQuery(nil)
 	})
 }
 
@@ -743,7 +743,7 @@ func TestSessionToQuery(t *testing.T) {
 			Name:        "QueryOnly",
 			SessionData: search.SessionData{View: "", Query: "hello", Filters: nil, Reverse: nil},
 			//nolint:lll
-			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"simple_query_string":{"default_operator":"and","fields":["text.en"],"query":"hello"}},{"simple_query_string":{"default_operator":"and","fields":["text.pt"],"query":"hello"}},{"simple_query_string":{"default_operator":"and","fields":["text.sl"],"query":"hello"}},{"simple_query_string":{"default_operator":"and","fields":["text.und"],"query":"hello"}},{"nested":{"path":"claims.amount","query":{"simple_query_string":{"default_operator":"and","fields":["claims.amount.propDisplay.en^0.2","claims.amount.propDisplay.pt^0.2","claims.amount.propDisplay.sl^0.2","claims.amount.propDisplay.und^0.2","claims.amount.propNaming.en^0.2","claims.amount.propNaming.pt^0.2","claims.amount.propNaming.sl^0.2","claims.amount.propNaming.und^0.2","claims.amount.fromDisplay^0.2","claims.amount.toDisplay^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.has","query":{"simple_query_string":{"default_operator":"and","fields":["claims.has.propDisplay.en^0.2","claims.has.propDisplay.pt^0.2","claims.has.propDisplay.sl^0.2","claims.has.propDisplay.und^0.2","claims.has.propNaming.en^0.2","claims.has.propNaming.pt^0.2","claims.has.propNaming.sl^0.2","claims.has.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.none","query":{"simple_query_string":{"default_operator":"and","fields":["claims.none.propDisplay.en^0.2","claims.none.propDisplay.pt^0.2","claims.none.propDisplay.sl^0.2","claims.none.propDisplay.und^0.2","claims.none.propNaming.en^0.2","claims.none.propNaming.pt^0.2","claims.none.propNaming.sl^0.2","claims.none.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.ref","query":{"simple_query_string":{"default_operator":"and","fields":["claims.ref.propDisplay.en^0.2","claims.ref.propDisplay.pt^0.2","claims.ref.propDisplay.sl^0.2","claims.ref.propDisplay.und^0.2","claims.ref.propNaming.en^0.2","claims.ref.propNaming.pt^0.2","claims.ref.propNaming.sl^0.2","claims.ref.propNaming.und^0.2","claims.ref.toDisplay.en^0.2","claims.ref.toDisplay.pt^0.2","claims.ref.toDisplay.sl^0.2","claims.ref.toDisplay.und^0.2","claims.ref.toNaming.en^0.2","claims.ref.toNaming.pt^0.2","claims.ref.toNaming.sl^0.2","claims.ref.toNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.time","query":{"simple_query_string":{"default_operator":"and","fields":["claims.time.propDisplay.en^0.2","claims.time.propDisplay.pt^0.2","claims.time.propDisplay.sl^0.2","claims.time.propDisplay.und^0.2","claims.time.propNaming.en^0.2","claims.time.propNaming.pt^0.2","claims.time.propNaming.sl^0.2","claims.time.propNaming.und^0.2","claims.time.fromDisplay^0.2","claims.time.toDisplay^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.unknown","query":{"simple_query_string":{"default_operator":"and","fields":["claims.unknown.propDisplay.en^0.2","claims.unknown.propDisplay.pt^0.2","claims.unknown.propDisplay.sl^0.2","claims.unknown.propDisplay.und^0.2","claims.unknown.propNaming.en^0.2","claims.unknown.propNaming.pt^0.2","claims.unknown.propNaming.sl^0.2","claims.unknown.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.subRef","query":{"simple_query_string":{"default_operator":"and","fields":["claims.subRef.propDisplay.en^0.2","claims.subRef.propDisplay.pt^0.2","claims.subRef.propDisplay.sl^0.2","claims.subRef.propDisplay.und^0.2","claims.subRef.propNaming.en^0.2","claims.subRef.propNaming.pt^0.2","claims.subRef.propNaming.sl^0.2","claims.subRef.propNaming.und^0.2","claims.subRef.toDisplay.en^0.2","claims.subRef.toDisplay.pt^0.2","claims.subRef.toDisplay.sl^0.2","claims.subRef.toDisplay.und^0.2","claims.subRef.toNaming.en^0.2","claims.subRef.toNaming.pt^0.2","claims.subRef.toNaming.sl^0.2","claims.subRef.toNaming.und^0.2"],"query":"hello"}}}}]}}]}}`,
+			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"dis_max":{"queries":[{"simple_query_string":{"default_operator":"and","fields":["text.en","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.en","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.en.unstemmed","text.und"],"query":"hello"}},{"simple_query_string":{"default_operator":"and","fields":["text.pt","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.pt","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.pt.unstemmed","text.und"],"query":"hello"}},{"simple_query_string":{"default_operator":"and","fields":["text.sl","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.sl","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.sl.unstemmed","text.und"],"query":"hello"}}],"tie_breaker":0.1}},{"dis_max":{"queries":[{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.en"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.pt"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.sl"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.und"],"query":"hello","quote_field_suffix":".exact"}}],"tie_breaker":0.1}}]}}]}}`,
 		},
 		{
 			Name:        "Empty",
@@ -760,14 +760,14 @@ func TestSessionToQuery(t *testing.T) {
 				Reverse: nil,
 			},
 			//nolint:lll
-			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"simple_query_string":{"default_operator":"and","fields":["text.en"],"query":"hello"}},{"simple_query_string":{"default_operator":"and","fields":["text.pt"],"query":"hello"}},{"simple_query_string":{"default_operator":"and","fields":["text.sl"],"query":"hello"}},{"simple_query_string":{"default_operator":"and","fields":["text.und"],"query":"hello"}},{"nested":{"path":"claims.amount","query":{"simple_query_string":{"default_operator":"and","fields":["claims.amount.propDisplay.en^0.2","claims.amount.propDisplay.pt^0.2","claims.amount.propDisplay.sl^0.2","claims.amount.propDisplay.und^0.2","claims.amount.propNaming.en^0.2","claims.amount.propNaming.pt^0.2","claims.amount.propNaming.sl^0.2","claims.amount.propNaming.und^0.2","claims.amount.fromDisplay^0.2","claims.amount.toDisplay^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.has","query":{"simple_query_string":{"default_operator":"and","fields":["claims.has.propDisplay.en^0.2","claims.has.propDisplay.pt^0.2","claims.has.propDisplay.sl^0.2","claims.has.propDisplay.und^0.2","claims.has.propNaming.en^0.2","claims.has.propNaming.pt^0.2","claims.has.propNaming.sl^0.2","claims.has.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.none","query":{"simple_query_string":{"default_operator":"and","fields":["claims.none.propDisplay.en^0.2","claims.none.propDisplay.pt^0.2","claims.none.propDisplay.sl^0.2","claims.none.propDisplay.und^0.2","claims.none.propNaming.en^0.2","claims.none.propNaming.pt^0.2","claims.none.propNaming.sl^0.2","claims.none.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.ref","query":{"simple_query_string":{"default_operator":"and","fields":["claims.ref.propDisplay.en^0.2","claims.ref.propDisplay.pt^0.2","claims.ref.propDisplay.sl^0.2","claims.ref.propDisplay.und^0.2","claims.ref.propNaming.en^0.2","claims.ref.propNaming.pt^0.2","claims.ref.propNaming.sl^0.2","claims.ref.propNaming.und^0.2","claims.ref.toDisplay.en^0.2","claims.ref.toDisplay.pt^0.2","claims.ref.toDisplay.sl^0.2","claims.ref.toDisplay.und^0.2","claims.ref.toNaming.en^0.2","claims.ref.toNaming.pt^0.2","claims.ref.toNaming.sl^0.2","claims.ref.toNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.time","query":{"simple_query_string":{"default_operator":"and","fields":["claims.time.propDisplay.en^0.2","claims.time.propDisplay.pt^0.2","claims.time.propDisplay.sl^0.2","claims.time.propDisplay.und^0.2","claims.time.propNaming.en^0.2","claims.time.propNaming.pt^0.2","claims.time.propNaming.sl^0.2","claims.time.propNaming.und^0.2","claims.time.fromDisplay^0.2","claims.time.toDisplay^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.unknown","query":{"simple_query_string":{"default_operator":"and","fields":["claims.unknown.propDisplay.en^0.2","claims.unknown.propDisplay.pt^0.2","claims.unknown.propDisplay.sl^0.2","claims.unknown.propDisplay.und^0.2","claims.unknown.propNaming.en^0.2","claims.unknown.propNaming.pt^0.2","claims.unknown.propNaming.sl^0.2","claims.unknown.propNaming.und^0.2"],"query":"hello"}}}},{"nested":{"path":"claims.subRef","query":{"simple_query_string":{"default_operator":"and","fields":["claims.subRef.propDisplay.en^0.2","claims.subRef.propDisplay.pt^0.2","claims.subRef.propDisplay.sl^0.2","claims.subRef.propDisplay.und^0.2","claims.subRef.propNaming.en^0.2","claims.subRef.propNaming.pt^0.2","claims.subRef.propNaming.sl^0.2","claims.subRef.propNaming.und^0.2","claims.subRef.toDisplay.en^0.2","claims.subRef.toDisplay.pt^0.2","claims.subRef.toDisplay.sl^0.2","claims.subRef.toDisplay.und^0.2","claims.subRef.toNaming.en^0.2","claims.subRef.toNaming.pt^0.2","claims.subRef.toNaming.sl^0.2","claims.subRef.toNaming.und^0.2"],"query":"hello"}}}}]}},{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}}]}}`,
+			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"dis_max":{"queries":[{"simple_query_string":{"default_operator":"and","fields":["text.en","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.en","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.en.unstemmed","text.und"],"query":"hello"}},{"simple_query_string":{"default_operator":"and","fields":["text.pt","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.pt","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.pt.unstemmed","text.und"],"query":"hello"}},{"simple_query_string":{"default_operator":"and","fields":["text.sl","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.sl","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.sl.unstemmed","text.und"],"query":"hello"}}],"tie_breaker":0.1}},{"dis_max":{"queries":[{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.en"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.pt"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.sl"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.und"],"query":"hello","quote_field_suffix":".exact"}}],"tie_breaker":0.1}}]}},{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}}]}}`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
-			q := tt.SessionData.ToQuery()
+			q := tt.SessionData.ToQuery(nil)
 			assert.Equal(t, tt.Want, testutils.QueryJSON(t, q))
 		})
 	}
@@ -786,7 +786,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 			View: "", Query: "", Filters: nil,
 			Reverse: &reverseID,
 		}
-		q := data.ToQuery()
+		q := data.ToQuery(nil)
 		want := `{"bool":{"must":[{"bool":{"minimum_should_match":1,"should":[` +
 			`{"nested":{"path":"claims.ref","query":{"term":{"claims.ref.to":{"value":"` + reverseID.String() + `"}}}}},` +
 			`{"nested":{"path":"claims.subRef","query":{"term":{"claims.subRef.to":{"value":"` + reverseID.String() + `"}}}}}` +
@@ -803,7 +803,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 			},
 			Reverse: &reverseID,
 		}
-		q := data.ToQuery()
+		q := data.ToQuery(nil)
 		j := testutils.QueryJSON(t, q)
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+reverseID.String()+`"}`)
 		assert.Contains(t, j, `"claims.ref.prop":{"value":"`+prop.String()+`"}`)
@@ -818,7 +818,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 			Filters: []search.Filter{filter},
 			Reverse: &reverseID,
 		}
-		q := data.ToQueryExcluding(*filter.ID)
+		q := data.ToQueryExcluding(*filter.ID, nil)
 		j := testutils.QueryJSON(t, q)
 		// Reverse scope is applied even when filter is excluded.
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+reverseID.String()+`"}`)
@@ -829,7 +829,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 	t.Run("NoReverse", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{View: "", Query: "", Filters: nil, Reverse: nil}
-		q := data.ToQuery()
+		q := data.ToQuery(nil)
 		assert.JSONEq(t, `{"bool":{}}`, testutils.QueryJSON(t, q))
 	})
 }
@@ -1342,7 +1342,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQuery())
+		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.Contains(t, j, `"claims.subRef.to":{"value":"`+a.String()+`"}`)
 		assert.NotContains(t, j, `"claims.subRef.parentTo"`)
 	})
@@ -1358,7 +1358,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQuery())
+		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
 		assert.Contains(t, j, `"claims.subRef.to":{"value":"`+a.String()+`"}`)
 		assert.Contains(t, j, `"claims.subRef.parentTo":{"value":"`+l1.String()+`"}`)
@@ -1375,7 +1375,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQuery())
+		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.Contains(t, j, `"claims.subRef.parentTo":{"value":"`+l1.String()+`"}`)
 		assert.Contains(t, j, `"claims.subRef.parentTo":{"value":"`+l2.String()+`"}`)
 	})
@@ -1391,7 +1391,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQuery())
+		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.NotContains(t, j, `"claims.subRef.parentTo"`)
 	})
 
@@ -1408,7 +1408,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQuery())
+		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.NotContains(t, j, `"claims.subRef.parentTo"`)
 	})
 
@@ -1422,7 +1422,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			Filters: []search.Filter{parentRef, subRef},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQueryExcluding(*parentRef.ID))
+		j := testutils.QueryJSON(t, data.ToQueryExcluding(*parentRef.ID, nil))
 		assert.NotContains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
 		assert.Contains(t, j, `"claims.subRef.to":{"value":"`+a.String()+`"}`)
 		assert.NotContains(t, j, `"claims.subRef.parentTo"`)
@@ -1438,7 +1438,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			Filters: []search.Filter{parentRef, subRef},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQueryExcluding(*subRef.ID))
+		j := testutils.QueryJSON(t, data.ToQueryExcluding(*subRef.ID, nil))
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
 		assert.NotContains(t, j, `"claims.subRef.to"`)
 	})
@@ -1719,7 +1719,7 @@ func TestSessionToQueryCrossFilterAllTypes(t *testing.T) {
 			},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQuery())
+		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
 		assert.Contains(t, j, `"claims.subAmount.range":{"gte":1,"lte":10}`)
 		assert.Contains(t, j, `"claims.subAmount.parentTo":{"value":"`+l1.String()+`"}`)
@@ -1736,7 +1736,7 @@ func TestSessionToQueryCrossFilterAllTypes(t *testing.T) {
 			},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQuery())
+		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
 		assert.Contains(t, j, `"claims.subTime.range":{"gte":1000,"lte":2000}`)
 		assert.Contains(t, j, `"claims.subTime.parentTo":{"value":"`+l1.String()+`"}`)
@@ -1753,7 +1753,7 @@ func TestSessionToQueryCrossFilterAllTypes(t *testing.T) {
 			},
 			Reverse: nil,
 		}
-		j := testutils.QueryJSON(t, data.ToQuery())
+		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
 		assert.Contains(t, j, `"claims.subHas.prop":{"value":"`+value.String()+`"}`)
 		assert.Contains(t, j, `"claims.subHas.parentTo":{"value":"`+l1.String()+`"}`)

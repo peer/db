@@ -918,10 +918,26 @@ export function getClaimsListsOfType<K extends ClaimTypeName>(
 // UNDETERMINED_LANGUAGE is the language code used for claims without a specific language.
 export const UNDETERMINED_LANGUAGE = "und"
 
+// isRecognizedLanguage reports whether code is recognized by languagePriority: a code is
+// recognized if it is a key (an enabled language) or appears as a fallback target of some
+// key. A fallback-target-only language is recognized so its content can be grouped under
+// its own code and serve as a display fallback, even though it is not itself enabled.
+function isRecognizedLanguage(code: string, languagePriority: Record<string, string[]>): boolean {
+  if (code in languagePriority) {
+    return true
+  }
+  for (const fallbacks of Object.values(languagePriority)) {
+    if (fallbacks.includes(code)) {
+      return true
+    }
+  }
+  return false
+}
+
 // extractClaimLanguages extracts language codes from a claim's IN_LANGUAGE sub-claim references.
 //
-// It maps language document IDs to codes using languageCodes, and checks that the code
-// is a key in languagePriority (i.e., an enabled language).
+// It maps language document IDs to codes using languageCodes, and keeps codes recognized by
+// languagePriority (a key or a fallback target).
 //
 // Returns [UNDETERMINED_LANGUAGE] if no languages are specified or none can be resolved.
 function extractClaimLanguages(sub: DeepReadonly<ClaimTypes> | undefined | null): string[] {
@@ -931,7 +947,7 @@ function extractClaimLanguages(sub: DeepReadonly<ClaimTypes> | undefined | null)
   const languagePriority = siteContext.languagePriority ?? {}
   for (const ref of refs) {
     const code = languageCodes[ref.to.id]
-    if (code && code in languagePriority) {
+    if (code && isRecognizedLanguage(code, languagePriority)) {
       codes.push(code)
     }
   }

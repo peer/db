@@ -29,7 +29,7 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 	ctx = WithFallbackDBContext(ctx, s.Schema, "init")
 	ctx = logger.WithContext(ctx)
 
-	b, riverClient, errE := internalBase.InitComponents(ctx, logger, dbpool, esClient, s.Schema, s.Index, shards)
+	b, riverClient, errE := internalBase.InitComponents(ctx, logger, dbpool, esClient, s.Schema, s.Index, shards, s.LanguagePriority)
 	if errE != nil {
 		return errE
 	}

@@ -36,6 +36,30 @@ func TestGetFallbackLanguages(t *testing.T) {
 	assert.Nil(t, getFallbackLanguages("und", nil))
 }
 
+func TestIsRecognizedLanguage(t *testing.T) {
+	t.Parallel()
+
+	// "en" and "sl" are keys; "und" appears only as a fallback target.
+	priority := map[string][]string{
+		"en": {"sl", "und"},
+		"sl": {"en"},
+	}
+
+	// Keys are recognized.
+	assert.True(t, isRecognizedLanguage("en", priority))
+	assert.True(t, isRecognizedLanguage("sl", priority))
+
+	// A fallback target that is not a key is still recognized.
+	assert.True(t, isRecognizedLanguage("und", priority))
+
+	// A language that is neither a key nor a fallback target is not recognized.
+	assert.False(t, isRecognizedLanguage("pt", priority))
+
+	// Nothing is recognized in an empty priority.
+	assert.False(t, isRecognizedLanguage("en", nil))
+	assert.False(t, isRecognizedLanguage("en", map[string][]string{}))
+}
+
 // TestGetClaimsOfType tests the generic GetClaimsOfType function.
 func TestGetClaimsOfType(t *testing.T) {
 	t.Parallel()

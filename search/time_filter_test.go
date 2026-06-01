@@ -32,8 +32,9 @@ func TestTimeFilterGetIntegration(t *testing.T) {
 		{"timeDoc3", &t9000},
 	} {
 		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID:   identifier.From(tc.id),
-			Text: nil,
+			ID:      identifier.From(tc.id),
+			Display: nil,
+			Text:    nil,
 			Claims: internalSearch.ClaimTypes{
 				Amount: nil,
 				Time: internalSearch.TimeClaims{{
@@ -60,7 +61,7 @@ func TestTimeFilterGetIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "1000", metadata["from"])
@@ -100,8 +101,9 @@ func TestTimeFilterGetMissingIntegration(t *testing.T) {
 
 	// Doc with the time prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("timeDoc1"),
-		Text: nil,
+		ID:      identifier.From("timeDoc1"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -117,8 +119,9 @@ func TestTimeFilterGetMissingIntegration(t *testing.T) {
 	})
 	// Doc without the time prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("timeDoc2"),
-		Text: nil,
+		ID:      identifier.From("timeDoc2"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -131,7 +134,7 @@ func TestTimeFilterGetMissingIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.TimeFilter{}
-	_, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), timeProp)
+	_, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), timeProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Missing count should be 1 (one document without the time prop).
@@ -150,8 +153,9 @@ func TestTimeFilterGetNoMissingIntegration(t *testing.T) {
 
 	// All docs have the time prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("timeDoc1"),
-		Text: nil,
+		ID:      identifier.From("timeDoc1"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -170,7 +174,7 @@ func TestTimeFilterGetNoMissingIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.TimeFilter{}
-	_, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), timeProp)
+	_, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), timeProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// No missing documents.
@@ -198,8 +202,9 @@ func TestTimeFilterGetInactiveIntegration(t *testing.T) {
 		{"timeDoc3", &t9000},
 	} {
 		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID:   identifier.From(tc.id),
-			Text: nil,
+			ID:      identifier.From(tc.id),
+			Display: nil,
+			Text:    nil,
 			Claims: internalSearch.ClaimTypes{
 				Amount: nil,
 				Time: internalSearch.TimeClaims{{
@@ -221,7 +226,7 @@ func TestTimeFilterGetInactiveIntegration(t *testing.T) {
 
 	// Query for time histogram using the session's full query and prop from outside the session.
 	f := search.TimeFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), timeProp)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), timeProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "1000", metadata["from"])
@@ -249,8 +254,9 @@ func TestTimeFilterGetSameValuesIntegration(t *testing.T) {
 
 	for i := range 2 {
 		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID:   identifier.From("sameTimeDoc", string(rune('0'+i))),
-			Text: nil,
+			ID:      identifier.From("sameTimeDoc", string(rune('0'+i))),
+			Display: nil,
+			Text:    nil,
 			Claims: internalSearch.ClaimTypes{
 				Amount: nil,
 				Time: internalSearch.TimeClaims{{
@@ -276,7 +282,7 @@ func TestTimeFilterGetSameValuesIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, "1", metadata["total"])
 	assert.Equal(t, "5000", metadata["from"])
@@ -295,8 +301,9 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 	t500 := float64(500)
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("negTimeDoc1"),
-		Text: nil,
+		ID:      identifier.From("negTimeDoc1"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -311,8 +318,9 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("negTimeDoc2"),
-		Text: nil,
+		ID:      identifier.From("negTimeDoc2"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -337,7 +345,7 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "-500", metadata["from"])
@@ -380,7 +388,7 @@ func TestTimeFilterGetEmptyIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.HistogramResult{}, results)
 	assert.Equal(t, 0, metadata["total"])
@@ -407,8 +415,9 @@ func TestTimeFilterGetExtendedBoundsIntegration(t *testing.T) {
 		{"extTimeDoc2", &t6000},
 	} {
 		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID:   identifier.From(tc.id),
-			Text: nil,
+			ID:      identifier.From(tc.id),
+			Display: nil,
+			Text:    nil,
 			Claims: internalSearch.ClaimTypes{
 				Amount: nil,
 				Time: internalSearch.TimeClaims{{
@@ -437,7 +446,7 @@ func TestTimeFilterGetExtendedBoundsIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "0", metadata["from"])
@@ -478,8 +487,9 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 	t10000 := float64(10000)
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("hardTimeDoc1"),
-		Text: nil,
+		ID:      identifier.From("hardTimeDoc1"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -494,8 +504,9 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("hardTimeDoc2"),
-		Text: nil,
+		ID:      identifier.From("hardTimeDoc2"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -524,7 +535,7 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The session filter provides bounds [1000, 9000], so the histogram uses those.
@@ -569,8 +580,9 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 	t9500 := float64(9500)
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("wideTimeDoc1"),
-		Text: nil,
+		ID:      identifier.From("wideTimeDoc1"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -585,8 +597,9 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("wideTimeDoc2"),
-		Text: nil,
+		ID:      identifier.From("wideTimeDoc2"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -601,8 +614,9 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("wideTimeDoc3"),
-		Text: nil,
+		ID:      identifier.From("wideTimeDoc3"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -627,7 +641,7 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "500", metadata["from"])

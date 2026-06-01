@@ -898,7 +898,9 @@ func TestBuildLanguageCodes(t *testing.T) {
 	slDoc := makeLanguageDoc(slID, "sl")
 
 	c := &Converter{ //nolint:exhaustruct
-		documentInfoCache: map[identifier.Identifier]documentInfo{},
+		enabledLanguages:    SupportedLanguages,
+		recognizedLanguages: SupportedLanguages,
+		documentInfoCache:   map[identifier.Identifier]documentInfo{},
 	}
 	c.buildLanguageCodes([]*document.D{enDoc, slDoc})
 
@@ -913,7 +915,9 @@ func TestBuildLanguageCodesSubtag(t *testing.T) {
 	langDoc := makeLanguageDoc(testLangDocID, "en-US")
 
 	c := &Converter{ //nolint:exhaustruct
-		documentInfoCache: map[identifier.Identifier]documentInfo{},
+		enabledLanguages:    SupportedLanguages,
+		recognizedLanguages: SupportedLanguages,
+		documentInfoCache:   map[identifier.Identifier]documentInfo{},
 	}
 	c.buildLanguageCodes([]*document.D{langDoc})
 
@@ -949,6 +953,8 @@ func TestExtractInLanguages(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
+		enabledLanguages:    SupportedLanguages,
+		recognizedLanguages: SupportedLanguages,
 		LanguageCodes: map[identifier.Identifier]string{
 			testLangDocID: "en",
 		},
@@ -1016,6 +1022,8 @@ func TestExtractInLanguagesMultiple(t *testing.T) {
 	enLangID := identifier.New()
 	slLangID := identifier.New()
 	c := &Converter{ //nolint:exhaustruct
+		enabledLanguages:    SupportedLanguages,
+		recognizedLanguages: SupportedLanguages,
 		LanguageCodes: map[identifier.Identifier]string{
 			enLangID: "en",
 			slLangID: "sl",
@@ -1166,8 +1174,10 @@ func TestMakeDisplayStrings(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
-		namingProperties: []identifier.Identifier{internalCore.NamingPropID},
-		LanguageCodes:    map[identifier.Identifier]string{},
+		enabledLanguages:    SupportedLanguages,
+		recognizedLanguages: SupportedLanguages,
+		namingProperties:    []identifier.Identifier{internalCore.NamingPropID},
+		LanguageCodes:       map[identifier.Identifier]string{},
 	}
 
 	// Two naming strings: first becomes Display, Naming contains all strings.
@@ -1201,8 +1211,10 @@ func TestMakeDisplayStringsSanitizesNullBytes(t *testing.T) {
 	t.Parallel()
 
 	c := &Converter{ //nolint:exhaustruct
-		namingProperties: []identifier.Identifier{internalCore.NamingPropID},
-		LanguageCodes:    map[identifier.Identifier]string{},
+		enabledLanguages:    SupportedLanguages,
+		recognizedLanguages: SupportedLanguages,
+		namingProperties:    []identifier.Identifier{internalCore.NamingPropID},
+		LanguageCodes:       map[identifier.Identifier]string{},
 	}
 
 	// Naming string with null byte should have it stripped.
@@ -1288,7 +1300,7 @@ func TestVisitIdentifierPopulatesText(t *testing.T) {
 	}
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, []string{"Q42"}, result.Text["und"])
+	assert.Equal(t, []string{testDocID.String(), "Q42"}, result.Text["und"])
 }
 
 func TestVisitStringPopulatesTextDefaultsToUnd(t *testing.T) {
@@ -1309,7 +1321,9 @@ func TestVisitStringPopulatesTextDefaultsToUnd(t *testing.T) {
 	}
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, []string{"hello world"}, result.Text["und"])
+	assert.Equal(t, []string{testDocID.String(), "hello world"}, result.Text["und"])
+	// The document ID and the String claim with no IN_LANGUAGE both go only to
+	// "und", so no other language bucket exists.
 	_, hasEn := result.Text["en"]
 	assert.False(t, hasEn)
 }
@@ -1340,9 +1354,10 @@ func TestVisitStringPopulatesTextWithLanguage(t *testing.T) {
 	}
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	// The English-tagged String claim goes to text["en"]; the document ID goes
+	// only to "und".
 	assert.Equal(t, []string{"hello"}, result.Text["en"])
-	_, hasUnd := result.Text["und"]
-	assert.False(t, hasUnd)
+	assert.Equal(t, []string{testDocID.String()}, result.Text["und"])
 }
 
 func TestVisitHTMLStripsAndPopulatesText(t *testing.T) {
@@ -1364,9 +1379,11 @@ func TestVisitHTMLStripsAndPopulatesText(t *testing.T) {
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// HTML tags are stripped in Go and adjacent block elements get a separating
-	// space so the tokenizer treats the words as distinct tokens.
-	require.Len(t, result.Text["und"], 1)
-	assert.Equal(t, "hello world", result.Text["und"][0])
+	// space so the tokenizer treats the words as distinct tokens. The first
+	// entry is the document's own ID, always seeded under "und".
+	require.Len(t, result.Text["und"], 2)
+	assert.Equal(t, testDocID.String(), result.Text["und"][0])
+	assert.Equal(t, "hello world", result.Text["und"][1])
 }
 
 // TestTextAggregatesAcrossClaims verifies that multiple textual claims of any
@@ -1399,7 +1416,7 @@ func TestTextAggregatesAcrossClaims(t *testing.T) {
 	}
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.ElementsMatch(t, []string{"Q42", "alpha", "https://example.com"}, result.Text["und"])
+	assert.ElementsMatch(t, []string{testDocID.String(), "Q42", "alpha", "https://example.com"}, result.Text["und"])
 }
 
 func TestStripHTML(t *testing.T) {
@@ -1410,17 +1427,101 @@ func TestStripHTML(t *testing.T) {
 		in   string
 		want string
 	}{
+		// Baseline.
 		{"plain text", "hello world", "hello world"},
-		{"single element", "<p>hello</p>", "hello"},
-		{"adjacent blocks get space", "<p>hello</p><p>world</p>", "hello world"},
-		{"nested tags", "<div><b>foo</b> <i>bar</i></div>", "foo   bar"},
 		{"empty", "", ""},
 		{"tags only", "<br/><br/>", ""},
+		{"single block element", "<p>hello</p>", "hello"},
+
+		// Block tags insert a single space between text fragments.
+		{"adjacent paragraphs", "<p>hello</p><p>world</p>", "hello world"},
+		{"line break splits", "foo<br>bar", "foo bar"},
+		{"horizontal rule splits", "foo<hr>bar", "foo bar"},
+		{"list items split", "<ul><li>foo</li><li>bar</li></ul>", "foo bar"},
+		{"heading and paragraph", "<h1>Title</h1><p>body</p>", "Title body"},
+		{"blockquote splits", "intro<blockquote>quoted</blockquote>outro", "intro quoted outro"},
+		{"pre splits", "before<pre>code</pre>after", "before code after"},
+
+		// Inline tags do NOT insert a space: text fragments are concatenated.
+		{"inline anchor", `foo<a href="">bar</a>`, "foobar"},
+		{"inline bold then italic", "<b>foo</b><i>bar</i>", "foobar"},
+		{"inline strike, tt, u", "<strike>a</strike><tt>b</tt><u>c</u>", "abc"},
+		{"void img is inline", `text<img src="x" alt="y"/>more`, "textmore"},
+		{"inline inside block", "<p>foo<b>bar</b></p>", "foobar"},
+		{"block surrounding inline-only run", "<p><b>foo</b><i>bar</i></p><p><b>baz</b></p>", "foobar baz"},
+
+		// Whitespace-only text tokens between tags do not add their own space;
+		// the block tag still provides the single separator.
+		{"whitespace between blocks collapses", "<p>foo</p>   <p>bar</p>", "foo bar"},
+		{"inner whitespace preserved", "<p>foo bar</p>", "foo bar"},
+
+		// Per HTML spec, vertical tab (\v) and NBSP are NOT whitespace, so
+		// they should not be trimmed or treated as separator-only tokens.
+		{"vertical tab is content not whitespace", "   \v   ", "\v"},
+		{"vertical tab between blocks is content", "<p>foo</p>\v<p>bar</p>", "foo \v bar"},
+		{"nbsp is content not whitespace", "     ", " "},
+
+		// Source-side whitespace adjacent to an inline tag is significant: it's
+		// the only signal that visually-rendered text had a gap.
+		{"whitespace before inline", "foo<a>bar</a>", "foobar"},
+		{"whitespace between inline elements", "<b>foo</b> <i>bar</i>", "foo bar"},
+		{"trailing whitespace before inline tag", "foo  <a>bar</a>", "foo bar"},
+		{"leading whitespace inside inline tag", "foo<a>  bar</a>", "foo bar"},
+
+		// Real-world-ish: a sanitizer-shaped fragment with mixed inline.
+		{"mixed inline run with link", `<b>Drago</b> <a href="x">Tršar</a>`, "Drago Tršar"},
+		{"link concatenated to text", `text<a href="">link</a>more`, "textlinkmore"},
+
+		// Unknown tags default to inserting a space (block-like). The
+		// sanitizer normally strips these, but on raw input we prefer
+		// over-tokenizing to silently merging unrelated words.
+		{"unknown tag splits adjacent text", "foo<unknown>bar</unknown>baz", "foo bar baz"},
+		{"unknown tag between inline runs", "<b>foo</b><span>bar</span><i>baz</i>", "foo bar baz"},
+		{"adjacent unknown blocks split", "<div>foo</div><div>bar</div>", "foo bar"},
+		{"unknown wrapper around inline run", "<div><b>foo</b><i>bar</i></div>", "foobar"},
+		{"unknown wrapper with whitespace", "<div><b>foo</b> <i>bar</i></div>", "foo bar"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tc.want, stripHTML(tc.in))
+			assert.Equal(t, tc.want, stripHTML(tc.in, document.UndeterminedLanguage))
+		})
+	}
+}
+
+// TestStripHTMLNoBlockSpace exercises the no-block-space language branch by
+// temporarily adding a synthetic language code to noBlockSpaceLanguages. It
+// cannot run in parallel because it mutates a package-level map; for the same
+// reason no other tests should mutate this map.
+//
+//nolint:paralleltest
+func TestStripHTMLNoBlockSpace(t *testing.T) {
+	const fakeLang = "test-noblockspace"
+
+	noBlockSpaceLanguages[fakeLang] = true
+	t.Cleanup(func() { delete(noBlockSpaceLanguages, fakeLang) })
+
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		// Block tags do NOT insert a space for no-block-space languages.
+		{"adjacent paragraphs concatenate", "<p>foo</p><p>bar</p>", "foobar"},
+		{"line break does not split", "foo<br>bar", "foobar"},
+		{"unknown tag does not split", "foo<div>bar</div>baz", "foobarbaz"},
+		// Inline tags still concatenate (unchanged from the default branch).
+		{"inline still concatenates", `foo<a href="">bar</a>`, "foobar"},
+		// Source whitespace inside text tokens IS still preserved. The
+		// language switch only changes the implicit-block-separator behavior,
+		// not literal whitespace the author wrote.
+		{"explicit whitespace preserved", "<p>foo</p> <p>bar</p>", "foo bar"},
+		{"inner whitespace preserved", "<p>foo bar</p>", "foo bar"},
+	}
+	for _, tc := range tests {
+		//nolint:paralleltest
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, stripHTML(tc.in, fakeLang))
 		})
 	}
 }
@@ -3719,7 +3820,7 @@ func TestFromDocument(t *testing.T) {
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
-	assert.ElementsMatch(t, []string{"Q42", "hello"}, result.Text["und"])
+	assert.ElementsMatch(t, []string{testDocID.String(), "Q42", "hello"}, result.Text["und"])
 }
 
 func TestFromDocumentNilClaims(t *testing.T) {
@@ -3735,7 +3836,8 @@ func TestFromDocumentNilClaims(t *testing.T) {
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
-	assert.Empty(t, result.Text)
+	// The document ID goes only to the "und" bucket, so that is the sole entry.
+	assert.Equal(t, map[string][]string{"und": {testDocID.String()}}, result.Text)
 }
 
 func makeDocWithAllClaimTypes(t *testing.T, confidence document.Confidence) *document.D {
@@ -3877,8 +3979,19 @@ func TestFromDocumentAllClaimTypesConfidence(t *testing.T) {
 			result, errE := c.FromDocument(ctx, doc, nil)
 			require.NoError(t, errE, "% -+#.1v", errE)
 			assert.Equal(t, testDocID, result.ID)
-			// Identifier+String+HTML(stripped)+Link each contribute one entry to text["und"].
-			assert.Len(t, result.Text["und"], 4*tt.expected)
+			// text["und"] aggregates the following. Property labels (PropDisplay/
+			// PropNaming) are not folded; only referenced-document labels and
+			// numeric/temporal bounds are. This doc's referenced docs carry only
+			// "und" labels, so every value resolves to a single "und" string.
+			//   1   - the document ID (folded into "und")
+			// per included-claim group (expected = 1 unless skipped):
+			//   4   - Identifier+String+HTML(stripped)+Link source claims
+			//   2 Amount × (From + To)              = 4
+			//   2 Time   × (From + To)              = 4
+			//   1 Ref    × (ToDisplay + ToNaming)   = 2
+			//   1 Has    × (PropDisplay + PropNaming) = 2
+			//   None+Unknown contribute nothing (absence assertions).
+			assert.Len(t, result.Text["und"], 1+16*tt.expected)
 			// Amount + AmountInterval each contribute one claim.
 			assert.Len(t, result.Claims.Amount, 2*tt.expected)
 			// Time + TimeInterval each contribute one claim.
@@ -4710,7 +4823,7 @@ func TestConvertTimeIntervalToUnknownFromError(t *testing.T) {
 
 // TestConvertReferenceWithSubAmountClaim verifies that an amount sub-claim on
 // a reference parent claim is flattened into SubAmountClaim entries with the
-// parent's prop / target as parentProp / parentTo.
+// parent's prop/target as parentProp/parentTo.
 func TestConvertReferenceWithSubAmountClaim(t *testing.T) {
 	t.Parallel()
 
@@ -4761,8 +4874,7 @@ func TestConvertReferenceWithSubAmountClaim(t *testing.T) {
 
 // TestConvertReferenceWithSubTimeIntervalClaim verifies that a time-interval
 // sub-claim on a reference parent claim is flattened into a SubTimeClaim
-// (mapped to a range) with the parent's prop / target as parentProp /
-// parentTo.
+// (mapped to a range) with the parent's prop/target as parentProp/parentTo.
 func TestConvertReferenceWithSubTimeIntervalClaim(t *testing.T) {
 	t.Parallel()
 
@@ -4825,7 +4937,7 @@ func TestConvertReferenceWithSubTimeIntervalClaim(t *testing.T) {
 
 // TestConvertReferenceWithSubHasClaim verifies that a simple has sub-claim on
 // a reference parent claim is flattened into a SubHasClaim with the parent's
-// prop / target as parentProp / parentTo.
+// prop/target as parentProp/parentTo.
 func TestConvertReferenceWithSubHasClaim(t *testing.T) {
 	t.Parallel()
 
@@ -6010,9 +6122,12 @@ func TestGetDocumentInfoWithLanguagePriority(t *testing.T) {
 		docID: doc,
 	}
 
-	// Priority: en falls back to sl, pt has no fallback.
+	// Priority: en falls back to sl, sl enabled without fallback, pt enabled
+	// without fallback. All three appear as keys so they are in the enabled
+	// language set (LanguagePriority keys + "und" = enabled languages).
 	priority := map[string][]string{
 		"en": {"sl", "und"},
+		"sl": {},
 		"pt": {},
 	}
 	c := newTestConverterWithPriority(t, nil, languages, extraDocs, priority)
@@ -6029,6 +6144,115 @@ func TestGetDocumentInfoWithLanguagePriority(t *testing.T) {
 	assert.Empty(t, info.Display.Display["pt"])
 	// "und" not in priority: no fallback for "und" itself (no "und" naming exists).
 	assert.Empty(t, info.Display.Display["und"])
+}
+
+// TestRecognizedNotIndexedLanguageFallback verifies that a language listed only as a
+// fallback target (here "sl" in {en: {sl}}) is recognized but not indexed: its content
+// resolves the display label of the language that falls back to it, but the raw content
+// is dropped from the text buckets (no per-language field and not folded into "und").
+func TestRecognizedNotIndexedLanguageFallback(t *testing.T) {
+	t.Parallel()
+
+	enLangID := identifier.New()
+	slLangID := identifier.New()
+	enLangDoc := makeLanguageDoc(enLangID, "en")
+	slLangDoc := makeLanguageDoc(slLangID, "sl")
+
+	slSub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: internalCore.InLanguagePropID},
+			To:        document.Reference{ID: slLangID},
+		}},
+	}
+
+	docID := identifier.New()
+	// The document has only a Slovenian-tagged name.
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: docID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{{
+				CoreClaim: makeCoreClaim(document.HighConfidence, slSub),
+				Prop:      document.Reference{ID: internalCore.NamingPropID},
+				String:    "Slovensko Ime",
+			}},
+		},
+	}
+
+	// "en" is enabled and indexed; "sl" is only a fallback target, so it is
+	// recognized but not indexed.
+	priority := map[string][]string{"en": {"sl"}}
+	c := newTestConverterWithPriority(t, nil, []*document.D{enLangDoc, slLangDoc}, map[identifier.Identifier]*document.D{docID: doc}, priority)
+
+	result, errE := c.FromDocument(t.Context(), doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The English display label resolves to the Slovenian name via the en->sl
+	// fallback, even though "sl" is not indexed.
+	assert.Equal(t, []string{"Slovensko Ime"}, result.Display["en"])
+
+	// The Slovenian content is dropped from text: there is no "sl" bucket, and it
+	// is not folded into "und". Only the document ID lands in "und".
+	_, hasSl := result.Text["sl"]
+	assert.False(t, hasSl)
+	assert.Equal(t, map[string][]string{"und": {docID.String()}}, result.Text)
+}
+
+// TestConversionIndexesOnlyEnabledLanguages verifies that when LanguagePriority
+// restricts the enabled languages, FromDocument produces per-language text only
+// for those languages: content tagged in a non-enabled language collapses to
+// "und" and no bucket is created for the non-enabled language.
+func TestConversionIndexesOnlyEnabledLanguages(t *testing.T) {
+	t.Parallel()
+
+	enLangID := identifier.New()
+	slLangID := identifier.New()
+	ptLangID := identifier.New()
+	langs := []*document.D{
+		makeLanguageDoc(enLangID, "en"),
+		makeLanguageDoc(slLangID, "sl"),
+		makeLanguageDoc(ptLangID, "pt"),
+	}
+
+	inLang := func(langID identifier.Identifier) *document.ClaimTypes {
+		return &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
+				To:        document.Reference{ID: langID},
+			}},
+		}
+	}
+
+	docID := identifier.New()
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: docID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{CoreClaim: makeCoreClaim(document.HighConfidence, inLang(enLangID)), Prop: document.Reference{ID: testPropID}, String: "english"},
+				{CoreClaim: makeCoreClaim(document.HighConfidence, inLang(slLangID)), Prop: document.Reference{ID: testPropID}, String: "slovensko"},
+				{CoreClaim: makeCoreClaim(document.HighConfidence, inLang(ptLangID)), Prop: document.Reference{ID: testPropID}, String: "portuguese"},
+			},
+		},
+	}
+
+	// Only "en" is enabled (plus "und"); sl and pt are neither keys nor fallback
+	// targets, so they are not recognized.
+	priority := map[string][]string{"en": {"und"}}
+	c := newTestConverterWithPriority(t, nil, langs, map[identifier.Identifier]*document.D{docID: doc}, priority)
+
+	result, errE := c.FromDocument(t.Context(), doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// English content is indexed under "en".
+	assert.Equal(t, []string{"english"}, result.Text["en"])
+	// sl and pt are not enabled, so no buckets exist for them.
+	_, hasSl := result.Text["sl"]
+	_, hasPt := result.Text["pt"]
+	assert.False(t, hasSl, "non-enabled language sl should not be indexed")
+	assert.False(t, hasPt, "non-enabled language pt should not be indexed")
+	// Their content collapses into "und", alongside the document ID.
+	assert.ElementsMatch(t, []string{docID.String(), "slovensko", "portuguese"}, result.Text["und"])
 }
 
 func TestDisplayPathsNoFallback(t *testing.T) {
@@ -6112,12 +6336,23 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 	}
 
 	extraDocs := map[identifier.Identifier]*document.D{
-		parentID: parentDoc,
-		childID:  childDoc,
+		parentID:                         parentDoc,
+		childID:                          childDoc,
+		internalCore.SubentityOfPropID:   subentityDoc,
+		internalCore.SubclassOfPropID:    subclassDoc,
+		internalCore.SubpropertyOfPropID: subpropDoc,
+		internalCore.InstanceOfPropID:    instanceDoc,
+		enLangID:                         makeLanguageDoc(enLangID, "en"),
+		slLangID:                         makeLanguageDoc(slLangID, "sl"),
+		//nolint:exhaustruct
+		internalCore.PropertyClassID: {CoreDocument: document.CoreDocument{ID: internalCore.PropertyClassID}},
 	}
 
-	// Priority: sl falls back to en. No fallback for pt.
+	// Priority: en enabled (no fallback), sl falls back to en, pt enabled with
+	// no fallback. All three appear as keys so they are part of the enabled
+	// language set (LanguagePriority keys + "und" = enabled languages).
 	priority := map[string][]string{
+		"en": {},
 		"sl": {"en"},
 		"pt": {},
 	}
@@ -6139,6 +6374,15 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 	// Path is still created with empty strings.
 	require.Contains(t, info.DisplayPaths[internalCore.SubclassOfPropID], "pt")
 	assert.Equal(t, []string{"\x00"}, info.DisplayPaths[internalCore.SubclassOfPropID]["pt"])
+
+	// FromDocument folds the document's own ancestor display labels into the
+	// per-language display field: its own label plus its ancestors' labels.
+	// ("Parent EN" also appears in text independently, via the SUBCLASS_OF
+	// reference claim's ToDisplay/ToNaming, which is a separate mechanism.)
+	result, errE := c.FromDocument(ctx, childDoc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.ElementsMatch(t, []string{"Child EN", "Parent EN"}, result.Display["en"])
+	assert.ElementsMatch(t, []string{"Child SL", "Parent EN"}, result.Display["sl"])
 }
 
 func TestDisplayPathsEmptyAppend(t *testing.T) {
@@ -7308,7 +7552,7 @@ func TestFromDocumentHookModifies(t *testing.T) {
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
-	assert.Equal(t, []string{"injected"}, result.Text["und"])
+	assert.Equal(t, []string{testDocID.String(), "injected"}, result.Text["und"])
 }
 
 func TestFromDocumentHookError(t *testing.T) {
@@ -7395,7 +7639,7 @@ func TestFromDocumentMultipleHooks(t *testing.T) {
 
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.ElementsMatch(t, []string{"first", "second"}, result.Text["und"])
+	assert.ElementsMatch(t, []string{testDocID.String(), "first", "second"}, result.Text["und"])
 }
 
 func TestFromDocumentHookReplaces(t *testing.T) {
@@ -7447,8 +7691,9 @@ func TestFromDocumentHookReplaces(t *testing.T) {
 	assert.Equal(t, replacementID, result.ID)
 	// The replacement carries the REPLACED identifier value, indexed into text["und"].
 	// The original "original" string from the input document is gone because the hook
-	// substituted the whole document.
-	assert.Equal(t, []string{"REPLACED"}, result.Text["und"])
+	// substituted the whole document. The seeded ID is the replacement's, not the input's,
+	// because FromDocument seeds the ID after hooks have run.
+	assert.Equal(t, []string{replacementID.String(), "REPLACED"}, result.Text["und"])
 }
 
 func TestFromDocumentMultipleHooksErrorInSecond(t *testing.T) {
@@ -7505,5 +7750,5 @@ func TestFromDocumentNilHooks(t *testing.T) {
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
-	assert.Equal(t, []string{"hello"}, result.Text["und"])
+	assert.Equal(t, []string{testDocID.String(), "hello"}, result.Text["und"])
 }

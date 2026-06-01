@@ -23,8 +23,9 @@ func TestRefFilterGetIntegration(t *testing.T) {
 	target2 := identifier.From("target2")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("refDoc1"),
-		Text: nil,
+		ID:      identifier.From("refDoc1"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -39,8 +40,9 @@ func TestRefFilterGetIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("refDoc2"),
-		Text: nil,
+		ID:      identifier.From("refDoc2"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -55,8 +57,9 @@ func TestRefFilterGetIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("refDoc3"),
-		Text: nil,
+		ID:      identifier.From("refDoc3"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -86,7 +89,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Ref.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID), session.Filters[0].Prop[0])
+	results, metadata, errE := session.Filters[0].Ref.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Results are sorted by count descending: target1 (count 2) first, target2 (count 1) second.
@@ -108,8 +111,9 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 	target2 := identifier.From("target2")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("refDoc1"),
-		Text: nil,
+		ID:      identifier.From("refDoc1"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -124,8 +128,9 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("refDoc2"),
-		Text: nil,
+		ID:      identifier.From("refDoc2"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -146,7 +151,7 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 
 	// Query for ref filter values using the session's full query and prop from outside the session.
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), refProp)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Results order is non-deterministic when counts are equal.
@@ -168,8 +173,9 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 
 	// Doc with the ref prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("refDoc1"),
-		Text: nil,
+		ID:      identifier.From("refDoc1"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -185,8 +191,9 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 	})
 	// Doc without the ref prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("refDoc2"),
-		Text: nil,
+		ID:      identifier.From("refDoc2"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: nil,
@@ -199,8 +206,9 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 	})
 	// Another doc without the ref prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("refDoc3"),
-		Text: nil,
+		ID:      identifier.From("refDoc3"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: nil,
@@ -216,7 +224,7 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), refProp)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Results should include target1 (count 1) and __MISSING__ (count 2), sorted by count descending.
@@ -239,8 +247,9 @@ func TestRefFilterGetNoMissingIntegration(t *testing.T) {
 
 	// All docs have the ref prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("refDoc1"),
-		Text: nil,
+		ID:      identifier.From("refDoc1"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -259,7 +268,7 @@ func TestRefFilterGetNoMissingIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), refProp)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// No missing bucket since all documents have the prop.
@@ -304,8 +313,9 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 	// One source doc with three reference claims, one per target in the chain, as
 	// produced at index time by ancestor expansion in convertReference.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("dogDoc"),
-		Text: nil,
+		ID:      identifier.From("dogDoc"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{
@@ -325,7 +335,7 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(), refProp)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// One source doc per bucket; order among equal counts is non-deterministic.
@@ -355,8 +365,9 @@ func TestRefFilterGetDiamondIntegration(t *testing.T) {
 	leafPathB := hierProp.String() + ":" + root.String() + "/" + parentB.String() + "/" + leaf.String()
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("leafDoc"),
-		Text: nil,
+		ID:      identifier.From("leafDoc"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{
@@ -374,7 +385,7 @@ func TestRefFilterGetDiamondIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(), refProp)
+	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, results, 1)
@@ -406,8 +417,9 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 
 	// Three sub-reference claims on the same doc, one per target in the chain.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:   identifier.From("subDog"),
-		Text: nil,
+		ID:      identifier.From("subDog"),
+		Display: nil,
+		Text:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: nil,
@@ -442,7 +454,7 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(), parentProp, subProp, nil)
+	results, metadata, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.ElementsMatch(t, []search.RefFilterResult{

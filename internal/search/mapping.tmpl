@@ -2,22 +2,20 @@
   "settings": {
     "analysis": {
       "analyzer": {
-        "standard_string": {
+        "und_text": {
           "type": "custom",
           "tokenizer": "icu_tokenizer",
           "filter": [
-            "lowercase",
             "icu_folding",
             "decimal_digit",
             "truncate_token_filter"
           ]
         },
-        "english_string": {
+        "en_text": {
           "type": "custom",
           "tokenizer": "icu_tokenizer",
           "filter": [
             "english_possessive_stemmer",
-            "lowercase",
             "icu_folding",
             "decimal_digit",
             "english_stop",
@@ -25,26 +23,32 @@
             "truncate_token_filter"
           ]
         },
-        "slovenian_string": {
+        "sl_text": {
           "type": "custom",
           "tokenizer": "icu_tokenizer",
           "filter": [
-            "lowercase",
             "icu_folding",
             "decimal_digit",
             "slovenian_lemmatizer",
             "truncate_token_filter"
           ]
         },
-        "portuguese_string": {
+        "pt_text": {
           "type": "custom",
           "tokenizer": "icu_tokenizer",
           "filter": [
-            "lowercase",
             "icu_folding",
             "decimal_digit",
             "portuguese_stop",
             "portuguese_stemmer",
+            "truncate_token_filter"
+          ]
+        },
+        "exact_text": {
+          "type": "custom",
+          "tokenizer": "icu_tokenizer",
+          "filter": [
+            "lowercase",
             "truncate_token_filter"
           ]
         }
@@ -86,7 +90,8 @@
             "truncate_token_filter"
           ],
           "filter": [
-            "lowercase"
+            "icu_folding",
+            "decimal_digit"
           ]
         },
         "id_path_normalizer": {
@@ -114,29 +119,11 @@
       "id": {
         "type": "keyword"
       },
-      "text": {
-        "properties": {
-          "en": {
-            "type": "text",
-            "analyzer": "english_string"
-          },
-          "sl": {
-            "type": "text",
-            "analyzer": "slovenian_string"
-          },
-          "pt": {
-            "type": "text",
-            "analyzer": "portuguese_string"
-          },
-          "und": {
-            "type": "text",
-            "analyzer": "standard_string"
-          }
-        }
-      },
+      "display": {{.Display}},
+      "text": {{.Text}},
       "claims": {
         "properties": {
-          {{range $i, $claimType := $}}
+          {{range $i, $claimType := .ClaimTypes}}
             {{if $i}},{{end}}
             "{{$claimType.Name}}": {
               "type": "nested",

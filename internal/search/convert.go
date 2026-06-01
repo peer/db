@@ -20,23 +20,93 @@ import (
 	"gitlab.com/peerdb/peerdb/store"
 )
 
-// stripHTML extracts plain text from HTML, separating text from distinct
-// elements with a single space so tokenizers see word boundaries between
-// adjacent block elements. Non-text tokens (StartTag/EndTag/Comment/Doctype)
+// inlineHTMLTags is the set of HTML tag names that do NOT produce a visible
+// line/block break in rendered text. Text fragments separated only by these
+// tags are concatenated directly when extracted to plain text. Every other
+// tag (including unknown ones) inserts a single space between adjacent text
+// fragments. The set tracks the inline elements the document sanitizer
+// allows (document.SanitizeHTML).
+var inlineHTMLTags = map[string]bool{ //nolint:gochecknoglobals
+	"a":      true,
+	"b":      true,
+	"i":      true,
+	"img":    true,
+	"strike": true,
+	"tt":     true,
+	"u":      true,
+}
+
+// noBlockSpaceLanguages is the set of language codes whose writing system does
+// not use spaces between words/blocks (CJK, Thai, Lao, ...). For these
+// languages stripHTML concatenates text across non-inline tag boundaries
+// instead of inserting a space, because a stray ASCII space would split a
+// token that the language analyzer treats as a single run. Inline tags behave
+// the same regardless of language.
+var noBlockSpaceLanguages = map[string]bool{} //nolint:gochecknoglobals
+
+// isHTMLWhitespace reports whether r is one of the ASCII whitespace characters
+// the HTML spec treats as collapsible whitespace: SPACE, TAB, LF, FF, CR.
+// Notably this excludes vertical tab (U+000B) and all non-ASCII whitespace
+// (NBSP, U+2028, U+2029, ...), those are regular characters per the spec
+// and must not be trimmed or collapsed.
+func isHTMLWhitespace(r rune) bool {
+	switch r {
+	case ' ', '\t', '\n', '\r', '\f':
+		return true
+	}
+	return false
+}
+
+// stripHTML extracts plain text from HTML, inserting a single space between
+// text fragments wherever a separator is implied and concatenating them
+// directly otherwise. Separators are: any non-inline tag, any whitespace-only
+// text token between tags, or leading/trailing whitespace within a text
+// fragment. Only the known inline tags do not insert a separator on their own.
+// Unknown tags default to inserting a space. Non-text tokens (Comment/Doctype)
 // are dropped. Returns "" for input that contains no text.
-func stripHTML(s string) string {
+//
+// lang is the language code the resulting text will be indexed under. for
+// languages listed in noBlockSpaceLanguages, non-inline tag boundaries do not
+// insert a space (their scripts do not use word spaces).
+func stripHTML(s, lang string) string {
+	insertBlockSpace := !noBlockSpaceLanguages[lang]
 	tokenizer := html.NewTokenizer(strings.NewReader(s))
-	var buf strings.Builder
+	var buf bytes.Buffer
+	needSpace := false
 	for {
 		tt := tokenizer.Next()
 		if tt == html.ErrorToken {
-			return strings.TrimSpace(buf.String())
+			return string(bytes.TrimFunc(buf.Bytes(), isHTMLWhitespace))
 		}
-		if tt == html.TextToken {
-			if buf.Len() > 0 {
+		switch tt { //nolint:exhaustive
+		case html.StartTagToken, html.EndTagToken, html.SelfClosingTagToken:
+			name, _ := tokenizer.TagName()
+			if insertBlockSpace && !inlineHTMLTags[string(name)] {
+				needSpace = true
+			}
+		case html.TextToken:
+			raw := tokenizer.Text()
+			if len(raw) == 0 {
+				continue
+			}
+			text := bytes.TrimFunc(raw, isHTMLWhitespace)
+			if len(text) == 0 {
+				// Whitespace-only text between tags signals a separator
+				// without emitting anything.
+				needSpace = true
+				continue
+			}
+			// HTML whitespace is single-byte ASCII, so testing the boundary
+			// bytes is sufficient. For multi-byte UTF-8 sequences the lead /
+			// trail byte is in 0xC0-0xFF or 0x80-0xBF, neither overlapping
+			// with the whitespace set, so rune(b) gives the right answer.
+			hasLeading := isHTMLWhitespace(rune(raw[0]))
+			hasTrailing := isHTMLWhitespace(rune(raw[len(raw)-1]))
+			if buf.Len() > 0 && (needSpace || hasLeading) {
 				buf.WriteByte(' ')
 			}
-			buf.Write(tokenizer.Text())
+			buf.Write(text)
+			needSpace = hasTrailing
 		}
 	}
 }
@@ -134,6 +204,18 @@ type Converter struct {
 	// If a language is not a key, fallback is only the undetermined language.
 	// If a language has an empty slice, no fallback is attempted at all.
 	languagePriority map[string][]string
+	// enabledLanguages is the set of languages this site indexes. Derived from
+	// the languagePriority keys (plus "und") when set, otherwise the package-level
+	// SupportedLanguages default. The converter populates per-language indexed
+	// content only for these languages.
+	enabledLanguages map[string]bool
+	// recognizedLanguages is the set of languages whose content the converter
+	// identifies: the enabled languages plus any language that appears only as a
+	// fallback target in languagePriority. A fallback-target-only language is
+	// recognized (its content is grouped under its own code so it can serve as a
+	// display fallback) but not enabled (it gets no index field, and its content
+	// is dropped from the text buckets).
+	recognizedLanguages map[string]bool
 	// getDocument fetches a document by ID from the store.
 	getDocument func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E)
 	// documentInfoMu protects documentInfoCache for concurrent access.
@@ -159,18 +241,17 @@ func NewConverter(
 	if errE != nil {
 		return nil, errE
 	}
-	// Ensure all supported languages are keys in languagePriority, matching the
-	// frontend pattern where languagePriority keys define the set of enabled
-	// languages. On the backend, we enable all supported languages.
-	// Languages without explicit fallbacks get default fallback behavior.
-	fullPriority := make(map[string][]string, len(SupportedLanguages))
-	for lang := range SupportedLanguages {
-		if fallbacks, ok := languagePriority[lang]; ok {
-			fullPriority[lang] = fallbacks
-		} else if lang != document.UndeterminedLanguage {
-			fullPriority[lang] = []string{document.UndeterminedLanguage}
-		} else {
-			fullPriority[lang] = nil
+	enabledLanguages, languagePriority := enabledLanguagesFromLanguagePriority(languagePriority)
+	// Recognized languages are the enabled ones plus any language that appears
+	// only as a fallback target. Those are identified (so they can serve as a
+	// display fallback) but not indexed.
+	recognizedLanguages := make(map[string]bool, len(enabledLanguages))
+	for lang := range enabledLanguages {
+		recognizedLanguages[lang] = true
+	}
+	for _, fallbacks := range languagePriority {
+		for _, fb := range fallbacks {
+			recognizedLanguages[fb] = true
 		}
 	}
 	c := &Converter{
@@ -183,7 +264,9 @@ func NewConverter(
 		namingProperties:         nil,
 		inverseProperties:        nil,
 		fieldInverseProperties:   nil,
-		languagePriority:         fullPriority,
+		languagePriority:         languagePriority,
+		enabledLanguages:         enabledLanguages,
+		recognizedLanguages:      recognizedLanguages,
 		getDocument:              getDocument,
 		documentInfoCache:        map[identifier.Identifier]documentInfo{},
 		documentInfoMu:           sync.RWMutex{},
@@ -336,10 +419,13 @@ func (c *Converter) buildLanguageCodes(allDocuments []*document.D) {
 			continue
 		}
 		// Extract the CODE identifier claim and use the primary language subtag.
+		// Register codes that are recognized (enabled or a fallback target) so a
+		// fallback-only language is identified for display resolution; an
+		// unrecognized language quietly falls back to "und".
 		ids := document.GetClaimsOfTypeWithConfidence[document.IdentifierClaim](doc, internalCore.CodePropID, document.LowConfidence)
 		for _, id := range ids {
 			code, _, _ := strings.Cut(id.Value, "-")
-			if SupportedLanguages[code] {
+			if c.recognizedLanguages[code] {
 				c.LanguageCodes[doc.ID] = code
 			}
 		}
@@ -432,13 +518,17 @@ func (c *Converter) processFieldInverse(parentPath []identifier.Identifier, fiel
 // caching it on first access. It computes display strings and lazily walks
 // value hierarchy ancestors (e.g., SUBCLASS_OF). It is safe for concurrent use.
 func (c *Converter) getDocumentInfo(ctx context.Context, id identifier.Identifier) (documentInfo, errors.E) {
-	return c.computeDocumentInfo(ctx, id, map[identifier.Identifier]bool{})
+	return c.computeDocumentInfo(ctx, id, nil, map[identifier.Identifier]bool{})
 }
 
-// computeDocumentInfo fetches a document, computes its display strings, and lazily
-// walks value hierarchy ancestors. The computing set prevents infinite recursion
-// when cycles exist in hierarchy data. Results are cached for reuse.
-func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Identifier, computing map[identifier.Identifier]bool) (documentInfo, errors.E) {
+// computeDocumentInfo computes a document's display strings and lazily walks value
+// hierarchy ancestors. When doc is non-nil it is used directly (the caller already
+// has it, e.g., the document being indexed); otherwise the document is fetched by id.
+// The computing set prevents infinite recursion when cycles exist in hierarchy data.
+// Results are cached for reuse.
+func (c *Converter) computeDocumentInfo(
+	ctx context.Context, id identifier.Identifier, doc *document.D, computing map[identifier.Identifier]bool,
+) (documentInfo, errors.E) {
 	// Check cache.
 	c.documentInfoMu.RLock()
 	if info, ok := c.documentInfoCache[id]; ok {
@@ -453,17 +543,20 @@ func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Ident
 	}
 	computing[id] = true
 
-	doc, errE := c.getDocument(ctx, id)
-	if errE != nil {
-		if errors.Is(errE, store.ErrValueNotFound) {
-			// Referenced document does not exist (or was deleted). Return empty
-			// info without caching so that a later re-index can pick it up.
-			zerolog.Ctx(ctx).Warn().Err(errE).
-				Str("id", id.String()).
-				Msg("referenced document not found, using empty info")
-			return documentInfo{}, nil
+	if doc == nil {
+		var errE errors.E
+		doc, errE = c.getDocument(ctx, id)
+		if errE != nil {
+			if errors.Is(errE, store.ErrValueNotFound) {
+				// Referenced document does not exist (or was deleted). Return empty
+				// info without caching so that a later re-index can pick it up.
+				zerolog.Ctx(ctx).Warn().Err(errE).
+					Str("id", id.String()).
+					Msg("referenced document not found, using empty info")
+				return documentInfo{}, nil
+			}
+			return documentInfo{}, errE
 		}
-		return documentInfo{}, errE
 	}
 	display, errE := c.makeDisplayStrings(ctx, doc)
 	if errE != nil {
@@ -492,7 +585,7 @@ func (c *Converter) computeDocumentInfo(ctx context.Context, id identifier.Ident
 			seen[parentID] = true
 			hierAncestors = append(hierAncestors, parentID)
 			// Recursively get parent info to collect transitive ancestors and paths.
-			parentInfo, errE := c.computeDocumentInfo(ctx, parentID, computing)
+			parentInfo, errE := c.computeDocumentInfo(ctx, parentID, nil, computing)
 			if errE != nil {
 				return documentInfo{}, errE
 			}
@@ -556,7 +649,7 @@ func (c *Converter) extendDisplayPaths(
 	parentInfo documentInfo, hierProp identifier.Identifier,
 	display displayStrings,
 ) {
-	for lang := range SupportedLanguages {
+	for lang := range c.enabledLanguages {
 		// If lang does not exist in Display, this just means it is an empty string and we have not stored
 		// it in the map. So reading a zero value from the map makes the right thing and we get an empty string back.
 		thisDisplay := display.Display[lang]
@@ -602,7 +695,7 @@ func (c *Converter) makeDisplayStrings(ctx context.Context, doc *document.D) (di
 		Naming:  c.namingStrings(doc),
 	}
 
-	for lang := range SupportedLanguages {
+	for lang := range c.enabledLanguages {
 		if tmplStr, ok := templates[lang]; ok {
 			// Template exists for this language: render it with the target language so that
 			// template functions (e.g., bestString) use that language's fallback chain.
@@ -708,9 +801,9 @@ func (c *Converter) displayLabelTemplate(ctx context.Context, doc *document.D) (
 		return nil, nil //nolint:nilnil
 	}
 
-	// For each supported language, find the best template using the fallback chain.
-	result := make(map[string]string, len(SupportedLanguages))
-	for lang := range SupportedLanguages {
+	// For each enabled language, find the best template using the fallback chain.
+	result := make(map[string]string, len(c.enabledLanguages))
+	for lang := range c.enabledLanguages {
 		chain := []string{lang}
 		if fallbacks, ok := c.languagePriority[lang]; ok {
 			chain = append(chain, fallbacks...)
@@ -947,7 +1040,7 @@ func (c *Converter) extractInLanguages(claims document.Claims) []string {
 	refs := document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](claims, internalCore.InLanguagePropID, document.LowConfidence)
 	var codes []string
 	for _, ref := range refs {
-		if code, ok := c.LanguageCodes[ref.To.ID]; ok && SupportedLanguages[code] {
+		if code, ok := c.LanguageCodes[ref.To.ID]; ok && c.recognizedLanguages[code] {
 			codes = append(codes, code)
 		}
 	}
@@ -992,8 +1085,13 @@ var _ document.Visitor = (*convertVisitor)(nil)
 
 // addText appends value to the document's top-level text bucket for the given
 // language, skipping empty/whitespace-only values and lazily initializing the
-// map.
+// map. Content in a recognized-but-not-enabled language (a fallback-target-only
+// language) is dropped: it has no index field, and it reaches search only
+// through the display labels it resolves to.
 func (v *convertVisitor) addText(lang, value string) {
+	if !v.converter.enabledLanguages[lang] {
+		return
+	}
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return
@@ -1002,6 +1100,139 @@ func (v *convertVisitor) addText(lang, value string) {
 		v.result.Text = map[string][]string{}
 	}
 	v.result.Text[lang] = append(v.result.Text[lang], value)
+}
+
+// addDisplay populates the top-level display field: for each enabled language it
+// adds the rendered display label and the labels of the document's ancestor
+// hierarchy paths (split on hierarchyPathSeparator), deduplicated. The display
+// field uses the und_text analyzer for every language, so the per-language
+// ancestor labels (which may be fallback-resolved and mixed-language) are kept
+// under their own language rather than collapsed into "und".
+func (v *convertVisitor) addDisplay(labels map[string]string, paths map[string][]string) {
+	add := func(lang, val string) {
+		val = strings.TrimSpace(val)
+		if val == "" || !v.converter.enabledLanguages[lang] {
+			return
+		}
+		if v.result.Display == nil {
+			v.result.Display = map[string][]string{}
+		}
+		if slices.Contains(v.result.Display[lang], val) {
+			return
+		}
+		v.result.Display[lang] = append(v.result.Display[lang], val)
+	}
+	for lang, label := range labels {
+		add(lang, label)
+	}
+	for lang, langPaths := range paths {
+		for _, path := range langPaths {
+			for label := range strings.SplitSeq(path, hierarchyPathSeparator) {
+				add(lang, label)
+			}
+		}
+	}
+}
+
+// addDisplayPathLabels folds the labels of per-language display hierarchy paths
+// into the "und" text bucket. Each path is a chain of ancestor display labels
+// joined by hierarchyPathSeparator; the labels are split out and added
+// individually so each ancestor name is searchable. Like other display labels,
+// they go to "und" because they are fallback-resolved and may mix languages.
+// Duplicates within the map are dropped.
+func (v *convertVisitor) addDisplayPathLabels(paths map[string][]string) {
+	seen := map[string]bool{}
+	for _, langPaths := range paths {
+		for _, path := range langPaths {
+			for label := range strings.SplitSeq(path, hierarchyPathSeparator) {
+				if seen[label] {
+					continue
+				}
+				seen[label] = true
+				v.addText(document.UndeterminedLanguage, label)
+			}
+		}
+	}
+}
+
+// appendClaimDisplaysToText folds claim values into the document's top-level
+// text bucket so the text-search query can match against referenced-document
+// names (including their ancestor hierarchy labels), numeric/temporal boundary
+// strings, and has-claim property labels.
+//
+// For value claims (Amount, Time, Reference, and their Sub* counterparts) the
+// property label (PropDisplay/PropNaming) is deliberately not folded: a property
+// name like "date of birth" is structural, not document content, and folding it
+// would make every document with such a claim match a search for the property
+// name. Only the values fold: referenced-document labels (ToDisplay/ToNaming)
+// and numeric/temporal bounds (FromDisplay/ToDisplay).
+//
+// Has claims (and their SubHas counterparts) are property-only: the assertion
+// that the document "has" the property is itself the content, so their property
+// labels do fold. None and Unknown claims, which assert the absence or
+// ignorance of a value, are not folded.
+//
+// Display labels (ToDisplay, and the language-neutral FromDisplay/ToDisplay) are
+// fallback-resolved and may mix languages, so they fold into the "und" bucket
+// only (und_text analyzer), never into a language-specific bucket where a
+// foreign stemmer would mangle them. Naming strings (ToNaming, PropNaming) are
+// extracted per their own language, so they fold into that language's bucket
+// where the matching analyzer applies.
+func (v *convertVisitor) appendClaimDisplaysToText() {
+	// Display values across the per-language map collapse into "und"; we drop
+	// duplicates that arise when fallback resolves multiple languages to the
+	// same rendered string.
+	addDisplay := func(m map[string]string) {
+		seen := map[string]bool{}
+		for _, val := range m {
+			if seen[val] {
+				continue
+			}
+			seen[val] = true
+			v.addText(document.UndeterminedLanguage, val)
+		}
+	}
+	addNaming := func(m map[string][]string) {
+		for lang, vals := range m {
+			for _, val := range vals {
+				v.addText(lang, val)
+			}
+		}
+	}
+	for _, c := range v.result.Claims.Amount {
+		v.addText(document.UndeterminedLanguage, c.FromDisplay)
+		v.addText(document.UndeterminedLanguage, c.ToDisplay)
+	}
+	for _, c := range v.result.Claims.Time {
+		v.addText(document.UndeterminedLanguage, c.FromDisplay)
+		v.addText(document.UndeterminedLanguage, c.ToDisplay)
+	}
+	for _, c := range v.result.Claims.Reference {
+		addDisplay(c.ToDisplay)
+		addNaming(c.ToNaming)
+		v.addDisplayPathLabels(c.ToDisplayPath)
+	}
+	for _, c := range v.result.Claims.Has {
+		addDisplay(c.PropDisplay)
+		addNaming(c.PropNaming)
+	}
+	for _, c := range v.result.Claims.SubRef {
+		addDisplay(c.ToDisplay)
+		addNaming(c.ToNaming)
+		v.addDisplayPathLabels(c.ToDisplayPath)
+	}
+	for _, c := range v.result.Claims.SubHas {
+		addDisplay(c.PropDisplay)
+		addNaming(c.PropNaming)
+	}
+	for _, c := range v.result.Claims.SubAmount {
+		v.addText(document.UndeterminedLanguage, c.FromDisplay)
+		v.addText(document.UndeterminedLanguage, c.ToDisplay)
+	}
+	for _, c := range v.result.Claims.SubTime {
+		v.addText(document.UndeterminedLanguage, c.FromDisplay)
+		v.addText(document.UndeterminedLanguage, c.ToDisplay)
+	}
 }
 
 // VisitIdentifier folds the identifier value into the document's top-level
@@ -1029,14 +1260,14 @@ func (v *convertVisitor) VisitString(claim *document.StringClaim) (document.Visi
 
 // VisitHTML strips HTML tags from the claim's value and folds the plain-text
 // result into the document's top-level text field under every language the
-// claim's IN_LANGUAGE sub-claims resolve to.
+// claim's IN_LANGUAGE sub-claims resolve to. stripHTML is called per-language
+// because the language controls whether block-tag boundaries become spaces.
 func (v *convertVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	stripped := stripHTML(claim.HTML)
 	for _, lang := range v.converter.extractInLanguages(claim.Sub) {
-		v.addText(lang, stripped)
+		v.addText(lang, stripHTML(claim.HTML, lang))
 	}
 	return document.Keep, nil
 }
@@ -1198,12 +1429,31 @@ func (c *Converter) FromDocument(
 		ctx:       ctx,
 		converter: c,
 		result: &Document{
-			ID:     doc.ID,
-			Text:   nil,
-			Claims: ClaimTypes{},
+			ID:      doc.ID,
+			Display: nil,
+			Text:    nil,
+			Claims:  ClaimTypes{},
 		},
 		docID: doc.ID,
 	}
+
+	// Compute the document's info (display label and hierarchy paths) from the
+	// in-memory document, which may differ from what is in the store (hooks).
+	info, errE := c.computeDocumentInfo(ctx, doc.ID, doc, map[identifier.Identifier]bool{})
+	if errE != nil {
+		return nil, errE
+	}
+	// Build the top-level "display" field per language: the rendered display
+	// label plus the document's ancestor display labels (its hierarchy paths),
+	// so the document is also findable by its categories/ancestors.
+	_, docDisplayPaths := info.CollectHierarchyPaths()
+	v.addDisplay(info.Display.Display, docDisplayPaths)
+
+	// Index the document's own ID into the "und" bucket so a user typing the ID
+	// (or a URL containing it) can locate the document via text search. The
+	// query searches "und" alongside every per-language field, so it is reachable
+	// from any language.
+	v.addText(document.UndeterminedLanguage, doc.ID.String())
 
 	errE = doc.Visit(v)
 	if errE != nil {
@@ -1226,6 +1476,12 @@ func (c *Converter) FromDocument(
 		v.result.Claims.Reference = append(v.result.Claims.Reference, claims...)
 		v.appendSubClaims(subs)
 	}
+
+	// Fold every non-text-claim display label into the top-level text bucket
+	// so the text-search query can match against property names, referenced-
+	// document names, and amount/time boundary strings without depending only
+	// on the per-claim-type nested queries.
+	v.appendClaimDisplaysToText()
 
 	return v.result, nil
 }
@@ -1992,7 +2248,7 @@ func (c *Converter) convertSubRefs(
 // convertSubAmounts extracts amount and amount-interval sub-claims from a
 // parent claim's sub-tree and produces SubAmountClaim entries for each
 // (parentProp, parentTo, sub-claim) combination. Source claims are passed
-// through convertAmount / convertAmountInterval so single-point and interval
+// through convertAmount/convertAmountInterval so single-point and interval
 // values use the same indexed range shape as the top-level amounts.
 func (c *Converter) convertSubAmounts(
 	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,
@@ -2043,7 +2299,7 @@ func (c *Converter) convertSubAmounts(
 // convertSubTimes extracts time and time-interval sub-claims from a parent
 // claim's sub-tree and produces SubTimeClaim entries for each (parentProp,
 // parentTo, sub-claim) combination. Source claims are passed through
-// convertTime / convertTimeInterval for the same single-point-or-interval
+// convertTime/convertTimeInterval for the same single-point-or-interval
 // range mapping the top-level times use.
 func (c *Converter) convertSubTimes(
 	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
+	"gitlab.com/peerdb/peerdb/document"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
@@ -25,9 +27,32 @@ const (
 	// MaxResultsCount is the maximum number of search results that can be returned.
 	MaxResultsCount = 1000
 
-	// displayBoost is the boost factor for display and naming fields in text search queries.
-	// The value is multiplied with the field's relevance score.
-	displayBoost = "^0.2"
+	// topDisplayBoost is the boost factor applied to the document's top-level
+	// rendered display label (per-language "display.<lang>") relative to the
+	// main text field. Matches against the user-visible label of the document
+	// itself rank higher than incidental matches inside aggregated text.
+	topDisplayBoost = float32(3.0)
+
+	// textDisMaxTieBreaker is the tie_breaker for the per-language text.<lang>
+	// dis_max wrapper. dis_max scores a doc as max(per-clause score) +
+	// tie_breaker * sum(other matching scores); a small non-zero value rewards
+	// docs that match in multiple languages slightly, without letting language
+	// tagging redundancy dominate the ranking.
+	textDisMaxTieBreaker = 0.1
+
+	// phraseBoost is the multiplicative bonus applied to the proximity-phrase
+	// clauses on top of the base text/display recall score. The phrase clauses
+	// only fire on docs already admitted by the recall layer (the bool's must),
+	// so this boost rewards docs where the query terms appear close together
+	// without affecting which docs are returned.
+	phraseBoost = float32(2.0)
+
+	// phraseSlop is the position tolerance for the match_phrase proximity
+	// clauses: terms may be at most this many positions apart (and may appear
+	// in any order, at a slop cost) and still count as a phrase match. Tuned
+	// to allow short stop-word gaps and minor reordering while still requiring
+	// physical adjacency in the doc.
+	phraseSlop = 5
 
 	// 40000 is the maximum precision threshold ES supports, so we use it to get the most accurate approximation.
 	// For now we didn't notice any performance issues at data scale PeerDB is currently being used with, but
@@ -516,7 +541,9 @@ func reverseScopeQuery(id identifier.Identifier) types.QueryVariant { //nolint:i
 // TODO: Determine which operator should be the default?
 // TODO: Make sure right analyzers are used for all fields.
 // TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
-func (s *SessionData) ToQuery() types.QueryVariant { //nolint:ireturn
+// enabledLanguages is the site's indexed language set, used to scope the text-search query
+// to the languages the index actually has (empty falls back to the global default).
+func (s *SessionData) ToQuery(enabledLanguages []string) types.QueryVariant { //nolint:ireturn
 	musts := make([]types.QueryVariant, 0, len(s.Filters)+2) //nolint:mnd
 
 	if s.Reverse != nil {
@@ -524,7 +551,7 @@ func (s *SessionData) ToQuery() types.QueryVariant { //nolint:ireturn
 	}
 
 	if s.Query != "" {
-		musts = append(musts, documentTextSearchQuery(s.Query, operator.And))
+		musts = append(musts, documentTextSearchQuery(s.Query, operator.And, enabledLanguages))
 	}
 
 	for i := range s.Filters {
@@ -537,7 +564,8 @@ func (s *SessionData) ToQuery() types.QueryVariant { //nolint:ireturn
 // ToQueryExcluding converts the SessionData to an ElasticSearch query, excluding
 // the filter with the given ID. This is used when fetching filter data so that
 // the current filter's own restrictions do not affect its available values.
-func (s *SessionData) ToQueryExcluding(excludeFilterID identifier.Identifier) types.QueryVariant { //nolint:ireturn
+// enabledLanguages scopes the text-search query as in ToQuery.
+func (s *SessionData) ToQueryExcluding(excludeFilterID identifier.Identifier, enabledLanguages []string) types.QueryVariant { //nolint:ireturn
 	musts := make([]types.QueryVariant, 0, len(s.Filters)+2) //nolint:mnd
 
 	if s.Reverse != nil {
@@ -545,7 +573,7 @@ func (s *SessionData) ToQueryExcluding(excludeFilterID identifier.Identifier) ty
 	}
 
 	if s.Query != "" {
-		musts = append(musts, documentTextSearchQuery(s.Query, operator.And))
+		musts = append(musts, documentTextSearchQuery(s.Query, operator.And, enabledLanguages))
 	}
 
 	for i := range s.Filters {
@@ -654,61 +682,143 @@ func (s *Session) Validate() errors.E {
 	return s.SessionData.Validate(false)
 }
 
-func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operator) types.QueryVariant { //nolint:ireturn
+func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operator, enabledLanguages []string) types.QueryVariant { //nolint:ireturn
 	if searchQuery == "" {
 		return esdsl.NewBoolQuery()
 	}
 
-	shoulds := []types.QueryVariant{
-		esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(searchQuery)),
+	shoulds := make([]types.QueryVariant, 0, 3) //nolint:mnd
+	shoulds = append(shoulds, esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(searchQuery)))
+	// Search aggregated textual content (string, html-stripped, identifier, link).
+	// Language-tagged content lives in its own text.<lang> bucket; language-neutral
+	// content (IDs, numbers, dates, fallback-resolved display labels) lives only in
+	// text.und. Each per-language clause searches [text.<lang>, text.und] together:
+	// a multi-field simple_query_string ORs each term across the two fields, so an
+	// AND query can satisfy one term from the language field and another from und
+	// within the same clause, and the score is their sum. The outer dis_max then
+	// picks the best language per doc.
+	//
+	// Each language has multi-fields indexed alongside the main field:
+	//   - text.<lang>            stemmed/lemmatized (language-specific, ICU folded)
+	//   - text.<lang>.unstemmed  surface form (ICU folded only, no stemming)
+	//   - text.<lang>.exact      diacritic-preserved (lowercase only, no folding)
+	// text.und uses the standard (ICU-folded, unstemmed) analyzer as its main field
+	// and has a .exact sub-field but no .unstemmed (its main field already is the
+	// unstemmed analyzer). Per language we emit three clauses, each combined with
+	// text.und:
+	//   - Exact-routed: [text.<lang>, text.und] with quote_field_suffix=".exact".
+	//     Unquoted terms hit the main analyzers; quoted phrases route to the .exact
+	//     sub-fields (both text.<lang>.exact and text.und.exact exist) for
+	//     diacritic-preserved matching. Wildcards stay literal here.
+	//   - Stemmed-phrase: [text.<lang>, text.und] with no suffix. Quoted phrases get
+	//     stemmed-phrase matching on text.<lang> (inflected forms) and folded-phrase
+	//     matching on text.und. Unquoted terms duplicate the exact-routed clause;
+	//     dis_max collapses the duplicate.
+	//   - Unstemmed/wildcard: [text.<lang>.unstemmed, text.und] with
+	//     analyze_wildcard=true. Both are und_text, so wildcards get folded
+	//     before prefix matching. The und companion is text.und directly.
+	// "und" rides inside every clause via its main field or .exact, so it needs no
+	// standalone clauses. enabledLanguages is the site's indexed set; it falls back to the
+	// global SupportedLanguages when empty. Both always contain non-und languages, so the
+	// loop always emits clauses.
+	const undField = "text." + document.UndeterminedLanguage
+	langs := enabledLanguages
+	if len(langs) == 0 {
+		langs = slices.Sorted(maps.Keys(internalSearch.SupportedLanguages))
 	}
-	// Search aggregated textual content (string, html-stripped, identifier, link)
-	// across all supported languages. Single per-language non-nested queries let
-	// ES score documents higher when multiple terms match the same field.
-	// Languages are sorted for deterministic query generation.
-	langs := slices.Sorted(maps.Keys(internalSearch.SupportedLanguages))
+	textQueries := make([]types.QueryVariant, 0, len(langs)*3) //nolint:mnd
 	for _, lang := range langs {
-		q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields("text." + lang).DefaultOperator(defaultOperator)
-		shoulds = append(shoulds, q)
+		if lang == document.UndeterminedLanguage {
+			continue
+		}
+		field := "text." + lang
+		// Exact-routed clause: quoted phrases go to .exact (diacritic-preserved),
+		// unquoted terms hit the main fields.
+		textQueries = append(textQueries,
+			esdsl.NewSimpleQueryStringQuery(searchQuery).
+				Fields(field, undField).
+				DefaultOperator(defaultOperator).
+				QuoteFieldSuffix(".exact"),
+		)
+		// Stemmed-phrase clause: quoted phrases match the stemmed language field
+		// (inflected forms) and the folded und field. Unquoted terms duplicate the
+		// exact-routed clause; dis_max collapses the duplicate score.
+		textQueries = append(textQueries,
+			esdsl.NewSimpleQueryStringQuery(searchQuery).
+				Fields(field, undField).
+				DefaultOperator(defaultOperator),
+		)
+		// Unstemmed clause: wildcards analyzed against surface tokens; both fields
+		// are und_text so the typed prefix gets lowercased and ICU-folded.
+		textQueries = append(textQueries,
+			esdsl.NewSimpleQueryStringQuery(searchQuery).
+				Fields(field+".unstemmed", undField).
+				DefaultOperator(defaultOperator).
+				AnalyzeWildcard(true),
+		)
 	}
-	// Search display and naming fields across all claim types with reduced boost.
-	for _, claimType := range []string{"amount", "has", "none", "ref", "time", "unknown"} {
-		prefix := "claims." + claimType
-		var fields []string
-		// propDisplay and propNaming exist on all claim types.
-		for _, fieldName := range []string{"propDisplay", "propNaming"} {
-			for _, lang := range langs {
-				fields = append(fields, prefix+"."+fieldName+"."+lang+displayBoost)
-			}
-		}
-		// Type-specific display/naming fields.
-		switch claimType {
-		case "ref":
-			for _, fieldName := range []string{"toDisplay", "toNaming"} {
-				for _, lang := range langs {
-					fields = append(fields, prefix+"."+fieldName+"."+lang+displayBoost)
-				}
-			}
-		case "amount", "time":
-			fields = append(fields, prefix+".fromDisplay"+displayBoost, prefix+".toDisplay"+displayBoost)
-		}
-		q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(fields...).DefaultOperator(defaultOperator)
-		shoulds = append(shoulds, esdsl.NewNestedQuery(q).Path(prefix))
+	if len(textQueries) == 0 {
+		// Only "und" is enabled, so the loop above emitted nothing. Search text.und
+		// directly: exact-routed for quoted phrases, analyze_wildcard for the rest.
+		textQueries = append(textQueries,
+			esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(undField).DefaultOperator(defaultOperator).QuoteFieldSuffix(".exact"),
+			esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(undField).DefaultOperator(defaultOperator).AnalyzeWildcard(true),
+		)
 	}
-	// Display and naming fields in denormalized sub-claims.
-	{
-		prefix := "claims.subRef"
-		var fields []string
-		for _, fieldName := range []string{"propDisplay", "propNaming", "toDisplay", "toNaming"} {
-			for _, lang := range langs {
-				fields = append(fields, prefix+"."+fieldName+"."+lang+displayBoost)
-			}
-		}
-		q := esdsl.NewSimpleQueryStringQuery(searchQuery).Fields(fields...).DefaultOperator(defaultOperator)
-		shoulds = append(shoulds, esdsl.NewNestedQuery(q).Path(prefix))
+	shoulds = append(shoulds, esdsl.NewDisMaxQuery().Queries(textQueries...).TieBreaker(textDisMaxTieBreaker))
+	// Search the document's top-level rendered display label across languages.
+	// Each language is a separate clause inside a dis_max so per-doc the best
+	// matching language wins (instead of summing across redundant translations),
+	// and each clause is boosted so a match against the document's user-visible
+	// label outranks an incidental match inside aggregated text.
+	//
+	// Each display.<lang> main analyzer is und_text (no stemming) and
+	// has an .exact sub-field with diacritic preservation, mirroring text.und.
+	// quote_field_suffix routes quoted phrases to .exact. analyze_wildcard
+	// keeps wildcards on the main field so the typed prefix gets lowercased
+	// and ICU-folded before prefix matching.
+	displayQueries := make([]types.QueryVariant, 0, len(langs))
+	for _, lang := range langs {
+		displayQueries = append(displayQueries,
+			esdsl.NewSimpleQueryStringQuery(searchQuery).
+				Fields("display."+lang).
+				DefaultOperator(defaultOperator).
+				QuoteFieldSuffix(".exact").
+				AnalyzeWildcard(true).
+				Boost(topDisplayBoost),
+		)
+	}
+	shoulds = append(shoulds, esdsl.NewDisMaxQuery().Queries(displayQueries...).TieBreaker(textDisMaxTieBreaker))
+	recall := esdsl.NewBoolQuery().Should(shoulds...)
+
+	// Phrase proximity boost. Single-term queries get no benefit (match_phrase
+	// with one token degenerates to a term match that's already covered by the
+	// recall layer), so we skip them.
+	if len(strings.Fields(searchQuery)) < 2 { //nolint:mnd
+		return recall
 	}
 
-	return esdsl.NewBoolQuery().Should(shoulds...)
+	// Build per-language match_phrase clauses against text and display. The
+	// analyzer of each field tokenizes the input the same way it tokenized
+	// indexed content, so any simple_query_string operator characters in the
+	// query are dropped as punctuation here. That's fine because the phrase
+	// clauses are gated by the recall layer below: they only contribute score
+	// to docs the simple_query_string-driven recall already admitted.
+	// dis_max picks the best language per doc instead of summing across
+	// translations. tie_breaker rewards multi-language matches lightly.
+	phraseQueries := make([]types.QueryVariant, 0, len(langs)*2) //nolint:mnd
+	for _, lang := range langs {
+		phraseQueries = append(phraseQueries,
+			esdsl.NewMatchPhraseQuery("text."+lang, searchQuery).Slop(phraseSlop),
+			esdsl.NewMatchPhraseQuery("display."+lang, searchQuery).Slop(phraseSlop).Boost(topDisplayBoost),
+		)
+	}
+	phrase := esdsl.NewDisMaxQuery().Queries(phraseQueries...).TieBreaker(textDisMaxTieBreaker).Boost(phraseBoost)
+
+	// must wraps the recall query so only docs admitted by simple_query_string
+	// can score. The outer should adds the phrase clause as a pure boost on
+	// top of the recall score.
+	return esdsl.NewBoolQuery().Must(recall).Should(phrase)
 }
 
 // TODO: Use a database instead.
@@ -771,11 +881,11 @@ type Result struct {
 
 // ResultsGet retrieves search results for a given search session.
 func ResultsGet(
-	ctx context.Context, getSearchService func() *esSearch.Search, searchData *SessionData,
+	ctx context.Context, getSearchService func() *esSearch.Search, searchData *SessionData, enabledLanguages []string,
 ) ([]Result, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
-	query := searchData.ToQuery()
+	query := searchData.ToQuery(enabledLanguages)
 
 	searchService := getSearchService()
 

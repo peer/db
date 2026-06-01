@@ -201,7 +201,7 @@ const localDirty = computed(() => !equalFieldEntryValue(local.value, checkpointE
 // claim) and session-removed (had baseline + now nothing). We compare
 // by HAS-A-CLAIM rather than by claim id because a resurrected slot has
 // a fresh content-addressed id (a re-Add cannot reuse the original id),
-// yet conceptually it represents the same baseline claim — comparing
+// yet conceptually it represents the same baseline claim - comparing
 // by id would falsely flag it as dirty and leave "Changed" lit after
 // the user reverts.
 const identityDirty = computed(() => {

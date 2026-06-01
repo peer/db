@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -63,8 +65,11 @@ func newTestAuthenticator(t *testing.T) (*auth.OIDCAuthenticator, string, *rsa.P
 	t.Cleanup(ts.Close)
 	server.SetIssuer(ts.URL)
 
+	secretPath := filepath.Join(t.TempDir(), "client-secret")
+	require.NoError(t, os.WriteFile(secretPath, []byte("test-secret"), 0o600))
+
 	cb := func() string { return "https://example.test/auth/callback" }
-	a, errE := auth.NewOIDCAuthenticator(ctx, dbpool, ts.URL, testAudience, "test-secret", cb)
+	a, errE := auth.NewOIDCAuthenticator(ctx, dbpool, ts.URL, testAudience, secretPath, cb)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	return a, ts.URL, priv
 }
@@ -837,8 +842,11 @@ func TestOIDCAuthenticatorSignOutCallsRevocationEndpoint(t *testing.T) {
 	t.Cleanup(ts.Close)
 	issuerURL = ts.URL
 
+	secretPath := filepath.Join(t.TempDir(), "client-secret")
+	require.NoError(t, os.WriteFile(secretPath, []byte("test-secret"), 0o600))
+
 	cb := func() string { return "https://example.test/auth/callback" }
-	a, errE := auth.NewOIDCAuthenticator(ctx, dbpool, ts.URL, "test-client", "test-secret", cb)
+	a, errE := auth.NewOIDCAuthenticator(ctx, dbpool, ts.URL, "test-client", secretPath, cb)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Mint an access token directly with claims the OIDCAuthenticator's
@@ -924,8 +932,11 @@ func TestOIDCAuthenticatorSignOutSwallowsUpstreamFailure(t *testing.T) {
 	t.Cleanup(ts.Close)
 	issuerURL = ts.URL
 
+	secretPath := filepath.Join(t.TempDir(), "client-secret")
+	require.NoError(t, os.WriteFile(secretPath, []byte("test-secret"), 0o600))
+
 	cb := func() string { return "https://example.test/auth/callback" }
-	a, errE := auth.NewOIDCAuthenticator(ctx, dbpool, ts.URL, "test-client", "test-secret", cb)
+	a, errE := auth.NewOIDCAuthenticator(ctx, dbpool, ts.URL, "test-client", secretPath, cb)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	token := signedToken(t, priv, map[string]any{
