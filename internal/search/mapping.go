@@ -122,25 +122,33 @@ func propDisplay(langs []string) string {
 	})
 }
 
+// indexPrefixes accelerates trailing-prefix (analyze_wildcard) queries: ElasticSearch indexes
+// term prefixes into a managed prefix sub-index, so prefix queries skip the term-dictionary
+// walk. It is added only to the fields the analyze_wildcard search clauses target.
+const indexPrefixes = `"index_prefixes":{"min_chars":1,"max_chars":8}`
+
 // displayProperties builds the top-level "display" field: a per-language text field with
 // the und_text analyzer (display labels may mix languages) and an exact sub-field for
-// diacritic-preserved matching.
+// diacritic-preserved matching. The main field carries index_prefixes because the display
+// search clause routes wildcards to it.
 func displayProperties(langs []string) string {
 	return langProperties(langs, func(string) string {
-		return `{"type":"text","analyzer":"und_text","fields":{"exact":{"type":"text","analyzer":"exact_text"}}}`
+		return `{"type":"text","analyzer":"und_text",` + indexPrefixes + `,"fields":{"exact":{"type":"text","analyzer":"exact_text"}}}`
 	})
 }
 
 // textProperties builds the top-level "text" field: each language uses its own analyzer with
 // an exact sub-field, and non-und languages also get an unstemmed (und_text) sub-field.
 // "und" needs no unstemmed sub-field because its main analyzer already is the unstemmed one.
+// index_prefixes is added to the analyze_wildcard targets: text.und (main) and the per-language
+// .unstemmed sub-field; the stemmed main field and .exact sub-field are not wildcard targets.
 func textProperties(langs []string) string {
 	return langProperties(langs, func(lang string) string {
 		if lang == document.UndeterminedLanguage {
-			return fmt.Sprintf(`{"type":"text","analyzer":"%s_text","fields":{"exact":{"type":"text","analyzer":"exact_text"}}}`, lang)
+			return `{"type":"text","analyzer":"und_text",` + indexPrefixes + `,"fields":{"exact":{"type":"text","analyzer":"exact_text"}}}`
 		}
 		//nolint:lll
-		return fmt.Sprintf(`{"type":"text","analyzer":"%s_text","fields":{"unstemmed":{"type":"text","analyzer":"und_text"},"exact":{"type":"text","analyzer":"exact_text"}}}`, lang)
+		return fmt.Sprintf(`{"type":"text","analyzer":"%s_text","fields":{"unstemmed":{"type":"text","analyzer":"und_text",`+indexPrefixes+`},"exact":{"type":"text","analyzer":"exact_text"}}}`, lang)
 	})
 }
 
