@@ -26,6 +26,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 		ID:      identifier.From("refDoc1"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -43,6 +44,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 		ID:      identifier.From("refDoc2"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -60,6 +62,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 		ID:      identifier.From("refDoc3"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -114,6 +117,7 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 		ID:      identifier.From("refDoc1"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -131,6 +135,7 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 		ID:      identifier.From("refDoc2"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -176,6 +181,7 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 		ID:      identifier.From("refDoc1"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -194,6 +200,7 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 		ID:      identifier.From("refDoc2"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: nil,
@@ -209,6 +216,7 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 		ID:      identifier.From("refDoc3"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: nil,
@@ -250,6 +258,7 @@ func TestRefFilterGetNoMissingIntegration(t *testing.T) {
 		ID:      identifier.From("refDoc1"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -316,6 +325,7 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 		ID:      identifier.From("dogDoc"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{
@@ -369,6 +379,7 @@ func TestRefFilterGetDiamondIntegration(t *testing.T) {
 		ID:      identifier.From("leafDoc"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{
@@ -511,6 +522,7 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 		ID:      identifier.From("subDog"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: nil,

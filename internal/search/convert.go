@@ -1246,6 +1246,32 @@ func (v *convertVisitor) deduplicateResult() {
 	v.result.Text[document.UndeterminedLanguage] = filtered
 }
 
+// earliestClaimTime returns the lowest time value across all of the document's
+// time claims (top-level and sub-claims), or nil when the document has none. Both
+// bounds of each claim are considered, so a point timestamp contributes its single
+// value, a closed interval its earlier bound, and an open-start interval its only
+// known bound. Values are seconds since the Unix epoch.
+func earliestClaimTime(claims *ClaimTypes) *float64 {
+	var earliest *float64
+	consider := func(v *float64) {
+		if v == nil {
+			return
+		}
+		if earliest == nil || *v < *earliest {
+			earliest = v
+		}
+	}
+	for i := range claims.Time {
+		consider(claims.Time[i].From)
+		consider(claims.Time[i].To)
+	}
+	for i := range claims.SubTime {
+		consider(claims.SubTime[i].From)
+		consider(claims.SubTime[i].To)
+	}
+	return earliest
+}
+
 // deduplicateStrings returns vals with duplicates removed, preserving first-seen order.
 // It filters in place, reusing the backing array.
 func deduplicateStrings(vals []string) []string {
@@ -1329,7 +1355,7 @@ func (v *convertVisitor) addDisplayPathLabels(paths map[string][]string) {
 // extracted per their own language, so they fold into that language's bucket
 // where the matching analyzer applies.
 func (v *convertVisitor) appendClaimDisplaysToText() {
-	// Display values across the per-language map all collapse into "und";
+	// Display values across the per-language map all collapse into "und".
 	addDisplay := func(m map[string]string) {
 		for _, val := range m {
 			v.addText(document.UndeterminedLanguage, val)
@@ -1577,6 +1603,7 @@ func (c *Converter) FromDocument(
 			ID:      doc.ID,
 			Display: nil,
 			Text:    nil,
+			Time:    nil,
 			Claims:  ClaimTypes{},
 		},
 		docID: doc.ID,
@@ -1629,6 +1656,10 @@ func (c *Converter) FromDocument(
 	v.appendClaimDisplaysToText()
 
 	v.deduplicateResult()
+
+	// Index the document's earliest time so it can be sorted/filtered by time
+	// at the top level without descending into nested time claims.
+	v.result.Time = earliestClaimTime(&v.result.Claims)
 
 	return v.result, nil
 }

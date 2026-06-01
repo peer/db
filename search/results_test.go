@@ -28,6 +28,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		ID:      doc1ID,
 		Display: nil,
 		Text:    map[string][]string{"en": {"hello world"}},
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -45,6 +46,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		ID:      doc2ID,
 		Display: nil,
 		Text:    map[string][]string{"en": {"goodbye world"}},
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -62,6 +64,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		ID:      doc3ID,
 		Display: nil,
 		Text:    map[string][]string{"en": {"hello there"}},
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -165,6 +168,7 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 		ID:      doc1ID,
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil,
@@ -191,6 +195,7 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 		ID:      doc2ID,
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -262,6 +267,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		ID:      doc1ID,
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
@@ -294,6 +300,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		ID:      doc2ID,
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
@@ -326,6 +333,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		ID:      doc3ID,
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -424,6 +432,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 		ID:      doc1ID,
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -455,6 +464,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 		ID:      doc2ID,
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -486,6 +496,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 		ID:      doc3ID,
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -560,6 +571,7 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 		ID:      doc1ID,
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil,
@@ -586,6 +598,7 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 		ID:      doc2ID,
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil,
@@ -612,6 +625,7 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 		ID:      doc3ID,
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil,
@@ -687,6 +701,7 @@ func TestResultsGetTotalGteIntegration(t *testing.T) {
 		ID:      docID,
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -731,6 +746,7 @@ func TestResultsGetTotalGteRelationIntegration(t *testing.T) {
 			ID:      identifier.From("gteDoc", string(rune('0'+i))),
 			Display: nil,
 			Text:    nil,
+			Time:    nil,
 			Claims: internalSearch.ClaimTypes{
 				Amount:    nil,
 				Time:      nil,

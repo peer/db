@@ -35,6 +35,7 @@ func TestTimeFilterGetIntegration(t *testing.T) {
 			ID:      identifier.From(tc.id),
 			Display: nil,
 			Text:    nil,
+			Time:    nil,
 			Claims: internalSearch.ClaimTypes{
 				Amount: nil,
 				Time: internalSearch.TimeClaims{{
@@ -104,6 +105,7 @@ func TestTimeFilterGetMissingIntegration(t *testing.T) {
 		ID:      identifier.From("timeDoc1"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -122,6 +124,7 @@ func TestTimeFilterGetMissingIntegration(t *testing.T) {
 		ID:      identifier.From("timeDoc2"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -156,6 +159,7 @@ func TestTimeFilterGetNoMissingIntegration(t *testing.T) {
 		ID:      identifier.From("timeDoc1"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -205,6 +209,7 @@ func TestTimeFilterGetInactiveIntegration(t *testing.T) {
 			ID:      identifier.From(tc.id),
 			Display: nil,
 			Text:    nil,
+			Time:    nil,
 			Claims: internalSearch.ClaimTypes{
 				Amount: nil,
 				Time: internalSearch.TimeClaims{{
@@ -257,6 +262,7 @@ func TestTimeFilterGetSameValuesIntegration(t *testing.T) {
 			ID:      identifier.From("sameTimeDoc", string(rune('0'+i))),
 			Display: nil,
 			Text:    nil,
+			Time:    nil,
 			Claims: internalSearch.ClaimTypes{
 				Amount: nil,
 				Time: internalSearch.TimeClaims{{
@@ -304,6 +310,7 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 		ID:      identifier.From("negTimeDoc1"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -321,6 +328,7 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 		ID:      identifier.From("negTimeDoc2"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -418,6 +426,7 @@ func TestTimeFilterGetExtendedBoundsIntegration(t *testing.T) {
 			ID:      identifier.From(tc.id),
 			Display: nil,
 			Text:    nil,
+			Time:    nil,
 			Claims: internalSearch.ClaimTypes{
 				Amount: nil,
 				Time: internalSearch.TimeClaims{{
@@ -490,6 +499,7 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 		ID:      identifier.From("hardTimeDoc1"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -507,6 +517,7 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 		ID:      identifier.From("hardTimeDoc2"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -583,6 +594,7 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 		ID:      identifier.From("wideTimeDoc1"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -600,6 +612,7 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 		ID:      identifier.From("wideTimeDoc2"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -617,6 +630,7 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 		ID:      identifier.From("wideTimeDoc3"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{

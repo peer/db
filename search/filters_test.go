@@ -33,6 +33,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 		ID:      identifier.From("filterDoc1"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
@@ -88,6 +89,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 		ID:      identifier.From("filterDoc2"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
@@ -195,6 +197,7 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 		ID:      identifier.From("queryDoc1"),
 		Display: nil,
 		Text:    map[string][]string{"en": {"searchable text"}},
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil,
@@ -221,6 +224,7 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 		ID:      identifier.From("queryDoc2"),
 		Display: nil,
 		Text:    map[string][]string{"en": {"other content"}},
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil,
@@ -276,6 +280,7 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 		ID:      identifier.From("noUnitDoc"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,

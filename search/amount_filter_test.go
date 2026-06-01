@@ -45,6 +45,7 @@ func TestAmountFilterGetIntegration(t *testing.T) {
 			ID:      identifier.From(tc.id),
 			Display: nil,
 			Text:    nil,
+			Time:    nil,
 			Claims: internalSearch.ClaimTypes{
 				Amount: internalSearch.AmountClaims{{
 					Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
@@ -113,6 +114,7 @@ func TestAmountFilterGetMissingIntegration(t *testing.T) {
 		ID:      identifier.From("amountDoc1"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
@@ -129,6 +131,7 @@ func TestAmountFilterGetMissingIntegration(t *testing.T) {
 		ID:      identifier.From("amountDoc2"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
@@ -139,6 +142,7 @@ func TestAmountFilterGetMissingIntegration(t *testing.T) {
 		ID:      identifier.From("amountDoc3"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
@@ -172,6 +176,7 @@ func TestAmountFilterGetNoMissingIntegration(t *testing.T) {
 		ID:      identifier.From("amountDoc1"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
@@ -220,6 +225,7 @@ func TestAmountFilterGetInactiveIntegration(t *testing.T) {
 			ID:      identifier.From(tc.id),
 			Display: nil,
 			Text:    nil,
+			Time:    nil,
 			Claims: internalSearch.ClaimTypes{
 				Amount: internalSearch.AmountClaims{{
 					Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
@@ -271,6 +277,7 @@ func TestAmountFilterGetSameValuesIntegration(t *testing.T) {
 			ID:      identifier.From("sameDoc", string(rune('0'+i))),
 			Display: nil,
 			Text:    nil,
+			Time:    nil,
 			Claims: internalSearch.ClaimTypes{
 				Amount: internalSearch.AmountClaims{{
 					Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
@@ -341,6 +348,7 @@ func TestAmountFilterGetWithoutUnitIntegration(t *testing.T) {
 		ID:      identifier.From("noUnitDoc"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: nil,
@@ -398,6 +406,7 @@ func TestAmountFilterGetGapIntegration(t *testing.T) {
 			ID:      identifier.From(tc.id),
 			Display: nil,
 			Text:    nil,
+			Time:    nil,
 			Claims: internalSearch.ClaimTypes{
 				Amount: internalSearch.AmountClaims{{
 					Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
@@ -476,6 +485,7 @@ func TestAmountFilterGetExtendedBoundsIntegration(t *testing.T) {
 			ID:      identifier.From(tc.id),
 			Display: nil,
 			Text:    nil,
+			Time:    nil,
 			Claims: internalSearch.ClaimTypes{
 				Amount: internalSearch.AmountClaims{{
 					Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
@@ -548,6 +558,7 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 		ID:      identifier.From("hardDoc1"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
@@ -563,6 +574,7 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 		ID:      identifier.From("hardDoc2"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
@@ -642,6 +654,7 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 		ID:      identifier.From("wideDoc1"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
@@ -657,6 +670,7 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 		ID:      identifier.From("wideDoc2"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
@@ -672,6 +686,7 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 		ID:      identifier.From("wideDoc3"),
 		Display: nil,
 		Text:    nil,
+		Time:    nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,

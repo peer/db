@@ -4055,6 +4055,198 @@ func TestDedupeResultDeMirrorsUnd(t *testing.T) {
 	assert.Contains(t, result.Text["und"], testDocID.String())
 }
 
+// TestEarliestClaimTime verifies the top-level Time field holds the earliest time
+// value across all of a document's time claims: here a time interval's lower bound,
+// which is earlier than a separate point timestamp on the same document.
+func TestEarliestClaimTime(t *testing.T) {
+	t.Parallel()
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID: makeNamingDoc(testPropID, "My Prop"),
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+
+	fromTS := document.Time("2020-01-01")
+	toTS := document.Time("2024-12-31")
+	fromPrec := document.TimePrecisionDay
+	toPrec := document.TimePrecisionDay
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Time: []document.TimeClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+					Time:      document.Time("2022-06-15"),
+					Precision: document.TimePrecisionDay,
+				},
+			},
+			TimeInterval: []document.TimeIntervalClaim{
+				{ //nolint:exhaustruct
+					CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
+					Prop:          document.Reference{ID: testPropID},
+					From:          &fromTS,
+					FromPrecision: &fromPrec,
+					To:            &toTS,
+					ToPrecision:   &toPrec,
+				},
+			},
+		},
+	}
+
+	result, errE := c.FromDocument(ctx, doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The earliest of all bounds across all indexed time claims.
+	var expected float64
+	found := false
+	for _, tc := range result.Claims.Time {
+		for _, bound := range []*float64{tc.From, tc.To} {
+			if bound == nil {
+				continue
+			}
+			if !found || *bound < expected {
+				expected = *bound
+				found = true
+			}
+		}
+	}
+	require.True(t, found)
+	require.NotNil(t, result.Time)
+	assert.InDelta(t, expected, *result.Time, 0)
+
+	// The interval point claims differ, and the earliest (interval lower bound) won.
+	require.Len(t, result.Claims.Time, 2)
+	for _, tc := range result.Claims.Time {
+		require.NotNil(t, tc.From)
+		assert.LessOrEqual(t, *result.Time, *tc.From)
+	}
+}
+
+// TestEarliestClaimTimeNone verifies a document with no time claims has no Time.
+func TestEarliestClaimTimeNone(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
+
+	ctx := t.Context()
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+					String:    "no time here",
+				},
+			},
+		},
+	}
+
+	result, errE := c.FromDocument(ctx, doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Nil(t, result.Time)
+}
+
+// TestEarliestClaimTimeOpenBoundsNotSentinel verifies that a time interval with a
+// None bound does not leak the -MaxFloat64 / +MaxFloat64 range sentinels into the
+// top-level Time field. convertTimeInterval uses those sentinels only for the
+// searchable range of an absent bound; the From/To boundary values stay nil, so
+// Time (derived from them) falls back to the interval's known bound. Unknown
+// bounds never reach this path at all: paired with a known bound they collapse to
+// a point, and otherwise they become an unknown claim with no time.
+func TestEarliestClaimTimeOpenBoundsNotSentinel(t *testing.T) {
+	t.Parallel()
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID: makeNamingDoc(testPropID, "My Prop"),
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+
+	fromTS := document.Time("1990-01-01")
+	fromPrec := document.TimePrecisionDay
+	toTS := document.Time("2023-04-12")
+	toPrec := document.TimePrecisionDay
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			TimeInterval: []document.TimeIntervalClaim{
+				{ //nolint:exhaustruct
+					// No lower bound (None), known upper bound: range lower is the
+					// -MaxFloat64 sentinel, From boundary stays nil.
+					CoreClaim:   makeCoreClaim(document.HighConfidence, nil),
+					Prop:        document.Reference{ID: testPropID},
+					FromIsNone:  true,
+					To:          &toTS,
+					ToPrecision: &toPrec,
+				},
+				{ //nolint:exhaustruct
+					// Known lower bound, no upper bound (None): range upper is the
+					// +MaxFloat64 sentinel, To boundary stays nil.
+					CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
+					Prop:          document.Reference{ID: testPropID},
+					From:          &fromTS,
+					FromPrecision: &fromPrec,
+					ToIsNone:      true,
+				},
+			},
+		},
+	}
+
+	result, errE := c.FromDocument(ctx, doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Claims.Time, 2)
+
+	// The sentinels live only in the searchable range, never in the From/To
+	// boundary values that Time is derived from.
+	var sawLowerSentinel, sawUpperSentinel bool
+	for _, tc := range result.Claims.Time {
+		if tc.Range.GreaterThanOrEqual != nil && *tc.Range.GreaterThanOrEqual == -math.MaxFloat64 {
+			sawLowerSentinel = true
+		}
+		if tc.Range.LessThanOrEqual != nil && *tc.Range.LessThanOrEqual == math.MaxFloat64 {
+			sawUpperSentinel = true
+		}
+		if tc.From != nil {
+			assert.Greater(t, *tc.From, -math.MaxFloat64)
+			assert.Less(t, *tc.From, math.MaxFloat64)
+		}
+		if tc.To != nil {
+			assert.Greater(t, *tc.To, -math.MaxFloat64)
+			assert.Less(t, *tc.To, math.MaxFloat64)
+		}
+	}
+	assert.True(t, sawLowerSentinel, "open-lower interval should carry the -MaxFloat64 range sentinel")
+	assert.True(t, sawUpperSentinel, "open-upper interval should carry the +MaxFloat64 range sentinel")
+
+	// Time is the known lower bound (1990), strictly between the sentinels.
+	var earliest float64
+	found := false
+	for _, tc := range result.Claims.Time {
+		for _, bound := range []*float64{tc.From, tc.To} {
+			if bound == nil {
+				continue
+			}
+			if !found || *bound < earliest {
+				earliest = *bound
+				found = true
+			}
+		}
+	}
+	require.True(t, found)
+	require.NotNil(t, result.Time)
+	assert.InDelta(t, earliest, *result.Time, 0)
+	assert.Greater(t, *result.Time, -math.MaxFloat64)
+	assert.Less(t, *result.Time, math.MaxFloat64)
+}
+
 // Tests for error propagation through Visit* methods and FromDocument.
 
 func TestFromDocumentAmountError(t *testing.T) {

@@ -23,12 +23,18 @@ import (
 // individual labels), so the document is also findable and boosted by its
 // categories/ancestors. It is indexed with the und_text analyzer per language
 // because the values might contain mixed-language content.
+//
+// Time holds the document's earliest time: the lowest time value across all of
+// its time claims (top-level and sub-claims). For a point timestamp that is the
+// timestamp; for an interval it is the earliest bound.
 type Document struct {
 	ID identifier.Identifier `json:"id"`
 
 	Display map[string][]string `json:"display,omitempty"`
 
 	Text map[string][]string `json:"text,omitempty"`
+
+	Time *float64 `json:"time,omitempty"`
 
 	Claims ClaimTypes `json:"claims,omitzero"`
 }
