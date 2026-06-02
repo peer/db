@@ -13,6 +13,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/core"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	"gitlab.com/peerdb/peerdb/transform"
 )
@@ -28,7 +29,6 @@ func diagramSkipIDs(skipCore bool) map[identifier.Identifier]bool {
 	return map[identifier.Identifier]bool{
 		internalCore.ClassClassID:      true,
 		internalCore.PropertyClassID:   true,
-		internalCore.DocumentClassID:   true,
 		internalCore.VocabularyClassID: true,
 		internalCore.LanguageClassID:   true,
 		internalCore.UnitClassID:       true,
@@ -83,6 +83,11 @@ type diagramEntity struct {
 func Diagram(logger zerolog.Logger, w io.Writer, skipCore bool) errors.E {
 	skipIDs := diagramSkipIDs(skipCore)
 
+	// DocumentFields (the ID and INSTANCE_OF) are shared by every document and
+	// are not associated with any single class, so the diagram walks them into
+	// every entity.
+	documentFieldsType := reflect.TypeFor[core.DocumentFields]()
+
 	entities, idToName, errE := collectDiagramEntities(logger, skipIDs)
 	if errE != nil {
 		return errE
@@ -94,11 +99,20 @@ func Diagram(logger zerolog.Logger, w io.Writer, skipCore bool) errors.E {
 	for _, e := range entities {
 		var rows []diagramFieldRow
 		var relations []diagramRelation
-		if e.typ != nil {
-			rows, relations, errE = collectDiagramEntity(logger, e.typ, e.name, idToName, skipIDs)
+
+		// Walk the shared DocumentFields into every entity ahead of its own fields.
+		for _, t := range []reflect.Type{documentFieldsType, e.typ} {
+			if t == nil {
+				continue
+			}
+			var entityRows []diagramFieldRow
+			var entityRelations []diagramRelation
+			entityRows, entityRelations, errE = collectDiagramEntity(logger, t, e.name, idToName, skipIDs)
 			if errE != nil {
 				return errE
 			}
+			rows = append(rows, entityRows...)
+			relations = append(relations, entityRelations...)
 		}
 
 		for _, parentID := range e.parents {

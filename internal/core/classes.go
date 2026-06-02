@@ -7,7 +7,6 @@ import "gitlab.com/tozd/identifier"
 //nolint:gochecknoglobals
 var (
 	ClassClassID      = identifier.From(Namespace, "CLASS")
-	DocumentClassID   = identifier.From(Namespace, "DOCUMENT")
 	LanguageClassID   = identifier.From(Namespace, "LANGUAGE")
 	PropertyClassID   = identifier.From(Namespace, "PROPERTY")
 	UnitClassID       = identifier.From(Namespace, "UNIT")

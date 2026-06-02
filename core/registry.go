@@ -21,7 +21,6 @@ func init() { //nolint:gochecknoinits
 
 	transform.ClassFieldsRegistry[identifier.From(Namespace, "CLASS")] = reflect.TypeFor[ClassFields]()
 	transform.ClassFieldsRegistry[identifier.From(Namespace, "PROPERTY")] = reflect.TypeFor[PropertyFields]()
-	transform.ClassFieldsRegistry[identifier.From(Namespace, "DOCUMENT")] = reflect.TypeFor[DocumentFields]()
 	transform.ClassFieldsRegistry[identifier.From(Namespace, "VOCABULARY")] = reflect.TypeFor[VocabularyFields]()
 
 	transform.ClassDescriptionRegistry = append(transform.ClassDescriptionRegistry, Classes)

@@ -21,9 +21,7 @@ func TestClassRegistry_CoreTypes(t *testing.T) {
 	assert.Equal(t, reflect.TypeFor[core.Unit](), transform.ClassRegistry[identifier.From(core.Namespace, "UNIT")])
 	assert.Equal(t, reflect.TypeFor[core.ValueType](), transform.ClassRegistry[identifier.From(core.Namespace, "VALUE_TYPE")])
 
-	// Verify that abstract classes are NOT registered.
-	_, hasDocument := transform.ClassRegistry[identifier.From(core.Namespace, "DOCUMENT")]
-	assert.False(t, hasDocument, "abstract class DOCUMENT should not be registered")
+	// Verify that the abstract VOCABULARY class is NOT registered.
 	_, hasVocabulary := transform.ClassRegistry[identifier.From(core.Namespace, "VOCABULARY")]
 	assert.False(t, hasVocabulary, "abstract class VOCABULARY should not be registered")
 }

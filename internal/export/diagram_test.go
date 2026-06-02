@@ -13,7 +13,8 @@ import (
 )
 
 // TestDiagram verifies the diagram generator includes registered entities,
-// the canonical reference relationships between them, and a PK row per entity.
+// the canonical reference relationships between them, and the shared
+// DocumentFields (PK and INSTANCE_OF) inlined on every entity.
 func TestDiagram(t *testing.T) {
 	t.Parallel()
 
@@ -26,20 +27,22 @@ func TestDiagram(t *testing.T) {
 	assert.True(t, strings.HasPrefix(out, "---\nconfig:\n  layout: elk\n---\nerDiagram\n"), "should begin with Mermaid header")
 
 	// Every described core class should appear as an entity block under its mnemonic.
-	for _, entity := range []string{"CLASS", "PROPERTY", "DOCUMENT", "VOCABULARY", "LANGUAGE", "UNIT", "VALUE_TYPE"} {
+	for _, entity := range []string{"CLASS", "PROPERTY", "VOCABULARY", "LANGUAGE", "UNIT", "VALUE_TYPE"} {
 		assert.Contains(t, out, "\n  \""+entity+"\" {\n", "missing entity block for %s", entity)
 	}
-	// The PK row should live on DOCUMENT (which owns the documentid field).
-	assert.Contains(t, out, "\n  \"DOCUMENT\" {\n    string ID PK \"\"\n", "DOCUMENT should own the PK row")
+
+	// DocumentFields (PK and INSTANCE_OF) are shared by every document, so each
+	// entity block opens with the PK row followed by the INSTANCE_OF row.
+	for _, entity := range []string{"CLASS", "PROPERTY", "VOCABULARY", "LANGUAGE", "UNIT", "VALUE_TYPE"} {
+		assert.Contains(t, out, "\n  \""+entity+"\" {\n    string ID PK \"\"\n    reference INSTANCE_OF FK \"0..*\"\n", "%s should inline the shared DocumentFields", entity)
+		assert.Contains(t, out, `"`+entity+`" }o--o{ "CLASS" : "INSTANCE_OF"`, "%s should emit the INSTANCE_OF edge", entity)
+	}
 
 	// Reference fields with values tags should produce solid edges using mnemonic names.
-	// INSTANCE_OF lives on DOCUMENT (since DocumentFields owns it), so only DOCUMENT
-	// emits that edge.
 	expectedRelations := []string{
 		`"CLASS" }o--o{ "CLASS" : "SUBCLASS_OF"`,
 		`"PROPERTY" }o--o{ "PROPERTY" : "SUBPROPERTY_OF"`,
 		`"PROPERTY" }o--o| "PROPERTY" : "INVERSE_PROPERTY_OF"`,
-		`"DOCUMENT" }o--o{ "CLASS" : "INSTANCE_OF"`,
 	}
 	for _, rel := range expectedRelations {
 		assert.Contains(t, out, rel, "missing relation %q", rel)
@@ -58,9 +61,10 @@ func TestDiagram(t *testing.T) {
 	// DESCRIPTION is owned by CLASS (via ClassFields), so the edge originates from CLASS.
 	assert.Contains(t, out, `"CLASS" }o--o{ "LANGUAGE" : "DESCRIPTION[IN_LANGUAGE]"`)
 
-	// Vocabulary leaves inherit everything, so their entity blocks must be empty.
+	// Vocabulary leaves have no own fields, so their blocks contain only the
+	// shared DocumentFields rows.
 	for _, leaf := range []string{"LANGUAGE", "UNIT", "VALUE_TYPE"} {
-		assert.Contains(t, out, "\n  \""+leaf+"\" {\n  }\n", "%s should have no own fields", leaf)
+		assert.Contains(t, out, "\n  \""+leaf+"\" {\n    string ID PK \"\"\n    reference INSTANCE_OF FK \"0..*\"\n  }\n", "%s should have only the shared fields", leaf)
 	}
 
 	// Property rows from the class registry should carry their mnemonics and value types.
@@ -91,7 +95,7 @@ func TestDiagram_SkipCore(t *testing.T) {
 	out := buf.String()
 
 	// Core entities must not appear as entity blocks.
-	for _, entity := range []string{"CLASS", "PROPERTY", "DOCUMENT", "VOCABULARY", "LANGUAGE", "UNIT", "VALUE_TYPE"} {
+	for _, entity := range []string{"CLASS", "PROPERTY", "VOCABULARY", "LANGUAGE", "UNIT", "VALUE_TYPE"} {
 		assert.NotContains(t, out, "\n  \""+entity+"\" {\n", "core entity %s should be excluded", entity)
 	}
 
@@ -99,7 +103,7 @@ func TestDiagram_SkipCore(t *testing.T) {
 	assert.NotContains(t, out, "INSTANCE_OF", "INSTANCE_OF references should be excluded")
 
 	// No edges should reference the skipped core entities.
-	for _, target := range []string{`"CLASS"`, `"PROPERTY"`, `"DOCUMENT"`, `"VOCABULARY"`, `"LANGUAGE"`, `"UNIT"`, `"VALUE_TYPE"`} {
+	for _, target := range []string{`"CLASS"`, `"PROPERTY"`, `"VOCABULARY"`, `"LANGUAGE"`, `"UNIT"`, `"VALUE_TYPE"`} {
 		for _, sep := range []string{"--", ".."} {
 			for _, right := range []string{"o|", "o{", "||", "|{"} {
 				assert.NotContains(t, out, sep+right+" "+target+" :", "edge to skipped %s should not appear", target)

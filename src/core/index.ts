@@ -1,4 +1,4 @@
-export { CLASS, DOCUMENT, LANGUAGE, PROPERTY, UNIT, VALUE_TYPE, VOCABULARY } from "@/core/classes"
+export { CLASS, LANGUAGE, PROPERTY, UNIT, VALUE_TYPE, VOCABULARY } from "@/core/classes"
 
 export {
   ALTERNATIVE_NAME,
