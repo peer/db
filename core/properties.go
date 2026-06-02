@@ -256,7 +256,10 @@ func Properties() ([]any, errors.E) {
 			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf:          nil,
-			InversePropertyOf:      nil,
+			// "distinct from" is symmetric, so it is its own inverse.
+			InversePropertyOf: &Ref{
+				ID: []string{Namespace, "DISTINCT_FROM"},
+			},
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "DISTINCT_FROM"},
