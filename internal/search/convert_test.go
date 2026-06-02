@@ -190,9 +190,27 @@ func newTestConverterFull(
 	priority map[string][]string,
 ) *Converter {
 	t.Helper()
+	coreStubDocs := map[identifier.Identifier]*document.D{
+		internalCore.InLanguagePropID: makeNamingDoc(internalCore.InLanguagePropID, "in language"),
+		internalCore.InUnitPropID:     makeNamingDoc(internalCore.InUnitPropID, "in unit"),
+		internalCore.LanguageClassID:  makeNamingDoc(internalCore.LanguageClassID, "language"),
+	}
 	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
 		if doc, ok := extraDocs[id]; ok {
 			return doc, nil
+		}
+		// Properties, languages, and classes registered with the converter are
+		// also resolvable.
+		for _, list := range [][]*document.D{properties, languages, classes} {
+			for _, doc := range list {
+				if doc.ID == id {
+					return doc, nil
+				}
+			}
+		}
+		// Provide stubs for core metadata properties referenced by sub-claims.
+		if stub, ok := coreStubDocs[id]; ok {
+			return stub, nil
 		}
 		return nil, errors.New("document not found")
 	}
@@ -1331,7 +1349,9 @@ func TestVisitStringPopulatesTextDefaultsToUnd(t *testing.T) {
 func TestVisitStringPopulatesTextWithLanguage(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{
+		testLangDocID: makeNamingDoc(testLangDocID, "English"),
+	})
 	c.LanguageCodes = map[identifier.Identifier]string{testLangDocID: "en"}
 
 	ctx := t.Context()
@@ -1354,10 +1374,11 @@ func TestVisitStringPopulatesTextWithLanguage(t *testing.T) {
 	}
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	// The English-tagged String claim goes to text["en"]; the document ID goes
-	// only to "und".
+	// The English-tagged String claim goes to text["en"].
+	// The IN_LANGUAGE sub-reference name folds into text["und"]
+	// alongside the document ID.
 	assert.Equal(t, []string{"hello"}, result.Text["en"])
-	assert.Equal(t, []string{testDocID.String()}, result.Text["und"])
+	assert.Equal(t, []string{testDocID.String(), "English"}, result.Text["und"])
 }
 
 func TestVisitHTMLStripsAndPopulatesText(t *testing.T) {

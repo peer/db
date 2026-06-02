@@ -1412,7 +1412,7 @@ func (v *convertVisitor) VisitIdentifier(claim *document.IdentifierClaim) (docum
 		return document.Keep, nil
 	}
 	v.addText(document.UndeterminedLanguage, claim.Value)
-	return document.Keep, nil
+	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToIdentifier)
 }
 
 // VisitString folds the string value into the document's top-level text field
@@ -1424,7 +1424,7 @@ func (v *convertVisitor) VisitString(claim *document.StringClaim) (document.Visi
 	for _, lang := range v.converter.textLanguages(claim.Sub, claim.String) {
 		v.addText(lang, claim.String)
 	}
-	return document.Keep, nil
+	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToString)
 }
 
 // VisitHTML strips HTML tags from the claim's value and folds the plain-text
@@ -1440,7 +1440,7 @@ func (v *convertVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitRes
 	for _, lang := range v.converter.textLanguages(claim.Sub, stripHTML(claim.HTML, document.UndeterminedLanguage)) {
 		v.addText(lang, stripHTML(claim.HTML, lang))
 	}
-	return document.Keep, nil
+	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToHTML)
 }
 
 // VisitAmount converts an amount claim to search amount claims.
@@ -1453,7 +1453,7 @@ func (v *convertVisitor) VisitAmount(claim *document.AmountClaim) (document.Visi
 		return document.Keep, errE
 	}
 	v.result.Claims.Amount = append(v.result.Claims.Amount, claims...)
-	return document.Keep, nil
+	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToAmount)
 }
 
 // VisitAmountInterval converts an amount interval claim to search amount claims.
@@ -1481,7 +1481,7 @@ func (v *convertVisitor) VisitTime(claim *document.TimeClaim) (document.VisitRes
 		return document.Keep, errE
 	}
 	v.result.Claims.Time = append(v.result.Claims.Time, claims...)
-	return document.Keep, nil
+	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToTime)
 }
 
 // VisitTimeInterval converts a time interval claim to search time claims.
@@ -1506,7 +1506,7 @@ func (v *convertVisitor) VisitLink(claim *document.LinkClaim) (document.VisitRes
 		return document.Keep, nil
 	}
 	v.addText(document.UndeterminedLanguage, claim.IRI)
-	return document.Keep, nil
+	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToLink)
 }
 
 // VisitReference converts a reference claim to search reference claims.
@@ -1573,6 +1573,20 @@ func (v *convertVisitor) appendSubClaims(subs subClaims) {
 	v.result.Claims.SubAmount = append(v.result.Claims.SubAmount, subs.Amounts...)
 	v.result.Claims.SubTime = append(v.result.Claims.SubTime, subs.Times...)
 	v.result.Claims.SubHas = append(v.result.Claims.SubHas, subs.Has...)
+}
+
+// appendNotReferenceSubClaims extracts the sub-claims of a not-a-reference claim
+// and appends them under the given parentTo sentinel.
+func (v *convertVisitor) appendNotReferenceSubClaims(propID identifier.Identifier, sub *document.ClaimTypes, parentTo string) errors.E {
+	if sub == nil {
+		return nil
+	}
+	subs, errE := v.converter.extractSubClaims(v.ctx, sub, v.converter.propagateProp(propID), parentTo)
+	if errE != nil {
+		return errE
+	}
+	v.appendSubClaims(subs)
+	return nil
 }
 
 // FromDocument converts a document.D to a search Document.
@@ -2343,9 +2357,15 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 
 // Sentinel values for sub-claim ParentTo when the parent claim is not a reference claim.
 const (
-	ParentToHas     = "__HAS__"
-	ParentToNone    = "__NONE__"
-	ParentToUnknown = "__UNKNOWN__"
+	ParentToHas        = "__HAS__"
+	ParentToNone       = "__NONE__"
+	ParentToUnknown    = "__UNKNOWN__"
+	ParentToIdentifier = "__IDENTIFIER__"
+	ParentToString     = "__STRING__"
+	ParentToHTML       = "__HTML__"
+	ParentToAmount     = "__AMOUNT__"
+	ParentToTime       = "__TIME__"
+	ParentToLink       = "__LINK__"
 )
 
 // subClaims aggregates every per-document Sub* record produced by extracting
