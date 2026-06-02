@@ -18,6 +18,8 @@ var (
 	TestingCardinalityLabel         = cardinalityLabel
 	TestingResolveDiagramShortcutID = resolveDiagramShortcutID
 	TestingExtractDiagramClassInfo  = extractDiagramClassInfo
+	TestingEmbedsStruct             = embedsStruct
+	TestingValidateDiagramTypes     = validateDiagramTypes
 )
 
 // TestingWalkSubFields invokes walkSubFields and returns its emitted rows and

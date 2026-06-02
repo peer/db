@@ -88,6 +88,11 @@ func Diagram(logger zerolog.Logger, w io.Writer, skipCore bool) errors.E {
 	// every entity.
 	documentFieldsType := reflect.TypeFor[core.DocumentFields]()
 
+	// The diagram assumes every entity embeds DocumentFields and its own-fields
+	// struct rather than reading them from the full class type, so verify those
+	// assumptions hold for every registered class type and warn otherwise.
+	validateDiagramTypes(logger, transform.ClassRegistry, transform.ClassFieldsRegistry, documentFieldsType)
+
 	entities, idToName, errE := collectDiagramEntities(logger, skipIDs)
 	if errE != nil {
 		return errE
@@ -156,6 +161,74 @@ func Diagram(logger zerolog.Logger, w io.Writer, skipCore bool) errors.E {
 
 	_, err := io.WriteString(w, buf.String())
 	return errors.WithStack(err)
+}
+
+// validateDiagramTypes logs a warning for every class in classRegistry whose
+// full Go struct does not embed documentFieldsType (the shared DocumentFields
+// the diagram inlines into every entity) or, when the class also has a fields
+// struct in classFieldsRegistry, does not embed that own-fields struct.
+//
+// Abstract classes are absent from classRegistry (they have no instantiable Go
+// struct), so they are not checked: there is no full type to inspect.
+func validateDiagramTypes(
+	logger zerolog.Logger,
+	classRegistry, classFieldsRegistry map[identifier.Identifier]reflect.Type,
+	documentFieldsType reflect.Type,
+) {
+	for id, fullType := range classRegistry {
+		structType := fullType
+		if structType.Kind() == reflect.Pointer {
+			structType = structType.Elem()
+		}
+
+		if !embedsStruct(structType, documentFieldsType) {
+			logger.Warn().
+				Str("classID", id.String()).
+				Str("goType", fullType.String()).
+				Str("fieldsType", documentFieldsType.String()).
+				Msg("class type does not embed the shared DocumentFields the diagram assumes")
+		}
+
+		ownType, ok := classFieldsRegistry[id]
+		if !ok {
+			continue
+		}
+		if !embedsStruct(structType, ownType) {
+			logger.Warn().
+				Str("classID", id.String()).
+				Str("goType", fullType.String()).
+				Str("fieldsType", ownType.String()).
+				Msg("class type does not embed its ClassFieldsRegistry fields struct")
+		}
+	}
+}
+
+// embedsStruct reports whether target equals structType or is embedded
+// anonymously (recursively, through value or pointer embeds) within it.
+func embedsStruct(structType, target reflect.Type) bool {
+	if structType == target {
+		return true
+	}
+	if structType.Kind() != reflect.Struct {
+		return false
+	}
+	for i := range structType.NumField() {
+		field := structType.Field(i)
+		if !field.Anonymous {
+			continue
+		}
+		fieldType := field.Type
+		if fieldType.Kind() == reflect.Pointer {
+			fieldType = fieldType.Elem()
+		}
+		if fieldType.Kind() != reflect.Struct {
+			continue
+		}
+		if embedsStruct(fieldType, target) {
+			return true
+		}
+	}
+	return false
 }
 
 // collectDiagramEntities merges [transform.ClassDescriptionRegistry] (mnemonic
