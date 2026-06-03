@@ -268,6 +268,29 @@ func TestMappingTopLevelTime(t *testing.T) {
 	assert.Equal(t, "double", timeField["type"])
 }
 
+func TestMappingCountFields(t *testing.T) {
+	t.Parallel()
+
+	data, errE := internalSearch.Mapping(nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	var parsed map[string]any
+	errE = x.UnmarshalWithoutUnknownFields(data, &parsed)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	mappings, ok := parsed["mappings"].(map[string]any)
+	require.True(t, ok)
+	properties, ok := mappings["properties"].(map[string]any)
+	require.True(t, ok)
+
+	// referencesCount and claimsCount are top-level integer fields.
+	for _, name := range []string{"referencesCount", "claimsCount"} {
+		field, fieldOK := properties[name].(map[string]any)
+		require.True(t, fieldOK, "missing top-level %s field", name)
+		assert.Equal(t, "integer", field["type"])
+	}
+}
+
 func TestMappingSourceDisabled(t *testing.T) {
 	t.Parallel()
 

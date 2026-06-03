@@ -27,6 +27,12 @@ import (
 // Time holds the document's earliest time: the lowest time value across all of
 // its time claims (top-level and sub-claims). For a point timestamp that is the
 // timestamp; for an interval it is the earliest bound.
+//
+// ReferencesCount is the number of other documents that reference this document,
+// counted at index time and refreshed by a periodic job.
+//
+// ClaimsCount is the total number of claims the document has, counted
+// recursively including sub-claims.
 type Document struct {
 	ID identifier.Identifier `json:"id"`
 
@@ -35,6 +41,10 @@ type Document struct {
 	Text map[string][]string `json:"text,omitempty"`
 
 	Time *float64 `json:"time,omitempty"`
+
+	ReferencesCount *int `json:"referencesCount,omitempty"`
+
+	ClaimsCount *int `json:"claimsCount,omitempty"`
 
 	Claims ClaimTypes `json:"claims,omitzero"`
 }

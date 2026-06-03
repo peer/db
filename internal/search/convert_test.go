@@ -191,9 +191,12 @@ func newTestConverterFull(
 ) *Converter {
 	t.Helper()
 	coreStubDocs := map[identifier.Identifier]*document.D{
-		internalCore.InLanguagePropID: makeNamingDoc(internalCore.InLanguagePropID, "in language"),
-		internalCore.InUnitPropID:     makeNamingDoc(internalCore.InUnitPropID, "in unit"),
-		internalCore.LanguageClassID:  makeNamingDoc(internalCore.LanguageClassID, "language"),
+		internalCore.InLanguagePropID:  makeNamingDoc(internalCore.InLanguagePropID, "in language"),
+		internalCore.InUnitPropID:      makeNamingDoc(internalCore.InUnitPropID, "in unit"),
+		internalCore.LanguageClassID:   makeNamingDoc(internalCore.LanguageClassID, "language"),
+		internalCore.ClassClassID:      makeNamingDoc(internalCore.ClassClassID, "class"),
+		internalCore.VocabularyClassID: makeNamingDoc(internalCore.VocabularyClassID, "vocabulary"),
+		internalCore.PropertyClassID:   makeNamingDoc(internalCore.PropertyClassID, "property"),
 	}
 	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
 		if doc, ok := extraDocs[id]; ok {
@@ -4266,6 +4269,149 @@ func TestEarliestClaimTimeOpenBoundsNotSentinel(t *testing.T) {
 	assert.InDelta(t, earliest, *result.Time, 0)
 	assert.Greater(t, *result.Time, -math.MaxFloat64)
 	assert.Less(t, *result.Time, math.MaxFloat64)
+}
+
+// TestClaimsCountCountsRecursively verifies that ClaimsCount counts every claim
+// in the document, including those nested as sub-claims.
+func TestClaimsCountCountsRecursively(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
+
+	ctx := t.Context()
+
+	// One top-level String claim that carries a sub String claim: two claims total.
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, &document.ClaimTypes{
+						String: []document.StringClaim{
+							{
+								CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+								Prop:      document.Reference{ID: testPropID},
+								String:    "nested",
+							},
+						},
+					}),
+					Prop:   document.Reference{ID: testPropID},
+					String: "top",
+				},
+			},
+		},
+	}
+
+	result, errE := c.FromDocument(ctx, doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotNil(t, result.ClaimsCount)
+	assert.Equal(t, 2, *result.ClaimsCount)
+}
+
+// TestReferencesCount verifies that CountReferences is recorded for ordinary
+// documents and skipped for documents that are themselves classes.
+func TestReferencesCount(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{
+		internalCore.InstanceOfPropID: makeNamingDoc(internalCore.InstanceOfPropID, "instance of"),
+	})
+	c.CountReferences = func(_ context.Context, _ identifier.Identifier) (int, errors.E) {
+		return 7, nil
+	}
+
+	ctx := t.Context()
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+					String:    "ordinary",
+				},
+			},
+		},
+	}
+	result, errE := c.FromDocument(ctx, doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotNil(t, result.ReferencesCount)
+	assert.Equal(t, 7, *result.ReferencesCount)
+
+	// A document that is an instance of CLASS is ignored for referencesCount.
+	classDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+					To:        document.Reference{ID: internalCore.ClassClassID},
+				},
+			},
+		},
+	}
+	result, errE = c.FromDocument(ctx, classDoc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Nil(t, result.ReferencesCount)
+
+	// A document that is an instance of VOCABULARY is ignored too.
+	vocabDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+					To:        document.Reference{ID: internalCore.VocabularyClassID},
+				},
+			},
+		},
+	}
+	result, errE = c.FromDocument(ctx, vocabDoc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Nil(t, result.ReferencesCount)
+}
+
+// TestReferencesCountIgnoresTransitiveSubclass verifies that a document which is
+// an instance of a transitive subclass of VOCABULARY is ignored for
+// referencesCount via the class hierarchy.
+func TestReferencesCountIgnoresTransitiveSubclass(t *testing.T) {
+	t.Parallel()
+
+	// Set up the SUBENTITY_OF hierarchy so SUBCLASS_OF is a value hierarchy property.
+	properties := []*document.D{
+		makePropertyDoc(internalCore.SubentityOfPropID, nil),
+		makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID),
+		makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID),
+	}
+
+	// A vocabulary subclass: SUBCLASS_OF VOCABULARY.
+	vocabSubclass := identifier.New()
+	vocabSubclassDoc := makeHierarchyDoc(vocabSubclass, "Discipline", internalCore.SubclassOfPropID, &internalCore.VocabularyClassID)
+
+	c := newTestConverter(t, properties, nil, map[identifier.Identifier]*document.D{vocabSubclass: vocabSubclassDoc})
+	c.CountReferences = func(_ context.Context, _ identifier.Identifier) (int, errors.E) {
+		return 7, nil
+	}
+
+	// A document that is an instance of that vocabulary subclass.
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+					To:        document.Reference{ID: vocabSubclass},
+				},
+			},
+		},
+	}
+	result, errE := c.FromDocument(t.Context(), doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Nil(t, result.ReferencesCount)
 }
 
 // Tests for error propagation through Visit* methods and FromDocument.

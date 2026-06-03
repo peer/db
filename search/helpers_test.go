@@ -72,6 +72,31 @@ func refreshIndex(t *testing.T, ctx context.Context, esClient *elasticsearch.Typ
 	require.NoError(t, err)
 }
 
+// indexAmountDoc indexes a document carrying a single point-amount claim equal to
+// value under amountProp with unitID. It seeds amount-filter tests.
+func indexAmountDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.TypedClient, index, id string, amountProp, unitID identifier.Identifier, value *float64) { //nolint:revive,lll
+	t.Helper()
+
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		ID:              identifier.From(id),
+		Display:         nil,
+		Text:            nil,
+		Time:            nil,
+		ReferencesCount: nil,
+		ClaimsCount:     nil,
+		Claims: internalSearch.ClaimTypes{
+			Amount: internalSearch.AmountClaims{{
+				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
+				Range: internalSearch.RangeFloat{
+					GreaterThan: nil, GreaterThanOrEqual: value, LessThan: nil, LessThanOrEqual: value,
+				},
+				From: value, FromDisplay: "", To: value, ToDisplay: "",
+			}},
+			Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+		},
+	})
+}
+
 // createSession is a test helper that creates a search session from SessionData.
 // It generates Base/ID for the session and any filters that lack them.
 func createSession(t *testing.T, ctx context.Context, data search.SessionData) *search.Session { //nolint:revive

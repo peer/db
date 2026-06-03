@@ -15,6 +15,7 @@ import (
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
+	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
@@ -31,45 +32,25 @@ type HistogramResult struct {
 	Count int64   `json:"count"`
 }
 
-// aggAs extracts a typed aggregation from a map of aggregations.
-//
-// TODO: Contribute upstream. See: https://github.com/elastic/go-elasticsearch/issues/1367
-func aggAs[T any](aggs map[string]types.Aggregate, key string) (*T, errors.E) {
-	raw, ok := aggs[key]
-	if !ok {
-		errE := errors.New("aggregation not found")
-		errors.Details(errE)["key"] = key
-		return nil, errE
-	}
-	typed, ok := raw.(*T)
-	if !ok {
-		errE := errors.New("unexpected aggregation type")
-		errors.Details(errE)["key"] = key
-		errors.Details(errE)["type"] = fmt.Sprintf("%T", raw)
-		return nil, errE
-	}
-	return typed, nil
-}
-
 // parseMinMax extracts doc count, min, and max values from a nested->filter aggregation result.
 func parseMinMax(aggs map[string]types.Aggregate, key string) (int64, float64, float64, errors.E) {
-	nested, errE := aggAs[types.NestedAggregate](aggs, key)
+	nested, errE := internalSearch.AggAs[types.NestedAggregate](aggs, key)
 	if errE != nil {
 		return 0, 0, 0, errE
 	}
-	filter, errE := aggAs[types.FilterAggregate](nested.Aggregations, "filter")
+	filter, errE := internalSearch.AggAs[types.FilterAggregate](nested.Aggregations, "filter")
 	if errE != nil {
 		return 0, 0, 0, errE
 	}
-	docs, errE := aggAs[types.ReverseNestedAggregate](filter.Aggregations, "docs")
+	docs, errE := internalSearch.AggAs[types.ReverseNestedAggregate](filter.Aggregations, "docs")
 	if errE != nil {
 		return 0, 0, 0, errE
 	}
-	minAgg, errE := aggAs[types.MinAggregate](filter.Aggregations, "min")
+	minAgg, errE := internalSearch.AggAs[types.MinAggregate](filter.Aggregations, "min")
 	if errE != nil {
 		return 0, 0, 0, errE
 	}
-	maxAgg, errE := aggAs[types.MaxAggregate](filter.Aggregations, "max")
+	maxAgg, errE := internalSearch.AggAs[types.MaxAggregate](filter.Aggregations, "max")
 	if errE != nil {
 		return 0, 0, 0, errE
 	}
@@ -85,15 +66,15 @@ func parseMinMax(aggs map[string]types.Aggregate, key string) (int64, float64, f
 
 // parseCountOnly extracts doc count from a nested->filter->docs aggregation result.
 func parseCountOnly(aggs map[string]types.Aggregate, key string) (int64, errors.E) {
-	nested, errE := aggAs[types.NestedAggregate](aggs, key)
+	nested, errE := internalSearch.AggAs[types.NestedAggregate](aggs, key)
 	if errE != nil {
 		return 0, errE
 	}
-	filter, errE := aggAs[types.FilterAggregate](nested.Aggregations, "filter")
+	filter, errE := internalSearch.AggAs[types.FilterAggregate](nested.Aggregations, "filter")
 	if errE != nil {
 		return 0, errE
 	}
-	docs, errE := aggAs[types.ReverseNestedAggregate](filter.Aggregations, "docs")
+	docs, errE := internalSearch.AggAs[types.ReverseNestedAggregate](filter.Aggregations, "docs")
 	if errE != nil {
 		return 0, errE
 	}
@@ -102,15 +83,15 @@ func parseCountOnly(aggs map[string]types.Aggregate, key string) (int64, errors.
 
 // parseHistogramBuckets extracts histogram bucket results from a nested->filter->hist aggregation.
 func parseHistogramBuckets(aggs map[string]types.Aggregate, key string) ([]HistogramResult, errors.E) {
-	nested, errE := aggAs[types.NestedAggregate](aggs, key)
+	nested, errE := internalSearch.AggAs[types.NestedAggregate](aggs, key)
 	if errE != nil {
 		return nil, errE
 	}
-	filter, errE := aggAs[types.FilterAggregate](nested.Aggregations, "filter")
+	filter, errE := internalSearch.AggAs[types.FilterAggregate](nested.Aggregations, "filter")
 	if errE != nil {
 		return nil, errE
 	}
-	histAgg, errE := aggAs[types.HistogramAggregate](filter.Aggregations, "hist")
+	histAgg, errE := internalSearch.AggAs[types.HistogramAggregate](filter.Aggregations, "hist")
 	if errE != nil {
 		return nil, errE
 	}
@@ -122,7 +103,7 @@ func parseHistogramBuckets(aggs map[string]types.Aggregate, key string) ([]Histo
 	}
 	results := make([]HistogramResult, 0, len(buckets))
 	for _, bucket := range buckets {
-		bucketDocs, errE := aggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
+		bucketDocs, errE := internalSearch.AggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
 		if errE != nil {
 			return nil, errE
 		}
@@ -224,7 +205,7 @@ func histogramFilterGet(
 		if errE != nil {
 			return nil, nil, errE
 		}
-		missingFilter, errE := aggAs[types.FilterAggregate](res.Aggregations, missingKey)
+		missingFilter, errE := internalSearch.AggAs[types.FilterAggregate](res.Aggregations, missingKey)
 		if errE != nil {
 			return nil, nil, errE
 		}
@@ -262,7 +243,7 @@ func histogramFilterGet(
 		if errE != nil {
 			return nil, nil, errE
 		}
-		missingFilter, errE := aggAs[types.FilterAggregate](res.Aggregations, missingKey)
+		missingFilter, errE := internalSearch.AggAs[types.FilterAggregate](res.Aggregations, missingKey)
 		if errE != nil {
 			return nil, nil, errE
 		}

@@ -748,6 +748,15 @@ export class ClaimTypes implements Claims {
     return s
   }
 
+  // SizeWithSub returns the total number of claims, including sub-claims, recursively.
+  SizeWithSub(): number {
+    let s = this.Size()
+    for (const claim of this.AllClaims()) {
+      s += claim.sub?.SizeWithSub() ?? 0
+    }
+    return s
+  }
+
   AllClaims(): Claim[] {
     return (Object.keys(CLAIM_TYPES_MAP) as ClaimTypeName[]).flatMap((k) => this[k] ?? [])
   }

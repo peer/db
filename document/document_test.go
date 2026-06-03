@@ -271,6 +271,50 @@ func TestDocumentSizeAllClaims(t *testing.T) {
 	assert.Len(t, slices.Collect(doc.AllClaims()), 2)
 }
 
+// TestDocumentSizeWithSub compares the shallow Size/AllClaims with the recursive
+// SizeWithSub/AllClaimsWithSub on a document whose claims carry sub-claims.
+func TestDocumentSizeWithSub(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+
+	// One top-level String claim carrying two sub-claims, the first of which
+	// carries a further sub-claim: 1 + 2 + 1 = 4 claims, only 1 at the top level.
+	deepSub := &document.StringClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+		Prop:      document.Reference{ID: prop},
+		String:    "deep",
+	}
+	sub1 := &document.StringClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+		Prop:      document.Reference{ID: prop},
+		String:    "sub1",
+	}
+	require.NoError(t, sub1.Add(deepSub))
+	sub2 := &document.UnknownClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+		Prop:      document.Reference{ID: prop},
+	}
+	top := &document.StringClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+		Prop:      document.Reference{ID: prop},
+		String:    "top",
+	}
+	require.NoError(t, top.Add(sub1))
+	require.NoError(t, top.Add(sub2))
+
+	doc := &document.D{}
+	require.NoError(t, doc.Add(top))
+
+	// Shallow: only the single top-level claim.
+	assert.Equal(t, 1, doc.Size())
+	assert.Len(t, slices.Collect(doc.AllClaims()), 1)
+
+	// Recursive: top + sub1 + deepSub + sub2.
+	assert.Equal(t, 4, doc.SizeWithSub())
+	assert.Len(t, slices.Collect(doc.AllClaimsWithSub()), 4)
+}
+
 // TestDocumentMergeFrom tests D.MergeFrom merging claims from multiple documents.
 func TestDocumentMergeFrom(t *testing.T) {
 	t.Parallel()

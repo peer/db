@@ -195,6 +195,7 @@ func (b *B) Start(ctx context.Context, documents []*document.D) (func(), errors.
 	converter.Hooks = b.IndexingHooks
 	converter.IndexAncestorProperties = b.IndexAncestorProperties
 	converter.DetectLanguages = true
+	converter.CountReferences = b.bridge.CountReferences
 
 	for _, register := range b.RegisterWorkers {
 		errE := register(ctx, b.workers)
