@@ -16,7 +16,6 @@ import (
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	"gitlab.com/peerdb/peerdb/internal/export"
-	"gitlab.com/peerdb/peerdb/transform"
 )
 
 // Ensure core init() runs to register types.
@@ -501,7 +500,7 @@ func TestStruct_ClassRegistryFromTest(t *testing.T) {
 	t.Parallel()
 
 	propClassID := identifier.From(core.Namespace, "PROPERTY")
-	typ, ok := transform.ClassRegistry[propClassID]
+	typ, ok := core.ClassRegistry[propClassID]
 	require.True(t, ok, "PROPERTY class should be registered")
 	assert.Equal(t, reflect.TypeFor[core.Property](), typ)
 }

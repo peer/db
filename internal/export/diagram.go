@@ -15,7 +15,6 @@ import (
 
 	"gitlab.com/peerdb/peerdb/core"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
-	"gitlab.com/peerdb/peerdb/transform"
 )
 
 // diagramSkipIDs returns the set of class identifiers that should be omitted
@@ -57,7 +56,7 @@ type diagramRelation struct {
 }
 
 // diagramEntity is one entity in the rendered diagram. typ is the Go struct
-// from [transform.ClassFieldsRegistry] that holds this class's own fields, or
+// from [core.ClassFieldsRegistry] that holds this class's own fields, or
 // nil for classes with no own fields (every field is inherited).
 type diagramEntity struct {
 	typ     reflect.Type
@@ -69,9 +68,9 @@ type diagramEntity struct {
 // Diagram writes a Mermaid ER diagram describing every class registered with
 // PeerDB together with its fields and reference relationships.
 //
-// Entities are sourced from [transform.ClassDescriptionRegistry] (which yields
+// Entities are sourced from [core.ClassDescriptionRegistry] (which yields
 // the canonical mnemonic and any SUBCLASS_OF facts) and augmented with the Go
-// struct types from [transform.ClassFieldsRegistry] (used to walk each class's
+// struct types from [core.ClassFieldsRegistry] (used to walk each class's
 // own fields). Reference fields produce solid edges; class hierarchy is
 // rendered with dashed IS_SUBCLASS edges.
 //
@@ -91,7 +90,7 @@ func Diagram(logger zerolog.Logger, w io.Writer, skipCore bool) errors.E {
 	// The diagram assumes every entity embeds DocumentFields and its own-fields
 	// struct rather than reading them from the full class type, so verify those
 	// assumptions hold for every registered class type and warn otherwise.
-	validateDiagramTypes(logger, transform.ClassRegistry, transform.ClassFieldsRegistry, documentFieldsType)
+	validateDiagramTypes(logger, core.ClassRegistry, core.ClassFieldsRegistry, documentFieldsType)
 
 	entities, idToName, errE := collectDiagramEntities(logger, skipIDs)
 	if errE != nil {
@@ -231,9 +230,9 @@ func embedsStruct(structType, target reflect.Type) bool {
 	return false
 }
 
-// collectDiagramEntities merges [transform.ClassDescriptionRegistry] (mnemonic
+// collectDiagramEntities merges [core.ClassDescriptionRegistry] (mnemonic
 // + SUBCLASS_OF facts, including abstract classes) with
-// [transform.ClassFieldsRegistry] (the Go struct holding each class's own
+// [core.ClassFieldsRegistry] (the Go struct holding each class's own
 // fields) into a sorted list of entities. Classes whose ID is in skipIDs are
 // omitted entirely.
 func collectDiagramEntities(
@@ -242,7 +241,7 @@ func collectDiagramEntities(
 ) ([]diagramEntity, map[identifier.Identifier]string, errors.E) {
 	byID := map[identifier.Identifier]diagramEntity{}
 
-	for _, fn := range transform.ClassDescriptionRegistry {
+	for _, fn := range core.ClassDescriptionRegistry {
 		docs, errE := fn(nil)
 		if errE != nil {
 			return nil, nil, errE
@@ -264,7 +263,7 @@ func collectDiagramEntities(
 		}
 	}
 
-	for id, t := range transform.ClassFieldsRegistry {
+	for id, t := range core.ClassFieldsRegistry {
 		if skipIDs[id] {
 			continue
 		}

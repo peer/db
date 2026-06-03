@@ -13,9 +13,9 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
-	"gitlab.com/peerdb/peerdb/transform"
 )
 
 // baseCache caches document Base ([]string) to avoid repeated fetches.
@@ -49,7 +49,7 @@ func (c *baseCache) getBase(ctx context.Context, id identifier.Identifier) ([]st
 }
 
 // Struct exports documents as JSON-per-line, using the registered Go struct types
-// from transform.ClassRegistry to reconstruct the struct from claims.
+// from core.ClassRegistry to reconstruct the struct from claims.
 func Struct(ctx context.Context, w io.Writer, docIDs []identifier.Identifier,
 	mnemonics map[string]identifier.Identifier, getDoc GetDocFunc,
 ) errors.E {
@@ -84,7 +84,7 @@ func Struct(ctx context.Context, w io.Writer, docIDs []identifier.Identifier,
 		var typ reflect.Type
 		var matchedClassID identifier.Identifier
 		for _, cid := range classIDs {
-			if t, ok := transform.ClassRegistry[cid]; ok {
+			if t, ok := core.ClassRegistry[cid]; ok {
 				typ = t
 				matchedClassID = cid
 				break
