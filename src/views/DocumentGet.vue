@@ -219,7 +219,11 @@ watch(
     //       Another idea: all our links to internal pages could have a "preview" view
     //       defined and we could automatically do HEAD on them and display that preview.
     //       For search session links that would be the count of results.
-    for (const sc of result) {
+    // Iterate the reactive array (searchShortcuts.value), not the raw result, so
+    // assigning sc.count below goes through the reactive proxy and triggers a
+    // re-render. Mutating the raw result objects updates the data but not the view,
+    // so counts would surface only when some unrelated change forced a redraw.
+    for (const sc of searchShortcuts.value) {
       void (async () => {
         try {
           const count = await fetchShortcutCount(sc.query, signal)
