@@ -50,6 +50,7 @@ func InitComponents(
 		DocumentPostHooks:       nil,
 		FilePreHooks:            nil,
 		FilePostHooks:           nil,
+		SearchQueryHook:         nil,
 		RegisterWorkers:         nil,
 	}
 	errE = b.Init(ctx, dbpool, listener, esClient, riverClient, workers)
