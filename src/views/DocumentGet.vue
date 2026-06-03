@@ -282,7 +282,7 @@ function shortcutLabel(name: string, count: number | string | null): string {
 // Whether to render a count-bearing side link. A link known to have zero results is
 // hidden because following it leads to an empty search, but users who can edit
 // documents keep seeing it (so that we can show them a button to create new document
-// next to it). A null count (not yet loaded, or a shortcut that carries no count)
+// next to it). A null count (still loading, or a fetch that returned no total)
 // is always shown.
 function showShortcut(count: string | null): boolean {
   return count !== "0" || hasPermission(CAN_EDIT_DOCUMENT)

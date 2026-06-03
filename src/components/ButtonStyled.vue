@@ -49,7 +49,7 @@ defineOptions({
     :is="as"
     v-tw-merge
     v-bind="$attrs"
-    class="pd-buttonstyled relative rounded-sm px-6 py-2.5 text-center leading-tight font-medium uppercase shadow-sm outline-none select-none focus:ring-2 focus:ring-offset-1"
+    class="pd-buttonstyled relative rounded-sm px-6 py-2.5 text-center leading-tight font-medium whitespace-nowrap uppercase shadow-sm outline-none select-none focus:ring-2 focus:ring-offset-1"
     :class="{
       'cursor-not-allowed': inactive,
       'bg-primary-300 text-gray-100': primary && inactive,

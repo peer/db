@@ -170,10 +170,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div
-    v-if="hasPermission(CAN_EDIT_DOCUMENT) && (initial || loading || (loaded && classesWithFields.length > 0))"
-    class="pd-create-dropdown relative shrink-0 self-center"
-  >
+  <div v-if="hasPermission(CAN_EDIT_DOCUMENT) && (initial || loading || (loaded && classesWithFields.length > 0))" class="pd-create-dropdown relative shrink-0">
     <Button :progress="busy" type="button" primary class="px-3.5" @click.prevent="onToggle">
       <PlusIcon class="size-5 sm:hidden" :alt="t('common.buttons.create')" />
       <span class="hidden sm:inline">{{ t("common.buttons.create") }}</span>

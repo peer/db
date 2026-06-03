@@ -33,7 +33,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div v-if="languages.length > 1" class="pd-language-switcher relative shrink-0 self-center">
+  <div v-if="languages.length > 1" class="pd-language-switcher relative shrink-0">
     <button
       type="button"
       class="flex items-center rounded-sm px-2 py-1.5 text-sm leading-tight font-medium text-gray-700 uppercase outline-none hover:bg-slate-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-slate-200"
