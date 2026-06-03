@@ -190,9 +190,30 @@ func newTestConverterFull(
 	priority map[string][]string,
 ) *Converter {
 	t.Helper()
+	coreStubDocs := map[identifier.Identifier]*document.D{
+		internalCore.InLanguagePropID:  makeNamingDoc(internalCore.InLanguagePropID, "in language"),
+		internalCore.InUnitPropID:      makeNamingDoc(internalCore.InUnitPropID, "in unit"),
+		internalCore.LanguageClassID:   makeNamingDoc(internalCore.LanguageClassID, "language"),
+		internalCore.ClassClassID:      makeNamingDoc(internalCore.ClassClassID, "class"),
+		internalCore.VocabularyClassID: makeNamingDoc(internalCore.VocabularyClassID, "vocabulary"),
+		internalCore.PropertyClassID:   makeNamingDoc(internalCore.PropertyClassID, "property"),
+	}
 	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
 		if doc, ok := extraDocs[id]; ok {
 			return doc, nil
+		}
+		// Properties, languages, and classes registered with the converter are
+		// also resolvable.
+		for _, list := range [][]*document.D{properties, languages, classes} {
+			for _, doc := range list {
+				if doc.ID == id {
+					return doc, nil
+				}
+			}
+		}
+		// Provide stubs for core metadata properties referenced by sub-claims.
+		if stub, ok := coreStubDocs[id]; ok {
+			return stub, nil
 		}
 		return nil, errors.New("document not found")
 	}
@@ -1331,7 +1352,9 @@ func TestVisitStringPopulatesTextDefaultsToUnd(t *testing.T) {
 func TestVisitStringPopulatesTextWithLanguage(t *testing.T) {
 	t.Parallel()
 
-	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{
+		testLangDocID: makeNamingDoc(testLangDocID, "English"),
+	})
 	c.LanguageCodes = map[identifier.Identifier]string{testLangDocID: "en"}
 
 	ctx := t.Context()
@@ -1354,10 +1377,11 @@ func TestVisitStringPopulatesTextWithLanguage(t *testing.T) {
 	}
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	// The English-tagged String claim goes to text["en"]; the document ID goes
-	// only to "und".
+	// The English-tagged String claim goes to text["en"].
+	// The IN_LANGUAGE sub-reference name folds into text["und"]
+	// alongside the document ID.
 	assert.Equal(t, []string{"hello"}, result.Text["en"])
-	assert.Equal(t, []string{testDocID.String()}, result.Text["und"])
+	assert.Equal(t, []string{testDocID.String(), "English"}, result.Text["und"])
 }
 
 func TestVisitHTMLStripsAndPopulatesText(t *testing.T) {
@@ -3979,19 +4003,20 @@ func TestFromDocumentAllClaimTypesConfidence(t *testing.T) {
 			result, errE := c.FromDocument(ctx, doc, nil)
 			require.NoError(t, errE, "% -+#.1v", errE)
 			assert.Equal(t, testDocID, result.ID)
-			// text["und"] aggregates the following. Property labels (PropDisplay/
-			// PropNaming) are not folded; only referenced-document labels and
-			// numeric/temporal bounds are. This doc's referenced docs carry only
-			// "und" labels, so every value resolves to a single "und" string.
+			// text["und"] aggregates the following, after dedupeResult drops
+			// duplicates. Property labels of value claims (PropDisplay/PropNaming)
+			// are not folded; only referenced-document labels and numeric/temporal
+			// bounds are. This doc's referenced docs carry only "und" labels, so
+			// every value resolves to a single "und" string.
 			//   1   - the document ID (folded into "und")
 			// per included-claim group (expected = 1 unless skipped):
 			//   4   - Identifier+String+HTML(stripped)+Link source claims
-			//   2 Amount × (From + To)              = 4
-			//   2 Time   × (From + To)              = 4
-			//   1 Ref    × (ToDisplay + ToNaming)   = 2
-			//   1 Has    × (PropDisplay + PropNaming) = 2
+			//   Amount point (From == To dedup) + AmountInterval (From, To)  = 3
+			//   Time   point (From == To dedup) + TimeInterval   (From, To)  = 3
+			//   1 Ref  (ToDisplay == ToNaming dedup)                         = 1
+			//   1 Has  (PropDisplay == PropNaming dedup)                     = 1
 			//   None+Unknown contribute nothing (absence assertions).
-			assert.Len(t, result.Text["und"], 1+16*tt.expected)
+			assert.Len(t, result.Text["und"], 1+12*tt.expected)
 			// Amount + AmountInterval each contribute one claim.
 			assert.Len(t, result.Claims.Amount, 2*tt.expected)
 			// Time + TimeInterval each contribute one claim.
@@ -4002,6 +4027,391 @@ func TestFromDocumentAllClaimTypesConfidence(t *testing.T) {
 			assert.Len(t, result.Claims.Unknown, tt.expected)
 		})
 	}
+}
+
+// TestDedupeResultDeMirrorsUnd verifies the final dedup pass drops a value from
+// "und" when the same value is already indexed in a language-specific text
+// bucket. The search query unions each language field with "und", so the value
+// stays reachable through its language field and the "und" copy is redundant.
+func TestDedupeResultDeMirrorsUnd(t *testing.T) {
+	t.Parallel()
+
+	enLangDoc := makeLanguageDoc(testLangDocID, "en")
+	c := newTestConverter(t, nil, []*document.D{enLangDoc}, map[identifier.Identifier]*document.D{})
+
+	ctx := t.Context()
+
+	enSub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: internalCore.InLanguagePropID},
+				To:        document.Reference{ID: testLangDocID},
+			},
+		},
+	}
+
+	// The same value is tagged English on one claim (routes to text.en) and left
+	// untagged on another (routes to text.und before the de-mirror pass).
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, enSub),
+					Prop:      document.Reference{ID: testPropID},
+					String:    "shared value",
+				},
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+					String:    "shared value",
+				},
+			},
+		},
+	}
+	result, errE := c.FromDocument(ctx, doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, []string{"shared value"}, result.Text["en"])
+	assert.NotContains(t, result.Text["und"], "shared value", "a value in text.en must be de-mirrored out of text.und")
+	// und-only content (the document ID) is kept.
+	assert.Contains(t, result.Text["und"], testDocID.String())
+}
+
+// TestEarliestClaimTime verifies the top-level Time field holds the earliest time
+// value across all of a document's time claims: here a time interval's lower bound,
+// which is earlier than a separate point timestamp on the same document.
+func TestEarliestClaimTime(t *testing.T) {
+	t.Parallel()
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID: makeNamingDoc(testPropID, "My Prop"),
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+
+	fromTS := document.Time("2020-01-01")
+	toTS := document.Time("2024-12-31")
+	fromPrec := document.TimePrecisionDay
+	toPrec := document.TimePrecisionDay
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Time: []document.TimeClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+					Time:      document.Time("2022-06-15"),
+					Precision: document.TimePrecisionDay,
+				},
+			},
+			TimeInterval: []document.TimeIntervalClaim{
+				{ //nolint:exhaustruct
+					CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
+					Prop:          document.Reference{ID: testPropID},
+					From:          &fromTS,
+					FromPrecision: &fromPrec,
+					To:            &toTS,
+					ToPrecision:   &toPrec,
+				},
+			},
+		},
+	}
+
+	result, errE := c.FromDocument(ctx, doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The earliest of all bounds across all indexed time claims.
+	var expected float64
+	found := false
+	for _, tc := range result.Claims.Time {
+		for _, bound := range []*float64{tc.From, tc.To} {
+			if bound == nil {
+				continue
+			}
+			if !found || *bound < expected {
+				expected = *bound
+				found = true
+			}
+		}
+	}
+	require.True(t, found)
+	require.NotNil(t, result.Time)
+	assert.InDelta(t, expected, *result.Time, 0)
+
+	// The interval point claims differ, and the earliest (interval lower bound) won.
+	require.Len(t, result.Claims.Time, 2)
+	for _, tc := range result.Claims.Time {
+		require.NotNil(t, tc.From)
+		assert.LessOrEqual(t, *result.Time, *tc.From)
+	}
+}
+
+// TestEarliestClaimTimeNone verifies a document with no time claims has no Time.
+func TestEarliestClaimTimeNone(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
+
+	ctx := t.Context()
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+					String:    "no time here",
+				},
+			},
+		},
+	}
+
+	result, errE := c.FromDocument(ctx, doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Nil(t, result.Time)
+}
+
+// TestEarliestClaimTimeOpenBoundsNotSentinel verifies that a time interval with a
+// None bound does not leak the -MaxFloat64 / +MaxFloat64 range sentinels into the
+// top-level Time field. convertTimeInterval uses those sentinels only for the
+// searchable range of an absent bound; the From/To boundary values stay nil, so
+// Time (derived from them) falls back to the interval's known bound. Unknown
+// bounds never reach this path at all: paired with a known bound they collapse to
+// a point, and otherwise they become an unknown claim with no time.
+func TestEarliestClaimTimeOpenBoundsNotSentinel(t *testing.T) {
+	t.Parallel()
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID: makeNamingDoc(testPropID, "My Prop"),
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+
+	ctx := t.Context()
+
+	fromTS := document.Time("1990-01-01")
+	fromPrec := document.TimePrecisionDay
+	toTS := document.Time("2023-04-12")
+	toPrec := document.TimePrecisionDay
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			TimeInterval: []document.TimeIntervalClaim{
+				{ //nolint:exhaustruct
+					// No lower bound (None), known upper bound: range lower is the
+					// -MaxFloat64 sentinel, From boundary stays nil.
+					CoreClaim:   makeCoreClaim(document.HighConfidence, nil),
+					Prop:        document.Reference{ID: testPropID},
+					FromIsNone:  true,
+					To:          &toTS,
+					ToPrecision: &toPrec,
+				},
+				{ //nolint:exhaustruct
+					// Known lower bound, no upper bound (None): range upper is the
+					// +MaxFloat64 sentinel, To boundary stays nil.
+					CoreClaim:     makeCoreClaim(document.HighConfidence, nil),
+					Prop:          document.Reference{ID: testPropID},
+					From:          &fromTS,
+					FromPrecision: &fromPrec,
+					ToIsNone:      true,
+				},
+			},
+		},
+	}
+
+	result, errE := c.FromDocument(ctx, doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Claims.Time, 2)
+
+	// The sentinels live only in the searchable range, never in the From/To
+	// boundary values that Time is derived from.
+	var sawLowerSentinel, sawUpperSentinel bool
+	for _, tc := range result.Claims.Time {
+		if tc.Range.GreaterThanOrEqual != nil && *tc.Range.GreaterThanOrEqual == -math.MaxFloat64 {
+			sawLowerSentinel = true
+		}
+		if tc.Range.LessThanOrEqual != nil && *tc.Range.LessThanOrEqual == math.MaxFloat64 {
+			sawUpperSentinel = true
+		}
+		if tc.From != nil {
+			assert.Greater(t, *tc.From, -math.MaxFloat64)
+			assert.Less(t, *tc.From, math.MaxFloat64)
+		}
+		if tc.To != nil {
+			assert.Greater(t, *tc.To, -math.MaxFloat64)
+			assert.Less(t, *tc.To, math.MaxFloat64)
+		}
+	}
+	assert.True(t, sawLowerSentinel, "open-lower interval should carry the -MaxFloat64 range sentinel")
+	assert.True(t, sawUpperSentinel, "open-upper interval should carry the +MaxFloat64 range sentinel")
+
+	// Time is the known lower bound (1990), strictly between the sentinels.
+	var earliest float64
+	found := false
+	for _, tc := range result.Claims.Time {
+		for _, bound := range []*float64{tc.From, tc.To} {
+			if bound == nil {
+				continue
+			}
+			if !found || *bound < earliest {
+				earliest = *bound
+				found = true
+			}
+		}
+	}
+	require.True(t, found)
+	require.NotNil(t, result.Time)
+	assert.InDelta(t, earliest, *result.Time, 0)
+	assert.Greater(t, *result.Time, -math.MaxFloat64)
+	assert.Less(t, *result.Time, math.MaxFloat64)
+}
+
+// TestClaimsCountCountsRecursively verifies that ClaimsCount counts every claim
+// in the document, including those nested as sub-claims.
+func TestClaimsCountCountsRecursively(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
+
+	ctx := t.Context()
+
+	// One top-level String claim that carries a sub String claim: two claims total.
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, &document.ClaimTypes{
+						String: []document.StringClaim{
+							{
+								CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+								Prop:      document.Reference{ID: testPropID},
+								String:    "nested",
+							},
+						},
+					}),
+					Prop:   document.Reference{ID: testPropID},
+					String: "top",
+				},
+			},
+		},
+	}
+
+	result, errE := c.FromDocument(ctx, doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotNil(t, result.ClaimsCount)
+	assert.Equal(t, 2, *result.ClaimsCount)
+}
+
+// TestReferencesCount verifies that CountReferences is recorded for ordinary
+// documents and skipped for documents that are themselves classes.
+func TestReferencesCount(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{
+		internalCore.InstanceOfPropID: makeNamingDoc(internalCore.InstanceOfPropID, "instance of"),
+	})
+	c.CountReferences = func(_ context.Context, _ identifier.Identifier) (int, errors.E) {
+		return 7, nil
+	}
+
+	ctx := t.Context()
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: testPropID},
+					String:    "ordinary",
+				},
+			},
+		},
+	}
+	result, errE := c.FromDocument(ctx, doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotNil(t, result.ReferencesCount)
+	assert.Equal(t, 7, *result.ReferencesCount)
+
+	// A document that is an instance of CLASS is ignored for referencesCount.
+	classDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+					To:        document.Reference{ID: internalCore.ClassClassID},
+				},
+			},
+		},
+	}
+	result, errE = c.FromDocument(ctx, classDoc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Nil(t, result.ReferencesCount)
+
+	// A document that is an instance of VOCABULARY is ignored too.
+	vocabDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+					To:        document.Reference{ID: internalCore.VocabularyClassID},
+				},
+			},
+		},
+	}
+	result, errE = c.FromDocument(ctx, vocabDoc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Nil(t, result.ReferencesCount)
+}
+
+// TestReferencesCountIgnoresTransitiveSubclass verifies that a document which is
+// an instance of a transitive subclass of VOCABULARY is ignored for
+// referencesCount via the class hierarchy.
+func TestReferencesCountIgnoresTransitiveSubclass(t *testing.T) {
+	t.Parallel()
+
+	// Set up the SUBENTITY_OF hierarchy so SUBCLASS_OF is a value hierarchy property.
+	properties := []*document.D{
+		makePropertyDoc(internalCore.SubentityOfPropID, nil),
+		makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID),
+		makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID),
+	}
+
+	// A vocabulary subclass: SUBCLASS_OF VOCABULARY.
+	vocabSubclass := identifier.New()
+	vocabSubclassDoc := makeHierarchyDoc(vocabSubclass, "Discipline", internalCore.SubclassOfPropID, &internalCore.VocabularyClassID)
+
+	c := newTestConverter(t, properties, nil, map[identifier.Identifier]*document.D{vocabSubclass: vocabSubclassDoc})
+	c.CountReferences = func(_ context.Context, _ identifier.Identifier) (int, errors.E) {
+		return 7, nil
+	}
+
+	// A document that is an instance of that vocabulary subclass.
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+					To:        document.Reference{ID: vocabSubclass},
+				},
+			},
+		},
+	}
+	result, errE := c.FromDocument(t.Context(), doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Nil(t, result.ReferencesCount)
 }
 
 // Tests for error propagation through Visit* methods and FromDocument.

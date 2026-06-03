@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"time"
 
 	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
@@ -47,6 +48,38 @@ func (s *Service) getSearchServiceClosure(req *http.Request) func() *esSearch.Se
 	return func() *esSearch.Search {
 		return s.getSearchService(req)
 	}
+}
+
+// scoreFactorTTL is how long a cached scoreCount boost factor is reused before it
+// is recomputed from the corpus.
+const scoreFactorTTL = time.Hour
+
+type scoreFactorEntry struct {
+	factor   float64
+	computed time.Time
+}
+
+// scoreFactor returns the scoreCount ranking boost factor for the site serving the
+// request, computed via search.ScoreFactor and cached per index for scoreFactorTTL.
+func (s *Service) scoreFactor(ctx context.Context, req *http.Request) (float64, errors.E) {
+	site := waf.MustGetSite[*Site](ctx)
+
+	s.scoreFactorMu.Lock()
+	defer s.scoreFactorMu.Unlock()
+
+	entry, ok := s.scoreFactorCache[site.Index]
+	if ok && time.Since(entry.computed) < scoreFactorTTL {
+		return entry.factor, nil
+	}
+
+	factor, errE := search.ScoreFactor(ctx, s.getSearchServiceClosure(req))
+	if errE != nil {
+		return 0, errE
+	}
+
+	s.scoreFactorCache[site.Index] = scoreFactorEntry{factor: factor, computed: time.Now()}
+
+	return factor, nil
 }
 
 // collectParentToFromSession returns the To values of any active top-level
@@ -616,7 +649,13 @@ func (s *Service) SearchResultsGetAPI(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchSession.SessionData, enabledSearchLanguages(ctx))
+	factor, errE := s.scoreFactor(ctx, req)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchSession.SessionData, enabledSearchLanguages(ctx), factor)
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -651,7 +690,13 @@ func (s *Service) SearchJustResultsPostAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchData, enabledSearchLanguages(ctx))
+	factor, errE := s.scoreFactor(ctx, req)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchData, enabledSearchLanguages(ctx), factor)
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -677,7 +722,13 @@ func (s *Service) SearchJustResultsGetAPI(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchSession.SessionData, enabledSearchLanguages(ctx))
+	factor, errE := s.scoreFactor(ctx, req)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchSession.SessionData, enabledSearchLanguages(ctx), factor)
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return

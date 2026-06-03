@@ -121,6 +121,18 @@
       },
       "display": {{.Display}},
       "text": {{.Text}},
+      "time": {
+        "type": "double"
+      },
+      "referencesCount": {
+        "type": "integer"
+      },
+      "claimsCount": {
+        "type": "integer"
+      },
+      "scoreCount": {
+        "type": "integer"
+      },
       "claims": {
         "properties": {
           {{range $i, $claimType := .ClaimTypes}}

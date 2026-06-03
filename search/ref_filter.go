@@ -17,6 +17,7 @@ import (
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
+	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
@@ -90,7 +91,7 @@ func collectPaths(buckets []types.StringTermsBucket) [][]string {
 func bucketsToRefFilterResults(buckets []types.StringTermsBucket, kind string) ([]RefFilterResult, errors.E) {
 	results := make([]RefFilterResult, 0, len(buckets))
 	for _, bucket := range buckets {
-		bucketDocs, errE := aggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
+		bucketDocs, errE := internalSearch.AggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
 		if errE != nil {
 			return nil, errE
 		}
@@ -100,7 +101,7 @@ func bucketsToRefFilterResults(buckets []types.StringTermsBucket, kind string) (
 			errors.Details(errE)["type"] = fmt.Sprintf("%T", bucket.Key)
 			return nil, errE
 		}
-		bucketPaths, errE := aggAs[types.StringTermsAggregate](bucket.Aggregations, "paths")
+		bucketPaths, errE := internalSearch.AggAs[types.StringTermsAggregate](bucket.Aggregations, "paths")
 		if errE != nil {
 			return nil, errE
 		}
@@ -199,15 +200,15 @@ func (f *RefFilter) Get(
 	}
 	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
 
-	refNested, errE := aggAs[types.NestedAggregate](res.Aggregations, "ref")
+	refNested, errE := internalSearch.AggAs[types.NestedAggregate](res.Aggregations, "ref")
 	if errE != nil {
 		return nil, nil, errE
 	}
-	refFilter, errE := aggAs[types.FilterAggregate](refNested.Aggregations, "filter")
+	refFilter, errE := internalSearch.AggAs[types.FilterAggregate](refNested.Aggregations, "filter")
 	if errE != nil {
 		return nil, nil, errE
 	}
-	refTerms, errE := aggAs[types.StringTermsAggregate](refFilter.Aggregations, "props")
+	refTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](refFilter.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -217,13 +218,13 @@ func (f *RefFilter) Get(
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", refTerms.Buckets)
 		return nil, nil, errE
 	}
-	refTotal, errE := aggAs[types.CardinalityAggregate](refFilter.Aggregations, "total")
+	refTotal, errE := internalSearch.AggAs[types.CardinalityAggregate](refFilter.Aggregations, "total")
 	if errE != nil {
 		return nil, nil, errE
 	}
 
 	// Parse the missing count.
-	missingFilter, errE := aggAs[types.FilterAggregate](res.Aggregations, "missing")
+	missingFilter, errE := internalSearch.AggAs[types.FilterAggregate](res.Aggregations, "missing")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -388,15 +389,15 @@ func (f *RefFilter) GetSubRef(
 	}
 	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
 
-	subRefNested, errE := aggAs[types.NestedAggregate](res.Aggregations, "subRef")
+	subRefNested, errE := internalSearch.AggAs[types.NestedAggregate](res.Aggregations, "subRef")
 	if errE != nil {
 		return nil, nil, errE
 	}
-	subRefFilter, errE := aggAs[types.FilterAggregate](subRefNested.Aggregations, "filter")
+	subRefFilter, errE := internalSearch.AggAs[types.FilterAggregate](subRefNested.Aggregations, "filter")
 	if errE != nil {
 		return nil, nil, errE
 	}
-	subRefTerms, errE := aggAs[types.StringTermsAggregate](subRefFilter.Aggregations, "props")
+	subRefTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](subRefFilter.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -406,13 +407,13 @@ func (f *RefFilter) GetSubRef(
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", subRefTerms.Buckets)
 		return nil, nil, errE
 	}
-	subRefTotal, errE := aggAs[types.CardinalityAggregate](subRefFilter.Aggregations, "total")
+	subRefTotal, errE := internalSearch.AggAs[types.CardinalityAggregate](subRefFilter.Aggregations, "total")
 	if errE != nil {
 		return nil, nil, errE
 	}
 
 	// Parse the missing count.
-	missingFilter, errE := aggAs[types.FilterAggregate](res.Aggregations, "missing")
+	missingFilter, errE := internalSearch.AggAs[types.FilterAggregate](res.Aggregations, "missing")
 	if errE != nil {
 		return nil, nil, errE
 	}

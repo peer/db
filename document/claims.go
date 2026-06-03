@@ -488,6 +488,53 @@ func (c *ClaimTypes) Size() int {
 	return s
 }
 
+// SizeWithSub returns the total number of claims across all types, counting
+// recursively into sub-claims.
+func (c *ClaimTypes) SizeWithSub() int {
+	if c == nil {
+		return 0
+	}
+
+	s := c.Size()
+	for i := range c.Identifier {
+		s += c.Identifier[i].Sub.SizeWithSub()
+	}
+	for i := range c.String {
+		s += c.String[i].Sub.SizeWithSub()
+	}
+	for i := range c.HTML {
+		s += c.HTML[i].Sub.SizeWithSub()
+	}
+	for i := range c.Amount {
+		s += c.Amount[i].Sub.SizeWithSub()
+	}
+	for i := range c.AmountInterval {
+		s += c.AmountInterval[i].Sub.SizeWithSub()
+	}
+	for i := range c.Time {
+		s += c.Time[i].Sub.SizeWithSub()
+	}
+	for i := range c.TimeInterval {
+		s += c.TimeInterval[i].Sub.SizeWithSub()
+	}
+	for i := range c.Link {
+		s += c.Link[i].Sub.SizeWithSub()
+	}
+	for i := range c.Reference {
+		s += c.Reference[i].Sub.SizeWithSub()
+	}
+	for i := range c.Has {
+		s += c.Has[i].Sub.SizeWithSub()
+	}
+	for i := range c.None {
+		s += c.None[i].Sub.SizeWithSub()
+	}
+	for i := range c.Unknown {
+		s += c.Unknown[i].Sub.SizeWithSub()
+	}
+	return s
+}
+
 // AllClaims returns an iterator over all claims.
 func (c *ClaimTypes) AllClaims() iter.Seq[Claim] {
 	return func(yield func(Claim) bool) {

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v9"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog"
@@ -799,4 +800,88 @@ func TestBridgeInverseRelationChange(t *testing.T) {
 		}
 		assert.NotEmpty(c, metadataC.InverseRelations, "docC metadata should have inverse relations")
 	}, 10*time.Second, 100*time.Millisecond)
+}
+
+// esReferencesCount reads the referencesCount of an ES document via doc values (the
+// index has _source disabled). The second return value is false when the document
+// carries no referencesCount field.
+func esReferencesCount(ctx context.Context, t *testing.T, esClient *elasticsearch.TypedClient, index, id string) (int, bool) {
+	t.Helper()
+	res, err := esClient.Search().Index(index).
+		Source_(esdsl.NewSourceConfig().Bool(false)).
+		Query(esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(id))).
+		DocvalueFields(esdsl.NewFieldAndFormat().Field("referencesCount")).
+		Size(1).Do(ctx)
+	require.NoError(t, err)
+	require.Len(t, res.Hits.Hits, 1, "document should exist in ES")
+	raw, ok := res.Hits.Hits[0].Fields["referencesCount"]
+	if !ok {
+		return 0, false
+	}
+	var values []int
+	require.NoError(t, json.Unmarshal(raw, &values))
+	require.NotEmpty(t, values)
+	return values[0], true
+}
+
+func TestBridgeReferencesCountIncremental(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, b, esClient := initBridge(t)
+
+	converter := newTestBridgeConverter(t)
+	// Compute referencesCount at index time, as the production converter does.
+	converter.CountReferences = b.CountReferences
+	errE := b.Start(ctx, converter)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	waitAndRefresh := func() {
+		t.Helper()
+		errE := b.WaitUntilCaughtUp(ctx, nil, nil)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
+		require.NoError(t, err)
+	}
+
+	target := identifier.New()
+	prop := identifier.New()
+	ref1 := identifier.New()
+	ref2 := identifier.New()
+
+	// The target starts with no referrers.
+	_, errE = s.Insert(ctx, target, makeDocJSON(t, target), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	waitAndRefresh()
+	count, ok := esReferencesCount(ctx, t, esClient, b.Index, target.String())
+	require.True(t, ok, "target should carry a referencesCount")
+	assert.Equal(t, 0, count, "no referrers yet")
+
+	// Adding a referrer via a plain (non-inverse) property re-indexes the target and
+	// bumps its referencesCount, even though the target itself did not change.
+	v1, errE := s.Insert(ctx, ref1, makeDocWithRelationJSON(t, ref1, prop, target), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	waitAndRefresh()
+	count, ok = esReferencesCount(ctx, t, esClient, b.Index, target.String())
+	require.True(t, ok)
+	assert.Equal(t, 1, count, "one referrer")
+
+	// A second referrer bumps it to 2.
+	_, errE = s.Insert(ctx, ref2, makeDocWithRelationJSON(t, ref2, prop, target), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	waitAndRefresh()
+	count, ok = esReferencesCount(ctx, t, esClient, b.Index, target.String())
+	require.True(t, ok)
+	assert.Equal(t, 2, count, "two referrers")
+
+	// Deleting the first referrer drops it back to 1.
+	_, errE = s.Delete(ctx, ref1, v1.Changeset, dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	waitAndRefresh()
+	count, ok = esReferencesCount(ctx, t, esClient, b.Index, target.String())
+	require.True(t, ok)
+	assert.Equal(t, 1, count, "one referrer after deletion")
 }

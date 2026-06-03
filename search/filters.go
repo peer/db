@@ -15,6 +15,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/waf"
 
+	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
@@ -31,7 +32,7 @@ type FilterResult struct {
 func parseStringTermsBuckets(buckets []types.StringTermsBucket, filterType string) ([]FilterResult, errors.E) {
 	results := make([]FilterResult, 0, len(buckets))
 	for _, bucket := range buckets {
-		bucketDocs, errE := aggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
+		bucketDocs, errE := internalSearch.AggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
 		if errE != nil {
 			return nil, errE
 		}
@@ -60,7 +61,7 @@ func parseStringTermsBuckets(buckets []types.StringTermsBucket, filterType strin
 func parseSubClaimBuckets(buckets []types.MultiTermsBucket, filterType, aggName string, hasUnit bool) ([]FilterResult, errors.E) {
 	results := make([]FilterResult, 0, len(buckets))
 	for _, bucket := range buckets {
-		bucketDocs, errE := aggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
+		bucketDocs, errE := internalSearch.AggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
 		if errE != nil {
 			return nil, errE
 		}
@@ -116,7 +117,7 @@ func parseSubClaimBuckets(buckets []types.MultiTermsBucket, filterType, aggName 
 func parseMultiTermsBuckets(buckets []types.MultiTermsBucket) ([]FilterResult, errors.E) {
 	results := make([]FilterResult, 0, len(buckets))
 	for _, bucket := range buckets {
-		bucketDocs, errE := aggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
+		bucketDocs, errE := internalSearch.AggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
 		if errE != nil {
 			return nil, errE
 		}
@@ -372,11 +373,11 @@ func FiltersGet( //nolint:maintidx
 	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
 
 	// Parse ref aggregation.
-	refNested, errE := aggAs[types.NestedAggregate](res.Aggregations, "ref")
+	refNested, errE := internalSearch.AggAs[types.NestedAggregate](res.Aggregations, "ref")
 	if errE != nil {
 		return nil, nil, errE
 	}
-	refTerms, errE := aggAs[types.StringTermsAggregate](refNested.Aggregations, "props")
+	refTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](refNested.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -386,17 +387,17 @@ func FiltersGet( //nolint:maintidx
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", refTerms.Buckets)
 		return nil, nil, errE
 	}
-	refTotal, errE := aggAs[types.CardinalityAggregate](refNested.Aggregations, "total")
+	refTotal, errE := internalSearch.AggAs[types.CardinalityAggregate](refNested.Aggregations, "total")
 	if errE != nil {
 		return nil, nil, errE
 	}
 
 	// Parse amount aggregation.
-	amountNested, errE := aggAs[types.NestedAggregate](res.Aggregations, "amount")
+	amountNested, errE := internalSearch.AggAs[types.NestedAggregate](res.Aggregations, "amount")
 	if errE != nil {
 		return nil, nil, errE
 	}
-	amountTerms, errE := aggAs[types.MultiTermsAggregate](amountNested.Aggregations, "props")
+	amountTerms, errE := internalSearch.AggAs[types.MultiTermsAggregate](amountNested.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -406,17 +407,17 @@ func FiltersGet( //nolint:maintidx
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", amountTerms.Buckets)
 		return nil, nil, errE
 	}
-	amountTotal, errE := aggAs[types.CardinalityAggregate](amountNested.Aggregations, "total")
+	amountTotal, errE := internalSearch.AggAs[types.CardinalityAggregate](amountNested.Aggregations, "total")
 	if errE != nil {
 		return nil, nil, errE
 	}
 
 	// Parse time aggregation.
-	timeNested, errE := aggAs[types.NestedAggregate](res.Aggregations, "time")
+	timeNested, errE := internalSearch.AggAs[types.NestedAggregate](res.Aggregations, "time")
 	if errE != nil {
 		return nil, nil, errE
 	}
-	timeTerms, errE := aggAs[types.StringTermsAggregate](timeNested.Aggregations, "props")
+	timeTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](timeNested.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -426,24 +427,24 @@ func FiltersGet( //nolint:maintidx
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", timeTerms.Buckets)
 		return nil, nil, errE
 	}
-	timeTotal, errE := aggAs[types.CardinalityAggregate](timeNested.Aggregations, "total")
+	timeTotal, errE := internalSearch.AggAs[types.CardinalityAggregate](timeNested.Aggregations, "total")
 	if errE != nil {
 		return nil, nil, errE
 	}
 
 	// Parse has aggregation.
-	hasFilterAgg, errE := aggAs[types.FilterAggregate](res.Aggregations, "has")
+	hasFilterAgg, errE := internalSearch.AggAs[types.FilterAggregate](res.Aggregations, "has")
 	if errE != nil {
 		return nil, nil, errE
 	}
 	hasDocCount := hasFilterAgg.DocCount
 
 	// Parse subRef aggregation.
-	subRefNested, errE := aggAs[types.NestedAggregate](res.Aggregations, "subRef")
+	subRefNested, errE := internalSearch.AggAs[types.NestedAggregate](res.Aggregations, "subRef")
 	if errE != nil {
 		return nil, nil, errE
 	}
-	subRefTerms, errE := aggAs[types.MultiTermsAggregate](subRefNested.Aggregations, "props")
+	subRefTerms, errE := internalSearch.AggAs[types.MultiTermsAggregate](subRefNested.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -453,17 +454,17 @@ func FiltersGet( //nolint:maintidx
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", subRefTerms.Buckets)
 		return nil, nil, errE
 	}
-	subRefTotal, errE := aggAs[types.CardinalityAggregate](subRefNested.Aggregations, "total")
+	subRefTotal, errE := internalSearch.AggAs[types.CardinalityAggregate](subRefNested.Aggregations, "total")
 	if errE != nil {
 		return nil, nil, errE
 	}
 
 	// Parse subAmount aggregation.
-	subAmountNested, errE := aggAs[types.NestedAggregate](res.Aggregations, "subAmount")
+	subAmountNested, errE := internalSearch.AggAs[types.NestedAggregate](res.Aggregations, "subAmount")
 	if errE != nil {
 		return nil, nil, errE
 	}
-	subAmountTerms, errE := aggAs[types.MultiTermsAggregate](subAmountNested.Aggregations, "props")
+	subAmountTerms, errE := internalSearch.AggAs[types.MultiTermsAggregate](subAmountNested.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -473,17 +474,17 @@ func FiltersGet( //nolint:maintidx
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", subAmountTerms.Buckets)
 		return nil, nil, errE
 	}
-	subAmountTotal, errE := aggAs[types.CardinalityAggregate](subAmountNested.Aggregations, "total")
+	subAmountTotal, errE := internalSearch.AggAs[types.CardinalityAggregate](subAmountNested.Aggregations, "total")
 	if errE != nil {
 		return nil, nil, errE
 	}
 
 	// Parse subTime aggregation.
-	subTimeNested, errE := aggAs[types.NestedAggregate](res.Aggregations, "subTime")
+	subTimeNested, errE := internalSearch.AggAs[types.NestedAggregate](res.Aggregations, "subTime")
 	if errE != nil {
 		return nil, nil, errE
 	}
-	subTimeTerms, errE := aggAs[types.MultiTermsAggregate](subTimeNested.Aggregations, "props")
+	subTimeTerms, errE := internalSearch.AggAs[types.MultiTermsAggregate](subTimeNested.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -493,17 +494,17 @@ func FiltersGet( //nolint:maintidx
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", subTimeTerms.Buckets)
 		return nil, nil, errE
 	}
-	subTimeTotal, errE := aggAs[types.CardinalityAggregate](subTimeNested.Aggregations, "total")
+	subTimeTotal, errE := internalSearch.AggAs[types.CardinalityAggregate](subTimeNested.Aggregations, "total")
 	if errE != nil {
 		return nil, nil, errE
 	}
 
 	// Parse subHas aggregation.
-	subHasNested, errE := aggAs[types.NestedAggregate](res.Aggregations, "subHas")
+	subHasNested, errE := internalSearch.AggAs[types.NestedAggregate](res.Aggregations, "subHas")
 	if errE != nil {
 		return nil, nil, errE
 	}
-	subHasTerms, errE := aggAs[types.StringTermsAggregate](subHasNested.Aggregations, "props")
+	subHasTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](subHasNested.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -513,7 +514,7 @@ func FiltersGet( //nolint:maintidx
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", subHasTerms.Buckets)
 		return nil, nil, errE
 	}
-	subHasTotal, errE := aggAs[types.CardinalityAggregate](subHasNested.Aggregations, "total")
+	subHasTotal, errE := internalSearch.AggAs[types.CardinalityAggregate](subHasNested.Aggregations, "total")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -608,7 +609,7 @@ func FiltersGet( //nolint:maintidx
 		}
 
 		aggName := fmt.Sprintf("active_%d", i)
-		activeFilter, errE := aggAs[types.FilterAggregate](res.Aggregations, aggName)
+		activeFilter, errE := internalSearch.AggAs[types.FilterAggregate](res.Aggregations, aggName)
 		if errE != nil {
 			return nil, nil, errE
 		}
@@ -617,21 +618,21 @@ func FiltersGet( //nolint:maintidx
 		// Top-level ref/amount/time use the nested.filter.docs structure.
 		useCount := f.Has != nil || len(f.Prop) == 2 //nolint:mnd
 		if useCount {
-			countFilter, errE := aggAs[types.FilterAggregate](activeFilter.Aggregations, "count")
+			countFilter, errE := internalSearch.AggAs[types.FilterAggregate](activeFilter.Aggregations, "count")
 			if errE != nil {
 				return nil, nil, errE
 			}
 			result.Count = countFilter.DocCount
 		} else {
-			activeNested, errE := aggAs[types.NestedAggregate](activeFilter.Aggregations, "nested")
+			activeNested, errE := internalSearch.AggAs[types.NestedAggregate](activeFilter.Aggregations, "nested")
 			if errE != nil {
 				return nil, nil, errE
 			}
-			propFilter, errE := aggAs[types.FilterAggregate](activeNested.Aggregations, "filter")
+			propFilter, errE := internalSearch.AggAs[types.FilterAggregate](activeNested.Aggregations, "filter")
 			if errE != nil {
 				return nil, nil, errE
 			}
-			activeDocs, errE := aggAs[types.ReverseNestedAggregate](propFilter.Aggregations, "docs")
+			activeDocs, errE := internalSearch.AggAs[types.ReverseNestedAggregate](propFilter.Aggregations, "docs")
 			if errE != nil {
 				return nil, nil, errE
 			}

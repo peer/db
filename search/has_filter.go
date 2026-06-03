@@ -14,6 +14,7 @@ import (
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
+	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
@@ -70,15 +71,15 @@ func (f *HasFilter) GetSubHas(
 	}
 	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
 
-	subHasNested, errE := aggAs[types.NestedAggregate](res.Aggregations, "subHas")
+	subHasNested, errE := internalSearch.AggAs[types.NestedAggregate](res.Aggregations, "subHas")
 	if errE != nil {
 		return nil, nil, errE
 	}
-	subHasFilter, errE := aggAs[types.FilterAggregate](subHasNested.Aggregations, "filter")
+	subHasFilter, errE := internalSearch.AggAs[types.FilterAggregate](subHasNested.Aggregations, "filter")
 	if errE != nil {
 		return nil, nil, errE
 	}
-	subHasTerms, errE := aggAs[types.StringTermsAggregate](subHasFilter.Aggregations, "props")
+	subHasTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](subHasFilter.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -88,14 +89,14 @@ func (f *HasFilter) GetSubHas(
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", subHasTerms.Buckets)
 		return nil, nil, errE
 	}
-	subHasTotal, errE := aggAs[types.CardinalityAggregate](subHasFilter.Aggregations, "total")
+	subHasTotal, errE := internalSearch.AggAs[types.CardinalityAggregate](subHasFilter.Aggregations, "total")
 	if errE != nil {
 		return nil, nil, errE
 	}
 
 	results := make([]HasFilterResult, 0, len(subHasBuckets))
 	for _, bucket := range subHasBuckets {
-		bucketDocs, errE := aggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
+		bucketDocs, errE := internalSearch.AggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
 		if errE != nil {
 			return nil, nil, errE
 		}
@@ -149,11 +150,11 @@ func (f *HasFilter) Get(
 	}
 	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
 
-	hasNested, errE := aggAs[types.NestedAggregate](res.Aggregations, "has")
+	hasNested, errE := internalSearch.AggAs[types.NestedAggregate](res.Aggregations, "has")
 	if errE != nil {
 		return nil, nil, errE
 	}
-	hasTerms, errE := aggAs[types.StringTermsAggregate](hasNested.Aggregations, "props")
+	hasTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](hasNested.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -163,14 +164,14 @@ func (f *HasFilter) Get(
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", hasTerms.Buckets)
 		return nil, nil, errE
 	}
-	hasTotal, errE := aggAs[types.CardinalityAggregate](hasNested.Aggregations, "total")
+	hasTotal, errE := internalSearch.AggAs[types.CardinalityAggregate](hasNested.Aggregations, "total")
 	if errE != nil {
 		return nil, nil, errE
 	}
 
 	results := make([]HasFilterResult, 0, len(hasBuckets))
 	for _, bucket := range hasBuckets {
-		bucketDocs, errE := aggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
+		bucketDocs, errE := internalSearch.AggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
 		if errE != nil {
 			return nil, nil, errE
 		}

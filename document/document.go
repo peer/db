@@ -129,14 +129,32 @@ func (d *D) Add(claim Claim) errors.E {
 }
 
 // Size returns the total number of claims in the document.
+//
+// It does not count sub-claims; use SizeWithSub for that.
 func (d *D) Size() int {
 	return d.Claims.Size()
 }
 
+// SizeWithSub returns the total number of claims in the document, counting
+// recursively into sub-claims.
+func (d *D) SizeWithSub() int {
+	return d.Claims.SizeWithSub()
+}
+
 // AllClaims returns an iterator over all claims in the document.
+//
+// It does not recurse into sub-claims; use AllClaimsWithSub for that.
 func (d *D) AllClaims() iter.Seq[Claim] {
 	return func(yield func(Claim) bool) {
 		_ = d.Visit(&AllClaimsVisitor{Yield: yield})
+	}
+}
+
+// AllClaimsWithSub returns an iterator over all claims in the document, recursing
+// into the sub-claims nested within other claims.
+func (d *D) AllClaimsWithSub() iter.Seq[Claim] {
+	return func(yield func(Claim) bool) {
+		_ = d.Visit(&AllClaimsWithSubVisitor{Yield: yield}) //nolint:exhaustruct
 	}
 }
 

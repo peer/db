@@ -65,6 +65,11 @@ export class D extends CoreDocument implements ClaimsContainer {
     return this.claims.Size()
   }
 
+  // SizeWithSub returns the total number of claims in the document, counting recursively into sub-claims.
+  SizeWithSub(): number {
+    return this.claims.SizeWithSub()
+  }
+
   AllClaims(): Claim[] {
     return this.claims.AllClaims()
   }

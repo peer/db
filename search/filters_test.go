@@ -30,9 +30,13 @@ func TestFiltersGetIntegration(t *testing.T) {
 	t2000 := float64(2000)
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:dupl
-		ID:      identifier.From("filterDoc1"),
-		Display: nil,
-		Text:    nil,
+		ID:              identifier.From("filterDoc1"),
+		Display:         nil,
+		Text:            nil,
+		Time:            nil,
+		ReferencesCount: nil,
+		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
@@ -85,9 +89,13 @@ func TestFiltersGetIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:dupl
-		ID:      identifier.From("filterDoc2"),
-		Display: nil,
-		Text:    nil,
+		ID:              identifier.From("filterDoc2"),
+		Display:         nil,
+		Text:            nil,
+		Time:            nil,
+		ReferencesCount: nil,
+		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
@@ -192,9 +200,13 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 	refTarget := identifier.From("refTarget")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("queryDoc1"),
-		Display: nil,
-		Text:    map[string][]string{"en": {"searchable text"}},
+		ID:              identifier.From("queryDoc1"),
+		Display:         nil,
+		Text:            map[string][]string{"en": {"searchable text"}},
+		Time:            nil,
+		ReferencesCount: nil,
+		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil,
@@ -218,9 +230,13 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("queryDoc2"),
-		Display: nil,
-		Text:    map[string][]string{"en": {"other content"}},
+		ID:              identifier.From("queryDoc2"),
+		Display:         nil,
+		Text:            map[string][]string{"en": {"other content"}},
+		Time:            nil,
+		ReferencesCount: nil,
+		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil,
@@ -273,9 +289,13 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 	ten := 10.0
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("noUnitDoc"),
-		Display: nil,
-		Text:    nil,
+		ID:              identifier.From("noUnitDoc"),
+		Display:         nil,
+		Text:            nil,
+		Time:            nil,
+		ReferencesCount: nil,
+		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,

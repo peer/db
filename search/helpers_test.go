@@ -72,6 +72,95 @@ func refreshIndex(t *testing.T, ctx context.Context, esClient *elasticsearch.Typ
 	require.NoError(t, err)
 }
 
+// indexAmountDoc indexes a document carrying a single point-amount claim equal to
+// value under amountProp with unitID. It seeds amount-filter tests.
+func indexAmountDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.TypedClient, index, id string, amountProp, unitID identifier.Identifier, value *float64) { //nolint:revive,lll
+	t.Helper()
+
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		ID:              identifier.From(id),
+		Display:         nil,
+		Text:            nil,
+		Time:            nil,
+		ReferencesCount: nil,
+		ClaimsCount:     nil,
+		ScoreCount:      nil,
+		Claims: internalSearch.ClaimTypes{
+			Amount: internalSearch.AmountClaims{{
+				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
+				Range: internalSearch.RangeFloat{
+					GreaterThan: nil, GreaterThanOrEqual: value, LessThan: nil, LessThanOrEqual: value,
+				},
+				From: value, FromDisplay: "", To: value, ToDisplay: "",
+			}},
+			Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+		},
+	})
+}
+
+// indexScoreDoc indexes a document carrying the given English text and scoreCount.
+// It seeds scoreCount ranking-boost tests.
+func indexScoreDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.TypedClient, index string, id identifier.Identifier, text string, scoreCount *int) { //nolint:revive,lll
+	t.Helper()
+
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		ID:              id,
+		Display:         nil,
+		Text:            map[string][]string{"en": {text}},
+		Time:            nil,
+		ReferencesCount: nil,
+		ClaimsCount:     nil,
+		ScoreCount:      scoreCount,
+		Claims: internalSearch.ClaimTypes{
+			Amount: nil, Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
+			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+		},
+	})
+}
+
+// seedTimeFilterDocs indexes three documents each carrying a single point-time
+// claim under timeProp (at 1000, 5000 and 9000) and refreshes the index. It seeds
+// the time-filter integration tests.
+func seedTimeFilterDocs(t *testing.T, ctx context.Context, esClient *elasticsearch.TypedClient, index string, timeProp identifier.Identifier) { //nolint:revive
+	t.Helper()
+
+	t1000 := float64(1000)
+	t5000 := float64(5000)
+	t9000 := float64(9000)
+
+	for _, tc := range []struct {
+		id    string
+		value *float64
+	}{
+		{"timeDoc1", &t1000},
+		{"timeDoc2", &t5000},
+		{"timeDoc3", &t9000},
+	} {
+		indexDocument(t, ctx, esClient, index, internalSearch.Document{
+			ID:              identifier.From(tc.id),
+			Display:         nil,
+			Text:            nil,
+			Time:            nil,
+			ReferencesCount: nil,
+			ClaimsCount:     nil,
+			ScoreCount:      nil,
+			Claims: internalSearch.ClaimTypes{
+				Amount: nil,
+				Time: internalSearch.TimeClaims{{
+					Prop: timeProp, PropDisplay: nil, PropNaming: nil,
+					Range: internalSearch.RangeFloat{
+						GreaterThan: nil, GreaterThanOrEqual: tc.value, LessThan: nil, LessThanOrEqual: tc.value,
+					},
+					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
+				}},
+				Reference: nil, Has: nil, None: nil, Unknown: nil,
+				SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			},
+		})
+	}
+	refreshIndex(t, ctx, esClient, index)
+}
+
 // createSession is a test helper that creates a search session from SessionData.
 // It generates Base/ID for the session and any filters that lack them.
 func createSession(t *testing.T, ctx context.Context, data search.SessionData) *search.Session { //nolint:revive

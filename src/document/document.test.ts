@@ -190,6 +190,30 @@ test("Document Size and AllClaims", () => {
   assert.equal(doc.AllClaims().length, 2)
 })
 
+test("Document SizeWithSub", () => {
+  const prop = Identifier.new().toString()
+
+  const doc = new D({ id: Identifier.new().toString(), base: ["base"] })
+
+  // One top-level claim carrying two sub-claims, the first with a further sub-claim.
+  const deepSub = new StringClaim({ id: Identifier.new().toString(), confidence: 1.0, prop: { id: prop }, string: "deep" })
+  const sub1 = new StringClaim({ id: Identifier.new().toString(), confidence: 1.0, prop: { id: prop }, string: "sub1" })
+  sub1.Add(deepSub)
+  const sub2 = new NoneClaim({ id: Identifier.new().toString(), confidence: 1.0, prop: { id: prop } })
+  const top = new StringClaim({ id: Identifier.new().toString(), confidence: 1.0, prop: { id: prop }, string: "top" })
+  top.Add(sub1)
+  top.Add(sub2)
+  doc.Add(top)
+
+  // Shallow: only the single top-level claim.
+  assert.equal(doc.Size(), 1)
+  assert.equal(doc.AllClaims().length, 1)
+
+  // Recursive: top + sub1 + deepSub + sub2.
+  assert.equal(doc.SizeWithSub(), 4)
+  assert.equal(doc.claims.AllClaimsWithSub().length, 4)
+})
+
 test("Document Validate", async () => {
   const base = ["test", "doc"]
   const id = (await Identifier.from(...base)).toString()

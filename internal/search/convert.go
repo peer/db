@@ -138,6 +138,9 @@ type documentInfo struct {
 	// DisplayPaths maps a hierarchy property ID to per-language display hierarchy paths
 	// from root to this document. Each path is a string of display labels joined by null bytes.
 	DisplayPaths map[identifier.Identifier]map[string][]string
+	// IgnoredForReferencesCount is true when the document is ignored for referencesCount.
+	// Such documents accumulate references that do not reflect importance.
+	IgnoredForReferencesCount bool
 }
 
 // CollectHierarchyPaths collects all hierarchy paths, combining paths from all
@@ -191,6 +194,11 @@ type Converter struct {
 	// uncertain content stays in "und". Disabled by default (so tests are deterministic
 	// and do not load language models); enabled on the production indexing converter.
 	DetectLanguages bool
+
+	// CountReferences returns how many documents reference the given document. When set,
+	// FromDocument records it as the document's referencesCount. Nil disables the count
+	// (the field is then omitted).
+	CountReferences func(ctx context.Context, id identifier.Identifier) (int, errors.E)
 
 	// languageDetector detects the language of untagged content. It is built over all supported
 	// languages (not only the enabled ones) so that confidence is meaningful, and is nil only
@@ -278,6 +286,7 @@ func NewConverter(
 		LanguageCodes:            nil,
 		IndexAncestorProperties:  false,
 		DetectLanguages:          false,
+		CountReferences:          nil,
 		languageDetector:         nil,
 		linguaToCode:             nil,
 		propertyDescendants:      nil,
@@ -729,11 +738,34 @@ func (c *Converter) computeDocumentInfo(
 		}
 	}
 
+	// Determine whether this document is ignored for referencesCount: it is an instance of
+	// CLASS or VOCABULARY, transitively through the class hierarchy (SUBCLASS_OF).
+	isIgnoredClass := func(id identifier.Identifier) bool {
+		return id == internalCore.ClassClassID || id == internalCore.VocabularyClassID
+	}
+	ignoredForReferencesCount := false
+	for _, rel := range document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, internalCore.InstanceOfPropID, document.LowConfidence) {
+		classID := rel.To.ID
+		if isIgnoredClass(classID) {
+			ignoredForReferencesCount = true
+			break
+		}
+		classInfo, errE := c.computeDocumentInfo(ctx, classID, nil, computing)
+		if errE != nil {
+			return documentInfo{}, errE
+		}
+		if slices.ContainsFunc(classInfo.Ancestors[internalCore.SubclassOfPropID], isIgnoredClass) {
+			ignoredForReferencesCount = true
+			break
+		}
+	}
+
 	info := documentInfo{
-		Display:      display,
-		Ancestors:    ancestors,
-		IDPaths:      idPaths,
-		DisplayPaths: displayPaths,
+		Display:                   display,
+		Ancestors:                 ancestors,
+		IDPaths:                   idPaths,
+		DisplayPaths:              displayPaths,
+		IgnoredForReferencesCount: ignoredForReferencesCount,
 	}
 
 	c.documentInfoMu.Lock()
@@ -1204,12 +1236,95 @@ func (v *convertVisitor) addText(lang, value string) {
 	v.result.Text[lang] = append(v.result.Text[lang], value)
 }
 
+// deduplicateResult removes duplicate values from the result's display and text
+// buckets after all folding is done. Folding appends the same label from several
+// sources (a referenced document's ToDisplay, ToNaming, and ToDisplayPath often
+// render to the same string, and sibling claims repeat shared ancestors), so the
+// raw buckets accumulate repeats. Each display and text bucket is deduplicated in
+// place, preserving first-seen order.
+//
+// In addition, any "und" text value that also appears in a language-specific text
+// bucket is dropped from "und": the search query unions each language field with
+// "und", so such a value is already reachable through its language field, and the
+// "und" copy would only bloat the index and inflate term frequencies.
+func (v *convertVisitor) deduplicateResult() {
+	for lang, vals := range v.result.Display {
+		v.result.Display[lang] = deduplicateStrings(vals)
+	}
+	for lang, vals := range v.result.Text {
+		v.result.Text[lang] = deduplicateStrings(vals)
+	}
+	inLanguage := map[string]bool{}
+	for lang, vals := range v.result.Text {
+		if lang == document.UndeterminedLanguage {
+			continue
+		}
+		for _, val := range vals {
+			inLanguage[val] = true
+		}
+	}
+	und := v.result.Text[document.UndeterminedLanguage]
+	filtered := und[:0]
+	for _, val := range und {
+		if inLanguage[val] {
+			continue
+		}
+		filtered = append(filtered, val)
+	}
+	if len(filtered) == 0 {
+		delete(v.result.Text, document.UndeterminedLanguage)
+		return
+	}
+	v.result.Text[document.UndeterminedLanguage] = filtered
+}
+
+// earliestClaimTime returns the lowest time value across all of the document's
+// time claims (top-level and sub-claims), or nil when the document has none. Both
+// bounds of each claim are considered, so a point timestamp contributes its single
+// value, a closed interval its earlier bound, and an open-start interval its only
+// known bound. Values are seconds since the Unix epoch.
+func earliestClaimTime(claims *ClaimTypes) *float64 {
+	var earliest *float64
+	consider := func(v *float64) {
+		if v == nil {
+			return
+		}
+		if earliest == nil || *v < *earliest {
+			earliest = v
+		}
+	}
+	for i := range claims.Time {
+		consider(claims.Time[i].From)
+		consider(claims.Time[i].To)
+	}
+	for i := range claims.SubTime {
+		consider(claims.SubTime[i].From)
+		consider(claims.SubTime[i].To)
+	}
+	return earliest
+}
+
+// deduplicateStrings returns vals with duplicates removed, preserving first-seen order.
+// It filters in place, reusing the backing array.
+func deduplicateStrings(vals []string) []string {
+	seen := make(map[string]bool, len(vals))
+	out := vals[:0]
+	for _, val := range vals {
+		if seen[val] {
+			continue
+		}
+		seen[val] = true
+		out = append(out, val)
+	}
+	return out
+}
+
 // addDisplay populates the top-level display field: for each enabled language it
 // adds the rendered display label and the labels of the document's ancestor
-// hierarchy paths (split on hierarchyPathSeparator), deduplicated. The display
-// field uses the und_text analyzer for every language, so the per-language
-// ancestor labels (which may be fallback-resolved and mixed-language) are kept
-// under their own language rather than collapsed into "und".
+// hierarchy paths (split on hierarchyPathSeparator). The display field uses the
+// und_text analyzer for every language, so the per-language ancestor labels
+// (which may be fallback-resolved and mixed-language) are kept under their own
+// language rather than collapsed into "und".
 func (v *convertVisitor) addDisplay(labels map[string]string, paths map[string][]string) {
 	add := func(lang, val string) {
 		val = strings.TrimSpace(val)
@@ -1218,9 +1333,6 @@ func (v *convertVisitor) addDisplay(labels map[string]string, paths map[string][
 		}
 		if v.result.Display == nil {
 			v.result.Display = map[string][]string{}
-		}
-		if slices.Contains(v.result.Display[lang], val) {
-			return
 		}
 		v.result.Display[lang] = append(v.result.Display[lang], val)
 	}
@@ -1241,16 +1353,10 @@ func (v *convertVisitor) addDisplay(labels map[string]string, paths map[string][
 // joined by hierarchyPathSeparator; the labels are split out and added
 // individually so each ancestor name is searchable. Like other display labels,
 // they go to "und" because they are fallback-resolved and may mix languages.
-// Duplicates within the map are dropped.
 func (v *convertVisitor) addDisplayPathLabels(paths map[string][]string) {
-	seen := map[string]bool{}
 	for _, langPaths := range paths {
 		for _, path := range langPaths {
 			for label := range strings.SplitSeq(path, hierarchyPathSeparator) {
-				if seen[label] {
-					continue
-				}
-				seen[label] = true
 				v.addText(document.UndeterminedLanguage, label)
 			}
 		}
@@ -1281,16 +1387,9 @@ func (v *convertVisitor) addDisplayPathLabels(paths map[string][]string) {
 // extracted per their own language, so they fold into that language's bucket
 // where the matching analyzer applies.
 func (v *convertVisitor) appendClaimDisplaysToText() {
-	// Display values across the per-language map collapse into "und"; we drop
-	// duplicates that arise when fallback resolves multiple languages to the
-	// same rendered string.
+	// Display values across the per-language map all collapse into "und".
 	addDisplay := func(m map[string]string) {
-		seen := map[string]bool{}
 		for _, val := range m {
-			if seen[val] {
-				continue
-			}
-			seen[val] = true
 			v.addText(document.UndeterminedLanguage, val)
 		}
 	}
@@ -1345,7 +1444,7 @@ func (v *convertVisitor) VisitIdentifier(claim *document.IdentifierClaim) (docum
 		return document.Keep, nil
 	}
 	v.addText(document.UndeterminedLanguage, claim.Value)
-	return document.Keep, nil
+	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToIdentifier)
 }
 
 // VisitString folds the string value into the document's top-level text field
@@ -1357,7 +1456,7 @@ func (v *convertVisitor) VisitString(claim *document.StringClaim) (document.Visi
 	for _, lang := range v.converter.textLanguages(claim.Sub, claim.String) {
 		v.addText(lang, claim.String)
 	}
-	return document.Keep, nil
+	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToString)
 }
 
 // VisitHTML strips HTML tags from the claim's value and folds the plain-text
@@ -1373,7 +1472,7 @@ func (v *convertVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitRes
 	for _, lang := range v.converter.textLanguages(claim.Sub, stripHTML(claim.HTML, document.UndeterminedLanguage)) {
 		v.addText(lang, stripHTML(claim.HTML, lang))
 	}
-	return document.Keep, nil
+	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToHTML)
 }
 
 // VisitAmount converts an amount claim to search amount claims.
@@ -1386,7 +1485,7 @@ func (v *convertVisitor) VisitAmount(claim *document.AmountClaim) (document.Visi
 		return document.Keep, errE
 	}
 	v.result.Claims.Amount = append(v.result.Claims.Amount, claims...)
-	return document.Keep, nil
+	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToAmount)
 }
 
 // VisitAmountInterval converts an amount interval claim to search amount claims.
@@ -1414,7 +1513,7 @@ func (v *convertVisitor) VisitTime(claim *document.TimeClaim) (document.VisitRes
 		return document.Keep, errE
 	}
 	v.result.Claims.Time = append(v.result.Claims.Time, claims...)
-	return document.Keep, nil
+	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToTime)
 }
 
 // VisitTimeInterval converts a time interval claim to search time claims.
@@ -1439,7 +1538,7 @@ func (v *convertVisitor) VisitLink(claim *document.LinkClaim) (document.VisitRes
 		return document.Keep, nil
 	}
 	v.addText(document.UndeterminedLanguage, claim.IRI)
-	return document.Keep, nil
+	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToLink)
 }
 
 // VisitReference converts a reference claim to search reference claims.
@@ -1508,6 +1607,20 @@ func (v *convertVisitor) appendSubClaims(subs subClaims) {
 	v.result.Claims.SubHas = append(v.result.Claims.SubHas, subs.Has...)
 }
 
+// appendNotReferenceSubClaims extracts the sub-claims of a not-a-reference claim
+// and appends them under the given parentTo sentinel.
+func (v *convertVisitor) appendNotReferenceSubClaims(propID identifier.Identifier, sub *document.ClaimTypes, parentTo string) errors.E {
+	if sub == nil {
+		return nil
+	}
+	subs, errE := v.converter.extractSubClaims(v.ctx, sub, v.converter.propagateProp(propID), parentTo)
+	if errE != nil {
+		return errE
+	}
+	v.appendSubClaims(subs)
+	return nil
+}
+
 // FromDocument converts a document.D to a search Document.
 //
 // inverseRelations contains reference claims from other documents that point to this document.
@@ -1533,10 +1646,14 @@ func (c *Converter) FromDocument(
 		ctx:       ctx,
 		converter: c,
 		result: &Document{
-			ID:      doc.ID,
-			Display: nil,
-			Text:    nil,
-			Claims:  ClaimTypes{},
+			ID:              doc.ID,
+			Display:         nil,
+			Text:            nil,
+			Time:            nil,
+			ReferencesCount: nil,
+			ClaimsCount:     nil,
+			ScoreCount:      nil,
+			Claims:          ClaimTypes{},
 		},
 		docID: doc.ID,
 	}
@@ -1586,6 +1703,36 @@ func (c *Converter) FromDocument(
 	// document names, and amount/time boundary strings without depending only
 	// on the per-claim-type nested queries.
 	v.appendClaimDisplaysToText()
+
+	v.deduplicateResult()
+
+	// Index the document's earliest time so it can be sorted/filtered by time
+	// at the top level without descending into nested time claims.
+	v.result.Time = earliestClaimTime(&v.result.Claims)
+
+	// Index the document's recursive claim count and, unless the document is
+	// ignored for referencesCount, the number of documents referencing it.
+	claimsCount := doc.SizeWithSub()
+	v.result.ClaimsCount = &claimsCount
+	if c.CountReferences != nil && !info.IgnoredForReferencesCount {
+		count, errE := c.CountReferences(ctx, doc.ID)
+		if errE != nil {
+			return nil, errE
+		}
+		v.result.ReferencesCount = &count
+	}
+
+	// scoreCount is the document's total "amount of knowledge" (its own number of claims plus
+	// the number of documents referencing it, where the number of documents referencing it is a
+	// proxy for how many claims of this document are "stored" in other documents - we see inverse
+	// references as claims which could stored in this document but are stored in other documents
+	// so that they are not stored twice, duplicated). Used to boost search ranking.
+	// TODO: Should ReferencesCount count the number of inverse reference claims directly and not referring documents?
+	scoreCount := claimsCount
+	if v.result.ReferencesCount != nil {
+		scoreCount += *v.result.ReferencesCount
+	}
+	v.result.ScoreCount = &scoreCount
 
 	return v.result, nil
 }
@@ -1813,6 +1960,41 @@ func (c *Converter) OutgoingInverseRelations(ctx context.Context, doc *document.
 		return nil, errE
 	}
 	return v.result, nil
+}
+
+// OutgoingReferenceTargets returns the set of document IDs the document references
+// via a reference claim or a sub-reference claim with confidence at or above
+// LowConfidence.
+//
+// It mirrors what CountReferences counts on the target side, so the
+// bridge can re-index the affected targets when a document's references change.
+//
+// Targets ignored for referencesCount are not filtered here; the caller does that.
+func (c *Converter) OutgoingReferenceTargets(doc *document.D) map[identifier.Identifier]bool {
+	targets := map[identifier.Identifier]bool{}
+	if doc.Claims == nil {
+		return targets
+	}
+	for claim := range doc.Claims.AllClaimsWithSub() {
+		ref, ok := claim.(*document.ReferenceClaim)
+		if !ok {
+			continue
+		}
+		if ref.GetConfidence() < document.LowConfidence {
+			continue
+		}
+		targets[ref.To.ID] = true
+	}
+	return targets
+}
+
+// ReferencesCountIgnored reports whether the document with the given ID is ignored for referencesCount.
+func (c *Converter) ReferencesCountIgnored(ctx context.Context, id identifier.Identifier) (bool, errors.E) {
+	info, errE := c.getDocumentInfo(ctx, id)
+	if errE != nil {
+		return false, errE
+	}
+	return info.IgnoredForReferencesCount, nil
 }
 
 func (c *Converter) convertAmount(ctx context.Context, claim *document.AmountClaim) ([]AmountClaim, errors.E) {
@@ -2269,9 +2451,15 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 
 // Sentinel values for sub-claim ParentTo when the parent claim is not a reference claim.
 const (
-	ParentToHas     = "__HAS__"
-	ParentToNone    = "__NONE__"
-	ParentToUnknown = "__UNKNOWN__"
+	ParentToHas        = "__HAS__"
+	ParentToNone       = "__NONE__"
+	ParentToUnknown    = "__UNKNOWN__"
+	ParentToIdentifier = "__IDENTIFIER__"
+	ParentToString     = "__STRING__"
+	ParentToHTML       = "__HTML__"
+	ParentToAmount     = "__AMOUNT__"
+	ParentToTime       = "__TIME__"
+	ParentToLink       = "__LINK__"
 )
 
 // subClaims aggregates every per-document Sub* record produced by extracting
