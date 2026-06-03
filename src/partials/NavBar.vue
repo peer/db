@@ -38,9 +38,23 @@ useValidationRegistry()
       v-bind="navbarAttrs"
     >
       <RouterLink :to="{ name: 'Home' }" class="group shrink-0 rounded-sm outline-none hover:bg-slate-400 active:bg-slate-200">
+        <!--
+          When both a full and a compact logo are configured, swap to the compact one below the 64rem
+          viewport width, which matches Tailwind's lg breakpoint, where the navbar has less horizontal room.
+          When only one of them is set, that one is shown as the sole logo.
+        -->
+        <picture v-if="siteContext.logo && siteContext.logoCompact">
+          <source :srcset="siteContext.logoCompact" media="(width < 64rem)" />
+          <img
+            :src="siteContext.logo"
+            :alt="siteContext.title"
+            :title="siteContext.title"
+            class="pd-navbar-logo h-10 group-focus:ring-2 group-focus:ring-primary-500 group-focus:ring-offset-1"
+          />
+        </picture>
         <img
-          v-if="siteContext.logo"
-          :src="siteContext.logo"
+          v-else-if="siteContext.logo || siteContext.logoCompact"
+          :src="siteContext.logo || siteContext.logoCompact"
           :alt="siteContext.title"
           :title="siteContext.title"
           class="pd-navbar-logo h-10 group-focus:ring-2 group-focus:ring-primary-500 group-focus:ring-offset-1"

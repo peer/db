@@ -175,6 +175,7 @@ export type SiteContext = {
   }
   title?: string
   logo?: string
+  logoCompact?: string
   languagePriority?: {
     [language: string]: string[]
   }

@@ -39,6 +39,7 @@ func InitSites(globals *Globals) {
 			Schema:               globals.Postgres.Schema,
 			Title:                "",
 			Logo:                 "",
+			LogoCompact:          "",
 			LanguagePriority:     nil,
 			DefaultLanguage:      "",
 			LanguageCodes:        nil,

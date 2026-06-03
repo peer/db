@@ -118,6 +118,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			Schema:               globals.Postgres.Schema,
 			Title:                c.Title,
 			Logo:                 "",
+			LogoCompact:          "",
 			LanguagePriority:     nil,
 			DefaultLanguage:      "",
 			LanguageCodes:        nil,
