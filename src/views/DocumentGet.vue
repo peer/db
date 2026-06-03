@@ -279,6 +279,15 @@ function shortcutLabel(name: string, count: number | string | null): string {
   return t("views.DocumentGet.shortcutWithCount", { name, count })
 }
 
+// Whether to render a count-bearing side link. A link known to have zero results is
+// hidden because following it leads to an empty search, but users who can edit
+// documents keep seeing it (so that we can show them a button to create new document
+// next to it). A null count (not yet loaded, or a shortcut that carries no count)
+// is always shown.
+function showShortcut(count: string | null): boolean {
+  return count !== "0" || hasPermission(CAN_EDIT_DOCUMENT)
+}
+
 async function onEdit() {
   if (abortController.signal.aborted) {
     return
@@ -401,10 +410,12 @@ async function onEdit() {
                 <div class="flex flex-row items-start gap-4">
                   <div class="min-w-0 grow"><FieldsView :fields-data="mergedFieldsData!" :claims="doc.claims" sections /></div>
                   <div class="flex shrink-0 flex-col gap-2">
-                    <ButtonLink v-for="(shortcut, i) of searchShortcuts" :key="i" :to="{ name: 'SearchShortcut', query: shortcut.query }">{{
-                      shortcutLabel(shortcut.name, shortcut.count)
-                    }}</ButtonLink>
-                    <ButtonLink :to="{ name: 'SearchShortcut', query: encodeQuery({ reverse: id }) }">{{
+                    <template v-for="(shortcut, i) of searchShortcuts" :key="i">
+                      <ButtonLink v-if="showShortcut(shortcut.count)" :to="{ name: 'SearchShortcut', query: shortcut.query }">{{
+                        shortcutLabel(shortcut.name, shortcut.count)
+                      }}</ButtonLink>
+                    </template>
+                    <ButtonLink v-if="showShortcut(referencedByCount)" :to="{ name: 'SearchShortcut', query: encodeQuery({ reverse: id }) }">{{
                       shortcutLabel(t("views.DocumentGet.referencedBy"), referencedByCount)
                     }}</ButtonLink>
                   </div>
@@ -427,10 +438,12 @@ async function onEdit() {
                     </table>
                   </div>
                   <div v-if="!hasFieldsViewPanel" class="flex shrink-0 flex-col gap-2">
-                    <ButtonLink v-for="(shortcut, i) of searchShortcuts" :key="i" :to="{ name: 'SearchShortcut', query: shortcut.query }">{{
-                      shortcutLabel(shortcut.name, shortcut.count)
-                    }}</ButtonLink>
-                    <ButtonLink :to="{ name: 'SearchShortcut', query: encodeQuery({ reverse: id }) }">{{
+                    <template v-for="(shortcut, i) of searchShortcuts" :key="i">
+                      <ButtonLink v-if="showShortcut(shortcut.count)" :to="{ name: 'SearchShortcut', query: shortcut.query }">{{
+                        shortcutLabel(shortcut.name, shortcut.count)
+                      }}</ButtonLink>
+                    </template>
+                    <ButtonLink v-if="showShortcut(referencedByCount)" :to="{ name: 'SearchShortcut', query: encodeQuery({ reverse: id }) }">{{
                       shortcutLabel(t("views.DocumentGet.referencedBy"), referencedByCount)
                     }}</ButtonLink>
                   </div>
