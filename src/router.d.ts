@@ -1,12 +1,14 @@
-import type { RouteLocation, RouteLocationNormalizedLoaded, RouteLocationRaw } from "vue-router"
+import type { RouteLocation, RouteLocationNormalizedLoaded, RouteLocationRaw, _RouterClassic } from "vue-router"
 
 declare module "vue-router" {
-  interface Router {
-    apiResolve(
-      to: RouteLocationRaw,
-      currentLocation?: RouteLocationNormalizedLoaded,
-    ): RouteLocation & {
-      href: string
+  interface TypesConfig {
+    Router: _RouterClassic & {
+      apiResolve(
+        to: RouteLocationRaw,
+        currentLocation?: RouteLocationNormalizedLoaded,
+      ): RouteLocation & {
+        href: string
+      }
     }
   }
 
