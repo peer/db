@@ -39,6 +39,7 @@ func TestTextSearchUndWildcardCaseAndDiacritic(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims:          internalSearch.ClaimTypes{},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -48,6 +49,7 @@ func TestTextSearchUndWildcardCaseAndDiacritic(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims:          internalSearch.ClaimTypes{},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -65,7 +67,7 @@ func TestTextSearchUndWildcardCaseAndDiacritic(t *testing.T) {
 				Filters: nil,
 				Reverse: nil,
 			})
-			results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil)
+			results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 			require.NoError(t, errE, "% -+#.1v", errE)
 			ids := resultIDs(results)
 			assert.ElementsMatch(t, []string{doc1ID.String(), doc2ID.String()}, ids,
@@ -90,6 +92,7 @@ func TestTextSearchUndQuotedExactVsFolded(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims:          internalSearch.ClaimTypes{},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -99,6 +102,7 @@ func TestTextSearchUndQuotedExactVsFolded(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims:          internalSearch.ClaimTypes{},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -116,7 +120,7 @@ func TestTextSearchUndQuotedExactVsFolded(t *testing.T) {
 		Filters: nil,
 		Reverse: nil,
 	})
-	results, _, errE := search.ResultsGet(ctx, getSearchService, &quotedSession.SessionData, nil)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &quotedSession.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 2)
 	assert.Equal(t, doc1ID.String(), results[0].ID,
@@ -134,7 +138,7 @@ func TestTextSearchUndQuotedExactVsFolded(t *testing.T) {
 		Filters: nil,
 		Reverse: nil,
 	})
-	results, _, errE = search.ResultsGet(ctx, getSearchService, &quotedFoldedSession.SessionData, nil)
+	results, _, errE = search.ResultsGet(ctx, getSearchService, &quotedFoldedSession.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 2)
 	assert.Equal(t, doc2ID.String(), results[0].ID,
@@ -157,6 +161,7 @@ func TestTextSearchUndUnquotedFoldsBoth(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims:          internalSearch.ClaimTypes{},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -166,6 +171,7 @@ func TestTextSearchUndUnquotedFoldsBoth(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims:          internalSearch.ClaimTypes{},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -178,7 +184,7 @@ func TestTextSearchUndUnquotedFoldsBoth(t *testing.T) {
 		Filters: nil,
 		Reverse: nil,
 	})
-	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t,
 		[]string{doc1ID.String(), doc2ID.String()},
@@ -205,6 +211,7 @@ func TestTextSearchStemmedPhraseEnglish(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims:          internalSearch.ClaimTypes{},
 	})
 
@@ -218,6 +225,7 @@ func TestTextSearchStemmedPhraseEnglish(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims:          internalSearch.ClaimTypes{},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -230,7 +238,7 @@ func TestTextSearchStemmedPhraseEnglish(t *testing.T) {
 		Filters: nil,
 		Reverse: nil,
 	})
-	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	ids := resultIDs(results)
 	assert.Contains(t, ids, doc1ID.String(),
@@ -263,6 +271,7 @@ func TestTextSearchExactFieldRejectsFolded(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims:          internalSearch.ClaimTypes{},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -272,6 +281,7 @@ func TestTextSearchExactFieldRejectsFolded(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims:          internalSearch.ClaimTypes{},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -281,6 +291,7 @@ func TestTextSearchExactFieldRejectsFolded(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims:          internalSearch.ClaimTypes{},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -294,7 +305,7 @@ func TestTextSearchExactFieldRejectsFolded(t *testing.T) {
 		Filters: nil,
 		Reverse: nil,
 	})
-	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 2)
 	assert.Equal(t, doc1ID.String(), results[0].ID, "literal Müller should rank first")

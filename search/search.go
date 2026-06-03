@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"math"
 	"slices"
 	"strings"
 	"sync"
@@ -12,6 +13,8 @@ import (
 	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/fieldvaluefactormodifier"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/functionboostmode"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/operator"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/totalhitsrelation"
 	"gitlab.com/tozd/go/errors"
@@ -58,6 +61,20 @@ const (
 	// For now we didn't notice any performance issues at data scale PeerDB is currently being used with, but
 	// in the future we might want to make this configurable.
 	maxPrecisionThreshold = 40000
+
+	// scoreBoostMax is the target boost ratio between a corpus-p99 document and an
+	// empty one under the scoreCount ranking boost: a p99 document's _score is
+	// multiplied by roughly scoreBoostMax times the multiplier an empty document
+	// gets. It is the single tuning parameter of the boost.
+	scoreBoostMax = 10.0
+
+	// log2pOffset is the additive constant of the ElasticSearch log2p
+	// field_value_factor modifier: the boost is log10(log2pOffset + factor*scoreCount).
+	log2pOffset = 2.0
+
+	// scoreCountPercentile is the corpus percentile of scoreCount that ScoreFactor
+	// normalizes to the scoreBoostMax boost ceiling.
+	scoreCountPercentile = 99.0
 )
 
 // ViewType represents the type of search view.
@@ -881,11 +898,30 @@ type Result struct {
 
 // ResultsGet retrieves search results for a given search session.
 func ResultsGet(
-	ctx context.Context, getSearchService func() *esSearch.Search, searchData *SessionData, enabledLanguages []string,
+	ctx context.Context, getSearchService func() *esSearch.Search, searchData *SessionData, enabledLanguages []string, factor float64,
 ) ([]Result, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
 	query := searchData.ToQuery(enabledLanguages)
+
+	// Multiplicatively boost ranking by the document's scoreCount (its own claims
+	// plus the documents referencing it) so that, among equally relevant text
+	// matches, richer and more connected documents rank higher. factor is corpus-derived
+	// and scales the log2p curve; factor of 0 leaves the query unboosted.
+	if factor > 0 {
+		query = esdsl.NewFunctionScoreQuery().
+			Query(query).
+			Functions(
+				esdsl.NewFunctionScore().FieldValueFactor(
+					esdsl.NewFieldValueFactorScoreFunction().
+						Field("scoreCount").
+						Factor(types.Float64(factor)).
+						Modifier(fieldvaluefactormodifier.Log2p).
+						Missing(0),
+				),
+			).
+			BoostMode(functionboostmode.Multiply)
+	}
 
 	searchService := getSearchService()
 
@@ -915,4 +951,44 @@ func ResultsGet(
 	return results, map[string]any{
 		"total": total,
 	}, nil
+}
+
+// ScoreFactor computes the field_value_factor coefficient for the scoreCount
+// ranking boost from the current corpus. It runs a percentiles aggregation over the
+// whole index and returns (2^scoreBoostMax - 2)/p99, so that under the log2p
+// modifier a document at the corpus 99th percentile of scoreCount receives a boost
+// roughly scoreBoostMax times that of an empty document. It returns 0 (no boost)
+// when the corpus is too sparse to have a meaningful p99 (p99 < 1).
+//
+// The factor is corpus-global.
+func ScoreFactor(ctx context.Context, getSearchService func() *esSearch.Search) (float64, errors.E) {
+	searchService := getSearchService().Size(0).AddAggregation(
+		"scoreCountP99",
+		esdsl.NewAggregations().Percentiles(
+			esdsl.NewPercentilesAggregation().Field("scoreCount").Percents(scoreCountPercentile).Keyed(false),
+		),
+	)
+
+	res, err := searchService.Do(ctx)
+	if err != nil {
+		return 0, errors.WithStack(err)
+	}
+
+	agg, errE := internalSearch.AggAs[types.TDigestPercentilesAggregate](res.Aggregations, "scoreCountP99")
+	if errE != nil {
+		return 0, errE
+	}
+
+	// With Keyed(false) the percentiles come back as an array; we requested a single
+	// percentile, and its Value is nil when the corpus is empty.
+	items, ok := agg.Values.([]types.ArrayPercentilesItem)
+	if !ok || len(items) == 0 || items[0].Value == nil {
+		return 0, nil
+	}
+	p99 := float64(*items[0].Value)
+	if p99 < 1 {
+		return 0, nil
+	}
+
+	return (math.Pow(log2pOffset, scoreBoostMax) - log2pOffset) / p99, nil
 }

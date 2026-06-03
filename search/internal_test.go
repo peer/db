@@ -11,6 +11,8 @@ import (
 	"gitlab.com/peerdb/peerdb/internal/testutils"
 )
 
+const TestingScoreBoostMax = scoreBoostMax
+
 func TestDocumentTextSearchQuery(t *testing.T) {
 	t.Parallel()
 

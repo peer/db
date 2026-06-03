@@ -1652,6 +1652,7 @@ func (c *Converter) FromDocument(
 			Time:            nil,
 			ReferencesCount: nil,
 			ClaimsCount:     nil,
+			ScoreCount:      nil,
 			Claims:          ClaimTypes{},
 		},
 		docID: doc.ID,
@@ -1720,6 +1721,18 @@ func (c *Converter) FromDocument(
 		}
 		v.result.ReferencesCount = &count
 	}
+
+	// scoreCount is the document's total "amount of knowledge" (its own number of claims plus
+	// the number of documents referencing it, where the number of documents referencing it is a
+	// proxy for how many claims of this document are "stored" in other documents - we see inverse
+	// references as claims which could stored in this document but are stored in other documents
+	// so that they are not stored twice, duplicated). Used to boost search ranking.
+	// TODO: Should ReferencesCount count the number of inverse reference claims directly and not referring documents?
+	scoreCount := claimsCount
+	if v.result.ReferencesCount != nil {
+		scoreCount += *v.result.ReferencesCount
+	}
+	v.result.ScoreCount = &scoreCount
 
 	return v.result, nil
 }

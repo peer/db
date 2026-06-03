@@ -29,10 +29,14 @@ import (
 // timestamp; for an interval it is the earliest bound.
 //
 // ReferencesCount is the number of other documents that reference this document,
-// counted at index time and refreshed by a periodic job.
+// computed at index time and kept current by re-indexing a document when another
+// document starts or stops referencing it.
 //
 // ClaimsCount is the total number of claims the document has, counted
 // recursively including sub-claims.
+//
+// ScoreCount is ClaimsCount + ReferencesCount used to boost search ranking.
+// Ignored documents (which have no ReferencesCount) get just their ClaimsCount.
 type Document struct {
 	ID identifier.Identifier `json:"id"`
 
@@ -45,6 +49,8 @@ type Document struct {
 	ReferencesCount *int `json:"referencesCount,omitempty"`
 
 	ClaimsCount *int `json:"claimsCount,omitempty"`
+
+	ScoreCount *int `json:"scoreCount,omitempty"`
 
 	Claims ClaimTypes `json:"claims,omitzero"`
 }

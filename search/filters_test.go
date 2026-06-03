@@ -36,6 +36,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
@@ -94,6 +95,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
@@ -204,6 +206,7 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil,
@@ -233,6 +236,7 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil,
@@ -291,6 +295,7 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,

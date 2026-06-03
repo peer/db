@@ -29,6 +29,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -49,6 +50,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -69,6 +71,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -126,6 +129,7 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -146,6 +150,7 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -194,6 +199,7 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -215,6 +221,7 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: nil,
@@ -233,6 +240,7 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: nil,
@@ -277,6 +285,7 @@ func TestRefFilterGetNoMissingIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{{
@@ -346,6 +355,7 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{
@@ -402,6 +412,7 @@ func TestRefFilterGetDiamondIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{
@@ -464,9 +475,13 @@ func TestRefFilterGetMultipleInheritanceIntegration(t *testing.T) {
 	// convertReference does at index time. Every bucket therefore has the same single-
 	// document count, so ordering is decided entirely by hierarchy depth.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("leafDoc"),
-		Display: nil,
-		Text:    nil,
+		ID:              identifier.From("leafDoc"),
+		Display:         nil,
+		Text:            nil,
+		Time:            nil,
+		ReferencesCount: nil,
+		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: internalSearch.ReferenceClaims{
@@ -547,6 +562,7 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil,
 			Reference: nil,

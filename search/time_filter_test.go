@@ -19,40 +19,7 @@ func TestTimeFilterGetIntegration(t *testing.T) {
 
 	timeProp := identifier.From("timeProp")
 
-	t1000 := float64(1000)
-	t5000 := float64(5000)
-	t9000 := float64(9000)
-
-	for _, tc := range []struct {
-		id    string
-		value *float64
-	}{
-		{"timeDoc1", &t1000},
-		{"timeDoc2", &t5000},
-		{"timeDoc3", &t9000},
-	} {
-		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID:              identifier.From(tc.id),
-			Display:         nil,
-			Text:            nil,
-			Time:            nil,
-			ReferencesCount: nil,
-			ClaimsCount:     nil,
-			Claims: internalSearch.ClaimTypes{
-				Amount: nil,
-				Time: internalSearch.TimeClaims{{
-					Prop: timeProp, PropDisplay: nil, PropNaming: nil,
-					Range: internalSearch.RangeFloat{
-						GreaterThan: nil, GreaterThanOrEqual: tc.value, LessThan: nil, LessThanOrEqual: tc.value,
-					},
-					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
-				}},
-				Reference: nil, Has: nil, None: nil, Unknown: nil,
-				SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
-			},
-		})
-	}
-	refreshIndex(t, ctx, esClient, index)
+	seedTimeFilterDocs(t, ctx, esClient, index, timeProp)
 
 	// Create a session with a time filter.
 	session := createSession(t, ctx, search.SessionData{
@@ -110,6 +77,7 @@ func TestTimeFilterGetMissingIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -131,6 +99,7 @@ func TestTimeFilterGetMissingIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -168,6 +137,7 @@ func TestTimeFilterGetNoMissingIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -201,40 +171,7 @@ func TestTimeFilterGetInactiveIntegration(t *testing.T) {
 
 	timeProp := identifier.From("timeProp")
 
-	t1000 := float64(1000)
-	t5000 := float64(5000)
-	t9000 := float64(9000)
-
-	for _, tc := range []struct {
-		id    string
-		value *float64
-	}{
-		{"timeDoc1", &t1000},
-		{"timeDoc2", &t5000},
-		{"timeDoc3", &t9000},
-	} {
-		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID:              identifier.From(tc.id),
-			Display:         nil,
-			Text:            nil,
-			Time:            nil,
-			ReferencesCount: nil,
-			ClaimsCount:     nil,
-			Claims: internalSearch.ClaimTypes{
-				Amount: nil,
-				Time: internalSearch.TimeClaims{{
-					Prop: timeProp, PropDisplay: nil, PropNaming: nil,
-					Range: internalSearch.RangeFloat{
-						GreaterThan: nil, GreaterThanOrEqual: tc.value, LessThan: nil, LessThanOrEqual: tc.value,
-					},
-					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
-				}},
-				Reference: nil, Has: nil, None: nil, Unknown: nil,
-				SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
-			},
-		})
-	}
-	refreshIndex(t, ctx, esClient, index)
+	seedTimeFilterDocs(t, ctx, esClient, index, timeProp)
 
 	// Create a session without any filters (inactive filter scenario).
 	session := createSession(t, ctx, search.SessionData{})
@@ -275,6 +212,7 @@ func TestTimeFilterGetSameValuesIntegration(t *testing.T) {
 			Time:            nil,
 			ReferencesCount: nil,
 			ClaimsCount:     nil,
+			ScoreCount:      nil,
 			Claims: internalSearch.ClaimTypes{
 				Amount: nil,
 				Time: internalSearch.TimeClaims{{
@@ -325,6 +263,7 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -345,6 +284,7 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -445,6 +385,7 @@ func TestTimeFilterGetExtendedBoundsIntegration(t *testing.T) {
 			Time:            nil,
 			ReferencesCount: nil,
 			ClaimsCount:     nil,
+			ScoreCount:      nil,
 			Claims: internalSearch.ClaimTypes{
 				Amount: nil,
 				Time: internalSearch.TimeClaims{{
@@ -520,6 +461,7 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -540,6 +482,7 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -619,6 +562,7 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -639,6 +583,7 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -659,6 +604,7 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{

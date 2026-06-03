@@ -34,6 +34,13 @@ type Service struct {
 
 	// Is service running in development mode.
 	Development bool
+
+	// scoreFactorMu guards scoreFactorCache.
+	scoreFactorMu sync.Mutex
+
+	// scoreFactorCache memoizes, per ElasticSearch index, the scoreCount ranking
+	// boost factor. Entries are recomputed lazily once older than scoreFactorTTL.
+	scoreFactorCache map[string]scoreFactorEntry
 }
 
 // lookupSiteAuthenticator resolves the per-request Authenticator and role
@@ -197,7 +204,9 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 				}
 			},
 		},
-		Development: c.Server.Development,
+		Development:      c.Server.Development,
+		scoreFactorMu:    sync.Mutex{},
+		scoreFactorCache: map[string]scoreFactorEntry{},
 	}
 
 	// We expose the canonical metadata-header prefix on each site so the

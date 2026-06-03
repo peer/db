@@ -1,6 +1,7 @@
 package search_test
 
 import (
+	"math"
 	"sort"
 	"testing"
 
@@ -31,6 +32,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -51,6 +53,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -71,6 +74,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -94,7 +98,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil)
+	results, metadata, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Len(t, results, 3)
 	assert.Equal(t, int64(3), metadata["total"])
@@ -117,7 +121,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &helloSession.SessionData, nil)
+	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &helloSession.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Len(t, results, 2)
 	assert.Equal(t, int64(2), metadata["total"])
@@ -140,7 +144,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &goodbyeSession.SessionData, nil)
+	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &goodbyeSession.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc2ID.String()}}, results)
 	assert.Equal(t, int64(1), metadata["total"])
@@ -153,7 +157,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &noResultsSession.SessionData, nil)
+	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &noResultsSession.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{}, results)
 	assert.Equal(t, int64(0), metadata["total"])
@@ -177,6 +181,7 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil,
@@ -206,6 +211,7 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -235,7 +241,7 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc1ID.String()}}, results)
 
@@ -253,7 +259,7 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, _, errE = search.ResultsGet(ctx, getSearchService, &noneSession.SessionData, nil)
+	results, _, errE = search.ResultsGet(ctx, getSearchService, &noneSession.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc2ID.String()}}, results)
 }
@@ -280,6 +286,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
@@ -315,6 +322,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
@@ -350,6 +358,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -383,7 +392,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc2ID.String()}}, results)
 
@@ -405,7 +414,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, _, errE = search.ResultsGet(ctx, getSearchService, &session2.SessionData, nil)
+	results, _, errE = search.ResultsGet(ctx, getSearchService, &session2.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc1ID.String()}}, results)
 
@@ -425,7 +434,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, _, errE = search.ResultsGet(ctx, getSearchService, &session3.SessionData, nil)
+	results, _, errE = search.ResultsGet(ctx, getSearchService, &session3.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc3ID.String()}}, results)
 }
@@ -451,6 +460,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -485,6 +495,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time: internalSearch.TimeClaims{{
@@ -519,6 +530,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -551,7 +563,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc2ID.String()}}, results)
 
@@ -570,7 +582,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, _, errE = search.ResultsGet(ctx, getSearchService, &session2.SessionData, nil)
+	results, _, errE = search.ResultsGet(ctx, getSearchService, &session2.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc3ID.String()}}, results)
 }
@@ -596,6 +608,7 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil,
@@ -625,6 +638,7 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil,
@@ -654,6 +668,7 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil,
 			Time:   nil,
@@ -713,7 +728,7 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, _, errE := search.ResultsGet(ctx, getSearchService, &andSession.SessionData, nil)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &andSession.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: doc3ID.String()}}, results)
 }
@@ -732,6 +747,7 @@ func TestResultsGetTotalGteIntegration(t *testing.T) {
 		Time:            nil,
 		ReferencesCount: nil,
 		ClaimsCount:     nil,
+		ScoreCount:      nil,
 		Claims: internalSearch.ClaimTypes{
 			Amount:    nil,
 			Time:      nil,
@@ -758,7 +774,7 @@ func TestResultsGetTotalGteIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := search.ResultsGet(ctx, getSearchServiceTracked, &session.SessionData, nil)
+	results, metadata, errE := search.ResultsGet(ctx, getSearchServiceTracked, &session.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{{ID: docID.String()}}, results)
 	assert.Equal(t, int64(1), metadata["total"])
@@ -779,6 +795,7 @@ func TestResultsGetTotalGteRelationIntegration(t *testing.T) {
 			Time:            nil,
 			ReferencesCount: nil,
 			ClaimsCount:     nil,
+			ScoreCount:      nil,
 			Claims: internalSearch.ClaimTypes{
 				Amount:    nil,
 				Time:      nil,
@@ -807,9 +824,77 @@ func TestResultsGetTotalGteRelationIntegration(t *testing.T) {
 		Reverse: nil,
 	})
 
-	results, metadata, errE := search.ResultsGet(ctx, getSearchServiceLimited, &session.SessionData, nil)
+	results, metadata, errE := search.ResultsGet(ctx, getSearchServiceLimited, &session.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Len(t, results, 5)
 	// With TrackTotalHits(1), ES returns relation "gte" and value 1, so total should be "1+".
 	assert.Equal(t, "1+", metadata["total"])
+}
+
+func TestResultsGetScoreBoost(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	lowID := identifier.From("low")
+	highID := identifier.From("high")
+	zeroID := identifier.From("zero")
+
+	// Three documents matching the query text identically. They differ only in
+	// scoreCount, so any ranking difference is due to the boost alone.
+	low := 10
+	high := 1000
+	zero := 0
+	indexScoreDoc(t, ctx, esClient, index, lowID, "hello world", &low)
+	indexScoreDoc(t, ctx, esClient, index, highID, "hello world", &high)
+	indexScoreDoc(t, ctx, esClient, index, zeroID, "hello world", &zero)
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{
+		View:    "",
+		Query:   "hello world",
+		Filters: nil,
+		Reverse: nil,
+	})
+
+	// A positive factor must rank the higher-scoreCount document first, while the
+	// scoreCount-0 document is still returned (missing/zero is not dropped). The 2 is
+	// the log2p modifier offset.
+	factor := (math.Pow(2, search.TestingScoreBoostMax) - 2) / float64(high)
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, factor)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, results, 3)
+	assert.Equal(t, highID.String(), results[0].ID, "highest scoreCount should rank first")
+	assert.Equal(t, lowID.String(), results[1].ID, "lower scoreCount should rank second")
+
+	gotIDs := make([]string, 0, len(results))
+	for _, r := range results {
+		gotIDs = append(gotIDs, r.ID)
+	}
+	assert.Contains(t, gotIDs, zeroID.String(), "scoreCount 0 document should still be returned")
+}
+
+func TestScoreFactor(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	// Empty corpus: no meaningful p99, so no boost.
+	factor, errE := search.ScoreFactor(ctx, getSearchService)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Zero(t, factor)
+
+	// A corpus whose scoreCount is uniformly 50: the t-digest p99 is exactly 50, so
+	// the factor is (2^scoreBoostMax - 2)/50. The 2 is the log2p modifier offset.
+	value := 50
+	for range 20 {
+		indexScoreDoc(t, ctx, esClient, index, identifier.New(), "doc", &value)
+	}
+	refreshIndex(t, ctx, esClient, index)
+
+	factor, errE = search.ScoreFactor(ctx, getSearchService)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.InDelta(t, (math.Pow(2, search.TestingScoreBoostMax)-2)/float64(value), factor, 0.001)
 }
