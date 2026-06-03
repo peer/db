@@ -4,11 +4,13 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/operator"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/identifier"
 
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
+	"gitlab.com/peerdb/peerdb/internal/testutils"
 	"gitlab.com/peerdb/peerdb/search"
 )
 
@@ -314,4 +316,43 @@ func TestTextSearchExactFieldRejectsFolded(t *testing.T) {
 		resultIDs(results),
 	)
 	assert.NotContains(t, resultIDs(results), doc3ID.String())
+}
+
+func TestDocumentTextSearchQuery(t *testing.T) {
+	t.Parallel()
+
+	t.Run("NonEmpty", func(t *testing.T) {
+		t.Parallel()
+		got := testutils.QueryJSON(t, search.TestingDocumentTextSearchQuery("hello", operator.Or, nil))
+		//nolint:lll
+		expected := `{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"dis_max":{"queries":[{"simple_query_string":{"default_operator":"or","fields":["text.en","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"or","fields":["text.en","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"or","fields":["text.en.unstemmed","text.und"],"query":"hello"}},{"simple_query_string":{"default_operator":"or","fields":["text.pt","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"or","fields":["text.pt","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"or","fields":["text.pt.unstemmed","text.und"],"query":"hello"}},{"simple_query_string":{"default_operator":"or","fields":["text.sl","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"or","fields":["text.sl","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"or","fields":["text.sl.unstemmed","text.und"],"query":"hello"}}],"tie_breaker":0.1}},{"dis_max":{"queries":[{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"or","fields":["display.en"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"or","fields":["display.pt"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"or","fields":["display.sl"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"or","fields":["display.und"],"query":"hello","quote_field_suffix":".exact"}}],"tie_breaker":0.1}}]}}`
+		assert.Equal(t, expected, got)
+	})
+
+	t.Run("Empty", func(t *testing.T) {
+		t.Parallel()
+		got := testutils.QueryJSON(t, search.TestingDocumentTextSearchQuery("", operator.Or, nil))
+		assert.Equal(t, `{"bool":{}}`, got) //nolint:testifylint
+	})
+
+	t.Run("ANDOperator", func(t *testing.T) {
+		t.Parallel()
+		got := testutils.QueryJSON(t, search.TestingDocumentTextSearchQuery("hello", operator.And, nil))
+		//nolint:lll
+		expected := `{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"dis_max":{"queries":[{"simple_query_string":{"default_operator":"and","fields":["text.en","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.en","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.en.unstemmed","text.und"],"query":"hello"}},{"simple_query_string":{"default_operator":"and","fields":["text.pt","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.pt","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.pt.unstemmed","text.und"],"query":"hello"}},{"simple_query_string":{"default_operator":"and","fields":["text.sl","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.sl","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.sl.unstemmed","text.und"],"query":"hello"}}],"tie_breaker":0.1}},{"dis_max":{"queries":[{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.en"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.pt"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.sl"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.und"],"query":"hello","quote_field_suffix":".exact"}}],"tie_breaker":0.1}}]}}`
+		assert.Equal(t, expected, got)
+	})
+
+	// Multi-term queries (>= 2 whitespace-separated tokens) add a phrase-proximity
+	// boost layer: the recall query is wrapped in bool.must, and a per-language
+	// match_phrase dis_max is added as bool.should so it only contributes score
+	// to docs the recall already admitted. Single-term queries (tested above)
+	// skip the phrase clause entirely and use bool.should directly.
+	t.Run("MultiTermAddsPhraseBoost", func(t *testing.T) {
+		t.Parallel()
+		got := testutils.QueryJSON(t, search.TestingDocumentTextSearchQuery("hello world", operator.And, nil))
+		//nolint:lll
+		expected := `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello world"}}},{"dis_max":{"queries":[{"simple_query_string":{"default_operator":"and","fields":["text.en","text.und"],"query":"hello world","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.en","text.und"],"query":"hello world"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.en.unstemmed","text.und"],"query":"hello world"}},{"simple_query_string":{"default_operator":"and","fields":["text.pt","text.und"],"query":"hello world","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.pt","text.und"],"query":"hello world"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.pt.unstemmed","text.und"],"query":"hello world"}},{"simple_query_string":{"default_operator":"and","fields":["text.sl","text.und"],"query":"hello world","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.sl","text.und"],"query":"hello world"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.sl.unstemmed","text.und"],"query":"hello world"}}],"tie_breaker":0.1}},{"dis_max":{"queries":[{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.en"],"query":"hello world","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.pt"],"query":"hello world","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.sl"],"query":"hello world","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.und"],"query":"hello world","quote_field_suffix":".exact"}}],"tie_breaker":0.1}}]}}],"should":[{"dis_max":{"boost":2,"queries":[{"match_phrase":{"text.en":{"query":"hello world","slop":5}}},{"match_phrase":{"display.en":{"boost":3,"query":"hello world","slop":5}}},{"match_phrase":{"text.pt":{"query":"hello world","slop":5}}},{"match_phrase":{"display.pt":{"boost":3,"query":"hello world","slop":5}}},{"match_phrase":{"text.sl":{"query":"hello world","slop":5}}},{"match_phrase":{"display.sl":{"boost":3,"query":"hello world","slop":5}}},{"match_phrase":{"text.und":{"query":"hello world","slop":5}}},{"match_phrase":{"display.und":{"boost":3,"query":"hello world","slop":5}}}],"tie_breaker":0.1}}]}}`
+		assert.Equal(t, expected, got)
+	})
 }

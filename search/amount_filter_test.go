@@ -1,6 +1,7 @@
 package search_test
 
 import (
+	"math"
 	"strings"
 	"testing"
 
@@ -9,6 +10,7 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
+	"gitlab.com/peerdb/peerdb/internal/testutils"
 	"gitlab.com/peerdb/peerdb/search"
 )
 
@@ -705,4 +707,74 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 	// First and last buckets have the point values.
 	assert.Equal(t, int64(1), results[0].Count)
 	assert.Equal(t, int64(1), results[99].Count)
+}
+
+func TestComputeInterval(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		Name            string
+		From            float64
+		To              float64
+		WantInterval    float64
+		WantUpperBound  float64
+		WantIntervalStr string
+		WantBins        int
+	}{
+		{Name: "0_to_1000", From: 0, To: 1000, WantInterval: 10.000000000000002, WantUpperBound: 1000, WantIntervalStr: "10.000000000000002", WantBins: 100},
+		{Name: "-500_to_500", From: -500, To: 500, WantInterval: 10.000000000000002, WantUpperBound: 500, WantIntervalStr: "10.000000000000002", WantBins: 100},
+		{Name: "0_to_10000", From: 0, To: 10000, WantInterval: 100.00000000000001, WantUpperBound: 10000, WantIntervalStr: "100.00000000000001", WantBins: 100},
+		{Name: "-1000_to_1000", From: -1000, To: 1000, WantInterval: 20.000000000000004, WantUpperBound: 1000, WantIntervalStr: "20.000000000000004", WantBins: 100},
+		{Name: "0_to_100", From: 0, To: 100, WantInterval: 1.0000000000000002, WantUpperBound: 100, WantIntervalStr: "1.0000000000000002", WantBins: 100},
+		{Name: "10_to_90", From: 10, To: 90, WantInterval: 0.8000000000000002, WantUpperBound: 90, WantIntervalStr: "0.8000000000000002", WantBins: 100},
+		{Name: "0_to_1", From: 0, To: 1, WantInterval: 0.010000000000000002, WantUpperBound: 1, WantIntervalStr: "0.010000000000000002", WantBins: 100},
+		{Name: "0_to_1000000", From: 0, To: 1000000, WantInterval: 10000.000000000002, WantUpperBound: 1000000, WantIntervalStr: "10000.000000000002", WantBins: 100},
+		{Name: "-100_to_100", From: -100, To: 100, WantInterval: 2.0000000000000004, WantUpperBound: 100, WantIntervalStr: "2.0000000000000004", WantBins: 100},
+		{Name: "-1_to_0", From: -1, To: 0, WantInterval: 0.010000000000000002, WantUpperBound: 0, WantIntervalStr: "0.010000000000000002", WantBins: 100},
+		{Name: "0.5_to_1.5", From: 0.5, To: 1.5, WantInterval: 0.010000000000000002, WantUpperBound: 1.5, WantIntervalStr: "0.010000000000000002", WantBins: 100},
+		{Name: "40_to_60", From: 40, To: 60, WantInterval: 0.20000000000000007, WantUpperBound: 60, WantIntervalStr: "0.20000000000000007", WantBins: 100},
+		// Large values where float64 precision matters.
+		{Name: "0_to_1e15", From: 0, To: 1e15, WantInterval: 10000000000000.002, WantUpperBound: 1e15, WantIntervalStr: "10000000000000.002", WantBins: 100},
+		{Name: "0_to_1e18", From: 0, To: 1e18, WantInterval: 1.0000000000000002e+16, WantUpperBound: 1e18, WantIntervalStr: "10000000000000002", WantBins: 100},
+		{Name: "-1e18_to_1e18", From: -1e18, To: 1e18, WantInterval: 2.0000000000000004e+16, WantUpperBound: 1e18, WantIntervalStr: "20000000000000004", WantBins: 100},
+		// Tiny range at large magnitude - ULP limits precision.
+		{Name: "1e15_to_1e15+1", From: 1e15, To: 1e15 + 1, WantInterval: 0.01125, WantUpperBound: 1e15 + 1, WantIntervalStr: "0.01125", WantBins: 89},
+		// Huge float64 value.
+		//nolint:lll
+		{Name: "0_to_maxfloat64/2", From: 0, To: math.MaxFloat64 / 2, WantInterval: 8.98846567431157972576e+305, WantUpperBound: math.MaxFloat64 / 2, WantIntervalStr: "898846567431158000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", WantBins: 100},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			t.Parallel()
+			interval, upperBound, intervalStr := search.TestingComputeInterval(tt.From, tt.To)
+			assert.Equal(t, tt.WantInterval, interval)     //nolint:testifylint
+			assert.Equal(t, tt.WantUpperBound, upperBound) //nolint:testifylint
+			assert.Equal(t, tt.WantIntervalStr, intervalStr)
+
+			// Verify expected number of bins: floor((to - from) / interval) + 1.
+			bins := int(math.Floor((tt.To-tt.From)/interval)) + 1
+			assert.Equal(t, tt.WantBins, bins)
+
+			// Interval must be a positive number.
+			assert.Greater(t, interval, 0.0)
+		})
+	}
+}
+
+func TestAmountUnitFilter(t *testing.T) {
+	t.Parallel()
+
+	t.Run("WithUnit", func(t *testing.T) {
+		t.Parallel()
+		unit := identifier.From("unit")
+		got := testutils.QueryJSON(t, search.TestingAmountUnitFilter(&unit))
+		assert.Equal(t, `{"term":{"claims.amount.unit":{"value":"7xgMSp3wauK811A8Fwk3rY"}}}`, got) //nolint:testifylint
+	})
+
+	t.Run("WithoutUnit", func(t *testing.T) {
+		t.Parallel()
+		got := testutils.QueryJSON(t, search.TestingAmountUnitFilter(nil))
+		assert.Equal(t, `{"bool":{"must_not":[{"exists":{"field":"claims.amount.unit"}}]}}`, got) //nolint:testifylint
+	})
 }
