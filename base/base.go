@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 
 	"github.com/elastic/go-elasticsearch/v9"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
@@ -73,6 +74,14 @@ type B struct {
 	FilePostHooks []func(
 		ctx context.Context, data []byte, metadata *storage.FileMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
 	) ([]byte, *storage.FileMetadata, store.Version, []store.Version, errors.E)
+
+	// SearchQueryHook, when set, is called per request and returns an optional
+	// filter query that is added (as a bool filter clause) to every search
+	// query - results, facets and active-filter counts - so a site can limit
+	// which documents searches can see based on the caller. A nil query means no
+	// restriction. It is not applied to the corpus-wide ScoreFactor statistic or
+	// the internal reference-score count, which run without a caller.
+	SearchQueryHook func(ctx context.Context) (types.QueryVariant, errors.E)
 
 	// RegisterWorkers are called in order to register workers for processing
 	// background jobs before the river client is started. Each callback is

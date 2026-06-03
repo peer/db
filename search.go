@@ -11,6 +11,7 @@ import (
 
 	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
@@ -27,6 +28,38 @@ import (
 func enabledSearchLanguages(ctx context.Context) []string {
 	site := waf.MustGetSite[*Site](ctx)
 	return internalSearch.EnabledLanguages(site.LanguagePriority)
+}
+
+// searchAccessFilter returns the site's optional per-caller search restriction
+// (from base.B.SearchQueryHook) for the request in ctx, or a nil query if the
+// site sets no hook. It is added as a filter clause to every search query so
+// results and facets only include documents the caller may access.
+func searchAccessFilter(ctx context.Context) (types.QueryVariant, errors.E) { //nolint:ireturn
+	site := waf.MustGetSite[*Site](ctx)
+	if site.Base.SearchQueryHook == nil {
+		// No hook means no restriction.
+		return nil, nil //nolint:nilnil
+	}
+	return site.Base.SearchQueryHook(ctx)
+}
+
+// sessionQuery builds the session's ElasticSearch query with the site's access filter applied.
+func sessionQuery(ctx context.Context, session *search.Session) (types.QueryVariant, errors.E) { //nolint:ireturn
+	accessFilter, errE := searchAccessFilter(ctx)
+	if errE != nil {
+		return nil, errE
+	}
+	return session.ToQuery(enabledSearchLanguages(ctx), accessFilter), nil
+}
+
+// sessionQueryExcluding builds the session's ElasticSearch query excluding the
+// given filter, with the site's access filter applied.
+func sessionQueryExcluding(ctx context.Context, session *search.Session, excludeFilterID identifier.Identifier) (types.QueryVariant, errors.E) { //nolint:ireturn
+	accessFilter, errE := searchAccessFilter(ctx)
+	if errE != nil {
+		return nil, errE
+	}
+	return session.ToQueryExcluding(excludeFilterID, enabledSearchLanguages(ctx), accessFilter), nil
 }
 
 func (s *Service) getSearchService(req *http.Request) *esSearch.Search {
@@ -138,7 +171,11 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	query := searchSession.ToQueryExcluding(filterID, enabledSearchLanguages(ctx))
+	query, errE := sessionQueryExcluding(ctx, searchSession, filterID)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
 
 	var data any
 	var metadata map[string]any
@@ -219,7 +256,11 @@ func (s *Service) SearchRefFilterGetAPI(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	query := searchSession.ToQuery(enabledSearchLanguages(ctx))
+	query, errE := sessionQuery(ctx, searchSession)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
 	f := search.RefFilter{}
 	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req), query, prop)
 	if errE != nil {
@@ -270,7 +311,11 @@ func (s *Service) SearchAmountFilterGetAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	query := searchSession.ToQuery(enabledSearchLanguages(ctx))
+	query, errE := sessionQuery(ctx, searchSession)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
 	f := search.AmountFilter{Unit: unit} //nolint:exhaustruct
 	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req), query, prop)
 	if errE != nil {
@@ -313,7 +358,11 @@ func (s *Service) SearchTimeFilterGetAPI(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	query := searchSession.ToQuery(enabledSearchLanguages(ctx))
+	query, errE := sessionQuery(ctx, searchSession)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
 	f := search.TimeFilter{}
 	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req), query, prop)
 	if errE != nil {
@@ -362,7 +411,11 @@ func (s *Service) SearchSubRefFilterGetAPI(w http.ResponseWriter, req *http.Requ
 
 	parentToRestrictions := collectParentToFromSession(searchSession.Filters, parentProp)
 
-	query := searchSession.ToQuery(enabledSearchLanguages(ctx))
+	query, errE := sessionQuery(ctx, searchSession)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
 	f := search.RefFilter{}
 	data, metadata, errE := f.GetSubRef(ctx, s.getSearchServiceClosure(req), query, parentProp, prop, parentToRestrictions)
 	if errE != nil {
@@ -418,7 +471,11 @@ func (s *Service) SearchSubAmountFilterGetAPI(w http.ResponseWriter, req *http.R
 
 	parentToRestrictions := collectParentToFromSession(searchSession.Filters, parentProp)
 
-	query := searchSession.ToQuery(enabledSearchLanguages(ctx))
+	query, errE := sessionQuery(ctx, searchSession)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
 	f := search.AmountFilter{Unit: unit} //nolint:exhaustruct
 	data, metadata, errE := f.GetSubAmount(ctx, s.getSearchServiceClosure(req), query, parentProp, prop, parentToRestrictions)
 	if errE != nil {
@@ -464,7 +521,11 @@ func (s *Service) SearchSubTimeFilterGetAPI(w http.ResponseWriter, req *http.Req
 
 	parentToRestrictions := collectParentToFromSession(searchSession.Filters, parentProp)
 
-	query := searchSession.ToQuery(enabledSearchLanguages(ctx))
+	query, errE := sessionQuery(ctx, searchSession)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
 	f := search.TimeFilter{}
 	data, metadata, errE := f.GetSubTime(ctx, s.getSearchServiceClosure(req), query, parentProp, prop, parentToRestrictions)
 	if errE != nil {
@@ -499,7 +560,11 @@ func (s *Service) SearchHasFilterGetAPI(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	query := searchSession.ToQuery(enabledSearchLanguages(ctx))
+	query, errE := sessionQuery(ctx, searchSession)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
 	f := search.HasFilter{}
 	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req), query)
 	if errE != nil {
@@ -539,7 +604,11 @@ func (s *Service) SearchSubHasFilterGetAPI(w http.ResponseWriter, req *http.Requ
 
 	parentToRestrictions := collectParentToFromSession(searchSession.Filters, parentProp)
 
-	query := searchSession.ToQuery(enabledSearchLanguages(ctx))
+	query, errE := sessionQuery(ctx, searchSession)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
 	f := search.HasFilter{}
 	data, metadata, errE := f.GetSubHas(ctx, s.getSearchServiceClosure(req), query, parentProp, parentToRestrictions)
 	if errE != nil {
@@ -616,7 +685,13 @@ func (s *Service) SearchFiltersGetAPI(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	data, metadata, errE := search.FiltersGet(ctx, s.getSearchServiceClosure(req), searchSession, enabledSearchLanguages(ctx))
+	accessFilter, errE := searchAccessFilter(ctx)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	data, metadata, errE := search.FiltersGet(ctx, s.getSearchServiceClosure(req), searchSession, enabledSearchLanguages(ctx), accessFilter)
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -655,7 +730,13 @@ func (s *Service) SearchResultsGetAPI(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchSession.SessionData, enabledSearchLanguages(ctx), factor)
+	accessFilter, errE := searchAccessFilter(ctx)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchSession.SessionData, enabledSearchLanguages(ctx), factor, accessFilter)
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -696,7 +777,13 @@ func (s *Service) SearchJustResultsPostAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchData, enabledSearchLanguages(ctx), factor)
+	accessFilter, errE := searchAccessFilter(ctx)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchData, enabledSearchLanguages(ctx), factor, accessFilter)
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -728,7 +815,13 @@ func (s *Service) SearchJustResultsGetAPI(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchSession.SessionData, enabledSearchLanguages(ctx), factor)
+	accessFilter, errE := searchAccessFilter(ctx)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchSession.SessionData, enabledSearchLanguages(ctx), factor, accessFilter)
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return

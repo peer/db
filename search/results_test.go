@@ -898,3 +898,77 @@ func TestScoreFactor(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.InDelta(t, (math.Pow(2, search.TestingScoreBoostMax)-2)/float64(value), factor, 0.001)
 }
+
+// TestResultsGetExtraFiltersIntegration verifies that an extraFilters argument to
+// ResultsGet (the mechanism behind base.B.SearchQueryHook) actually restricts
+// results: it wraps the query so only matching documents are returned.
+func TestResultsGetExtraFiltersIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	instanceOf := identifier.From("INSTANCE_OF")
+	classA := identifier.From("classA")
+	classB := identifier.From("classB")
+
+	docA := identifier.From("docA")
+	docB := identifier.From("docB")
+	docA2 := identifier.From("docA2")
+
+	indexInstanceOf := func(id, class identifier.Identifier) {
+		indexDocument(t, ctx, esClient, index, internalSearch.Document{
+			ID:              id,
+			Display:         nil,
+			Text:            nil,
+			Time:            nil,
+			ReferencesCount: nil,
+			ClaimsCount:     nil,
+			ScoreCount:      nil,
+			Claims: internalSearch.ClaimTypes{
+				Amount: nil, Time: nil,
+				Reference: internalSearch.ReferenceClaims{{
+					Prop: instanceOf, PropDisplay: nil, PropNaming: nil,
+					To: class, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
+				}},
+				Has: nil, None: nil, Unknown: nil,
+				SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			},
+		})
+	}
+	indexInstanceOf(docA, classA)
+	indexInstanceOf(docB, classB)
+	indexInstanceOf(docA2, classA)
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{
+		View:    "",
+		Query:   "",
+		Filters: nil,
+		Reverse: nil,
+	})
+
+	// Without an access filter, all three documents are returned.
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Len(t, results, 3)
+
+	// With an access filter restricting INSTANCE_OF to classA, only the two
+	// classA documents are returned: the filter wraps the user's query.
+	accessFilter := (&search.RefFilter{
+		To:      []search.ToValue{{ID: classA}},
+		Missing: false,
+	}).ToQuery(instanceOf)
+
+	results, _, errE = search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0, accessFilter)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	gotIDs := make([]string, 0, len(results))
+	for _, r := range results {
+		gotIDs = append(gotIDs, r.ID)
+	}
+	sort.Strings(gotIDs)
+	expectedIDs := []string{docA.String(), docA2.String()}
+	sort.Strings(expectedIDs)
+	assert.Equal(t, expectedIDs, gotIDs)
+	assert.NotContains(t, gotIDs, docB.String())
+}

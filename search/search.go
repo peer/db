@@ -553,6 +553,23 @@ func reverseScopeQuery(id identifier.Identifier) types.QueryVariant { //nolint:i
 	).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
 }
 
+// withExtraFilters returns musts as a bool query, adding any non-nil extra
+// queries as filter clauses. A site's per-caller access restriction (from
+// base.B.SearchQueryHook) is threaded into every search query this way.
+func withExtraFilters(musts, extraFilters []types.QueryVariant) types.QueryVariant { //nolint:ireturn
+	query := esdsl.NewBoolQuery().Must(musts...)
+	filters := make([]types.QueryVariant, 0, len(extraFilters))
+	for _, f := range extraFilters {
+		if f != nil {
+			filters = append(filters, f)
+		}
+	}
+	if len(filters) > 0 {
+		return query.Filter(filters...)
+	}
+	return query
+}
+
 // ToQuery converts the Session to an ElasticSearch query.
 //
 // TODO: Determine which operator should be the default?
@@ -560,7 +577,8 @@ func reverseScopeQuery(id identifier.Identifier) types.QueryVariant { //nolint:i
 // TODO: Limit allowed syntax for simple queries (disable fuzzy matching).
 // enabledLanguages is the site's indexed language set, used to scope the text-search query
 // to the languages the index actually has (empty falls back to the global default).
-func (s *SessionData) ToQuery(enabledLanguages []string) types.QueryVariant { //nolint:ireturn
+// extraFilters are added as bool filter clauses (used for the per-caller access restriction).
+func (s *SessionData) ToQuery(enabledLanguages []string, extraFilters ...types.QueryVariant) types.QueryVariant { //nolint:ireturn
 	musts := make([]types.QueryVariant, 0, len(s.Filters)+2) //nolint:mnd
 
 	if s.Reverse != nil {
@@ -575,14 +593,16 @@ func (s *SessionData) ToQuery(enabledLanguages []string) types.QueryVariant { //
 		musts = append(musts, s.filterQuery(i, nil))
 	}
 
-	return esdsl.NewBoolQuery().Must(musts...)
+	return withExtraFilters(musts, extraFilters)
 }
 
 // ToQueryExcluding converts the SessionData to an ElasticSearch query, excluding
 // the filter with the given ID. This is used when fetching filter data so that
 // the current filter's own restrictions do not affect its available values.
 // enabledLanguages scopes the text-search query as in ToQuery.
-func (s *SessionData) ToQueryExcluding(excludeFilterID identifier.Identifier, enabledLanguages []string) types.QueryVariant { //nolint:ireturn
+func (s *SessionData) ToQueryExcluding( //nolint:ireturn
+	excludeFilterID identifier.Identifier, enabledLanguages []string, extraFilters ...types.QueryVariant,
+) types.QueryVariant {
 	musts := make([]types.QueryVariant, 0, len(s.Filters)+2) //nolint:mnd
 
 	if s.Reverse != nil {
@@ -600,7 +620,7 @@ func (s *SessionData) ToQueryExcluding(excludeFilterID identifier.Identifier, en
 		musts = append(musts, s.filterQuery(i, &excludeFilterID))
 	}
 
-	return esdsl.NewBoolQuery().Must(musts...)
+	return withExtraFilters(musts, extraFilters)
 }
 
 // filterQuery builds the ES query for the filter at idx, dispatching to the
@@ -899,10 +919,11 @@ type Result struct {
 // ResultsGet retrieves search results for a given search session.
 func ResultsGet(
 	ctx context.Context, getSearchService func() *esSearch.Search, searchData *SessionData, enabledLanguages []string, factor float64,
+	extraFilters ...types.QueryVariant,
 ) ([]Result, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
-	query := searchData.ToQuery(enabledLanguages)
+	query := searchData.ToQuery(enabledLanguages, extraFilters...)
 
 	// Multiplicatively boost ranking by the document's scoreCount (its own claims
 	// plus the documents referencing it) so that, among equally relevant text

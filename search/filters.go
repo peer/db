@@ -154,10 +154,15 @@ func parseMultiTermsBuckets(buckets []types.MultiTermsBucket) ([]FilterResult, e
 // FiltersGet retrieves all available filters for the current search.
 func FiltersGet( //nolint:maintidx
 	ctx context.Context, getSearchService func() *esSearch.Search, searchSession *Session, enabledLanguages []string,
+	extraFilters ...types.QueryVariant,
 ) ([]FilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
-	query := searchSession.ToQuery(enabledLanguages)
+	// The access filter goes on the top-level query only; ES scopes every
+	// aggregation (including the per-active-filter ToQueryExcluding sub-aggregations
+	// below) to the documents it matches, so facet counts never include
+	// documents the caller cannot access.
+	query := searchSession.ToQuery(enabledLanguages, extraFilters...)
 
 	searchService := getSearchService()
 	refAggregation := esdsl.NewAggregations().
