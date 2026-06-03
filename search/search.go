@@ -77,6 +77,25 @@ const (
 	scoreCountPercentile = 99.0
 )
 
+// distinctValuesTotal returns the number of distinct values represented by a terms
+// aggregation that was capped at MaxResultsCount buckets, paired with a cardinality
+// aggregation over the same field. When fewer than MaxResultsCount buckets came back
+// the terms aggregation was not truncated, so the bucket count is the exact number
+// of distinct values and we use it directly. Only when the aggregation is saturated
+// (it returned the full MaxResultsCount buckets and may have omitted further values)
+// do we fall back to the cardinality estimate for how many values exist beyond the
+// cap. Cardinality is approximate and can over, as well as under, count (see
+// https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html#_counts_are_approximate),
+// so trusting it when the exact count is already known would wrongly report values as
+// "not shown". The max guards the saturated case against the estimate undercounting
+// the buckets we already hold.
+func distinctValuesTotal(bucketCount int, cardinality int64) int64 {
+	if bucketCount < MaxResultsCount {
+		return int64(bucketCount)
+	}
+	return max(int64(bucketCount), cardinality)
+}
+
 // ViewType represents the type of search view.
 type ViewType string
 

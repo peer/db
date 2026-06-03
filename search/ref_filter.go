@@ -244,9 +244,7 @@ func (f *RefFilter) Get(
 	// This also puts missing in the right position.
 	slices.SortStableFunc(results, compareRefFilterResults)
 
-	// Cardinality count is approximate, so we make sure the total is sane.
-	// See: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html#_counts_are_approximate
-	refTotalValue := max(int64(len(refBuckets)), refTotal.Value)
+	refTotalValue := distinctValuesTotal(len(refBuckets), refTotal.Value)
 	// Include missing in the total if present.
 	if missingCount > 0 {
 		refTotalValue++
@@ -433,7 +431,7 @@ func (f *RefFilter) GetSubRef(
 	// This also puts missing in the right position.
 	slices.SortStableFunc(results, compareRefFilterResults)
 
-	subRefTotalValue := max(int64(len(subRefBuckets)), subRefTotal.Value)
+	subRefTotalValue := distinctValuesTotal(len(subRefBuckets), subRefTotal.Value)
 	if missingCount > 0 {
 		subRefTotalValue++
 	}

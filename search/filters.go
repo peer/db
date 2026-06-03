@@ -663,20 +663,18 @@ func FiltersGet( //nolint:maintidx
 		results = results[:MaxResultsCount]
 	}
 
-	// Cardinality count is approximate, so we make sure the total is sane.
-	// See: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html#_counts_are_approximate
-	refTotalValue := max(int64(len(refBuckets)), refTotal.Value)
-	amountTotalValue := max(int64(len(amountBuckets)), amountTotal.Value)
-	timeTotalValue := max(int64(len(timeBuckets)), timeTotal.Value)
+	refTotalValue := distinctValuesTotal(len(refBuckets), refTotal.Value)
+	amountTotalValue := distinctValuesTotal(len(amountBuckets), amountTotal.Value)
+	timeTotalValue := distinctValuesTotal(len(timeBuckets), timeTotal.Value)
 	// Has filter contributes at most 1 to the total (one filter for all has claims).
 	var hasTotalValue int64
 	if hasDocCount > 0 {
 		hasTotalValue = 1
 	}
-	subRefTotalValue := max(int64(len(subRefBuckets)), subRefTotal.Value)
-	subAmountTotalValue := max(int64(len(subAmountBuckets)), subAmountTotal.Value)
-	subTimeTotalValue := max(int64(len(subTimeBuckets)), subTimeTotal.Value)
-	subHasTotalValue := max(int64(len(subHasBuckets)), subHasTotal.Value)
+	subRefTotalValue := distinctValuesTotal(len(subRefBuckets), subRefTotal.Value)
+	subAmountTotalValue := distinctValuesTotal(len(subAmountBuckets), subAmountTotal.Value)
+	subTimeTotalValue := distinctValuesTotal(len(subTimeBuckets), subTimeTotal.Value)
+	subHasTotalValue := distinctValuesTotal(len(subHasBuckets), subHasTotal.Value)
 	total := strconv.FormatInt(
 		refTotalValue+amountTotalValue+timeTotalValue+hasTotalValue+
 			subRefTotalValue+subAmountTotalValue+subTimeTotalValue+subHasTotalValue,

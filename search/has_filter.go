@@ -109,7 +109,7 @@ func (f *HasFilter) GetSubHas(
 		results = append(results, HasFilterResult{ID: key, Count: bucketDocs.DocCount})
 	}
 
-	subHasTotalValue := max(int64(len(subHasBuckets)), subHasTotal.Value)
+	subHasTotalValue := distinctValuesTotal(len(subHasBuckets), subHasTotal.Value)
 	total := strconv.FormatInt(subHasTotalValue, 10)
 
 	return results, map[string]any{
@@ -184,9 +184,7 @@ func (f *HasFilter) Get(
 		results = append(results, HasFilterResult{ID: key, Count: bucketDocs.DocCount})
 	}
 
-	// Cardinality count is approximate, so we make sure the total is sane.
-	// See: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html#_counts_are_approximate
-	hasTotalValue := max(int64(len(hasBuckets)), hasTotal.Value)
+	hasTotalValue := distinctValuesTotal(len(hasBuckets), hasTotal.Value)
 	total := strconv.FormatInt(hasTotalValue, 10)
 
 	return results, map[string]any{

@@ -105,6 +105,38 @@ func TestComputeInterval(t *testing.T) {
 	}
 }
 
+func TestDistinctValuesTotal(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		Name        string
+		BucketCount int
+		Cardinality int64
+		Want        int64
+	}{
+		// Not truncated (fewer than MaxResultsCount buckets): the bucket count is exact and the
+		// approximate cardinality is ignored, even when it over or under counts. This is the case
+		// that previously made the frontend show "N values not shown" with everything visible.
+		{Name: "ExactCardinalityMatches", BucketCount: 5, Cardinality: 5, Want: 5},
+		{Name: "CardinalityOvercounts", BucketCount: 5, Cardinality: 7, Want: 5},
+		{Name: "CardinalityUndercounts", BucketCount: 5, Cardinality: 3, Want: 5},
+		{Name: "Empty", BucketCount: 0, Cardinality: 0, Want: 0},
+		{Name: "JustBelowCap", BucketCount: MaxResultsCount - 1, Cardinality: MaxResultsCount + 100, Want: MaxResultsCount - 1},
+		// Saturated (exactly MaxResultsCount buckets): the aggregation may have omitted values, so
+		// the cardinality estimate is used to report how many exist beyond the cap, guarded by the
+		// bucket count so it never reports fewer than what we already hold.
+		{Name: "SaturatedCardinalityHigher", BucketCount: MaxResultsCount, Cardinality: MaxResultsCount + 250, Want: MaxResultsCount + 250},
+		{Name: "SaturatedCardinalityLower", BucketCount: MaxResultsCount, Cardinality: MaxResultsCount - 10, Want: MaxResultsCount},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.Want, distinctValuesTotal(tt.BucketCount, tt.Cardinality))
+		})
+	}
+}
+
 func TestAmountUnitFilter(t *testing.T) {
 	t.Parallel()
 
