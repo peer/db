@@ -32,6 +32,13 @@ export function deleteFromCache(url: string) {
   localGetCache.delete(url)
 }
 
+// clearCache empties the in-process GET cache. It is called on sign-out so that
+// responses cached for the previous identity (which may include role-restricted
+// fields or results) are not reused under the new roles.
+export function clearCache() {
+  localGetCache.clear()
+}
+
 // TODO: Improve priority with "el".
 export async function getURL<T>(
   url: string,

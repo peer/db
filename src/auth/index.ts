@@ -5,7 +5,7 @@ import type { UserInfo } from "@/types"
 
 import { computed, ref } from "vue"
 
-import { postJSON } from "@/api"
+import { clearCache, postJSON } from "@/api"
 import siteContext, { initialRoles, initialUserInfo } from "@/context"
 import { currentAbsoluteURL, redirectServerSide } from "@/utils"
 
@@ -19,6 +19,13 @@ export const currentUserInfo = ref<UserInfo | null>(initialUserInfo)
 
 // currentRoles tracks the role list parsed from the Roles response header.
 export const currentRoles = ref<string[]>(initialRoles)
+
+// authEpoch increments on every in-app identity change that is not accompanied
+// by a full page load (currently only sign-out). The root <router-view> is keyed
+// on it (see App.vue), so the whole component tree remounts and refetches
+// results, filters and documents under the new roles. Sign-in does not need
+// this: it round-trips through a server-side redirect that fully reloads the app.
+export const authEpoch = ref(0)
 
 // currentIdentityId mirrors the currentUserInfo's subject.
 export const currentIdentityId = computed(() => currentUserInfo.value?.subject ?? "")
@@ -92,6 +99,11 @@ export async function signOut(router: Router, abortSignal: AbortSignal, lock: Re
     }
     currentUserInfo.value = null
     currentRoles.value = []
+    // Drop responses cached for the previous identity, then bump authEpoch to
+    // remount the app so every component refetches under the new (signed-out)
+    // roles.
+    clearCache()
+    authEpoch.value += 1
   } finally {
     lock.value -= 1
   }
