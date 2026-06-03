@@ -22,6 +22,10 @@ import (
 	"gitlab.com/peerdb/peerdb/store"
 )
 
+// TODO: Handle the case when ancestor's hierarchy changes.
+//       Currently, the indexed document is refreshed when the source document is reindexed
+//       (or on a full reindex), but not when an intermediate ancestor's hierarchy changes.
+
 // inlineHTMLTags is the set of HTML tag names that do NOT produce a visible
 // line/block break in rendered text. Text fragments separated only by these
 // tags are concatenated directly when extracted to plain text. Every other
@@ -1601,6 +1605,8 @@ func inverseReferenceClaimID(base []string, irKey store.InverseRelationKey) iden
 // and for each reference claim, resolves the inverse property from field-level
 // definitions (taking precedence) or property-level INVERSE_PROPERTY_OF.
 type inverseRelationsVisitor struct {
+	// ctx is used to resolve a target's hierarchy ancestors via getDocumentInfo.
+	ctx       context.Context //nolint:containedctx
 	converter *Converter
 	docID     identifier.Identifier
 	// path tracks the current nesting of claim property IDs.
@@ -1692,35 +1698,43 @@ func (v *inverseRelationsVisitor) VisitReference(claim *document.ReferenceClaim)
 		return document.Keep, nil
 	}
 
-	// Check field-level inverse property first (takes precedence).
+	// Resolve the inverse property/properties for this claim. Field-level inverse
+	// (based on the current path) takes precedence over property-level inverse.
+	var targetProps []identifier.Identifier
 	key := fieldInverseKey{
 		Path:       encodeFieldPath(v.path),
 		SourceProp: claim.Prop.ID,
 	}
 	if targetProp, ok := v.converter.fieldInverseProperties[key]; ok {
-		v.result[claim.To.ID] = append(v.result[claim.To.ID], store.InverseRelation{
-			InverseRelationKey: store.InverseRelationKey{
-				Claim:      claim.ID,
-				Source:     v.docID,
-				TargetProp: targetProp,
-			},
-			SourceProp: claim.Prop.ID,
-			Target:     claim.To.ID,
-			Confidence: claim.GetConfidence(),
-		})
+		targetProps = []identifier.Identifier{targetProp}
 	} else {
-		// Fall back to property-level inverse properties.
-		for _, inversePropID := range v.converter.inverseProperties[claim.Prop.ID] {
-			v.result[claim.To.ID] = append(v.result[claim.To.ID], store.InverseRelation{
-				InverseRelationKey: store.InverseRelationKey{
-					Claim:      claim.ID,
-					Source:     v.docID,
-					TargetProp: inversePropID,
-				},
-				SourceProp: claim.Prop.ID,
-				Target:     claim.To.ID,
-				Confidence: claim.GetConfidence(),
-			})
+		targetProps = v.converter.inverseProperties[claim.Prop.ID]
+	}
+
+	if len(targetProps) > 0 {
+		// Expand the target across its value hierarchies so the inverse relation lands on the direct
+		// target and all its transitive ancestors, mirroring the forward reference expansion in
+		// convertReference. This keeps the forward and inverse indexes consistent: if the forward
+		// index says the source (transitively) references an ancestor, the ancestor's inverse index
+		// records the source too. It is a no-op for targets that are not part of any value hierarchy.
+		targets, errE := v.expandedTargets(claim.To.ID)
+		if errE != nil {
+			errors.Details(errE)["claim"] = claim
+			return document.Keep, errE
+		}
+		for _, targetProp := range targetProps {
+			for _, target := range targets {
+				v.result[target] = append(v.result[target], store.InverseRelation{
+					InverseRelationKey: store.InverseRelationKey{
+						Claim:      claim.ID,
+						Source:     v.docID,
+						TargetProp: targetProp,
+					},
+					SourceProp: claim.Prop.ID,
+					Target:     target,
+					Confidence: claim.GetConfidence(),
+				})
+			}
 		}
 	}
 
@@ -1752,23 +1766,53 @@ func (v *inverseRelationsVisitor) VisitUnknown(claim *document.UnknownClaim) (do
 	return document.Keep, v.recurse(claim.Prop.ID, claim)
 }
 
+// expandedTargets returns the direct target document ID plus its transitive ancestors
+// across all value hierarchies, deduplicated. It mirrors the target expansion
+// convertReference performs for forward references.
+func (v *inverseRelationsVisitor) expandedTargets(targetID identifier.Identifier) ([]identifier.Identifier, errors.E) {
+	if len(v.converter.valueHierarchyProperties) == 0 {
+		// When no value hierarchies are configured we avoid
+		// fetching the target document entirely.
+		return []identifier.Identifier{targetID}, nil
+	}
+	info, errE := v.converter.getDocumentInfo(v.ctx, targetID)
+	if errE != nil {
+		return nil, errE
+	}
+	targets := []identifier.Identifier{targetID}
+	seen := map[identifier.Identifier]bool{targetID: true}
+	for _, ancestors := range info.Ancestors {
+		for _, aid := range ancestors {
+			if !seen[aid] {
+				seen[aid] = true
+				targets = append(targets, aid)
+			}
+		}
+	}
+	return targets, nil
+}
+
 // OutgoingInverseRelations extracts the outgoing inverse relations from a document.
 //
 // It walks the document's claims using an inverseRelationsVisitor that tracks the
 // current field path (via HasClaim nesting). For each reference claim, it resolves
 // the inverse property from field-level INVERSE_PROPERTY (taking precedence) or
-// property-level INVERSE_PROPERTY_OF. Only reference claims with a resolved inverse
-// property produce InverseRelation entries. Returns a map keyed by target document ID.
-func (c *Converter) OutgoingInverseRelations(doc *document.D) map[identifier.Identifier][]store.InverseRelation {
+// property-level INVERSE_PROPERTY_OF, and emits an InverseRelation for the direct
+// target and each of its value-hierarchy ancestors. Returns a map keyed by target
+// document ID.
+func (c *Converter) OutgoingInverseRelations(ctx context.Context, doc *document.D) (map[identifier.Identifier][]store.InverseRelation, errors.E) {
 	v := &inverseRelationsVisitor{
+		ctx:       ctx,
 		converter: c,
 		docID:     doc.ID,
 		path:      nil,
 		result:    map[identifier.Identifier][]store.InverseRelation{},
 	}
-	// Visit cannot return an error from inverseRelationsVisitor.
-	_ = doc.Visit(v)
-	return v.result
+	errE := doc.Visit(v)
+	if errE != nil {
+		return nil, errE
+	}
+	return v.result, nil
 }
 
 func (c *Converter) convertAmount(ctx context.Context, claim *document.AmountClaim) ([]AmountClaim, errors.E) {

@@ -6766,7 +6766,8 @@ func TestOutgoingInverseRelations(t *testing.T) {
 		},
 	}
 
-	outgoing := c.OutgoingInverseRelations(doc)
+	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
+	require.NoError(t, errE)
 
 	// Should have an entry for the target document.
 	require.Contains(t, outgoing, testTargetDocID)
@@ -6777,6 +6778,67 @@ func TestOutgoingInverseRelations(t *testing.T) {
 	assert.Equal(t, testPropID, ir.SourceProp)
 	assert.Equal(t, testPropID2, ir.TargetProp)
 	assert.Equal(t, float64(document.HighConfidence), float64(ir.Confidence)) //nolint:testifylint
+}
+
+func TestOutgoingInverseRelationsHierarchyExpansion(t *testing.T) {
+	t.Parallel()
+
+	// containedIn is a sub-property of SUBENTITY_OF, so it defines a value hierarchy and
+	// targets referenced through it expand to their ancestors.
+	containedIn := identifier.New()
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	containedInDoc := makePropertyDoc(containedIn, &internalCore.SubentityOfPropID)
+
+	// hasLocation has inverse inLocation.
+	hasLocation := identifier.New()
+	inLocation := identifier.New()
+	hasLocationDoc := makePropertyDocFull(hasLocation, nil, &inLocation)
+	inLocationDoc := makePropertyDoc(inLocation, nil)
+
+	properties := []*document.D{subentityDoc, containedInDoc, hasLocationDoc, inLocationDoc}
+
+	// city is contained in country.
+	country := identifier.New()
+	city := identifier.New()
+	extraDocs := map[identifier.Identifier]*document.D{
+		city:    makeHierarchyDoc(city, "City", containedIn, &country),
+		country: makeHierarchyDoc(country, "Country", containedIn, nil),
+	}
+	c := newTestConverter(t, properties, nil, extraDocs)
+
+	// Source document references the city via hasLocation.
+	claimID := identifier.New()
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: document.CoreClaim{ID: claimID, Confidence: document.HighConfidence},
+					Prop:      document.Reference{ID: hasLocation},
+					To:        document.Reference{ID: city},
+				},
+			},
+		},
+	}
+
+	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The inverse relation lands on both the direct target (city) and its ancestor (country).
+	require.Contains(t, outgoing, city)
+	require.Contains(t, outgoing, country)
+	require.Len(t, outgoing[city], 1)
+	require.Len(t, outgoing[country], 1)
+
+	assert.Equal(t, inLocation, outgoing[city][0].TargetProp)
+	assert.Equal(t, city, outgoing[city][0].Target)
+	assert.Equal(t, testDocID, outgoing[city][0].Source)
+	assert.Equal(t, claimID, outgoing[city][0].Claim)
+
+	assert.Equal(t, inLocation, outgoing[country][0].TargetProp)
+	assert.Equal(t, country, outgoing[country][0].Target)
+	assert.Equal(t, testDocID, outgoing[country][0].Source)
+	assert.Equal(t, claimID, outgoing[country][0].Claim)
 }
 
 func TestInverseRelationClaimIDDeterministic(t *testing.T) {
@@ -6819,7 +6881,8 @@ func TestOutgoingInverseRelationsEmpty(t *testing.T) {
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 
-	outgoing := c.OutgoingInverseRelations(doc)
+	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
+	require.NoError(t, errE)
 	assert.Empty(t, outgoing)
 }
 
@@ -6843,7 +6906,8 @@ func TestOutgoingInverseRelationsNoInverse(t *testing.T) {
 		},
 	}
 
-	outgoing := c.OutgoingInverseRelations(doc)
+	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
+	require.NoError(t, errE)
 
 	// No inverse property, so no outgoing relations should be created.
 	assert.Empty(t, outgoing)
@@ -7353,7 +7417,8 @@ func TestOutgoingInverseRelationsFieldLevel(t *testing.T) {
 		},
 	}
 
-	outgoing := c.OutgoingInverseRelations(doc)
+	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
+	require.NoError(t, errE)
 
 	require.Contains(t, outgoing, targetDocID)
 	require.Len(t, outgoing[targetDocID], 1)
@@ -7395,7 +7460,8 @@ func TestOutgoingInverseRelationsFieldLevelPrecedence(t *testing.T) {
 		},
 	}
 
-	outgoing := c.OutgoingInverseRelations(doc)
+	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
+	require.NoError(t, errE)
 
 	// Field-level inverse takes precedence over property-level.
 	require.Contains(t, outgoing, targetDocID)
@@ -7442,7 +7508,8 @@ func TestOutgoingInverseRelationsSubFieldInverse(t *testing.T) {
 		},
 	}
 
-	outgoing := c.OutgoingInverseRelations(doc)
+	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
+	require.NoError(t, errE)
 
 	require.Contains(t, outgoing, targetDocID)
 	require.Len(t, outgoing[targetDocID], 1)
@@ -7506,7 +7573,8 @@ func TestOutgoingInverseRelationsDifferentPathsSameProperty(t *testing.T) {
 		},
 	}
 
-	outgoing := c.OutgoingInverseRelations(doc)
+	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
+	require.NoError(t, errE)
 
 	// Each should have the correct inverse based on its path.
 	require.Contains(t, outgoing, targetDoc1)
@@ -7543,7 +7611,8 @@ func TestOutgoingInverseRelationsPropertyFallback(t *testing.T) {
 		},
 	}
 
-	outgoing := c.OutgoingInverseRelations(doc)
+	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
+	require.NoError(t, errE)
 
 	// Should use property-level inverse.
 	require.Contains(t, outgoing, targetDocID)
@@ -7593,7 +7662,8 @@ func TestOutgoingInverseRelationsStringSubClaimReference(t *testing.T) {
 		},
 	}
 
-	outgoing := c.OutgoingInverseRelations(doc)
+	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
+	require.NoError(t, errE)
 
 	// Should find the reference inside the string claim's sub-claims.
 	require.Contains(t, outgoing, langDocID)

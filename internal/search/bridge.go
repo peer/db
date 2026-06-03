@@ -816,7 +816,7 @@ func (b *Bridge) indexCommit(
 					errors.Details(errE)["doc"] = change.ID.String()
 					return nil, nil, errE
 				} else {
-					currentOutgoing, errE = b.outgoingInverseRelations(data)
+					currentOutgoing, errE = b.outgoingInverseRelations(ctx, data)
 					if errE != nil {
 						errors.Details(errE)["seq"] = committed.Seq
 						errors.Details(errE)["view"] = committed.View.Name()
@@ -840,7 +840,7 @@ func (b *Bridge) indexCommit(
 						errors.Details(errE)["doc"] = change.ID.String()
 						return nil, nil, errE
 					}
-					po, errE := b.outgoingInverseRelations(parentData)
+					po, errE := b.outgoingInverseRelations(ctx, parentData)
 					if errE != nil {
 						errors.Details(errE)["seq"] = committed.Seq
 						errors.Details(errE)["view"] = committed.View.Name()
@@ -992,14 +992,14 @@ func (b *Bridge) ConvertDocument(ctx context.Context, data json.RawMessage, meta
 	return b.converter.Load().FromDocument(ctx, &doc, metadata.InverseRelations)
 }
 
-func (b *Bridge) outgoingInverseRelations(data json.RawMessage) (map[identifier.Identifier][]store.InverseRelation, errors.E) {
+func (b *Bridge) outgoingInverseRelations(ctx context.Context, data json.RawMessage) (map[identifier.Identifier][]store.InverseRelation, errors.E) {
 	var doc document.D
 	errE := x.UnmarshalWithoutUnknownFields(data, &doc)
 	if errE != nil {
 		return nil, errE
 	}
 
-	return b.converter.Load().OutgoingInverseRelations(&doc), nil
+	return b.converter.Load().OutgoingInverseRelations(ctx, &doc)
 }
 
 // getSeq reads the current last-indexed seq from the bridge table.
