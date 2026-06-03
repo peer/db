@@ -201,24 +201,35 @@ const flatTree = computed((): FlatEntry[] => {
 
 const { limitedResults, hasMore, loadMore } = useLimitResults(flatTree, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
 
-const uniqueShown = computed(() => new Set(limitedResults.value.map((e) => e.node.res.id)).size)
-
-const optionsRemaining = computed(() => {
-  if (total.value === null) {
-    return 0
-  }
-  return Math.max(0, total.value - uniqueShown.value)
-})
+// Distinct filter values within the paginated slice. Diamond duplicates (the same
+// value rendered under multiple parents) collapse to one here, so this can trail
+// the slice length. It only drives the SKIP_TO_END decision below: how many
+// distinct options are still hidden behind the row limit.
+const limitedUnique = computed(() => new Set(limitedResults.value.map((e) => e.node.res.id)).size)
 
 // effectiveLimited is what we actually render. It mirrors useLimitResults'
 // SKIP_TO_END short-circuit at the unique-options layer: when SKIP_TO_END or
 // fewer reachable options are still hidden, expose every remaining tree row in
 // one go.
 const effectiveLimited = computed((): FlatEntry[] => {
-  if (results.value.length - uniqueShown.value <= SKIP_TO_END) {
+  if (results.value.length - limitedUnique.value <= SKIP_TO_END) {
     return flatTree.value
   }
   return limitedResults.value as FlatEntry[]
+})
+
+// Distinct filter values actually rendered. optionsRemaining is measured against
+// this rather than the pre-short-circuit slice: once effectiveLimited expands to
+// the full tree every value is on screen, so the remaining count must reach zero.
+// Measuring against limitedResults instead would report the diamond-duplicate gap
+// between the slice length and its distinct-value count as phantom values "not shown".
+const shownUnique = computed(() => new Set(effectiveLimited.value.map((e) => e.node.res.id)).size)
+
+const optionsRemaining = computed(() => {
+  if (total.value === null) {
+    return 0
+  }
+  return Math.max(0, total.value - shownUnique.value)
 })
 
 // The render-time tree: a stack walk over effectiveLimited that rebuilds parent
