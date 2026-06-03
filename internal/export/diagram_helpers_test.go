@@ -131,10 +131,10 @@ func TestCardinalityLabel(t *testing.T) {
 	}
 }
 
-// TestResolveDiagramShortcutID verifies the shortcut-grammar identifier
-// resolver: 22-character base58 IDs, comma-separated base parts, and the
-// reserved "self" / "reverse" / nested-key sentinels.
-func TestResolveDiagramShortcutID(t *testing.T) {
+// TestResolveDiagramValuesID verifies the values-tag identifier resolver:
+// 22-character base58 IDs, comma-separated base parts, and the shared
+// search-shortcut grammar's reserved "self" / "reverse" / nested-key sentinels.
+func TestResolveDiagramValuesID(t *testing.T) {
 	t.Parallel()
 
 	// A real, well-formed 22-character base58 identifier.
@@ -159,7 +159,7 @@ func TestResolveDiagramShortcutID(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			id, ok := export.TestingResolveDiagramShortcutID(tc.token)
+			id, ok := export.TestingResolveDiagramValuesID(tc.token)
 			assert.Equal(t, tc.wantOK, ok)
 			if tc.wantOK {
 				assert.Equal(t, tc.wantID, id)

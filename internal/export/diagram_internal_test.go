@@ -16,7 +16,7 @@ var (
 	TestingClassifyDiagramValueType = classifyDiagramValueType
 	TestingCardinalityRightSymbol   = cardinalityRightSymbol
 	TestingCardinalityLabel         = cardinalityLabel
-	TestingResolveDiagramShortcutID = resolveDiagramShortcutID
+	TestingResolveDiagramValuesID   = resolveDiagramValuesID
 	TestingExtractDiagramClassInfo  = extractDiagramClassInfo
 	TestingEmbedsStruct             = embedsStruct
 	TestingValidateDiagramTypes     = validateDiagramTypes

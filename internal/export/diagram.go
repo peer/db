@@ -831,11 +831,11 @@ func parseDiagramValuesTargets(
 				continue
 			}
 			key, value := part[:eq], part[eq+1:]
-			keyID, ok := resolveDiagramShortcutID(key)
+			keyID, ok := resolveDiagramValuesID(key)
 			if !ok || keyID != internalCore.InstanceOfPropID {
 				continue
 			}
-			valueID, ok := resolveDiagramShortcutID(value)
+			valueID, ok := resolveDiagramValuesID(value)
 			if !ok {
 				logger.Warn().
 					Str("property", propertyName).
@@ -865,11 +865,13 @@ func parseDiagramValuesTargets(
 	return targets
 }
 
-// resolveDiagramShortcutID resolves a shortcut identifier token (either a
-// 22-character base58 ID or a comma-separated list of base parts) to an
-// [identifier.Identifier]. The shortcut "self" sentinel and "reverse" key are
-// not meaningful here and return ok=false.
-func resolveDiagramShortcutID(token string) (identifier.Identifier, bool) {
+// resolveDiagramValuesID resolves a single identifier token from a "values" tag
+// into an [identifier.Identifier]. The token is either a 22-character base58 ID
+// or a comma-separated list of base parts. Because the "values" tag shares the
+// search-shortcut grammar, the grammar's non-identifier tokens can also appear:
+// the "self"/"reverse" sentinels and nested "parent:prop" keys are not class or
+// property identifiers, so they return ok=false (and thus produce no edge).
+func resolveDiagramValuesID(token string) (identifier.Identifier, bool) {
 	if token == "" || token == "self" || token == "reverse" {
 		return identifier.Identifier{}, false
 	}
