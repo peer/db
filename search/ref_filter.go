@@ -119,6 +119,35 @@ func bucketsToRefFilterResults(buckets []types.StringTermsBucket, kind string) (
 	return results, nil
 }
 
+// refFilterDepth returns a value's depth in its class hierarchy: the length of
+// its longest ancestor chain (root to immediate parent), or 0 for a root value
+// or one without indexed paths. The longest chain is what makes a count-tie
+// ordering by depth a valid topological order even under multiple inheritance:
+// for any ancestor A of a value V, A's longest chain is strictly shorter than
+// V's longest chain, so A always sorts before V.
+func refFilterDepth(r RefFilterResult) int {
+	depth := 0
+	for _, path := range r.Paths {
+		if len(path) > depth {
+			depth = len(path)
+		}
+	}
+	return depth
+}
+
+// compareRefFilterResults orders reference filter results for the frontend tree:
+// by count descending, then by hierarchy depth ascending. Ancestor counts are
+// always greater than or equal to descendant counts (a reference is indexed for
+// the target and every ancestor), so the only way a descendant could precede an
+// ancestor is a count tie, which the depth tiebreak resolves by placing the
+// shallower (ancestor) value first.
+func compareRefFilterResults(a, b RefFilterResult) int {
+	if c := cmp.Compare(b.Count, a.Count); c != 0 {
+		return c
+	}
+	return cmp.Compare(refFilterDepth(a), refFilterDepth(b))
+}
+
 // Get retrieves reference filter data for search results.
 func (f *RefFilter) Get(
 	ctx context.Context, getSearchService func() *esSearch.Search,
@@ -208,11 +237,11 @@ func (f *RefFilter) Get(
 	// Include the missing bucket if there are documents without this property.
 	if missingCount > 0 {
 		results = append(results, RefFilterResult{ID: MissingRefFilterID, Count: missingCount, Paths: nil})
-		// Re-sort by count descending so that missing is in the right position.
-		slices.SortStableFunc(results, func(a, b RefFilterResult) int {
-			return cmp.Compare(b.Count, a.Count)
-		})
 	}
+
+	// Order for hierarchical tree rendering on the frontend.
+	// This also puts missing in the right position.
+	slices.SortStableFunc(results, compareRefFilterResults)
 
 	// Cardinality count is approximate, so we make sure the total is sane.
 	// See: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html#_counts_are_approximate
@@ -397,10 +426,11 @@ func (f *RefFilter) GetSubRef(
 	// Include the missing bucket if there are documents without this sub-reference.
 	if missingCount > 0 {
 		results = append(results, RefFilterResult{ID: MissingRefFilterID, Count: missingCount, Paths: nil})
-		slices.SortStableFunc(results, func(a, b RefFilterResult) int {
-			return cmp.Compare(b.Count, a.Count)
-		})
 	}
+
+	// Order for hierarchical tree rendering on the frontend.
+	// This also puts missing in the right position.
+	slices.SortStableFunc(results, compareRefFilterResults)
 
 	subRefTotalValue := max(int64(len(subRefBuckets)), subRefTotal.Value)
 	if missingCount > 0 {

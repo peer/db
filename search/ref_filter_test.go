@@ -338,8 +338,9 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// One source doc per bucket; order among equal counts is non-deterministic.
-	assert.ElementsMatch(t, []search.RefFilterResult{
+	// One source doc per bucket; on equal counts results are ordered by hierarchy
+	// depth ascending, so ancestors precede their descendants.
+	assert.Equal(t, []search.RefFilterResult{
 		{ID: animal.String(), Count: 1, Paths: nil},
 		{ID: mammal.String(), Count: 1, Paths: [][]string{{animal.String()}}},
 		{ID: dog.String(), Count: 1, Paths: [][]string{{animal.String(), mammal.String()}}},
@@ -395,6 +396,96 @@ func TestRefFilterGetDiamondIntegration(t *testing.T) {
 		{root.String(), parentA.String()},
 		{root.String(), parentB.String()},
 	}, results[0].Paths)
+}
+
+func TestRefFilterGetMultipleInheritanceIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	refProp := identifier.From("refProp")
+	hierProp := identifier.From("hierProp")
+	root := identifier.From("root")
+	mid1 := identifier.From("mid1")
+	mid2 := identifier.From("mid2")
+	deepParent := identifier.From("deepParent")
+	shallowParent := identifier.From("shallowParent")
+	leaf := identifier.From("leaf")
+
+	// leaf has two parents at different depths: deepParent (root/mid1/mid2/deepParent,
+	// depth 3) and shallowParent (root/shallowParent, depth 1). Its longest ancestor
+	// chain is depth 4 (via deepParent) and its shortest is depth 2 (via shallowParent).
+	// The shortest chain is strictly shallower than deepParent itself (depth 3), so
+	// ordering the count tie by the shortest chain would place leaf ahead of its own
+	// ancestor deepParent. Ordering by the longest chain keeps every ancestor in front.
+	rootPath := hierProp.String() + ":" + root.String()
+	mid1Path := rootPath + "/" + mid1.String()
+	mid2Path := mid1Path + "/" + mid2.String()
+	deepParentPath := mid2Path + "/" + deepParent.String()
+	shallowParentPath := rootPath + "/" + shallowParent.String()
+	leafViaDeep := deepParentPath + "/" + leaf.String()
+	leafViaShallow := shallowParentPath + "/" + leaf.String()
+
+	// One source doc, instance of leaf, expanded to a reference claim per ancestor as
+	// convertReference does at index time. Every bucket therefore has the same single-
+	// document count, so ordering is decided entirely by hierarchy depth.
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		ID:      identifier.From("leafDoc"),
+		Display: nil,
+		Text:    nil,
+		Claims: internalSearch.ClaimTypes{
+			Amount: nil, Time: nil,
+			Reference: internalSearch.ReferenceClaims{
+				{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: leaf, ToDisplay: nil, ToNaming: nil, ToPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil},
+				{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: deepParent, ToDisplay: nil, ToNaming: nil, ToPath: []string{deepParentPath}, ToDisplayPath: nil},
+				{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: shallowParent, ToDisplay: nil, ToNaming: nil, ToPath: []string{shallowParentPath}, ToDisplayPath: nil},
+				{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: mid2, ToDisplay: nil, ToNaming: nil, ToPath: []string{mid2Path}, ToDisplayPath: nil},
+				{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: mid1, ToDisplay: nil, ToNaming: nil, ToPath: []string{mid1Path}, ToDisplayPath: nil},
+				{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: root, ToDisplay: nil, ToNaming: nil, ToPath: []string{rootPath}, ToDisplayPath: nil},
+			},
+			Has: nil, None: nil, Unknown: nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
+		},
+	})
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.RefFilter{}
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, results, 6)
+	assert.Equal(t, "6", metadata["total"])
+
+	// All counts are equal, so the ordering must be a valid topological sort: every
+	// ancestor precedes its descendants, regardless of which parent is the shorter one.
+	pos := map[string]int{}
+	for i, r := range results {
+		assert.Equal(t, int64(1), r.Count, "unexpected count for %s", r.ID)
+		pos[r.ID] = i
+	}
+	assert.Less(t, pos[root.String()], pos[mid1.String()])
+	assert.Less(t, pos[root.String()], pos[shallowParent.String()])
+	assert.Less(t, pos[mid1.String()], pos[mid2.String()])
+	assert.Less(t, pos[mid2.String()], pos[deepParent.String()])
+	assert.Less(t, pos[deepParent.String()], pos[leaf.String()])
+	assert.Less(t, pos[shallowParent.String()], pos[leaf.String()])
+
+	// leaf carries both parent chains.
+	var leafResult search.RefFilterResult
+	for _, r := range results {
+		if r.ID == leaf.String() {
+			leafResult = r
+		}
+	}
+	assert.ElementsMatch(t, [][]string{
+		{root.String(), mid1.String(), mid2.String(), deepParent.String()},
+		{root.String(), shallowParent.String()},
+	}, leafResult.Paths)
 }
 
 func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
@@ -457,7 +548,9 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 	results, metadata, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	assert.ElementsMatch(t, []search.RefFilterResult{
+	// On equal counts results are ordered by hierarchy depth ascending, so
+	// ancestors precede their descendants.
+	assert.Equal(t, []search.RefFilterResult{
 		{ID: animal.String(), Count: 1, Paths: nil},
 		{ID: mammal.String(), Count: 1, Paths: [][]string{{animal.String()}}},
 		{ID: dog.String(), Count: 1, Paths: [][]string{{animal.String(), mammal.String()}}},
