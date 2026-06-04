@@ -388,6 +388,90 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 	assert.Equal(t, "3", metadata["total"])
 }
 
+func TestDescendantValuesIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	refProp := identifier.From("refProp")
+	hierProp := identifier.From("hierProp")
+	animal := identifier.From("animal")
+	mammal := identifier.From("mammal")
+	dog := identifier.From("dog")
+	cat := identifier.From("cat")
+	fish := identifier.From("fish")
+
+	// Hierarchy: animal > mammal > {dog, cat}, and animal > fish.
+	// Hierarchy paths follow the indexed format "<hierProp>:<root>/.../<this>".
+	animalPath := hierProp.String() + ":" + animal.String()
+	mammalPath := hierProp.String() + ":" + animal.String() + "/" + mammal.String()
+	dogPath := hierProp.String() + ":" + animal.String() + "/" + mammal.String() + "/" + dog.String()
+	catPath := hierProp.String() + ":" + animal.String() + "/" + mammal.String() + "/" + cat.String()
+	fishPath := hierProp.String() + ":" + animal.String() + "/" + fish.String()
+
+	// ref builds one reference claim for refProp targeting to with the given hierarchy path.
+	ref := func(to identifier.Identifier, path string) internalSearch.ReferenceClaim {
+		return internalSearch.ReferenceClaim{
+			Prop: refProp, PropDisplay: nil, PropNaming: nil,
+			To: to, ToDisplay: nil, ToNaming: nil, ToPath: []string{path}, ToDisplayPath: nil,
+		}
+	}
+	// indexHierDoc indexes one source doc carrying a reference claim per target in its
+	// ancestor chain, as produced at index time by ancestor expansion.
+	indexHierDoc := func(id string, claims ...internalSearch.ReferenceClaim) {
+		indexDocument(t, ctx, esClient, index, internalSearch.Document{
+			ID:              identifier.From(id),
+			Display:         nil,
+			Text:            nil,
+			Time:            nil,
+			ReferencesCount: nil,
+			ClaimsCount:     nil,
+			ScoreCount:      nil,
+			Claims: internalSearch.ClaimTypes{
+				Amount: nil, Time: nil,
+				Reference: claims,
+				Has:       nil, None: nil, Unknown: nil,
+				SubRef:    nil,
+				SubAmount: nil,
+				SubTime:   nil,
+				SubHas:    nil,
+			},
+		})
+	}
+
+	indexHierDoc("dogDoc", ref(dog, dogPath), ref(mammal, mammalPath), ref(animal, animalPath))
+	indexHierDoc("catDoc", ref(cat, catPath), ref(mammal, mammalPath), ref(animal, animalPath))
+	indexHierDoc("fishDoc", ref(fish, fishPath), ref(animal, animalPath))
+	refreshIndex(t, ctx, esClient, index)
+
+	// From the root: the whole hierarchy.
+	got, errE := search.DescendantValues(ctx, getSearchService, refProp, animal)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.ElementsMatch(t, []identifier.Identifier{animal, mammal, dog, cat, fish}, got)
+
+	// From a mid-level value: itself and its subtree only, never its ancestor (animal)
+	// or the unrelated branch (fish).
+	got, errE = search.DescendantValues(ctx, getSearchService, refProp, mammal)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.ElementsMatch(t, []identifier.Identifier{mammal, dog, cat}, got)
+
+	// From a leaf value: just itself, and always as the first element.
+	got, errE = search.DescendantValues(ctx, getSearchService, refProp, dog)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []identifier.Identifier{dog}, got)
+
+	got, errE = search.DescendantValues(ctx, getSearchService, refProp, fish)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []identifier.Identifier{fish}, got)
+
+	// The requested value comes first even when it has descendants.
+	got, errE = search.DescendantValues(ctx, getSearchService, refProp, animal)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotEmpty(t, got)
+	assert.Equal(t, animal, got[0])
+}
+
 func TestRefFilterGetDiamondIntegration(t *testing.T) {
 	t.Parallel()
 

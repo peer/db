@@ -1,12 +1,9 @@
 <script setup lang="ts">
-import type { Filter } from "@/types"
-
-import { Identifier } from "@tozd/identifier"
 import { onBeforeUnmount, onMounted } from "vue"
-import { useRoute, useRouter } from "vue-router"
+import { stringifyQuery, useRoute, useRouter } from "vue-router"
 
 import { useProgress } from "@/progress"
-import { createSearchSession } from "@/search"
+import { createShortcutSession } from "@/search"
 
 const route = useRoute()
 const router = useRouter()
@@ -27,52 +24,8 @@ onMounted(async () => {
 
   progress.value += 1
   try {
-    await createSearchSession(
-      router,
-      async (base) => {
-        // Query parameters are interpreted as ref filters where key is the
-        // property ID and value is the value ID, matching the backend behavior.
-        // A key of the form "parentProp:prop" is a nested (sub-ref) filter.
-        // The "reverse" query parameter is special: it scopes the session to
-        // documents referencing that ID via any property.
-        const filters: Filter[] = []
-        let reverse: string | undefined
-        const query = route.query
-        for (const [prop, values] of Object.entries(query)) {
-          if (values == null) {
-            continue
-          }
-          if (prop === "reverse") {
-            const arr = Array.isArray(values) ? values : [values]
-            const first = arr.find((v): v is string => v != null)
-            if (first != null) {
-              reverse = first
-            }
-            continue
-          }
-          const arr = Array.isArray(values) ? values : [values]
-          const toValues = arr.filter((v): v is string => v != null).map((v) => ({ id: v }))
-          if (toValues.length > 0) {
-            const propParts = prop.split(":")
-            const filterBase = [...base, "FILTER", Identifier.new().toString()]
-            const id = (await Identifier.from(...filterBase)).toString()
-            filters.push({
-              id: id,
-              base: filterBase,
-              prop: propParts,
-              ref: { to: toValues },
-            })
-          }
-        }
-        return {
-          ...(filters.length > 0 ? { filters } : {}),
-          ...(reverse ? { reverse } : {}),
-        }
-      },
-      abortController.signal,
-      progress,
-      true,
-    )
+    // Serialize the route's query back to a query string.
+    await createShortcutSession(router, stringifyQuery(route.query), abortController.signal, progress)
   } catch (err) {
     if (abortController.signal.aborted) {
       return

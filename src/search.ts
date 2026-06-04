@@ -12,6 +12,7 @@ import type {
   SearchSession,
   SearchSessionData,
   SearchSessionRef,
+  SearchShortcutRequest,
   UpdateSearchSessionResponse,
 } from "@/types"
 
@@ -70,6 +71,27 @@ export async function createSearchSession(
       },
     })
   }
+}
+
+// createShortcutSession creates a session from the search shortcut navigates to it.
+export async function createShortcutSession(router: Router, query: string, abortSignal: AbortSignal, progress: Ref<number>): Promise<void> {
+  const response = await postJSON<CreateSearchSessionResponse>(
+    router.apiResolve({
+      name: "SearchShortcut",
+    }).href,
+    { query } satisfies SearchShortcutRequest,
+    abortSignal,
+    progress,
+  )
+  if (abortSignal.aborted) {
+    return
+  }
+  await router.replace({
+    name: "SearchGet",
+    params: {
+      id: response.id,
+    },
+  })
 }
 
 export async function updateSearchSession(

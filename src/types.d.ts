@@ -152,6 +152,12 @@ export type UpdateSearchSessionResponse = {
   version: number
 }
 
+// Request body for creating a search session from the search shortcut.
+// query is a URL query string.
+export type SearchShortcutRequest = {
+  query: string
+}
+
 // Client-side reference to a search session for reactive tracking.
 export type SearchSessionRef = {
   id: string

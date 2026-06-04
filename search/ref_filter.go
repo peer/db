@@ -256,6 +256,53 @@ func (f *RefFilter) Get(
 	}, nil
 }
 
+// DescendantValues returns value together with every value that has it as an ancestor in
+// the indexed hierarchy of the given reference property (for a class property, value plus
+// its subclasses). Membership is read from the same indexed hierarchy paths the reference
+// filter facet renders: a value is a descendant when value appears as an ancestor in one
+// of its paths. A leaf value, or a value whose property has no hierarchy, expands to just
+// itself.
+//
+// Selecting a value in a reference filter conceptually covers its whole subtree (ancestor
+// values are indexed, so the value already matches every descendant document). This is
+// used to expand a parent selection into the explicit set of values the filters UI would
+// have selected through its cascade. The requested value is always first in the result.
+func DescendantValues(
+	ctx context.Context, getSearchService func() *esSearch.Search,
+	prop, value identifier.Identifier,
+) ([]identifier.Identifier, errors.E) {
+	f := RefFilter{To: []ToValue{{ID: value}}, Missing: false}
+	results, _, errE := f.Get(ctx, getSearchService, f.ToQuery(prop), prop)
+	if errE != nil {
+		return nil, errE
+	}
+	out := []identifier.Identifier{value}
+	valueStr := value.String()
+	for _, r := range results {
+		if r.ID == MissingRefFilterID {
+			continue
+		}
+		// Each path is r's own ancestor chain (root to its immediate parent; r itself is not
+		// included). r is a descendant of value exactly when value appears as one of those ancestors.
+		isDescendant := false
+		for _, path := range r.Paths {
+			if slices.Contains(path, valueStr) {
+				isDescendant = true
+				break
+			}
+		}
+		if !isDescendant {
+			continue
+		}
+		id, errE := identifier.MaybeString(r.ID)
+		if errE != nil {
+			return nil, errE
+		}
+		out = append(out, id)
+	}
+	return out, nil
+}
+
 // ToSubRefQuery converts the RefFilter to an ElasticSearch query on claims.subRef
 // for a sub-reference filter with parentProp and prop.
 //

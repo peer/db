@@ -1055,6 +1055,80 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 	return searchSession, nil
 }
 
+// expandShortcutFilters expands every top-level reference filter value in the session to
+// also include its descendant values in the value hierarchy (for a class filter, the
+// subclasses). This makes a search shortcut that targets a parent value build the same
+// fully expanded selection the filters UI produces when the user clicks that value in the
+// hierarchy, so the value renders with a full checkmark instead of an indeterminate one.
+// Results are unaffected: ancestor values are indexed, so the parent already matches every
+// descendant document, only the explicit set of selected values grows.
+//
+// The descendants come from the same indexed hierarchy paths the filter facet renders. A
+// value is treated as a descendant when the parent appears as an ancestor in one of its
+// paths. Values without a hierarchy (or leaf values) expand to just themselves.
+func (s *Service) expandShortcutFilters(ctx context.Context, getSearchService func() *esSearch.Search, session *search.Session) errors.E {
+	for i := range session.Filters {
+		f := &session.Filters[i]
+		// Only top-level reference filters carry a value hierarchy we can expand here.
+		if f.Ref == nil || len(f.Prop) != 1 {
+			continue
+		}
+		prop := f.Prop[0]
+		seen := make(map[identifier.Identifier]bool, len(f.Ref.To))
+		expanded := make([]search.ToValue, 0, len(f.Ref.To))
+		for _, to := range f.Ref.To {
+			ids, errE := search.DescendantValues(ctx, getSearchService, prop, to.ID)
+			if errE != nil {
+				return errE
+			}
+			for _, id := range ids {
+				if seen[id] {
+					continue
+				}
+				seen[id] = true
+				expanded = append(expanded, search.ToValue{ID: id})
+			}
+		}
+		f.Ref.To = expanded
+	}
+	return nil
+}
+
+// createShortcutSession parses the search shortcut query grammar, expands parent reference
+// values to their descendants, and creates the session. On any failure it writes the
+// appropriate error response and returns nil, so callers must return when it returns nil.
+func (s *Service) createShortcutSession(w http.ResponseWriter, req *http.Request, query url.Values) *search.Session {
+	ctx := req.Context()
+	metrics := waf.MustGetMetrics(ctx)
+
+	searchSession, errE := parseSearchShortcutQuery(ctx, query)
+	if errE != nil {
+		s.BadRequestWithError(w, req, errE)
+		return nil
+	}
+
+	// Expand parent values (for example a class) to their descendants so the created
+	// session matches what selecting that value in the filters UI would produce.
+	errE = s.expandShortcutFilters(ctx, s.getSearchServiceClosure(req), searchSession)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return nil
+	}
+
+	m := metrics.Duration(internalStore.MetricSearchSession).Start()
+	errE = search.CreateSession(ctx, searchSession)
+	m.Stop()
+	if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return nil
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return nil
+	}
+
+	return searchSession
+}
+
 // SearchShortcutGet is a GET/HEAD HTTP request handler which creates a new search session
 // from query parameters and redirects to the search page. Query parameters are interpreted
 // as ref filters where key is the property ID and value is the value ID.
@@ -1066,23 +1140,8 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 // The "reverse" query parameter is special: its value is a document ID that scopes
 // the session to documents which reference that ID via any property.
 func (s *Service) SearchShortcutGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
-	ctx := req.Context()
-	metrics := waf.MustGetMetrics(ctx)
-
-	searchSession, errE := parseSearchShortcutQuery(ctx, req.URL.Query())
-	if errE != nil {
-		s.BadRequestWithError(w, req, errE)
-		return
-	}
-
-	m := metrics.Duration(internalStore.MetricSearchSession).Start()
-	errE = search.CreateSession(ctx, searchSession)
-	m.Stop()
-	if errors.Is(errE, store.ErrAccessDenied) {
-		s.ForbiddenWithError(w, req, errE)
-		return
-	} else if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
+	searchSession := s.createShortcutSession(w, req, req.URL.Query())
+	if searchSession == nil {
 		return
 	}
 
@@ -1093,4 +1152,44 @@ func (s *Service) SearchShortcutGet(w http.ResponseWriter, req *http.Request, _ 
 	}
 
 	s.TemporaryRedirectGetMethod(w, req, path)
+}
+
+// SearchShortcutRequest is the JSON body of SearchShortcutPostAPI. Its only field carries
+// the shortcut as a URL query string, the same form the GET handler reads from the
+// request URL.
+type SearchShortcutRequest struct {
+	Query string `json:"query"`
+}
+
+// SearchShortcutPostAPI is the API counterpart of SearchShortcutGet: it creates the search
+// session from the search shortcut and returns the created session as JSON instead of
+// redirecting. The frontend uses it for client-side shortcut navigation, which never reaches
+// the redirecting GET handler.
+func (s *Service) SearchShortcutPostAPI(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+	defer req.Body.Close()              //nolint:errcheck
+	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
+
+	var request SearchShortcutRequest
+	errE := x.DecodeJSONWithoutUnknownFields(req.Body, &request)
+	if errE != nil {
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+
+	query, err := url.ParseQuery(request.Query)
+	if err != nil {
+		s.BadRequestWithError(w, req, errors.WithStack(err))
+		return
+	}
+
+	searchSession := s.createShortcutSession(w, req, query)
+	if searchSession == nil {
+		return
+	}
+
+	s.WriteJSON(w, req, createSessionResponse{
+		ID:      searchSession.ID,
+		Base:    searchSession.Base,
+		Version: searchSession.Version,
+	}, nil)
 }
