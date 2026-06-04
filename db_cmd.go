@@ -230,6 +230,20 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 		if errE != nil {
 			return errE
 		}
+
+		// Replaying the whole commit log re-indexes each document once per commit that changes it.
+		// In particular a reference target is rewritten every time a new referrer appears, so hub
+		// documents accumulate many superseded (deleted) Lucene versions. Those deletes linger per
+		// shard until merged and bloat the index (they also skew per-shard term statistics).
+		// Now that the site is caught up, expunge them. We use only_expunge_deletes rather than
+		// max_num_segments because the index keeps receiving live writes after a reindex, and
+		// full-merging an index that is still written to is discouraged.
+		globals.Logger.Info().Str("index", site.Index).Msg("expunging deletes")
+
+		_, err := site.ESClient.Indices.Forcemerge().Index(site.Index).OnlyExpungeDeletes(true).Do(ctx)
+		if err != nil {
+			return internalSearch.WithESError(err)
+		}
 	}
 
 	globals.Logger.Info().Msg("db reindex done")
