@@ -16,7 +16,7 @@ import Footer from "@/partials/Footer.vue"
 import SearchResult from "@/partials/SearchResult.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import { useBusy } from "@/progress"
-import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search"
+import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, filterResultKey, useFilters, useLocationAt } from "@/search"
 import { loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils"
 import { useVisibilityTracking } from "@/visibility"
 
@@ -279,7 +279,7 @@ const WithDocumentD = WithDocument<D>
         <template v-else-if="filtersTotal > 0 || searchSession.reverse">
           <div class="text-center text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: filtersTotal }) }}</div>
 
-          <template v-for="filter in limitedFiltersResults" :key="filter.filterId ?? `${filter.props?.join('/') ?? ''}/${'unit' in filter ? (filter.unit ?? '') : ''}`">
+          <template v-for="filter in limitedFiltersResults" :key="filter.filterId ?? filterResultKey(filter)">
             <FiltersResult
               :result="filter"
               :search-session="searchSession"

@@ -20,7 +20,7 @@ import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import { useBusy } from "@/progress"
-import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useFilters, useLocationAt } from "@/search"
+import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, filterResultKey, useFilters, useLocationAt } from "@/search"
 import { useTruncationTracking } from "@/truncation"
 import { encodeQuery, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils"
 import { useVisibilityTracking } from "@/visibility"
@@ -294,11 +294,7 @@ function onCloseFilterModal() {
                 aria-hidden="true"
               />
             </th>
-            <template
-              v-for="filter in limitedFiltersResults"
-              v-else
-              :key="filter.filterId ?? `${filter.props?.join('/') ?? ''}/${'unit' in filter ? (filter.unit ?? '') : ''}`"
-            >
+            <template v-for="filter in limitedFiltersResults" v-else :key="filter.filterId ?? filterResultKey(filter)">
               <th v-if="supportedFilter(filter)" class="text-start">
                 <!-- <div class="flex flex-row items-center justify-between"> -->
                 <WithDocumentD :id="filter.props?.[0] ?? ''" name="DocumentGet">
@@ -354,11 +350,7 @@ function onCloseFilterModal() {
                       aria-hidden="true"
                     />
                   </td>
-                  <template
-                    v-for="filter in limitedFiltersResults"
-                    v-else
-                    :key="filter.filterId ?? `${filter.props?.join('/') ?? ''}/${'unit' in filter ? (filter.unit ?? '') : ''}`"
-                  >
+                  <template v-for="filter in limitedFiltersResults" v-else :key="filter.filterId ?? filterResultKey(filter)">
                     <td v-if="supportedFilter(filter)" class="align-top">
                       <LocalScope
                         v-slot="{ rowExpanded, cellTruncated, cellExpanded }"

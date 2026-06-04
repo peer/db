@@ -132,6 +132,15 @@ export function useSearch(
   })
 }
 
+// Composite key identifying a filter result by its type, properties, and (for amount filters) unit.
+// Filter results are deduplicated by this key, so it also uniquely identifies a result when rendering
+// a list of them. The same prop can carry filters of different types (for example a ref filter and a
+// has filter), so the type must be part of the key.
+export function filterResultKey(filter: DeepReadonly<FilterResult>): string {
+  const unit = filter.type === "amount" ? (filter.unit ?? "") : ""
+  return `${filter.type}/${filter.props?.join("/") ?? ""}/${unit}`
+}
+
 export function useFilters(
   searchSessionRef: Ref<SearchSessionRef>,
   el: Ref<Element | null>,
@@ -168,8 +177,7 @@ export function useFilters(
   const results = computed(() => {
     const best = new Map<string, FilterResult>()
     for (const r of rawResults.value) {
-      const unit = r.type === "amount" ? ((r as DeepReadonly<{ unit?: string }>).unit ?? "") : ""
-      const key = `${r.type}/${r.props?.join("/") ?? ""}/${unit}`
+      const key = filterResultKey(r)
       const existing = best.get(key)
       if (!existing || (r.filterId && !existing.filterId)) {
         best.set(key, r as FilterResult)
