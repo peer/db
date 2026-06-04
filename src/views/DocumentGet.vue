@@ -180,16 +180,23 @@ const searchShortcuts = ref<ResolvedShortcut[]>([])
 watch(
   () => {
     const result: SearchShortcut[] = []
+    // The same shortcut can be declared on several parent classes, so we deduplicate by the raw
+    // shortcut string (the link, not the label) and keep the first occurrence.
+    const seen = new Set<string>()
     for (const classDoc of classDocs.value) {
       const shortcuts = getClaimsOfTypeWithConfidence(classDoc.claims, "string", SEARCH_SHORTCUT)
       for (const shortcut of shortcuts) {
         if (!shortcut.string) {
           continue
         }
+        if (seen.has(shortcut.string)) {
+          continue
+        }
         const name = selectClaimsByLanguage(shortcut.sub, "string", NAME, locale.value, (c) => c.length > 0)
         if (!name || name.length === 0) {
           continue
         }
+        seen.add(shortcut.string)
         result.push({ name: name[0].string, raw: shortcut.string })
       }
     }
