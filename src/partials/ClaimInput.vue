@@ -41,6 +41,7 @@ import {
   valueTypeToClaimType,
 } from "@/fields"
 import ClaimCardinality from "@/partials/ClaimCardinality.vue"
+import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import FieldsFormRow from "@/partials/FieldsFormRow.vue"
 import InputErrors from "@/partials/InputErrors.vue"
 import { allErrors, useRegisterForValidation, useValidationRegistry } from "@/validation"
@@ -484,23 +485,25 @@ defineExpose({
     <CheckBox v-if="showCheckbox" :model-value="modelValue !== null" @update:model-value="onCheckboxChange" />
 
     <!--
-      Sub-fields: one ClaimCardinality per sub-field. Hidden for non-HAS
-      slots that don't have a committed claim yet (the parent must exist
-      before a sub-claim can sit under it). For HAS the sub-form is always
-      shown; ensureClaimId lazily creates the parent on the first sub add.
+      Sub-fields: one ClaimCardinality per sub-field, each with its property
+      label rendered above the input (unlike top-level fields, whose label
+      sits in FieldsFormField's left grid column). Hidden for non-HAS slots
+      that don't have a committed claim yet (the parent must exist before a
+      sub-claim can sit under it). For HAS the sub-form is always shown;
+      ensureClaimId lazily creates the parent on the first sub add.
     -->
     <template v-if="showSubFields">
-      <ClaimCardinality
-        v-for="subField in field.subFields"
-        :key="fieldKey(subField)"
-        :model-value="extractSubClaims(modelValue, subField)"
-        :initial-claims="extractSubClaims(initialClaim, subField)"
-        :field="subField"
-        :parent-claim-id="ensureClaimIdCallback"
-        :session="session"
-        :base="base"
-        class="pl-4"
-      />
+      <div v-for="subField in field.subFields" :key="fieldKey(subField)" class="flex flex-col gap-y-1 pl-4">
+        <DocumentRefInline :id="subField.propertyId" :link="false" class="leading-none font-medium text-gray-700" />
+        <ClaimCardinality
+          :model-value="extractSubClaims(modelValue, subField)"
+          :initial-claims="extractSubClaims(initialClaim, subField)"
+          :field="subField"
+          :parent-claim-id="ensureClaimIdCallback"
+          :session="session"
+          :base="base"
+        />
+      </div>
     </template>
   </div>
 </template>
