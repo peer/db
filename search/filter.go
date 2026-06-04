@@ -196,7 +196,7 @@ func histogramFilterGet(
 		res, err := countSearchService.Do(ctx)
 		m.Stop()
 		if err != nil {
-			return nil, nil, errors.WithStack(err)
+			return nil, nil, WithESError(err)
 		}
 		metrics.Duration(internalStore.MetricElasticSearchInternal1).Duration = time.Duration(res.Took) * time.Millisecond
 
@@ -234,7 +234,7 @@ func histogramFilterGet(
 		res, err := minMaxSearchService.Do(ctx)
 		m.Stop()
 		if err != nil {
-			return nil, nil, errors.WithStack(err)
+			return nil, nil, WithESError(err)
 		}
 		metrics.Duration(internalStore.MetricElasticSearchInternal1).Duration = time.Duration(res.Took) * time.Millisecond
 
@@ -301,7 +301,7 @@ func histogramFilterGet(
 	res, err := histogramSearchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, WithESError(err)
 	}
 	metrics.Duration(internalStore.MetricElasticSearchInternal2).Duration = time.Duration(res.Took) * time.Millisecond
 

@@ -117,7 +117,7 @@ func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site Site, bef
 
 	_, err := site.ESClient.Indices.Refresh().Index(site.Index).Do(ctx)
 	if err != nil {
-		return onShutdown, errors.WithStack(err)
+		return onShutdown, internalSearch.WithESError(err)
 	}
 
 	logger.Info().
@@ -396,7 +396,7 @@ func (c *DBWipeCommand) Run(globals *Globals) errors.E {
 
 		_, err := esClient.Indices.Delete(site.Index).IgnoreUnavailable(true).Do(siteCtx)
 		if err != nil {
-			return errors.WithStack(err)
+			return internalSearch.WithESError(err)
 		}
 
 		globals.Logger.Info().Str("index", site.Index).Msg("index deleted")

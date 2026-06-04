@@ -75,9 +75,10 @@ func WithPgxError(err error) errors.E {
 	}
 
 	errE := errors.WithStack(err)
-	if e, ok := errors.AsType[*pgconn.PgError](errE); ok {
+	pgErr, ok := errors.AsType[*pgconn.PgError](errE)
+	if ok && pgErr != nil {
 		details := errors.Details(errE)
-		maps.Copy(details, ErrorDetails(e))
+		maps.Copy(details, ErrorDetails(pgErr))
 	}
 
 	return errE

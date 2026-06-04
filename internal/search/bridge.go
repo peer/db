@@ -34,9 +34,10 @@ const bridgeRetryDelay = 5 * time.Second
 var errCommittedChannelClosed = errors.Base("committed channel is closed")
 
 type bulkError struct {
-	ID    string            `json:"id,omitempty"`
-	Error *types.ErrorCause `json:"error,omitempty"`
-	Doc   *Document         `json:"doc,omitempty"`
+	ID         string            `json:"id,omitempty"`
+	Status     int               `json:"status,omitempty"`
+	ErrorCause *types.ErrorCause `json:"errorCause,omitempty"`
+	Doc        *Document         `json:"doc,omitempty"`
 }
 
 type bridgeJob interface {
@@ -873,7 +874,7 @@ func (b *Bridge) indexCommit(
 
 	response, err := bulkService.Do(ctx)
 	if err != nil {
-		return nil, nil, nil, errors.WithStack(err)
+		return nil, nil, nil, WithESError(err)
 	}
 
 	bulkErrors := []bulkError{}
@@ -893,9 +894,10 @@ func (b *Bridge) indexCommit(
 				id = *result.Id_
 			}
 			bulkErrors = append(bulkErrors, bulkError{
-				ID:    id,
-				Error: result.Error,
-				Doc:   debugDocs[id],
+				ID:         id,
+				Status:     result.Status,
+				ErrorCause: result.Error,
+				Doc:        debugDocs[id],
 			})
 		}
 	}
@@ -981,7 +983,7 @@ func (b *Bridge) CountReferences(ctx context.Context, id identifier.Identifier) 
 
 	res, err := b.ESClient.Count().Index(b.Index).Query(query).Do(ctx)
 	if err != nil {
-		errE := errors.WithStack(err)
+		errE := WithESError(err)
 		errors.Details(errE)["id"] = id.String()
 		return 0, errE
 	}
@@ -1256,7 +1258,7 @@ func (b *Bridge) runIndexInverseRelations(ctx context.Context, _ *river.Job[jobA
 	}
 	_, err := b.ESClient.Indices.Refresh().Index(b.Index).Do(ctx)
 	if err != nil {
-		return errors.WithStack(err)
+		return WithESError(err)
 	}
 
 	for {
@@ -1338,7 +1340,7 @@ func (b *Bridge) indexDocument(ctx context.Context, docID identifier.Identifier)
 
 	_, err := b.ESClient.Index(b.Index).Id(docID.String()).Request(searchDoc).Do(ctx)
 	if err != nil {
-		return errors.WithStack(err)
+		return WithESError(err)
 	}
 
 	return nil

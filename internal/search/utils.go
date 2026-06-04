@@ -127,7 +127,7 @@ func GetClient(httpClient *http.Client, logger zerolog.Logger, url string) (*ela
 func EnsureIndex(ctx context.Context, esClient *elasticsearch.TypedClient, index string, shards int, languagePriority map[string][]string) errors.E {
 	exists, err := esClient.Indices.Exists(index).IsSuccess(ctx)
 	if err != nil {
-		return errors.WithStack(err)
+		return WithESError(err)
 	}
 
 	if !exists {
@@ -151,7 +151,7 @@ func EnsureIndex(ctx context.Context, esClient *elasticsearch.TypedClient, index
 
 		createIndex, err := esClient.Indices.Create(index).Raw(bytes.NewReader(configJSON)).Do(ctx)
 		if err != nil {
-			return errors.WithStack(err)
+			return WithESError(err)
 		}
 		if !createIndex.Acknowledged {
 			// TODO: Wait for acknowledgment using Task API?
@@ -187,7 +187,7 @@ func (r *rawFieldValue) FieldValueCaster() *types.FieldValue {
 func FetchDocumentIDs(ctx context.Context, esClient *elasticsearch.TypedClient, index string, classIDs []identifier.Identifier) ([]identifier.Identifier, errors.E) {
 	pit, err := esClient.OpenPointInTime(index).KeepAlive("1m").Do(ctx)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, WithESError(err)
 	}
 	pitID := pit.Id
 
@@ -239,7 +239,7 @@ func FetchDocumentIDs(ctx context.Context, esClient *elasticsearch.TypedClient, 
 
 		res, err := searchService.Do(ctx)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, WithESError(err)
 		}
 
 		hits := res.Hits.Hits

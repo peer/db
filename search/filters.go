@@ -373,7 +373,7 @@ func FiltersGet( //nolint:maintidx
 	res, err := searchService.Do(ctx)
 	m.Stop()
 	if err != nil {
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, WithESError(err)
 	}
 	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
 
