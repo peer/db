@@ -173,6 +173,18 @@ type documentCreateResponse struct {
 	Session identifier.Identifier `json:"session"`
 }
 
+// DocumentCreateGet is a GET/HEAD HTTP request handler which returns HTML frontend for the document
+// creation page.
+func (s *Service) DocumentCreateGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+	errE := s.HasPermission(req.Context(), auth.CanEditDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	}
+
+	s.HomeGet(w, req, nil)
+}
+
 // DocumentCreatePostAPI handles POST requests to start creating a new document.
 //
 // It does not insert anything into the store. Instead, it pre-allocates a document

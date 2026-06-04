@@ -234,6 +234,10 @@
     }
   },
   "views": {
+    "DocumentCreate": {
+      "title": "Create a new document",
+      "noClasses": "There are no document types available to create."
+    },
     "DocumentGet": {
       "tabs": {
         "allProperties": "All properties"

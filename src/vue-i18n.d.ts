@@ -245,6 +245,10 @@ declare module "vue-i18n" {
       }
     }
     views: {
+      DocumentCreate: {
+        title: string
+        noClasses: string
+      }
       DocumentGet: {
         tabs: {
           allProperties: string

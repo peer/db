@@ -2,7 +2,7 @@
 import ProgressBar from "@/components/ProgressBar.vue"
 import siteContext from "@/context"
 import { useNavbar } from "@/navbar"
-import CreateDropdown from "@/partials/CreateDropdown.vue"
+import CreateButton from "@/partials/CreateButton.vue"
 import LanguageSwitcher from "@/partials/LanguageSwitcher.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import SignInButton from "@/partials/SignInButton.vue"
@@ -64,7 +64,7 @@ useValidationRegistry()
       <slot name="start"><NavBarSearch /></slot>
       <component :is="c" v-for="(c, i) in navbarComponents" :key="i" :home="false" />
       <slot name="end" />
-      <CreateDropdown />
+      <CreateButton />
       <LanguageSwitcher />
       <SignInButton />
     </div>

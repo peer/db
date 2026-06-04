@@ -234,6 +234,10 @@
     }
   },
   "views": {
+    "DocumentCreate": {
+      "title": "Ustvari nov dokument",
+      "noClasses": "Ni vrst dokumentov za ustvarjanje."
+    },
     "DocumentGet": {
       "tabs": {
         "allProperties": "Vse lastnosti"

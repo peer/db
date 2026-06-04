@@ -1,49 +1,44 @@
 <script setup lang="ts">
-import { HighConfidence, type D } from "@/document"
+import type { D } from "@/document"
 import type { DocumentCreateResponse, JustResultsFilters, Result } from "@/types"
 
-import { PlusIcon } from "@heroicons/vue/20/solid"
-import { onBeforeUnmount, onMounted, ref } from "vue"
+import { onBeforeMount, onBeforeUnmount, ref } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import { getURL, postJSON } from "@/api"
-import { CAN_EDIT_DOCUMENT, hasPermission } from "@/auth"
 import Button from "@/components/Button.vue"
 import { CLASS, INSTANCE_OF } from "@/core"
+import { HighConfidence } from "@/document"
 import { hasFields, isAbstractClass } from "@/fields"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
-import { localCounter, useLock } from "@/progress"
+import Footer from "@/partials/Footer.vue"
+import NavBar from "@/partials/NavBar.vue"
+import { useBusy } from "@/progress"
 import { encodeQuery, makeAddClaimChange } from "@/utils"
 
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
 
-// Data modification and controls. busy holds a local count that drives
-// the Create button's :progress visual; writes also propagate into the
-// useLock combined ref so descendants and the button itself cascade-lock,
-// but ancestor lock contributions are not reflected in the visual.
-const busy = localCounter(useLock())
+// Loading the class list and creating a document both feed the navbar progress bar and
+// lock the buttons (via useLocked) while in flight, so the user cannot start two at once.
+const busy = useBusy()
 
 const abortController = new AbortController()
 
-const showDropdown = ref(false)
 const classesWithFields = ref<D[]>([])
-const initial = ref(true)
 const loaded = ref(false)
-const loading = ref(false)
 
 onBeforeUnmount(() => {
   abortController.abort()
 })
 
 async function loadClasses() {
-  if (loaded.value || loading.value || abortController.signal.aborted) {
+  if (abortController.signal.aborted) {
     return
   }
 
-  initial.value = false
-  loading.value = true
+  busy.value += 1
   try {
     // Get search results for documents that are instances of CLASS.
     const results = await postJSON<Result[]>(
@@ -72,7 +67,7 @@ async function loadClasses() {
         }
       } catch (err) {
         // TODO: Do something better?
-        console.error("CreateDropdown.loadClasses", err)
+        console.error("DocumentCreate.loadClasses", err)
       }
     }
 
@@ -82,33 +77,29 @@ async function loadClasses() {
     if (abortController.signal.aborted) {
       return
     }
-    console.error("CreateDropdown.loadClasses", err)
+    console.error("DocumentCreate.loadClasses", err)
   } finally {
-    loading.value = false
+    busy.value -= 1
   }
 }
 
-function onToggle() {
-  showDropdown.value = !showDropdown.value
-  if (showDropdown.value && !loaded.value) {
-    loadClasses().catch((err) => {
-      console.error("CreateDropdown.onToggle", err)
-    })
-  }
-}
+onBeforeMount(() => {
+  loadClasses().catch((err) => {
+    console.error("DocumentCreate.onBeforeMount", err)
+  })
+})
 
 async function onCreate(classId: string) {
   if (abortController.signal.aborted) {
     return
   }
 
-  showDropdown.value = false
   busy.value += 1
   try {
     // Open a create session. The document is not yet inserted in the store;
     // the session holds all pending changes (starting with instance_of below)
     // and the backend materializes the document only on Save.
-    const createResponse = await postJSON<DocumentCreateResponse>(router.apiResolve({ name: "DocumentCreate" }).href, {}, abortController.signal, busy)
+    const createResponse = await postJSON<DocumentCreateResponse>(router.apiResolve({ name: "DocumentCreate" }).href, {}, abortController.signal, null)
     if (abortController.signal.aborted) {
       return
     }
@@ -147,55 +138,28 @@ async function onCreate(classId: string) {
     if (abortController.signal.aborted) {
       return
     }
-    console.error("CreateDropdown.onCreate", err)
+    console.error("DocumentCreate.onCreate", err)
   } finally {
     busy.value -= 1
   }
 }
-
-function onClickOutside(event: MouseEvent) {
-  const target = event.target as HTMLElement
-  if (!target.closest(".pd-create-dropdown")) {
-    showDropdown.value = false
-  }
-}
-
-onMounted(() => {
-  document.addEventListener("click", onClickOutside)
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener("click", onClickOutside)
-})
 </script>
 
 <template>
-  <div v-if="hasPermission(CAN_EDIT_DOCUMENT) && (initial || loading || (loaded && classesWithFields.length > 0))" class="pd-create-dropdown relative shrink-0">
-    <Button :progress="busy" type="button" primary class="px-3.5" @click.prevent="onToggle">
-      <PlusIcon class="size-5 sm:hidden" :alt="t('common.buttons.create')" />
-      <span class="hidden sm:inline">{{ t("common.buttons.create") }}</span>
-      <svg class="ml-1 hidden size-4 sm:inline" viewBox="0 0 20 20" fill="currentColor">
-        <path
-          fill-rule="evenodd"
-          d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-          clip-rule="evenodd"
-        />
-      </svg>
-    </Button>
-    <div v-if="showDropdown" class="absolute top-full right-0 z-50 mt-1 min-w-48 rounded-sm border border-slate-400 bg-white shadow-lg">
-      <div v-if="loading" class="px-3 py-2 text-sm text-gray-500">{{ t("common.status.loading") }}</div>
-      <template v-else>
-        <button
-          v-for="cls in classesWithFields"
-          :key="cls.id"
-          type="button"
-          class="block w-full px-3 py-2 text-left text-sm outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-inset active:bg-slate-200"
-          @click="onCreate(cls.id)"
-        >
-          <!-- TODO: This twice loads same document (here and inside DisplayLabel). Do we care with caching? -->
-          <DisplayLabel :doc="cls" />
-        </button>
-      </template>
+  <Teleport to="header">
+    <NavBar />
+  </Teleport>
+  <div class="pd-documentcreate mt-12 flex w-full flex-col items-center p-1 sm:mt-[4.5rem] sm:p-4">
+    <div v-if="!loaded" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+    <div v-else-if="classesWithFields.length === 0" class="my-1 text-center sm:my-4">{{ t("views.DocumentCreate.noClasses") }}</div>
+    <div v-else class="flex w-full max-w-md flex-col gap-y-2 sm:gap-y-4">
+      <h1 class="text-center text-lg font-medium">{{ t("views.DocumentCreate.title") }}</h1>
+      <Button v-for="cls in classesWithFields" :key="cls.id" type="button" @click.prevent="onCreate(cls.id)">
+        <DisplayLabel :doc="cls" />
+      </Button>
     </div>
   </div>
+  <Teleport to="footer">
+    <Footer class="border-t border-slate-50 bg-slate-200 shadow-sm" />
+  </Teleport>
 </template>

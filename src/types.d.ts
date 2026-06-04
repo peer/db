@@ -99,8 +99,8 @@ export type HasFilter = {
 }
 
 export type FilterBase = {
-  // On frontend, ID and base are always set, except when we send payload to the SearchShortcut API
-  // endpoint (e.g., in CreateDropdown.vue) where we use payload without them (and without this type).
+  // On frontend, ID and base are always set, except when we send payload to the SearchJustResults API
+  // endpoint (e.g., in DocumentCreate.vue) where we use payload without them (and without this type).
   id: string
   base: string[]
   prop: string[]
