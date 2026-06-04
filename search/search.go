@@ -16,6 +16,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/fieldvaluefactormodifier"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/functionboostmode"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/operator"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/searchtype"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/totalhitsrelation"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
@@ -965,7 +966,14 @@ func ResultsGet(
 
 	searchService := getSearchService()
 
-	searchService = searchService.From(0).Size(MaxResultsCount).Query(query)
+	// Score with global term/document frequencies across all shards (DFS) instead of
+	// each shard's local statistics. With multiple shards a term's IDF otherwise depends
+	// on which shard a document happens to land on, and that skew is amplified by deleted
+	// (re-indexed) documents whose term statistics linger per shard until merged. The
+	// result is inconsistent BM25 scoring across documents and unstable ranking. DFS makes
+	// IDF uniform so ranking no longer depends on shard placement. Only the ranked results
+	// query needs this. Queries which run with Size(0) and are not scored.
+	searchService = searchService.From(0).Size(MaxResultsCount).Query(query).SearchType(searchtype.Dfsquerythenfetch)
 
 	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
