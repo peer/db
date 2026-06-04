@@ -90,9 +90,15 @@ async function onSubmit() {
 </script>
 
 <template>
-  <form id="navbarsearch-teleport-end" class="pd-navbar-search flex grow gap-x-1 sm:gap-x-4" novalidate @submit.prevent="onSubmit()">
-    <InputText id="search-input-text" v-model="searchQuery" class="pd-searchinput max-w-xl grow" />
-    <Button type="submit" primary class="px-3.5">
+  <!--
+    display: contents so the input, the search button, and the teleported buttons participate
+    directly in the navbar's flex layout rather than being shielded inside the form box. That lets the
+    input shrink (min-w-0) and the search button compress to its floor and fade, the same as the other
+    navbar buttons, instead of the navbar overflowing.
+  -->
+  <form id="navbarsearch-teleport-end" class="pd-navbar-search contents" novalidate @submit.prevent="onSubmit()">
+    <InputText id="search-input-text" v-model="searchQuery" class="pd-searchinput max-w-xl min-w-0 grow" />
+    <Button type="submit" primary>
       <MagnifyingGlassIcon class="size-5 sm:hidden" :alt="t('common.buttons.search')" />
       <span class="hidden sm:inline">{{ t("common.buttons.search") }}</span>
     </Button>

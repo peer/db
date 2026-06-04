@@ -4,6 +4,9 @@
 @plugin "@tailwindcss/typography";
 @plugin "@headlessui/tailwindcss";
 
+/* Applies a utility only to elements inside the navbar. */
+@custom-variant navbar (.pd-navbar &);
+
 @theme inline {
   /* Primary color */
   --color-primary-50: var(--color-indigo-50);

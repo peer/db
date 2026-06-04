@@ -339,15 +339,24 @@ async function onEdit() {
   <Teleport to="header">
     <NavBar>
       <template #start>
-        <div v-if="searchSession !== null" class="flex grow gap-x-1 sm:gap-x-4">
-          <InputTextLink class="max-w-xl grow" :to="{ name: 'SearchGet', params: { id: searchSession.id }, query: encodeQuery({ at: id }) }" :after-click="afterClick">
+        <template v-if="searchSession !== null">
+          <!-- self-stretch so the query link keeps the row height even when the query is empty, instead of collapsing to its text height. -->
+          <InputTextLink
+            class="max-w-xl grow self-stretch"
+            :to="{ name: 'SearchGet', params: { id: searchSession.id }, query: encodeQuery({ at: id }) }"
+            :after-click="afterClick"
+          >
             {{ searchSession.query }}
           </InputTextLink>
-          <div class="grid grid-cols-2 gap-x-1">
+          <!--
+            A tight prev/next pair. The floor is two button floors plus the gap-x-1 (min-w-25), so the navbar can
+            compress the pair down to the buttons' own floor (an icon each) but not past it, which would let the
+            buttons overflow the group and collide with the next navbar item.
+          -->
+          <div class="flex min-w-25 gap-x-1">
             <ButtonLink
               id="documentget-button-prev"
               primary
-              class="px-3.5"
               :disabled="!prevNext.previous"
               :to="{ name: 'DocumentGet', params: { id: prevNext.previous }, query: encodeQuery({ s: searchSession.id }) }"
             >
@@ -357,7 +366,6 @@ async function onEdit() {
             <ButtonLink
               id="documentget-button-next"
               primary
-              class="px-3.5"
               :disabled="!prevNext.next"
               :to="{ name: 'DocumentGet', params: { id: prevNext.next }, query: encodeQuery({ s: searchSession.id }) }"
             >
@@ -365,12 +373,12 @@ async function onEdit() {
               <span class="hidden sm:inline">{{ t("common.buttons.next") }}</span>
             </ButtonLink>
           </div>
-        </div>
+        </template>
         <NavBarSearch v-else />
       </template>
       <template #end>
         <WithLock v-if="hasPermission(CAN_EDIT_DOCUMENT)" :lock="getEditLock">
-          <Button :progress="editBusy" type="button" primary class="px-3.5" @click.prevent="onEdit">
+          <Button :progress="editBusy" type="button" primary @click.prevent="onEdit">
             <PencilIcon class="size-5 sm:hidden" :alt="t('common.buttons.edit')" />
             <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
           </Button>
