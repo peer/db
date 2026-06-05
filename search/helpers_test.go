@@ -78,13 +78,11 @@ func indexAmountDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.T
 	t.Helper()
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              identifier.From(id),
-		Display:         nil,
-		Text:            nil,
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		ID:      identifier.From(id),
+		Display: nil,
+		Text:    nil,
+		Time:    nil,
+		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Amount: internalSearch.AmountClaims{{
 				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
@@ -104,13 +102,11 @@ func indexScoreDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.Ty
 	t.Helper()
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              id,
-		Display:         nil,
-		Text:            map[string][]string{"en": {text}},
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      scoreCount,
+		ID:      id,
+		Display: nil,
+		Text:    map[string][]string{"en": {text}},
+		Time:    nil,
+		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: scoreCount},
 		Claims: internalSearch.ClaimTypes{
 			Amount: nil, Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
 			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
@@ -137,13 +133,11 @@ func seedTimeFilterDocs(t *testing.T, ctx context.Context, esClient *elasticsear
 		{"timeDoc3", &t9000},
 	} {
 		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID:              identifier.From(tc.id),
-			Display:         nil,
-			Text:            nil,
-			Time:            nil,
-			ReferencesCount: nil,
-			ClaimsCount:     nil,
-			ScoreCount:      nil,
+			ID:      identifier.From(tc.id),
+			Display: nil,
+			Text:    nil,
+			Time:    nil,
+			Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 			Claims: internalSearch.ClaimTypes{
 				Amount: nil,
 				Time: internalSearch.TimeClaims{{

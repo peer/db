@@ -1709,14 +1709,12 @@ func (c *Converter) FromDocument(
 		ctx:       ctx,
 		converter: c,
 		result: &Document{
-			ID:              doc.ID,
-			Display:         nil,
-			Text:            nil,
-			Time:            nil,
-			ReferencesCount: nil,
-			ClaimsCount:     nil,
-			ScoreCount:      nil,
-			Claims:          ClaimTypes{},
+			ID:      doc.ID,
+			Display: nil,
+			Text:    nil,
+			Time:    nil,
+			Counts:  Counts{References: nil, Claims: nil, Score: nil},
+			Claims:  ClaimTypes{},
 		},
 		docID: doc.ID,
 	}
@@ -1780,13 +1778,13 @@ func (c *Converter) FromDocument(
 	// Index the document's recursive claim count and, unless the document is
 	// ignored for referencesCount, the number of documents referencing it.
 	claimsCount := doc.SizeWithSub()
-	v.result.ClaimsCount = &claimsCount
+	v.result.Counts.Claims = &claimsCount
 	if c.CountReferences != nil && !info.IgnoredForReferencesCount {
 		count, errE := c.CountReferences(ctx, doc.ID)
 		if errE != nil {
 			return nil, errE
 		}
-		v.result.ReferencesCount = &count
+		v.result.Counts.References = &count
 	}
 
 	// scoreCount is the document's total "amount of knowledge" (its own number of claims plus
@@ -1796,10 +1794,10 @@ func (c *Converter) FromDocument(
 	// so that they are not stored twice, duplicated). Used to boost search ranking.
 	// TODO: Should ReferencesCount count the number of inverse reference claims directly and not referring documents?
 	scoreCount := claimsCount
-	if v.result.ReferencesCount != nil {
-		scoreCount += *v.result.ReferencesCount
+	if v.result.Counts.References != nil {
+		scoreCount += *v.result.Counts.References
 	}
-	v.result.ScoreCount = &scoreCount
+	v.result.Counts.Score = &scoreCount
 
 	return v.result, nil
 }

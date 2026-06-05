@@ -124,14 +124,18 @@
       "time": {
         "type": "double"
       },
-      "referencesCount": {
-        "type": "integer"
-      },
-      "claimsCount": {
-        "type": "integer"
-      },
-      "scoreCount": {
-        "type": "integer"
+      "counts": {
+        "properties": {
+          "references": {
+            "type": "integer"
+          },
+          "claims": {
+            "type": "integer"
+          },
+          "score": {
+            "type": "integer"
+          }
+        }
       },
       "claims": {
         "properties": {

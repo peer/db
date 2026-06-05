@@ -283,10 +283,14 @@ func TestMappingCountFields(t *testing.T) {
 	properties, ok := mappings["properties"].(map[string]any)
 	require.True(t, ok)
 
-	// referencesCount, claimsCount and scoreCount are top-level integer fields.
-	for _, name := range []string{"referencesCount", "claimsCount", "scoreCount"} {
-		field, fieldOK := properties[name].(map[string]any)
-		require.True(t, fieldOK, "missing top-level %s field", name)
+	// references, claims and score are integer fields nested under counts.
+	counts, ok := properties["counts"].(map[string]any)
+	require.True(t, ok, "missing counts field")
+	countsProperties, ok := counts["properties"].(map[string]any)
+	require.True(t, ok, "counts has no properties")
+	for _, name := range []string{"references", "claims", "score"} {
+		field, fieldOK := countsProperties[name].(map[string]any)
+		require.True(t, fieldOK, "missing counts.%s field", name)
 		assert.Equal(t, "integer", field["type"])
 	}
 }

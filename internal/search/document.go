@@ -28,15 +28,7 @@ import (
 // its time claims (top-level and sub-claims). For a point timestamp that is the
 // timestamp; for an interval it is the earliest bound.
 //
-// ReferencesCount is the number of other documents that reference this document,
-// computed at index time and kept current by re-indexing a document when another
-// document starts or stops referencing it.
-//
-// ClaimsCount is the total number of claims the document has, counted
-// recursively including sub-claims.
-//
-// ScoreCount is ClaimsCount + ReferencesCount used to boost search ranking.
-// Ignored documents (which have no ReferencesCount) get just their ClaimsCount.
+// Counts holds the document's count metrics, nested under "counts".
 type Document struct {
 	ID identifier.Identifier `json:"id"`
 
@@ -46,13 +38,28 @@ type Document struct {
 
 	Time *float64 `json:"time,omitempty"`
 
-	ReferencesCount *int `json:"referencesCount,omitempty"`
-
-	ClaimsCount *int `json:"claimsCount,omitempty"`
-
-	ScoreCount *int `json:"scoreCount,omitempty"`
+	Counts Counts `json:"counts,omitzero"`
 
 	Claims ClaimTypes `json:"claims,omitzero"`
+}
+
+// Counts holds a document's count metrics, used to boost search ranking.
+//
+// References is the number of other documents that reference this document, computed
+// at index time and kept current by re-indexing a document when another document
+// starts or stops referencing it.
+//
+// Claims is the total number of claims the document has, counted recursively
+// including sub-claims.
+//
+// Score is Claims plus References, used to boost search ranking. Ignored documents
+// (which have no References) get just their Claims.
+type Counts struct {
+	References *int `json:"references,omitempty"`
+
+	Claims *int `json:"claims,omitempty"`
+
+	Score *int `json:"score,omitempty"`
 }
 
 // ClaimTypes organizes claims by their type. Synthetic sub-claim types

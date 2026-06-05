@@ -810,11 +810,11 @@ func esReferencesCount(ctx context.Context, t *testing.T, esClient *elasticsearc
 	res, err := esClient.Search().Index(index).
 		Source_(esdsl.NewSourceConfig().Bool(false)).
 		Query(esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(id))).
-		DocvalueFields(esdsl.NewFieldAndFormat().Field("referencesCount")).
+		DocvalueFields(esdsl.NewFieldAndFormat().Field("counts.references")).
 		Size(1).Do(ctx)
 	require.NoError(t, err)
 	require.Len(t, res.Hits.Hits, 1, "document should exist in ES")
-	raw, ok := res.Hits.Hits[0].Fields["referencesCount"]
+	raw, ok := res.Hits.Hits[0].Fields["counts.references"]
 	if !ok {
 		return 0, false
 	}

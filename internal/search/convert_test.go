@@ -4385,8 +4385,8 @@ func TestClaimsCountCountsRecursively(t *testing.T) {
 
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	require.NotNil(t, result.ClaimsCount)
-	assert.Equal(t, 2, *result.ClaimsCount)
+	require.NotNil(t, result.Counts.Claims)
+	assert.Equal(t, 2, *result.Counts.Claims)
 }
 
 // TestReferencesCount verifies that CountReferences is recorded for ordinary
@@ -4417,8 +4417,8 @@ func TestReferencesCount(t *testing.T) {
 	}
 	result, errE := c.FromDocument(ctx, doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	require.NotNil(t, result.ReferencesCount)
-	assert.Equal(t, 7, *result.ReferencesCount)
+	require.NotNil(t, result.Counts.References)
+	assert.Equal(t, 7, *result.Counts.References)
 
 	// A document that is an instance of CLASS is ignored for referencesCount.
 	classDoc := &document.D{
@@ -4435,7 +4435,7 @@ func TestReferencesCount(t *testing.T) {
 	}
 	result, errE = c.FromDocument(ctx, classDoc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Nil(t, result.ReferencesCount)
+	assert.Nil(t, result.Counts.References)
 
 	// A document that is an instance of VOCABULARY is ignored too.
 	vocabDoc := &document.D{
@@ -4452,7 +4452,7 @@ func TestReferencesCount(t *testing.T) {
 	}
 	result, errE = c.FromDocument(ctx, vocabDoc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Nil(t, result.ReferencesCount)
+	assert.Nil(t, result.Counts.References)
 }
 
 // TestReferencesCountIgnoresTransitiveSubclass verifies that a document which is
@@ -4492,7 +4492,7 @@ func TestReferencesCountIgnoresTransitiveSubclass(t *testing.T) {
 	}
 	result, errE := c.FromDocument(t.Context(), doc, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Nil(t, result.ReferencesCount)
+	assert.Nil(t, result.Counts.References)
 }
 
 // Tests for error propagation through Visit* methods and FromDocument.

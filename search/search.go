@@ -973,7 +973,7 @@ func ResultsGet(
 			Functions(
 				esdsl.NewFunctionScore().FieldValueFactor(
 					esdsl.NewFieldValueFactorScoreFunction().
-						Field("scoreCount").
+						Field("counts.score").
 						Factor(types.Float64(factor)).
 						Modifier(fieldvaluefactormodifier.Log2p).
 						Missing(0),
@@ -1031,7 +1031,7 @@ func ScoreFactor(ctx context.Context, getSearchService func() *esSearch.Search) 
 	searchService := getSearchService().Size(0).AddAggregation(
 		"scoreCountP99",
 		esdsl.NewAggregations().Percentiles(
-			esdsl.NewPercentilesAggregation().Field("scoreCount").Percents(scoreCountPercentile).Keyed(false),
+			esdsl.NewPercentilesAggregation().Field("counts.score").Percents(scoreCountPercentile).Keyed(false),
 		),
 	)
 
