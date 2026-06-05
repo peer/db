@@ -100,6 +100,10 @@ type B struct {
 
 	listener    *internalStore.Listener
 	riverClient *river.Client[pgx.Tx]
+
+	// languageCodes maps a language document ID to its primary language subtag (e.g., "en").
+	// It is captured from the converter in Start and surfaced via LanguageCodes.
+	languageCodes map[identifier.Identifier]string
 }
 
 // Init initializes the base.
@@ -205,6 +209,10 @@ func (b *B) Start(ctx context.Context, documents []*document.D) (func(), errors.
 	converter.IndexAncestorProperties = b.IndexAncestorProperties
 	converter.DetectLanguages = true
 	converter.CountReferences = b.bridge.CountReferences
+
+	// The converter derived language codes from the language documents while being built.
+	// Capture them so the site can surface them via LanguageCodes.
+	b.languageCodes = converter.LanguageCodes
 
 	for _, register := range b.RegisterWorkers {
 		errE := register(ctx, b.workers)

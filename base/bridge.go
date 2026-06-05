@@ -13,7 +13,7 @@ import (
 
 // LanguageCodes returns a map that maps language document ID to primary language subtag (e.g., "en").
 func (b *B) LanguageCodes() map[identifier.Identifier]string {
-	return b.bridge.Converter().LanguageCodes
+	return b.languageCodes
 }
 
 // IndexedDocument returns the search document for the given document and metadata.
