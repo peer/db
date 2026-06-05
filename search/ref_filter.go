@@ -25,6 +25,12 @@ import (
 // It represents documents that do not have a value for the filtered property.
 const MissingRefFilterID = "__MISSING__"
 
+// DirectRefFilterPrefix prefixes the synthetic "direct" value id in reference filter results;
+// the suffix is the parent value id. It is appended as a child of a value that has narrower values
+// and represents documents that are exactly that value, with none of its narrower values (its
+// most-specific/leaf instances).
+const DirectRefFilterPrefix = "__DIRECT__:"
+
 // RefFilterResult represents occurrences count for a single reference in a reference filter.
 // Paths lists hierarchy chains from root to immediate parent for this value, one entry
 // per parent path the value participates in (multiple entries for diamond hierarchies
@@ -120,6 +126,77 @@ func bucketsToRefFilterResults(buckets []types.StringTermsBucket, kind string) (
 	return results, nil
 }
 
+// bucketDirectCount reads a value bucket's "direct" sub-aggregation count: the number of
+// documents for which this value is most-specific (it references the value but none of the
+// value's narrower values). The sub-aggregation is a filter on claims.ref.isLeaf wrapping a
+// reverse_nested "docs" aggregation, so its document count is at the document level.
+func bucketDirectCount(bucket types.StringTermsBucket) (int64, errors.E) {
+	direct, errE := internalSearch.AggAs[types.FilterAggregate](bucket.Aggregations, "direct")
+	if errE != nil {
+		return 0, errE
+	}
+	docs, errE := internalSearch.AggAs[types.ReverseNestedAggregate](direct.Aggregations, "docs")
+	if errE != nil {
+		return 0, errE
+	}
+	return docs.DocCount, nil
+}
+
+// directPaths builds the hierarchy paths for a value's synthetic "direct" entry so the tree
+// builder nests it immediately under the value: each of the value's own paths (root to its immediate
+// parent) is extended with the value itself, and a root value (no paths) gets a single path
+// containing just the value.
+func directPaths(value RefFilterResult) [][]string {
+	if len(value.Paths) == 0 {
+		return [][]string{{value.ID}}
+	}
+	out := make([][]string, 0, len(value.Paths))
+	for _, path := range value.Paths {
+		extended := make([]string, 0, len(path)+1)
+		extended = append(extended, path...)
+		extended = append(extended, value.ID)
+		out = append(out, extended)
+	}
+	return out
+}
+
+// directResults builds the synthetic "direct" child entries for a reference or sub-reference
+// filter. buckets and values are parallel (same order, one entry per facet value). A "direct"
+// entry is emitted for a value that has narrower values present in this facet (it appears as an
+// ancestor in another value's hierarchy paths) and whose most-specific document count is greater
+// than zero. The entry is nested under the value (via directPaths) and carries the
+// DirectRefFilterPrefix-prefixed value id.
+func directResults(buckets []types.StringTermsBucket, values []RefFilterResult) ([]RefFilterResult, errors.E) {
+	hasNarrower := make(map[string]bool, len(values))
+	for _, value := range values {
+		for _, path := range value.Paths {
+			for _, ancestor := range path {
+				hasNarrower[ancestor] = true
+			}
+		}
+	}
+	out := make([]RefFilterResult, 0)
+	for i := range buckets {
+		value := values[i]
+		if !hasNarrower[value.ID] {
+			continue
+		}
+		count, errE := bucketDirectCount(buckets[i])
+		if errE != nil {
+			return nil, errE
+		}
+		if count <= 0 {
+			continue
+		}
+		out = append(out, RefFilterResult{
+			ID:    DirectRefFilterPrefix + value.ID,
+			Count: count,
+			Paths: directPaths(value),
+		})
+	}
+	return out, nil
+}
+
 // refFilterDepth returns a value's depth in its class hierarchy: the length of
 // its longest ancestor chain (root to immediate parent), or 0 for a root value
 // or one without indexed paths. The longest chain is what makes a count-tie
@@ -175,6 +252,12 @@ func (f *RefFilter) Get(
 					Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
 				AddAggregation("docs", esdsl.NewAggregations().
 					ReverseNested(esdsl.NewReverseNestedAggregation())).
+				// "direct" counts the documents for which this value is most-specific (a leaf):
+				// they reference the value but none of its narrower values.
+				AddAggregation("direct", esdsl.NewAggregations().
+					Filter(esdsl.NewTermQuery("claims.ref.isLeaf", esdsl.NewFieldValue().Bool(true))).
+					AddAggregation("docs", esdsl.NewAggregations().
+						ReverseNested(esdsl.NewReverseNestedAggregation()))).
 				AddAggregation("paths", esdsl.NewAggregations().
 					Terms(esdsl.NewTermsAggregation().Field("claims.ref.toPath").Size(100)))). //nolint:mnd
 			AddAggregation("total", esdsl.NewAggregations().
@@ -235,16 +318,25 @@ func (f *RefFilter) Get(
 		return nil, nil, errE
 	}
 
+	// Append a synthetic "direct" entry under each value that has narrower values present and
+	// has documents for which it is most-specific, so the value reads as an exact aggregate of its
+	// narrower values plus this entry.
+	direct, errE := directResults(refBuckets, results)
+	if errE != nil {
+		return nil, nil, errE
+	}
+	results = append(results, direct...)
+
 	// Include the missing bucket if there are documents without this property.
 	if missingCount > 0 {
 		results = append(results, RefFilterResult{ID: MissingRefFilterID, Count: missingCount, Paths: nil})
 	}
 
 	// Order for hierarchical tree rendering on the frontend.
-	// This also puts missing in the right position.
+	// This also puts missing and the direct entries in the right positions.
 	slices.SortStableFunc(results, compareRefFilterResults)
 
-	refTotalValue := distinctValuesTotal(len(refBuckets), refTotal.Value)
+	refTotalValue := distinctValuesTotal(len(refBuckets), refTotal.Value) + int64(len(direct))
 	// Include missing in the total if present.
 	if missingCount > 0 {
 		refTotalValue++
@@ -256,51 +348,83 @@ func (f *RefFilter) Get(
 	}, nil
 }
 
-// DescendantValues returns value together with every value that has it as an ancestor in
-// the indexed hierarchy of the given reference property (for a class property, value plus
-// its subclasses). Membership is read from the same indexed hierarchy paths the reference
-// filter facet renders: a value is a descendant when value appears as an ancestor in one
-// of its paths. A leaf value, or a value whose property has no hierarchy, expands to just
-// itself.
+// DescendantValues expands value into the explicit selection that covers value's whole subtree in
+// the indexed hierarchy of the given reference property (for a class property, value plus its
+// subclasses), under the exact structural model the filters UI uses. It returns two sets read from
+// the same reference filter facet (its hierarchy paths and "direct" counts):
 //
-// Selecting a value in a reference filter conceptually covers its whole subtree (ancestor
-// values are indexed, so the value already matches every descendant document). This is
-// used to expand a parent selection into the explicit set of values the filters UI would
-// have selected through its cascade. The requested value is always first in the result.
+//   - subtree: value together with every value present in its subtree (value plus its descendants).
+//     These are selected as regular reference values (To).
+//   - direct: the values in value's subtree (value itself or a descendant) that have documents
+//     for which they are most-specific (their "direct" option has a count). These are selected
+//     through the "direct" option (Direct).
+//
+// Together the subtree values (To) and the "direct" markers (Direct) mirror the selection the
+// filters UI stores when value's checkbox is clicked. They match exactly the documents value
+// matches (ancestor values are indexed, so value already matches every descendant document).
+// A value whose property has no hierarchy, or a leaf value, expands to just itself with no
+// direct entries. Membership is structural: a value is in value's subtree when it is value
+// or value appears as an ancestor in one of its paths.
 func DescendantValues(
 	ctx context.Context, getSearchService func() *esSearch.Search,
 	prop, value identifier.Identifier,
-) ([]identifier.Identifier, errors.E) {
-	f := RefFilter{To: []ToValue{{ID: value}}, Missing: false}
+) ([]identifier.Identifier, []identifier.Identifier, errors.E) {
+	f := RefFilter{To: []ToValue{{ID: value}}, Direct: nil, Missing: false}
 	results, _, errE := f.Get(ctx, getSearchService, f.ToQuery(prop), prop)
 	if errE != nil {
-		return nil, errE
+		return nil, nil, errE
 	}
-	out := []identifier.Identifier{value}
+
 	valueStr := value.String()
+
+	// inSubtree marks the regular values that are value or one of its descendants (value, or value
+	// appears as an ancestor in one of their paths).
+	inSubtree := map[string]bool{}
 	for _, r := range results {
-		if r.ID == MissingRefFilterID {
+		if r.ID == MissingRefFilterID || strings.HasPrefix(r.ID, DirectRefFilterPrefix) {
 			continue
 		}
-		// Each path is r's own ancestor chain (root to its immediate parent; r itself is not
-		// included). r is a descendant of value exactly when value appears as one of those ancestors.
-		isDescendant := false
+		if r.ID == valueStr {
+			inSubtree[r.ID] = true
+		}
 		for _, path := range r.Paths {
-			if slices.Contains(path, valueStr) {
-				isDescendant = true
-				break
+			for _, ancestor := range path {
+				if ancestor == valueStr {
+					inSubtree[r.ID] = true
+				}
 			}
 		}
-		if !isDescendant {
-			continue
-		}
-		id, errE := identifier.MaybeString(r.ID)
-		if errE != nil {
-			return nil, errE
-		}
-		out = append(out, id)
 	}
-	return out, nil
+
+	var subtree, direct []identifier.Identifier
+	for _, r := range results {
+		switch {
+		case r.ID == MissingRefFilterID:
+			continue
+		case strings.HasPrefix(r.ID, DirectRefFilterPrefix):
+			// A "direct" entry's id is the prefix followed by its value's id; the value has a
+			// regular entry too, so its subtree membership is already known.
+			valueID := strings.TrimPrefix(r.ID, DirectRefFilterPrefix)
+			if !inSubtree[valueID] {
+				continue
+			}
+			id, errE := identifier.MaybeString(valueID)
+			if errE != nil {
+				return nil, nil, errE
+			}
+			direct = append(direct, id)
+		default:
+			if !inSubtree[r.ID] {
+				continue
+			}
+			id, errE := identifier.MaybeString(r.ID)
+			if errE != nil {
+				return nil, nil, errE
+			}
+			subtree = append(subtree, id)
+		}
+	}
+	return subtree, direct, nil
 }
 
 // ToSubRefQuery converts the RefFilter to an ElasticSearch query on claims.subRef
@@ -340,17 +464,31 @@ func (f *RefFilter) ToSubRefQuery(parentProp, prop identifier.Identifier, parent
 	)
 
 	// Missing only.
-	if f.Missing && len(f.To) == 0 {
+	if f.Missing && len(f.To) == 0 && len(f.Direct) == 0 {
 		return missingQuery
 	}
 
-	// Build value queries (OR across all To values).
-	shoulds := make([]types.QueryVariant, 0, len(f.To)+1)
+	// Build value queries (OR across all To and Direct values).
+	shoulds := make([]types.QueryVariant, 0, len(f.To)+len(f.Direct)+1)
 	for _, to := range f.To {
 		valueMust := withParentTo([]types.QueryVariant{
 			esdsl.NewTermQuery("claims.subRef.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
 			esdsl.NewTermQuery("claims.subRef.prop", esdsl.NewFieldValue().String(prop.String())),
 			esdsl.NewTermQuery("claims.subRef.to", esdsl.NewFieldValue().String(to.ID.String())),
+		})
+		shoulds = append(shoulds, esdsl.NewNestedQuery(
+			esdsl.NewBoolQuery().Must(valueMust...),
+		).Path("claims.subRef"))
+	}
+
+	// A "direct" value additionally requires isLeaf=true, so it matches only documents for which
+	// the value is most-specific (none of its narrower values present).
+	for _, to := range f.Direct {
+		valueMust := withParentTo([]types.QueryVariant{
+			esdsl.NewTermQuery("claims.subRef.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+			esdsl.NewTermQuery("claims.subRef.prop", esdsl.NewFieldValue().String(prop.String())),
+			esdsl.NewTermQuery("claims.subRef.to", esdsl.NewFieldValue().String(to.ID.String())),
+			esdsl.NewTermQuery("claims.subRef.isLeaf", esdsl.NewFieldValue().Bool(true)),
 		})
 		shoulds = append(shoulds, esdsl.NewNestedQuery(
 			esdsl.NewBoolQuery().Must(valueMust...),
@@ -406,6 +544,12 @@ func (f *RefFilter) GetSubRef(
 					Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
 				AddAggregation("docs", esdsl.NewAggregations().
 					ReverseNested(esdsl.NewReverseNestedAggregation())).
+				// "direct" counts the documents for which this value is most-specific (a leaf):
+				// they reference the value but none of its narrower values.
+				AddAggregation("direct", esdsl.NewAggregations().
+					Filter(esdsl.NewTermQuery("claims.subRef.isLeaf", esdsl.NewFieldValue().Bool(true))).
+					AddAggregation("docs", esdsl.NewAggregations().
+						ReverseNested(esdsl.NewReverseNestedAggregation()))).
 				AddAggregation("paths", esdsl.NewAggregations().
 					Terms(esdsl.NewTermsAggregation().Field("claims.subRef.toPath").Size(100)))). //nolint:mnd
 			AddAggregation("total", esdsl.NewAggregations().
@@ -469,16 +613,25 @@ func (f *RefFilter) GetSubRef(
 		return nil, nil, errE
 	}
 
+	// Append a synthetic "direct" entry under each value that has narrower values present and
+	// has documents for which it is most-specific, so the value reads as an exact aggregate of its
+	// narrower values plus this entry.
+	direct, errE := directResults(subRefBuckets, results)
+	if errE != nil {
+		return nil, nil, errE
+	}
+	results = append(results, direct...)
+
 	// Include the missing bucket if there are documents without this sub-reference.
 	if missingCount > 0 {
 		results = append(results, RefFilterResult{ID: MissingRefFilterID, Count: missingCount, Paths: nil})
 	}
 
 	// Order for hierarchical tree rendering on the frontend.
-	// This also puts missing in the right position.
+	// This also puts missing and the direct entries in the right positions.
 	slices.SortStableFunc(results, compareRefFilterResults)
 
-	subRefTotalValue := distinctValuesTotal(len(subRefBuckets), subRefTotal.Value)
+	subRefTotalValue := distinctValuesTotal(len(subRefBuckets), subRefTotal.Value) + int64(len(direct))
 	if missingCount > 0 {
 		subRefTotalValue++
 	}

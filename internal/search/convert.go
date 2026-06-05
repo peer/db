@@ -1363,6 +1363,69 @@ func (v *convertVisitor) addDisplayPathLabels(paths map[string][]string) {
 	}
 }
 
+// referencePathAncestors adds to out every ancestor value id encoded in a claim's indexed
+// hierarchy paths. Each path is "<hierProp>:<root>/.../<target>", so every "/"-separated segment
+// except the trailing target itself is an ancestor of that target.
+func referencePathAncestors(toPath []string, out map[identifier.Identifier]bool) {
+	for _, raw := range toPath {
+		_, chain, ok := strings.Cut(raw, ":")
+		if !ok {
+			continue
+		}
+		parts := strings.Split(chain, "/")
+		for _, p := range parts[:len(parts)-1] {
+			id, errE := identifier.MaybeString(p)
+			if errE != nil {
+				continue
+			}
+			out[id] = true
+		}
+	}
+}
+
+// markReferenceLeaves sets IsLeaf on the document's reference and sub-reference claims. A target
+// is a leaf (most-specific) when no other claim under the same property (and, for sub-refs, the
+// same parent) has it as an ancestor in its hierarchy paths, i.e. the document references the
+// value but none of its narrower values. This lets the reference filter count and select
+// documents that are exactly a value, with none of its narrower values ("direct").
+func (v *convertVisitor) markReferenceLeaves() {
+	refAncestors := map[identifier.Identifier]map[identifier.Identifier]bool{}
+	for i := range v.result.Claims.Reference {
+		c := &v.result.Claims.Reference[i]
+		anc := refAncestors[c.Prop]
+		if anc == nil {
+			anc = map[identifier.Identifier]bool{}
+			refAncestors[c.Prop] = anc
+		}
+		referencePathAncestors(c.ToPath, anc)
+	}
+	for i := range v.result.Claims.Reference {
+		c := &v.result.Claims.Reference[i]
+		c.IsLeaf = !refAncestors[c.Prop][c.To]
+	}
+
+	type subRefKey struct {
+		parentProp identifier.Identifier
+		parentTo   string
+		prop       identifier.Identifier
+	}
+	subAncestors := map[subRefKey]map[identifier.Identifier]bool{}
+	for i := range v.result.Claims.SubRef {
+		c := &v.result.Claims.SubRef[i]
+		key := subRefKey{parentProp: c.ParentProp, parentTo: c.ParentTo, prop: c.Prop}
+		anc := subAncestors[key]
+		if anc == nil {
+			anc = map[identifier.Identifier]bool{}
+			subAncestors[key] = anc
+		}
+		referencePathAncestors(c.ToPath, anc)
+	}
+	for i := range v.result.Claims.SubRef {
+		c := &v.result.Claims.SubRef[i]
+		c.IsLeaf = !subAncestors[subRefKey{parentProp: c.ParentProp, parentTo: c.ParentTo, prop: c.Prop}][c.To]
+	}
+}
+
 // appendClaimDisplaysToText folds claim values into the document's top-level
 // text bucket so the text-search query can match against referenced-document
 // names (including their ancestor hierarchy labels), numeric/temporal boundary
@@ -1705,6 +1768,10 @@ func (c *Converter) FromDocument(
 	v.appendClaimDisplaysToText()
 
 	v.deduplicateResult()
+
+	// Mark which reference/sub-reference targets are most-specific for this document, so the
+	// reference filter can count and select documents that are exactly a value ("direct").
+	v.markReferenceLeaves()
 
 	// Index the document's earliest time so it can be sorted/filtered by time
 	// at the top level without descending into nested time claims.
@@ -2570,6 +2637,8 @@ func (c *Converter) convertSubRefs(
 				ToNaming:      r.ToNaming,
 				ToPath:        r.ToPath,
 				ToDisplayPath: r.ToDisplayPath,
+				// Set by markReferenceLeaves once all of the document's sub-ref claims are collected.
+				IsLeaf: false,
 			})
 		}
 	}
@@ -2781,6 +2850,8 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 				ToNaming:      tidInfo.Display.Naming,
 				ToPath:        toPath,
 				ToDisplayPath: toDisplayPath,
+				// Set by markReferenceLeaves once all of the document's reference claims are collected.
+				IsLeaf: false,
 			})
 		}
 	}

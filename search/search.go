@@ -117,8 +117,14 @@ type HasValue struct {
 }
 
 // RefFilter contains values for a reference filter.
+//
+// Direct holds values selected through their "direct" option: a value in Direct matches only
+// documents for which the value is most-specific (it references the value but none of its narrower
+// values). It parallels To (which matches the value and all its narrower values) and is OR-ed with
+// To and Missing.
 type RefFilter struct {
 	To      []ToValue `json:"to,omitempty"`
+	Direct  []ToValue `json:"direct,omitempty"`
 	Missing bool      `json:"missing,omitempty"`
 }
 
@@ -131,17 +137,29 @@ func (f *RefFilter) ToQuery(prop identifier.Identifier) types.QueryVariant { //n
 	)
 
 	// Missing only.
-	if f.Missing && len(f.To) == 0 {
+	if f.Missing && len(f.To) == 0 && len(f.Direct) == 0 {
 		return missingQuery
 	}
 
-	// Build value queries (OR across all To values).
-	shoulds := make([]types.QueryVariant, 0, len(f.To)+1)
+	// Build value queries (OR across all To and Direct values).
+	shoulds := make([]types.QueryVariant, 0, len(f.To)+len(f.Direct)+1)
 	for _, to := range f.To {
 		shoulds = append(shoulds, esdsl.NewNestedQuery(
 			esdsl.NewBoolQuery().Must(
 				esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String())),
 				esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(to.ID.String())),
+			),
+		).Path("claims.ref"))
+	}
+
+	// A "direct" value additionally requires isLeaf=true, so it matches only documents for which
+	// the value is most-specific (none of its narrower values present).
+	for _, to := range f.Direct {
+		shoulds = append(shoulds, esdsl.NewNestedQuery(
+			esdsl.NewBoolQuery().Must(
+				esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String())),
+				esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(to.ID.String())),
+				esdsl.NewTermQuery("claims.ref.isLeaf", esdsl.NewFieldValue().Bool(true)),
 			),
 		).Path("claims.ref"))
 	}
@@ -159,8 +177,8 @@ func (f *RefFilter) ToQuery(prop identifier.Identifier) types.QueryVariant { //n
 
 // Validate validates the RefFilter.
 func (f *RefFilter) Validate() errors.E {
-	if len(f.To) == 0 && !f.Missing {
-		return errors.New("to or missing has to be set")
+	if len(f.To) == 0 && len(f.Direct) == 0 && !f.Missing {
+		return errors.New("to, direct, or missing has to be set")
 	}
 	return nil
 }

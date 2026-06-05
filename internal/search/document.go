@@ -254,6 +254,11 @@ type ReferenceClaim struct {
 	// target document. Each path is a string of display labels joined by null bytes,
 	// which ensures correct hierarchical sort order.
 	ToDisplayPath map[string][]string `json:"toDisplayPath,omitempty"`
+	// IsLeaf is true when the target is a most-specific value for this document: the document
+	// references it but none of its narrower values (its descendants in the value hierarchy) for
+	// the same property. It lets the reference filter count and select documents that are exactly
+	// this value, with none of its narrower values ("direct").
+	IsLeaf bool `json:"isLeaf,omitempty"`
 }
 
 // HasClaim represents a claim with just a property.
@@ -328,6 +333,10 @@ type SubRefClaim struct {
 	// target document. Each path is a string of display labels joined by null bytes,
 	// which ensures correct hierarchical sort order.
 	ToDisplayPath map[string][]string `json:"toDisplayPath,omitempty"`
+	// IsLeaf is true when the target is a most-specific value for this document under the same
+	// parent: none of its narrower values (descendants in the value hierarchy) are also present.
+	// It lets the sub-reference filter count and select documents that are exactly this value.
+	IsLeaf bool `json:"isLeaf,omitempty"`
 }
 
 // SubAmountClaim represents a denormalized nested amount sub-claim flattened

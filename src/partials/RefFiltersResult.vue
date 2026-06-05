@@ -11,7 +11,7 @@ import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import RefFilterTreeRow from "@/partials/RefFilterTreeRow.vue"
 import { useProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useRefFilters } from "@/search"
-import { equals, loadingWidth, SKIP_TO_END, useInitialLoad, useLimitResults } from "@/utils"
+import { computeRefCheckStates, equals, loadingWidth, SKIP_TO_END, toggleRefSelection, useInitialLoad, useLimitResults } from "@/utils"
 
 type FlatEntry = { node: RefFilterTreeNode; depth: number }
 
@@ -70,6 +70,15 @@ const selectedIds = computed((): string[] => {
   return props.filter.ref.to.map((t: ToValue) => t.id)
 })
 
+// The values selected through their "direct" option. In the checkbox state each is carried as a
+// "__DIRECT__:" + value token, the same way "__MISSING__" carries the missing selection.
+const selectedDirectIds = computed((): string[] => {
+  if (!props.filter?.ref?.direct) {
+    return []
+  }
+  return props.filter.ref.direct.map((t: ToValue) => t.id)
+})
+
 const isMissingSelected = computed((): boolean => {
   return props.filter?.ref?.missing === true
 })
@@ -77,6 +86,9 @@ const isMissingSelected = computed((): boolean => {
 const checkboxState = computed({
   get(): string[] {
     const ids = [...selectedIds.value]
+    for (const id of selectedDirectIds.value) {
+      ids.push("__DIRECT__:" + id)
+    }
     if (isMissingSelected.value) {
       ids.push("__MISSING__")
     }
@@ -88,8 +100,10 @@ const checkboxState = computed({
     }
 
     const missingSelected = value.includes("__MISSING__")
-    const toIds = value.filter((v) => v !== "__MISSING__")
+    const directIds = value.filter((v) => v.startsWith("__DIRECT__:")).map((v) => v.slice("__DIRECT__:".length))
+    const toIds = value.filter((v) => v !== "__MISSING__" && !v.startsWith("__DIRECT__:"))
     const to: ToValue[] | undefined = toIds.length > 0 ? toIds.map((id) => ({ id })) : undefined
+    const direct: ToValue[] | undefined = directIds.length > 0 ? directIds.map((id) => ({ id })) : undefined
     const missing = missingSelected ? true : undefined
 
     // Build the updated filter.
@@ -97,7 +111,7 @@ const checkboxState = computed({
       id: props.filter?.id ?? "",
       base: props.filter?.base ?? [],
       prop: props.filter?.prop ?? [...props.result.props],
-      ref: { to, missing },
+      ref: { to, direct, missing },
     }
 
     if (!equals(props.filter, updatedFilter)) {
@@ -233,30 +247,23 @@ const optionsRemaining = computed(() => {
 })
 
 // The render-time tree: a stack walk over effectiveLimited that rebuilds parent
-// links only for visible nodes. Hidden subtrees are simply absent. The parallel
-// parents map (keyed by node.key so diamond duplicates stay distinguishable)
-// powers the ancestor walk used during an uncheck cascade.
-const partial = computed((): { roots: RefFilterTreeNode[]; parents: Record<string, RefFilterTreeNode | undefined> } => {
+// links only for visible nodes. Hidden subtrees are simply absent.
+const partialTree = computed((): RefFilterTreeNode[] => {
   const roots: RefFilterTreeNode[] = []
   const stack: RefFilterTreeNode[] = []
-  const parents: Record<string, RefFilterTreeNode | undefined> = {}
   for (const { node, depth } of effectiveLimited.value) {
     const cloned: RefFilterTreeNode = { res: node.res, key: node.key, children: [] }
     if (depth === 0) {
       roots.push(cloned)
-      parents[cloned.key] = undefined
     } else {
       const parent = stack[depth - 1]
       parent.children.push(cloned)
-      parents[cloned.key] = parent
     }
     stack[depth] = cloned
     stack.length = depth + 1
   }
-  return { roots, parents }
+  return roots
 })
-
-const partialTree = computed(() => partial.value.roots)
 
 // Whether anything is still hidden behind the row limit.
 const moreRowsAvailable = computed(() => effectiveLimited.value.length < flatTree.value.length)
@@ -269,58 +276,25 @@ function clearFilter() {
     id: props.filter.id,
     base: props.filter.base,
     prop: props.filter.prop,
-    ref: { to: undefined, missing: undefined },
+    ref: { to: undefined, direct: undefined, missing: undefined },
   })
 }
 
-function collectSubtreeIds(n: RefFilterTreeNode, out: Set<string>): Set<string> {
-  out.add(n.res.id)
-  for (const c of n.children) {
-    collectSubtreeIds(c, out)
-  }
-  return out
-}
+// Per-value tri-state for rendering: a value is checked when its own value, or an ancestor, is
+// selected, or when all of its children are; indeterminate when only part of its subtree is. See
+// computeRefCheckStates. The whole panel's results feed it, so a value's state does not depend on
+// whether the rows under it are currently paginated into view.
+const checkStates = computed(() => computeRefCheckStates(results.value as RefFilterResult[], selectedSet.value))
 
-// Cascade: clicking a node toggles its whole rendered subtree as a unit. After
-// the toggle, propagate up through the rendered ancestors so the parent's state
-// stays in sync with its visible children:
-//
-//  - On uncheck, drop every ancestor from the selection so a parent does not
-//    linger as an indeterminate ghost after the user empties its children.
-//  - On check, add an ancestor when all of its visible children become
-//    selected, so the parent flips to a checked visual instead of staying
-//    indeterminate after the user fills in every child individually.
+// Clicking a node toggles its whole subtree. Clicking an unchecked or indeterminate value selects
+// the value, its narrower values and its "direct" entry; clicking a checked value deselects that
+// subtree, decomposing any broader ancestor selection into its still-selected siblings.
+// The selection round-trips through checkboxState into the filter.
 function onToggle(node: RefFilterTreeNode) {
   if (abortController.signal.aborted) {
     return
   }
-  const subtree = collectSubtreeIds(node, new Set<string>())
-  const allSelected = [...subtree].every((id) => selectedSet.value.has(id))
-  const next = new Set(checkboxState.value)
-  if (allSelected) {
-    for (const id of subtree) {
-      next.delete(id)
-    }
-    let ancestor = partial.value.parents[node.key]
-    while (ancestor !== undefined) {
-      next.delete(ancestor.res.id)
-      ancestor = partial.value.parents[ancestor.key]
-    }
-  } else {
-    for (const id of subtree) {
-      next.add(id)
-    }
-    let ancestor = partial.value.parents[node.key]
-    while (ancestor !== undefined) {
-      if (ancestor.children.every((c) => next.has(c.res.id))) {
-        next.add(ancestor.res.id)
-        ancestor = partial.value.parents[ancestor.key]
-      } else {
-        break
-      }
-    }
-  }
-  checkboxState.value = [...next]
+  checkboxState.value = [...toggleRefSelection(results.value as RefFilterResult[], node.res.id, selectedSet.value)]
 }
 </script>
 
@@ -356,7 +330,7 @@ function onToggle(node: RefFilterTreeNode) {
         </li>
       </template>
       <template v-else>
-        <RefFilterTreeRow v-for="node in partialTree" :key="node.key" :node="node" :props-key="propsKey" :selected-set="selectedSet" :on-toggle="onToggle" />
+        <RefFilterTreeRow v-for="node in partialTree" :key="node.key" :node="node" :props-key="propsKey" :check-states="checkStates" :on-toggle="onToggle" />
       </template>
     </ul>
     <Button v-if="total !== null && hasMore && moreRowsAvailable && optionsRemaining > 0" primary class="mt-2 w-1/2 min-w-fit self-center" @click.prevent="loadMore">{{

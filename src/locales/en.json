@@ -55,6 +55,7 @@
       "table": "Table"
     },
     "values": {
+      "direct": "direct",
       "missing": "missing",
       "noName": "no name",
       "none": "none",

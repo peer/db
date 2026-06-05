@@ -1032,6 +1032,7 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 			Prop: props,
 			Ref: &search.RefFilter{
 				To:      toValues,
+				Direct:  nil,
 				Missing: false,
 			},
 			Amount: nil,
@@ -1055,17 +1056,17 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 	return searchSession, nil
 }
 
-// expandShortcutFilters expands every top-level reference filter value in the session to
-// also include its descendant values in the value hierarchy (for a class filter, the
-// subclasses). This makes a search shortcut that targets a parent value build the same
-// fully expanded selection the filters UI produces when the user clicks that value in the
-// hierarchy, so the value renders with a full checkmark instead of an indeterminate one.
-// Results are unaffected: ancestor values are indexed, so the parent already matches every
-// descendant document, only the explicit set of selected values grows.
+// expandShortcutFilters expands every top-level reference filter value in the session into the
+// explicit selection the filters UI produces when the user clicks that value in the hierarchy:
+// the parent together with its descendant values (selected as regular reference values) plus a
+// "direct" marker for each value in the subtree that has documents for which it is most-specific.
+// This makes a search shortcut that targets a parent value render with a full checkmark instead of
+// an indeterminate one. Results are unaffected: the subtree values plus the "direct" markers
+// match exactly the documents the parent matches, only the explicit set of selected values grows.
 //
-// The descendants come from the same indexed hierarchy paths the filter facet renders. A
-// value is treated as a descendant when the parent appears as an ancestor in one of its
-// paths. Values without a hierarchy (or leaf values) expand to just themselves.
+// The subtree values and "direct" markers come from the same indexed hierarchy paths and
+// "direct" counts the filter facet renders. A value without a hierarchy (or a leaf value)
+// expands to just itself.
 func (s *Service) expandShortcutFilters(ctx context.Context, getSearchService func() *esSearch.Search, session *search.Session) errors.E {
 	for i := range session.Filters {
 		f := &session.Filters[i]
@@ -1074,22 +1075,40 @@ func (s *Service) expandShortcutFilters(ctx context.Context, getSearchService fu
 			continue
 		}
 		prop := f.Prop[0]
-		seen := make(map[identifier.Identifier]bool, len(f.Ref.To))
-		expanded := make([]search.ToValue, 0, len(f.Ref.To))
+		seenTo := make(map[identifier.Identifier]bool, len(f.Ref.To))
+		seenDirect := make(map[identifier.Identifier]bool, len(f.Ref.Direct))
+		expandedTo := make([]search.ToValue, 0, len(f.Ref.To))
+		expandedDirect := make([]search.ToValue, 0, len(f.Ref.Direct))
+		// Preserve any "direct" markers already on the filter.
+		for _, d := range f.Ref.Direct {
+			if seenDirect[d.ID] {
+				continue
+			}
+			seenDirect[d.ID] = true
+			expandedDirect = append(expandedDirect, d)
+		}
 		for _, to := range f.Ref.To {
-			ids, errE := search.DescendantValues(ctx, getSearchService, prop, to.ID)
+			subtree, direct, errE := search.DescendantValues(ctx, getSearchService, prop, to.ID)
 			if errE != nil {
 				return errE
 			}
-			for _, id := range ids {
-				if seen[id] {
+			for _, id := range subtree {
+				if seenTo[id] {
 					continue
 				}
-				seen[id] = true
-				expanded = append(expanded, search.ToValue{ID: id})
+				seenTo[id] = true
+				expandedTo = append(expandedTo, search.ToValue{ID: id})
+			}
+			for _, id := range direct {
+				if seenDirect[id] {
+					continue
+				}
+				seenDirect[id] = true
+				expandedDirect = append(expandedDirect, search.ToValue{ID: id})
 			}
 		}
-		f.Ref.To = expanded
+		f.Ref.To = expandedTo
+		f.Ref.Direct = expandedDirect
 	}
 	return nil
 }

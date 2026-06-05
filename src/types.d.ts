@@ -78,6 +78,7 @@ export type HasValue = {
 
 export type RefFilter = {
   to?: ToValue[]
+  direct?: ToValue[]
   missing?: boolean
 }
 

@@ -55,6 +55,7 @@
       "table": "Tabela"
     },
     "values": {
+      "direct": "neposredno",
       "missing": "manjkajoče",
       "noName": "brez imena",
       "none": "brez",

@@ -84,6 +84,10 @@ const relationID = `{
 	"type": "keyword"
 }`
 
+const boolean = `{
+	"type": "boolean"
+}`
+
 // langProperties builds a JSON object with a property per enabled language, using perLang
 // to render each language's definition.
 func langProperties(langs []string, perLang func(lang string) string) string {
@@ -311,6 +315,10 @@ func buildClaimTypes(langs []string) []claimType {
 					"toDisplayPath",
 					displayPath(langs),
 				},
+				{
+					"isLeaf",
+					boolean,
+				},
 			},
 		},
 		{
@@ -411,6 +419,10 @@ func buildClaimTypes(langs []string) []claimType {
 				{
 					"toDisplayPath",
 					displayPath(langs),
+				},
+				{
+					"isLeaf",
+					boolean,
 				},
 			},
 		},

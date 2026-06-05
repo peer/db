@@ -194,6 +194,7 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 				ToNaming:      nil,
 				ToPath:        nil,
 				ToDisplayPath: nil,
+				IsLeaf:        false,
 			}},
 			Has:       nil,
 			None:      nil,
@@ -234,6 +235,7 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{refProp},
 			Ref: &search.RefFilter{
+				Direct:  nil,
 				To:      []search.ToValue{{ID: refTarget}},
 				Missing: false,
 			},
@@ -252,6 +254,7 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{refProp},
 			Ref: &search.RefFilter{
+				Direct:  nil,
 				To:      nil,
 				Missing: true,
 			},
@@ -621,6 +624,7 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 				ToNaming:      nil,
 				ToPath:        nil,
 				ToDisplayPath: nil,
+				IsLeaf:        false,
 			}},
 			Has:       nil,
 			None:      nil,
@@ -651,6 +655,7 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 				ToNaming:      nil,
 				ToPath:        nil,
 				ToDisplayPath: nil,
+				IsLeaf:        false,
 			}},
 			Has:       nil,
 			None:      nil,
@@ -682,6 +687,7 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 					ToNaming:      nil,
 					ToPath:        nil,
 					ToDisplayPath: nil,
+					IsLeaf:        false,
 				},
 				{
 					Prop:          refProp2,
@@ -692,6 +698,7 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 					ToNaming:      nil,
 					ToPath:        nil,
 					ToDisplayPath: nil,
+					IsLeaf:        false,
 				},
 			},
 			Has:       nil,
@@ -713,6 +720,7 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 			{ //nolint:exhaustruct
 				Prop: []identifier.Identifier{refProp1},
 				Ref: &search.RefFilter{
+					Direct:  nil,
 					To:      []search.ToValue{{ID: refTarget1}},
 					Missing: false,
 				},
@@ -720,6 +728,7 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 			{ //nolint:exhaustruct
 				Prop: []identifier.Identifier{refProp2},
 				Ref: &search.RefFilter{
+					Direct:  nil,
 					To:      []search.ToValue{{ID: refTarget2}},
 					Missing: false,
 				},
@@ -930,6 +939,7 @@ func TestResultsGetExtraFiltersIntegration(t *testing.T) {
 				Reference: internalSearch.ReferenceClaims{{
 					Prop: instanceOf, PropDisplay: nil, PropNaming: nil,
 					To: class, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
+					IsLeaf: false,
 				}},
 				Has: nil, None: nil, Unknown: nil,
 				SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
@@ -956,6 +966,7 @@ func TestResultsGetExtraFiltersIntegration(t *testing.T) {
 	// With an access filter restricting INSTANCE_OF to classA, only the two
 	// classA documents are returned: the filter wraps the user's query.
 	accessFilter := (&search.RefFilter{
+		Direct:  nil,
 		To:      []search.ToValue{{ID: classA}},
 		Missing: false,
 	}).ToQuery(instanceOf)

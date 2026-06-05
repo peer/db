@@ -3,6 +3,7 @@ package search //nolint:testpackage
 import (
 	"context"
 	"math"
+	"strings"
 	"testing"
 	"time"
 
@@ -909,6 +910,86 @@ func TestConvertRelationOverlappingAncestors(t *testing.T) {
 	}
 	assert.Contains(t, toIDs, target)
 	assert.Contains(t, toIDs, sharedAncestor)
+}
+
+func TestMarkReferenceLeaves(t *testing.T) {
+	t.Parallel()
+
+	hierProp := identifier.New()
+	instanceOf := identifier.New()
+	otherProp := identifier.New()
+	artist := identifier.New()
+	painter := identifier.New()
+	sculptor := identifier.New()
+
+	parentProp := identifier.New()
+	subProp := identifier.New()
+	parentTo := identifier.New().String()
+	mammal := identifier.New()
+	dog := identifier.New()
+
+	// path builds an indexed hierarchy path "<hierProp>:<root>/.../<this>" for chain (the target
+	// is its last element). The hierarchy-property prefix is irrelevant to leaf detection (only the
+	// chain is read), but it mirrors the real indexed format.
+	path := func(chain ...identifier.Identifier) string {
+		parts := make([]string, len(chain))
+		for i, id := range chain {
+			parts[i] = id.String()
+		}
+		return hierProp.String() + ":" + strings.Join(parts, "/")
+	}
+
+	v := &convertVisitor{ //nolint:exhaustruct
+		result: &Document{ //nolint:exhaustruct
+			Claims: ClaimTypes{ //nolint:exhaustruct
+				Reference: []ReferenceClaim{
+					// Instance of two sibling leaf classes (painter, sculptor), both narrower than artist.
+					{Prop: instanceOf, To: painter, ToPath: []string{path(artist, painter)}},   //nolint:exhaustruct
+					{Prop: instanceOf, To: sculptor, ToPath: []string{path(artist, sculptor)}}, //nolint:exhaustruct
+					{Prop: instanceOf, To: artist, ToPath: []string{path(artist)}},             //nolint:exhaustruct
+					// The same value under a different property, where it has no narrower value present.
+					{Prop: otherProp, To: artist, ToPath: []string{path(artist)}}, //nolint:exhaustruct
+				},
+				SubRef: []SubRefClaim{
+					{ParentProp: parentProp, ParentTo: parentTo, Prop: subProp, To: dog, ToPath: []string{path(mammal, dog)}}, //nolint:exhaustruct
+					{ParentProp: parentProp, ParentTo: parentTo, Prop: subProp, To: mammal, ToPath: []string{path(mammal)}},   //nolint:exhaustruct
+				},
+			},
+		},
+	}
+
+	v.markReferenceLeaves()
+
+	refLeaf := func(prop, to identifier.Identifier) bool {
+		for _, c := range v.result.Claims.Reference {
+			if c.Prop == prop && c.To == to {
+				return c.IsLeaf
+			}
+		}
+		t.Fatalf("reference claim not found: prop=%s to=%s", prop, to)
+		return false
+	}
+	subRefLeaf := func(to identifier.Identifier) bool {
+		for _, c := range v.result.Claims.SubRef {
+			if c.To == to {
+				return c.IsLeaf
+			}
+		}
+		t.Fatalf("sub-reference claim not found: to=%s", to)
+		return false
+	}
+
+	// Both sibling classes are most-specific; their shared ancestor is not.
+	assert.True(t, refLeaf(instanceOf, painter))
+	assert.True(t, refLeaf(instanceOf, sculptor))
+	assert.False(t, refLeaf(instanceOf, artist))
+	// Leaf detection is per property: under otherProp artist has no narrower value present, so it
+	// is most-specific there even though it is not under instanceOf.
+	assert.True(t, refLeaf(otherProp, artist))
+
+	// Sub-references get the same treatment, scoped by parent and property.
+	assert.True(t, subRefLeaf(dog))
+	assert.False(t, subRefLeaf(mammal))
 }
 
 func TestBuildLanguageCodes(t *testing.T) {
