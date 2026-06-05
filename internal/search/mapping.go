@@ -167,7 +167,7 @@ func textProperties(langs []string) string {
 }
 
 // TODO: Generate automatically from the Document struct.
-func buildClaimTypes(langs []string) []claimType {
+func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 	return []claimType{
 		{
 			"id",
