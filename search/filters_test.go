@@ -36,6 +36,9 @@ func TestFiltersGetIntegration(t *testing.T) {
 		Time:    nil,
 		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
 				PropDisplay: nil,
@@ -67,6 +70,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 				To:          &t1000,
 				ToDisplay:   "",
 			}},
+			Link: nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop:          refProp,
 				PropDisplay:   nil,
@@ -94,6 +98,9 @@ func TestFiltersGetIntegration(t *testing.T) {
 		Time:    nil,
 		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
 				PropDisplay: nil,
@@ -125,6 +132,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 				To:          &t2000,
 				ToDisplay:   "",
 			}},
+			Link: nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop:          refProp,
 				PropDisplay:   nil,
@@ -204,8 +212,12 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 		Time:    nil,
 		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil,
-			Time:   nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop:          refProp,
 				PropDisplay:   nil,
@@ -233,8 +245,12 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 		Time:    nil,
 		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil,
-			Time:   nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop:          refProp,
 				PropDisplay:   nil,
@@ -291,6 +307,9 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 		Time:    nil,
 		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
 				PropDisplay: nil,
@@ -308,6 +327,7 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 				ToDisplay:   "",
 			}},
 			Time:      nil,
+			Link:      nil,
 			Reference: nil,
 			Has:       nil,
 			None:      nil,

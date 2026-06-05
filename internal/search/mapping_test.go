@@ -69,8 +69,13 @@ func TestMappingContainsClaimTypes(t *testing.T) {
 	// html is converted to text in Go before indexing, so it uses the same text analyzers as string,
 	// not an HTML-stripping analyzer.
 	for _, tf := range []struct{ claimType, field string }{{"string", "string"}, {"html", "html"}} {
-		props := claimProps[tf.claimType].(map[string]any)["properties"].(map[string]any)
-		langProps, langOK := props[tf.field].(map[string]any)["properties"].(map[string]any)
+		ct, ctOK := claimProps[tf.claimType].(map[string]any)
+		require.True(t, ctOK, "missing claim type: %s", tf.claimType)
+		ctProps, ctPropsOK := ct["properties"].(map[string]any)
+		require.True(t, ctPropsOK)
+		langField, langFieldOK := ctProps[tf.field].(map[string]any)
+		require.True(t, langFieldOK, "missing %s.%s field", tf.claimType, tf.field)
+		langProps, langOK := langField["properties"].(map[string]any)
 		require.True(t, langOK, "%s.%s should be a per-language object", tf.claimType, tf.field)
 		en, enOK := langProps["en"].(map[string]any)
 		require.True(t, enOK, "missing %s.%s.en", tf.claimType, tf.field)

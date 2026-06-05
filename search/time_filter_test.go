@@ -77,7 +77,10 @@ func TestTimeFilterGetMissingIntegration(t *testing.T) {
 		Time:    nil,
 		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
 			Time: internalSearch.TimeClaims{{
 				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
 				Range: internalSearch.RangeFloat{
@@ -85,8 +88,15 @@ func TestTimeFilterGetMissingIntegration(t *testing.T) {
 				},
 				From: &t1000, FromDisplay: "", To: &t1000, ToDisplay: "",
 			}},
-			Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Link:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	// Doc without the time prop.
@@ -97,10 +107,20 @@ func TestTimeFilterGetMissingIntegration(t *testing.T) {
 		Time:    nil,
 		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount:    nil,
-			Time:      nil,
-			Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
+			Reference:  nil,
+			Has:        nil,
+			None:       nil,
+			Unknown:    nil,
+			SubRef:     nil,
+			SubAmount:  nil,
+			SubTime:    nil,
+			SubHas:     nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -133,7 +153,10 @@ func TestTimeFilterGetNoMissingIntegration(t *testing.T) {
 		Time:    nil,
 		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
 			Time: internalSearch.TimeClaims{{
 				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
 				Range: internalSearch.RangeFloat{
@@ -141,8 +164,15 @@ func TestTimeFilterGetNoMissingIntegration(t *testing.T) {
 				},
 				From: &t1000, FromDisplay: "", To: &t1000, ToDisplay: "",
 			}},
-			Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Link:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -206,7 +236,10 @@ func TestTimeFilterGetSameValuesIntegration(t *testing.T) {
 			Time:    nil,
 			Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 			Claims: internalSearch.ClaimTypes{
-				Amount: nil,
+				Identifier: nil,
+				String:     nil,
+				HTML:       nil,
+				Amount:     nil,
 				Time: internalSearch.TimeClaims{{
 					Prop: timeProp, PropDisplay: nil, PropNaming: nil,
 					Range: internalSearch.RangeFloat{
@@ -214,8 +247,15 @@ func TestTimeFilterGetSameValuesIntegration(t *testing.T) {
 					},
 					From: &t5000, FromDisplay: "", To: &t5000, ToDisplay: "",
 				}},
-				Reference: nil, Has: nil, None: nil, Unknown: nil,
-				SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+				Link:      nil,
+				Reference: nil,
+				Has:       nil,
+				None:      nil,
+				Unknown:   nil,
+				SubRef:    nil,
+				SubAmount: nil,
+				SubTime:   nil,
+				SubHas:    nil,
 			},
 		})
 	}
@@ -255,7 +295,10 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 		Time:    nil,
 		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
 			Time: internalSearch.TimeClaims{{
 				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
 				Range: internalSearch.RangeFloat{
@@ -263,8 +306,15 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 				},
 				From: &tNeg500, FromDisplay: "", To: &tNeg500, ToDisplay: "",
 			}},
-			Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Link:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -274,7 +324,10 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 		Time:    nil,
 		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
 			Time: internalSearch.TimeClaims{{
 				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
 				Range: internalSearch.RangeFloat{
@@ -282,8 +335,15 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 				},
 				From: &t500, FromDisplay: "", To: &t500, ToDisplay: "",
 			}},
-			Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Link:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -373,7 +433,10 @@ func TestTimeFilterGetExtendedBoundsIntegration(t *testing.T) {
 			Time:    nil,
 			Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 			Claims: internalSearch.ClaimTypes{
-				Amount: nil,
+				Identifier: nil,
+				String:     nil,
+				HTML:       nil,
+				Amount:     nil,
 				Time: internalSearch.TimeClaims{{
 					Prop: timeProp, PropDisplay: nil, PropNaming: nil,
 					Range: internalSearch.RangeFloat{
@@ -381,8 +444,15 @@ func TestTimeFilterGetExtendedBoundsIntegration(t *testing.T) {
 					},
 					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
 				}},
-				Reference: nil, Has: nil, None: nil, Unknown: nil,
-				SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+				Link:      nil,
+				Reference: nil,
+				Has:       nil,
+				None:      nil,
+				Unknown:   nil,
+				SubRef:    nil,
+				SubAmount: nil,
+				SubTime:   nil,
+				SubHas:    nil,
 			},
 		})
 	}
@@ -447,7 +517,10 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 		Time:    nil,
 		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
 			Time: internalSearch.TimeClaims{{
 				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
 				Range: internalSearch.RangeFloat{
@@ -455,8 +528,15 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 				},
 				From: &t0, FromDisplay: "", To: &t2000, ToDisplay: "",
 			}},
-			Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Link:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -466,7 +546,10 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 		Time:    nil,
 		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
 			Time: internalSearch.TimeClaims{{
 				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
 				Range: internalSearch.RangeFloat{
@@ -474,8 +557,15 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 				},
 				From: &t8000, FromDisplay: "", To: &t10000, ToDisplay: "",
 			}},
-			Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Link:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -544,7 +634,10 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 		Time:    nil,
 		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
 			Time: internalSearch.TimeClaims{{
 				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
 				Range: internalSearch.RangeFloat{
@@ -552,8 +645,15 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 				},
 				From: &t500, FromDisplay: "", To: &t500, ToDisplay: "",
 			}},
-			Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Link:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -563,7 +663,10 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 		Time:    nil,
 		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
 			Time: internalSearch.TimeClaims{{
 				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
 				Range: internalSearch.RangeFloat{
@@ -571,8 +674,15 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 				},
 				From: &t2000, FromDisplay: "", To: &t8000, ToDisplay: "",
 			}},
-			Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Link:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -582,7 +692,10 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 		Time:    nil,
 		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
 			Time: internalSearch.TimeClaims{{
 				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
 				Range: internalSearch.RangeFloat{
@@ -590,8 +703,15 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 				},
 				From: &t9500, FromDisplay: "", To: &t9500, ToDisplay: "",
 			}},
-			Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Link:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)

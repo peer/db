@@ -84,6 +84,9 @@ func indexAmountDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.T
 		Time:    nil,
 		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
 				Range: internalSearch.RangeFloat{
@@ -91,7 +94,16 @@ func indexAmountDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.T
 				},
 				From: value, FromDisplay: "", To: value, ToDisplay: "",
 			}},
-			Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Time:      nil,
+			Link:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 }
@@ -108,8 +120,20 @@ func indexScoreDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.Ty
 		Time:    nil,
 		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: scoreCount},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil, Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
+			Reference:  nil,
+			Has:        nil,
+			None:       nil,
+			Unknown:    nil,
+			SubRef:     nil,
+			SubAmount:  nil,
+			SubTime:    nil,
+			SubHas:     nil,
 		},
 	})
 }
@@ -139,7 +163,10 @@ func seedTimeFilterDocs(t *testing.T, ctx context.Context, esClient *elasticsear
 			Time:    nil,
 			Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 			Claims: internalSearch.ClaimTypes{
-				Amount: nil,
+				Identifier: nil,
+				String:     nil,
+				HTML:       nil,
+				Amount:     nil,
 				Time: internalSearch.TimeClaims{{
 					Prop: timeProp, PropDisplay: nil, PropNaming: nil,
 					Range: internalSearch.RangeFloat{
@@ -147,8 +174,15 @@ func seedTimeFilterDocs(t *testing.T, ctx context.Context, esClient *elasticsear
 					},
 					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
 				}},
-				Reference: nil, Has: nil, None: nil, Unknown: nil,
-				SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+				Link:      nil,
+				Reference: nil,
+				Has:       nil,
+				None:      nil,
+				Unknown:   nil,
+				SubRef:    nil,
+				SubAmount: nil,
+				SubTime:   nil,
+				SubHas:    nil,
 			},
 		})
 	}

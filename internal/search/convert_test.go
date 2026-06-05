@@ -1532,6 +1532,8 @@ func TestTextAggregatesAcrossClaims(t *testing.T) {
 }
 
 // TestVisitIdentifierPopulatesClaim verifies the nested id claim records the property and value.
+//
+//nolint:dupl
 func TestVisitIdentifierPopulatesClaim(t *testing.T) {
 	t.Parallel()
 
@@ -1620,6 +1622,8 @@ func TestVisitHTMLPopulatesClaim(t *testing.T) {
 }
 
 // TestVisitLinkPopulatesClaim verifies the nested link claim records the property and IRI.
+//
+//nolint:dupl
 func TestVisitLinkPopulatesClaim(t *testing.T) {
 	t.Parallel()
 
