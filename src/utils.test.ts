@@ -314,12 +314,7 @@ describe("toggleRefSelection", () => {
 
   test("deselecting through a multi-level hierarchy keeps the untouched branch", () => {
     // root > mid > {x, y}: selecting root then deselecting x must keep y.
-    const values: RefValueLike[] = [
-      { id: "root" },
-      { id: "mid", paths: [["root"]] },
-      { id: "x", paths: [["root", "mid"]] },
-      { id: "y", paths: [["root", "mid"]] },
-    ]
+    const values: RefValueLike[] = [{ id: "root" }, { id: "mid", paths: [["root"]] }, { id: "x", paths: [["root", "mid"]] }, { id: "y", paths: [["root", "mid"]] }]
     assert.sameMembers([...toggleRefSelection(values, "x", new Set(["root"]))], ["y"])
   })
 
@@ -329,7 +324,13 @@ describe("toggleRefSelection", () => {
       { id: "root" },
       { id: "pa", paths: [["root"]] },
       { id: "pb", paths: [["root"]] },
-      { id: "leaf", paths: [["root", "pa"], ["root", "pb"]] },
+      {
+        id: "leaf",
+        paths: [
+          ["root", "pa"],
+          ["root", "pb"],
+        ],
+      },
     ]
     // A leaf covered by either parent is checked.
     assert.isTrue(computeRefCheckStates(values, new Set(["pa"])).get("leaf")?.checked)
