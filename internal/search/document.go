@@ -66,6 +66,10 @@ type Counts struct {
 // (SubRef, SubAmount, SubTime, SubHas) flatten nested sub-claims from
 // parent claims (ref, has, none, unknown) so they can be matched by sub-claim
 // filters without ES join queries.
+//
+// Identifier, String, HTML and Link claims are currently not directly used
+// by search APIs in PeerDB but are still indexed to support queries over
+// them when PeerDB is used as a library.
 type ClaimTypes struct {
 	Identifier IdentifierClaims `json:"id,omitempty"`
 	String     StringClaims     `json:"string,omitempty"`
