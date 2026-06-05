@@ -885,3 +885,180 @@ func TestBridgeReferencesCountIncremental(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, 1, count, "one referrer after deletion")
 }
+
+// makeClassDocWithFieldInverse builds a class document whose field schema defines sourceProp
+// as a top-level field with field-level INVERSE_PROPERTY inverseProp. The schema is nested under
+// a FIELDS HasClaim, mirroring how the transform package serializes a class's Fields. This is the
+// shape, e.g., an exhibition class uses to invert HAS_ARTIST to HAS_EVENT.
+func makeClassDocWithFieldInverse(classID, sourceProp, inverseProp identifier.Identifier) *document.D {
+	fieldSub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+				Prop:      document.Reference{ID: internalCore.HasPropertyPropID},
+				To:        document.Reference{ID: sourceProp},
+			},
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+				Prop:      document.Reference{ID: internalCore.InversePropertyPropID},
+				To:        document.Reference{ID: inverseProp},
+			},
+		},
+	}
+	fieldsSub := &document.ClaimTypes{
+		Has: []document.HasClaim{
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence, Sub: fieldSub},
+				Prop:      document.Reference{ID: internalCore.FieldPropID},
+			},
+		},
+	}
+	claims := &document.ClaimTypes{
+		Has: []document.HasClaim{
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence, Sub: fieldsSub},
+				Prop:      document.Reference{ID: internalCore.FieldsPropID},
+			},
+		},
+	}
+	return &document.D{
+		CoreDocument: document.CoreDocument{ID: classID}, //nolint:exhaustruct
+		Claims:       claims,
+	}
+}
+
+// makeConverterWithFieldInverse creates a converter that knows the field-level inverse defined on
+// classDoc. The getDocument callback resolves documents (and thus source display labels) from the store.
+func makeConverterWithFieldInverse(
+	t *testing.T, classDoc *document.D,
+	s *store.Store[json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes],
+) *internalSearch.Converter {
+	t.Helper()
+
+	c, errE := internalSearch.NewConverter(nil, nil, []*document.D{classDoc}, nil, func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		data, _, _, _, errE := s.GetLatest(ctx, id)
+		if errors.Is(errE, store.ErrValueNotFound) {
+			// Return a minimal document for IDs not in the store (e.g., the class or core property IDs).
+			return &document.D{
+				CoreDocument: document.CoreDocument{ID: id}, //nolint:exhaustruct
+			}, nil
+		} else if errE != nil {
+			return nil, errE
+		}
+		var doc document.D
+		errE = x.UnmarshalWithoutUnknownFields(data, &doc)
+		if errE != nil {
+			return nil, errE
+		}
+		return &doc, nil
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	return c
+}
+
+// makeSourceDocWithNameJSON creates a source document that is an instance of classID, carries a
+// NAMING string (its display label), and references targetID via refProp.
+func makeSourceDocWithNameJSON(t *testing.T, docID, classID, refProp, targetID identifier.Identifier, name string) json.RawMessage {
+	t.Helper()
+	doc := document.D{
+		CoreDocument: document.CoreDocument{ID: docID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+					Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+					To:        document.Reference{ID: classID},
+				},
+				{
+					CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+					Prop:      document.Reference{ID: refProp},
+					To:        document.Reference{ID: targetID},
+				},
+			},
+			String: []document.StringClaim{
+				{
+					CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+					Prop:      document.Reference{ID: internalCore.NamingPropID},
+					String:    name,
+				},
+			},
+		},
+	}
+	data, errE := x.MarshalWithoutEscapeHTML(doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	return data
+}
+
+// docTextContains reports whether the ES document with the given ID has the term in its top-level
+// text.und field (where folded display labels land), proving the term is searchable on that document.
+func docTextContains(ctx context.Context, t *testing.T, esClient *elasticsearch.TypedClient, index string, docID identifier.Identifier, term string) bool {
+	t.Helper()
+
+	query := esdsl.NewBoolQuery().Must(
+		esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(docID.String())),
+		esdsl.NewMatchQuery("text.und", term),
+	)
+	res, err := esClient.Search().Index(index).Query(query).Size(1).Do(ctx)
+	if err != nil {
+		t.Fatalf("ES search error: %v", err)
+	}
+	return res.Hits.Total.Value > 0
+}
+
+// TestBridgeFieldInverseRelationFoldsSourceLabelIntoText verifies the end-to-end field-level inverse
+// path: a class defines a field whose inverse is another property (as an exhibition class inverts
+// HAS_ARTIST to HAS_EVENT), so a source document referencing a target gives the target an inverse
+// reference back AND folds the source's display label into the target's text, making the target
+// findable by the source's name.
+func TestBridgeFieldInverseRelationFoldsSourceLabelIntoText(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, b, esClient := initBridge(t)
+
+	// classID's field hasArtist has field-level inverse hasEvent.
+	classID := identifier.New()
+	hasArtist := identifier.New()
+	hasEvent := identifier.New()
+
+	classDoc := makeClassDocWithFieldInverse(classID, hasArtist, hasEvent)
+	converter := makeConverterWithFieldInverse(t, classDoc, s)
+	errE := b.Start(ctx, converter)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	artist := identifier.New()
+	exhibition := identifier.New()
+	const exhibitionName = "Kandinskyjeva Retrospektiva"
+
+	// Insert the artist (target) first so its metadata exists when the exhibition is indexed.
+	_, errE = s.Insert(ctx, artist, makeDocJSON(t, artist), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	// Insert the exhibition (source): instance of classID, named, referencing the artist via hasArtist.
+	_, errE = s.Insert(ctx, exhibition, makeSourceDocWithNameJSON(t, exhibition, classID, hasArtist, artist, exhibitionName), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
+		if !assert.NoError(c, err) {
+			return
+		}
+		// The field-level inverse materializes the reverse reference artist --hasEvent--> exhibition.
+		assert.True(
+			c, testutils.DocHasReference(ctx, t, esClient, b.Index, artist, hasEvent, exhibition),
+			"artist should have inverse reference artist --hasEvent--> exhibition",
+		)
+		// The exhibition's display label is folded into the artist's text, so the artist is findable by it.
+		assert.True(
+			c, docTextContains(ctx, t, esClient, b.Index, artist, "Kandinskyjeva"),
+			"artist text should include the exhibition display label",
+		)
+	}, 10*time.Second, 100*time.Millisecond)
+
+	// Sanity: the exhibition itself carries the forward reference exhibition --hasArtist--> artist.
+	assert.True(
+		t, testutils.DocHasReference(ctx, t, esClient, b.Index, exhibition, hasArtist, artist),
+		"exhibition should have forward reference exhibition --hasArtist--> artist",
+	)
+}
