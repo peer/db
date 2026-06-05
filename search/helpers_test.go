@@ -11,12 +11,12 @@ import (
 	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
+	"gitlab.com/peerdb/peerdb/internal/testutils"
 	"gitlab.com/peerdb/peerdb/search"
 )
 
@@ -41,7 +41,7 @@ func initES(t *testing.T) (*elasticsearch.TypedClient, func() *esSearch.Search, 
 	t.Cleanup(func() {
 		// We do not use t.Context() because we want an active context, not a canceled one.
 		_, err := esClient.Indices.Delete(index).IgnoreUnavailable(true).Do(context.Background())
-		assert.NoError(t, err)
+		testutils.AssertNoESError(t, err)
 	})
 
 	errE = internalSearch.EnsureIndex(ctx, esClient, index, 1, nil)
@@ -61,7 +61,7 @@ func indexDocument(t *testing.T, ctx context.Context, esClient *elasticsearch.Ty
 	data, errE := x.MarshalWithoutEscapeHTML(doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, err := esClient.Index(index).Id(doc.ID.String()).Raw(bytes.NewReader(data)).Do(ctx)
-	require.NoError(t, err)
+	testutils.RequireNoESError(t, err)
 }
 
 // refreshIndex forces an ES index refresh so documents are searchable.
@@ -69,7 +69,7 @@ func refreshIndex(t *testing.T, ctx context.Context, esClient *elasticsearch.Typ
 	t.Helper()
 
 	_, err := esClient.Indices.Refresh().Index(index).Do(ctx)
-	require.NoError(t, err)
+	testutils.RequireNoESError(t, err)
 }
 
 // indexAmountDoc indexes a document carrying a single point-amount claim equal to

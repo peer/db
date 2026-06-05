@@ -64,7 +64,7 @@ func initBaseInfra(t *testing.T, languagePriority map[string][]string) (context.
 	t.Cleanup(func() {
 		// We do not use t.Context() because we want an active context, not a canceled one.
 		_, err := esClient.Indices.Delete(index).IgnoreUnavailable(true).Do(context.Background())
-		require.NoError(t, err)
+		testutils.RequireNoESError(t, err)
 	})
 
 	b, _, errE := internalBase.InitComponents(ctx, logger, dbpool, esClient, schema, index, 1, nil)
@@ -969,7 +969,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
-	require.NoError(t, err)
+	testutils.RequireNoESError(t, err)
 
 	// Both documents should be in ES.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -1015,7 +1015,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	// Verify the relation A --X--> B is indexed in ES.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
-		if !assert.NoError(c, err) {
+		if !testutils.AssertNoESError(c, err) {
 			return
 		}
 		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docA, propX, docB),
@@ -1025,7 +1025,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	// Verify docB gets inverse relation B --Y--> A.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
-		if !assert.NoError(c, err) {
+		if !testutils.AssertNoESError(c, err) {
 			return
 		}
 		assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docB, propY, docA),
@@ -1061,7 +1061,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	// Verify the relation is removed from ES.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
-		if !assert.NoError(c, err) {
+		if !testutils.AssertNoESError(c, err) {
 			return
 		}
 		assert.False(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docA, propX, docB),
@@ -1079,7 +1079,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
-		if !assert.NoError(c, err) {
+		if !testutils.AssertNoESError(c, err) {
 			return
 		}
 		assert.False(c, testutils.DocHasReference(ctx, t, esClient, b.Index, docB, propY, docA),
