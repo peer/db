@@ -170,6 +170,76 @@ func textProperties(langs []string) string {
 func buildClaimTypes(langs []string) []claimType {
 	return []claimType{
 		{
+			"id",
+			[]field{
+				{
+					"prop",
+					relationID,
+				},
+				{
+					"propDisplay",
+					propDisplay(langs),
+				},
+				{
+					"propNaming",
+					multiLanguageText(langs),
+				},
+				{
+					// Identifier values have no language, so they use the und_text analyzer, matching
+					// the "und" bucket of the top-level text field they are also folded into.
+					"value",
+					`{
+						"type": "text",
+						"analyzer": "und_text"
+					}`,
+				},
+			},
+		},
+		{
+			"string",
+			[]field{
+				{
+					"prop",
+					relationID,
+				},
+				{
+					"propDisplay",
+					propDisplay(langs),
+				},
+				{
+					"propNaming",
+					multiLanguageText(langs),
+				},
+				{
+					"string",
+					multiLanguageText(langs),
+				},
+			},
+		},
+		{
+			"html",
+			[]field{
+				{
+					"prop",
+					relationID,
+				},
+				{
+					"propDisplay",
+					propDisplay(langs),
+				},
+				{
+					"propNaming",
+					multiLanguageText(langs),
+				},
+				{
+					// HTML is converted to plain text in Go before indexing, so it uses the
+					// per-language text analyzers like string, not an HTML-stripping analyzer.
+					"html",
+					multiLanguageText(langs),
+				},
+			},
+		},
+		{
 			"amount",
 			[]field{
 				{
@@ -191,39 +261,39 @@ func buildClaimTypes(langs []string) []claimType {
 				{
 					"range",
 					`{
-					"type": "double_range"
-				}`,
+						"type": "double_range"
+					}`,
 				},
 				{
 					"from",
 					//nolint:goconst
 					`{
-					"type": "double"
-				}`,
+						"type": "double"
+					}`,
 				},
 				{
 					"fromDisplay",
 					// We do not use "propDisplay" here. We do not need a multi-field here because we only search
 					// over display here and we do not sort by it. There are no languages either.
 					`{
-					"type": "text",
-					"analyzer": "und_text"
-				}`,
+						"type": "text",
+						"analyzer": "und_text"
+					}`,
 				},
 				{
 					"to",
 					`{
-					"type": "double"
-				}`,
+						"type": "double"
+					}`,
 				},
 				{
 					"toDisplay",
 					// We do not use "propDisplay" here. We do not need a multi-field here because we only search
 					// over display here and we do not sort by it. There are no languages either.
 					`{
-					"type": "text",
-					"analyzer": "und_text"
-				}`,
+						"type": "text",
+						"analyzer": "und_text"
+					}`,
 				},
 			},
 		},
@@ -245,38 +315,64 @@ func buildClaimTypes(langs []string) []claimType {
 				{
 					"range",
 					`{
-					"type": "double_range"
-				}`,
+						"type": "double_range"
+					}`,
 				},
 				{
 					"from",
 					`{
-					"type": "double"
-				}`,
+						"type": "double"
+					}`,
 				},
 				{
 					"fromDisplay",
 					// We do not use "propDisplay" here. We do not need a multi-field here because we only search
 					// over display here and we do not sort by it. There are no languages either.
 					`{
-					"type": "text",
-					"analyzer": "und_text"
-				}`,
+						"type": "text",
+						"analyzer": "und_text"
+					}`,
 				},
 				{
 					"to",
 					`{
-					"type": "double"
-				}`,
+						"type": "double"
+					}`,
 				},
 				{
 					"toDisplay",
 					// We do not use "propDisplay" here. We do not need a multi-field here because we only search
 					// over display here and we do not sort by it. There are no languages either.
 					`{
-					"type": "text",
-					"analyzer": "und_text"
-				}`,
+						"type": "text",
+						"analyzer": "und_text"
+					}`,
+				},
+			},
+		},
+		{
+			"link",
+			[]field{
+				{
+					"prop",
+					relationID,
+				},
+				{
+					"propDisplay",
+					propDisplay(langs),
+				},
+				{
+					"propNaming",
+					multiLanguageText(langs),
+				},
+				{
+					// IRIs have no language, so they use the und_text analyzer, matching the "und" bucket
+					// of the top-level text field they are also folded into.
+					"iri",
+					`{
+						"type": "text",
+						"analyzer": "und_text"
+					}`,
 				},
 			},
 		},
@@ -458,34 +554,34 @@ func buildClaimTypes(langs []string) []claimType {
 				{
 					"range",
 					`{
-					"type": "double_range"
-				}`,
+						"type": "double_range"
+					}`,
 				},
 				{
 					"from",
 					`{
-					"type": "double"
-				}`,
+						"type": "double"
+					}`,
 				},
 				{
 					"fromDisplay",
 					`{
-					"type": "text",
-					"analyzer": "und_text"
-				}`,
+						"type": "text",
+						"analyzer": "und_text"
+					}`,
 				},
 				{
 					"to",
 					`{
-					"type": "double"
-				}`,
+						"type": "double"
+					}`,
 				},
 				{
 					"toDisplay",
 					`{
-					"type": "text",
-					"analyzer": "und_text"
-				}`,
+						"type": "text",
+						"analyzer": "und_text"
+					}`,
 				},
 			},
 		},
@@ -517,34 +613,34 @@ func buildClaimTypes(langs []string) []claimType {
 				{
 					"range",
 					`{
-					"type": "double_range"
-				}`,
+						"type": "double_range"
+					}`,
 				},
 				{
 					"from",
 					`{
-					"type": "double"
-				}`,
+						"type": "double"
+					}`,
 				},
 				{
 					"fromDisplay",
 					`{
-					"type": "text",
-					"analyzer": "und_text"
-				}`,
+						"type": "text",
+						"analyzer": "und_text"
+					}`,
 				},
 				{
 					"to",
 					`{
-					"type": "double"
-				}`,
+						"type": "double"
+					}`,
 				},
 				{
 					"toDisplay",
 					`{
-					"type": "text",
-					"analyzer": "und_text"
-				}`,
+						"type": "text",
+						"analyzer": "und_text"
+					}`,
 				},
 			},
 		},

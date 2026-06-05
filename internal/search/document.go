@@ -67,12 +67,16 @@ type Counts struct {
 // parent claims (ref, has, none, unknown) so they can be matched by sub-claim
 // filters without ES join queries.
 type ClaimTypes struct {
-	Amount    AmountClaims    `json:"amount,omitempty"`
-	Time      TimeClaims      `json:"time,omitempty"`
-	Reference ReferenceClaims `json:"ref,omitempty"`
-	Has       HasClaims       `json:"has,omitempty"`
-	None      NoneClaims      `json:"none,omitempty"`
-	Unknown   UnknownClaims   `json:"unknown,omitempty"`
+	Identifier IdentifierClaims `json:"id,omitempty"`
+	String     StringClaims     `json:"string,omitempty"`
+	HTML       HTMLClaims       `json:"html,omitempty"`
+	Amount     AmountClaims     `json:"amount,omitempty"`
+	Time       TimeClaims       `json:"time,omitempty"`
+	Link       LinkClaims       `json:"link,omitempty"`
+	Reference  ReferenceClaims  `json:"ref,omitempty"`
+	Has        HasClaims        `json:"has,omitempty"`
+	None       NoneClaims       `json:"none,omitempty"`
+	Unknown    UnknownClaims    `json:"unknown,omitempty"`
 
 	SubRef    SubRefClaims    `json:"subRef,omitempty"`
 	SubAmount SubAmountClaims `json:"subAmount,omitempty"`
@@ -86,10 +90,18 @@ type ClaimTypes struct {
 // becomes a range over its bounds.
 
 type (
+	// IdentifierClaims is a slice of IdentifierClaim.
+	IdentifierClaims = []IdentifierClaim
+	// StringClaims is a slice of StringClaim.
+	StringClaims = []StringClaim
+	// HTMLClaims is a slice of HTMLClaim.
+	HTMLClaims = []HTMLClaim
 	// AmountClaims is a slice of AmountClaim.
 	AmountClaims = []AmountClaim
 	// TimeClaims is a slice of TimeClaim.
 	TimeClaims = []TimeClaim
+	// LinkClaims is a slice of LinkClaim.
+	LinkClaims = []LinkClaim
 	// ReferenceClaims is a slice of ReferenceClaim.
 	ReferenceClaims = []ReferenceClaim
 	// HasClaims is a slice of HasClaim.
@@ -107,6 +119,38 @@ type (
 	// SubHasClaims is a slice of SubHasClaim.
 	SubHasClaims = []SubHasClaim
 )
+
+// IdentifierClaim represents a claim with a string identifier value.
+type IdentifierClaim struct {
+	Prop        identifier.Identifier `json:"prop"`
+	PropDisplay map[string]string     `json:"propDisplay"`
+	PropNaming  map[string][]string   `json:"propNaming"`
+	Value       string                `json:"value"`
+}
+
+// StringClaim represents a claim with a plain string value for a given language.
+type StringClaim struct {
+	Prop        identifier.Identifier `json:"prop"`
+	PropDisplay map[string]string     `json:"propDisplay"`
+	PropNaming  map[string][]string   `json:"propNaming"`
+
+	// String maps each language the claim resolves to (its IN_LANGUAGE sub-claims, or
+	// detected language) to the claim's value. Every entry holds the same value.
+	String map[string]string `json:"string"`
+}
+
+// HTMLClaim represents a claim with HTML content, indexed as plain text. The HTML is
+// converted to text in Go (stripHTML) before indexing, per language, so each entry holds
+// the plain-text rendering of the claim's HTML for that language.
+type HTMLClaim struct {
+	Prop        identifier.Identifier `json:"prop"`
+	PropDisplay map[string]string     `json:"propDisplay"`
+	PropNaming  map[string][]string   `json:"propNaming"`
+
+	// HTML maps each language the claim resolves to (its IN_LANGUAGE sub-claims, or detected
+	// language) to the plain-text rendering of the claim's HTML for that language.
+	HTML map[string]string `json:"html"`
+}
 
 // RangeFloat represents a numeric range.
 //
@@ -241,6 +285,14 @@ type TimeClaim struct {
 	FromDisplay string                `json:"fromDisplay,omitempty"`
 	To          *float64              `json:"to,omitempty"`
 	ToDisplay   string                `json:"toDisplay,omitempty"`
+}
+
+// LinkClaim represents a claim with an IRI (Internationalized Resource Identifier) value.
+type LinkClaim struct {
+	Prop        identifier.Identifier `json:"prop"`
+	PropDisplay map[string]string     `json:"propDisplay"`
+	PropNaming  map[string][]string   `json:"propNaming"`
+	IRI         string                `json:"iri"`
 }
 
 // ReferenceClaim represents a claim that relates this document to another document.

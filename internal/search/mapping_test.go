@@ -46,14 +46,23 @@ func TestMappingContainsClaimTypes(t *testing.T) {
 	claimProps, ok := claims["properties"].(map[string]any)
 	require.True(t, ok)
 
-	// Textual claim types (id, string, html, link) no longer have per-claim ES
-	// records; their content is folded into the top-level "text" field instead.
-	expectedTypes := []string{"amount", "time", "ref", "has", "none", "unknown"}
+	// Textual claim types (id, string, html, link) have per-claim nested ES records for
+	// structured per-property queries, in addition to being folded into the top-level "text" field.
+	expectedTypes := []string{"id", "string", "html", "link", "amount", "time", "ref", "has", "none", "unknown"}
 	for _, ct := range expectedTypes {
 		assert.Contains(t, claimProps, ct, "missing claim type: %s", ct)
 	}
-	for _, ct := range []string{"id", "string", "html", "link"} {
-		assert.NotContains(t, claimProps, ct, "unexpected per-claim type left in mapping: %s", ct)
+
+	// id and link have no language, so their value/iri fields use the und_text analyzer, matching
+	// the "und" bucket of the top-level text field they are also folded into.
+	for _, tf := range []struct{ claimType, field string }{{"id", "value"}, {"link", "iri"}} {
+		ct, ctOK := claimProps[tf.claimType].(map[string]any)
+		require.True(t, ctOK, "missing claim type: %s", tf.claimType)
+		props, propsOK := ct["properties"].(map[string]any)
+		require.True(t, propsOK)
+		f, fOK := props[tf.field].(map[string]any)
+		require.True(t, fOK, "missing %s.%s field", tf.claimType, tf.field)
+		assert.Equal(t, "und_text", f["analyzer"], "%s.%s should use und_text analyzer", tf.claimType, tf.field)
 	}
 
 	// Top-level text field with per-language sub-properties.

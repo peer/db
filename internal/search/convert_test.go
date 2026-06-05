@@ -198,6 +198,13 @@ func newTestConverterFull(
 		internalCore.ClassClassID:      makeNamingDoc(internalCore.ClassClassID, "class"),
 		internalCore.VocabularyClassID: makeNamingDoc(internalCore.VocabularyClassID, "vocabulary"),
 		internalCore.PropertyClassID:   makeNamingDoc(internalCore.PropertyClassID, "property"),
+		internalCore.NamingPropID:      makeNamingDoc(internalCore.NamingPropID, "naming"),
+		// Fallback naming docs for the shared test property IDs, so getDisplayStrings resolves them
+		// for the nested id/string/html/link claims even when a test does not register them itself.
+		// Tests that register these props explicitly (via properties) take precedence over these.
+		testPropID:     makeNamingDoc(testPropID, "test property"),
+		testPropID2:    makeNamingDoc(testPropID2, "test property 2"),
+		testParentProp: makeNamingDoc(testParentProp, "test parent property"),
 	}
 	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
 		if doc, ok := extraDocs[id]; ok {

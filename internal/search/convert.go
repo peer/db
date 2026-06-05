@@ -1511,42 +1511,66 @@ func (v *convertVisitor) appendClaimDisplaysToText() {
 	}
 }
 
-// VisitIdentifier folds the identifier value into the document's top-level
-// text field under the undetermined-language bucket so the text-search query
-// can score it together with other textual content.
+// VisitIdentifier indexes the identifier as a nested id claim for structured per-property queries
+// and also folds its value into the document's top-level text field under the undetermined-language
+// bucket so the text-search query can score it together with other textual content.
 func (v *convertVisitor) VisitIdentifier(claim *document.IdentifierClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
 	v.addText(document.UndeterminedLanguage, claim.Value)
+	claims, errE := v.converter.convertIdentifier(v.ctx, claim)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	v.result.Claims.Identifier = append(v.result.Claims.Identifier, claims...)
 	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToIdentifier)
 }
 
-// VisitString folds the string value into the document's top-level text field
-// under every language the claim's IN_LANGUAGE sub-claims resolve to.
+// VisitString indexes the string as a nested string claim for structured per-property queries and
+// also folds its value into the document's top-level text field under every language the claim
+// resolves to (its IN_LANGUAGE sub-claims, or detected language).
 func (v *convertVisitor) VisitString(claim *document.StringClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	for _, lang := range v.converter.textLanguages(claim.Sub, claim.String) {
+	langs := v.converter.textLanguages(claim.Sub, claim.String)
+	for _, lang := range langs {
 		v.addText(lang, claim.String)
 	}
+	claims, errE := v.converter.convertString(v.ctx, claim, langs)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	v.result.Claims.String = append(v.result.Claims.String, claims...)
 	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToString)
 }
 
-// VisitHTML strips HTML tags from the claim's value and folds the plain-text
-// result into the document's top-level text field under every language the
-// claim's IN_LANGUAGE sub-claims resolve to. stripHTML is called per-language
-// because the language controls whether block-tag boundaries become spaces.
+// VisitHTML converts the claim's HTML to plain text in Go, indexes it as a nested html
+// claim for structured per-property queries, and folds the same plain text into the document's
+// top-level text field under every language the claim resolves to (its IN_LANGUAGE sub-claims, or
+// detected language). stripHTML is called per-language because the language controls whether
+// block-tag boundaries become spaces.
 func (v *convertVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
 	// Detection runs on the plain-text strip; stripHTML's language argument only affects
 	// no-block-space scripts, so the "und" strip is a valid detection input.
-	for _, lang := range v.converter.textLanguages(claim.Sub, stripHTML(claim.HTML, document.UndeterminedLanguage)) {
-		v.addText(lang, stripHTML(claim.HTML, lang))
+	langs := v.converter.textLanguages(claim.Sub, stripHTML(claim.HTML, document.UndeterminedLanguage))
+	stripped := make(map[string]string, len(langs))
+	for _, lang := range langs {
+		s := stripHTML(claim.HTML, lang)
+		v.addText(lang, s)
+		if s != "" {
+			stripped[lang] = s
+		}
 	}
+	claims, errE := v.converter.convertHTML(v.ctx, claim, stripped)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	v.result.Claims.HTML = append(v.result.Claims.HTML, claims...)
 	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToHTML)
 }
 
@@ -1606,13 +1630,19 @@ func (v *convertVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) (d
 	return document.Keep, nil
 }
 
-// VisitLink folds the link IRI into the document's top-level text field under
-// the undetermined-language bucket so the URL components are searchable.
+// VisitLink indexes the link as a nested link claim for structured per-property queries and also
+// folds its IRI into the document's top-level text field under the undetermined-language bucket so
+// the URL components are searchable.
 func (v *convertVisitor) VisitLink(claim *document.LinkClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
 	v.addText(document.UndeterminedLanguage, claim.IRI)
+	claims, errE := v.converter.convertLink(v.ctx, claim)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	v.result.Claims.Link = append(v.result.Claims.Link, claims...)
 	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToLink)
 }
 
@@ -2092,6 +2122,90 @@ func (c *Converter) ReferencesCountIgnored(ctx context.Context, id identifier.Id
 		return false, errE
 	}
 	return info.IgnoredForReferencesCount, nil
+}
+
+func (c *Converter) convertIdentifier(ctx context.Context, claim *document.IdentifierClaim) ([]IdentifierClaim, errors.E) {
+	props := c.propagateProp(claim.Prop.ID)
+	result := make([]IdentifierClaim, 0, len(props))
+	for _, pid := range props {
+		propDisplay, errE := c.getDisplayStrings(ctx, pid)
+		if errE != nil {
+			errors.Details(errE)["claim"] = claim
+			return nil, errE
+		}
+		result = append(result, IdentifierClaim{
+			Prop:        pid,
+			PropDisplay: propDisplay.Display,
+			PropNaming:  propDisplay.Naming,
+			Value:       claim.Value,
+		})
+	}
+	return result, nil
+}
+
+// convertString builds the nested string claims for the languages the claim resolves to (langs,
+// as determined by the caller). Every language maps to the same string value.
+func (c *Converter) convertString(ctx context.Context, claim *document.StringClaim, langs []string) ([]StringClaim, errors.E) {
+	str := make(map[string]string, len(langs))
+	for _, lang := range langs {
+		str[lang] = claim.String
+	}
+	props := c.propagateProp(claim.Prop.ID)
+	result := make([]StringClaim, 0, len(props))
+	for _, pid := range props {
+		propDisplay, errE := c.getDisplayStrings(ctx, pid)
+		if errE != nil {
+			errors.Details(errE)["claim"] = claim
+			return nil, errE
+		}
+		result = append(result, StringClaim{
+			Prop:        pid,
+			PropDisplay: propDisplay.Display,
+			PropNaming:  propDisplay.Naming,
+			String:      str,
+		})
+	}
+	return result, nil
+}
+
+// convertHTML builds the nested html claims. stripped maps each resolved language to the claim's
+// HTML already converted to plain text in Go by the caller, so no tag stripping happens in ES.
+func (c *Converter) convertHTML(ctx context.Context, claim *document.HTMLClaim, stripped map[string]string) ([]HTMLClaim, errors.E) {
+	props := c.propagateProp(claim.Prop.ID)
+	result := make([]HTMLClaim, 0, len(props))
+	for _, pid := range props {
+		propDisplay, errE := c.getDisplayStrings(ctx, pid)
+		if errE != nil {
+			errors.Details(errE)["claim"] = claim
+			return nil, errE
+		}
+		result = append(result, HTMLClaim{
+			Prop:        pid,
+			PropDisplay: propDisplay.Display,
+			PropNaming:  propDisplay.Naming,
+			HTML:        stripped,
+		})
+	}
+	return result, nil
+}
+
+func (c *Converter) convertLink(ctx context.Context, claim *document.LinkClaim) ([]LinkClaim, errors.E) {
+	props := c.propagateProp(claim.Prop.ID)
+	result := make([]LinkClaim, 0, len(props))
+	for _, pid := range props {
+		propDisplay, errE := c.getDisplayStrings(ctx, pid)
+		if errE != nil {
+			errors.Details(errE)["claim"] = claim
+			return nil, errE
+		}
+		result = append(result, LinkClaim{
+			Prop:        pid,
+			PropDisplay: propDisplay.Display,
+			PropNaming:  propDisplay.Naming,
+			IRI:         claim.IRI,
+		})
+	}
+	return result, nil
 }
 
 func (c *Converter) convertAmount(ctx context.Context, claim *document.AmountClaim) ([]AmountClaim, errors.E) {
