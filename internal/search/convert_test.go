@@ -1531,6 +1531,141 @@ func TestTextAggregatesAcrossClaims(t *testing.T) {
 	assert.ElementsMatch(t, []string{testDocID.String(), "Q42", "alpha", "https://example.com"}, result.Text["und"])
 }
 
+// TestVisitIdentifierPopulatesClaim verifies the nested id claim records the property and value.
+func TestVisitIdentifierPopulatesClaim(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{
+		testPropID: makeNamingDoc(testPropID, "My Prop"),
+	})
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Identifier: []document.IdentifierClaim{{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: testPropID},
+				Value:     "Q42",
+			}},
+		},
+	}
+	result, errE := c.FromDocument(t.Context(), doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Claims.Identifier, 1)
+	assert.Equal(t, testPropID, result.Claims.Identifier[0].Prop)
+	assert.Equal(t, "Q42", result.Claims.Identifier[0].Value)
+	assert.Equal(t, "My Prop", result.Claims.Identifier[0].PropDisplay["und"])
+}
+
+// TestVisitStringPopulatesClaim verifies the nested string claim records the value under the
+// language the claim's IN_LANGUAGE sub-claim resolves to, and not under "und".
+func TestVisitStringPopulatesClaim(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{
+		testPropID:    makeNamingDoc(testPropID, "My Prop"),
+		testLangDocID: makeNamingDoc(testLangDocID, "English"),
+	})
+	c.LanguageCodes = map[identifier.Identifier]string{testLangDocID: "en"}
+
+	sub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: internalCore.InLanguagePropID},
+			To:        document.Reference{ID: testLangDocID},
+		}},
+	}
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{{
+				CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+				Prop:      document.Reference{ID: testPropID},
+				String:    "hello",
+			}},
+		},
+	}
+	result, errE := c.FromDocument(t.Context(), doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Claims.String, 1)
+	assert.Equal(t, testPropID, result.Claims.String[0].Prop)
+	assert.Equal(t, "hello", result.Claims.String[0].String["en"])
+	_, hasUnd := result.Claims.String[0].String["und"]
+	assert.False(t, hasUnd)
+}
+
+// TestVisitHTMLPopulatesClaim verifies the nested html claim stores the claim's HTML converted to
+// plain text in Go (tags stripped, block boundaries separated by a space), not the raw HTML.
+func TestVisitHTMLPopulatesClaim(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{
+		testPropID: makeNamingDoc(testPropID, "My Prop"),
+	})
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			HTML: []document.HTMLClaim{{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: testPropID},
+				HTML:      "<p>hello</p><p>world</p>",
+			}},
+		},
+	}
+	result, errE := c.FromDocument(t.Context(), doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Claims.HTML, 1)
+	assert.Equal(t, "hello world", result.Claims.HTML[0].HTML["und"])
+}
+
+// TestVisitLinkPopulatesClaim verifies the nested link claim records the property and IRI.
+func TestVisitLinkPopulatesClaim(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{
+		testPropID: makeNamingDoc(testPropID, "My Prop"),
+	})
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Link: []document.LinkClaim{{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: testPropID},
+				IRI:       "https://example.com/x",
+			}},
+		},
+	}
+	result, errE := c.FromDocument(t.Context(), doc, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Claims.Link, 1)
+	assert.Equal(t, testPropID, result.Claims.Link[0].Prop)
+	assert.Equal(t, "https://example.com/x", result.Claims.Link[0].IRI)
+	assert.Equal(t, "My Prop", result.Claims.Link[0].PropDisplay["und"])
+}
+
+// TestVisitIdentifierMissingPropError verifies that a textual claim whose property cannot be
+// resolved fails conversion, surfacing the error rather than silently dropping the nested claim.
+func TestVisitIdentifierMissingPropError(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Identifier: []document.IdentifierClaim{{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: identifier.New()},
+				Value:     "Q42",
+			}},
+		},
+	}
+	_, errE := c.FromDocument(t.Context(), doc, nil)
+	assert.ErrorContains(t, errE, "document not found")
+}
+
 func TestStripHTML(t *testing.T) {
 	t.Parallel()
 

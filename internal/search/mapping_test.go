@@ -65,6 +65,18 @@ func TestMappingContainsClaimTypes(t *testing.T) {
 		assert.Equal(t, "und_text", f["analyzer"], "%s.%s should use und_text analyzer", tf.claimType, tf.field)
 	}
 
+	// string and html are per-language, each language using its own text analyzer (en -> en_text).
+	// html is converted to text in Go before indexing, so it uses the same text analyzers as string,
+	// not an HTML-stripping analyzer.
+	for _, tf := range []struct{ claimType, field string }{{"string", "string"}, {"html", "html"}} {
+		props := claimProps[tf.claimType].(map[string]any)["properties"].(map[string]any)
+		langProps, langOK := props[tf.field].(map[string]any)["properties"].(map[string]any)
+		require.True(t, langOK, "%s.%s should be a per-language object", tf.claimType, tf.field)
+		en, enOK := langProps["en"].(map[string]any)
+		require.True(t, enOK, "missing %s.%s.en", tf.claimType, tf.field)
+		assert.Equal(t, "en_text", en["analyzer"], "%s.%s.en should use en_text analyzer", tf.claimType, tf.field)
+	}
+
 	// Top-level text field with per-language sub-properties.
 	text, ok := properties["text"].(map[string]any)
 	require.True(t, ok, "missing top-level text field")
