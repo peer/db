@@ -482,6 +482,37 @@ func TestGetDocumentInfoCaching(t *testing.T) {
 	assert.Equal(t, 1, callCount)
 }
 
+func TestConversionStats(t *testing.T) {
+	t.Parallel()
+
+	doc := makeNamingDoc(testDocID, "Test Doc")
+	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		if id == testDocID {
+			return doc, nil
+		}
+		return nil, errors.New("document not found")
+	}
+	c, errE := NewConverter(nil, nil, nil, nil, getDocument)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Cold cache: the document info has to be computed, so it is fetched once and counts as a miss.
+	var cold ConversionStats
+	_, errE = c.getDocumentInfo(WithConversionStats(t.Context(), &cold), testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, 1, cold.Fetches)
+	assert.Equal(t, 1, cold.InfoCacheMisses)
+	assert.Equal(t, 0, cold.InfoCacheHits)
+
+	// Warm cache: the document info is served from the cache, with no store fetch.
+	var warm ConversionStats
+	_, errE = c.getDocumentInfo(WithConversionStats(t.Context(), &warm), testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, 0, warm.Fetches)
+	assert.Equal(t, 1, warm.InfoCacheHits)
+	assert.Equal(t, 0, warm.InfoCacheMisses)
+	assert.Zero(t, warm.FetchDuration)
+}
+
 func TestBuildPropertyHierarchySelfCycle(t *testing.T) {
 	t.Parallel()
 

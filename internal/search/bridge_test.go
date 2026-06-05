@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/rivertype"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -633,6 +634,67 @@ func TestBridgeInverseRelationReindexing(t *testing.T) {
 	// Doc A should have the forward relation A --X--> B.
 	assert.True(t, testutils.DocHasReference(ctx, t, esClient, b.Index, docA, propX, docB),
 		"docA should have forward relation A --X--> B")
+}
+
+func TestBridgeInverseRelationJobRecordsOutput(t *testing.T) {
+	t.Parallel()
+
+	ctx, env := setupBridge(t)
+	s, b := env.store, env.bridge
+
+	propX := identifier.New()
+	propY := identifier.New()
+
+	startBridge(ctx, t, env, makeConverterWithInverse(t, propX, propY, s))
+
+	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// A --X--> B causes B to gain an inverse relation, which a bridge job re-indexes.
+	docA := identifier.New()
+	docB := identifier.New()
+	_, errE = s.Insert(ctx, docB, makeDocJSON(t, docB), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, docA, makeDocWithRelationJSON(t, docA, propX, docB), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The job that re-indexed docB must record its result and timing breakdown as River job output
+	// (stored on the job under the "output" metadata key), so it is queryable per job through River.
+	// We match the output by its JSON field names, which also guards their contract.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		jobs, err := env.riverClient.JobList(ctx, river.NewJobListParams().
+			Kinds("BridgeIndexInverseRelations").
+			States(rivertype.JobStateCompleted).
+			First(1000))
+		if !assert.NoError(c, err) {
+			return
+		}
+		var found bool
+		for _, jr := range jobs.Jobs {
+			var meta struct {
+				Output *struct {
+					Reindexed     int     `json:"reindexed"`
+					Fetches       int     `json:"fetches"`
+					IndexDuration float64 `json:"indexDuration"`
+					Duration      float64 `json:"duration"`
+				} `json:"output"`
+			}
+			if !assert.NoError(c, json.Unmarshal(jr.Metadata, &meta)) {
+				return
+			}
+			if meta.Output != nil && meta.Output.Reindexed > 0 {
+				found = true
+				assert.GreaterOrEqual(c, meta.Output.Duration, meta.Output.IndexDuration)
+				break
+			}
+		}
+		assert.True(c, found, "a completed bridge job should record output with reindexed > 0")
+	}, 15*time.Second, 200*time.Millisecond)
 }
 
 func TestBridgeInverseRelationMutual(t *testing.T) {

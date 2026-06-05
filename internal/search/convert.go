@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"text/template"
+	"time"
 	"unicode/utf8"
 
 	"github.com/Masterminds/sprig/v3"
@@ -257,6 +258,39 @@ type Converter struct {
 	documentInfoCache map[identifier.Identifier]documentInfo
 }
 
+// ConversionStats accumulates per-document conversion metrics. Attach a *ConversionStats to the
+// context with WithConversionStats before calling FromDocument to record how many documents were
+// fetched from the store (and the time spent fetching), and how many document info cache lookups
+// hit or missed.
+type ConversionStats struct {
+	// Fetches is the number of getDocument store fetches made during the conversion.
+	Fetches int
+	// FetchDuration is the total time spent in those getDocument store fetches.
+	FetchDuration time.Duration
+	// InfoCacheHits is the number of document info cache lookups served from the cache.
+	InfoCacheHits int
+	// InfoCacheMisses is the number of document info cache lookups that had to be computed.
+	InfoCacheMisses int
+}
+
+// instrumentGetDocument wraps a getDocument callback so that, when a *ConversionStats is attached to
+// the context, it records the number of store fetches and the time spent in them.
+func instrumentGetDocument(
+	getDocument func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E),
+) func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
+	return func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		stats := conversionStatsFromContext(ctx)
+		if stats == nil {
+			return getDocument(ctx, id)
+		}
+		start := time.Now()
+		doc, errE := getDocument(ctx, id)
+		stats.Fetches++
+		stats.FetchDuration += time.Since(start)
+		return doc, errE
+	}
+}
+
 // NewConverter creates a Converter that preprocesses property hierarchies and discovers
 // value hierarchy types. properties contains all property documents (used for SUBPROPERTY_OF
 // hierarchy and discovering other hierarchy types), languages contains language documents
@@ -304,7 +338,7 @@ func NewConverter(
 		languagePriority:         languagePriority,
 		enabledLanguages:         enabledLanguages,
 		recognizedLanguages:      recognizedLanguages,
-		getDocument:              getDocument,
+		getDocument:              instrumentGetDocument(getDocument),
 		documentInfoCache:        map[identifier.Identifier]documentInfo{},
 		documentInfoMu:           sync.RWMutex{},
 	}
@@ -654,11 +688,18 @@ func (c *Converter) computeDocumentInfo(
 ) (documentInfo, errors.E) {
 	// Check cache.
 	c.documentInfoMu.RLock()
-	if info, ok := c.documentInfoCache[id]; ok {
-		c.documentInfoMu.RUnlock()
-		return info, nil
-	}
+	cached, ok := c.documentInfoCache[id]
 	c.documentInfoMu.RUnlock()
+	if stats := conversionStatsFromContext(ctx); stats != nil {
+		if ok {
+			stats.InfoCacheHits++
+		} else {
+			stats.InfoCacheMisses++
+		}
+	}
+	if ok {
+		return cached, nil
+	}
 
 	// Cycle protection.
 	if computing[id] {

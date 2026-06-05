@@ -694,6 +694,11 @@ func (b *Bridge) run(ctx context.Context) errors.E {
 		return errE
 	}
 
+	logger := zerolog.Ctx(ctx)
+	catchUpStart := time.Now()
+	catchUpStartSeq := lastSeq
+	catchUpCommits := 0
+
 	// Catch-up: index any commits in CommitLog newer than lastSeq.
 	for {
 		if ctx.Err() != nil {
@@ -713,11 +718,21 @@ func (b *Bridge) run(ctx context.Context) errors.E {
 				return errE
 			}
 			lastSeq = commit.Seq
+			catchUpCommits++
 		}
 		if len(commits) < store.MaxPageLength {
 			break
 		}
 	}
+
+	// Catch-up phase covers commits already in CommitLog at startup. Logging it shows how long the
+	// initial backlog took and how many commits it spanned.
+	logger.Debug().
+		Int64("fromSeq", catchUpStartSeq).
+		Int64("toSeq", lastSeq).
+		Int("commits", catchUpCommits).
+		Dur("duration", time.Since(catchUpStart)).
+		Msg("bridge catch-up complete")
 
 	// Real-time: process new commits from the channel.
 	for {
@@ -766,6 +781,11 @@ func (b *Bridge) indexCommit(
 		json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes,
 	],
 ) (map[identifier.Identifier][]store.InverseRelation, map[identifier.Identifier][]store.InverseRelation, map[identifier.Identifier]bool, errors.E) {
+	logger := zerolog.Ctx(ctx)
+	start := time.Now()
+	var stats ConversionStats
+	ctx = WithConversionStats(ctx, &stats)
+
 	// Reconstruct changesets with the store so we can query them.
 	c, errE := committed.WithStore(ctx, b.Store)
 	if errE != nil {
@@ -774,7 +794,8 @@ func (b *Bridge) indexCommit(
 		return nil, nil, nil, errE
 	}
 
-	numActions := 0
+	indexOps := 0
+	deleteOps := 0
 	bulkService := b.ESClient.Bulk()
 
 	// Collect inverse relations from all processed documents.
@@ -832,7 +853,7 @@ func (b *Bridge) indexCommit(
 					if err != nil {
 						return nil, nil, nil, errors.WithStack(err)
 					}
-					numActions++
+					deleteOps++
 				} else {
 					// TODO: Use also information about the view so that documents are searchable by view as well.
 					searchDoc, errE := b.ConvertDocument(ctx, data, metadata)
@@ -849,7 +870,7 @@ func (b *Bridge) indexCommit(
 						return nil, nil, nil, errors.WithStack(err)
 					}
 					debugDocs[id] = searchDoc
-					numActions++
+					indexOps++
 				}
 			}
 			if len(page) < store.MaxPageLength {
@@ -859,14 +880,22 @@ func (b *Bridge) indexCommit(
 		}
 	}
 
-	if numActions == 0 {
+	if indexOps+deleteOps == 0 {
+		logger.Debug().
+			Int64("seq", committed.Seq).
+			Int("indexed", 0).
+			Int("deleted", 0).
+			Dur("duration", time.Since(start)).
+			Msg("bridge indexed commit")
 		return nil, nil, nil, nil
 	}
 
+	bulkStart := time.Now()
 	response, err := bulkService.Do(ctx)
 	if err != nil {
 		return nil, nil, nil, WithESError(err)
 	}
+	bulkDuration := time.Since(bulkStart)
 
 	bulkErrors := []bulkError{}
 	for _, item := range response.Items {
@@ -900,6 +929,26 @@ func (b *Bridge) indexCommit(
 		errors.Details(errE)["esErrors"] = bulkErrors
 		return nil, nil, nil, errE
 	}
+
+	// The counts here are the work this commit implies for other documents. indexed/deleted are the
+	// bulk operations for the changed documents themselves. inverseAdded/inverseRemoved are the
+	// numbers of target documents whose inverse-relation metadata changes, and referenceTargets is
+	// the number of documents whose referencesCount must be refreshed. Together with bulkDuration
+	// this shows how much downstream re-indexing each commit triggers.
+	logger.Debug().
+		Int64("seq", committed.Seq).
+		Int("indexed", indexOps).
+		Int("deleted", deleteOps).
+		Int("inverseAdded", len(addedInverseRelations)).
+		Int("inverseRemoved", len(removedInverseRelations)).
+		Int("referenceTargets", len(referenceTargets)).
+		Int("fetches", stats.Fetches).
+		Int("infoCacheHits", stats.InfoCacheHits).
+		Int("infoCacheMisses", stats.InfoCacheMisses).
+		Dur("fetchDuration", stats.FetchDuration).
+		Dur("bulkDuration", bulkDuration).
+		Dur("duration", time.Since(start)).
+		Msg("bridge indexed commit")
 
 	return addedInverseRelations, removedInverseRelations, referenceTargets, nil
 }
@@ -1133,6 +1182,9 @@ func (b *Bridge) updateSeq(
 	addedInverseRelations, removedInverseRelations map[identifier.Identifier][]store.InverseRelation,
 	referenceTargets map[identifier.Identifier]bool,
 ) errors.E {
+	logger := zerolog.Ctx(ctx)
+	start := time.Now()
+
 	// TODO: How to get MetricDatabaseRetries inside RetryTransaction to be incremented at every loop here?
 	for range internalStore.MaxRetries {
 		// Collect all affected document IDs from both added and removed maps.
@@ -1229,13 +1281,58 @@ func (b *Bridge) updateSeq(
 			// Concurrent update changed a revision, refetch and retry.
 			continue
 		}
+		if errE == nil {
+			// Each enqueued document becomes a row in BridgeInverseRelations, and a non-empty enqueue
+			// submits one inverse relations job. Logging this shows how many jobs each commit triggers.
+			logger.Debug().
+				Int64("seq", seq).
+				Int("metadataUpdates", len(updates)).
+				Int("enqueued", len(enqueue)).
+				Bool("jobSubmitted", len(enqueue) > 0).
+				Dur("duration", time.Since(start)).
+				Msg("bridge updated seq")
+		}
 		return errE
 	}
 
 	return errors.WithStack(internalStore.ErrMaxRetriesReached)
 }
 
-func (b *Bridge) runIndexInverseRelations(ctx context.Context, _ *river.Job[jobArgs]) errors.E {
+// inverseRelationsStats accumulates per-job timing and counts for an inverse relations job so
+// that the job summary can show where time went: fetching the next document from the work queue,
+// re-indexing it, and deleting its processed entries.
+type inverseRelationsStats struct {
+	// Reindexed is the number of documents re-indexed by the job.
+	Reindexed int
+	// Fetches is the number of work-queue SELECT queries run, including the final one that
+	// returns no rows. It equals reindexed+1 on a clean drain, so a large Fetches with small
+	// reindexed means the job spent its time scanning the queue rather than indexing.
+	Fetches int
+	// QueryDuration is the total time spent in the work-queue SELECT queries.
+	QueryDuration time.Duration
+	// IndexDuration is the total time spent in indexDocument (conversion plus the ES index call).
+	IndexDuration time.Duration
+	// DeleteDuration is the total time spent deleting processed entries from the work queue.
+	DeleteDuration time.Duration
+}
+
+// inverseRelationsJobOutput is recorded on the River job via RecordOutput so that what each inverse
+// relations job did, and where its time went. Durations are in seconds.
+type inverseRelationsJobOutput struct {
+	Seq             int64   `json:"seq"`
+	Reindexed       int     `json:"reindexed"`
+	Fetches         int     `json:"fetches"`
+	RefreshDuration float64 `json:"refreshDuration"`
+	QueryDuration   float64 `json:"queryDuration"`
+	IndexDuration   float64 `json:"indexDuration"`
+	DeleteDuration  float64 `json:"deleteDuration"`
+	Duration        float64 `json:"duration"`
+}
+
+func (b *Bridge) runIndexInverseRelations(ctx context.Context, job *river.Job[jobArgs]) errors.E {
+	logger := zerolog.Ctx(ctx)
+	jobStart := time.Now()
+
 	// Snapshot the bridge seq, then refresh the index. updateSeq advances the bridge seq in the
 	// same transaction that enqueues an entry, after indexCommit has bulk-indexed the changed
 	// documents, so every commit at or below this seq is already in ES and the refresh makes
@@ -1247,16 +1344,57 @@ func (b *Bridge) runIndexInverseRelations(ctx context.Context, _ *river.Job[jobA
 	if errE != nil {
 		return errE
 	}
+	refreshStart := time.Now()
 	_, err := b.ESClient.Indices.Refresh().Index(b.Index).Do(ctx)
 	if err != nil {
 		return WithESError(err)
 	}
+	refreshDuration := time.Since(refreshStart)
 
+	stats, errE := b.processInverseRelationsQueue(ctx, snapshotSeq)
+	duration := time.Since(jobStart)
+
+	// Record what the job did as its River job output.
+	err = river.RecordOutput(ctx, inverseRelationsJobOutput{
+		Seq:             snapshotSeq,
+		Reindexed:       stats.Reindexed,
+		Fetches:         stats.Fetches,
+		RefreshDuration: refreshDuration.Seconds(),
+		QueryDuration:   stats.QueryDuration.Seconds(),
+		IndexDuration:   stats.IndexDuration.Seconds(),
+		DeleteDuration:  stats.DeleteDuration.Seconds(),
+		Duration:        duration.Seconds(),
+	})
+	if err != nil {
+		logger.Error().Err(errors.WithStack(err)).Int64("job", job.ID).Msg("recording inverse relations job output failed")
+	}
+
+	// The same breakdown is also logged at debug level.
+	logger.Debug().
+		Int64("job", job.ID).
+		Int64("seq", snapshotSeq).
+		Int("reindexed", stats.Reindexed).
+		Int("fetches", stats.Fetches).
+		Dur("refreshDuration", refreshDuration).
+		Dur("queryDuration", stats.QueryDuration).
+		Dur("indexDuration", stats.IndexDuration).
+		Dur("deleteDuration", stats.DeleteDuration).
+		Dur("duration", duration).
+		Msg("bridge inverse relations job")
+
+	return errE
+}
+
+// processInverseRelationsQueue drains the BridgeInverseRelations work queue for entries at or below
+// snapshotSeq, re-indexing one document at a time, and returns timing and count stats for the job.
+func (b *Bridge) processInverseRelationsQueue(ctx context.Context, snapshotSeq int64) (inverseRelationsStats, errors.E) {
+	var stats inverseRelationsStats
 	for {
 		// Fetch one document ID from the work queue with its max seq at or below the snapshot.
 		// GROUP BY collapses multiple entries for the same document (from different commits).
 		var docIDStr string
 		var maxSeq int64
+		queryStart := time.Now()
 		errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 			// We pick a random document to reduce conflicts when multiple processes
 			// work on inverse relations in parallel.
@@ -1265,34 +1403,41 @@ func (b *Bridge) runIndexInverseRelations(ctx context.Context, _ *river.Job[jobA
 					WHERE "seq" <= $1 GROUP BY "id" ORDER BY RANDOM() LIMIT 1
 			`, snapshotSeq).Scan(&docIDStr, &maxSeq))
 		})
+		stats.QueryDuration += time.Since(queryStart)
+		stats.Fetches++
 		if errors.Is(errE, pgx.ErrNoRows) {
 			// No more documents to process.
-			return nil
+			return stats, nil
 		} else if errE != nil {
-			return errE
+			return stats, errE
 		}
 
 		docID, errE := identifier.MaybeString(docIDStr)
 		if errE != nil {
-			return errE
+			return stats, errE
 		}
 
 		// Fetch the document and its metadata, convert it, and index it.
+		indexStart := time.Now()
 		errE = b.indexDocument(ctx, docID)
+		stats.IndexDuration += time.Since(indexStart)
 		if errE != nil {
-			return errE
+			return stats, errE
 		}
+		stats.Reindexed++
 
 		// Remove entries for this document up to the seq we observed.
 		// Entries with a higher seq (added during our processing) are kept for later re-indexing.
+		deleteStart := time.Now()
 		errE = internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 			_, err := tx.Exec(ctx, `
 				DELETE FROM "`+b.Store.Prefix+`BridgeInverseRelations" WHERE "id" = $1 AND "seq" <= $2
 			`, docIDStr, maxSeq)
 			return internalStore.WithPgxError(err)
 		})
+		stats.DeleteDuration += time.Since(deleteStart)
 		if errE != nil {
-			return errE
+			return stats, errE
 		}
 	}
 }
@@ -1303,6 +1448,9 @@ func (b *Bridge) runIndexInverseRelations(ctx context.Context, _ *river.Job[jobA
 // indexDocument fetches the latest version of a document, converts it to a search
 // document, and indexes it to ElasticSearch.
 func (b *Bridge) indexDocument(ctx context.Context, docID identifier.Identifier) errors.E {
+	start := time.Now()
+	var stats ConversionStats
+	ctx = WithConversionStats(ctx, &stats)
 	data, metadata, _, _, errE := b.Store.GetLatest(ctx, docID)
 	if errors.Is(errE, store.ErrValueDeleted) {
 		// Document does not exist anymore, skip.
@@ -1333,6 +1481,15 @@ func (b *Bridge) indexDocument(ctx context.Context, docID identifier.Identifier)
 	if err != nil {
 		return WithESError(err)
 	}
+
+	zerolog.Ctx(ctx).Debug().
+		Str("doc", docID.String()).
+		Int("fetches", stats.Fetches).
+		Int("infoCacheHits", stats.InfoCacheHits).
+		Int("infoCacheMisses", stats.InfoCacheMisses).
+		Dur("fetchDuration", stats.FetchDuration).
+		Dur("duration", time.Since(start)).
+		Msg("bridge reindexed document")
 
 	return nil
 }
