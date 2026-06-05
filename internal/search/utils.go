@@ -3,6 +3,7 @@ package search
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -73,14 +74,14 @@ func (a loggerAdapter) LogRoundTrip(req *http.Request, res *http.Response, err e
 		} else {
 			buf.ReadFrom(req.Body) //nolint:errcheck,gosec
 		}
-		event.RawJSON("request", buf.Bytes())
+		addBody(event, "request", buf.Bytes())
 	}
 
 	if a.ResponseBodyEnabled() && res != nil && res.Body != nil && res.Body != http.NoBody {
 		defer res.Body.Close() //nolint:errcheck
 		var buf bytes.Buffer
 		buf.ReadFrom(res.Body) //nolint:errcheck,gosec
-		event.RawJSON("response", buf.Bytes())
+		addBody(event, "response", buf.Bytes())
 	}
 
 	event.Msg("elasticsearch")
@@ -102,6 +103,49 @@ func (a loggerAdapter) RequestBodyEnabled() bool {
 // the body and fires the trigger.
 func (a loggerAdapter) ResponseBodyEnabled() bool {
 	return true
+}
+
+// addBody attaches an HTTP body to the event. A single valid JSON document is attached as RawJSON.
+// ElasticSearch bulk requests use NDJSON (one JSON document per line); we attach it as an array
+// of the raw JSON documents instead. Anything else (non-JSON error pages) is attached as a plain
+// string field.
+func addBody(event *zerolog.Event, key string, body []byte) {
+	if json.Valid(body) {
+		event.RawJSON(key, body)
+		return
+	}
+	if lines := ndjsonLines(body); len(lines) > 0 {
+		if len(lines) == 1 {
+			// This should probably be handled by the case above, but just in case.
+			event.RawJSON(key, lines[0])
+			return
+		}
+		arr := zerolog.Arr()
+		for _, line := range lines {
+			arr.RawJSON(line)
+		}
+		event.Array(key, arr)
+		return
+	}
+	event.Str(key, string(body))
+}
+
+// ndjsonLines returns the non-empty lines of body if every one is a valid JSON document
+// (an NDJSON body such as an ElasticSearch bulk request), or nil otherwise.
+func ndjsonLines(body []byte) [][]byte {
+	rawLines := bytes.Split(body, []byte("\n"))
+	lines := make([][]byte, 0, len(rawLines))
+	for _, line := range rawLines {
+		line = bytes.TrimSpace(line)
+		if len(line) == 0 {
+			continue
+		}
+		if !json.Valid(line) {
+			return nil
+		}
+		lines = append(lines, line)
+	}
+	return lines
 }
 
 var _ elastictransport.Logger = (*loggerAdapter)(nil)
