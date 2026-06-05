@@ -66,7 +66,15 @@ func (r riverErrorHandler) storeErrorMetadata(ctx context.Context, job *rivertyp
 }
 
 func (r riverErrorHandler) HandleError(ctx context.Context, job *rivertype.JobRow, err error) *river.ErrorHandlerResult {
-	e := r.Logger.Error().Err(err).
+	// A job that still has attempts left will be retried, so we log it as a warning and reserve the
+	// error level for the final attempt, matching how River logs the same outcome.
+	var e *zerolog.Event
+	if job.Attempt >= job.MaxAttempts {
+		e = r.Logger.Error()
+	} else {
+		e = r.Logger.Warn()
+	}
+	e = e.Err(err).
 		Int64("id", job.ID).
 		Int("attempt", job.Attempt).
 		Time("createdAt", job.CreatedAt).
