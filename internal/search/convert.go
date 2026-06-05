@@ -167,10 +167,16 @@ func (d documentInfo) CollectHierarchyPaths() ([]string, map[string][]string) {
 	return toPath, toDisplayPath
 }
 
-// fieldInverseKey identifies a position within a class's field hierarchy
-// for field-level inverse property lookup. Path is the encoded sequence of
-// parent HasClaim property IDs and SourceProp is the property at this position.
+// fieldInverseKey identifies a position within a specific class's field hierarchy
+// for field-level inverse property lookup. Class is the class the field is defined
+// on, Path is the encoded sequence of parent HasClaim property IDs, and SourceProp
+// is the property at this position.
 type fieldInverseKey struct {
+	// Class is the ID of the class document on which this field is defined. The same
+	// source property can be a field on multiple classes with different inverse
+	// properties (e.g., HAS_ARTIST inverts to HAS_EVENT on an event class and to
+	// HAS_RESOURCE on a resource class), so the class is part of the key.
+	Class identifier.Identifier
 	// Path is the encoded path of parent HasClaim property IDs leading to this
 	// field position, joined by "/". Empty string for top-level fields.
 	Path string
@@ -221,7 +227,7 @@ type Converter struct {
 	// Y is in inverseProperties[X] and X is in inverseProperties[Y].
 	// Multiple properties can be inverses of the same property.
 	inverseProperties map[identifier.Identifier][]identifier.Identifier
-	// fieldInverseProperties maps a (field path, source property ID) pair to the
+	// fieldInverseProperties maps a (class, field path, source property ID) tuple to the
 	// target inverse property ID defined on class field definitions. Built from all
 	// class documents that define fields with INVERSE_PROPERTY. Field-level inverse
 	// properties take precedence over property-level INVERSE_PROPERTY_OF.
@@ -578,29 +584,34 @@ func encodeFieldPath(path []identifier.Identifier) string {
 }
 
 // buildFieldInverseProperties extracts inverse property definitions from class
-// document field hierarchies. For each class document that has FIELD or SECTION
-// claims, it walks the field tree (FIELD -> SUB_FIELD) and records any
-// INVERSE_PROPERTY settings as (field path, source property) -> target property.
+// document field hierarchies. A class's field schema lives under a top-level FIELDS
+// HasClaim (the class's Fields), inside which fields appear either directly as FIELD
+// HasClaims or grouped into SECTION HasClaims. For each class document it walks the
+// field tree (FIELD -> SUB_FIELD) and records any INVERSE_PROPERTY settings as
+// (class, field path, source property) -> target property.
 func (c *Converter) buildFieldInverseProperties(classes []*document.D) {
 	c.fieldInverseProperties = map[fieldInverseKey]identifier.Identifier{}
 	for _, cls := range classes {
-		// Process top-level FIELD HasClaims.
-		for _, field := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](cls, internalCore.FieldPropID, document.LowConfidence) {
-			c.processFieldInverse(nil, field)
-		}
-		// Process SECTION HasClaims which contain FIELD HasClaims.
-		for _, section := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](cls, internalCore.SectionPropID, document.LowConfidence) {
-			for _, field := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](section, internalCore.FieldPropID, document.LowConfidence) {
-				c.processFieldInverse(nil, field)
+		// The field schema is nested under the class's FIELDS HasClaim.
+		for _, fields := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](cls, internalCore.FieldsPropID, document.LowConfidence) {
+			// Process FIELD HasClaims directly under FIELDS.
+			for _, field := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](fields, internalCore.FieldPropID, document.LowConfidence) {
+				c.processFieldInverse(cls.ID, nil, field)
+			}
+			// Process SECTION HasClaims, each of which contains FIELD HasClaims.
+			for _, section := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](fields, internalCore.SectionPropID, document.LowConfidence) {
+				for _, field := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](section, internalCore.FieldPropID, document.LowConfidence) {
+					c.processFieldInverse(cls.ID, nil, field)
+				}
 			}
 		}
 	}
 }
 
 // processFieldInverse extracts inverse property from a single field HasClaim
-// and recurses into SUB_FIELD HasClaims. parentPath tracks the accumulated
-// property IDs from parent fields.
-func (c *Converter) processFieldInverse(parentPath []identifier.Identifier, field *document.HasClaim) {
+// and recurses into SUB_FIELD HasClaims. classID is the class the field is defined
+// on, and parentPath tracks the accumulated property IDs from parent fields.
+func (c *Converter) processFieldInverse(classID identifier.Identifier, parentPath []identifier.Identifier, field *document.HasClaim) {
 	// Extract the field's property (HAS_PROPERTY reference).
 	hasPropRef := document.GetBestClaimOfType[document.ReferenceClaim](field, internalCore.HasPropertyPropID)
 	if hasPropRef == nil {
@@ -612,6 +623,7 @@ func (c *Converter) processFieldInverse(parentPath []identifier.Identifier, fiel
 	inversePropRef := document.GetBestClaimOfType[document.ReferenceClaim](field, internalCore.InversePropertyPropID)
 	if inversePropRef != nil {
 		key := fieldInverseKey{
+			Class:      classID,
 			Path:       encodeFieldPath(parentPath),
 			SourceProp: propID,
 		}
@@ -621,7 +633,7 @@ func (c *Converter) processFieldInverse(parentPath []identifier.Identifier, fiel
 	// Recurse into SUB_FIELD HasClaims.
 	childPath := append(slices.Clone(parentPath), propID)
 	for _, subField := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](field, internalCore.SubFieldPropID, document.LowConfidence) {
-		c.processFieldInverse(childPath, subField)
+		c.processFieldInverse(classID, childPath, subField)
 	}
 }
 
@@ -1821,6 +1833,9 @@ type inverseRelationsVisitor struct {
 	ctx       context.Context //nolint:containedctx
 	converter *Converter
 	docID     identifier.Identifier
+	// classes are the IDs of the classes the document is an instance of, used to
+	// resolve field-level inverse properties, which are defined per class.
+	classes []identifier.Identifier
 	// path tracks the current nesting of claim property IDs.
 	path []identifier.Identifier
 	// result maps target document ID to collected inverse relations.
@@ -1903,23 +1918,32 @@ func (v *inverseRelationsVisitor) VisitLink(claim *document.LinkClaim) (document
 
 // VisitReference checks for inverse properties and creates InverseRelation entries,
 // then recurses into sub-claims to find further nested references.
-// It first checks field-level inverse properties (based on the current path), then
-// falls back to property-level inverse properties.
+// It first checks field-level inverse properties (based on the document's classes and
+// the current path), then falls back to property-level inverse properties.
 func (v *inverseRelationsVisitor) VisitReference(claim *document.ReferenceClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
 
 	// Resolve the inverse property/properties for this claim. Field-level inverse
-	// (based on the current path) takes precedence over property-level inverse.
+	// (based on the document's classes and the current path) takes precedence over
+	// property-level inverse. The same source property can be a field on more than
+	// one of the document's classes, so all matching field-level inverses are collected.
 	var targetProps []identifier.Identifier
-	key := fieldInverseKey{
-		Path:       encodeFieldPath(v.path),
-		SourceProp: claim.Prop.ID,
+	path := encodeFieldPath(v.path)
+	seen := map[identifier.Identifier]bool{}
+	for _, classID := range v.classes {
+		key := fieldInverseKey{
+			Class:      classID,
+			Path:       path,
+			SourceProp: claim.Prop.ID,
+		}
+		if targetProp, ok := v.converter.fieldInverseProperties[key]; ok && !seen[targetProp] {
+			seen[targetProp] = true
+			targetProps = append(targetProps, targetProp)
+		}
 	}
-	if targetProp, ok := v.converter.fieldInverseProperties[key]; ok {
-		targetProps = []identifier.Identifier{targetProp}
-	} else {
+	if len(targetProps) == 0 {
 		targetProps = v.converter.inverseProperties[claim.Prop.ID]
 	}
 
@@ -2013,10 +2037,18 @@ func (v *inverseRelationsVisitor) expandedTargets(targetID identifier.Identifier
 // target and each of its value-hierarchy ancestors. Returns a map keyed by target
 // document ID.
 func (c *Converter) OutgoingInverseRelations(ctx context.Context, doc *document.D) (map[identifier.Identifier][]store.InverseRelation, errors.E) {
+	// Field-level inverse properties are defined per class, so collect the classes the
+	// document is an instance of to resolve them.
+	instanceOf := document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, internalCore.InstanceOfPropID, document.LowConfidence)
+	classes := make([]identifier.Identifier, 0, len(instanceOf))
+	for _, rel := range instanceOf {
+		classes = append(classes, rel.To.ID)
+	}
 	v := &inverseRelationsVisitor{
 		ctx:       ctx,
 		converter: c,
 		docID:     doc.ID,
+		classes:   classes,
 		path:      nil,
 		result:    map[identifier.Identifier][]store.InverseRelation{},
 	}

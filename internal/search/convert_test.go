@@ -7767,11 +7767,20 @@ func makeClassDocWithField(id, fieldPropID identifier.Identifier, inversePropID 
 			To:        document.Reference{ID: *inversePropID},
 		})
 	}
-	claims := &document.ClaimTypes{
+	// Mirror real class documents: the field schema is nested under a FIELDS HasClaim.
+	fieldsSub := &document.ClaimTypes{
 		Has: []document.HasClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, fieldSub),
 				Prop:      document.Reference{ID: internalCore.FieldPropID},
+			},
+		},
+	}
+	claims := &document.ClaimTypes{
+		Has: []document.HasClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, fieldsSub),
+				Prop:      document.Reference{ID: internalCore.FieldsPropID},
 			},
 		},
 	}
@@ -7815,11 +7824,20 @@ func makeClassDocWithSubField(id, parentPropID, childPropID identifier.Identifie
 			},
 		},
 	}
-	claims := &document.ClaimTypes{
+	// Mirror real class documents: the field schema is nested under a FIELDS HasClaim.
+	fieldsSub := &document.ClaimTypes{
 		Has: []document.HasClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, fieldSub),
 				Prop:      document.Reference{ID: internalCore.FieldPropID},
+			},
+		},
+	}
+	claims := &document.ClaimTypes{
+		Has: []document.HasClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, fieldsSub),
+				Prop:      document.Reference{ID: internalCore.FieldsPropID},
 			},
 		},
 	}
@@ -7842,7 +7860,7 @@ func TestBuildFieldInverseProperties(t *testing.T) {
 	c.buildFieldInverseProperties([]*document.D{classDoc})
 
 	// Should have field inverse for top-level field.
-	key := fieldInverseKey{Path: "", SourceProp: fieldProp}
+	key := fieldInverseKey{Class: classID, Path: "", SourceProp: fieldProp}
 	assert.Equal(t, inverseProp, c.fieldInverseProperties[key])
 }
 
@@ -7874,7 +7892,7 @@ func TestBuildFieldInversePropertiesSubField(t *testing.T) {
 	c.buildFieldInverseProperties([]*document.D{classDoc})
 
 	// Should have field inverse for sub-field with parent path.
-	key := fieldInverseKey{Path: parentProp.String(), SourceProp: childProp}
+	key := fieldInverseKey{Class: classID, Path: parentProp.String(), SourceProp: childProp}
 	assert.Equal(t, inverseProp, c.fieldInverseProperties[key])
 }
 
@@ -7907,6 +7925,8 @@ func TestOutgoingInverseRelationsFieldLevel(t *testing.T) {
 			},
 		},
 	}
+
+	addInstanceOf(doc, classID, document.HighConfidence)
 
 	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
 	require.NoError(t, errE)
@@ -7950,6 +7970,8 @@ func TestOutgoingInverseRelationsFieldLevelPrecedence(t *testing.T) {
 			},
 		},
 	}
+
+	addInstanceOf(doc, classID, document.HighConfidence)
 
 	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
 	require.NoError(t, errE)
@@ -7999,6 +8021,8 @@ func TestOutgoingInverseRelationsSubFieldInverse(t *testing.T) {
 		},
 	}
 
+	addInstanceOf(doc, classID, document.HighConfidence)
+
 	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
 	require.NoError(t, errE)
 
@@ -8021,8 +8045,9 @@ func TestOutgoingInverseRelationsDifferentPathsSameProperty(t *testing.T) {
 	inverseA := identifier.New()
 	inverseB := identifier.New()
 
+	classB := identifier.New()
 	classDocA := makeClassDocWithSubField(classID, parentA, childProp, &inverseA)
-	classDocB := makeClassDocWithSubField(identifier.New(), parentB, childProp, &inverseB)
+	classDocB := makeClassDocWithSubField(classB, parentB, childProp, &inverseB)
 
 	c := newTestConverterWithClasses(t, nil, []*document.D{classDocA, classDocB}, nil)
 
@@ -8063,6 +8088,9 @@ func TestOutgoingInverseRelationsDifferentPathsSameProperty(t *testing.T) {
 			},
 		},
 	}
+
+	addInstanceOf(doc, classID, document.HighConfidence)
+	addInstanceOf(doc, classB, document.HighConfidence)
 
 	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
 	require.NoError(t, errE)
@@ -8152,6 +8180,8 @@ func TestOutgoingInverseRelationsStringSubClaimReference(t *testing.T) {
 			},
 		},
 	}
+
+	addInstanceOf(doc, classID, document.HighConfidence)
 
 	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
 	require.NoError(t, errE)
