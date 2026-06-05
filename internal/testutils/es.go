@@ -10,15 +10,16 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
+
+	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 )
 
 // DocExists checks whether a document with the given ID exists in the given ES index.
 func DocExists(ctx context.Context, t *testing.T, esClient *elasticsearch.TypedClient, index, id string) bool {
 	t.Helper()
 	exists, err := esClient.Exists(index, id).IsSuccess(ctx)
-	if err != nil {
-		t.Fatalf("unexpected ES error: %v", err)
-	}
+	errE := internalSearch.WithESError(err)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	return exists
 }
 
@@ -37,9 +38,8 @@ func DocHasReference(ctx context.Context, t *testing.T, esClient *elasticsearch.
 		nestedQuery,
 	)
 	res, err := esClient.Search().Index(index).Query(query).Size(1).Do(ctx)
-	if err != nil {
-		t.Fatalf("ES search error: %v", err)
-	}
+	errE := internalSearch.WithESError(err)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	return res.Hits.Total.Value > 0
 }
 

@@ -812,7 +812,8 @@ func esReferencesCount(ctx context.Context, t *testing.T, esClient *elasticsearc
 		Query(esdsl.NewTermQuery("id", esdsl.NewFieldValue().String(id))).
 		DocvalueFields(esdsl.NewFieldAndFormat().Field("counts.references")).
 		Size(1).Do(ctx)
-	require.NoError(t, err)
+	errE := internalSearch.WithESError(err)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, res.Hits.Hits, 1, "document should exist in ES")
 	raw, ok := res.Hits.Hits[0].Fields["counts.references"]
 	if !ok {
@@ -999,9 +1000,8 @@ func docTextContains(ctx context.Context, t *testing.T, esClient *elasticsearch.
 		esdsl.NewMatchQuery("text.und", term),
 	)
 	res, err := esClient.Search().Index(index).Query(query).Size(1).Do(ctx)
-	if err != nil {
-		t.Fatalf("ES search error: %v", err)
-	}
+	errE := internalSearch.WithESError(err)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	return res.Hits.Total.Value > 0
 }
 
