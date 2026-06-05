@@ -12,6 +12,8 @@ import (
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -67,11 +69,23 @@ func newTestBridgeConverter(t *testing.T) *internalSearch.Converter {
 	return c
 }
 
-func initBridge(t *testing.T) (
-	context.Context,
-	*store.Store[json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes],
-	*internalSearch.Bridge, *elasticsearch.TypedClient,
-) {
+// bridgeStore is the concrete store type used by the bridge tests.
+type bridgeStore = store.Store[json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes]
+
+// bridgeEnv holds the initialized pieces of a bridge test environment. The river client and the
+// listener are created but not started, so a test can control startup ordering.
+type bridgeEnv struct {
+	dbpool      *pgxpool.Pool
+	store       *bridgeStore
+	bridge      *internalSearch.Bridge
+	listener    *internalStore.Listener
+	riverClient *river.Client[pgx.Tx]
+	esClient    *elasticsearch.TypedClient
+}
+
+// setupBridge creates and initializes the dbpool, ES client, schema, store, and bridge. The river
+// client and the listener are created but not started so a caller can control startup ordering.
+func setupBridge(t *testing.T) (context.Context, *bridgeEnv) {
 	t.Helper()
 
 	if os.Getenv("ELASTIC") == "" {
@@ -123,11 +137,7 @@ func initBridge(t *testing.T) (
 	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, dbpool, schema)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	s := &store.Store[
-		json.RawMessage, *store.DocumentMetadata,
-		*store.NoMetadata, *store.NoMetadata, *store.CommitMetadata,
-		document.Changes,
-	]{
+	s := &bridgeStore{
 		Prefix:        prefix,
 		DataType:      "jsonb",
 		MetadataType:  "jsonb",
@@ -145,18 +155,96 @@ func initBridge(t *testing.T) (
 	errE = b.Init(ctx, dbpool, listener, schema, riverClient, workers)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	err := riverClient.Start(ctx)
-	require.NoError(t, err)
+	return ctx, &bridgeEnv{
+		dbpool:      dbpool,
+		store:       s,
+		bridge:      b,
+		listener:    listener,
+		riverClient: riverClient,
+		esClient:    esClient,
+	}
+}
 
-	t.Cleanup(func() {
-		// Wait for the client to stop.
-		<-riverClient.Stopped()
-	})
+// startBridge runs the bridge startup sequence in production order: Prepare stores the converter and
+// submits the startup job, then the river client, the store listener, and the run goroutine start.
+// This mirrors base.Start, so a worker never runs before the converter is set. Data inserted before
+// the call is caught up by the run goroutine.
+func startBridge(ctx context.Context, t *testing.T, env *bridgeEnv, converter *internalSearch.Converter) {
+	t.Helper()
 
-	errE = listener.Start(ctx)
+	errE := env.bridge.Prepare(ctx, converter)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	return ctx, s, b, esClient
+	err := env.riverClient.Start(ctx)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		// Wait for the client to stop.
+		<-env.riverClient.Stopped()
+	})
+
+	errE = env.listener.Start(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = env.bridge.Start(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+}
+
+// TestBridgeStartupDrainsInverseRelationsBacklog covers the recovery path where BridgeInverseRelations
+// already holds a backlog at or below the indexed seq at startup, the state an interrupted run leaves
+// behind. Such leftover rows are processed only by the startup job that Prepare submits, because no new
+// commit enqueues a job for them, and the listener's HandlingReady for the inverse relations channel blocks
+// until that backlog drains. The test seeds the backlog and then starts the bridge in production order
+// (Prepare, and thus the converter and startup job, before the listener), asserting that listener.Start
+// drains the backlog instead of hanging. The order is set by the test itself, so it guards the
+// startup-drain mechanism but not the Prepare/listener ordering in base.Start.
+func TestBridgeStartupDrainsInverseRelationsBacklog(t *testing.T) {
+	t.Parallel()
+
+	ctx, env := setupBridge(t)
+
+	// Seed a leftover inverse relations entry for a dangling document at seq 1 and advance the
+	// indexed seq to 1, reproducing the state an interrupted run leaves behind.
+	danglingID := identifier.New()
+	errE := internalStore.RetryTransaction(ctx, env.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		_, err := tx.Exec(ctx, `INSERT INTO "`+env.store.Prefix+`BridgeInverseRelations" ("id", "seq") VALUES ($1, $2)`, danglingID.String(), int64(1))
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		_, err = tx.Exec(ctx, `UPDATE "`+env.store.Prefix+`Bridge" SET "seq" = $1`, int64(1))
+		return internalStore.WithPgxError(err)
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Production ordering: store the converter and submit the startup job before starting the
+	// listener, so the worker drains the backlog while HandlingReady waits.
+	errE = env.bridge.Prepare(ctx, newTestBridgeConverter(t))
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	err := env.riverClient.Start(ctx)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		<-env.riverClient.Stopped()
+	})
+
+	// If the startup deadlock regresses, listener.Start blocks here until this context expires and
+	// then returns a context error.
+	startCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	errE = env.listener.Start(startCtx)
+	require.NoError(t, errE, "listener.Start should not block on the inverse relations backlog: % -+#.1v", errE)
+
+	errE = env.bridge.Start(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The backlog entry must have been drained by the bridge worker.
+	require.Eventually(t, func() bool {
+		var cnt int64
+		errE := internalStore.RetryTransaction(ctx, env.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+			return internalStore.WithPgxError(tx.QueryRow(ctx, `SELECT COUNT(*) FROM "`+env.store.Prefix+`BridgeInverseRelations"`).Scan(&cnt))
+		})
+		require.NoError(t, errE, "% -+#.1v", errE)
+		return cnt == 0
+	}, 30*time.Second, 50*time.Millisecond, "inverse relations backlog should be drained on startup")
 }
 
 // docExists returns true if the document with the given ID exists in Elasticsearch.
@@ -164,17 +252,17 @@ func initBridge(t *testing.T) (
 func TestBridgeRealTime(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, b, esClient := initBridge(t)
+	ctx, env := setupBridge(t)
+	s, b, esClient := env.store, env.bridge, env.esClient
 
-	errE := b.Start(ctx, newTestBridgeConverter(t))
-	require.NoError(t, errE, "% -+#.1v", errE)
+	startBridge(ctx, t, env, newTestBridgeConverter(t))
 
 	// Insert three documents.
 	id1 := identifier.New()
 	id2 := identifier.New()
 	id3 := identifier.New()
 
-	_, errE = s.Insert(ctx, id1, makeDocJSON(t, id1), dummyMetadata(), dummyCommitMetadata())
+	_, errE := s.Insert(ctx, id1, makeDocJSON(t, id1), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = s.Insert(ctx, id2, makeDocJSON(t, id2), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -212,7 +300,8 @@ func TestBridgeRealTime(t *testing.T) {
 func TestBridgeCatchUp(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, b, esClient := initBridge(t)
+	ctx, env := setupBridge(t)
+	s, b, esClient := env.store, env.bridge, env.esClient
 
 	// Make commits BEFORE starting the bridge.
 	id1 := identifier.New()
@@ -229,8 +318,7 @@ func TestBridgeCatchUp(t *testing.T) {
 	require.Len(t, entries, 2)
 
 	// Now start the bridge. It should catch up from CommitLog.
-	errE = b.Start(ctx, newTestBridgeConverter(t))
-	require.NoError(t, errE, "% -+#.1v", errE)
+	startBridge(ctx, t, env, newTestBridgeConverter(t))
 
 	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -246,10 +334,10 @@ func TestBridgeCatchUp(t *testing.T) {
 func TestBridgeDeletedDocument(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, b, esClient := initBridge(t)
+	ctx, env := setupBridge(t)
+	s, b, esClient := env.store, env.bridge, env.esClient
 
-	errE := b.Start(ctx, newTestBridgeConverter(t))
-	require.NoError(t, errE, "% -+#.1v", errE)
+	startBridge(ctx, t, env, newTestBridgeConverter(t))
 
 	id := identifier.New()
 
@@ -281,10 +369,10 @@ func TestBridgeDeletedDocument(t *testing.T) {
 func TestBridgeSeqAdvancement(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, b, _ := initBridge(t)
+	ctx, env := setupBridge(t)
+	s, b := env.store, env.bridge
 
-	errE := b.Start(ctx, newTestBridgeConverter(t))
-	require.NoError(t, errE, "% -+#.1v", errE)
+	startBridge(ctx, t, env, newTestBridgeConverter(t))
 
 	// Make several commits and verify the bridge table seq advances correctly.
 	for range 5 {
@@ -293,7 +381,7 @@ func TestBridgeSeqAdvancement(t *testing.T) {
 		require.NoError(t, errE, "% -+#.1v", errE)
 	}
 
-	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
+	errE := b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The bridge table seq must match the maximum CommitLog seq.
@@ -311,15 +399,15 @@ func TestBridgeSeqAdvancement(t *testing.T) {
 func TestBridgeNotifyRecovery(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, b, esClient := initBridge(t)
+	ctx, env := setupBridge(t)
+	s, b, esClient := env.store, env.bridge, env.esClient
 
-	errE := b.Start(ctx, newTestBridgeConverter(t))
-	require.NoError(t, errE, "% -+#.1v", errE)
+	startBridge(ctx, t, env, newTestBridgeConverter(t))
 
 	// Insert initial documents and wait for the bridge to catch up.
 	id1 := identifier.New()
 	id2 := identifier.New()
-	_, errE = s.Insert(ctx, id1, makeDocJSON(t, id1), dummyMetadata(), dummyCommitMetadata())
+	_, errE := s.Insert(ctx, id1, makeDocJSON(t, id1), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = s.Insert(ctx, id2, makeDocJSON(t, id2), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -360,7 +448,8 @@ func TestBridgeStaleDataNotIndexed(t *testing.T) {
 
 	// The bridge always fetches the latest version of each document, so even if an older
 	// commit triggers indexing, the most up-to-date data ends up in Elasticsearch.
-	ctx, s, b, esClient := initBridge(t)
+	ctx, env := setupBridge(t)
+	s, b, esClient := env.store, env.bridge, env.esClient
 
 	id := identifier.New()
 
@@ -372,8 +461,7 @@ func TestBridgeStaleDataNotIndexed(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Now start the bridge. It should catch up and index the latest version.
-	errE = b.Start(ctx, newTestBridgeConverter(t))
-	require.NoError(t, errE, "% -+#.1v", errE)
+	startBridge(ctx, t, env, newTestBridgeConverter(t))
 
 	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -494,7 +582,8 @@ func makeConverterWithInverse(
 func TestBridgeInverseRelationReindexing(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, b, esClient := initBridge(t)
+	ctx, env := setupBridge(t)
+	s, b, esClient := env.store, env.bridge, env.esClient
 
 	// Property X has inversePropertyOf Y.
 	// So A --X--> B means B should get an inverse claim B --Y--> A.
@@ -502,11 +591,10 @@ func TestBridgeInverseRelationReindexing(t *testing.T) {
 	propY := identifier.New()
 
 	converter := makeConverterWithInverse(t, propX, propY, s)
-	errE := b.Start(ctx, converter)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	startBridge(ctx, t, env, converter)
 
 	// Insert property documents into the store so getDocument can find them.
-	_, errE = s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
+	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -550,7 +638,8 @@ func TestBridgeInverseRelationReindexing(t *testing.T) {
 func TestBridgeInverseRelationMutual(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, b, esClient := initBridge(t)
+	ctx, env := setupBridge(t)
+	s, b, esClient := env.store, env.bridge, env.esClient
 
 	// Property X has inversePropertyOf Y.
 	// A --X--> B means B gets B --Y--> A.
@@ -559,11 +648,10 @@ func TestBridgeInverseRelationMutual(t *testing.T) {
 	propY := identifier.New()
 
 	converter := makeConverterWithInverse(t, propX, propY, s)
-	errE := b.Start(ctx, converter)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	startBridge(ctx, t, env, converter)
 
 	// Insert property documents.
-	_, errE = s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
+	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -602,7 +690,8 @@ func TestBridgeInverseRelationMutual(t *testing.T) {
 func TestBridgeInverseRelationMultipleSources(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, b, esClient := initBridge(t)
+	ctx, env := setupBridge(t)
+	s, b, esClient := env.store, env.bridge, env.esClient
 
 	// Property X has inversePropertyOf Y.
 	// Both A and C point to B with property X.
@@ -611,11 +700,10 @@ func TestBridgeInverseRelationMultipleSources(t *testing.T) {
 	propY := identifier.New()
 
 	converter := makeConverterWithInverse(t, propX, propY, s)
-	errE := b.Start(ctx, converter)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	startBridge(ctx, t, env, converter)
 
 	// Insert property documents.
-	_, errE = s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
+	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -650,7 +738,8 @@ func TestBridgeInverseRelationMultipleSources(t *testing.T) {
 func TestBridgeInverseRelationRemoval(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, b, esClient := initBridge(t)
+	ctx, env := setupBridge(t)
+	s, b, esClient := env.store, env.bridge, env.esClient
 
 	// Property X has inversePropertyOf Y.
 	// A --X--> B means B gets inverse B --Y--> A.
@@ -659,11 +748,10 @@ func TestBridgeInverseRelationRemoval(t *testing.T) {
 	propY := identifier.New()
 
 	converter := makeConverterWithInverse(t, propX, propY, s)
-	errE := b.Start(ctx, converter)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	startBridge(ctx, t, env, converter)
 
 	// Insert property documents.
-	_, errE = s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
+	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -721,7 +809,8 @@ func TestBridgeInverseRelationRemoval(t *testing.T) {
 func TestBridgeInverseRelationChange(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, b, esClient := initBridge(t)
+	ctx, env := setupBridge(t)
+	s, b, esClient := env.store, env.bridge, env.esClient
 
 	// Property X has inversePropertyOf Y.
 	// A --X--> B means B gets inverse B --Y--> A.
@@ -730,11 +819,10 @@ func TestBridgeInverseRelationChange(t *testing.T) {
 	propY := identifier.New()
 
 	converter := makeConverterWithInverse(t, propX, propY, s)
-	errE := b.Start(ctx, converter)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	startBridge(ctx, t, env, converter)
 
 	// Insert property documents.
-	_, errE = s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
+	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -827,13 +915,13 @@ func esReferencesCount(ctx context.Context, t *testing.T, esClient *elasticsearc
 func TestBridgeReferencesCountIncremental(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, b, esClient := initBridge(t)
+	ctx, env := setupBridge(t)
+	s, b, esClient := env.store, env.bridge, env.esClient
 
 	converter := newTestBridgeConverter(t)
 	// Compute referencesCount at index time, as the production converter does.
 	converter.CountReferences = b.CountReferences
-	errE := b.Start(ctx, converter)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	startBridge(ctx, t, env, converter)
 
 	waitAndRefresh := func() {
 		t.Helper()
@@ -849,7 +937,7 @@ func TestBridgeReferencesCountIncremental(t *testing.T) {
 	ref2 := identifier.New()
 
 	// The target starts with no referrers.
-	_, errE = s.Insert(ctx, target, makeDocJSON(t, target), dummyMetadata(), dummyCommitMetadata())
+	_, errE := s.Insert(ctx, target, makeDocJSON(t, target), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	waitAndRefresh()
@@ -1011,7 +1099,8 @@ func docTextContains(ctx context.Context, t *testing.T, esClient *elasticsearch.
 func TestBridgeFieldInverseRelationFoldsSourceLabelIntoText(t *testing.T) {
 	t.Parallel()
 
-	ctx, s, b, esClient := initBridge(t)
+	ctx, env := setupBridge(t)
+	s, b, esClient := env.store, env.bridge, env.esClient
 
 	// classID's field hasArtist has field-level inverse hasEvent.
 	classID := identifier.New()
@@ -1020,15 +1109,14 @@ func TestBridgeFieldInverseRelationFoldsSourceLabelIntoText(t *testing.T) {
 
 	classDoc := makeClassDocWithFieldInverse(classID, hasArtist, hasEvent)
 	converter := makeConverterWithFieldInverse(t, classDoc, s)
-	errE := b.Start(ctx, converter)
-	require.NoError(t, errE, "% -+#.1v", errE)
+	startBridge(ctx, t, env, converter)
 
 	artist := identifier.New()
 	exhibition := identifier.New()
 	const exhibitionName = "Kandinskyjeva Retrospektiva"
 
 	// Insert the artist (target) first so its metadata exists when the exhibition is indexed.
-	_, errE = s.Insert(ctx, artist, makeDocJSON(t, artist), dummyMetadata(), dummyCommitMetadata())
+	_, errE := s.Insert(ctx, artist, makeDocJSON(t, artist), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Insert the exhibition (source): instance of classID, named, referencing the artist via hasArtist.
 	_, errE = s.Insert(ctx, exhibition, makeSourceDocWithNameJSON(t, exhibition, classID, hasArtist, artist, exhibitionName), dummyMetadata(), dummyCommitMetadata())

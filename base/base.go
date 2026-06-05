@@ -213,6 +213,12 @@ func (b *B) Start(ctx context.Context, documents []*document.D) (func(), errors.
 		}
 	}
 
+	// We prepare the bridge startup before starting the river client.
+	errE = b.bridge.Prepare(internalStore.WithFallbackDBContext(ctx, b.Schema, "bridge"), converter)
+	if errE != nil {
+		return nil, errE
+	}
+
 	// Now we can start the river client.
 	// It will be stopped when ctx is cancelled.
 	err := b.riverClient.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "river"))
@@ -231,5 +237,5 @@ func (b *B) Start(ctx context.Context, documents []*document.D) (func(), errors.
 		return onShutdown, errE
 	}
 
-	return onShutdown, b.bridge.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "bridge"), converter)
+	return onShutdown, b.bridge.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "bridge"))
 }

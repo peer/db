@@ -7,7 +7,6 @@ import (
 	"math"
 	"strconv"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v9"
@@ -41,7 +40,6 @@ type bulkError struct {
 }
 
 type bridgeJob interface {
-	converterReady() bool
 	runIndexInverseRelations(ctx context.Context, job *river.Job[jobArgs]) errors.E
 }
 
@@ -101,14 +99,6 @@ func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
 		return errE
 	}
 
-	// The converter is set in Start which runs after Init. Jobs persisted from
-	// a previous run or the startup job inserted in Init can be picked up by
-	// River before Start is called. Snooze so we retry shortly without
-	// counting it as a failed attempt.
-	if !c.converterReady() {
-		return river.JobSnooze(time.Second) //nolint:wrapcheck
-	}
-
 	errE = c.runIndexInverseRelations(ctx, job)
 	if errE != nil {
 		// We do not wrap any error into JobCancel because for all errors we want the job to be retried.
@@ -165,7 +155,7 @@ type Bridge struct {
 	dbpool                     *pgxpool.Pool
 	schema                     string
 	riverClient                *river.Client[pgx.Tx]
-	converter                  atomic.Pointer[Converter]
+	converter                  *Converter
 	lastSeqMu                  sync.RWMutex
 	lastSeqCond                *sync.Cond
 	lastSeq                    int64
@@ -179,14 +169,9 @@ type Bridge struct {
 	inverseRelationsCount int64
 }
 
-// converterReady returns true if the converter has been set via Start.
-func (b *Bridge) converterReady() bool {
-	return b.converter.Load() != nil
-}
-
 // Converter returns the underlying Converter instance.
 func (b *Bridge) Converter() *Converter {
-	return b.converter.Load()
+	return b.converter
 }
 
 // Init creates the bridge progress table and registers a NOTIFY handler on the shared listener
@@ -598,30 +583,36 @@ func (b *Bridge) ResetSeq(ctx context.Context) errors.E {
 	return nil
 }
 
-// Start begins the bridging goroutine.
+// Prepare stores the converter and submits a startup job that processes any leftover rows
+// in BridgeInverseRelations from a previous run.
 //
-// It first indexes any commits from CommitLog that are newer than what is recorded in the bridge
-// table (catch-up), then processes new commits from the Committed channel as they arrive.
-//
-// The store listener should be listening to notifications from PostgreSQL and sending them to
-// the Committed channel before calling Start to assure that there is no gap between catch-up and
-// real-time processing of new commits.
-//
-// Converter is used to convert documents for indexing and to track inverse relations.
-func (b *Bridge) Start(ctx context.Context, converter *Converter) errors.E {
-	// This also makes any existing job not snooze itself anymore.
-	// River starts running jobs once we call registerCoordinator from Init.
-	b.converter.Store(converter)
+// It must be called before the river client and the store listener are started. The listener's
+// HandlingReady for the inverse relations channel blocks until the inverse relations backlog
+// (entries at or below the indexed seq) is drained, and draining is possible only once the bridge
+// has the converter and worker can run its jobs.
+func (b *Bridge) Prepare(ctx context.Context, converter *Converter) errors.E {
+	b.converter = converter
 
 	// Submit a startup job to process any leftover rows in BridgeInverseRelations from a previous run.
 	_, err := b.riverClient.Insert(ctx, jobArgs{
 		Schema: b.schema,
 		Prefix: b.Store.Prefix,
 	}, nil)
-	if err != nil {
-		return errors.WithStack(err)
-	}
+	return errors.WithStack(err)
+}
 
+// Start begins the bridging goroutine.
+//
+// It first indexes any commits from CommitLog that are newer than what is recorded in the bridge
+// table (catch-up), then processes new commits from the Committed channel as they arrive.
+//
+// Prepare must have been called before Start to store the converter used to convert
+// documents for indexing and to track inverse relations.
+//
+// The store listener should be listening to notifications from PostgreSQL and sending them to
+// the Committed channel before calling Start to assure that there is no gap between catch-up and
+// real-time processing of new commits.
+func (b *Bridge) Start(ctx context.Context) errors.E {
 	go func() {
 		// TODO: Measure how many retries have to be made and abort if it is too much.
 		//       The goal is that if this is happening too often, we should terminate the whole process and let the
@@ -964,7 +955,7 @@ func (b *Bridge) ConvertDocument(ctx context.Context, data json.RawMessage, meta
 		return nil, errE
 	}
 
-	return b.converter.Load().FromDocument(ctx, &doc, metadata.InverseRelations)
+	return b.converter.FromDocument(ctx, &doc, metadata.InverseRelations)
 }
 
 // CountReferences returns how many documents reference the document with the
@@ -1013,7 +1004,7 @@ func (b *Bridge) outgoingRelationsAndTargets(
 		return nil, nil, errE
 	}
 
-	c := b.converter.Load()
+	c := b.converter
 	outgoing, errE := c.OutgoingInverseRelations(ctx, &doc)
 	if errE != nil {
 		return nil, nil, errE
@@ -1027,7 +1018,7 @@ func (b *Bridge) outgoingRelationsAndTargets(
 func (b *Bridge) collectChangedReferenceTargets(
 	ctx context.Context, current, parent, out map[identifier.Identifier]bool,
 ) errors.E {
-	converter := b.converter.Load()
+	converter := b.converter
 	add := func(targetID identifier.Identifier) errors.E {
 		if out[targetID] {
 			return nil
