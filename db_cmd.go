@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
@@ -247,6 +248,99 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 	}
 
 	globals.Logger.Info().Msg("db reindex done")
+
+	return nil
+}
+
+// vacuumSchema runs VACUUM on every table in the given PostgreSQL schema to reclaim space held by
+// dead tuples and to refresh planner statistics. VACUUM cannot run inside a transaction, so we
+// acquire a single connection and run each statement directly in autocommit mode. We enumerate the
+// schema's tables instead of running a bare VACUUM because the latter vacuums every schema in the
+// database, which would redundantly revisit other sites sharing the same database.
+func vacuumSchema(ctx context.Context, dbpool *pgxpool.Pool, schema string) errors.E {
+	conn, err := dbpool.Acquire(ctx)
+	if err != nil {
+		return internalStore.WithPgxError(err)
+	}
+	defer conn.Release()
+
+	rows, err := conn.Query(ctx, `SELECT tablename FROM pg_tables WHERE schemaname = $1 ORDER BY tablename`, schema)
+	if err != nil {
+		return internalStore.WithPgxError(err)
+	}
+	tables, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return internalStore.WithPgxError(err)
+	}
+
+	for _, table := range tables {
+		_, err := conn.Exec(ctx, fmt.Sprintf(`VACUUM (ANALYZE) "%s"."%s"`, schema, table))
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+	}
+
+	return nil
+}
+
+// Run executes the db vacuum command which reclaims dead tuples in PostgreSQL
+// and expunges deleted documents from ElasticSearch for all configured sites.
+func (c *DBVacuumCommand) Run(globals *Globals) errors.E {
+	// We stop gracefully on ctrl-c and TERM signal.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	ctx = globals.Logger.WithContext(ctx)
+
+	InitSites(globals)
+
+	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
+	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
+	dbpool, dbpoolCleanup, errE := internalStore.InitPostgres(
+		context.WithoutCancel(ctx),
+		string(globals.Postgres.URL),
+		globals.Logger,
+		getRequestWithFallback(),
+	)
+	if errE != nil {
+		return errE
+	}
+	defer dbpoolCleanup()
+
+	esClient, errE := internalSearch.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic.URL)
+	if errE != nil {
+		return errE
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	for _, site := range globals.Sites {
+		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("vacuuming")
+
+		// We set fallback context values which are used to set application name on PostgreSQL connections.
+		siteCtx := WithFallbackDBContext(ctx, site.Schema, "vacuum")
+
+		errE = vacuumSchema(siteCtx, dbpool, site.Schema)
+		if errE != nil {
+			return errE
+		}
+
+		globals.Logger.Info().Str("schema", site.Schema).Msg("schema vacuumed")
+
+		// We expunge deleted Lucene documents per shard so the superseded versions that versioned writes
+		// and reindexing accumulate do not bloat the index or skew per-shard term statistics. We use
+		// only_expunge_deletes rather than max_num_segments because the index keeps receiving live writes,
+		// and full-merging an index that is still written to is discouraged.
+		_, err := esClient.Indices.Forcemerge().Index(site.Index).OnlyExpungeDeletes(true).Do(siteCtx)
+		if err != nil {
+			return internalSearch.WithESError(err)
+		}
+
+		globals.Logger.Info().Str("index", site.Index).Msg("deletes expunged")
+	}
+
+	globals.Logger.Info().Msg("db vacuum done")
 
 	return nil
 }
