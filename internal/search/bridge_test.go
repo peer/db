@@ -190,24 +190,24 @@ func startBridge(ctx context.Context, t *testing.T, env *bridgeEnv, converter *i
 	require.NoError(t, errE, "% -+#.1v", errE)
 }
 
-// TestBridgeStartupDrainsInverseRelationsBacklog covers the recovery path where BridgeInverseRelations
+// TestBridgeStartupDrainsReindexQueueBacklog covers the recovery path where BridgeReindexQueue
 // already holds a backlog at or below the indexed seq at startup, the state an interrupted run leaves
 // behind. Such leftover rows are processed only by the startup job that Prepare submits, because no new
-// commit enqueues a job for them, and the listener's HandlingReady for the inverse relations channel blocks
+// commit enqueues a job for them, and the listener's HandlingReady for the reindex queue channel blocks
 // until that backlog drains. The test seeds the backlog and then starts the bridge in production order
 // (Prepare, and thus the converter and startup job, before the listener), asserting that listener.Start
 // drains the backlog instead of hanging. The order is set by the test itself, so it guards the
 // startup-drain mechanism but not the Prepare/listener ordering in base.Start.
-func TestBridgeStartupDrainsInverseRelationsBacklog(t *testing.T) {
+func TestBridgeStartupDrainsReindexQueueBacklog(t *testing.T) {
 	t.Parallel()
 
 	ctx, env := setupBridge(t)
 
-	// Seed a leftover inverse relations entry for a dangling document at seq 1 and advance the
+	// Seed a leftover reindex queue entry for a dangling document at seq 1 and advance the
 	// indexed seq to 1, reproducing the state an interrupted run leaves behind.
 	danglingID := identifier.New()
 	errE := internalStore.RetryTransaction(ctx, env.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `INSERT INTO "`+env.store.Prefix+`BridgeInverseRelations" ("id", "seq") VALUES ($1, $2)`, danglingID.String(), int64(1))
+		_, err := tx.Exec(ctx, `INSERT INTO "`+env.store.Prefix+`BridgeReindexQueue" ("id", "seq") VALUES ($1, $2)`, danglingID.String(), int64(1))
 		if err != nil {
 			return internalStore.WithPgxError(err)
 		}
@@ -232,7 +232,7 @@ func TestBridgeStartupDrainsInverseRelationsBacklog(t *testing.T) {
 	startCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	errE = env.listener.Start(startCtx)
-	require.NoError(t, errE, "listener.Start should not block on the inverse relations backlog: % -+#.1v", errE)
+	require.NoError(t, errE, "listener.Start should not block on the reindex queue backlog: % -+#.1v", errE)
 
 	errE = env.bridge.Start(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -241,11 +241,11 @@ func TestBridgeStartupDrainsInverseRelationsBacklog(t *testing.T) {
 	require.Eventually(t, func() bool {
 		var cnt int64
 		errE := internalStore.RetryTransaction(ctx, env.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
-			return internalStore.WithPgxError(tx.QueryRow(ctx, `SELECT COUNT(*) FROM "`+env.store.Prefix+`BridgeInverseRelations"`).Scan(&cnt))
+			return internalStore.WithPgxError(tx.QueryRow(ctx, `SELECT COUNT(*) FROM "`+env.store.Prefix+`BridgeReindexQueue"`).Scan(&cnt))
 		})
 		require.NoError(t, errE, "% -+#.1v", errE)
 		return cnt == 0
-	}, 30*time.Second, 50*time.Millisecond, "inverse relations backlog should be drained on startup")
+	}, 30*time.Second, 50*time.Millisecond, "reindex queue backlog should be drained on startup")
 }
 
 // docExists returns true if the document with the given ID exists in Elasticsearch.
@@ -636,7 +636,7 @@ func TestBridgeInverseRelationReindexing(t *testing.T) {
 		"docA should have forward relation A --X--> B")
 }
 
-func TestBridgeInverseRelationJobRecordsOutput(t *testing.T) {
+func TestBridgeReindexJobRecordsOutput(t *testing.T) {
 	t.Parallel()
 
 	ctx, env := setupBridge(t)
@@ -668,7 +668,7 @@ func TestBridgeInverseRelationJobRecordsOutput(t *testing.T) {
 	// We match the output by its JSON field names, which also guards their contract.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		jobs, err := env.riverClient.JobList(ctx, river.NewJobListParams().
-			Kinds("BridgeIndexInverseRelations").
+			Kinds("BridgeReindex").
 			States(rivertype.JobStateCompleted).
 			First(1000))
 		if !assert.NoError(c, err) {

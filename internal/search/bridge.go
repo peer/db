@@ -40,7 +40,7 @@ type bulkError struct {
 }
 
 type bridgeJob interface {
-	runIndexInverseRelations(ctx context.Context, job *river.Job[jobArgs]) errors.E
+	runReindexQueue(ctx context.Context, job *river.Job[jobArgs]) errors.E
 }
 
 //nolint:gochecknoglobals
@@ -57,7 +57,7 @@ type jobArgs struct {
 
 // Kind implements river.JobArgs interface.
 func (jobArgs) Kind() string {
-	return "BridgeIndexInverseRelations"
+	return "BridgeReindex"
 }
 
 // InsertOpts implements river.JobArgsWithInsertOpts interface.
@@ -69,7 +69,7 @@ func (jobArgs) InsertOpts() river.InsertOpts {
 		//
 		// We do not use UniqueOpts because River requires JobStateRunning in ByState,
 		// which causes inserts to be silently deduplicated while a job is running.
-		// This creates a race where new BridgeInverseRelations entries added during
+		// This creates a race where new BridgeReindexQueue entries added during
 		// job execution are never processed. Instead we currently allow multiple jobs
 		// for correctness even if it means that some jobs will not do anything.
 		// See: https://github.com/riverqueue/river/issues/1178
@@ -77,11 +77,11 @@ func (jobArgs) InsertOpts() river.InsertOpts {
 		// Downside of this approach is that if there are multiple bridges (with different schema/prefix
 		// combinations) their own jobs are not run in parallel but still only one at a time.
 		//
-		// TODO: Should we instead of our work queue table BridgeInverseRelations submit one job for each set of updates in updateSeq?
+		// TODO: Should we instead of our work queue table BridgeReindexQueue submit one job for each set of updates in updateSeq?
 		//       So instead of having our own table we would maintain what has to be done in job arguments.
 		//       We could still use single worker queue to work on those jobs one at a time.
 		//       In Bridge table we would then maintain two rows, how far committed changesets have been
-		//       processed (a seq number) and how far inverse relations have been processed (also a seq number).
+		//       processed (a seq number) and how far the reindex queue has been processed (also a seq number).
 		Queue: "bridge",
 	}
 }
@@ -99,7 +99,7 @@ func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
 		return errE
 	}
 
-	errE = c.runIndexInverseRelations(ctx, job)
+	errE = c.runReindexQueue(ctx, job)
 	if errE != nil {
 		// We do not wrap any error into JobCancel because for all errors we want the job to be retried.
 		// Job can safely be rerun multiple times because it keeps track of successful work in its table.
@@ -152,21 +152,21 @@ type Bridge struct {
 	// Index is the ElasticSearch index name.
 	Index string
 
-	dbpool                     *pgxpool.Pool
-	schema                     string
-	riverClient                *river.Client[pgx.Tx]
-	converter                  *Converter
-	lastSeqMu                  sync.RWMutex
-	lastSeqCond                *sync.Cond
-	lastSeq                    int64
-	inverseRelationsMinSeqMu   sync.RWMutex
-	inverseRelationsMinSeqCond *sync.Cond
-	// inverseRelationsMinSeq is the MIN(seq) of remaining rows in BridgeInverseRelations,
+	dbpool                 *pgxpool.Pool
+	schema                 string
+	riverClient            *river.Client[pgx.Tx]
+	converter              *Converter
+	lastSeqMu              sync.RWMutex
+	lastSeqCond            *sync.Cond
+	lastSeq                int64
+	reindexQueueMinSeqMu   sync.RWMutex
+	reindexQueueMinSeqCond *sync.Cond
+	// reindexQueueMinSeq is the MIN(seq) of remaining rows in BridgeReindexQueue,
 	// or math.MaxInt64 if the table is empty. A waiter for seq X is done when this value > X.
-	inverseRelationsMinSeq int64
-	// inverseRelationsCount is the number of distinct document IDs remaining
-	// in BridgeInverseRelations. It is used for progress tracking.
-	inverseRelationsCount int64
+	reindexQueueMinSeq int64
+	// reindexQueueCount is the number of distinct document IDs remaining
+	// in BridgeReindexQueue. It is used for progress tracking.
+	reindexQueueCount int64
 }
 
 // Init creates the bridge progress table and registers a NOTIFY handler on the shared listener
@@ -200,31 +200,31 @@ func (b *Bridge) Init(
 			CREATE TRIGGER "`+b.Store.Prefix+`BridgeAfterUpdate" AFTER UPDATE ON "`+b.Store.Prefix+`Bridge"
 				FOR EACH ROW EXECUTE FUNCTION "`+b.Store.Prefix+`BridgeAfterUpdateFunc"();
 
-			-- "BridgeInverseRelations" holds document IDs whose inverse relations
-			-- need to be re-indexed. It acts as a work queue. The "seq" column
-			-- records which commit updated inverse relations metadata, allowing
-			-- detection of new table entries added during job processing.
-			CREATE TABLE "`+b.Store.Prefix+`BridgeInverseRelations" (
+			-- "BridgeReindexQueue" holds document IDs that need to be re-indexed,
+			-- for any reason. It acts as a work queue. The "seq" column records
+			-- which commit enqueued the document, allowing detection of new table
+			-- entries added during job processing.
+			CREATE TABLE "`+b.Store.Prefix+`BridgeReindexQueue" (
 				"id" text STORAGE PLAIN COLLATE "C" NOT NULL,
 				"seq" bigint NOT NULL,
 				PRIMARY KEY ("id", "seq")
 			);
 			-- This allows efficient MIN(seq) queries.
-			CREATE INDEX "`+b.Store.Prefix+`BridgeInverseRelationsSeq" ON "`+b.Store.Prefix+`BridgeInverseRelations" ("seq");
-			CREATE FUNCTION "`+b.Store.Prefix+`BridgeInverseRelationsAfterChangeFunc"()
+			CREATE INDEX "`+b.Store.Prefix+`BridgeReindexQueueSeq" ON "`+b.Store.Prefix+`BridgeReindexQueue" ("seq");
+			CREATE FUNCTION "`+b.Store.Prefix+`BridgeReindexQueueAfterChangeFunc"()
 				RETURNS TRIGGER LANGUAGE plpgsql AS $$
 				BEGIN
 					-- Notify without payload. The handler queries MIN(seq) in a separate read-only transaction to avoid serialization conflicts.
 					-- Computing MIN(seq) inside this read-write trigger would create an unnecessary dependency on the table, conflicting with
 					-- concurrent INSERTs and DELETEs under serializable isolation, but it is not really necessary to know the MIN(seq) from
 					-- inside the transaction because the handler can only obtain >= MIN(seq) through a later query.
-					PERFORM pg_notify('`+b.Store.Prefix+`BridgeInverseRelationsMinSeq', '');
+					PERFORM pg_notify('`+b.Store.Prefix+`BridgeReindexQueueMinSeq', '');
 					RETURN NULL;
 				END;
 			$$;
-			CREATE TRIGGER "`+b.Store.Prefix+`BridgeInverseRelationsAfterChange" AFTER INSERT OR DELETE ON "`+b.Store.Prefix+`BridgeInverseRelations"
-				FOR EACH STATEMENT EXECUTE FUNCTION "`+b.Store.Prefix+`BridgeInverseRelationsAfterChangeFunc"();
-			CREATE TRIGGER "`+b.Store.Prefix+`BridgeInverseRelationsNotAllowed" BEFORE UPDATE OR TRUNCATE ON "`+b.Store.Prefix+`BridgeInverseRelations"
+			CREATE TRIGGER "`+b.Store.Prefix+`BridgeReindexQueueAfterChange" AFTER INSERT OR DELETE ON "`+b.Store.Prefix+`BridgeReindexQueue"
+				FOR EACH STATEMENT EXECUTE FUNCTION "`+b.Store.Prefix+`BridgeReindexQueueAfterChangeFunc"();
+			CREATE TRIGGER "`+b.Store.Prefix+`BridgeReindexQueueNotAllowed" BEFORE UPDATE OR TRUNCATE ON "`+b.Store.Prefix+`BridgeReindexQueue"
 				FOR EACH STATEMENT EXECUTE FUNCTION "`+b.Store.Prefix+`DoNotAllow"();
 		`)
 		return internalStore.WithPgxError(err)
@@ -248,10 +248,10 @@ func (b *Bridge) Init(
 	}
 
 	b.lastSeqCond = sync.NewCond(b.lastSeqMu.RLocker())
-	b.inverseRelationsMinSeqCond = sync.NewCond(b.inverseRelationsMinSeqMu.RLocker())
-	b.inverseRelationsMinSeq = math.MaxInt64
+	b.reindexQueueMinSeqCond = sync.NewCond(b.reindexQueueMinSeqMu.RLocker())
+	b.reindexQueueMinSeq = math.MaxInt64
 	listener.Handle(b.Store.Prefix+"BridgeSeq", b)
-	listener.Handle(b.Store.Prefix+"BridgeInverseRelationsMinSeq", b)
+	listener.Handle(b.Store.Prefix+"BridgeReindexQueueMinSeq", b)
 
 	return nil
 }
@@ -293,8 +293,8 @@ func (b *Bridge) HandleNotification(
 	switch notification.Channel {
 	case b.Store.Prefix + "BridgeSeq":
 		return b.handleBridgeSeq(ctx, notification, conn)
-	case b.Store.Prefix + "BridgeInverseRelationsMinSeq":
-		return b.handleBridgeInverseRelationsMinSeq(ctx)
+	case b.Store.Prefix + "BridgeReindexQueueMinSeq":
+		return b.handleBridgeReindexQueueMinSeq(ctx)
 	default:
 		errE := errors.New("unknown notification channel")
 		errors.Details(errE)["channel"] = notification.Channel
@@ -315,11 +315,11 @@ func (b *Bridge) HandleBacklog(
 		//       might continue waiting until some other new commit is made, which might be never.
 		_, errE := b.fixBridgeSeq(ctx)
 		return errE
-	case b.Store.Prefix + "BridgeInverseRelationsMinSeq":
+	case b.Store.Prefix + "BridgeReindexQueueMinSeq":
 		// TODO: Improve what happens on an error.
-		//       Any error from updateBridgeInverseRelationsMinSeq is just logged. Which means that goroutines waiting
+		//       Any error from updateBridgeReindexQueueMinSeq is just logged. Which means that goroutines waiting
 		//       in WaitUntilCaughtUp might continue waiting until some other new commit is made, which might be never.
-		return b.updateBridgeInverseRelationsMinSeq(ctx)
+		return b.updateBridgeReindexQueueMinSeq(ctx)
 	default:
 		errE := errors.New("unknown notification channel")
 		errors.Details(errE)["channel"] = channel
@@ -332,8 +332,8 @@ func (b *Bridge) HandlingReady(ctx context.Context, channel string) errors.E {
 	switch channel {
 	case b.Store.Prefix + "BridgeSeq":
 		return b.waitForFixBridgeSeq(ctx)
-	case b.Store.Prefix + "BridgeInverseRelationsMinSeq":
-		return b.waitForUpdateBridgeInverseRelationsMinSeq(ctx)
+	case b.Store.Prefix + "BridgeReindexQueueMinSeq":
+		return b.waitForUpdateBridgeReindexQueueMinSeq(ctx)
 	default:
 		errE := errors.New("unknown notification channel")
 		errors.Details(errE)["channel"] = channel
@@ -375,44 +375,44 @@ func (b *Bridge) fixBridgeSeq(ctx context.Context) (int64, errors.E) {
 	return seq, nil
 }
 
-// handleBridgeInverseRelationsMinSeq handles notifications from the BridgeInverseRelations table
+// handleBridgeReindexQueueMinSeq handles notifications from the BridgeReindexQueue table
 // trigger and broadcasts to any goroutines waiting in WaitUntilCaughtUp.
 //
-// We query MIN(seq) in a separate read-only transaction via updateBridgeInverseRelationsMinSeq
+// We query MIN(seq) in a separate read-only transaction via updateBridgeReindexQueueMinSeq
 // rather than receiving it as the notification payload. Computing MIN(seq) inside the trigger's
-// read-write transaction would create an unnecessary dependency on the BridgeInverseRelations table,
+// read-write transaction would create an unnecessary dependency on the BridgeReindexQueue table,
 // causing serialization conflicts with concurrent INSERTs and DELETEs under serializable isolation.
 // A read-only transaction does not take conflicting predicate locks, avoiding this issue. This is
 // safe because seq values only increase (new INSERTs always have higher seq) and DELETEs only
 // remove rows that have already been processed, so the MIN(seq) observed by the handler is always
 // a correct (or conservatively low) value.
-func (b *Bridge) handleBridgeInverseRelationsMinSeq(ctx context.Context) errors.E {
-	return b.updateBridgeInverseRelationsMinSeq(ctx)
+func (b *Bridge) handleBridgeReindexQueueMinSeq(ctx context.Context) errors.E {
+	return b.updateBridgeReindexQueueMinSeq(ctx)
 }
 
-// updateBridgeInverseRelationsMinSeq fetches the current MIN(seq) and COUNT(DISTINCT "id")
-// from BridgeInverseRelations, updates the in-memory state, and broadcasts to any goroutines
+// updateBridgeReindexQueueMinSeq fetches the current MIN(seq) and COUNT(DISTINCT "id")
+// from BridgeReindexQueue, updates the in-memory state, and broadcasts to any goroutines
 // waiting in WaitUntilCaughtUp.
-func (b *Bridge) updateBridgeInverseRelationsMinSeq(ctx context.Context) errors.E {
+func (b *Bridge) updateBridgeReindexQueueMinSeq(ctx context.Context) errors.E {
 	var minSeq *int64
 	var cnt int64
 	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		return internalStore.WithPgxError(
-			tx.QueryRow(ctx, `SELECT MIN("seq"), COUNT(DISTINCT "id") FROM "`+b.Store.Prefix+`BridgeInverseRelations"`).Scan(&minSeq, &cnt),
+			tx.QueryRow(ctx, `SELECT MIN("seq"), COUNT(DISTINCT "id") FROM "`+b.Store.Prefix+`BridgeReindexQueue"`).Scan(&minSeq, &cnt),
 		)
 	})
 	if errE != nil {
 		return errE
 	}
-	b.inverseRelationsMinSeqMu.Lock()
-	defer b.inverseRelationsMinSeqMu.Unlock()
+	b.reindexQueueMinSeqMu.Lock()
+	defer b.reindexQueueMinSeqMu.Unlock()
 	if minSeq == nil {
-		b.inverseRelationsMinSeq = math.MaxInt64
+		b.reindexQueueMinSeq = math.MaxInt64
 	} else {
-		b.inverseRelationsMinSeq = *minSeq
+		b.reindexQueueMinSeq = *minSeq
 	}
-	b.inverseRelationsCount = cnt
-	b.inverseRelationsMinSeqCond.Broadcast()
+	b.reindexQueueCount = cnt
+	b.reindexQueueMinSeqCond.Broadcast()
 	return nil
 }
 
@@ -474,14 +474,14 @@ func (b *Bridge) waitForLastSeq(ctx context.Context, seq int64, count, size *x.C
 	return nil
 }
 
-// waitForUpdateBridgeInverseRelationsMinSeq is similar to WaitUntilCaughtUp but it does not wait for
-// b.inverseRelationsMinSeq to catch up with committed commits, but just that it catches up with
+// waitForUpdateBridgeReindexQueueMinSeq is similar to WaitUntilCaughtUp but it does not wait for
+// b.reindexQueueMinSeq to catch up with committed commits, but just that it catches up with
 // the current last-indexed seq from the bridge table. A startup job submitted in Init ensures
 // any leftover rows will be processed.
-func (b *Bridge) waitForUpdateBridgeInverseRelationsMinSeq(ctx context.Context) errors.E {
-	// We must call updateBridgeInverseRelationsMinSeq here because HandleBacklog runs in a separate
+func (b *Bridge) waitForUpdateBridgeReindexQueueMinSeq(ctx context.Context) errors.E {
+	// We must call updateBridgeReindexQueueMinSeq here because HandleBacklog runs in a separate
 	// goroutine and may not have executed yet.
-	errE := b.updateBridgeInverseRelationsMinSeq(ctx)
+	errE := b.updateBridgeReindexQueueMinSeq(ctx)
 	if errE != nil {
 		return errE
 	}
@@ -491,48 +491,48 @@ func (b *Bridge) waitForUpdateBridgeInverseRelationsMinSeq(ctx context.Context) 
 		return errE
 	}
 
-	return b.waitForInverseRelationsMinSeq(ctx, seq, nil, nil)
+	return b.waitForReindexQueueMinSeq(ctx, seq, nil, nil)
 }
 
-func (b *Bridge) waitForInverseRelationsMinSeq(ctx context.Context, seq int64, count, size *x.Counter) errors.E {
-	b.inverseRelationsMinSeqCond.L.Lock()
-	defer b.inverseRelationsMinSeqCond.L.Unlock()
+func (b *Bridge) waitForReindexQueueMinSeq(ctx context.Context, seq int64, count, size *x.Counter) errors.E {
+	b.reindexQueueMinSeqCond.L.Lock()
+	defer b.reindexQueueMinSeqCond.L.Unlock()
 
 	// Nothing to do.
-	if b.inverseRelationsMinSeq > seq {
+	if b.reindexQueueMinSeq > seq {
 		return nil
 	}
 
 	// This is based on example for context.AfterFunc from the context package.
 	// See comments there for explanation how it works and why.
 	stop := context.AfterFunc(ctx, func() {
-		b.inverseRelationsMinSeqCond.L.Lock()
-		defer b.inverseRelationsMinSeqCond.L.Unlock()
-		b.inverseRelationsMinSeqCond.Broadcast()
+		b.reindexQueueMinSeqCond.L.Lock()
+		defer b.reindexQueueMinSeqCond.L.Unlock()
+		b.reindexQueueMinSeqCond.Broadcast()
 	})
 	defer stop()
 
 	// We use the number of distinct document IDs for progress tracking instead of seq values.
 	// This provides regular progress updates because the count decreases with each processed
 	// document, while MIN(seq) can stay the same when many documents share the same seq.
-	initialCount := b.inverseRelationsCount
+	initialCount := b.reindexQueueCount
 
 	if size != nil {
 		size.Add(initialCount)
 	}
 
-	// inverseRelationsMinSeq tracks the MIN(seq) of remaining rows in BridgeInverseRelations.
+	// reindexQueueMinSeq tracks the MIN(seq) of remaining rows in BridgeReindexQueue.
 	// When it exceeds seq (or the table is empty, represented as MaxInt64), we are done.
-	for b.inverseRelationsMinSeq <= seq {
-		b.inverseRelationsMinSeqCond.Wait()
+	for b.reindexQueueMinSeq <= seq {
+		b.reindexQueueMinSeqCond.Wait()
 		if ctx.Err() != nil {
 			return errors.WithStack(ctx.Err())
 		}
 		if count != nil {
-			processed := initialCount - b.inverseRelationsCount
+			processed := initialCount - b.reindexQueueCount
 			if processed > 0 {
 				count.Add(processed)
-				initialCount = b.inverseRelationsCount
+				initialCount = b.reindexQueueCount
 			}
 		}
 	}
@@ -545,7 +545,7 @@ func (b *Bridge) waitForInverseRelationsMinSeq(ctx context.Context, seq int64, c
 	return nil
 }
 
-// ResetSeq resets the bridge progress to 0 and clears the inverse relations work queue.
+// ResetSeq resets the bridge progress to 0 and clears the reindex queue.
 // This causes the bridge to re-process all commits from the beginning when started.
 func (b *Bridge) ResetSeq(ctx context.Context) errors.E {
 	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
@@ -553,7 +553,7 @@ func (b *Bridge) ResetSeq(ctx context.Context) errors.E {
 		if err != nil {
 			return internalStore.WithPgxError(err)
 		}
-		_, err = tx.Exec(ctx, `DELETE FROM "`+b.Store.Prefix+`BridgeInverseRelations"`)
+		_, err = tx.Exec(ctx, `DELETE FROM "`+b.Store.Prefix+`BridgeReindexQueue"`)
 		return internalStore.WithPgxError(err)
 	})
 	if errE != nil {
@@ -564,10 +564,10 @@ func (b *Bridge) ResetSeq(ctx context.Context) errors.E {
 	b.lastSeq = 0
 	b.lastSeqMu.Unlock()
 
-	b.inverseRelationsMinSeqMu.Lock()
-	b.inverseRelationsMinSeq = math.MaxInt64
-	b.inverseRelationsCount = 0
-	b.inverseRelationsMinSeqMu.Unlock()
+	b.reindexQueueMinSeqMu.Lock()
+	b.reindexQueueMinSeq = math.MaxInt64
+	b.reindexQueueCount = 0
+	b.reindexQueueMinSeqMu.Unlock()
 
 	// We reset the store's Committed channel so that the bridge goroutine detects the closed
 	// channel and restarts its run loop, picking up the reset seq from the database.
@@ -579,16 +579,16 @@ func (b *Bridge) ResetSeq(ctx context.Context) errors.E {
 }
 
 // Prepare stores the converter and submits a startup job that processes any leftover rows
-// in BridgeInverseRelations from a previous run.
+// in BridgeReindexQueue from a previous run.
 //
 // It must be called before the river client and the store listener are started. The listener's
-// HandlingReady for the inverse relations channel blocks until the inverse relations backlog
+// HandlingReady for the reindex queue channel blocks until the reindex queue backlog
 // (entries at or below the indexed seq) is drained, and draining is possible only once the bridge
 // has the converter and worker can run its jobs.
 func (b *Bridge) Prepare(ctx context.Context, converter *Converter) errors.E {
 	b.converter = converter
 
-	// Submit a startup job to process any leftover rows in BridgeInverseRelations from a previous run.
+	// Submit a startup job to process any leftover rows in BridgeReindexQueue from a previous run.
 	_, err := b.riverClient.Insert(ctx, jobArgs{
 		Schema: b.schema,
 		Prefix: b.Store.Prefix,
@@ -667,8 +667,8 @@ func (b *Bridge) WaitUntilCaughtUp(ctx context.Context, count, size *x.Counter) 
 		return errE
 	}
 
-	// And then we wait on inverseRelationsMinSeq (inverse relations phase).
-	return b.waitForInverseRelationsMinSeq(ctx, maxSeq, count, size)
+	// And then we wait on reindexQueueMinSeq (reindex queue phase).
+	return b.waitForReindexQueueMinSeq(ctx, maxSeq, count, size)
 }
 
 func (b *Bridge) run(ctx context.Context) errors.E {
@@ -1260,11 +1260,11 @@ func (b *Bridge) updateSeq(
 
 		// In a single transaction: update metadata, enqueue document IDs for re-indexing,
 		// and then advance the bridge seq. The order matters: the INSERT into
-		// BridgeInverseRelations triggers a notification BEFORE the UPDATE of Bridge seq
+		// BridgeReindexQueue triggers a notification BEFORE the UPDATE of Bridge seq
 		// triggers the BridgeSeq notification. Since notifications are delivered in order
 		// within a transaction and processed sequentially by the listener, the handler for
-		// BridgeInverseRelationsMinSeq queries the current MIN(seq) and updates
-		// inverseRelationsMinSeq before the BridgeSeq handler unblocks waitForLastSeq.
+		// BridgeReindexQueueMinSeq queries the current MIN(seq) and updates
+		// reindexQueueMinSeq before the BridgeSeq handler unblocks waitForLastSeq.
 		errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 			for _, u := range updates {
 				_, errE := b.Store.UpdateExistingMetadata(ctx, u.id, u.version, u.metadata)
@@ -1277,7 +1277,7 @@ func (b *Bridge) updateSeq(
 				// Add document IDs with commit seq to the work queue for re-indexing.
 				for docID := range enqueue {
 					_, err := tx.Exec(ctx, `
-						INSERT INTO "`+b.Store.Prefix+`BridgeInverseRelations" ("id", "seq") VALUES ($1, $2)
+						INSERT INTO "`+b.Store.Prefix+`BridgeReindexQueue" ("id", "seq") VALUES ($1, $2)
 							ON CONFLICT ("id", "seq") DO NOTHING
 					`, docID.String(), seq)
 					if err != nil {
@@ -1295,7 +1295,7 @@ func (b *Bridge) updateSeq(
 				}
 			}
 
-			// Advance the bridge seq last, so its notification arrives after BridgeInverseRelationsMinSeq.
+			// Advance the bridge seq last, so its notification arrives after BridgeReindexQueueMinSeq.
 			_, err := tx.Exec(ctx, `UPDATE "`+b.Store.Prefix+`Bridge" SET "seq" = $1 WHERE "seq" < $1`, seq)
 			return internalStore.WithPgxError(err)
 		})
@@ -1304,8 +1304,8 @@ func (b *Bridge) updateSeq(
 			continue
 		}
 		if errE == nil {
-			// Each enqueued document becomes a row in BridgeInverseRelations, and a non-empty enqueue
-			// submits one inverse relations job. Logging this shows how many jobs each commit triggers.
+			// Each enqueued document becomes a row in BridgeReindexQueue, and a non-empty enqueue
+			// submits one reindex job. Logging this shows how many jobs each commit triggers.
 			logger.Debug().
 				Int64("seq", seq).
 				Int("metadataUpdates", len(updates)).
@@ -1320,10 +1320,10 @@ func (b *Bridge) updateSeq(
 	return errors.WithStack(internalStore.ErrMaxRetriesReached)
 }
 
-// inverseRelationsStats accumulates per-job timing and counts for an inverse relations job so
+// reindexStats accumulates per-job timing and counts for a reindex job so
 // that the job summary can show where time went: fetching the next document from the work queue,
 // re-indexing it, and deleting its processed entries.
-type inverseRelationsStats struct {
+type reindexStats struct {
 	// Reindexed is the number of documents re-indexed by the job.
 	Reindexed int
 	// Fetches is the number of work-queue SELECT queries run, including the final one that
@@ -1338,9 +1338,9 @@ type inverseRelationsStats struct {
 	DeleteDuration time.Duration
 }
 
-// inverseRelationsJobOutput is recorded on the River job via RecordOutput so that what each inverse
+// reindexJobOutput is recorded on the River job via RecordOutput so that what each inverse
 // relations job did, and where its time went. Durations are in seconds.
-type inverseRelationsJobOutput struct {
+type reindexJobOutput struct {
 	Seq             int64   `json:"seq"`
 	Reindexed       int     `json:"reindexed"`
 	Fetches         int     `json:"fetches"`
@@ -1351,7 +1351,7 @@ type inverseRelationsJobOutput struct {
 	Duration        float64 `json:"duration"`
 }
 
-func (b *Bridge) runIndexInverseRelations(ctx context.Context, job *river.Job[jobArgs]) errors.E {
+func (b *Bridge) runReindexQueue(ctx context.Context, job *river.Job[jobArgs]) errors.E {
 	logger := zerolog.Ctx(ctx)
 	jobStart := time.Now()
 
@@ -1373,11 +1373,11 @@ func (b *Bridge) runIndexInverseRelations(ctx context.Context, job *river.Job[jo
 	}
 	refreshDuration := time.Since(refreshStart)
 
-	stats, errE := b.processInverseRelationsQueue(ctx, snapshotSeq)
+	stats, errE := b.processReindexQueue(ctx, snapshotSeq)
 	duration := time.Since(jobStart)
 
 	// Record what the job did as its River job output.
-	err = river.RecordOutput(ctx, inverseRelationsJobOutput{
+	err = river.RecordOutput(ctx, reindexJobOutput{
 		Seq:             snapshotSeq,
 		Reindexed:       stats.Reindexed,
 		Fetches:         stats.Fetches,
@@ -1388,7 +1388,7 @@ func (b *Bridge) runIndexInverseRelations(ctx context.Context, job *river.Job[jo
 		Duration:        duration.Seconds(),
 	})
 	if err != nil {
-		logger.Error().Err(errors.WithStack(err)).Int64("job", job.ID).Msg("recording inverse relations job output failed")
+		logger.Error().Err(errors.WithStack(err)).Int64("job", job.ID).Msg("recording reindex job output failed")
 	}
 
 	// The same breakdown is also logged at debug level.
@@ -1402,15 +1402,15 @@ func (b *Bridge) runIndexInverseRelations(ctx context.Context, job *river.Job[jo
 		Dur("indexDuration", stats.IndexDuration).
 		Dur("deleteDuration", stats.DeleteDuration).
 		Dur("duration", duration).
-		Msg("bridge inverse relations job")
+		Msg("bridge reindex job")
 
 	return errE
 }
 
-// processInverseRelationsQueue drains the BridgeInverseRelations work queue for entries at or below
+// processReindexQueue drains the BridgeReindexQueue work queue for entries at or below
 // snapshotSeq, re-indexing one document at a time, and returns timing and count stats for the job.
-func (b *Bridge) processInverseRelationsQueue(ctx context.Context, snapshotSeq int64) (inverseRelationsStats, errors.E) {
-	var stats inverseRelationsStats
+func (b *Bridge) processReindexQueue(ctx context.Context, snapshotSeq int64) (reindexStats, errors.E) {
+	var stats reindexStats
 	for {
 		// Fetch one document ID from the work queue with its max seq at or below the snapshot.
 		// GROUP BY collapses multiple entries for the same document (from different commits).
@@ -1419,9 +1419,9 @@ func (b *Bridge) processInverseRelationsQueue(ctx context.Context, snapshotSeq i
 		queryStart := time.Now()
 		errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 			// We pick a random document to reduce conflicts when multiple processes
-			// work on inverse relations in parallel.
+			// reindex documents in parallel.
 			return internalStore.WithPgxError(tx.QueryRow(ctx, `
-				SELECT "id", MAX("seq") FROM "`+b.Store.Prefix+`BridgeInverseRelations"
+				SELECT "id", MAX("seq") FROM "`+b.Store.Prefix+`BridgeReindexQueue"
 					WHERE "seq" <= $1 GROUP BY "id" ORDER BY RANDOM() LIMIT 1
 			`, snapshotSeq).Scan(&docIDStr, &maxSeq))
 		})
@@ -1453,7 +1453,7 @@ func (b *Bridge) processInverseRelationsQueue(ctx context.Context, snapshotSeq i
 		deleteStart := time.Now()
 		errE = internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 			_, err := tx.Exec(ctx, `
-				DELETE FROM "`+b.Store.Prefix+`BridgeInverseRelations" WHERE "id" = $1 AND "seq" <= $2
+				DELETE FROM "`+b.Store.Prefix+`BridgeReindexQueue" WHERE "id" = $1 AND "seq" <= $2
 			`, docIDStr, maxSeq)
 			return internalStore.WithPgxError(err)
 		})
@@ -1465,7 +1465,7 @@ func (b *Bridge) processInverseRelationsQueue(ctx context.Context, snapshotSeq i
 }
 
 // TODO: We should batch indexing of documents together instead of doing it one by one.
-//       We could fetch up to 1000 rows from BridgeInverseRelations, convert them, index them and then remove them from BridgeInverseRelations.
+//       We could fetch up to 1000 rows from BridgeReindexQueue, convert them, index them and then remove them from BridgeReindexQueue.
 
 // indexDocument fetches the latest version of a document, converts it to a search
 // document, and indexes it to ElasticSearch.
