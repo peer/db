@@ -788,7 +788,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 			Reverse: &reverseID,
 		}
 		q := data.ToQuery(nil)
-		want := `{"bool":{"must":[{"bool":{"minimum_should_match":1,"should":[` +
+		want := `{"bool":{"filter":[{"bool":{"minimum_should_match":1,"should":[` +
 			`{"nested":{"path":"claims.ref","query":{"term":{"claims.ref.to":{"value":"` + reverseID.String() + `"}}}}},` +
 			`{"nested":{"path":"claims.subRef","query":{"term":{"claims.subRef.to":{"value":"` + reverseID.String() + `"}}}}}` +
 			`]}}]}}`
