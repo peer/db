@@ -33,7 +33,7 @@ require (
 	github.com/temoto/robotstxt v1.1.2
 	gitlab.com/tozd/go/cli v0.7.0
 	gitlab.com/tozd/go/x v0.0.0-20260325094342-27311bf9bec0
-	gitlab.com/tozd/go/zerolog v0.11.5-0.20260606002651-75fff0b4a065
+	gitlab.com/tozd/go/zerolog v0.11.5-0.20260606005936-3cb490ec7a17
 	gitlab.com/tozd/identifier v0.8.2
 	gitlab.com/tozd/waf v0.24.1-0.20260524082236-3d6aeb640007
 	golang.org/x/oauth2 v0.28.0

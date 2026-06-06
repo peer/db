@@ -323,8 +323,8 @@ gitlab.com/tozd/go/errors v0.11.1 h1:xMPBH+ecV0+8q60QtAGZ1E62FMuOOwpMP0hD4JZfjVo
 gitlab.com/tozd/go/errors v0.11.1/go.mod h1:9oQ31+x7iUOEVsrXLDR+iMD8794G5uqLp6eEnYtvD8M=
 gitlab.com/tozd/go/x v0.0.0-20260325094342-27311bf9bec0 h1:SqHJZNquFTminQ2hQQjIKL9r0zIQDrAVPv4x8oiVn1A=
 gitlab.com/tozd/go/x v0.0.0-20260325094342-27311bf9bec0/go.mod h1:D3M+8J6dO5jk6eETvvFerwRfZ1ACARcceelz892aVyA=
-gitlab.com/tozd/go/zerolog v0.11.5-0.20260606002651-75fff0b4a065 h1:vq0Fns6mlePv5j6Bh500aWxYoJFjGRaK0/PX2Otw9Y4=
-gitlab.com/tozd/go/zerolog v0.11.5-0.20260606002651-75fff0b4a065/go.mod h1:Okp/Q1R+DzFyvGQocRRVqjBq0QQnHFPHOp8FXdkRXkk=
+gitlab.com/tozd/go/zerolog v0.11.5-0.20260606005936-3cb490ec7a17 h1:7q/rYwzYbfZrGnF7A+7aPsosU8wWu8LmProDd5bFWXI=
+gitlab.com/tozd/go/zerolog v0.11.5-0.20260606005936-3cb490ec7a17/go.mod h1:ka0DToFzoMewpADCf2otD0CtpylPLxmF4pibklyoolA=
 gitlab.com/tozd/identifier v0.8.2 h1:OO35kXje84CYhWQIX3UYedLJZmi11ZvcpffD7pQajAI=
 gitlab.com/tozd/identifier v0.8.2/go.mod h1:Rdf6KMUKO3OxjKoNYvlPxEqxNKyNfuXc67uc/2d4VeY=
 gitlab.com/tozd/waf v0.24.1-0.20260524082236-3d6aeb640007 h1:M/YwGfkXRnizZNkoFnPW1O/JFhKtoOLtG3Lhwex0Ci0=
