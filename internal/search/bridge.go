@@ -758,6 +758,19 @@ func (b *Bridge) run(ctx context.Context) errors.E {
 	}
 }
 
+// withCommitDetails annotates errE with the commit, changeset, and (when non-empty) document that an
+// error in indexCommit occurred in.
+func withCommitDetails(errE errors.E, seq int64, view, changeset, doc string) errors.E {
+	details := errors.Details(errE)
+	details["seq"] = seq
+	details["view"] = view
+	details["changeset"] = changeset
+	if doc != "" {
+		details["doc"] = doc
+	}
+	return errE
+}
+
 // TODO: We should batch multiple commits together if they are small and split them if they are large.
 //       indexCommit operates on a single commit but those could be very small or very large.
 //       Maybe a batch should be made when we reach 1000 documents or if more than 1 second has
@@ -782,6 +795,7 @@ func (b *Bridge) indexCommit(
 	ctx = WithConversionStats(ctx, &stats)
 
 	// Reconstruct changesets with the store so we can query them.
+	withStoreStart := time.Now()
 	c, errE := committed.WithStore(ctx, b.Store)
 	if errE != nil {
 		errors.Details(errE)["seq"] = committed.Seq
@@ -791,6 +805,12 @@ func (b *Bridge) indexCommit(
 
 	indexOps := 0
 	deleteOps := 0
+	// Per-phase durations, all disjoint, accumulated across the commit's documents. changesDuration
+	// starts with reconstructing the changesets here and adds reading their pages in the loop.
+	// accumulateDuration and convertDuration exclude their getDocument store fetches (those are
+	// fetchDuration), so the phases do not overlap.
+	changesDuration := time.Since(withStoreStart)
+	var getDuration, accumulateDuration, convertDuration time.Duration
 	bulkService := b.ESClient.Bulk()
 
 	// Collect inverse relations from all processed documents.
@@ -806,12 +826,11 @@ func (b *Bridge) indexCommit(
 	for _, cs := range c.Changesets {
 		var after *identifier.Identifier
 		for {
+			changesStart := time.Now()
 			page, errE := cs.Changes(ctx, after)
+			changesDuration += time.Since(changesStart)
 			if errE != nil {
-				errors.Details(errE)["seq"] = committed.Seq
-				errors.Details(errE)["view"] = committed.View.Name()
-				errors.Details(errE)["changeset"] = cs.String()
-				return nil, nil, nil, errE
+				return nil, nil, nil, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), "")
 			}
 			for _, change := range page {
 				// The document changed in this commit, so drop any cached info and fetched content for it.
@@ -819,30 +838,27 @@ func (b *Bridge) indexCommit(
 
 				// Fetch document at the change version.
 				deleted := false
+				getStart := time.Now()
 				data, metadata, _, parentChangesets, errE := b.Store.Get(ctx, change.ID, change.Version)
+				getDuration += time.Since(getStart)
 				if errors.Is(errE, store.ErrValueDeleted) {
 					// Deleted at this version: no outgoing relations or reference targets.
 					deleted = true
 				} else if errE != nil {
-					errors.Details(errE)["seq"] = committed.Seq
-					errors.Details(errE)["view"] = committed.View.Name()
-					errors.Details(errE)["changeset"] = cs.String()
-					errors.Details(errE)["doc"] = change.ID.String()
-					return nil, nil, nil, errE
+					return nil, nil, nil, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
 				}
 
 				// Collect, for other documents, the inverse-relation and referencesCount
 				// changes implied by this document's change.
+				accumulateFetchBefore := stats.FetchDuration
+				accumulateStart := time.Now()
 				errE = b.accumulateChangeRelations(
 					ctx, change.ID, deleted, data, parentChangesets,
 					addedInverseRelations, removedInverseRelations, referenceTargets,
 				)
+				accumulateDuration += time.Since(accumulateStart) - (stats.FetchDuration - accumulateFetchBefore)
 				if errE != nil {
-					errors.Details(errE)["seq"] = committed.Seq
-					errors.Details(errE)["view"] = committed.View.Name()
-					errors.Details(errE)["changeset"] = cs.String()
-					errors.Details(errE)["doc"] = change.ID.String()
-					return nil, nil, nil, errE
+					return nil, nil, nil, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
 				}
 
 				if deleted {
@@ -854,13 +870,12 @@ func (b *Bridge) indexCommit(
 					deleteOps++
 				} else {
 					// TODO: Use also information about the view so that documents are searchable by view as well.
+					convertFetchBefore := stats.FetchDuration
+					convertStart := time.Now()
 					searchDoc, errE := b.ConvertDocument(ctx, data, metadata)
+					convertDuration += time.Since(convertStart) - (stats.FetchDuration - convertFetchBefore)
 					if errE != nil {
-						errors.Details(errE)["seq"] = committed.Seq
-						errors.Details(errE)["view"] = committed.View.Name()
-						errors.Details(errE)["changeset"] = cs.String()
-						errors.Details(errE)["doc"] = change.ID.String()
-						return nil, nil, nil, errE
+						return nil, nil, nil, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
 					}
 					id := change.ID.String()
 					err := bulkService.IndexOp(types.IndexOperation{Index_: &b.Index, Id_: &id}, searchDoc) //nolint:exhaustruct
@@ -931,8 +946,12 @@ func (b *Bridge) indexCommit(
 	// The counts here are the work this commit implies for other documents. indexed/deleted are the
 	// bulk operations for the changed documents themselves. inverseAdded/inverseRemoved are the
 	// numbers of target documents whose inverse-relation metadata changes, and referenceTargets is
-	// the number of documents whose referencesCount must be refreshed. Together with bulkDuration
-	// this shows how much downstream re-indexing each commit triggers.
+	// the number of documents whose referencesCount must be refreshed. The durations are disjoint and
+	// sum to duration (minus small in-memory overhead for cache invalidation, bulk buffering, and the
+	// bulk error scan): changesDuration is reconstructing and reading the committed changesets,
+	// getDuration is the per-document store reads, fetchDuration is the getDocument store fetches,
+	// accumulateDuration and convertDuration are accumulateChangeRelations and ConvertDocument
+	// excluding those fetches, and bulkDuration is the ES bulk request.
 	logger.Debug().
 		Int64("seq", committed.Seq).
 		Int("indexed", indexOps).
@@ -944,7 +963,11 @@ func (b *Bridge) indexCommit(
 		Int("docCacheMisses", stats.DocCacheMisses).
 		Int("infoCacheHits", stats.InfoCacheHits).
 		Int("infoCacheMisses", stats.InfoCacheMisses).
+		Dur("changesDuration", changesDuration).
+		Dur("getDuration", getDuration).
 		Dur("fetchDuration", stats.FetchDuration).
+		Dur("accumulateDuration", accumulateDuration).
+		Dur("convertDuration", convertDuration).
 		Dur("bulkDuration", bulkDuration).
 		Dur("duration", time.Since(start)).
 		Msg("bridge indexed commit")
@@ -1450,7 +1473,9 @@ func (b *Bridge) indexDocument(ctx context.Context, docID identifier.Identifier)
 	start := time.Now()
 	var stats ConversionStats
 	ctx = WithConversionStats(ctx, &stats)
+	getLatestStart := time.Now()
 	data, metadata, _, _, errE := b.Store.GetLatest(ctx, docID)
+	getLatestDuration := time.Since(getLatestStart)
 	if errors.Is(errE, store.ErrValueDeleted) {
 		// Document does not exist anymore, skip.
 		// TODO: We should keep track in source document's metadata, that some of its outgoing relations are invalid.
@@ -1471,23 +1496,37 @@ func (b *Bridge) indexDocument(ctx context.Context, docID identifier.Identifier)
 	}
 
 	// TODO: Use also information about the view so that documents are searchable by view as well.
+	convertStart := time.Now()
 	searchDoc, errE := b.ConvertDocument(ctx, data, metadata)
+	// convertDuration is the conversion time excluding the getDocument store fetches (logged
+	// separately as fetchDuration), so the phases stay disjoint. stats.FetchDuration is all from this
+	// conversion, since indexDocument fetches only via ConvertDocument.
+	convertDuration := time.Since(convertStart) - stats.FetchDuration
 	if errE != nil {
 		return errE
 	}
 
+	esIndexStart := time.Now()
 	_, err := b.ESClient.Index(b.Index).Id(docID.String()).Request(searchDoc).Do(ctx)
+	esIndexDuration := time.Since(esIndexStart)
 	if err != nil {
 		return WithESError(err)
 	}
 
+	// The phases are disjoint and sum to duration (minus small overhead): getLatestDuration is the
+	// store read of the document, fetchDuration is the getDocument store fetches during conversion,
+	// convertDuration is the rest of building the search document (rendering and the referencesCount
+	// ES count query), and esIndexDuration is marshalling and the ES index request.
 	zerolog.Ctx(ctx).Debug().
 		Str("doc", docID.String()).
 		Int("docCacheHits", stats.DocCacheHits).
 		Int("docCacheMisses", stats.DocCacheMisses).
 		Int("infoCacheHits", stats.InfoCacheHits).
 		Int("infoCacheMisses", stats.InfoCacheMisses).
+		Dur("getLatestDuration", getLatestDuration).
 		Dur("fetchDuration", stats.FetchDuration).
+		Dur("convertDuration", convertDuration).
+		Dur("esIndexDuration", esIndexDuration).
 		Dur("duration", time.Since(start)).
 		Msg("bridge reindexed document")
 
