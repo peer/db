@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
+	z "gitlab.com/tozd/go/zerolog"
 
 	internalBase "gitlab.com/peerdb/peerdb/internal/base"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
@@ -18,7 +19,10 @@ import (
 //
 // It can be called multiple times. In that case it will not initialize again if
 // the site has already been initialized.
-func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elasticsearch.TypedClient, shards int) errors.E {
+func (s *Site) init(
+	ctx context.Context, logger zerolog.Logger, withContext z.WithContextFunc,
+	dbpool *pgxpool.Pool, esClient *elasticsearch.TypedClient, shards int,
+) errors.E {
 	if s.initialized {
 		return nil
 	}
@@ -29,7 +33,7 @@ func (s *Site) init(ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.
 	ctx = WithFallbackDBContext(ctx, s.Schema, "init")
 	ctx = logger.WithContext(ctx)
 
-	b, riverClient, errE := internalBase.InitComponents(ctx, logger, dbpool, esClient, s.Schema, s.Index, shards, s.LanguagePriority)
+	b, riverClient, errE := internalBase.InitComponents(ctx, logger, withContext, dbpool, esClient, s.Schema, s.Index, shards, s.LanguagePriority)
 	if errE != nil {
 		return errE
 	}
@@ -117,7 +121,7 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 	for i := range globals.Sites {
 		site := &globals.Sites[i]
 
-		errE := site.init(ctx, globals.Logger, dbpool, esClient, globals.Elastic.Shards)
+		errE := site.init(ctx, globals.Logger, globals.WithContext, dbpool, esClient, globals.Elastic.Shards)
 		if errE != nil {
 			return onShutdownF, errE
 		}

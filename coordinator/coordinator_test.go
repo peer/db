@@ -146,7 +146,7 @@ func initDatabase[Data, Metadata any](
 
 	listener := internalStore.NewListener(dbpool)
 
-	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, dbpool, schema)
+	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, nil, dbpool, schema)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c := &coordinator.Coordinator[Data, Metadata, Metadata, Metadata, Metadata, Metadata]{
@@ -536,7 +536,7 @@ func TestNotifyRecovery(t *testing.T) {
 
 	listener := internalStore.NewListener(dbpool)
 
-	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, dbpool, schema)
+	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, nil, dbpool, schema)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c := &coordinator.Coordinator[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]{

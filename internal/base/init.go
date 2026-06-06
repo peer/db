@@ -10,6 +10,7 @@ import (
 	"github.com/riverqueue/river"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
+	z "gitlab.com/tozd/go/zerolog"
 
 	"gitlab.com/peerdb/peerdb/base"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
@@ -18,8 +19,8 @@ import (
 
 // InitComponents initializes Base components.
 func InitComponents(
-	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, esClient *elasticsearch.TypedClient,
-	schema, index string, shards int, languagePriority map[string][]string,
+	ctx context.Context, logger zerolog.Logger, withContext z.WithContextFunc, dbpool *pgxpool.Pool,
+	esClient *elasticsearch.TypedClient, schema, index string, shards int, languagePriority map[string][]string,
 ) (*base.B, *river.Client[pgx.Tx], errors.E) {
 	errE := internalSearch.EnsureIndex(ctx, esClient, index, shards, languagePriority)
 	if errE != nil {
@@ -35,7 +36,7 @@ func InitComponents(
 
 	listener := internalStore.NewListener(dbpool)
 
-	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, dbpool, schema)
+	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, withContext, dbpool, schema)
 	if errE != nil {
 		return nil, nil, errE
 	}

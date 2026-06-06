@@ -17,6 +17,7 @@ import (
 	slogzerolog "github.com/samber/slog-zerolog/v2"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
+	z "gitlab.com/tozd/go/zerolog"
 )
 
 const jobTimeout = 15 * time.Minute
@@ -134,9 +135,71 @@ func (r riverErrorHandler) HandlePanic(ctx context.Context, job *rivertype.JobRo
 	return nil
 }
 
+// jobLoggingMiddleware wraps each job's work in a per-job context logger so that the job's debug logs
+// are buffered and only flushed when the job fails or panics, the same way requests are logged. It is
+// a no-op when WithContext is nil.
+type jobLoggingMiddleware struct {
+	river.MiddlewareDefaults
+
+	WithContext z.WithContextFunc
+}
+
+// Work implements rivertype.WorkerMiddleware.
+func (m *jobLoggingMiddleware) Work(ctx context.Context, _ *rivertype.JobRow, doInner func(context.Context) error) error {
+	if m.WithContext == nil {
+		return doInner(ctx)
+	}
+
+	ctx, closeCtx, trigger := m.WithContext(ctx)
+	// closeCtx is deferred first so it runs last (after any flush below), discarding the buffer when
+	// the job did not fail.
+	defer closeCtx()
+
+	// A worker panic unwinds through this middleware (River recovers it above us), so flush the
+	// buffered debug while it is still unwinding, before closeCtx discards it.
+	panicking := true
+	defer func() {
+		if panicking {
+			// We have to call trigger ourselves because HandlePanic logging to error level
+			// is called outside of current's ctx context logger and does not trigger it.
+			trigger()
+		}
+	}()
+
+	err := doInner(ctx)
+	panicking = false
+
+	if jobFailed(err) {
+		// We have to call trigger ourselves because HandleError logging to error level
+		// is called outside of current's ctx context logger and does not trigger it.
+		trigger()
+	}
+	return err
+}
+
+// jobFailed reports whether err is a genuine job failure whose buffered debug should be flushed. It
+// excludes River's control sentinels: a snooze is normal retry-later flow, and a deliberate cancel
+// with no wrapped error (river.JobCancel(nil)) is not a failure. A cancel that wraps an error
+// (river.JobCancel(err)) is treated as a failure so its debug is kept.
+func jobFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, &rivertype.JobSnoozeError{}) {
+		return false
+	}
+	if cancel, ok := errors.AsType[*rivertype.JobCancelError](err); ok {
+		return cancel.Unwrap() != nil
+	}
+	return true
+}
+
 // NewRiver creates a new River client and workers and initializes the database for it.
+//
+// withContext, when non-nil, establishes a per-job context logger so that a
+// job's debug logs are buffered and only emitted when the job fails or panics.
 func NewRiver(
-	ctx context.Context, logger zerolog.Logger, dbpool *pgxpool.Pool, schema string,
+	ctx context.Context, logger zerolog.Logger, withContext z.WithContextFunc, dbpool *pgxpool.Pool, schema string,
 ) (*river.Client[pgx.Tx], *river.Workers, errors.E) {
 	l := slog.New(slogzerolog.Option{
 		Level:           slogzerolog.ZeroLogLeveler{Logger: &logger},
@@ -153,6 +216,9 @@ func NewRiver(
 	workers := river.NewWorkers()
 	riverClient, err := river.NewClient(driver, &river.Config{ //nolint:exhaustruct
 		Workers: workers,
+		Middleware: []rivertype.Middleware{
+			&jobLoggingMiddleware{MiddlewareDefaults: river.MiddlewareDefaults{}, WithContext: withContext},
+		},
 		Queues: map[string]river.QueueConfig{
 			river.QueueDefault: {
 				MaxWorkers:        runtime.GOMAXPROCS(0),

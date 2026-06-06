@@ -135,7 +135,7 @@ func setupBridge(t *testing.T) (context.Context, *bridgeEnv) {
 
 	listener := internalStore.NewListener(dbpool)
 
-	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, dbpool, schema)
+	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, nil, dbpool, schema)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	s := &bridgeStore{
