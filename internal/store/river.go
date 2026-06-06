@@ -189,7 +189,16 @@ func jobFailed(err error) bool {
 		return false
 	}
 	if cancel, ok := errors.AsType[*rivertype.JobCancelError](err); ok {
-		return cancel.Unwrap() != nil
+		e := cancel.Unwrap()
+		if e == nil {
+			return false
+		} else if errors.Is(e, context.Canceled) {
+			// We do mark job as failed on context.DeadlineExceeded, but not on context.Canceled.
+			// The former might mean that the job took too long too run and was killed and it might
+			// be useful to have more information what inside it took too long.
+			return false
+		}
+		return true
 	}
 	return true
 }
