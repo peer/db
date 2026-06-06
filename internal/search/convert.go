@@ -23,9 +23,23 @@ import (
 	"gitlab.com/peerdb/peerdb/store"
 )
 
-// TODO: Handle the case when ancestor's hierarchy changes.
+// TODO: Reindex when ancestor's hierarchy changes.
 //       Currently, the indexed document is refreshed when the source document is reindexed
 //       (or on a full reindex), but not when an intermediate ancestor's hierarchy changes.
+//       We invalidate cache but we do not reindex.
+
+// TODO: Reindex when any display label changes on which the document's display label depends.
+//       We invalidate cache but we do not reindex.
+
+// TODO: Reindex referencing documents when a referenced document's display changes.
+//       A document embeds a referenced (and inverse-referenced) document's display as toDisplay in
+//       its search document, but the bridge only reindexes on reference structure changes, not on a
+//       referenced document's display change. The cache is correct on reindex; the reindex is not
+//       triggered.
+
+// TODO: Handle the case when schema structure changes.
+//       The Converter precomputes schema structure once at startup. So if a property, class, or
+//       language document changes at runtime, the converter keeps using the stale preprocessed structure.
 
 // inlineHTMLTags is the set of HTML tag names that do NOT produce a visible
 // line/block break in rendered text. Text fragments separated only by these
