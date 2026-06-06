@@ -1,6 +1,7 @@
 package store_test
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"strings"
@@ -60,6 +61,24 @@ func TestInitPostgres(t *testing.T) {
 	err := dbpool.QueryRow(ctx, "SELECT 1").Scan(&result)
 	require.NoError(t, err)
 	assert.Equal(t, 1, result)
+}
+
+func TestPostgresNoticeUsesContextLogger(t *testing.T) {
+	t.Parallel()
+
+	ctx, dbpool := initTestPool(t)
+
+	// A connection acquired with this context carries reqLogger, which PrepareConn stashes on the
+	// connection. A NOTICE raised while the connection is checked out must be logged through that
+	// context logger (reqBuf), not the pool's main logger.
+	var reqBuf bytes.Buffer
+	reqLogger := zerolog.New(&reqBuf).Level(zerolog.TraceLevel)
+	reqCtx := reqLogger.WithContext(ctx)
+
+	_, err := dbpool.Exec(reqCtx, `DO $$ BEGIN RAISE NOTICE 'pg-notice-marker'; END $$;`)
+	require.NoError(t, err)
+
+	assert.Contains(t, reqBuf.String(), "pg-notice-marker", "PostgreSQL notice should be logged via the request context logger")
 }
 
 func TestInitPostgresInvalidURI(t *testing.T) {

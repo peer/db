@@ -103,19 +103,26 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 	}
 
 	dbconfig.ConnConfig.OnNotice = func(conn *pgconn.PgConn, notice *pgconn.Notice) {
-		l := logger.
+		// PrepareConn stashes the acquiring context's logger on the connection, so a notice fired while
+		// the connection is checked out to a request or background job is logged through that context
+		// logger and buffered with its other logs. We fall back to the main logger otherwise.
+		noticeLogger := logger
+		if l, ok := conn.CustomData()["logger"].(*zerolog.Logger); ok && l != nil {
+			noticeLogger = *l
+		}
+		e := noticeLogger.
 			WithLevel(noticeSeverityToLogLevel[notice.SeverityUnlocalized]).
 			Fields(ErrorDetails((*pgconn.PgError)(notice))).
 			Bool("postgres", true)
 		schema, ok := conn.CustomData()["schema"].(string)
 		if ok && schema != "" {
-			l = l.Str("schema", schema)
+			e = e.Str("schema", schema)
 		}
 		request, ok := conn.CustomData()["request"].(string)
 		if ok && request != "" {
-			l = l.Str("request", request)
+			e = e.Str("request", request)
 		}
-		l.Send()
+		e.Send()
 	}
 	dbconfig.AfterConnect = func(_ context.Context, c *pgx.Conn) error {
 		c.TypeMap().RegisterType(&pgtype.Type{
@@ -251,12 +258,16 @@ func InitPostgres(ctx context.Context, databaseURI string, logger zerolog.Logger
 
 		conn.PgConn().CustomData()["schema"] = schema
 		conn.PgConn().CustomData()["request"] = requestID
+		// Stash the acquiring context's logger so OnNotice can route notices through the request's or
+		// job's context logger while the connection is checked out, falling back to the main logger.
+		conn.PgConn().CustomData()["logger"] = zerolog.Ctx(ctx)
 
 		return true, nil
 	}
 	dbconfig.AfterRelease = func(conn *pgx.Conn) bool {
 		delete(conn.PgConn().CustomData(), "schema")
 		delete(conn.PgConn().CustomData(), "request")
+		delete(conn.PgConn().CustomData(), "logger")
 
 		_, err := conn.Exec(ctx, `RESET application_name`)
 		if err != nil {
