@@ -1924,12 +1924,13 @@ func (c *Converter) FromDocument(
 		ctx:       ctx,
 		converter: c,
 		result: &Document{
-			ID:      doc.ID,
-			Display: nil,
-			Text:    nil,
-			Time:    nil,
-			Counts:  Counts{References: nil, Claims: nil, Score: nil},
-			Claims:  ClaimTypes{},
+			ID:          doc.ID,
+			Display:     nil,
+			DisplaySort: nil,
+			Text:        nil,
+			Time:        nil,
+			Counts:      Counts{References: nil, Claims: nil, Score: nil},
+			Claims:      ClaimTypes{},
 		},
 		docID: doc.ID,
 	}
@@ -1945,6 +1946,10 @@ func (c *Converter) FromDocument(
 	// so the document is also findable by its categories/ancestors.
 	_, docDisplayPaths := info.CollectHierarchyPaths()
 	v.addDisplay(info.Display.Display, docDisplayPaths)
+
+	// Index only the primary rendered display label per language (no ancestor labels) as a
+	// single-valued keyword, so results can be sorted by the label shown to the user.
+	v.result.DisplaySort = info.Display.Display
 
 	// Index the document's own ID into the "und" bucket so a user typing the ID
 	// (or a URL containing it) can locate the document via text search. The

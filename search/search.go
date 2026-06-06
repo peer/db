@@ -536,10 +536,11 @@ func (s *Session) GetFilterByID(id identifier.Identifier) (*Filter, errors.E) {
 // When Reverse is set, the session is scoped to documents which have a ref claim
 // (for any property) whose "to" target equals Reverse.
 type SessionData struct {
-	View    ViewType               `json:"view,omitempty"`
-	Query   string                 `json:"query,omitempty"`
-	Filters []Filter               `json:"filters,omitempty"`
-	Reverse *identifier.Identifier `json:"reverse,omitempty"`
+	View     ViewType               `json:"view,omitempty"`
+	Query    string                 `json:"query,omitempty"`
+	Language string                 `json:"language,omitempty"`
+	Filters  []Filter               `json:"filters,omitempty"`
+	Reverse  *identifier.Identifier `json:"reverse,omitempty"`
 }
 
 // Validate validates the session data .

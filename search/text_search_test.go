@@ -35,20 +35,22 @@ func TestTextSearchUndWildcardCaseAndDiacritic(t *testing.T) {
 
 	// doc1 has the literal diacritic form; doc2 has the folded form.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      doc1ID,
-		Display: nil,
-		Text:    map[string][]string{"und": {"Žagar Špela"}},
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:  internalSearch.ClaimTypes{},
+		DisplaySort: nil,
+		ID:          doc1ID,
+		Display:     nil,
+		Text:        map[string][]string{"und": {"Žagar Špela"}},
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:      internalSearch.ClaimTypes{},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      doc2ID,
-		Display: nil,
-		Text:    map[string][]string{"und": {"Zagar Ivan"}},
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:  internalSearch.ClaimTypes{},
+		DisplaySort: nil,
+		ID:          doc2ID,
+		Display:     nil,
+		Text:        map[string][]string{"und": {"Zagar Ivan"}},
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:      internalSearch.ClaimTypes{},
 	})
 	refreshIndex(t, ctx, esClient, index)
 
@@ -60,10 +62,11 @@ func TestTextSearchUndWildcardCaseAndDiacritic(t *testing.T) {
 		t.Run(q, func(t *testing.T) {
 			t.Parallel()
 			session := createSession(t, ctx, search.SessionData{
-				View:    "",
-				Query:   q,
-				Filters: nil,
-				Reverse: nil,
+				Language: "",
+				View:     "",
+				Query:    q,
+				Filters:  nil,
+				Reverse:  nil,
 			})
 			results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 			require.NoError(t, errE, "% -+#.1v", errE)
@@ -84,20 +87,22 @@ func TestTextSearchUndQuotedExactVsFolded(t *testing.T) {
 	doc2ID := identifier.From("doc2") // folded "Zagar".
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      doc1ID,
-		Display: nil,
-		Text:    map[string][]string{"und": {"Žagar"}},
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:  internalSearch.ClaimTypes{},
+		DisplaySort: nil,
+		ID:          doc1ID,
+		Display:     nil,
+		Text:        map[string][]string{"und": {"Žagar"}},
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:      internalSearch.ClaimTypes{},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      doc2ID,
-		Display: nil,
-		Text:    map[string][]string{"und": {"Zagar"}},
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:  internalSearch.ClaimTypes{},
+		DisplaySort: nil,
+		ID:          doc2ID,
+		Display:     nil,
+		Text:        map[string][]string{"und": {"Zagar"}},
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:      internalSearch.ClaimTypes{},
 	})
 	refreshIndex(t, ctx, esClient, index)
 
@@ -109,10 +114,11 @@ func TestTextSearchUndQuotedExactVsFolded(t *testing.T) {
 	// because it matches in two clauses (exact and folded) while doc2 only
 	// matches the folded one.
 	quotedSession := createSession(t, ctx, search.SessionData{
-		View:    "",
-		Query:   `"Žagar"`,
-		Filters: nil,
-		Reverse: nil,
+		Language: "",
+		View:     "",
+		Query:    `"Žagar"`,
+		Filters:  nil,
+		Reverse:  nil,
 	})
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &quotedSession.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -127,10 +133,11 @@ func TestTextSearchUndQuotedExactVsFolded(t *testing.T) {
 	// Quoted "Zagar" should also match both, with doc2 ranked first (it's the
 	// literal exact match for "Zagar").
 	quotedFoldedSession := createSession(t, ctx, search.SessionData{
-		View:    "",
-		Query:   `"Zagar"`,
-		Filters: nil,
-		Reverse: nil,
+		Language: "",
+		View:     "",
+		Query:    `"Zagar"`,
+		Filters:  nil,
+		Reverse:  nil,
 	})
 	results, _, errE = search.ResultsGet(ctx, getSearchService, &quotedFoldedSession.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -149,30 +156,33 @@ func TestTextSearchUndUnquotedFoldsBoth(t *testing.T) {
 	doc2ID := identifier.From("doc2")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      doc1ID,
-		Display: nil,
-		Text:    map[string][]string{"und": {"Žagar"}},
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:  internalSearch.ClaimTypes{},
+		DisplaySort: nil,
+		ID:          doc1ID,
+		Display:     nil,
+		Text:        map[string][]string{"und": {"Žagar"}},
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:      internalSearch.ClaimTypes{},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      doc2ID,
-		Display: nil,
-		Text:    map[string][]string{"und": {"Zagar"}},
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:  internalSearch.ClaimTypes{},
+		DisplaySort: nil,
+		ID:          doc2ID,
+		Display:     nil,
+		Text:        map[string][]string{"und": {"Zagar"}},
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:      internalSearch.ClaimTypes{},
 	})
 	refreshIndex(t, ctx, esClient, index)
 
 	// Unquoted "žagar" is folded to "zagar" by und_text on both query and
 	// index sides. Both docs match (their indexed tokens also fold to "zagar").
 	session := createSession(t, ctx, search.SessionData{
-		View:    "",
-		Query:   "žagar",
-		Filters: nil,
-		Reverse: nil,
+		Language: "",
+		View:     "",
+		Query:    "žagar",
+		Filters:  nil,
+		Reverse:  nil,
 	})
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -195,34 +205,37 @@ func TestTextSearchStemmedPhraseEnglish(t *testing.T) {
 	// (run / shoe), so phrase positions line up after stemming.
 	doc1ID := identifier.From("doc1")
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      doc1ID,
-		Display: nil,
-		Text:    map[string][]string{"en": {"running shoes"}},
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:  internalSearch.ClaimTypes{},
+		DisplaySort: nil,
+		ID:          doc1ID,
+		Display:     nil,
+		Text:        map[string][]string{"en": {"running shoes"}},
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:      internalSearch.ClaimTypes{},
 	})
 
 	// doc2 is a control: contains "running" but not "shoes". Should not match
 	// a quoted phrase that requires both terms adjacent.
 	doc2ID := identifier.From("doc2")
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      doc2ID,
-		Display: nil,
-		Text:    map[string][]string{"en": {"running fast"}},
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:  internalSearch.ClaimTypes{},
+		DisplaySort: nil,
+		ID:          doc2ID,
+		Display:     nil,
+		Text:        map[string][]string{"en": {"running fast"}},
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:      internalSearch.ClaimTypes{},
 	})
 	refreshIndex(t, ctx, esClient, index)
 
 	// Quoted phrase, singular noun: should match doc1 via the stemmed-phrase
 	// clause (text.en, no quote_field_suffix, english_stemmer applied).
 	session := createSession(t, ctx, search.SessionData{
-		View:    "",
-		Query:   `"running shoe"`,
-		Filters: nil,
-		Reverse: nil,
+		Language: "",
+		View:     "",
+		Query:    `"running shoe"`,
+		Filters:  nil,
+		Reverse:  nil,
 	})
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -251,28 +264,31 @@ func TestTextSearchExactFieldRejectsFolded(t *testing.T) {
 	doc3ID := identifier.From("doc3")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      doc1ID,
-		Display: nil,
-		Text:    map[string][]string{"und": {"Müller"}}, // German umlaut.
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:  internalSearch.ClaimTypes{},
+		DisplaySort: nil,
+		ID:          doc1ID,
+		Display:     nil,
+		Text:        map[string][]string{"und": {"Müller"}}, // German umlaut.
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:      internalSearch.ClaimTypes{},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      doc2ID,
-		Display: nil,
-		Text:    map[string][]string{"und": {"Muller"}}, // ASCII.
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:  internalSearch.ClaimTypes{},
+		DisplaySort: nil,
+		ID:          doc2ID,
+		Display:     nil,
+		Text:        map[string][]string{"und": {"Muller"}}, // ASCII.
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:      internalSearch.ClaimTypes{},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      doc3ID,
-		Display: nil,
-		Text:    map[string][]string{"und": {"Smith"}}, // unrelated.
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims:  internalSearch.ClaimTypes{},
+		DisplaySort: nil,
+		ID:          doc3ID,
+		Display:     nil,
+		Text:        map[string][]string{"und": {"Smith"}}, // unrelated.
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims:      internalSearch.ClaimTypes{},
 	})
 	refreshIndex(t, ctx, esClient, index)
 
@@ -280,10 +296,11 @@ func TestTextSearchExactFieldRejectsFolded(t *testing.T) {
 	// other via folded). Smith doesn't match. Doc1 with literal Müller ranks
 	// first because it matches in two clauses.
 	session := createSession(t, ctx, search.SessionData{
-		View:    "",
-		Query:   `"Müller"`,
-		Filters: nil,
-		Reverse: nil,
+		Language: "",
+		View:     "",
+		Query:    `"Müller"`,
+		Filters:  nil,
+		Reverse:  nil,
 	})
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)

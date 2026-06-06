@@ -24,11 +24,12 @@ func TestRefFilterGetIntegration(t *testing.T) {
 	target2 := identifier.From("target2")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("refDoc1"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("refDoc1"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -49,11 +50,12 @@ func TestRefFilterGetIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("refDoc2"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("refDoc2"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -76,11 +78,12 @@ func TestRefFilterGetIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("refDoc3"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("refDoc3"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -106,8 +109,9 @@ func TestRefFilterGetIntegration(t *testing.T) {
 
 	// Create a session with a ref filter so we can look up the filter by ID.
 	session := createSession(t, ctx, search.SessionData{
-		View:  "",
-		Query: "",
+		Language: "",
+		View:     "",
+		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{refProp},
 			Ref: &search.RefFilter{
@@ -141,11 +145,12 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 	target2 := identifier.From("target2")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("refDoc1"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("refDoc1"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -168,11 +173,12 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("refDoc2"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("refDoc2"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -223,11 +229,12 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 
 	// Doc with the ref prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("refDoc1"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("refDoc1"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -251,11 +258,12 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 	})
 	// Doc without the ref prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("refDoc2"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("refDoc2"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -275,11 +283,12 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 	})
 	// Another doc without the ref prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("refDoc3"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("refDoc3"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -325,11 +334,12 @@ func TestRefFilterGetNoMissingIntegration(t *testing.T) {
 
 	// All docs have the ref prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("refDoc1"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("refDoc1"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -401,11 +411,12 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 	// One source doc with three reference claims, one per target in the chain, as
 	// produced at index time by ancestor expansion in convertReference.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("dogDoc"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("dogDoc"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -479,11 +490,12 @@ func TestDescendantValuesIntegration(t *testing.T) {
 	// ancestor chain, as produced at index time by ancestor expansion.
 	indexHierDoc := func(id string, claims ...internalSearch.ReferenceClaim) {
 		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID:      identifier.From(id),
-			Display: nil,
-			Text:    nil,
-			Time:    nil,
-			Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+			DisplaySort: nil,
+			ID:          identifier.From(id),
+			Display:     nil,
+			Text:        nil,
+			Time:        nil,
+			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 			Claims: internalSearch.ClaimTypes{
 				Identifier: nil,
 				String:     nil,
@@ -583,11 +595,12 @@ func TestRefFilterDirectIntegration(t *testing.T) {
 
 	indexRefDoc := func(id identifier.Identifier, claims internalSearch.ReferenceClaims) {
 		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID:      id,
-			Display: nil,
-			Text:    nil,
-			Time:    nil,
-			Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+			DisplaySort: nil,
+			ID:          id,
+			Display:     nil,
+			Text:        nil,
+			Time:        nil,
+			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 			Claims: internalSearch.ClaimTypes{
 				Identifier: nil,
 				String:     nil,
@@ -691,11 +704,12 @@ func TestRefFilterGetDiamondIntegration(t *testing.T) {
 	leafPathB := hierProp.String() + ":" + root.String() + "/" + parentB.String() + "/" + leaf.String()
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("leafDoc"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("leafDoc"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -769,11 +783,12 @@ func TestRefFilterGetMultipleInheritanceIntegration(t *testing.T) {
 	// convertReference does at index time. Every bucket therefore has the same single-
 	// document count, so ordering is decided entirely by hierarchy depth.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("leafDoc"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("leafDoc"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -867,11 +882,12 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 
 	// Three sub-reference claims on the same doc, one per target in the chain.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("subDog"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("subDog"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,

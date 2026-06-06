@@ -169,7 +169,7 @@ func (s *Site) validateDefaultLanguage() errors.E {
 		if len(s.LanguagePriority) < 1 {
 			return nil
 		}
-		return errors.New("default language is required when more than one language is enabled")
+		return errors.New("default language is required when language priority is set")
 	}
 	if _, ok := s.LanguagePriority[s.DefaultLanguage]; !ok {
 		errE := errors.New("default language is not enabled")

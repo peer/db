@@ -16,17 +16,22 @@ import (
 	"gitlab.com/peerdb/peerdb/document"
 )
 
-// SupportedLanguages is the set of supported languages in ElasticSearch mapping
-// and is the default when a site does not specify its own LanguagePriority.
+// SupportedLanguages is the set of languages for which the ElasticSearch mapping has analyzers.
 // Includes the undetermined language ("und") for content without a specific language.
 //
 // Sites that set LanguagePriority enable only the languages listed in its keys (plus "und").
+// A site that sets no LanguagePriority enables only DefaultEnabledLanguage (plus "und").
 var SupportedLanguages = map[string]bool{ //nolint:gochecknoglobals
 	"en":  true,
 	"sl":  true,
 	"pt":  true,
 	"und": true,
 }
+
+// DefaultEnabledLanguage is the only language enabled when a site configures no LanguagePriority
+// ("und" is its fallback). The frontend mirrors this constant so the empty-priority default is
+// identical on both sides.
+const DefaultEnabledLanguage = "en"
 
 // codeToLingua maps our language codes to lingua languages for language detection. Only
 // languages lingua supports appear here; "und" has no entry. Used to build the detector
@@ -41,21 +46,13 @@ var codeToLingua = map[string]lingua.Language{ //nolint:gochecknoglobals
 // fallback chains to use for display label resolution, given its LanguagePriority configuration.
 //
 // When priority is non-empty, the enabled set is its keys plus "und", and the returned fallback
-// chains are priority verbatim. When priority is nil/empty, the default SupportedLanguages set is
-// enabled and each non-"und" language falls back to "und".
+// chains are priority verbatim. When priority is nil/empty, only DefaultEnabledLanguage is enabled
+// (plus "und"), with "und" as its fallback.
 func enabledLanguagesFromLanguagePriority(priority map[string][]string) (map[string]bool, map[string][]string) {
 	if len(priority) == 0 {
-		out := make(map[string]bool, len(SupportedLanguages))
-		maps.Copy(out, SupportedLanguages)
-		fullPriority := make(map[string][]string, len(SupportedLanguages))
-		for lang := range SupportedLanguages {
-			if lang != document.UndeterminedLanguage {
-				fullPriority[lang] = []string{document.UndeterminedLanguage}
-			} else {
-				fullPriority[lang] = nil
-			}
-		}
-		return out, fullPriority
+		enabled := map[string]bool{DefaultEnabledLanguage: true, document.UndeterminedLanguage: true}
+		fallback := map[string][]string{DefaultEnabledLanguage: {document.UndeterminedLanguage}}
+		return enabled, fallback
 	}
 	out := make(map[string]bool, len(priority)+1)
 	for lang := range priority {
@@ -130,16 +127,15 @@ const idPath = `{
 // walk. It is added to the text and display-label fields that prefix search clauses target.
 const indexPrefixes = `"index_prefixes":{"min_chars":1,"max_chars":8}`
 
-// We use display labels for two purposes: to search over them and to sort by them. They might
-// contain text from different languages (they might be rendered from a template which pulled data
-// from different languages), even if they are stored under a particular target language, so we use
-// the und_text analyzer for all languages here and not language-specific analyzers.
+// Display labels might contain text from different languages (they may be rendered from a template
+// that pulled data from different languages), even when stored under a particular target language,
+// so we use the und_text analyzer for all languages here and not language-specific analyzers.
 //
-// displayLabelProperty is the per-language mapping shared by the top-level "display" field and the
-// per-claim propDisplay/toDisplay fields: the und_text main field carries index_prefixes for
-// trailing-prefix (analyze_wildcard) queries, an "exact" sub-field (exact_text) for diacritic-preserved
-// matching, and a "keyword" sub-field (display_label_normalizer) which is better for sorting.
-const displayLabelProperty = `{"type":"text","analyzer":"und_text",` + indexPrefixes + `,"fields":{"exact":{"type":"text","analyzer":"exact_text"},"keyword":{"type":"keyword","normalizer":"display_label_normalizer"}}}`
+// displayLabelProperty is the per-language mapping for a claim's propDisplay/toDisplay fields: the
+// und_text main field carries index_prefixes for trailing-prefix (analyze_wildcard) queries, an
+// "exact" sub-field (exact_text) for diacritic-preserved matching, and a "keyword" sub-field
+// (display_label_normalizer) for sorting.
+const displayLabelProperty = `{"type":"text","analyzer":"und_text",` + indexPrefixes + `,"fields":{"exact":{"type":"text","analyzer":"exact_text"},"keyword":{"type":"keyword","normalizer":"display_label_normalizer"}}}` //nolint:lll
 
 // propDisplay builds the per-language display-label mapping for a claim's propDisplay and toDisplay fields.
 func propDisplay(langs []string) string {
@@ -148,10 +144,22 @@ func propDisplay(langs []string) string {
 	})
 }
 
-// displayProperties builds the top-level "display" field as a per-language display-label mapping.
+// displayProperties builds the top-level "display" field: a per-language und_text text field with
+// index_prefixes and an "exact" sub-field, but no "keyword" sub-field. "display" is multi-valued (it
+// also holds ancestor hierarchy-path labels for recall), so sorting by the display label uses the
+// single-valued displaySort field instead.
 func displayProperties(langs []string) string {
 	return langProperties(langs, func(string) string {
-		return displayLabelProperty
+		return `{"type":"text","analyzer":"und_text",` + indexPrefixes + `,"fields":{"exact":{"type":"text","analyzer":"exact_text"}}}`
+	})
+}
+
+// displaySortProperties builds the top-level "displaySort" field: per enabled language a single
+// keyword (display_label_normalizer) holding only the document's primary resolved display label.
+// It is single-valued (no ancestor path labels), so results sort by the label shown to the user.
+func displaySortProperties(langs []string) string {
+	return langProperties(langs, func(string) string {
+		return `{"type":"keyword","normalizer":"display_label_normalizer"}`
 	})
 }
 
@@ -687,12 +695,41 @@ func EnabledLanguages(languagePriority map[string][]string) []string {
 	return slices.Sorted(maps.Keys(enabled))
 }
 
+// ResolveLanguage resolves a session's language against a site's LanguagePriority. An empty language
+// becomes the site default; a non-empty language must be an enabled language (a LanguagePriority key,
+// so "und" is never accepted). It returns the resolved language, or an error when the language is not
+// enabled (callers wrap it with their own validation error).
+//
+// When languagePriority is empty the site enables only DefaultEnabledLanguage (matching
+// enabledLanguagesFromLanguagePriority), so an empty language resolves to DefaultEnabledLanguage and
+// only DefaultEnabledLanguage is accepted.
+func ResolveLanguage(language string, languagePriority map[string][]string, defaultLanguage string) (string, errors.E) {
+	if len(languagePriority) == 0 {
+		if language == "" || language == DefaultEnabledLanguage {
+			return DefaultEnabledLanguage, nil
+		}
+		errE := errors.New("language is not enabled")
+		errors.Details(errE)["language"] = language
+		return "", errE
+	}
+	if language == "" {
+		return defaultLanguage, nil
+	}
+	if _, ok := languagePriority[language]; !ok {
+		errE := errors.New("language is not enabled")
+		errors.Details(errE)["language"] = language
+		return "", errE
+	}
+	return language, nil
+}
+
 // mappingData is the data passed to the mapping template. Display and Text hold the
 // prebuilt per-language top-level property blocks; ClaimTypes drives the claims block.
 type mappingData struct {
-	Display    string
-	Text       string
-	ClaimTypes []claimType
+	Display     string
+	DisplaySort string
+	Text        string
+	ClaimTypes  []claimType
 }
 
 // Mapping generates PeerDB ElasticSearch mapping for the languages a site enables, derived
@@ -707,9 +744,10 @@ func Mapping(languagePriority map[string][]string) ([]byte, errors.E) {
 
 	var b bytes.Buffer
 	err = t.Execute(&b, mappingData{
-		Display:    displayProperties(langs),
-		Text:       textProperties(langs),
-		ClaimTypes: buildClaimTypes(langs),
+		Display:     displayProperties(langs),
+		DisplaySort: displaySortProperties(langs),
+		Text:        textProperties(langs),
+		ClaimTypes:  buildClaimTypes(langs),
 	})
 	if err != nil {
 		return nil, errors.WithStack(err)

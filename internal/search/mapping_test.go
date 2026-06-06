@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/x"
 
+	"gitlab.com/peerdb/peerdb/document"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 )
 
@@ -30,7 +31,16 @@ func TestMapping(t *testing.T) {
 func TestMappingContainsClaimTypes(t *testing.T) {
 	t.Parallel()
 
-	data, errE := internalSearch.Mapping(nil)
+	// Build an all-language priority from SupportedLanguages (minus the undetermined language) so the
+	// per-language assertions below cover every supported language; an empty priority enables only the
+	// default language.
+	priority := map[string][]string{}
+	for lang := range internalSearch.SupportedLanguages {
+		if lang != document.UndeterminedLanguage {
+			priority[lang] = []string{document.UndeterminedLanguage}
+		}
+	}
+	data, errE := internalSearch.Mapping(priority)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	var parsed map[string]any
@@ -102,7 +112,7 @@ func TestMappingContainsClaimTypes(t *testing.T) {
 		fields, fieldsOK := entry["fields"].(map[string]any)
 		require.True(t, fieldsOK, "missing text.%s.fields multi-field block", lang)
 		assert.Contains(t, fields, "exact", "missing text.%s.exact sub-field", lang)
-		if lang == "und" {
+		if lang == document.UndeterminedLanguage {
 			assert.NotContains(t, fields, "unstemmed", "text.und should not have .unstemmed (would be identical to main analyzer)")
 			continue
 		}
@@ -336,4 +346,41 @@ func TestMappingSourceDisabled(t *testing.T) {
 	source, ok := mappings["_source"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, false, source["enabled"])
+}
+
+func TestResolveLanguage(t *testing.T) {
+	t.Parallel()
+
+	priority := map[string][]string{"en": {"sl", "und"}, "sl": {"en", "und"}}
+
+	for _, tc := range []struct {
+		name      string
+		language  string
+		priority  map[string][]string
+		def       string
+		want      string
+		wantError bool
+	}{
+		{"empty priority, empty language defaults to en", "", nil, "", internalSearch.DefaultEnabledLanguage, false},
+		{"empty priority, en accepted", "en", nil, "", internalSearch.DefaultEnabledLanguage, false},
+		{"empty priority, sl rejected", "sl", nil, "", "", true},
+		{"empty priority, und rejected", "und", nil, "", "", true},
+		{"priority, empty language uses default", "", priority, "sl", "sl", false},
+		{"priority, en accepted", "en", priority, "sl", "en", false},
+		{"priority, sl accepted", "sl", priority, "sl", "sl", false},
+		{"priority, pt rejected (not a key)", "pt", priority, "sl", "", true},
+		{"priority, und rejected", "und", priority, "sl", "", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, errE := internalSearch.ResolveLanguage(tc.language, tc.priority, tc.def)
+			if tc.wantError {
+				require.Error(t, errE)
+				return
+			}
+			require.NoError(t, errE, "% -+#.1v", errE)
+			assert.Equal(t, tc.want, got)
+		})
+	}
 }

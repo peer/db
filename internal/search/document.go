@@ -24,6 +24,9 @@ import (
 // categories/ancestors. It is indexed with the und_text analyzer per language
 // because the values might contain mixed-language content.
 //
+// DisplaySort holds, per supported language, only the document's primary rendered display label
+// (no ancestor labels), as a single keyword used to sort results by the label shown to the user.
+//
 // Time holds the document's earliest time: the lowest time value across all of
 // its time claims (top-level and sub-claims). For a point timestamp that is the
 // timestamp; for an interval it is the earliest bound.
@@ -33,6 +36,8 @@ type Document struct {
 	ID identifier.Identifier `json:"id"`
 
 	Display map[string][]string `json:"display,omitempty"`
+
+	DisplaySort map[string]string `json:"displaySort,omitempty"`
 
 	Text map[string][]string `json:"text,omitempty"`
 

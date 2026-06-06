@@ -225,6 +225,17 @@ func newTestConverterFull(
 		}
 		return nil, errors.New("document not found")
 	}
+	if priority == nil {
+		// A test that does not specify a priority exercises display rendering across all supported
+		// languages, so enable them all here. Production treats an empty priority as
+		// DefaultEnabledLanguage only.
+		priority = map[string][]string{}
+		for lang := range SupportedLanguages {
+			if lang != document.UndeterminedLanguage {
+				priority[lang] = []string{document.UndeterminedLanguage}
+			}
+		}
+	}
 	c, errE := NewConverter(properties, languages, classes, priority, getDocument)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	return c

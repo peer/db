@@ -9,7 +9,15 @@ const messages = {
   sl,
 }
 
-const enabledLanguages = Object.keys(siteContext.languagePriority ?? {})
+// DefaultEnabledLanguage mirrors the Go constant. When a site configures no languagePriority, only
+// this language is enabled (with "und" as its fallback). Keep the two in sync so the empty-priority
+// default is identical on the frontend and backend.
+export const DefaultEnabledLanguage = "en"
+
+// enabledLanguages is the set of UI languages the site enables: the languagePriority keys, or just
+// [DefaultEnabledLanguage] when the site configures no priority (matching the backend).
+const priorityLanguages = Object.keys(siteContext.languagePriority ?? {})
+export const enabledLanguages = priorityLanguages.length > 0 ? priorityLanguages : [DefaultEnabledLanguage]
 
 async function getInitialLocale(): Promise<string> {
   // Check cookie first.
@@ -45,7 +53,7 @@ async function getInitialLocale(): Promise<string> {
   }
 
   // Default.
-  return "en"
+  return DefaultEnabledLanguage
 }
 
 export const i18n = createI18n({

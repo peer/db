@@ -78,11 +78,12 @@ func indexAmountDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.T
 	t.Helper()
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From(id),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From(id),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -114,11 +115,12 @@ func indexScoreDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.Ty
 	t.Helper()
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      id,
-		Display: nil,
-		Text:    map[string][]string{"en": {text}},
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: score},
+		DisplaySort: nil,
+		ID:          id,
+		Display:     nil,
+		Text:        map[string][]string{"en": {text}},
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: score},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -157,11 +159,12 @@ func seedTimeFilterDocs(t *testing.T, ctx context.Context, esClient *elasticsear
 		{"timeDoc3", &t9000},
 	} {
 		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID:      identifier.From(tc.id),
-			Display: nil,
-			Text:    nil,
-			Time:    nil,
-			Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+			DisplaySort: nil,
+			ID:          identifier.From(tc.id),
+			Display:     nil,
+			Text:        nil,
+			Time:        nil,
+			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 			Claims: internalSearch.ClaimTypes{
 				Identifier: nil,
 				String:     nil,

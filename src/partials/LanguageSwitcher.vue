@@ -2,11 +2,11 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue"
 import { useI18n } from "vue-i18n"
 
-import siteContext from "@/context"
+import { enabledLanguages } from "@/i18n"
 
 const { locale } = useI18n({ useScope: "global" })
 
-const languages = computed(() => Object.keys(siteContext.languagePriority ?? {}))
+const languages = computed(() => enabledLanguages)
 const showDropdown = ref(false)
 
 async function selectLanguage(lang: string) {

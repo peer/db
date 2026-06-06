@@ -29,12 +29,13 @@ func TestFiltersGetIntegration(t *testing.T) {
 	t1000 := float64(1000)
 	t2000 := float64(2000)
 
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:dupl
-		ID:      identifier.From("filterDoc1"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		DisplaySort: nil, //nolint:dupl
+		ID:          identifier.From("filterDoc1"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -91,12 +92,13 @@ func TestFiltersGetIntegration(t *testing.T) {
 			SubHas:    nil,
 		},
 	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:dupl
-		ID:      identifier.From("filterDoc2"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		DisplaySort: nil, //nolint:dupl
+		ID:          identifier.From("filterDoc2"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -156,10 +158,11 @@ func TestFiltersGetIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
-		View:    "",
-		Query:   "",
-		Filters: nil,
-		Reverse: nil,
+		Language: "",
+		View:     "",
+		Query:    "",
+		Filters:  nil,
+		Reverse:  nil,
 	})
 
 	filterResults, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil)
@@ -206,11 +209,12 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 	refTarget := identifier.From("refTarget")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("queryDoc1"),
-		Display: nil,
-		Text:    map[string][]string{"en": {"searchable text"}},
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("queryDoc1"),
+		Display:     nil,
+		Text:        map[string][]string{"en": {"searchable text"}},
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -239,11 +243,12 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("queryDoc2"),
-		Display: nil,
-		Text:    map[string][]string{"en": {"other content"}},
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("queryDoc2"),
+		Display:     nil,
+		Text:        map[string][]string{"en": {"other content"}},
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -274,10 +279,11 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
-		View:    "",
-		Query:   "searchable",
-		Filters: nil,
-		Reverse: nil,
+		Language: "",
+		View:     "",
+		Query:    "searchable",
+		Filters:  nil,
+		Reverse:  nil,
 	})
 
 	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil)
@@ -301,11 +307,12 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 	ten := 10.0
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("noUnitDoc"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("noUnitDoc"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -341,10 +348,11 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
-		View:    "",
-		Query:   "",
-		Filters: nil,
-		Reverse: nil,
+		Language: "",
+		View:     "",
+		Query:    "",
+		Filters:  nil,
+		Reverse:  nil,
 	})
 
 	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil)

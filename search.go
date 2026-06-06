@@ -31,6 +31,20 @@ func enabledSearchLanguages(ctx context.Context) []string {
 	return internalSearch.EnabledLanguages(site.LanguagePriority)
 }
 
+// resolveSessionLanguage defaults an empty session language to the site's default language (or to the
+// global default when the site sets no LanguagePriority) and validates a set language against the
+// site's enabled languages, mutating sd.Language in place. The returned error wraps
+// search.ErrValidationFailed for an unsupported language.
+func resolveSessionLanguage(ctx context.Context, sd *search.SessionData) errors.E {
+	site := waf.MustGetSite[*Site](ctx)
+	resolved, errE := internalSearch.ResolveLanguage(sd.Language, site.LanguagePriority, site.DefaultLanguage)
+	if errE != nil {
+		return errors.WrapWith(errE, search.ErrValidationFailed)
+	}
+	sd.Language = resolved
+	return nil
+}
+
 // searchAccessFilter returns the site's optional per-caller search restriction
 // (from base.B.SearchQueryHook) for the request in ctx, or a nil query if the
 // site sets no hook. It is added as a filter clause to every search query so
@@ -786,6 +800,12 @@ func (s *Service) SearchJustResultsPostAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
+	errE = resolveSessionLanguage(ctx, &searchData)
+	if errE != nil {
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+
 	factor, errE := s.scoreFactor(ctx, req)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -857,7 +877,8 @@ type createSessionResponse struct {
 // createSessionRequest is the JSON body of SearchCreatePostAPI. Its optional query
 // field sets the initial full-text query of the new search session.
 type createSessionRequest struct {
-	Query string `json:"query,omitempty"`
+	Query    string `json:"query,omitempty"`
+	Language string `json:"language,omitempty"`
 }
 
 // SearchCreatePostAPI is a POST HTTP API request handler which creates a new search session.
@@ -880,16 +901,24 @@ func (s *Service) SearchCreatePostAPI(w http.ResponseWriter, req *http.Request, 
 	base := []string{site.Domain, "SEARCH", identifier.New().String()}
 	id := identifier.From(base...)
 
+	sessionData := search.SessionData{
+		View:     search.ViewFeed,
+		Query:    request.Query,
+		Language: request.Language,
+		Filters:  nil,
+		Reverse:  nil,
+	}
+	errE = resolveSessionLanguage(ctx, &sessionData)
+	if errE != nil {
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+
 	searchSession := &search.Session{
-		SessionData: search.SessionData{
-			View:    search.ViewFeed,
-			Query:   request.Query,
-			Filters: nil,
-			Reverse: nil,
-		},
-		ID:      id,
-		Base:    base,
-		Version: 0,
+		SessionData: sessionData,
+		ID:          id,
+		Base:        base,
+		Version:     0,
 	}
 
 	m := metrics.Duration(internalStore.MetricSearchSession).Start()
@@ -924,6 +953,12 @@ func (s *Service) SearchUpdatePostAPI(w http.ResponseWriter, req *http.Request, 
 
 	var searchData search.SessionData
 	errE := x.DecodeJSONWithoutUnknownFields(req.Body, &searchData)
+	if errE != nil {
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+
+	errE = resolveSessionLanguage(ctx, &searchData)
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -988,6 +1023,7 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 	// Group values by property.
 	filterMap := map[shortcutPropKey][]search.ToValue{}
 	var reverse *identifier.Identifier
+	var language string
 	for prop, values := range query {
 		if prop == "reverse" {
 			if len(values) != 1 {
@@ -998,6 +1034,13 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 				return nil, errors.WithMessage(errE, `"reverse" query parameter value is not a valid identifier`)
 			}
 			reverse = &reverseID
+			continue
+		}
+		if prop == "language" {
+			if len(values) != 1 {
+				return nil, errors.New(`"language" query parameter must be set exactly once`)
+			}
+			language = values[0]
 			continue
 		}
 		var key shortcutPropKey
@@ -1032,10 +1075,11 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 	id := identifier.From(base...)
 
 	searchData := search.SessionData{
-		View:    search.ViewFeed,
-		Query:   "",
-		Filters: nil,
-		Reverse: reverse,
+		View:     search.ViewFeed,
+		Query:    "",
+		Language: language,
+		Filters:  nil,
+		Reverse:  reverse,
 	}
 
 	for key, toValues := range filterMap {
@@ -1062,6 +1106,11 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 		})
 	}
 
+	errE := resolveSessionLanguage(ctx, &searchData)
+	if errE != nil {
+		return nil, errE
+	}
+
 	searchSession := &search.Session{
 		SessionData: searchData,
 		ID:          id,
@@ -1069,7 +1118,7 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 		Version:     0,
 	}
 
-	errE := searchSession.Validate()
+	errE = searchSession.Validate()
 	if errE != nil {
 		return nil, errors.WrapWith(errE, search.ErrValidationFailed)
 	}

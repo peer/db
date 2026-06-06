@@ -49,7 +49,9 @@ func TestAmountFilterGetIntegration(t *testing.T) {
 
 	// Create a session with an amount filter.
 	session := createSession(t, ctx, search.SessionData{
-		View: "", Query: "",
+		Language: "",
+		View:     "",
+		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop:   []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
@@ -98,11 +100,12 @@ func TestAmountFilterGetMissingIntegration(t *testing.T) {
 
 	// Doc with the amount prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("amountDoc1"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("amountDoc1"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -128,11 +131,12 @@ func TestAmountFilterGetMissingIntegration(t *testing.T) {
 	})
 	// Doc without the amount prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("amountDoc2"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("amountDoc2"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -152,11 +156,12 @@ func TestAmountFilterGetMissingIntegration(t *testing.T) {
 	})
 	// Another doc without the amount prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("amountDoc3"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("amountDoc3"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -199,11 +204,12 @@ func TestAmountFilterGetNoMissingIntegration(t *testing.T) {
 
 	// All docs have the amount prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("amountDoc1"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("amountDoc1"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -298,11 +304,12 @@ func TestAmountFilterGetSameValuesIntegration(t *testing.T) {
 
 	for i := range 2 {
 		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID:      identifier.From("sameDoc", string(rune('0'+i))),
-			Display: nil,
-			Text:    nil,
-			Time:    nil,
-			Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+			DisplaySort: nil,
+			ID:          identifier.From("sameDoc", string(rune('0'+i))),
+			Display:     nil,
+			Text:        nil,
+			Time:        nil,
+			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 			Claims: internalSearch.ClaimTypes{
 				Identifier: nil,
 				String:     nil,
@@ -330,7 +337,9 @@ func TestAmountFilterGetSameValuesIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
-		View: "", Query: "",
+		Language: "",
+		View:     "",
+		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop:   []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
@@ -358,7 +367,9 @@ func TestAmountFilterGetEmptyIntegration(t *testing.T) {
 	unitID := identifier.From("unit")
 
 	session := createSession(t, ctx, search.SessionData{
-		View: "", Query: "",
+		Language: "",
+		View:     "",
+		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop:   []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
@@ -382,11 +393,12 @@ func TestAmountFilterGetWithoutUnitIntegration(t *testing.T) {
 	twentyFive := 25.0
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("noUnitDoc"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("noUnitDoc"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -413,7 +425,9 @@ func TestAmountFilterGetWithoutUnitIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
-		View: "", Query: "",
+		Language: "",
+		View:     "",
+		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop:   []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true},
@@ -457,7 +471,9 @@ func TestAmountFilterGetGapIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
-		View: "", Query: "",
+		Language: "",
+		View:     "",
+		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop:   []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
@@ -524,7 +540,9 @@ func TestAmountFilterGetExtendedBoundsIntegration(t *testing.T) {
 	gte := 0.0
 	lte := 100.0
 	session := createSession(t, ctx, search.SessionData{
-		View: "", Query: "",
+		Language: "",
+		View:     "",
+		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{
@@ -575,11 +593,12 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 	hundred := 100.0
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("hardDoc1"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("hardDoc1"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -604,11 +623,12 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("hardDoc2"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("hardDoc2"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -639,7 +659,9 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 	gte := 10.0
 	lte := 90.0
 	session := createSession(t, ctx, search.SessionData{
-		View: "", Query: "",
+		Language: "",
+		View:     "",
+		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{
@@ -697,11 +719,12 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 	ninetyFive := 95.0
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("wideDoc1"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("wideDoc1"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -726,11 +749,12 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("wideDoc2"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("wideDoc2"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -755,11 +779,12 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:      identifier.From("wideDoc3"),
-		Display: nil,
-		Text:    nil,
-		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		DisplaySort: nil,
+		ID:          identifier.From("wideDoc3"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,
@@ -786,7 +811,9 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
-		View: "", Query: "",
+		Language: "",
+		View:     "",
+		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop:   []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
