@@ -108,9 +108,9 @@ func indexAmountDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.T
 	})
 }
 
-// indexScoreDoc indexes a document carrying the given English text and scoreCount.
-// It seeds scoreCount ranking-boost tests.
-func indexScoreDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.TypedClient, index string, id identifier.Identifier, text string, scoreCount *int) { //nolint:revive,lll
+// indexScoreDoc indexes a document carrying the given English text and counts.score.
+// It seeds counts.score ranking-boost tests.
+func indexScoreDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.TypedClient, index string, id identifier.Identifier, text string, score *int) { //nolint:revive,lll
 	t.Helper()
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
@@ -118,7 +118,7 @@ func indexScoreDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.Ty
 		Display: nil,
 		Text:    map[string][]string{"en": {text}},
 		Time:    nil,
-		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: scoreCount},
+		Counts:  internalSearch.Counts{References: nil, Claims: nil, Score: score},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
 			String:     nil,

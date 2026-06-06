@@ -64,18 +64,18 @@ const (
 	maxPrecisionThreshold = 40000
 
 	// scoreBoostMax is the target boost ratio between a corpus-p99 document and an
-	// empty one under the scoreCount ranking boost: a p99 document's _score is
+	// empty one under the counts.score ranking boost: a p99 document's _score is
 	// multiplied by roughly scoreBoostMax times the multiplier an empty document
 	// gets. It is the single tuning parameter of the boost.
 	scoreBoostMax = 10.0
 
 	// log2pOffset is the additive constant of the ElasticSearch log2p
-	// field_value_factor modifier: the boost is log10(log2pOffset + factor*scoreCount).
+	// field_value_factor modifier: the boost is log10(log2pOffset + factor*counts.score).
 	log2pOffset = 2.0
 
-	// scoreCountPercentile is the corpus percentile of scoreCount that ScoreFactor
+	// scorePercentile is the corpus percentile of counts.score that ScoreFactor
 	// normalizes to the scoreBoostMax boost ceiling.
-	scoreCountPercentile = 99.0
+	scorePercentile = 99.0
 )
 
 // distinctValuesTotal returns the number of distinct values represented by a terms
@@ -963,7 +963,7 @@ func ResultsGet(
 
 	query := searchData.ToQuery(enabledLanguages, extraFilters...)
 
-	// Multiplicatively boost ranking by the document's scoreCount (its own claims
+	// Multiplicatively boost ranking by the document's counts.score (its own claims
 	// plus the documents referencing it) so that, among equally relevant text
 	// matches, richer and more connected documents rank higher. factor is corpus-derived
 	// and scales the log2p curve; factor of 0 leaves the query unboosted.
@@ -1019,19 +1019,19 @@ func ResultsGet(
 	}, nil
 }
 
-// ScoreFactor computes the field_value_factor coefficient for the scoreCount
+// ScoreFactor computes the field_value_factor coefficient for the counts.score
 // ranking boost from the current corpus. It runs a percentiles aggregation over the
 // whole index and returns (2^scoreBoostMax - 2)/p99, so that under the log2p
-// modifier a document at the corpus 99th percentile of scoreCount receives a boost
+// modifier a document at the corpus 99th percentile of counts.score receives a boost
 // roughly scoreBoostMax times that of an empty document. It returns 0 (no boost)
 // when the corpus is too sparse to have a meaningful p99 (p99 < 1).
 //
 // The factor is corpus-global.
 func ScoreFactor(ctx context.Context, getSearchService func() *esSearch.Search) (float64, errors.E) {
 	searchService := getSearchService().Size(0).AddAggregation(
-		"scoreCountP99",
+		"scoreP99",
 		esdsl.NewAggregations().Percentiles(
-			esdsl.NewPercentilesAggregation().Field("counts.score").Percents(scoreCountPercentile).Keyed(false),
+			esdsl.NewPercentilesAggregation().Field("counts.score").Percents(scorePercentile).Keyed(false),
 		),
 	)
 
@@ -1040,7 +1040,7 @@ func ScoreFactor(ctx context.Context, getSearchService func() *esSearch.Search) 
 		return 0, WithESError(err)
 	}
 
-	agg, errE := internalSearch.AggAs[types.TDigestPercentilesAggregate](res.Aggregations, "scoreCountP99")
+	agg, errE := internalSearch.AggAs[types.TDigestPercentilesAggregate](res.Aggregations, "scoreP99")
 	if errE != nil {
 		return 0, errE
 	}

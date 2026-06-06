@@ -679,7 +679,7 @@ func TestInvalidateCachesInstanceClassAncestor(t *testing.T) {
 	classID := identifier.New()
 	metaclass := identifier.New()
 	// metaclass is a subclass of CLASS, classID a subclass of metaclass, so a document that is an
-	// instance of classID is ignored for referencesCount (its class's ancestry reaches CLASS), and
+	// instance of classID is ignored for counts.references (its class's ancestry reaches CLASS), and
 	// depends on that ancestry.
 	metaclassDoc := makeHierarchyDoc(metaclass, "Metaclass", internalCore.SubclassOfPropID, &internalCore.ClassClassID)
 	classDoc := makeHierarchyDoc(classID, "Class", internalCore.SubclassOfPropID, &metaclass)
@@ -4723,7 +4723,7 @@ func TestEarliestClaimTimeOpenBoundsNotSentinel(t *testing.T) {
 	assert.Less(t, *result.Time, math.MaxFloat64)
 }
 
-// TestClaimsCountCountsRecursively verifies that ClaimsCount counts every claim
+// TestClaimsCountCountsRecursively verifies that counts.claims counts every claim
 // in the document, including those nested as sub-claims.
 func TestClaimsCountCountsRecursively(t *testing.T) {
 	t.Parallel()
@@ -4791,7 +4791,7 @@ func TestReferencesCount(t *testing.T) {
 	require.NotNil(t, result.Counts.References)
 	assert.Equal(t, 7, *result.Counts.References)
 
-	// A document that is an instance of CLASS is ignored for referencesCount.
+	// A document that is an instance of CLASS is ignored for counts.references.
 	classDoc := &document.D{
 		CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
@@ -4828,7 +4828,7 @@ func TestReferencesCount(t *testing.T) {
 
 // TestReferencesCountIgnoresTransitiveSubclass verifies that a document which is
 // an instance of a transitive subclass of VOCABULARY is ignored for
-// referencesCount via the class hierarchy.
+// counts.references via the class hierarchy.
 func TestReferencesCountIgnoresTransitiveSubclass(t *testing.T) {
 	t.Parallel()
 

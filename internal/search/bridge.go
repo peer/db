@@ -817,7 +817,7 @@ func (b *Bridge) indexCommit(
 	addedInverseRelations := map[identifier.Identifier][]store.InverseRelation{}
 	removedInverseRelations := map[identifier.Identifier][]store.InverseRelation{}
 
-	// Collect documents whose referencesCount must be refreshed because a processed
+	// Collect documents whose counts.references must be refreshed because a processed
 	// document started or stopped referencing them.
 	referenceTargets := map[identifier.Identifier]bool{}
 
@@ -848,7 +848,7 @@ func (b *Bridge) indexCommit(
 					return nil, nil, nil, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
 				}
 
-				// Collect, for other documents, the inverse-relation and referencesCount
+				// Collect, for other documents, the inverse-relation and counts.references
 				// changes implied by this document's change.
 				accumulateFetchBefore := stats.FetchDuration
 				accumulateStart := time.Now()
@@ -946,7 +946,7 @@ func (b *Bridge) indexCommit(
 	// The counts here are the work this commit implies for other documents. indexed/deleted are the
 	// bulk operations for the changed documents themselves. inverseAdded/inverseRemoved are the
 	// numbers of target documents whose inverse-relation metadata changes, and referenceTargets is
-	// the number of documents whose referencesCount must be refreshed. The durations are disjoint and
+	// the number of documents whose counts.references must be refreshed. The durations are disjoint and
 	// sum to duration (minus small in-memory overhead for cache invalidation, bulk buffering, and the
 	// bulk error scan): changesDuration is reconstructing and reading the committed changesets,
 	// getDuration is the per-document store reads, fetchDuration is the getDocument store fetches,
@@ -1051,7 +1051,7 @@ func (b *Bridge) CountReferences(ctx context.Context, id identifier.Identifier) 
 	}
 	// The count endpoint has no allow_partial_search_results flag, so a shard failure
 	// would silently undercount. Treat any failed shard as an error so the caller retries
-	// rather than recording a too-low referencesCount.
+	// rather than recording a too-low counts.references.
 	if res.Shards_.Failed > 0 {
 		errE := errors.New("references count had shard failures")
 		errors.Details(errE)["id"] = id.String()
@@ -1065,7 +1065,7 @@ func (b *Bridge) CountReferences(ctx context.Context, id identifier.Identifier) 
 
 // outgoingRelationsAndTargets unmarshals a document and returns both its outgoing
 // inverse relations (for inverse-relation metadata) and the set of all documents it
-// references (for refreshing those targets' referencesCount), from a single parse.
+// references (for refreshing those targets' counts.references), from a single parse.
 func (b *Bridge) outgoingRelationsAndTargets(
 	ctx context.Context, data json.RawMessage,
 ) (map[identifier.Identifier][]store.InverseRelation, map[identifier.Identifier]bool, errors.E) {
@@ -1085,7 +1085,7 @@ func (b *Bridge) outgoingRelationsAndTargets(
 
 // collectChangedReferenceTargets adds to out every document that the changed document
 // started or stopped referencing (the symmetric difference of current and parent
-// reference targets), skipping targets ignored for referencesCount.
+// reference targets), skipping targets ignored for counts.references.
 func (b *Bridge) collectChangedReferenceTargets(
 	ctx context.Context, current, parent, out map[identifier.Identifier]bool,
 ) errors.E {
@@ -1174,7 +1174,7 @@ func (b *Bridge) accumulateChangeRelations(
 		removedInverseRelations[targetID] = append(removedInverseRelations[targetID], irs...)
 	}
 
-	// A target's referencesCount changes when this document starts or stops referencing it.
+	// A target's counts.references changes when this document starts or stops referencing it.
 	return b.collectChangedReferenceTargets(ctx, currentRefTargets, parentRefTargets, referenceTargets)
 }
 
@@ -1197,7 +1197,7 @@ type preparedUpdate struct {
 
 // updateSeq advances the bridge table to seq, updates document metadata with inverse
 // relations, and enqueues both the documents whose inverse relations changed and the
-// documents whose referencesCount must be refreshed (referenceTargets) for re-indexing,
+// documents whose counts.references must be refreshed (referenceTargets) for re-indexing,
 // all in a single transaction.
 func (b *Bridge) updateSeq(
 	ctx context.Context, seq int64,
@@ -1248,7 +1248,7 @@ func (b *Bridge) updateSeq(
 		}
 
 		// Enqueue both the documents whose inverse-relation metadata changed and the
-		// documents whose referencesCount must be refreshed; the same worker re-indexes
+		// documents whose counts.references must be refreshed; the same worker re-indexes
 		// both. Reference targets get no metadata update.
 		enqueue := make(map[identifier.Identifier]bool, len(updates)+len(referenceTargets))
 		for _, u := range updates {
@@ -1359,7 +1359,7 @@ func (b *Bridge) runReindexQueue(ctx context.Context, job *river.Job[jobArgs]) e
 	// same transaction that enqueues an entry, after indexCommit has bulk-indexed the changed
 	// documents, so every commit at or below this seq is already in ES and the refresh makes
 	// those documents searchable. We then process only entries at or below the snapshot, so that
-	// recomputing a target's referencesCount (an ElasticSearch count query, which sees only
+	// recomputing a target's counts.references (an ElasticSearch count query, which sees only
 	// refreshed documents) counts every referrer whose entry we are about to clear. Entries
 	// enqueued by later commits are left for those commits' own jobs, so we refresh once per run.
 	snapshotSeq, errE := b.getSeq(ctx)
@@ -1484,9 +1484,9 @@ func (b *Bridge) indexDocument(ctx context.Context, docID identifier.Identifier)
 		return nil
 	} else if errors.Is(errE, store.ErrValueNotFound) {
 		// Document never existed. This happens for a reference target enqueued for a
-		// referencesCount refresh that does not exist (a dangling reference). Skipping it
+		// counts.references refresh that does not exist (a dangling reference). Skipping it
 		// loses nothing: a document is indexed by its own creation commit, so if this one
-		// is created later, that commit indexes it and computes its referencesCount.
+		// is created later, that commit indexes it and computes its counts.references.
 		// The ErrValueNotFound error should not be possible for inverse-relation documents
 		// at this point because it means that the document have never existed, but GetLatest
 		// did not return ErrValueNotFound in updateSeq for us to be here.
@@ -1515,7 +1515,7 @@ func (b *Bridge) indexDocument(ctx context.Context, docID identifier.Identifier)
 
 	// The phases are disjoint and sum to duration (minus small overhead): getLatestDuration is the
 	// store read of the document, fetchDuration is the getDocument store fetches during conversion,
-	// convertDuration is the rest of building the search document (rendering and the referencesCount
+	// convertDuration is the rest of building the search document (rendering and the counts.references
 	// ES count query), and esIndexDuration is marshalling and the ES index request.
 	zerolog.Ctx(ctx).Debug().
 		Str("doc", docID.String()).

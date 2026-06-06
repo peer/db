@@ -84,7 +84,7 @@ func (s *Service) getSearchServiceClosure(req *http.Request) func() *esSearch.Se
 	}
 }
 
-// scoreFactorTTL is how long a cached scoreCount boost factor is reused before it
+// scoreFactorTTL is how long a cached counts.score boost factor is reused before it
 // is recomputed from the corpus.
 const scoreFactorTTL = time.Hour
 
@@ -96,7 +96,7 @@ type scoreFactorEntry struct {
 	computed time.Time
 }
 
-// scoreFactor returns the scoreCount ranking boost factor for the site serving the
+// scoreFactor returns the counts.score ranking boost factor for the site serving the
 // request, computed via search.ScoreFactor and cached per index for scoreFactorTTL.
 func (s *Service) scoreFactor(ctx context.Context, req *http.Request) (float64, errors.E) {
 	site := waf.MustGetSite[*Site](ctx)

@@ -883,7 +883,7 @@ func TestResultsGetScoreBoost(t *testing.T) {
 	zeroID := identifier.From("zero")
 
 	// Three documents matching the query text identically. They differ only in
-	// scoreCount, so any ranking difference is due to the boost alone.
+	// counts.score, so any ranking difference is due to the boost alone.
 	low := 10
 	high := 1000
 	zero := 0
@@ -899,21 +899,21 @@ func TestResultsGetScoreBoost(t *testing.T) {
 		Reverse: nil,
 	})
 
-	// A positive factor must rank the higher-scoreCount document first, while the
-	// scoreCount-0 document is still returned (missing/zero is not dropped). The 2 is
+	// A positive factor must rank the higher-counts.score document first, while the
+	// counts.score-0 document is still returned (missing/zero is not dropped). The 2 is
 	// the log2p modifier offset.
 	factor := (math.Pow(2, search.TestingScoreBoostMax) - 2) / float64(high)
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, factor)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 3)
-	assert.Equal(t, highID.String(), results[0].ID, "highest scoreCount should rank first")
-	assert.Equal(t, lowID.String(), results[1].ID, "lower scoreCount should rank second")
+	assert.Equal(t, highID.String(), results[0].ID, "highest counts.score should rank first")
+	assert.Equal(t, lowID.String(), results[1].ID, "lower counts.score should rank second")
 
 	gotIDs := make([]string, 0, len(results))
 	for _, r := range results {
 		gotIDs = append(gotIDs, r.ID)
 	}
-	assert.Contains(t, gotIDs, zeroID.String(), "scoreCount 0 document should still be returned")
+	assert.Contains(t, gotIDs, zeroID.String(), "counts.score 0 document should still be returned")
 }
 
 func TestScoreFactor(t *testing.T) {
@@ -927,7 +927,7 @@ func TestScoreFactor(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Zero(t, factor)
 
-	// A corpus whose scoreCount is uniformly 50: the t-digest p99 is exactly 50, so
+	// A corpus whose counts.score is uniformly 50: the t-digest p99 is exactly 50, so
 	// the factor is (2^scoreBoostMax - 2)/50. The 2 is the log2p modifier offset.
 	value := 50
 	for range 20 {

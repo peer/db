@@ -153,7 +153,7 @@ type documentInfo struct {
 	// DisplayPaths maps a hierarchy property ID to per-language display hierarchy paths
 	// from root to this document. Each path is a string of display labels joined by null bytes.
 	DisplayPaths map[identifier.Identifier]map[string][]string
-	// IgnoredForReferencesCount is true when the document is ignored for referencesCount.
+	// IgnoredForReferencesCount is true when the document is ignored for counts.references.
 	// Such documents accumulate references that do not reflect importance.
 	IgnoredForReferencesCount bool
 }
@@ -217,7 +217,7 @@ type Converter struct {
 	DetectLanguages bool
 
 	// CountReferences returns how many documents reference the given document. When set,
-	// FromDocument records it as the document's referencesCount. Nil disables the count
+	// FromDocument records it as the document's counts.references. Nil disables the count
 	// (the field is then omitted).
 	CountReferences func(ctx context.Context, id identifier.Identifier) (int, errors.E)
 
@@ -885,7 +885,7 @@ func (c *Converter) computeDocumentInfo(
 		}
 	}
 
-	// Determine whether this document is ignored for referencesCount: it is an instance of
+	// Determine whether this document is ignored for counts.references: it is an instance of
 	// CLASS or VOCABULARY, transitively through the class hierarchy (SUBCLASS_OF).
 	isIgnoredClass := func(id identifier.Identifier) bool {
 		return id == internalCore.ClassClassID || id == internalCore.VocabularyClassID
@@ -1991,7 +1991,7 @@ func (c *Converter) FromDocument(
 	v.result.Time = earliestClaimTime(&v.result.Claims)
 
 	// Index the document's recursive claim count and, unless the document is
-	// ignored for referencesCount, the number of documents referencing it.
+	// ignored for counts.references, the number of documents referencing it.
 	claimsCount := doc.SizeWithSub()
 	v.result.Counts.Claims = &claimsCount
 	if c.CountReferences != nil && !info.IgnoredForReferencesCount {
@@ -2002,17 +2002,17 @@ func (c *Converter) FromDocument(
 		v.result.Counts.References = &count
 	}
 
-	// scoreCount is the document's total "amount of knowledge" (its own number of claims plus
+	// counts.score is the document's total "amount of knowledge" (its own number of claims plus
 	// the number of documents referencing it, where the number of documents referencing it is a
-	// proxy for how many claims of this document are "stored" in other documents - we see inverse
-	// references as claims which could stored in this document but are stored in other documents
+	// proxy for how many claims of this document are "stored" in other documents, we see inverse
+	// references as claims which could be stored in this document but are stored in other documents
 	// so that they are not stored twice, duplicated). Used to boost search ranking.
-	// TODO: Should ReferencesCount count the number of inverse reference claims directly and not referring documents?
-	scoreCount := claimsCount
+	// TODO: Should counts.references count the number of inverse reference claims directly and not referring documents?
+	score := claimsCount
 	if v.result.Counts.References != nil {
-		scoreCount += *v.result.Counts.References
+		score += *v.result.Counts.References
 	}
-	v.result.Counts.Score = &scoreCount
+	v.result.Counts.Score = &score
 
 	return v.result, nil
 }
@@ -2269,7 +2269,7 @@ func (c *Converter) OutgoingInverseRelations(ctx context.Context, doc *document.
 // It mirrors what CountReferences counts on the target side, so the
 // bridge can re-index the affected targets when a document's references change.
 //
-// Targets ignored for referencesCount are not filtered here; the caller does that.
+// Targets ignored for counts.references are not filtered here; the caller does that.
 func (c *Converter) OutgoingReferenceTargets(doc *document.D) map[identifier.Identifier]bool {
 	targets := map[identifier.Identifier]bool{}
 	if doc.Claims == nil {
@@ -2288,7 +2288,7 @@ func (c *Converter) OutgoingReferenceTargets(doc *document.D) map[identifier.Ide
 	return targets
 }
 
-// ReferencesCountIgnored reports whether the document with the given ID is ignored for referencesCount.
+// ReferencesCountIgnored reports whether the document with the given ID is ignored for counts.references.
 func (c *Converter) ReferencesCountIgnored(ctx context.Context, id identifier.Identifier) (bool, errors.E) {
 	info, errE := c.getDocumentInfo(ctx, id)
 	if errE != nil {

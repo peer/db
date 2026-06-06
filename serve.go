@@ -39,7 +39,7 @@ type Service struct {
 	// exist), not the entries themselves. Each entry carries its own mutex.
 	scoreFactorMu sync.Mutex
 
-	// scoreFactorCache memoizes, per ElasticSearch index, the scoreCount ranking
+	// scoreFactorCache memoizes, per ElasticSearch index, the counts.score ranking
 	// boost factor. Entries are recomputed lazily once older than scoreFactorTTL.
 	scoreFactorCache map[string]*scoreFactorEntry
 }

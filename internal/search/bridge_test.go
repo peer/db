@@ -952,9 +952,9 @@ func TestBridgeInverseRelationChange(t *testing.T) {
 	}, 10*time.Second, 100*time.Millisecond)
 }
 
-// esReferencesCount reads the referencesCount of an ES document via doc values (the
+// esReferencesCount reads the counts.references of an ES document via doc values (the
 // index has _source disabled). The second return value is false when the document
-// carries no referencesCount field.
+// carries no counts.references field.
 func esReferencesCount(ctx context.Context, t *testing.T, esClient *elasticsearch.TypedClient, index, id string) (int, bool) {
 	t.Helper()
 	res, err := esClient.Search().Index(index).
@@ -981,7 +981,7 @@ func TestBridgeReferencesCountIncremental(t *testing.T) {
 	s, b, esClient := env.store, env.bridge, env.esClient
 
 	converter := newTestBridgeConverter(t)
-	// Compute referencesCount at index time, as the production converter does.
+	// Compute counts.references at index time, as the production converter does.
 	converter.CountReferences = b.CountReferences
 	startBridge(ctx, t, env, converter)
 
@@ -1004,11 +1004,11 @@ func TestBridgeReferencesCountIncremental(t *testing.T) {
 
 	waitAndRefresh()
 	count, ok := esReferencesCount(ctx, t, esClient, b.Index, target.String())
-	require.True(t, ok, "target should carry a referencesCount")
+	require.True(t, ok, "target should carry a counts.references")
 	assert.Equal(t, 0, count, "no referrers yet")
 
 	// Adding a referrer via a plain (non-inverse) property re-indexes the target and
-	// bumps its referencesCount, even though the target itself did not change.
+	// bumps its counts.references, even though the target itself did not change.
 	v1, errE := s.Insert(ctx, ref1, makeDocWithRelationJSON(t, ref1, prop, target), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
