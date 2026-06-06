@@ -20,7 +20,9 @@ import (
 	z "gitlab.com/tozd/go/zerolog"
 )
 
-const jobTimeout = 15 * time.Minute
+// jobTimeout is the default River timeout for a job. It is short because most jobs are quick.
+// Jobs that run longer by design override it with their own value via Worker.Timeout.
+const jobTimeout = 1 * time.Minute
 
 // MetadataKeyError is the job metadata key under which a structured JSON
 // representation of the job's error is stored when HandleError fires.
