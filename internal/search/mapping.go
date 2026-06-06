@@ -125,29 +125,33 @@ const idPath = `{
 //       For example, we could track in which language each template fragment is and then see if result is from fragments of only one language.
 //       Also if display label comes directly from naming strings, then we also know the language of the display label.
 
-// We use display labels for two purposes: to search over them and to sort by them.
-// But they might contain text from different languages (they might be rendered from a template which
-// pulled data from different languages), even if they are stored under a particular target language.
-// So we use und_text analyzer for all languages here and not language-specific analyzers.
-// We use a multi-field to define also a keyword field which is better for sorting.
+// indexPrefixes accelerates trailing-prefix (analyze_wildcard) queries: ElasticSearch indexes
+// term prefixes into a managed prefix sub-index, so prefix queries skip the term-dictionary
+// walk. It is added to the text and display-label fields that prefix search clauses target.
+const indexPrefixes = `"index_prefixes":{"min_chars":1,"max_chars":8}`
+
+// We use display labels for two purposes: to search over them and to sort by them. They might
+// contain text from different languages (they might be rendered from a template which pulled data
+// from different languages), even if they are stored under a particular target language, so we use
+// the und_text analyzer for all languages here and not language-specific analyzers.
+//
+// displayLabelProperty is the per-language mapping shared by the top-level "display" field and the
+// per-claim propDisplay/toDisplay fields: the und_text main field carries index_prefixes for
+// trailing-prefix (analyze_wildcard) queries, an "exact" sub-field (exact_text) for diacritic-preserved
+// matching, and a "keyword" sub-field (display_label_normalizer) which is better for sorting.
+const displayLabelProperty = `{"type":"text","analyzer":"und_text",` + indexPrefixes + `,"fields":{"exact":{"type":"text","analyzer":"exact_text"},"keyword":{"type":"keyword","normalizer":"display_label_normalizer"}}}`
+
+// propDisplay builds the per-language display-label mapping for a claim's propDisplay and toDisplay fields.
 func propDisplay(langs []string) string {
 	return langProperties(langs, func(string) string {
-		return `{"type":"text","analyzer":"und_text","fields":{"keyword":{"type":"keyword","normalizer":"display_label_normalizer"}}}`
+		return displayLabelProperty
 	})
 }
 
-// indexPrefixes accelerates trailing-prefix (analyze_wildcard) queries: ElasticSearch indexes
-// term prefixes into a managed prefix sub-index, so prefix queries skip the term-dictionary
-// walk. It is added only to the fields the analyze_wildcard search clauses target.
-const indexPrefixes = `"index_prefixes":{"min_chars":1,"max_chars":8}`
-
-// displayProperties builds the top-level "display" field: a per-language text field with
-// the und_text analyzer (display labels may mix languages) and an exact sub-field for
-// diacritic-preserved matching. The main field carries index_prefixes because the display
-// search clause routes wildcards to it.
+// displayProperties builds the top-level "display" field as a per-language display-label mapping.
 func displayProperties(langs []string) string {
 	return langProperties(langs, func(string) string {
-		return `{"type":"text","analyzer":"und_text",` + indexPrefixes + `,"fields":{"exact":{"type":"text","analyzer":"exact_text"}}}`
+		return displayLabelProperty
 	})
 }
 
