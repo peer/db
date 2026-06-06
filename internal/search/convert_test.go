@@ -499,7 +499,7 @@ func TestConversionStats(t *testing.T) {
 	var cold ConversionStats
 	_, errE = c.getDocumentInfo(WithConversionStats(t.Context(), &cold), testDocID)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, 1, cold.Fetches)
+	assert.Equal(t, 1, cold.DocCacheMisses)
 	assert.Equal(t, 1, cold.InfoCacheMisses)
 	assert.Equal(t, 0, cold.InfoCacheHits)
 
@@ -507,10 +507,67 @@ func TestConversionStats(t *testing.T) {
 	var warm ConversionStats
 	_, errE = c.getDocumentInfo(WithConversionStats(t.Context(), &warm), testDocID)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, 0, warm.Fetches)
+	assert.Equal(t, 0, warm.DocCacheMisses)
 	assert.Equal(t, 1, warm.InfoCacheHits)
 	assert.Equal(t, 0, warm.InfoCacheMisses)
 	assert.Zero(t, warm.FetchDuration)
+}
+
+func TestInvalidateCaches(t *testing.T) {
+	t.Parallel()
+
+	docs := map[identifier.Identifier]*document.D{testDocID: makeNamingDoc(testDocID, "Old Name")}
+	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		d, ok := docs[id]
+		if !ok {
+			return nil, errors.New("document not found")
+		}
+		return d, nil
+	}
+	c, errE := NewConverter(nil, nil, nil, nil, getDocument)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	ctx := t.Context()
+
+	// Prime both caches from the original version.
+	info, errE := c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "Old Name", info.Display.Display["und"])
+	old, errE := c.getDocument(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The document cache returns the cached pointer on a hit, without a store fetch.
+	var hit ConversionStats
+	cached, errE := c.getDocument(WithConversionStats(ctx, &hit), testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Same(t, old, cached)
+	assert.Equal(t, 1, hit.DocCacheHits)
+	assert.Equal(t, 0, hit.DocCacheMisses)
+
+	// Replace the stored document. Both caches still serve the old version until invalidated.
+	docs[testDocID] = makeNamingDoc(testDocID, "New Name")
+	info, errE = c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "Old Name", info.Display.Display["und"], "info cache is stale until invalidated")
+	stillOld, errE := c.getDocument(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Same(t, old, stillOld, "document cache is stale until invalidated")
+
+	c.InvalidateCaches(testDocID)
+
+	// The document cache re-fetches the new version (getDocument is checked before getDocumentInfo,
+	// which would otherwise re-populate the document cache as a side effect).
+	var miss ConversionStats
+	fresh, errE := c.getDocument(WithConversionStats(ctx, &miss), testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Same(t, docs[testDocID], fresh)
+	assert.NotSame(t, old, fresh)
+	assert.Equal(t, 1, miss.DocCacheMisses)
+	assert.Equal(t, 0, miss.DocCacheHits)
+
+	// The info cache recomputes the display from the new version.
+	info, errE = c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "New Name", info.Display.Display["und"])
 }
 
 func TestBuildPropertyHierarchySelfCycle(t *testing.T) {

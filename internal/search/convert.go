@@ -250,12 +250,22 @@ type Converter struct {
 	// display fallback) but not enabled (it gets no index field, and its content
 	// is dropped from the text buckets).
 	recognizedLanguages map[string]bool
-	// getDocument fetches a document by ID from the store.
-	getDocument func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E)
+	// getDocumentFunc fetches a document by ID from the store. Call the getDocument method instead of
+	// using this field directly, so fetches are cached in getDocumentCache and counted.
+	getDocumentFunc func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E)
 	// documentInfoMu protects documentInfoCache for concurrent access.
 	documentInfoMu sync.RWMutex
-	// documentInfoCache caches computed document info (display strings and hierarchy ancestors) per document ID.
+	// documentInfoCache caches computed document info (display strings and hierarchy ancestors) per
+	// document ID. The bridge invalidates entries for documents changed in each commit via
+	// InvalidateCaches, so a changed document is recomputed from its new version.
+	// TODO: Bound this cache (for example with an LRU) to limit memory usage; it currently grows unbounded.
 	documentInfoCache map[identifier.Identifier]documentInfo
+	// getDocumentMu protects getDocumentCache for concurrent access.
+	getDocumentMu sync.RWMutex
+	// getDocumentCache caches raw documents fetched via getDocument, keyed by document ID.
+	// The bridge invalidates entries for documents changed in each commit via InvalidateCaches.
+	// TODO: Bound this cache (for example with an LRU) to limit memory usage; it currently grows unbounded.
+	getDocumentCache map[identifier.Identifier]*document.D
 }
 
 // ConversionStats accumulates per-document conversion metrics. Attach a *ConversionStats to the
@@ -263,32 +273,65 @@ type Converter struct {
 // fetched from the store (and the time spent fetching), and how many document info cache lookups
 // hit or missed.
 type ConversionStats struct {
-	// Fetches is the number of getDocument store fetches made during the conversion.
-	Fetches int
-	// FetchDuration is the total time spent in those getDocument store fetches.
-	FetchDuration time.Duration
 	// InfoCacheHits is the number of document info cache lookups served from the cache.
 	InfoCacheHits int
 	// InfoCacheMisses is the number of document info cache lookups that had to be computed.
 	InfoCacheMisses int
+	// DocCacheHits is the number of getDocument lookups served from the document cache, which did not
+	// need a store fetch.
+	DocCacheHits int
+	// DocCacheMisses is the number of getDocument lookups not served from the document cache, each of
+	// which did a store fetch.
+	DocCacheMisses int
+	// FetchDuration is the total time spent in the store fetches done by the document cache misses.
+	FetchDuration time.Duration
 }
 
-// instrumentGetDocument wraps a getDocument callback so that, when a *ConversionStats is attached to
-// the context, it records the number of store fetches and the time spent in them.
-func instrumentGetDocument(
-	getDocument func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E),
-) func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
-	return func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
-		stats := conversionStatsFromContext(ctx)
-		if stats == nil {
-			return getDocument(ctx, id)
+// getDocument returns the document for the given ID, caching fetched documents in getDocumentCache.
+// Errors (including not-found) are not cached so a later insert is picked up. The bridge invalidates
+// cached entries for documents changed in each commit via InvalidateCaches.
+func (c *Converter) getDocument(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
+	c.getDocumentMu.RLock()
+	doc, ok := c.getDocumentCache[id]
+	c.getDocumentMu.RUnlock()
+	stats := conversionStatsFromContext(ctx)
+	if ok {
+		if stats != nil {
+			stats.DocCacheHits++
 		}
-		start := time.Now()
-		doc, errE := getDocument(ctx, id)
-		stats.Fetches++
+		return doc, nil
+	}
+	start := time.Now()
+	doc, errE := c.getDocumentFunc(ctx, id)
+	if stats != nil {
+		stats.DocCacheMisses++
 		stats.FetchDuration += time.Since(start)
+	}
+	if errE != nil {
 		return doc, errE
 	}
+	c.getDocumentMu.Lock()
+	c.getDocumentCache[id] = doc
+	c.getDocumentMu.Unlock()
+	return doc, nil
+}
+
+// InvalidateCaches drops any cached document info and fetched document for the given IDs. The bridge
+// calls this for the documents changed in each commit.
+func (c *Converter) InvalidateCaches(ids ...identifier.Identifier) {
+	if len(ids) == 0 {
+		return
+	}
+	c.documentInfoMu.Lock()
+	for _, id := range ids {
+		delete(c.documentInfoCache, id)
+	}
+	c.documentInfoMu.Unlock()
+	c.getDocumentMu.Lock()
+	for _, id := range ids {
+		delete(c.getDocumentCache, id)
+	}
+	c.getDocumentMu.Unlock()
 }
 
 // NewConverter creates a Converter that preprocesses property hierarchies and discovers
@@ -338,9 +381,11 @@ func NewConverter(
 		languagePriority:         languagePriority,
 		enabledLanguages:         enabledLanguages,
 		recognizedLanguages:      recognizedLanguages,
-		getDocument:              instrumentGetDocument(getDocument),
+		getDocumentFunc:          getDocument,
 		documentInfoCache:        map[identifier.Identifier]documentInfo{},
 		documentInfoMu:           sync.RWMutex{},
+		getDocumentCache:         map[identifier.Identifier]*document.D{},
+		getDocumentMu:            sync.RWMutex{},
 	}
 	c.buildLanguageDetector()
 	c.buildPropertyHierarchy(properties)

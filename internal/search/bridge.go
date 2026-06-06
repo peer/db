@@ -814,6 +814,9 @@ func (b *Bridge) indexCommit(
 				return nil, nil, nil, errE
 			}
 			for _, change := range page {
+				// The document changed in this commit, so drop any cached info and fetched content for it.
+				b.converter.InvalidateCaches(change.ID)
+
 				// Fetch document at the change version.
 				deleted := false
 				data, metadata, _, parentChangesets, errE := b.Store.Get(ctx, change.ID, change.Version)
@@ -937,7 +940,8 @@ func (b *Bridge) indexCommit(
 		Int("inverseAdded", len(addedInverseRelations)).
 		Int("inverseRemoved", len(removedInverseRelations)).
 		Int("referenceTargets", len(referenceTargets)).
-		Int("fetches", stats.Fetches).
+		Int("docCacheHits", stats.DocCacheHits).
+		Int("docCacheMisses", stats.DocCacheMisses).
 		Int("infoCacheHits", stats.InfoCacheHits).
 		Int("infoCacheMisses", stats.InfoCacheMisses).
 		Dur("fetchDuration", stats.FetchDuration).
@@ -1479,7 +1483,8 @@ func (b *Bridge) indexDocument(ctx context.Context, docID identifier.Identifier)
 
 	zerolog.Ctx(ctx).Debug().
 		Str("doc", docID.String()).
-		Int("fetches", stats.Fetches).
+		Int("docCacheHits", stats.DocCacheHits).
+		Int("docCacheMisses", stats.DocCacheMisses).
 		Int("infoCacheHits", stats.InfoCacheHits).
 		Int("infoCacheMisses", stats.InfoCacheMisses).
 		Dur("fetchDuration", stats.FetchDuration).
