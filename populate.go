@@ -8,6 +8,10 @@ import (
 	"slices"
 	"syscall"
 
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
+
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
+
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
@@ -18,7 +22,7 @@ import (
 	"gitlab.com/peerdb/peerdb/transform"
 )
 
-func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logger, site Site) errors.E {
+func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logger, site internalSite.Site) errors.E {
 	logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("populating")
 
 	// We use a per-site cancellable context so that we can stop Base (started
@@ -35,7 +39,7 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 	}()
 
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
-	ctx = WithFallbackDBContext(ctx, site.Schema, "populate")
+	ctx = internalStore.WithFallbackDBContext(ctx, site.Schema, "populate")
 
 	documents, transformed, errE := base.GenerateCoreDocuments(ctx, nil)
 	if errE != nil {

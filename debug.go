@@ -3,6 +3,8 @@ package peerdb
 import (
 	"net/http"
 
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
+
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/waf"
 
@@ -16,7 +18,7 @@ func (s *Service) DebugMappingGetAPI(w http.ResponseWriter, req *http.Request, _
 		return
 	}
 
-	site := waf.MustGetSite[*Site](req.Context())
+	site := waf.MustGetSite[*internalSite.Site](req.Context())
 	indexConfiguration, errE := internalSearch.Mapping(site.LanguagePriority)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -38,7 +40,7 @@ func (s *Service) DebugIndexedGetAPI(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	site := waf.MustGetSite[*Site](req.Context())
+	site := waf.MustGetSite[*internalSite.Site](req.Context())
 
 	searchDoc, errE := site.Base.IndexedDocument(req.Context(), dataJSON, metadata)
 	if errE != nil {

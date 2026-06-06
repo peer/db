@@ -13,6 +13,10 @@ import (
 	"syscall"
 	"time"
 
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
+
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
+
 	"github.com/riverqueue/river"
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
@@ -30,7 +34,7 @@ const authCleanupInterval = 24 * time.Hour
 
 // Service is the main HTTP service for PeerDB.
 type Service struct {
-	waf.Service[*Site]
+	waf.Service[*internalSite.Site]
 
 	// Is service running in development mode.
 	Development bool
@@ -49,18 +53,18 @@ type Service struct {
 //
 //nolint:ireturn
 func (s *Service) lookupSiteAuthenticator(w http.ResponseWriter, req *http.Request) (auth.Authenticator, map[string][]string, bool) {
-	site, ok := waf.GetSite[*Site](req.Context())
+	site, ok := waf.GetSite[*internalSite.Site](req.Context())
 	if !ok {
 		s.InternalServerErrorWithError(w, req, errors.New("no site in request context"))
 		return nil, nil, true
 	}
-	if site.authenticator == nil {
+	if site.Authenticator == nil {
 		errE := errors.New("site has no authenticator configured")
 		errors.Details(errE)["domain"] = site.Domain
 		s.InternalServerErrorWithError(w, req, errE)
 		return nil, nil, true
 	}
-	return site.authenticator, site.Roles, false
+	return site.Authenticator, site.Roles, false
 }
 
 // HasPermission reports whether the caller currently holds the given
@@ -70,7 +74,7 @@ func (s *Service) lookupSiteAuthenticator(w http.ResponseWriter, req *http.Reque
 // "permission denied" error otherwise (including when no site is in
 // ctx). In sync with src/auth/index.ts.
 func (s *Service) HasPermission(ctx context.Context, permission string) errors.E {
-	site, ok := waf.GetSite[*Site](ctx)
+	site, ok := waf.GetSite[*internalSite.Site](ctx)
 	if !ok {
 		return errors.New("permission denied")
 	}
@@ -85,7 +89,7 @@ func (s *Service) HasPermission(ctx context.Context, permission string) errors.E
 // siteRoleNames returns the sorted names of the roles the site declares.
 // It is the set a mock sign-in grants, resolved lazily at sign-in time so
 // roles configured on the site after Init are still picked up.
-func siteRoleNames(site *Site) []string {
+func siteRoleNames(site *internalSite.Site) []string {
 	roles := make([]string, 0, len(site.Roles))
 	for role := range site.Roles {
 		roles = append(roles, role)
@@ -98,7 +102,7 @@ func siteRoleNames(site *Site) []string {
 func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) (*Service, func(), errors.E) {
 	c.Server.Logger = globals.Logger
 
-	sites := map[string]*Site{}
+	sites := map[string]*internalSite.Site{}
 	for i := range globals.Sites {
 		site := &globals.Sites[i]
 
@@ -108,7 +112,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 	if len(sites) == 0 && c.Domain != "" {
 		// If sites are not provided, but default domain is,
 		// we create a site based on the default domain.
-		globals.Sites = []Site{{
+		globals.Sites = []internalSite.Site{{
 			Site: waf.Site{
 				Domain:   c.Domain,
 				CertFile: "",
@@ -123,17 +127,16 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			LanguagePriority:     nil,
 			DefaultLanguage:      "",
 			LanguageCodes:        nil,
-			Features:             SiteFeatures{},
+			Features:             internalSite.SiteFeatures{},
 			Roles:                nil,
-			Auth:                 SiteAuthConfig{},
+			Auth:                 internalSite.SiteAuthConfig{},
 			MetadataHeaderPrefix: "",
-			authenticator:        nil,
+			Authenticator:        nil,
 			Base:                 nil,
 			DBPool:               nil,
 			ESClient:             nil,
 			RiverClient:          nil,
-			debugRiverHandler:    nil,
-			initialized:          false,
+			DebugRiverHandler:    nil,
 		}}
 		sites[c.Domain] = &globals.Sites[0]
 	}
@@ -162,7 +165,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 	// We set build information on sites.
 	if cli.Version != "" || cli.BuildTimestamp != "" || cli.Revision != "" {
 		for _, site := range sites {
-			site.Build = &Build{
+			site.Build = &internalSite.Build{
 				Version:        cli.Version,
 				BuildTimestamp: cli.BuildTimestamp,
 				Revision:       cli.Revision,
@@ -176,7 +179,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 	}
 
 	service := &Service{ //nolint:forcetypeassert
-		Service: waf.Service[*Site]{
+		Service: waf.Service[*internalSite.Site]{
 			Logger:          globals.Logger,
 			CanonicalLogger: globals.Logger,
 			WithContext:     globals.WithContext,
@@ -230,7 +233,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			c.Username,
 			strings.TrimSpace(string(c.Password)),
 			func(req *http.Request) string {
-				return waf.MustGetSite[*Site](req.Context()).Title
+				return waf.MustGetSite[*internalSite.Site](req.Context()).Title
 			},
 		))
 	}
@@ -252,7 +255,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 	for _, site := range sites {
 		// We use a fallback DB context here because we are still in the init path and no request
 		// is in flight yet, so search_path has to be driven from the site's schema.
-		siteCtx := WithFallbackDBContext(ctx, site.Schema, "init")
+		siteCtx := internalStore.WithFallbackDBContext(ctx, site.Schema, "init")
 
 		redirectURI := sync.OnceValue(func() string {
 			host, errE := c.Server.Host(site.Domain)
@@ -268,13 +271,13 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 
 		// Site.Validate makes sure that or all three settings are set or none.
 		if site.Auth.Issuer != "" {
-			site.authenticator, errE = auth.NewOIDCAuthenticator(siteCtx, site.DBPool, site.Auth.Issuer, site.Auth.ClientID, site.Auth.ClientSecret, redirectURI)
+			site.Authenticator, errE = auth.NewOIDCAuthenticator(siteCtx, site.DBPool, site.Auth.Issuer, site.Auth.ClientID, site.Auth.ClientSecret, redirectURI)
 			if errE != nil {
 				return nil, onShutdown, errE
 			}
 			globals.Logger.Info().Str("domain", site.Domain).Str("issuer", site.Auth.Issuer).Str("clientId", site.Auth.ClientID).Msg("OIDC authentication enabled")
 		} else {
-			site.authenticator, errE = auth.NewMockAuthenticator(siteCtx, site.DBPool, site.Domain, func() []string { return siteRoleNames(site) }, redirectURI)
+			site.Authenticator, errE = auth.NewMockAuthenticator(siteCtx, site.DBPool, site.Domain, func() []string { return siteRoleNames(site) }, redirectURI)
 			if errE != nil {
 				return nil, onShutdown, errE
 			}
@@ -311,13 +314,13 @@ func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Hand
 	}
 
 	for _, site := range service.Sites {
-		siteCtx := WithFallbackDBContext(ctx, site.Schema, "prepare")
+		siteCtx := internalStore.WithFallbackDBContext(ctx, site.Schema, "prepare")
 
-		documents, errE := site.fetchDocuments(siteCtx, internalCore.PropertyClassID)
+		documents, errE := site.FetchDocuments(siteCtx, internalCore.PropertyClassID)
 		if errE != nil {
 			return nil, onShutdownF, errE
 		}
-		languages, errE := site.fetchDocuments(siteCtx, internalCore.LanguageClassID)
+		languages, errE := site.FetchDocuments(siteCtx, internalCore.LanguageClassID)
 		if errE != nil {
 			return nil, onShutdownF, errE
 		}

@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
+
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -29,7 +31,7 @@ import (
 // InitSites sets up default site configuration and build information if needed.
 func InitSites(globals *Globals) {
 	if len(globals.Sites) == 0 {
-		globals.Sites = []Site{{
+		globals.Sites = []internalSite.Site{{
 			Site: waf.Site{
 				Domain:   "",
 				CertFile: "",
@@ -44,17 +46,16 @@ func InitSites(globals *Globals) {
 			LanguagePriority:     nil,
 			DefaultLanguage:      "",
 			LanguageCodes:        nil,
-			Features:             SiteFeatures{},
+			Features:             internalSite.SiteFeatures{},
 			Roles:                nil,
-			Auth:                 SiteAuthConfig{},
+			Auth:                 internalSite.SiteAuthConfig{},
 			MetadataHeaderPrefix: "",
-			authenticator:        nil,
+			Authenticator:        nil,
 			Base:                 nil,
 			DBPool:               nil,
 			ESClient:             nil,
 			RiverClient:          nil,
-			debugRiverHandler:    nil,
-			initialized:          false,
+			DebugRiverHandler:    nil,
 		}}
 	}
 
@@ -62,7 +63,7 @@ func InitSites(globals *Globals) {
 	if cli.Version != "" || cli.BuildTimestamp != "" || cli.Revision != "" {
 		for i := range globals.Sites {
 			site := &globals.Sites[i]
-			site.Build = &Build{
+			site.Build = &internalSite.Build{
 				Version:        cli.Version,
 				BuildTimestamp: cli.BuildTimestamp,
 				Revision:       cli.Revision,
@@ -73,15 +74,15 @@ func InitSites(globals *Globals) {
 
 // startAndWaitSite starts the base for a site, runs optional beforeWait,
 // then waits for indexing to catch up, and refreshes the ElasticSearch index.
-func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site Site, beforeWait func(ctx context.Context) errors.E) (func(), errors.E) {
+func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site internalSite.Site, beforeWait func(ctx context.Context) errors.E) (func(), errors.E) {
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
-	ctx = WithFallbackDBContext(ctx, site.Schema, "db")
+	ctx = internalStore.WithFallbackDBContext(ctx, site.Schema, "db")
 
-	documents, errE := site.fetchDocuments(ctx, internalCore.PropertyClassID)
+	documents, errE := site.FetchDocuments(ctx, internalCore.PropertyClassID)
 	if errE != nil {
 		return nil, errE
 	}
-	languages, errE := site.fetchDocuments(ctx, internalCore.LanguageClassID)
+	languages, errE := site.FetchDocuments(ctx, internalCore.LanguageClassID)
 	if errE != nil {
 		return nil, errE
 	}
@@ -319,7 +320,7 @@ func (c *DBVacuumCommand) Run(globals *Globals) errors.E {
 		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("vacuuming")
 
 		// We set fallback context values which are used to set application name on PostgreSQL connections.
-		siteCtx := WithFallbackDBContext(ctx, site.Schema, "vacuum")
+		siteCtx := internalStore.WithFallbackDBContext(ctx, site.Schema, "vacuum")
 
 		errE = vacuumSchema(siteCtx, dbpool, site.Schema)
 		if errE != nil {
@@ -404,7 +405,7 @@ func (c *DBExportCommand) Run(globals *Globals) (returnErr errors.E) { //nolint:
 		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("exporting")
 
 		// We set fallback context values which are used to set application name on PostgreSQL connections.
-		siteCtx := WithFallbackDBContext(ctx, site.Schema, "export")
+		siteCtx := internalStore.WithFallbackDBContext(ctx, site.Schema, "export")
 
 		onS, errE := startAndWaitSite(siteCtx, globals.Logger, site, nil)
 		onShutdown = append(onShutdown, onS)
@@ -490,7 +491,7 @@ func (c *DBWipeCommand) Run(globals *Globals) errors.E {
 		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("wiping")
 
 		// We set fallback context values which are used to set application name on PostgreSQL connections.
-		siteCtx := WithFallbackDBContext(ctx, site.Schema, "wipe")
+		siteCtx := internalStore.WithFallbackDBContext(ctx, site.Schema, "wipe")
 
 		errE = internalStore.RetryTransaction(siteCtx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 			_, err := tx.Exec(ctx, fmt.Sprintf(`DROP SCHEMA IF EXISTS "%s" CASCADE`, site.Schema))

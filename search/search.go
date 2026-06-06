@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
+
 	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
@@ -543,8 +545,10 @@ type SessionData struct {
 	Reverse  *identifier.Identifier `json:"reverse,omitempty"`
 }
 
-// Validate validates the session data .
-func (s *SessionData) Validate(withoutSession bool) errors.E {
+// Validate validates the session data.
+//
+// Validate uses ctx with Site.
+func (s *SessionData) Validate(ctx context.Context, withoutSession bool) errors.E {
 	seenFilters := map[identifier.Identifier]bool{}
 	for i, f := range s.Filters {
 		errE := f.Validate(withoutSession)
@@ -574,6 +578,13 @@ func (s *SessionData) Validate(withoutSession bool) errors.E {
 			return errE
 		}
 	}
+
+	st := waf.MustGetSite[*internalSite.Site](ctx)
+	resolved, errE := internalSearch.ResolveLanguage(s.Language, st.LanguagePriority, st.DefaultLanguage)
+	if errE != nil {
+		return errE
+	}
+	s.Language = resolved
 
 	return nil
 }
@@ -746,7 +757,7 @@ type Session struct {
 }
 
 // Validate validates the Session struct.
-func (s *Session) Validate() errors.E {
+func (s *Session) Validate(ctx context.Context) errors.E {
 	if len(s.Base) < 2 { //nolint:mnd
 		errE := errors.New("base must have at least two elements")
 		errors.Details(errE)["length"] = len(s.Base)
@@ -761,7 +772,7 @@ func (s *Session) Validate() errors.E {
 		return errE
 	}
 
-	return s.SessionData.Validate(false)
+	return s.SessionData.Validate(ctx, false)
 }
 
 func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operator, enabledLanguages []string) types.QueryVariant { //nolint:ireturn
@@ -909,8 +920,8 @@ var searches = sync.Map{} //nolint:gochecknoglobals
 // TODO: Return (and log) and error on invalid search requests (e.g., filters).
 
 // CreateSession creates a new search session.
-func CreateSession(_ context.Context, session *Session) errors.E {
-	errE := session.Validate()
+func CreateSession(ctx context.Context, session *Session) errors.E {
+	errE := session.Validate(ctx)
 	if errE != nil {
 		return errors.WrapWith(errE, ErrValidationFailed)
 	}
@@ -924,8 +935,8 @@ func CreateSession(_ context.Context, session *Session) errors.E {
 }
 
 // UpdateSession updates an existing search session.
-func UpdateSession(_ context.Context, session *Session) errors.E {
-	errE := session.Validate()
+func UpdateSession(ctx context.Context, session *Session) errors.E {
+	errE := session.Validate(ctx)
 	if errE != nil {
 		return errors.WrapWith(errE, ErrValidationFailed)
 	}

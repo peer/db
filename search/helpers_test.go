@@ -14,11 +14,20 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
+	"gitlab.com/tozd/waf"
 
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
 	"gitlab.com/peerdb/peerdb/internal/testutils"
 	"gitlab.com/peerdb/peerdb/search"
 )
+
+// siteContext returns ctx with a minimal site stored in it so that site-aware code (such as
+// SessionData.Validate, which calls waf.MustGetSite) works in tests. The site has no
+// LanguagePriority, so the session language resolves to the package default language.
+func siteContext(ctx context.Context) context.Context {
+	return waf.WithSite[*internalSite.Site](ctx, &internalSite.Site{})
+}
 
 // initES creates and configures an ES client and a test index.
 // It returns the client, a search service factory, and the index name.
@@ -216,7 +225,7 @@ func createSession(t *testing.T, ctx context.Context, data search.SessionData) *
 		Version:     0,
 	}
 
-	errE := search.CreateSession(ctx, session)
+	errE := search.CreateSession(siteContext(ctx), session)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	return session

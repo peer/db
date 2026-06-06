@@ -7,6 +7,8 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/zerolog"
 	"gitlab.com/tozd/waf"
+
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
 )
 
 const (
@@ -51,7 +53,7 @@ type Globals struct {
 	Postgres PostgresConfig `embed:"" envprefix:"POSTGRES_" prefix:"postgres." yaml:"postgres"`
 	Elastic  ElasticConfig  `embed:"" envprefix:"ELASTIC_"  prefix:"elastic."  yaml:"elastic"`
 
-	Sites []Site `help:"Site configuration as JSON or YAML. Can be provided multiple times." name:"site" placeholder:"SITE" sep:"none" short:"s" yaml:"sites"`
+	Sites []internalSite.Site `help:"Site configuration as JSON or YAML. Can be provided multiple times." name:"site" placeholder:"SITE" sep:"none" short:"s" yaml:"sites"`
 }
 
 // Validate validates the global configuration.
@@ -102,21 +104,11 @@ type Config struct {
 	DB       DBCommand       `cmd:""                    help:"Manage database."                  yaml:"db"`
 }
 
-// SiteAuthConfig contains per-site configuration for OIDC-based authentication.
-// Each site has its own client because the redirect URI is per-domain and
-// most OIDC providers register redirect URIs as fixed strings rather than
-// templates.
-type SiteAuthConfig struct {
-	Issuer       string `json:"-" yaml:"issuer,omitempty"`
-	ClientID     string `json:"-" yaml:"clientId,omitempty"`
-	ClientSecret string `json:"-" yaml:"clientSecret,omitempty"`
-}
-
 // ServeCommand contains configuration for the serve command.
 //
 //nolint:lll
 type ServeCommand struct {
-	Server waf.Server[*Site] `embed:"" yaml:",inline"`
+	Server waf.Server[*internalSite.Site] `embed:"" yaml:",inline"`
 
 	Username string               `                    help:"Require authentication to access all sites. Its username."                    yaml:"username"`
 	Password kong.FileContentFlag `env:"PASSWORD_PATH" help:"Require authentication to access all sites. Its password." placeholder:"PATH" yaml:"password"`

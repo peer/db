@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
+
 	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
@@ -27,22 +29,8 @@ import (
 // enabledSearchLanguages returns the indexed language set for the site serving the request,
 // used to scope the text-search query to the languages the index actually has.
 func enabledSearchLanguages(ctx context.Context) []string {
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 	return internalSearch.EnabledLanguages(site.LanguagePriority)
-}
-
-// resolveSessionLanguage defaults an empty session language to the site's default language (or to the
-// global default when the site sets no LanguagePriority) and validates a set language against the
-// site's enabled languages, mutating sd.Language in place. The returned error wraps
-// search.ErrValidationFailed for an unsupported language.
-func resolveSessionLanguage(ctx context.Context, sd *search.SessionData) errors.E {
-	site := waf.MustGetSite[*Site](ctx)
-	resolved, errE := internalSearch.ResolveLanguage(sd.Language, site.LanguagePriority, site.DefaultLanguage)
-	if errE != nil {
-		return errors.WrapWith(errE, search.ErrValidationFailed)
-	}
-	sd.Language = resolved
-	return nil
 }
 
 // searchAccessFilter returns the site's optional per-caller search restriction
@@ -50,7 +38,7 @@ func resolveSessionLanguage(ctx context.Context, sd *search.SessionData) errors.
 // site sets no hook. It is added as a filter clause to every search query so
 // results and facets only include documents the caller may access.
 func searchAccessFilter(ctx context.Context) (types.QueryVariant, errors.E) { //nolint:ireturn
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 	if site.Base.SearchQueryHook == nil {
 		// No hook means no restriction.
 		return nil, nil //nolint:nilnil
@@ -80,7 +68,7 @@ func sessionQueryExcluding(ctx context.Context, session *search.Session, exclude
 func (s *Service) getSearchService(req *http.Request) *esSearch.Search {
 	ctx := req.Context()
 
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	// We set TrackTotalHits to true to always get exact number of results. For now we didn't notice any performance
 	// issues at data scale PeerDB is currently being used with, but in the future we might want to make this configurable.
@@ -113,7 +101,7 @@ type scoreFactorEntry struct {
 // scoreFactor returns the counts.score ranking boost factor for the site serving the
 // request, computed via search.ScoreFactor and cached per index for scoreFactorTTL.
 func (s *Service) scoreFactor(ctx context.Context, req *http.Request) (float64, errors.E) {
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	// We hold the cache lock only long enough to get or create the per-index entry,
 	// so computing one site's factor does not block requests for other sites.
@@ -793,15 +781,9 @@ func (s *Service) SearchJustResultsPostAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	errE = searchData.Validate(true)
+	errE = searchData.Validate(ctx, true)
 	if errE != nil {
 		errE = errors.WrapWith(errE, search.ErrValidationFailed)
-		s.BadRequestWithError(w, req, errE)
-		return
-	}
-
-	errE = resolveSessionLanguage(ctx, &searchData)
-	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
 	}
@@ -888,7 +870,7 @@ func (s *Service) SearchCreatePostAPI(w http.ResponseWriter, req *http.Request, 
 
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	var request createSessionRequest
 	errE := x.DecodeJSONWithoutUnknownFields(req.Body, &request)
@@ -907,11 +889,6 @@ func (s *Service) SearchCreatePostAPI(w http.ResponseWriter, req *http.Request, 
 		Language: request.Language,
 		Filters:  nil,
 		Reverse:  nil,
-	}
-	errE = resolveSessionLanguage(ctx, &sessionData)
-	if errE != nil {
-		s.BadRequestWithError(w, req, errE)
-		return
 	}
 
 	searchSession := &search.Session{
@@ -953,12 +930,6 @@ func (s *Service) SearchUpdatePostAPI(w http.ResponseWriter, req *http.Request, 
 
 	var searchData search.SessionData
 	errE := x.DecodeJSONWithoutUnknownFields(req.Body, &searchData)
-	if errE != nil {
-		s.BadRequestWithError(w, req, errE)
-		return
-	}
-
-	errE = resolveSessionLanguage(ctx, &searchData)
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -1018,7 +989,7 @@ type shortcutPropKey struct {
 // parseSearchShortcutQuery parses query parameters using the search shortcut grammar
 // described on SearchShortcutGet into a search.Session.
 func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Session, errors.E) {
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	// Group values by property.
 	filterMap := map[shortcutPropKey][]search.ToValue{}
@@ -1106,11 +1077,6 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 		})
 	}
 
-	errE := resolveSessionLanguage(ctx, &searchData)
-	if errE != nil {
-		return nil, errE
-	}
-
 	searchSession := &search.Session{
 		SessionData: searchData,
 		ID:          id,
@@ -1118,7 +1084,7 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 		Version:     0,
 	}
 
-	errE = searchSession.Validate()
+	errE := searchSession.Validate(ctx)
 	if errE != nil {
 		return nil, errors.WrapWith(errE, search.ErrValidationFailed)
 	}

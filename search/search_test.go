@@ -547,7 +547,7 @@ func TestSessionValidate(t *testing.T) {
 			Base:        base,
 			Version:     0,
 		}
-		err := s.Validate()
+		err := s.Validate(siteContext(t.Context()))
 		require.NoError(t, err)
 		assert.Equal(t, search.ViewFeed, s.View)
 	})
@@ -560,7 +560,7 @@ func TestSessionValidate(t *testing.T) {
 			Base:        []string{"short"},
 			Version:     0,
 		}
-		err := s.Validate()
+		err := s.Validate(siteContext(t.Context()))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "base must have at least two elements")
 	})
@@ -575,7 +575,7 @@ func TestSessionValidate(t *testing.T) {
 			Base:        base,
 			Version:     0,
 		}
-		err := s.Validate()
+		err := s.Validate(siteContext(t.Context()))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid session ID")
 	})
@@ -589,7 +589,7 @@ func TestSessionValidate(t *testing.T) {
 			Base:        base,
 			Version:     0,
 		}
-		err := s.Validate()
+		err := s.Validate(siteContext(t.Context()))
 		require.NoError(t, err)
 		assert.Equal(t, search.ViewFeed, s.View)
 	})
@@ -603,7 +603,7 @@ func TestSessionValidate(t *testing.T) {
 			Base:        base,
 			Version:     0,
 		}
-		err := s.Validate()
+		err := s.Validate(siteContext(t.Context()))
 		require.NoError(t, err)
 		assert.Equal(t, search.ViewTable, s.View)
 	})
@@ -617,7 +617,7 @@ func TestSessionValidate(t *testing.T) {
 			Base:        base,
 			Version:     0,
 		}
-		err := s.Validate()
+		err := s.Validate(siteContext(t.Context()))
 		require.Error(t, err)
 		assert.EqualError(t, err, "invalid view")
 	})
@@ -640,7 +640,7 @@ func TestSessionValidate(t *testing.T) {
 			Base:    base,
 			Version: 0,
 		}
-		err := s.Validate()
+		err := s.Validate(siteContext(t.Context()))
 		require.Error(t, err)
 		assert.EqualError(t, err, "to, direct, or missing has to be set")
 	})
@@ -663,7 +663,7 @@ func TestSessionValidate(t *testing.T) {
 			Base:    base,
 			Version: 0,
 		}
-		err := s.Validate()
+		err := s.Validate(siteContext(t.Context()))
 		require.NoError(t, err)
 	})
 
@@ -676,7 +676,7 @@ func TestSessionValidate(t *testing.T) {
 			Base:        base,
 			Version:     0,
 		}
-		err := s.Validate()
+		err := s.Validate(siteContext(t.Context()))
 		require.NoError(t, err)
 	})
 }
@@ -687,7 +687,7 @@ func TestSessionDataValidate(t *testing.T) {
 	t.Run("DefaultView", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{Language: "", View: "", Query: "test", Filters: nil, Reverse: nil}
-		err := data.Validate(false)
+		err := data.Validate(siteContext(t.Context()), false)
 		require.NoError(t, err)
 		assert.Equal(t, search.ViewFeed, data.View)
 	})
@@ -695,7 +695,7 @@ func TestSessionDataValidate(t *testing.T) {
 	t.Run("InvalidView", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{Language: "", View: "grid", Query: "test", Filters: nil, Reverse: nil}
-		err := data.Validate(false)
+		err := data.Validate(siteContext(t.Context()), false)
 		require.Error(t, err)
 		assert.EqualError(t, err, "invalid view")
 	})
@@ -712,7 +712,7 @@ func TestSessionDataValidate(t *testing.T) {
 			},
 			Reverse: nil,
 		}
-		err := data.Validate(false)
+		err := data.Validate(siteContext(t.Context()), false)
 		require.NoError(t, err)
 	})
 
@@ -727,7 +727,7 @@ func TestSessionDataValidate(t *testing.T) {
 			},
 			Reverse: nil,
 		}
-		err := data.Validate(false)
+		err := data.Validate(siteContext(t.Context()), false)
 		require.Error(t, err)
 		assert.EqualError(t, err, "to, direct, or missing has to be set")
 	})
@@ -854,7 +854,7 @@ func TestSessionDataValidateReverse(t *testing.T) {
 	t.Run("ReverseSet", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{Language: "", View: "", Query: "test", Filters: nil, Reverse: &reverseID}
-		err := data.Validate(false)
+		err := data.Validate(siteContext(t.Context()), false)
 		require.NoError(t, err)
 	})
 
@@ -889,7 +889,7 @@ func TestCreateSession(t *testing.T) {
 		Base:        base,
 		Version:     0,
 	}
-	errE := search.CreateSession(ctx, s)
+	errE := search.CreateSession(siteContext(ctx), s)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.NotEqual(t, identifier.Identifier{}, s.ID)
 	assert.Equal(t, 0, s.Version)
@@ -912,7 +912,7 @@ func TestCreateSessionValidationError(t *testing.T) {
 		Base:        []string{"bad"},
 		Version:     0,
 	}
-	errE := search.CreateSession(ctx, s)
+	errE := search.CreateSession(siteContext(ctx), s)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "validation failed")
 }
@@ -930,7 +930,7 @@ func TestUpdateSession(t *testing.T) {
 		Base:        base,
 		Version:     0,
 	}
-	errE := search.CreateSession(ctx, s)
+	errE := search.CreateSession(siteContext(ctx), s)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	id := s.ID
@@ -942,7 +942,7 @@ func TestUpdateSession(t *testing.T) {
 		Base:        base,
 		Version:     1,
 	}
-	errE = search.UpdateSession(ctx, updated)
+	errE = search.UpdateSession(siteContext(ctx), updated)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Verify update.
@@ -962,7 +962,7 @@ func TestUpdateSessionMissingBase(t *testing.T) {
 		SessionData: search.SessionData{Language: "", View: "", Query: "test", Filters: nil, Reverse: nil},
 		Version:     0,
 	}
-	errE := search.UpdateSession(ctx, s)
+	errE := search.UpdateSession(siteContext(ctx), s)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "validation failed")
 }
@@ -979,7 +979,7 @@ func TestUpdateSessionValidationError(t *testing.T) {
 		Base:        base,
 		Version:     0,
 	}
-	errE := search.CreateSession(ctx, s)
+	errE := search.CreateSession(siteContext(ctx), s)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	id := s.ID
 
@@ -989,7 +989,7 @@ func TestUpdateSessionValidationError(t *testing.T) {
 		Base:        base,
 		Version:     1,
 	}
-	errE = search.UpdateSession(ctx, updated)
+	errE = search.UpdateSession(siteContext(ctx), updated)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "validation failed")
 }
@@ -1006,7 +1006,7 @@ func TestGetSession(t *testing.T) {
 		Base:        base,
 		Version:     0,
 	}
-	errE := search.CreateSession(ctx, s)
+	errE := search.CreateSession(siteContext(ctx), s)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	retrieved, errE := search.GetSession(ctx, s.ID)
@@ -1031,7 +1031,7 @@ func TestGetSessionFromID(t *testing.T) {
 		Base:        base,
 		Version:     0,
 	}
-	errE := search.CreateSession(ctx, s)
+	errE := search.CreateSession(siteContext(ctx), s)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	retrieved, errE := search.GetSessionFromID(ctx, s.ID.String())
@@ -1064,7 +1064,7 @@ func TestCreateAndUpdateSessionRoundTrip(t *testing.T) {
 		Base:        base,
 		Version:     0,
 	}
-	errE := search.CreateSession(ctx, s)
+	errE := search.CreateSession(siteContext(ctx), s)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	id := s.ID
 
@@ -1081,7 +1081,7 @@ func TestCreateAndUpdateSessionRoundTrip(t *testing.T) {
 		Base:    base,
 		Version: 1,
 	}
-	errE = search.UpdateSession(ctx, s2)
+	errE = search.UpdateSession(siteContext(ctx), s2)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	s3 := &search.Session{
@@ -1090,7 +1090,7 @@ func TestCreateAndUpdateSessionRoundTrip(t *testing.T) {
 		Base:        base,
 		Version:     2,
 	}
-	errE = search.UpdateSession(ctx, s3)
+	errE = search.UpdateSession(siteContext(ctx), s3)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	final, errE := search.GetSession(ctx, id)

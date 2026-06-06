@@ -4,6 +4,8 @@ import (
 	"io"
 	"net/http"
 
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
+
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/waf"
 
@@ -30,9 +32,9 @@ func (s *Service) AuthSignInGet(w http.ResponseWriter, req *http.Request, _ waf.
 	w.Header().Set("Cache-Control", "no-store")
 
 	ctx := req.Context()
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
-	authURL, errE := site.authenticator.SignIn(ctx, req.Form.Get(signInRedirectQueryParam))
+	authURL, errE := site.Authenticator.SignIn(ctx, req.Form.Get(signInRedirectQueryParam))
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -54,9 +56,9 @@ func (s *Service) AuthCallbackGet(w http.ResponseWriter, req *http.Request, _ wa
 	w.Header().Set("Cache-Control", "no-store")
 
 	ctx := req.Context()
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
-	accessToken, expiry, redirect, errE := site.authenticator.Callback(ctx, req.Form)
+	accessToken, expiry, redirect, errE := site.Authenticator.Callback(ctx, req.Form)
 	if errE != nil {
 		if errors.Is(errE, auth.ErrSignInFailed) {
 			s.BadRequestWithError(w, req, errE)
@@ -81,9 +83,9 @@ func (s *Service) AuthSignOutPostAPI(w http.ResponseWriter, req *http.Request, _
 	w.Header().Set("Cache-Control", "no-store")
 
 	ctx := req.Context()
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
-	errE := site.authenticator.SignOut(w, req)
+	errE := site.Authenticator.SignOut(w, req)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return

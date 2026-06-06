@@ -1,4 +1,4 @@
-package peerdb
+package site
 
 import (
 	"context"
@@ -39,6 +39,16 @@ type SiteFeatures struct {
 	// when indexing: a claim for property X is also indexed for every ancestor of X
 	// via SUBPROPERTY_OF. Disabled by default. Backend-only; not exposed to the frontend.
 	IndexAncestorProperties bool `json:"-" yaml:"indexAncestorProperties,omitempty"`
+}
+
+// SiteAuthConfig contains per-site configuration for OIDC-based authentication.
+// Each site has its own client because the redirect URI is per-domain and
+// most OIDC providers register redirect URIs as fixed strings rather than
+// templates.
+type SiteAuthConfig struct {
+	Issuer       string `json:"-" yaml:"issuer,omitempty"`
+	ClientID     string `json:"-" yaml:"clientId,omitempty"`
+	ClientSecret string `json:"-" yaml:"clientSecret,omitempty"`
 }
 
 // Site represents a single site in the PeerDB application with its configuration and state.
@@ -85,13 +95,13 @@ type Site struct {
 	ESClient    *elasticsearch.TypedClient `json:"-" yaml:"-"`
 	RiverClient *river.Client[pgx.Tx]      `json:"-" yaml:"-"`
 
-	// authenticator drives sign-in (SignIn / Callback), sign-out (SignOut)
+	// Authenticator drives sign-in (SignIn / Callback), sign-out (SignOut)
 	// and request-time token validation (Authenticate) for this site.
-	authenticator auth.Authenticator
+	Authenticator auth.Authenticator
 
-	// debugRiverHandler is the River UI handler mounted at /debug/river.
+	// DebugRiverHandler is the River UI handler mounted at /debug/river.
 	// Populated only in development mode.
-	debugRiverHandler http.Handler
+	DebugRiverHandler http.Handler
 
 	initialized bool
 }
@@ -146,7 +156,9 @@ func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifi
 	return search.FetchDocumentIDs(ctx, s.ESClient, s.Index, []identifier.Identifier{classID})
 }
 
-func (s *Site) fetchDocuments(ctx context.Context, classID identifier.Identifier) ([]*document.D, errors.E) {
+// FetchDocuments returns all documents that are instances of classID by loading their latest stored
+// versions. It is used to load the property and language documents a site needs at startup.
+func (s *Site) FetchDocuments(ctx context.Context, classID identifier.Identifier) ([]*document.D, errors.E) {
 	allIDs, errE := s.fetchDocumentIDs(ctx, classID)
 	if errE != nil {
 		return nil, errE

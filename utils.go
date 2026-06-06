@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
+
 	"gitlab.com/tozd/waf"
 
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
@@ -42,7 +44,7 @@ func getHost(hostPort string) string {
 
 func getRequestWithFallback() func(context.Context) (string, string) {
 	return internalStore.GetRequestWithFallback(func(ctx context.Context) string {
-		site, ok := waf.GetSite[*Site](ctx)
+		site, ok := waf.GetSite[*internalSite.Site](ctx)
 		if ok {
 			return site.Schema
 		}

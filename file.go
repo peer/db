@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
+
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
@@ -67,7 +69,7 @@ func (s *Service) StorageBeginUploadPostAPI(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	// TODO: Support configuring base and not just use the domain.
 	base := []string{site.Domain}
@@ -131,7 +133,7 @@ func (s *Service) StorageUploadChunkPostAPI(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	errE = site.Base.UploadChunk(ctx, session, buffer, start)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
@@ -172,7 +174,7 @@ func (s *Service) StorageListChunksGetAPI(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	chunks, errE := site.Base.ListChunks(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
@@ -219,7 +221,7 @@ func (s *Service) StorageGetChunkGetAPI(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	start, length, errE := site.Base.GetChunk(ctx, session, chunk)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
@@ -270,7 +272,7 @@ func (s *Service) StorageEndUploadPostAPI(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	errE = site.Base.EndUpload(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
@@ -319,7 +321,7 @@ func (s *Service) StorageDiscardUploadPostAPI(w http.ResponseWriter, req *http.R
 		return
 	}
 
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	errE = site.Base.DiscardUpload(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
@@ -355,7 +357,7 @@ func (s *Service) StorageUploadGetAPI(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	sessionEnded, completeMetadata, errE := site.Base.GetUploadSession(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
@@ -413,7 +415,7 @@ func (s *Service) StorageGetGet(w http.ResponseWriter, req *http.Request, params
 		reqVersion = &v
 	}
 
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	var data []byte
 	var metadata *storage.FileMetadata
@@ -457,7 +459,7 @@ func (s *Service) StorageChangesGetAPI(w http.ResponseWriter, req *http.Request,
 	}
 
 	s.changesetChangesGetAPI(w, req, params, func(ctx context.Context, changesetID identifier.Identifier, after *identifier.Identifier) ([]store.Change, errors.E) {
-		cs, errE := waf.MustGetSite[*Site](ctx).Base.FileChangeset(ctx, changesetID)
+		cs, errE := waf.MustGetSite[*internalSite.Site](ctx).Base.FileChangeset(ctx, changesetID)
 		if errE != nil {
 			return nil, errE
 		}
@@ -487,7 +489,7 @@ func (s *Service) StorageChangesGetGet(w http.ResponseWriter, req *http.Request,
 		return
 	}
 
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	// Revision 0 means latest revision.
 	data, metadata, version, _, errE := site.Base.GetFileFromChangeset(ctx, changesetID, id, 0)
