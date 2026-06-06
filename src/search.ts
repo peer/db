@@ -2,6 +2,7 @@ import type { DeepReadonly, Ref } from "vue"
 import type { Router } from "vue-router"
 
 import type {
+  CreateSearchSessionRequest,
   CreateSearchSessionResponse,
   FilterResult,
   HasFilterResult,
@@ -25,52 +26,25 @@ import { anySignal, encodeQuery } from "@/utils"
 export const FILTERS_INITIAL_LIMIT = 10
 export const FILTERS_INCREASE = 10
 
-// createSearchSession creates a new empty session, then updates it with the provided data.
-export async function createSearchSession(
-  router: Router,
-  searchDataFn: (base: string[]) => Promise<SearchSessionData>,
-  abortSignal: AbortSignal,
-  progress: Ref<number>,
-  replace: boolean,
-) {
-  // Step 1: Create an empty session to get its Base/ID.
-  const createResponse = await postJSON<CreateSearchSessionResponse>(
+// createSearchSession creates a new search session for the query and navigates to it.
+export async function createSearchSession(router: Router, query: string, abortSignal: AbortSignal, progress: Ref<number>): Promise<void> {
+  const response = await postJSON<CreateSearchSessionResponse>(
     router.apiResolve({
       name: "SearchCreate",
     }).href,
-    {},
+    { query } satisfies CreateSearchSessionRequest,
     abortSignal,
     progress,
   )
   if (abortSignal.aborted) {
     return
   }
-
-  const searchData = await searchDataFn(createResponse.base)
-
-  // Step 2: If there is data to set, update the session.
-  if (searchData.query || (searchData.filters && searchData.filters.length > 0) || searchData.view || searchData.reverse) {
-    await updateSearchSession(router, createResponse.id, searchData, abortSignal, progress)
-    if (abortSignal.aborted) {
-      return
-    }
-  }
-
-  if (replace) {
-    await router.replace({
-      name: "SearchGet",
-      params: {
-        id: createResponse.id,
-      },
-    })
-  } else {
-    await router.push({
-      name: "SearchGet",
-      params: {
-        id: createResponse.id,
-      },
-    })
-  }
+  await router.push({
+    name: "SearchGet",
+    params: {
+      id: response.id,
+    },
+  })
 }
 
 // createShortcutSession creates a session from the search shortcut navigates to it.

@@ -854,7 +854,13 @@ type createSessionResponse struct {
 	Version int                   `json:"version"`
 }
 
-// SearchCreatePostAPI is a POST HTTP API request handler which creates a new empty search session.
+// createSessionRequest is the JSON body of SearchCreatePostAPI. Its optional query
+// field sets the initial full-text query of the new search session.
+type createSessionRequest struct {
+	Query string `json:"query,omitempty"`
+}
+
+// SearchCreatePostAPI is a POST HTTP API request handler which creates a new search session.
 func (s *Service) SearchCreatePostAPI(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
@@ -863,8 +869,8 @@ func (s *Service) SearchCreatePostAPI(w http.ResponseWriter, req *http.Request, 
 	metrics := waf.MustGetMetrics(ctx)
 	site := waf.MustGetSite[*Site](ctx)
 
-	var ea emptyRequest
-	errE := x.DecodeJSONWithoutUnknownFields(req.Body, &ea)
+	var request createSessionRequest
+	errE := x.DecodeJSONWithoutUnknownFields(req.Body, &request)
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -877,7 +883,7 @@ func (s *Service) SearchCreatePostAPI(w http.ResponseWriter, req *http.Request, 
 	searchSession := &search.Session{
 		SessionData: search.SessionData{
 			View:    search.ViewFeed,
-			Query:   "",
+			Query:   request.Query,
 			Filters: nil,
 			Reverse: nil,
 		},

@@ -37,16 +37,7 @@ async function onSubmit() {
 
   busy.value += 1
   try {
-    await createSearchSession(
-      router,
-      () =>
-        Promise.resolve({
-          query: searchQuery.value,
-        }),
-      abortController.signal,
-      busy,
-      false,
-    )
+    await createSearchSession(router, searchQuery.value, abortController.signal, busy)
   } catch (err) {
     if (abortController.signal.aborted) {
       return

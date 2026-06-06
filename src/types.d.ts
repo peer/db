@@ -141,6 +141,11 @@ export type SearchSessionData = {
   reverse?: string
 }
 
+// Request body for creating a new search session. The optional query sets the initial full-text query.
+export type CreateSearchSessionRequest = {
+  query?: string
+}
+
 // Response from creating a new search session.
 export type CreateSearchSessionResponse = {
   id: string
