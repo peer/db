@@ -253,13 +253,20 @@ type Converter struct {
 	// getDocumentFunc fetches a document by ID from the store. Call the getDocument method instead of
 	// using this field directly, so fetches are cached in getDocumentCache and counted.
 	getDocumentFunc func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E)
-	// documentInfoMu protects documentInfoCache for concurrent access.
+	// documentInfoMu protects documentInfoCache and infoDependents for concurrent access.
 	documentInfoMu sync.RWMutex
 	// documentInfoCache caches computed document info (display strings and hierarchy ancestors) per
 	// document ID. The bridge invalidates entries for documents changed in each commit via
 	// InvalidateCaches, so a changed document is recomputed from its new version.
 	// TODO: Bound this cache (for example with an LRU) to limit memory usage; it currently grows unbounded.
 	documentInfoCache map[identifier.Identifier]documentInfo
+	// infoDependents maps a document ID to the set of document IDs whose cached documentInfo rendered
+	// it into their display strings (fetched it via getDocument while rendering, for example a class
+	// display template or a document embedded into a label). When the mapped-from document changes,
+	// those dependents' display strings are stale, so InvalidateCaches drops their documentInfo too.
+	// TODO: Bound this map (for example with an LRU) and prune dependents whose documentInfo has been evicted.
+	//       It currently grows unbounded and may retain a dependent until its key is invalidated.
+	infoDependents map[identifier.Identifier]map[identifier.Identifier]bool
 	// getDocumentMu protects getDocumentCache for concurrent access.
 	getDocumentMu sync.RWMutex
 	// getDocumentCache caches raw documents fetched via getDocument, keyed by document ID.
@@ -287,10 +294,22 @@ type ConversionStats struct {
 	FetchDuration time.Duration
 }
 
+// DisplayDependencies collects the document IDs fetched via getDocument while a document's display
+// strings are being rendered, so the document's documentInfo can be invalidated when one of those
+// fetched documents changes (its content is rendered into the display label).
+type DisplayDependencies struct {
+	ids map[identifier.Identifier]bool
+}
+
 // getDocument returns the document for the given ID, caching fetched documents in getDocumentCache.
 // Errors (including not-found) are not cached so a later insert is picked up. The bridge invalidates
 // cached entries for documents changed in each commit via InvalidateCaches.
 func (c *Converter) getDocument(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
+	// While a document's display strings are being rendered, record that its documentInfo depends on
+	// this fetched document, whether or not it is served from the cache.
+	if deps := displayDependenciesFromContext(ctx); deps != nil {
+		deps.ids[id] = true
+	}
 	c.getDocumentMu.RLock()
 	doc, ok := c.getDocumentCache[id]
 	c.getDocumentMu.RUnlock()
@@ -316,8 +335,14 @@ func (c *Converter) getDocument(ctx context.Context, id identifier.Identifier) (
 	return doc, nil
 }
 
-// InvalidateCaches drops any cached document info and fetched document for the given IDs. The bridge
-// calls this for the documents changed in each commit.
+// InvalidateCaches drops any cached document info and fetched document for the given IDs, and the
+// cached documentInfo of every other document that depends on one of these documents (tracked via
+// infoDependents): documents that rendered one into their display strings (a class display template
+// or a document embedded into a label) and documents that have one as a transitive hierarchy ancestor
+// (whose display is embedded into their display paths, and identity into their ancestors and id
+// paths). The bridge calls this for the documents changed in each commit, so later conversions
+// recompute display strings and hierarchy, and re-fetch content, from the new versions rather than
+// from stale cached data.
 func (c *Converter) InvalidateCaches(ids ...identifier.Identifier) {
 	if len(ids) == 0 {
 		return
@@ -325,6 +350,12 @@ func (c *Converter) InvalidateCaches(ids ...identifier.Identifier) {
 	c.documentInfoMu.Lock()
 	for _, id := range ids {
 		delete(c.documentInfoCache, id)
+		// Second order: a changed document's content is rendered into the display strings of every
+		// document that fetched it via getDocument, so those dependents' cached documentInfo is stale.
+		for dependent := range c.infoDependents[id] {
+			delete(c.documentInfoCache, dependent)
+		}
+		delete(c.infoDependents, id)
 	}
 	c.documentInfoMu.Unlock()
 	c.getDocumentMu.Lock()
@@ -384,6 +415,7 @@ func NewConverter(
 		getDocumentFunc:          getDocument,
 		documentInfoCache:        map[identifier.Identifier]documentInfo{},
 		documentInfoMu:           sync.RWMutex{},
+		infoDependents:           map[identifier.Identifier]map[identifier.Identifier]bool{},
 		getDocumentCache:         map[identifier.Identifier]*document.D{},
 		getDocumentMu:            sync.RWMutex{},
 	}
@@ -767,7 +799,10 @@ func (c *Converter) computeDocumentInfo(
 			return documentInfo{}, errE
 		}
 	}
-	display, errE := c.makeDisplayStrings(ctx, doc)
+	// Collect the documents fetched while rendering display strings (the class display template and
+	// any documents it embeds), so this documentInfo can be invalidated when one of them changes.
+	deps := &DisplayDependencies{ids: map[identifier.Identifier]bool{}}
+	display, errE := c.makeDisplayStrings(withDisplayDependencies(ctx, deps), doc)
 	if errE != nil {
 		return documentInfo{}, errE
 	}
@@ -845,12 +880,25 @@ func (c *Converter) computeDocumentInfo(
 	for _, rel := range document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, internalCore.InstanceOfPropID, document.LowConfidence) {
 		classID := rel.To.ID
 		if isIgnoredClass(classID) {
+			// This depends only on the document's own InstanceOf claim pointing at the CLASS or
+			// VOCABULARY constant, not on any other document's content, so it records no dependency: a
+			// change to the InstanceOf claim is a change to this document, which the bridge invalidates
+			// directly.
 			ignoredForReferencesCount = true
 			break
 		}
 		classInfo, errE := c.computeDocumentInfo(ctx, classID, nil, computing)
 		if errE != nil {
 			return documentInfo{}, errE
+		}
+		// IgnoredForReferencesCount depends on this class's SUBCLASS_OF ancestry, so record those
+		// ancestors as dependencies of this document (the class itself is already one, fetched for the
+		// display template). Otherwise a change to a class's ancestor would not invalidate the instance.
+		// The early break on the first ignored class below only records the classes checked so far, but
+		// that is fine: if a recorded ancestor changes, the instance is invalidated and re-evaluates the
+		// remaining classes, so the dependency set self-corrects.
+		for _, ancestorID := range classInfo.Ancestors[internalCore.SubclassOfPropID] {
+			deps.ids[ancestorID] = true
 		}
 		if slices.ContainsFunc(classInfo.Ancestors[internalCore.SubclassOfPropID], isIgnoredClass) {
 			ignoredForReferencesCount = true
@@ -866,8 +914,33 @@ func (c *Converter) computeDocumentInfo(
 		IgnoredForReferencesCount: ignoredForReferencesCount,
 	}
 
+	// This document also depends on its full transitive hierarchy ancestor set: their display is
+	// embedded into its display paths, and their identities into its ancestors and id paths, so a
+	// change to any ancestor makes this document's cached info stale. info.Ancestors already holds the
+	// transitive ancestors per hierarchy property, so recording them makes a change to any ancestor
+	// invalidate every descendant directly, without an invalidation-time walk.
+	for _, hierAncestors := range info.Ancestors {
+		for _, ancestorID := range hierAncestors {
+			deps.ids[ancestorID] = true
+		}
+	}
+
 	c.documentInfoMu.Lock()
 	c.documentInfoCache[id] = info
+	// Record the reverse dependency from each document this one depends on (documents fetched while
+	// rendering its display strings, and its hierarchy ancestors) to this document, so a later change
+	// to any of them invalidates this document's cached info.
+	for depID := range deps.ids {
+		if depID == id {
+			continue
+		}
+		dependents := c.infoDependents[depID]
+		if dependents == nil {
+			dependents = map[identifier.Identifier]bool{}
+			c.infoDependents[depID] = dependents
+		}
+		dependents[id] = true
+	}
 	c.documentInfoMu.Unlock()
 
 	return info, nil

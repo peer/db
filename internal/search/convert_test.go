@@ -570,6 +570,143 @@ func TestInvalidateCaches(t *testing.T) {
 	assert.Equal(t, "New Name", info.Display.Display["und"])
 }
 
+func TestInvalidateCachesSecondOrder(t *testing.T) {
+	t.Parallel()
+
+	// X's class display template renders Y's name, so X's display strings depend on Y's content.
+	otherDocID := identifier.New()
+	classID := identifier.New()
+	docs := map[identifier.Identifier]*document.D{
+		otherDocID: makeNamingDoc(otherDocID, "Original"),
+		classID: makeClassDocWithTemplate(classID,
+			`{{getDocument `+idTmpl(otherDocID)+` | bestString `+idTmpl(internalCore.NamingPropID)+`}}`),
+	}
+	x := makeNamingDoc(testDocID, "X")
+	addInstanceOf(x, classID, document.HighConfidence)
+	docs[testDocID] = x
+
+	c := newTestConverter(t, nil, nil, docs)
+	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
+	c.LanguageCodes = map[identifier.Identifier]string{}
+	ctx := t.Context()
+
+	// X's display is rendered from Y, and X is recorded as a display dependent of Y.
+	info, errE := c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "Original", info.Display.Display["und"])
+	c.documentInfoMu.RLock()
+	dependsOnY := c.infoDependents[otherDocID][testDocID]
+	_, xCached := c.documentInfoCache[testDocID]
+	c.documentInfoMu.RUnlock()
+	assert.True(t, dependsOnY, "X should be recorded as a display dependent of Y")
+	assert.True(t, xCached)
+
+	// Change Y. X's cached display strings are now stale, and stay stale until invalidated.
+	docs[otherDocID] = makeNamingDoc(otherDocID, "Renamed")
+	info, errE = c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "Original", info.Display.Display["und"], "X is stale until Y is invalidated")
+
+	// Invalidating only Y also invalidates X's documentInfo (second order), so X recomputes from the
+	// new Y.
+	c.InvalidateCaches(otherDocID)
+	info, errE = c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "Renamed", info.Display.Display["und"])
+}
+
+func TestInvalidateCachesHierarchyAncestor(t *testing.T) {
+	t.Parallel()
+
+	// Set up SUBENTITY_OF hierarchy so SUBCLASS_OF is discovered.
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
+
+	grandparent := identifier.New()
+	parent := identifier.New()
+	child := identifier.New()
+
+	// grandparent <- parent <- child via SUBCLASS_OF, so child's display path embeds both ancestors.
+	extraDocs := map[identifier.Identifier]*document.D{
+		grandparent: makeHierarchyDoc(grandparent, "Grandparent", internalCore.SubclassOfPropID, nil),
+		parent:      makeHierarchyDoc(parent, "Parent", internalCore.SubclassOfPropID, &grandparent),
+		child:       makeHierarchyDoc(child, "Child", internalCore.SubclassOfPropID, &parent),
+	}
+	c := newTestConverter(t, properties, nil, extraDocs)
+	ctx := t.Context()
+
+	info, errE := c.getDocumentInfo(ctx, child)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotEmpty(t, info.DisplayPaths[internalCore.SubclassOfPropID]["und"])
+	assert.Equal(t, "Grandparent\x00Parent\x00Child", info.DisplayPaths[internalCore.SubclassOfPropID]["und"][0])
+
+	// The child depends on both its transitive hierarchy ancestors.
+	c.documentInfoMu.RLock()
+	dependsOnParent := c.infoDependents[parent][child]
+	dependsOnGrandparent := c.infoDependents[grandparent][child]
+	c.documentInfoMu.RUnlock()
+	assert.True(t, dependsOnParent, "child should depend on its parent")
+	assert.True(t, dependsOnGrandparent, "child should depend on its grandparent")
+
+	// Rename the parent. The child's cached display path is stale until invalidated.
+	extraDocs[parent] = makeHierarchyDoc(parent, "Renamed", internalCore.SubclassOfPropID, &grandparent)
+	info, errE = c.getDocumentInfo(ctx, child)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "Grandparent\x00Parent\x00Child", info.DisplayPaths[internalCore.SubclassOfPropID]["und"][0],
+		"child display path is stale until the ancestor is invalidated")
+
+	// Invalidating only the parent also invalidates the child's documentInfo (the child has the parent
+	// as an ancestor), so the child recomputes its display path from the renamed parent.
+	c.InvalidateCaches(parent)
+	info, errE = c.getDocumentInfo(ctx, child)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "Grandparent\x00Renamed\x00Child", info.DisplayPaths[internalCore.SubclassOfPropID]["und"][0])
+}
+
+func TestInvalidateCachesInstanceClassAncestor(t *testing.T) {
+	t.Parallel()
+
+	// Set up SUBENTITY_OF hierarchy so SUBCLASS_OF is discovered.
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceProp := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceProp}
+
+	classID := identifier.New()
+	metaclass := identifier.New()
+	// metaclass is a subclass of CLASS, classID a subclass of metaclass, so a document that is an
+	// instance of classID is ignored for referencesCount (its class's ancestry reaches CLASS), and
+	// depends on that ancestry.
+	metaclassDoc := makeHierarchyDoc(metaclass, "Metaclass", internalCore.SubclassOfPropID, &internalCore.ClassClassID)
+	classDoc := makeHierarchyDoc(classID, "Class", internalCore.SubclassOfPropID, &metaclass)
+
+	instance := makeNamingDoc(testDocID, "Instance")
+	addInstanceOf(instance, classID, document.HighConfidence)
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		metaclass: metaclassDoc,
+		classID:   classDoc,
+		testDocID: instance,
+	}
+	c := newTestConverter(t, properties, nil, extraDocs)
+	ctx := t.Context()
+
+	info, errE := c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.True(t, info.IgnoredForReferencesCount, "an instance of a class whose ancestry reaches CLASS is ignored")
+
+	// The instance depends on the SUBCLASS_OF ancestry of the class it is an instance of, so a change
+	// to such an ancestor (here the metaclass) invalidates the instance's documentInfo.
+	c.documentInfoMu.RLock()
+	dependsOnMetaclass := c.infoDependents[metaclass][testDocID]
+	c.documentInfoMu.RUnlock()
+	assert.True(t, dependsOnMetaclass, "instance should depend on its class's hierarchy ancestor")
+}
+
 func TestBuildPropertyHierarchySelfCycle(t *testing.T) {
 	t.Parallel()
 
