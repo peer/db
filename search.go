@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
@@ -88,6 +89,9 @@ func (s *Service) getSearchServiceClosure(req *http.Request) func() *esSearch.Se
 const scoreFactorTTL = time.Hour
 
 type scoreFactorEntry struct {
+	// mu guards this entry's factor and computed, so that recomputing one index's
+	// factor only serializes requests for that same index and not for other sites.
+	mu       sync.Mutex
 	factor   float64
 	computed time.Time
 }
@@ -97,11 +101,21 @@ type scoreFactorEntry struct {
 func (s *Service) scoreFactor(ctx context.Context, req *http.Request) (float64, errors.E) {
 	site := waf.MustGetSite[*Site](ctx)
 
+	// We hold the cache lock only long enough to get or create the per-index entry,
+	// so computing one site's factor does not block requests for other sites.
 	s.scoreFactorMu.Lock()
-	defer s.scoreFactorMu.Unlock()
-
 	entry, ok := s.scoreFactorCache[site.Index]
-	if ok && time.Since(entry.computed) < scoreFactorTTL {
+	if !ok {
+		entry = &scoreFactorEntry{}
+		s.scoreFactorCache[site.Index] = entry
+	}
+	s.scoreFactorMu.Unlock()
+
+	// We lock only this index's entry while reading or recomputing its factor.
+	entry.mu.Lock()
+	defer entry.mu.Unlock()
+
+	if !entry.computed.IsZero() && time.Since(entry.computed) < scoreFactorTTL {
 		return entry.factor, nil
 	}
 
@@ -110,7 +124,8 @@ func (s *Service) scoreFactor(ctx context.Context, req *http.Request) (float64, 
 		return 0, errE
 	}
 
-	s.scoreFactorCache[site.Index] = scoreFactorEntry{factor: factor, computed: time.Now()}
+	entry.factor = factor
+	entry.computed = time.Now()
 
 	return factor, nil
 }
