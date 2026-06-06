@@ -6,6 +6,7 @@ package coordinator
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -38,6 +39,7 @@ const (
 
 type coordinatorJob interface {
 	runCompleteSession(ctx context.Context, session identifier.Identifier, job *river.Job[jobArgs]) errors.E
+	completeSessionTimeout() time.Duration
 }
 
 //nolint:gochecknoglobals
@@ -61,6 +63,17 @@ func (jobArgs) Kind() string {
 
 type worker struct {
 	river.WorkerDefaults[jobArgs]
+}
+
+// Timeout implements river.Worker interface. It returns the timeout configured on the coordinator that owns
+// the session, so coordinators whose completion can be slow can use a longer timeout than fast ones.
+// Zero falls back to the client default.
+func (w *worker) Timeout(job *river.Job[jobArgs]) time.Duration {
+	c, errE := w.getCoordinator(job.Args.Schema, job.Args.Prefix)
+	if errE != nil {
+		return 0
+	}
+	return c.completeSessionTimeout()
 }
 
 // Work implements river.Worker interface.
@@ -200,6 +213,11 @@ type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteDa
 	// After CompleteSessionTx successfully completes, the session is considered
 	// completed and all operations for the session are deleted.
 	CompleteSessionTx func(ctx context.Context, tx pgx.Tx, session identifier.Identifier, data CompleteData) (CompleteMetadata, errors.E)
+
+	// CompleteSessionTimeout is the maximum time the CoordinatorCompleteSession job for this coordinator is
+	// allowed to run before River cancels it. Zero means the River client default is used. Set a larger value
+	// for coordinators whose completion can be slow.
+	CompleteSessionTimeout time.Duration `exhaustruct:"optional"`
 
 	// AppendedSize is the size of the channel to which operations are sent when they are appended.
 	//
@@ -465,6 +483,11 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 		details["prefix"] = c.Prefix
 	}
 	return errE
+}
+
+// completeSessionTimeout returns the configured timeout for this coordinator's completion job.
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) completeSessionTimeout() time.Duration {
+	return c.CompleteSessionTimeout
 }
 
 // runCompleteSession runs the CompleteSession and CompleteSessionTx and if both successfully run,

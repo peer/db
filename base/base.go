@@ -12,6 +12,7 @@ package base
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/elastic/go-elasticsearch/v9"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
@@ -35,6 +36,9 @@ const (
 	// TODO: Add some monitoring of the channel contention.
 	bridgeBufferSize = 100
 )
+
+// completeSessionTimeout bounds how long completing a document-editing session may take.
+const completeSessionTimeout = 5 * time.Minute
 
 // B is a base for data and files.
 //
@@ -132,11 +136,12 @@ func (b *B) Init(
 	}
 
 	c := &coordinator.Coordinator[json.RawMessage, *documentChangeMetadata, *DocumentBeginMetadata, *documentEndMetadata, *documentCompleteData, *DocumentCompleteMetadata]{
-		Prefix:            "docs",
-		DataType:          "jsonb",
-		MetadataType:      "jsonb",
-		CompleteSession:   b.completeDocumentSession,
-		CompleteSessionTx: b.completeDocumentSessionTx,
+		Prefix:                 "docs",
+		DataType:               "jsonb",
+		MetadataType:           "jsonb",
+		CompleteSession:        b.completeDocumentSession,
+		CompleteSessionTx:      b.completeDocumentSessionTx,
+		CompleteSessionTimeout: completeSessionTimeout,
 	}
 	// We do not use Appended and Ended channels here so we pass nil for listener.
 	errE = c.Init(ctx, dbpool, nil, b.Schema, riverClient, workers)
