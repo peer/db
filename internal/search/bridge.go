@@ -24,11 +24,24 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/indexer"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
 const bridgeRetryDelay = 5 * time.Second
+
+// reindexSoftDeadline bounds how long a single reindex job spends draining the queue before it flushes
+// what it has and schedules a follow-up job.
+const reindexSoftDeadline = 10 * time.Minute
+
+// reindexJobTimeoutSlack is the extra time, on top of reindexSoftDeadline, that the reindex job has to
+// finish its final flush and schedule its follow-up before River cancels it for exceeding its timeout.
+const reindexJobTimeoutSlack = 5 * time.Minute
+
+// reindexMaxBatch is the maximum number of documents accumulated into a single ElasticSearch bulk request
+// while draining the reindex queue.
+const reindexMaxBatch = 1000
 
 var errCommittedChannelClosed = errors.Base("committed channel is closed")
 
@@ -88,6 +101,13 @@ func (jobArgs) InsertOpts() river.InsertOpts {
 
 type worker struct {
 	river.WorkerDefaults[jobArgs]
+}
+
+// Timeout implements river.Worker interface. The reindex job drains the queue until reindexSoftDeadline,
+// so it needs a longer timeout than the client default: that deadline plus slack for the final flush and
+// follow-up scheduling. Setting it here scopes the longer timeout to the reindex job only, not to all jobs.
+func (w *worker) Timeout(*river.Job[jobArgs]) time.Duration {
+	return reindexSoftDeadline + reindexJobTimeoutSlack
 }
 
 // Work implements river.Worker interface.
@@ -167,6 +187,9 @@ type Bridge struct {
 	// reindexQueueCount is the number of distinct document IDs remaining
 	// in BridgeReindexQueue. It is used for progress tracking.
 	reindexQueueCount int64
+	// reindexSoftDeadline bounds how long a single reindex job drains the queue before flushing and
+	// scheduling a follow-up. It defaults to the reindexSoftDeadline constant and can be lowered in tests.
+	reindexSoftDeadline time.Duration
 }
 
 // Init creates the bridge progress table and registers a NOTIFY handler on the shared listener
@@ -250,6 +273,7 @@ func (b *Bridge) Init(
 	b.lastSeqCond = sync.NewCond(b.lastSeqMu.RLocker())
 	b.reindexQueueMinSeqCond = sync.NewCond(b.reindexQueueMinSeqMu.RLocker())
 	b.reindexQueueMinSeq = math.MaxInt64
+	b.reindexSoftDeadline = reindexSoftDeadline
 	listener.Handle(b.Store.Prefix+"BridgeSeq", b)
 	listener.Handle(b.Store.Prefix+"BridgeReindexQueueMinSeq", b)
 
@@ -1320,35 +1344,58 @@ func (b *Bridge) updateSeq(
 	return errors.WithStack(internalStore.ErrMaxRetriesReached)
 }
 
-// reindexStats accumulates per-job timing and counts for a reindex job so
-// that the job summary can show where time went: fetching the next document from the work queue,
-// re-indexing it, and deleting its processed entries.
+// reindexStats accumulates per-job timing and counts for a reindex job so that the job summary can
+// show where time went: fetching documents from the work queue, converting them, bulk-indexing them,
+// and deleting their processed entries.
 type reindexStats struct {
-	// Reindexed is the number of documents re-indexed by the job.
+	// Reindexed is the number of documents bulk-indexed to ElasticSearch by the job.
 	Reindexed int
-	// Fetches is the number of work-queue SELECT queries run, including the final one that
-	// returns no rows. It equals reindexed+1 on a clean drain, so a large Fetches with small
-	// reindexed means the job spent its time scanning the queue rather than indexing.
-	Fetches int
+	// Skipped is the number of queued documents that were deleted or never existed, so they were not
+	// indexed, but whose queue entries were still removed.
+	Skipped int
+	// Batches is the number of bulk-index plus delete flushes the job performed.
+	Batches int
+	// Queries is the number of work-queue SELECT queries run, including the final one that returns no rows.
+	Queries int
+	// ScheduledFollowUp is true if the job hit the soft deadline and scheduled a follow-up job to continue.
+	ScheduledFollowUp bool
 	// QueryDuration is the total time spent in the work-queue SELECT queries.
 	QueryDuration time.Duration
-	// IndexDuration is the total time spent in indexDocument (conversion plus the ES index call).
+	// GetLatestDuration is the total time spent reading the latest version of each document from the store.
+	GetLatestDuration time.Duration
+	// ConvertDuration is the time spent in ConvertDocument excluding the related-document store fetches.
+	ConvertDuration time.Duration
+	// IndexDuration is the total time spent in the ElasticSearch bulk index requests.
 	IndexDuration time.Duration
 	// DeleteDuration is the total time spent deleting processed entries from the work queue.
 	DeleteDuration time.Duration
 }
 
-// reindexJobOutput is recorded on the River job via RecordOutput so that what each inverse
-// relations job did, and where its time went. Durations are in seconds.
+// reindexJobOutput is recorded on the River job via RecordOutput so that what each reindex job did,
+// and where its time went, is visible. Durations are in seconds.
 type reindexJobOutput struct {
 	Seq             int64   `json:"seq"`
-	Reindexed       int     `json:"reindexed"`
-	Fetches         int     `json:"fetches"`
-	RefreshDuration float64 `json:"refreshDuration"`
-	QueryDuration   float64 `json:"queryDuration"`
-	IndexDuration   float64 `json:"indexDuration"`
-	DeleteDuration  float64 `json:"deleteDuration"`
 	Duration        float64 `json:"duration"`
+	RefreshDuration float64 `json:"refreshDuration"`
+
+	// Values from reindexStats.
+	Reindexed         int     `json:"reindexed"`
+	Skipped           int     `json:"skipped"`
+	Batches           int     `json:"batches"`
+	Queries           int     `json:"queries"`
+	ScheduledFollowUp bool    `json:"scheduledFollowUp"`
+	QueryDuration     float64 `json:"queryDuration"`
+	GetLatestDuration float64 `json:"getLatestDuration"`
+	ConvertDuration   float64 `json:"convertDuration"`
+	IndexDuration     float64 `json:"indexDuration"`
+	DeleteDuration    float64 `json:"deleteDuration"`
+
+	// Values from ConversionStats.
+	DocCacheHits    int     `json:"docCacheHits"`
+	DocCacheMisses  int     `json:"docCacheMisses"`
+	InfoCacheHits   int     `json:"infoCacheHits"`
+	InfoCacheMisses int     `json:"infoCacheMisses"`
+	FetchDuration   float64 `json:"fetchDuration"`
 }
 
 func (b *Bridge) runReindexQueue(ctx context.Context, job *river.Job[jobArgs]) errors.E {
@@ -1373,19 +1420,38 @@ func (b *Bridge) runReindexQueue(ctx context.Context, job *river.Job[jobArgs]) e
 	}
 	refreshDuration := time.Since(refreshStart)
 
-	stats, errE := b.processReindexQueue(ctx, snapshotSeq)
+	// Accumulate conversion stats across the whole job so the summary can show cache effectiveness.
+	var convStats ConversionStats
+	ctx = WithConversionStats(ctx, &convStats)
+
+	// The job drains the queue until the soft deadline, then flushes what it has and schedules a follow-up
+	// job to continue, keeping each job comfortably under the River job timeout.
+	deadline := jobStart.Add(b.reindexSoftDeadline)
+	stats, errE := b.processReindexQueue(ctx, snapshotSeq, deadline)
 	duration := time.Since(jobStart)
 
 	// Record what the job did as its River job output.
 	err = river.RecordOutput(ctx, reindexJobOutput{
 		Seq:             snapshotSeq,
-		Reindexed:       stats.Reindexed,
-		Fetches:         stats.Fetches,
-		RefreshDuration: refreshDuration.Seconds(),
-		QueryDuration:   stats.QueryDuration.Seconds(),
-		IndexDuration:   stats.IndexDuration.Seconds(),
-		DeleteDuration:  stats.DeleteDuration.Seconds(),
 		Duration:        duration.Seconds(),
+		RefreshDuration: refreshDuration.Seconds(),
+
+		Reindexed:         stats.Reindexed,
+		Skipped:           stats.Skipped,
+		Batches:           stats.Batches,
+		Queries:           stats.Queries,
+		ScheduledFollowUp: stats.ScheduledFollowUp,
+		QueryDuration:     stats.QueryDuration.Seconds(),
+		GetLatestDuration: stats.GetLatestDuration.Seconds(),
+		ConvertDuration:   stats.ConvertDuration.Seconds(),
+		IndexDuration:     stats.IndexDuration.Seconds(),
+		DeleteDuration:    stats.DeleteDuration.Seconds(),
+
+		DocCacheHits:    convStats.DocCacheHits,
+		DocCacheMisses:  convStats.DocCacheMisses,
+		InfoCacheHits:   convStats.InfoCacheHits,
+		InfoCacheMisses: convStats.InfoCacheMisses,
+		FetchDuration:   convStats.FetchDuration.Seconds(),
 	})
 	if err != nil {
 		logger.Error().Err(errors.WithStack(err)).Int64("job", job.ID).Msg("recording reindex job output failed")
@@ -1395,93 +1461,280 @@ func (b *Bridge) runReindexQueue(ctx context.Context, job *river.Job[jobArgs]) e
 	logger.Debug().
 		Int64("job", job.ID).
 		Int64("seq", snapshotSeq).
-		Int("reindexed", stats.Reindexed).
-		Int("fetches", stats.Fetches).
+		Dur("duration", duration).
 		Dur("refreshDuration", refreshDuration).
+
+		// Values from reindexStats.
+		Int("reindexed", stats.Reindexed).
+		Int("skipped", stats.Skipped).
+		Int("batches", stats.Batches).
+		Int("queries", stats.Queries).
+		Bool("scheduledFollowUp", stats.ScheduledFollowUp).
 		Dur("queryDuration", stats.QueryDuration).
+		Dur("getLatestDuration", stats.GetLatestDuration).
+		Dur("convertDuration", stats.ConvertDuration).
 		Dur("indexDuration", stats.IndexDuration).
 		Dur("deleteDuration", stats.DeleteDuration).
-		Dur("duration", duration).
+
+		// Values from ConversionStats.
+		Int("docCacheHits", convStats.DocCacheHits).
+		Int("docCacheMisses", convStats.DocCacheMisses).
+		Int("infoCacheHits", convStats.InfoCacheHits).
+		Int("infoCacheMisses", convStats.InfoCacheMisses).
+		Dur("fetchDuration", convStats.FetchDuration).
 		Msg("bridge reindex job")
 
 	return errE
 }
 
-// processReindexQueue drains the BridgeReindexQueue work queue for entries at or below
-// snapshotSeq, re-indexing one document at a time, and returns timing and count stats for the job.
-func (b *Bridge) processReindexQueue(ctx context.Context, snapshotSeq int64) (reindexStats, errors.E) {
+// processReindexQueue drains the BridgeReindexQueue work queue for entries at or below snapshotSeq.
+// It fetches documents in batches, converts and bulk-indexes them to ElasticSearch, and removes the
+// processed entries. Documents are flushed (bulk indexed and their queue entries deleted) at the end of
+// each fetched batch, whenever the flush interval elapses (so a waiter in WaitUntilCaughtUp keeps seeing
+// progress), and when the soft deadline is reached. On the deadline a follow-up job is scheduled in the
+// same transaction as the final delete so the chain cannot break, and the job returns. It returns timing
+// and count stats for the job.
+func (b *Bridge) processReindexQueue(ctx context.Context, snapshotSeq int64, deadline time.Time) (reindexStats, errors.E) {
 	var stats reindexStats
+	var pending []reindexEntry
+	lastFlush := time.Now()
+
+	// flush bulk-indexes and clears the documents accumulated since the last flush, then resets pending
+	// and the flush timer.
+	flush := func(scheduleFollowUp bool) errors.E {
+		if len(pending) == 0 {
+			return nil
+		}
+		errE := b.flushReindexBatch(ctx, snapshotSeq, pending, scheduleFollowUp, &stats)
+		if errE != nil {
+			return errE
+		}
+		pending = pending[:0]
+		lastFlush = time.Now()
+		return nil
+	}
+
 	for {
-		// Fetch one document ID from the work queue with its max seq at or below the snapshot.
-		// GROUP BY collapses multiple entries for the same document (from different commits).
-		var docIDStr string
-		var maxSeq int64
-		queryStart := time.Now()
-		errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
-			// We pick a random document to reduce conflicts when multiple processes
-			// reindex documents in parallel.
-			return internalStore.WithPgxError(tx.QueryRow(ctx, `
-				SELECT "id", MAX("seq") FROM "`+b.Store.Prefix+`BridgeReindexQueue"
-					WHERE "seq" <= $1 GROUP BY "id" ORDER BY RANDOM() LIMIT 1
-			`, snapshotSeq).Scan(&docIDStr, &maxSeq))
-		})
-		stats.QueryDuration += time.Since(queryStart)
-		stats.Fetches++
-		if errors.Is(errE, pgx.ErrNoRows) {
-			// No more documents to process.
-			return stats, nil
-		} else if errE != nil {
-			return stats, errE
-		}
-
-		docID, errE := identifier.MaybeString(docIDStr)
+		fetched, errE := b.fetchReindexBatch(ctx, snapshotSeq, &stats)
 		if errE != nil {
 			return stats, errE
 		}
-
-		// Fetch the document and its metadata, convert it, and index it.
-		indexStart := time.Now()
-		errE = b.indexDocument(ctx, docID)
-		stats.IndexDuration += time.Since(indexStart)
-		if errE != nil {
-			return stats, errE
+		if len(fetched) == 0 {
+			// Queue drained at or below the snapshot.
+			break
 		}
-		stats.Reindexed++
 
-		// Remove entries for this document up to the seq we observed.
-		// Entries with a higher seq (added during our processing) are kept for later re-indexing.
-		deleteStart := time.Now()
-		errE = internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-			_, err := tx.Exec(ctx, `
-				DELETE FROM "`+b.Store.Prefix+`BridgeReindexQueue" WHERE "id" = $1 AND "seq" <= $2
-			`, docIDStr, maxSeq)
-			return internalStore.WithPgxError(err)
-		})
-		stats.DeleteDuration += time.Since(deleteStart)
+		for _, f := range fetched {
+			docID, errE := identifier.MaybeString(f.idStr)
+			if errE != nil {
+				return stats, errE
+			}
+
+			f.doc, errE = b.convertForReindex(ctx, docID, &stats)
+			if errE != nil {
+				return stats, errE
+			}
+			pending = append(pending, f)
+
+			// We check the deadline after each document because a single large document can take a while to
+			// convert, so a fixed batch could otherwise overshoot the deadline.
+			if time.Now().After(deadline) {
+				// We flush with scheduleFollowUp set to true.
+				errE = flush(true)
+				if errE != nil {
+					return stats, errE
+				}
+				stats.ScheduledFollowUp = true
+				return stats, nil
+			}
+
+			// Flush periodically so that a waiter in WaitUntilCaughtUp keeps seeing progress. The interval is
+			// the progress print rate, so each printed update reflects a recent flush. Rare printed updates
+			// might not progress when intervals align, but we are fine with that.
+			if time.Since(lastFlush) >= indexer.ProgressPrintRate {
+				errE = flush(false)
+				if errE != nil {
+					return stats, errE
+				}
+			}
+		}
+
+		// Flush the rest of this batch before fetching the next one, so that the rows we just processed are
+		// removed and the next fetch does not return them again.
+		errE = flush(false)
 		if errE != nil {
 			return stats, errE
 		}
 	}
+
+	return stats, nil
 }
 
-// TODO: We should batch indexing of documents together instead of doing it one by one.
-//       We could fetch up to 1000 rows from BridgeReindexQueue, convert them, index them and then remove them from BridgeReindexQueue.
+// reindexEntry is one document fetched from the reindex queue. doc is set during conversion and is nil for
+// documents that were deleted or never existed: they are not indexed, but their queue entries are still removed.
+type reindexEntry struct {
+	idStr  string
+	maxSeq int64
+	doc    *Document
+}
 
-// indexDocument fetches the latest version of a document, converts it to a search
-// document, and indexes it to ElasticSearch.
-func (b *Bridge) indexDocument(ctx context.Context, docID identifier.Identifier) errors.E {
-	start := time.Now()
-	var stats ConversionStats
-	ctx = WithConversionStats(ctx, &stats)
+// fetchReindexBatch reads up to reindexMaxBatch distinct documents from the reindex queue with their max
+// seq at or below snapshotSeq. GROUP BY collapses multiple entries for the same document (from different
+// commits). Documents are picked at random to reduce conflicts when multiple processes reindex in parallel.
+func (b *Bridge) fetchReindexBatch(ctx context.Context, snapshotSeq int64, stats *reindexStats) ([]reindexEntry, errors.E) {
+	arguments := []any{
+		snapshotSeq, reindexMaxBatch,
+	}
+	var fetched []reindexEntry
+	queryStart := time.Now()
+	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Initialize in the case transaction is retried.
+		fetched = nil
+
+		rows, err := tx.Query(ctx, `
+			SELECT "id", MAX("seq") FROM "`+b.Store.Prefix+`BridgeReindexQueue"
+				WHERE "seq" <= $1 GROUP BY "id" ORDER BY RANDOM() LIMIT $2
+		`, arguments...)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		var idStr string
+		var maxSeq int64
+		_, err = pgx.ForEachRow(rows, []any{&idStr, &maxSeq}, func() error {
+			fetched = append(fetched, reindexEntry{idStr: idStr, maxSeq: maxSeq, doc: nil})
+			return nil
+		})
+		return internalStore.WithPgxError(err)
+	})
+	stats.QueryDuration += time.Since(queryStart)
+	stats.Queries++
+	if errE != nil {
+		return nil, errE
+	}
+	return fetched, nil
+}
+
+// flushReindexBatch bulk-indexes the converted documents in pending, removes their queue entries up to the
+// seq observed for each, and optionally schedules a follow-up job in the same transaction as the delete.
+func (b *Bridge) flushReindexBatch(
+	ctx context.Context, snapshotSeq int64, pending []reindexEntry, scheduleFollowUp bool, stats *reindexStats,
+) errors.E {
+	indexStart := time.Now()
+	indexed, errE := b.bulkIndexReindexed(ctx, snapshotSeq, pending)
+	stats.IndexDuration += time.Since(indexStart)
+	if errE != nil {
+		return errE
+	}
+
+	// Build the (id, maxSeq) arrays for the delete. Entries with a higher seq (added during our processing)
+	// are kept for later re-indexing.
+	ids := make([]string, len(pending))
+	maxSeqs := make([]int64, len(pending))
+	for i, e := range pending {
+		ids[i] = e.idStr
+		maxSeqs[i] = e.maxSeq
+	}
+
+	deleteStart := time.Now()
+	errE = internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		_, err := tx.Exec(ctx, `
+			DELETE FROM "`+b.Store.Prefix+`BridgeReindexQueue" q
+				USING (SELECT unnest($1::text[]) AS "id", unnest($2::bigint[]) AS "maxseq") v
+				WHERE q."id" = v."id" AND q."seq" <= v."maxseq"
+		`, ids, maxSeqs)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+		if scheduleFollowUp {
+			// Schedule the follow-up in the same transaction as the delete so that, if entries remain, a job
+			// to process them is guaranteed to exist once this delete commits.
+			_, err := b.riverClient.InsertTx(ctx, tx, jobArgs{
+				Schema: b.schema,
+				Prefix: b.Store.Prefix,
+			}, nil)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+		}
+		return nil
+	})
+	stats.DeleteDuration += time.Since(deleteStart)
+	if errE != nil {
+		return errE
+	}
+
+	stats.Reindexed += indexed
+	stats.Skipped += len(pending) - indexed
+	stats.Batches++
+	return nil
+}
+
+// bulkIndexReindexed bulk-indexes the non-skipped documents in pending and returns how many were indexed.
+func (b *Bridge) bulkIndexReindexed(ctx context.Context, snapshotSeq int64, pending []reindexEntry) (int, errors.E) {
+	bulkService := b.ESClient.Bulk()
+	debugDocs := map[string]*Document{}
+	indexed := 0
+	for _, e := range pending {
+		if e.doc == nil {
+			continue
+		}
+		id := e.idStr
+		err := bulkService.IndexOp(types.IndexOperation{Index_: &b.Index, Id_: &id}, e.doc) //nolint:exhaustruct
+		if err != nil {
+			return 0, errors.WithStack(err)
+		}
+		debugDocs[id] = e.doc
+		indexed++
+	}
+	if indexed == 0 {
+		return 0, nil
+	}
+
+	response, err := bulkService.Do(ctx)
+	if err != nil {
+		return 0, WithESError(err)
+	}
+	bulkErrors := []bulkError{}
+	for _, item := range response.Items {
+		for _, result := range item {
+			if result.Status >= 200 && result.Status <= 299 {
+				continue
+			}
+			id := ""
+			if result.Id_ != nil {
+				id = *result.Id_
+			}
+			bulkErrors = append(bulkErrors, bulkError{
+				ID:         id,
+				Status:     result.Status,
+				ErrorCause: result.Error,
+				Doc:        debugDocs[id],
+			})
+		}
+	}
+	if len(bulkErrors) > 0 {
+		errE := errors.New("bulk indexing had failures")
+		errors.Details(errE)["seq"] = snapshotSeq
+		// We do not name this field "errors" to not confuse go-errors package which tries to parse it as joined errors.
+		errors.Details(errE)["esErrors"] = bulkErrors
+		return 0, errE
+	}
+	return indexed, nil
+}
+
+// convertForReindex fetches the latest version of a document and converts it to a search document for re-indexing.
+// It returns a nil document (and nil error) when the document was deleted or never existed, in which case the caller
+// still removes its queue entry but does not index it.
+func (b *Bridge) convertForReindex(ctx context.Context, docID identifier.Identifier, stats *reindexStats) (*Document, errors.E) {
 	getLatestStart := time.Now()
 	data, metadata, _, _, errE := b.Store.GetLatest(ctx, docID)
-	getLatestDuration := time.Since(getLatestStart)
+	stats.GetLatestDuration += time.Since(getLatestStart)
 	if errors.Is(errE, store.ErrValueDeleted) {
 		// Document does not exist anymore, skip.
 		// TODO: We should keep track in source document's metadata, that some of its outgoing relations are invalid.
 		//       This can then be used to prompt the user to fix those relations. We could even use the metadata to
 		//       show links for those relations in red color in UI or something like that.
-		return nil
+		return nil, nil //nolint:nilnil
 	} else if errors.Is(errE, store.ErrValueNotFound) {
 		// Document never existed. This happens for a reference target enqueued for a
 		// counts.references refresh that does not exist (a dangling reference). Skipping it
@@ -1490,45 +1743,28 @@ func (b *Bridge) indexDocument(ctx context.Context, docID identifier.Identifier)
 		// The ErrValueNotFound error should not be possible for inverse-relation documents
 		// at this point because it means that the document have never existed, but GetLatest
 		// did not return ErrValueNotFound in updateSeq for us to be here.
-		return nil
+		return nil, nil //nolint:nilnil
 	} else if errE != nil {
-		return errE
+		return nil, errE
 	}
 
-	// TODO: Use also information about the view so that documents are searchable by view as well.
+	// ConvertDocument also fetches related documents, recorded separately as FetchDuration. We subtract that
+	// so ConvertDuration is disjoint from the fetches: only the rendering and the counts.references query.
+	convStats := conversionStatsFromContext(ctx)
+	var fetchBefore time.Duration
+	if convStats != nil {
+		fetchBefore = convStats.FetchDuration
+	}
 	convertStart := time.Now()
+	// TODO: Use also information about the view so that documents are searchable by view as well.
 	searchDoc, errE := b.ConvertDocument(ctx, data, metadata)
-	// convertDuration is the conversion time excluding the getDocument store fetches (logged
-	// separately as fetchDuration), so the phases stay disjoint. stats.FetchDuration is all from this
-	// conversion, since indexDocument fetches only via ConvertDocument.
-	convertDuration := time.Since(convertStart) - stats.FetchDuration
+	convertElapsed := time.Since(convertStart)
+	if convStats != nil {
+		convertElapsed -= convStats.FetchDuration - fetchBefore
+	}
+	stats.ConvertDuration += convertElapsed
 	if errE != nil {
-		return errE
+		return nil, errE
 	}
-
-	esIndexStart := time.Now()
-	_, err := b.ESClient.Index(b.Index).Id(docID.String()).Request(searchDoc).Do(ctx)
-	esIndexDuration := time.Since(esIndexStart)
-	if err != nil {
-		return WithESError(err)
-	}
-
-	// The phases are disjoint and sum to duration (minus small overhead): getLatestDuration is the
-	// store read of the document, fetchDuration is the getDocument store fetches during conversion,
-	// convertDuration is the rest of building the search document (rendering and the counts.references
-	// ES count query), and esIndexDuration is marshalling and the ES index request.
-	zerolog.Ctx(ctx).Debug().
-		Str("doc", docID.String()).
-		Int("docCacheHits", stats.DocCacheHits).
-		Int("docCacheMisses", stats.DocCacheMisses).
-		Int("infoCacheHits", stats.InfoCacheHits).
-		Int("infoCacheMisses", stats.InfoCacheMisses).
-		Dur("getLatestDuration", getLatestDuration).
-		Dur("fetchDuration", stats.FetchDuration).
-		Dur("convertDuration", convertDuration).
-		Dur("esIndexDuration", esIndexDuration).
-		Dur("duration", time.Since(start)).
-		Msg("bridge reindexed document")
-
-	return nil
+	return searchDoc, nil
 }

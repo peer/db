@@ -617,7 +617,7 @@ func withExtraFilters(musts, extraFilters []types.QueryVariant) types.QueryVaria
 // to the languages the index actually has (empty falls back to the global default).
 // extraFilters are added as bool filter clauses (used for the per-caller access restriction).
 func (s *SessionData) ToQuery(enabledLanguages []string, extraFilters ...types.QueryVariant) types.QueryVariant { //nolint:ireturn
-	musts := make([]types.QueryVariant, 0, len(s.Filters)+1) //nolint:mnd
+	musts := make([]types.QueryVariant, 0, len(s.Filters)+1)
 
 	if s.Query != "" {
 		musts = append(musts, documentTextSearchQuery(s.Query, operator.And, enabledLanguages))
@@ -644,7 +644,7 @@ func (s *SessionData) ToQuery(enabledLanguages []string, extraFilters ...types.Q
 func (s *SessionData) ToQueryExcluding( //nolint:ireturn
 	excludeFilterID identifier.Identifier, enabledLanguages []string, extraFilters ...types.QueryVariant,
 ) types.QueryVariant {
-	musts := make([]types.QueryVariant, 0, len(s.Filters)+1) //nolint:mnd
+	musts := make([]types.QueryVariant, 0, len(s.Filters)+1)
 
 	if s.Query != "" {
 		musts = append(musts, documentTextSearchQuery(s.Query, operator.And, enabledLanguages))

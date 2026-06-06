@@ -679,7 +679,7 @@ func TestBridgeReindexJobRecordsOutput(t *testing.T) {
 			var meta struct {
 				Output *struct {
 					Reindexed     int     `json:"reindexed"`
-					Fetches       int     `json:"fetches"`
+					Queries       int     `json:"queries"`
 					IndexDuration float64 `json:"indexDuration"`
 					Duration      float64 `json:"duration"`
 				} `json:"output"`
@@ -694,6 +694,85 @@ func TestBridgeReindexJobRecordsOutput(t *testing.T) {
 			}
 		}
 		assert.True(c, found, "a completed bridge job should record output with reindexed > 0")
+	}, 15*time.Second, 200*time.Millisecond)
+}
+
+func TestBridgeReindexContinuation(t *testing.T) {
+	t.Parallel()
+
+	ctx, env := setupBridge(t)
+	s, b, esClient := env.store, env.bridge, env.esClient
+
+	// Force the reindex job to hit its soft deadline after every document, so it flushes what it has and
+	// schedules a follow-up job. This exercises the continuation chain across many jobs.
+	b.TestingSetReindexSoftDeadline(time.Nanosecond)
+
+	propX := identifier.New()
+	propY := identifier.New()
+
+	startBridge(ctx, t, env, makeConverterWithInverse(t, propX, propY, s))
+
+	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Insert several A --X--> B pairs. Each B gains an inverse relation and is enqueued for re-indexing,
+	// so the queue holds multiple distinct documents that the chained jobs must all drain.
+	type relPair struct{ a, b identifier.Identifier }
+	const numPairs = 5
+	rels := make([]relPair, numPairs)
+	for i := range rels {
+		rels[i] = relPair{a: identifier.New(), b: identifier.New()}
+		_, errE = s.Insert(ctx, rels[i].b, makeDocJSON(t, rels[i].b), dummyMetadata(), dummyCommitMetadata())
+		require.NoError(t, errE, "% -+#.1v", errE)
+		_, errE = s.Insert(ctx, rels[i].a, makeDocWithRelationJSON(t, rels[i].a, propX, rels[i].b), dummyMetadata(), dummyCommitMetadata())
+		require.NoError(t, errE, "% -+#.1v", errE)
+	}
+
+	// WaitUntilCaughtUp returns only once the whole queue is drained, which here requires the follow-up
+	// chain to run to completion.
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Every B must have been re-indexed with its inverse relation, proving the chain drained all of them.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
+		if !testutils.AssertNoESError(c, err) {
+			return
+		}
+		for _, rel := range rels {
+			assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.Index, rel.b, propY, rel.a),
+				"docB should have inverse relation B --Y--> A")
+		}
+	}, 15*time.Second, 200*time.Millisecond)
+
+	// At least one reindex job must have scheduled a follow-up because of the deadline, confirming the
+	// continuation path ran rather than a single job draining everything.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		jobs, err := env.riverClient.JobList(ctx, river.NewJobListParams().
+			Kinds("BridgeReindex").
+			States(rivertype.JobStateCompleted).
+			First(1000))
+		if !assert.NoError(c, err) {
+			return
+		}
+		var sawFollowUp bool
+		for _, jr := range jobs.Jobs {
+			var meta struct {
+				Output *struct {
+					ScheduledFollowUp bool `json:"scheduledFollowUp"`
+				} `json:"output"`
+			}
+			if !assert.NoError(c, json.Unmarshal(jr.Metadata, &meta)) {
+				return
+			}
+			if meta.Output != nil && meta.Output.ScheduledFollowUp {
+				sawFollowUp = true
+				break
+			}
+		}
+		assert.True(c, sawFollowUp, "at least one reindex job should have scheduled a follow-up due to the deadline")
 	}, 15*time.Second, 200*time.Millisecond)
 }
 
