@@ -121,6 +121,58 @@ func TestAuthenticateNoRoles(t *testing.T) {
 	assert.Empty(t, auth.Roles(ctx))
 }
 
+func TestAuthenticateAnonymousGetsFloor(t *testing.T) {
+	t.Parallel()
+
+	authenticator, _, _ := newTestAuthenticator(t)
+
+	visibility := []auth.VisibilityLevel{
+		{Name: "public", Roles: nil},
+		{Name: "editor", Roles: []string{"editor"}},
+	}
+
+	// No Authorization header: the request is unauthenticated, but the no-roles
+	// floor level still applies.
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
+	w := httptest.NewRecorder()
+
+	ctx := authenticator.Authenticate(w, req, "", nil, visibility)
+	_, ok := auth.Subject(ctx)
+	assert.False(t, ok)
+	level, ok := auth.Visibility(ctx)
+	require.True(t, ok)
+	assert.Equal(t, "public", level.Name)
+}
+
+func TestAuthenticateRoleRaisesFloor(t *testing.T) {
+	t.Parallel()
+
+	const audience = "peerdb"
+	authenticator, issuer, priv := newTestAuthenticator(t)
+
+	token := signedToken(t, priv, map[string]any{
+		"iss":   issuer,
+		"aud":   audience,
+		"sub":   "user-123",
+		"exp":   strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10),
+		"scope": "openid role.editor",
+	})
+
+	visibility := []auth.VisibilityLevel{
+		{Name: "public", Roles: nil},
+		{Name: "editor", Roles: []string{"editor"}},
+	}
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/whatever", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+
+	ctx := authenticator.Authenticate(w, req, "", map[string][]string{"editor": nil}, visibility)
+	level, ok := auth.Visibility(ctx)
+	require.True(t, ok)
+	assert.Equal(t, "editor", level.Name)
+}
+
 func TestAuthenticateFiltersRoleWildcard(t *testing.T) {
 	t.Parallel()
 

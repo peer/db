@@ -175,13 +175,14 @@ func (s *Site) Validate() error {
 // validateVisibility checks the Visibility configuration: level names must be
 // unique and non-empty, every role assigned to a level must be a defined role
 // (a key in Roles), and no role may appear in more than one level. Roles that
-// are in no level, levels with no roles, and an empty Visibility are all
-// allowed. The order of the levels (lowest to highest access) is significant
-// for resolution but is not constrained by this method.
+// are in no level and an empty Visibility are both allowed. A level with no
+// roles is the floor, granted to every request, so at most one such level may
+// exist and it must be the first (lowest) level. The order of the levels
+// (lowest to highest access) is otherwise not constrained by this method.
 func (s *Site) validateVisibility() errors.E {
 	names := map[string]bool{}
 	roleLevel := map[string]string{}
-	for _, level := range s.Visibility {
+	for i, level := range s.Visibility {
 		if level.Name == "" {
 			errE := errors.New("visibility level has an empty name")
 			errors.Details(errE)["domain"] = s.Domain
@@ -194,6 +195,12 @@ func (s *Site) validateVisibility() errors.E {
 			return errE
 		}
 		names[level.Name] = true
+		if len(level.Roles) == 0 && i != 0 {
+			errE := errors.New("a visibility level with no roles must be the first level")
+			errors.Details(errE)["domain"] = s.Domain
+			errors.Details(errE)["level"] = level.Name
+			return errE
+		}
 		for _, role := range level.Roles {
 			if _, ok := s.Roles[role]; !ok {
 				errE := errors.New("visibility level references an unknown role")

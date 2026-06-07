@@ -132,39 +132,70 @@ type baseAuthenticator struct {
 // empty map yields an empty role set even when the token carries role
 // scopes.
 //
-// visibility is the ordered list of visibility levels. The caller's
-// resolved roles are mapped to the highest matching level, which is attached
-// to the context. When no role maps to a level no visibility is attached.
+// visibility is the ordered list of visibility levels. The caller's resolved
+// roles are mapped to the highest applicable level, which is attached to the
+// context. A level with no roles is a floor applied to every request, so an
+// unauthenticated request still gets that level when one is configured.
 //
 // The userinfo for the UserInfo header is read from an in-memory cache.
 // Concurrent requests for the same subject coalesce into a single upstream
 // call to the issuer's userinfo endpoint (singleflight).
 //
-// On any validation failure the original ctx is returned unchanged and no
-// headers are written. Callers should treat that as an unauthenticated request
-// and continue handling.
+// On any validation failure no subject, roles or headers are set and the
+// request is treated as unauthenticated; only the no-roles floor visibility
+// level (if configured) is attached. Callers should continue handling.
 func (b *baseAuthenticator) Authenticate(
 	w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string][]string, visibility []VisibilityLevel,
 ) context.Context {
 	ctx := req.Context()
-	token, _ := resolveAccessToken(w, req)
-	if token == "" {
+	subject, roles, token, ok := b.authenticatedIdentity(ctx, w, req, allowedRoles)
+	// Resolve the caller's visibility level. roles is nil for an unauthenticated
+	// request, in which case the no-roles floor level (if any) applies.
+	// An authenticated caller's roles may raise it above that floor.
+	if level, found := visibilityForRoles(visibility, roles); found {
+		ctx = WithVisibility(ctx, level)
+	}
+	if !ok {
 		return ctx
 	}
-	// The token is an access token (what the cookie / Bearer header
+	ctx = WithSubject(ctx, subject)
+	ctx = WithRoles(ctx, roles)
+	b.writeRolesHeader(w, metadataHeaderPrefix, roles)
+	b.writeUserInfoHeader(ctx, w, metadataHeaderPrefix, subject, token)
+	// Authenticated responses carry per-user data, keep them out of
+	// shared caches. Browser caches still store them (keyed by
+	// Authorization/Cookie via the Vary headers resolveAccessToken
+	// sets).
+	w.Header().Set("Cache-Control", "private")
+	return ctx
+}
+
+// authenticatedIdentity validates the caller's access token and, on success,
+// returns the verified subject, the granted roles (filtered by allowedRoles)
+// and the raw token. ok is false for an unauthenticated request: no token, an
+// invalid or revoked token, or a role-extraction failure. The caller then
+// treats the request as anonymous.
+func (b *baseAuthenticator) authenticatedIdentity(
+	ctx context.Context, w http.ResponseWriter, req *http.Request, allowedRoles map[string][]string,
+) (string, []string, string, bool) {
+	token, _ := resolveAccessToken(w, req)
+	if token == "" {
+		return "", nil, "", false
+	}
+	// The token is an access token (what the cookie/Bearer header
 	// carries), not an ID token. go-oidc only exposes IDTokenVerifier
 	// for JWT validation, so the returned *oidc.IDToken is just a
 	// parsed-JWT struct here. The validation contract (signature,
 	// issuer, audience, expiry) is the same either way.
 	claims, err := b.tokenVerifier.Verify(ctx, token)
 	if err != nil {
-		return ctx
+		return "", nil, "", false
 	}
 	// Revocation check: a token that passed the JWT signature/exp gate
 	// may still have been explicitly signed out.
 	revoked, errE := b.revocationStore.IsRevoked(ctx, token, claims.Expiry)
 	if errE == nil && revoked {
-		return ctx
+		return "", nil, "", false
 	}
 	// Database errors fail open: trust the JWT validation we already
 	// passed rather than locking everyone out on a transient outage.
@@ -175,21 +206,9 @@ func (b *baseAuthenticator) Authenticate(
 	}
 	roles, errE := extractRoles(claims, allowedRoles)
 	if errE != nil {
-		return ctx
+		return "", nil, "", false
 	}
-	ctx = WithSubject(ctx, claims.Subject)
-	ctx = WithRoles(ctx, roles)
-	if level, ok := visibilityForRoles(visibility, roles); ok {
-		ctx = WithVisibility(ctx, level)
-	}
-	b.writeRolesHeader(w, metadataHeaderPrefix, roles)
-	b.writeUserInfoHeader(ctx, w, metadataHeaderPrefix, claims.Subject, token)
-	// Authenticated responses carry per-user data, keep them out of
-	// shared caches. Browser caches still store them (keyed by
-	// Authorization / Cookie via the Vary headers resolveAccessToken
-	// sets).
-	w.Header().Set("Cache-Control", "private")
-	return ctx
+	return claims.Subject, roles, token, true
 }
 
 // writeRolesHeader emits the Roles response header as an SFV list of
