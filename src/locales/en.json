@@ -182,7 +182,7 @@
       "skipToResults": "Skip to results",
       "resultsReferencing": "Results referencing {label}",
       "clearReferencing": "Clear referencing scope",
-      "resultsLimitedTo": "Results limited to {filter}.",
+      "resultsLimitedTo": "Results limited to {filter}",
       "resultsLimitedToMany": "Results limited to:",
       "clearLimited": "Clear results limiting"
     },
