@@ -15,10 +15,12 @@ import (
 	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/fieldtype"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/fieldvaluefactormodifier"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/functionboostmode"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/operator"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/searchtype"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/sortorder"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/totalhitsrelation"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
@@ -1052,6 +1054,20 @@ func ResultsGet(
 
 	searchService := getSearchService()
 
+	// Order results by relevance score (higher first), then by the document's earliest time (newer
+	// first), then by its display label in the session's language (a before z). Without a query,
+	// filters, or prefilters every document scores 0, so the time and display-label keys decide the
+	// order. Documents missing a sort field sort last (missing: _last).
+	sorts := []types.SortCombinationsVariant{
+		esdsl.NewSortOptions().Score_(esdsl.NewScoreSort().Order(sortorder.Desc)),
+		esdsl.NewSortOptions().AddSortOption("time", esdsl.NewFieldSort(sortorder.Desc).Missing(esdsl.NewMissing().String("_last"))),
+		esdsl.NewSortOptions().AddSortOption(
+			"displaySort."+searchData.Language,
+			// unmapped_type keeps the sort working if field for the language is not present in the index mapping.
+			esdsl.NewFieldSort(sortorder.Asc).UnmappedType(fieldtype.Keyword).Missing(esdsl.NewMissing().String("_last")),
+		),
+	}
+
 	// Score with global term/document frequencies across all shards (DFS) instead of
 	// each shard's local statistics. With multiple shards a term's IDF otherwise depends
 	// on which shard a document happens to land on, and that skew is amplified by deleted
@@ -1059,7 +1075,7 @@ func ResultsGet(
 	// result is inconsistent BM25 scoring across documents and unstable ranking. DFS makes
 	// IDF uniform so ranking no longer depends on shard placement. Only the ranked results
 	// query needs this. Queries which run with Size(0) and are not scored.
-	searchService = searchService.From(0).Size(MaxResultsCount).Query(query).SearchType(searchtype.Dfsquerythenfetch)
+	searchService = searchService.From(0).Size(MaxResultsCount).Query(query).Sort(sorts...).SearchType(searchtype.Dfsquerythenfetch)
 
 	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
