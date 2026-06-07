@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/alecthomas/kong"
@@ -215,6 +216,26 @@ func (s *Site) validateVisibility() errors.E {
 		}
 	}
 	return nil
+}
+
+// VisibilityForRoles returns the highest visibility level granted by roles, and
+// true when at least one role maps to a level. Levels are ordered from lowest to
+// highest access, so among the matching levels the one latest in Visibility wins.
+// When no role maps to a level (the request has no such role, or the site defines
+// no levels), it returns the zero VisibilityLevel and false; the caller decides
+// what that means (typically the lowest, public, view).
+func (s *Site) VisibilityForRoles(roles []string) (VisibilityLevel, bool) {
+	// Visibility is ordered lowest to highest access, so walking it from the end
+	// returns the highest matching level on the first match.
+	for _, v := range slices.Backward(s.Visibility) {
+		level := v
+		for _, role := range level.Roles {
+			if slices.Contains(roles, role) {
+				return level, true
+			}
+		}
+	}
+	return VisibilityLevel{}, false
 }
 
 func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifier) ([]identifier.Identifier, errors.E) {
