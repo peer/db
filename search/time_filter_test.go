@@ -443,6 +443,7 @@ func TestTimeFilterGetExtendedBoundsIntegration(t *testing.T) {
 	t4000 := float64(4000)
 	t6000 := float64(6000)
 
+	//nolint:dupl
 	for _, tc := range []struct {
 		id    string
 		value *float64

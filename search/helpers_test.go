@@ -161,6 +161,7 @@ func seedTimeFilterDocs(t *testing.T, ctx context.Context, esClient *elasticsear
 	t5000 := float64(5000)
 	t9000 := float64(9000)
 
+	//nolint:dupl
 	for _, tc := range []struct {
 		id    string
 		value *float64

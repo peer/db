@@ -1,3 +1,5 @@
+// Package site defines the per-site configuration and runtime state for a
+// PeerDB site.
 package site
 
 import (
@@ -32,6 +34,8 @@ type Build struct {
 }
 
 // SiteFeatures contains enabled feature flags.
+//
+//nolint:revive
 type SiteFeatures struct {
 	SearchResultsTable bool `json:"searchResultsTable,omitempty" yaml:"searchResultsTable,omitempty"`
 	DownloadButtons    bool `json:"downloadButtons,omitempty"    yaml:"downloadButtons,omitempty"`
@@ -46,6 +50,8 @@ type SiteFeatures struct {
 // Each site has its own client because the redirect URI is per-domain and
 // most OIDC providers register redirect URIs as fixed strings rather than
 // templates.
+//
+//nolint:revive
 type SiteAuthConfig struct {
 	Issuer       string `json:"-" yaml:"issuer,omitempty"`
 	ClientID     string `json:"-" yaml:"clientId,omitempty"`
@@ -133,7 +139,7 @@ func (s *Site) Decode(ctx *kong.DecodeContext) error {
 	}
 	decoder := yaml.NewDecoder(strings.NewReader(value))
 	decoder.KnownFields(true)
-	err = decoder.Decode(s)
+	err = decoder.Decode(s) //nolint:musttag
 	if err != nil {
 		if yamlErr, ok := errors.AsType[*yaml.TypeError](err); ok {
 			e := "error"
