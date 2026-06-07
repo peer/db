@@ -20,7 +20,7 @@ import (
 	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/base"
 	"gitlab.com/peerdb/peerdb/document"
-	"gitlab.com/peerdb/peerdb/internal/search"
+	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 )
 
 // Build contains version and build metadata.
@@ -153,7 +153,7 @@ func (s *Site) Validate() error {
 }
 
 func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifier) ([]identifier.Identifier, errors.E) {
-	return search.FetchDocumentIDs(ctx, s.ESClient, s.Index, []identifier.Identifier{classID})
+	return internalSearch.FetchDocumentIDs(ctx, s.ESClient, s.Index, []identifier.Identifier{classID})
 }
 
 // FetchDocuments returns all documents that are instances of classID by loading their latest stored
