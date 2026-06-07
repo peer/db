@@ -677,6 +677,265 @@ func TestInvalidateCachesHierarchyAncestor(t *testing.T) {
 	assert.Equal(t, "Grandparent\x00Renamed\x00Child", info.DisplayPaths[internalCore.SubclassOfPropID]["und"][0])
 }
 
+func TestGetDocumentCacheSkipsWriteOnConcurrentInvalidation(t *testing.T) {
+	t.Parallel()
+
+	doc := makeNamingDoc(testDocID, "Test Doc")
+	var c *Converter
+	callCount := 0
+	invalidateDuringFetch := true
+	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		if id != testDocID {
+			return nil, errors.New("document not found")
+		}
+		callCount++
+		if invalidateDuringFetch {
+			// Simulate an invalidation that runs while this fetch is in flight: it bumps the generation
+			// after getDocument snapshotted it, so the write-back must not cache the fetched document.
+			c.InvalidateCaches(testDocID)
+		}
+		return doc, nil
+	}
+	var errE errors.E
+	c, errE = NewConverter(nil, nil, nil, nil, getDocument)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	ctx := t.Context()
+
+	// The fetch races an invalidation, so its result is returned to the caller but not cached.
+	got, errE := c.getDocument(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Same(t, doc, got)
+	assert.Equal(t, 1, callCount)
+	c.getDocumentMu.RLock()
+	_, cached := c.getDocumentCache[testDocID]
+	c.getDocumentMu.RUnlock()
+	assert.False(t, cached, "a fetch that raced an invalidation must not be cached")
+
+	// Without a concurrent invalidation the fetch caches normally: the next call fetches once more
+	// (proving the earlier result was not cached), and the call after that is served from the cache.
+	invalidateDuringFetch = false
+	_, errE = c.getDocument(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, 2, callCount)
+	_, errE = c.getDocument(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, 2, callCount, "the previous fetch should have been cached")
+}
+
+func TestDocumentInfoCacheSkipsWriteOnConcurrentInvalidation(t *testing.T) {
+	t.Parallel()
+
+	doc := makeNamingDoc(testDocID, "Test Doc")
+	var c *Converter
+	invalidateDuringCompute := true
+	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		if id != testDocID {
+			return nil, errors.New("document not found")
+		}
+		if invalidateDuringCompute {
+			// Bump the generation while the info is being computed (after computeDocumentInfo snapshotted
+			// it) so neither the info nor its dependency edges are installed.
+			c.InvalidateCaches(testDocID)
+		}
+		return doc, nil
+	}
+	var errE errors.E
+	c, errE = NewConverter(nil, nil, nil, nil, getDocument)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	ctx := t.Context()
+
+	// The in-flight conversion still gets the computed info, but nothing is cached.
+	info, errE := c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "Test Doc", info.Display.Display["und"])
+	c.documentInfoMu.RLock()
+	_, infoCached := c.documentInfoCache[testDocID]
+	c.documentInfoMu.RUnlock()
+	assert.False(t, infoCached, "info computed across an invalidation must not be cached")
+
+	// Without a concurrent invalidation the info caches normally.
+	invalidateDuringCompute = false
+	_, errE = c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c.documentInfoMu.RLock()
+	_, infoCached = c.documentInfoCache[testDocID]
+	c.documentInfoMu.RUnlock()
+	assert.True(t, infoCached, "info computed without a concurrent invalidation should be cached")
+}
+
+func TestGetDocumentCacheUnaffectedByUnrelatedInvalidation(t *testing.T) {
+	t.Parallel()
+
+	doc := makeNamingDoc(testDocID, "Test Doc")
+	otherDocID := identifier.New()
+	var c *Converter
+	callCount := 0
+	invalidateOther := true
+	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		if id != testDocID {
+			return nil, errors.New("document not found")
+		}
+		callCount++
+		if invalidateOther {
+			// Invalidate an unrelated document while this fetch is in flight. Per-document generations mean
+			// this must not prevent caching testDocID.
+			c.InvalidateCaches(otherDocID)
+		}
+		return doc, nil
+	}
+	var errE errors.E
+	c, errE = NewConverter(nil, nil, nil, nil, getDocument)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	ctx := t.Context()
+
+	_, errE = c.getDocument(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c.getDocumentMu.RLock()
+	_, cached := c.getDocumentCache[testDocID]
+	c.getDocumentMu.RUnlock()
+	assert.True(t, cached, "an unrelated invalidation must not prevent caching")
+
+	// The cached entry is served without another fetch.
+	invalidateOther = false
+	_, errE = c.getDocument(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, 1, callCount, "second lookup should be a cache hit")
+}
+
+func TestDocumentInfoCacheUnaffectedByUnrelatedInvalidation(t *testing.T) {
+	t.Parallel()
+
+	doc := makeNamingDoc(testDocID, "Test Doc")
+	otherDocID := identifier.New()
+	var c *Converter
+	invalidateOther := true
+	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		if id != testDocID {
+			return nil, errors.New("document not found")
+		}
+		if invalidateOther {
+			// Invalidate an unrelated document while the info is being computed. Per-document generations
+			// mean testDocID's info must still be cached.
+			c.InvalidateCaches(otherDocID)
+		}
+		return doc, nil
+	}
+	var errE errors.E
+	c, errE = NewConverter(nil, nil, nil, nil, getDocument)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	ctx := t.Context()
+
+	_, errE = c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c.documentInfoMu.RLock()
+	_, infoCached := c.documentInfoCache[testDocID]
+	c.documentInfoMu.RUnlock()
+	assert.True(t, infoCached, "an unrelated invalidation must not prevent caching the info")
+}
+
+func TestRootDocWithoutSnapshotNotCachedButResolvesDiamond(t *testing.T) {
+	t.Parallel()
+
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
+
+	// Diamond: the converted document (the root) has two parents that share a grandparent.
+	grandparent := identifier.New()
+	parentA := identifier.New()
+	parentB := identifier.New()
+
+	gpDoc := makeNamingDoc(grandparent, "Root")
+	paDoc := makeHierarchyDoc(parentA, "ParentA", internalCore.SubclassOfPropID, &grandparent)
+	pbDoc := makeHierarchyDoc(parentB, "ParentB", internalCore.SubclassOfPropID, &grandparent)
+
+	childClaims := &document.ClaimTypes{}
+	childClaims.String = append(childClaims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.NamingPropID},
+		String:    "Leaf",
+	})
+	childClaims.Reference = append(childClaims.Reference,
+		document.ReferenceClaim{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: internalCore.SubclassOfPropID},
+			To:        document.Reference{ID: parentA},
+		},
+		document.ReferenceClaim{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: internalCore.SubclassOfPropID},
+			To:        document.Reference{ID: parentB},
+		},
+	)
+	childDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims:       childClaims,
+	}
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		grandparent: gpDoc,
+		parentA:     paDoc,
+		parentB:     pbDoc,
+	}
+	c := newTestConverter(t, properties, nil, extraDocs)
+
+	// The converted document is passed directly (doc != nil) with a nil gen, i.e. no pre-read snapshot.
+	// Its info must not be cached, but the shared grandparent must still be cached so both diamond paths
+	// resolve.
+	info, errE := c.computeDocumentInfo(t.Context(), testDocID, childDoc, nil, map[identifier.Identifier]bool{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, info.DisplayPaths[internalCore.SubclassOfPropID]["und"], 2)
+	assert.ElementsMatch(t, info.DisplayPaths[internalCore.SubclassOfPropID]["und"], []string{
+		"Root\x00ParentA\x00Leaf",
+		"Root\x00ParentB\x00Leaf",
+	})
+
+	c.documentInfoMu.RLock()
+	_, rootCached := c.documentInfoCache[testDocID]
+	_, gpCached := c.documentInfoCache[grandparent]
+	c.documentInfoMu.RUnlock()
+	assert.False(t, rootCached, "the converted root without a pre-read snapshot must not be cached")
+	assert.True(t, gpCached, "shared ancestors are still cached so multi-path hierarchies resolve")
+}
+
+func TestComputeDocumentInfoUsesRootGenFromContext(t *testing.T) {
+	t.Parallel()
+
+	doc := makeNamingDoc(testDocID, "Test Doc")
+	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		if id == testDocID {
+			return doc, nil
+		}
+		return nil, errors.New("document not found")
+	}
+	c, errE := NewConverter(nil, nil, nil, nil, getDocument)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Simulate a caller that snapshotted the generation before its store read, then an invalidation lands
+	// before the conversion installs. The doc!=nil path must use that (now stale) snapshot, not a fresh
+	// one taken at compute time, so nothing is cached.
+	stale := c.genOf(testDocID)
+	c.InvalidateCaches(testDocID)
+	_, errE = c.computeDocumentInfo(t.Context(), testDocID, doc, &stale, map[identifier.Identifier]bool{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c.documentInfoMu.RLock()
+	_, cached := c.documentInfoCache[testDocID]
+	c.documentInfoMu.RUnlock()
+	assert.False(t, cached, "a pre-read snapshot that has since been invalidated must not be cached")
+
+	// A current snapshot installs.
+	fresh := c.genOf(testDocID)
+	_, errE = c.computeDocumentInfo(t.Context(), testDocID, doc, &fresh, map[identifier.Identifier]bool{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c.documentInfoMu.RLock()
+	_, cached = c.documentInfoCache[testDocID]
+	c.documentInfoMu.RUnlock()
+	assert.True(t, cached, "a current pre-read snapshot should be cached")
+}
+
 func TestInvalidateCachesInstanceClassAncestor(t *testing.T) {
 	t.Parallel()
 
@@ -1643,7 +1902,7 @@ func TestVisitIdentifierPopulatesText(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []string{testDocID.String(), "Q42"}, result.Text["und"])
 }
@@ -1664,7 +1923,7 @@ func TestVisitStringPopulatesTextDefaultsToUnd(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []string{testDocID.String(), "hello world"}, result.Text["und"])
 	// The document ID and the String claim with no IN_LANGUAGE both go only to
@@ -1699,7 +1958,7 @@ func TestVisitStringPopulatesTextWithLanguage(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// The English-tagged String claim goes to text["en"].
 	// The IN_LANGUAGE sub-reference name folds into text["und"]
@@ -1724,7 +1983,7 @@ func TestVisitHTMLStripsAndPopulatesText(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// HTML tags are stripped in Go and adjacent block elements get a separating
 	// space so the tokenizer treats the words as distinct tokens. The first
@@ -1762,7 +2021,7 @@ func TestTextAggregatesAcrossClaims(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []string{testDocID.String(), "Q42", "alpha", "https://example.com"}, result.Text["und"])
 }
@@ -1787,7 +2046,7 @@ func TestVisitIdentifierPopulatesClaim(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(t.Context(), doc, nil)
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result.Claims.Identifier, 1)
 	assert.Equal(t, testPropID, result.Claims.Identifier[0].Prop)
@@ -1823,7 +2082,7 @@ func TestVisitStringPopulatesClaim(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(t.Context(), doc, nil)
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result.Claims.String, 1)
 	assert.Equal(t, testPropID, result.Claims.String[0].Prop)
@@ -1851,7 +2110,7 @@ func TestVisitHTMLPopulatesClaim(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(t.Context(), doc, nil)
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result.Claims.HTML, 1)
 	assert.Equal(t, "hello world", result.Claims.HTML[0].HTML["und"])
@@ -1877,7 +2136,7 @@ func TestVisitLinkPopulatesClaim(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(t.Context(), doc, nil)
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result.Claims.Link, 1)
 	assert.Equal(t, testPropID, result.Claims.Link[0].Prop)
@@ -1902,7 +2161,7 @@ func TestVisitIdentifierMissingPropError(t *testing.T) {
 			}},
 		},
 	}
-	_, errE := c.FromDocument(t.Context(), doc, nil)
+	_, errE := c.FromDocument(t.Context(), doc, nil, nil)
 	assert.ErrorContains(t, errE, "document not found")
 }
 
@@ -4304,7 +4563,7 @@ func TestFromDocument(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
 	assert.ElementsMatch(t, []string{testDocID.String(), "Q42", "hello"}, result.Text["und"])
@@ -4320,7 +4579,7 @@ func TestFromDocumentNilClaims(t *testing.T) {
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
 	// The document ID goes only to the "und" bucket, so that is the sole entry.
@@ -4463,7 +4722,7 @@ func TestFromDocumentAllClaimTypesConfidence(t *testing.T) {
 			ctx := t.Context()
 			doc := makeDocWithAllClaimTypes(t, tt.confidence)
 
-			result, errE := c.FromDocument(ctx, doc, nil)
+			result, errE := c.FromDocument(ctx, doc, nil, nil)
 			require.NoError(t, errE, "% -+#.1v", errE)
 			assert.Equal(t, testDocID, result.ID)
 			// text["und"] aggregates the following, after dedupeResult drops
@@ -4533,7 +4792,7 @@ func TestDedupeResultDeMirrorsUnd(t *testing.T) {
 			},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, []string{"shared value"}, result.Text["en"])
@@ -4584,7 +4843,7 @@ func TestEarliestClaimTime(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The earliest of all bounds across all indexed time claims.
@@ -4634,7 +4893,7 @@ func TestEarliestClaimTimeNone(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, result.Time)
 }
@@ -4687,7 +4946,7 @@ func TestEarliestClaimTimeOpenBoundsNotSentinel(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result.Claims.Time, 2)
 
@@ -4765,7 +5024,7 @@ func TestClaimsCountCountsRecursively(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotNil(t, result.Counts.Claims)
 	assert.Equal(t, 2, *result.Counts.Claims)
@@ -4797,7 +5056,7 @@ func TestReferencesCount(t *testing.T) {
 			},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotNil(t, result.Counts.References)
 	assert.Equal(t, 7, *result.Counts.References)
@@ -4815,7 +5074,7 @@ func TestReferencesCount(t *testing.T) {
 			},
 		},
 	}
-	result, errE = c.FromDocument(ctx, classDoc, nil)
+	result, errE = c.FromDocument(ctx, classDoc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, result.Counts.References)
 
@@ -4832,7 +5091,7 @@ func TestReferencesCount(t *testing.T) {
 			},
 		},
 	}
-	result, errE = c.FromDocument(ctx, vocabDoc, nil)
+	result, errE = c.FromDocument(ctx, vocabDoc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, result.Counts.References)
 }
@@ -4872,7 +5131,7 @@ func TestReferencesCountIgnoresTransitiveSubclass(t *testing.T) {
 			},
 		},
 	}
-	result, errE := c.FromDocument(t.Context(), doc, nil)
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, result.Counts.References)
 }
@@ -4899,7 +5158,7 @@ func TestFromDocumentAmountError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4929,7 +5188,7 @@ func TestFromDocumentAmountIntervalError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4953,7 +5212,7 @@ func TestFromDocumentTimeError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4983,7 +5242,7 @@ func TestFromDocumentTimeIntervalError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -5006,7 +5265,7 @@ func TestFromDocumentRelationError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -5028,7 +5287,7 @@ func TestFromDocumentHasError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -5050,7 +5309,7 @@ func TestFromDocumentNoneError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -5072,7 +5331,7 @@ func TestFromDocumentUnknownError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -7057,7 +7316,7 @@ func TestRecognizedNotIndexedLanguageFallback(t *testing.T) {
 	priority := map[string][]string{"en": {"sl"}}
 	c := newTestConverterWithPriority(t, nil, []*document.D{enLangDoc, slLangDoc}, map[identifier.Identifier]*document.D{docID: doc}, priority)
 
-	result, errE := c.FromDocument(t.Context(), doc, nil)
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The English display label resolves to the Slovenian name via the en->sl
@@ -7114,7 +7373,7 @@ func TestConversionIndexesOnlyEnabledLanguages(t *testing.T) {
 	priority := map[string][]string{"en": {"und"}}
 	c := newTestConverterWithPriority(t, nil, langs, map[identifier.Identifier]*document.D{docID: doc}, priority)
 
-	result, errE := c.FromDocument(t.Context(), doc, nil)
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// English content is indexed under "en".
@@ -7152,7 +7411,7 @@ func TestDetectLanguageRoutesUntaggedContent(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Contains(t, result.Text["en"], enText, "clearly-English content should route to text.en")
 	assert.NotContains(t, result.Text["und"], enText, "detected content should not also land in und")
@@ -7169,7 +7428,7 @@ func TestDetectLanguageRoutesUntaggedContent(t *testing.T) {
 			}},
 		},
 	}
-	result, errE = c.FromDocument(ctx, shortDoc, nil)
+	result, errE = c.FromDocument(ctx, shortDoc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Contains(t, result.Text["und"], short, "short content stays in und")
 	_, hasEn := result.Text["en"]
@@ -7200,7 +7459,7 @@ func TestDetectLanguageSingleEnabled(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, enDoc, nil)
+	result, errE := c.FromDocument(ctx, enDoc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Contains(t, result.Text["en"], enText, "clearly-English content should route to text.en")
 	assert.NotContains(t, result.Text["und"], enText, "detected content should not also land in und")
@@ -7218,7 +7477,7 @@ func TestDetectLanguageSingleEnabled(t *testing.T) {
 			}},
 		},
 	}
-	result, errE = c.FromDocument(ctx, slDoc, nil)
+	result, errE = c.FromDocument(ctx, slDoc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Contains(t, result.Text["und"], slText, "non-English content stays in und on an English-only site")
 	_, hasEn := result.Text["en"]
@@ -7349,7 +7608,7 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 	// per-language display field: its own label plus its ancestors' labels.
 	// ("Parent EN" also appears in text independently, via the SUBCLASS_OF
 	// reference claim's ToDisplay/ToNaming, which is a separate mechanism.)
-	result, errE := c.FromDocument(ctx, childDoc, nil)
+	result, errE := c.FromDocument(ctx, childDoc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []string{"Child EN", "Parent EN"}, result.Display["en"])
 	assert.ElementsMatch(t, []string{"Child SL", "Parent EN"}, result.Display["sl"])
@@ -7820,7 +8079,7 @@ func TestFromDocumentIncomingInverseRelation(t *testing.T) {
 		newIR(claimID, sourceDocID, propX, propY, identifier.Identifier{}, document.HighConfidence),
 	}
 
-	result, errE := c.FromDocument(ctx, doc, inverseRelations)
+	result, errE := c.FromDocument(ctx, doc, nil, inverseRelations)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have a reverse relation claim with property Y pointing to source document.
@@ -7863,7 +8122,7 @@ func TestFromDocumentIncomingInverseRelationMultipleInverses(t *testing.T) {
 		newIR(claimID, sourceDocID, propB, propC, identifier.Identifier{}, document.HighConfidence),
 	}
 
-	result, errE := c.FromDocument(ctx, doc, inverseRelations)
+	result, errE := c.FromDocument(ctx, doc, nil, inverseRelations)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have two reverse relation claims: one for A and one for C.
@@ -7908,7 +8167,7 @@ func TestFromDocumentIncomingInverseRelationBidirectional(t *testing.T) {
 		newIR(identifier.New(), sourceDocID, propA, propB, identifier.Identifier{}, document.HighConfidence),
 	}
 
-	result, errE := c.FromDocument(ctx, doc, inverseRelations)
+	result, errE := c.FromDocument(ctx, doc, nil, inverseRelations)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should produce a reverse claim with property B.
@@ -8619,7 +8878,7 @@ func TestFromDocumentHookModifies(t *testing.T) {
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
 	assert.Equal(t, []string{testDocID.String(), "injected"}, result.Text["und"])
@@ -8641,7 +8900,7 @@ func TestFromDocumentHookError(t *testing.T) {
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "hook failed")
 	assert.Equal(t, 0, errors.AllDetails(errE)["hook"])
@@ -8663,7 +8922,7 @@ func TestFromDocumentHookReturnsNil(t *testing.T) {
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "hook returned nil document")
 	assert.Equal(t, 0, errors.AllDetails(errE)["hook"])
@@ -8707,7 +8966,7 @@ func TestFromDocumentMultipleHooks(t *testing.T) {
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []string{testDocID.String(), "first", "second"}, result.Text["und"])
 }
@@ -8755,7 +9014,7 @@ func TestFromDocumentHookReplaces(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// Result should use the replacement document.
 	assert.Equal(t, replacementID, result.ID)
@@ -8786,7 +9045,7 @@ func TestFromDocumentMultipleHooksErrorInSecond(t *testing.T) {
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "second hook failed")
 	// Hook index should be 1 (the second hook).
@@ -8817,7 +9076,7 @@ func TestFromDocumentNilHooks(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
 	assert.Equal(t, []string{testDocID.String(), "hello"}, result.Text["und"])

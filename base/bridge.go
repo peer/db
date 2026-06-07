@@ -18,7 +18,8 @@ func (b *B) LanguageCodes() map[identifier.Identifier]string {
 
 // IndexedDocument returns the search document for the given document and metadata.
 func (b *B) IndexedDocument(ctx context.Context, dataJSON json.RawMessage, metadata *store.DocumentMetadata) (*internalSearch.Document, errors.E) {
-	return b.bridge.ConvertDocument(ctx, dataJSON, metadata)
+	// It passes a nil generation so the converted document's own info is computed but not cached.
+	return b.bridge.ConvertDocument(ctx, dataJSON, metadata, nil)
 }
 
 // ResetBridgeProgress resets bridge progress so all commits are re-processed.

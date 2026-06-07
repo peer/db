@@ -860,6 +860,11 @@ func (b *Bridge) indexCommit(
 				// The document changed in this commit, so drop any cached info and fetched content for it.
 				b.converter.InvalidateCaches(change.ID)
 
+				// Snapshot the document's generation after invalidating and before reading its new version,
+				// so ConvertDocument installs cache entries for it only if no later commit invalidated it
+				// again meanwhile.
+				gen := b.converter.genOf(change.ID)
+
 				// Fetch document at the change version.
 				deleted := false
 				getStart := time.Now()
@@ -896,7 +901,7 @@ func (b *Bridge) indexCommit(
 					// TODO: Use also information about the view so that documents are searchable by view as well.
 					convertFetchBefore := stats.FetchDuration
 					convertStart := time.Now()
-					searchDoc, errE := b.ConvertDocument(ctx, data, metadata)
+					searchDoc, errE := b.ConvertDocument(ctx, data, metadata, &gen)
 					convertDuration += time.Since(convertStart) - (stats.FetchDuration - convertFetchBefore)
 					if errE != nil {
 						return nil, nil, nil, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
@@ -1041,16 +1046,21 @@ func diffOutgoingInverseRelations(
 	return added, removed
 }
 
-// ConvertDocument unmarshals data into a document.D and calls the converter's
-// FromDocument with inverse relations from metadata.
-func (b *Bridge) ConvertDocument(ctx context.Context, data json.RawMessage, metadata *store.DocumentMetadata) (*Document, errors.E) {
+// ConvertDocument unmarshals data into a document.D and calls the converter's FromDocument with inverse
+// relations from metadata. gen is the document's generation (the converter's genOf) snapshotted by the caller
+// before it read data from the store. The converted document's own info is cached only if that generation
+// has not advanced since, closing the window where a concurrent invalidation would otherwise let a pre-read
+// document be cached. A nil gen means the caller has no such snapshot: the converted document's info is then
+// computed but not cached, while its referenced documents and ancestors, which are fetched and snapshotted
+// during the conversion, are cached as usual.
+func (b *Bridge) ConvertDocument(ctx context.Context, data json.RawMessage, metadata *store.DocumentMetadata, gen *uint64) (*Document, errors.E) {
 	var doc document.D
 	errE := x.UnmarshalWithoutUnknownFields(data, &doc)
 	if errE != nil {
 		return nil, errE
 	}
 
-	return b.converter.FromDocument(ctx, &doc, metadata.InverseRelations)
+	return b.converter.FromDocument(ctx, &doc, gen, metadata.InverseRelations)
 }
 
 // CountReferences returns how many documents reference the document with the
@@ -1726,6 +1736,9 @@ func (b *Bridge) bulkIndexReindexed(ctx context.Context, snapshotSeq int64, pend
 // It returns a nil document (and nil error) when the document was deleted or never existed, in which case the caller
 // still removes its queue entry but does not index it.
 func (b *Bridge) convertForReindex(ctx context.Context, docID identifier.Identifier, stats *reindexStats) (*Document, errors.E) {
+	// Snapshot the document's generation before reading it, so ConvertDocument installs cache entries for
+	// it only if the bridge did not invalidate it concurrently while this reindex was converting it.
+	gen := b.converter.genOf(docID)
 	getLatestStart := time.Now()
 	data, metadata, _, _, errE := b.Store.GetLatest(ctx, docID)
 	stats.GetLatestDuration += time.Since(getLatestStart)
@@ -1757,7 +1770,7 @@ func (b *Bridge) convertForReindex(ctx context.Context, docID identifier.Identif
 	}
 	convertStart := time.Now()
 	// TODO: Use also information about the view so that documents are searchable by view as well.
-	searchDoc, errE := b.ConvertDocument(ctx, data, metadata)
+	searchDoc, errE := b.ConvertDocument(ctx, data, metadata, &gen)
 	convertElapsed := time.Since(convertStart)
 	if convStats != nil {
 		convertElapsed -= convStats.FetchDuration - fetchBefore

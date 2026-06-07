@@ -267,6 +267,18 @@ type Converter struct {
 	// getDocumentFunc fetches a document by ID from the store. Call the getDocument method instead of
 	// using this field directly, so fetches are cached in getDocumentCache and counted.
 	getDocumentFunc func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E)
+	// cacheGen holds a per-document monotonic generation, bumped by InvalidateCaches for each invalidated
+	// document before its entries are dropped. getDocument and computeDocumentInfo snapshot the generation
+	// of every document they read (recorded per dependency in DisplayDependencies) and only install a
+	// value if none of those generations advanced by write-back time. This prevents the cache-aside race
+	// where a reader holding a pre-commit store snapshot writes stale data after an invalidation has run:
+	// if a relevant bump happened during the read, the snapshot mismatches and the write is skipped; if
+	// the write lands before the invalidation, the invalidation's delete drops it.
+	// TODO: Bound this map (for example with an LRU); it currently grows with every distinct invalidated document.
+	cacheGen map[identifier.Identifier]uint64
+	// cacheGenMu protects cacheGen for concurrent access. It is a leaf lock: only ever acquired on its own
+	// or as the innermost lock inside documentInfoMu or getDocumentMu, never the other way around.
+	cacheGenMu sync.RWMutex
 	// documentInfoMu protects documentInfoCache and infoDependents for concurrent access.
 	documentInfoMu sync.RWMutex
 	// documentInfoCache caches computed document info (display strings and hierarchy ancestors) per
@@ -308,21 +320,29 @@ type ConversionStats struct {
 	FetchDuration time.Duration
 }
 
-// DisplayDependencies collects the document IDs fetched via getDocument while a document's display
-// strings are being rendered, so the document's documentInfo can be invalidated when one of those
-// fetched documents changes (its content is rendered into the display label).
+// DisplayDependencies collects the documents fetched via getDocument while a document's display strings
+// are being rendered, so the document's documentInfo can be invalidated when one of those fetched
+// documents changes (its content is rendered into the display label). Each dependency maps to the
+// cacheGen snapshot of that document at the time it was first read, so cacheDocumentInfo can detect
+// whether any dependency was invalidated while the info was being computed.
 type DisplayDependencies struct {
-	ids map[identifier.Identifier]bool
+	ids map[identifier.Identifier]uint64
 }
 
 // getDocument returns the document for the given ID, caching fetched documents in getDocumentCache.
 // Errors (including not-found) are not cached so a later insert is picked up. The bridge invalidates
 // cached entries for documents changed in each commit via InvalidateCaches.
 func (c *Converter) getDocument(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
-	// While a document's display strings are being rendered, record that its documentInfo depends on
-	// this fetched document, whether or not it is served from the cache.
+	// Snapshot this document's generation before reading it, used both to record the dependency below and
+	// to guard this fetch's own cache write at the end.
+	gen := c.genOf(id)
+	// While a document's display strings are being rendered, record that its documentInfo depends on this
+	// fetched document, whether or not it is served from the cache. Keep the earliest snapshot if the
+	// document is fetched more than once, so a change at any point during the compute is still detected.
 	if deps := displayDependenciesFromContext(ctx); deps != nil {
-		deps.ids[id] = true
+		if _, ok := deps.ids[id]; !ok {
+			deps.ids[id] = gen
+		}
 	}
 	c.getDocumentMu.RLock()
 	doc, ok := c.getDocumentCache[id]
@@ -344,7 +364,13 @@ func (c *Converter) getDocument(ctx context.Context, id identifier.Identifier) (
 		return doc, errE
 	}
 	c.getDocumentMu.Lock()
-	c.getDocumentCache[id] = doc
+	// Only cache the fetch if this document was not invalidated while the fetch was in flight. Otherwise
+	// the fetched document might predate the change that triggered the invalidation, so we return it for
+	// the in-flight conversion but do not install it. The bridge reindexes the affected documents from
+	// their new versions regardless.
+	if c.genOf(id) == gen {
+		c.getDocumentCache[id] = doc
+	}
 	c.getDocumentMu.Unlock()
 	return doc, nil
 }
@@ -361,6 +387,14 @@ func (c *Converter) InvalidateCaches(ids ...identifier.Identifier) {
 	if len(ids) == 0 {
 		return
 	}
+	// Bump each document's generation before dropping any entries so that a concurrent reader which
+	// snapshotted a generation before its store read observes the change at write-back and skips
+	// installing stale data.
+	c.cacheGenMu.Lock()
+	for _, id := range ids {
+		c.cacheGen[id]++
+	}
+	c.cacheGenMu.Unlock()
 	c.documentInfoMu.Lock()
 	for _, id := range ids {
 		delete(c.documentInfoCache, id)
@@ -377,6 +411,37 @@ func (c *Converter) InvalidateCaches(ids ...identifier.Identifier) {
 		delete(c.getDocumentCache, id)
 	}
 	c.getDocumentMu.Unlock()
+}
+
+// genOf returns the current generation of the given document, which is 0 until it is first invalidated.
+func (c *Converter) genOf(id identifier.Identifier) uint64 {
+	c.cacheGenMu.RLock()
+	defer c.cacheGenMu.RUnlock()
+	return c.cacheGen[id]
+}
+
+// recordDependency records id as a dependency in deps, snapshotting its current generation. It keeps an
+// earlier snapshot if id was already recorded, so a change at any point during the compute is detected.
+func (c *Converter) recordDependency(deps *DisplayDependencies, id identifier.Identifier) {
+	if _, ok := deps.ids[id]; !ok {
+		deps.ids[id] = c.genOf(id)
+	}
+}
+
+// genSelfForCaching returns the generation to guard id's cached info against and whether the info may be
+// cached at all. Recursed ancestors and embeds (doc == nil) snapshot the generation here, before they are
+// fetched afterwards, so this is their pre-read snapshot and they are always cacheable, which is what lets
+// multi-path hierarchies memoize within a conversion. The converted document itself (doc != nil) was
+// fetched by the caller, so it is cacheable only with the caller's snapshot taken before that read.
+// Without one its info is computed and returned but not installed, since the write could not be guarded.
+func (c *Converter) genSelfForCaching(id identifier.Identifier, doc *document.D, gen *uint64) (uint64, bool) {
+	if doc == nil {
+		return c.genOf(id), true
+	}
+	if gen != nil {
+		return *gen, true
+	}
+	return c.genOf(id), false
 }
 
 // NewConverter creates a Converter that preprocesses property hierarchies and discovers
@@ -427,6 +492,8 @@ func NewConverter(
 		enabledLanguages:         enabledLanguages,
 		recognizedLanguages:      recognizedLanguages,
 		getDocumentFunc:          getDocument,
+		cacheGen:                 map[identifier.Identifier]uint64{},
+		cacheGenMu:               sync.RWMutex{},
 		documentInfoCache:        map[identifier.Identifier]documentInfo{},
 		documentInfoMu:           sync.RWMutex{},
 		infoDependents:           map[identifier.Identifier]map[identifier.Identifier]bool{},
@@ -766,16 +833,19 @@ func (c *Converter) processFieldInverse(classID identifier.Identifier, parentPat
 // caching it on first access. It computes display strings and lazily walks
 // value hierarchy ancestors (e.g., SUBCLASS_OF). It is safe for concurrent use.
 func (c *Converter) getDocumentInfo(ctx context.Context, id identifier.Identifier) (documentInfo, errors.E) {
-	return c.computeDocumentInfo(ctx, id, nil, map[identifier.Identifier]bool{})
+	return c.computeDocumentInfo(ctx, id, nil, nil, map[identifier.Identifier]bool{})
 }
 
 // computeDocumentInfo computes a document's display strings and lazily walks value
 // hierarchy ancestors. When doc is non-nil it is used directly (the caller already
-// has it, e.g., the document being indexed); otherwise the document is fetched by id.
+// has it, e.g., the document being indexed) and gen is the document's generation
+// snapshotted by the caller before it read doc, used to guard caching the result.
+// A nil gen with a non-nil doc means the result is computed but not cached. When doc
+// is nil the document is fetched by id and gen is ignored (the snapshot is taken here).
 // The computing set prevents infinite recursion when cycles exist in hierarchy data.
 // Results are cached for reuse.
 func (c *Converter) computeDocumentInfo(
-	ctx context.Context, id identifier.Identifier, doc *document.D, computing map[identifier.Identifier]bool,
+	ctx context.Context, id identifier.Identifier, doc *document.D, gen *uint64, computing map[identifier.Identifier]bool,
 ) (documentInfo, errors.E) {
 	// Check cache.
 	c.documentInfoMu.RLock()
@@ -791,6 +861,11 @@ func (c *Converter) computeDocumentInfo(
 	if ok {
 		return cached, nil
 	}
+
+	// Snapshot the generation to guard this document's cached info against, and whether it may be cached at
+	// all. cacheDocumentInfo below installs the result only if neither this document nor any dependency was
+	// invalidated meanwhile; otherwise the result is returned but not cached.
+	genSelf, cacheable := c.genSelfForCaching(id, doc, gen)
 
 	// Cycle protection.
 	if computing[id] {
@@ -815,7 +890,7 @@ func (c *Converter) computeDocumentInfo(
 	}
 	// Collect the documents fetched while rendering display strings (the class display template and
 	// any documents it embeds), so this documentInfo can be invalidated when one of them changes.
-	deps := &DisplayDependencies{ids: map[identifier.Identifier]bool{}}
+	deps := &DisplayDependencies{ids: map[identifier.Identifier]uint64{}}
 	display, errE := c.makeDisplayStrings(withDisplayDependencies(ctx, deps), doc)
 	if errE != nil {
 		return documentInfo{}, errE
@@ -843,7 +918,7 @@ func (c *Converter) computeDocumentInfo(
 			seen[parentID] = true
 			hierAncestors = append(hierAncestors, parentID)
 			// Recursively get parent info to collect transitive ancestors and paths.
-			parentInfo, errE := c.computeDocumentInfo(ctx, parentID, nil, computing)
+			parentInfo, errE := c.computeDocumentInfo(ctx, parentID, nil, nil, computing)
 			if errE != nil {
 				return documentInfo{}, errE
 			}
@@ -901,7 +976,7 @@ func (c *Converter) computeDocumentInfo(
 			ignoredForReferencesCount = true
 			break
 		}
-		classInfo, errE := c.computeDocumentInfo(ctx, classID, nil, computing)
+		classInfo, errE := c.computeDocumentInfo(ctx, classID, nil, nil, computing)
 		if errE != nil {
 			return documentInfo{}, errE
 		}
@@ -912,7 +987,7 @@ func (c *Converter) computeDocumentInfo(
 		// that is fine: if a recorded ancestor changes, the instance is invalidated and re-evaluates the
 		// remaining classes, so the dependency set self-corrects.
 		for _, ancestorID := range classInfo.Ancestors[internalCore.SubclassOfPropID] {
-			deps.ids[ancestorID] = true
+			c.recordDependency(deps, ancestorID)
 		}
 		if slices.ContainsFunc(classInfo.Ancestors[internalCore.SubclassOfPropID], isIgnoredClass) {
 			ignoredForReferencesCount = true
@@ -935,15 +1010,34 @@ func (c *Converter) computeDocumentInfo(
 	// invalidate every descendant directly, without an invalidation-time walk.
 	for _, hierAncestors := range info.Ancestors {
 		for _, ancestorID := range hierAncestors {
-			deps.ids[ancestorID] = true
+			c.recordDependency(deps, ancestorID)
 		}
 	}
 
+	// The converted root document without a pre-read snapshot returns its computed info but is not
+	// installed; everything else (ancestors, embeds) is cacheable and guarded by its own snapshot.
+	if cacheable {
+		c.cacheDocumentInfo(id, info, deps, genSelf)
+	}
+
+	return info, nil
+}
+
+// cacheDocumentInfo stores info for id and records the reverse dependency from each document id depends
+// on (documents fetched while rendering its display strings, and its hierarchy ancestors) to id, so a
+// later change to any of them invalidates id's cached info. genSelf is id's generation snapshot taken
+// before the info was computed, and deps holds each dependency's snapshot from when it was first read. If
+// id or any dependency has been invalidated since (its generation advanced), the info, or one of the
+// dependency edges, might reflect a pre-change version, so nothing is installed. Gating the dependency
+// registration too prevents a stale compute from resurrecting an infoDependents edge that the racing
+// invalidation just dropped, which would otherwise leave a dependent stale until its next change.
+func (c *Converter) cacheDocumentInfo(id identifier.Identifier, info documentInfo, deps *DisplayDependencies, genSelf uint64) {
 	c.documentInfoMu.Lock()
+	defer c.documentInfoMu.Unlock()
+	if !c.generationsUnchanged(id, genSelf, deps) {
+		return
+	}
 	c.documentInfoCache[id] = info
-	// Record the reverse dependency from each document this one depends on (documents fetched while
-	// rendering its display strings, and its hierarchy ancestors) to this document, so a later change
-	// to any of them invalidates this document's cached info.
 	for depID := range deps.ids {
 		if depID == id {
 			continue
@@ -955,9 +1049,22 @@ func (c *Converter) computeDocumentInfo(
 		}
 		dependents[id] = true
 	}
-	c.documentInfoMu.Unlock()
+}
 
-	return info, nil
+// generationsUnchanged reports whether id and every dependency in deps still have the generation that
+// was snapshotted while the info was being computed, i.e. none of them was invalidated meanwhile.
+func (c *Converter) generationsUnchanged(id identifier.Identifier, genSelf uint64, deps *DisplayDependencies) bool {
+	c.cacheGenMu.RLock()
+	defer c.cacheGenMu.RUnlock()
+	if c.cacheGen[id] != genSelf {
+		return false
+	}
+	for depID, depGen := range deps.ids {
+		if c.cacheGen[depID] != depGen {
+			return false
+		}
+	}
+	return true
 }
 
 // extendDisplayPaths extends hierDisplayPaths by appending this document's display to
@@ -1901,10 +2008,15 @@ func (v *convertVisitor) appendNotReferenceSubClaims(propID identifier.Identifie
 
 // FromDocument converts a document.D to a search Document.
 //
+// gen is the document's generation snapshotted by the caller before it read doc from the store; it guards
+// caching the document's own info (passed by ConvertDocument for the bridge and reindex). A nil gen means
+// the document's info is computed but not cached, used by callers without such a snapshot.
+// Its referenced documents and ancestors are cached regardless.
+//
 // inverseRelations contains reference claims from other documents that point to this document.
 // For each inverse relation, a synthetic reverse reference claim is added to the search document.
 func (c *Converter) FromDocument(
-	ctx context.Context, doc *document.D, inverseRelations []store.InverseRelation,
+	ctx context.Context, doc *document.D, gen *uint64, inverseRelations []store.InverseRelation,
 ) (*Document, errors.E) {
 	var errE errors.E
 	for i, hook := range c.Hooks {
@@ -1937,7 +2049,7 @@ func (c *Converter) FromDocument(
 
 	// Compute the document's info (display label and hierarchy paths) from the
 	// in-memory document, which may differ from what is in the store (hooks).
-	info, errE := c.computeDocumentInfo(ctx, doc.ID, doc, map[identifier.Identifier]bool{})
+	info, errE := c.computeDocumentInfo(ctx, doc.ID, doc, gen, map[identifier.Identifier]bool{})
 	if errE != nil {
 		return nil, errE
 	}
