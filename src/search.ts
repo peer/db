@@ -85,6 +85,7 @@ export async function updateSearchSession(
     query: searchData.query,
     ...(searchData.language ? { language: searchData.language } : {}),
     ...(searchData.filters && searchData.filters.length > 0 ? { filters: searchData.filters } : {}),
+    ...(searchData.prefilters && searchData.prefilters.length > 0 ? { prefilters: searchData.prefilters } : {}),
     ...(searchData.reverse ? { reverse: searchData.reverse } : {}),
   }
   const response = await postJSON<UpdateSearchSessionResponse>(

@@ -13,6 +13,7 @@ import WithDocument from "@/components/WithDocument.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
+import PrefilterLabel from "@/partials/PrefilterLabel.vue"
 import SearchResult from "@/partials/SearchResult.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import { useBusy } from "@/progress"
@@ -38,6 +39,7 @@ const $emit = defineEmits<{
   downloadZip: []
   downloadFiles: []
   reverseClear: []
+  prefiltersClear: []
 }>()
 
 const { t } = useI18n({ useScope: "global" })
@@ -270,6 +272,29 @@ const WithDocumentD = WithDocument<D>
               </RouterLink>
             </template>
           </i18n-t>
+        </div>
+
+        <div v-if="searchSession.prefilters && searchSession.prefilters.length > 0" class="text-center text-sm">
+          <Button
+            type="button"
+            class="float-right ml-2 px-2.5 py-1"
+            :title="t('partials.SearchResultsFeed.clearLimited')"
+            :aria-label="t('partials.SearchResultsFeed.clearLimited')"
+            @click.prevent="$emit('prefiltersClear')"
+            >{{ t("common.buttons.clear") }}</Button
+          >
+          <i18n-t v-if="searchSession.prefilters.length === 1" keypath="partials.SearchResultsFeed.resultsLimitedTo" scope="global">
+            <template #filter>
+              <PrefilterLabel :filter="searchSession.prefilters[0]" />
+            </template>
+          </i18n-t>
+          <template v-else>
+            {{ t("partials.SearchResultsFeed.resultsLimitedToMany") }}
+            <template v-for="prefilter in searchSession.prefilters" :key="prefilter.id">
+              <br />
+              <PrefilterLabel :filter="prefilter" />
+            </template>
+          </template>
         </div>
 
         <div v-if="filtersTotal === 0" class="my-1 sm:my-4">

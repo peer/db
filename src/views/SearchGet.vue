@@ -110,6 +110,7 @@ watch(locale, async () => {
     query: searchSession.value.query,
     filters: searchSession.value.filters,
     reverse: searchSession.value.reverse,
+    prefilters: searchSession.value.prefilters,
     language: locale.value,
   })
 })
@@ -122,6 +123,7 @@ async function onFiltersUpdate(updatedFilters: Filter[]) {
     query: searchSession.value!.query,
     filters: updatedFilters.length > 0 ? updatedFilters : undefined,
     reverse: searchSession.value!.reverse,
+    prefilters: searchSession.value!.prefilters,
     language: searchSession.value!.language,
   })
 }
@@ -171,6 +173,7 @@ async function onQueryChange(query: string) {
     query,
     filters: searchSession.value!.filters,
     reverse: searchSession.value!.reverse,
+    prefilters: searchSession.value!.prefilters,
     language: searchSession.value!.language,
   })
 }
@@ -183,6 +186,7 @@ async function onViewChange(view: ViewType) {
     query: searchSession.value!.query,
     filters: searchSession.value!.filters,
     reverse: searchSession.value!.reverse,
+    prefilters: searchSession.value!.prefilters,
     language: searchSession.value!.language,
   })
 }
@@ -195,6 +199,20 @@ async function onReverseClear() {
     query: searchSession.value!.query,
     filters: searchSession.value!.filters,
     reverse: undefined,
+    prefilters: searchSession.value!.prefilters,
+    language: searchSession.value!.language,
+  })
+}
+
+async function onPrefiltersClear() {
+  // Checking abortController is done inside onSearchSessionUpdate.
+
+  await onSearchSessionUpdate({
+    view: searchSession.value!.view,
+    query: searchSession.value!.query,
+    filters: searchSession.value!.filters,
+    reverse: searchSession.value!.reverse,
+    prefilters: undefined,
     language: searchSession.value!.language,
   })
 }
@@ -244,6 +262,7 @@ async function onDownloadFiles() {
       @download-zip="onDownloadZip"
       @download-files="onDownloadFiles"
       @reverse-clear="onReverseClear"
+      @prefilters-clear="onPrefiltersClear"
     />
 
     <SearchResultsTable

@@ -181,7 +181,10 @@
       "skipToFilters": "Preskoči na filtre",
       "skipToResults": "Preskoči na rezultate",
       "resultsReferencing": "Rezultati sklicujoči na {label}",
-      "clearReferencing": "Počisti omejitev na sklicujoče"
+      "clearReferencing": "Počisti omejitev na sklicujoče",
+      "resultsLimitedTo": "Rezultati omejeni na {filter}.",
+      "resultsLimitedToMany": "Rezultati omejeni na:",
+      "clearLimited": "Počisti omejevanje rezultatov"
     },
     "AmountFiltersResult": {
       "clearFilter": "Počisti filter"

@@ -138,6 +138,8 @@ export type SearchSessionData = {
   view?: ViewType
   query?: string
   filters?: Filter[]
+  // prefilters constrain results like filters but do not contribute to ranking. They are populated by search shortcuts.
+  prefilters?: Filter[]
   reverse?: string
   // language is the session's UI language. The backend resolves an empty value to the site default and stores it on the session.
   language?: string

@@ -193,6 +193,9 @@ declare module "vue-i18n" {
         skipToResults: string
         resultsReferencing: string
         clearReferencing: string
+        resultsLimitedTo: string
+        resultsLimitedToMany: string
+        clearLimited: string
       }
       AmountFiltersResult: {
         clearFilter: string
