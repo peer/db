@@ -40,6 +40,7 @@ func TestTextSearchUndWildcardCaseAndDiacritic(t *testing.T) {
 		Display:     nil,
 		Text:        map[string][]string{"und": {"Žagar Špela"}},
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims:      internalSearch.ClaimTypes{},
 	})
@@ -49,6 +50,7 @@ func TestTextSearchUndWildcardCaseAndDiacritic(t *testing.T) {
 		Display:     nil,
 		Text:        map[string][]string{"und": {"Zagar Ivan"}},
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims:      internalSearch.ClaimTypes{},
 	})
@@ -93,6 +95,7 @@ func TestTextSearchUndQuotedExactVsFolded(t *testing.T) {
 		Display:     nil,
 		Text:        map[string][]string{"und": {"Žagar"}},
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims:      internalSearch.ClaimTypes{},
 	})
@@ -102,6 +105,7 @@ func TestTextSearchUndQuotedExactVsFolded(t *testing.T) {
 		Display:     nil,
 		Text:        map[string][]string{"und": {"Zagar"}},
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims:      internalSearch.ClaimTypes{},
 	})
@@ -164,6 +168,7 @@ func TestTextSearchUndUnquotedFoldsBoth(t *testing.T) {
 		Display:     nil,
 		Text:        map[string][]string{"und": {"Žagar"}},
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims:      internalSearch.ClaimTypes{},
 	})
@@ -173,6 +178,7 @@ func TestTextSearchUndUnquotedFoldsBoth(t *testing.T) {
 		Display:     nil,
 		Text:        map[string][]string{"und": {"Zagar"}},
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims:      internalSearch.ClaimTypes{},
 	})
@@ -214,6 +220,7 @@ func TestTextSearchStemmedPhraseEnglish(t *testing.T) {
 		Display:     nil,
 		Text:        map[string][]string{"en": {"running shoes"}},
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims:      internalSearch.ClaimTypes{},
 	})
@@ -227,6 +234,7 @@ func TestTextSearchStemmedPhraseEnglish(t *testing.T) {
 		Display:     nil,
 		Text:        map[string][]string{"en": {"running fast"}},
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims:      internalSearch.ClaimTypes{},
 	})
@@ -274,6 +282,7 @@ func TestTextSearchExactFieldRejectsFolded(t *testing.T) {
 		Display:     nil,
 		Text:        map[string][]string{"und": {"Müller"}}, // German umlaut.
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims:      internalSearch.ClaimTypes{},
 	})
@@ -283,6 +292,7 @@ func TestTextSearchExactFieldRejectsFolded(t *testing.T) {
 		Display:     nil,
 		Text:        map[string][]string{"und": {"Muller"}}, // ASCII.
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims:      internalSearch.ClaimTypes{},
 	})
@@ -292,6 +302,7 @@ func TestTextSearchExactFieldRejectsFolded(t *testing.T) {
 		Display:     nil,
 		Text:        map[string][]string{"und": {"Smith"}}, // unrelated.
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims:      internalSearch.ClaimTypes{},
 	})

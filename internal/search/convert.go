@@ -15,6 +15,7 @@ import (
 	"github.com/pemistahl/lingua-go"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 	"golang.org/x/net/html"
 
@@ -2016,7 +2017,7 @@ func (v *convertVisitor) appendNotReferenceSubClaims(propID identifier.Identifie
 // inverseRelations contains reference claims from other documents that point to this document.
 // For each inverse relation, a synthetic reverse reference claim is added to the search document.
 func (c *Converter) FromDocument(
-	ctx context.Context, doc *document.D, gen *uint64, inverseRelations []store.InverseRelation,
+	ctx context.Context, doc *document.D, gen *uint64, metadata *store.DocumentMetadata,
 ) (*Document, errors.E) {
 	var errE errors.E
 	for i, hook := range c.Hooks {
@@ -2032,6 +2033,18 @@ func (c *Converter) FromDocument(
 		}
 	}
 
+	// lastUpdated and the inverse relations come from the document's store metadata. metadata is nil for
+	// some callers (for example tests), in which case there is no last-updated time and no inverse relations.
+	var lastUpdated *float64
+	var inverseRelations []store.InverseRelation
+	if metadata != nil {
+		inverseRelations = metadata.InverseRelations
+		if at := time.Time(metadata.At); !at.IsZero() {
+			seconds := x.TimeToFloat64(at)
+			lastUpdated = &seconds
+		}
+	}
+
 	v := &convertVisitor{
 		ctx:       ctx,
 		converter: c,
@@ -2041,6 +2054,7 @@ func (c *Converter) FromDocument(
 			DisplaySort: nil,
 			Text:        nil,
 			Time:        nil,
+			LastUpdated: lastUpdated,
 			Counts:      Counts{References: nil, Claims: nil, Score: nil},
 			Claims:      ClaimTypes{},
 		},

@@ -29,6 +29,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -55,6 +56,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -83,6 +85,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -151,6 +154,7 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -179,6 +183,7 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -235,6 +240,7 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -264,6 +270,7 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -289,6 +296,7 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -340,6 +348,7 @@ func TestRefFilterGetNoMissingIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -417,6 +426,7 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -509,6 +519,7 @@ func TestRefFilterDirectIntegration(t *testing.T) {
 			Display:     nil,
 			Text:        nil,
 			Time:        nil,
+			LastUpdated: nil,
 			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 			Claims: internalSearch.ClaimTypes{
 				Identifier: nil,
@@ -611,6 +622,7 @@ func TestRefFilterGetDiamondIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -690,6 +702,7 @@ func TestRefFilterGetMultipleInheritanceIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -789,6 +802,7 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,

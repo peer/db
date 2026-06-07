@@ -31,6 +31,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        map[string][]string{"en": {"hello world"}},
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -55,6 +56,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        map[string][]string{"en": {"goodbye world"}},
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -79,6 +81,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        map[string][]string{"en": {"hello there"}},
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -197,6 +200,7 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -231,6 +235,7 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -315,6 +320,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -354,6 +360,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -393,6 +400,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -504,6 +512,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -542,6 +551,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -580,6 +590,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -665,6 +676,7 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -699,6 +711,7 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -733,6 +746,7 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -821,6 +835,7 @@ func TestResultsGetTotalGteIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -874,6 +889,7 @@ func TestResultsGetTotalGteRelationIntegration(t *testing.T) {
 			Display:     nil,
 			Text:        nil,
 			Time:        nil,
+			LastUpdated: nil,
 			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 			Claims: internalSearch.ClaimTypes{
 				Identifier: nil,
@@ -1010,6 +1026,7 @@ func TestResultsGetExtraFiltersIntegration(t *testing.T) {
 			Display:     nil,
 			Text:        nil,
 			Time:        nil,
+			LastUpdated: nil,
 			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 			Claims: internalSearch.ClaimTypes{
 				Identifier: nil,
@@ -1094,6 +1111,7 @@ func TestResultsGetSortOrderIntegration(t *testing.T) {
 			Display:     nil,
 			Text:        nil,
 			Time:        tm,
+			LastUpdated: nil,
 			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 			Claims: internalSearch.ClaimTypes{
 				Identifier: nil,

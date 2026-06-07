@@ -1060,7 +1060,7 @@ func (b *Bridge) ConvertDocument(ctx context.Context, data json.RawMessage, meta
 		return nil, errE
 	}
 
-	return b.converter.FromDocument(ctx, &doc, gen, metadata.InverseRelations)
+	return b.converter.FromDocument(ctx, &doc, gen, metadata)
 }
 
 // CountReferences returns how many documents reference the document with the

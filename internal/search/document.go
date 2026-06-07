@@ -31,6 +31,9 @@ import (
 // its time claims (top-level and sub-claims). For a point timestamp that is the
 // timestamp; for an interval it is the earliest bound.
 //
+// LastUpdated holds the time (seconds since the Unix epoch) when the document was last updated,
+// taken from the document's metadata At timestamp (not when it was last indexed).
+//
 // Counts holds the document's count metrics, nested under "counts".
 type Document struct {
 	ID identifier.Identifier `json:"id"`
@@ -42,6 +45,8 @@ type Document struct {
 	Text map[string][]string `json:"text,omitempty"`
 
 	Time *float64 `json:"time,omitempty"`
+
+	LastUpdated *float64 `json:"lastUpdated,omitempty"`
 
 	Counts Counts `json:"counts,omitzero"`
 

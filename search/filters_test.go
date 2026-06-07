@@ -35,6 +35,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -98,6 +99,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -215,6 +217,7 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        map[string][]string{"en": {"searchable text"}},
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -249,6 +252,7 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        map[string][]string{"en": {"other content"}},
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -314,6 +318,7 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,

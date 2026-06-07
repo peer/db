@@ -8079,7 +8079,7 @@ func TestFromDocumentIncomingInverseRelation(t *testing.T) {
 		newIR(claimID, sourceDocID, propX, propY, identifier.Identifier{}, document.HighConfidence),
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, inverseRelations)
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil, InverseRelations: inverseRelations})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have a reverse relation claim with property Y pointing to source document.
@@ -8122,7 +8122,7 @@ func TestFromDocumentIncomingInverseRelationMultipleInverses(t *testing.T) {
 		newIR(claimID, sourceDocID, propB, propC, identifier.Identifier{}, document.HighConfidence),
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, inverseRelations)
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil, InverseRelations: inverseRelations})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have two reverse relation claims: one for A and one for C.
@@ -8167,7 +8167,7 @@ func TestFromDocumentIncomingInverseRelationBidirectional(t *testing.T) {
 		newIR(identifier.New(), sourceDocID, propA, propB, identifier.Identifier{}, document.HighConfidence),
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, inverseRelations)
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil, InverseRelations: inverseRelations})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should produce a reverse claim with property B.
@@ -9080,4 +9080,32 @@ func TestFromDocumentNilHooks(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
 	assert.Equal(t, []string{testDocID.String(), "hello"}, result.Text["und"])
+}
+
+func TestFromDocumentLastUpdated(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, nil)
+	ctx := t.Context()
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+	}
+
+	// LastUpdated comes from the document metadata's At timestamp (seconds since the Unix epoch).
+	at := time.Date(2021, time.January, 2, 3, 4, 5, 0, time.UTC)
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time(at), Users: nil, InverseRelations: nil})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotNil(t, result.LastUpdated)
+	assert.InDelta(t, float64(at.Unix()), *result.LastUpdated, 0.001)
+
+	// Without metadata there is no last-updated time.
+	result, errE = c.FromDocument(ctx, doc, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Nil(t, result.LastUpdated)
+
+	// A zero At also yields no last-updated time.
+	result, errE = c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil, InverseRelations: nil})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Nil(t, result.LastUpdated)
 }

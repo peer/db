@@ -106,6 +106,7 @@ func TestAmountFilterGetMissingIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -137,6 +138,7 @@ func TestAmountFilterGetMissingIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -162,6 +164,7 @@ func TestAmountFilterGetMissingIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -210,6 +213,7 @@ func TestAmountFilterGetNoMissingIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -310,6 +314,7 @@ func TestAmountFilterGetSameValuesIntegration(t *testing.T) {
 			Display:     nil,
 			Text:        nil,
 			Time:        nil,
+			LastUpdated: nil,
 			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 			Claims: internalSearch.ClaimTypes{
 				Identifier: nil,
@@ -401,6 +406,7 @@ func TestAmountFilterGetWithoutUnitIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -604,6 +610,7 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -634,6 +641,7 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -731,6 +739,7 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -761,6 +770,7 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -791,6 +801,7 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,

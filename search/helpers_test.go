@@ -92,6 +92,7 @@ func indexAmountDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.T
 		Display:     nil,
 		Text:        nil,
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -129,6 +130,7 @@ func indexScoreDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.Ty
 		Display:     nil,
 		Text:        map[string][]string{"en": {text}},
 		Time:        nil,
+		LastUpdated: nil,
 		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: score},
 		Claims: internalSearch.ClaimTypes{
 			Identifier: nil,
@@ -173,6 +175,7 @@ func seedTimeFilterDocs(t *testing.T, ctx context.Context, esClient *elasticsear
 			Display:     nil,
 			Text:        nil,
 			Time:        nil,
+			LastUpdated: nil,
 			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 			Claims: internalSearch.ClaimTypes{
 				Identifier: nil,
