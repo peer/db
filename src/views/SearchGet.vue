@@ -3,7 +3,7 @@ import type { Filter, SearchSessionData, ViewType } from "@/types"
 import type { DeepReadonly } from "vue"
 
 import { Identifier } from "@tozd/identifier"
-import { onBeforeUnmount, ref, toRef, useTemplateRef, watchEffect } from "vue"
+import { onBeforeUnmount, ref, toRef, useTemplateRef, watch, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
@@ -22,7 +22,7 @@ const props = defineProps<{
   id: string
 }>()
 
-const { t } = useI18n({ useScope: "global" })
+const { t, locale } = useI18n({ useScope: "global" })
 const router = useRouter()
 
 // Data loading and controls for data loading.
@@ -95,6 +95,25 @@ async function onSearchSessionUpdate(searchData: DeepReadonly<SearchSessionData>
   }
 }
 
+// Changing the UI language while viewing a session is treated like any other change to the session
+// data: we set the new language and refetch results. It is on purpose not updated on search session
+// load time so that users with different languages do not update language when loading but just on
+// explicit language changes.
+watch(locale, async () => {
+  // Checking abortController is done inside onSearchSessionUpdate.
+  if (!searchSession.value) {
+    return
+  }
+
+  await onSearchSessionUpdate({
+    view: searchSession.value.view,
+    query: searchSession.value.query,
+    filters: searchSession.value.filters,
+    reverse: searchSession.value.reverse,
+    language: locale.value,
+  })
+})
+
 async function onFiltersUpdate(updatedFilters: Filter[]) {
   // Checking abortController is done inside onSearchSessionUpdate.
 
@@ -103,6 +122,7 @@ async function onFiltersUpdate(updatedFilters: Filter[]) {
     query: searchSession.value!.query,
     filters: updatedFilters.length > 0 ? updatedFilters : undefined,
     reverse: searchSession.value!.reverse,
+    language: searchSession.value!.language,
   })
 }
 
@@ -151,6 +171,7 @@ async function onQueryChange(query: string) {
     query,
     filters: searchSession.value!.filters,
     reverse: searchSession.value!.reverse,
+    language: searchSession.value!.language,
   })
 }
 
@@ -162,6 +183,7 @@ async function onViewChange(view: ViewType) {
     query: searchSession.value!.query,
     filters: searchSession.value!.filters,
     reverse: searchSession.value!.reverse,
+    language: searchSession.value!.language,
   })
 }
 
@@ -173,6 +195,7 @@ async function onReverseClear() {
     query: searchSession.value!.query,
     filters: searchSession.value!.filters,
     reverse: undefined,
+    language: searchSession.value!.language,
   })
 }
 

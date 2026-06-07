@@ -139,11 +139,15 @@ export type SearchSessionData = {
   query?: string
   filters?: Filter[]
   reverse?: string
+  // language is the session's UI language. The backend resolves an empty value to the site default and stores it on the session.
+  language?: string
 }
 
 // Request body for creating a new search session. The optional query sets the initial full-text query.
 export type CreateSearchSessionRequest = {
   query?: string
+  // language sets the session's UI language. The backend resolves an empty value to the site default.
+  language?: string
 }
 
 // Response from creating a new search session.

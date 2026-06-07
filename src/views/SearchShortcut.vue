@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted } from "vue"
-import { stringifyQuery, useRoute, useRouter } from "vue-router"
+import { useI18n } from "vue-i18n"
+import { useRoute, useRouter } from "vue-router"
 
 import { useProgress } from "@/progress"
 import { createShortcutSession } from "@/search"
 
+const { locale } = useI18n({ useScope: "global" })
 const route = useRoute()
 const router = useRouter()
 
@@ -24,8 +26,7 @@ onMounted(async () => {
 
   progress.value += 1
   try {
-    // Serialize the route's query back to a query string.
-    await createShortcutSession(router, stringifyQuery(route.query), abortController.signal, progress)
+    await createShortcutSession(router, route.query, locale.value, abortController.signal, progress)
   } catch (err) {
     if (abortController.signal.aborted) {
       return

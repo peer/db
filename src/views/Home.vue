@@ -12,7 +12,7 @@ import { useBusy } from "@/progress"
 import { getHomeComponent } from "@/registry/home"
 import { createSearchSession } from "@/search"
 
-const { t } = useI18n({ useScope: "global" })
+const { t, locale } = useI18n({ useScope: "global" })
 const router = useRouter()
 
 // Data loading and controls for data loading.
@@ -37,7 +37,7 @@ async function onSubmit() {
 
   busy.value += 1
   try {
-    await createSearchSession(router, searchQuery.value, abortController.signal, busy)
+    await createSearchSession(router, searchQuery.value, locale.value, abortController.signal, busy)
   } catch (err) {
     if (abortController.signal.aborted) {
       return

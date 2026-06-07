@@ -1,5 +1,5 @@
 import type { DeepReadonly, Ref } from "vue"
-import type { Router } from "vue-router"
+import type { LocationQuery, Router } from "vue-router"
 
 import type {
   CreateSearchSessionRequest,
@@ -18,7 +18,7 @@ import type {
 } from "@/types"
 
 import { computed, onBeforeUnmount, readonly, ref, watch } from "vue"
-import { useRoute, useRouter } from "vue-router"
+import { stringifyQuery, useRoute, useRouter } from "vue-router"
 
 import { getURL, getURLDirect, postJSON } from "@/api"
 import { anySignal, encodeQuery } from "@/utils"
@@ -27,12 +27,12 @@ export const FILTERS_INITIAL_LIMIT = 10
 export const FILTERS_INCREASE = 10
 
 // createSearchSession creates a new search session for the query and navigates to it.
-export async function createSearchSession(router: Router, query: string, abortSignal: AbortSignal, progress: Ref<number>): Promise<void> {
+export async function createSearchSession(router: Router, query: string, language: string, abortSignal: AbortSignal, progress: Ref<number>): Promise<void> {
   const response = await postJSON<CreateSearchSessionResponse>(
     router.apiResolve({
       name: "SearchCreate",
     }).href,
-    { query } satisfies CreateSearchSessionRequest,
+    { query, language } satisfies CreateSearchSessionRequest,
     abortSignal,
     progress,
   )
@@ -48,12 +48,17 @@ export async function createSearchSession(router: Router, query: string, abortSi
 }
 
 // createShortcutSession creates a session from the search shortcut navigates to it.
-export async function createShortcutSession(router: Router, query: string, abortSignal: AbortSignal, progress: Ref<number>): Promise<void> {
+export async function createShortcutSession(router: Router, query: LocationQuery, language: string, abortSignal: AbortSignal, progress: Ref<number>): Promise<void> {
+  // We add the current UI language to the shortcut query unless it already sets one explicitly.
+  const augmentedQuery: LocationQuery = { ...query }
+  if (!("language" in augmentedQuery)) {
+    augmentedQuery.language = language
+  }
   const response = await postJSON<CreateSearchSessionResponse>(
     router.apiResolve({
       name: "SearchShortcut",
     }).href,
-    { query } satisfies SearchShortcutRequest,
+    { query: stringifyQuery(augmentedQuery) } satisfies SearchShortcutRequest,
     abortSignal,
     progress,
   )
@@ -78,6 +83,7 @@ export async function updateSearchSession(
   const payload: DeepReadonly<SearchSessionData> = {
     view: searchData.view,
     query: searchData.query,
+    ...(searchData.language ? { language: searchData.language } : {}),
     ...(searchData.filters && searchData.filters.length > 0 ? { filters: searchData.filters } : {}),
     ...(searchData.reverse ? { reverse: searchData.reverse } : {}),
   }
