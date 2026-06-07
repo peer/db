@@ -393,12 +393,6 @@ func (s *Service) StorageUploadGetAPI(w http.ResponseWriter, req *http.Request, 
 func (s *Service) StorageGetGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
-	errE := s.HasPermission(ctx, auth.CanGetFile)
-	if errE != nil {
-		s.ForbiddenWithError(w, req, errE)
-		return
-	}
-
 	id, errE := identifier.MaybeString(params["id"])
 	if errE != nil {
 		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))

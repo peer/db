@@ -38,11 +38,10 @@ export const currentUsername = computed(() => currentUserInfo.value?.username ??
 // Keep in sync with auth/permissions.go.
 export const CAN_EDIT_DOCUMENT = "canEditDocument"
 export const CAN_CHANGES_DOCUMENT = "canChangesDocument"
-export const CAN_GET_FILE = "canGetFile"
 export const CAN_CHANGES_FILE = "canChangesFile"
 export const CAN_EDIT_FILE = "canEditFile"
 
-type Permission = "canEditDocument" | "canChangesDocument" | "canGetFile" | "canChangesFile" | "canEditFile"
+type Permission = "canEditDocument" | "canChangesDocument" | "canChangesFile" | "canEditFile"
 
 // hasRole is the symmetric counterpart of auth.HasRole on the backend.
 export function hasRole(role: string): boolean {
