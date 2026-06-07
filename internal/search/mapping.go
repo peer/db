@@ -154,11 +154,21 @@ func displayProperties(langs []string) string {
 	})
 }
 
-// displaySortProperties builds the top-level "displaySort" field: per enabled language a single
-// keyword (display_label_normalizer) holding only the document's primary resolved display label.
-// It is single-valued (no ancestor path labels), so results sort by the label shown to the user.
+// displaySortProperties builds the top-level "displaySort" field: per enabled language (except und) a
+// single keyword (display_label_normalizer) holding only the document's primary resolved display label.
+// It is single-valued (no ancestor path labels), so results sort by the label shown to the user. The
+// und (language-neutral) bucket is omitted: results sort only by the session's language (never und),
+// and that language's displaySort already carries the und value through the fallback chain, so a
+// displaySort.und would never be read.
 func displaySortProperties(langs []string) string {
-	return langProperties(langs, func(string) string {
+	nonUnd := make([]string, 0, len(langs))
+	for _, lang := range langs {
+		if lang == document.UndeterminedLanguage {
+			continue
+		}
+		nonUnd = append(nonUnd, lang)
+	}
+	return langProperties(nonUnd, func(string) string {
 		return `{"type":"keyword","normalizer":"display_label_normalizer"}`
 	})
 }

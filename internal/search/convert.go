@@ -2088,8 +2088,22 @@ func (c *Converter) FromDocument(
 	v.addDisplay(info.Display.Display, docDisplayPaths)
 
 	// Index only the primary rendered display label per language (no ancestor labels) as a
-	// single-valued keyword, so results can be sorted by the label shown to the user.
-	v.result.DisplaySort = info.Display.Display
+	// single-valued keyword, so results can be sorted by the label shown to the user. The und
+	// (language-neutral) bucket is omitted: results sort only by the session's language (never und),
+	// and that language's displaySort already carries the und value through the fallback chain, so a
+	// displaySort.und would never be read (and the mapping is dynamic: strict, so it must not be set).
+	if len(info.Display.Display) > 0 {
+		displaySort := make(map[string]string, len(info.Display.Display))
+		for lang, label := range info.Display.Display {
+			if lang == document.UndeterminedLanguage {
+				continue
+			}
+			displaySort[lang] = label
+		}
+		if len(displaySort) > 0 {
+			v.result.DisplaySort = displaySort
+		}
+	}
 
 	// Index the document's own ID into the "und" bucket so a user typing the ID
 	// (or a URL containing it) can locate the document via text search. The
