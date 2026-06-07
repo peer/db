@@ -48,6 +48,7 @@ func InitSites(globals *Globals) {
 			LanguageCodes:        nil,
 			Features:             internalSite.SiteFeatures{},
 			Roles:                nil,
+			Visibility:           nil,
 			Auth:                 internalSite.SiteAuthConfig{},
 			MetadataHeaderPrefix: "",
 			Authenticator:        nil,

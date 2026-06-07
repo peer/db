@@ -130,6 +130,7 @@ func TestBasicAuthWithSiteContext(t *testing.T) {
 						LanguageCodes:        nil,
 						Features:             internalSite.SiteFeatures{},
 						Roles:                nil,
+						Visibility:           nil,
 						Auth:                 internalSite.SiteAuthConfig{},
 						MetadataHeaderPrefix: "",
 						Base:                 nil,

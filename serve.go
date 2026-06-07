@@ -129,6 +129,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 			LanguageCodes:        nil,
 			Features:             internalSite.SiteFeatures{},
 			Roles:                nil,
+			Visibility:           nil,
 			Auth:                 internalSite.SiteAuthConfig{},
 			MetadataHeaderPrefix: "",
 			Authenticator:        nil,

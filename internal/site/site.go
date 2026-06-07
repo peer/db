@@ -51,6 +51,14 @@ type SiteAuthConfig struct {
 	ClientSecret string `json:"-" yaml:"clientSecret,omitempty"`
 }
 
+// VisibilityLevel is one entry in a site's ordered list of visibility levels.
+// Each level has a unique, non-empty name and the roles (possibly none) that
+// grant it.
+type VisibilityLevel struct {
+	Name  string   `json:"name"            yaml:"name"`
+	Roles []string `json:"roles,omitempty" yaml:"roles,omitempty"`
+}
+
 // Site represents a single site in the PeerDB application with its configuration and state.
 type Site struct {
 	waf.Site `yaml:",inline"`
@@ -76,6 +84,15 @@ type Site struct {
 	// token claims that is not a key here is dropped at authentication
 	// time so it cannot leak into auth.Roles or the Roles response header.
 	Roles map[string][]string `json:"roles,omitempty" yaml:"roles,omitempty"`
+
+	// Visibility is the ordered list of visibility levels, from the lowest
+	// (least access) to the highest (most access). The order lets a request
+	// whose roles map to several levels resolve to a single level: the
+	// highest level among the request's roles applies. Every role listed
+	// must be a key in Roles and must appear in at most one level, and level
+	// names must be unique and non-empty. A role in no level, a level with
+	// no roles, and an empty Visibility are all allowed.
+	Visibility []VisibilityLevel `json:"visibility,omitempty" yaml:"visibility,omitempty"`
 
 	// Auth carries per-site OIDC configuration. When all three fields
 	// (issuer, clientId, clientSecret) are set the site uses OIDC for
@@ -149,6 +166,54 @@ func (s *Site) Validate() error {
 		}
 	}
 
+	errE := s.validateVisibility()
+	if errE != nil {
+		return errE
+	}
+
+	return nil
+}
+
+// validateVisibility checks the Visibility configuration: level names must be
+// unique and non-empty, every role assigned to a level must be a defined role
+// (a key in Roles), and no role may appear in more than one level. Roles that
+// are in no level, levels with no roles, and an empty Visibility are all
+// allowed. The order of the levels (lowest to highest access) is significant
+// for resolution but is not constrained by this method.
+func (s *Site) validateVisibility() errors.E {
+	names := map[string]bool{}
+	roleLevel := map[string]string{}
+	for _, level := range s.Visibility {
+		if level.Name == "" {
+			errE := errors.New("visibility level has an empty name")
+			errors.Details(errE)["domain"] = s.Domain
+			return errE
+		}
+		if names[level.Name] {
+			errE := errors.New("visibility level name is not unique")
+			errors.Details(errE)["domain"] = s.Domain
+			errors.Details(errE)["name"] = level.Name
+			return errE
+		}
+		names[level.Name] = true
+		for _, role := range level.Roles {
+			if _, ok := s.Roles[role]; !ok {
+				errE := errors.New("visibility level references an unknown role")
+				errors.Details(errE)["domain"] = s.Domain
+				errors.Details(errE)["level"] = level.Name
+				errors.Details(errE)["role"] = role
+				return errE
+			}
+			if other, ok := roleLevel[role]; ok {
+				errE := errors.New("role is assigned to more than one visibility level")
+				errors.Details(errE)["domain"] = s.Domain
+				errors.Details(errE)["role"] = role
+				errors.Details(errE)["levels"] = []string{other, level.Name}
+				return errE
+			}
+			roleLevel[role] = level.Name
+		}
+	}
 	return nil
 }
 

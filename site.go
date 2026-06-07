@@ -20,3 +20,8 @@ type SiteFeatures = internalSite.SiteFeatures
 // most OIDC providers register redirect URIs as fixed strings rather than
 // templates.
 type SiteAuthConfig = internalSite.SiteAuthConfig
+
+// VisibilityLevel is one entry in a site's ordered list of visibility levels.
+// Each level has a unique, non-empty name and the roles (possibly none) that
+// grant it.
+type VisibilityLevel = internalSite.VisibilityLevel
