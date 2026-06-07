@@ -42,6 +42,10 @@ type indexConfigurationStruct struct {
 // level here, which both records the body details and triggers the flush of
 // any prior buffered entries.
 func (a loggerAdapter) LogRoundTrip(req *http.Request, res *http.Response, err error, start time.Time, dur time.Duration) error {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return nil
+	}
+
 	log := a.log
 	if req != nil {
 		log = *zerolog.Ctx(req.Context())

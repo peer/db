@@ -63,7 +63,7 @@ func (r riverErrorHandler) storeErrorMetadata(ctx context.Context, job *rivertyp
 		Metadata:        metadataJSON,
 		Schema:          r.Schema,
 	})
-	if updateErr != nil {
+	if updateErr != nil && !errors.Is(updateErr, context.Canceled) && !errors.Is(updateErr, context.DeadlineExceeded) {
 		r.Logger.Error().Err(errors.WithStack(updateErr)).Int64("id", job.ID).Msgf("failed to store %s metadata", key)
 	}
 }
