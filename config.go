@@ -148,7 +148,9 @@ type PopulateCommand struct {
 type DBWaitCommand struct{}
 
 // DBReindexCommand forces a full reindex of all documents.
-type DBReindexCommand struct{}
+type DBReindexCommand struct {
+	RecreateIndex bool `help:"Delete and recreate the ElasticSearch index before reindexing, applying the current mapping." name:"recreate-index" yaml:"recreateIndex"`
+}
 
 // DBVacuumCommand reclaims dead tuples in PostgreSQL and expunges deleted documents from ElasticSearch for all sites.
 type DBVacuumCommand struct{}

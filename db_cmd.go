@@ -195,6 +195,23 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 
 	InitSites(globals)
 
+	// When recreating the index, delete it before Init so that the base's EnsureIndex (run during
+	// startup) recreates it from the current mapping. The documents are then replayed from PostgreSQL
+	// into the fresh index below, so a mapping change is applied without losing source data.
+	if c.RecreateIndex {
+		esClient, errE := internalSearch.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic.URL)
+		if errE != nil {
+			return errE
+		}
+		for _, site := range globals.Sites {
+			_, err := esClient.Indices.Delete(site.Index).IgnoreUnavailable(true).Do(ctx)
+			if err != nil {
+				return internalSearch.WithESError(err)
+			}
+			globals.Logger.Info().Str("index", site.Index).Msg("index deleted for recreation")
+		}
+	}
+
 	ctx, cancel := context.WithCancel(ctx)
 
 	onShutdownInit, errE := Init(ctx, globals)
