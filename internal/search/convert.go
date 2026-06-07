@@ -157,6 +157,13 @@ type documentInfo struct {
 	// IgnoredForReferencesCount is true when the document is ignored for counts.references.
 	// Such documents accumulate references that do not reflect importance.
 	IgnoredForReferencesCount bool
+	// depGens maps each document this info depends on (itself, the documents embedded in its display, and
+	// its transitive ancestors) to that document's generation snapshotted when it was read. It is the
+	// transitive closure: a parent merges each child's depGens, so a deep ancestor carries the snapshot
+	// taken where it was actually read, not where it was later recorded. cacheDocumentInfo installs the
+	// info only while every one of these generations is unchanged, and registers id as their reverse
+	// dependent in infoDependents.
+	depGens map[identifier.Identifier]uint64
 }
 
 // CollectHierarchyPaths collects all hierarchy paths, combining paths from all
@@ -421,11 +428,19 @@ func (c *Converter) genOf(id identifier.Identifier) uint64 {
 	return c.cacheGen[id]
 }
 
-// recordDependency records id as a dependency in deps, snapshotting its current generation. It keeps an
-// earlier snapshot if id was already recorded, so a change at any point during the compute is detected.
-func (c *Converter) recordDependency(deps *DisplayDependencies, id identifier.Identifier) {
-	if _, ok := deps.ids[id]; !ok {
-		deps.ids[id] = c.genOf(id)
+// mergeGenSnapshot records that the info being computed depends on id at generation gen, keeping the
+// earliest snapshot if id is already present so a change at any point during the compute is detected.
+func mergeGenSnapshot(depGens map[identifier.Identifier]uint64, id identifier.Identifier, gen uint64) {
+	if cur, ok := depGens[id]; !ok || gen < cur {
+		depGens[id] = gen
+	}
+}
+
+// mergeGenSnapshots merges every dependency snapshot from src into dst, keeping the earliest per id. It is
+// used to propagate a child's transitive dependency snapshots up to its parent.
+func mergeGenSnapshots(dst, src map[identifier.Identifier]uint64) {
+	for id, gen := range src {
+		mergeGenSnapshot(dst, id, gen)
 	}
 }
 
@@ -889,6 +904,12 @@ func (c *Converter) computeDocumentInfo(
 			return documentInfo{}, errE
 		}
 	}
+	// depGens accumulates the generation of every document this info depends on, each snapshotted before
+	// that document was read, starting with this document itself. The display embeds and transitive
+	// ancestors are merged in below; cacheDocumentInfo installs the info only while all of them are
+	// unchanged.
+	depGens := map[identifier.Identifier]uint64{id: genSelf}
+
 	// Collect the documents fetched while rendering display strings (the class display template and
 	// any documents it embeds), so this documentInfo can be invalidated when one of them changes.
 	deps := &DisplayDependencies{ids: map[identifier.Identifier]uint64{}}
@@ -896,6 +917,7 @@ func (c *Converter) computeDocumentInfo(
 	if errE != nil {
 		return documentInfo{}, errE
 	}
+	mergeGenSnapshots(depGens, deps.ids)
 
 	// Compute ancestors and hierarchy paths for each value hierarchy property.
 	var ancestors map[identifier.Identifier][]identifier.Identifier
@@ -918,11 +940,17 @@ func (c *Converter) computeDocumentInfo(
 			}
 			seen[parentID] = true
 			hierAncestors = append(hierAncestors, parentID)
-			// Recursively get parent info to collect transitive ancestors and paths.
+			// Snapshot the parent's generation before reading it, then recurse to collect its transitive
+			// ancestors and paths. Merging the parent's own depGens propagates each transitive ancestor's
+			// snapshot taken where it was actually read; the explicit parent snapshot also covers a parent
+			// that does not exist yet, so this document is invalidated if it is later inserted.
+			parentGen := c.genOf(parentID)
 			parentInfo, errE := c.computeDocumentInfo(ctx, parentID, nil, nil, computing)
 			if errE != nil {
 				return documentInfo{}, errE
 			}
+			mergeGenSnapshot(depGens, parentID, parentGen)
+			mergeGenSnapshots(depGens, parentInfo.depGens)
 			for _, grandparent := range parentInfo.Ancestors[hierProp] {
 				if !seen[grandparent] {
 					seen[grandparent] = true
@@ -977,19 +1005,19 @@ func (c *Converter) computeDocumentInfo(
 			ignoredForReferencesCount = true
 			break
 		}
+		// IgnoredForReferencesCount depends on this class's SUBCLASS_OF ancestry, so merge the class and
+		// its ancestors into this document's dependency snapshots (the class itself is also one fetched for
+		// the display template). Otherwise a change to a class's ancestor would not invalidate the instance.
+		// The early break on the first ignored class below only records the classes checked so far, but
+		// that is fine: if a recorded ancestor changes, the instance is invalidated and re-evaluates the
+		// remaining classes, so the dependency set self-corrects.
+		classGen := c.genOf(classID)
 		classInfo, errE := c.computeDocumentInfo(ctx, classID, nil, nil, computing)
 		if errE != nil {
 			return documentInfo{}, errE
 		}
-		// IgnoredForReferencesCount depends on this class's SUBCLASS_OF ancestry, so record those
-		// ancestors as dependencies of this document (the class itself is already one, fetched for the
-		// display template). Otherwise a change to a class's ancestor would not invalidate the instance.
-		// The early break on the first ignored class below only records the classes checked so far, but
-		// that is fine: if a recorded ancestor changes, the instance is invalidated and re-evaluates the
-		// remaining classes, so the dependency set self-corrects.
-		for _, ancestorID := range classInfo.Ancestors[internalCore.SubclassOfPropID] {
-			c.recordDependency(deps, ancestorID)
-		}
+		mergeGenSnapshot(depGens, classID, classGen)
+		mergeGenSnapshots(depGens, classInfo.depGens)
 		if slices.ContainsFunc(classInfo.Ancestors[internalCore.SubclassOfPropID], isIgnoredClass) {
 			ignoredForReferencesCount = true
 			break
@@ -1002,44 +1030,33 @@ func (c *Converter) computeDocumentInfo(
 		IDPaths:                   idPaths,
 		DisplayPaths:              displayPaths,
 		IgnoredForReferencesCount: ignoredForReferencesCount,
-	}
-
-	// This document also depends on its full transitive hierarchy ancestor set: their display is
-	// embedded into its display paths, and their identities into its ancestors and id paths, so a
-	// change to any ancestor makes this document's cached info stale. info.Ancestors already holds the
-	// transitive ancestors per hierarchy property, so recording them makes a change to any ancestor
-	// invalidate every descendant directly, without an invalidation-time walk.
-	for _, hierAncestors := range info.Ancestors {
-		for _, ancestorID := range hierAncestors {
-			c.recordDependency(deps, ancestorID)
-		}
+		depGens:                   depGens,
 	}
 
 	// The converted root document without a pre-read snapshot returns its computed info but is not
-	// installed; everything else (ancestors, embeds) is cacheable and guarded by its own snapshot.
+	// installed; everything else (ancestors, embeds) is cacheable and guarded by its own snapshots.
 	if cacheable {
-		c.cacheDocumentInfo(id, info, deps, genSelf)
+		c.cacheDocumentInfo(id, info)
 	}
 
 	return info, nil
 }
 
-// cacheDocumentInfo stores info for id and records the reverse dependency from each document id depends
-// on (documents fetched while rendering its display strings, and its hierarchy ancestors) to id, so a
-// later change to any of them invalidates id's cached info. genSelf is id's generation snapshot taken
-// before the info was computed, and deps holds each dependency's snapshot from when it was first read. If
-// id or any dependency has been invalidated since (its generation advanced), the info, or one of the
-// dependency edges, might reflect a pre-change version, so nothing is installed. Gating the dependency
-// registration too prevents a stale compute from resurrecting an infoDependents edge that the racing
-// invalidation just dropped, which would otherwise leave a dependent stale until its next change.
-func (c *Converter) cacheDocumentInfo(id identifier.Identifier, info documentInfo, deps *DisplayDependencies, genSelf uint64) {
+// cacheDocumentInfo stores info for id and records the reverse dependency from each document id depends on
+// (info.depGens: itself, the documents embedded in its display, and its transitive ancestors) to id, so a
+// later change to any of them invalidates id's cached info. info.depGens holds each dependency's snapshot
+// from when it was read. If any of them has been invalidated since (its generation advanced), the info, or
+// one of the dependency edges, might reflect a pre-change version, so nothing is installed. Gating the
+// dependency registration too prevents a stale compute from resurrecting an infoDependents edge that the
+// racing invalidation just dropped, which would otherwise leave a dependent stale until its next change.
+func (c *Converter) cacheDocumentInfo(id identifier.Identifier, info documentInfo) {
 	c.documentInfoMu.Lock()
 	defer c.documentInfoMu.Unlock()
-	if !c.generationsUnchanged(id, genSelf, deps) {
+	if !c.generationsUnchanged(info.depGens) {
 		return
 	}
 	c.documentInfoCache[id] = info
-	for depID := range deps.ids {
+	for depID := range info.depGens {
 		if depID == id {
 			continue
 		}
@@ -1052,15 +1069,12 @@ func (c *Converter) cacheDocumentInfo(id identifier.Identifier, info documentInf
 	}
 }
 
-// generationsUnchanged reports whether id and every dependency in deps still have the generation that
-// was snapshotted while the info was being computed, i.e. none of them was invalidated meanwhile.
-func (c *Converter) generationsUnchanged(id identifier.Identifier, genSelf uint64, deps *DisplayDependencies) bool {
+// generationsUnchanged reports whether every dependency in depGens still has the generation that was
+// snapshotted while the info was being computed, i.e. none of them was invalidated meanwhile.
+func (c *Converter) generationsUnchanged(depGens map[identifier.Identifier]uint64) bool {
 	c.cacheGenMu.RLock()
 	defer c.cacheGenMu.RUnlock()
-	if c.cacheGen[id] != genSelf {
-		return false
-	}
-	for depID, depGen := range deps.ids {
+	for depID, depGen := range depGens {
 		if c.cacheGen[depID] != depGen {
 			return false
 		}

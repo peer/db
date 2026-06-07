@@ -936,6 +936,68 @@ func TestComputeDocumentInfoUsesRootGenFromContext(t *testing.T) {
 	assert.True(t, cached, "a current pre-read snapshot should be cached")
 }
 
+func TestDocumentInfoNotCachedWhenAncestorInvalidatedDuringCompute(t *testing.T) {
+	t.Parallel()
+
+	// grandparent <- parent <- child via SUBCLASS_OF. The child depends on the grandparent only
+	// transitively (through the parent), so this exercises the propagated pre-read snapshot.
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
+
+	grandparent := identifier.New()
+	parent := identifier.New()
+	child := identifier.New()
+	docs := map[identifier.Identifier]*document.D{
+		grandparent: makeHierarchyDoc(grandparent, "Grandparent", internalCore.SubclassOfPropID, nil),
+		parent:      makeHierarchyDoc(parent, "Parent", internalCore.SubclassOfPropID, &grandparent),
+		child:       makeHierarchyDoc(child, "Child", internalCore.SubclassOfPropID, &parent),
+	}
+
+	c := newTestConverter(t, properties, nil, docs)
+
+	// Invalidate the grandparent while it is being read, deep in the child's compute. Its pre-read
+	// snapshot, propagated up to the parent and child, must make every level skip caching. Without
+	// propagation the child would record the grandparent's generation only after the recursion, miss this
+	// invalidation, and cache stale info.
+	invalidateGrandparent := true
+	orig := c.getDocumentFunc
+	c.getDocumentFunc = func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		d, errE := orig(ctx, id)
+		if errE == nil && id == grandparent && invalidateGrandparent {
+			c.InvalidateCaches(grandparent)
+		}
+		return d, errE
+	}
+
+	ctx := t.Context()
+	_, errE := c.getDocumentInfo(ctx, child)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c.documentInfoMu.RLock()
+	_, childCached := c.documentInfoCache[child]
+	_, parentCached := c.documentInfoCache[parent]
+	_, gpCached := c.documentInfoCache[grandparent]
+	c.documentInfoMu.RUnlock()
+	assert.False(t, gpCached, "the grandparent invalidated during its own read must not be cached")
+	assert.False(t, parentCached, "the parent depends on the grandparent, so it must not be cached either")
+	assert.False(t, childCached, "the child depends on the grandparent transitively, so it must not be cached either")
+
+	// Without the concurrent invalidation, the whole chain caches normally.
+	invalidateGrandparent = false
+	_, errE = c.getDocumentInfo(ctx, child)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c.documentInfoMu.RLock()
+	_, childCached = c.documentInfoCache[child]
+	_, parentCached = c.documentInfoCache[parent]
+	_, gpCached = c.documentInfoCache[grandparent]
+	c.documentInfoMu.RUnlock()
+	assert.True(t, gpCached)
+	assert.True(t, parentCached)
+	assert.True(t, childCached)
+}
+
 func TestInvalidateCachesInstanceClassAncestor(t *testing.T) {
 	t.Parallel()
 
