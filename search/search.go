@@ -538,34 +538,53 @@ func (s *Session) GetFilterByID(id identifier.Identifier) (*Filter, errors.E) {
 // When Reverse is set, the session is scoped to documents which have a ref claim
 // (for any property) whose "to" target equals Reverse.
 type SessionData struct {
-	View     ViewType               `json:"view,omitempty"`
-	Query    string                 `json:"query,omitempty"`
-	Language string                 `json:"language,omitempty"`
-	Filters  []Filter               `json:"filters,omitempty"`
-	Reverse  *identifier.Identifier `json:"reverse,omitempty"`
+	View     ViewType `json:"view,omitempty"`
+	Query    string   `json:"query,omitempty"`
+	Language string   `json:"language,omitempty"`
+	Filters  []Filter `json:"filters,omitempty"`
+	// Prefilters are filters of the same shape as Filters, but their queries go into the bool filter
+	// clause instead of the scoring must clause, so they constrain the result set without contributing
+	// to _score (no should-clause boosting from multi-value matches).
+	Prefilters []Filter               `json:"prefilters,omitempty"`
+	Reverse    *identifier.Identifier `json:"reverse,omitempty"`
+}
+
+// validateFilters validates each filter in filters and records its ID in seen to detect
+// duplicates. field is the error detail key identifying the set ("filter" or "prefilter").
+func validateFilters(filters []Filter, field string, withoutSession bool, seen map[identifier.Identifier]bool) errors.E {
+	for i, f := range filters {
+		errE := f.Validate(withoutSession)
+		if errE != nil {
+			errors.Details(errE)[field] = i
+			return errE
+		}
+		if !withoutSession {
+			// We checked that f.ID is not nil in f.Validate().
+			if seen[*f.ID] {
+				errE := errors.New("duplicate filter ID")
+				errors.Details(errE)["id"] = f.ID.String()
+				errors.Details(errE)[field] = i
+				return errE
+			}
+			seen[*f.ID] = true
+		}
+	}
+	return nil
 }
 
 // Validate validates the session data.
 //
 // Validate uses ctx with Site.
 func (s *SessionData) Validate(ctx context.Context, withoutSession bool) errors.E {
+	// Filters and Prefilters share the seen-ID set, so an ID cannot be reused across the two sets.
 	seenFilters := map[identifier.Identifier]bool{}
-	for i, f := range s.Filters {
-		errE := f.Validate(withoutSession)
-		if errE != nil {
-			errors.Details(errE)["filter"] = i
-			return errE
-		}
-		if !withoutSession {
-			// We checked that f.ID is not nil in f.Validate().
-			if seenFilters[*f.ID] {
-				errE := errors.New("duplicate filter ID")
-				errors.Details(errE)["id"] = f.ID.String()
-				errors.Details(errE)["filter"] = i
-				return errE
-			}
-			seenFilters[*f.ID] = true
-		}
+	errE := validateFilters(s.Filters, "filter", withoutSession, seenFilters)
+	if errE != nil {
+		return errE
+	}
+	errE = validateFilters(s.Prefilters, "prefilter", withoutSession, seenFilters)
+	if errE != nil {
+		return errE
 	}
 
 	if !withoutSession {
@@ -636,7 +655,13 @@ func (s *SessionData) ToQuery(enabledLanguages []string, extraFilters ...types.Q
 	}
 
 	for i := range s.Filters {
-		musts = append(musts, s.filterQuery(i, nil))
+		musts = append(musts, s.filterQuery(&s.Filters[i], nil))
+	}
+
+	// Prefilters constrain the result set like filters but go into the filter clause, so
+	// they do not contribute to _score.
+	for i := range s.Prefilters {
+		extraFilters = append(extraFilters, s.filterQuery(&s.Prefilters[i], nil))
 	}
 
 	// Reverse scopes results to documents that reference the target (directly or via a
@@ -666,7 +691,17 @@ func (s *SessionData) ToQueryExcluding( //nolint:ireturn
 		if s.Filters[i].ID != nil && *s.Filters[i].ID == excludeFilterID {
 			continue
 		}
-		musts = append(musts, s.filterQuery(i, &excludeFilterID))
+		musts = append(musts, s.filterQuery(&s.Filters[i], &excludeFilterID))
+	}
+
+	// Prefilters constrain the result set like filters but go into the filter clause, so
+	// they do not contribute to _score. The excluded filter is skipped here too, in case
+	// it is a prefilter.
+	for i := range s.Prefilters {
+		if s.Prefilters[i].ID != nil && *s.Prefilters[i].ID == excludeFilterID {
+			continue
+		}
+		extraFilters = append(extraFilters, s.filterQuery(&s.Prefilters[i], &excludeFilterID))
 	}
 
 	// Reverse scopes results to documents that reference the target (directly or via a
@@ -693,52 +728,54 @@ func (s *SessionData) ToQueryExcluding( //nolint:ireturn
 //
 // This is the single point that knows how to render any filter shape; it is
 // the only place SessionData.ToQuery and ToQueryExcluding go through.
-func (s *SessionData) filterQuery(idx int, excludeID *identifier.Identifier) types.QueryVariant { //nolint:ireturn
-	f := s.Filters[idx]
+func (s *SessionData) filterQuery(f *Filter, excludeID *identifier.Identifier) types.QueryVariant { //nolint:ireturn
 	switch {
 	case f.Has != nil:
 		if len(f.Prop) == 1 {
-			return f.Has.ToSubHasQuery(f.Prop[0], s.collectParentToRestrictions(idx, f.Prop[0], excludeID))
+			return f.Has.ToSubHasQuery(f.Prop[0], s.collectParentToRestrictions(f, f.Prop[0], excludeID))
 		}
 		return f.Has.ToQuery()
 	case f.Ref != nil:
 		if len(f.Prop) == 2 { //nolint:mnd
-			return f.Ref.ToSubRefQuery(f.Prop[0], f.Prop[1], s.collectParentToRestrictions(idx, f.Prop[0], excludeID))
+			return f.Ref.ToSubRefQuery(f.Prop[0], f.Prop[1], s.collectParentToRestrictions(f, f.Prop[0], excludeID))
 		}
 		return f.Ref.ToQuery(f.Prop[0])
 	case f.Amount != nil:
 		if len(f.Prop) == 2 { //nolint:mnd
-			return f.Amount.ToSubAmountQuery(f.Prop[0], f.Prop[1], s.collectParentToRestrictions(idx, f.Prop[0], excludeID))
+			return f.Amount.ToSubAmountQuery(f.Prop[0], f.Prop[1], s.collectParentToRestrictions(f, f.Prop[0], excludeID))
 		}
 		return f.Amount.ToQuery(f.Prop[0])
 	case f.Time != nil:
 		if len(f.Prop) == 2 { //nolint:mnd
-			return f.Time.ToSubTimeQuery(f.Prop[0], f.Prop[1], s.collectParentToRestrictions(idx, f.Prop[0], excludeID))
+			return f.Time.ToSubTimeQuery(f.Prop[0], f.Prop[1], s.collectParentToRestrictions(f, f.Prop[0], excludeID))
 		}
 		return f.Time.ToQuery(f.Prop[0])
 	}
 	panic(errors.New("invalid filter"))
 }
 
-// collectParentToRestrictions returns the set of parentTo values that a
-// sub-claim filter at idx should be restricted to, gathered from sibling
-// top-level ref filters on the same parentProp. The filter at idx and (if
-// non-nil) the filter with excludeID are skipped.
-func (s *SessionData) collectParentToRestrictions(idx int, parentProp identifier.Identifier, excludeID *identifier.Identifier) []identifier.Identifier {
+// collectParentToRestrictions returns the set of parentTo values that the sub-claim
+// filter current should be restricted to, gathered from sibling top-level ref filters
+// on the same parentProp. It scans both Filters and Prefilters, so a top-level ref in
+// either set restricts sub-claim filters in either set. The current filter (matched by
+// identity) and (if non-nil) the filter with excludeID are skipped.
+func (s *SessionData) collectParentToRestrictions(current *Filter, parentProp identifier.Identifier, excludeID *identifier.Identifier) []identifier.Identifier {
 	var restrictions []identifier.Identifier
-	for i := range s.Filters {
-		if i == idx {
-			continue
-		}
-		other := &s.Filters[i]
-		if excludeID != nil && other.ID != nil && *other.ID == *excludeID {
-			continue
-		}
-		if other.Ref == nil || len(other.Prop) != 1 || other.Prop[0] != parentProp {
-			continue
-		}
-		for _, to := range other.Ref.To {
-			restrictions = append(restrictions, to.ID)
+	for _, set := range [][]Filter{s.Filters, s.Prefilters} {
+		for i := range set {
+			other := &set[i]
+			if other == current {
+				continue
+			}
+			if excludeID != nil && other.ID != nil && *other.ID == *excludeID {
+				continue
+			}
+			if other.Ref == nil || len(other.Prop) != 1 || other.Prop[0] != parentProp {
+				continue
+			}
+			for _, to := range other.Ref.To {
+				restrictions = append(restrictions, to.ID)
+			}
 		}
 	}
 	return restrictions

@@ -101,11 +101,12 @@ func TestResultsGetIntegration(t *testing.T) {
 
 	// Empty query returns all documents.
 	session := createSession(t, ctx, search.SessionData{
-		Language: "",
-		View:     "",
-		Query:    "",
-		Filters:  nil,
-		Reverse:  nil,
+		Language:   "",
+		View:       "",
+		Query:      "",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, metadata, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
@@ -125,11 +126,12 @@ func TestResultsGetIntegration(t *testing.T) {
 
 	// Query "hello" returns 2 documents.
 	helloSession := createSession(t, ctx, search.SessionData{
-		Language: "",
-		View:     "",
-		Query:    "hello",
-		Filters:  nil,
-		Reverse:  nil,
+		Language:   "",
+		View:       "",
+		Query:      "hello",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &helloSession.SessionData, nil, 0)
@@ -149,11 +151,12 @@ func TestResultsGetIntegration(t *testing.T) {
 
 	// Query "goodbye" returns 1 document.
 	goodbyeSession := createSession(t, ctx, search.SessionData{
-		Language: "",
-		View:     "",
-		Query:    "goodbye",
-		Filters:  nil,
-		Reverse:  nil,
+		Language:   "",
+		View:       "",
+		Query:      "goodbye",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &goodbyeSession.SessionData, nil, 0)
@@ -163,11 +166,12 @@ func TestResultsGetIntegration(t *testing.T) {
 
 	// Query "nonexistent" returns 0 documents.
 	noResultsSession := createSession(t, ctx, search.SessionData{
-		Language: "",
-		View:     "",
-		Query:    "nonexistent",
-		Filters:  nil,
-		Reverse:  nil,
+		Language:   "",
+		View:       "",
+		Query:      "nonexistent",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &noResultsSession.SessionData, nil, 0)
@@ -260,7 +264,8 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 				Missing: false,
 			},
 		}},
-		Reverse: nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
@@ -280,7 +285,8 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 				Missing: true,
 			},
 		}},
-		Reverse: nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, _, errE = search.ResultsGet(ctx, getSearchService, &noneSession.SessionData, nil, 0)
@@ -423,7 +429,8 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 				Missing: false,
 			},
 		}},
-		Reverse: nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
@@ -446,7 +453,8 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 				Missing: false,
 			},
 		}},
-		Reverse: nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, _, errE = search.ResultsGet(ctx, getSearchService, &session2.SessionData, nil, 0)
@@ -467,7 +475,8 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 				Missing: true,
 			},
 		}},
-		Reverse: nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, _, errE = search.ResultsGet(ctx, getSearchService, &session3.SessionData, nil, 0)
@@ -606,7 +615,8 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 				Missing: false,
 			},
 		}},
-		Reverse: nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
@@ -626,7 +636,8 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 				Missing: true,
 			},
 		}},
-		Reverse: nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, _, errE = search.ResultsGet(ctx, getSearchService, &session2.SessionData, nil, 0)
@@ -788,7 +799,8 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 				},
 			},
 		},
-		Reverse: nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &andSession.SessionData, nil, 0)
@@ -834,11 +846,12 @@ func TestResultsGetTotalGteIntegration(t *testing.T) {
 	}
 
 	session := createSession(t, ctx, search.SessionData{
-		Language: "",
-		View:     "",
-		Query:    "",
-		Filters:  nil,
-		Reverse:  nil,
+		Language:   "",
+		View:       "",
+		Query:      "",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, metadata, errE := search.ResultsGet(ctx, getSearchServiceTracked, &session.SessionData, nil, 0)
@@ -888,11 +901,12 @@ func TestResultsGetTotalGteRelationIntegration(t *testing.T) {
 	}
 
 	session := createSession(t, ctx, search.SessionData{
-		Language: "",
-		View:     "",
-		Query:    "",
-		Filters:  nil,
-		Reverse:  nil,
+		Language:   "",
+		View:       "",
+		Query:      "",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, metadata, errE := search.ResultsGet(ctx, getSearchServiceLimited, &session.SessionData, nil, 0)
@@ -923,11 +937,12 @@ func TestResultsGetScoreBoost(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
-		Language: "",
-		View:     "",
-		Query:    "hello world",
-		Filters:  nil,
-		Reverse:  nil,
+		Language:   "",
+		View:       "",
+		Query:      "hello world",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	// A positive factor must rank the higher-counts.score document first, while the
@@ -1024,11 +1039,12 @@ func TestResultsGetExtraFiltersIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
-		Language: "",
-		View:     "",
-		Query:    "",
-		Filters:  nil,
-		Reverse:  nil,
+		Language:   "",
+		View:       "",
+		Query:      "",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	// Without an access filter, all three documents are returned.
