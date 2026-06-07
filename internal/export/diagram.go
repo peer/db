@@ -803,7 +803,7 @@ func diagramStructValuesTag(t reflect.Type) (string, bool) {
 	return "", false
 }
 
-// parseDiagramValuesTargets parses a values-tag string (search-shortcut grammar)
+// parseDiagramValuesTargets parses a values-tag string (search shortcut grammar)
 // and returns the target entity names for INSTANCE_OF=class clauses that
 // resolve to entries in idToName. INSTANCE_OF clauses whose target class is
 // not part of the diagram are logged at warn level - this is the canonical
@@ -867,7 +867,7 @@ func parseDiagramValuesTargets(
 // resolveDiagramValuesID resolves a single identifier token from a "values" tag
 // into an [identifier.Identifier]. The token is either a 22-character base58 ID
 // or a comma-separated list of base parts. Because the "values" tag shares the
-// search-shortcut grammar, the grammar's non-identifier tokens can also appear:
+// search shortcut grammar, the grammar's non-identifier tokens can also appear:
 // the "self"/"reverse" sentinels and nested "parent:prop" keys are not class or
 // property identifiers, so they return ok=false (and thus produce no edge).
 func resolveDiagramValuesID(token string) (identifier.Identifier, bool) {
