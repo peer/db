@@ -622,19 +622,17 @@ func reverseScopeQuery(id identifier.Identifier) types.QueryVariant { //nolint:i
 	).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
 }
 
-// withExtraFilters returns musts as a bool query, adding any non-nil extra
-// queries as filter clauses. A site's per-caller access restriction (from
-// base.B.SearchQueryHook) is threaded into every search query this way.
-func withExtraFilters(musts, extraFilters []types.QueryVariant) types.QueryVariant { //nolint:ireturn
+// withFilters returns musts as a bool query, adding any non-nil extra queries as filter clauses.
+func withFilters(musts, filters []types.QueryVariant) types.QueryVariant { //nolint:ireturn
 	query := esdsl.NewBoolQuery().Must(musts...)
-	filters := make([]types.QueryVariant, 0, len(extraFilters))
-	for _, f := range extraFilters {
+	fs := make([]types.QueryVariant, 0, len(filters))
+	for _, f := range filters {
 		if f != nil {
-			filters = append(filters, f)
+			fs = append(fs, f)
 		}
 	}
-	if len(filters) > 0 {
-		return query.Filter(filters...)
+	if len(fs) > 0 {
+		return query.Filter(fs...)
 	}
 	return query
 }
@@ -658,20 +656,23 @@ func (s *SessionData) ToQuery(enabledLanguages []string, extraFilters ...types.Q
 		musts = append(musts, s.filterQuery(&s.Filters[i], nil))
 	}
 
+	filters := make([]types.QueryVariant, 0, len(extraFilters)+len(s.Prefilters)+1)
+	filters = append(filters, extraFilters...)
+
 	// Prefilters constrain the result set like filters but go into the filter clause, so
 	// they do not contribute to _score.
 	for i := range s.Prefilters {
-		extraFilters = append(extraFilters, s.filterQuery(&s.Prefilters[i], nil))
+		filters = append(filters, s.filterQuery(&s.Prefilters[i], nil))
 	}
 
 	// Reverse scopes results to documents that reference the target (directly or via a
 	// sub-reference). It is a pure membership constraint, so it goes in the filter clause
 	// and does not contribute to _score.
 	if s.Reverse != nil {
-		extraFilters = append(extraFilters, reverseScopeQuery(*s.Reverse))
+		filters = append(filters, reverseScopeQuery(*s.Reverse))
 	}
 
-	return withExtraFilters(musts, extraFilters)
+	return withFilters(musts, filters)
 }
 
 // ToQueryExcluding converts the SessionData to an ElasticSearch query, excluding
@@ -694,6 +695,9 @@ func (s *SessionData) ToQueryExcluding( //nolint:ireturn
 		musts = append(musts, s.filterQuery(&s.Filters[i], &excludeFilterID))
 	}
 
+	filters := make([]types.QueryVariant, 0, len(extraFilters)+len(s.Prefilters)+1)
+	filters = append(filters, extraFilters...)
+
 	// Prefilters constrain the result set like filters but go into the filter clause, so
 	// they do not contribute to _score. The excluded filter is skipped here too, in case
 	// it is a prefilter.
@@ -701,17 +705,17 @@ func (s *SessionData) ToQueryExcluding( //nolint:ireturn
 		if s.Prefilters[i].ID != nil && *s.Prefilters[i].ID == excludeFilterID {
 			continue
 		}
-		extraFilters = append(extraFilters, s.filterQuery(&s.Prefilters[i], &excludeFilterID))
+		filters = append(filters, s.filterQuery(&s.Prefilters[i], &excludeFilterID))
 	}
 
 	// Reverse scopes results to documents that reference the target (directly or via a
 	// sub-reference). It is a pure membership constraint, so it goes in the filter clause
 	// and does not contribute to _score.
 	if s.Reverse != nil {
-		extraFilters = append(extraFilters, reverseScopeQuery(*s.Reverse))
+		filters = append(filters, reverseScopeQuery(*s.Reverse))
 	}
 
-	return withExtraFilters(musts, extraFilters)
+	return withFilters(musts, filters)
 }
 
 // filterQuery builds the ES query for the filter at idx, dispatching to the
