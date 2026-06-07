@@ -6,7 +6,6 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"slices"
 	"strings"
 
 	"github.com/alecthomas/kong"
@@ -58,14 +57,6 @@ type SiteAuthConfig struct {
 	ClientSecret string `json:"-" yaml:"clientSecret,omitempty"`
 }
 
-// VisibilityLevel is one entry in a site's ordered list of visibility levels.
-// Each level has a unique, non-empty name and the roles (possibly none) that
-// grant it.
-type VisibilityLevel struct {
-	Name  string   `json:"name"            yaml:"name"`
-	Roles []string `json:"roles,omitempty" yaml:"roles,omitempty"`
-}
-
 // Site represents a single site in the PeerDB application with its configuration and state.
 type Site struct {
 	waf.Site `yaml:",inline"`
@@ -99,7 +90,7 @@ type Site struct {
 	// must be a key in Roles and must appear in at most one level, and level
 	// names must be unique and non-empty. A role in no level, a level with
 	// no roles, and an empty Visibility are all allowed.
-	Visibility []VisibilityLevel `json:"visibility,omitempty" yaml:"visibility,omitempty"`
+	Visibility []auth.VisibilityLevel `json:"visibility,omitempty" yaml:"visibility,omitempty"`
 
 	// Auth carries per-site OIDC configuration. When all three fields
 	// (issuer, clientId, clientSecret) are set the site uses OIDC for
@@ -222,26 +213,6 @@ func (s *Site) validateVisibility() errors.E {
 		}
 	}
 	return nil
-}
-
-// VisibilityForRoles returns the highest visibility level granted by roles, and
-// true when at least one role maps to a level. Levels are ordered from lowest to
-// highest access, so among the matching levels the one latest in Visibility wins.
-// When no role maps to a level (the request has no such role, or the site defines
-// no levels), it returns the zero VisibilityLevel and false; the caller decides
-// what that means (typically the lowest, public, view).
-func (s *Site) VisibilityForRoles(roles []string) (VisibilityLevel, bool) {
-	// Visibility is ordered lowest to highest access, so walking it from the end
-	// returns the highest matching level on the first match.
-	for _, v := range slices.Backward(s.Visibility) {
-		level := v
-		for _, role := range level.Roles {
-			if slices.Contains(roles, role) {
-				return level, true
-			}
-		}
-	}
-	return VisibilityLevel{}, false
 }
 
 func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifier) ([]identifier.Identifier, errors.E) {

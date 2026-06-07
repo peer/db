@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/internal/site"
 )
 
@@ -23,7 +24,7 @@ func TestValidateVisibility(t *testing.T) {
 	tests := []struct {
 		name       string
 		roles      map[string][]string
-		visibility []site.VisibilityLevel
+		visibility []auth.VisibilityLevel
 		wantErr    string
 	}{
 		{
@@ -35,7 +36,7 @@ func TestValidateVisibility(t *testing.T) {
 		{
 			name:  "role in no level and level with no roles are both allowed",
 			roles: roles,
-			visibility: []site.VisibilityLevel{
+			visibility: []auth.VisibilityLevel{
 				{Name: "public", Roles: []string{"public"}},
 				{Name: "researcher", Roles: []string{"researcher"}},
 				{Name: "editor", Roles: []string{"reviewer", "editor"}},
@@ -47,7 +48,7 @@ func TestValidateVisibility(t *testing.T) {
 		{
 			name:  "unknown role",
 			roles: roles,
-			visibility: []site.VisibilityLevel{
+			visibility: []auth.VisibilityLevel{
 				{Name: "researcher", Roles: []string{"nonexistent"}},
 			},
 			wantErr: "visibility level references an unknown role",
@@ -55,7 +56,7 @@ func TestValidateVisibility(t *testing.T) {
 		{
 			name:  "role in more than one level",
 			roles: roles,
-			visibility: []site.VisibilityLevel{
+			visibility: []auth.VisibilityLevel{
 				{Name: "researcher", Roles: []string{"reviewer"}},
 				{Name: "editor", Roles: []string{"reviewer"}},
 			},
@@ -64,7 +65,7 @@ func TestValidateVisibility(t *testing.T) {
 		{
 			name:  "duplicate level name",
 			roles: roles,
-			visibility: []site.VisibilityLevel{
+			visibility: []auth.VisibilityLevel{
 				{Name: "dup", Roles: []string{"public"}},
 				{Name: "dup", Roles: []string{"researcher"}},
 			},
@@ -73,7 +74,7 @@ func TestValidateVisibility(t *testing.T) {
 		{
 			name:  "empty level name",
 			roles: roles,
-			visibility: []site.VisibilityLevel{
+			visibility: []auth.VisibilityLevel{
 				{Name: "", Roles: []string{"public"}},
 			},
 			wantErr: "visibility level has an empty name",
@@ -95,47 +96,6 @@ func TestValidateVisibility(t *testing.T) {
 				require.Error(t, errE)
 				assert.Contains(t, errE.Error(), tt.wantErr, "% -+#.1v", errE)
 			}
-		})
-	}
-}
-
-func TestVisibilityForRoles(t *testing.T) {
-	t.Parallel()
-
-	levels := []site.VisibilityLevel{
-		{Name: "public", Roles: []string{"public"}},
-		{Name: "researcher", Roles: []string{"researcher"}},
-		{Name: "editor", Roles: []string{"reviewer", "editor"}},
-		{Name: "none", Roles: nil},
-	}
-
-	tests := []struct {
-		name      string
-		levels    []site.VisibilityLevel
-		roles     []string
-		wantName  string
-		wantFound bool
-	}{
-		{"no levels defined", nil, []string{"editor"}, "", false},
-		{"no roles", levels, nil, "", false},
-		{"role in no level", levels, []string{"admin"}, "", false},
-		{"single match", levels, []string{"researcher"}, "researcher", true},
-		{"highest among several", levels, []string{"public", "editor"}, "editor", true},
-		{"reviewer maps to editor level", levels, []string{"reviewer"}, "editor", true},
-		{"lower level when higher role absent", levels, []string{"public", "admin"}, "public", true},
-		{"duplicate roles", levels, []string{"researcher", "researcher"}, "researcher", true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			s := &site.Site{}
-			s.Visibility = tt.levels
-
-			level, found := s.VisibilityForRoles(tt.roles)
-			assert.Equal(t, tt.wantFound, found)
-			assert.Equal(t, tt.wantName, level.Name)
 		})
 	}
 }

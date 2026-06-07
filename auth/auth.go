@@ -74,11 +74,13 @@ const upstreamRevokeTimeout = 30 * time.Second
 // site because each site has its own client and per-domain redirect URI.
 type Authenticator interface {
 	// Authenticate validates the caller's access token and, on success,
-	// returns the request context enriched with subject and roles AND
-	// writes the Roles / UserInfo response headers consumed by the
-	// frontend. On failure the original ctx is returned unchanged and no
-	// headers are written.
-	Authenticate(w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string][]string) context.Context
+	// returns the request context enriched with subject, roles and the
+	// resolved visibility level AND writes the Roles/UserInfo response
+	// headers consumed by the frontend. On failure the original ctx is
+	// returned unchanged and no headers are written.
+	Authenticate(
+		w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string][]string, visibility []VisibilityLevel,
+	) context.Context
 
 	// SignIn begins a fresh sign-in flow.
 	SignIn(ctx context.Context, redirect string) (authURL string, errE errors.E)
@@ -114,8 +116,8 @@ type baseAuthenticator struct {
 
 // Authenticate validates the caller's access token (Authorization Bearer
 // first, falling back to the session cookie) and, on success, returns
-// the request context enriched with subject and roles AND writes two
-// response headers consumed by the frontend:
+// the request context enriched with subject, roles and the resolved
+// visibility level AND writes two response headers consumed by the frontend:
 //
 //   - "<prefix>Roles": the role list as an SFV inner-list.
 //   - "<prefix>UserInfo": an SFV dictionary with subject (always) and
@@ -130,6 +132,10 @@ type baseAuthenticator struct {
 // empty map yields an empty role set even when the token carries role
 // scopes.
 //
+// visibility is the ordered list of visibility levels. The caller's
+// resolved roles are mapped to the highest matching level, which is attached
+// to the context. When no role maps to a level no visibility is attached.
+//
 // The userinfo for the UserInfo header is read from an in-memory cache.
 // Concurrent requests for the same subject coalesce into a single upstream
 // call to the issuer's userinfo endpoint (singleflight).
@@ -137,7 +143,9 @@ type baseAuthenticator struct {
 // On any validation failure the original ctx is returned unchanged and no
 // headers are written. Callers should treat that as an unauthenticated request
 // and continue handling.
-func (b *baseAuthenticator) Authenticate(w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string][]string) context.Context {
+func (b *baseAuthenticator) Authenticate(
+	w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string][]string, visibility []VisibilityLevel,
+) context.Context {
 	ctx := req.Context()
 	token, _ := resolveAccessToken(w, req)
 	if token == "" {
@@ -171,6 +179,9 @@ func (b *baseAuthenticator) Authenticate(w http.ResponseWriter, req *http.Reques
 	}
 	ctx = WithSubject(ctx, claims.Subject)
 	ctx = WithRoles(ctx, roles)
+	if level, ok := visibilityForRoles(visibility, roles); ok {
+		ctx = WithVisibility(ctx, level)
+	}
 	b.writeRolesHeader(w, metadataHeaderPrefix, roles)
 	b.writeUserInfoHeader(ctx, w, metadataHeaderPrefix, claims.Subject, token)
 	// Authenticated responses carry per-user data, keep them out of

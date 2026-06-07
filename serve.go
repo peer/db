@@ -52,19 +52,21 @@ type Service struct {
 // allowlist for the auth middleware.
 //
 //nolint:ireturn
-func (s *Service) lookupSiteAuthenticator(w http.ResponseWriter, req *http.Request) (auth.Authenticator, map[string][]string, bool) {
+func (s *Service) lookupSiteAuthenticator(
+	w http.ResponseWriter, req *http.Request,
+) (auth.Authenticator, map[string][]string, []auth.VisibilityLevel, bool) {
 	site, ok := waf.GetSite[*internalSite.Site](req.Context())
 	if !ok {
 		s.InternalServerErrorWithError(w, req, errors.New("no site in request context"))
-		return nil, nil, true
+		return nil, nil, nil, true
 	}
 	if site.Authenticator == nil {
 		errE := errors.New("site has no authenticator configured")
 		errors.Details(errE)["domain"] = site.Domain
 		s.InternalServerErrorWithError(w, req, errE)
-		return nil, nil, true
+		return nil, nil, nil, true
 	}
-	return site.Authenticator, site.Roles, false
+	return site.Authenticator, site.Roles, site.Visibility, false
 }
 
 // HasPermission reports whether the caller currently holds the given

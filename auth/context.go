@@ -17,6 +17,9 @@ var subjectContextKey = &contextKey{"subject"} //nolint:gochecknoglobals
 // rolesContextKey carries the list of roles granted to the caller.
 var rolesContextKey = &contextKey{"roles"} //nolint:gochecknoglobals
 
+// visibilityContextKey carries the caller's resolved visibility level.
+var visibilityContextKey = &contextKey{"visibility"} //nolint:gochecknoglobals
+
 // WithSubject returns ctx with the given subject attached. Called by the auth
 // middleware after token verification.
 func WithSubject(ctx context.Context, subject string) context.Context {
@@ -55,4 +58,17 @@ func Roles(ctx context.Context) []string {
 // HasRole reports whether the given role is present in ctx.
 func HasRole(ctx context.Context, role string) bool {
 	return slices.Contains(Roles(ctx), role)
+}
+
+// WithVisibility returns ctx with the caller's resolved visibility level
+// attached. Called by the auth middleware after roles are resolved.
+func WithVisibility(ctx context.Context, level VisibilityLevel) context.Context {
+	return context.WithValue(ctx, visibilityContextKey, level)
+}
+
+// Visibility returns the caller's resolved visibility level from ctx, and true
+// when one was set. It is unset when the caller's roles map to no level.
+func Visibility(ctx context.Context) (VisibilityLevel, bool) {
+	level, ok := ctx.Value(visibilityContextKey).(VisibilityLevel)
+	return level, ok
 }
