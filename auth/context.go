@@ -60,15 +60,16 @@ func HasRole(ctx context.Context, role string) bool {
 	return slices.Contains(Roles(ctx), role)
 }
 
-// WithVisibility returns ctx with the caller's resolved visibility level
+// WithVisibility returns ctx with the caller's resolved visibility level name
 // attached. Called by the auth middleware after roles are resolved.
-func WithVisibility(ctx context.Context, level VisibilityLevel) context.Context {
+func WithVisibility(ctx context.Context, level string) context.Context {
 	return context.WithValue(ctx, visibilityContextKey, level)
 }
 
-// Visibility returns the caller's resolved visibility level from ctx, and true
-// when one was set. It is unset when the caller's roles map to no level.
-func Visibility(ctx context.Context) (VisibilityLevel, bool) {
-	level, ok := ctx.Value(visibilityContextKey).(VisibilityLevel)
-	return level, ok
+// Visibility returns the caller's resolved visibility level name from ctx, or
+// "" when none was set. A configured level name is never empty (site validation
+// rejects empty names), so "" unambiguously means no level is attached.
+func Visibility(ctx context.Context) string {
+	level, _ := ctx.Value(visibilityContextKey).(string)
+	return level
 }

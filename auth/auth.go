@@ -153,7 +153,7 @@ func (b *baseAuthenticator) Authenticate(
 	// request, in which case the no-roles floor level (if any) applies.
 	// An authenticated caller's roles may raise it above that floor.
 	if level, found := visibilityForRoles(visibility, roles); found {
-		ctx = WithVisibility(ctx, level)
+		ctx = WithVisibility(ctx, level.Name)
 	}
 	if !ok {
 		return ctx

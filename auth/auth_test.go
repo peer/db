@@ -139,9 +139,7 @@ func TestAuthenticateAnonymousGetsFloor(t *testing.T) {
 	ctx := authenticator.Authenticate(w, req, "", nil, visibility)
 	_, ok := auth.Subject(ctx)
 	assert.False(t, ok)
-	level, ok := auth.Visibility(ctx)
-	require.True(t, ok)
-	assert.Equal(t, "public", level.Name)
+	assert.Equal(t, "public", auth.Visibility(ctx))
 }
 
 func TestAuthenticateRoleRaisesFloor(t *testing.T) {
@@ -168,9 +166,7 @@ func TestAuthenticateRoleRaisesFloor(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	ctx := authenticator.Authenticate(w, req, "", map[string][]string{"editor": nil}, visibility)
-	level, ok := auth.Visibility(ctx)
-	require.True(t, ok)
-	assert.Equal(t, "editor", level.Name)
+	assert.Equal(t, "editor", auth.Visibility(ctx))
 }
 
 func TestAuthenticateFiltersRoleWildcard(t *testing.T) {
