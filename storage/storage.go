@@ -135,6 +135,7 @@ func (s *Storage) Init(
 	}
 
 	storageStore := &store.Store[[]byte, *FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None]{
+		Schema:       s.Schema,
 		Prefix:       s.Prefix,
 		DataType:     "bytea",
 		MetadataType: "jsonb",

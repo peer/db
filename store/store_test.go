@@ -149,6 +149,7 @@ func initDatabase[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, Commi
 	listener := internalStore.NewListener(dbpool)
 
 	s := &store.Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]{
+		Schema:       schema,
 		Prefix:       prefix,
 		DataType:     dataType,
 		MetadataType: dataType,
@@ -2001,7 +2002,7 @@ func TestNotifyRecovery(t *testing.T) {
 	// In production this is triggered when pgxlisten reconnects after a connection drop.
 	// It should close the old channel (signaling consumers that notifications may have been
 	// missed) and create a new one.
-	err := s.HandleBacklog(ctx, s.Prefix+"CommittedChangesets", nil)
+	err := s.HandleBacklog(ctx, s.Schema+"_"+s.Prefix+"Commit", nil)
 	require.NoError(t, errE, "% -+#.1v", err) // This is still errors.E.
 
 	// Old channel must be closed so that consumers know to take corrective action.
@@ -2768,7 +2769,7 @@ func TestNotificationFallbackFailureCallsReset(t *testing.T) {
 	// Reset() before propagating.
 	notification := &pgconn.Notification{
 		PID:     0,
-		Channel: s.Prefix + "CommittedChangesets",
+		Channel: s.Schema + "_" + s.Prefix + "Commit",
 		Payload: `{"seq":999999999}`,
 	}
 	err := s.HandleNotification(ctx, notification, nil)

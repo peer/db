@@ -124,6 +124,7 @@ func (b *B) Init(
 	documents := &store.Store[
 		json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes,
 	]{
+		Schema:        b.Schema,
 		Prefix:        "docs",
 		DataType:      "jsonb",
 		MetadataType:  "jsonb",

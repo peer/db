@@ -172,15 +172,20 @@ type Bridge struct {
 	// Index is the ElasticSearch index name.
 	Index string
 
-	dbpool                 *pgxpool.Pool
-	schema                 string
-	riverClient            *river.Client[pgx.Tx]
-	converter              *Converter
-	lastSeqMu              sync.RWMutex
-	lastSeqCond            *sync.Cond
-	lastSeq                int64
-	reindexQueueMinSeqMu   sync.RWMutex
-	reindexQueueMinSeqCond *sync.Cond
+	dbpool *pgxpool.Pool
+	schema string
+	// LISTEN/NOTIFY channel names computed once in Init. PostgreSQL notification channels are
+	// database-global (not schema-scoped), so the schema is included to keep channels in different
+	// schemas of the same database isolated from each other.
+	bridgeSeqChannel                string
+	bridgeReindexQueueMinSeqChannel string
+	riverClient                     *river.Client[pgx.Tx]
+	converter                       *Converter
+	lastSeqMu                       sync.RWMutex
+	lastSeqCond                     *sync.Cond
+	lastSeq                         int64
+	reindexQueueMinSeqMu            sync.RWMutex
+	reindexQueueMinSeqCond          *sync.Cond
 	// reindexQueueMinSeq is the MIN(seq) of remaining rows in BridgeReindexQueue,
 	// or math.MaxInt64 if the table is empty. A waiter for seq X is done when this value > X.
 	reindexQueueMinSeq int64
@@ -204,6 +209,8 @@ func (b *Bridge) Init(
 	b.dbpool = dbpool
 	b.schema = schema
 	b.riverClient = riverClient
+	b.bridgeSeqChannel = schema + "_" + b.Store.Prefix + "BrSeq"
+	b.bridgeReindexQueueMinSeqChannel = schema + "_" + b.Store.Prefix + "BrQueue"
 
 	errE := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `
@@ -216,7 +223,7 @@ func (b *Bridge) Init(
 			CREATE FUNCTION "`+b.Store.Prefix+`BridgeAfterUpdateFunc"()
 				RETURNS TRIGGER LANGUAGE plpgsql AS $$
 				BEGIN
-					PERFORM pg_notify('`+b.Store.Prefix+`BridgeSeq', NEW."seq"::text);
+					PERFORM pg_notify('`+b.bridgeSeqChannel+`', NEW."seq"::text);
 					RETURN NULL;
 				END;
 			$$;
@@ -241,7 +248,7 @@ func (b *Bridge) Init(
 					-- Computing MIN(seq) inside this read-write trigger would create an unnecessary dependency on the table, conflicting with
 					-- concurrent INSERTs and DELETEs under serializable isolation, but it is not really necessary to know the MIN(seq) from
 					-- inside the transaction because the handler can only obtain >= MIN(seq) through a later query.
-					PERFORM pg_notify('`+b.Store.Prefix+`BridgeReindexQueueMinSeq', '');
+					PERFORM pg_notify('`+b.bridgeReindexQueueMinSeqChannel+`', '');
 					RETURN NULL;
 				END;
 			$$;
@@ -274,8 +281,8 @@ func (b *Bridge) Init(
 	b.reindexQueueMinSeqCond = sync.NewCond(b.reindexQueueMinSeqMu.RLocker())
 	b.reindexQueueMinSeq = math.MaxInt64
 	b.reindexSoftDeadline = reindexSoftDeadline
-	listener.Handle(b.Store.Prefix+"BridgeSeq", b)
-	listener.Handle(b.Store.Prefix+"BridgeReindexQueueMinSeq", b)
+	listener.Handle(b.bridgeSeqChannel, b)
+	listener.Handle(b.bridgeReindexQueueMinSeqChannel, b)
 
 	return nil
 }
@@ -315,9 +322,9 @@ func (b *Bridge) HandleNotification(
 	ctx context.Context, notification *pgconn.Notification, conn *pgx.Conn,
 ) error {
 	switch notification.Channel {
-	case b.Store.Prefix + "BridgeSeq":
+	case b.bridgeSeqChannel:
 		return b.handleBridgeSeq(ctx, notification, conn)
-	case b.Store.Prefix + "BridgeReindexQueueMinSeq":
+	case b.bridgeReindexQueueMinSeqChannel:
 		return b.handleBridgeReindexQueueMinSeq(ctx)
 	default:
 		errE := errors.New("unknown notification channel")
@@ -333,13 +340,13 @@ func (b *Bridge) HandleBacklog(
 	ctx context.Context, channel string, _ *pgx.Conn,
 ) error {
 	switch channel {
-	case b.Store.Prefix + "BridgeSeq":
+	case b.bridgeSeqChannel:
 		// TODO: Improve what happens on an error.
 		//       Any error from fixBridgeSeq is just logged. Which means that goroutines waiting in WaitUntilCaughtUp
 		//       might continue waiting until some other new commit is made, which might be never.
 		_, errE := b.fixBridgeSeq(ctx)
 		return errE
-	case b.Store.Prefix + "BridgeReindexQueueMinSeq":
+	case b.bridgeReindexQueueMinSeqChannel:
 		// TODO: Improve what happens on an error.
 		//       Any error from updateBridgeReindexQueueMinSeq is just logged. Which means that goroutines waiting
 		//       in WaitUntilCaughtUp might continue waiting until some other new commit is made, which might be never.
@@ -354,9 +361,9 @@ func (b *Bridge) HandleBacklog(
 // HandlingReady implements internalStore.Handler interface.
 func (b *Bridge) HandlingReady(ctx context.Context, channel string) errors.E {
 	switch channel {
-	case b.Store.Prefix + "BridgeSeq":
+	case b.bridgeSeqChannel:
 		return b.waitForFixBridgeSeq(ctx)
-	case b.Store.Prefix + "BridgeReindexQueueMinSeq":
+	case b.bridgeReindexQueueMinSeqChannel:
 		return b.waitForUpdateBridgeReindexQueueMinSeq(ctx)
 	default:
 		errE := errors.New("unknown notification channel")

@@ -139,6 +139,7 @@ func setupBridge(t *testing.T) (context.Context, *bridgeEnv) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	s := &bridgeStore{
+		Schema:        schema,
 		Prefix:        prefix,
 		DataType:      "jsonb",
 		MetadataType:  "jsonb",
@@ -419,7 +420,7 @@ func TestBridgeNotifyRecovery(t *testing.T) {
 	// Simulate a listener reconnection by closing the store's Committed channel.
 	// The bridge's run loop detects the channel close, exits with errCommittedChannelClosed,
 	// and restarts - re-running the catch-up phase to recover any missed commits.
-	err := s.HandleBacklog(ctx, s.Prefix+"CommittedChangesets", nil)
+	err := s.HandleBacklog(ctx, s.Schema+"_"+s.Prefix+"Commit", nil)
 	require.NoError(t, err, "% -+#.1v", err) // This is still errors.E.
 
 	// Insert more documents after the simulated reconnection. These may be missed by the
