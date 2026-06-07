@@ -29,8 +29,8 @@ func TestFiltersGetIntegration(t *testing.T) {
 	t1000 := float64(1000)
 	t2000 := float64(2000)
 
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil, //nolint:dupl
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:dupl
+		DisplaySort: nil,
 		ID:          identifier.From("filterDoc1"),
 		Display:     nil,
 		Text:        nil,
@@ -92,8 +92,8 @@ func TestFiltersGetIntegration(t *testing.T) {
 			SubHas:    nil,
 		},
 	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil, //nolint:dupl
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:dupl
+		DisplaySort: nil,
 		ID:          identifier.From("filterDoc2"),
 		Display:     nil,
 		Text:        nil,
