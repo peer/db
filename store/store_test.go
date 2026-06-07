@@ -1966,6 +1966,7 @@ func TestNotifyRecovery(t *testing.T) {
 	listener := internalStore.NewListener(dbpool)
 
 	s := &store.Store[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]{
+		Schema:        schema,
 		Prefix:        prefix,
 		CommittedSize: 1,
 		DataType:      "jsonb",
