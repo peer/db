@@ -757,7 +757,8 @@ func TestSessionToQuery(t *testing.T) {
 		{
 			Name:        "Empty",
 			SessionData: search.SessionData{Language: "", View: "", Query: "", Filters: nil, Prefilters: nil, Reverse: nil},
-			Want:        `{"bool":{}}`,
+			// With no scoring clauses the query matches all documents with score 0 via a match_all filter clause.
+			Want: `{"bool":{"filter":[{"match_all":{}}]}}`,
 		},
 		{
 			Name: "QueryAndFilter",
@@ -850,7 +851,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{Language: "", View: "", Query: "", Filters: nil, Prefilters: nil, Reverse: nil}
 		q := data.ToQuery(nil)
-		assert.JSONEq(t, `{"bool":{}}`, testutils.QueryJSON(t, q))
+		assert.JSONEq(t, `{"bool":{"filter":[{"match_all":{}}]}}`, testutils.QueryJSON(t, q))
 	})
 }
 

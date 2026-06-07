@@ -622,7 +622,13 @@ func reverseScopeQuery(id identifier.Identifier) types.QueryVariant { //nolint:i
 	).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
 }
 
-// withFilters returns musts as a bool query, adding any non-nil extra queries as filter clauses.
+// withFilters returns musts as a bool query, adding any non-nil filters as filter clauses.
+//
+// When there are no scoring (must) clauses the documents are selected purely by membership, and we
+// want their score to be 0. An empty bool query would instead match all documents with score 1, so
+// when neither musts nor filters are present we add a match_all filter clause. Filter clauses do not
+// contribute to the score, so such results stay at score 0 (the counts.score function_score, being a
+// multiply, then leaves them at 0). Only a query or filters (which go into musts) produce non-zero scores.
 func withFilters(musts, filters []types.QueryVariant) types.QueryVariant { //nolint:ireturn
 	query := esdsl.NewBoolQuery().Must(musts...)
 	fs := make([]types.QueryVariant, 0, len(filters))
@@ -630,6 +636,9 @@ func withFilters(musts, filters []types.QueryVariant) types.QueryVariant { //nol
 		if f != nil {
 			fs = append(fs, f)
 		}
+	}
+	if len(musts) == 0 && len(fs) == 0 {
+		fs = append(fs, esdsl.NewMatchAllQuery())
 	}
 	if len(fs) > 0 {
 		return query.Filter(fs...)
