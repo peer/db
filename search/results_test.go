@@ -1072,3 +1072,77 @@ func TestResultsGetExtraFiltersIntegration(t *testing.T) {
 	assert.Equal(t, expectedIDs, gotIDs)
 	assert.NotContains(t, gotIDs, docB.String())
 }
+
+func TestResultsGetSortOrderIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	t100 := float64(100)
+	t200 := float64(200)
+
+	// indexSortDoc indexes a document with the given earliest time and English display-sort label.
+	indexSortDoc := func(id string, tm *float64, displaySort string) {
+		var ds map[string]string
+		if displaySort != "" {
+			ds = map[string]string{"en": displaySort}
+		}
+		indexDocument(t, ctx, esClient, index, internalSearch.Document{
+			DisplaySort: ds,
+			ID:          identifier.From(id),
+			Display:     nil,
+			Text:        nil,
+			Time:        tm,
+			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+			Claims: internalSearch.ClaimTypes{
+				Identifier: nil,
+				String:     nil,
+				HTML:       nil,
+				Amount:     nil,
+				Time:       nil,
+				Link:       nil,
+				Reference:  nil,
+				Has:        nil,
+				None:       nil,
+				Unknown:    nil,
+				SubRef:     nil,
+				SubAmount:  nil,
+				SubTime:    nil,
+				SubHas:     nil,
+			},
+		})
+	}
+
+	// No query, filters, or prefilters, so every document scores 0 and ordering is decided by the time
+	// key (newer first) and then the display-label key (a before z). The document without a time sorts
+	// last regardless of its label.
+	indexSortDoc("docNewerB", &t200, "b")
+	indexSortDoc("docNewerA", &t200, "a")
+	indexSortDoc("docOlder", &t100, "b")
+	indexSortDoc("docNoTime", nil, "a")
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{
+		Language:   "",
+		View:       "",
+		Query:      "",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
+	})
+
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	gotIDs := make([]string, 0, len(results))
+	for _, r := range results {
+		gotIDs = append(gotIDs, r.ID)
+	}
+	assert.Equal(t, []string{
+		identifier.From("docNewerA").String(),
+		identifier.From("docNewerB").String(),
+		identifier.From("docOlder").String(),
+		identifier.From("docNoTime").String(),
+	}, gotIDs)
+}
