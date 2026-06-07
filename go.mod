@@ -32,7 +32,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/temoto/robotstxt v1.1.2
 	gitlab.com/tozd/go/cli v0.7.0
-	gitlab.com/tozd/go/x v0.0.0-20260325094342-27311bf9bec0
+	gitlab.com/tozd/go/x v0.0.0-20260607123257-2cff1ae6c05b
 	gitlab.com/tozd/go/zerolog v0.11.5-0.20260606005936-3cb490ec7a17
 	gitlab.com/tozd/identifier v0.8.2
 	gitlab.com/tozd/waf v0.24.1-0.20260607001343-e46ff8292924
