@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import type { PrefilterPayload } from "@/search"
 import type { Filter, SearchSessionData, ViewType } from "@/types"
 import type { DeepReadonly } from "vue"
 
 import { Identifier } from "@tozd/identifier"
-import { onBeforeUnmount, ref, toRef, useTemplateRef, watch, watchEffect } from "vue"
+import { computed, onBeforeUnmount, provide, ref, toRef, useTemplateRef, watch, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
@@ -15,7 +16,7 @@ import NavBarSearch from "@/partials/NavBarSearch.vue"
 import SearchResultsFeed from "@/partials/SearchResultsFeed.vue"
 import SearchResultsTable from "@/partials/SearchResultsTable.vue"
 import { useBusy } from "@/progress"
-import { updateSearchSession, useSearch, useSearchSession } from "@/search"
+import { searchShortcutControllerKey, updateSearchSession, useSearch, useSearchSession } from "@/search"
 import { clone } from "@/utils"
 
 const props = defineProps<{
@@ -94,6 +95,40 @@ async function onSearchSessionUpdate(searchData: DeepReadonly<SearchSessionData>
     busy.value -= 1
   }
 }
+
+// applyPrefilters replaces the session's prefilters with the given shortcut payloads (generating
+// Base/ID for each, as onFilterUpdate does for filters), or clears them when null/empty. It is exposed
+// to navbar search shortcut buttons via the controller so they can toggle prefilters in place.
+async function applyPrefilters(payloads: PrefilterPayload[] | null) {
+  // Checking abortController is done inside onSearchSessionUpdate.
+  if (!searchSession.value) {
+    return
+  }
+  let prefilters: Filter[] | undefined
+  if (payloads && payloads.length > 0) {
+    prefilters = []
+    for (const payload of payloads) {
+      const filterBase = [...searchSession.value.base, "FILTER", Identifier.new().toString()]
+      const id = (await Identifier.from(...filterBase)).toString()
+      prefilters.push({ id, base: filterBase, prop: payload.prop, ref: { to: payload.to } })
+    }
+  }
+  await onSearchSessionUpdate({
+    view: searchSession.value.view,
+    query: searchSession.value.query,
+    filters: searchSession.value.filters,
+    reverse: searchSession.value.reverse,
+    prefilters,
+    language: searchSession.value.language,
+  })
+}
+
+// Expose the current prefilters and an apply function so navbar search shortcut buttons (rendered in
+// the teleported NavBar, which is a logical descendant of this view) can toggle them.
+provide(searchShortcutControllerKey, {
+  prefilters: computed(() => searchSession.value?.prefilters),
+  applyPrefilters,
+})
 
 // Changing the UI language while viewing a session is treated like any other change to the session
 // data: we set the new language and refetch results. It is on purpose not updated on search session

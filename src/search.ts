@@ -1,13 +1,15 @@
-import type { DeepReadonly, Ref } from "vue"
+import type { DeepReadonly, InjectionKey, Ref } from "vue"
 import type { LocationQuery, Router } from "vue-router"
 
 import type {
   CreateSearchSessionRequest,
   CreateSearchSessionResponse,
+  Filter,
   FilterResult,
   HasFilterResult,
   HistogramAmountResult,
   HistogramTimeResult,
+  QueryValues,
   RefFilterResult,
   Result,
   SearchSession,
@@ -25,6 +27,76 @@ import { anySignal, encodeQuery } from "@/utils"
 
 export const FILTERS_INITIAL_LIMIT = 10
 export const FILTERS_INCREASE = 10
+
+// PrefilterPayload is a single reference prefilter derived from a search shortcut query: a property
+// path and the target value ids it constrains to.
+export type PrefilterPayload = { prop: string[]; to: { id: string }[] }
+
+// SearchShortcutController is provided by the SearchGet view so navbar search shortcut buttons can
+// toggle the current session's prefilters in place instead of navigating. It is absent outside SearchGet.
+export type SearchShortcutController = {
+  prefilters: Readonly<Ref<DeepReadonly<Filter[]> | undefined>>
+  // applyPrefilters replaces the session's prefilters with payloads (generating Base/ID for each), or
+  // clears them when payloads is null or empty.
+  applyPrefilters: (payloads: PrefilterPayload[] | null) => Promise<void>
+}
+
+// During development, Vite can optimize dependencies and can duplicate imports and thus symbols.
+// So we use Symbol.for to make sure that symbols are deduplicated. Also symbol name is useful for debugging.
+export const searchShortcutControllerKey: InjectionKey<SearchShortcutController> =
+  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-search-shortcut-controller") : Symbol()
+
+// queryToPrefilterPayloads maps a search shortcut query (the SearchShortcut route query) to reference
+// prefilter payloads, mirroring the backend parseSearchShortcutQuery: each key is a property (split on
+// ":" for a nested sub-reference), each value is a target id, and the reserved "reverse" and "language"
+// keys are skipped.
+export function queryToPrefilterPayloads(query: QueryValues): PrefilterPayload[] {
+  const payloads: PrefilterPayload[] = []
+  for (const [key, value] of Object.entries(query)) {
+    if (key === "reverse" || key === "language") {
+      continue
+    }
+    const prop = key.split(":")
+    const values = Array.isArray(value) ? value : [value]
+    payloads.push({ prop, to: values.map((id) => ({ id })) })
+  }
+  return payloads
+}
+
+// prefilterSignature normalizes a property path and its target ids to a stable string so two prefilters
+// can be compared ignoring filter id/base and value order.
+function prefilterSignature(prop: readonly string[], ids: readonly string[]): string {
+  return prop.join(":") + "=" + [...ids].sort().join(",")
+}
+
+// prefiltersMatch reports whether the session's prefilters are exactly the set of reference prefilters
+// described by payloads (order-independent). Non-reference prefilters never match a shortcut payload.
+export function prefiltersMatch(prefilters: DeepReadonly<Filter[]> | undefined, payloads: PrefilterPayload[]): boolean {
+  const have: string[] = []
+  for (const f of prefilters ?? []) {
+    if (!("ref" in f)) {
+      return false
+    }
+    have.push(
+      prefilterSignature(
+        f.prop,
+        (f.ref.to ?? []).map((t) => t.id),
+      ),
+    )
+  }
+  const want = payloads.map((p) =>
+    prefilterSignature(
+      p.prop,
+      p.to.map((t) => t.id),
+    ),
+  )
+  if (have.length !== want.length) {
+    return false
+  }
+  have.sort()
+  want.sort()
+  return have.every((sig, i) => sig === want[i])
+}
 
 // createSearchSession creates a new search session for the query and navigates to it.
 export async function createSearchSession(router: Router, query: string, language: string, abortSignal: AbortSignal, progress: Ref<number>): Promise<void> {
