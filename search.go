@@ -988,7 +988,7 @@ type shortcutPropKey struct {
 }
 
 // parseSearchShortcutQuery parses query parameters using the search shortcut grammar
-// described on SearchShortcutGet into a search.Session.
+// described on SearchShortcutGet into a search.Session whose Prefilters carry the parsed values.
 func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Session, errors.E) {
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
@@ -1064,7 +1064,11 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 		} else {
 			props = []identifier.Identifier{key.prop}
 		}
-		searchData.Filters = append(searchData.Filters, search.Filter{
+		// Search shortcuts populate Prefilters (not Filters): the shortcut defines the scope the
+		// user is looking at, so it constrains results without contributing to ranking, and the
+		// original values are kept (not expanded to descendants) so the UI can show what the
+		// prefilter is on.
+		searchData.Prefilters = append(searchData.Prefilters, search.Filter{
 			ID:   &filterID,
 			Base: filterBase,
 			Prop: props,
@@ -1094,66 +1098,9 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 	return searchSession, nil
 }
 
-// expandShortcutFilters expands every top-level reference filter value in the session into the
-// explicit selection the filters UI produces when the user clicks that value in the hierarchy:
-// the parent together with its descendant values (selected as regular reference values) plus a
-// "direct" marker for each value in the subtree that has documents for which it is most-specific.
-// This makes a search shortcut that targets a parent value render with a full checkmark instead of
-// an indeterminate one. Results are unaffected: the subtree values plus the "direct" markers
-// match exactly the documents the parent matches, only the explicit set of selected values grows.
-//
-// The subtree values and "direct" markers come from the same indexed hierarchy paths and
-// "direct" counts the filter facet renders. A value without a hierarchy (or a leaf value)
-// expands to just itself.
-func (s *Service) expandShortcutFilters(ctx context.Context, getSearchService func() *esSearch.Search, session *search.Session) errors.E {
-	for i := range session.Filters {
-		f := &session.Filters[i]
-		// Only top-level reference filters carry a value hierarchy we can expand here.
-		if f.Ref == nil || len(f.Prop) != 1 {
-			continue
-		}
-		prop := f.Prop[0]
-		seenTo := make(map[identifier.Identifier]bool, len(f.Ref.To))
-		seenDirect := make(map[identifier.Identifier]bool, len(f.Ref.Direct))
-		expandedTo := make([]search.ToValue, 0, len(f.Ref.To))
-		expandedDirect := make([]search.ToValue, 0, len(f.Ref.Direct))
-		// Preserve any "direct" markers already on the filter.
-		for _, d := range f.Ref.Direct {
-			if seenDirect[d.ID] {
-				continue
-			}
-			seenDirect[d.ID] = true
-			expandedDirect = append(expandedDirect, d)
-		}
-		for _, to := range f.Ref.To {
-			subtree, direct, errE := search.DescendantValues(ctx, getSearchService, prop, to.ID)
-			if errE != nil {
-				return errE
-			}
-			for _, id := range subtree {
-				if seenTo[id] {
-					continue
-				}
-				seenTo[id] = true
-				expandedTo = append(expandedTo, search.ToValue{ID: id})
-			}
-			for _, id := range direct {
-				if seenDirect[id] {
-					continue
-				}
-				seenDirect[id] = true
-				expandedDirect = append(expandedDirect, search.ToValue{ID: id})
-			}
-		}
-		f.Ref.To = expandedTo
-		f.Ref.Direct = expandedDirect
-	}
-	return nil
-}
-
-// createShortcutSession parses the search shortcut query grammar, expands parent reference
-// values to their descendants, and creates the session. On any failure it writes the
-// appropriate error response and returns nil, so callers must return when it returns nil.
+// createShortcutSession parses the search shortcut query grammar into prefilters and creates the
+// session. On any failure it writes the appropriate error response and returns nil, so callers
+// must return when it returns nil.
 func (s *Service) createShortcutSession(w http.ResponseWriter, req *http.Request, query url.Values) *search.Session {
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
@@ -1161,14 +1108,6 @@ func (s *Service) createShortcutSession(w http.ResponseWriter, req *http.Request
 	searchSession, errE := parseSearchShortcutQuery(ctx, query)
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
-		return nil
-	}
-
-	// Expand parent values (for example a class) to their descendants so the created
-	// session matches what selecting that value in the filters UI would produce.
-	errE = s.expandShortcutFilters(ctx, s.getSearchServiceClosure(req), searchSession)
-	if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
 		return nil
 	}
 
@@ -1188,10 +1127,11 @@ func (s *Service) createShortcutSession(w http.ResponseWriter, req *http.Request
 
 // SearchShortcutGet is a GET/HEAD HTTP request handler which creates a new search session
 // from query parameters and redirects to the search page. Query parameters are interpreted
-// as ref filters where key is the property ID and value is the value ID.
-// Values for the same property are grouped into a single filter.
+// as ref prefilters where key is the property ID and value is the value ID (prefilters scope
+// the results without contributing to ranking). Values for the same property are grouped into
+// a single prefilter.
 //
-// A key of the form "parentProp:prop" creates a nested (sub-ref) filter, matching
+// A key of the form "parentProp:prop" creates a nested (sub-ref) prefilter, matching
 // reference sub-claims under parentProp whose property is prop.
 //
 // The "reverse" query parameter is special: its value is a document ID that scopes
