@@ -167,6 +167,11 @@ func GetClient(httpClient *http.Client, logger zerolog.Logger, url string) (*ela
 	return esClient, errors.WithStack(err)
 }
 
+// LevelIndex returns the ElasticSearch index name for the given visibility level, derived from the base index name.
+func LevelIndex(index, level string) string {
+	return index + "_" + level
+}
+
 // EnsureIndex makes sure the index for PeerDB documents exists. If not, it creates it.
 // It does not update configuration of an existing index if it is different from
 // what current implementation of EnsureIndex would otherwise create.

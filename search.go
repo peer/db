@@ -26,6 +26,24 @@ import (
 	"gitlab.com/peerdb/peerdb/store"
 )
 
+// resolveReadIndex resolves the ElasticSearch index the request should read, routed by the caller's
+// visibility level. When the caller may not read any index (no visibility level on a site that defines
+// visibility levels) it writes a 403 Forbidden response and returns handled=true, so the calling handler
+// must return without searching.
+func (s *Service) resolveReadIndex(w http.ResponseWriter, req *http.Request) (string, bool) {
+	ctx := req.Context()
+	site := waf.MustGetSite[*internalSite.Site](ctx)
+	index, errE := site.ReadIndex(ctx)
+	if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return "", true
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return "", true
+	}
+	return index, false
+}
+
 // enabledSearchLanguages returns the indexed language set for the site serving the request,
 // used to scope the text-search query to the languages the index actually has.
 func enabledSearchLanguages(ctx context.Context) []string {
@@ -65,14 +83,14 @@ func sessionQueryExcluding(ctx context.Context, session *search.Session, exclude
 	return session.ToQueryExcluding(excludeFilterID, enabledSearchLanguages(ctx), accessFilter), nil
 }
 
-func (s *Service) getSearchService(req *http.Request) *esSearch.Search {
+func (s *Service) getSearchService(req *http.Request, index string) *esSearch.Search {
 	ctx := req.Context()
 
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	// We set TrackTotalHits to true to always get exact number of results. For now we didn't notice any performance
 	// issues at data scale PeerDB is currently being used with, but in the future we might want to make this configurable.
-	return site.ESClient.Search().Index(site.Index).
+	return site.ESClient.Search().Index(index).
 		Source_(esdsl.NewSourceConfig().Bool(false)).
 		Preference(getHost(req.RemoteAddr)).
 		Header("X-Opaque-ID", waf.MustRequestID(ctx).String()).
@@ -80,9 +98,9 @@ func (s *Service) getSearchService(req *http.Request) *esSearch.Search {
 		AllowPartialSearchResults(false)
 }
 
-func (s *Service) getSearchServiceClosure(req *http.Request) func() *esSearch.Search {
+func (s *Service) getSearchServiceClosure(req *http.Request, index string) func() *esSearch.Search {
 	return func() *esSearch.Search {
-		return s.getSearchService(req)
+		return s.getSearchService(req, index)
 	}
 }
 
@@ -100,16 +118,17 @@ type scoreFactorEntry struct {
 
 // scoreFactor returns the counts.score ranking boost factor for the site serving the
 // request, computed via search.ScoreFactor and cached per index for scoreFactorTTL.
-func (s *Service) scoreFactor(ctx context.Context, req *http.Request) (float64, errors.E) {
-	site := waf.MustGetSite[*internalSite.Site](ctx)
-
+//
+// Each visibility level has its own filtered index and therefore its own corpus, so we
+// cache the factor per per-level index rather than per site.
+func (s *Service) scoreFactor(ctx context.Context, req *http.Request, index string) (float64, errors.E) {
 	// We hold the cache lock only long enough to get or create the per-index entry,
-	// so computing one site's factor does not block requests for other sites.
+	// so computing one index's factor does not block requests for other indexes.
 	s.scoreFactorMu.Lock()
-	entry, ok := s.scoreFactorCache[site.Index]
+	entry, ok := s.scoreFactorCache[index]
 	if !ok {
 		entry = &scoreFactorEntry{}
-		s.scoreFactorCache[site.Index] = entry
+		s.scoreFactorCache[index] = entry
 	}
 	s.scoreFactorMu.Unlock()
 
@@ -121,7 +140,7 @@ func (s *Service) scoreFactor(ctx context.Context, req *http.Request) (float64, 
 		return entry.factor, nil
 	}
 
-	factor, errE := search.ScoreFactor(ctx, s.getSearchServiceClosure(req))
+	factor, errE := search.ScoreFactor(ctx, s.getSearchServiceClosure(req, index))
 	if errE != nil {
 		return 0, errE
 	}
@@ -194,10 +213,15 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
+
 	var data any
 	var metadata map[string]any
 
-	searchService := s.getSearchServiceClosure(req)
+	searchService := s.getSearchServiceClosure(req, index)
 	switch {
 	case f.Ref != nil:
 		if len(f.Prop) == 2 { //nolint:mnd
@@ -278,8 +302,12 @@ func (s *Service) SearchRefFilterGetAPI(w http.ResponseWriter, req *http.Request
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
 	f := search.RefFilter{}
-	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req), query, prop)
+	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req, index), query, prop)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -333,8 +361,12 @@ func (s *Service) SearchAmountFilterGetAPI(w http.ResponseWriter, req *http.Requ
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
 	f := search.AmountFilter{Unit: unit} //nolint:exhaustruct
-	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req), query, prop)
+	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req, index), query, prop)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -380,8 +412,12 @@ func (s *Service) SearchTimeFilterGetAPI(w http.ResponseWriter, req *http.Reques
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
 	f := search.TimeFilter{}
-	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req), query, prop)
+	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req, index), query, prop)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -433,8 +469,12 @@ func (s *Service) SearchSubRefFilterGetAPI(w http.ResponseWriter, req *http.Requ
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
 	f := search.RefFilter{}
-	data, metadata, errE := f.GetSubRef(ctx, s.getSearchServiceClosure(req), query, parentProp, prop, parentToRestrictions)
+	data, metadata, errE := f.GetSubRef(ctx, s.getSearchServiceClosure(req, index), query, parentProp, prop, parentToRestrictions)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -493,8 +533,12 @@ func (s *Service) SearchSubAmountFilterGetAPI(w http.ResponseWriter, req *http.R
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
 	f := search.AmountFilter{Unit: unit} //nolint:exhaustruct
-	data, metadata, errE := f.GetSubAmount(ctx, s.getSearchServiceClosure(req), query, parentProp, prop, parentToRestrictions)
+	data, metadata, errE := f.GetSubAmount(ctx, s.getSearchServiceClosure(req, index), query, parentProp, prop, parentToRestrictions)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -543,8 +587,12 @@ func (s *Service) SearchSubTimeFilterGetAPI(w http.ResponseWriter, req *http.Req
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
 	f := search.TimeFilter{}
-	data, metadata, errE := f.GetSubTime(ctx, s.getSearchServiceClosure(req), query, parentProp, prop, parentToRestrictions)
+	data, metadata, errE := f.GetSubTime(ctx, s.getSearchServiceClosure(req, index), query, parentProp, prop, parentToRestrictions)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -582,8 +630,12 @@ func (s *Service) SearchHasFilterGetAPI(w http.ResponseWriter, req *http.Request
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
 	f := search.HasFilter{}
-	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req), query)
+	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req, index), query)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -626,8 +678,12 @@ func (s *Service) SearchSubHasFilterGetAPI(w http.ResponseWriter, req *http.Requ
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
 	f := search.HasFilter{}
-	data, metadata, errE := f.GetSubHas(ctx, s.getSearchServiceClosure(req), query, parentProp, parentToRestrictions)
+	data, metadata, errE := f.GetSubHas(ctx, s.getSearchServiceClosure(req, index), query, parentProp, parentToRestrictions)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -708,7 +764,12 @@ func (s *Service) SearchFiltersGetAPI(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	data, metadata, errE := search.FiltersGet(ctx, s.getSearchServiceClosure(req), searchSession, enabledSearchLanguages(ctx), accessFilter)
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
+
+	data, metadata, errE := search.FiltersGet(ctx, s.getSearchServiceClosure(req, index), searchSession, enabledSearchLanguages(ctx), accessFilter)
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -741,7 +802,12 @@ func (s *Service) SearchResultsGetAPI(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	factor, errE := s.scoreFactor(ctx, req)
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
+
+	factor, errE := s.scoreFactor(ctx, req, index)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -753,7 +819,7 @@ func (s *Service) SearchResultsGetAPI(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchSession.SessionData, enabledSearchLanguages(ctx), factor, accessFilter)
+	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req, index), &searchSession.SessionData, enabledSearchLanguages(ctx), factor, accessFilter)
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -788,7 +854,12 @@ func (s *Service) SearchJustResultsPostAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	factor, errE := s.scoreFactor(ctx, req)
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
+
+	factor, errE := s.scoreFactor(ctx, req, index)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -800,7 +871,7 @@ func (s *Service) SearchJustResultsPostAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchData, enabledSearchLanguages(ctx), factor, accessFilter)
+	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req, index), &searchData, enabledSearchLanguages(ctx), factor, accessFilter)
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -826,7 +897,12 @@ func (s *Service) SearchJustResultsGetAPI(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	factor, errE := s.scoreFactor(ctx, req)
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
+
+	factor, errE := s.scoreFactor(ctx, req, index)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -838,7 +914,7 @@ func (s *Service) SearchJustResultsGetAPI(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchSession.SessionData, enabledSearchLanguages(ctx), factor, accessFilter)
+	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req, index), &searchSession.SessionData, enabledSearchLanguages(ctx), factor, accessFilter)
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return

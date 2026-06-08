@@ -23,7 +23,12 @@ import (
 	"gitlab.com/peerdb/peerdb/base"
 	"gitlab.com/peerdb/peerdb/document"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
+	"gitlab.com/peerdb/peerdb/store"
 )
+
+// AllVisibilityLevel is the default name for the top (highest) visibility level: the unfiltered superset
+// that sees all documents. A site that does not configure Visibility indexes into a single level with this name.
+const AllVisibilityLevel = "all"
 
 // Build contains version and build metadata.
 type Build struct {
@@ -90,6 +95,15 @@ type Site struct {
 	// must be a key in Roles and must appear in at most one level, and level
 	// names must be unique and non-empty. A role in no level, a level with
 	// no roles, and an empty Visibility are all allowed.
+	//
+	// When non-empty, the bridge indexes each level into its own index and uses
+	// the highest (last) level as the visibility-independent superset (for example
+	// for inverse-relation accumulation), so that level must grant access to all
+	// documents without any filtering: the site's document post-hooks must not drop
+	// anything at the highest level. If the highest role-based level still filters,
+	// add a no-roles level (e.g. {Name: "all", Roles: nil}) on top: no role resolves
+	// to it, but it defines the unfiltered superset. An empty Visibility is the
+	// degenerate case of a single such level: one unfiltered index for everyone.
 	Visibility []auth.VisibilityLevel `json:"visibility,omitempty" yaml:"visibility,omitempty"`
 
 	// Auth carries per-site OIDC configuration. When all three fields
@@ -172,14 +186,20 @@ func (s *Site) Validate() error {
 	return nil
 }
 
-// validateVisibility checks the Visibility configuration: level names must be
-// unique and non-empty, every role assigned to a level must be a defined role
-// (a key in Roles), and no role may appear in more than one level. Roles that
-// are in no level and an empty Visibility are both allowed. A level with no
-// roles is the floor, granted to every request, so at most one such level may
-// exist and it must be the first (lowest) level. The order of the levels
-// (lowest to highest access) is otherwise not constrained by this method.
+// validateVisibility checks the Visibility configuration: level names must be unique and non-empty, every
+// role assigned to a level must be a defined role (a key in Roles), and no role may appear in more than one
+// level. Roles that are in no level and an empty Visibility are both allowed. In the latter case, Visibility
+// is set to a default "all" level with empty roles. That default level is both the floor and the top, so
+// every request resolves to it and ReadIndex never denies a no-levels site. A level with no roles must be the
+// first (lowest) or the last (highest) level: as the first level it is the floor, granted to every request;
+// as the last level it is granted to no request by role (no role matches it), but defines the unfiltered top
+// level which is required to exist. The order of the levels (lowest to highest access) is otherwise not
+// constrained by this method.
 func (s *Site) validateVisibility() errors.E {
+	if len(s.Visibility) == 0 {
+		s.Visibility = []auth.VisibilityLevel{{Name: AllVisibilityLevel, Roles: nil}}
+	}
+
 	names := map[string]bool{}
 	roleLevel := map[string]string{}
 	for i, level := range s.Visibility {
@@ -195,8 +215,8 @@ func (s *Site) validateVisibility() errors.E {
 			return errE
 		}
 		names[level.Name] = true
-		if len(level.Roles) == 0 && i != 0 {
-			errE := errors.New("a visibility level with no roles must be the first level")
+		if len(level.Roles) == 0 && i != 0 && i != len(s.Visibility)-1 {
+			errE := errors.New("a visibility level with no roles must be the first or the last level")
 			errors.Details(errE)["domain"] = s.Domain
 			errors.Details(errE)["level"] = level.Name
 			return errE
@@ -222,8 +242,52 @@ func (s *Site) validateVisibility() errors.E {
 	return nil
 }
 
+// levelNames returns the configured visibility level names, from lowest to highest access.
+func (s *Site) levelNames() []string {
+	if len(s.Visibility) == 0 {
+		// Validation sets Visibility, but this might be called without validation, so we return the same.
+		return []string{AllVisibilityLevel}
+	}
+	names := make([]string, len(s.Visibility))
+	for i, level := range s.Visibility {
+		names[i] = level.Name
+	}
+	return names
+}
+
+// LevelIndexes returns the ElasticSearch index name for every visibility level, from lowest to highest.
+func (s *Site) LevelIndexes() []string {
+	names := s.levelNames()
+	indexes := make([]string, len(names))
+	for i, name := range names {
+		indexes[i] = internalSearch.LevelIndex(s.Index, name)
+	}
+	return indexes
+}
+
+// TopIndex returns the ElasticSearch index for the highest (last) visibility level: the unfiltered superset
+// that contains every document. Paths that must see all documents regardless of the caller use it.
+func (s *Site) TopIndex() string {
+	names := s.levelNames()
+	return internalSearch.LevelIndex(s.Index, names[len(names)-1])
+}
+
+// ReadIndex returns the ElasticSearch index a request should read, derived from the caller's resolved
+// visibility level, so a caller only ever reads the index filtered to its level. It returns store.ErrAccessDenied
+// when the caller has no visibility level, so read routes that access ElasticSearch must respond with
+// 403 Forbidden. A site that defines no visibility levels defaults to a single "all" level that is both
+// floor and top, so every request resolves to it and this never denies there; the empty case only arises
+// for a site that configures levels without a floor and a caller matching none.
+func (s *Site) ReadIndex(ctx context.Context) (string, errors.E) {
+	level := auth.Visibility(ctx)
+	if level == "" {
+		return "", errors.WithStack(store.ErrAccessDenied)
+	}
+	return internalSearch.LevelIndex(s.Index, level), nil
+}
+
 func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifier) ([]identifier.Identifier, errors.E) {
-	return internalSearch.FetchDocumentIDs(ctx, s.ESClient, s.Index, []identifier.Identifier{classID})
+	return internalSearch.FetchDocumentIDs(ctx, s.ESClient, s.TopIndex(), []identifier.Identifier{classID})
 }
 
 // FetchDocuments returns all documents that are instances of classID by loading their latest stored

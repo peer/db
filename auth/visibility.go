@@ -19,8 +19,9 @@ type VisibilityLevel struct {
 // it returns the zero VisibilityLevel and false.
 func visibilityForRoles(levels []VisibilityLevel, roles []string) (VisibilityLevel, bool) {
 	for i, level := range slices.Backward(levels) {
-		// A level with no roles is the floor, granted to every request.
-		// Just in case we check that this is really the floor.
+		// A level with no roles is the floor, granted to every request. A special case is
+		// the sole "all" level (with no roles), which is both the top and the floor which
+		// means that access to everything is granted to every request.
 		if len(level.Roles) == 0 && i == 0 {
 			return level, true
 		}

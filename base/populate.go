@@ -9,7 +9,6 @@ import (
 
 	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
-	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	"gitlab.com/peerdb/peerdb/transform"
 )
 
@@ -148,9 +147,9 @@ func (b *B) PopulateAndStart(
 		return onShutdown, errE
 	}
 
-	_, err := b.bridge.ESClient.Indices.Refresh().Index(b.bridge.Index).Do(ctx)
-	if err != nil {
-		return onShutdown, internalSearch.WithESError(err)
+	errE = b.bridge.Refresh(ctx)
+	if errE != nil {
+		return onShutdown, errE
 	}
 
 	return onShutdown, nil

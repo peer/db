@@ -118,9 +118,11 @@ func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site internalS
 		return onShutdown, errE
 	}
 
-	_, err := site.ESClient.Indices.Refresh().Index(site.Index).Do(ctx)
-	if err != nil {
-		return onShutdown, internalSearch.WithESError(err)
+	for _, index := range site.LevelIndexes() {
+		_, err := site.ESClient.Indices.Refresh().Index(index).Do(ctx)
+		if err != nil {
+			return onShutdown, internalSearch.WithESError(err)
+		}
 	}
 
 	logger.Info().
@@ -205,9 +207,11 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 			return errE
 		}
 		for _, site := range globals.Sites {
-			_, err := esClient.Indices.Delete(site.Index).IgnoreUnavailable(true).Do(ctx)
-			if err != nil {
-				return internalSearch.WithESError(err)
+			for _, index := range site.LevelIndexes() {
+				_, err := esClient.Indices.Delete(index).IgnoreUnavailable(true).Do(ctx)
+				if err != nil {
+					return internalSearch.WithESError(err)
+				}
 			}
 			globals.Logger.Info().Str("index", site.Index).Msg("index deleted for recreation")
 		}
@@ -260,9 +264,11 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 		// full-merging an index that is still written to is discouraged.
 		globals.Logger.Info().Str("index", site.Index).Msg("expunging deletes")
 
-		_, err := site.ESClient.Indices.Forcemerge().Index(site.Index).OnlyExpungeDeletes(true).Do(ctx)
-		if err != nil {
-			return internalSearch.WithESError(err)
+		for _, index := range site.LevelIndexes() {
+			_, err := site.ESClient.Indices.Forcemerge().Index(index).OnlyExpungeDeletes(true).Do(ctx)
+			if err != nil {
+				return internalSearch.WithESError(err)
+			}
 		}
 	}
 
@@ -351,9 +357,11 @@ func (c *DBVacuumCommand) Run(globals *Globals) errors.E {
 		// and reindexing accumulate do not bloat the index or skew per-shard term statistics. We use
 		// only_expunge_deletes rather than max_num_segments because the index keeps receiving live writes,
 		// and full-merging an index that is still written to is discouraged.
-		_, err := esClient.Indices.Forcemerge().Index(site.Index).OnlyExpungeDeletes(true).Do(siteCtx)
-		if err != nil {
-			return internalSearch.WithESError(err)
+		for _, index := range site.LevelIndexes() {
+			_, err := esClient.Indices.Forcemerge().Index(index).OnlyExpungeDeletes(true).Do(siteCtx)
+			if err != nil {
+				return internalSearch.WithESError(err)
+			}
 		}
 
 		globals.Logger.Info().Str("index", site.Index).Msg("deletes expunged")
@@ -436,7 +444,7 @@ func (c *DBExportCommand) Run(globals *Globals) (returnErr errors.E) { //nolint:
 			return doc, errE
 		}
 
-		errE = internalExport.Export(siteCtx, w, site.ESClient, site.Index, getDoc, internalExport.Config{
+		errE = internalExport.Export(siteCtx, w, site.ESClient, site.TopIndex(), getDoc, internalExport.Config{
 			Format:     c.Format,
 			InstanceOf: c.InstanceOf,
 			Properties: c.Property,
@@ -521,9 +529,11 @@ func (c *DBWipeCommand) Run(globals *Globals) errors.E {
 
 		globals.Logger.Info().Str("schema", site.Schema).Msg("schema dropped")
 
-		_, err := esClient.Indices.Delete(site.Index).IgnoreUnavailable(true).Do(siteCtx)
-		if err != nil {
-			return internalSearch.WithESError(err)
+		for _, index := range site.LevelIndexes() {
+			_, err := esClient.Indices.Delete(index).IgnoreUnavailable(true).Do(siteCtx)
+			if err != nil {
+				return internalSearch.WithESError(err)
+			}
 		}
 
 		globals.Logger.Info().Str("index", site.Index).Msg("index deleted")

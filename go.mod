@@ -22,6 +22,7 @@ require (
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/jackc/pgxlisten v0.0.0-20250802141604-12b92425684c
 	github.com/microcosm-cc/bluemonday v1.0.26
+	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
 	github.com/pemistahl/lingua-go v1.4.0
 	github.com/riverqueue/river v0.31.0
 	github.com/riverqueue/river/riverdriver v0.31.0

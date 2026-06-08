@@ -47,6 +47,11 @@ type B struct {
 	Schema string
 	Index  string
 
+	// Levels is the ordered list of visibility level names (lowest to highest). The bridge indexes each
+	// document into one index per level: the highest (last) level must be the unfiltered superset used for
+	// the visibility-independent inverse-relation accumulation, so its hooks must not filter anything.
+	Levels []string
+
 	// languagePriority defines per-language fallback order for display label resolution.
 	// It maps a language to its ordered fallback languages for display label resolution.
 	// If a language is not a key, fallback is only the undetermined language.
@@ -222,23 +227,27 @@ func (b *B) Start(ctx context.Context, documents []*document.D) (func(), errors.
 	}
 	b.bridge.DocumentPostHooks = postHooks
 
-	// We build the converter first so that invalid input (e.g., unsupported
-	// language priority) fails fast without leaving any resources running.
-	converter, errE := internalSearch.NewConverter(
-		documents, documents, documents, b.LanguagePriority,
-		b.bridge.GetDocument,
-	)
-	if errE != nil {
-		return nil, errE
+	// Build one converter and one ElasticSearch index per visibility level. We build them first so that
+	// invalid input (e.g., an unsupported language priority) fails fast without leaving any resources running.
+	targets := make([]internalSearch.Target, 0, len(b.Levels))
+	for _, level := range b.Levels {
+		index := internalSearch.LevelIndex(b.Index, level)
+		converter, errE := internalSearch.NewConverter(
+			documents, documents, documents, b.LanguagePriority,
+			b.bridge.GetDocument,
+		)
+		if errE != nil {
+			return nil, errE
+		}
+		converter.IndexAncestorProperties = b.IndexAncestorProperties
+		converter.DetectLanguages = true
+		converter.CountReferences = b.bridge.CountReferencesFunc(index)
+		// The converter derived language codes from the language documents while being built. They are the
+		// same for every level, so capturing the last one and surfacing it via LanguageCodes is fine.
+		// We capture them so the site can surface them via LanguageCodes.
+		b.languageCodes = converter.LanguageCodes
+		targets = append(targets, internalSearch.Target{Level: level, Index: index, Converter: converter})
 	}
-
-	converter.IndexAncestorProperties = b.IndexAncestorProperties
-	converter.DetectLanguages = true
-	converter.CountReferences = b.bridge.CountReferences
-
-	// The converter derived language codes from the language documents while being built.
-	// Capture them so the site can surface them via LanguageCodes.
-	b.languageCodes = converter.LanguageCodes
 
 	for _, register := range b.RegisterWorkers {
 		errE := register(ctx, b.workers)
@@ -248,7 +257,7 @@ func (b *B) Start(ctx context.Context, documents []*document.D) (func(), errors.
 	}
 
 	// We prepare the bridge startup before starting the river client.
-	errE = b.bridge.Prepare(internalStore.WithFallbackDBContext(ctx, b.Schema, "bridge"), converter)
+	errE := b.bridge.Prepare(internalStore.WithFallbackDBContext(ctx, b.Schema, "bridge"), targets)
 	if errE != nil {
 		return nil, errE
 	}

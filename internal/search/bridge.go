@@ -17,12 +17,14 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/mohae/deepcopy"
 	"github.com/riverqueue/river"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/indexer"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
@@ -47,9 +49,16 @@ var errCommittedChannelClosed = errors.Base("committed channel is closed")
 
 type bulkError struct {
 	ID         string            `json:"id,omitempty"`
+	Index      string            `json:"index,omitempty"`
 	Status     int               `json:"status,omitempty"`
 	ErrorCause *types.ErrorCause `json:"errorCause,omitempty"`
 	Doc        *Document         `json:"doc,omitempty"`
+}
+
+// bulkDocKey identifies a document indexed into a specific level index.
+type bulkDocKey struct {
+	index string
+	id    string
 }
 
 type bridgeJob interface {
@@ -155,6 +164,22 @@ func (w *worker) getBridge(schema, prefix string) (bridgeJob, errors.E) { //noli
 	return c, nil
 }
 
+// Target is one (visibility level, ElasticSearch index, converter) that the bridge fans indexing out to.
+// Targets are ordered lowest to highest visibility, so the last target is the highest-visibility
+// (unfiltered) one, used for the visibility-independent inverse-relation accumulation. With no visibility
+// levels configured there is a single target whose level is empty and whose index is the base index.
+type Target struct {
+	Level     string
+	Index     string
+	Converter *Converter
+}
+
+// documentCacheKey keys the bridge document cache by visibility level and document id.
+type documentCacheKey struct {
+	level string
+	id    identifier.Identifier
+}
+
 // Bridge synchronizes changes from the store to ElasticSearch.
 //
 // It saves progress in a PostgreSQL table so it resumes from where it left off on restart.
@@ -190,14 +215,15 @@ type Bridge struct {
 	bridgeSeqChannel                string
 	bridgeReindexQueueMinSeqChannel string
 	riverClient                     *river.Client[pgx.Tx]
-	converter                       *Converter
+	// targets are the (level, index, converter) the bridge fans indexing out to, ordered lowest to highest visibility.
+	targets []Target
 	// documentCacheMu protects documentCache.
 	documentCacheMu sync.RWMutex
-	// documentCache holds the latest post-hook document per id. fetchHooked warms it on latest reads and
-	// getDocument serves it to the converter for secondary (referenced-document) fetches. It is dropped
-	// for changed documents on each commit via invalidateCaches. Documents are stored by pointer and
-	// shared with the converter's own cache.
-	documentCache map[identifier.Identifier]*document.D
+	// documentCache holds the latest post-hook document per visibility level and id. produceLevels warms it
+	// on latest reads and GetDocument serves it to each level's converter for secondary (referenced-document)
+	// fetches. It is dropped for changed documents on each commit via invalidateCaches. Documents are stored
+	// by pointer and shared with the converters' own caches.
+	documentCache map[documentCacheKey]*document.D
 	// cacheGenMu protects cacheGen.
 	cacheGenMu sync.RWMutex
 	// cacheGen holds a per-document monotonic generation, bumped by invalidateCaches before the cached
@@ -305,7 +331,7 @@ func (b *Bridge) Init(
 	b.reindexQueueMinSeqCond = sync.NewCond(b.reindexQueueMinSeqMu.RLocker())
 	b.reindexQueueMinSeq = math.MaxInt64
 	b.reindexSoftDeadline = reindexSoftDeadline
-	b.documentCache = map[identifier.Identifier]*document.D{}
+	b.documentCache = map[documentCacheKey]*document.D{}
 	b.cacheGen = map[identifier.Identifier]uint64{}
 	listener.Handle(b.bridgeSeqChannel, b)
 	listener.Handle(b.bridgeReindexQueueMinSeqChannel, b)
@@ -642,8 +668,8 @@ func (b *Bridge) ResetSeq(ctx context.Context) errors.E {
 // HandlingReady for the reindex queue channel blocks until the reindex queue backlog
 // (entries at or below the indexed seq) is drained, and draining is possible only once the bridge
 // has the converter and worker can run its jobs.
-func (b *Bridge) Prepare(ctx context.Context, converter *Converter) errors.E {
-	b.converter = converter
+func (b *Bridge) Prepare(ctx context.Context, targets []Target) errors.E {
+	b.targets = targets
 
 	// Submit a startup job to process any leftover rows in BridgeReindexQueue from a previous run.
 	_, err := b.riverClient.Insert(ctx, jobArgs{
@@ -651,6 +677,17 @@ func (b *Bridge) Prepare(ctx context.Context, converter *Converter) errors.E {
 		Prefix: b.Store.Prefix,
 	}, nil)
 	return errors.WithStack(err)
+}
+
+// Refresh refreshes every per-level ElasticSearch index so that recently indexed documents become searchable.
+func (b *Bridge) Refresh(ctx context.Context) errors.E {
+	for _, t := range b.targets {
+		_, err := b.ESClient.Indices.Refresh().Index(t.Index).Do(ctx)
+		if err != nil {
+			return WithESError(err)
+		}
+	}
+	return nil
 }
 
 // Start begins the bridging goroutine.
@@ -878,7 +915,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 	// document started or stopped referencing them.
 	referenceTargets := map[identifier.Identifier]bool{}
 
-	debugDocs := map[string]*Document{}
+	debugDocs := map[bulkDocKey]*Document{}
 
 	for _, cs := range c.Changesets {
 		var after *identifier.Identifier
@@ -894,33 +931,34 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 				// in both the converter and the bridge caches.
 				b.invalidateCaches(change.ID)
 
-				// Snapshot the document's generation after invalidating and before reading its new version,
-				// so ConvertDocument installs cache entries for it only if no later commit invalidated it
-				// again meanwhile.
-				gen := b.converter.genOf(change.ID)
+				// Snapshot each converter's generation after invalidating and before reading the new version,
+				// so each converter installs cache entries for the document only if no later commit
+				// invalidated it again meanwhile.
+				gens := make([]uint64, len(b.targets))
+				for i, t := range b.targets {
+					gens[i] = t.Converter.genOf(change.ID)
+				}
 
-				// Fetch and hook the document at the change version. fetchHooked reads the store and runs the
-				// document hooks (filter and indexing); it does no secondary fetches, so its whole cost is
-				// counted in getDuration.
-				deleted := false
+				// Read and hook the document once at the change version, producing its per-level versions.
+				// produceLevels does no secondary fetches, so its whole cost is counted in getDuration.
 				getStart := time.Now()
-				doc, metadata, parentChangesets, errE := b.fetchHooked(ctx, change.ID, &change.Version)
+				docs, metadata, parentChangesets, deleted, errE := b.produceLevels(ctx, change.ID, &change.Version)
 				getDuration += time.Since(getStart)
-				if errors.Is(errE, store.ErrValueDeleted) || errors.Is(errE, store.ErrAccessDenied) {
-					// Deleted at this version, or hidden at the indexing visibility by the document hooks:
-					// it has no place in this index (delete it) and contributes no outgoing relations or
-					// reference targets.
-					deleted = true
-				} else if errE != nil {
+				if errE != nil {
 					return nil, nil, nil, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
 				}
 
-				// Collect, for other documents, the inverse-relation and counts.references
-				// changes implied by this document's change.
+				// Collect, for other documents, the inverse-relation and counts.references changes implied by
+				// this document's change. We use the highest-visibility (unfiltered) version, since that
+				// metadata is stored once per document and is visibility-independent.
+				var topDoc *document.D
+				if !deleted {
+					topDoc = docs[len(docs)-1]
+				}
 				accumulateFetchBefore := stats.FetchDuration
 				accumulateStart := time.Now()
 				errE = b.accumulateChangeRelations(
-					ctx, change.ID, deleted, doc, parentChangesets,
+					ctx, change.ID, deleted, topDoc, parentChangesets,
 					addedInverseRelations, removedInverseRelations, referenceTargets,
 				)
 				accumulateDuration += time.Since(accumulateStart) - (stats.FetchDuration - accumulateFetchBefore)
@@ -928,28 +966,33 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 					return nil, nil, nil, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
 				}
 
-				if deleted {
-					id := change.ID.String()
-					err := bulkService.DeleteOp(types.DeleteOperation{Index_: &b.Index, Id_: &id}) //nolint:exhaustruct
-					if err != nil {
-						return nil, nil, nil, errors.WithStack(err)
+				// Index each level's version into its index, or delete it there when the document is deleted
+				// or hidden at that level.
+				id := change.ID.String()
+				for i, t := range b.targets {
+					index := t.Index
+					if deleted || docs[i] == nil {
+						err := bulkService.DeleteOp(types.DeleteOperation{Index_: &index, Id_: &id}) //nolint:exhaustruct
+						if err != nil {
+							return nil, nil, nil, errors.WithStack(err)
+						}
+						deleteOps++
+						continue
 					}
-					deleteOps++
-				} else {
 					// TODO: Use also information about the view so that documents are searchable by view as well.
 					convertFetchBefore := stats.FetchDuration
 					convertStart := time.Now()
-					searchDoc, errE := b.ConvertDocument(ctx, doc, metadata, &gen)
+					gen := gens[i]
+					searchDoc, errE := t.Converter.FromDocument(auth.WithVisibility(ctx, t.Level), docs[i], &gen, metadata)
 					convertDuration += time.Since(convertStart) - (stats.FetchDuration - convertFetchBefore)
 					if errE != nil {
 						return nil, nil, nil, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
 					}
-					id := change.ID.String()
-					err := bulkService.IndexOp(types.IndexOperation{Index_: &b.Index, Id_: &id}, searchDoc) //nolint:exhaustruct
+					err := bulkService.IndexOp(types.IndexOperation{Index_: &index, Id_: &id}, searchDoc) //nolint:exhaustruct
 					if err != nil {
 						return nil, nil, nil, errors.WithStack(err)
 					}
-					debugDocs[id] = searchDoc
+					debugDocs[bulkDocKey{index: index, id: id}] = searchDoc
 					indexOps++
 				}
 			}
@@ -995,9 +1038,10 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 			}
 			bulkErrors = append(bulkErrors, bulkError{
 				ID:         id,
+				Index:      result.Index_,
 				Status:     result.Status,
 				ErrorCause: result.Error,
-				Doc:        debugDocs[id],
+				Doc:        debugDocs[bulkDocKey{index: result.Index_, id: id}],
 			})
 		}
 	}
@@ -1084,33 +1128,113 @@ func diffOutgoingInverseRelations(
 	return added, removed
 }
 
-// fetchHooked reads the document at the given version (or the latest when version is nil) through the
-// document hook chain (pre-hooks, store read, post-hooks), returning the post-hook document with its
-// metadata and parent changesets. It always reads the store (the metadata it returns must be current),
-// but on a latest read it warms documentCache with the post-hook document, guarded by the bridge's own
-// generation so a read that raced a concurrent commit does not install a stale entry.
-func (b *Bridge) fetchHooked(
+// produceLevels reads the document once at the given version (or the latest when version is nil) and
+// produces its per-level versions: for each target it runs that target's pre-hooks and then, after deep
+// copying the document, its post-hooks (filter and indexing), all at that level's visibility. The returned
+// slice aligns with b.targets; an entry is nil when that level's pre-hooks or post-hooks denied the
+// document. deleted is true when the document was deleted at the requested version (no level has a
+// document). It always reads the store (the metadata it returns must be current), but on a latest read it
+// warms documentCache for every produced level, guarded by the bridge's generation so a read that raced a
+// concurrent commit does not install stale entries.
+func (b *Bridge) produceLevels(
 	ctx context.Context, id identifier.Identifier, version *store.Version,
-) (*document.D, *store.DocumentMetadata, []store.Version, errors.E) {
+) ([]*document.D, *store.DocumentMetadata, []store.Version, bool, errors.E) {
 	gen := b.genOf(id)
-	fetch := func() (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
-		if version != nil {
-			return b.Store.Get(ctx, id, *version)
-		}
-		return b.Store.GetLatest(ctx, id)
+	var data json.RawMessage
+	var metadata *store.DocumentMetadata
+	var resolved store.Version
+	var parentChangesets []store.Version
+	var errE errors.E
+	if version != nil {
+		data, metadata, resolved, parentChangesets, errE = b.Store.Get(ctx, id, *version)
+	} else {
+		data, metadata, resolved, parentChangesets, errE = b.Store.GetLatest(ctx, id)
 	}
-	doc, metadata, _, parentChangesets, errE := WithDocumentHooks(ctx, id, version, b.DocumentPreHooks, b.DocumentPostHooks, fetch)
+	if errors.Is(errE, store.ErrValueDeleted) {
+		return nil, metadata, parentChangesets, true, nil
+	}
 	if errE != nil {
-		return doc, metadata, parentChangesets, errE
+		return nil, metadata, parentChangesets, false, errE
+	}
+	var baseDoc *document.D
+	if data != nil {
+		baseDoc = new(document.D)
+		errE = x.UnmarshalWithoutUnknownFields(data, baseDoc)
+		if errE != nil {
+			return nil, metadata, parentChangesets, false, errE
+		}
+	}
+	docs := make([]*document.D, len(b.targets))
+	for i, t := range b.targets {
+		ctxL := auth.WithVisibility(ctx, t.Level)
+
+		// Run the document pre-hooks at this level's visibility. A level may deny access here, in which case
+		// the document is absent at that level (docs[i] stays nil). Any other error aborts the whole conversion.
+		denied := false
+		for _, hook := range b.DocumentPreHooks {
+			errEL := hook(ctxL, id, version)
+			if errors.Is(errEL, store.ErrAccessDenied) {
+				denied = true
+				break
+			}
+			if errEL != nil {
+				return nil, metadata, parentChangesets, false, errEL
+			}
+		}
+		if denied {
+			continue
+		}
+
+		var docL *document.D
+		if baseDoc != nil {
+			docCopy, ok := deepcopy.Copy(baseDoc).(*document.D)
+			if !ok {
+				return nil, metadata, parentChangesets, false, errors.New("deep copy returned unexpected type")
+			}
+			docL = docCopy
+		}
+		// Each level starts from the original metadata, version, and parent changesets; the filter and
+		// indexing post-hooks only transform the document and pass the rest through.
+		m, v, pc, errEL := metadata, resolved, parentChangesets, errors.E(nil)
+		for _, hook := range b.DocumentPostHooks {
+			docL, m, v, pc, errEL = hook(ctxL, docL, m, v, pc, errEL)
+		}
+		if errors.Is(errEL, store.ErrAccessDenied) {
+			// Hidden at this level: leave docs[i] nil so the caller deletes it from this level's index.
+			continue
+		}
+		if errEL != nil {
+			return nil, metadata, parentChangesets, false, errEL
+		}
+		docs[i] = docL
+	}
+	// The highest (last) level is the unfiltered superset whose hooks must not drop anything, so an existing
+	// document must always be present there. A nil top means the top-level hooks filtered it, violating that
+	// invariant: the visibility-independent inverse-relation and reference-target accumulation reads the top
+	// version, so proceeding would silently corrupt those. We fail loudly instead.
+	if baseDoc != nil && docs[len(docs)-1] == nil {
+		errE := errors.New("highest visibility level filtered a document, but it must be unfiltered")
+		errors.Details(errE)["id"] = id.String()
+		return nil, metadata, parentChangesets, false, errE
 	}
 	if version == nil {
 		b.documentCacheMu.Lock()
 		if b.genOf(id) == gen {
-			b.documentCache[id] = doc
+			for i, t := range b.targets {
+				if docs[i] != nil {
+					b.documentCache[documentCacheKey{level: t.Level, id: id}] = docs[i]
+				}
+			}
 		}
 		b.documentCacheMu.Unlock()
 	}
-	return doc, metadata, parentChangesets, nil
+	return docs, metadata, parentChangesets, false, nil
+}
+
+// topConverter returns the converter of the highest-visibility target, used for the visibility-independent
+// inverse-relation and reference-target computations.
+func (b *Bridge) topConverter() *Converter {
+	return b.targets[len(b.targets)-1].Converter
 }
 
 // genOf returns the current generation of the given document in documentCache, which is 0 until it is
@@ -1121,24 +1245,31 @@ func (b *Bridge) genOf(id identifier.Identifier) uint64 {
 	return b.cacheGen[id]
 }
 
-// GetDocument returns the latest post-hook document for id. It is the callback the converter uses for
-// secondary (referenced-document) fetches while rendering display strings, so it returns only the
-// document. It serves from documentCache and falls back to fetchHooked on a miss (which warms the cache).
+// GetDocument returns the latest post-hook document for id at the visibility level in ctx. It is the
+// callback each level's converter uses for secondary (referenced-document) fetches while rendering display
+// strings, so it returns only the document. It serves from documentCache and falls back to produceLevels
+// on a miss (which warms the cache for every level). A document deleted or hidden at this level is reported
+// as not found so the referencing document is rendered without it rather than failing to convert.
 func (b *Bridge) GetDocument(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
+	level := auth.Visibility(ctx)
 	b.documentCacheMu.RLock()
-	doc, ok := b.documentCache[id]
+	doc, ok := b.documentCache[documentCacheKey{level: level, id: id}]
 	b.documentCacheMu.RUnlock()
 	if ok {
 		return doc, nil
 	}
-	doc, _, _, errE := b.fetchHooked(ctx, id, nil)
-	if errors.Is(errE, store.ErrAccessDenied) {
-		// The converter fetches referenced documents to render their display labels. A document hidden at
-		// the indexing visibility is, from the converter's perspective, simply unavailable, the same as not
-		// found, so the referencing document is rendered without it rather than failing to convert.
-		return nil, errors.WrapWith(errE, store.ErrValueNotFound)
+	docs, _, _, deleted, errE := b.produceLevels(ctx, id, nil)
+	if errE != nil {
+		return nil, errE
 	}
-	return doc, errE
+	if !deleted {
+		for i, t := range b.targets {
+			if t.Level == level && docs[i] != nil {
+				return docs[i], nil
+			}
+		}
+	}
+	return nil, errors.WithStack(store.ErrValueNotFound)
 }
 
 // invalidateCaches drops the bridge's cached documents for the given ids and invalidates the converter's
@@ -1154,28 +1285,44 @@ func (b *Bridge) invalidateCaches(ids ...identifier.Identifier) {
 	b.cacheGenMu.Unlock()
 	b.documentCacheMu.Lock()
 	for _, id := range ids {
-		delete(b.documentCache, id)
+		for _, t := range b.targets {
+			delete(b.documentCache, documentCacheKey{level: t.Level, id: id})
+		}
 	}
 	b.documentCacheMu.Unlock()
-	b.converter.InvalidateCaches(ids...)
+	for _, t := range b.targets {
+		t.Converter.InvalidateCaches(ids...)
+	}
 }
 
-// ConvertDocument calls the converter's FromDocument with inverse relations from metadata. gen is the
-// document's generation (the converter's genOf) snapshotted by the caller before it read the document
-// from the store. The converted document's own info is cached only if that generation has not advanced
-// since, closing the window where a concurrent invalidation would otherwise let a pre-read document be
-// cached. A nil gen means the caller has no such snapshot: the converted document's info is then computed
-// but not cached, while its referenced documents and ancestors, which are fetched and snapshotted during
-// the conversion, are cached as usual.
-func (b *Bridge) ConvertDocument(ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, gen *uint64) (*Document, errors.E) {
-	return b.converter.FromDocument(ctx, doc, gen, metadata)
+// ConvertDocument converts an already-fetched document (with its inverse relations carried in metadata)
+// for the read path, rendering it with the converter for the caller's visibility level, so display labels
+// and counts.references reflect that level's index. It returns store.ErrAccessDenied when the caller
+// resolves to no level.
+func (b *Bridge) ConvertDocument(ctx context.Context, doc *document.D, metadata *store.DocumentMetadata) (*Document, errors.E) {
+	level := auth.Visibility(ctx)
+	for _, t := range b.targets {
+		if t.Level == level {
+			// We pass a nil generation: the document itself is a one-off render and is not
+			// cached, while its referenced documents and ancestors are fetched and cached as usual.
+			return t.Converter.FromDocument(ctx, doc, nil, metadata)
+		}
+	}
+	return nil, errors.WithStack(store.ErrAccessDenied)
 }
 
-// CountReferences returns how many documents reference the document with the
-// given ID via a top-level ref claim or a sub-ref claim. It runs an ElasticSearch
-// count against the current index, so it reflects whatever is indexed at call
-// time.
-func (b *Bridge) CountReferences(ctx context.Context, id identifier.Identifier) (int, errors.E) {
+// CountReferencesFunc returns a converter CountReferences callback that counts references in the given
+// index. Each level's converter gets one bound to that level's index.
+func (b *Bridge) CountReferencesFunc(index string) func(ctx context.Context, id identifier.Identifier) (int, errors.E) {
+	return func(ctx context.Context, id identifier.Identifier) (int, errors.E) {
+		return b.countReferences(ctx, id, index)
+	}
+}
+
+// countReferences returns how many documents in the given index reference the document with the given ID
+// via a top-level ref claim or a sub-ref claim. It runs an ElasticSearch count against the index, so it
+// reflects whatever is indexed at call time.
+func (b *Bridge) countReferences(ctx context.Context, id identifier.Identifier, index string) (int, errors.E) {
 	query := esdsl.NewBoolQuery().Should(
 		esdsl.NewNestedQuery(
 			esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(id.String())),
@@ -1185,7 +1332,7 @@ func (b *Bridge) CountReferences(ctx context.Context, id identifier.Identifier) 
 		).Path("claims.subRef"),
 	).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
 
-	res, err := b.ESClient.Count().Index(b.Index).Query(query).Do(ctx)
+	res, err := b.ESClient.Count().Index(index).Query(query).Do(ctx)
 	if err != nil {
 		errE := WithESError(err)
 		errors.Details(errE)["id"] = id.String()
@@ -1211,7 +1358,7 @@ func (b *Bridge) CountReferences(ctx context.Context, id identifier.Identifier) 
 func (b *Bridge) outgoingRelationsAndTargets(
 	ctx context.Context, doc *document.D,
 ) (map[identifier.Identifier][]store.InverseRelation, map[identifier.Identifier]bool, errors.E) {
-	c := b.converter
+	c := b.topConverter()
 	outgoing, errE := c.OutgoingInverseRelations(ctx, doc)
 	if errE != nil {
 		return nil, nil, errE
@@ -1225,7 +1372,7 @@ func (b *Bridge) outgoingRelationsAndTargets(
 func (b *Bridge) collectChangedReferenceTargets(
 	ctx context.Context, current, parent, out map[identifier.Identifier]bool,
 ) errors.E {
-	converter := b.converter
+	converter := b.topConverter()
 	add := func(targetID identifier.Identifier) errors.E {
 		if out[targetID] {
 			return nil
@@ -1283,13 +1430,16 @@ func (b *Bridge) accumulateChangeRelations(
 	parentOutgoing := map[identifier.Identifier][]store.InverseRelation{}
 	parentRefTargets := map[identifier.Identifier]bool{}
 	for _, pv := range parentChangesets {
-		parentDoc, _, _, errE := b.fetchHooked(ctx, changeID, &pv)
-		if errors.Is(errE, store.ErrValueDeleted) || errors.Is(errE, store.ErrAccessDenied) {
-			// Parent deleted, or hidden at the indexing visibility, so it contributes no outgoing relations.
+		parentDocs, _, _, parentDeleted, errE := b.produceLevels(ctx, changeID, &pv)
+		if parentDeleted {
+			// Parent was deleted, so it contributes no outgoing relations.
 			continue
 		} else if errE != nil {
 			return errE
 		}
+		// Use the highest-visibility (unfiltered) version. produceLevels guarantees it is present for a
+		// non-deleted document, so it is never nil here.
+		parentDoc := parentDocs[len(parentDocs)-1]
 		po, pt, errE := b.outgoingRelationsAndTargets(ctx, parentDoc)
 		if errE != nil {
 			return errE
@@ -1532,9 +1682,9 @@ func (b *Bridge) runReindexQueue(ctx context.Context, job *river.Job[jobArgs]) e
 		return errE
 	}
 	refreshStart := time.Now()
-	_, err := b.ESClient.Indices.Refresh().Index(b.Index).Do(ctx)
-	if err != nil {
-		return WithESError(err)
+	errE = b.Refresh(ctx)
+	if errE != nil {
+		return errE
 	}
 	refreshDuration := time.Since(refreshStart)
 
@@ -1549,7 +1699,7 @@ func (b *Bridge) runReindexQueue(ctx context.Context, job *river.Job[jobArgs]) e
 	duration := time.Since(jobStart)
 
 	// Record what the job did as its River job output.
-	err = river.RecordOutput(ctx, reindexJobOutput{
+	err := river.RecordOutput(ctx, reindexJobOutput{
 		Seq:             snapshotSeq,
 		Duration:        duration.Seconds(),
 		RefreshDuration: refreshDuration.Seconds(),
@@ -1648,7 +1798,7 @@ func (b *Bridge) processReindexQueue(ctx context.Context, snapshotSeq int64, dea
 				return stats, errE
 			}
 
-			f.doc, errE = b.convertForReindex(ctx, docID, &stats)
+			f.docs, errE = b.convertForReindex(ctx, docID, &stats)
 			if errE != nil {
 				return stats, errE
 			}
@@ -1688,12 +1838,14 @@ func (b *Bridge) processReindexQueue(ctx context.Context, snapshotSeq int64, dea
 	return stats, nil
 }
 
-// reindexEntry is one document fetched from the reindex queue. doc is set during conversion and is nil for
-// documents that were deleted or never existed: they are not indexed, but their queue entries are still removed.
+// reindexEntry is one document fetched from the reindex queue. docs holds the per-level search documents set
+// during conversion (aligned with the bridge targets, nil for a level where the document is hidden) and is
+// nil for documents that were deleted or never existed: those are not indexed, but their queue entries are
+// still removed.
 type reindexEntry struct {
 	idStr  string
 	maxSeq int64
-	doc    *Document
+	docs   []*Document
 }
 
 // fetchReindexBatch reads up to reindexMaxBatch distinct documents from the reindex queue with their max
@@ -1719,7 +1871,7 @@ func (b *Bridge) fetchReindexBatch(ctx context.Context, snapshotSeq int64, stats
 		var idStr string
 		var maxSeq int64
 		_, err = pgx.ForEachRow(rows, []any{&idStr, &maxSeq}, func() error {
-			fetched = append(fetched, reindexEntry{idStr: idStr, maxSeq: maxSeq, doc: nil})
+			fetched = append(fetched, reindexEntry{idStr: idStr, maxSeq: maxSeq, docs: nil})
 			return nil
 		})
 		return internalStore.WithPgxError(err)
@@ -1790,19 +1942,31 @@ func (b *Bridge) flushReindexBatch(
 // bulkIndexReindexed bulk-indexes the non-skipped documents in pending and returns how many were indexed.
 func (b *Bridge) bulkIndexReindexed(ctx context.Context, snapshotSeq int64, pending []reindexEntry) (int, errors.E) {
 	bulkService := b.ESClient.Bulk()
-	debugDocs := map[string]*Document{}
+	debugDocs := map[bulkDocKey]*Document{}
 	indexed := 0
 	for _, e := range pending {
-		if e.doc == nil {
+		if e.docs == nil {
+			// Document does not exist.
 			continue
 		}
 		id := e.idStr
-		err := bulkService.IndexOp(types.IndexOperation{Index_: &b.Index, Id_: &id}, e.doc) //nolint:exhaustruct
-		if err != nil {
-			return 0, errors.WithStack(err)
+		indexedAny := false
+		for i, t := range b.targets {
+			if e.docs[i] == nil {
+				// Document does not exist at this level.
+				continue
+			}
+			index := t.Index
+			err := bulkService.IndexOp(types.IndexOperation{Index_: &index, Id_: &id}, e.docs[i]) //nolint:exhaustruct
+			if err != nil {
+				return 0, errors.WithStack(err)
+			}
+			debugDocs[bulkDocKey{index: index, id: id}] = e.docs[i]
+			indexedAny = true
 		}
-		debugDocs[id] = e.doc
-		indexed++
+		if indexedAny {
+			indexed++
+		}
 	}
 	if indexed == 0 {
 		return 0, nil
@@ -1824,9 +1988,10 @@ func (b *Bridge) bulkIndexReindexed(ctx context.Context, snapshotSeq int64, pend
 			}
 			bulkErrors = append(bulkErrors, bulkError{
 				ID:         id,
+				Index:      result.Index_,
 				Status:     result.Status,
 				ErrorCause: result.Error,
-				Doc:        debugDocs[id],
+				Doc:        debugDocs[bulkDocKey{index: result.Index_, id: id}],
 			})
 		}
 	}
@@ -1840,56 +2005,60 @@ func (b *Bridge) bulkIndexReindexed(ctx context.Context, snapshotSeq int64, pend
 	return indexed, nil
 }
 
-// convertForReindex fetches the latest version of a document and converts it to a search document for re-indexing.
-// It returns a nil document (and nil error) when the document was deleted or never existed, in which case the caller
-// still removes its queue entry but does not index it.
-func (b *Bridge) convertForReindex(ctx context.Context, docID identifier.Identifier, stats *reindexStats) (*Document, errors.E) {
-	// Snapshot the document's generation before reading it, so ConvertDocument installs cache entries for
-	// it only if the bridge did not invalidate it concurrently while this reindex was converting it.
-	gen := b.converter.genOf(docID)
+// convertForReindex fetches the latest version of a document and converts it to per-level search documents
+// for re-indexing. The returned slice aligns with the bridge targets; an entry is nil for a level where the
+// document is hidden (the commit that hid it already removed it from that level's index). It returns a nil
+// slice (and nil error) when the document was deleted or never existed, in which case the caller still
+// removes its queue entry but does not index it.
+func (b *Bridge) convertForReindex(ctx context.Context, docID identifier.Identifier, stats *reindexStats) ([]*Document, errors.E) {
+	// Snapshot each converter's generation before reading, so each installs cache entries for the document
+	// only if the bridge did not invalidate it concurrently while this reindex was converting it.
+	gens := make([]uint64, len(b.targets))
+	for i, t := range b.targets {
+		gens[i] = t.Converter.genOf(docID)
+	}
 	getLatestStart := time.Now()
-	doc, metadata, _, errE := b.fetchHooked(ctx, docID, nil)
+	docs, metadata, _, deleted, errE := b.produceLevels(ctx, docID, nil)
 	stats.GetLatestDuration += time.Since(getLatestStart)
-	if errors.Is(errE, store.ErrValueDeleted) {
-		// Document does not exist anymore, skip.
+	if deleted {
+		// Document does not exist anymore. The commit that deleted it already removed it from the indices.
 		// TODO: We should keep track in source document's metadata, that some of its outgoing relations are invalid.
 		//       This can then be used to prompt the user to fix those relations. We could even use the metadata to
 		//       show links for those relations in red color in UI or something like that.
-		return nil, nil //nolint:nilnil
-	} else if errors.Is(errE, store.ErrAccessDenied) {
-		// Hidden at the indexing visibility by the document hooks, so it has no place in this index. The
-		// commit that hid it already removed it from the index via the bulk loop, so we just skip it here.
-		return nil, nil //nolint:nilnil
+		return nil, nil
 	} else if errors.Is(errE, store.ErrValueNotFound) {
-		// Document never existed. This happens for a reference target enqueued for a
-		// counts.references refresh that does not exist (a dangling reference). Skipping it
-		// loses nothing: a document is indexed by its own creation commit, so if this one
-		// is created later, that commit indexes it and computes its counts.references.
-		// The ErrValueNotFound error should not be possible for inverse-relation documents
-		// at this point because it means that the document have never existed, but GetLatest
-		// did not return ErrValueNotFound in updateSeq for us to be here.
-		return nil, nil //nolint:nilnil
+		// Document never existed. This happens for a reference target enqueued for a counts.references
+		// refresh that does not exist (a dangling reference). Skipping it loses nothing: a document is
+		// indexed by its own creation commit, so if this one is created later, that commit indexes it.
+		return nil, nil
 	} else if errE != nil {
 		return nil, errE
 	}
 
-	// ConvertDocument also fetches related documents, recorded separately as FetchDuration. We subtract that
-	// so ConvertDuration is disjoint from the fetches: only the rendering and the counts.references query.
+	// FromDocument also fetches related documents, recorded separately as FetchDuration. We subtract that so
+	// ConvertDuration is disjoint from the fetches: only the rendering and the counts.references query.
 	convStats := conversionStatsFromContext(ctx)
 	var fetchBefore time.Duration
 	if convStats != nil {
 		fetchBefore = convStats.FetchDuration
 	}
 	convertStart := time.Now()
-	// TODO: Use also information about the view so that documents are searchable by view as well.
-	searchDoc, errE := b.ConvertDocument(ctx, doc, metadata, &gen)
+	searchDocs := make([]*Document, len(b.targets))
+	for i, t := range b.targets {
+		if docs[i] == nil {
+			continue
+		}
+		// TODO: Use also information about the view so that documents are searchable by view as well.
+		searchDoc, errE := t.Converter.FromDocument(auth.WithVisibility(ctx, t.Level), docs[i], &gens[i], metadata)
+		if errE != nil {
+			return nil, errE
+		}
+		searchDocs[i] = searchDoc
+	}
 	convertElapsed := time.Since(convertStart)
 	if convStats != nil {
 		convertElapsed -= convStats.FetchDuration - fetchBefore
 	}
 	stats.ConvertDuration += convertElapsed
-	if errE != nil {
-		return nil, errE
-	}
-	return searchDoc, nil
+	return searchDocs, nil
 }

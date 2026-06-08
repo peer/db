@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	internalSite "gitlab.com/peerdb/peerdb/internal/site"
+	"gitlab.com/peerdb/peerdb/store"
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/waf"
@@ -35,15 +36,20 @@ func (s *Service) DebugIndexedGetAPI(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
+	ctx := req.Context()
+
 	dataJSON, metadata, version, handled := s.documentGetData(w, req, params)
 	if handled {
 		return
 	}
 
-	site := waf.MustGetSite[*internalSite.Site](req.Context())
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
-	searchDoc, errE := site.Base.IndexedDocument(req.Context(), dataJSON, metadata)
-	if errE != nil {
+	searchDoc, errE := site.Base.IndexedDocument(ctx, dataJSON, metadata)
+	if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	} else if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}

@@ -176,7 +176,7 @@ func setupBridge(t *testing.T) (context.Context, *bridgeEnv) {
 func startBridge(ctx context.Context, t *testing.T, env *bridgeEnv, converter *internalSearch.Converter) {
 	t.Helper()
 
-	errE := env.bridge.Prepare(ctx, converter)
+	errE := env.bridge.Prepare(ctx, []internalSearch.Target{{Level: "all", Index: env.bridge.Index, Converter: converter}})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	err := env.riverClient.Start(ctx)
@@ -221,7 +221,7 @@ func TestBridgeStartupDrainsReindexQueueBacklog(t *testing.T) {
 
 	// Production ordering: store the converter and submit the startup job before starting the
 	// listener, so the worker drains the backlog while HandlingReady waits.
-	errE = env.bridge.Prepare(ctx, newTestBridgeConverter(t))
+	errE = env.bridge.Prepare(ctx, []internalSearch.Target{{Level: "all", Index: env.bridge.Index, Converter: newTestBridgeConverter(t)}})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	err := env.riverClient.Start(ctx)
@@ -1064,7 +1064,7 @@ func TestBridgeReferencesCountIncremental(t *testing.T) {
 
 	converter := newTestBridgeConverter(t)
 	// Compute counts.references at index time, as the production converter does.
-	converter.CountReferences = b.CountReferences
+	converter.CountReferences = b.CountReferencesFunc(b.Index)
 	startBridge(ctx, t, env, converter)
 
 	waitAndRefresh := func() {

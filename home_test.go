@@ -205,12 +205,14 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		// We do not use t.Context() because we want an active context, not a canceled one.
 		ctx := context.Background()
 		if len(globals.Sites) == 0 {
-			_, err = cleanupESClient.Indices.Delete(globals.Elastic.Index).IgnoreUnavailable(true).Do(ctx)
+			_, err = cleanupESClient.Indices.Delete(internalSearch.LevelIndex(globals.Elastic.Index, internalSite.AllVisibilityLevel)).IgnoreUnavailable(true).Do(ctx)
 			require.NoError(t, err)
 		} else {
 			for _, site := range globals.Sites {
-				_, err = cleanupESClient.Indices.Delete(site.Index).IgnoreUnavailable(true).Do(ctx)
-				require.NoError(t, err)
+				for _, index := range site.LevelIndexes() {
+					_, err = cleanupESClient.Indices.Delete(index).IgnoreUnavailable(true).Do(ctx)
+					require.NoError(t, err)
+				}
 			}
 		}
 	})
@@ -252,8 +254,10 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		siteCtx := peerdb.WithFallbackDBContext(t.Context(), site.Schema, "populate")
 		errE := site.Base.WaitUntilCaughtUp(siteCtx, nil, nil)
 		require.NoError(t, errE, "% -+#.1v", errE)
-		_, err := cleanupESClient.Indices.Refresh().Index(site.Index).Do(siteCtx)
-		require.NoError(t, err)
+		for _, index := range site.LevelIndexes() {
+			_, err := cleanupESClient.Indices.Refresh().Index(index).Do(siteCtx)
+			require.NoError(t, err)
+		}
 	}
 
 	ts := httptest.NewUnstartedServer(nil)

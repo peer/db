@@ -33,8 +33,7 @@ func (b *B) IndexedDocument(ctx context.Context, dataJSON json.RawMessage, metad
 			return nil, errE
 		}
 	}
-	// It passes a nil generation so the converted document's own info is computed but not cached.
-	return b.bridge.ConvertDocument(ctx, doc, metadata, nil)
+	return b.bridge.ConvertDocument(ctx, doc, metadata)
 }
 
 // ResetBridgeProgress resets bridge progress so all commits are re-processed.

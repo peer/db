@@ -55,13 +55,24 @@ func TestValidateVisibility(t *testing.T) {
 			wantErr: "",
 		},
 		{
-			name:  "no-roles level that is not first is rejected",
+			name:  "no-roles level in the middle is rejected",
 			roles: roles,
 			visibility: []auth.VisibilityLevel{
 				{Name: "public", Roles: []string{"public"}},
 				{Name: "floor", Roles: nil},
+				{Name: "editor", Roles: []string{"editor"}},
 			},
-			wantErr: "a visibility level with no roles must be the first level",
+			wantErr: "a visibility level with no roles must be the first or the last level",
+		},
+		{
+			name:  "no-roles level as the last (top) level is allowed",
+			roles: roles,
+			visibility: []auth.VisibilityLevel{
+				{Name: "public", Roles: []string{"public"}},
+				{Name: "editor", Roles: []string{"editor"}},
+				{Name: "all", Roles: nil},
+			},
+			wantErr: "",
 		},
 		{
 			name:  "unknown role",
