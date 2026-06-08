@@ -1211,9 +1211,18 @@ func (b *Bridge) produceLevels(
 				docL = docCopy
 			}
 		}
-		// Each level starts from the original metadata, version, and parent changesets; the filter and
-		// indexing post-hooks only transform the document and pass the rest through.
-		m, v, pc, errEL := metadata, resolved, parentChangesets, errors.E(nil)
+		// A hook may also change the metadata, so each level gets its own copy to keep a change from leaking
+		// across levels. Like the document, the last (top) level reuses the original directly and its post-hook
+		// metadata becomes the returned metadata.
+		m := metadata
+		if metadata != nil && i != len(b.targets)-1 {
+			metadataCopy, ok := deepcopy.Copy(metadata).(*store.DocumentMetadata)
+			if !ok {
+				return nil, metadata, parentChangesets, false, errors.New("deep copy returned unexpected type")
+			}
+			m = metadataCopy
+		}
+		v, pc, errEL := resolved, parentChangesets, errors.E(nil)
 		for _, hook := range b.DocumentPostHooks {
 			docL, m, v, pc, errEL = hook(ctxL, docL, m, v, pc, errEL)
 		}
@@ -1225,6 +1234,10 @@ func (b *Bridge) produceLevels(
 			return nil, metadata, parentChangesets, false, errEL
 		}
 		docs[i] = docL
+		if i == len(b.targets)-1 {
+			// The top level reused and may have transformed the original metadata. Return that.
+			metadata = m
+		}
 	}
 	// The highest (last) level is the unfiltered superset whose hooks must not drop anything, so an existing
 	// document must always be present there. A nil top means the top-level hooks filtered it, violating that

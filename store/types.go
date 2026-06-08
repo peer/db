@@ -14,6 +14,8 @@ const RFC3339Milli = "2006-01-02T15:04:05.000Z07:00"
 
 // Time is a timestamp which is represented in JSON with millisecond
 // precision and not (Go default) nanosecond precision.
+//
+//nolint:recvcheck
 type Time time.Time
 
 // MarshalJSON marshals Time to JSON with millisecond precision.
@@ -37,6 +39,14 @@ func (t *Time) UnmarshalJSON(data []byte) error {
 	tt, err := time.Parse(RFC3339Milli, string(data))
 	*t = Time(tt)
 	return errors.WithStack(err)
+}
+
+// DeepCopy implements the github.com/mohae/deepcopy Interface so deepcopy.Copy copies a Time by value.
+// Without it deepcopy reflects into the struct and, because Time is a named type over time.Time rather than
+// the exact time.Time it special-cases, skips time.Time's unexported fields and zeroes the timestamp. A Time
+// is a plain value, so returning it is a complete copy.
+func (t Time) DeepCopy() any {
+	return t
 }
 
 // InverseRelationKey identifies an inverse relation by its source document, claim ID,
