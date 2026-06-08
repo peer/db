@@ -172,6 +172,16 @@ type Bridge struct {
 	// Index is the ElasticSearch index name.
 	Index string
 
+	// DocumentPreHooks and DocumentPostHooks are run by fetchHooked around the store read, the same
+	// way base.B runs them on the read path. The base sets these from its own hooks, with the indexing
+	// hooks appended to the post-hooks, so documents are fetched for indexing through the same hook
+	// chain (filtered and normalized).
+	DocumentPreHooks []func(ctx context.Context, id identifier.Identifier, version *store.Version) errors.E
+	// DocumentPostHooks is run after the store read.
+	DocumentPostHooks []func(
+		ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
+	) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E)
+
 	dbpool *pgxpool.Pool
 	schema string
 	// LISTEN/NOTIFY channel names computed once in Init. PostgreSQL notification channels are
@@ -181,11 +191,18 @@ type Bridge struct {
 	bridgeReindexQueueMinSeqChannel string
 	riverClient                     *river.Client[pgx.Tx]
 	converter                       *Converter
-	lastSeqMu                       sync.RWMutex
-	lastSeqCond                     *sync.Cond
-	lastSeq                         int64
-	reindexQueueMinSeqMu            sync.RWMutex
-	reindexQueueMinSeqCond          *sync.Cond
+	// documentCacheMu protects documentCache.
+	documentCacheMu sync.RWMutex
+	// documentCache holds the latest post-hook document per id. fetchHooked warms it on latest reads and
+	// getDocument serves it to the converter for secondary (referenced-document) fetches. It is dropped
+	// for changed documents on each commit via invalidateCaches. Documents are stored by pointer and
+	// shared with the converter's own cache.
+	documentCache          map[identifier.Identifier]*document.D
+	lastSeqMu              sync.RWMutex
+	lastSeqCond            *sync.Cond
+	lastSeq                int64
+	reindexQueueMinSeqMu   sync.RWMutex
+	reindexQueueMinSeqCond *sync.Cond
 	// reindexQueueMinSeq is the MIN(seq) of remaining rows in BridgeReindexQueue,
 	// or math.MaxInt64 if the table is empty. A waiter for seq X is done when this value > X.
 	reindexQueueMinSeq int64
@@ -281,6 +298,7 @@ func (b *Bridge) Init(
 	b.reindexQueueMinSeqCond = sync.NewCond(b.reindexQueueMinSeqMu.RLocker())
 	b.reindexQueueMinSeq = math.MaxInt64
 	b.reindexSoftDeadline = reindexSoftDeadline
+	b.documentCache = map[identifier.Identifier]*document.D{}
 	listener.Handle(b.bridgeSeqChannel, b)
 	listener.Handle(b.bridgeReindexQueueMinSeqChannel, b)
 
@@ -864,18 +882,21 @@ func (b *Bridge) indexCommit(
 				return nil, nil, nil, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), "")
 			}
 			for _, change := range page {
-				// The document changed in this commit, so drop any cached info and fetched content for it.
-				b.converter.InvalidateCaches(change.ID)
+				// The document changed in this commit, so drop any cached info and fetched content for it,
+				// in both the converter and the bridge caches.
+				b.invalidateCaches(change.ID)
 
 				// Snapshot the document's generation after invalidating and before reading its new version,
 				// so ConvertDocument installs cache entries for it only if no later commit invalidated it
 				// again meanwhile.
 				gen := b.converter.genOf(change.ID)
 
-				// Fetch document at the change version.
+				// Fetch and hook the document at the change version. fetchHooked reads the store and runs the
+				// document hooks (filter and indexing); it does no secondary fetches, so its whole cost is
+				// counted in getDuration.
 				deleted := false
 				getStart := time.Now()
-				data, metadata, _, parentChangesets, errE := b.Store.Get(ctx, change.ID, change.Version)
+				doc, metadata, parentChangesets, errE := b.fetchHooked(ctx, change.ID, &change.Version)
 				getDuration += time.Since(getStart)
 				if errors.Is(errE, store.ErrValueDeleted) {
 					// Deleted at this version: no outgoing relations or reference targets.
@@ -889,7 +910,7 @@ func (b *Bridge) indexCommit(
 				accumulateFetchBefore := stats.FetchDuration
 				accumulateStart := time.Now()
 				errE = b.accumulateChangeRelations(
-					ctx, change.ID, deleted, data, parentChangesets,
+					ctx, change.ID, deleted, doc, parentChangesets,
 					addedInverseRelations, removedInverseRelations, referenceTargets,
 				)
 				accumulateDuration += time.Since(accumulateStart) - (stats.FetchDuration - accumulateFetchBefore)
@@ -908,7 +929,7 @@ func (b *Bridge) indexCommit(
 					// TODO: Use also information about the view so that documents are searchable by view as well.
 					convertFetchBefore := stats.FetchDuration
 					convertStart := time.Now()
-					searchDoc, errE := b.ConvertDocument(ctx, data, metadata, &gen)
+					searchDoc, errE := b.ConvertDocument(ctx, doc, metadata, &gen)
 					convertDuration += time.Since(convertStart) - (stats.FetchDuration - convertFetchBefore)
 					if errE != nil {
 						return nil, nil, nil, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
@@ -985,7 +1006,7 @@ func (b *Bridge) indexCommit(
 	// the number of documents whose counts.references must be refreshed. The durations are disjoint and
 	// sum to duration (minus small in-memory overhead for cache invalidation, bulk buffering, and the
 	// bulk error scan): changesDuration is reconstructing and reading the committed changesets,
-	// getDuration is the per-document store reads, fetchDuration is the getDocument store fetches,
+	// getDuration is reading and hooking each changed document, fetchDuration is the getDocument store fetches,
 	// accumulateDuration and convertDuration are accumulateChangeRelations and ConvertDocument
 	// excluding those fetches, and bulkDuration is the ES bulk request.
 	logger.Debug().
@@ -1053,21 +1074,71 @@ func diffOutgoingInverseRelations(
 	return added, removed
 }
 
-// ConvertDocument unmarshals data into a document.D and calls the converter's FromDocument with inverse
-// relations from metadata. gen is the document's generation (the converter's genOf) snapshotted by the caller
-// before it read data from the store. The converted document's own info is cached only if that generation
-// has not advanced since, closing the window where a concurrent invalidation would otherwise let a pre-read
-// document be cached. A nil gen means the caller has no such snapshot: the converted document's info is then
-// computed but not cached, while its referenced documents and ancestors, which are fetched and snapshotted
-// during the conversion, are cached as usual.
-func (b *Bridge) ConvertDocument(ctx context.Context, data json.RawMessage, metadata *store.DocumentMetadata, gen *uint64) (*Document, errors.E) {
-	var doc document.D
-	errE := x.UnmarshalWithoutUnknownFields(data, &doc)
-	if errE != nil {
-		return nil, errE
+// fetchHooked reads the document at the given version (or the latest when version is nil) through the
+// document hook chain (pre-hooks, store read, post-hooks), returning the post-hook document with its
+// metadata and parent changesets. It always reads the store (the metadata it returns must be current),
+// but on a latest read it warms documentCache with the post-hook document, guarded by the converter's
+// generation so a read that raced a concurrent commit does not install a stale entry.
+func (b *Bridge) fetchHooked(
+	ctx context.Context, id identifier.Identifier, version *store.Version,
+) (*document.D, *store.DocumentMetadata, []store.Version, errors.E) {
+	gen := b.converter.genOf(id)
+	fetch := func() (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
+		if version != nil {
+			return b.Store.Get(ctx, id, *version)
+		}
+		return b.Store.GetLatest(ctx, id)
 	}
+	doc, metadata, _, parentChangesets, errE := WithDocumentHooks(ctx, id, version, b.DocumentPreHooks, b.DocumentPostHooks, fetch)
+	if errE != nil {
+		return doc, metadata, parentChangesets, errE
+	}
+	if version == nil {
+		b.documentCacheMu.Lock()
+		if b.converter.genOf(id) == gen {
+			b.documentCache[id] = doc
+		}
+		b.documentCacheMu.Unlock()
+	}
+	return doc, metadata, parentChangesets, nil
+}
 
-	return b.converter.FromDocument(ctx, &doc, gen, metadata)
+// GetDocument returns the latest post-hook document for id. It is the callback the converter uses for
+// secondary (referenced-document) fetches while rendering display strings, so it returns only the
+// document. It serves from documentCache and falls back to fetchHooked on a miss (which warms the cache).
+func (b *Bridge) GetDocument(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
+	b.documentCacheMu.RLock()
+	doc, ok := b.documentCache[id]
+	b.documentCacheMu.RUnlock()
+	if ok {
+		return doc, nil
+	}
+	doc, _, _, errE := b.fetchHooked(ctx, id, nil)
+	return doc, errE
+}
+
+// invalidateCaches drops the bridge's cached documents for the given ids and the converter's caches for
+// them. The bulk loop calls it for the documents changed in each commit. The converter generation is
+// bumped first (inside InvalidateCaches) so a concurrent fetchHooked whose snapshot predates this
+// invalidation fails its genOf guard and does not reinstall a stale document after we clear it.
+func (b *Bridge) invalidateCaches(ids ...identifier.Identifier) {
+	b.converter.InvalidateCaches(ids...)
+	b.documentCacheMu.Lock()
+	for _, id := range ids {
+		delete(b.documentCache, id)
+	}
+	b.documentCacheMu.Unlock()
+}
+
+// ConvertDocument calls the converter's FromDocument with inverse relations from metadata. gen is the
+// document's generation (the converter's genOf) snapshotted by the caller before it read the document
+// from the store. The converted document's own info is cached only if that generation has not advanced
+// since, closing the window where a concurrent invalidation would otherwise let a pre-read document be
+// cached. A nil gen means the caller has no such snapshot: the converted document's info is then computed
+// but not cached, while its referenced documents and ancestors, which are fetched and snapshotted during
+// the conversion, are cached as usual.
+func (b *Bridge) ConvertDocument(ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, gen *uint64) (*Document, errors.E) {
+	return b.converter.FromDocument(ctx, doc, gen, metadata)
 }
 
 // CountReferences returns how many documents reference the document with the
@@ -1104,24 +1175,18 @@ func (b *Bridge) CountReferences(ctx context.Context, id identifier.Identifier) 
 	return int(res.Count), nil
 }
 
-// outgoingRelationsAndTargets unmarshals a document and returns both its outgoing
-// inverse relations (for inverse-relation metadata) and the set of all documents it
-// references (for refreshing those targets' counts.references), from a single parse.
+// outgoingRelationsAndTargets returns both the document's outgoing inverse relations (for
+// inverse-relation metadata) and the set of all documents it references (for refreshing those
+// targets' counts.references).
 func (b *Bridge) outgoingRelationsAndTargets(
-	ctx context.Context, data json.RawMessage,
+	ctx context.Context, doc *document.D,
 ) (map[identifier.Identifier][]store.InverseRelation, map[identifier.Identifier]bool, errors.E) {
-	var doc document.D
-	errE := x.UnmarshalWithoutUnknownFields(data, &doc)
-	if errE != nil {
-		return nil, nil, errE
-	}
-
 	c := b.converter
-	outgoing, errE := c.OutgoingInverseRelations(ctx, &doc)
+	outgoing, errE := c.OutgoingInverseRelations(ctx, doc)
 	if errE != nil {
 		return nil, nil, errE
 	}
-	return outgoing, c.OutgoingReferenceTargets(&doc), nil
+	return outgoing, c.OutgoingReferenceTargets(doc), nil
 }
 
 // collectChangedReferenceTargets adds to out every document that the changed document
@@ -1168,9 +1233,9 @@ func (b *Bridge) collectChangedReferenceTargets(
 // accumulateChangeRelations computes, for a single document change, the inverse-relation
 // and reference-target differences it implies for other documents, and merges them into
 // the provided accumulators (addedInverseRelations, removedInverseRelations, referenceTargets).
-// data is the document at the change version (unused when deleted); parentChangesets are its parent versions.
+// doc is the post-hook document at the change version (nil when deleted); parentChangesets are its parent versions.
 func (b *Bridge) accumulateChangeRelations(
-	ctx context.Context, changeID identifier.Identifier, deleted bool, data json.RawMessage, parentChangesets []store.Version,
+	ctx context.Context, changeID identifier.Identifier, deleted bool, doc *document.D, parentChangesets []store.Version,
 	addedInverseRelations, removedInverseRelations map[identifier.Identifier][]store.InverseRelation,
 	referenceTargets map[identifier.Identifier]bool,
 ) errors.E {
@@ -1178,7 +1243,7 @@ func (b *Bridge) accumulateChangeRelations(
 	currentRefTargets := map[identifier.Identifier]bool{}
 	if !deleted {
 		var errE errors.E
-		currentOutgoing, currentRefTargets, errE = b.outgoingRelationsAndTargets(ctx, data)
+		currentOutgoing, currentRefTargets, errE = b.outgoingRelationsAndTargets(ctx, doc)
 		if errE != nil {
 			return errE
 		}
@@ -1188,14 +1253,14 @@ func (b *Bridge) accumulateChangeRelations(
 	parentOutgoing := map[identifier.Identifier][]store.InverseRelation{}
 	parentRefTargets := map[identifier.Identifier]bool{}
 	for _, pv := range parentChangesets {
-		parentData, _, _, _, errE := b.Store.Get(ctx, changeID, pv)
+		parentDoc, _, _, errE := b.fetchHooked(ctx, changeID, &pv)
 		if errors.Is(errE, store.ErrValueDeleted) {
 			// Parent document was deleted, so there were no outgoing relations in it.
 			continue
 		} else if errE != nil {
 			return errE
 		}
-		po, pt, errE := b.outgoingRelationsAndTargets(ctx, parentData)
+		po, pt, errE := b.outgoingRelationsAndTargets(ctx, parentDoc)
 		if errE != nil {
 			return errE
 		}
@@ -1747,7 +1812,7 @@ func (b *Bridge) convertForReindex(ctx context.Context, docID identifier.Identif
 	// it only if the bridge did not invalidate it concurrently while this reindex was converting it.
 	gen := b.converter.genOf(docID)
 	getLatestStart := time.Now()
-	data, metadata, _, _, errE := b.Store.GetLatest(ctx, docID)
+	doc, metadata, _, errE := b.fetchHooked(ctx, docID, nil)
 	stats.GetLatestDuration += time.Since(getLatestStart)
 	if errors.Is(errE, store.ErrValueDeleted) {
 		// Document does not exist anymore, skip.
@@ -1777,7 +1842,7 @@ func (b *Bridge) convertForReindex(ctx context.Context, docID identifier.Identif
 	}
 	convertStart := time.Now()
 	// TODO: Use also information about the view so that documents are searchable by view as well.
-	searchDoc, errE := b.ConvertDocument(ctx, data, metadata, &gen)
+	searchDoc, errE := b.ConvertDocument(ctx, doc, metadata, &gen)
 	convertElapsed := time.Since(convertStart)
 	if convStats != nil {
 		convertElapsed -= convStats.FetchDuration - fetchBefore

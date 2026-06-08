@@ -150,9 +150,11 @@ func setupBridge(t *testing.T) (context.Context, *bridgeEnv) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	b := &internalSearch.Bridge{
-		Store:    s,
-		ESClient: esClient,
-		Index:    index,
+		Store:             s,
+		ESClient:          esClient,
+		Index:             index,
+		DocumentPreHooks:  nil,
+		DocumentPostHooks: nil,
 	}
 	errE = b.Init(ctx, dbpool, listener, schema, riverClient, workers)
 	require.NoError(t, errE, "% -+#.1v", errE)

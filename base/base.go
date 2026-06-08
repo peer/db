@@ -12,6 +12,7 @@ package base
 import (
 	"context"
 	"encoding/json"
+	"slices"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v9"
@@ -20,7 +21,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 	"gitlab.com/tozd/go/errors"
-	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/coordinator"
@@ -60,7 +60,10 @@ type B struct {
 	// via SUBPROPERTY_OF. Disabled by default.
 	IndexAncestorProperties bool
 
-	// Hooks are called in order to allow for modification of documents before they are indexed.
+	// IndexingHooks transform a document for indexing. The bridge runs them, adapted to document
+	// post-hooks (skipping on an incoming error), after DocumentPostHooks when fetching documents for
+	// indexing, so the indexed document is the post-hook document with any indexing-specific
+	// normalization applied. They are not run on the read/API path.
 	IndexingHooks []func(ctx context.Context, doc *document.D) (*document.D, errors.E)
 
 	// DocumentPreHooks are called before fetching the document from the store.
@@ -165,6 +168,9 @@ func (b *B) Init(
 		Store:    documents,
 		ESClient: esClient,
 		Index:    b.Index,
+		// The document hooks are set from the base's hooks in Start, once the site has populated them.
+		DocumentPreHooks:  nil,
+		DocumentPostHooks: nil,
 	}
 	errE = bridge.Init(ctx, dbpool, listener, b.Schema, riverClient, workers)
 	if errE != nil {
@@ -182,6 +188,23 @@ func (b *B) Init(
 	return nil
 }
 
+// indexingPostHook adapts an indexing hook, which only transforms the document, to a document
+// post-hook. On an incoming error it skips the indexing hook and returns the error unchanged;
+// otherwise it runs the hook and passes the metadata, version, and parent changesets through.
+func indexingPostHook(hook func(ctx context.Context, doc *document.D) (*document.D, errors.E)) func(
+	ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
+) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
+	return func(
+		ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
+	) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
+		if errE != nil {
+			return doc, metadata, version, parentChangesets, errE
+		}
+		doc, errE = hook(ctx, doc)
+		return doc, metadata, version, parentChangesets, errE
+	}
+}
+
 // Start starts the base.
 //
 // Documents are documents with properties and vocabularies which are used
@@ -189,29 +212,26 @@ func (b *B) Init(
 //
 // You have to call this or PopulateAndStart for each base after Init.
 func (b *B) Start(ctx context.Context, documents []*document.D) (func(), errors.E) {
+	// The bridge fetches documents for indexing through the same pre/post hooks as the read path, plus
+	// the indexing hooks (adapted to document post-hooks) appended after them, so the indexed document
+	// is the filtered and normalized one.
+	b.bridge.DocumentPreHooks = b.DocumentPreHooks
+	postHooks := slices.Clone(b.DocumentPostHooks)
+	for _, hook := range b.IndexingHooks {
+		postHooks = append(postHooks, indexingPostHook(hook))
+	}
+	b.bridge.DocumentPostHooks = postHooks
+
 	// We build the converter first so that invalid input (e.g., unsupported
 	// language priority) fails fast without leaving any resources running.
 	converter, errE := internalSearch.NewConverter(
 		documents, documents, documents, b.LanguagePriority,
-		func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
-			// TODO: Make sure once we have permissions, that the public has the permission to read the document.
-			data, _, _, _, errE := b.documents.GetLatest(ctx, id)
-			if errE != nil {
-				return nil, errE
-			}
-			var doc document.D
-			errE = x.UnmarshalWithoutUnknownFields(data, &doc)
-			if errE != nil {
-				return nil, errE
-			}
-			return &doc, nil
-		},
+		b.bridge.GetDocument,
 	)
 	if errE != nil {
 		return nil, errE
 	}
 
-	converter.Hooks = b.IndexingHooks
 	converter.IndexAncestorProperties = b.IndexAncestorProperties
 	converter.DetectLanguages = true
 	converter.CountReferences = b.bridge.CountReferences

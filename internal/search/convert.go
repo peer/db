@@ -209,8 +209,6 @@ type fieldInverseKey struct {
 
 // Converter holds preprocessed data for converting document.D to search Document.
 type Converter struct {
-	// Hooks are called in order to allow for modification of documents before they are converted.
-	Hooks []func(ctx context.Context, doc *document.D) (*document.D, errors.E)
 	// LanguageCodes is a map that maps language document ID to primary language subtag (e.g., "en").
 	LanguageCodes map[identifier.Identifier]string
 	// IndexAncestorProperties enables claim propagation to transitive super-properties:
@@ -272,8 +270,8 @@ type Converter struct {
 	// display fallback) but not enabled (it gets no index field, and its content
 	// is dropped from the text buckets).
 	recognizedLanguages map[string]bool
-	// getDocumentFunc fetches a document by ID from the store. Call the getDocument method instead of
-	// using this field directly, so fetches are cached in getDocumentCache and counted.
+	// getDocumentFunc fetches the latest document by ID. Call the getDocument method instead of using this
+	// field directly, so fetches are cached in getDocumentCache and counted.
 	getDocumentFunc func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E)
 	// cacheGen holds a per-document monotonic generation, bumped by InvalidateCaches for each invalidated
 	// document before its entries are dropped. getDocument and computeDocumentInfo snapshot the generation
@@ -337,7 +335,7 @@ type DisplayDependencies struct {
 	ids map[identifier.Identifier]uint64
 }
 
-// getDocument returns the document for the given ID, caching fetched documents in getDocumentCache.
+// getDocument returns the latest document for the given ID. The result is cached in getDocumentCache.
 // Errors (including not-found) are not cached so a later insert is picked up. The bridge invalidates
 // cached entries for documents changed in each commit via InvalidateCaches.
 func (c *Converter) getDocument(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
@@ -491,7 +489,6 @@ func NewConverter(
 		}
 	}
 	c := &Converter{
-		Hooks:                    nil,
 		LanguageCodes:            nil,
 		IndexAncestorProperties:  false,
 		DetectLanguages:          false,
@@ -2033,20 +2030,6 @@ func (v *convertVisitor) appendNotReferenceSubClaims(propID identifier.Identifie
 func (c *Converter) FromDocument(
 	ctx context.Context, doc *document.D, gen *uint64, metadata *store.DocumentMetadata,
 ) (*Document, errors.E) {
-	var errE errors.E
-	for i, hook := range c.Hooks {
-		doc, errE = hook(ctx, doc)
-		if errE != nil {
-			errors.Details(errE)["hook"] = i
-			return nil, errE
-		}
-		if doc == nil {
-			errE = errors.New("hook returned nil document")
-			errors.Details(errE)["hook"] = i
-			return nil, errE
-		}
-	}
-
 	// lastUpdated and the inverse relations come from the document's store metadata. metadata is nil for
 	// some callers (for example tests), in which case there is no last-updated time and no inverse relations.
 	var lastUpdated *float64

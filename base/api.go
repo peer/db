@@ -12,6 +12,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
+	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
@@ -19,7 +20,7 @@ import (
 
 func (b *B) withHooks(
 	ctx context.Context, id identifier.Identifier, version *store.Version,
-	fn func() (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E),
+	fetch func() (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E),
 ) (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
 	for _, hook := range b.DocumentPreHooks {
 		errE := hook(ctx, id, version)
@@ -27,7 +28,7 @@ func (b *B) withHooks(
 			return nil, nil, store.Version{}, nil, errE
 		}
 	}
-	data, metadata, resolved, parentChangesets, errE := fn()
+	data, metadata, resolved, parentChangesets, errE := fetch()
 	if len(b.DocumentPostHooks) > 0 {
 		var doc *document.D
 		if data != nil {
@@ -83,25 +84,11 @@ func (b *B) GetDocumentLatest(
 // It returns also document metadata, the version of the document, and parent
 // changesets of the document at this version.
 func (b *B) GetDocumentLatestDoc(ctx context.Context, id identifier.Identifier) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
-	for _, hook := range b.DocumentPreHooks {
-		errE := hook(ctx, id, nil)
-		if errE != nil {
-			return nil, nil, store.Version{}, nil, errE
-		}
-	}
-	data, metadata, version, parentChangesets, errE := b.documents.GetLatest(ctx, id)
-	var doc *document.D
-	if data != nil {
-		doc = new(document.D)
-		errE2 := x.UnmarshalWithoutUnknownFields(data, doc)
-		if errE2 != nil {
-			return nil, metadata, version, parentChangesets, errors.Join(errE, errE2)
-		}
-	}
-	for _, hook := range b.DocumentPostHooks {
-		doc, metadata, version, parentChangesets, errE = hook(ctx, doc, metadata, version, parentChangesets, errE)
-	}
-	return doc, metadata, version, parentChangesets, errE
+	return internalSearch.WithDocumentHooks(ctx, id, nil, b.DocumentPreHooks, b.DocumentPostHooks,
+		func() (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
+			return b.documents.GetLatest(ctx, id)
+		},
+	)
 }
 
 // DocumentChangeset returns the requested changeset from the document store.
