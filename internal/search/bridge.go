@@ -1352,6 +1352,12 @@ func (b *Bridge) updateSeq(
 
 		var updates []preparedUpdate
 		for docID := range affectedDocs {
+			// This is raw store bookkeeping, not the convert/index path, so it reads the store directly
+			// rather than through fetchHooked: it needs the resolved version for the optimistic-concurrency
+			// UpdateExistingMetadata below, it must see the unfiltered metadata (the inverse relations are
+			// stored once per document and are visibility-independent, while the document post-hooks could
+			// deny or alter the document at the indexing visibility), and it uses only the metadata and
+			// version, never the document.
 			_, metadata, version, _, errE := b.Store.GetLatest(ctx, docID)
 			if errors.Is(errE, store.ErrValueNotFound) {
 				// Document does not exist (yet), skip.
