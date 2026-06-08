@@ -197,7 +197,14 @@ type Bridge struct {
 	// getDocument serves it to the converter for secondary (referenced-document) fetches. It is dropped
 	// for changed documents on each commit via invalidateCaches. Documents are stored by pointer and
 	// shared with the converter's own cache.
-	documentCache          map[identifier.Identifier]*document.D
+	documentCache map[identifier.Identifier]*document.D
+	// cacheGenMu protects cacheGen.
+	cacheGenMu sync.RWMutex
+	// cacheGen holds a per-document monotonic generation, bumped by invalidateCaches before the cached
+	// document is dropped, so a fetchHooked that snapshotted the generation before reading does not
+	// reinstall a stale document after a concurrent commit invalidated it. It is the bridge's own
+	// generation for documentCache, separate from each converter's generation for its own caches.
+	cacheGen               map[identifier.Identifier]uint64
 	lastSeqMu              sync.RWMutex
 	lastSeqCond            *sync.Cond
 	lastSeq                int64
@@ -299,6 +306,7 @@ func (b *Bridge) Init(
 	b.reindexQueueMinSeq = math.MaxInt64
 	b.reindexSoftDeadline = reindexSoftDeadline
 	b.documentCache = map[identifier.Identifier]*document.D{}
+	b.cacheGen = map[identifier.Identifier]uint64{}
 	listener.Handle(b.bridgeSeqChannel, b)
 	listener.Handle(b.bridgeReindexQueueMinSeqChannel, b)
 
@@ -1077,12 +1085,12 @@ func diffOutgoingInverseRelations(
 // fetchHooked reads the document at the given version (or the latest when version is nil) through the
 // document hook chain (pre-hooks, store read, post-hooks), returning the post-hook document with its
 // metadata and parent changesets. It always reads the store (the metadata it returns must be current),
-// but on a latest read it warms documentCache with the post-hook document, guarded by the converter's
+// but on a latest read it warms documentCache with the post-hook document, guarded by the bridge's own
 // generation so a read that raced a concurrent commit does not install a stale entry.
 func (b *Bridge) fetchHooked(
 	ctx context.Context, id identifier.Identifier, version *store.Version,
 ) (*document.D, *store.DocumentMetadata, []store.Version, errors.E) {
-	gen := b.converter.genOf(id)
+	gen := b.genOf(id)
 	fetch := func() (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
 		if version != nil {
 			return b.Store.Get(ctx, id, *version)
@@ -1095,12 +1103,20 @@ func (b *Bridge) fetchHooked(
 	}
 	if version == nil {
 		b.documentCacheMu.Lock()
-		if b.converter.genOf(id) == gen {
+		if b.genOf(id) == gen {
 			b.documentCache[id] = doc
 		}
 		b.documentCacheMu.Unlock()
 	}
 	return doc, metadata, parentChangesets, nil
+}
+
+// genOf returns the current generation of the given document in documentCache, which is 0 until it is
+// first invalidated.
+func (b *Bridge) genOf(id identifier.Identifier) uint64 {
+	b.cacheGenMu.RLock()
+	defer b.cacheGenMu.RUnlock()
+	return b.cacheGen[id]
 }
 
 // GetDocument returns the latest post-hook document for id. It is the callback the converter uses for
@@ -1117,17 +1133,23 @@ func (b *Bridge) GetDocument(ctx context.Context, id identifier.Identifier) (*do
 	return doc, errE
 }
 
-// invalidateCaches drops the bridge's cached documents for the given ids and the converter's caches for
-// them. The bulk loop calls it for the documents changed in each commit. The converter generation is
-// bumped first (inside InvalidateCaches) so a concurrent fetchHooked whose snapshot predates this
-// invalidation fails its genOf guard and does not reinstall a stale document after we clear it.
+// invalidateCaches drops the bridge's cached documents for the given ids and invalidates the converter's
+// caches for them. The bulk loop calls it for the documents changed in each commit. The bridge's own
+// generation is bumped before its cache is cleared, so a concurrent fetchHooked whose snapshot predates
+// this invalidation fails its genOf guard and does not reinstall a stale document after we clear it. The
+// converter keeps its own generation for its own caches.
 func (b *Bridge) invalidateCaches(ids ...identifier.Identifier) {
-	b.converter.InvalidateCaches(ids...)
+	b.cacheGenMu.Lock()
+	for _, id := range ids {
+		b.cacheGen[id]++
+	}
+	b.cacheGenMu.Unlock()
 	b.documentCacheMu.Lock()
 	for _, id := range ids {
 		delete(b.documentCache, id)
 	}
 	b.documentCacheMu.Unlock()
+	b.converter.InvalidateCaches(ids...)
 }
 
 // ConvertDocument calls the converter's FromDocument with inverse relations from metadata. gen is the
