@@ -906,8 +906,10 @@ func (b *Bridge) indexCommit(
 				getStart := time.Now()
 				doc, metadata, parentChangesets, errE := b.fetchHooked(ctx, change.ID, &change.Version)
 				getDuration += time.Since(getStart)
-				if errors.Is(errE, store.ErrValueDeleted) {
-					// Deleted at this version: no outgoing relations or reference targets.
+				if errors.Is(errE, store.ErrValueDeleted) || errors.Is(errE, store.ErrAccessDenied) {
+					// Deleted at this version, or hidden at the indexing visibility by the document hooks:
+					// it has no place in this index (delete it) and contributes no outgoing relations or
+					// reference targets.
 					deleted = true
 				} else if errE != nil {
 					return nil, nil, nil, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
@@ -1130,6 +1132,12 @@ func (b *Bridge) GetDocument(ctx context.Context, id identifier.Identifier) (*do
 		return doc, nil
 	}
 	doc, _, _, errE := b.fetchHooked(ctx, id, nil)
+	if errors.Is(errE, store.ErrAccessDenied) {
+		// The converter fetches referenced documents to render their display labels. A document hidden at
+		// the indexing visibility is, from the converter's perspective, simply unavailable, the same as not
+		// found, so the referencing document is rendered without it rather than failing to convert.
+		return nil, errors.WrapWith(errE, store.ErrValueNotFound)
+	}
 	return doc, errE
 }
 
@@ -1276,8 +1284,8 @@ func (b *Bridge) accumulateChangeRelations(
 	parentRefTargets := map[identifier.Identifier]bool{}
 	for _, pv := range parentChangesets {
 		parentDoc, _, _, errE := b.fetchHooked(ctx, changeID, &pv)
-		if errors.Is(errE, store.ErrValueDeleted) {
-			// Parent document was deleted, so there were no outgoing relations in it.
+		if errors.Is(errE, store.ErrValueDeleted) || errors.Is(errE, store.ErrAccessDenied) {
+			// Parent deleted, or hidden at the indexing visibility, so it contributes no outgoing relations.
 			continue
 		} else if errE != nil {
 			return errE
@@ -1847,6 +1855,10 @@ func (b *Bridge) convertForReindex(ctx context.Context, docID identifier.Identif
 		// TODO: We should keep track in source document's metadata, that some of its outgoing relations are invalid.
 		//       This can then be used to prompt the user to fix those relations. We could even use the metadata to
 		//       show links for those relations in red color in UI or something like that.
+		return nil, nil //nolint:nilnil
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		// Hidden at the indexing visibility by the document hooks, so it has no place in this index. The
+		// commit that hid it already removed it from the index via the bulk loop, so we just skip it here.
 		return nil, nil //nolint:nilnil
 	} else if errors.Is(errE, store.ErrValueNotFound) {
 		// Document never existed. This happens for a reference target enqueued for a
