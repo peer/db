@@ -1197,11 +1197,19 @@ func (b *Bridge) produceLevels(
 
 		var docL *document.D
 		if baseDoc != nil {
-			docCopy, ok := deepcopy.Copy(baseDoc).(*document.D)
-			if !ok {
-				return nil, metadata, parentChangesets, false, errors.New("deep copy returned unexpected type")
+			if i == len(b.targets)-1 {
+				// The last (top) level reuses the freshly unmarshaled document directly: baseDoc is owned here
+				// and not needed after the loop, so copying it once more would be wasted. Earlier levels copied
+				// it while it was still pristine (the post-hooks mutate only the per-level document), so by this
+				// iteration there is nothing left that needs an untouched baseDoc.
+				docL = baseDoc
+			} else {
+				docCopy, ok := deepcopy.Copy(baseDoc).(*document.D)
+				if !ok {
+					return nil, metadata, parentChangesets, false, errors.New("deep copy returned unexpected type")
+				}
+				docL = docCopy
 			}
-			docL = docCopy
 		}
 		// Each level starts from the original metadata, version, and parent changesets; the filter and
 		// indexing post-hooks only transform the document and pass the rest through.
