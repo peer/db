@@ -3,6 +3,7 @@ package store
 import (
 	"time"
 
+	"github.com/mohae/deepcopy"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
@@ -48,6 +49,8 @@ func (t *Time) UnmarshalJSON(data []byte) error {
 func (t Time) DeepCopy() any {
 	return t
 }
+
+var _ deepcopy.Interface = Time{}
 
 // InverseRelationKey identifies an inverse relation by its source document, claim ID,
 // and target property. We validate that claim IDs are unique per source document but we
