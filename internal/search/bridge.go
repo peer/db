@@ -1134,8 +1134,8 @@ func diffOutgoingInverseRelations(
 // slice aligns with b.targets; an entry is nil when that level's pre-hooks or post-hooks denied the
 // document. deleted is true when the document was deleted at the requested version (no level has a
 // document). It always reads the store (the metadata it returns must be current), but on a latest read it
-// warms documentCache for every produced level, guarded by the bridge's generation so a read that raced a
-// concurrent commit does not install stale entries.
+// warms documentCache for every level via cacheLevels, including negative results for a deleted,
+// never-existed, or hidden document, so repeated references avoid the store read until the id changes.
 func (b *Bridge) produceLevels(
 	ctx context.Context, id identifier.Identifier, version *store.Version,
 ) ([]*document.D, *store.DocumentMetadata, []store.Version, bool, errors.E) {
@@ -1151,9 +1151,19 @@ func (b *Bridge) produceLevels(
 		data, metadata, resolved, parentChangesets, errE = b.Store.GetLatest(ctx, id)
 	}
 	if errors.Is(errE, store.ErrValueDeleted) {
+		// A deleted document is a stable latest state: cache it as a negative at every level so repeated
+		// references do not re-read the store. The commit that undeletes this id invalidates the entry.
+		b.cacheLevels(id, version, gen, nil)
 		return nil, metadata, parentChangesets, true, nil
 	}
+	if errors.Is(errE, store.ErrValueNotFound) {
+		// A never-existed document (a dangling reference) is likewise a stable latest state: cache it as a
+		// negative. The commit that creates this id later invalidates the entry.
+		b.cacheLevels(id, version, gen, nil)
+		return nil, metadata, parentChangesets, false, errE
+	}
 	if errE != nil {
+		// Any other error is transient and must not be cached.
 		return nil, metadata, parentChangesets, false, errE
 	}
 	var baseDoc *document.D
@@ -1217,18 +1227,31 @@ func (b *Bridge) produceLevels(
 		errors.Details(errE)["id"] = id.String()
 		return nil, metadata, parentChangesets, false, errE
 	}
-	if version == nil {
-		b.documentCacheMu.Lock()
-		if b.genOf(id) == gen {
-			for i, t := range b.targets {
-				if docs[i] != nil {
-					b.documentCache[documentCacheKey{level: t.Level, id: id}] = docs[i]
-				}
-			}
-		}
-		b.documentCacheMu.Unlock()
-	}
+	b.cacheLevels(id, version, gen, docs)
 	return docs, metadata, parentChangesets, false, nil
+}
+
+// cacheLevels warms documentCache with the per-level results of a latest (version == nil) read, under the
+// bridge generation snapshot so a read that raced a concurrent commit does not install stale entries. A nil
+// entry in docs, or a nil docs slice for a deleted or never-existed document, is cached as a negative result,
+// so a later GetDocument for that level returns not-found without a store read until the next commit changing
+// the id invalidates the entry. It is a no-op for a versioned read.
+func (b *Bridge) cacheLevels(id identifier.Identifier, version *store.Version, gen uint64, docs []*document.D) {
+	if version != nil {
+		return
+	}
+	b.documentCacheMu.Lock()
+	defer b.documentCacheMu.Unlock()
+	if b.genOf(id) != gen {
+		return
+	}
+	for i, t := range b.targets {
+		var doc *document.D
+		if docs != nil {
+			doc = docs[i]
+		}
+		b.documentCache[documentCacheKey{level: t.Level, id: id}] = doc
+	}
 }
 
 // topConverter returns the converter of the highest-visibility target, used for the visibility-independent
@@ -1247,15 +1270,20 @@ func (b *Bridge) genOf(id identifier.Identifier) uint64 {
 
 // GetDocument returns the latest post-hook document for id at the visibility level in ctx. It is the
 // callback each level's converter uses for secondary (referenced-document) fetches while rendering display
-// strings, so it returns only the document. It serves from documentCache and falls back to produceLevels
-// on a miss (which warms the cache for every level). A document deleted or hidden at this level is reported
-// as not found so the referencing document is rendered without it rather than failing to convert.
+// strings, so it returns only the document. It serves from documentCache (a cached negative is reported as
+// not found) and falls back to produceLevels on a miss, which warms the cache. A document deleted, never
+// existed, or hidden at this level is reported as not found so the referencing document is rendered without
+// it rather than failing to convert.
 func (b *Bridge) GetDocument(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
 	level := auth.Visibility(ctx)
 	b.documentCacheMu.RLock()
 	doc, ok := b.documentCache[documentCacheKey{level: level, id: id}]
 	b.documentCacheMu.RUnlock()
 	if ok {
+		if doc == nil {
+			// Cached negative: the document is deleted, never existed, or hidden at this level.
+			return nil, errors.WithStack(store.ErrValueNotFound)
+		}
 		return doc, nil
 	}
 	docs, _, _, deleted, errE := b.produceLevels(ctx, id, nil)

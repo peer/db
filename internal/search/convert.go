@@ -335,9 +335,10 @@ type DisplayDependencies struct {
 	ids map[identifier.Identifier]uint64
 }
 
-// getDocument returns the latest document for the given ID. The result is cached in getDocumentCache.
-// Errors (including not-found) are not cached so a later insert is picked up. The bridge invalidates
-// cached entries for documents changed in each commit via InvalidateCaches.
+// getDocument returns the latest document for the given ID. The result is cached in getDocumentCache,
+// including a not-found result (cached as a nil entry, returned as store.ErrValueNotFound), so repeated
+// references avoid re-fetching; other (transient) errors are not cached. The bridge invalidates cached
+// entries, and the documentInfo of dependents, for documents changed in each commit via InvalidateCaches.
 func (c *Converter) getDocument(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
 	// Snapshot this document's generation before reading it, used both to record the dependency below and
 	// to guard this fetch's own cache write at the end.
@@ -358,6 +359,10 @@ func (c *Converter) getDocument(ctx context.Context, id identifier.Identifier) (
 		if stats != nil {
 			stats.DocCacheHits++
 		}
+		if doc == nil {
+			// Cached negative: the document is deleted, never existed, or hidden at this level.
+			return nil, errors.WithStack(store.ErrValueNotFound)
+		}
 		return doc, nil
 	}
 	start := time.Now()
@@ -367,6 +372,16 @@ func (c *Converter) getDocument(ctx context.Context, id identifier.Identifier) (
 		stats.FetchDuration += time.Since(start)
 	}
 	if errE != nil {
+		if errors.Is(errE, store.ErrValueNotFound) {
+			// A not-found document (deleted, never existed, or hidden at this level) is a stable latest state:
+			// cache it as a negative under the generation guard so repeated references avoid the re-fetch.
+			// InvalidateCaches drops it, and the documentInfo of every dependent, when the id changes.
+			c.getDocumentMu.Lock()
+			if c.genOf(id) == gen {
+				c.getDocumentCache[id] = nil
+			}
+			c.getDocumentMu.Unlock()
+		}
 		return doc, errE
 	}
 	c.getDocumentMu.Lock()
