@@ -882,7 +882,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 	committed store.CommittedChangesets[
 		json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes,
 	],
-) (map[identifier.Identifier][]store.InverseRelation, map[identifier.Identifier][]store.InverseRelation, map[identifier.Identifier]bool, errors.E) {
+) (map[identifier.Identifier]map[string][]store.InverseRelation, map[identifier.Identifier]map[string][]store.InverseRelation, map[identifier.Identifier]bool, errors.E) {
 	logger := zerolog.Ctx(ctx)
 	start := time.Now()
 	var stats ConversionStats
@@ -907,9 +907,10 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 	var getDuration, accumulateDuration, convertDuration time.Duration
 	bulkService := b.ESClient.Bulk()
 
-	// Collect inverse relations from all processed documents.
-	addedInverseRelations := map[identifier.Identifier][]store.InverseRelation{}
-	removedInverseRelations := map[identifier.Identifier][]store.InverseRelation{}
+	// Collect inverse relations from all processed documents, keyed by target document and then by visibility
+	// level: each level's set is computed from the source document as seen at that level.
+	addedInverseRelations := map[identifier.Identifier]map[string][]store.InverseRelation{}
+	removedInverseRelations := map[identifier.Identifier]map[string][]store.InverseRelation{}
 
 	// Collect documents whose counts.references must be refreshed because a processed
 	// document started or stopped referencing them.
@@ -949,16 +950,11 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 				}
 
 				// Collect, for other documents, the inverse-relation and counts.references changes implied by
-				// this document's change. We use the highest-visibility (unfiltered) version, since that
-				// metadata is stored once per document and is visibility-independent.
-				var topDoc *document.D
-				if !deleted {
-					topDoc = docs[len(docs)-1]
-				}
+				// this document's change, computed per level from this document's per-level versions.
 				accumulateFetchBefore := stats.FetchDuration
 				accumulateStart := time.Now()
 				errE = b.accumulateChangeRelations(
-					ctx, change.ID, deleted, topDoc, parentChangesets,
+					ctx, change.ID, deleted, docs, parentChangesets,
 					addedInverseRelations, removedInverseRelations, referenceTargets,
 				)
 				accumulateDuration += time.Since(accumulateStart) - (stats.FetchDuration - accumulateFetchBefore)
@@ -1408,9 +1404,8 @@ func (b *Bridge) countReferences(ctx context.Context, id identifier.Identifier, 
 // inverse-relation metadata) and the set of all documents it references (for refreshing those
 // targets' counts.references).
 func (b *Bridge) outgoingRelationsAndTargets(
-	ctx context.Context, doc *document.D,
+	ctx context.Context, c *Converter, doc *document.D,
 ) (map[identifier.Identifier][]store.InverseRelation, map[identifier.Identifier]bool, errors.E) {
-	c := b.topConverter()
 	outgoing, errE := c.OutgoingInverseRelations(ctx, doc)
 	if errE != nil {
 		return nil, nil, errE
@@ -1459,61 +1454,88 @@ func (b *Bridge) collectChangedReferenceTargets(
 	return nil
 }
 
-// accumulateChangeRelations computes, for a single document change, the inverse-relation
-// and reference-target differences it implies for other documents, and merges them into
-// the provided accumulators (addedInverseRelations, removedInverseRelations, referenceTargets).
-// doc is the post-hook document at the change version (nil when deleted); parentChangesets are its parent versions.
+// accumulateChangeRelations computes, for a single document change, the inverse-relation and
+// reference-target differences it implies for other documents, per visibility level, and merges them into
+// the provided accumulators. docs are the change's per-level post-hook documents (nil overall when the
+// document is deleted, and a nil entry for a level where it is hidden). parentChangesets are their parent
+// versions.
+//
+// Inverse relations accumulate per level into addedInverseRelations/removedInverseRelations
+// (target -> level -> relations), so each level's index only ever receives sources visible at that level.
+// Reference targets are also computed per level (a source visibility change can alter a lower level's count
+// without changing the top one), but merged into the single flat referenceTargets set, because the count is
+// recomputed per level from each level's own index at re-index time.
 func (b *Bridge) accumulateChangeRelations(
-	ctx context.Context, changeID identifier.Identifier, deleted bool, doc *document.D, parentChangesets []store.Version,
-	addedInverseRelations, removedInverseRelations map[identifier.Identifier][]store.InverseRelation,
+	ctx context.Context, changeID identifier.Identifier, deleted bool, docs []*document.D, parentChangesets []store.Version,
+	addedInverseRelations, removedInverseRelations map[identifier.Identifier]map[string][]store.InverseRelation,
 	referenceTargets map[identifier.Identifier]bool,
 ) errors.E {
-	currentOutgoing := map[identifier.Identifier][]store.InverseRelation{}
-	currentRefTargets := map[identifier.Identifier]bool{}
-	if !deleted {
-		var errE errors.E
-		currentOutgoing, currentRefTargets, errE = b.outgoingRelationsAndTargets(ctx, doc)
-		if errE != nil {
-			return errE
-		}
+	// Aggregate each parent version's outgoing relations and reference targets, per level.
+	parentOutgoing := make([]map[identifier.Identifier][]store.InverseRelation, len(b.targets))
+	parentRefTargets := make([]map[identifier.Identifier]bool, len(b.targets))
+	for i := range b.targets {
+		parentOutgoing[i] = map[identifier.Identifier][]store.InverseRelation{}
+		parentRefTargets[i] = map[identifier.Identifier]bool{}
 	}
-
-	// Aggregate outgoing relations and reference targets across all parent versions.
-	parentOutgoing := map[identifier.Identifier][]store.InverseRelation{}
-	parentRefTargets := map[identifier.Identifier]bool{}
 	for _, pv := range parentChangesets {
 		parentDocs, _, _, parentDeleted, errE := b.produceLevels(ctx, changeID, &pv)
 		if parentDeleted {
-			// Parent was deleted, so it contributes no outgoing relations.
+			// Parent was deleted, so it contributes no outgoing relations at any level.
 			continue
 		} else if errE != nil {
 			return errE
 		}
-		// Use the highest-visibility (unfiltered) version. produceLevels guarantees it is present for a
-		// non-deleted document, so it is never nil here.
-		parentDoc := parentDocs[len(parentDocs)-1]
-		po, pt, errE := b.outgoingRelationsAndTargets(ctx, parentDoc)
+		for i, t := range b.targets {
+			if parentDocs[i] == nil {
+				continue
+			}
+			po, pt, errE := b.outgoingRelationsAndTargets(auth.WithVisibility(ctx, t.Level), t.Converter, parentDocs[i])
+			if errE != nil {
+				return errE
+			}
+			for targetID, irs := range po {
+				parentOutgoing[i][targetID] = append(parentOutgoing[i][targetID], irs...)
+			}
+			for targetID := range pt {
+				parentRefTargets[i][targetID] = true
+			}
+		}
+	}
+
+	for i, t := range b.targets {
+		currentOutgoing := map[identifier.Identifier][]store.InverseRelation{}
+		currentRefTargets := map[identifier.Identifier]bool{}
+		if !deleted && docs[i] != nil {
+			var errE errors.E
+			currentOutgoing, currentRefTargets, errE = b.outgoingRelationsAndTargets(auth.WithVisibility(ctx, t.Level), t.Converter, docs[i])
+			if errE != nil {
+				return errE
+			}
+		}
+
+		added, removed := diffOutgoingInverseRelations(currentOutgoing, parentOutgoing[i])
+		for targetID, irs := range added {
+			if addedInverseRelations[targetID] == nil {
+				addedInverseRelations[targetID] = map[string][]store.InverseRelation{}
+			}
+			addedInverseRelations[targetID][t.Level] = append(addedInverseRelations[targetID][t.Level], irs...)
+		}
+		for targetID, irs := range removed {
+			if removedInverseRelations[targetID] == nil {
+				removedInverseRelations[targetID] = map[string][]store.InverseRelation{}
+			}
+			removedInverseRelations[targetID][t.Level] = append(removedInverseRelations[targetID][t.Level], irs...)
+		}
+
+		// A target's counts.references changes when this document starts or stops referencing it at this
+		// level. The per-level symmetric difference is merged into the one flat reference-target set.
+		errE := b.collectChangedReferenceTargets(ctx, currentRefTargets, parentRefTargets[i], referenceTargets)
 		if errE != nil {
 			return errE
 		}
-		for targetID, irs := range po {
-			parentOutgoing[targetID] = append(parentOutgoing[targetID], irs...)
-		}
-		for targetID := range pt {
-			parentRefTargets[targetID] = true
-		}
 	}
 
-	added, removed := diffOutgoingInverseRelations(currentOutgoing, parentOutgoing)
-	for targetID, irs := range added {
-		addedInverseRelations[targetID] = append(addedInverseRelations[targetID], irs...)
-	}
-	for targetID, irs := range removed {
-		removedInverseRelations[targetID] = append(removedInverseRelations[targetID], irs...)
-	}
-
-	// A target's counts.references changes when this document starts or stops referencing it.
-	return b.collectChangedReferenceTargets(ctx, currentRefTargets, parentRefTargets, referenceTargets)
+	return nil
 }
 
 // getSeq reads the current last-indexed seq from the bridge table.
@@ -1533,13 +1555,23 @@ type preparedUpdate struct {
 	metadata *store.DocumentMetadata
 }
 
+// anyNonEmpty reports whether any visibility level in a per-level inverse-relation map holds a relation.
+func anyNonEmpty(byLevel map[string][]store.InverseRelation) bool {
+	for _, irs := range byLevel {
+		if len(irs) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // updateSeq advances the bridge table to seq, updates document metadata with inverse
 // relations, and enqueues both the documents whose inverse relations changed and the
 // documents whose counts.references must be refreshed (referenceTargets) for re-indexing,
 // all in a single transaction.
 func (b *Bridge) updateSeq(
 	ctx context.Context, seq int64,
-	addedInverseRelations, removedInverseRelations map[identifier.Identifier][]store.InverseRelation,
+	addedInverseRelations, removedInverseRelations map[identifier.Identifier]map[string][]store.InverseRelation,
 	referenceTargets map[identifier.Identifier]bool,
 ) errors.E {
 	logger := zerolog.Ctx(ctx)
@@ -1549,13 +1581,13 @@ func (b *Bridge) updateSeq(
 	for range internalStore.MaxRetries {
 		// Collect all affected document IDs from both added and removed maps.
 		affectedDocs := map[identifier.Identifier]bool{}
-		for docID, irs := range addedInverseRelations {
-			if len(irs) > 0 {
+		for docID, byLevel := range addedInverseRelations {
+			if anyNonEmpty(byLevel) {
 				affectedDocs[docID] = true
 			}
 		}
-		for docID, irs := range removedInverseRelations {
-			if len(irs) > 0 {
+		for docID, byLevel := range removedInverseRelations {
+			if anyNonEmpty(byLevel) {
 				affectedDocs[docID] = true
 			}
 		}
@@ -1586,8 +1618,12 @@ func (b *Bridge) updateSeq(
 			} else if errE != nil {
 				return errE
 			}
-			metadata.RemoveInverseRelations(removedInverseRelations[docID])
-			metadata.AddInverseRelations(addedInverseRelations[docID])
+			for level, irs := range removedInverseRelations[docID] {
+				metadata.RemoveInverseRelations(level, irs)
+			}
+			for level, irs := range addedInverseRelations[docID] {
+				metadata.AddInverseRelations(level, irs)
+			}
 			updates = append(updates, preparedUpdate{id: docID, version: version, metadata: metadata})
 		}
 

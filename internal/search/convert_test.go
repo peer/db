@@ -8141,7 +8141,11 @@ func TestFromDocumentIncomingInverseRelation(t *testing.T) {
 		newIR(claimID, sourceDocID, propX, propY, identifier.Identifier{}, document.HighConfidence),
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil, InverseRelations: inverseRelations})
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{
+		At:               store.Time{},
+		Users:            nil,
+		InverseRelations: map[string][]store.InverseRelation{"": inverseRelations},
+	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have a reverse relation claim with property Y pointing to source document.
@@ -8184,7 +8188,11 @@ func TestFromDocumentIncomingInverseRelationMultipleInverses(t *testing.T) {
 		newIR(claimID, sourceDocID, propB, propC, identifier.Identifier{}, document.HighConfidence),
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil, InverseRelations: inverseRelations})
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{
+		At:               store.Time{},
+		Users:            nil,
+		InverseRelations: map[string][]store.InverseRelation{"": inverseRelations},
+	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have two reverse relation claims: one for A and one for C.
@@ -8229,7 +8237,11 @@ func TestFromDocumentIncomingInverseRelationBidirectional(t *testing.T) {
 		newIR(identifier.New(), sourceDocID, propA, propB, identifier.Identifier{}, document.HighConfidence),
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil, InverseRelations: inverseRelations})
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{
+		At:               store.Time{},
+		Users:            nil,
+		InverseRelations: map[string][]store.InverseRelation{"": inverseRelations},
+	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should produce a reverse claim with property B.

@@ -22,6 +22,7 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
@@ -176,7 +177,14 @@ func setupBridge(t *testing.T) (context.Context, *bridgeEnv) {
 func startBridge(ctx context.Context, t *testing.T, env *bridgeEnv, converter *internalSearch.Converter) {
 	t.Helper()
 
-	errE := env.bridge.Prepare(ctx, []internalSearch.Target{{Level: "all", Index: env.bridge.Index, Converter: converter}})
+	startBridgeWithTargets(ctx, t, env, []internalSearch.Target{{Level: "all", Index: env.bridge.Index, Converter: converter}})
+}
+
+// startBridgeWithTargets is startBridge with an explicit set of per-level targets, for multi-level tests.
+func startBridgeWithTargets(ctx context.Context, t *testing.T, env *bridgeEnv, targets []internalSearch.Target) {
+	t.Helper()
+
+	errE := env.bridge.Prepare(ctx, targets)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	err := env.riverClient.Start(ctx)
@@ -581,6 +589,79 @@ func makeConverterWithInverse(
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 	return c
+}
+
+// TestBridgePerLevelInverseRelations indexes a source document A (with a relation A --X--> B) into two
+// visibility levels, with a post-hook that denies A at the lower "public" level (so A is hidden there). The
+// inverse relation A produces on B must appear in B's metadata only for the unfiltered "editor" level, never
+// for "public", which is the per-level separation guarantee.
+func TestBridgePerLevelInverseRelations(t *testing.T) {
+	t.Parallel()
+
+	ctx, env := setupBridge(t)
+	s, b := env.store, env.bridge
+
+	propX := identifier.New()
+	propY := identifier.New()
+	docA := identifier.New()
+	docB := identifier.New()
+
+	const lvlPublic, lvlEditor = "public", "editor"
+
+	// The post-hook denies the source document A at the public level (like an opted-out document), so A's
+	// relation must not contribute an inverse relation to that level. The editor (top) level is unfiltered.
+	b.DocumentPostHooks = []func(
+		ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
+	) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E){
+		func(
+			ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
+		) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
+			if errE != nil {
+				return doc, metadata, version, parentChangesets, errE
+			}
+			if doc != nil && doc.ID == docA && auth.Visibility(ctx) == lvlPublic {
+				return doc, metadata, version, parentChangesets, errors.WithStack(store.ErrAccessDenied)
+			}
+			return doc, metadata, version, parentChangesets, nil
+		},
+	}
+
+	indexPublic := internalSearch.LevelIndex(b.Index, lvlPublic)
+	indexEditor := internalSearch.LevelIndex(b.Index, lvlEditor)
+	for _, idx := range []string{indexPublic, indexEditor} {
+		errE := internalSearch.EnsureIndex(ctx, env.esClient, idx, 1, nil)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		t.Cleanup(func() {
+			_, err := env.esClient.Indices.Delete(idx).IgnoreUnavailable(true).Do(context.Background())
+			testutils.RequireNoESError(t, err)
+		})
+	}
+
+	startBridgeWithTargets(ctx, t, env, []internalSearch.Target{
+		{Level: lvlPublic, Index: indexPublic, Converter: makeConverterWithInverse(t, propX, propY, s)},
+		{Level: lvlEditor, Index: indexEditor, Converter: makeConverterWithInverse(t, propX, propY, s)},
+	})
+
+	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, docB, makeDocJSON(t, docB), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, docA, makeDocWithRelationJSON(t, docA, propX, docB), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, metadata, _, _, errE := s.GetLatest(ctx, docB)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		assert.NotEmpty(c, metadata.InverseRelations[lvlEditor], "docB should have an inverse relation at the editor level")
+		assert.Empty(c, metadata.InverseRelations[lvlPublic], "docB must not have an inverse relation at the public level (source hidden there)")
+	}, 10*time.Second, 100*time.Millisecond)
 }
 
 func TestBridgeInverseRelationReindexing(t *testing.T) {

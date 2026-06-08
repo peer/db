@@ -19,6 +19,7 @@ import (
 	"gitlab.com/tozd/identifier"
 	"golang.org/x/net/html"
 
+	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	"gitlab.com/peerdb/peerdb/store"
@@ -2050,7 +2051,9 @@ func (c *Converter) FromDocument(
 	var lastUpdated *float64
 	var inverseRelations []store.InverseRelation
 	if metadata != nil {
-		inverseRelations = metadata.InverseRelations
+		// Render only the inverse relations for the caller's visibility level: the source documents are
+		// already filtered per level when these buckets are accumulated, so there is no leak across levels.
+		inverseRelations = metadata.InverseRelations[auth.Visibility(ctx)]
 		if at := time.Time(metadata.At); !at.IsZero() {
 			seconds := x.TimeToFloat64(at)
 			lastUpdated = &seconds
