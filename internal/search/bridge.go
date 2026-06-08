@@ -1292,8 +1292,11 @@ func (b *Bridge) GetDocument(ctx context.Context, id identifier.Identifier) (*do
 	}
 	if !deleted {
 		for i, t := range b.targets {
-			if t.Level == level && docs[i] != nil {
-				return docs[i], nil
+			if t.Level == level {
+				if docs[i] != nil {
+					return docs[i], nil
+				}
+				break
 			}
 		}
 	}
