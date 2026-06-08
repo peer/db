@@ -840,7 +840,7 @@ func withCommitDetails(errE errors.E, seq int64, view, changeset, doc string) er
 // The first returned map contains, for each target document ID, the inverse relations that
 // should be stored in that document's metadata. The second returned map contains
 // inverse relations that should be removed from the document's metadata.
-func (b *Bridge) indexCommit(
+func (b *Bridge) indexCommit( //nolint:maintidx
 	ctx context.Context,
 	committed store.CommittedChangesets[
 		json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes,
