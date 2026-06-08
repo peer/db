@@ -323,6 +323,11 @@ type ReferenceClaim struct {
 	// ancestor IDs joined by "/". Multiple paths exist when the target has
 	// multiple parents in a hierarchy or participates in multiple hierarchies.
 	ToPath []string `json:"toPath,omitempty"`
+	// ToFullPath is the hierarchy path of the original (leaf) target this claim was expanded from,
+	// the same for every record produced from one stated claim (the leaf and each of its ancestors).
+	// While ToPath is the path of this record's own To value, ToFullPath identifies the leaf the
+	// record derives from.
+	ToFullPath []string `json:"toFullPath,omitempty"`
 	// ToDisplayPath contains per-language display hierarchy paths from root to the
 	// target document. Each path is a string of display labels joined by null bytes,
 	// which ensures correct hierarchical sort order.
@@ -331,6 +336,14 @@ type ReferenceClaim struct {
 	// references it but none of its narrower values (its descendants in the value hierarchy) for
 	// the same property. It lets the reference filter count and select documents that are exactly
 	// this value, with none of its narrower values ("direct").
+	//
+	// IsLeaf is a property of the whole document (computed across all of its claims for this
+	// property), so it is not the same as ToPath == ToFullPath (which holds for the record whose To is
+	// its own claim's stated value). The two diverge when a document states both a parent and a child
+	// directly: the parent's directly-stated record has ToPath == ToFullPath, but IsLeaf is false
+	// because the child (a narrower value) is also referenced, so the document is not exactly the
+	// parent. That is why IsLeaf is computed and stored separately, not derived from ToPath ==
+	// ToFullPath.
 	IsLeaf bool `json:"isLeaf,omitempty"`
 }
 
@@ -402,6 +415,11 @@ type SubRefClaim struct {
 	// ancestor IDs joined by "/". Multiple paths exist when the target has
 	// multiple parents in a hierarchy or participates in multiple hierarchies.
 	ToPath []string `json:"toPath,omitempty"`
+	// ToFullPath is the hierarchy path of the original (leaf) target this claim was expanded from,
+	// the same for every record produced from one stated sub-claim (the leaf and each of its
+	// ancestors). While ToPath is the path of this record's own To value, ToFullPath identifies the
+	// leaf the record derives from.
+	ToFullPath []string `json:"toFullPath,omitempty"`
 	// ToDisplayPath contains per-language display hierarchy paths from root to the
 	// target document. Each path is a string of display labels joined by null bytes,
 	// which ensures correct hierarchical sort order.
@@ -409,6 +427,14 @@ type SubRefClaim struct {
 	// IsLeaf is true when the target is a most-specific value for this document under the same
 	// parent: none of its narrower values (descendants in the value hierarchy) are also present.
 	// It lets the sub-reference filter count and select documents that are exactly this value.
+	//
+	// IsLeaf is a property of the whole document (computed across all of its claims for this
+	// property), so it is not the same as ToPath == ToFullPath (which holds for the record whose To is
+	// its own claim's stated value). The two diverge when a document states both a parent and a child
+	// directly: the parent's directly-stated record has ToPath == ToFullPath, but IsLeaf is false
+	// because the child (a narrower value) is also referenced, so the document is not exactly the
+	// parent. That is why IsLeaf is computed and stored separately, not derived from ToPath ==
+	// ToFullPath.
 	IsLeaf bool `json:"isLeaf,omitempty"`
 }
 

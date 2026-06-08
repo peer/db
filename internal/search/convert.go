@@ -3104,15 +3104,18 @@ func (c *Converter) convertSubRefs(
 	for _, pp := range parentProps {
 		for _, r := range resolved {
 			result = append(result, SubRefClaim{
-				ParentProp:    pp,
-				ParentTo:      parentTo,
-				Prop:          r.Prop,
-				PropDisplay:   r.PropDisplay,
-				PropNaming:    r.PropNaming,
-				To:            r.To,
-				ToDisplay:     r.ToDisplay,
-				ToNaming:      r.ToNaming,
-				ToPath:        r.ToPath,
+				ParentProp:  pp,
+				ParentTo:    parentTo,
+				Prop:        r.Prop,
+				PropDisplay: r.PropDisplay,
+				PropNaming:  r.PropNaming,
+				To:          r.To,
+				ToDisplay:   r.ToDisplay,
+				ToNaming:    r.ToNaming,
+				ToPath:      r.ToPath,
+				// Sub-references are not expanded to value-hierarchy ancestors, so each record's To is
+				// the stated sub-value and its full (leaf) path is its own ToPath.
+				ToFullPath:    r.ToPath,
 				ToDisplayPath: r.ToDisplayPath,
 				// Set by markReferenceLeaves once all of the document's sub-ref claims are collected.
 				IsLeaf: false,
@@ -3297,6 +3300,11 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 		}
 	}
 
+	// fullPath is the original (leaf) target's hierarchy path. It is stamped onto every record this
+	// claim expands into (the target and each of its ancestors), so a prefilter can identify and drop
+	// all records derived from a given leaf value.
+	fullPath, _ := targetInfo.CollectHierarchyPaths()
+
 	result := make([]ReferenceClaim, 0, len(props)*len(targets))
 	for _, pid := range props {
 		propDisplay, errE := c.getDisplayStrings(ctx, pid)
@@ -3326,6 +3334,7 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 				ToDisplay:     tidInfo.Display.Display,
 				ToNaming:      tidInfo.Display.Naming,
 				ToPath:        toPath,
+				ToFullPath:    fullPath,
 				ToDisplayPath: toDisplayPath,
 				// Set by markReferenceLeaves once all of the document's reference claims are collected.
 				IsLeaf: false,

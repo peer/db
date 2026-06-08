@@ -430,6 +430,10 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 					idPath,
 				},
 				{
+					"toFullPath",
+					idPath,
+				},
+				{
 					"toDisplayPath",
 					displayPath(langs),
 				},
@@ -532,6 +536,10 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 				},
 				{
 					"toPath",
+					idPath,
+				},
+				{
+					"toFullPath",
 					idPath,
 				},
 				{
