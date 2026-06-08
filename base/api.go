@@ -12,47 +12,10 @@ import (
 
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
-	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/storage"
 	"gitlab.com/peerdb/peerdb/store"
 )
-
-func (b *B) withHooks(
-	ctx context.Context, id identifier.Identifier, version *store.Version,
-	fetch func() (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E),
-) (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
-	for _, hook := range b.DocumentPreHooks {
-		errE := hook(ctx, id, version)
-		if errE != nil {
-			return nil, nil, store.Version{}, nil, errE
-		}
-	}
-	data, metadata, resolved, parentChangesets, errE := fetch()
-	if len(b.DocumentPostHooks) > 0 {
-		var doc *document.D
-		if data != nil {
-			doc = new(document.D)
-			errE2 := x.UnmarshalWithoutUnknownFields(data, doc)
-			if errE2 != nil {
-				return nil, metadata, resolved, parentChangesets, errors.Join(errE, errE2)
-			}
-		}
-		for _, hook := range b.DocumentPostHooks {
-			doc, metadata, resolved, parentChangesets, errE = hook(ctx, doc, metadata, resolved, parentChangesets, errE)
-		}
-		if doc != nil {
-			var errE2 errors.E
-			data, errE2 = x.MarshalWithoutEscapeHTML(doc)
-			if errE != nil {
-				return nil, metadata, resolved, parentChangesets, errors.Join(errE, errE2)
-			}
-		} else {
-			data = nil
-		}
-	}
-	return data, metadata, resolved, parentChangesets, errE
-}
 
 // GetDocument returns the document at the given version as raw JSON.
 //
@@ -84,7 +47,7 @@ func (b *B) GetDocumentLatest(
 // It returns also document metadata, the version of the document, and parent
 // changesets of the document at this version.
 func (b *B) GetDocumentLatestDoc(ctx context.Context, id identifier.Identifier) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
-	return internalSearch.WithDocumentHooks(ctx, id, nil, b.DocumentPreHooks, b.DocumentPostHooks,
+	return b.withDocumentHooks(ctx, id, nil,
 		func() (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
 			return b.documents.GetLatest(ctx, id)
 		},

@@ -1,5 +1,4 @@
-//nolint:testpackage
-package search
+package base_test
 
 import (
 	"context"
@@ -12,19 +11,37 @@ import (
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/base"
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
-// docPostHook is the document post-hook signature used by WithDocumentHooks.
+// Helper IDs for tests.
+//
+//nolint:gochecknoglobals
+var (
+	testPropID = identifier.New()
+	testDocID  = identifier.New()
+)
+
+// makeCoreClaim creates a CoreClaim with the given confidence and optional sub-claims.
+func makeCoreClaim(confidence document.Confidence, sub *document.ClaimTypes) document.CoreClaim {
+	return document.CoreClaim{
+		ID:         identifier.New(),
+		Confidence: confidence,
+		Sub:        sub,
+	}
+}
+
+// docPostHook is the document post-hook signature used by TestingWithDocumentHooks.
 type docPostHook = func(
 	ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
 ) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E)
 
-// docPreHook is the document pre-hook signature used by WithDocumentHooks.
+// docPreHook is the document pre-hook signature used by TestingWithDocumentHooks.
 type docPreHook = func(ctx context.Context, id identifier.Identifier, version *store.Version) errors.E
 
-// fetchOf returns a WithDocumentHooks fetch closure that yields doc marshaled as the latest version, or
+// fetchOf returns a TestingWithDocumentHooks fetch closure that yields doc marshaled as the latest version, or
 // a deleted (nil data) result when doc is nil.
 func fetchOf(t *testing.T, doc *document.D) func() (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
 	t.Helper()
@@ -62,8 +79,9 @@ func addStringHook(value string) docPostHook {
 func TestWithDocumentHooksPostModifies(t *testing.T) {
 	t.Parallel()
 
-	in := &document.D{CoreDocument: document.CoreDocument{ID: testDocID}}                                                               //nolint:exhaustruct
-	doc, _, _, _, errE := WithDocumentHooks(t.Context(), testDocID, nil, nil, []docPostHook{addStringHook("injected")}, fetchOf(t, in)) //nolint:dogsled
+	b := &base.B{DocumentPostHooks: []docPostHook{addStringHook("injected")}}                     //nolint:exhaustruct
+	in := &document.D{CoreDocument: document.CoreDocument{ID: testDocID}}                         //nolint:exhaustruct
+	doc, _, _, _, errE := b.TestingWithDocumentHooks(t.Context(), testDocID, nil, fetchOf(t, in)) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotNil(t, doc)
 	assert.Len(t, doc.Get(testPropID), 1)
@@ -72,9 +90,9 @@ func TestWithDocumentHooksPostModifies(t *testing.T) {
 func TestWithDocumentHooksMultiplePost(t *testing.T) {
 	t.Parallel()
 
-	in := &document.D{CoreDocument: document.CoreDocument{ID: testDocID}} //nolint:exhaustruct
-	post := []docPostHook{addStringHook("first"), addStringHook("second")}
-	doc, _, _, _, errE := WithDocumentHooks(t.Context(), testDocID, nil, nil, post, fetchOf(t, in)) //nolint:dogsled
+	b := &base.B{DocumentPostHooks: []docPostHook{addStringHook("first"), addStringHook("second")}} //nolint:exhaustruct
+	in := &document.D{CoreDocument: document.CoreDocument{ID: testDocID}}                           //nolint:exhaustruct
+	doc, _, _, _, errE := b.TestingWithDocumentHooks(t.Context(), testDocID, nil, fetchOf(t, in))   //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotNil(t, doc)
 	assert.Len(t, doc.Get(testPropID), 2)
@@ -90,8 +108,9 @@ func TestWithDocumentHooksPostError(t *testing.T) {
 			return nil, metadata, version, parentChangesets, errors.New("post hook failed")
 		},
 	}
-	in := &document.D{CoreDocument: document.CoreDocument{ID: testDocID}}                         //nolint:exhaustruct
-	_, _, _, _, errE := WithDocumentHooks(t.Context(), testDocID, nil, nil, post, fetchOf(t, in)) //nolint:dogsled
+	b := &base.B{DocumentPostHooks: post}                                                       //nolint:exhaustruct
+	in := &document.D{CoreDocument: document.CoreDocument{ID: testDocID}}                       //nolint:exhaustruct
+	_, _, _, _, errE := b.TestingWithDocumentHooks(t.Context(), testDocID, nil, fetchOf(t, in)) //nolint:dogsled
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "post hook failed")
 }
@@ -109,7 +128,8 @@ func TestWithDocumentHooksPreErrorSkipsFetch(t *testing.T) {
 		fetched = true
 		return nil, nil, store.Version{}, nil, nil
 	}
-	_, _, _, _, errE := WithDocumentHooks(t.Context(), testDocID, nil, pre, nil, fetch) //nolint:dogsled
+	b := &base.B{DocumentPreHooks: pre}                                                //nolint:exhaustruct
+	_, _, _, _, errE := b.TestingWithDocumentHooks(t.Context(), testDocID, nil, fetch) //nolint:dogsled
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "pre hook failed")
 	assert.False(t, fetched, "fetch must not run when a pre-hook fails")
@@ -127,7 +147,8 @@ func TestWithDocumentHooksDeleted(t *testing.T) {
 			return doc, metadata, version, parentChangesets, errE
 		},
 	}
-	doc, _, _, _, errE := WithDocumentHooks(t.Context(), testDocID, nil, nil, post, fetchOf(t, nil)) //nolint:dogsled
+	b := &base.B{DocumentPostHooks: post}                                                          //nolint:exhaustruct
+	doc, _, _, _, errE := b.TestingWithDocumentHooks(t.Context(), testDocID, nil, fetchOf(t, nil)) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, doc)
 	assert.True(t, sawNil, "a post-hook runs with a nil document for a deleted document")
