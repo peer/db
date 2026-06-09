@@ -40,7 +40,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
+				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil,
 				IsLeaf: false,
 			}},
 			Has: nil, None: nil, Unknown: nil,
@@ -67,7 +67,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
+				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil,
 				IsLeaf: false,
 			}},
 			Has:       nil,
@@ -96,7 +96,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil,
-				To: target2, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
+				To: target2, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil,
 				IsLeaf: false,
 			}},
 			Has:       nil,
@@ -165,7 +165,7 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
+				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil,
 				IsLeaf: false,
 			}},
 			Has:       nil,
@@ -194,7 +194,7 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil,
-				To: target2, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
+				To: target2, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil,
 				IsLeaf: false,
 			}},
 			Has:       nil,
@@ -251,7 +251,7 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
+				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil,
 				IsLeaf: false,
 			}},
 			Has:       nil,
@@ -359,7 +359,7 @@ func TestRefFilterGetNoMissingIntegration(t *testing.T) {
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
+				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil,
 				IsLeaf: false,
 			}},
 			Has:       nil,
@@ -436,9 +436,21 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 			Time:       nil,
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{
-				{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: dog, ToDisplay: nil, ToNaming: nil, ToPath: []string{dogPath}, ToDisplayPath: nil, IsLeaf: false},
-				{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: mammal, ToDisplay: nil, ToNaming: nil, ToPath: []string{mammalPath}, ToDisplayPath: nil, IsLeaf: false},
-				{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: animal, ToDisplay: nil, ToNaming: nil, ToPath: []string{animalPath}, ToDisplayPath: nil, IsLeaf: false},
+				{
+					Prop: refProp, PropDisplay: nil, PropNaming: nil,
+					To: dog, ToDisplay: nil, ToNaming: nil, ToPath: []string{dogPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil,
+					IsLeaf: false,
+				},
+				{
+					Prop: refProp, PropDisplay: nil, PropNaming: nil,
+					To: mammal, ToDisplay: nil, ToNaming: nil, ToPath: []string{mammalPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil,
+					IsLeaf: false,
+				},
+				{
+					Prop: refProp, PropDisplay: nil, PropNaming: nil,
+					To: animal, ToDisplay: nil, ToNaming: nil, ToPath: []string{animalPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil,
+					IsLeaf: false,
+				},
 			},
 			Has:       nil,
 			None:      nil,
@@ -497,19 +509,39 @@ func TestRefFilterDirectIntegration(t *testing.T) {
 	// A painter document is most-specific painter (isLeaf), and also an artist via ancestor
 	// expansion (not most-specific, so isLeaf is false on the artist claim).
 	painterClaims := internalSearch.ReferenceClaims{
-		{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: painter, ToDisplay: nil, ToNaming: nil, ToPath: []string{painterPath}, ToDisplayPath: nil, IsLeaf: true},
-		{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: artist, ToDisplay: nil, ToNaming: nil, ToPath: []string{artistPath}, ToDisplayPath: nil, IsLeaf: false},
+		{
+			Prop: refProp, PropDisplay: nil, PropNaming: nil,
+			To: painter, ToDisplay: nil, ToNaming: nil, ToPath: []string{painterPath}, ToFullPath: []string{painterPath}, ToDisplayPath: nil,
+			IsLeaf: true,
+		},
+		{
+			Prop: refProp, PropDisplay: nil, PropNaming: nil,
+			To: artist, ToDisplay: nil, ToNaming: nil, ToPath: []string{artistPath}, ToFullPath: []string{painterPath}, ToDisplayPath: nil,
+			IsLeaf: false,
+		},
 	}
 	// A sculptor document is most-specific sculptor (isLeaf), and also an artist via ancestor
 	// expansion. There are more sculptors than artist-only documents, so the sculptor value
 	// outcounts the artist "direct" entry, while painter undercounts it.
 	sculptorClaims := internalSearch.ReferenceClaims{
-		{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: sculptor, ToDisplay: nil, ToNaming: nil, ToPath: []string{sculptorPath}, ToDisplayPath: nil, IsLeaf: true},
-		{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: artist, ToDisplay: nil, ToNaming: nil, ToPath: []string{artistPath}, ToDisplayPath: nil, IsLeaf: false},
+		{
+			Prop: refProp, PropDisplay: nil, PropNaming: nil,
+			To: sculptor, ToDisplay: nil, ToNaming: nil, ToPath: []string{sculptorPath}, ToFullPath: []string{sculptorPath}, ToDisplayPath: nil,
+			IsLeaf: true,
+		},
+		{
+			Prop: refProp, PropDisplay: nil, PropNaming: nil,
+			To: artist, ToDisplay: nil, ToNaming: nil, ToPath: []string{artistPath}, ToFullPath: []string{sculptorPath}, ToDisplayPath: nil,
+			IsLeaf: false,
+		},
 	}
 	// An artist-only document is most-specific artist (isLeaf), with no narrower painter or sculptor.
 	artistClaims := internalSearch.ReferenceClaims{
-		{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: artist, ToDisplay: nil, ToNaming: nil, ToPath: []string{artistPath}, ToDisplayPath: nil, IsLeaf: true},
+		{
+			Prop: refProp, PropDisplay: nil, PropNaming: nil,
+			To: artist, ToDisplay: nil, ToNaming: nil, ToPath: []string{artistPath}, ToFullPath: []string{artistPath}, ToDisplayPath: nil,
+			IsLeaf: true,
+		},
 	}
 
 	indexRefDoc := func(id identifier.Identifier, claims internalSearch.ReferenceClaims) {
@@ -634,7 +666,7 @@ func TestRefFilterGetDiamondIntegration(t *testing.T) {
 			Reference: internalSearch.ReferenceClaims{
 				{
 					Prop: refProp, PropDisplay: nil, PropNaming: nil,
-					To: leaf, ToDisplay: nil, ToNaming: nil, ToPath: []string{leafPathA, leafPathB}, ToDisplayPath: nil,
+					To: leaf, ToDisplay: nil, ToNaming: nil, ToPath: []string{leafPathA, leafPathB}, ToFullPath: []string{leafPathA, leafPathB}, ToDisplayPath: nil,
 					IsLeaf: false,
 				},
 			},
@@ -714,22 +746,34 @@ func TestRefFilterGetMultipleInheritanceIntegration(t *testing.T) {
 			Reference: internalSearch.ReferenceClaims{
 				{
 					Prop: refProp, PropDisplay: nil, PropNaming: nil,
-					To: leaf, ToDisplay: nil, ToNaming: nil, ToPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil,
+					To: leaf, ToDisplay: nil, ToNaming: nil, ToPath: []string{leafViaDeep, leafViaShallow}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil,
 					IsLeaf: false,
 				},
 				{
 					Prop: refProp, PropDisplay: nil, PropNaming: nil,
-					To: deepParent, ToDisplay: nil, ToNaming: nil, ToPath: []string{deepParentPath}, ToDisplayPath: nil,
+					To: deepParent, ToDisplay: nil, ToNaming: nil, ToPath: []string{deepParentPath}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil,
 					IsLeaf: false,
 				},
 				{
 					Prop: refProp, PropDisplay: nil, PropNaming: nil,
-					To: shallowParent, ToDisplay: nil, ToNaming: nil, ToPath: []string{shallowParentPath}, ToDisplayPath: nil,
+					To: shallowParent, ToDisplay: nil, ToNaming: nil, ToPath: []string{shallowParentPath}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil,
 					IsLeaf: false,
 				},
-				{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: mid2, ToDisplay: nil, ToNaming: nil, ToPath: []string{mid2Path}, ToDisplayPath: nil, IsLeaf: false},
-				{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: mid1, ToDisplay: nil, ToNaming: nil, ToPath: []string{mid1Path}, ToDisplayPath: nil, IsLeaf: false},
-				{Prop: refProp, PropDisplay: nil, PropNaming: nil, To: root, ToDisplay: nil, ToNaming: nil, ToPath: []string{rootPath}, ToDisplayPath: nil, IsLeaf: false},
+				{
+					Prop: refProp, PropDisplay: nil, PropNaming: nil,
+					To: mid2, ToDisplay: nil, ToNaming: nil, ToPath: []string{mid2Path}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil,
+					IsLeaf: false,
+				},
+				{
+					Prop: refProp, PropDisplay: nil, PropNaming: nil,
+					To: mid1, ToDisplay: nil, ToNaming: nil, ToPath: []string{mid1Path}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil,
+					IsLeaf: false,
+				},
+				{
+					Prop: refProp, PropDisplay: nil, PropNaming: nil,
+					To: root, ToDisplay: nil, ToNaming: nil, ToPath: []string{rootPath}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil,
+					IsLeaf: false,
+				},
 			},
 			Has:       nil,
 			None:      nil,
@@ -818,24 +862,30 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 			SubRef: internalSearch.SubRefClaims{
 				{
 					ParentProp: parentProp, ParentTo: parentTo,
-					Prop: subProp, PropDisplay: nil, PropNaming: nil,
-					To: dog, ToDisplay: nil, ToNaming: nil,
-					ToPath: []string{dogPath}, ToDisplayPath: nil,
-					IsLeaf: false,
+					ReferenceClaim: internalSearch.ReferenceClaim{
+						Prop: subProp, PropDisplay: nil, PropNaming: nil,
+						To: dog, ToDisplay: nil, ToNaming: nil,
+						ToPath: []string{dogPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil,
+						IsLeaf: false,
+					},
 				},
 				{
 					ParentProp: parentProp, ParentTo: parentTo,
-					Prop: subProp, PropDisplay: nil, PropNaming: nil,
-					To: mammal, ToDisplay: nil, ToNaming: nil,
-					ToPath: []string{mammalPath}, ToDisplayPath: nil,
-					IsLeaf: false,
+					ReferenceClaim: internalSearch.ReferenceClaim{
+						Prop: subProp, PropDisplay: nil, PropNaming: nil,
+						To: mammal, ToDisplay: nil, ToNaming: nil,
+						ToPath: []string{mammalPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil,
+						IsLeaf: false,
+					},
 				},
 				{
 					ParentProp: parentProp, ParentTo: parentTo,
-					Prop: subProp, PropDisplay: nil, PropNaming: nil,
-					To: animal, ToDisplay: nil, ToNaming: nil,
-					ToPath: []string{animalPath}, ToDisplayPath: nil,
-					IsLeaf: false,
+					ReferenceClaim: internalSearch.ReferenceClaim{
+						Prop: subProp, PropDisplay: nil, PropNaming: nil,
+						To: animal, ToDisplay: nil, ToNaming: nil,
+						ToPath: []string{animalPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil,
+						IsLeaf: false,
+					},
 				},
 			},
 			SubAmount: nil,
