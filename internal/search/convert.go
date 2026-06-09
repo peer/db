@@ -3054,9 +3054,11 @@ func (c *Converter) extractSubClaims(
 	return result, nil
 }
 
-// convertSubRefs extracts reference sub-claims from a claim's sub-claims and
-// produces SubRefClaim entries for each (parentProp, parentTo, subRef)
-// combination.
+// convertSubRefs extracts reference sub-claims from a claim's sub-claims and produces SubRefClaim
+// entries for each (parentProp, parentTo, subRef) combination. Each sub-value is expanded across its
+// value hierarchies the same way convertReference expands top-level reference targets: one record for
+// the stated value plus one for each of its ancestors, so a sub-reference filter can count and select
+// against ancestor values too.
 func (c *Converter) convertSubRefs(
 	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,
 ) ([]SubRefClaim, errors.E) {
@@ -3065,7 +3067,8 @@ func (c *Converter) convertSubRefs(
 		return nil, nil
 	}
 
-	// Pre-resolve display strings and hierarchy paths for each sub-relation.
+	// Pre-resolve display strings and hierarchy paths for each sub-relation, expanding the sub-value
+	// across its value hierarchies into one resolved entry per stated value or ancestor.
 	type resolvedSubRef struct {
 		Prop          identifier.Identifier
 		PropDisplay   map[string]string
@@ -3074,6 +3077,7 @@ func (c *Converter) convertSubRefs(
 		ToDisplay     map[string]string
 		ToNaming      map[string][]string
 		ToPath        []string
+		ToFullPath    []string
 		ToDisplayPath map[string][]string
 	}
 	resolved := make([]resolvedSubRef, 0, len(subRelations))
@@ -3086,17 +3090,45 @@ func (c *Converter) convertSubRefs(
 		if errE != nil {
 			return nil, errE
 		}
-		toPath, toDisplayPath := mrToInfo.CollectHierarchyPaths()
-		resolved = append(resolved, resolvedSubRef{
-			Prop:          mr.Prop.ID,
-			PropDisplay:   mrPropDisplay.Display,
-			PropNaming:    mrPropDisplay.Naming,
-			To:            mr.To.ID,
-			ToDisplay:     mrToInfo.Display.Display,
-			ToNaming:      mrToInfo.Display.Naming,
-			ToPath:        toPath,
-			ToDisplayPath: toDisplayPath,
-		})
+
+		// fullPath is the stated sub-value's own (leaf) hierarchy path, stamped onto every record this
+		// sub-value expands into (the value itself and each of its ancestors).
+		fullPath, _ := mrToInfo.CollectHierarchyPaths()
+
+		// targets is the stated sub-value plus its ancestors from all value hierarchies.
+		targets := []identifier.Identifier{mr.To.ID}
+		seen := map[identifier.Identifier]bool{mr.To.ID: true}
+		for _, ancestors := range mrToInfo.Ancestors {
+			for _, aid := range ancestors {
+				if !seen[aid] {
+					seen[aid] = true
+					targets = append(targets, aid)
+				}
+			}
+		}
+
+		for _, tid := range targets {
+			tidInfo := mrToInfo
+			if tid != mr.To.ID {
+				// Ancestors were already computed during the hierarchy walk, so this hits cache.
+				tidInfo, errE = c.getDocumentInfo(ctx, tid)
+				if errE != nil {
+					return nil, errE
+				}
+			}
+			toPath, toDisplayPath := tidInfo.CollectHierarchyPaths()
+			resolved = append(resolved, resolvedSubRef{
+				Prop:          mr.Prop.ID,
+				PropDisplay:   mrPropDisplay.Display,
+				PropNaming:    mrPropDisplay.Naming,
+				To:            tid,
+				ToDisplay:     tidInfo.Display.Display,
+				ToNaming:      tidInfo.Display.Naming,
+				ToPath:        toPath,
+				ToFullPath:    fullPath,
+				ToDisplayPath: toDisplayPath,
+			})
+		}
 	}
 
 	// Cross product of parentProps x resolved sub-refs.
@@ -3107,16 +3139,14 @@ func (c *Converter) convertSubRefs(
 				ParentProp: pp,
 				ParentTo:   parentTo,
 				ReferenceClaim: ReferenceClaim{
-					Prop:        r.Prop,
-					PropDisplay: r.PropDisplay,
-					PropNaming:  r.PropNaming,
-					To:          r.To,
-					ToDisplay:   r.ToDisplay,
-					ToNaming:    r.ToNaming,
-					ToPath:      r.ToPath,
-					// Sub-references are not expanded to value-hierarchy ancestors, so each record's To is
-					// the stated sub-value and its full (leaf) path is its own ToPath.
-					ToFullPath:    r.ToPath,
+					Prop:          r.Prop,
+					PropDisplay:   r.PropDisplay,
+					PropNaming:    r.PropNaming,
+					To:            r.To,
+					ToDisplay:     r.ToDisplay,
+					ToNaming:      r.ToNaming,
+					ToPath:        r.ToPath,
+					ToFullPath:    r.ToFullPath,
 					ToDisplayPath: r.ToDisplayPath,
 					// Set by markReferenceLeaves once all of the document's sub-ref claims are collected.
 					IsLeaf: false,

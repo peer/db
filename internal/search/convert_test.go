@@ -4369,6 +4369,97 @@ func TestConvertReferenceSubClaimHierarchyExpansion(t *testing.T) {
 	}
 }
 
+// TestConvertReferenceSubValueHierarchyExpansion verifies that a reference sub-claim's own target is
+// expanded across its value hierarchy, the same way top-level reference targets are: the stated
+// sub-value plus each of its ancestors get their own SubRefClaim, all sharing the stated leaf's
+// ToFullPath, while only the stated value's record has ToPath equal to ToFullPath.
+func TestConvertReferenceSubValueHierarchyExpansion(t *testing.T) {
+	t.Parallel()
+
+	// Set up hierarchy property chain so SUBCLASS_OF is discovered as a value hierarchy property.
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
+
+	target := identifier.New()
+	subPropID := identifier.New()
+	subTargetID := identifier.New()
+	subClassParent := identifier.New()
+
+	// The sub-value has SUBCLASS_OF -> subClassParent, so it expands into the stated value plus its ancestor.
+	subTargetClaims := &document.ClaimTypes{}
+	subTargetClaims.String = append(subTargetClaims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.NamingPropID},
+		String:    "Sub Target",
+	})
+	subTargetClaims.Reference = append(subTargetClaims.Reference, document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.SubclassOfPropID},
+		To:        document.Reference{ID: subClassParent},
+	})
+	subTargetDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: subTargetID}, //nolint:exhaustruct
+		Claims:       subTargetClaims,
+	}
+
+	// The parent target has no value hierarchy, so it does not multiply the parentTo dimension.
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID:     makeNamingDoc(testPropID, "Rel Prop"),
+		target:         makeNamingDoc(target, "Target"),
+		subPropID:      makeNamingDoc(subPropID, "Sub Prop"),
+		subTargetID:    subTargetDoc,
+		subClassParent: makeNamingDoc(subClassParent, "Sub Class Parent"),
+	}
+	c := newTestConverter(t, properties, nil, extraDocs)
+
+	ctx := t.Context()
+	sub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: subPropID},
+				To:        document.Reference{ID: subTargetID},
+			},
+		},
+	}
+	claim := &document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+		Prop:      document.Reference{ID: testPropID},
+		To:        document.Reference{ID: target},
+	}
+	_, subs, errE := c.convertReference(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// 1 parentTo (target has no hierarchy) x 2 expanded sub-values (subTargetID + subClassParent) = 2.
+	require.Len(t, subs.Refs, 2)
+
+	var leafRec, ancestorRec *SubRefClaim
+	for i := range subs.Refs {
+		switch subs.Refs[i].To {
+		case subTargetID:
+			leafRec = &subs.Refs[i]
+		case subClassParent:
+			ancestorRec = &subs.Refs[i]
+		}
+	}
+	require.NotNil(t, leafRec, "stated sub-value record missing")
+	require.NotNil(t, ancestorRec, "ancestor sub-value record missing")
+
+	// Both records share the same parent, inner property, and the stated leaf's ToFullPath.
+	for _, sr := range []*SubRefClaim{leafRec, ancestorRec} {
+		assert.Equal(t, target.String(), sr.ParentTo)
+		assert.Equal(t, testPropID, sr.ParentProp)
+		assert.Equal(t, subPropID, sr.Prop)
+		assert.Equal(t, leafRec.ToPath, sr.ToFullPath)
+	}
+	// Only the stated sub-value's record has ToPath equal to ToFullPath; the ancestor's own path is shorter.
+	assert.Equal(t, leafRec.ToFullPath, leafRec.ToPath)
+	assert.NotEqual(t, ancestorRec.ToPath, ancestorRec.ToFullPath)
+}
+
 // TestConvertHasSubClaimParentToSentinel verifies that has claims with reference sub-claims
 // produce SubRefClaim entries with ParentTo set to the ParentToHas sentinel.
 func TestConvertHasSubClaimParentToSentinel(t *testing.T) {
