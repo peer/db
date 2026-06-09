@@ -674,6 +674,94 @@ func TestBridgePerLevelInverseRelations(t *testing.T) {
 	}, 10*time.Second, 100*time.Millisecond)
 }
 
+// TestBridgeClearInverseRelations verifies that ClearInverseRelations removes the accumulated
+// inverse-relation metadata from every document in the store, including deleted ones, while leaving
+// documents that have none untouched, and that it is idempotent.
+//
+// The inverse-relation metadata is seeded directly rather than via the full bridge pipeline so the deleted
+// document case is deterministic: ClearInverseRelations only reads and rewrites store metadata, so it does
+// not require the bridge to be running.
+func TestBridgeClearInverseRelations(t *testing.T) {
+	t.Parallel()
+
+	ctx, env := setupBridge(t)
+	s, b := env.store, env.bridge
+
+	// withInverse returns metadata carrying a single inverse relation at the "all" level, modeling what the
+	// bridge accumulates for a target of a relation claim.
+	withInverse := func(source, target identifier.Identifier) *store.DocumentMetadata {
+		return &store.DocumentMetadata{
+			At:    store.Time(time.Now().UTC()),
+			Users: nil,
+			InverseRelations: map[string][]store.InverseRelation{
+				"all": {{
+					InverseRelationKey: store.InverseRelationKey{
+						Claim:      identifier.New(),
+						Source:     source,
+						TargetProp: identifier.New(),
+					},
+					SourceProp: identifier.New(),
+					Target:     target,
+					Confidence: document.HighConfidence,
+				}},
+			},
+		}
+	}
+
+	// docLive: a live document that has an inverse relation.
+	docLive := identifier.New()
+	_, errE := s.Insert(ctx, docLive, makeDocJSON(t, docLive), withInverse(identifier.New(), docLive), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// docDeleted: a document that has an inverse relation and is then deleted, carrying the inverse-relation
+	// metadata onto the delete (as a real delete does via CarryOver). The normal indexing path never touches a
+	// deleted document's inverse relations, so without clearing they would linger forever.
+	docDeleted := identifier.New()
+	vDeleted, errE := s.Insert(ctx, docDeleted, makeDocJSON(t, docDeleted), withInverse(identifier.New(), docDeleted), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Delete(ctx, docDeleted, vDeleted.Changeset, withInverse(identifier.New(), docDeleted), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// docPlain: a live document with no inverse relations, the control that must stay untouched.
+	docPlain := identifier.New()
+	_, errE = s.Insert(ctx, docPlain, makeDocJSON(t, docPlain), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Preconditions: the live and deleted documents both carry inverse relations.
+	_, metaLive, _, _, errE := s.GetLatest(ctx, docLive)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotEmpty(t, metaLive.InverseRelations, "docLive should start with inverse relations")
+
+	_, metaDeleted, _, _, errE := s.GetLatest(ctx, docDeleted)
+	require.ErrorIs(t, errE, store.ErrValueDeleted, "docDeleted should be deleted")
+	require.NotEmpty(t, metaDeleted.InverseRelations, "docDeleted should start with inverse relations")
+
+	// Clear inverse relations for every document, including the deleted one.
+	cleared, errE := b.ClearInverseRelations(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, 2, cleared, "only the live and deleted documents carrying inverse relations should be cleared")
+
+	// The live document keeps existing but loses its inverse relations.
+	_, metaLive, _, _, errE = s.GetLatest(ctx, docLive)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Empty(t, metaLive.InverseRelations, "docLive inverse relations should be cleared")
+
+	// The deleted document stays deleted and loses its inverse relations.
+	_, metaDeleted, _, _, errE = s.GetLatest(ctx, docDeleted)
+	require.ErrorIs(t, errE, store.ErrValueDeleted, "docDeleted should still be deleted after clearing")
+	assert.Empty(t, metaDeleted.InverseRelations, "docDeleted inverse relations should be cleared")
+
+	// The control document had none and is unaffected.
+	_, metaPlain, _, _, errE := s.GetLatest(ctx, docPlain)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Empty(t, metaPlain.InverseRelations, "docPlain should remain without inverse relations")
+
+	// Clearing again finds nothing left to clear.
+	cleared, errE = b.ClearInverseRelations(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Zero(t, cleared, "a second clear should find nothing to clear")
+}
+
 func TestBridgePerLevelDocumentPresence(t *testing.T) {
 	t.Parallel()
 

@@ -713,12 +713,15 @@ func (b *Bridge) ClearInverseRelations(ctx context.Context) (int, errors.E) {
 			break
 		}
 		for _, id := range ids {
-			// A deleted value still returns valid metadata and version (only the data is gone), so we clear
-			// it too; a value that was never committed (should not be listed) is skipped. Any other error aborts.
 			_, metadata, version, _, errE := b.Store.GetLatest(ctx, id)
-			if errors.Is(errE, store.ErrValueNotFound) {
+			switch {
+			case errors.Is(errE, store.ErrValueDeleted):
+				// A deleted value still returns valid metadata and version (only the data is gone), so we clear
+				// it too. ErrValueDeleted wraps ErrValueNotFound, so this case must be checked first.
+			case errors.Is(errE, store.ErrValueNotFound):
+				// Never committed (should not be listed); nothing to clear.
 				continue
-			} else if errE != nil && !errors.Is(errE, store.ErrValueDeleted) {
+			case errE != nil:
 				return cleared, errE
 			}
 			if metadata == nil || len(metadata.InverseRelations) == 0 {
