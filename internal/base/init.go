@@ -20,10 +20,10 @@ import (
 // InitComponents initializes Base components.
 func InitComponents(
 	ctx context.Context, logger zerolog.Logger, withContext z.WithContextFunc, dbpool *pgxpool.Pool,
-	esClient *elasticsearch.TypedClient, schema, index string, shards int, languagePriority map[string][]string, levels []string,
+	esClient *elasticsearch.TypedClient, schema, indexPrefix string, shards int, languagePriority map[string][]string, levels []string,
 ) (*base.B, *river.Client[pgx.Tx], errors.E) {
 	for _, level := range levels {
-		errE := internalSearch.EnsureIndex(ctx, esClient, internalSearch.LevelIndex(index, level), shards, languagePriority)
+		errE := internalSearch.EnsureIndex(ctx, esClient, internalSearch.LevelIndex(indexPrefix, level), shards, languagePriority)
 		if errE != nil {
 			return nil, nil, errE
 		}
@@ -45,7 +45,7 @@ func InitComponents(
 
 	b := &base.B{
 		Schema:                  schema,
-		Index:                   index,
+		IndexPrefix:             indexPrefix,
 		Levels:                  levels,
 		LanguagePriority:        nil,
 		IndexAncestorProperties: false,

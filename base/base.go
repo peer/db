@@ -47,8 +47,8 @@ const completeSessionTimeout = 5 * time.Minute
 //
 //nolint:lll
 type B struct {
-	Schema string
-	Index  string
+	Schema      string
+	IndexPrefix string
 
 	// Levels is the ordered list of visibility level names (lowest to highest). The bridge indexes each
 	// document into one index per level: the highest (last) level must be the unfiltered superset used for
@@ -179,9 +179,9 @@ func (b *B) Init(
 	}
 
 	bridge := &internalSearch.Bridge{
-		Store:    documents,
-		ESClient: esClient,
-		Index:    b.Index,
+		Store:       documents,
+		ESClient:    esClient,
+		IndexPrefix: b.IndexPrefix,
 		// The document hooks are set from the base's hooks in Start, once the site has populated them.
 		DocumentPreHooks:  nil,
 		DocumentPostHooks: nil,
@@ -250,7 +250,7 @@ func (b *B) Start(ctx context.Context, documents []StartDocument) (func(), error
 	// invalid input (e.g., an unsupported language priority) fails fast without leaving any resources running.
 	targets := make([]internalSearch.Target, 0, len(b.Levels))
 	for i, level := range b.Levels {
-		index := internalSearch.LevelIndex(b.Index, level)
+		index := internalSearch.LevelIndex(b.IndexPrefix, level)
 		// Each level's converter resolves vocabulary (properties, classes, languages) as that level sees it,
 		// so a vocab document or claim hidden at the level does not contribute to resolution there (for
 		// example an inverse-property declaration hidden at the level then yields no inverse relation at that

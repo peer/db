@@ -955,7 +955,7 @@ func TestDocumentEditSessionIndexing(t *testing.T) {
 	populateBase(ctx, t, b, []*document.D{propXDoc, propYDoc})
 
 	// The base indexes into one index per visibility level; this test uses the single default (all) level.
-	idx := internalSearch.LevelIndex(b.Index, internalSite.AllVisibilityLevel)
+	idx := internalSearch.LevelIndex(b.IndexPrefix, internalSite.AllVisibilityLevel)
 
 	// Insert two documents.
 	docADoc := newDoc()

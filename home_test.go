@@ -143,9 +143,9 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 			Schema: "s" + strings.ToLower(identifier.New().String()),
 		},
 		Elastic: peerdb.ElasticConfig{
-			URL:    os.Getenv("ELASTIC"),
-			Index:  "s" + strings.ToLower(identifier.New().String()),
-			Shards: 1,
+			URL:         os.Getenv("ELASTIC"),
+			IndexPrefix: "s" + strings.ToLower(identifier.New().String()),
+			Shards:      1,
 		},
 	}
 
@@ -171,8 +171,8 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		site := &globals.Sites[i]
 		require.Empty(t, site.Schema)
 		site.Schema = "s" + strings.ToLower(identifier.New().String())
-		require.Empty(t, site.Index)
-		site.Index = "s" + strings.ToLower(identifier.New().String())
+		require.Empty(t, site.IndexPrefix)
+		site.IndexPrefix = "s" + strings.ToLower(identifier.New().String())
 	}
 
 	err := globals.Validate()
@@ -205,7 +205,7 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		// We do not use t.Context() because we want an active context, not a canceled one.
 		ctx := context.Background()
 		if len(globals.Sites) == 0 {
-			_, err = cleanupESClient.Indices.Delete(internalSearch.LevelIndex(globals.Elastic.Index, internalSite.AllVisibilityLevel)).IgnoreUnavailable(true).Do(ctx)
+			_, err = cleanupESClient.Indices.Delete(internalSearch.LevelIndex(globals.Elastic.IndexPrefix, internalSite.AllVisibilityLevel)).IgnoreUnavailable(true).Do(ctx)
 			require.NoError(t, err)
 		} else {
 			for _, site := range globals.Sites {

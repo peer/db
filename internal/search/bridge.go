@@ -178,10 +178,12 @@ func (w *worker) getBridge(schema, prefix string) (bridgeJob, errors.E) { //noli
 
 // Target is one (visibility level, ElasticSearch index, converter) that the bridge fans indexing out to.
 // Targets are ordered lowest to highest visibility, so the last target is the highest-visibility
-// (unfiltered) one, used for the visibility-independent inverse-relation accumulation. With no visibility
-// levels configured there is a single target whose level is empty and whose index is the base index.
+// (unfiltered) one, used for the visibility-independent inverse-relation accumulation. Each target's
+// Index is LevelIndex(indexPrefix, Level): the index prefix with the level name appended.
 type Target struct {
-	Level     string
+	// Level is the visibility level name this target indexes.
+	Level string
+	// Index is the per-level ElasticSearch index name, LevelIndex(indexPrefix, Level).
 	Index     string
 	Converter *Converter
 }
@@ -206,8 +208,8 @@ type Bridge struct {
 	// ESClient is the ElasticSearch client.
 	ESClient *elasticsearch.TypedClient
 
-	// Index is the ElasticSearch index name.
-	Index string
+	// IndexPrefix is the ElasticSearch index prefix; the visibility level name is appended to it to form each per-level index name.
+	IndexPrefix string
 
 	// DocumentPreHooks and DocumentPostHooks are run by fetchHooked around the store read, the same
 	// way base.B runs them on the read path. The base sets these from its own hooks, with the indexing

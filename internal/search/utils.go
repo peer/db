@@ -168,9 +168,9 @@ func GetClient(httpClient *http.Client, logger zerolog.Logger, url string) (*ela
 	return esClient, errors.WithStack(err)
 }
 
-// LevelIndex returns the ElasticSearch index name for the given visibility level, derived from the base index name.
-func LevelIndex(index, level string) string {
-	return index + "_" + level
+// LevelIndex returns the ElasticSearch index name for the given visibility level, derived from the index prefix.
+func LevelIndex(indexPrefix, level string) string {
+	return indexPrefix + "_" + level
 }
 
 // EnsureIndex makes sure the index for PeerDB documents exists. If not, it creates it.
@@ -181,7 +181,9 @@ func LevelIndex(index, level string) string {
 func EnsureIndex(ctx context.Context, esClient *elasticsearch.TypedClient, index string, shards int, languagePriority map[string][]string) errors.E {
 	exists, err := esClient.Indices.Exists(index).IsSuccess(ctx)
 	if err != nil {
-		return WithESError(err)
+		errE := WithESError(err)
+		errors.Details(errE)["index"] = index
+		return errE
 	}
 
 	if !exists {
@@ -205,11 +207,15 @@ func EnsureIndex(ctx context.Context, esClient *elasticsearch.TypedClient, index
 
 		createIndex, err := esClient.Indices.Create(index).Raw(bytes.NewReader(configJSON)).Do(ctx)
 		if err != nil {
-			return WithESError(err)
+			errE := WithESError(err)
+			errors.Details(errE)["index"] = index
+			return errE
 		}
 		if !createIndex.Acknowledged {
 			// TODO: Wait for acknowledgment using Task API?
-			return errors.New("create index not acknowledged")
+			errE := errors.New("create index not acknowledged")
+			errors.Details(errE)["index"] = index
+			return errE
 		}
 	}
 

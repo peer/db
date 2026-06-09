@@ -26,12 +26,12 @@ func (s *Site) Prepare(
 	}
 	s.initialized = true
 
-	logger = logger.With().Str("schema", s.Schema).Str("index", s.Index).Logger()
+	logger = logger.With().Str("schema", s.Schema).Str("indexPrefix", s.IndexPrefix).Logger()
 
 	ctx = internalStore.WithFallbackDBContext(ctx, s.Schema, "init")
 	ctx = logger.WithContext(ctx)
 
-	b, riverClient, errE := internalBase.InitComponents(ctx, logger, withContext, dbpool, esClient, s.Schema, s.Index, shards, s.LanguagePriority, s.levelNames())
+	b, riverClient, errE := internalBase.InitComponents(ctx, logger, withContext, dbpool, esClient, s.Schema, s.IndexPrefix, shards, s.LanguagePriority, s.levelNames())
 	if errE != nil {
 		return errE
 	}

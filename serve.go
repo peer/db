@@ -121,7 +121,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 				KeyFile:  "",
 			},
 			Build:                nil,
-			Index:                globals.Elastic.Index,
+			IndexPrefix:          globals.Elastic.IndexPrefix,
 			Schema:               globals.Postgres.Schema,
 			Title:                c.Title,
 			Logo:                 "",
@@ -155,7 +155,7 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 	if !sitesProvided {
 		// We set fields not set when sites are automatically constructed.
 		for domain, site := range sites {
-			site.Index = globals.Elastic.Index
+			site.IndexPrefix = globals.Elastic.IndexPrefix
 			site.Schema = globals.Postgres.Schema
 			site.Title = c.Title
 			// We copy the site to globals.Sites.
@@ -336,7 +336,7 @@ func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Hand
 			return nil, onShutdownF, errE
 		}
 
-		c.Server.Logger.Info().Str("domain", site.Domain).Str("index", site.Index).Str("schema", site.Schema).Msg("serving")
+		c.Server.Logger.Info().Str("domain", site.Domain).Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Msg("serving")
 	}
 
 	// Construct the main handler for the service using the router.

@@ -135,7 +135,7 @@ func TestReadIndex(t *testing.T) {
 	t.Parallel()
 
 	s := &site.Site{}
-	s.Index = "myindex"
+	s.IndexPrefix = "myindex"
 
 	// A caller routes to the index for its resolved visibility level.
 	idx, errE := s.ReadIndex(auth.WithVisibility(context.Background(), "public"))
@@ -157,7 +157,7 @@ func TestLevelIndexes(t *testing.T) {
 
 	// The configured levels each map to their own index, from lowest to highest.
 	s := &site.Site{}
-	s.Index = "myindex"
+	s.IndexPrefix = "myindex"
 	s.Visibility = []auth.VisibilityLevel{
 		{Name: "public", Roles: nil},
 		{Name: "researcher", Roles: []string{"researcher"}},
@@ -168,7 +168,7 @@ func TestLevelIndexes(t *testing.T) {
 
 	// A site that configures no levels defaults to a single "all" level that is both floor and top.
 	s = &site.Site{}
-	s.Index = "myindex"
+	s.IndexPrefix = "myindex"
 	assert.Equal(t, []string{"myindex_all"}, s.LevelIndexes())
 	assert.Equal(t, "myindex_all", s.TopIndex())
 }

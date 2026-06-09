@@ -20,8 +20,8 @@ const (
 	DefaultElastic = "http://127.0.0.1:9200"
 	// DefaultSchema is the default database schema name.
 	DefaultSchema = "peerdb"
-	// DefaultIndex is the default Elasticsearch index name.
-	DefaultIndex = "peerdb"
+	// DefaultIndexPrefix is the default Elasticsearch index prefix. The visibility level name is appended to it to form each per-level index name.
+	DefaultIndexPrefix = "peerdb"
 	// DefaultShards is the default number of Elasticsearch shards.
 	DefaultShards = "10"
 	// DefaultTitle is the default application title.
@@ -38,9 +38,9 @@ type PostgresConfig struct {
 
 // ElasticConfig contains configuration for ElasticSearch connection.
 type ElasticConfig struct {
-	URL    string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance."                                placeholder:"URL"  short:"e" yaml:"elastic"`
-	Index  string `default:"${defaultIndex}"   help:"Name of ElasticSearch index to use when sites are not configured." placeholder:"NAME"           yaml:"index"`
-	Shards int    `default:"${defaultShards}"  help:"Number of ElasticSearch shards when initializing indices."         placeholder:"NUM"            yaml:"shards"`
+	URL         string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance."                                placeholder:"URL"  short:"e" yaml:"elastic"`
+	IndexPrefix string `default:"${defaultIndexPrefix}" help:"Prefix of ElasticSearch index names to use when sites are not configured." placeholder:"PREFIX" yaml:"indexPrefix"`
+	Shards      int    `default:"${defaultShards}"  help:"Number of ElasticSearch shards when initializing indices."         placeholder:"NUM"            yaml:"shards"`
 }
 
 // Globals describes top-level (global) flags.
@@ -63,7 +63,7 @@ func (g *Globals) Validate() error {
 		// This is not validated when Site is not populated by Kong.
 		if site.Domain == "" {
 			errE := errors.New("domain is required for site")
-			errors.Details(errE)["index"] = i
+			errors.Details(errE)["site"] = i
 			return errE
 		}
 
@@ -74,8 +74,8 @@ func (g *Globals) Validate() error {
 		}
 
 		// We cannot use kong to set these defaults, so we do it here.
-		if site.Index == "" {
-			site.Index = DefaultIndex
+		if site.IndexPrefix == "" {
+			site.IndexPrefix = DefaultIndexPrefix
 		}
 		if site.Title == "" {
 			site.Title = DefaultTitle

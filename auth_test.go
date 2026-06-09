@@ -120,7 +120,7 @@ func TestBasicAuthWithSiteContext(t *testing.T) {
 							KeyFile:  "",
 						},
 						Build:                nil,
-						Index:                "",
+						IndexPrefix:          "",
 						Schema:               "",
 						Title:                tt.siteTitle,
 						Logo:                 "",

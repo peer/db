@@ -17,7 +17,7 @@ func main() {
 		"defaultProxyTo":      peerdb.DefaultProxyTo,
 		"defaultElastic":      peerdb.DefaultElastic,
 		"defaultSchema":       peerdb.DefaultSchema,
-		"defaultIndex":        peerdb.DefaultIndex,
+		"defaultIndexPrefix":  peerdb.DefaultIndexPrefix,
 		"defaultShards":       peerdb.DefaultShards,
 		"defaultTitle":        peerdb.DefaultTitle,
 		"developmentModeHelp": peerdb.DevelopmentModeHelp,

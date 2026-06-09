@@ -60,7 +60,7 @@ func TestSearchVisibilityReadRouting(t *testing.T) {
 							KeyFile:  "",
 						},
 						Build:                nil,
-						Index:                "",
+						IndexPrefix:          "",
 						Schema:               "",
 						Title:                "Example Site",
 						Logo:                 "",

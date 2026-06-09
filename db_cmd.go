@@ -38,7 +38,7 @@ func InitSites(globals *Globals) {
 				KeyFile:  "",
 			},
 			Build:                nil,
-			Index:                globals.Elastic.Index,
+			IndexPrefix:          globals.Elastic.IndexPrefix,
 			Schema:               globals.Postgres.Schema,
 			Title:                "",
 			Logo:                 "",
@@ -121,12 +121,14 @@ func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site internalS
 	for _, index := range site.LevelIndexes() {
 		_, err := site.ESClient.Indices.Refresh().Index(index).Do(ctx)
 		if err != nil {
-			return onShutdown, internalSearch.WithESError(err)
+			errE := internalSearch.WithESError(err)
+			errors.Details(errE)["index"] = index
+			return onShutdown, errE
 		}
 	}
 
 	logger.Info().
-		Str("index", site.Index).Str("schema", site.Schema).
+		Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).
 		Int64("count", count.Count()).
 		Int64("total", size.Count()).
 		Msg("indexing done")
@@ -173,7 +175,7 @@ func (c *DBWaitCommand) Run(globals *Globals) errors.E {
 	defer cancel()
 
 	for _, site := range globals.Sites {
-		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("waiting for indexing")
+		globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Msg("waiting for indexing")
 
 		onS, errE := startAndWaitSite(ctx, globals.Logger, site, nil)
 		onShutdown = append(onShutdown, onS)
@@ -210,10 +212,12 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 			for _, index := range site.LevelIndexes() {
 				_, err := esClient.Indices.Delete(index).IgnoreUnavailable(true).Do(ctx)
 				if err != nil {
-					return internalSearch.WithESError(err)
+					errE := internalSearch.WithESError(err)
+					errors.Details(errE)["index"] = index
+					return errE
 				}
+				globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("index", index).Msg("index deleted for recreation")
 			}
-			globals.Logger.Info().Str("index", site.Index).Msg("index deleted for recreation")
 		}
 	}
 
@@ -245,7 +249,7 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 	defer cancel()
 
 	for _, site := range globals.Sites {
-		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("reindexing")
+		globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Msg("reindexing")
 
 		onS, errE := startAndWaitSite(ctx, globals.Logger, site, func(ctx context.Context) errors.E {
 			return site.Base.ResetBridgeProgress(ctx)
@@ -262,13 +266,16 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 		// Now that the site is caught up, expunge them. We use only_expunge_deletes rather than
 		// max_num_segments because the index keeps receiving live writes after a reindex, and
 		// full-merging an index that is still written to is discouraged.
-		globals.Logger.Info().Str("index", site.Index).Msg("expunging deletes")
+		globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Msg("expunging deletes")
 
 		for _, index := range site.LevelIndexes() {
 			_, err := site.ESClient.Indices.Forcemerge().Index(index).OnlyExpungeDeletes(true).Do(ctx)
 			if err != nil {
-				return internalSearch.WithESError(err)
+				errE := internalSearch.WithESError(err)
+				errors.Details(errE)["index"] = index
+				return errE
 			}
+			globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("index", index).Msg("deletes expunged")
 		}
 	}
 
@@ -341,7 +348,7 @@ func (c *DBVacuumCommand) Run(globals *Globals) errors.E {
 	defer cancel()
 
 	for _, site := range globals.Sites {
-		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("vacuuming")
+		globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Msg("vacuuming")
 
 		// We set fallback context values which are used to set application name on PostgreSQL connections.
 		siteCtx := internalStore.WithFallbackDBContext(ctx, site.Schema, "vacuum")
@@ -360,11 +367,12 @@ func (c *DBVacuumCommand) Run(globals *Globals) errors.E {
 		for _, index := range site.LevelIndexes() {
 			_, err := esClient.Indices.Forcemerge().Index(index).OnlyExpungeDeletes(true).Do(siteCtx)
 			if err != nil {
-				return internalSearch.WithESError(err)
+				errE := internalSearch.WithESError(err)
+				errors.Details(errE)["index"] = index
+				return errE
 			}
+			globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("index", index).Msg("deletes expunged")
 		}
-
-		globals.Logger.Info().Str("index", site.Index).Msg("deletes expunged")
 	}
 
 	globals.Logger.Info().Msg("db vacuum done")
@@ -428,7 +436,7 @@ func (c *DBExportCommand) Run(globals *Globals) (returnErr errors.E) { //nolint:
 	}
 
 	for _, site := range globals.Sites {
-		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("exporting")
+		globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Msg("exporting")
 
 		// We set fallback context values which are used to set application name on PostgreSQL connections.
 		siteCtx := internalStore.WithFallbackDBContext(ctx, site.Schema, "export")
@@ -514,7 +522,7 @@ func (c *DBWipeCommand) Run(globals *Globals) errors.E {
 	defer cancel()
 
 	for _, site := range globals.Sites {
-		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("wiping")
+		globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Msg("wiping")
 
 		// We set fallback context values which are used to set application name on PostgreSQL connections.
 		siteCtx := internalStore.WithFallbackDBContext(ctx, site.Schema, "wipe")
@@ -532,11 +540,12 @@ func (c *DBWipeCommand) Run(globals *Globals) errors.E {
 		for _, index := range site.LevelIndexes() {
 			_, err := esClient.Indices.Delete(index).IgnoreUnavailable(true).Do(siteCtx)
 			if err != nil {
-				return internalSearch.WithESError(err)
+				errE := internalSearch.WithESError(err)
+				errors.Details(errE)["index"] = index
+				return errE
 			}
+			globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("index", index).Msg("index deleted")
 		}
-
-		globals.Logger.Info().Str("index", site.Index).Msg("index deleted")
 	}
 
 	globals.Logger.Info().Msg("db wipe done")

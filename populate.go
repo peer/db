@@ -23,7 +23,7 @@ import (
 )
 
 func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logger, site internalSite.Site) errors.E {
-	logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("populating")
+	logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Msg("populating")
 
 	// We use a per-site cancellable context so that we can stop Base (started
 	// inside PopulateAndStart) before returning. Without this, the deferred
@@ -122,7 +122,7 @@ func (c *PopulateCommand) populateSite(ctx context.Context, logger zerolog.Logge
 	}
 
 	logger.Info().
-		Str("index", site.Index).Str("schema", site.Schema).
+		Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).
 		Int64("count", count.Count()).
 		Int64("total", size.Count()).
 		Msg("indexing done")

@@ -1,7 +1,7 @@
 globals:
   sites:
     - domain: localhost
-      index: peerdb
+      indexPrefix: peerdb
       schema: peerdb
       features:
         searchResultsTable: true

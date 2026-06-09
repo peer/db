@@ -68,7 +68,7 @@ type Site struct {
 
 	Build *Build `json:"build,omitempty" yaml:"-"`
 
-	Index       string `json:"-"                     yaml:"index,omitempty"`
+	IndexPrefix string `json:"-" yaml:"indexPrefix,omitempty"`
 	Schema      string `json:"-"                     yaml:"schema,omitempty"`
 	Title       string `json:"title,omitempty"       yaml:"title,omitempty"`
 	Logo        string `json:"logo,omitempty"        yaml:"logo,omitempty"`
@@ -260,7 +260,7 @@ func (s *Site) LevelIndexes() []string {
 	names := s.levelNames()
 	indexes := make([]string, len(names))
 	for i, name := range names {
-		indexes[i] = internalSearch.LevelIndex(s.Index, name)
+		indexes[i] = internalSearch.LevelIndex(s.IndexPrefix, name)
 	}
 	return indexes
 }
@@ -269,7 +269,7 @@ func (s *Site) LevelIndexes() []string {
 // that contains every document. Paths that must see all documents regardless of the caller use it.
 func (s *Site) TopIndex() string {
 	names := s.levelNames()
-	return internalSearch.LevelIndex(s.Index, names[len(names)-1])
+	return internalSearch.LevelIndex(s.IndexPrefix, names[len(names)-1])
 }
 
 // ReadIndex returns the ElasticSearch index a request should read, derived from the caller's resolved
@@ -283,7 +283,7 @@ func (s *Site) ReadIndex(ctx context.Context) (string, errors.E) {
 	if level == "" {
 		return "", errors.WithStack(store.ErrAccessDenied)
 	}
-	return internalSearch.LevelIndex(s.Index, level), nil
+	return internalSearch.LevelIndex(s.IndexPrefix, level), nil
 }
 
 func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifier) ([]identifier.Identifier, errors.E) {
