@@ -882,6 +882,8 @@ func (p AmountIntervalClaimPatch) Apply(claim Claim) errors.E {
 	}
 	if p.From != nil {
 		c.From = p.From
+		c.FromIsUnknown = false
+		c.FromIsNone = false
 	}
 	if p.FromPrecision != nil {
 		c.FromPrecision = p.FromPrecision
@@ -905,6 +907,8 @@ func (p AmountIntervalClaimPatch) Apply(claim Claim) errors.E {
 	}
 	if p.To != nil {
 		c.To = p.To
+		c.ToIsUnknown = false
+		c.ToIsNone = false
 	}
 	if p.ToPrecision != nil {
 		c.ToPrecision = p.ToPrecision
@@ -1134,6 +1138,8 @@ func (p TimeIntervalClaimPatch) Apply(claim Claim) errors.E {
 	}
 	if p.From != nil {
 		c.From = p.From
+		c.FromIsUnknown = false
+		c.FromIsNone = false
 	}
 	if p.FromPrecision != nil {
 		c.FromPrecision = p.FromPrecision
@@ -1157,6 +1163,8 @@ func (p TimeIntervalClaimPatch) Apply(claim Claim) errors.E {
 	}
 	if p.To != nil {
 		c.To = p.To
+		c.ToIsUnknown = false
+		c.ToIsNone = false
 	}
 	if p.ToPrecision != nil {
 		c.ToPrecision = p.ToPrecision

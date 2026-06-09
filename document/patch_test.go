@@ -210,6 +210,67 @@ func TestTimeIntervalClaimPatch(t *testing.T) {
 	assert.Nil(t, c.ToPrecision)
 }
 
+// TestIntervalClaimPatchApplyClearsMarkers verifies that setting a concrete bound value
+// via Apply clears a previously set unknown or none marker on that bound. This is the
+// production case where a "set" fills in a bound that was previously none: the merged
+// claim must not end up with both a value and the marker, which Validate rejects.
+func TestIntervalClaimPatchApplyClearsMarkers(t *testing.T) {
+	t.Parallel()
+
+	t.Run("TimeInterval/ToIsNone", func(t *testing.T) {
+		t.Parallel()
+
+		from := document.Time("1984")
+		yearPrec := document.TimePrecisionYear
+		c := &document.TimeIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+			Prop:          document.Reference{ID: identifier.New()},
+			From:          &from,
+			FromPrecision: &yearPrec,
+			ToIsNone:      true,
+		}
+		require.NoError(t, c.Validate(), "% -+#.1v", c.Validate())
+
+		to := document.Time("1950")
+		applyPatch := document.TimeIntervalClaimPatch{
+			To:          &to,
+			ToPrecision: &yearPrec,
+		}
+		errE := applyPatch.Apply(c)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.False(t, c.ToIsNone)
+		require.NotNil(t, c.To)
+		assert.Equal(t, to, *c.To)
+	})
+
+	t.Run("AmountInterval/FromIsUnknown", func(t *testing.T) {
+		t.Parallel()
+
+		to := document.Amount("9.5")
+		toPrecision := 0.1
+		c := &document.AmountIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+			Prop:          document.Reference{ID: identifier.New()},
+			To:            &to,
+			ToPrecision:   &toPrecision,
+			FromIsUnknown: true,
+		}
+		require.NoError(t, c.Validate(), "% -+#.1v", c.Validate())
+
+		from := document.Amount("1.5")
+		fromPrecision := 0.1
+		applyPatch := document.AmountIntervalClaimPatch{
+			From:          &from,
+			FromPrecision: &fromPrecision,
+		}
+		errE := applyPatch.Apply(c)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.False(t, c.FromIsUnknown)
+		require.NotNil(t, c.From)
+		assert.Equal(t, from, *c.From)
+	})
+}
+
 func TestAmountClaimValidate(t *testing.T) {
 	t.Parallel()
 

@@ -488,7 +488,11 @@ export class AmountIntervalClaimPatch implements ClaimPatch {
 
     if (this.confidence !== undefined) claim.confidence = this.confidence
     if (this.prop) claim.prop.id = this.prop
-    if (this.from) claim.from = this.from
+    if (this.from) {
+      claim.from = this.from
+      claim.fromIsUnknown = false
+      claim.fromIsNone = false
+    }
     if (this.fromPrecision !== undefined) claim.fromPrecision = this.fromPrecision
     if (this.fromIsOpen !== undefined) claim.fromIsOpen = this.fromIsOpen
     if (this.fromIsUnknown !== undefined) {
@@ -505,7 +509,11 @@ export class AmountIntervalClaimPatch implements ClaimPatch {
         claim.fromPrecision = undefined
       }
     }
-    if (this.to) claim.to = this.to
+    if (this.to) {
+      claim.to = this.to
+      claim.toIsUnknown = false
+      claim.toIsNone = false
+    }
     if (this.toPrecision !== undefined) claim.toPrecision = this.toPrecision
     if (this.toIsOpen !== undefined) claim.toIsOpen = this.toIsOpen
     if (this.toIsUnknown !== undefined) {
@@ -645,7 +653,11 @@ export class TimeIntervalClaimPatch implements ClaimPatch {
 
     if (this.confidence !== undefined) claim.confidence = this.confidence
     if (this.prop) claim.prop.id = this.prop
-    if (this.from) claim.from = this.from
+    if (this.from) {
+      claim.from = this.from
+      claim.fromIsUnknown = false
+      claim.fromIsNone = false
+    }
     if (this.fromPrecision !== undefined) claim.fromPrecision = this.fromPrecision
     if (this.fromIsOpen !== undefined) claim.fromIsOpen = this.fromIsOpen
     if (this.fromIsUnknown !== undefined) {
@@ -662,7 +674,11 @@ export class TimeIntervalClaimPatch implements ClaimPatch {
         claim.fromPrecision = undefined
       }
     }
-    if (this.to) claim.to = this.to
+    if (this.to) {
+      claim.to = this.to
+      claim.toIsUnknown = false
+      claim.toIsNone = false
+    }
     if (this.toPrecision !== undefined) claim.toPrecision = this.toPrecision
     if (this.toIsOpen !== undefined) claim.toIsOpen = this.toIsOpen
     if (this.toIsUnknown !== undefined) {
