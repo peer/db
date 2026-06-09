@@ -691,6 +691,52 @@ func (b *Bridge) ResetSeq(ctx context.Context) errors.E {
 	return nil
 }
 
+// ClearInverseRelations removes the accumulated inverse-relation metadata from the latest version of every
+// document in the store, including deleted ones, by writing a new metadata-only revision with an empty
+// InverseRelations map. It returns the number of documents whose metadata was changed.
+//
+// Deleted documents are included because the normal path never touches their inverse relations (updateSeq skips
+// deleted targets), yet those entries would be carried over if the document were ever undeleted.
+//
+// It must run while the bridge is not processing (before Start), so the version read by GetLatest stays the
+// latest one for the UpdateExistingMetadata optimistic-concurrency check.
+func (b *Bridge) ClearInverseRelations(ctx context.Context) (int, errors.E) {
+	cleared := 0
+	var after *identifier.Identifier
+	for {
+		// List returns every committed value id, including deleted ones, in id order, for keyset pagination.
+		ids, errE := b.Store.List(ctx, after)
+		if errE != nil {
+			return cleared, errE
+		}
+		if len(ids) == 0 {
+			break
+		}
+		for _, id := range ids {
+			// A deleted value still returns valid metadata and version (only the data is gone), so we clear
+			// it too; a value that was never committed (should not be listed) is skipped. Any other error aborts.
+			_, metadata, version, _, errE := b.Store.GetLatest(ctx, id)
+			if errors.Is(errE, store.ErrValueNotFound) {
+				continue
+			} else if errE != nil && !errors.Is(errE, store.ErrValueDeleted) {
+				return cleared, errE
+			}
+			if metadata == nil || len(metadata.InverseRelations) == 0 {
+				continue
+			}
+			metadata.InverseRelations = nil
+			_, errE = b.Store.UpdateExistingMetadata(ctx, id, version, metadata)
+			if errE != nil {
+				return cleared, errE
+			}
+			cleared++
+		}
+		lastID := ids[len(ids)-1]
+		after = &lastID
+	}
+	return cleared, nil
+}
+
 // Prepare stores the converter and submits a startup job that processes any leftover rows
 // in BridgeReindexQueue from a previous run.
 //
