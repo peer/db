@@ -15,6 +15,7 @@ import {
   parseTimestamp,
   zonedEpochMs,
 } from "@/partials/TimeDisplay.utils"
+import { isPlainClick } from "@/utils"
 
 const props = withDefaults(
   defineProps<{
@@ -184,9 +185,12 @@ const relativeDisplay = computed(() => {
   return { text, nextUpdateMs: info.nextUpdateMs }
 })
 
-// Toggle between formats.
-function toggleFormat() {
+// Toggle between formats on a plain click.
+function toggleFormat(event: MouseEvent) {
   if (!props.toggle) {
+    return
+  }
+  if (!isPlainClick(event)) {
     return
   }
   currentFormat.value = currentFormat.value === "absolute" ? "relative" : "absolute"
