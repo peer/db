@@ -4369,6 +4369,78 @@ func TestConvertReferenceSubClaimHierarchyExpansion(t *testing.T) {
 	}
 }
 
+// TestConvertReferenceToFullPath verifies that a top-level reference target is expanded across its value
+// hierarchy and that ToFullPath identifies the stated (leaf) target on every expanded record: the stated
+// value's record has ToPath equal to ToFullPath, while each ancestor record keeps the stated leaf's
+// ToFullPath but carries its own shorter ToPath.
+func TestConvertReferenceToFullPath(t *testing.T) {
+	t.Parallel()
+
+	// Set up the hierarchy property chain so SUBCLASS_OF is discovered as a value hierarchy property.
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
+
+	classParent := identifier.New()
+	target := identifier.New()
+
+	// Target has SUBCLASS_OF -> classParent, so it expands into the stated value plus its ancestor.
+	targetClaims := &document.ClaimTypes{}
+	targetClaims.String = append(targetClaims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.NamingPropID},
+		String:    "Target",
+	})
+	targetClaims.Reference = append(targetClaims.Reference, document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.SubclassOfPropID},
+		To:        document.Reference{ID: classParent},
+	})
+	targetDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: target}, //nolint:exhaustruct
+		Claims:       targetClaims,
+	}
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID:  makeNamingDoc(testPropID, "Rel Prop"),
+		target:      targetDoc,
+		classParent: makeNamingDoc(classParent, "ClassParent"),
+	}
+	c := newTestConverter(t, properties, nil, extraDocs)
+
+	ctx := t.Context()
+	claim := &document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: testPropID},
+		To:        document.Reference{ID: target},
+	}
+	result, _, errE := c.convertReference(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The stated target expands into itself plus its ancestor.
+	require.Len(t, result, 2)
+
+	var leafRec, ancestorRec *ReferenceClaim
+	for i := range result {
+		switch result[i].To {
+		case target:
+			leafRec = &result[i]
+		case classParent:
+			ancestorRec = &result[i]
+		}
+	}
+	require.NotNil(t, leafRec, "stated target record missing")
+	require.NotNil(t, ancestorRec, "ancestor target record missing")
+
+	// The stated value's own path is its ToFullPath, and every expanded record carries that same leaf path.
+	assert.Equal(t, leafRec.ToPath, leafRec.ToFullPath)
+	assert.Equal(t, leafRec.ToPath, ancestorRec.ToFullPath)
+	// The ancestor's own path is shorter and differs from the stated leaf's ToFullPath.
+	assert.NotEqual(t, ancestorRec.ToPath, ancestorRec.ToFullPath)
+}
+
 // TestConvertReferenceSubValueHierarchyExpansion verifies that a reference sub-claim's own target is
 // expanded across its value hierarchy, the same way top-level reference targets are: the stated
 // sub-value plus each of its ancestors get their own SubRefClaim, all sharing the stated leaf's
