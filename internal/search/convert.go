@@ -3055,10 +3055,11 @@ func (c *Converter) extractSubClaims(
 }
 
 // convertSubRefs extracts reference sub-claims from a claim's sub-claims and produces SubRefClaim
-// entries for each (parentProp, parentTo, subRef) combination. Each sub-value is expanded across its
-// value hierarchies the same way convertReference expands top-level reference targets: one record for
-// the stated value plus one for each of its ancestors, so a sub-reference filter can count and select
-// against ancestor values too.
+// entries for each (parentProp, parentTo, subRef) combination. The sub-reference property is propagated
+// to its super-properties (when IndexAncestorProperties is set) and the sub-value is expanded across its
+// value hierarchies, the same way convertReference propagates top-level reference properties and expands
+// their targets: one record per (propagated property x stated value or ancestor), so a sub-reference
+// filter can count and select against ancestor properties and ancestor values too.
 func (c *Converter) convertSubRefs(
 	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,
 ) ([]SubRefClaim, errors.E) {
@@ -3067,8 +3068,9 @@ func (c *Converter) convertSubRefs(
 		return nil, nil
 	}
 
-	// Pre-resolve display strings and hierarchy paths for each sub-relation, expanding the sub-value
-	// across its value hierarchies into one resolved entry per stated value or ancestor.
+	// Pre-resolve display strings and hierarchy paths for each sub-relation, expanding it across its
+	// propagated properties and its value hierarchies into one resolved entry per (property, stated
+	// value or ancestor).
 	type resolvedSubRef struct {
 		Prop          identifier.Identifier
 		PropDisplay   map[string]string
@@ -3082,10 +3084,6 @@ func (c *Converter) convertSubRefs(
 	}
 	resolved := make([]resolvedSubRef, 0, len(subRelations))
 	for _, mr := range subRelations {
-		mrPropDisplay, errE := c.getDisplayStrings(ctx, mr.Prop.ID)
-		if errE != nil {
-			return nil, errE
-		}
 		mrToInfo, errE := c.getDocumentInfo(ctx, mr.To.ID)
 		if errE != nil {
 			return nil, errE
@@ -3107,27 +3105,35 @@ func (c *Converter) convertSubRefs(
 			}
 		}
 
-		for _, tid := range targets {
-			tidInfo := mrToInfo
-			if tid != mr.To.ID {
-				// Ancestors were already computed during the hierarchy walk, so this hits cache.
-				tidInfo, errE = c.getDocumentInfo(ctx, tid)
-				if errE != nil {
-					return nil, errE
-				}
+		// The sub-reference property is propagated to its super-properties when IndexAncestorProperties
+		// is set; otherwise propagateProp returns only the stated property.
+		for _, pid := range c.propagateProp(mr.Prop.ID) {
+			propDisplay, errE := c.getDisplayStrings(ctx, pid)
+			if errE != nil {
+				return nil, errE
 			}
-			toPath, toDisplayPath := tidInfo.CollectHierarchyPaths()
-			resolved = append(resolved, resolvedSubRef{
-				Prop:          mr.Prop.ID,
-				PropDisplay:   mrPropDisplay.Display,
-				PropNaming:    mrPropDisplay.Naming,
-				To:            tid,
-				ToDisplay:     tidInfo.Display.Display,
-				ToNaming:      tidInfo.Display.Naming,
-				ToPath:        toPath,
-				ToFullPath:    fullPath,
-				ToDisplayPath: toDisplayPath,
-			})
+			for _, tid := range targets {
+				tidInfo := mrToInfo
+				if tid != mr.To.ID {
+					// Ancestors were already computed during the hierarchy walk, so this hits cache.
+					tidInfo, errE = c.getDocumentInfo(ctx, tid)
+					if errE != nil {
+						return nil, errE
+					}
+				}
+				toPath, toDisplayPath := tidInfo.CollectHierarchyPaths()
+				resolved = append(resolved, resolvedSubRef{
+					Prop:          pid,
+					PropDisplay:   propDisplay.Display,
+					PropNaming:    propDisplay.Naming,
+					To:            tid,
+					ToDisplay:     tidInfo.Display.Display,
+					ToNaming:      tidInfo.Display.Naming,
+					ToPath:        toPath,
+					ToFullPath:    fullPath,
+					ToDisplayPath: toDisplayPath,
+				})
+			}
 		}
 	}
 

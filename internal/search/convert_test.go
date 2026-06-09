@@ -4460,6 +4460,70 @@ func TestConvertReferenceSubValueHierarchyExpansion(t *testing.T) {
 	assert.NotEqual(t, ancestorRec.ToPath, ancestorRec.ToFullPath)
 }
 
+// TestConvertReferenceSubRefPropertyPropagation verifies that a reference sub-claim's own property is
+// propagated to its super-properties when IndexAncestorProperties is set, the same way convertReference
+// propagates a top-level reference property, and that it stays unexpanded when the flag is off.
+func TestConvertReferenceSubRefPropertyPropagation(t *testing.T) {
+	t.Parallel()
+
+	superProp := identifier.New()
+	subProp := identifier.New()
+	superPropDoc := makePropertyDoc(superProp, nil)
+	subPropDoc := makePropertyDoc(subProp, &superProp)
+
+	target := identifier.New()
+	subTargetID := identifier.New()
+	// Neither the parent target nor the sub-value has a value hierarchy, so only the property dimension
+	// can multiply: the result count isolates property propagation.
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID:  makeNamingDoc(testPropID, "Rel Prop"),
+		target:      makeNamingDoc(target, "Target"),
+		superProp:   makeNamingDoc(superProp, "Super Prop"),
+		subProp:     makeNamingDoc(subProp, "Sub Prop"),
+		subTargetID: makeNamingDoc(subTargetID, "Sub Target"),
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+	c.buildPropertyHierarchy([]*document.D{superPropDoc, subPropDoc})
+
+	ctx := t.Context()
+	sub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: subProp},
+				To:        document.Reference{ID: subTargetID},
+			},
+		},
+	}
+	claim := &document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+		Prop:      document.Reference{ID: testPropID},
+		To:        document.Reference{ID: target},
+	}
+
+	// With IndexAncestorProperties off, only the stated sub-reference property is indexed.
+	c.IndexAncestorProperties = false
+	_, subs, errE := c.convertReference(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, subs.Refs, 1)
+	assert.Equal(t, subProp, subs.Refs[0].Prop)
+
+	// With IndexAncestorProperties on, the sub-reference property also expands to its super-property.
+	c.IndexAncestorProperties = true
+	_, subs, errE = c.convertReference(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, subs.Refs, 2)
+	props := []identifier.Identifier{subs.Refs[0].Prop, subs.Refs[1].Prop}
+	assert.Contains(t, props, subProp)
+	assert.Contains(t, props, superProp)
+	// Propagation applies to the inner property only; the parent and the target are unchanged.
+	for _, sr := range subs.Refs {
+		assert.Equal(t, testPropID, sr.ParentProp)
+		assert.Equal(t, target.String(), sr.ParentTo)
+		assert.Equal(t, subTargetID, sr.To)
+	}
+}
+
 // TestConvertHasSubClaimParentToSentinel verifies that has claims with reference sub-claims
 // produce SubRefClaim entries with ParentTo set to the ParentToHas sentinel.
 func TestConvertHasSubClaimParentToSentinel(t *testing.T) {
