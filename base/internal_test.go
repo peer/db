@@ -17,3 +17,7 @@ func (b *B) TestingWithDocumentHooks(
 ) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
 	return b.withDocumentHooks(ctx, id, version, fetch)
 }
+
+func (b *B) TestingDocumentsForLevel(ctx context.Context, level string, documents []StartDocument) ([]*document.D, errors.E) {
+	return b.documentsForLevel(ctx, level, documents)
+}

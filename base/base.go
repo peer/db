@@ -19,10 +19,13 @@ import (
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/mohae/deepcopy"
 	"github.com/riverqueue/river"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/coordinator"
 	"gitlab.com/peerdb/peerdb/document"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
@@ -210,13 +213,23 @@ func indexingPostHook(hook func(ctx context.Context, doc *document.D) (*document
 	}
 }
 
+// StartDocument is a document passed to Start as converter vocabulary, together with the metadata, version,
+// and parent changesets it was read with. For a freshly generated, not-yet-stored document the metadata is
+// nil and the version and parent changesets are zero.
+type StartDocument struct {
+	Document         *document.D
+	Metadata         *store.DocumentMetadata
+	Version          store.Version
+	ParentChangesets []store.Version
+}
+
 // Start starts the base.
 //
 // Documents are documents with properties and vocabularies which are used
 // to index documents for search.
 //
 // You have to call this or PopulateAndStart for each base after Init.
-func (b *B) Start(ctx context.Context, documents []*document.D) (func(), errors.E) {
+func (b *B) Start(ctx context.Context, documents []StartDocument) (func(), errors.E) {
 	// The bridge fetches documents for indexing through the same pre/post hooks as the read path, plus
 	// the indexing hooks (adapted to document post-hooks) appended after them, so the indexed document
 	// is the filtered and normalized one.
@@ -230,10 +243,18 @@ func (b *B) Start(ctx context.Context, documents []*document.D) (func(), errors.
 	// Build one converter and one ElasticSearch index per visibility level. We build them first so that
 	// invalid input (e.g., an unsupported language priority) fails fast without leaving any resources running.
 	targets := make([]internalSearch.Target, 0, len(b.Levels))
-	for _, level := range b.Levels {
+	for i, level := range b.Levels {
 		index := internalSearch.LevelIndex(b.Index, level)
+		// Each level's converter resolves vocabulary (properties, classes, languages) as that level sees it,
+		// so a vocab document or claim hidden at the level does not contribute to resolution there (for
+		// example an inverse-property declaration hidden at the level then yields no inverse relation at that
+		// level). documents is the unfiltered superset. documentsForLevel filters it to this level's view.
+		levelDocuments, errE := b.documentsForLevel(ctx, level, documents)
+		if errE != nil {
+			return nil, errE
+		}
 		converter, errE := internalSearch.NewConverter(
-			documents, documents, documents, b.LanguagePriority,
+			levelDocuments, levelDocuments, levelDocuments, b.LanguagePriority,
 			b.bridge.GetDocument,
 		)
 		if errE != nil {
@@ -242,10 +263,12 @@ func (b *B) Start(ctx context.Context, documents []*document.D) (func(), errors.
 		converter.IndexAncestorProperties = b.IndexAncestorProperties
 		converter.DetectLanguages = true
 		converter.CountReferences = b.bridge.CountReferencesFunc(index)
-		// The converter derived language codes from the language documents while being built. They are the
-		// same for every level, so capturing the last one and surfacing it via LanguageCodes is fine.
-		// We capture them so the site can surface them via LanguageCodes.
-		b.languageCodes = converter.LanguageCodes
+		if i == len(b.Levels)-1 {
+			// The converter derived language codes from the language documents while being built.
+			// The highest (last) level is the unfiltered superset, so its converter has the complete set.
+			// We capture them so the site can surface them via LanguageCodes.
+			b.languageCodes = converter.LanguageCodes
+		}
 		targets = append(targets, internalSearch.Target{Level: level, Index: index, Converter: converter})
 	}
 
@@ -281,4 +304,51 @@ func (b *B) Start(ctx context.Context, documents []*document.D) (func(), errors.
 	}
 
 	return onShutdown, b.bridge.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "bridge"))
+}
+
+// documentsForLevel returns documents as seen at the given visibility level: each is run through the
+// read-path document pre-hooks and post-hooks (the filtering ones, not the indexing hooks) at that level's
+// visibility, dropping any the hooks deny. Pre-hooks see a nil requested version because the documents are
+// the latest committed view.
+//
+// With no document pre-hooks or post-hooks set (no per-level filtering) it returns the input documents unchanged.
+func (b *B) documentsForLevel(ctx context.Context, level string, documents []StartDocument) ([]*document.D, errors.E) {
+	out := make([]*document.D, 0, len(documents))
+
+	if len(b.DocumentPreHooks) == 0 && len(b.DocumentPostHooks) == 0 {
+		for _, sd := range documents {
+			out = append(out, sd.Document)
+		}
+		return out, nil
+	}
+
+	ctx = auth.WithVisibility(ctx, level)
+
+	for _, sd := range documents {
+		doc, _, _, _, errE := b.withDocumentHooks(ctx, sd.Document.ID, nil,
+			func() (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
+				// By marshalling document and using withDocumentHooks we effectively clone the document every time.
+				data, errE := x.MarshalWithoutEscapeHTML(sd.Document)
+				if errE != nil {
+					return nil, nil, store.Version{}, nil, errE
+				}
+				// Metadata we copy using deepcopy.
+				metadataCopy, ok := deepcopy.Copy(sd.Metadata).(*store.DocumentMetadata)
+				if !ok {
+					return nil, nil, store.Version{}, nil, errors.New("deep copy returned unexpected type")
+				}
+				return data, metadataCopy, sd.Version, sd.ParentChangesets, nil
+			},
+		)
+		if errors.Is(errE, store.ErrAccessDenied) {
+			// The document is not visible at this level, so it is not part of this level's vocabulary.
+			continue
+		}
+		if errE != nil {
+			return nil, errE
+		}
+		out = append(out, doc)
+	}
+
+	return out, nil
 }

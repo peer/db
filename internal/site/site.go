@@ -292,19 +292,33 @@ func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifi
 
 // FetchDocuments returns all documents that are instances of classID by loading their latest stored
 // versions. It is used to load the property and language documents a site needs at startup.
-func (s *Site) FetchDocuments(ctx context.Context, classID identifier.Identifier) ([]*document.D, errors.E) {
+//
+// It reads the raw stored documents directly and unfiltered, without the read-path document hooks
+// (and thus any permission checks).
+func (s *Site) FetchDocuments(ctx context.Context, classID identifier.Identifier) ([]base.StartDocument, errors.E) {
 	allIDs, errE := s.fetchDocumentIDs(ctx, classID)
 	if errE != nil {
 		return nil, errE
 	}
 
-	documents := make([]*document.D, 0, len(allIDs))
+	documentsStore := s.Base.Documents()
+	documents := make([]base.StartDocument, 0, len(allIDs))
 	for _, id := range allIDs {
-		doc, _, _, _, errE := s.Base.GetDocumentLatestDoc(ctx, id)
+		data, metadata, version, parentChangesets, errE := documentsStore.GetLatest(ctx, id)
 		if errE != nil {
 			return nil, errE
 		}
-		documents = append(documents, doc)
+		doc := new(document.D)
+		errE = x.UnmarshalWithoutUnknownFields(data, doc)
+		if errE != nil {
+			return nil, errE
+		}
+		documents = append(documents, base.StartDocument{
+			Document:         doc,
+			Metadata:         metadata,
+			Version:          version,
+			ParentChangesets: parentChangesets,
+		})
 	}
 
 	return documents, nil
@@ -336,7 +350,7 @@ func (s *Site) updateLanguageCodes(_ context.Context) errors.E { //nolint:unpara
 // Start starts the base for the site.
 //
 // You have to call this or PopulateAndStart for each site after Init.
-func (s *Site) Start(ctx context.Context, documents []*document.D) (func(), errors.E) {
+func (s *Site) Start(ctx context.Context, documents []base.StartDocument) (func(), errors.E) {
 	errE := s.validateDefaultLanguage()
 	if errE != nil {
 		return nil, errE

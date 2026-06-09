@@ -54,6 +54,12 @@ func (b *B) GetDocumentLatestDoc(ctx context.Context, id identifier.Identifier) 
 	)
 }
 
+// Documents returns the underlying documents store. It reads the raw stored documents directly and unfiltered,
+// without the read-path document hooks (and thus any permission checks).
+func (b *B) Documents() *store.Store[json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes] {
+	return b.documents
+}
+
 // DocumentChangeset returns the requested changeset from the document store.
 func (b *B) DocumentChangeset(ctx context.Context, id identifier.Identifier) (
 	store.Changeset[json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes],

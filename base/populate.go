@@ -9,6 +9,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
+	"gitlab.com/peerdb/peerdb/store"
 	"gitlab.com/peerdb/peerdb/transform"
 )
 
@@ -130,7 +131,12 @@ func (b *B) PopulateAndStart(
 		return nil, errors.WithStack(ctx.Err())
 	}
 
-	onShutdown, errE := b.Start(ctx, documents)
+	// The documents were just generated/inserted, so they carry no prior stored metadata to give the hooks.
+	startDocuments := make([]StartDocument, len(documents))
+	for i, doc := range documents {
+		startDocuments[i] = StartDocument{Document: doc, Metadata: nil, Version: store.Version{}, ParentChangesets: nil}
+	}
+	onShutdown, errE := b.Start(ctx, startDocuments)
 	if errE != nil {
 		return onShutdown, errE
 	}
