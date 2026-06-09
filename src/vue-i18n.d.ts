@@ -44,6 +44,7 @@ declare module "vue-i18n" {
         editingNotAllowed: string
         loading: string
         loadingDataFailed: string
+        dataNotAvailable: string
         error: string
         valuesNotShown: string
         allResults: string
@@ -66,6 +67,7 @@ declare module "vue-i18n" {
         table: string
       }
       values: {
+        direct: string
         missing: string
         noName: string
         none: string
@@ -192,6 +194,9 @@ declare module "vue-i18n" {
         skipToResults: string
         resultsReferencing: string
         clearReferencing: string
+        resultsLimitedTo: string
+        resultsLimitedToMany: string
+        clearLimited: string
       }
       AmountFiltersResult: {
         clearFilter: string

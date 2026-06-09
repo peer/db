@@ -6,6 +6,7 @@ package coordinator
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -38,6 +39,7 @@ const (
 
 type coordinatorJob interface {
 	runCompleteSession(ctx context.Context, session identifier.Identifier, job *river.Job[jobArgs]) errors.E
+	completeSessionTimeout() time.Duration
 }
 
 //nolint:gochecknoglobals
@@ -61,6 +63,17 @@ func (jobArgs) Kind() string {
 
 type worker struct {
 	river.WorkerDefaults[jobArgs]
+}
+
+// Timeout implements river.Worker interface. It returns the timeout configured on the coordinator that owns
+// the session, so coordinators whose completion can be slow can use a longer timeout than fast ones.
+// Zero falls back to the client default.
+func (w *worker) Timeout(job *river.Job[jobArgs]) time.Duration {
+	c, errE := w.getCoordinator(job.Args.Schema, job.Args.Prefix)
+	if errE != nil {
+		return 0
+	}
+	return c.completeSessionTimeout()
 }
 
 // Work implements river.Worker interface.
@@ -201,6 +214,11 @@ type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteDa
 	// completed and all operations for the session are deleted.
 	CompleteSessionTx func(ctx context.Context, tx pgx.Tx, session identifier.Identifier, data CompleteData) (CompleteMetadata, errors.E)
 
+	// CompleteSessionTimeout is the maximum time the CoordinatorCompleteSession job for this coordinator is
+	// allowed to run before River cancels it. Zero means the River client default is used. Set a larger value
+	// for coordinators whose completion can be slow.
+	CompleteSessionTimeout time.Duration `exhaustruct:"optional"`
+
 	// AppendedSize is the size of the channel to which operations are sent when they are appended.
 	//
 	// Set to a negative value to disable creating the channel.
@@ -223,11 +241,16 @@ type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteDa
 	// Channel is created by the listener when started and recreated on reconnection.
 	Changed x.RecreatableChannel[SessionStateChanged] `exhaustruct:"optional"`
 
-	dbpool      *pgxpool.Pool
-	schema      string
-	riverClient *river.Client[pgx.Tx]
-	appended    chan<- OperationAppended
-	changed     chan<- SessionStateChanged
+	dbpool *pgxpool.Pool
+	schema string
+	// LISTEN/NOTIFY channel names computed once in Init. PostgreSQL notification channels are
+	// database-global (not schema-scoped), so the schema is included to keep channels in different
+	// schemas of the same database isolated from each other.
+	sessionStateChannel      string
+	operationAppendedChannel string
+	riverClient              *river.Client[pgx.Tx]
+	appended                 chan<- OperationAppended
+	changed                  chan<- SessionStateChanged
 }
 
 // Init initializes the Coordinator.
@@ -246,6 +269,8 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	c.dbpool = dbpool
 	c.schema = schema
 	c.riverClient = riverClient
+	c.sessionStateChannel = schema + "_" + c.Prefix + "Session"
+	c.operationAppendedChannel = schema + "_" + c.Prefix + "Operation"
 
 	if c.CompleteSessionTx == nil {
 		return errors.New("CompleteSessionTx cannot be nil")
@@ -286,7 +311,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 						RAISE EXCEPTION 'session already ended' USING ERRCODE='`+errorCodeAlreadyEnded+`';
 					END IF;
 					UPDATE "`+c.Prefix+`Sessions" SET "endMetadata"=_metadata WHERE "session"=_session;
-					PERFORM pg_notify('`+c.Prefix+`SessionStateChanged', json_build_object('session', _session, 'state', '`+string(SessionStateEnded)+`')::text);
+					PERFORM pg_notify('`+c.sessionStateChannel+`',json_build_object('session', _session, 'state', '`+string(SessionStateEnded)+`')::text);
 				END;
 			$$;
 
@@ -308,7 +333,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 					END IF;
 					DELETE FROM "`+c.Prefix+`Operations" WHERE "session"=_session;
 					UPDATE "`+c.Prefix+`Sessions" SET "completeMetadata"=_metadata WHERE "session"=_session;
-					PERFORM pg_notify('`+c.Prefix+`SessionStateChanged', json_build_object('session', _session, 'state', '`+string(SessionStateCompleted)+`')::text);
+					PERFORM pg_notify('`+c.sessionStateChannel+`',json_build_object('session', _session, 'state', '`+string(SessionStateCompleted)+`')::text);
 				END;
 			$$;
 
@@ -333,7 +358,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 					IF NOT FOUND THEN
 						RAISE EXCEPTION 'conflict' USING ERRCODE='`+errorCodeConflict+`';
 					END IF;
-					PERFORM pg_notify('`+c.Prefix+`OperationAppended', json_build_object('session', _session, 'operation', _operation)::text);
+					PERFORM pg_notify('`+c.operationAppendedChannel+`',json_build_object('session', _session, 'operation', _operation)::text);
 					RETURN _operation;
 				END;
 			$$;
@@ -362,10 +387,10 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 
 	if listener != nil {
 		if c.AppendedSize >= 0 {
-			listener.Handle(c.Prefix+"OperationAppended", c)
+			listener.Handle(c.operationAppendedChannel, c)
 		}
 		if c.ChangedSize >= 0 {
-			listener.Handle(c.Prefix+"SessionStateChanged", c)
+			listener.Handle(c.sessionStateChannel, c)
 		}
 	}
 
@@ -465,6 +490,11 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 		details["prefix"] = c.Prefix
 	}
 	return errE
+}
+
+// completeSessionTimeout returns the configured timeout for this coordinator's completion job.
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) completeSessionTimeout() time.Duration {
+	return c.CompleteSessionTimeout
 }
 
 // runCompleteSession runs the CompleteSession and CompleteSessionTx and if both successfully run,
@@ -786,9 +816,9 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	ctx context.Context, notification *pgconn.Notification, conn *pgx.Conn,
 ) error {
 	switch notification.Channel {
-	case c.Prefix + "OperationAppended":
+	case c.operationAppendedChannel:
 		return c.handleOperationAppended(ctx, notification, conn)
-	case c.Prefix + "SessionStateChanged":
+	case c.sessionStateChannel:
 		return c.handleSessionStateChanged(ctx, notification, conn)
 	default:
 		errE := errors.New("unknown notification channel")
@@ -808,10 +838,10 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	_ context.Context, channel string, _ *pgx.Conn,
 ) error {
 	switch channel {
-	case c.Prefix + "OperationAppended":
+	case c.operationAppendedChannel:
 		// AppendedSize should be >= 0 here unless it was changed after initialization which is not allowed.
 		c.appended = c.Appended.Recreate(c.AppendedSize)
-	case c.Prefix + "SessionStateChanged":
+	case c.sessionStateChannel:
 		// ChangedSize should be >= 0 here unless it was changed after initialization which is not allowed.
 		c.changed = c.Changed.Recreate(c.ChangedSize)
 	default:
@@ -828,11 +858,11 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 // HandlingReady implements internalStore.Handler interface.
 func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) HandlingReady(ctx context.Context, channel string) errors.E {
 	switch channel {
-	case c.Prefix + "OperationAppended":
+	case c.operationAppendedChannel:
 		// We just wait for channel to be available. This means that HandleBacklog has completed.
 		_, errE := c.Appended.Get(ctx)
 		return errE
-	case c.Prefix + "SessionStateChanged":
+	case c.sessionStateChannel:
 		// We just wait for channel to be available. This means that HandleBacklog has completed.
 		_, errE := c.Changed.Get(ctx)
 		return errE

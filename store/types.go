@@ -3,6 +3,7 @@ package store
 import (
 	"time"
 
+	"github.com/mohae/deepcopy"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
@@ -14,6 +15,8 @@ const RFC3339Milli = "2006-01-02T15:04:05.000Z07:00"
 
 // Time is a timestamp which is represented in JSON with millisecond
 // precision and not (Go default) nanosecond precision.
+//
+//nolint:recvcheck
 type Time time.Time
 
 // MarshalJSON marshals Time to JSON with millisecond precision.
@@ -38,6 +41,16 @@ func (t *Time) UnmarshalJSON(data []byte) error {
 	*t = Time(tt)
 	return errors.WithStack(err)
 }
+
+// DeepCopy implements the github.com/mohae/deepcopy Interface so deepcopy.Copy copies a Time by value.
+// Without it deepcopy reflects into the struct and, because Time is a named type over time.Time rather than
+// the exact time.Time it special-cases, skips time.Time's unexported fields and zeroes the timestamp. A Time
+// is a plain value, so returning it is a complete copy.
+func (t Time) DeepCopy() any {
+	return t
+}
+
+var _ deepcopy.Interface = Time{}
 
 // InverseRelationKey identifies an inverse relation by its source document, claim ID,
 // and target property. We validate that claim IDs are unique per source document but we
@@ -85,9 +98,11 @@ type DocumentMetadata struct {
 	// included here; that user goes to CommitMetadata.User instead.
 	Users []User `json:"users,omitempty"`
 
-	// InverseRelations contains inverse relation data for relation claims from other
-	// documents that point to this document.
-	InverseRelations []InverseRelation `json:"inverseRelations,omitempty"`
+	// InverseRelations maps a visibility level name to the inverse relations visible at that level: inverse
+	// relation data for relation claims from other documents that point to this document, as those source
+	// documents are seen at that level. The sets are kept strictly separate so that indexing one level
+	// never leaks a source not visible there.
+	InverseRelations map[string][]InverseRelation `json:"inverseRelations,omitempty"`
 }
 
 // CommitMetadata contains metadata about a commit.
@@ -107,26 +122,35 @@ func (c *CommitMetadata) ChangesetID() identifier.Identifier {
 	return identifier.From(c.Base...)
 }
 
-// AddInverseRelations adds inverse relations to this metadata,
-// if they do not already exist (comparison is done by (Source, Claim) pair).
-func (m *DocumentMetadata) AddInverseRelations(relations []InverseRelation) {
-	existing := make(map[InverseRelationKey]bool, len(m.InverseRelations))
-	for _, ir := range m.InverseRelations {
+// AddInverseRelations adds inverse relations to the given visibility level, if they do not already exist at
+// that level (comparison is done by InverseRelationKey).
+func (m *DocumentMetadata) AddInverseRelations(level string, relations []InverseRelation) {
+	if len(relations) == 0 {
+		return
+	}
+	current := m.InverseRelations[level]
+	existing := make(map[InverseRelationKey]bool, len(current))
+	for _, ir := range current {
 		existing[ir.InverseRelationKey] = true
 	}
 	for _, ir := range relations {
 		if !existing[ir.InverseRelationKey] {
-			m.InverseRelations = append(m.InverseRelations, ir)
+			current = append(current, ir)
 			existing[ir.InverseRelationKey] = true
 		}
 	}
+	if m.InverseRelations == nil {
+		m.InverseRelations = map[string][]InverseRelation{}
+	}
+	m.InverseRelations[level] = current
 }
 
-// RemoveInverseRelations removes specific inverse relations identified by their claim IDs.
-// Only relations whose Claim field matches one of the provided relations'
-// Claim fields are removed.
-func (m *DocumentMetadata) RemoveInverseRelations(relations []InverseRelation) {
-	if len(relations) == 0 || len(m.InverseRelations) == 0 {
+// RemoveInverseRelations removes from the given visibility level the inverse relations identified by their
+// claim IDs. Only relations whose Claim field matches one of the provided relations' Claim fields are removed.
+// When a level's set becomes empty its key is dropped, and an empty map is reset to nil.
+func (m *DocumentMetadata) RemoveInverseRelations(level string, relations []InverseRelation) {
+	current := m.InverseRelations[level]
+	if len(relations) == 0 || len(current) == 0 {
 		return
 	}
 
@@ -136,17 +160,20 @@ func (m *DocumentMetadata) RemoveInverseRelations(relations []InverseRelation) {
 		toRemove[relations[i].Claim] = true
 	}
 
-	kept := make([]InverseRelation, 0, len(m.InverseRelations))
-	for i := range m.InverseRelations {
-		if !toRemove[m.InverseRelations[i].Claim] {
-			kept = append(kept, m.InverseRelations[i])
+	kept := make([]InverseRelation, 0, len(current))
+	for i := range current {
+		if !toRemove[current[i].Claim] {
+			kept = append(kept, current[i])
 		}
 	}
 
 	if len(kept) == 0 {
-		m.InverseRelations = nil
+		delete(m.InverseRelations, level)
+		if len(m.InverseRelations) == 0 {
+			m.InverseRelations = nil
+		}
 	} else {
-		m.InverseRelations = kept
+		m.InverseRelations[level] = kept
 	}
 }
 

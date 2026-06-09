@@ -146,7 +146,7 @@ func initDatabase[Data, Metadata any](
 
 	listener := internalStore.NewListener(dbpool)
 
-	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, dbpool, schema)
+	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, nil, dbpool, schema)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c := &coordinator.Coordinator[Data, Metadata, Metadata, Metadata, Metadata, Metadata]{
@@ -536,7 +536,7 @@ func TestNotifyRecovery(t *testing.T) {
 
 	listener := internalStore.NewListener(dbpool)
 
-	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, dbpool, schema)
+	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, nil, dbpool, schema)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c := &coordinator.Coordinator[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]{
@@ -584,7 +584,7 @@ func TestNotifyRecovery(t *testing.T) {
 	// Simulate a reconnection on the OperationAppended channel.
 	oldAppendedCh, errE := c.Appended.Get(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	err = c.HandleBacklog(ctx, c.Prefix+"OperationAppended", nil)
+	err = c.HandleBacklog(ctx, schema+"_"+c.Prefix+"Operation", nil)
 	require.NoError(t, err, "% -+#.1v", err) // This is still errors.E.
 
 	// Old Appended channel must be closed.
@@ -615,7 +615,7 @@ func TestNotifyRecovery(t *testing.T) {
 	// Simulate a reconnection on the SessionStateChanged channel.
 	oldChangedCh, errE := c.Changed.Get(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	err = c.HandleBacklog(ctx, c.Prefix+"SessionStateChanged", nil)
+	err = c.HandleBacklog(ctx, schema+"_"+c.Prefix+"Session", nil)
 	require.NoError(t, err, "% -+#.1v", err) // This is still errors.E.
 
 	// Old Changed channel must be closed.

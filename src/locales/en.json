@@ -33,6 +33,7 @@
       "editingNotAllowed": "Editing not allowed.",
       "loading": "Loading...",
       "loadingDataFailed": "loading data failed",
+      "dataNotAvailable": "data not available",
       "error": "error",
       "valuesNotShown": "1 value not shown. | {count} values not shown.",
       "allResults": "All of 1 result shown. | All of {count} results shown.",
@@ -55,6 +56,7 @@
       "table": "Table"
     },
     "values": {
+      "direct": "direct",
       "missing": "missing",
       "noName": "no name",
       "none": "none",
@@ -180,7 +182,10 @@
       "skipToFilters": "Skip to filters",
       "skipToResults": "Skip to results",
       "resultsReferencing": "Results referencing {label}",
-      "clearReferencing": "Clear referencing scope"
+      "clearReferencing": "Clear referencing scope",
+      "resultsLimitedTo": "Results limited to {filter}",
+      "resultsLimitedToMany": "Results limited to:",
+      "clearLimited": "Clear results limiting"
     },
     "AmountFiltersResult": {
       "clearFilter": "Clear filter"

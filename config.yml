@@ -10,6 +10,6 @@ globals:
         admin:
           - canEditDocument
           - canChangesDocument
-          - canGetFile
+          - canBulkGetFile
           - canChangesFile
           - canEditFile

@@ -488,14 +488,26 @@ export class AmountIntervalClaimPatch implements ClaimPatch {
 
     if (this.confidence !== undefined) claim.confidence = this.confidence
     if (this.prop) claim.prop.id = this.prop
-    if (this.from) claim.from = this.from
+    if (this.from) {
+      claim.from = this.from
+      claim.fromIsUnknown = false
+      claim.fromIsNone = false
+    }
     if (this.fromPrecision !== undefined) claim.fromPrecision = this.fromPrecision
-    if (this.fromIsOpen !== undefined) claim.fromIsOpen = this.fromIsOpen
+    if (this.fromIsOpen !== undefined) {
+      claim.fromIsOpen = this.fromIsOpen
+      if (this.fromIsOpen) {
+        claim.fromIsUnknown = false
+        claim.fromIsNone = false
+      }
+    }
     if (this.fromIsUnknown !== undefined) {
       claim.fromIsUnknown = this.fromIsUnknown
       if (this.fromIsUnknown) {
         claim.from = undefined
         claim.fromPrecision = undefined
+        claim.fromIsOpen = false
+        claim.fromIsNone = false
       }
     }
     if (this.fromIsNone !== undefined) {
@@ -503,16 +515,30 @@ export class AmountIntervalClaimPatch implements ClaimPatch {
       if (this.fromIsNone) {
         claim.from = undefined
         claim.fromPrecision = undefined
+        claim.fromIsOpen = false
+        claim.fromIsUnknown = false
       }
     }
-    if (this.to) claim.to = this.to
+    if (this.to) {
+      claim.to = this.to
+      claim.toIsUnknown = false
+      claim.toIsNone = false
+    }
     if (this.toPrecision !== undefined) claim.toPrecision = this.toPrecision
-    if (this.toIsOpen !== undefined) claim.toIsOpen = this.toIsOpen
+    if (this.toIsOpen !== undefined) {
+      claim.toIsOpen = this.toIsOpen
+      if (this.toIsOpen) {
+        claim.toIsUnknown = false
+        claim.toIsNone = false
+      }
+    }
     if (this.toIsUnknown !== undefined) {
       claim.toIsUnknown = this.toIsUnknown
       if (this.toIsUnknown) {
         claim.to = undefined
         claim.toPrecision = undefined
+        claim.toIsOpen = false
+        claim.toIsNone = false
       }
     }
     if (this.toIsNone !== undefined) {
@@ -520,6 +546,8 @@ export class AmountIntervalClaimPatch implements ClaimPatch {
       if (this.toIsNone) {
         claim.to = undefined
         claim.toPrecision = undefined
+        claim.toIsOpen = false
+        claim.toIsUnknown = false
       }
     }
 
@@ -645,14 +673,26 @@ export class TimeIntervalClaimPatch implements ClaimPatch {
 
     if (this.confidence !== undefined) claim.confidence = this.confidence
     if (this.prop) claim.prop.id = this.prop
-    if (this.from) claim.from = this.from
+    if (this.from) {
+      claim.from = this.from
+      claim.fromIsUnknown = false
+      claim.fromIsNone = false
+    }
     if (this.fromPrecision !== undefined) claim.fromPrecision = this.fromPrecision
-    if (this.fromIsOpen !== undefined) claim.fromIsOpen = this.fromIsOpen
+    if (this.fromIsOpen !== undefined) {
+      claim.fromIsOpen = this.fromIsOpen
+      if (this.fromIsOpen) {
+        claim.fromIsUnknown = false
+        claim.fromIsNone = false
+      }
+    }
     if (this.fromIsUnknown !== undefined) {
       claim.fromIsUnknown = this.fromIsUnknown
       if (this.fromIsUnknown) {
         claim.from = undefined
         claim.fromPrecision = undefined
+        claim.fromIsOpen = false
+        claim.fromIsNone = false
       }
     }
     if (this.fromIsNone !== undefined) {
@@ -660,16 +700,30 @@ export class TimeIntervalClaimPatch implements ClaimPatch {
       if (this.fromIsNone) {
         claim.from = undefined
         claim.fromPrecision = undefined
+        claim.fromIsOpen = false
+        claim.fromIsUnknown = false
       }
     }
-    if (this.to) claim.to = this.to
+    if (this.to) {
+      claim.to = this.to
+      claim.toIsUnknown = false
+      claim.toIsNone = false
+    }
     if (this.toPrecision !== undefined) claim.toPrecision = this.toPrecision
-    if (this.toIsOpen !== undefined) claim.toIsOpen = this.toIsOpen
+    if (this.toIsOpen !== undefined) {
+      claim.toIsOpen = this.toIsOpen
+      if (this.toIsOpen) {
+        claim.toIsUnknown = false
+        claim.toIsNone = false
+      }
+    }
     if (this.toIsUnknown !== undefined) {
       claim.toIsUnknown = this.toIsUnknown
       if (this.toIsUnknown) {
         claim.to = undefined
         claim.toPrecision = undefined
+        claim.toIsOpen = false
+        claim.toIsNone = false
       }
     }
     if (this.toIsNone !== undefined) {
@@ -677,6 +731,8 @@ export class TimeIntervalClaimPatch implements ClaimPatch {
       if (this.toIsNone) {
         claim.to = undefined
         claim.toPrecision = undefined
+        claim.toIsOpen = false
+        claim.toIsUnknown = false
       }
     }
 

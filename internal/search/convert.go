@@ -8,23 +8,40 @@ import (
 	"strings"
 	"sync"
 	"text/template"
+	"time"
 	"unicode/utf8"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/pemistahl/lingua-go"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 	"golang.org/x/net/html"
 
+	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
-// TODO: Handle the case when ancestor's hierarchy changes.
+// TODO: Reindex when ancestor's hierarchy changes.
 //       Currently, the indexed document is refreshed when the source document is reindexed
 //       (or on a full reindex), but not when an intermediate ancestor's hierarchy changes.
+//       We invalidate cache but we do not reindex.
+
+// TODO: Reindex when any display label changes on which the document's display label depends.
+//       We invalidate cache but we do not reindex.
+
+// TODO: Reindex referencing documents when a referenced document's display changes.
+//       A document embeds a referenced (and inverse-referenced) document's display as toDisplay in
+//       its search document, but the bridge only reindexes on reference structure changes, not on a
+//       referenced document's display change. The cache is correct on reindex; the reindex is not
+//       triggered.
+
+// TODO: Handle the case when schema structure changes.
+//       The Converter precomputes schema structure once at startup. So if a property, class, or
+//       language document changes at runtime, the converter keeps using the stale preprocessed structure.
 
 // inlineHTMLTags is the set of HTML tag names that do NOT produce a visible
 // line/block break in rendered text. Text fragments separated only by these
@@ -138,9 +155,16 @@ type documentInfo struct {
 	// DisplayPaths maps a hierarchy property ID to per-language display hierarchy paths
 	// from root to this document. Each path is a string of display labels joined by null bytes.
 	DisplayPaths map[identifier.Identifier]map[string][]string
-	// IgnoredForReferencesCount is true when the document is ignored for referencesCount.
+	// IgnoredForReferencesCount is true when the document is ignored for counts.references.
 	// Such documents accumulate references that do not reflect importance.
 	IgnoredForReferencesCount bool
+	// depGens maps each document this info depends on (itself, the documents embedded in its display, and
+	// its transitive ancestors) to that document's generation snapshotted when it was read. It is the
+	// transitive closure: a parent merges each child's depGens, so a deep ancestor carries the snapshot
+	// taken where it was actually read, not where it was later recorded. cacheDocumentInfo installs the
+	// info only while every one of these generations is unchanged, and registers id as their reverse
+	// dependent in infoDependents.
+	depGens map[identifier.Identifier]uint64
 }
 
 // CollectHierarchyPaths collects all hierarchy paths, combining paths from all
@@ -167,10 +191,16 @@ func (d documentInfo) CollectHierarchyPaths() ([]string, map[string][]string) {
 	return toPath, toDisplayPath
 }
 
-// fieldInverseKey identifies a position within a class's field hierarchy
-// for field-level inverse property lookup. Path is the encoded sequence of
-// parent HasClaim property IDs and SourceProp is the property at this position.
+// fieldInverseKey identifies a position within a specific class's field hierarchy
+// for field-level inverse property lookup. Class is the class the field is defined
+// on, Path is the encoded sequence of parent HasClaim property IDs, and SourceProp
+// is the property at this position.
 type fieldInverseKey struct {
+	// Class is the ID of the class document on which this field is defined. The same
+	// source property can be a field on multiple classes with different inverse
+	// properties (e.g., HAS_ARTIST inverts to HAS_EVENT on an event class and to
+	// HAS_RESOURCE on a resource class), so the class is part of the key.
+	Class identifier.Identifier
 	// Path is the encoded path of parent HasClaim property IDs leading to this
 	// field position, joined by "/". Empty string for top-level fields.
 	Path string
@@ -180,8 +210,6 @@ type fieldInverseKey struct {
 
 // Converter holds preprocessed data for converting document.D to search Document.
 type Converter struct {
-	// Hooks are called in order to allow for modification of documents before they are converted.
-	Hooks []func(ctx context.Context, doc *document.D) (*document.D, errors.E)
 	// LanguageCodes is a map that maps language document ID to primary language subtag (e.g., "en").
 	LanguageCodes map[identifier.Identifier]string
 	// IndexAncestorProperties enables claim propagation to transitive super-properties:
@@ -196,7 +224,7 @@ type Converter struct {
 	DetectLanguages bool
 
 	// CountReferences returns how many documents reference the given document. When set,
-	// FromDocument records it as the document's referencesCount. Nil disables the count
+	// FromDocument records it as the document's counts.references. Nil disables the count
 	// (the field is then omitted).
 	CountReferences func(ctx context.Context, id identifier.Identifier) (int, errors.E)
 
@@ -221,7 +249,7 @@ type Converter struct {
 	// Y is in inverseProperties[X] and X is in inverseProperties[Y].
 	// Multiple properties can be inverses of the same property.
 	inverseProperties map[identifier.Identifier][]identifier.Identifier
-	// fieldInverseProperties maps a (field path, source property ID) pair to the
+	// fieldInverseProperties maps a (class, field path, source property ID) tuple to the
 	// target inverse property ID defined on class field definitions. Built from all
 	// class documents that define fields with INVERSE_PROPERTY. Field-level inverse
 	// properties take precedence over property-level INVERSE_PROPERTY_OF.
@@ -243,12 +271,207 @@ type Converter struct {
 	// display fallback) but not enabled (it gets no index field, and its content
 	// is dropped from the text buckets).
 	recognizedLanguages map[string]bool
-	// getDocument fetches a document by ID from the store.
-	getDocument func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E)
-	// documentInfoMu protects documentInfoCache for concurrent access.
+	// getDocumentFunc fetches the latest document by ID. Call the getDocument method instead of using this
+	// field directly, so fetches are cached in getDocumentCache and counted.
+	getDocumentFunc func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E)
+	// cacheGen holds a per-document monotonic generation, bumped by InvalidateCaches for each invalidated
+	// document before its entries are dropped. getDocument and computeDocumentInfo snapshot the generation
+	// of every document they read (recorded per dependency in DisplayDependencies) and only install a
+	// value if none of those generations advanced by write-back time. This prevents the cache-aside race
+	// where a reader holding a pre-commit store snapshot writes stale data after an invalidation has run:
+	// if a relevant bump happened during the read, the snapshot mismatches and the write is skipped; if
+	// the write lands before the invalidation, the invalidation's delete drops it.
+	// TODO: Bound this map (for example with an LRU); it currently grows with every distinct invalidated document.
+	cacheGen map[identifier.Identifier]uint64
+	// cacheGenMu protects cacheGen for concurrent access. It is a leaf lock: only ever acquired on its own
+	// or as the innermost lock inside documentInfoMu or getDocumentMu, never the other way around.
+	cacheGenMu sync.RWMutex
+	// documentInfoMu protects documentInfoCache and infoDependents for concurrent access.
 	documentInfoMu sync.RWMutex
-	// documentInfoCache caches computed document info (display strings and hierarchy ancestors) per document ID.
+	// documentInfoCache caches computed document info (display strings and hierarchy ancestors) per
+	// document ID. The bridge invalidates entries for documents changed in each commit via
+	// InvalidateCaches, so a changed document is recomputed from its new version.
+	// TODO: Bound this cache (for example with an LRU) to limit memory usage; it currently grows unbounded.
 	documentInfoCache map[identifier.Identifier]documentInfo
+	// infoDependents maps a document ID to the set of document IDs whose cached documentInfo rendered
+	// it into their display strings (fetched it via getDocument while rendering, for example a class
+	// display template or a document embedded into a label). When the mapped-from document changes,
+	// those dependents' display strings are stale, so InvalidateCaches drops their documentInfo too.
+	// TODO: Bound this map (for example with an LRU) and prune dependents whose documentInfo has been evicted.
+	//       It currently grows unbounded and may retain a dependent until its key is invalidated.
+	infoDependents map[identifier.Identifier]map[identifier.Identifier]bool
+	// getDocumentMu protects getDocumentCache for concurrent access.
+	getDocumentMu sync.RWMutex
+	// getDocumentCache caches raw documents fetched via getDocument, keyed by document ID.
+	// The bridge invalidates entries for documents changed in each commit via InvalidateCaches.
+	// TODO: Bound this cache (for example with an LRU) to limit memory usage; it currently grows unbounded.
+	getDocumentCache map[identifier.Identifier]*document.D
+}
+
+// ConversionStats accumulates per-document conversion metrics. Attach a *ConversionStats to the
+// context with WithConversionStats before calling FromDocument to record how many documents were
+// fetched from the store (and the time spent fetching), and how many document info cache lookups
+// hit or missed.
+type ConversionStats struct {
+	// InfoCacheHits is the number of document info cache lookups served from the cache.
+	InfoCacheHits int
+	// InfoCacheMisses is the number of document info cache lookups that had to be computed.
+	InfoCacheMisses int
+	// DocCacheHits is the number of getDocument lookups served from the document cache, which did not
+	// need a store fetch.
+	DocCacheHits int
+	// DocCacheMisses is the number of getDocument lookups not served from the document cache, each of
+	// which did a store fetch.
+	DocCacheMisses int
+	// FetchDuration is the total time spent in the store fetches done by the document cache misses.
+	FetchDuration time.Duration
+}
+
+// DisplayDependencies collects the documents fetched via getDocument while a document's display strings
+// are being rendered, so the document's documentInfo can be invalidated when one of those fetched
+// documents changes (its content is rendered into the display label). Each dependency maps to the
+// cacheGen snapshot of that document at the time it was first read, so cacheDocumentInfo can detect
+// whether any dependency was invalidated while the info was being computed.
+type DisplayDependencies struct {
+	ids map[identifier.Identifier]uint64
+}
+
+// getDocument returns the latest document for the given ID. The result is cached in getDocumentCache,
+// including a not-found result (cached as a nil entry, returned as store.ErrValueNotFound), so repeated
+// references avoid re-fetching; other (transient) errors are not cached. The bridge invalidates cached
+// entries, and the documentInfo of dependents, for documents changed in each commit via InvalidateCaches.
+func (c *Converter) getDocument(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
+	// Snapshot this document's generation before reading it, used both to record the dependency below and
+	// to guard this fetch's own cache write at the end.
+	gen := c.genOf(id)
+	// While a document's display strings are being rendered, record that its documentInfo depends on this
+	// fetched document, whether or not it is served from the cache. Keep the earliest snapshot if the
+	// document is fetched more than once, so a change at any point during the compute is still detected.
+	if deps := displayDependenciesFromContext(ctx); deps != nil {
+		if _, ok := deps.ids[id]; !ok {
+			deps.ids[id] = gen
+		}
+	}
+	c.getDocumentMu.RLock()
+	doc, ok := c.getDocumentCache[id]
+	c.getDocumentMu.RUnlock()
+	stats := conversionStatsFromContext(ctx)
+	if ok {
+		if stats != nil {
+			stats.DocCacheHits++
+		}
+		if doc == nil {
+			// Cached negative: the document is deleted, never existed, or hidden at this level.
+			return nil, errors.WithStack(store.ErrValueNotFound)
+		}
+		return doc, nil
+	}
+	start := time.Now()
+	doc, errE := c.getDocumentFunc(ctx, id)
+	if stats != nil {
+		stats.DocCacheMisses++
+		stats.FetchDuration += time.Since(start)
+	}
+	if errE != nil {
+		if errors.Is(errE, store.ErrValueNotFound) {
+			// A not-found document (deleted, never existed, or hidden at this level) is a stable latest state:
+			// cache it as a negative under the generation guard so repeated references avoid the re-fetch.
+			// InvalidateCaches drops it, and the documentInfo of every dependent, when the id changes.
+			c.getDocumentMu.Lock()
+			if c.genOf(id) == gen {
+				c.getDocumentCache[id] = nil
+			}
+			c.getDocumentMu.Unlock()
+		}
+		return doc, errE
+	}
+	c.getDocumentMu.Lock()
+	// Only cache the fetch if this document was not invalidated while the fetch was in flight. Otherwise
+	// the fetched document might predate the change that triggered the invalidation, so we return it for
+	// the in-flight conversion but do not install it. The bridge reindexes the affected documents from
+	// their new versions regardless.
+	if c.genOf(id) == gen {
+		c.getDocumentCache[id] = doc
+	}
+	c.getDocumentMu.Unlock()
+	return doc, nil
+}
+
+// InvalidateCaches drops any cached document info and fetched document for the given IDs, and the
+// cached documentInfo of every other document that depends on one of these documents (tracked via
+// infoDependents): documents that rendered one into their display strings (a class display template
+// or a document embedded into a label) and documents that have one as a transitive hierarchy ancestor
+// (whose display is embedded into their display paths, and identity into their ancestors and id
+// paths). The bridge calls this for the documents changed in each commit, so later conversions
+// recompute display strings and hierarchy, and re-fetch content, from the new versions rather than
+// from stale cached data.
+func (c *Converter) InvalidateCaches(ids ...identifier.Identifier) {
+	if len(ids) == 0 {
+		return
+	}
+	// Bump each document's generation before dropping any entries so that a concurrent reader which
+	// snapshotted a generation before its store read observes the change at write-back and skips
+	// installing stale data.
+	c.cacheGenMu.Lock()
+	for _, id := range ids {
+		c.cacheGen[id]++
+	}
+	c.cacheGenMu.Unlock()
+	c.documentInfoMu.Lock()
+	for _, id := range ids {
+		delete(c.documentInfoCache, id)
+		// Second order: a changed document's content is rendered into the display strings of every
+		// document that fetched it via getDocument, so those dependents' cached documentInfo is stale.
+		for dependent := range c.infoDependents[id] {
+			delete(c.documentInfoCache, dependent)
+		}
+		delete(c.infoDependents, id)
+	}
+	c.documentInfoMu.Unlock()
+	c.getDocumentMu.Lock()
+	for _, id := range ids {
+		delete(c.getDocumentCache, id)
+	}
+	c.getDocumentMu.Unlock()
+}
+
+// genOf returns the current generation of the given document, which is 0 until it is first invalidated.
+func (c *Converter) genOf(id identifier.Identifier) uint64 {
+	c.cacheGenMu.RLock()
+	defer c.cacheGenMu.RUnlock()
+	return c.cacheGen[id]
+}
+
+// mergeGenSnapshot records that the info being computed depends on id at generation gen, keeping the
+// earliest snapshot if id is already present so a change at any point during the compute is detected.
+func mergeGenSnapshot(depGens map[identifier.Identifier]uint64, id identifier.Identifier, gen uint64) {
+	if cur, ok := depGens[id]; !ok || gen < cur {
+		depGens[id] = gen
+	}
+}
+
+// mergeGenSnapshots merges every dependency snapshot from src into dst, keeping the earliest per id. It is
+// used to propagate a child's transitive dependency snapshots up to its parent.
+func mergeGenSnapshots(dst, src map[identifier.Identifier]uint64) {
+	for id, gen := range src {
+		mergeGenSnapshot(dst, id, gen)
+	}
+}
+
+// genSelfForCaching returns the generation to guard id's cached info against and whether the info may be
+// cached at all. Recursed ancestors and embeds (doc == nil) snapshot the generation here, before they are
+// fetched afterwards, so this is their pre-read snapshot and they are always cacheable, which is what lets
+// multi-path hierarchies memoize within a conversion. The converted document itself (doc != nil) was
+// fetched by the caller, so it is cacheable only with the caller's snapshot taken before that read.
+// Without one its info is computed and returned but not installed, since the write could not be guarded.
+func (c *Converter) genSelfForCaching(id identifier.Identifier, doc *document.D, gen *uint64) (uint64, bool) {
+	if doc == nil {
+		return c.genOf(id), true
+	}
+	if gen != nil {
+		return *gen, true
+	}
+	return c.genOf(id), false
 }
 
 // NewConverter creates a Converter that preprocesses property hierarchies and discovers
@@ -282,7 +505,6 @@ func NewConverter(
 		}
 	}
 	c := &Converter{
-		Hooks:                    nil,
 		LanguageCodes:            nil,
 		IndexAncestorProperties:  false,
 		DetectLanguages:          false,
@@ -298,9 +520,14 @@ func NewConverter(
 		languagePriority:         languagePriority,
 		enabledLanguages:         enabledLanguages,
 		recognizedLanguages:      recognizedLanguages,
-		getDocument:              getDocument,
+		getDocumentFunc:          getDocument,
+		cacheGen:                 map[identifier.Identifier]uint64{},
+		cacheGenMu:               sync.RWMutex{},
 		documentInfoCache:        map[identifier.Identifier]documentInfo{},
 		documentInfoMu:           sync.RWMutex{},
+		infoDependents:           map[identifier.Identifier]map[identifier.Identifier]bool{},
+		getDocumentCache:         map[identifier.Identifier]*document.D{},
+		getDocumentMu:            sync.RWMutex{},
 	}
 	c.buildLanguageDetector()
 	c.buildPropertyHierarchy(properties)
@@ -578,29 +805,34 @@ func encodeFieldPath(path []identifier.Identifier) string {
 }
 
 // buildFieldInverseProperties extracts inverse property definitions from class
-// document field hierarchies. For each class document that has FIELD or SECTION
-// claims, it walks the field tree (FIELD -> SUB_FIELD) and records any
-// INVERSE_PROPERTY settings as (field path, source property) -> target property.
+// document field hierarchies. A class's field schema lives under a top-level FIELDS
+// HasClaim (the class's Fields), inside which fields appear either directly as FIELD
+// HasClaims or grouped into SECTION HasClaims. For each class document it walks the
+// field tree (FIELD -> SUB_FIELD) and records any INVERSE_PROPERTY settings as
+// (class, field path, source property) -> target property.
 func (c *Converter) buildFieldInverseProperties(classes []*document.D) {
 	c.fieldInverseProperties = map[fieldInverseKey]identifier.Identifier{}
 	for _, cls := range classes {
-		// Process top-level FIELD HasClaims.
-		for _, field := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](cls, internalCore.FieldPropID, document.LowConfidence) {
-			c.processFieldInverse(nil, field)
-		}
-		// Process SECTION HasClaims which contain FIELD HasClaims.
-		for _, section := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](cls, internalCore.SectionPropID, document.LowConfidence) {
-			for _, field := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](section, internalCore.FieldPropID, document.LowConfidence) {
-				c.processFieldInverse(nil, field)
+		// The field schema is nested under the class's FIELDS HasClaim.
+		for _, fields := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](cls, internalCore.FieldsPropID, document.LowConfidence) {
+			// Process FIELD HasClaims directly under FIELDS.
+			for _, field := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](fields, internalCore.FieldPropID, document.LowConfidence) {
+				c.processFieldInverse(cls.ID, nil, field)
+			}
+			// Process SECTION HasClaims, each of which contains FIELD HasClaims.
+			for _, section := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](fields, internalCore.SectionPropID, document.LowConfidence) {
+				for _, field := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](section, internalCore.FieldPropID, document.LowConfidence) {
+					c.processFieldInverse(cls.ID, nil, field)
+				}
 			}
 		}
 	}
 }
 
 // processFieldInverse extracts inverse property from a single field HasClaim
-// and recurses into SUB_FIELD HasClaims. parentPath tracks the accumulated
-// property IDs from parent fields.
-func (c *Converter) processFieldInverse(parentPath []identifier.Identifier, field *document.HasClaim) {
+// and recurses into SUB_FIELD HasClaims. classID is the class the field is defined
+// on, and parentPath tracks the accumulated property IDs from parent fields.
+func (c *Converter) processFieldInverse(classID identifier.Identifier, parentPath []identifier.Identifier, field *document.HasClaim) {
 	// Extract the field's property (HAS_PROPERTY reference).
 	hasPropRef := document.GetBestClaimOfType[document.ReferenceClaim](field, internalCore.HasPropertyPropID)
 	if hasPropRef == nil {
@@ -612,6 +844,7 @@ func (c *Converter) processFieldInverse(parentPath []identifier.Identifier, fiel
 	inversePropRef := document.GetBestClaimOfType[document.ReferenceClaim](field, internalCore.InversePropertyPropID)
 	if inversePropRef != nil {
 		key := fieldInverseKey{
+			Class:      classID,
 			Path:       encodeFieldPath(parentPath),
 			SourceProp: propID,
 		}
@@ -621,7 +854,7 @@ func (c *Converter) processFieldInverse(parentPath []identifier.Identifier, fiel
 	// Recurse into SUB_FIELD HasClaims.
 	childPath := append(slices.Clone(parentPath), propID)
 	for _, subField := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](field, internalCore.SubFieldPropID, document.LowConfidence) {
-		c.processFieldInverse(childPath, subField)
+		c.processFieldInverse(classID, childPath, subField)
 	}
 }
 
@@ -629,24 +862,39 @@ func (c *Converter) processFieldInverse(parentPath []identifier.Identifier, fiel
 // caching it on first access. It computes display strings and lazily walks
 // value hierarchy ancestors (e.g., SUBCLASS_OF). It is safe for concurrent use.
 func (c *Converter) getDocumentInfo(ctx context.Context, id identifier.Identifier) (documentInfo, errors.E) {
-	return c.computeDocumentInfo(ctx, id, nil, map[identifier.Identifier]bool{})
+	return c.computeDocumentInfo(ctx, id, nil, nil, map[identifier.Identifier]bool{})
 }
 
 // computeDocumentInfo computes a document's display strings and lazily walks value
 // hierarchy ancestors. When doc is non-nil it is used directly (the caller already
-// has it, e.g., the document being indexed); otherwise the document is fetched by id.
+// has it, e.g., the document being indexed) and gen is the document's generation
+// snapshotted by the caller before it read doc, used to guard caching the result.
+// A nil gen with a non-nil doc means the result is computed but not cached. When doc
+// is nil the document is fetched by id and gen is ignored (the snapshot is taken here).
 // The computing set prevents infinite recursion when cycles exist in hierarchy data.
 // Results are cached for reuse.
 func (c *Converter) computeDocumentInfo(
-	ctx context.Context, id identifier.Identifier, doc *document.D, computing map[identifier.Identifier]bool,
+	ctx context.Context, id identifier.Identifier, doc *document.D, gen *uint64, computing map[identifier.Identifier]bool,
 ) (documentInfo, errors.E) {
 	// Check cache.
 	c.documentInfoMu.RLock()
-	if info, ok := c.documentInfoCache[id]; ok {
-		c.documentInfoMu.RUnlock()
-		return info, nil
-	}
+	cached, ok := c.documentInfoCache[id]
 	c.documentInfoMu.RUnlock()
+	if stats := conversionStatsFromContext(ctx); stats != nil {
+		if ok {
+			stats.InfoCacheHits++
+		} else {
+			stats.InfoCacheMisses++
+		}
+	}
+	if ok {
+		return cached, nil
+	}
+
+	// Snapshot the generation to guard this document's cached info against, and whether it may be cached at
+	// all. cacheDocumentInfo below installs the result only if neither this document nor any dependency was
+	// invalidated meanwhile; otherwise the result is returned but not cached.
+	genSelf, cacheable := c.genSelfForCaching(id, doc, gen)
 
 	// Cycle protection.
 	if computing[id] {
@@ -669,10 +917,20 @@ func (c *Converter) computeDocumentInfo(
 			return documentInfo{}, errE
 		}
 	}
-	display, errE := c.makeDisplayStrings(ctx, doc)
+	// depGens accumulates the generation of every document this info depends on, each snapshotted before
+	// that document was read, starting with this document itself. The display embeds and transitive
+	// ancestors are merged in below; cacheDocumentInfo installs the info only while all of them are
+	// unchanged.
+	depGens := map[identifier.Identifier]uint64{id: genSelf}
+
+	// Collect the documents fetched while rendering display strings (the class display template and
+	// any documents it embeds), so this documentInfo can be invalidated when one of them changes.
+	deps := &DisplayDependencies{ids: map[identifier.Identifier]uint64{}}
+	display, errE := c.makeDisplayStrings(withDisplayDependencies(ctx, deps), doc)
 	if errE != nil {
 		return documentInfo{}, errE
 	}
+	mergeGenSnapshots(depGens, deps.ids)
 
 	// Compute ancestors and hierarchy paths for each value hierarchy property.
 	var ancestors map[identifier.Identifier][]identifier.Identifier
@@ -695,11 +953,17 @@ func (c *Converter) computeDocumentInfo(
 			}
 			seen[parentID] = true
 			hierAncestors = append(hierAncestors, parentID)
-			// Recursively get parent info to collect transitive ancestors and paths.
-			parentInfo, errE := c.computeDocumentInfo(ctx, parentID, nil, computing)
+			// Snapshot the parent's generation before reading it, then recurse to collect its transitive
+			// ancestors and paths. Merging the parent's own depGens propagates each transitive ancestor's
+			// snapshot taken where it was actually read; the explicit parent snapshot also covers a parent
+			// that does not exist yet, so this document is invalidated if it is later inserted.
+			parentGen := c.genOf(parentID)
+			parentInfo, errE := c.computeDocumentInfo(ctx, parentID, nil, nil, computing)
 			if errE != nil {
 				return documentInfo{}, errE
 			}
+			mergeGenSnapshot(depGens, parentID, parentGen)
+			mergeGenSnapshots(depGens, parentInfo.depGens)
 			for _, grandparent := range parentInfo.Ancestors[hierProp] {
 				if !seen[grandparent] {
 					seen[grandparent] = true
@@ -738,7 +1002,7 @@ func (c *Converter) computeDocumentInfo(
 		}
 	}
 
-	// Determine whether this document is ignored for referencesCount: it is an instance of
+	// Determine whether this document is ignored for counts.references: it is an instance of
 	// CLASS or VOCABULARY, transitively through the class hierarchy (SUBCLASS_OF).
 	isIgnoredClass := func(id identifier.Identifier) bool {
 		return id == internalCore.ClassClassID || id == internalCore.VocabularyClassID
@@ -747,13 +1011,26 @@ func (c *Converter) computeDocumentInfo(
 	for _, rel := range document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, internalCore.InstanceOfPropID, document.LowConfidence) {
 		classID := rel.To.ID
 		if isIgnoredClass(classID) {
+			// This depends only on the document's own InstanceOf claim pointing at the CLASS or
+			// VOCABULARY constant, not on any other document's content, so it records no dependency: a
+			// change to the InstanceOf claim is a change to this document, which the bridge invalidates
+			// directly.
 			ignoredForReferencesCount = true
 			break
 		}
-		classInfo, errE := c.computeDocumentInfo(ctx, classID, nil, computing)
+		// IgnoredForReferencesCount depends on this class's SUBCLASS_OF ancestry, so merge the class and
+		// its ancestors into this document's dependency snapshots (the class itself is also one fetched for
+		// the display template). Otherwise a change to a class's ancestor would not invalidate the instance.
+		// The early break on the first ignored class below only records the classes checked so far, but
+		// that is fine: if a recorded ancestor changes, the instance is invalidated and re-evaluates the
+		// remaining classes, so the dependency set self-corrects.
+		classGen := c.genOf(classID)
+		classInfo, errE := c.computeDocumentInfo(ctx, classID, nil, nil, computing)
 		if errE != nil {
 			return documentInfo{}, errE
 		}
+		mergeGenSnapshot(depGens, classID, classGen)
+		mergeGenSnapshots(depGens, classInfo.depGens)
 		if slices.ContainsFunc(classInfo.Ancestors[internalCore.SubclassOfPropID], isIgnoredClass) {
 			ignoredForReferencesCount = true
 			break
@@ -766,13 +1043,56 @@ func (c *Converter) computeDocumentInfo(
 		IDPaths:                   idPaths,
 		DisplayPaths:              displayPaths,
 		IgnoredForReferencesCount: ignoredForReferencesCount,
+		depGens:                   depGens,
 	}
 
-	c.documentInfoMu.Lock()
-	c.documentInfoCache[id] = info
-	c.documentInfoMu.Unlock()
+	// The converted root document without a pre-read snapshot returns its computed info but is not
+	// installed; everything else (ancestors, embeds) is cacheable and guarded by its own snapshots.
+	if cacheable {
+		c.cacheDocumentInfo(id, info)
+	}
 
 	return info, nil
+}
+
+// cacheDocumentInfo stores info for id and records the reverse dependency from each document id depends on
+// (info.depGens: itself, the documents embedded in its display, and its transitive ancestors) to id, so a
+// later change to any of them invalidates id's cached info. info.depGens holds each dependency's snapshot
+// from when it was read. If any of them has been invalidated since (its generation advanced), the info, or
+// one of the dependency edges, might reflect a pre-change version, so nothing is installed. Gating the
+// dependency registration too prevents a stale compute from resurrecting an infoDependents edge that the
+// racing invalidation just dropped, which would otherwise leave a dependent stale until its next change.
+func (c *Converter) cacheDocumentInfo(id identifier.Identifier, info documentInfo) {
+	c.documentInfoMu.Lock()
+	defer c.documentInfoMu.Unlock()
+	if !c.generationsUnchanged(info.depGens) {
+		return
+	}
+	c.documentInfoCache[id] = info
+	for depID := range info.depGens {
+		if depID == id {
+			continue
+		}
+		dependents := c.infoDependents[depID]
+		if dependents == nil {
+			dependents = map[identifier.Identifier]bool{}
+			c.infoDependents[depID] = dependents
+		}
+		dependents[id] = true
+	}
+}
+
+// generationsUnchanged reports whether every dependency in depGens still has the generation that was
+// snapshotted while the info was being computed, i.e. none of them was invalidated meanwhile.
+func (c *Converter) generationsUnchanged(depGens map[identifier.Identifier]uint64) bool {
+	c.cacheGenMu.RLock()
+	defer c.cacheGenMu.RUnlock()
+	for depID, depGen := range depGens {
+		if c.cacheGen[depID] != depGen {
+			return false
+		}
+	}
+	return true
 }
 
 // extendDisplayPaths extends hierDisplayPaths by appending this document's display to
@@ -1363,6 +1683,69 @@ func (v *convertVisitor) addDisplayPathLabels(paths map[string][]string) {
 	}
 }
 
+// referencePathAncestors adds to out every ancestor value id encoded in a claim's indexed
+// hierarchy paths. Each path is "<hierProp>:<root>/.../<target>", so every "/"-separated segment
+// except the trailing target itself is an ancestor of that target.
+func referencePathAncestors(toPath []string, out map[identifier.Identifier]bool) {
+	for _, raw := range toPath {
+		_, chain, ok := strings.Cut(raw, ":")
+		if !ok {
+			continue
+		}
+		parts := strings.Split(chain, "/")
+		for _, p := range parts[:len(parts)-1] {
+			id, errE := identifier.MaybeString(p)
+			if errE != nil {
+				continue
+			}
+			out[id] = true
+		}
+	}
+}
+
+// markReferenceLeaves sets IsLeaf on the document's reference and sub-reference claims. A target
+// is a leaf (most-specific) when no other claim under the same property (and, for sub-refs, the
+// same parent) has it as an ancestor in its hierarchy paths, i.e. the document references the
+// value but none of its narrower values. This lets the reference filter count and select
+// documents that are exactly a value, with none of its narrower values ("direct").
+func (v *convertVisitor) markReferenceLeaves() {
+	refAncestors := map[identifier.Identifier]map[identifier.Identifier]bool{}
+	for i := range v.result.Claims.Reference {
+		c := &v.result.Claims.Reference[i]
+		anc := refAncestors[c.Prop]
+		if anc == nil {
+			anc = map[identifier.Identifier]bool{}
+			refAncestors[c.Prop] = anc
+		}
+		referencePathAncestors(c.ToPath, anc)
+	}
+	for i := range v.result.Claims.Reference {
+		c := &v.result.Claims.Reference[i]
+		c.IsLeaf = !refAncestors[c.Prop][c.To]
+	}
+
+	type subRefKey struct {
+		parentProp identifier.Identifier
+		parentTo   string
+		prop       identifier.Identifier
+	}
+	subAncestors := map[subRefKey]map[identifier.Identifier]bool{}
+	for i := range v.result.Claims.SubRef {
+		c := &v.result.Claims.SubRef[i]
+		key := subRefKey{parentProp: c.ParentProp, parentTo: c.ParentTo, prop: c.Prop}
+		anc := subAncestors[key]
+		if anc == nil {
+			anc = map[identifier.Identifier]bool{}
+			subAncestors[key] = anc
+		}
+		referencePathAncestors(c.ToPath, anc)
+	}
+	for i := range v.result.Claims.SubRef {
+		c := &v.result.Claims.SubRef[i]
+		c.IsLeaf = !subAncestors[subRefKey{parentProp: c.ParentProp, parentTo: c.ParentTo, prop: c.Prop}][c.To]
+	}
+}
+
 // appendClaimDisplaysToText folds claim values into the document's top-level
 // text bucket so the text-search query can match against referenced-document
 // names (including their ancestor hierarchy labels), numeric/temporal boundary
@@ -1436,42 +1819,66 @@ func (v *convertVisitor) appendClaimDisplaysToText() {
 	}
 }
 
-// VisitIdentifier folds the identifier value into the document's top-level
-// text field under the undetermined-language bucket so the text-search query
-// can score it together with other textual content.
+// VisitIdentifier indexes the identifier as a nested id claim for structured per-property queries
+// and also folds its value into the document's top-level text field under the undetermined-language
+// bucket so the text-search query can score it together with other textual content.
 func (v *convertVisitor) VisitIdentifier(claim *document.IdentifierClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
 	v.addText(document.UndeterminedLanguage, claim.Value)
+	claims, errE := v.converter.convertIdentifier(v.ctx, claim)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	v.result.Claims.Identifier = append(v.result.Claims.Identifier, claims...)
 	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToIdentifier)
 }
 
-// VisitString folds the string value into the document's top-level text field
-// under every language the claim's IN_LANGUAGE sub-claims resolve to.
+// VisitString indexes the string as a nested string claim for structured per-property queries and
+// also folds its value into the document's top-level text field under every language the claim
+// resolves to (its IN_LANGUAGE sub-claims, or detected language).
 func (v *convertVisitor) VisitString(claim *document.StringClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	for _, lang := range v.converter.textLanguages(claim.Sub, claim.String) {
+	langs := v.converter.textLanguages(claim.Sub, claim.String)
+	for _, lang := range langs {
 		v.addText(lang, claim.String)
 	}
+	claims, errE := v.converter.convertString(v.ctx, claim, langs)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	v.result.Claims.String = append(v.result.Claims.String, claims...)
 	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToString)
 }
 
-// VisitHTML strips HTML tags from the claim's value and folds the plain-text
-// result into the document's top-level text field under every language the
-// claim's IN_LANGUAGE sub-claims resolve to. stripHTML is called per-language
-// because the language controls whether block-tag boundaries become spaces.
+// VisitHTML converts the claim's HTML to plain text in Go, indexes it as a nested html
+// claim for structured per-property queries, and folds the same plain text into the document's
+// top-level text field under every language the claim resolves to (its IN_LANGUAGE sub-claims, or
+// detected language). stripHTML is called per-language because the language controls whether
+// block-tag boundaries become spaces.
 func (v *convertVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
 	// Detection runs on the plain-text strip; stripHTML's language argument only affects
 	// no-block-space scripts, so the "und" strip is a valid detection input.
-	for _, lang := range v.converter.textLanguages(claim.Sub, stripHTML(claim.HTML, document.UndeterminedLanguage)) {
-		v.addText(lang, stripHTML(claim.HTML, lang))
+	langs := v.converter.textLanguages(claim.Sub, stripHTML(claim.HTML, document.UndeterminedLanguage))
+	stripped := make(map[string]string, len(langs))
+	for _, lang := range langs {
+		s := stripHTML(claim.HTML, lang)
+		v.addText(lang, s)
+		if s != "" {
+			stripped[lang] = s
+		}
 	}
+	claims, errE := v.converter.convertHTML(v.ctx, claim, stripped)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	v.result.Claims.HTML = append(v.result.Claims.HTML, claims...)
 	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToHTML)
 }
 
@@ -1531,13 +1938,19 @@ func (v *convertVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) (d
 	return document.Keep, nil
 }
 
-// VisitLink folds the link IRI into the document's top-level text field under
-// the undetermined-language bucket so the URL components are searchable.
+// VisitLink indexes the link as a nested link claim for structured per-property queries and also
+// folds its IRI into the document's top-level text field under the undetermined-language bucket so
+// the URL components are searchable.
 func (v *convertVisitor) VisitLink(claim *document.LinkClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
 	v.addText(document.UndeterminedLanguage, claim.IRI)
+	claims, errE := v.converter.convertLink(v.ctx, claim)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	v.result.Claims.Link = append(v.result.Claims.Link, claims...)
 	return document.Keep, v.appendNotReferenceSubClaims(claim.Prop.ID, claim.Sub, ParentToLink)
 }
 
@@ -1623,22 +2036,27 @@ func (v *convertVisitor) appendNotReferenceSubClaims(propID identifier.Identifie
 
 // FromDocument converts a document.D to a search Document.
 //
+// gen is the document's generation snapshotted by the caller before it read doc from the store; it guards
+// caching the document's own info (passed by ConvertDocument for the bridge and reindex). A nil gen means
+// the document's info is computed but not cached, used by callers without such a snapshot.
+// Its referenced documents and ancestors are cached regardless.
+//
 // inverseRelations contains reference claims from other documents that point to this document.
 // For each inverse relation, a synthetic reverse reference claim is added to the search document.
 func (c *Converter) FromDocument(
-	ctx context.Context, doc *document.D, inverseRelations []store.InverseRelation,
+	ctx context.Context, doc *document.D, gen *uint64, metadata *store.DocumentMetadata,
 ) (*Document, errors.E) {
-	var errE errors.E
-	for i, hook := range c.Hooks {
-		doc, errE = hook(ctx, doc)
-		if errE != nil {
-			errors.Details(errE)["hook"] = i
-			return nil, errE
-		}
-		if doc == nil {
-			errE = errors.New("hook returned nil document")
-			errors.Details(errE)["hook"] = i
-			return nil, errE
+	// lastUpdated and the inverse relations come from the document's store metadata. metadata is nil for
+	// some callers (for example tests), in which case there is no last-updated time and no inverse relations.
+	var lastUpdated *float64
+	var inverseRelations []store.InverseRelation
+	if metadata != nil {
+		// Render only the inverse relations for the caller's visibility level: the source documents are
+		// already filtered per level when these buckets are accumulated, so there is no leak across levels.
+		inverseRelations = metadata.InverseRelations[auth.Visibility(ctx)]
+		if at := time.Time(metadata.At); !at.IsZero() {
+			seconds := x.TimeToFloat64(at)
+			lastUpdated = &seconds
 		}
 	}
 
@@ -1646,21 +2064,21 @@ func (c *Converter) FromDocument(
 		ctx:       ctx,
 		converter: c,
 		result: &Document{
-			ID:              doc.ID,
-			Display:         nil,
-			Text:            nil,
-			Time:            nil,
-			ReferencesCount: nil,
-			ClaimsCount:     nil,
-			ScoreCount:      nil,
-			Claims:          ClaimTypes{},
+			ID:          doc.ID,
+			Display:     nil,
+			DisplaySort: nil,
+			Text:        nil,
+			Time:        nil,
+			LastUpdated: lastUpdated,
+			Counts:      Counts{References: nil, Claims: nil, Score: nil},
+			Claims:      ClaimTypes{},
 		},
 		docID: doc.ID,
 	}
 
 	// Compute the document's info (display label and hierarchy paths) from the
 	// in-memory document, which may differ from what is in the store (hooks).
-	info, errE := c.computeDocumentInfo(ctx, doc.ID, doc, map[identifier.Identifier]bool{})
+	info, errE := c.computeDocumentInfo(ctx, doc.ID, doc, gen, map[identifier.Identifier]bool{})
 	if errE != nil {
 		return nil, errE
 	}
@@ -1669,6 +2087,24 @@ func (c *Converter) FromDocument(
 	// so the document is also findable by its categories/ancestors.
 	_, docDisplayPaths := info.CollectHierarchyPaths()
 	v.addDisplay(info.Display.Display, docDisplayPaths)
+
+	// Index only the primary rendered display label per language (no ancestor labels) as a
+	// single-valued keyword, so results can be sorted by the label shown to the user. The und
+	// (language-neutral) bucket is omitted: results sort only by the session's language (never und),
+	// and that language's displaySort already carries the und value through the fallback chain, so a
+	// displaySort.und would never be read (and the mapping is dynamic: strict, so it must not be set).
+	if len(info.Display.Display) > 0 {
+		displaySort := make(map[string]string, len(info.Display.Display))
+		for lang, label := range info.Display.Display {
+			if lang == document.UndeterminedLanguage {
+				continue
+			}
+			displaySort[lang] = label
+		}
+		if len(displaySort) > 0 {
+			v.result.DisplaySort = displaySort
+		}
+	}
 
 	// Index the document's own ID into the "und" bucket so a user typing the ID
 	// (or a URL containing it) can locate the document via text search. The
@@ -1706,33 +2142,37 @@ func (c *Converter) FromDocument(
 
 	v.deduplicateResult()
 
+	// Mark which reference/sub-reference targets are most-specific for this document, so the
+	// reference filter can count and select documents that are exactly a value ("direct").
+	v.markReferenceLeaves()
+
 	// Index the document's earliest time so it can be sorted/filtered by time
 	// at the top level without descending into nested time claims.
 	v.result.Time = earliestClaimTime(&v.result.Claims)
 
 	// Index the document's recursive claim count and, unless the document is
-	// ignored for referencesCount, the number of documents referencing it.
+	// ignored for counts.references, the number of documents referencing it.
 	claimsCount := doc.SizeWithSub()
-	v.result.ClaimsCount = &claimsCount
+	v.result.Counts.Claims = &claimsCount
 	if c.CountReferences != nil && !info.IgnoredForReferencesCount {
 		count, errE := c.CountReferences(ctx, doc.ID)
 		if errE != nil {
 			return nil, errE
 		}
-		v.result.ReferencesCount = &count
+		v.result.Counts.References = &count
 	}
 
-	// scoreCount is the document's total "amount of knowledge" (its own number of claims plus
+	// counts.score is the document's total "amount of knowledge" (its own number of claims plus
 	// the number of documents referencing it, where the number of documents referencing it is a
-	// proxy for how many claims of this document are "stored" in other documents - we see inverse
-	// references as claims which could stored in this document but are stored in other documents
+	// proxy for how many claims of this document are "stored" in other documents, we see inverse
+	// references as claims which could be stored in this document but are stored in other documents
 	// so that they are not stored twice, duplicated). Used to boost search ranking.
-	// TODO: Should ReferencesCount count the number of inverse reference claims directly and not referring documents?
-	scoreCount := claimsCount
-	if v.result.ReferencesCount != nil {
-		scoreCount += *v.result.ReferencesCount
+	// TODO: Should counts.references count the number of inverse reference claims directly and not referring documents?
+	score := claimsCount
+	if v.result.Counts.References != nil {
+		score += *v.result.Counts.References
 	}
-	v.result.ScoreCount = &scoreCount
+	v.result.Counts.Score = &score
 
 	return v.result, nil
 }
@@ -1756,6 +2196,9 @@ type inverseRelationsVisitor struct {
 	ctx       context.Context //nolint:containedctx
 	converter *Converter
 	docID     identifier.Identifier
+	// classes are the IDs of the classes the document is an instance of, used to
+	// resolve field-level inverse properties, which are defined per class.
+	classes []identifier.Identifier
 	// path tracks the current nesting of claim property IDs.
 	path []identifier.Identifier
 	// result maps target document ID to collected inverse relations.
@@ -1838,23 +2281,32 @@ func (v *inverseRelationsVisitor) VisitLink(claim *document.LinkClaim) (document
 
 // VisitReference checks for inverse properties and creates InverseRelation entries,
 // then recurses into sub-claims to find further nested references.
-// It first checks field-level inverse properties (based on the current path), then
-// falls back to property-level inverse properties.
+// It first checks field-level inverse properties (based on the document's classes and
+// the current path), then falls back to property-level inverse properties.
 func (v *inverseRelationsVisitor) VisitReference(claim *document.ReferenceClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
 
 	// Resolve the inverse property/properties for this claim. Field-level inverse
-	// (based on the current path) takes precedence over property-level inverse.
+	// (based on the document's classes and the current path) takes precedence over
+	// property-level inverse. The same source property can be a field on more than
+	// one of the document's classes, so all matching field-level inverses are collected.
 	var targetProps []identifier.Identifier
-	key := fieldInverseKey{
-		Path:       encodeFieldPath(v.path),
-		SourceProp: claim.Prop.ID,
+	path := encodeFieldPath(v.path)
+	seen := map[identifier.Identifier]bool{}
+	for _, classID := range v.classes {
+		key := fieldInverseKey{
+			Class:      classID,
+			Path:       path,
+			SourceProp: claim.Prop.ID,
+		}
+		if targetProp, ok := v.converter.fieldInverseProperties[key]; ok && !seen[targetProp] {
+			seen[targetProp] = true
+			targetProps = append(targetProps, targetProp)
+		}
 	}
-	if targetProp, ok := v.converter.fieldInverseProperties[key]; ok {
-		targetProps = []identifier.Identifier{targetProp}
-	} else {
+	if len(targetProps) == 0 {
 		targetProps = v.converter.inverseProperties[claim.Prop.ID]
 	}
 
@@ -1948,10 +2400,18 @@ func (v *inverseRelationsVisitor) expandedTargets(targetID identifier.Identifier
 // target and each of its value-hierarchy ancestors. Returns a map keyed by target
 // document ID.
 func (c *Converter) OutgoingInverseRelations(ctx context.Context, doc *document.D) (map[identifier.Identifier][]store.InverseRelation, errors.E) {
+	// Field-level inverse properties are defined per class, so collect the classes the
+	// document is an instance of to resolve them.
+	instanceOf := document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, internalCore.InstanceOfPropID, document.LowConfidence)
+	classes := make([]identifier.Identifier, 0, len(instanceOf))
+	for _, rel := range instanceOf {
+		classes = append(classes, rel.To.ID)
+	}
 	v := &inverseRelationsVisitor{
 		ctx:       ctx,
 		converter: c,
 		docID:     doc.ID,
+		classes:   classes,
 		path:      nil,
 		result:    map[identifier.Identifier][]store.InverseRelation{},
 	}
@@ -1969,7 +2429,7 @@ func (c *Converter) OutgoingInverseRelations(ctx context.Context, doc *document.
 // It mirrors what CountReferences counts on the target side, so the
 // bridge can re-index the affected targets when a document's references change.
 //
-// Targets ignored for referencesCount are not filtered here; the caller does that.
+// Targets ignored for counts.references are not filtered here; the caller does that.
 func (c *Converter) OutgoingReferenceTargets(doc *document.D) map[identifier.Identifier]bool {
 	targets := map[identifier.Identifier]bool{}
 	if doc.Claims == nil {
@@ -1988,13 +2448,111 @@ func (c *Converter) OutgoingReferenceTargets(doc *document.D) map[identifier.Ide
 	return targets
 }
 
-// ReferencesCountIgnored reports whether the document with the given ID is ignored for referencesCount.
+// ReferencesCountIgnored reports whether the document with the given ID is ignored for counts.references.
 func (c *Converter) ReferencesCountIgnored(ctx context.Context, id identifier.Identifier) (bool, errors.E) {
 	info, errE := c.getDocumentInfo(ctx, id)
 	if errE != nil {
 		return false, errE
 	}
 	return info.IgnoredForReferencesCount, nil
+}
+
+// DocumentFullPaths returns the document's hierarchy paths in the same "<hierarchyProp>:<root>/.../<id>"
+// form that convertReference stamps onto a reference claim's toFullPath. A value reached through several
+// parents or several value hierarchies has more than one path; a hierarchy root (a value with no parents)
+// has none. These are computed exactly as the stored toFullPath is, so they identify every indexed
+// record that expanded from this document as a stated (leaf) value.
+func (c *Converter) DocumentFullPaths(ctx context.Context, id identifier.Identifier) ([]string, errors.E) {
+	info, errE := c.getDocumentInfo(ctx, id)
+	if errE != nil {
+		return nil, errE
+	}
+	paths, _ := info.CollectHierarchyPaths()
+	return paths, nil
+}
+
+func (c *Converter) convertIdentifier(ctx context.Context, claim *document.IdentifierClaim) ([]IdentifierClaim, errors.E) {
+	props := c.propagateProp(claim.Prop.ID)
+	result := make([]IdentifierClaim, 0, len(props))
+	for _, pid := range props {
+		propDisplay, errE := c.getDisplayStrings(ctx, pid)
+		if errE != nil {
+			errors.Details(errE)["claim"] = claim
+			return nil, errE
+		}
+		result = append(result, IdentifierClaim{
+			Prop:        pid,
+			PropDisplay: propDisplay.Display,
+			PropNaming:  propDisplay.Naming,
+			Value:       claim.Value,
+		})
+	}
+	return result, nil
+}
+
+// convertString builds the nested string claims for the languages the claim resolves to (langs,
+// as determined by the caller). Every language maps to the same string value.
+func (c *Converter) convertString(ctx context.Context, claim *document.StringClaim, langs []string) ([]StringClaim, errors.E) {
+	str := make(map[string]string, len(langs))
+	for _, lang := range langs {
+		str[lang] = claim.String
+	}
+	props := c.propagateProp(claim.Prop.ID)
+	result := make([]StringClaim, 0, len(props))
+	for _, pid := range props {
+		propDisplay, errE := c.getDisplayStrings(ctx, pid)
+		if errE != nil {
+			errors.Details(errE)["claim"] = claim
+			return nil, errE
+		}
+		result = append(result, StringClaim{
+			Prop:        pid,
+			PropDisplay: propDisplay.Display,
+			PropNaming:  propDisplay.Naming,
+			String:      str,
+		})
+	}
+	return result, nil
+}
+
+// convertHTML builds the nested html claims. stripped maps each resolved language to the claim's
+// HTML already converted to plain text in Go by the caller, so no tag stripping happens in ES.
+func (c *Converter) convertHTML(ctx context.Context, claim *document.HTMLClaim, stripped map[string]string) ([]HTMLClaim, errors.E) {
+	props := c.propagateProp(claim.Prop.ID)
+	result := make([]HTMLClaim, 0, len(props))
+	for _, pid := range props {
+		propDisplay, errE := c.getDisplayStrings(ctx, pid)
+		if errE != nil {
+			errors.Details(errE)["claim"] = claim
+			return nil, errE
+		}
+		result = append(result, HTMLClaim{
+			Prop:        pid,
+			PropDisplay: propDisplay.Display,
+			PropNaming:  propDisplay.Naming,
+			HTML:        stripped,
+		})
+	}
+	return result, nil
+}
+
+func (c *Converter) convertLink(ctx context.Context, claim *document.LinkClaim) ([]LinkClaim, errors.E) {
+	props := c.propagateProp(claim.Prop.ID)
+	result := make([]LinkClaim, 0, len(props))
+	for _, pid := range props {
+		propDisplay, errE := c.getDisplayStrings(ctx, pid)
+		if errE != nil {
+			errors.Details(errE)["claim"] = claim
+			return nil, errE
+		}
+		result = append(result, LinkClaim{
+			Prop:        pid,
+			PropDisplay: propDisplay.Display,
+			PropNaming:  propDisplay.Naming,
+			IRI:         claim.IRI,
+		})
+	}
+	return result, nil
 }
 
 func (c *Converter) convertAmount(ctx context.Context, claim *document.AmountClaim) ([]AmountClaim, errors.E) {
@@ -2510,9 +3068,12 @@ func (c *Converter) extractSubClaims(
 	return result, nil
 }
 
-// convertSubRefs extracts reference sub-claims from a claim's sub-claims and
-// produces SubRefClaim entries for each (parentProp, parentTo, subRef)
-// combination.
+// convertSubRefs extracts reference sub-claims from a claim's sub-claims and produces SubRefClaim
+// entries for each (parentProp, parentTo, subRef) combination. The sub-reference property is propagated
+// to its super-properties (when IndexAncestorProperties is set) and the sub-value is expanded across its
+// value hierarchies, the same way convertReference propagates top-level reference properties and expands
+// their targets: one record per (propagated property x stated value or ancestor), so a sub-reference
+// filter can count and select against ancestor properties and ancestor values too.
 func (c *Converter) convertSubRefs(
 	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,
 ) ([]SubRefClaim, errors.E) {
@@ -2521,7 +3082,9 @@ func (c *Converter) convertSubRefs(
 		return nil, nil
 	}
 
-	// Pre-resolve display strings and hierarchy paths for each sub-relation.
+	// Pre-resolve display strings and hierarchy paths for each sub-relation, expanding it across its
+	// propagated properties and its value hierarchies into one resolved entry per (property, stated
+	// value or ancestor).
 	type resolvedSubRef struct {
 		Prop          identifier.Identifier
 		PropDisplay   map[string]string
@@ -2530,29 +3093,62 @@ func (c *Converter) convertSubRefs(
 		ToDisplay     map[string]string
 		ToNaming      map[string][]string
 		ToPath        []string
+		ToFullPath    []string
 		ToDisplayPath map[string][]string
 	}
 	resolved := make([]resolvedSubRef, 0, len(subRelations))
 	for _, mr := range subRelations {
-		mrPropDisplay, errE := c.getDisplayStrings(ctx, mr.Prop.ID)
-		if errE != nil {
-			return nil, errE
-		}
 		mrToInfo, errE := c.getDocumentInfo(ctx, mr.To.ID)
 		if errE != nil {
 			return nil, errE
 		}
-		toPath, toDisplayPath := mrToInfo.CollectHierarchyPaths()
-		resolved = append(resolved, resolvedSubRef{
-			Prop:          mr.Prop.ID,
-			PropDisplay:   mrPropDisplay.Display,
-			PropNaming:    mrPropDisplay.Naming,
-			To:            mr.To.ID,
-			ToDisplay:     mrToInfo.Display.Display,
-			ToNaming:      mrToInfo.Display.Naming,
-			ToPath:        toPath,
-			ToDisplayPath: toDisplayPath,
-		})
+
+		// fullPath is the stated sub-value's own (leaf) hierarchy path, stamped onto every record this
+		// sub-value expands into (the value itself and each of its ancestors).
+		fullPath, _ := mrToInfo.CollectHierarchyPaths()
+
+		// targets is the stated sub-value plus its ancestors from all value hierarchies.
+		targets := []identifier.Identifier{mr.To.ID}
+		seen := map[identifier.Identifier]bool{mr.To.ID: true}
+		for _, ancestors := range mrToInfo.Ancestors {
+			for _, aid := range ancestors {
+				if !seen[aid] {
+					seen[aid] = true
+					targets = append(targets, aid)
+				}
+			}
+		}
+
+		// The sub-reference property is propagated to its super-properties when IndexAncestorProperties
+		// is set; otherwise propagateProp returns only the stated property.
+		for _, pid := range c.propagateProp(mr.Prop.ID) {
+			propDisplay, errE := c.getDisplayStrings(ctx, pid)
+			if errE != nil {
+				return nil, errE
+			}
+			for _, tid := range targets {
+				tidInfo := mrToInfo
+				if tid != mr.To.ID {
+					// Ancestors were already computed during the hierarchy walk, so this hits cache.
+					tidInfo, errE = c.getDocumentInfo(ctx, tid)
+					if errE != nil {
+						return nil, errE
+					}
+				}
+				toPath, toDisplayPath := tidInfo.CollectHierarchyPaths()
+				resolved = append(resolved, resolvedSubRef{
+					Prop:          pid,
+					PropDisplay:   propDisplay.Display,
+					PropNaming:    propDisplay.Naming,
+					To:            tid,
+					ToDisplay:     tidInfo.Display.Display,
+					ToNaming:      tidInfo.Display.Naming,
+					ToPath:        toPath,
+					ToFullPath:    fullPath,
+					ToDisplayPath: toDisplayPath,
+				})
+			}
+		}
 	}
 
 	// Cross product of parentProps x resolved sub-refs.
@@ -2560,16 +3156,21 @@ func (c *Converter) convertSubRefs(
 	for _, pp := range parentProps {
 		for _, r := range resolved {
 			result = append(result, SubRefClaim{
-				ParentProp:    pp,
-				ParentTo:      parentTo,
-				Prop:          r.Prop,
-				PropDisplay:   r.PropDisplay,
-				PropNaming:    r.PropNaming,
-				To:            r.To,
-				ToDisplay:     r.ToDisplay,
-				ToNaming:      r.ToNaming,
-				ToPath:        r.ToPath,
-				ToDisplayPath: r.ToDisplayPath,
+				ParentProp: pp,
+				ParentTo:   parentTo,
+				ReferenceClaim: ReferenceClaim{
+					Prop:          r.Prop,
+					PropDisplay:   r.PropDisplay,
+					PropNaming:    r.PropNaming,
+					To:            r.To,
+					ToDisplay:     r.ToDisplay,
+					ToNaming:      r.ToNaming,
+					ToPath:        r.ToPath,
+					ToFullPath:    r.ToFullPath,
+					ToDisplayPath: r.ToDisplayPath,
+					// Set by markReferenceLeaves once all of the document's sub-ref claims are collected.
+					IsLeaf: false,
+				},
 			})
 		}
 	}
@@ -2577,102 +3178,92 @@ func (c *Converter) convertSubRefs(
 	return result, nil
 }
 
-// convertSubAmounts extracts amount and amount-interval sub-claims from a
-// parent claim's sub-tree and produces SubAmountClaim entries for each
-// (parentProp, parentTo, sub-claim) combination. Source claims are passed
-// through convertAmount/convertAmountInterval so single-point and interval
-// values use the same indexed range shape as the top-level amounts.
+// buildSubValueClaims denormalizes a parent claim's single-point and interval value sub-claims of one
+// kind (amounts or times) into Sub* records. points and intervals are the parent's already-collected
+// source claims, convertPoint and convertInterval index each source shape into the shared Indexed value
+// type, and wrap attaches a parentProp and parentTo to one indexed value. It returns nil when nothing is
+// indexed.
+func buildSubValueClaims[Point, Interval, Indexed, Out any](
+	ctx context.Context,
+	parentProps []identifier.Identifier,
+	parentTo string,
+	points []*Point,
+	intervals []*Interval,
+	convertPoint func(context.Context, *Point) ([]Indexed, errors.E),
+	convertInterval func(context.Context, *Interval) ([]Indexed, errors.E),
+	wrap func(parentProp identifier.Identifier, parentTo string, value Indexed) Out,
+) ([]Out, errors.E) {
+	var indexed []Indexed
+	for _, p := range points {
+		ic, errE := convertPoint(ctx, p)
+		if errE != nil {
+			return nil, errE
+		}
+		indexed = append(indexed, ic...)
+	}
+	for _, iv := range intervals {
+		ic, errE := convertInterval(ctx, iv)
+		if errE != nil {
+			return nil, errE
+		}
+		indexed = append(indexed, ic...)
+	}
+	if len(indexed) == 0 {
+		return nil, nil
+	}
+
+	result := make([]Out, 0, len(parentProps)*len(indexed))
+	for _, pp := range parentProps {
+		for _, v := range indexed {
+			result = append(result, wrap(pp, parentTo, v))
+		}
+	}
+	return result, nil
+}
+
+// convertSubAmounts extracts amount and amount-interval sub-claims from a parent claim's sub-tree and
+// produces SubAmountClaim entries for each (parentProp, parentTo, sub-claim) combination. Source claims
+// are passed through convertAmount/convertAmountInterval so single-point and interval values use the same
+// indexed range shape as the top-level amounts.
 func (c *Converter) convertSubAmounts(
 	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,
 ) ([]SubAmountClaim, errors.E) {
-	var indexed []AmountClaim
-	for _, ac := range document.GetAllClaimsOfTypeWithConfidence[document.AmountClaim](sub, document.LowConfidence) {
-		ic, errE := c.convertAmount(ctx, ac)
-		if errE != nil {
-			return nil, errE
-		}
-		indexed = append(indexed, ic...)
-	}
-	for _, aic := range document.GetAllClaimsOfTypeWithConfidence[document.AmountIntervalClaim](sub, document.LowConfidence) {
-		// Sub-claims do not get a fallback UnknownClaim representation, and any
-		// nested sub-refs inside a sub-claim are not flattened a second level
-		// up. Discard the second and third return values.
-		ic, _, _, errE := c.convertAmountInterval(ctx, aic)
-		if errE != nil {
-			return nil, errE
-		}
-		indexed = append(indexed, ic...)
-	}
-	if len(indexed) == 0 {
-		return nil, nil
-	}
-
-	result := make([]SubAmountClaim, 0, len(parentProps)*len(indexed))
-	for _, pp := range parentProps {
-		for _, a := range indexed {
-			result = append(result, SubAmountClaim{
-				ParentProp:  pp,
-				ParentTo:    parentTo,
-				Prop:        a.Prop,
-				PropDisplay: a.PropDisplay,
-				PropNaming:  a.PropNaming,
-				Unit:        a.Unit,
-				Range:       a.Range,
-				From:        a.From,
-				FromDisplay: a.FromDisplay,
-				To:          a.To,
-				ToDisplay:   a.ToDisplay,
-			})
-		}
-	}
-	return result, nil
+	return buildSubValueClaims(
+		ctx, parentProps, parentTo,
+		document.GetAllClaimsOfTypeWithConfidence[document.AmountClaim](sub, document.LowConfidence),
+		document.GetAllClaimsOfTypeWithConfidence[document.AmountIntervalClaim](sub, document.LowConfidence),
+		c.convertAmount,
+		func(ctx context.Context, aic *document.AmountIntervalClaim) ([]AmountClaim, errors.E) {
+			// Sub-claims do not carry the fallback UnknownClaim or nested sub-claims that convertAmountInterval also returns.
+			ic, _, _, errE := c.convertAmountInterval(ctx, aic)
+			return ic, errE
+		},
+		func(pp identifier.Identifier, parentTo string, a AmountClaim) SubAmountClaim {
+			return SubAmountClaim{ParentProp: pp, ParentTo: parentTo, AmountClaim: a}
+		},
+	)
 }
 
-// convertSubTimes extracts time and time-interval sub-claims from a parent
-// claim's sub-tree and produces SubTimeClaim entries for each (parentProp,
-// parentTo, sub-claim) combination. Source claims are passed through
-// convertTime/convertTimeInterval for the same single-point-or-interval
-// range mapping the top-level times use.
+// convertSubTimes extracts time and time-interval sub-claims from a parent claim's sub-tree and produces
+// SubTimeClaim entries for each (parentProp, parentTo, sub-claim) combination. Source claims are passed
+// through convertTime/convertTimeInterval for the same single-point-or-interval range mapping the
+// top-level times use.
 func (c *Converter) convertSubTimes(
 	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,
 ) ([]SubTimeClaim, errors.E) {
-	var indexed []TimeClaim
-	for _, tc := range document.GetAllClaimsOfTypeWithConfidence[document.TimeClaim](sub, document.LowConfidence) {
-		ic, errE := c.convertTime(ctx, tc)
-		if errE != nil {
-			return nil, errE
-		}
-		indexed = append(indexed, ic...)
-	}
-	for _, tic := range document.GetAllClaimsOfTypeWithConfidence[document.TimeIntervalClaim](sub, document.LowConfidence) {
-		ic, _, _, errE := c.convertTimeInterval(ctx, tic)
-		if errE != nil {
-			return nil, errE
-		}
-		indexed = append(indexed, ic...)
-	}
-	if len(indexed) == 0 {
-		return nil, nil
-	}
-
-	result := make([]SubTimeClaim, 0, len(parentProps)*len(indexed))
-	for _, pp := range parentProps {
-		for _, t := range indexed {
-			result = append(result, SubTimeClaim{
-				ParentProp:  pp,
-				ParentTo:    parentTo,
-				Prop:        t.Prop,
-				PropDisplay: t.PropDisplay,
-				PropNaming:  t.PropNaming,
-				Range:       t.Range,
-				From:        t.From,
-				FromDisplay: t.FromDisplay,
-				To:          t.To,
-				ToDisplay:   t.ToDisplay,
-			})
-		}
-	}
-	return result, nil
+	return buildSubValueClaims(
+		ctx, parentProps, parentTo,
+		document.GetAllClaimsOfTypeWithConfidence[document.TimeClaim](sub, document.LowConfidence),
+		document.GetAllClaimsOfTypeWithConfidence[document.TimeIntervalClaim](sub, document.LowConfidence),
+		c.convertTime,
+		func(ctx context.Context, tic *document.TimeIntervalClaim) ([]TimeClaim, errors.E) {
+			ic, _, _, errE := c.convertTimeInterval(ctx, tic)
+			return ic, errE
+		},
+		func(pp identifier.Identifier, parentTo string, t TimeClaim) SubTimeClaim {
+			return SubTimeClaim{ParentProp: pp, ParentTo: parentTo, TimeClaim: t}
+		},
+	)
 }
 
 // convertSubHas extracts simple has sub-claims (those with no further
@@ -2688,23 +3279,17 @@ func (c *Converter) convertSubHas(
 		return nil, nil
 	}
 
-	type resolvedSubHas struct {
-		Prop        identifier.Identifier
-		PropDisplay map[string]string
-		PropNaming  map[string][]string
-	}
-	resolved := make([]resolvedSubHas, 0, len(subHas))
+	resolved := make([]HasClaim, 0, len(subHas))
 	for _, hc := range subHas {
 		if hc.Sub != nil && hc.Sub.Size() > 0 {
 			continue
 		}
-		propIDs := c.propagateProp(hc.Prop.ID)
-		for _, pid := range propIDs {
+		for _, pid := range c.propagateProp(hc.Prop.ID) {
 			propDisplay, errE := c.getDisplayStrings(ctx, pid)
 			if errE != nil {
 				return nil, errE
 			}
-			resolved = append(resolved, resolvedSubHas{
+			resolved = append(resolved, HasClaim{
 				Prop:        pid,
 				PropDisplay: propDisplay.Display,
 				PropNaming:  propDisplay.Naming,
@@ -2719,11 +3304,9 @@ func (c *Converter) convertSubHas(
 	for _, pp := range parentProps {
 		for _, r := range resolved {
 			result = append(result, SubHasClaim{
-				ParentProp:  pp,
-				ParentTo:    parentTo,
-				Prop:        r.Prop,
-				PropDisplay: r.PropDisplay,
-				PropNaming:  r.PropNaming,
+				ParentProp: pp,
+				ParentTo:   parentTo,
+				HasClaim:   r,
 			})
 		}
 	}
@@ -2750,6 +3333,11 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 			}
 		}
 	}
+
+	// fullPath is the original (leaf) target's hierarchy path. It is stamped onto every record this
+	// claim expands into (the target and each of its ancestors), so a prefilter can identify and drop
+	// all records derived from a given leaf value.
+	fullPath, _ := targetInfo.CollectHierarchyPaths()
 
 	result := make([]ReferenceClaim, 0, len(props)*len(targets))
 	for _, pid := range props {
@@ -2780,7 +3368,10 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 				ToDisplay:     tidInfo.Display.Display,
 				ToNaming:      tidInfo.Display.Naming,
 				ToPath:        toPath,
+				ToFullPath:    fullPath,
 				ToDisplayPath: toDisplayPath,
+				// Set by markReferenceLeaves once all of the document's reference claims are collected.
+				IsLeaf: false,
 			})
 		}
 	}

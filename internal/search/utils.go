@@ -3,6 +3,7 @@ package search
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -41,6 +42,10 @@ type indexConfigurationStruct struct {
 // level here, which both records the body details and triggers the flush of
 // any prior buffered entries.
 func (a loggerAdapter) LogRoundTrip(req *http.Request, res *http.Response, err error, start time.Time, dur time.Duration) error {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return nil
+	}
+
 	log := a.log
 	if req != nil {
 		log = *zerolog.Ctx(req.Context())
@@ -73,14 +78,14 @@ func (a loggerAdapter) LogRoundTrip(req *http.Request, res *http.Response, err e
 		} else {
 			buf.ReadFrom(req.Body) //nolint:errcheck,gosec
 		}
-		event.RawJSON("request", buf.Bytes())
+		addBody(event, "request", buf.Bytes())
 	}
 
 	if a.ResponseBodyEnabled() && res != nil && res.Body != nil && res.Body != http.NoBody {
 		defer res.Body.Close() //nolint:errcheck
 		var buf bytes.Buffer
 		buf.ReadFrom(res.Body) //nolint:errcheck,gosec
-		event.RawJSON("response", buf.Bytes())
+		addBody(event, "response", buf.Bytes())
 	}
 
 	event.Msg("elasticsearch")
@@ -104,19 +109,68 @@ func (a loggerAdapter) ResponseBodyEnabled() bool {
 	return true
 }
 
+// addBody attaches an HTTP body to the event. A single valid JSON document is attached as RawJSON.
+// ElasticSearch bulk requests use NDJSON (one JSON document per line); we attach it as an array
+// of the raw JSON documents instead. Anything else (non-JSON error pages) is attached as a plain
+// string field.
+func addBody(event *zerolog.Event, key string, body []byte) {
+	if json.Valid(body) {
+		event.RawJSON(key, body)
+		return
+	}
+	if lines := ndjsonLines(body); len(lines) > 0 {
+		if len(lines) == 1 {
+			// This should probably be handled by the case above, but just in case.
+			event.RawJSON(key, lines[0])
+			return
+		}
+		arr := zerolog.Arr()
+		for _, line := range lines {
+			arr.RawJSON(line)
+		}
+		event.Array(key, arr)
+		return
+	}
+	event.Str(key, string(body))
+}
+
+// ndjsonLines returns the non-empty lines of body if every one is a valid JSON document
+// (an NDJSON body such as an ElasticSearch bulk request), or nil otherwise.
+func ndjsonLines(body []byte) [][]byte {
+	rawLines := bytes.Split(body, []byte("\n"))
+	lines := make([][]byte, 0, len(rawLines))
+	for _, line := range rawLines {
+		line = bytes.TrimSpace(line)
+		if len(line) == 0 {
+			continue
+		}
+		if !json.Valid(line) {
+			return nil
+		}
+		lines = append(lines, line)
+	}
+	return lines
+}
+
 var _ elastictransport.Logger = (*loggerAdapter)(nil)
 
 // GetClient creates and configures an Elasticsearch typed client with the specified HTTP client, logger, and URL.
 func GetClient(httpClient *http.Client, logger zerolog.Logger, url string) (*elasticsearch.TypedClient, errors.E) {
 	cfg := elasticsearch.Config{ //nolint:exhaustruct
-		Addresses: []string{strings.TrimSpace(url)},
-		Transport: httpClient.Transport,
-		Logger:    &loggerAdapter{logger},
+		Addresses:     []string{strings.TrimSpace(url)},
+		Transport:     httpClient.Transport,
+		Logger:        &loggerAdapter{logger},
+		AutoDrainBody: true,
 		// We do not enable discovery so that Docker setup is easier.
 		// TODO: Should enabling discovery be a CLI parameter?
 	}
 	esClient, err := elasticsearch.NewTypedClient(cfg)
 	return esClient, errors.WithStack(err)
+}
+
+// LevelIndex returns the ElasticSearch index name for the given visibility level, derived from the base index name.
+func LevelIndex(index, level string) string {
+	return index + "_" + level
 }
 
 // EnsureIndex makes sure the index for PeerDB documents exists. If not, it creates it.

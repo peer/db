@@ -3,6 +3,8 @@ package peerdb
 import (
 	"context"
 
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
+
 	"github.com/riverqueue/river"
 )
 
@@ -21,10 +23,10 @@ func (authCleanupJobArgs) Kind() string { return "AuthCleanup" }
 type authCleanupWorker struct {
 	river.WorkerDefaults[authCleanupJobArgs]
 
-	Site *Site
+	Site *internalSite.Site
 }
 
 // Work implements river.Worker.
 func (w *authCleanupWorker) Work(ctx context.Context, _ *river.Job[authCleanupJobArgs]) error {
-	return w.Site.authenticator.CleanupExpired(ctx)
+	return w.Site.Authenticator.CleanupExpired(ctx)
 }

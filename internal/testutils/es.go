@@ -7,18 +7,34 @@ import (
 	"github.com/elastic/go-elasticsearch/v9"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
+
+	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 )
+
+// RequireNoESError fails the test immediately if err (returned by an Elasticsearch client call) is
+// non-nil, wrapping it via WithESError so the flattened ES error cause and status appear in the output.
+func RequireNoESError(t *testing.T, err error) {
+	t.Helper()
+	errE := internalSearch.WithESError(err)
+	require.NoError(t, errE, "% -+#.1v", errE)
+}
+
+// AssertNoESError reports, without stopping the test, whether err (returned by an Elasticsearch client
+// call) is nil, wrapping it via WithESError. It suits require.EventuallyWithT polling closures.
+func AssertNoESError(t assert.TestingT, err error) bool {
+	errE := internalSearch.WithESError(err)
+	return assert.NoError(t, errE, "% -+#.1v", errE)
+}
 
 // DocExists checks whether a document with the given ID exists in the given ES index.
 func DocExists(ctx context.Context, t *testing.T, esClient *elasticsearch.TypedClient, index, id string) bool {
 	t.Helper()
 	exists, err := esClient.Exists(index, id).IsSuccess(ctx)
-	if err != nil {
-		t.Fatalf("unexpected ES error: %v", err)
-	}
+	RequireNoESError(t, err)
 	return exists
 }
 
@@ -37,9 +53,7 @@ func DocHasReference(ctx context.Context, t *testing.T, esClient *elasticsearch.
 		nestedQuery,
 	)
 	res, err := esClient.Search().Index(index).Query(query).Size(1).Do(ctx)
-	if err != nil {
-		t.Fatalf("ES search error: %v", err)
-	}
+	RequireNoESError(t, err)
 	return res.Hits.Total.Value > 0
 }
 

@@ -17,20 +17,22 @@ withDefaults(
     replace?: boolean
     disabled?: boolean
     primary?: boolean
+    active?: boolean
   }>(),
   {
     replace: false,
     disabled: false,
     primary: false,
+    active: false,
   },
 )
 </script>
 
 <template>
-  <ButtonStyled v-if="disabled" as="div" :inactive="disabled" :primary="primary" class="pd-buttonlink">
+  <ButtonStyled v-if="disabled" as="div" :inactive="disabled" :primary="primary" :active="active" class="pd-buttonlink">
     <slot />
   </ButtonStyled>
-  <ButtonStyled v-else :as="RouterLink" :to="to" :replace="replace" :primary="primary" class="pd-buttonlink">
+  <ButtonStyled v-else :as="RouterLink" :to="to" :replace="replace" :primary="primary" :active="active" class="pd-buttonlink">
     <slot />
   </ButtonStyled>
 </template>

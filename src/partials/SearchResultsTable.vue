@@ -421,7 +421,7 @@ function onCloseFilterModal() {
                 </tr>
               </template>
               <!-- We do not track(result.id) <tr> here. See explanation above. -->
-              <template #error="{ url }">
+              <template #error="{ message, accessDenied, url }">
                 <tr class="pd-withdocument-error-wrapper odd:bg-white even:bg-slate-100 hover:bg-slate-200" :data-url="url">
                   <td class="p-2">
                     <RouterLink :to="{ name: 'DocumentGet', params: { id: result.id }, query: encodeQuery({ s: searchSession.id }) }" class="link">{{
@@ -429,7 +429,7 @@ function onCloseFilterModal() {
                     }}</RouterLink>
                   </td>
                   <td :colspan="rowColspan" class="p-2">
-                    <i class="pd-withdocument-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
+                    <i :class="['pd-withdocument-error', accessDenied ? 'text-gray-500' : 'text-error-600']">{{ message }}</i>
                   </td>
                 </tr>
               </template>

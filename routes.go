@@ -3,6 +3,8 @@ package peerdb
 import (
 	"net/http"
 
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
+
 	"gitlab.com/tozd/waf"
 )
 
@@ -415,7 +417,7 @@ func (s *Service) setRoutes() { //nolint:maintidx
 			},
 		}
 		s.Routes["DebugRiver"] = waf.Route{
-			Path: debugRiverPrefix + "/:path*",
+			Path: internalSite.DebugRiverPrefix + "/:path*",
 			RouteOptions: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{
 					http.MethodGet:   s.DebugRiver,

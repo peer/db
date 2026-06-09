@@ -11,14 +11,23 @@ import (
 	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
+	"gitlab.com/tozd/waf"
 
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
+	"gitlab.com/peerdb/peerdb/internal/testutils"
 	"gitlab.com/peerdb/peerdb/search"
 )
+
+// siteContext returns ctx with a minimal site stored in it so that site-aware code (such as
+// SessionData.Validate, which calls waf.MustGetSite) works in tests. The site has no
+// LanguagePriority, so the session language resolves to the package default language.
+func siteContext(ctx context.Context) context.Context {
+	return waf.WithSite[*internalSite.Site](ctx, &internalSite.Site{})
+}
 
 // initES creates and configures an ES client and a test index.
 // It returns the client, a search service factory, and the index name.
@@ -41,7 +50,7 @@ func initES(t *testing.T) (*elasticsearch.TypedClient, func() *esSearch.Search, 
 	t.Cleanup(func() {
 		// We do not use t.Context() because we want an active context, not a canceled one.
 		_, err := esClient.Indices.Delete(index).IgnoreUnavailable(true).Do(context.Background())
-		assert.NoError(t, err)
+		testutils.AssertNoESError(t, err)
 	})
 
 	errE = internalSearch.EnsureIndex(ctx, esClient, index, 1, nil)
@@ -61,7 +70,7 @@ func indexDocument(t *testing.T, ctx context.Context, esClient *elasticsearch.Ty
 	data, errE := x.MarshalWithoutEscapeHTML(doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	_, err := esClient.Index(index).Id(doc.ID.String()).Raw(bytes.NewReader(data)).Do(ctx)
-	require.NoError(t, err)
+	testutils.RequireNoESError(t, err)
 }
 
 // refreshIndex forces an ES index refresh so documents are searchable.
@@ -69,7 +78,7 @@ func refreshIndex(t *testing.T, ctx context.Context, esClient *elasticsearch.Typ
 	t.Helper()
 
 	_, err := esClient.Indices.Refresh().Index(index).Do(ctx)
-	require.NoError(t, err)
+	testutils.RequireNoESError(t, err)
 }
 
 // indexAmountDoc indexes a document carrying a single point-amount claim equal to
@@ -78,14 +87,17 @@ func indexAmountDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.T
 	t.Helper()
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              identifier.From(id),
-		Display:         nil,
-		Text:            nil,
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          identifier.From(id),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
 				Range: internalSearch.RangeFloat{
@@ -93,27 +105,48 @@ func indexAmountDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.T
 				},
 				From: value, FromDisplay: "", To: value, ToDisplay: "",
 			}},
-			Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil, SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Time:      nil,
+			Link:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
 		},
 	})
 }
 
-// indexScoreDoc indexes a document carrying the given English text and scoreCount.
-// It seeds scoreCount ranking-boost tests.
-func indexScoreDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.TypedClient, index string, id identifier.Identifier, text string, scoreCount *int) { //nolint:revive,lll
+// indexScoreDoc indexes a document carrying the given English text and counts.score.
+// It seeds counts.score ranking-boost tests.
+func indexScoreDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.TypedClient, index string, id identifier.Identifier, text string, score *int) { //nolint:revive,lll
 	t.Helper()
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              id,
-		Display:         nil,
-		Text:            map[string][]string{"en": {text}},
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      scoreCount,
+		DisplaySort: nil,
+		ID:          id,
+		Display:     nil,
+		Text:        map[string][]string{"en": {text}},
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: score},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil, Time: nil, Reference: nil, Has: nil, None: nil, Unknown: nil,
-			SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
+			Reference:  nil,
+			Has:        nil,
+			None:       nil,
+			Unknown:    nil,
+			SubRef:     nil,
+			SubAmount:  nil,
+			SubTime:    nil,
+			SubHas:     nil,
 		},
 	})
 }
@@ -128,6 +161,7 @@ func seedTimeFilterDocs(t *testing.T, ctx context.Context, esClient *elasticsear
 	t5000 := float64(5000)
 	t9000 := float64(9000)
 
+	//nolint:dupl
 	for _, tc := range []struct {
 		id    string
 		value *float64
@@ -137,15 +171,18 @@ func seedTimeFilterDocs(t *testing.T, ctx context.Context, esClient *elasticsear
 		{"timeDoc3", &t9000},
 	} {
 		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID:              identifier.From(tc.id),
-			Display:         nil,
-			Text:            nil,
-			Time:            nil,
-			ReferencesCount: nil,
-			ClaimsCount:     nil,
-			ScoreCount:      nil,
+			DisplaySort: nil,
+			ID:          identifier.From(tc.id),
+			Display:     nil,
+			Text:        nil,
+			Time:        nil,
+			LastUpdated: nil,
+			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 			Claims: internalSearch.ClaimTypes{
-				Amount: nil,
+				Identifier: nil,
+				String:     nil,
+				HTML:       nil,
+				Amount:     nil,
 				Time: internalSearch.TimeClaims{{
 					Prop: timeProp, PropDisplay: nil, PropNaming: nil,
 					Range: internalSearch.RangeFloat{
@@ -153,8 +190,15 @@ func seedTimeFilterDocs(t *testing.T, ctx context.Context, esClient *elasticsear
 					},
 					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
 				}},
-				Reference: nil, Has: nil, None: nil, Unknown: nil,
-				SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+				Link:      nil,
+				Reference: nil,
+				Has:       nil,
+				None:      nil,
+				Unknown:   nil,
+				SubRef:    nil,
+				SubAmount: nil,
+				SubTime:   nil,
+				SubHas:    nil,
 			},
 		})
 	}
@@ -185,7 +229,7 @@ func createSession(t *testing.T, ctx context.Context, data search.SessionData) *
 		Version:     0,
 	}
 
-	errE := search.CreateSession(ctx, session)
+	errE := search.CreateSession(siteContext(ctx), session)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	return session

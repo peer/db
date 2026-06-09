@@ -10,12 +10,17 @@ import (
 	"sync"
 	"time"
 
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
+
 	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/fieldtype"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/fieldvaluefactormodifier"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/functionboostmode"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/operator"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/searchtype"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/sortorder"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/totalhitsrelation"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
@@ -63,18 +68,18 @@ const (
 	maxPrecisionThreshold = 40000
 
 	// scoreBoostMax is the target boost ratio between a corpus-p99 document and an
-	// empty one under the scoreCount ranking boost: a p99 document's _score is
+	// empty one under the counts.score ranking boost: a p99 document's _score is
 	// multiplied by roughly scoreBoostMax times the multiplier an empty document
 	// gets. It is the single tuning parameter of the boost.
 	scoreBoostMax = 10.0
 
 	// log2pOffset is the additive constant of the ElasticSearch log2p
-	// field_value_factor modifier: the boost is log10(log2pOffset + factor*scoreCount).
+	// field_value_factor modifier: the boost is log10(log2pOffset + factor*counts.score).
 	log2pOffset = 2.0
 
-	// scoreCountPercentile is the corpus percentile of scoreCount that ScoreFactor
+	// scorePercentile is the corpus percentile of counts.score that ScoreFactor
 	// normalizes to the scoreBoostMax boost ceiling.
-	scoreCountPercentile = 99.0
+	scorePercentile = 99.0
 )
 
 // distinctValuesTotal returns the number of distinct values represented by a terms
@@ -116,8 +121,14 @@ type HasValue struct {
 }
 
 // RefFilter contains values for a reference filter.
+//
+// Direct holds values selected through their "direct" option: a value in Direct matches only
+// documents for which the value is most-specific (it references the value but none of its narrower
+// values). It parallels To (which matches the value and all its narrower values) and is OR-ed with
+// To and Missing.
 type RefFilter struct {
 	To      []ToValue `json:"to,omitempty"`
+	Direct  []ToValue `json:"direct,omitempty"`
 	Missing bool      `json:"missing,omitempty"`
 }
 
@@ -130,17 +141,29 @@ func (f *RefFilter) ToQuery(prop identifier.Identifier) types.QueryVariant { //n
 	)
 
 	// Missing only.
-	if f.Missing && len(f.To) == 0 {
+	if f.Missing && len(f.To) == 0 && len(f.Direct) == 0 {
 		return missingQuery
 	}
 
-	// Build value queries (OR across all To values).
-	shoulds := make([]types.QueryVariant, 0, len(f.To)+1)
+	// Build value queries (OR across all To and Direct values).
+	shoulds := make([]types.QueryVariant, 0, len(f.To)+len(f.Direct)+1)
 	for _, to := range f.To {
 		shoulds = append(shoulds, esdsl.NewNestedQuery(
 			esdsl.NewBoolQuery().Must(
 				esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String())),
 				esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(to.ID.String())),
+			),
+		).Path("claims.ref"))
+	}
+
+	// A "direct" value additionally requires isLeaf=true, so it matches only documents for which
+	// the value is most-specific (none of its narrower values present).
+	for _, to := range f.Direct {
+		shoulds = append(shoulds, esdsl.NewNestedQuery(
+			esdsl.NewBoolQuery().Must(
+				esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String())),
+				esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(to.ID.String())),
+				esdsl.NewTermQuery("claims.ref.isLeaf", esdsl.NewFieldValue().Bool(true)),
 			),
 		).Path("claims.ref"))
 	}
@@ -158,8 +181,8 @@ func (f *RefFilter) ToQuery(prop identifier.Identifier) types.QueryVariant { //n
 
 // Validate validates the RefFilter.
 func (f *RefFilter) Validate() errors.E {
-	if len(f.To) == 0 && !f.Missing {
-		return errors.New("to or missing has to be set")
+	if len(f.To) == 0 && len(f.Direct) == 0 && !f.Missing {
+		return errors.New("to, direct, or missing has to be set")
 	}
 	return nil
 }
@@ -517,31 +540,53 @@ func (s *Session) GetFilterByID(id identifier.Identifier) (*Filter, errors.E) {
 // When Reverse is set, the session is scoped to documents which have a ref claim
 // (for any property) whose "to" target equals Reverse.
 type SessionData struct {
-	View    ViewType               `json:"view,omitempty"`
-	Query   string                 `json:"query,omitempty"`
-	Filters []Filter               `json:"filters,omitempty"`
-	Reverse *identifier.Identifier `json:"reverse,omitempty"`
+	View     ViewType `json:"view,omitempty"`
+	Query    string   `json:"query,omitempty"`
+	Language string   `json:"language,omitempty"`
+	Filters  []Filter `json:"filters,omitempty"`
+	// Prefilters are filters of the same shape as Filters, but their queries go into the bool filter
+	// clause instead of the scoring must clause, so they constrain the result set without contributing
+	// to _score (no should-clause boosting from multi-value matches).
+	Prefilters []Filter               `json:"prefilters,omitempty"`
+	Reverse    *identifier.Identifier `json:"reverse,omitempty"`
 }
 
-// Validate validates the session data .
-func (s *SessionData) Validate(withoutSession bool) errors.E {
-	seenFilters := map[identifier.Identifier]bool{}
-	for i, f := range s.Filters {
+// validateFilters validates each filter in filters and records its ID in seen to detect
+// duplicates. field is the error detail key identifying the set ("filter" or "prefilter").
+func validateFilters(filters []Filter, field string, withoutSession bool, seen map[identifier.Identifier]bool) errors.E {
+	for i, f := range filters {
 		errE := f.Validate(withoutSession)
 		if errE != nil {
-			errors.Details(errE)["filter"] = i
+			errors.Details(errE)[field] = i
 			return errE
 		}
 		if !withoutSession {
 			// We checked that f.ID is not nil in f.Validate().
-			if seenFilters[*f.ID] {
+			if seen[*f.ID] {
 				errE := errors.New("duplicate filter ID")
 				errors.Details(errE)["id"] = f.ID.String()
-				errors.Details(errE)["filter"] = i
+				errors.Details(errE)[field] = i
 				return errE
 			}
-			seenFilters[*f.ID] = true
+			seen[*f.ID] = true
 		}
+	}
+	return nil
+}
+
+// Validate validates the session data.
+//
+// Validate uses ctx with Site.
+func (s *SessionData) Validate(ctx context.Context, withoutSession bool) errors.E {
+	// Filters and Prefilters share the seen-ID set, so an ID cannot be reused across the two sets.
+	seenFilters := map[identifier.Identifier]bool{}
+	errE := validateFilters(s.Filters, "filter", withoutSession, seenFilters)
+	if errE != nil {
+		return errE
+	}
+	errE = validateFilters(s.Prefilters, "prefilter", withoutSession, seenFilters)
+	if errE != nil {
+		return errE
 	}
 
 	if !withoutSession {
@@ -554,6 +599,13 @@ func (s *SessionData) Validate(withoutSession bool) errors.E {
 			return errE
 		}
 	}
+
+	st := waf.MustGetSite[*internalSite.Site](ctx)
+	resolved, errE := internalSearch.ResolveLanguage(s.Language, st.LanguagePriority, st.DefaultLanguage)
+	if errE != nil {
+		return errE
+	}
+	s.Language = resolved
 
 	return nil
 }
@@ -572,19 +624,26 @@ func reverseScopeQuery(id identifier.Identifier) types.QueryVariant { //nolint:i
 	).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
 }
 
-// withExtraFilters returns musts as a bool query, adding any non-nil extra
-// queries as filter clauses. A site's per-caller access restriction (from
-// base.B.SearchQueryHook) is threaded into every search query this way.
-func withExtraFilters(musts, extraFilters []types.QueryVariant) types.QueryVariant { //nolint:ireturn
+// withFilters returns musts as a bool query, adding any non-nil filters as filter clauses.
+//
+// When there are no scoring (must) clauses the documents are selected purely by membership, and we
+// want their score to be 0. An empty bool query would instead match all documents with score 1, so
+// when neither musts nor filters are present we add a match_all filter clause. Filter clauses do not
+// contribute to the score, so such results stay at score 0 (the counts.score function_score, being a
+// multiply, then leaves them at 0). Only a query or filters (which go into musts) produce non-zero scores.
+func withFilters(musts, filters []types.QueryVariant) types.QueryVariant { //nolint:ireturn
 	query := esdsl.NewBoolQuery().Must(musts...)
-	filters := make([]types.QueryVariant, 0, len(extraFilters))
-	for _, f := range extraFilters {
+	fs := make([]types.QueryVariant, 0, len(filters))
+	for _, f := range filters {
 		if f != nil {
-			filters = append(filters, f)
+			fs = append(fs, f)
 		}
 	}
-	if len(filters) > 0 {
-		return query.Filter(filters...)
+	if len(musts) == 0 && len(fs) == 0 {
+		fs = append(fs, esdsl.NewMatchAllQuery())
+	}
+	if len(fs) > 0 {
+		return query.Filter(fs...)
 	}
 	return query
 }
@@ -598,21 +657,33 @@ func withExtraFilters(musts, extraFilters []types.QueryVariant) types.QueryVaria
 // to the languages the index actually has (empty falls back to the global default).
 // extraFilters are added as bool filter clauses (used for the per-caller access restriction).
 func (s *SessionData) ToQuery(enabledLanguages []string, extraFilters ...types.QueryVariant) types.QueryVariant { //nolint:ireturn
-	musts := make([]types.QueryVariant, 0, len(s.Filters)+2) //nolint:mnd
-
-	if s.Reverse != nil {
-		musts = append(musts, reverseScopeQuery(*s.Reverse))
-	}
+	musts := make([]types.QueryVariant, 0, len(s.Filters)+1)
 
 	if s.Query != "" {
 		musts = append(musts, documentTextSearchQuery(s.Query, operator.And, enabledLanguages))
 	}
 
 	for i := range s.Filters {
-		musts = append(musts, s.filterQuery(i, nil))
+		musts = append(musts, s.filterQuery(&s.Filters[i], nil))
 	}
 
-	return withExtraFilters(musts, extraFilters)
+	filters := make([]types.QueryVariant, 0, len(extraFilters)+len(s.Prefilters)+1)
+	filters = append(filters, extraFilters...)
+
+	// Prefilters constrain the result set like filters but go into the filter clause, so
+	// they do not contribute to _score.
+	for i := range s.Prefilters {
+		filters = append(filters, s.filterQuery(&s.Prefilters[i], nil))
+	}
+
+	// Reverse scopes results to documents that reference the target (directly or via a
+	// sub-reference). It is a pure membership constraint, so it goes in the filter clause
+	// and does not contribute to _score.
+	if s.Reverse != nil {
+		filters = append(filters, reverseScopeQuery(*s.Reverse))
+	}
+
+	return withFilters(musts, filters)
 }
 
 // ToQueryExcluding converts the SessionData to an ElasticSearch query, excluding
@@ -622,11 +693,7 @@ func (s *SessionData) ToQuery(enabledLanguages []string, extraFilters ...types.Q
 func (s *SessionData) ToQueryExcluding( //nolint:ireturn
 	excludeFilterID identifier.Identifier, enabledLanguages []string, extraFilters ...types.QueryVariant,
 ) types.QueryVariant {
-	musts := make([]types.QueryVariant, 0, len(s.Filters)+2) //nolint:mnd
-
-	if s.Reverse != nil {
-		musts = append(musts, reverseScopeQuery(*s.Reverse))
-	}
+	musts := make([]types.QueryVariant, 0, len(s.Filters)+1)
 
 	if s.Query != "" {
 		musts = append(musts, documentTextSearchQuery(s.Query, operator.And, enabledLanguages))
@@ -636,10 +703,30 @@ func (s *SessionData) ToQueryExcluding( //nolint:ireturn
 		if s.Filters[i].ID != nil && *s.Filters[i].ID == excludeFilterID {
 			continue
 		}
-		musts = append(musts, s.filterQuery(i, &excludeFilterID))
+		musts = append(musts, s.filterQuery(&s.Filters[i], &excludeFilterID))
 	}
 
-	return withExtraFilters(musts, extraFilters)
+	filters := make([]types.QueryVariant, 0, len(extraFilters)+len(s.Prefilters)+1)
+	filters = append(filters, extraFilters...)
+
+	// Prefilters constrain the result set like filters but go into the filter clause, so
+	// they do not contribute to _score. The excluded filter is skipped here too, in case
+	// it is a prefilter.
+	for i := range s.Prefilters {
+		if s.Prefilters[i].ID != nil && *s.Prefilters[i].ID == excludeFilterID {
+			continue
+		}
+		filters = append(filters, s.filterQuery(&s.Prefilters[i], &excludeFilterID))
+	}
+
+	// Reverse scopes results to documents that reference the target (directly or via a
+	// sub-reference). It is a pure membership constraint, so it goes in the filter clause
+	// and does not contribute to _score.
+	if s.Reverse != nil {
+		filters = append(filters, reverseScopeQuery(*s.Reverse))
+	}
+
+	return withFilters(musts, filters)
 }
 
 // filterQuery builds the ES query for the filter at idx, dispatching to the
@@ -656,52 +743,54 @@ func (s *SessionData) ToQueryExcluding( //nolint:ireturn
 //
 // This is the single point that knows how to render any filter shape; it is
 // the only place SessionData.ToQuery and ToQueryExcluding go through.
-func (s *SessionData) filterQuery(idx int, excludeID *identifier.Identifier) types.QueryVariant { //nolint:ireturn
-	f := s.Filters[idx]
+func (s *SessionData) filterQuery(f *Filter, excludeID *identifier.Identifier) types.QueryVariant { //nolint:ireturn
 	switch {
 	case f.Has != nil:
 		if len(f.Prop) == 1 {
-			return f.Has.ToSubHasQuery(f.Prop[0], s.collectParentToRestrictions(idx, f.Prop[0], excludeID))
+			return f.Has.ToSubHasQuery(f.Prop[0], s.collectParentToRestrictions(f, f.Prop[0], excludeID))
 		}
 		return f.Has.ToQuery()
 	case f.Ref != nil:
 		if len(f.Prop) == 2 { //nolint:mnd
-			return f.Ref.ToSubRefQuery(f.Prop[0], f.Prop[1], s.collectParentToRestrictions(idx, f.Prop[0], excludeID))
+			return f.Ref.ToSubRefQuery(f.Prop[0], f.Prop[1], s.collectParentToRestrictions(f, f.Prop[0], excludeID))
 		}
 		return f.Ref.ToQuery(f.Prop[0])
 	case f.Amount != nil:
 		if len(f.Prop) == 2 { //nolint:mnd
-			return f.Amount.ToSubAmountQuery(f.Prop[0], f.Prop[1], s.collectParentToRestrictions(idx, f.Prop[0], excludeID))
+			return f.Amount.ToSubAmountQuery(f.Prop[0], f.Prop[1], s.collectParentToRestrictions(f, f.Prop[0], excludeID))
 		}
 		return f.Amount.ToQuery(f.Prop[0])
 	case f.Time != nil:
 		if len(f.Prop) == 2 { //nolint:mnd
-			return f.Time.ToSubTimeQuery(f.Prop[0], f.Prop[1], s.collectParentToRestrictions(idx, f.Prop[0], excludeID))
+			return f.Time.ToSubTimeQuery(f.Prop[0], f.Prop[1], s.collectParentToRestrictions(f, f.Prop[0], excludeID))
 		}
 		return f.Time.ToQuery(f.Prop[0])
 	}
 	panic(errors.New("invalid filter"))
 }
 
-// collectParentToRestrictions returns the set of parentTo values that a
-// sub-claim filter at idx should be restricted to, gathered from sibling
-// top-level ref filters on the same parentProp. The filter at idx and (if
-// non-nil) the filter with excludeID are skipped.
-func (s *SessionData) collectParentToRestrictions(idx int, parentProp identifier.Identifier, excludeID *identifier.Identifier) []identifier.Identifier {
+// collectParentToRestrictions returns the set of parentTo values that the sub-claim
+// filter current should be restricted to, gathered from sibling top-level ref filters
+// on the same parentProp. It scans both Filters and Prefilters, so a top-level ref in
+// either set restricts sub-claim filters in either set. The current filter (matched by
+// identity) and (if non-nil) the filter with excludeID are skipped.
+func (s *SessionData) collectParentToRestrictions(current *Filter, parentProp identifier.Identifier, excludeID *identifier.Identifier) []identifier.Identifier {
 	var restrictions []identifier.Identifier
-	for i := range s.Filters {
-		if i == idx {
-			continue
-		}
-		other := &s.Filters[i]
-		if excludeID != nil && other.ID != nil && *other.ID == *excludeID {
-			continue
-		}
-		if other.Ref == nil || len(other.Prop) != 1 || other.Prop[0] != parentProp {
-			continue
-		}
-		for _, to := range other.Ref.To {
-			restrictions = append(restrictions, to.ID)
+	for _, set := range [][]Filter{s.Filters, s.Prefilters} {
+		for i := range set {
+			other := &set[i]
+			if other == current {
+				continue
+			}
+			if excludeID != nil && other.ID != nil && *other.ID == *excludeID {
+				continue
+			}
+			if other.Ref == nil || len(other.Prop) != 1 || other.Prop[0] != parentProp {
+				continue
+			}
+			for _, to := range other.Ref.To {
+				restrictions = append(restrictions, to.ID)
+			}
 		}
 	}
 	return restrictions
@@ -720,7 +809,7 @@ type Session struct {
 }
 
 // Validate validates the Session struct.
-func (s *Session) Validate() errors.E {
+func (s *Session) Validate(ctx context.Context) errors.E {
 	if len(s.Base) < 2 { //nolint:mnd
 		errE := errors.New("base must have at least two elements")
 		errors.Details(errE)["length"] = len(s.Base)
@@ -735,7 +824,7 @@ func (s *Session) Validate() errors.E {
 		return errE
 	}
 
-	return s.SessionData.Validate(false)
+	return s.SessionData.Validate(ctx, false)
 }
 
 func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operator, enabledLanguages []string) types.QueryVariant { //nolint:ireturn
@@ -883,8 +972,8 @@ var searches = sync.Map{} //nolint:gochecknoglobals
 // TODO: Return (and log) and error on invalid search requests (e.g., filters).
 
 // CreateSession creates a new search session.
-func CreateSession(_ context.Context, session *Session) errors.E {
-	errE := session.Validate()
+func CreateSession(ctx context.Context, session *Session) errors.E {
+	errE := session.Validate(ctx)
 	if errE != nil {
 		return errors.WrapWith(errE, ErrValidationFailed)
 	}
@@ -898,8 +987,8 @@ func CreateSession(_ context.Context, session *Session) errors.E {
 }
 
 // UpdateSession updates an existing search session.
-func UpdateSession(_ context.Context, session *Session) errors.E {
-	errE := session.Validate()
+func UpdateSession(ctx context.Context, session *Session) errors.E {
+	errE := session.Validate(ctx)
 	if errE != nil {
 		return errors.WrapWith(errE, ErrValidationFailed)
 	}
@@ -944,7 +1033,38 @@ func ResultsGet(
 
 	query := searchData.ToQuery(enabledLanguages, extraFilters...)
 
-	// Multiplicatively boost ranking by the document's scoreCount (its own claims
+	// TODO: Add a constant-score search mode (feature flag) for per-document ACL filters, so they cannot leak document existence through _score term statistics.
+	//       Per-level indexes close the role/visibility side channels: each level's index computes IDF, term and document
+	//       frequencies, and aggregation statistics only over that level's documents. They cannot close it for a per-document
+	//       (per-user) ACL applied as a query-time filter (the SearchQueryHook threaded in here as extraFilters): a filter
+	//       clause drops documents from the result set but not from the collection statistics. BM25 _score mixes per-document
+	//       local stats (term frequency, field length) with collection-global stats (IDF, a function of how many documents in
+	//       the whole index contain the term), so the _score of accessible hits still encodes statistics over inaccessible
+	//       documents. A caller probing a rare term can read _score (or watch ranking shift across probes) and back out the
+	//       rough number of documents behind the ACL that contain it: statistical existence, not content. The Dfsquerythenfetch
+	//       below makes this exact rather than per-shard-noisy by summing document frequencies across shards. One index per
+	//       user is not possible (unbounded, ACLs change), so the inaccessible documents stay in the index, and the only fix
+	//       is to make nothing the caller observes depend on those statistics.
+	//
+	//       Avoid, whenever a per-document ACL filter can be active: exposing _score or ranking by it; the counts.score
+	//       field_value_factor boost below (it carries the same leak when counts.score spans inaccessible documents); More-Like-This
+	//       and significant_terms/significant_text (IDF-by-design, they select terms against the whole-index background, so
+	//       constant_score does not help and they must be kept off any surface where ACL-restricted and accessible documents share an
+	//       index); kNN/vector post-filtering (use a pre-filter, and build the embedding per level so a single global vector does not
+	//       leak stripped fields through embedding inversion).
+	//
+	//       Safe under a per-document ACL filter (post-filter or document-local, nothing to change): ordinary terms, histogram, and
+	//       cardinality facet counts; track_total_hits; highlighting on the matched document. Relevance scoring is the only place ES
+	//       reaches past the filter into collection-global statistics.
+	//
+	//       Implement the flag by dropping relevance ranking when a per-document ACL is active: wrap the matching query in
+	//       constant_score (every match scores the same), skip the counts.score function_score, do not expose _score (set
+	//       track_scores false), and order only by stable per-document keys (time, then displaySort) that do not depend on collection
+	//       statistics. Matching then reduces to a per-document boolean test and the order is independent of inaccessible documents,
+	//       so nothing observable leaks term statistics. A mapping-level alternative to constant_score is to give the text field the
+	//       boolean similarity (it scores on query boosts only, no TF/IDF). (Per-shard IDF noise is not a defense.)
+
+	// Multiplicatively boost ranking by the document's counts.score (its own claims
 	// plus the documents referencing it) so that, among equally relevant text
 	// matches, richer and more connected documents rank higher. factor is corpus-derived
 	// and scales the log2p curve; factor of 0 leaves the query unboosted.
@@ -954,7 +1074,7 @@ func ResultsGet(
 			Functions(
 				esdsl.NewFunctionScore().FieldValueFactor(
 					esdsl.NewFieldValueFactorScoreFunction().
-						Field("scoreCount").
+						Field("counts.score").
 						Factor(types.Float64(factor)).
 						Modifier(fieldvaluefactormodifier.Log2p).
 						Missing(0),
@@ -965,7 +1085,28 @@ func ResultsGet(
 
 	searchService := getSearchService()
 
-	searchService = searchService.From(0).Size(MaxResultsCount).Query(query)
+	// Order results by relevance score (higher first), then by the document's earliest time (newer
+	// first), then by its display label in the session's language (a before z). Without a query,
+	// filters, or prefilters every document scores 0, so the time and display-label keys decide the
+	// order. Documents missing a sort field sort last (missing: _last).
+	sorts := []types.SortCombinationsVariant{
+		esdsl.NewSortOptions().Score_(esdsl.NewScoreSort().Order(sortorder.Desc)),
+		esdsl.NewSortOptions().AddSortOption("time", esdsl.NewFieldSort(sortorder.Desc).Missing(esdsl.NewMissing().String("_last"))),
+		esdsl.NewSortOptions().AddSortOption(
+			"displaySort."+searchData.Language,
+			// unmapped_type keeps the sort working if field for the language is not present in the index mapping.
+			esdsl.NewFieldSort(sortorder.Asc).UnmappedType(fieldtype.Keyword).Missing(esdsl.NewMissing().String("_last")),
+		),
+	}
+
+	// Score with global term/document frequencies across all shards (DFS) instead of
+	// each shard's local statistics. With multiple shards a term's IDF otherwise depends
+	// on which shard a document happens to land on, and that skew is amplified by deleted
+	// (re-indexed) documents whose term statistics linger per shard until merged. The
+	// result is inconsistent BM25 scoring across documents and unstable ranking. DFS makes
+	// IDF uniform so ranking no longer depends on shard placement. Only the ranked results
+	// query needs this. Queries which run with Size(0) and are not scored.
+	searchService = searchService.From(0).Size(MaxResultsCount).Query(query).Sort(sorts...).SearchType(searchtype.Dfsquerythenfetch)
 
 	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
@@ -993,19 +1134,19 @@ func ResultsGet(
 	}, nil
 }
 
-// ScoreFactor computes the field_value_factor coefficient for the scoreCount
+// ScoreFactor computes the field_value_factor coefficient for the counts.score
 // ranking boost from the current corpus. It runs a percentiles aggregation over the
 // whole index and returns (2^scoreBoostMax - 2)/p99, so that under the log2p
-// modifier a document at the corpus 99th percentile of scoreCount receives a boost
+// modifier a document at the corpus 99th percentile of counts.score receives a boost
 // roughly scoreBoostMax times that of an empty document. It returns 0 (no boost)
 // when the corpus is too sparse to have a meaningful p99 (p99 < 1).
 //
 // The factor is corpus-global.
 func ScoreFactor(ctx context.Context, getSearchService func() *esSearch.Search) (float64, errors.E) {
 	searchService := getSearchService().Size(0).AddAggregation(
-		"scoreCountP99",
+		"scoreP99",
 		esdsl.NewAggregations().Percentiles(
-			esdsl.NewPercentilesAggregation().Field("scoreCount").Percents(scoreCountPercentile).Keyed(false),
+			esdsl.NewPercentilesAggregation().Field("counts.score").Percents(scorePercentile).Keyed(false),
 		),
 	)
 
@@ -1014,7 +1155,7 @@ func ScoreFactor(ctx context.Context, getSearchService func() *esSearch.Search) 
 		return 0, WithESError(err)
 	}
 
-	agg, errE := internalSearch.AggAs[types.TDigestPercentilesAggregate](res.Aggregations, "scoreCountP99")
+	agg, errE := internalSearch.AggAs[types.TDigestPercentilesAggregate](res.Aggregations, "scoreP99")
 	if errE != nil {
 		return 0, errE
 	}

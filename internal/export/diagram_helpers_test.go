@@ -133,7 +133,7 @@ func TestCardinalityLabel(t *testing.T) {
 
 // TestResolveDiagramValuesID verifies the values-tag identifier resolver:
 // 22-character base58 IDs, comma-separated base parts, and the shared
-// search-shortcut grammar's reserved "self" / "reverse" / nested-key sentinels.
+// search shortcut grammar's reserved "self" / "reverse" / nested-key sentinels.
 func TestResolveDiagramValuesID(t *testing.T) {
 	t.Parallel()
 

@@ -26,76 +26,90 @@ func TestResultsGetIntegration(t *testing.T) {
 	doc3ID := identifier.From("doc3")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              doc1ID,
-		Display:         nil,
-		Text:            map[string][]string{"en": {"hello world"}},
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          doc1ID,
+		Display:     nil,
+		Text:        map[string][]string{"en": {"hello world"}},
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount:    nil,
-			Time:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
+			Reference:  nil,
+			Has:        nil,
+			None:       nil,
+			Unknown:    nil,
+			SubRef:     nil,
+			SubAmount:  nil,
+			SubTime:    nil,
+			SubHas:     nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              doc2ID,
-		Display:         nil,
-		Text:            map[string][]string{"en": {"goodbye world"}},
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          doc2ID,
+		Display:     nil,
+		Text:        map[string][]string{"en": {"goodbye world"}},
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount:    nil,
-			Time:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
+			Reference:  nil,
+			Has:        nil,
+			None:       nil,
+			Unknown:    nil,
+			SubRef:     nil,
+			SubAmount:  nil,
+			SubTime:    nil,
+			SubHas:     nil,
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              doc3ID,
-		Display:         nil,
-		Text:            map[string][]string{"en": {"hello there"}},
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          doc3ID,
+		Display:     nil,
+		Text:        map[string][]string{"en": {"hello there"}},
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount:    nil,
-			Time:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
+			Reference:  nil,
+			Has:        nil,
+			None:       nil,
+			Unknown:    nil,
+			SubRef:     nil,
+			SubAmount:  nil,
+			SubTime:    nil,
+			SubHas:     nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
 
 	// Empty query returns all documents.
 	session := createSession(t, ctx, search.SessionData{
-		View:    "",
-		Query:   "",
-		Filters: nil,
-		Reverse: nil,
+		Language:   "",
+		View:       "",
+		Query:      "",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, metadata, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
@@ -115,10 +129,12 @@ func TestResultsGetIntegration(t *testing.T) {
 
 	// Query "hello" returns 2 documents.
 	helloSession := createSession(t, ctx, search.SessionData{
-		View:    "",
-		Query:   "hello",
-		Filters: nil,
-		Reverse: nil,
+		Language:   "",
+		View:       "",
+		Query:      "hello",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &helloSession.SessionData, nil, 0)
@@ -138,10 +154,12 @@ func TestResultsGetIntegration(t *testing.T) {
 
 	// Query "goodbye" returns 1 document.
 	goodbyeSession := createSession(t, ctx, search.SessionData{
-		View:    "",
-		Query:   "goodbye",
-		Filters: nil,
-		Reverse: nil,
+		Language:   "",
+		View:       "",
+		Query:      "goodbye",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &goodbyeSession.SessionData, nil, 0)
@@ -151,10 +169,12 @@ func TestResultsGetIntegration(t *testing.T) {
 
 	// Query "nonexistent" returns 0 documents.
 	noResultsSession := createSession(t, ctx, search.SessionData{
-		View:    "",
-		Query:   "nonexistent",
-		Filters: nil,
-		Reverse: nil,
+		Language:   "",
+		View:       "",
+		Query:      "nonexistent",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &noResultsSession.SessionData, nil, 0)
@@ -175,16 +195,20 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 	doc2ID := identifier.From("doc2")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              doc1ID,
-		Display:         nil,
-		Text:            nil,
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          doc1ID,
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil,
-			Time:   nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop:          refProp,
 				PropDisplay:   nil,
@@ -193,7 +217,9 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 				ToDisplay:     nil,
 				ToNaming:      nil,
 				ToPath:        nil,
+				ToFullPath:    nil,
 				ToDisplayPath: nil,
+				IsLeaf:        false,
 			}},
 			Has:       nil,
 			None:      nil,
@@ -205,40 +231,47 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              doc2ID,
-		Display:         nil,
-		Text:            nil,
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          doc2ID,
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount:    nil,
-			Time:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
+			Reference:  nil,
+			Has:        nil,
+			None:       nil,
+			Unknown:    nil,
+			SubRef:     nil,
+			SubAmount:  nil,
+			SubTime:    nil,
+			SubHas:     nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
 
 	// Filter by reference value.
 	session := createSession(t, ctx, search.SessionData{
-		View:  "",
-		Query: "",
+		Language: "",
+		View:     "",
+		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{refProp},
 			Ref: &search.RefFilter{
+				Direct:  nil,
 				To:      []search.ToValue{{ID: refTarget}},
 				Missing: false,
 			},
 		}},
-		Reverse: nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
@@ -247,16 +280,19 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 
 	// Filter by None reference.
 	noneSession := createSession(t, ctx, search.SessionData{
-		View:  "",
-		Query: "",
+		Language: "",
+		View:     "",
+		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{refProp},
 			Ref: &search.RefFilter{
+				Direct:  nil,
 				To:      nil,
 				Missing: true,
 			},
 		}},
-		Reverse: nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, _, errE = search.ResultsGet(ctx, getSearchService, &noneSession.SessionData, nil, 0)
@@ -280,14 +316,17 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 	fifteen := 15.0
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              doc1ID,
-		Display:         nil,
-		Text:            nil,
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          doc1ID,
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
 				PropDisplay: nil,
@@ -305,6 +344,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 				ToDisplay:   "",
 			}},
 			Time:      nil,
+			Link:      nil,
 			Reference: nil,
 			Has:       nil,
 			None:      nil,
@@ -316,14 +356,17 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              doc2ID,
-		Display:         nil,
-		Text:            nil,
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          doc2ID,
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
 				PropDisplay: nil,
@@ -341,6 +384,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 				ToDisplay:   "",
 			}},
 			Time:      nil,
+			Link:      nil,
 			Reference: nil,
 			Has:       nil,
 			None:      nil,
@@ -352,24 +396,28 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              doc3ID,
-		Display:         nil,
-		Text:            nil,
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          doc3ID,
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount:    nil,
-			Time:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
+			Reference:  nil,
+			Has:        nil,
+			None:       nil,
+			Unknown:    nil,
+			SubRef:     nil,
+			SubAmount:  nil,
+			SubTime:    nil,
+			SubHas:     nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -378,8 +426,9 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 	gte := 10.0
 	lteBig := 100.0
 	session := createSession(t, ctx, search.SessionData{
-		View:  "",
-		Query: "",
+		Language: "",
+		View:     "",
+		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{
@@ -389,7 +438,8 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 				Missing: false,
 			},
 		}},
-		Reverse: nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
@@ -400,8 +450,9 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 	gteSmall := 0.0
 	lte := 10.0
 	session2 := createSession(t, ctx, search.SessionData{
-		View:  "",
-		Query: "",
+		Language: "",
+		View:     "",
+		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{
@@ -411,7 +462,8 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 				Missing: false,
 			},
 		}},
-		Reverse: nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, _, errE = search.ResultsGet(ctx, getSearchService, &session2.SessionData, nil, 0)
@@ -420,8 +472,9 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 
 	// Filter: amount none.
 	session3 := createSession(t, ctx, search.SessionData{
-		View:  "",
-		Query: "",
+		Language: "",
+		View:     "",
+		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{
@@ -431,7 +484,8 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 				Missing: true,
 			},
 		}},
-		Reverse: nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, _, errE = search.ResultsGet(ctx, getSearchService, &session3.SessionData, nil, 0)
@@ -454,15 +508,18 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 	t2000 := float64(2000)
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              doc1ID,
-		Display:         nil,
-		Text:            nil,
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          doc1ID,
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
 			Time: internalSearch.TimeClaims{{
 				Prop:        timeProp,
 				PropDisplay: nil,
@@ -478,6 +535,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 				To:          &t1000,
 				ToDisplay:   "",
 			}},
+			Link:      nil,
 			Reference: nil,
 			Has:       nil,
 			None:      nil,
@@ -489,15 +547,18 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              doc2ID,
-		Display:         nil,
-		Text:            nil,
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          doc2ID,
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
 			Time: internalSearch.TimeClaims{{
 				Prop:        timeProp,
 				PropDisplay: nil,
@@ -513,6 +574,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 				To:          &t2000,
 				ToDisplay:   "",
 			}},
+			Link:      nil,
 			Reference: nil,
 			Has:       nil,
 			None:      nil,
@@ -524,24 +586,28 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              doc3ID,
-		Display:         nil,
-		Text:            nil,
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          doc3ID,
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount:    nil,
-			Time:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
+			Reference:  nil,
+			Has:        nil,
+			None:       nil,
+			Unknown:    nil,
+			SubRef:     nil,
+			SubAmount:  nil,
+			SubTime:    nil,
+			SubHas:     nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -550,8 +616,9 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 	gte := float64(1500)
 	lteBig := float64(10000)
 	session := createSession(t, ctx, search.SessionData{
-		View:  "",
-		Query: "",
+		Language: "",
+		View:     "",
+		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{timeProp},
 			Time: &search.TimeFilter{
@@ -560,7 +627,8 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 				Missing: false,
 			},
 		}},
-		Reverse: nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
@@ -569,8 +637,9 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 
 	// Filter: time none.
 	session2 := createSession(t, ctx, search.SessionData{
-		View:  "",
-		Query: "",
+		Language: "",
+		View:     "",
+		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{timeProp},
 			Time: &search.TimeFilter{
@@ -579,7 +648,8 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 				Missing: true,
 			},
 		}},
-		Reverse: nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, _, errE = search.ResultsGet(ctx, getSearchService, &session2.SessionData, nil, 0)
@@ -602,16 +672,20 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 	doc3ID := identifier.From("doc3")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              doc1ID,
-		Display:         nil,
-		Text:            nil,
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          doc1ID,
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil,
-			Time:   nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop:          refProp1,
 				PropDisplay:   nil,
@@ -620,7 +694,9 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 				ToDisplay:     nil,
 				ToNaming:      nil,
 				ToPath:        nil,
+				ToFullPath:    nil,
 				ToDisplayPath: nil,
+				IsLeaf:        false,
 			}},
 			Has:       nil,
 			None:      nil,
@@ -632,16 +708,20 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              doc2ID,
-		Display:         nil,
-		Text:            nil,
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          doc2ID,
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil,
-			Time:   nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop:          refProp2,
 				PropDisplay:   nil,
@@ -650,7 +730,9 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 				ToDisplay:     nil,
 				ToNaming:      nil,
 				ToPath:        nil,
+				ToFullPath:    nil,
 				ToDisplayPath: nil,
+				IsLeaf:        false,
 			}},
 			Has:       nil,
 			None:      nil,
@@ -662,16 +744,20 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              doc3ID,
-		Display:         nil,
-		Text:            nil,
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          doc3ID,
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil,
-			Time:   nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{
 				{
 					Prop:          refProp1,
@@ -681,7 +767,9 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 					ToDisplay:     nil,
 					ToNaming:      nil,
 					ToPath:        nil,
+					ToFullPath:    nil,
 					ToDisplayPath: nil,
+					IsLeaf:        false,
 				},
 				{
 					Prop:          refProp2,
@@ -691,7 +779,9 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 					ToDisplay:     nil,
 					ToNaming:      nil,
 					ToPath:        nil,
+					ToFullPath:    nil,
 					ToDisplayPath: nil,
+					IsLeaf:        false,
 				},
 			},
 			Has:       nil,
@@ -707,12 +797,14 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 
 	// Multiple filters in the slice act as AND: both references must match.
 	andSession := createSession(t, ctx, search.SessionData{
-		View:  "",
-		Query: "",
+		Language: "",
+		View:     "",
+		Query:    "",
 		Filters: []search.Filter{
 			{ //nolint:exhaustruct
 				Prop: []identifier.Identifier{refProp1},
 				Ref: &search.RefFilter{
+					Direct:  nil,
 					To:      []search.ToValue{{ID: refTarget1}},
 					Missing: false,
 				},
@@ -720,12 +812,14 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 			{ //nolint:exhaustruct
 				Prop: []identifier.Identifier{refProp2},
 				Ref: &search.RefFilter{
+					Direct:  nil,
 					To:      []search.ToValue{{ID: refTarget2}},
 					Missing: false,
 				},
 			},
 		},
-		Reverse: nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &andSession.SessionData, nil, 0)
@@ -741,24 +835,28 @@ func TestResultsGetTotalGteIntegration(t *testing.T) {
 
 	docID := identifier.From("doc1")
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              docID,
-		Display:         nil,
-		Text:            nil,
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          docID,
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount:    nil,
-			Time:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
+			Reference:  nil,
+			Has:        nil,
+			None:       nil,
+			Unknown:    nil,
+			SubRef:     nil,
+			SubAmount:  nil,
+			SubTime:    nil,
+			SubHas:     nil,
 		},
 	})
 	refreshIndex(t, ctx, esClient, index)
@@ -768,10 +866,12 @@ func TestResultsGetTotalGteIntegration(t *testing.T) {
 	}
 
 	session := createSession(t, ctx, search.SessionData{
-		View:    "",
-		Query:   "",
-		Filters: nil,
-		Reverse: nil,
+		Language:   "",
+		View:       "",
+		Query:      "",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, metadata, errE := search.ResultsGet(ctx, getSearchServiceTracked, &session.SessionData, nil, 0)
@@ -789,24 +889,28 @@ func TestResultsGetTotalGteRelationIntegration(t *testing.T) {
 	// Index multiple documents with deterministic IDs.
 	for i := range 5 {
 		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID:              identifier.From("gteDoc", string(rune('0'+i))),
-			Display:         nil,
-			Text:            nil,
-			Time:            nil,
-			ReferencesCount: nil,
-			ClaimsCount:     nil,
-			ScoreCount:      nil,
+			DisplaySort: nil,
+			ID:          identifier.From("gteDoc", string(rune('0'+i))),
+			Display:     nil,
+			Text:        nil,
+			Time:        nil,
+			LastUpdated: nil,
+			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 			Claims: internalSearch.ClaimTypes{
-				Amount:    nil,
-				Time:      nil,
-				Reference: nil,
-				Has:       nil,
-				None:      nil,
-				Unknown:   nil,
-				SubRef:    nil,
-				SubAmount: nil,
-				SubTime:   nil,
-				SubHas:    nil,
+				Identifier: nil,
+				String:     nil,
+				HTML:       nil,
+				Amount:     nil,
+				Time:       nil,
+				Link:       nil,
+				Reference:  nil,
+				Has:        nil,
+				None:       nil,
+				Unknown:    nil,
+				SubRef:     nil,
+				SubAmount:  nil,
+				SubTime:    nil,
+				SubHas:     nil,
 			},
 		})
 	}
@@ -818,10 +922,12 @@ func TestResultsGetTotalGteRelationIntegration(t *testing.T) {
 	}
 
 	session := createSession(t, ctx, search.SessionData{
-		View:    "",
-		Query:   "",
-		Filters: nil,
-		Reverse: nil,
+		Language:   "",
+		View:       "",
+		Query:      "",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	results, metadata, errE := search.ResultsGet(ctx, getSearchServiceLimited, &session.SessionData, nil, 0)
@@ -842,7 +948,7 @@ func TestResultsGetScoreBoost(t *testing.T) {
 	zeroID := identifier.From("zero")
 
 	// Three documents matching the query text identically. They differ only in
-	// scoreCount, so any ranking difference is due to the boost alone.
+	// counts.score, so any ranking difference is due to the boost alone.
 	low := 10
 	high := 1000
 	zero := 0
@@ -852,27 +958,29 @@ func TestResultsGetScoreBoost(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
-		View:    "",
-		Query:   "hello world",
-		Filters: nil,
-		Reverse: nil,
+		Language:   "",
+		View:       "",
+		Query:      "hello world",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
-	// A positive factor must rank the higher-scoreCount document first, while the
-	// scoreCount-0 document is still returned (missing/zero is not dropped). The 2 is
+	// A positive factor must rank the higher-counts.score document first, while the
+	// counts.score-0 document is still returned (missing/zero is not dropped). The 2 is
 	// the log2p modifier offset.
 	factor := (math.Pow(2, search.TestingScoreBoostMax) - 2) / float64(high)
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, factor)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 3)
-	assert.Equal(t, highID.String(), results[0].ID, "highest scoreCount should rank first")
-	assert.Equal(t, lowID.String(), results[1].ID, "lower scoreCount should rank second")
+	assert.Equal(t, highID.String(), results[0].ID, "highest counts.score should rank first")
+	assert.Equal(t, lowID.String(), results[1].ID, "lower counts.score should rank second")
 
 	gotIDs := make([]string, 0, len(results))
 	for _, r := range results {
 		gotIDs = append(gotIDs, r.ID)
 	}
-	assert.Contains(t, gotIDs, zeroID.String(), "scoreCount 0 document should still be returned")
+	assert.Contains(t, gotIDs, zeroID.String(), "counts.score 0 document should still be returned")
 }
 
 func TestScoreFactor(t *testing.T) {
@@ -886,7 +994,7 @@ func TestScoreFactor(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Zero(t, factor)
 
-	// A corpus whose scoreCount is uniformly 50: the t-digest p99 is exactly 50, so
+	// A corpus whose counts.score is uniformly 50: the t-digest p99 is exactly 50, so
 	// the factor is (2^scoreBoostMax - 2)/50. The 2 is the log2p modifier offset.
 	value := 50
 	for range 20 {
@@ -918,21 +1026,32 @@ func TestResultsGetExtraFiltersIntegration(t *testing.T) {
 
 	indexInstanceOf := func(id, class identifier.Identifier) {
 		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			ID:              id,
-			Display:         nil,
-			Text:            nil,
-			Time:            nil,
-			ReferencesCount: nil,
-			ClaimsCount:     nil,
-			ScoreCount:      nil,
+			DisplaySort: nil,
+			ID:          id,
+			Display:     nil,
+			Text:        nil,
+			Time:        nil,
+			LastUpdated: nil,
+			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 			Claims: internalSearch.ClaimTypes{
-				Amount: nil, Time: nil,
+				Identifier: nil,
+				String:     nil,
+				HTML:       nil,
+				Amount:     nil,
+				Time:       nil,
+				Link:       nil,
 				Reference: internalSearch.ReferenceClaims{{
 					Prop: instanceOf, PropDisplay: nil, PropNaming: nil,
-					To: class, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToDisplayPath: nil,
+					To: class, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil,
+					IsLeaf: false,
 				}},
-				Has: nil, None: nil, Unknown: nil,
-				SubRef: nil, SubAmount: nil, SubTime: nil, SubHas: nil,
+				Has:       nil,
+				None:      nil,
+				Unknown:   nil,
+				SubRef:    nil,
+				SubAmount: nil,
+				SubTime:   nil,
+				SubHas:    nil,
 			},
 		})
 	}
@@ -942,10 +1061,12 @@ func TestResultsGetExtraFiltersIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
-		View:    "",
-		Query:   "",
-		Filters: nil,
-		Reverse: nil,
+		Language:   "",
+		View:       "",
+		Query:      "",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
 	// Without an access filter, all three documents are returned.
@@ -956,6 +1077,7 @@ func TestResultsGetExtraFiltersIntegration(t *testing.T) {
 	// With an access filter restricting INSTANCE_OF to classA, only the two
 	// classA documents are returned: the filter wraps the user's query.
 	accessFilter := (&search.RefFilter{
+		Direct:  nil,
 		To:      []search.ToValue{{ID: classA}},
 		Missing: false,
 	}).ToQuery(instanceOf)
@@ -971,4 +1093,79 @@ func TestResultsGetExtraFiltersIntegration(t *testing.T) {
 	sort.Strings(expectedIDs)
 	assert.Equal(t, expectedIDs, gotIDs)
 	assert.NotContains(t, gotIDs, docB.String())
+}
+
+func TestResultsGetSortOrderIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	t100 := float64(100)
+	t200 := float64(200)
+
+	// indexSortDoc indexes a document with the given earliest time and English display-sort label.
+	indexSortDoc := func(id string, tm *float64, displaySort string) {
+		var ds map[string]string
+		if displaySort != "" {
+			ds = map[string]string{"en": displaySort}
+		}
+		indexDocument(t, ctx, esClient, index, internalSearch.Document{
+			DisplaySort: ds,
+			ID:          identifier.From(id),
+			Display:     nil,
+			Text:        nil,
+			Time:        tm,
+			LastUpdated: nil,
+			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+			Claims: internalSearch.ClaimTypes{
+				Identifier: nil,
+				String:     nil,
+				HTML:       nil,
+				Amount:     nil,
+				Time:       nil,
+				Link:       nil,
+				Reference:  nil,
+				Has:        nil,
+				None:       nil,
+				Unknown:    nil,
+				SubRef:     nil,
+				SubAmount:  nil,
+				SubTime:    nil,
+				SubHas:     nil,
+			},
+		})
+	}
+
+	// No query, filters, or prefilters, so every document scores 0 and ordering is decided by the time
+	// key (newer first) and then the display-label key (a before z). The document without a time sorts
+	// last regardless of its label.
+	indexSortDoc("docNewerB", &t200, "b")
+	indexSortDoc("docNewerA", &t200, "a")
+	indexSortDoc("docOlder", &t100, "b")
+	indexSortDoc("docNoTime", nil, "a")
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{
+		Language:   "",
+		View:       "",
+		Query:      "",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
+	})
+
+	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	gotIDs := make([]string, 0, len(results))
+	for _, r := range results {
+		gotIDs = append(gotIDs, r.ID)
+	}
+	assert.Equal(t, []string{
+		identifier.From("docNewerA").String(),
+		identifier.From("docNewerB").String(),
+		identifier.From("docOlder").String(),
+		identifier.From("docNoTime").String(),
+	}, gotIDs)
 }

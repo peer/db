@@ -30,14 +30,17 @@ func TestFiltersGetIntegration(t *testing.T) {
 	t2000 := float64(2000)
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:dupl
-		ID:              identifier.From("filterDoc1"),
-		Display:         nil,
-		Text:            nil,
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          identifier.From("filterDoc1"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
 				PropDisplay: nil,
@@ -69,6 +72,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 				To:          &t1000,
 				ToDisplay:   "",
 			}},
+			Link: nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop:          refProp,
 				PropDisplay:   nil,
@@ -77,7 +81,9 @@ func TestFiltersGetIntegration(t *testing.T) {
 				ToDisplay:     nil,
 				ToNaming:      nil,
 				ToPath:        nil,
+				ToFullPath:    nil,
 				ToDisplayPath: nil,
+				IsLeaf:        false,
 			}},
 			Has:       nil,
 			None:      nil,
@@ -89,14 +95,17 @@ func TestFiltersGetIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:dupl
-		ID:              identifier.From("filterDoc2"),
-		Display:         nil,
-		Text:            nil,
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          identifier.From("filterDoc2"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
 				PropDisplay: nil,
@@ -128,6 +137,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 				To:          &t2000,
 				ToDisplay:   "",
 			}},
+			Link: nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop:          refProp,
 				PropDisplay:   nil,
@@ -136,7 +146,9 @@ func TestFiltersGetIntegration(t *testing.T) {
 				ToDisplay:     nil,
 				ToNaming:      nil,
 				ToPath:        nil,
+				ToFullPath:    nil,
 				ToDisplayPath: nil,
+				IsLeaf:        false,
 			}},
 			Has:       nil,
 			None:      nil,
@@ -150,13 +162,15 @@ func TestFiltersGetIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
-		View:    "",
-		Query:   "",
-		Filters: nil,
-		Reverse: nil,
+		Language:   "",
+		View:       "",
+		Query:      "",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
-	filterResults, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil)
+	filterResults, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, search.PrefilterExcludes{})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// We should have 3 filters: ref, amount, and time.
@@ -200,16 +214,20 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 	refTarget := identifier.From("refTarget")
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              identifier.From("queryDoc1"),
-		Display:         nil,
-		Text:            map[string][]string{"en": {"searchable text"}},
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          identifier.From("queryDoc1"),
+		Display:     nil,
+		Text:        map[string][]string{"en": {"searchable text"}},
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil,
-			Time:   nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop:          refProp,
 				PropDisplay:   nil,
@@ -218,7 +236,9 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 				ToDisplay:     nil,
 				ToNaming:      nil,
 				ToPath:        nil,
+				ToFullPath:    nil,
 				ToDisplayPath: nil,
+				IsLeaf:        false,
 			}},
 			Has:       nil,
 			None:      nil,
@@ -230,16 +250,20 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 		},
 	})
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              identifier.From("queryDoc2"),
-		Display:         nil,
-		Text:            map[string][]string{"en": {"other content"}},
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          identifier.From("queryDoc2"),
+		Display:     nil,
+		Text:        map[string][]string{"en": {"other content"}},
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
-			Amount: nil,
-			Time:   nil,
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop:          refProp,
 				PropDisplay:   nil,
@@ -248,7 +272,9 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 				ToDisplay:     nil,
 				ToNaming:      nil,
 				ToPath:        nil,
+				ToFullPath:    nil,
 				ToDisplayPath: nil,
+				IsLeaf:        false,
 			}},
 			Has:       nil,
 			None:      nil,
@@ -262,13 +288,15 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
-		View:    "",
-		Query:   "searchable",
-		Filters: nil,
-		Reverse: nil,
+		Language:   "",
+		View:       "",
+		Query:      "searchable",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
-	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil)
+	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, search.PrefilterExcludes{})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// With query "searchable", only 1 doc matches, so ref filter should have count 1.
@@ -289,14 +317,17 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 	ten := 10.0
 
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		ID:              identifier.From("noUnitDoc"),
-		Display:         nil,
-		Text:            nil,
-		Time:            nil,
-		ReferencesCount: nil,
-		ClaimsCount:     nil,
-		ScoreCount:      nil,
+		DisplaySort: nil,
+		ID:          identifier.From("noUnitDoc"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
 		Claims: internalSearch.ClaimTypes{
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
 			Amount: internalSearch.AmountClaims{{
 				Prop:        amountProp,
 				PropDisplay: nil,
@@ -314,6 +345,7 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 				ToDisplay:   "",
 			}},
 			Time:      nil,
+			Link:      nil,
 			Reference: nil,
 			Has:       nil,
 			None:      nil,
@@ -327,13 +359,15 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
-		View:    "",
-		Query:   "",
-		Filters: nil,
-		Reverse: nil,
+		Language:   "",
+		View:       "",
+		Query:      "",
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
 	})
 
-	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil)
+	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, search.PrefilterExcludes{})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have exactly one amount filter with empty unit and count 1.

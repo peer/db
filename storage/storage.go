@@ -105,6 +105,11 @@ type PrimaryCoordinator interface {
 	ChangesetID(ctx context.Context, session identifier.Identifier) (identifier.Identifier, errors.E)
 }
 
+// completeSessionTimeout bounds how long completing a file-upload session may take. Completion copies the
+// uploaded chunks into the file, which can be slow for large files, so it is more generous than the River
+// client default used for fast jobs.
+const completeSessionTimeout = time.Hour
+
 // Storage provides file storage operations.
 type Storage struct {
 	// Schema is PostgreSQL schema used by this storage.
@@ -130,6 +135,7 @@ func (s *Storage) Init(
 	}
 
 	storageStore := &store.Store[[]byte, *FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None]{
+		Schema:       s.Schema,
 		Prefix:       s.Prefix,
 		DataType:     "bytea",
 		MetadataType: "jsonb",
@@ -141,11 +147,12 @@ func (s *Storage) Init(
 	}
 
 	storageCoordinator := &coordinator.Coordinator[[]byte, *chunkMetadata, *beginMetadata, *endMetadata, *completeData, *CompleteMetadata]{
-		Prefix:            s.Prefix,
-		DataType:          "bytea",
-		MetadataType:      "jsonb",
-		CompleteSession:   s.completeStorageSession,
-		CompleteSessionTx: s.completeStorageSessionTx,
+		Prefix:                 s.Prefix,
+		DataType:               "bytea",
+		MetadataType:           "jsonb",
+		CompleteSession:        s.completeStorageSession,
+		CompleteSessionTx:      s.completeStorageSessionTx,
+		CompleteSessionTimeout: completeSessionTimeout,
 	}
 	// We do not use Appended and Ended channels here so we pass nil for listener.
 	errE = storageCoordinator.Init(ctx, dbpool, nil, s.Schema, riverClient, workers)

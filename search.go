@@ -7,7 +7,10 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"sync"
 	"time"
+
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
 
 	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
@@ -23,10 +26,28 @@ import (
 	"gitlab.com/peerdb/peerdb/store"
 )
 
+// resolveReadIndex resolves the ElasticSearch index the request should read, routed by the caller's
+// visibility level. When the caller may not read any index (no visibility level on a site that defines
+// visibility levels) it writes a 403 Forbidden response and returns handled=true, so the calling handler
+// must return without searching.
+func (s *Service) resolveReadIndex(w http.ResponseWriter, req *http.Request) (string, bool) {
+	ctx := req.Context()
+	site := waf.MustGetSite[*internalSite.Site](ctx)
+	index, errE := site.ReadIndex(ctx)
+	if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return "", true
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return "", true
+	}
+	return index, false
+}
+
 // enabledSearchLanguages returns the indexed language set for the site serving the request,
 // used to scope the text-search query to the languages the index actually has.
 func enabledSearchLanguages(ctx context.Context) []string {
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 	return internalSearch.EnabledLanguages(site.LanguagePriority)
 }
 
@@ -35,7 +56,7 @@ func enabledSearchLanguages(ctx context.Context) []string {
 // site sets no hook. It is added as a filter clause to every search query so
 // results and facets only include documents the caller may access.
 func searchAccessFilter(ctx context.Context) (types.QueryVariant, errors.E) { //nolint:ireturn
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 	if site.Base.SearchQueryHook == nil {
 		// No hook means no restriction.
 		return nil, nil //nolint:nilnil
@@ -62,14 +83,20 @@ func sessionQueryExcluding(ctx context.Context, session *search.Session, exclude
 	return session.ToQueryExcluding(excludeFilterID, enabledSearchLanguages(ctx), accessFilter), nil
 }
 
-func (s *Service) getSearchService(req *http.Request) *esSearch.Search {
+// documentFullPaths resolves a value's full hierarchy paths (the indexed toFullPath form) for the caller's
+// visibility level.
+func (s *Service) documentFullPaths(ctx context.Context, id identifier.Identifier) ([]string, errors.E) {
+	return waf.MustGetSite[*internalSite.Site](ctx).Base.DocumentFullPaths(ctx, id)
+}
+
+func (s *Service) getSearchService(req *http.Request, index string) *esSearch.Search {
 	ctx := req.Context()
 
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	// We set TrackTotalHits to true to always get exact number of results. For now we didn't notice any performance
 	// issues at data scale PeerDB is currently being used with, but in the future we might want to make this configurable.
-	return site.ESClient.Search().Index(site.Index).
+	return site.ESClient.Search().Index(index).
 		Source_(esdsl.NewSourceConfig().Bool(false)).
 		Preference(getHost(req.RemoteAddr)).
 		Header("X-Opaque-ID", waf.MustRequestID(ctx).String()).
@@ -77,40 +104,55 @@ func (s *Service) getSearchService(req *http.Request) *esSearch.Search {
 		AllowPartialSearchResults(false)
 }
 
-func (s *Service) getSearchServiceClosure(req *http.Request) func() *esSearch.Search {
+func (s *Service) getSearchServiceClosure(req *http.Request, index string) func() *esSearch.Search {
 	return func() *esSearch.Search {
-		return s.getSearchService(req)
+		return s.getSearchService(req, index)
 	}
 }
 
-// scoreFactorTTL is how long a cached scoreCount boost factor is reused before it
+// scoreFactorTTL is how long a cached counts.score boost factor is reused before it
 // is recomputed from the corpus.
 const scoreFactorTTL = time.Hour
 
 type scoreFactorEntry struct {
+	// mu guards this entry's factor and computed, so that recomputing one index's
+	// factor only serializes requests for that same index and not for other sites.
+	mu       sync.Mutex
 	factor   float64
 	computed time.Time
 }
 
-// scoreFactor returns the scoreCount ranking boost factor for the site serving the
+// scoreFactor returns the counts.score ranking boost factor for the site serving the
 // request, computed via search.ScoreFactor and cached per index for scoreFactorTTL.
-func (s *Service) scoreFactor(ctx context.Context, req *http.Request) (float64, errors.E) {
-	site := waf.MustGetSite[*Site](ctx)
-
+//
+// Each visibility level has its own filtered index and therefore its own corpus, so we
+// cache the factor per per-level index rather than per site.
+func (s *Service) scoreFactor(ctx context.Context, req *http.Request, index string) (float64, errors.E) {
+	// We hold the cache lock only long enough to get or create the per-index entry,
+	// so computing one index's factor does not block requests for other indexes.
 	s.scoreFactorMu.Lock()
-	defer s.scoreFactorMu.Unlock()
+	entry, ok := s.scoreFactorCache[index]
+	if !ok {
+		entry = &scoreFactorEntry{}
+		s.scoreFactorCache[index] = entry
+	}
+	s.scoreFactorMu.Unlock()
 
-	entry, ok := s.scoreFactorCache[site.Index]
-	if ok && time.Since(entry.computed) < scoreFactorTTL {
+	// We lock only this index's entry while reading or recomputing its factor.
+	entry.mu.Lock()
+	defer entry.mu.Unlock()
+
+	if !entry.computed.IsZero() && time.Since(entry.computed) < scoreFactorTTL {
 		return entry.factor, nil
 	}
 
-	factor, errE := search.ScoreFactor(ctx, s.getSearchServiceClosure(req))
+	factor, errE := search.ScoreFactor(ctx, s.getSearchServiceClosure(req, index))
 	if errE != nil {
 		return 0, errE
 	}
 
-	s.scoreFactorCache[site.Index] = scoreFactorEntry{factor: factor, computed: time.Now()}
+	entry.factor = factor
+	entry.computed = time.Now()
 
 	return factor, nil
 }
@@ -177,36 +219,57 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
+
 	var data any
 	var metadata map[string]any
 
-	searchService := s.getSearchServiceClosure(req)
+	searchService := s.getSearchServiceClosure(req, index)
+
+	excludes, errE := searchSession.PrefilterExcludeFullPaths(ctx, s.documentFullPaths)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
 	switch {
 	case f.Ref != nil:
 		if len(f.Prop) == 2 { //nolint:mnd
-			data, metadata, errE = f.Ref.GetSubRef(ctx, searchService, query, f.Prop[0], f.Prop[1],
-				collectParentToFromSession(searchSession.Filters, f.Prop[0]))
+			data, metadata, errE = f.Ref.GetSubRef(
+				ctx, searchService, query, f.Prop[0], f.Prop[1],
+				collectParentToFromSession(searchSession.Filters, f.Prop[0]),
+				excludes.SubRef(f.Prop[0], f.Prop[1]),
+			)
 		} else {
-			data, metadata, errE = f.Ref.Get(ctx, searchService, query, f.Prop[0])
+			data, metadata, errE = f.Ref.Get(ctx, searchService, query, f.Prop[0], excludes.Ref(f.Prop[0]))
 		}
 	case f.Amount != nil:
 		if len(f.Prop) == 2 { //nolint:mnd
-			data, metadata, errE = f.Amount.GetSubAmount(ctx, searchService, query, f.Prop[0], f.Prop[1],
-				collectParentToFromSession(searchSession.Filters, f.Prop[0]))
+			data, metadata, errE = f.Amount.GetSubAmount(
+				ctx, searchService, query, f.Prop[0], f.Prop[1],
+				collectParentToFromSession(searchSession.Filters, f.Prop[0]),
+			)
 		} else {
 			data, metadata, errE = f.Amount.Get(ctx, searchService, query, f.Prop[0])
 		}
 	case f.Time != nil:
 		if len(f.Prop) == 2 { //nolint:mnd
-			data, metadata, errE = f.Time.GetSubTime(ctx, searchService, query, f.Prop[0], f.Prop[1],
-				collectParentToFromSession(searchSession.Filters, f.Prop[0]))
+			data, metadata, errE = f.Time.GetSubTime(
+				ctx, searchService, query, f.Prop[0], f.Prop[1],
+				collectParentToFromSession(searchSession.Filters, f.Prop[0]),
+			)
 		} else {
 			data, metadata, errE = f.Time.Get(ctx, searchService, query, f.Prop[0])
 		}
 	case f.Has != nil:
 		if len(f.Prop) == 1 {
-			data, metadata, errE = f.Has.GetSubHas(ctx, searchService, query, f.Prop[0],
-				collectParentToFromSession(searchSession.Filters, f.Prop[0]))
+			data, metadata, errE = f.Has.GetSubHas(
+				ctx, searchService, query, f.Prop[0],
+				collectParentToFromSession(searchSession.Filters, f.Prop[0]),
+			)
 		} else {
 			data, metadata, errE = f.Has.Get(ctx, searchService, query)
 		}
@@ -227,8 +290,6 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 // SearchRefFilterGetAPI handles GET requests for reference filter data by property.
 //
 // Used for inactive filters (not yet in the session).
-//
-//nolint:dupl
 func (s *Service) SearchRefFilterGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
@@ -261,8 +322,17 @@ func (s *Service) SearchRefFilterGetAPI(w http.ResponseWriter, req *http.Request
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
+	excludes, errE := searchSession.PrefilterExcludeFullPaths(ctx, s.documentFullPaths)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
 	f := search.RefFilter{}
-	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req), query, prop)
+	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req, index), query, prop, excludes.Ref(prop))
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -316,8 +386,12 @@ func (s *Service) SearchAmountFilterGetAPI(w http.ResponseWriter, req *http.Requ
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
 	f := search.AmountFilter{Unit: unit} //nolint:exhaustruct
-	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req), query, prop)
+	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req, index), query, prop)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -329,8 +403,6 @@ func (s *Service) SearchAmountFilterGetAPI(w http.ResponseWriter, req *http.Requ
 // SearchTimeFilterGetAPI handles GET requests for time filter data by property.
 //
 // Used for inactive filters (not yet in the session).
-//
-//nolint:dupl
 func (s *Service) SearchTimeFilterGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
@@ -363,8 +435,12 @@ func (s *Service) SearchTimeFilterGetAPI(w http.ResponseWriter, req *http.Reques
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
 	f := search.TimeFilter{}
-	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req), query, prop)
+	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req, index), query, prop)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -416,8 +492,20 @@ func (s *Service) SearchSubRefFilterGetAPI(w http.ResponseWriter, req *http.Requ
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
+	excludes, errE := searchSession.PrefilterExcludeFullPaths(ctx, s.documentFullPaths)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
 	f := search.RefFilter{}
-	data, metadata, errE := f.GetSubRef(ctx, s.getSearchServiceClosure(req), query, parentProp, prop, parentToRestrictions)
+	data, metadata, errE := f.GetSubRef(
+		ctx, s.getSearchServiceClosure(req, index), query, parentProp, prop, parentToRestrictions,
+		excludes.SubRef(parentProp, prop),
+	)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -476,8 +564,12 @@ func (s *Service) SearchSubAmountFilterGetAPI(w http.ResponseWriter, req *http.R
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
 	f := search.AmountFilter{Unit: unit} //nolint:exhaustruct
-	data, metadata, errE := f.GetSubAmount(ctx, s.getSearchServiceClosure(req), query, parentProp, prop, parentToRestrictions)
+	data, metadata, errE := f.GetSubAmount(ctx, s.getSearchServiceClosure(req, index), query, parentProp, prop, parentToRestrictions)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -526,8 +618,12 @@ func (s *Service) SearchSubTimeFilterGetAPI(w http.ResponseWriter, req *http.Req
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
 	f := search.TimeFilter{}
-	data, metadata, errE := f.GetSubTime(ctx, s.getSearchServiceClosure(req), query, parentProp, prop, parentToRestrictions)
+	data, metadata, errE := f.GetSubTime(ctx, s.getSearchServiceClosure(req, index), query, parentProp, prop, parentToRestrictions)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -565,8 +661,12 @@ func (s *Service) SearchHasFilterGetAPI(w http.ResponseWriter, req *http.Request
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
 	f := search.HasFilter{}
-	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req), query)
+	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req, index), query)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -609,8 +709,12 @@ func (s *Service) SearchSubHasFilterGetAPI(w http.ResponseWriter, req *http.Requ
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
 	f := search.HasFilter{}
-	data, metadata, errE := f.GetSubHas(ctx, s.getSearchServiceClosure(req), query, parentProp, parentToRestrictions)
+	data, metadata, errE := f.GetSubHas(ctx, s.getSearchServiceClosure(req, index), query, parentProp, parentToRestrictions)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -691,7 +795,18 @@ func (s *Service) SearchFiltersGetAPI(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	data, metadata, errE := search.FiltersGet(ctx, s.getSearchServiceClosure(req), searchSession, enabledSearchLanguages(ctx), accessFilter)
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
+
+	excludes, errE := searchSession.PrefilterExcludeFullPaths(ctx, s.documentFullPaths)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	data, metadata, errE := search.FiltersGet(ctx, s.getSearchServiceClosure(req, index), searchSession, enabledSearchLanguages(ctx), excludes, accessFilter)
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -724,7 +839,12 @@ func (s *Service) SearchResultsGetAPI(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	factor, errE := s.scoreFactor(ctx, req)
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
+
+	factor, errE := s.scoreFactor(ctx, req, index)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -736,7 +856,7 @@ func (s *Service) SearchResultsGetAPI(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchSession.SessionData, enabledSearchLanguages(ctx), factor, accessFilter)
+	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req, index), &searchSession.SessionData, enabledSearchLanguages(ctx), factor, accessFilter)
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -764,14 +884,19 @@ func (s *Service) SearchJustResultsPostAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	errE = searchData.Validate(true)
+	errE = searchData.Validate(ctx, true)
 	if errE != nil {
 		errE = errors.WrapWith(errE, search.ErrValidationFailed)
 		s.BadRequestWithError(w, req, errE)
 		return
 	}
 
-	factor, errE := s.scoreFactor(ctx, req)
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
+
+	factor, errE := s.scoreFactor(ctx, req, index)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -783,7 +908,7 @@ func (s *Service) SearchJustResultsPostAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchData, enabledSearchLanguages(ctx), factor, accessFilter)
+	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req, index), &searchData, enabledSearchLanguages(ctx), factor, accessFilter)
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -809,7 +934,12 @@ func (s *Service) SearchJustResultsGetAPI(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	factor, errE := s.scoreFactor(ctx, req)
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
+
+	factor, errE := s.scoreFactor(ctx, req, index)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -821,7 +951,7 @@ func (s *Service) SearchJustResultsGetAPI(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req), &searchSession.SessionData, enabledSearchLanguages(ctx), factor, accessFilter)
+	data, metadata, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req, index), &searchSession.SessionData, enabledSearchLanguages(ctx), factor, accessFilter)
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -839,17 +969,24 @@ type createSessionResponse struct {
 	Version int                   `json:"version"`
 }
 
-// SearchCreatePostAPI is a POST HTTP API request handler which creates a new empty search session.
+// createSessionRequest is the JSON body of SearchCreatePostAPI. Its optional query
+// field sets the initial full-text query of the new search session.
+type createSessionRequest struct {
+	Query    string `json:"query,omitempty"`
+	Language string `json:"language,omitempty"`
+}
+
+// SearchCreatePostAPI is a POST HTTP API request handler which creates a new search session.
 func (s *Service) SearchCreatePostAPI(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
 
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
-	var ea emptyRequest
-	errE := x.DecodeJSONWithoutUnknownFields(req.Body, &ea)
+	var request createSessionRequest
+	errE := x.DecodeJSONWithoutUnknownFields(req.Body, &request)
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -859,16 +996,20 @@ func (s *Service) SearchCreatePostAPI(w http.ResponseWriter, req *http.Request, 
 	base := []string{site.Domain, "SEARCH", identifier.New().String()}
 	id := identifier.From(base...)
 
+	sessionData := search.SessionData{
+		View:       search.ViewFeed,
+		Query:      request.Query,
+		Language:   request.Language,
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    nil,
+	}
+
 	searchSession := &search.Session{
-		SessionData: search.SessionData{
-			View:    search.ViewFeed,
-			Query:   "",
-			Filters: nil,
-			Reverse: nil,
-		},
-		ID:      id,
-		Base:    base,
-		Version: 0,
+		SessionData: sessionData,
+		ID:          id,
+		Base:        base,
+		Version:     0,
 	}
 
 	m := metrics.Duration(internalStore.MetricSearchSession).Start()
@@ -960,13 +1101,14 @@ type shortcutPropKey struct {
 }
 
 // parseSearchShortcutQuery parses query parameters using the search shortcut grammar
-// described on SearchShortcutGet into a search.Session.
+// described on SearchShortcutGet into a search.Session whose Prefilters carry the parsed values.
 func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Session, errors.E) {
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	// Group values by property.
 	filterMap := map[shortcutPropKey][]search.ToValue{}
 	var reverse *identifier.Identifier
+	var language string
 	for prop, values := range query {
 		if prop == "reverse" {
 			if len(values) != 1 {
@@ -977,6 +1119,13 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 				return nil, errors.WithMessage(errE, `"reverse" query parameter value is not a valid identifier`)
 			}
 			reverse = &reverseID
+			continue
+		}
+		if prop == "language" {
+			if len(values) != 1 {
+				return nil, errors.New(`"language" query parameter must be set exactly once`)
+			}
+			language = values[0]
 			continue
 		}
 		var key shortcutPropKey
@@ -1011,10 +1160,12 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 	id := identifier.From(base...)
 
 	searchData := search.SessionData{
-		View:    search.ViewFeed,
-		Query:   "",
-		Filters: nil,
-		Reverse: reverse,
+		View:       search.ViewFeed,
+		Query:      "",
+		Language:   language,
+		Filters:    nil,
+		Prefilters: nil,
+		Reverse:    reverse,
 	}
 
 	for key, toValues := range filterMap {
@@ -1026,12 +1177,17 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 		} else {
 			props = []identifier.Identifier{key.prop}
 		}
-		searchData.Filters = append(searchData.Filters, search.Filter{
+		// Search shortcuts populate Prefilters (not Filters): the shortcut defines the scope the
+		// user is looking at, so it constrains results without contributing to ranking, and the
+		// original values are kept (not expanded to descendants) so the UI can show what the
+		// prefilter is on.
+		searchData.Prefilters = append(searchData.Prefilters, search.Filter{
 			ID:   &filterID,
 			Base: filterBase,
 			Prop: props,
 			Ref: &search.RefFilter{
 				To:      toValues,
+				Direct:  nil,
 				Missing: false,
 			},
 			Amount: nil,
@@ -1047,7 +1203,7 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 		Version:     0,
 	}
 
-	errE := searchSession.Validate()
+	errE := searchSession.Validate(ctx)
 	if errE != nil {
 		return nil, errors.WrapWith(errE, search.ErrValidationFailed)
 	}
@@ -1055,48 +1211,9 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 	return searchSession, nil
 }
 
-// expandShortcutFilters expands every top-level reference filter value in the session to
-// also include its descendant values in the value hierarchy (for a class filter, the
-// subclasses). This makes a search shortcut that targets a parent value build the same
-// fully expanded selection the filters UI produces when the user clicks that value in the
-// hierarchy, so the value renders with a full checkmark instead of an indeterminate one.
-// Results are unaffected: ancestor values are indexed, so the parent already matches every
-// descendant document, only the explicit set of selected values grows.
-//
-// The descendants come from the same indexed hierarchy paths the filter facet renders. A
-// value is treated as a descendant when the parent appears as an ancestor in one of its
-// paths. Values without a hierarchy (or leaf values) expand to just themselves.
-func (s *Service) expandShortcutFilters(ctx context.Context, getSearchService func() *esSearch.Search, session *search.Session) errors.E {
-	for i := range session.Filters {
-		f := &session.Filters[i]
-		// Only top-level reference filters carry a value hierarchy we can expand here.
-		if f.Ref == nil || len(f.Prop) != 1 {
-			continue
-		}
-		prop := f.Prop[0]
-		seen := make(map[identifier.Identifier]bool, len(f.Ref.To))
-		expanded := make([]search.ToValue, 0, len(f.Ref.To))
-		for _, to := range f.Ref.To {
-			ids, errE := search.DescendantValues(ctx, getSearchService, prop, to.ID)
-			if errE != nil {
-				return errE
-			}
-			for _, id := range ids {
-				if seen[id] {
-					continue
-				}
-				seen[id] = true
-				expanded = append(expanded, search.ToValue{ID: id})
-			}
-		}
-		f.Ref.To = expanded
-	}
-	return nil
-}
-
-// createShortcutSession parses the search shortcut query grammar, expands parent reference
-// values to their descendants, and creates the session. On any failure it writes the
-// appropriate error response and returns nil, so callers must return when it returns nil.
+// createShortcutSession parses the search shortcut query grammar into prefilters and creates the
+// session. On any failure it writes the appropriate error response and returns nil, so callers
+// must return when it returns nil.
 func (s *Service) createShortcutSession(w http.ResponseWriter, req *http.Request, query url.Values) *search.Session {
 	ctx := req.Context()
 	metrics := waf.MustGetMetrics(ctx)
@@ -1104,14 +1221,6 @@ func (s *Service) createShortcutSession(w http.ResponseWriter, req *http.Request
 	searchSession, errE := parseSearchShortcutQuery(ctx, query)
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
-		return nil
-	}
-
-	// Expand parent values (for example a class) to their descendants so the created
-	// session matches what selecting that value in the filters UI would produce.
-	errE = s.expandShortcutFilters(ctx, s.getSearchServiceClosure(req), searchSession)
-	if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
 		return nil
 	}
 
@@ -1131,10 +1240,11 @@ func (s *Service) createShortcutSession(w http.ResponseWriter, req *http.Request
 
 // SearchShortcutGet is a GET/HEAD HTTP request handler which creates a new search session
 // from query parameters and redirects to the search page. Query parameters are interpreted
-// as ref filters where key is the property ID and value is the value ID.
-// Values for the same property are grouped into a single filter.
+// as ref prefilters where key is the property ID and value is the value ID (prefilters scope
+// the results without contributing to ranking). Values for the same property are grouped into
+// a single prefilter.
 //
-// A key of the form "parentProp:prop" creates a nested (sub-ref) filter, matching
+// A key of the form "parentProp:prop" creates a nested (sub-ref) prefilter, matching
 // reference sub-claims under parentProp whose property is prop.
 //
 // The "reverse" query parameter is special: its value is a document ID that scopes

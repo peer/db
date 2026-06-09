@@ -22,6 +22,7 @@ require (
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/jackc/pgxlisten v0.0.0-20250802141604-12b92425684c
 	github.com/microcosm-cc/bluemonday v1.0.26
+	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
 	github.com/pemistahl/lingua-go v1.4.0
 	github.com/riverqueue/river v0.31.0
 	github.com/riverqueue/river/riverdriver v0.31.0
@@ -32,10 +33,10 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/temoto/robotstxt v1.1.2
 	gitlab.com/tozd/go/cli v0.7.0
-	gitlab.com/tozd/go/x v0.0.0-20260325094342-27311bf9bec0
-	gitlab.com/tozd/go/zerolog v0.11.4
+	gitlab.com/tozd/go/x v0.0.0-20260607123257-2cff1ae6c05b
+	gitlab.com/tozd/go/zerolog v0.11.5-0.20260606005936-3cb490ec7a17
 	gitlab.com/tozd/identifier v0.8.2
-	gitlab.com/tozd/waf v0.24.1-0.20260524082236-3d6aeb640007
+	gitlab.com/tozd/waf v0.24.1-0.20260607001343-e46ff8292924
 	golang.org/x/oauth2 v0.28.0
 	gopkg.in/yaml.v3 v3.0.1
 	riverqueue.com/riverui v0.15.0
@@ -90,7 +91,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.5-0.20250604085516-9a9390b3efa8 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.9.0 // indirect
-	github.com/go-git/go-git/v5 v5.19.0 // indirect
+	github.com/go-git/go-git/v5 v5.19.1 // indirect
 	github.com/goccy/go-yaml v1.19.1 // indirect
 	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect

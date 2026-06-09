@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/go/x"
 
+	"gitlab.com/peerdb/peerdb/document"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 )
 
@@ -30,7 +31,16 @@ func TestMapping(t *testing.T) {
 func TestMappingContainsClaimTypes(t *testing.T) {
 	t.Parallel()
 
-	data, errE := internalSearch.Mapping(nil)
+	// Build an all-language priority from SupportedLanguages (minus the undetermined language) so the
+	// per-language assertions below cover every supported language; an empty priority enables only the
+	// default language.
+	priority := map[string][]string{}
+	for lang := range internalSearch.SupportedLanguages {
+		if lang != document.UndeterminedLanguage {
+			priority[lang] = []string{document.UndeterminedLanguage}
+		}
+	}
+	data, errE := internalSearch.Mapping(priority)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	var parsed map[string]any
@@ -46,14 +56,40 @@ func TestMappingContainsClaimTypes(t *testing.T) {
 	claimProps, ok := claims["properties"].(map[string]any)
 	require.True(t, ok)
 
-	// Textual claim types (id, string, html, link) no longer have per-claim ES
-	// records; their content is folded into the top-level "text" field instead.
-	expectedTypes := []string{"amount", "time", "ref", "has", "none", "unknown"}
+	// Textual claim types (id, string, html, link) have per-claim nested ES records for
+	// structured per-property queries, in addition to being folded into the top-level "text" field.
+	expectedTypes := []string{"id", "string", "html", "link", "amount", "time", "ref", "has", "none", "unknown"}
 	for _, ct := range expectedTypes {
 		assert.Contains(t, claimProps, ct, "missing claim type: %s", ct)
 	}
-	for _, ct := range []string{"id", "string", "html", "link"} {
-		assert.NotContains(t, claimProps, ct, "unexpected per-claim type left in mapping: %s", ct)
+
+	// id and link have no language, so their value/iri fields use the und_text analyzer, matching
+	// the "und" bucket of the top-level text field they are also folded into.
+	for _, tf := range []struct{ claimType, field string }{{"id", "value"}, {"link", "iri"}} {
+		ct, ctOK := claimProps[tf.claimType].(map[string]any)
+		require.True(t, ctOK, "missing claim type: %s", tf.claimType)
+		props, propsOK := ct["properties"].(map[string]any)
+		require.True(t, propsOK)
+		f, fOK := props[tf.field].(map[string]any)
+		require.True(t, fOK, "missing %s.%s field", tf.claimType, tf.field)
+		assert.Equal(t, "und_text", f["analyzer"], "%s.%s should use und_text analyzer", tf.claimType, tf.field)
+	}
+
+	// string and html are per-language, each language using its own text analyzer (en -> en_text).
+	// html is converted to text in Go before indexing, so it uses the same text analyzers as string,
+	// not an HTML-stripping analyzer.
+	for _, tf := range []struct{ claimType, field string }{{"string", "string"}, {"html", "html"}} {
+		ct, ctOK := claimProps[tf.claimType].(map[string]any)
+		require.True(t, ctOK, "missing claim type: %s", tf.claimType)
+		ctProps, ctPropsOK := ct["properties"].(map[string]any)
+		require.True(t, ctPropsOK)
+		langField, langFieldOK := ctProps[tf.field].(map[string]any)
+		require.True(t, langFieldOK, "missing %s.%s field", tf.claimType, tf.field)
+		langProps, langOK := langField["properties"].(map[string]any)
+		require.True(t, langOK, "%s.%s should be a per-language object", tf.claimType, tf.field)
+		en, enOK := langProps["en"].(map[string]any)
+		require.True(t, enOK, "missing %s.%s.en", tf.claimType, tf.field)
+		assert.Equal(t, "en_text", en["analyzer"], "%s.%s.en should use en_text analyzer", tf.claimType, tf.field)
 	}
 
 	// Top-level text field with per-language sub-properties.
@@ -76,7 +112,7 @@ func TestMappingContainsClaimTypes(t *testing.T) {
 		fields, fieldsOK := entry["fields"].(map[string]any)
 		require.True(t, fieldsOK, "missing text.%s.fields multi-field block", lang)
 		assert.Contains(t, fields, "exact", "missing text.%s.exact sub-field", lang)
-		if lang == "und" {
+		if lang == document.UndeterminedLanguage {
 			assert.NotContains(t, fields, "unstemmed", "text.und should not have .unstemmed (would be identical to main analyzer)")
 			continue
 		}
@@ -283,10 +319,14 @@ func TestMappingCountFields(t *testing.T) {
 	properties, ok := mappings["properties"].(map[string]any)
 	require.True(t, ok)
 
-	// referencesCount, claimsCount and scoreCount are top-level integer fields.
-	for _, name := range []string{"referencesCount", "claimsCount", "scoreCount"} {
-		field, fieldOK := properties[name].(map[string]any)
-		require.True(t, fieldOK, "missing top-level %s field", name)
+	// references, claims and score are integer fields nested under counts.
+	counts, ok := properties["counts"].(map[string]any)
+	require.True(t, ok, "missing counts field")
+	countsProperties, ok := counts["properties"].(map[string]any)
+	require.True(t, ok, "counts has no properties")
+	for _, name := range []string{"references", "claims", "score"} {
+		field, fieldOK := countsProperties[name].(map[string]any)
+		require.True(t, fieldOK, "missing counts.%s field", name)
 		assert.Equal(t, "integer", field["type"])
 	}
 }
@@ -306,4 +346,41 @@ func TestMappingSourceDisabled(t *testing.T) {
 	source, ok := mappings["_source"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, false, source["enabled"])
+}
+
+func TestResolveLanguage(t *testing.T) {
+	t.Parallel()
+
+	priority := map[string][]string{"en": {"sl", "und"}, "sl": {"en", "und"}}
+
+	for _, tc := range []struct {
+		name      string
+		language  string
+		priority  map[string][]string
+		def       string
+		want      string
+		wantError bool
+	}{
+		{"empty priority, empty language defaults to en", "", nil, "", internalSearch.DefaultEnabledLanguage, false},
+		{"empty priority, en accepted", "en", nil, "", internalSearch.DefaultEnabledLanguage, false},
+		{"empty priority, sl rejected", "sl", nil, "", "", true},
+		{"empty priority, und rejected", "und", nil, "", "", true},
+		{"priority, empty language uses default", "", priority, "sl", "sl", false},
+		{"priority, en accepted", "en", priority, "sl", "en", false},
+		{"priority, sl accepted", "sl", priority, "sl", "sl", false},
+		{"priority, pt rejected (not a key)", "pt", priority, "sl", "", true},
+		{"priority, und rejected", "und", priority, "sl", "", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, errE := internalSearch.ResolveLanguage(tc.language, tc.priority, tc.def)
+			if tc.wantError {
+				require.Error(t, errE)
+				return
+			}
+			require.NoError(t, errE, "% -+#.1v", errE)
+			assert.Equal(t, tc.want, got)
+		})
+	}
 }

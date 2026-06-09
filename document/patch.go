@@ -882,18 +882,26 @@ func (p AmountIntervalClaimPatch) Apply(claim Claim) errors.E {
 	}
 	if p.From != nil {
 		c.From = p.From
+		c.FromIsUnknown = false
+		c.FromIsNone = false
 	}
 	if p.FromPrecision != nil {
 		c.FromPrecision = p.FromPrecision
 	}
 	if p.FromIsOpen != nil {
 		c.FromIsOpen = *p.FromIsOpen
+		if *p.FromIsOpen {
+			c.FromIsUnknown = false
+			c.FromIsNone = false
+		}
 	}
 	if p.FromIsUnknown != nil {
 		c.FromIsUnknown = *p.FromIsUnknown
 		if *p.FromIsUnknown {
 			c.From = nil
 			c.FromPrecision = nil
+			c.FromIsOpen = false
+			c.FromIsNone = false
 		}
 	}
 	if p.FromIsNone != nil {
@@ -901,22 +909,32 @@ func (p AmountIntervalClaimPatch) Apply(claim Claim) errors.E {
 		if *p.FromIsNone {
 			c.From = nil
 			c.FromPrecision = nil
+			c.FromIsOpen = false
+			c.FromIsUnknown = false
 		}
 	}
 	if p.To != nil {
 		c.To = p.To
+		c.ToIsUnknown = false
+		c.ToIsNone = false
 	}
 	if p.ToPrecision != nil {
 		c.ToPrecision = p.ToPrecision
 	}
 	if p.ToIsOpen != nil {
 		c.ToIsOpen = *p.ToIsOpen
+		if *p.ToIsOpen {
+			c.ToIsUnknown = false
+			c.ToIsNone = false
+		}
 	}
 	if p.ToIsUnknown != nil {
 		c.ToIsUnknown = *p.ToIsUnknown
 		if *p.ToIsUnknown {
 			c.To = nil
 			c.ToPrecision = nil
+			c.ToIsOpen = false
+			c.ToIsNone = false
 		}
 	}
 	if p.ToIsNone != nil {
@@ -924,6 +942,8 @@ func (p AmountIntervalClaimPatch) Apply(claim Claim) errors.E {
 		if *p.ToIsNone {
 			c.To = nil
 			c.ToPrecision = nil
+			c.ToIsOpen = false
+			c.ToIsUnknown = false
 		}
 	}
 
@@ -1134,18 +1154,26 @@ func (p TimeIntervalClaimPatch) Apply(claim Claim) errors.E {
 	}
 	if p.From != nil {
 		c.From = p.From
+		c.FromIsUnknown = false
+		c.FromIsNone = false
 	}
 	if p.FromPrecision != nil {
 		c.FromPrecision = p.FromPrecision
 	}
 	if p.FromIsOpen != nil {
 		c.FromIsOpen = *p.FromIsOpen
+		if *p.FromIsOpen {
+			c.FromIsUnknown = false
+			c.FromIsNone = false
+		}
 	}
 	if p.FromIsUnknown != nil {
 		c.FromIsUnknown = *p.FromIsUnknown
 		if *p.FromIsUnknown {
 			c.From = nil
 			c.FromPrecision = nil
+			c.FromIsOpen = false
+			c.FromIsNone = false
 		}
 	}
 	if p.FromIsNone != nil {
@@ -1153,22 +1181,32 @@ func (p TimeIntervalClaimPatch) Apply(claim Claim) errors.E {
 		if *p.FromIsNone {
 			c.From = nil
 			c.FromPrecision = nil
+			c.FromIsOpen = false
+			c.FromIsUnknown = false
 		}
 	}
 	if p.To != nil {
 		c.To = p.To
+		c.ToIsUnknown = false
+		c.ToIsNone = false
 	}
 	if p.ToPrecision != nil {
 		c.ToPrecision = p.ToPrecision
 	}
 	if p.ToIsOpen != nil {
 		c.ToIsOpen = *p.ToIsOpen
+		if *p.ToIsOpen {
+			c.ToIsUnknown = false
+			c.ToIsNone = false
+		}
 	}
 	if p.ToIsUnknown != nil {
 		c.ToIsUnknown = *p.ToIsUnknown
 		if *p.ToIsUnknown {
 			c.To = nil
 			c.ToPrecision = nil
+			c.ToIsOpen = false
+			c.ToIsNone = false
 		}
 	}
 	if p.ToIsNone != nil {
@@ -1176,6 +1214,8 @@ func (p TimeIntervalClaimPatch) Apply(claim Claim) errors.E {
 		if *p.ToIsNone {
 			c.To = nil
 			c.ToPrecision = nil
+			c.ToIsOpen = false
+			c.ToIsUnknown = false
 		}
 	}
 

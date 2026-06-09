@@ -9,7 +9,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/core"
 	"gitlab.com/peerdb/peerdb/document"
-	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
+	"gitlab.com/peerdb/peerdb/store"
 	"gitlab.com/peerdb/peerdb/transform"
 )
 
@@ -131,7 +131,12 @@ func (b *B) PopulateAndStart(
 		return nil, errors.WithStack(ctx.Err())
 	}
 
-	onShutdown, errE := b.Start(ctx, documents)
+	// The documents were just generated/inserted, so they carry no prior stored metadata to give the hooks.
+	startDocuments := make([]StartDocument, len(documents))
+	for i, doc := range documents {
+		startDocuments[i] = StartDocument{Document: doc, Metadata: nil, Version: store.Version{}, ParentChangesets: nil}
+	}
+	onShutdown, errE := b.Start(ctx, startDocuments)
 	if errE != nil {
 		return onShutdown, errE
 	}
@@ -148,9 +153,9 @@ func (b *B) PopulateAndStart(
 		return onShutdown, errE
 	}
 
-	_, err := b.bridge.ESClient.Indices.Refresh().Index(b.bridge.Index).Do(ctx)
-	if err != nil {
-		return onShutdown, internalSearch.WithESError(err)
+	errE = b.bridge.Refresh(ctx)
+	if errE != nil {
+		return onShutdown, errE
 	}
 
 	return onShutdown, nil

@@ -401,8 +401,8 @@ const WithPeerDBDocument = WithDocument<D>
             <template #default="{ doc }">
               <DisplayLabel :doc="doc" />
             </template>
-            <template #error="{ url }">
-              <i class="pd-withdocument-error text-error-600" :data-url="url">{{ t("common.status.loadingDataFailed") }}</i>
+            <template #error="{ message, accessDenied, url }">
+              <i :class="['pd-withdocument-error', accessDenied ? 'text-gray-500' : 'text-error-600']" :data-url="url">{{ message }}</i>
             </template>
             <template #loading="{ url }">
               <i class="block h-4 animate-pulse rounded bg-slate-200" :data-url="url" :class="[loadingWidth(selectedDocument?.id ?? '')]" aria-hidden="true"></i>
@@ -555,9 +555,9 @@ const WithPeerDBDocument = WithDocument<D>
 
                       <CheckIcon v-if="result.id === selectedDocument?.id" class="size-5 text-primary-600" aria-hidden="true" />
                     </template>
-                    <template #error="{ url }">
+                    <template #error="{ message, accessDenied, url }">
                       <div class="w-full truncate">
-                        <i class="pd-withdocument-error text-error-600" :data-url="url">{{ t("common.status.loadingDataFailed") }}</i>
+                        <i :class="['pd-withdocument-error', accessDenied ? 'text-gray-500' : 'text-error-600']" :data-url="url">{{ message }}</i>
                       </div>
 
                       <CheckIcon v-if="result.id === selectedDocument?.id" class="size-5 text-primary-600" aria-hidden="true" />

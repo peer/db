@@ -8,8 +8,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
+
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
@@ -28,7 +31,7 @@ import (
 // InitSites sets up default site configuration and build information if needed.
 func InitSites(globals *Globals) {
 	if len(globals.Sites) == 0 {
-		globals.Sites = []Site{{
+		globals.Sites = []internalSite.Site{{
 			Site: waf.Site{
 				Domain:   "",
 				CertFile: "",
@@ -43,17 +46,17 @@ func InitSites(globals *Globals) {
 			LanguagePriority:     nil,
 			DefaultLanguage:      "",
 			LanguageCodes:        nil,
-			Features:             SiteFeatures{},
+			Features:             internalSite.SiteFeatures{},
 			Roles:                nil,
-			Auth:                 SiteAuthConfig{},
+			Visibility:           nil,
+			Auth:                 internalSite.SiteAuthConfig{},
 			MetadataHeaderPrefix: "",
-			authenticator:        nil,
+			Authenticator:        nil,
 			Base:                 nil,
 			DBPool:               nil,
 			ESClient:             nil,
 			RiverClient:          nil,
-			debugRiverHandler:    nil,
-			initialized:          false,
+			DebugRiverHandler:    nil,
 		}}
 	}
 
@@ -61,7 +64,7 @@ func InitSites(globals *Globals) {
 	if cli.Version != "" || cli.BuildTimestamp != "" || cli.Revision != "" {
 		for i := range globals.Sites {
 			site := &globals.Sites[i]
-			site.Build = &Build{
+			site.Build = &internalSite.Build{
 				Version:        cli.Version,
 				BuildTimestamp: cli.BuildTimestamp,
 				Revision:       cli.Revision,
@@ -72,15 +75,15 @@ func InitSites(globals *Globals) {
 
 // startAndWaitSite starts the base for a site, runs optional beforeWait,
 // then waits for indexing to catch up, and refreshes the ElasticSearch index.
-func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site Site, beforeWait func(ctx context.Context) errors.E) (func(), errors.E) {
+func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site internalSite.Site, beforeWait func(ctx context.Context) errors.E) (func(), errors.E) {
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
-	ctx = WithFallbackDBContext(ctx, site.Schema, "db")
+	ctx = internalStore.WithFallbackDBContext(ctx, site.Schema, "db")
 
-	documents, errE := site.fetchDocuments(ctx, internalCore.PropertyClassID)
+	documents, errE := site.FetchDocuments(ctx, internalCore.PropertyClassID)
 	if errE != nil {
 		return nil, errE
 	}
-	languages, errE := site.fetchDocuments(ctx, internalCore.LanguageClassID)
+	languages, errE := site.FetchDocuments(ctx, internalCore.LanguageClassID)
 	if errE != nil {
 		return nil, errE
 	}
@@ -115,9 +118,11 @@ func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site Site, bef
 		return onShutdown, errE
 	}
 
-	_, err := site.ESClient.Indices.Refresh().Index(site.Index).Do(ctx)
-	if err != nil {
-		return onShutdown, internalSearch.WithESError(err)
+	for _, index := range site.LevelIndexes() {
+		_, err := site.ESClient.Indices.Refresh().Index(index).Do(ctx)
+		if err != nil {
+			return onShutdown, internalSearch.WithESError(err)
+		}
 	}
 
 	logger.Info().
@@ -193,6 +198,25 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 
 	InitSites(globals)
 
+	// When recreating the index, delete it before Init so that the base's EnsureIndex (run during
+	// startup) recreates it from the current mapping. The documents are then replayed from PostgreSQL
+	// into the fresh index below, so a mapping change is applied without losing source data.
+	if c.RecreateIndex {
+		esClient, errE := internalSearch.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic.URL)
+		if errE != nil {
+			return errE
+		}
+		for _, site := range globals.Sites {
+			for _, index := range site.LevelIndexes() {
+				_, err := esClient.Indices.Delete(index).IgnoreUnavailable(true).Do(ctx)
+				if err != nil {
+					return internalSearch.WithESError(err)
+				}
+			}
+			globals.Logger.Info().Str("index", site.Index).Msg("index deleted for recreation")
+		}
+	}
+
 	ctx, cancel := context.WithCancel(ctx)
 
 	onShutdownInit, errE := Init(ctx, globals)
@@ -230,9 +254,120 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 		if errE != nil {
 			return errE
 		}
+
+		// Replaying the whole commit log re-indexes each document once per commit that changes it.
+		// In particular a reference target is rewritten every time a new referrer appears, so hub
+		// documents accumulate many superseded (deleted) Lucene versions. Those deletes linger per
+		// shard until merged and bloat the index (they also skew per-shard term statistics).
+		// Now that the site is caught up, expunge them. We use only_expunge_deletes rather than
+		// max_num_segments because the index keeps receiving live writes after a reindex, and
+		// full-merging an index that is still written to is discouraged.
+		globals.Logger.Info().Str("index", site.Index).Msg("expunging deletes")
+
+		for _, index := range site.LevelIndexes() {
+			_, err := site.ESClient.Indices.Forcemerge().Index(index).OnlyExpungeDeletes(true).Do(ctx)
+			if err != nil {
+				return internalSearch.WithESError(err)
+			}
+		}
 	}
 
 	globals.Logger.Info().Msg("db reindex done")
+
+	return nil
+}
+
+// vacuumSchema runs VACUUM on every table in the given PostgreSQL schema to reclaim space held by
+// dead tuples and to refresh planner statistics. VACUUM cannot run inside a transaction, so we
+// acquire a single connection and run each statement directly in autocommit mode. We enumerate the
+// schema's tables instead of running a bare VACUUM because the latter vacuums every schema in the
+// database, which would redundantly revisit other sites sharing the same database.
+func vacuumSchema(ctx context.Context, dbpool *pgxpool.Pool, schema string) errors.E {
+	conn, err := dbpool.Acquire(ctx)
+	if err != nil {
+		return internalStore.WithPgxError(err)
+	}
+	defer conn.Release()
+
+	rows, err := conn.Query(ctx, `SELECT tablename FROM pg_tables WHERE schemaname = $1 ORDER BY tablename`, schema)
+	if err != nil {
+		return internalStore.WithPgxError(err)
+	}
+	tables, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return internalStore.WithPgxError(err)
+	}
+
+	for _, table := range tables {
+		_, err := conn.Exec(ctx, fmt.Sprintf(`VACUUM (ANALYZE) "%s"."%s"`, schema, table))
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+	}
+
+	return nil
+}
+
+// Run executes the db vacuum command which reclaims dead tuples in PostgreSQL
+// and expunges deleted documents from ElasticSearch for all configured sites.
+func (c *DBVacuumCommand) Run(globals *Globals) errors.E {
+	// We stop gracefully on ctrl-c and TERM signal.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	ctx = globals.Logger.WithContext(ctx)
+
+	InitSites(globals)
+
+	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
+	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
+	dbpool, dbpoolCleanup, errE := internalStore.InitPostgres(
+		context.WithoutCancel(ctx),
+		string(globals.Postgres.URL),
+		globals.Logger,
+		getRequestWithFallback(),
+	)
+	if errE != nil {
+		return errE
+	}
+	defer dbpoolCleanup()
+
+	esClient, errE := internalSearch.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic.URL)
+	if errE != nil {
+		return errE
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	for _, site := range globals.Sites {
+		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("vacuuming")
+
+		// We set fallback context values which are used to set application name on PostgreSQL connections.
+		siteCtx := internalStore.WithFallbackDBContext(ctx, site.Schema, "vacuum")
+
+		errE = vacuumSchema(siteCtx, dbpool, site.Schema)
+		if errE != nil {
+			return errE
+		}
+
+		globals.Logger.Info().Str("schema", site.Schema).Msg("schema vacuumed")
+
+		// We expunge deleted Lucene documents per shard so the superseded versions that versioned writes
+		// and reindexing accumulate do not bloat the index or skew per-shard term statistics. We use
+		// only_expunge_deletes rather than max_num_segments because the index keeps receiving live writes,
+		// and full-merging an index that is still written to is discouraged.
+		for _, index := range site.LevelIndexes() {
+			_, err := esClient.Indices.Forcemerge().Index(index).OnlyExpungeDeletes(true).Do(siteCtx)
+			if err != nil {
+				return internalSearch.WithESError(err)
+			}
+		}
+
+		globals.Logger.Info().Str("index", site.Index).Msg("deletes expunged")
+	}
+
+	globals.Logger.Info().Msg("db vacuum done")
 
 	return nil
 }
@@ -296,7 +431,7 @@ func (c *DBExportCommand) Run(globals *Globals) (returnErr errors.E) { //nolint:
 		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("exporting")
 
 		// We set fallback context values which are used to set application name on PostgreSQL connections.
-		siteCtx := WithFallbackDBContext(ctx, site.Schema, "export")
+		siteCtx := internalStore.WithFallbackDBContext(ctx, site.Schema, "export")
 
 		onS, errE := startAndWaitSite(siteCtx, globals.Logger, site, nil)
 		onShutdown = append(onShutdown, onS)
@@ -309,7 +444,7 @@ func (c *DBExportCommand) Run(globals *Globals) (returnErr errors.E) { //nolint:
 			return doc, errE
 		}
 
-		errE = internalExport.Export(siteCtx, w, site.ESClient, site.Index, getDoc, internalExport.Config{
+		errE = internalExport.Export(siteCtx, w, site.ESClient, site.TopIndex(), getDoc, internalExport.Config{
 			Format:     c.Format,
 			InstanceOf: c.InstanceOf,
 			Properties: c.Property,
@@ -382,7 +517,7 @@ func (c *DBWipeCommand) Run(globals *Globals) errors.E {
 		globals.Logger.Info().Str("index", site.Index).Str("schema", site.Schema).Msg("wiping")
 
 		// We set fallback context values which are used to set application name on PostgreSQL connections.
-		siteCtx := WithFallbackDBContext(ctx, site.Schema, "wipe")
+		siteCtx := internalStore.WithFallbackDBContext(ctx, site.Schema, "wipe")
 
 		errE = internalStore.RetryTransaction(siteCtx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 			_, err := tx.Exec(ctx, fmt.Sprintf(`DROP SCHEMA IF EXISTS "%s" CASCADE`, site.Schema))
@@ -394,9 +529,11 @@ func (c *DBWipeCommand) Run(globals *Globals) errors.E {
 
 		globals.Logger.Info().Str("schema", site.Schema).Msg("schema dropped")
 
-		_, err := esClient.Indices.Delete(site.Index).IgnoreUnavailable(true).Do(siteCtx)
-		if err != nil {
-			return internalSearch.WithESError(err)
+		for _, index := range site.LevelIndexes() {
+			_, err := esClient.Indices.Delete(index).IgnoreUnavailable(true).Do(siteCtx)
+			if err != nil {
+				return internalSearch.WithESError(err)
+			}
 		}
 
 		globals.Logger.Info().Str("index", site.Index).Msg("index deleted")

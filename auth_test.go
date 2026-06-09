@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"testing"
 
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/tozd/waf"
@@ -110,7 +112,7 @@ func TestBasicAuthWithSiteContext(t *testing.T) {
 			t.Parallel()
 
 			ts, _ := startTestServer(t, func(globals *peerdb.Globals, serve *peerdb.ServeCommand) {
-				globals.Sites = []peerdb.Site{
+				globals.Sites = []internalSite.Site{
 					{
 						Site: waf.Site{
 							Domain:   tt.domain,
@@ -126,14 +128,17 @@ func TestBasicAuthWithSiteContext(t *testing.T) {
 						LanguagePriority:     nil,
 						DefaultLanguage:      "",
 						LanguageCodes:        nil,
-						Features:             peerdb.SiteFeatures{},
+						Features:             internalSite.SiteFeatures{},
 						Roles:                nil,
-						Auth:                 peerdb.SiteAuthConfig{},
+						Visibility:           nil,
+						Auth:                 internalSite.SiteAuthConfig{},
 						MetadataHeaderPrefix: "",
 						Base:                 nil,
 						DBPool:               nil,
 						ESClient:             nil,
 						RiverClient:          nil,
+						Authenticator:        nil,
+						DebugRiverHandler:    nil,
 					},
 				}
 				serve.Username = testUsername

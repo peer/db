@@ -210,6 +210,124 @@ func TestTimeIntervalClaimPatch(t *testing.T) {
 	assert.Nil(t, c.ToPrecision)
 }
 
+// TestIntervalClaimPatchApplyClearsMarkers verifies that setting a concrete bound value
+// via Apply clears a previously set unknown or none marker on that bound. This is the
+// production case where a "set" fills in a bound that was previously none: the merged
+// claim must not end up with both a value and the marker, which Validate rejects.
+func TestIntervalClaimPatchApplyClearsMarkers(t *testing.T) {
+	t.Parallel()
+
+	t.Run("TimeInterval/ToIsNone", func(t *testing.T) {
+		t.Parallel()
+
+		from := document.Time("1984")
+		yearPrec := document.TimePrecisionYear
+		c := &document.TimeIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+			Prop:          document.Reference{ID: identifier.New()},
+			From:          &from,
+			FromPrecision: &yearPrec,
+			ToIsNone:      true,
+		}
+		require.NoError(t, c.Validate(), "% -+#.1v", c.Validate())
+
+		to := document.Time("1950")
+		applyPatch := document.TimeIntervalClaimPatch{
+			To:          &to,
+			ToPrecision: &yearPrec,
+		}
+		errE := applyPatch.Apply(c)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.False(t, c.ToIsNone)
+		require.NotNil(t, c.To)
+		assert.Equal(t, to, *c.To)
+	})
+
+	t.Run("AmountInterval/FromIsUnknown", func(t *testing.T) {
+		t.Parallel()
+
+		to := document.Amount("9.5")
+		toPrecision := 0.1
+		c := &document.AmountIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+			Prop:          document.Reference{ID: identifier.New()},
+			To:            &to,
+			ToPrecision:   &toPrecision,
+			FromIsUnknown: true,
+		}
+		require.NoError(t, c.Validate(), "% -+#.1v", c.Validate())
+
+		from := document.Amount("1.5")
+		fromPrecision := 0.1
+		applyPatch := document.AmountIntervalClaimPatch{
+			From:          &from,
+			FromPrecision: &fromPrecision,
+		}
+		errE := applyPatch.Apply(c)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.False(t, c.FromIsUnknown)
+		require.NotNil(t, c.From)
+		assert.Equal(t, from, *c.From)
+	})
+
+	// Switching a bound directly from one marker to another must clear the previous
+	// marker. The three markers (IsOpen, IsUnknown, IsNone) are mutually exclusive, so
+	// leaving a stale one set fails validation just like the value-plus-marker case.
+	t.Run("TimeInterval/UnknownToNone", func(t *testing.T) {
+		t.Parallel()
+
+		from := document.Time("1984")
+		yearPrec := document.TimePrecisionYear
+		c := &document.TimeIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+			Prop:          document.Reference{ID: identifier.New()},
+			From:          &from,
+			FromPrecision: &yearPrec,
+			ToIsUnknown:   true,
+		}
+		require.NoError(t, c.Validate(), "% -+#.1v", c.Validate())
+
+		isNone := true
+		applyPatch := document.TimeIntervalClaimPatch{
+			ToIsNone: &isNone,
+		}
+		errE := applyPatch.Apply(c)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.True(t, c.ToIsNone)
+		assert.False(t, c.ToIsUnknown)
+	})
+
+	t.Run("AmountInterval/OpenToUnknown", func(t *testing.T) {
+		t.Parallel()
+
+		from := document.Amount("1.5")
+		fromPrecision := 0.1
+		to := document.Amount("9.5")
+		toPrecision := 0.1
+		c := &document.AmountIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+			Prop:          document.Reference{ID: identifier.New()},
+			From:          &from,
+			FromPrecision: &fromPrecision,
+			To:            &to,
+			ToPrecision:   &toPrecision,
+			ToIsOpen:      true,
+		}
+		require.NoError(t, c.Validate(), "% -+#.1v", c.Validate())
+
+		isUnknown := true
+		applyPatch := document.AmountIntervalClaimPatch{
+			ToIsUnknown: &isUnknown,
+		}
+		errE := applyPatch.Apply(c)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.True(t, c.ToIsUnknown)
+		assert.False(t, c.ToIsOpen)
+		assert.Nil(t, c.To)
+		assert.Nil(t, c.ToPrecision)
+	})
+}
+
 func TestAmountClaimValidate(t *testing.T) {
 	t.Parallel()
 

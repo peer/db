@@ -18,6 +18,150 @@ import { hour, minute, second, toDate } from "@/time"
 // If the last increase would be equal or less than this number, just skip to the end.
 export const SKIP_TO_END = 2
 
+// RefValueLike is the minimal shape of a reference filter value the selection logic needs: the
+// value id and its hierarchy paths. Each path is an ancestor chain from a root to the value's
+// immediate parent; a "direct" entry's path ends with its own value, and the top-level "missing"
+// entry has no paths. RefFilterResult satisfies this.
+export type RefValueLike = { id: string; paths?: string[][] }
+
+// RefCheckState is the tri-state a reference filter value renders as.
+export type RefCheckState = { checked: boolean; indeterminate: boolean }
+
+// refChildrenByValue maps each value id to the ids of its immediate children. A value's immediate
+// parent is the last element of each of its hierarchy paths, so every value is registered as a
+// child of those parents. The "direct" entry lists its own value as that last element, so it is
+// a child of the value it belongs to. Values without paths (roots, the "missing" entry) are
+// children of nothing.
+function refChildrenByValue(values: readonly RefValueLike[]): Map<string, string[]> {
+  const children = new Map<string, string[]>()
+  for (const value of values) {
+    for (const path of value.paths ?? []) {
+      if (path.length === 0) {
+        continue
+      }
+      const parent = path[path.length - 1]
+      let list = children.get(parent)
+      if (!list) {
+        list = []
+        children.set(parent, list)
+      }
+      if (!list.includes(value.id)) {
+        list.push(value.id)
+      }
+    }
+  }
+  return children
+}
+
+// refSubtreeIds returns id together with every value reachable from it through the children map
+// (its descendants in the value hierarchy, including the "direct" entry). It is cycle-safe.
+function refSubtreeIds(id: string, children: ReadonlyMap<string, string[]>): Set<string> {
+  const out = new Set<string>()
+  const stack = [id]
+  while (stack.length > 0) {
+    const current = stack.pop() as string
+    if (out.has(current)) {
+      continue
+    }
+    out.add(current)
+    for (const child of children.get(current) ?? []) {
+      stack.push(child)
+    }
+  }
+  return out
+}
+
+// computeRefCheckStates computes the tri-state checkbox state of every reference filter value. A
+// value renders as a full checkmark when its own value is selected, when one of its ancestors is
+// selected (selecting a value selects its whole subtree, including each narrower value and the
+// "direct" entry), or when all of its children are checked. It is indeterminate when it is not
+// fully checked but it or one of its descendants is selected. Selecting a parent and selecting all
+// of its children therefore render identically.
+export function computeRefCheckStates(values: readonly RefValueLike[], selected: ReadonlySet<string>): Map<string, RefCheckState> {
+  const children = refChildrenByValue(values)
+  const pathsById = new Map<string, string[][]>()
+  for (const value of values) {
+    pathsById.set(value.id, value.paths ?? [])
+  }
+
+  const ancestorSelected = (id: string): boolean => (pathsById.get(id) ?? []).some((path) => path.some((ancestor) => selected.has(ancestor)))
+
+  const checkedMemo = new Map<string, boolean>()
+  const isChecked = (id: string): boolean => {
+    const cached = checkedMemo.get(id)
+    if (cached !== undefined) {
+      return cached
+    }
+    // Provisional false first, so an unexpected cycle in the value hierarchy cannot loop forever.
+    checkedMemo.set(id, false)
+    let result = selected.has(id) || ancestorSelected(id)
+    if (!result) {
+      const childIds = children.get(id)
+      result = childIds !== undefined && childIds.length > 0 && childIds.every(isChecked)
+    }
+    checkedMemo.set(id, result)
+    return result
+  }
+
+  const subtreeSelectedMemo = new Map<string, boolean>()
+  const isSubtreeSelected = (id: string): boolean => {
+    const cached = subtreeSelectedMemo.get(id)
+    if (cached !== undefined) {
+      return cached
+    }
+    subtreeSelectedMemo.set(id, false)
+    let result = selected.has(id)
+    if (!result) {
+      result = (children.get(id) ?? []).some(isSubtreeSelected)
+    }
+    subtreeSelectedMemo.set(id, result)
+    return result
+  }
+
+  const states = new Map<string, RefCheckState>()
+  for (const value of values) {
+    const checked = isChecked(value.id)
+    states.set(value.id, { checked, indeterminate: !checked && isSubtreeSelected(value.id) })
+  }
+  return states
+}
+
+// toggleRefSelection returns the new selection after clicking the checkbox of value id. Clicking an
+// unchecked or indeterminate value selects its whole subtree: the value, its narrower values and
+// its "direct" entry. Clicking a fully checked value deselects that subtree: the selection is
+// rewritten to the currently checked most-specific values (the leaves, "direct" and "missing"
+// entries, i.e. values with no children) minus the deselected subtree. Re-expressing the selection
+// at this granularity decomposes any broader ancestor selection that covered the value into its
+// still-selected siblings, without changing which documents are matched. This makes deselecting a
+// child behave the same whether the parent was stored explicitly (selected through the UI) or only
+// as the parent value (for example a session created through the API): after the first change both
+// yield the same selection and the same results.
+export function toggleRefSelection(values: readonly RefValueLike[], id: string, selected: ReadonlySet<string>): Set<string> {
+  const children = refChildrenByValue(values)
+  const subtree = refSubtreeIds(id, children)
+  const states = computeRefCheckStates(values, selected)
+
+  if (!states.get(id)?.checked) {
+    const next = new Set(selected)
+    for (const valueId of subtree) {
+      next.add(valueId)
+    }
+    return next
+  }
+
+  const next = new Set<string>()
+  for (const value of values) {
+    if ((children.get(value.id)?.length ?? 0) > 0) {
+      continue
+    }
+    if (!states.get(value.id)?.checked || subtree.has(value.id)) {
+      continue
+    }
+    next.add(value.id)
+  }
+  return next
+}
+
 // Approximate seconds-per-year used when picking a coarser-than-day precision.
 // Exact-year math is unnecessary here. We only need the right order of magnitude.
 const SECONDS_PER_YEAR = 60 * 60 * 24 * 365

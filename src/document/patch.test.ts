@@ -555,3 +555,75 @@ describe("TimeIntervalClaimPatch Apply branches", () => {
     assert.equal(claim.prop.id, newProp)
   })
 })
+
+// Setting a concrete bound value must clear a previously set unknown or none marker on
+// that bound. This is the production case where a "set" fills in a bound that was
+// previously none: the merged claim must not end up with both a value and the marker,
+// which Validate rejects.
+describe("interval patch Apply clears markers when a value is set", () => {
+  test("TimeIntervalClaimPatch setting to clears toIsNone", async () => {
+    const claim = new TimeIntervalClaim({
+      id: Identifier.new().toString(),
+      confidence: 1.0,
+      prop: { id: Identifier.new().toString() },
+      from: "1984",
+      fromPrecision: "y",
+      toIsNone: true,
+    })
+
+    await new TimeIntervalClaimPatch({ type: "timeInterval", to: "1950", toPrecision: "y" }).Apply(claim)
+    assert.equal(claim.to, "1950")
+    assert.equal(claim.toPrecision, "y")
+    assert.equal(claim.toIsNone, false)
+  })
+
+  test("AmountIntervalClaimPatch setting from clears fromIsUnknown", async () => {
+    const claim = new AmountIntervalClaim({
+      id: Identifier.new().toString(),
+      confidence: 1.0,
+      prop: { id: Identifier.new().toString() },
+      to: "20",
+      toPrecision: 1,
+      fromIsUnknown: true,
+    })
+
+    await new AmountIntervalClaimPatch({ type: "amountInterval", from: "10", fromPrecision: 1 }).Apply(claim)
+    assert.equal(claim.from, "10")
+    assert.equal(claim.fromPrecision, 1)
+    assert.equal(claim.fromIsUnknown, false)
+  })
+
+  test("TimeIntervalClaimPatch switching toIsUnknown to toIsNone clears toIsUnknown", async () => {
+    const claim = new TimeIntervalClaim({
+      id: Identifier.new().toString(),
+      confidence: 1.0,
+      prop: { id: Identifier.new().toString() },
+      from: "1984",
+      fromPrecision: "y",
+      toIsUnknown: true,
+    })
+
+    await new TimeIntervalClaimPatch({ type: "timeInterval", toIsNone: true }).Apply(claim)
+    assert.equal(claim.toIsNone, true)
+    assert.equal(claim.toIsUnknown, false)
+  })
+
+  test("AmountIntervalClaimPatch switching toIsOpen to toIsUnknown clears toIsOpen and value", async () => {
+    const claim = new AmountIntervalClaim({
+      id: Identifier.new().toString(),
+      confidence: 1.0,
+      prop: { id: Identifier.new().toString() },
+      from: "1.5",
+      fromPrecision: 0.1,
+      to: "9.5",
+      toPrecision: 0.1,
+      toIsOpen: true,
+    })
+
+    await new AmountIntervalClaimPatch({ type: "amountInterval", toIsUnknown: true }).Apply(claim)
+    assert.equal(claim.toIsUnknown, true)
+    assert.equal(claim.toIsOpen, false)
+    assert.equal(claim.to, undefined)
+    assert.equal(claim.toPrecision, undefined)
+  })
+})

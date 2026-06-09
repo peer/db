@@ -480,8 +480,8 @@ async function onEdit() {
             </div>
           </div>
         </template>
-        <template #error>
-          <i class="pd-documentget-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
+        <template #error="{ message, accessDenied }">
+          <i :class="['pd-documentget-error', accessDenied ? 'text-gray-500' : 'text-error-600']">{{ message }}</i>
         </template>
       </WithDocumentD>
     </div>

@@ -3,6 +3,7 @@ package search //nolint:testpackage
 import (
 	"context"
 	"math"
+	"strings"
 	"testing"
 	"time"
 
@@ -197,6 +198,13 @@ func newTestConverterFull(
 		internalCore.ClassClassID:      makeNamingDoc(internalCore.ClassClassID, "class"),
 		internalCore.VocabularyClassID: makeNamingDoc(internalCore.VocabularyClassID, "vocabulary"),
 		internalCore.PropertyClassID:   makeNamingDoc(internalCore.PropertyClassID, "property"),
+		internalCore.NamingPropID:      makeNamingDoc(internalCore.NamingPropID, "naming"),
+		// Fallback naming docs for the shared test property IDs, so getDisplayStrings resolves them
+		// for the nested id/string/html/link claims even when a test does not register them itself.
+		// Tests that register these props explicitly (via properties) take precedence over these.
+		testPropID:     makeNamingDoc(testPropID, "test property"),
+		testPropID2:    makeNamingDoc(testPropID2, "test property 2"),
+		testParentProp: makeNamingDoc(testParentProp, "test parent property"),
 	}
 	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
 		if doc, ok := extraDocs[id]; ok {
@@ -216,6 +224,17 @@ func newTestConverterFull(
 			return stub, nil
 		}
 		return nil, errors.New("document not found")
+	}
+	if priority == nil {
+		// A test that does not specify a priority exercises display rendering across all supported
+		// languages, so enable them all here. Production treats an empty priority as
+		// DefaultEnabledLanguage only.
+		priority = map[string][]string{}
+		for lang := range SupportedLanguages {
+			if lang != document.UndeterminedLanguage {
+				priority[lang] = []string{document.UndeterminedLanguage}
+			}
+		}
 	}
 	c, errE := NewConverter(properties, languages, classes, priority, getDocument)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -472,6 +491,552 @@ func TestGetDocumentInfoCaching(t *testing.T) {
 	assert.Equal(t, info1.Display.Display["und"], info2.Display.Display["und"])
 	// getDocument should only have been called once.
 	assert.Equal(t, 1, callCount)
+}
+
+func TestConversionStats(t *testing.T) {
+	t.Parallel()
+
+	doc := makeNamingDoc(testDocID, "Test Doc")
+	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		if id == testDocID {
+			return doc, nil
+		}
+		return nil, errors.New("document not found")
+	}
+	c, errE := NewConverter(nil, nil, nil, nil, getDocument)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Cold cache: the document info has to be computed, so it is fetched once and counts as a miss.
+	var cold ConversionStats
+	_, errE = c.getDocumentInfo(WithConversionStats(t.Context(), &cold), testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, 1, cold.DocCacheMisses)
+	assert.Equal(t, 1, cold.InfoCacheMisses)
+	assert.Equal(t, 0, cold.InfoCacheHits)
+
+	// Warm cache: the document info is served from the cache, with no store fetch.
+	var warm ConversionStats
+	_, errE = c.getDocumentInfo(WithConversionStats(t.Context(), &warm), testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, 0, warm.DocCacheMisses)
+	assert.Equal(t, 1, warm.InfoCacheHits)
+	assert.Equal(t, 0, warm.InfoCacheMisses)
+	assert.Zero(t, warm.FetchDuration)
+}
+
+func TestInvalidateCaches(t *testing.T) {
+	t.Parallel()
+
+	docs := map[identifier.Identifier]*document.D{testDocID: makeNamingDoc(testDocID, "Old Name")}
+	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		d, ok := docs[id]
+		if !ok {
+			return nil, errors.New("document not found")
+		}
+		return d, nil
+	}
+	c, errE := NewConverter(nil, nil, nil, nil, getDocument)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	ctx := t.Context()
+
+	// Prime both caches from the original version.
+	info, errE := c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "Old Name", info.Display.Display["und"])
+	old, errE := c.getDocument(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The document cache returns the cached pointer on a hit, without a store fetch.
+	var hit ConversionStats
+	cached, errE := c.getDocument(WithConversionStats(ctx, &hit), testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Same(t, old, cached)
+	assert.Equal(t, 1, hit.DocCacheHits)
+	assert.Equal(t, 0, hit.DocCacheMisses)
+
+	// Replace the stored document. Both caches still serve the old version until invalidated.
+	docs[testDocID] = makeNamingDoc(testDocID, "New Name")
+	info, errE = c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "Old Name", info.Display.Display["und"], "info cache is stale until invalidated")
+	stillOld, errE := c.getDocument(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Same(t, old, stillOld, "document cache is stale until invalidated")
+
+	c.InvalidateCaches(testDocID)
+
+	// The document cache re-fetches the new version (getDocument is checked before getDocumentInfo,
+	// which would otherwise re-populate the document cache as a side effect).
+	var miss ConversionStats
+	fresh, errE := c.getDocument(WithConversionStats(ctx, &miss), testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Same(t, docs[testDocID], fresh)
+	assert.NotSame(t, old, fresh)
+	assert.Equal(t, 1, miss.DocCacheMisses)
+	assert.Equal(t, 0, miss.DocCacheHits)
+
+	// The info cache recomputes the display from the new version.
+	info, errE = c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "New Name", info.Display.Display["und"])
+}
+
+func TestInvalidateCachesSecondOrder(t *testing.T) {
+	t.Parallel()
+
+	// X's class display template renders Y's name, so X's display strings depend on Y's content.
+	otherDocID := identifier.New()
+	classID := identifier.New()
+	docs := map[identifier.Identifier]*document.D{
+		otherDocID: makeNamingDoc(otherDocID, "Original"),
+		classID: makeClassDocWithTemplate(classID,
+			`{{getDocument `+idTmpl(otherDocID)+` | bestString `+idTmpl(internalCore.NamingPropID)+`}}`),
+	}
+	x := makeNamingDoc(testDocID, "X")
+	addInstanceOf(x, classID, document.HighConfidence)
+	docs[testDocID] = x
+
+	c := newTestConverter(t, nil, nil, docs)
+	c.namingProperties = []identifier.Identifier{internalCore.NamingPropID}
+	c.LanguageCodes = map[identifier.Identifier]string{}
+	ctx := t.Context()
+
+	// X's display is rendered from Y, and X is recorded as a display dependent of Y.
+	info, errE := c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "Original", info.Display.Display["und"])
+	c.documentInfoMu.RLock()
+	dependsOnY := c.infoDependents[otherDocID][testDocID]
+	_, xCached := c.documentInfoCache[testDocID]
+	c.documentInfoMu.RUnlock()
+	assert.True(t, dependsOnY, "X should be recorded as a display dependent of Y")
+	assert.True(t, xCached)
+
+	// Change Y. X's cached display strings are now stale, and stay stale until invalidated.
+	docs[otherDocID] = makeNamingDoc(otherDocID, "Renamed")
+	info, errE = c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "Original", info.Display.Display["und"], "X is stale until Y is invalidated")
+
+	// Invalidating only Y also invalidates X's documentInfo (second order), so X recomputes from the
+	// new Y.
+	c.InvalidateCaches(otherDocID)
+	info, errE = c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "Renamed", info.Display.Display["und"])
+}
+
+func TestInvalidateCachesHierarchyAncestor(t *testing.T) {
+	t.Parallel()
+
+	// Set up SUBENTITY_OF hierarchy so SUBCLASS_OF is discovered.
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
+
+	grandparent := identifier.New()
+	parent := identifier.New()
+	child := identifier.New()
+
+	// grandparent <- parent <- child via SUBCLASS_OF, so child's display path embeds both ancestors.
+	extraDocs := map[identifier.Identifier]*document.D{
+		grandparent: makeHierarchyDoc(grandparent, "Grandparent", internalCore.SubclassOfPropID, nil),
+		parent:      makeHierarchyDoc(parent, "Parent", internalCore.SubclassOfPropID, &grandparent),
+		child:       makeHierarchyDoc(child, "Child", internalCore.SubclassOfPropID, &parent),
+	}
+	c := newTestConverter(t, properties, nil, extraDocs)
+	ctx := t.Context()
+
+	info, errE := c.getDocumentInfo(ctx, child)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotEmpty(t, info.DisplayPaths[internalCore.SubclassOfPropID]["und"])
+	assert.Equal(t, "Grandparent\x00Parent\x00Child", info.DisplayPaths[internalCore.SubclassOfPropID]["und"][0])
+
+	// The child depends on both its transitive hierarchy ancestors.
+	c.documentInfoMu.RLock()
+	dependsOnParent := c.infoDependents[parent][child]
+	dependsOnGrandparent := c.infoDependents[grandparent][child]
+	c.documentInfoMu.RUnlock()
+	assert.True(t, dependsOnParent, "child should depend on its parent")
+	assert.True(t, dependsOnGrandparent, "child should depend on its grandparent")
+
+	// Rename the parent. The child's cached display path is stale until invalidated.
+	extraDocs[parent] = makeHierarchyDoc(parent, "Renamed", internalCore.SubclassOfPropID, &grandparent)
+	info, errE = c.getDocumentInfo(ctx, child)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "Grandparent\x00Parent\x00Child", info.DisplayPaths[internalCore.SubclassOfPropID]["und"][0],
+		"child display path is stale until the ancestor is invalidated")
+
+	// Invalidating only the parent also invalidates the child's documentInfo (the child has the parent
+	// as an ancestor), so the child recomputes its display path from the renamed parent.
+	c.InvalidateCaches(parent)
+	info, errE = c.getDocumentInfo(ctx, child)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "Grandparent\x00Renamed\x00Child", info.DisplayPaths[internalCore.SubclassOfPropID]["und"][0])
+}
+
+func TestGetDocumentCacheSkipsWriteOnConcurrentInvalidation(t *testing.T) {
+	t.Parallel()
+
+	doc := makeNamingDoc(testDocID, "Test Doc")
+	var c *Converter
+	callCount := 0
+	invalidateDuringFetch := true
+	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		if id != testDocID {
+			return nil, errors.New("document not found")
+		}
+		callCount++
+		if invalidateDuringFetch {
+			// Simulate an invalidation that runs while this fetch is in flight: it bumps the generation
+			// after getDocument snapshotted it, so the write-back must not cache the fetched document.
+			c.InvalidateCaches(testDocID)
+		}
+		return doc, nil
+	}
+	var errE errors.E
+	c, errE = NewConverter(nil, nil, nil, nil, getDocument)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	ctx := t.Context()
+
+	// The fetch races an invalidation, so its result is returned to the caller but not cached.
+	got, errE := c.getDocument(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Same(t, doc, got)
+	assert.Equal(t, 1, callCount)
+	c.getDocumentMu.RLock()
+	_, cached := c.getDocumentCache[testDocID]
+	c.getDocumentMu.RUnlock()
+	assert.False(t, cached, "a fetch that raced an invalidation must not be cached")
+
+	// Without a concurrent invalidation the fetch caches normally: the next call fetches once more
+	// (proving the earlier result was not cached), and the call after that is served from the cache.
+	invalidateDuringFetch = false
+	_, errE = c.getDocument(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, 2, callCount)
+	_, errE = c.getDocument(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, 2, callCount, "the previous fetch should have been cached")
+}
+
+func TestDocumentInfoCacheSkipsWriteOnConcurrentInvalidation(t *testing.T) {
+	t.Parallel()
+
+	doc := makeNamingDoc(testDocID, "Test Doc")
+	var c *Converter
+	invalidateDuringCompute := true
+	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		if id != testDocID {
+			return nil, errors.New("document not found")
+		}
+		if invalidateDuringCompute {
+			// Bump the generation while the info is being computed (after computeDocumentInfo snapshotted
+			// it) so neither the info nor its dependency edges are installed.
+			c.InvalidateCaches(testDocID)
+		}
+		return doc, nil
+	}
+	var errE errors.E
+	c, errE = NewConverter(nil, nil, nil, nil, getDocument)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	ctx := t.Context()
+
+	// The in-flight conversion still gets the computed info, but nothing is cached.
+	info, errE := c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "Test Doc", info.Display.Display["und"])
+	c.documentInfoMu.RLock()
+	_, infoCached := c.documentInfoCache[testDocID]
+	c.documentInfoMu.RUnlock()
+	assert.False(t, infoCached, "info computed across an invalidation must not be cached")
+
+	// Without a concurrent invalidation the info caches normally.
+	invalidateDuringCompute = false
+	_, errE = c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c.documentInfoMu.RLock()
+	_, infoCached = c.documentInfoCache[testDocID]
+	c.documentInfoMu.RUnlock()
+	assert.True(t, infoCached, "info computed without a concurrent invalidation should be cached")
+}
+
+func TestGetDocumentCacheUnaffectedByUnrelatedInvalidation(t *testing.T) {
+	t.Parallel()
+
+	doc := makeNamingDoc(testDocID, "Test Doc")
+	otherDocID := identifier.New()
+	var c *Converter
+	callCount := 0
+	invalidateOther := true
+	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		if id != testDocID {
+			return nil, errors.New("document not found")
+		}
+		callCount++
+		if invalidateOther {
+			// Invalidate an unrelated document while this fetch is in flight. Per-document generations mean
+			// this must not prevent caching testDocID.
+			c.InvalidateCaches(otherDocID)
+		}
+		return doc, nil
+	}
+	var errE errors.E
+	c, errE = NewConverter(nil, nil, nil, nil, getDocument)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	ctx := t.Context()
+
+	_, errE = c.getDocument(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c.getDocumentMu.RLock()
+	_, cached := c.getDocumentCache[testDocID]
+	c.getDocumentMu.RUnlock()
+	assert.True(t, cached, "an unrelated invalidation must not prevent caching")
+
+	// The cached entry is served without another fetch.
+	invalidateOther = false
+	_, errE = c.getDocument(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, 1, callCount, "second lookup should be a cache hit")
+}
+
+func TestDocumentInfoCacheUnaffectedByUnrelatedInvalidation(t *testing.T) {
+	t.Parallel()
+
+	doc := makeNamingDoc(testDocID, "Test Doc")
+	otherDocID := identifier.New()
+	var c *Converter
+	invalidateOther := true
+	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		if id != testDocID {
+			return nil, errors.New("document not found")
+		}
+		if invalidateOther {
+			// Invalidate an unrelated document while the info is being computed. Per-document generations
+			// mean testDocID's info must still be cached.
+			c.InvalidateCaches(otherDocID)
+		}
+		return doc, nil
+	}
+	var errE errors.E
+	c, errE = NewConverter(nil, nil, nil, nil, getDocument)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	ctx := t.Context()
+
+	_, errE = c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c.documentInfoMu.RLock()
+	_, infoCached := c.documentInfoCache[testDocID]
+	c.documentInfoMu.RUnlock()
+	assert.True(t, infoCached, "an unrelated invalidation must not prevent caching the info")
+}
+
+func TestRootDocWithoutSnapshotNotCachedButResolvesDiamond(t *testing.T) {
+	t.Parallel()
+
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
+
+	// Diamond: the converted document (the root) has two parents that share a grandparent.
+	grandparent := identifier.New()
+	parentA := identifier.New()
+	parentB := identifier.New()
+
+	gpDoc := makeNamingDoc(grandparent, "Root")
+	paDoc := makeHierarchyDoc(parentA, "ParentA", internalCore.SubclassOfPropID, &grandparent)
+	pbDoc := makeHierarchyDoc(parentB, "ParentB", internalCore.SubclassOfPropID, &grandparent)
+
+	childClaims := &document.ClaimTypes{}
+	childClaims.String = append(childClaims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.NamingPropID},
+		String:    "Leaf",
+	})
+	childClaims.Reference = append(childClaims.Reference,
+		document.ReferenceClaim{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: internalCore.SubclassOfPropID},
+			To:        document.Reference{ID: parentA},
+		},
+		document.ReferenceClaim{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: internalCore.SubclassOfPropID},
+			To:        document.Reference{ID: parentB},
+		},
+	)
+	childDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims:       childClaims,
+	}
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		grandparent: gpDoc,
+		parentA:     paDoc,
+		parentB:     pbDoc,
+	}
+	c := newTestConverter(t, properties, nil, extraDocs)
+
+	// The converted document is passed directly (doc != nil) with a nil gen, i.e. no pre-read snapshot.
+	// Its info must not be cached, but the shared grandparent must still be cached so both diamond paths
+	// resolve.
+	info, errE := c.computeDocumentInfo(t.Context(), testDocID, childDoc, nil, map[identifier.Identifier]bool{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, info.DisplayPaths[internalCore.SubclassOfPropID]["und"], 2)
+	assert.ElementsMatch(t, info.DisplayPaths[internalCore.SubclassOfPropID]["und"], []string{
+		"Root\x00ParentA\x00Leaf",
+		"Root\x00ParentB\x00Leaf",
+	})
+
+	c.documentInfoMu.RLock()
+	_, rootCached := c.documentInfoCache[testDocID]
+	_, gpCached := c.documentInfoCache[grandparent]
+	c.documentInfoMu.RUnlock()
+	assert.False(t, rootCached, "the converted root without a pre-read snapshot must not be cached")
+	assert.True(t, gpCached, "shared ancestors are still cached so multi-path hierarchies resolve")
+}
+
+func TestComputeDocumentInfoUsesRootGenFromContext(t *testing.T) {
+	t.Parallel()
+
+	doc := makeNamingDoc(testDocID, "Test Doc")
+	getDocument := func(_ context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		if id == testDocID {
+			return doc, nil
+		}
+		return nil, errors.New("document not found")
+	}
+	c, errE := NewConverter(nil, nil, nil, nil, getDocument)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Simulate a caller that snapshotted the generation before its store read, then an invalidation lands
+	// before the conversion installs. The doc!=nil path must use that (now stale) snapshot, not a fresh
+	// one taken at compute time, so nothing is cached.
+	stale := c.genOf(testDocID)
+	c.InvalidateCaches(testDocID)
+	_, errE = c.computeDocumentInfo(t.Context(), testDocID, doc, &stale, map[identifier.Identifier]bool{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c.documentInfoMu.RLock()
+	_, cached := c.documentInfoCache[testDocID]
+	c.documentInfoMu.RUnlock()
+	assert.False(t, cached, "a pre-read snapshot that has since been invalidated must not be cached")
+
+	// A current snapshot installs.
+	fresh := c.genOf(testDocID)
+	_, errE = c.computeDocumentInfo(t.Context(), testDocID, doc, &fresh, map[identifier.Identifier]bool{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c.documentInfoMu.RLock()
+	_, cached = c.documentInfoCache[testDocID]
+	c.documentInfoMu.RUnlock()
+	assert.True(t, cached, "a current pre-read snapshot should be cached")
+}
+
+func TestDocumentInfoNotCachedWhenAncestorInvalidatedDuringCompute(t *testing.T) {
+	t.Parallel()
+
+	// grandparent <- parent <- child via SUBCLASS_OF. The child depends on the grandparent only
+	// transitively (through the parent), so this exercises the propagated pre-read snapshot.
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
+
+	grandparent := identifier.New()
+	parent := identifier.New()
+	child := identifier.New()
+	docs := map[identifier.Identifier]*document.D{
+		grandparent: makeHierarchyDoc(grandparent, "Grandparent", internalCore.SubclassOfPropID, nil),
+		parent:      makeHierarchyDoc(parent, "Parent", internalCore.SubclassOfPropID, &grandparent),
+		child:       makeHierarchyDoc(child, "Child", internalCore.SubclassOfPropID, &parent),
+	}
+
+	c := newTestConverter(t, properties, nil, docs)
+
+	// Invalidate the grandparent while it is being read, deep in the child's compute. Its pre-read
+	// snapshot, propagated up to the parent and child, must make every level skip caching. Without
+	// propagation the child would record the grandparent's generation only after the recursion, miss this
+	// invalidation, and cache stale info.
+	invalidateGrandparent := true
+	orig := c.getDocumentFunc
+	c.getDocumentFunc = func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		d, errE := orig(ctx, id)
+		if errE == nil && id == grandparent && invalidateGrandparent {
+			c.InvalidateCaches(grandparent)
+		}
+		return d, errE
+	}
+
+	ctx := t.Context()
+	_, errE := c.getDocumentInfo(ctx, child)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c.documentInfoMu.RLock()
+	_, childCached := c.documentInfoCache[child]
+	_, parentCached := c.documentInfoCache[parent]
+	_, gpCached := c.documentInfoCache[grandparent]
+	c.documentInfoMu.RUnlock()
+	assert.False(t, gpCached, "the grandparent invalidated during its own read must not be cached")
+	assert.False(t, parentCached, "the parent depends on the grandparent, so it must not be cached either")
+	assert.False(t, childCached, "the child depends on the grandparent transitively, so it must not be cached either")
+
+	// Without the concurrent invalidation, the whole chain caches normally.
+	invalidateGrandparent = false
+	_, errE = c.getDocumentInfo(ctx, child)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c.documentInfoMu.RLock()
+	_, childCached = c.documentInfoCache[child]
+	_, parentCached = c.documentInfoCache[parent]
+	_, gpCached = c.documentInfoCache[grandparent]
+	c.documentInfoMu.RUnlock()
+	assert.True(t, gpCached)
+	assert.True(t, parentCached)
+	assert.True(t, childCached)
+}
+
+func TestInvalidateCachesInstanceClassAncestor(t *testing.T) {
+	t.Parallel()
+
+	// Set up SUBENTITY_OF hierarchy so SUBCLASS_OF is discovered.
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceProp := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceProp}
+
+	classID := identifier.New()
+	metaclass := identifier.New()
+	// metaclass is a subclass of CLASS, classID a subclass of metaclass, so a document that is an
+	// instance of classID is ignored for counts.references (its class's ancestry reaches CLASS), and
+	// depends on that ancestry.
+	metaclassDoc := makeHierarchyDoc(metaclass, "Metaclass", internalCore.SubclassOfPropID, &internalCore.ClassClassID)
+	classDoc := makeHierarchyDoc(classID, "Class", internalCore.SubclassOfPropID, &metaclass)
+
+	instance := makeNamingDoc(testDocID, "Instance")
+	addInstanceOf(instance, classID, document.HighConfidence)
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		metaclass: metaclassDoc,
+		classID:   classDoc,
+		testDocID: instance,
+	}
+	c := newTestConverter(t, properties, nil, extraDocs)
+	ctx := t.Context()
+
+	info, errE := c.getDocumentInfo(ctx, testDocID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.True(t, info.IgnoredForReferencesCount, "an instance of a class whose ancestry reaches CLASS is ignored")
+
+	// The instance depends on the SUBCLASS_OF ancestry of the class it is an instance of, so a change
+	// to such an ancestor (here the metaclass) invalidates the instance's documentInfo.
+	c.documentInfoMu.RLock()
+	dependsOnMetaclass := c.infoDependents[metaclass][testDocID]
+	c.documentInfoMu.RUnlock()
+	assert.True(t, dependsOnMetaclass, "instance should depend on its class's hierarchy ancestor")
 }
 
 func TestBuildPropertyHierarchySelfCycle(t *testing.T) {
@@ -911,6 +1476,86 @@ func TestConvertRelationOverlappingAncestors(t *testing.T) {
 	assert.Contains(t, toIDs, sharedAncestor)
 }
 
+func TestMarkReferenceLeaves(t *testing.T) {
+	t.Parallel()
+
+	hierProp := identifier.New()
+	instanceOf := identifier.New()
+	otherProp := identifier.New()
+	artist := identifier.New()
+	painter := identifier.New()
+	sculptor := identifier.New()
+
+	parentProp := identifier.New()
+	subProp := identifier.New()
+	parentTo := identifier.New().String()
+	mammal := identifier.New()
+	dog := identifier.New()
+
+	// path builds an indexed hierarchy path "<hierProp>:<root>/.../<this>" for chain (the target
+	// is its last element). The hierarchy-property prefix is irrelevant to leaf detection (only the
+	// chain is read), but it mirrors the real indexed format.
+	path := func(chain ...identifier.Identifier) string {
+		parts := make([]string, len(chain))
+		for i, id := range chain {
+			parts[i] = id.String()
+		}
+		return hierProp.String() + ":" + strings.Join(parts, "/")
+	}
+
+	v := &convertVisitor{ //nolint:exhaustruct
+		result: &Document{ //nolint:exhaustruct
+			Claims: ClaimTypes{ //nolint:exhaustruct
+				Reference: []ReferenceClaim{
+					// Instance of two sibling leaf classes (painter, sculptor), both narrower than artist.
+					{Prop: instanceOf, To: painter, ToPath: []string{path(artist, painter)}},   //nolint:exhaustruct
+					{Prop: instanceOf, To: sculptor, ToPath: []string{path(artist, sculptor)}}, //nolint:exhaustruct
+					{Prop: instanceOf, To: artist, ToPath: []string{path(artist)}},             //nolint:exhaustruct
+					// The same value under a different property, where it has no narrower value present.
+					{Prop: otherProp, To: artist, ToPath: []string{path(artist)}}, //nolint:exhaustruct
+				},
+				SubRef: []SubRefClaim{
+					{ParentProp: parentProp, ParentTo: parentTo, ReferenceClaim: ReferenceClaim{Prop: subProp, To: dog, ToPath: []string{path(mammal, dog)}}}, //nolint:exhaustruct
+					{ParentProp: parentProp, ParentTo: parentTo, ReferenceClaim: ReferenceClaim{Prop: subProp, To: mammal, ToPath: []string{path(mammal)}}},   //nolint:exhaustruct
+				},
+			},
+		},
+	}
+
+	v.markReferenceLeaves()
+
+	refLeaf := func(prop, to identifier.Identifier) bool {
+		for _, c := range v.result.Claims.Reference {
+			if c.Prop == prop && c.To == to {
+				return c.IsLeaf
+			}
+		}
+		t.Fatalf("reference claim not found: prop=%s to=%s", prop, to)
+		return false
+	}
+	subRefLeaf := func(to identifier.Identifier) bool {
+		for _, c := range v.result.Claims.SubRef {
+			if c.To == to {
+				return c.IsLeaf
+			}
+		}
+		t.Fatalf("sub-reference claim not found: to=%s", to)
+		return false
+	}
+
+	// Both sibling classes are most-specific; their shared ancestor is not.
+	assert.True(t, refLeaf(instanceOf, painter))
+	assert.True(t, refLeaf(instanceOf, sculptor))
+	assert.False(t, refLeaf(instanceOf, artist))
+	// Leaf detection is per property: under otherProp artist has no narrower value present, so it
+	// is most-specific there even though it is not under instanceOf.
+	assert.True(t, refLeaf(otherProp, artist))
+
+	// Sub-references get the same treatment, scoped by parent and property.
+	assert.True(t, subRefLeaf(dog))
+	assert.False(t, subRefLeaf(mammal))
+}
+
 func TestBuildLanguageCodes(t *testing.T) {
 	t.Parallel()
 
@@ -1319,7 +1964,7 @@ func TestVisitIdentifierPopulatesText(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []string{testDocID.String(), "Q42"}, result.Text["und"])
 }
@@ -1340,7 +1985,7 @@ func TestVisitStringPopulatesTextDefaultsToUnd(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []string{testDocID.String(), "hello world"}, result.Text["und"])
 	// The document ID and the String claim with no IN_LANGUAGE both go only to
@@ -1375,7 +2020,7 @@ func TestVisitStringPopulatesTextWithLanguage(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// The English-tagged String claim goes to text["en"].
 	// The IN_LANGUAGE sub-reference name folds into text["und"]
@@ -1400,7 +2045,7 @@ func TestVisitHTMLStripsAndPopulatesText(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	// HTML tags are stripped in Go and adjacent block elements get a separating
 	// space so the tokenizer treats the words as distinct tokens. The first
@@ -1438,9 +2083,148 @@ func TestTextAggregatesAcrossClaims(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []string{testDocID.String(), "Q42", "alpha", "https://example.com"}, result.Text["und"])
+}
+
+// TestVisitIdentifierPopulatesClaim verifies the nested id claim records the property and value.
+//
+//nolint:dupl
+func TestVisitIdentifierPopulatesClaim(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{
+		testPropID: makeNamingDoc(testPropID, "My Prop"),
+	})
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Identifier: []document.IdentifierClaim{{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: testPropID},
+				Value:     "Q42",
+			}},
+		},
+	}
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Claims.Identifier, 1)
+	assert.Equal(t, testPropID, result.Claims.Identifier[0].Prop)
+	assert.Equal(t, "Q42", result.Claims.Identifier[0].Value)
+	assert.Equal(t, "My Prop", result.Claims.Identifier[0].PropDisplay["und"])
+}
+
+// TestVisitStringPopulatesClaim verifies the nested string claim records the value under the
+// language the claim's IN_LANGUAGE sub-claim resolves to, and not under "und".
+func TestVisitStringPopulatesClaim(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{
+		testPropID:    makeNamingDoc(testPropID, "My Prop"),
+		testLangDocID: makeNamingDoc(testLangDocID, "English"),
+	})
+	c.LanguageCodes = map[identifier.Identifier]string{testLangDocID: "en"}
+
+	sub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: internalCore.InLanguagePropID},
+			To:        document.Reference{ID: testLangDocID},
+		}},
+	}
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{{
+				CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+				Prop:      document.Reference{ID: testPropID},
+				String:    "hello",
+			}},
+		},
+	}
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Claims.String, 1)
+	assert.Equal(t, testPropID, result.Claims.String[0].Prop)
+	assert.Equal(t, "hello", result.Claims.String[0].String["en"])
+	_, hasUnd := result.Claims.String[0].String["und"]
+	assert.False(t, hasUnd)
+}
+
+// TestVisitHTMLPopulatesClaim verifies the nested html claim stores the claim's HTML converted to
+// plain text in Go (tags stripped, block boundaries separated by a space), not the raw HTML.
+func TestVisitHTMLPopulatesClaim(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{
+		testPropID: makeNamingDoc(testPropID, "My Prop"),
+	})
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			HTML: []document.HTMLClaim{{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: testPropID},
+				HTML:      "<p>hello</p><p>world</p>",
+			}},
+		},
+	}
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Claims.HTML, 1)
+	assert.Equal(t, "hello world", result.Claims.HTML[0].HTML["und"])
+}
+
+// TestVisitLinkPopulatesClaim verifies the nested link claim records the property and IRI.
+//
+//nolint:dupl
+func TestVisitLinkPopulatesClaim(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{
+		testPropID: makeNamingDoc(testPropID, "My Prop"),
+	})
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Link: []document.LinkClaim{{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: testPropID},
+				IRI:       "https://example.com/x",
+			}},
+		},
+	}
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Claims.Link, 1)
+	assert.Equal(t, testPropID, result.Claims.Link[0].Prop)
+	assert.Equal(t, "https://example.com/x", result.Claims.Link[0].IRI)
+	assert.Equal(t, "My Prop", result.Claims.Link[0].PropDisplay["und"])
+}
+
+// TestVisitIdentifierMissingPropError verifies that a textual claim whose property cannot be
+// resolved fails conversion, surfacing the error rather than silently dropping the nested claim.
+func TestVisitIdentifierMissingPropError(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Identifier: []document.IdentifierClaim{{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: identifier.New()},
+				Value:     "Q42",
+			}},
+		},
+	}
+	_, errE := c.FromDocument(t.Context(), doc, nil, nil)
+	assert.ErrorContains(t, errE, "document not found")
 }
 
 func TestStripHTML(t *testing.T) {
@@ -3585,6 +4369,335 @@ func TestConvertReferenceSubClaimHierarchyExpansion(t *testing.T) {
 	}
 }
 
+// TestConvertReferenceToFullPath verifies that a top-level reference target is expanded across its value
+// hierarchy and that ToFullPath identifies the stated (leaf) target on every expanded record: the stated
+// value's record has ToPath equal to ToFullPath, while each ancestor record keeps the stated leaf's
+// ToFullPath but carries its own shorter ToPath.
+func TestConvertReferenceToFullPath(t *testing.T) {
+	t.Parallel()
+
+	// Set up the hierarchy property chain so SUBCLASS_OF is discovered as a value hierarchy property.
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
+
+	classParent := identifier.New()
+	target := identifier.New()
+
+	// Target has SUBCLASS_OF -> classParent, so it expands into the stated value plus its ancestor.
+	targetClaims := &document.ClaimTypes{}
+	targetClaims.String = append(targetClaims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.NamingPropID},
+		String:    "Target",
+	})
+	targetClaims.Reference = append(targetClaims.Reference, document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.SubclassOfPropID},
+		To:        document.Reference{ID: classParent},
+	})
+	targetDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: target}, //nolint:exhaustruct
+		Claims:       targetClaims,
+	}
+
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID:  makeNamingDoc(testPropID, "Rel Prop"),
+		target:      targetDoc,
+		classParent: makeNamingDoc(classParent, "ClassParent"),
+	}
+	c := newTestConverter(t, properties, nil, extraDocs)
+
+	ctx := t.Context()
+	claim := &document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: testPropID},
+		To:        document.Reference{ID: target},
+	}
+	result, _, errE := c.convertReference(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The stated target expands into itself plus its ancestor.
+	require.Len(t, result, 2)
+
+	var leafRec, ancestorRec *ReferenceClaim
+	for i := range result {
+		switch result[i].To {
+		case target:
+			leafRec = &result[i]
+		case classParent:
+			ancestorRec = &result[i]
+		}
+	}
+	require.NotNil(t, leafRec, "stated target record missing")
+	require.NotNil(t, ancestorRec, "ancestor target record missing")
+
+	// The stated value's own path is its ToFullPath, and every expanded record carries that same leaf path.
+	assert.Equal(t, leafRec.ToPath, leafRec.ToFullPath)
+	assert.Equal(t, leafRec.ToPath, ancestorRec.ToFullPath)
+	// The ancestor's own path is shorter and differs from the stated leaf's ToFullPath.
+	assert.NotEqual(t, ancestorRec.ToPath, ancestorRec.ToFullPath)
+}
+
+// TestConvertReferenceSubValueHierarchyExpansion verifies that a reference sub-claim's own target is
+// expanded across its value hierarchy, the same way top-level reference targets are: the stated
+// sub-value plus each of its ancestors get their own SubRefClaim, all sharing the stated leaf's
+// ToFullPath, while only the stated value's record has ToPath equal to ToFullPath.
+func TestConvertReferenceSubValueHierarchyExpansion(t *testing.T) {
+	t.Parallel()
+
+	// Set up hierarchy property chain so SUBCLASS_OF is discovered as a value hierarchy property.
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
+
+	target := identifier.New()
+	subPropID := identifier.New()
+	subTargetID := identifier.New()
+	subClassParent := identifier.New()
+
+	// The sub-value has SUBCLASS_OF -> subClassParent, so it expands into the stated value plus its ancestor.
+	subTargetClaims := &document.ClaimTypes{}
+	subTargetClaims.String = append(subTargetClaims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.NamingPropID},
+		String:    "Sub Target",
+	})
+	subTargetClaims.Reference = append(subTargetClaims.Reference, document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.SubclassOfPropID},
+		To:        document.Reference{ID: subClassParent},
+	})
+	subTargetDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: subTargetID}, //nolint:exhaustruct
+		Claims:       subTargetClaims,
+	}
+
+	// The parent target has no value hierarchy, so it does not multiply the parentTo dimension.
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID:     makeNamingDoc(testPropID, "Rel Prop"),
+		target:         makeNamingDoc(target, "Target"),
+		subPropID:      makeNamingDoc(subPropID, "Sub Prop"),
+		subTargetID:    subTargetDoc,
+		subClassParent: makeNamingDoc(subClassParent, "Sub Class Parent"),
+	}
+	c := newTestConverter(t, properties, nil, extraDocs)
+
+	ctx := t.Context()
+	sub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: subPropID},
+				To:        document.Reference{ID: subTargetID},
+			},
+		},
+	}
+	claim := &document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+		Prop:      document.Reference{ID: testPropID},
+		To:        document.Reference{ID: target},
+	}
+	_, subs, errE := c.convertReference(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// 1 parentTo (target has no hierarchy) x 2 expanded sub-values (subTargetID + subClassParent) = 2.
+	require.Len(t, subs.Refs, 2)
+
+	var leafRec, ancestorRec *SubRefClaim
+	for i := range subs.Refs {
+		switch subs.Refs[i].To {
+		case subTargetID:
+			leafRec = &subs.Refs[i]
+		case subClassParent:
+			ancestorRec = &subs.Refs[i]
+		}
+	}
+	require.NotNil(t, leafRec, "stated sub-value record missing")
+	require.NotNil(t, ancestorRec, "ancestor sub-value record missing")
+
+	// Both records share the same parent, inner property, and the stated leaf's ToFullPath.
+	for _, sr := range []*SubRefClaim{leafRec, ancestorRec} {
+		assert.Equal(t, target.String(), sr.ParentTo)
+		assert.Equal(t, testPropID, sr.ParentProp)
+		assert.Equal(t, subPropID, sr.Prop)
+		assert.Equal(t, leafRec.ToPath, sr.ToFullPath)
+	}
+	// Only the stated sub-value's record has ToPath equal to ToFullPath; the ancestor's own path is shorter.
+	assert.Equal(t, leafRec.ToFullPath, leafRec.ToPath)
+	assert.NotEqual(t, ancestorRec.ToPath, ancestorRec.ToFullPath)
+}
+
+// TestConvertReferenceSubRefPropertyPropagation verifies that a reference sub-claim's own property is
+// propagated to its super-properties when IndexAncestorProperties is set, the same way convertReference
+// propagates a top-level reference property, and that it stays unexpanded when the flag is off.
+func TestConvertReferenceSubRefPropertyPropagation(t *testing.T) {
+	t.Parallel()
+
+	superProp := identifier.New()
+	subProp := identifier.New()
+	superPropDoc := makePropertyDoc(superProp, nil)
+	subPropDoc := makePropertyDoc(subProp, &superProp)
+
+	target := identifier.New()
+	subTargetID := identifier.New()
+	// Neither the parent target nor the sub-value has a value hierarchy, so only the property dimension
+	// can multiply: the result count isolates property propagation.
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID:  makeNamingDoc(testPropID, "Rel Prop"),
+		target:      makeNamingDoc(target, "Target"),
+		superProp:   makeNamingDoc(superProp, "Super Prop"),
+		subProp:     makeNamingDoc(subProp, "Sub Prop"),
+		subTargetID: makeNamingDoc(subTargetID, "Sub Target"),
+	}
+	c := newTestConverter(t, nil, nil, extraDocs)
+	c.buildPropertyHierarchy([]*document.D{superPropDoc, subPropDoc})
+
+	ctx := t.Context()
+	sub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: subProp},
+				To:        document.Reference{ID: subTargetID},
+			},
+		},
+	}
+	claim := &document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+		Prop:      document.Reference{ID: testPropID},
+		To:        document.Reference{ID: target},
+	}
+
+	// With IndexAncestorProperties off, only the stated sub-reference property is indexed.
+	c.IndexAncestorProperties = false
+	_, subs, errE := c.convertReference(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, subs.Refs, 1)
+	assert.Equal(t, subProp, subs.Refs[0].Prop)
+
+	// With IndexAncestorProperties on, the sub-reference property also expands to its super-property.
+	c.IndexAncestorProperties = true
+	_, subs, errE = c.convertReference(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, subs.Refs, 2)
+	props := []identifier.Identifier{subs.Refs[0].Prop, subs.Refs[1].Prop}
+	assert.Contains(t, props, subProp)
+	assert.Contains(t, props, superProp)
+	// Propagation applies to the inner property only; the parent and the target are unchanged.
+	for _, sr := range subs.Refs {
+		assert.Equal(t, testPropID, sr.ParentProp)
+		assert.Equal(t, target.String(), sr.ParentTo)
+		assert.Equal(t, subTargetID, sr.To)
+	}
+}
+
+// TestFromDocumentSubRefExpansionAndLeaf exercises the full document-conversion pipeline for a reference
+// sub-claim whose value sits in a value hierarchy: convertSubRefs expands the sub-value into the stated
+// value plus its ancestor, ToFullPath is stamped to the stated leaf on every expanded record, and
+// markReferenceLeaves flags the stated value as a leaf while the ancestor is not.
+func TestFromDocumentSubRefExpansionAndLeaf(t *testing.T) {
+	t.Parallel()
+
+	// Set up the hierarchy property chain so SUBCLASS_OF is discovered as a value hierarchy property.
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	subpropDoc := makePropertyDoc(internalCore.SubpropertyOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, subpropDoc, instanceDoc}
+
+	target := identifier.New()
+	subPropID := identifier.New()
+	subTargetID := identifier.New()
+	subClassParent := identifier.New()
+
+	// The sub-value has SUBCLASS_OF -> subClassParent, so it expands into the stated value plus its ancestor.
+	subTargetClaims := &document.ClaimTypes{}
+	subTargetClaims.String = append(subTargetClaims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.NamingPropID},
+		String:    "Sub Target",
+	})
+	subTargetClaims.Reference = append(subTargetClaims.Reference, document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.SubclassOfPropID},
+		To:        document.Reference{ID: subClassParent},
+	})
+	subTargetDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: subTargetID}, //nolint:exhaustruct
+		Claims:       subTargetClaims,
+	}
+
+	// The parent target has no value hierarchy, so it does not multiply the parentTo dimension.
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID:     makeNamingDoc(testPropID, "Rel Prop"),
+		target:         makeNamingDoc(target, "Target"),
+		subPropID:      makeNamingDoc(subPropID, "Sub Prop"),
+		subTargetID:    subTargetDoc,
+		subClassParent: makeNamingDoc(subClassParent, "Sub Class Parent"),
+	}
+	c := newTestConverter(t, properties, nil, extraDocs)
+
+	ctx := t.Context()
+	sub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: subPropID},
+				To:        document.Reference{ID: subTargetID},
+			},
+		},
+	}
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, sub),
+					Prop:      document.Reference{ID: testPropID},
+					To:        document.Reference{ID: target},
+				},
+			},
+		},
+	}
+
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The single stated sub-value expands into the stated value plus its ancestor.
+	require.Len(t, result.Claims.SubRef, 2)
+
+	var leafRec, ancestorRec *SubRefClaim
+	for i := range result.Claims.SubRef {
+		switch result.Claims.SubRef[i].To {
+		case subTargetID:
+			leafRec = &result.Claims.SubRef[i]
+		case subClassParent:
+			ancestorRec = &result.Claims.SubRef[i]
+		}
+	}
+	require.NotNil(t, leafRec, "stated sub-value record missing")
+	require.NotNil(t, ancestorRec, "ancestor sub-value record missing")
+
+	// Both records carry the same parent, inner property, and the stated leaf's ToFullPath.
+	for _, sr := range []*SubRefClaim{leafRec, ancestorRec} {
+		assert.Equal(t, testPropID, sr.ParentProp)
+		assert.Equal(t, target.String(), sr.ParentTo)
+		assert.Equal(t, subPropID, sr.Prop)
+		assert.Equal(t, leafRec.ToPath, sr.ToFullPath)
+	}
+	// The stated sub-value is the most-specific value: it is a leaf and its own path equals its ToFullPath.
+	assert.True(t, leafRec.IsLeaf)
+	assert.Equal(t, leafRec.ToFullPath, leafRec.ToPath)
+	// The ancestor is not a leaf, and its own (shorter) path differs from the stated leaf's ToFullPath.
+	assert.False(t, ancestorRec.IsLeaf)
+	assert.NotEqual(t, ancestorRec.ToPath, ancestorRec.ToFullPath)
+}
+
 // TestConvertHasSubClaimParentToSentinel verifies that has claims with reference sub-claims
 // produce SubRefClaim entries with ParentTo set to the ParentToHas sentinel.
 func TestConvertHasSubClaimParentToSentinel(t *testing.T) {
@@ -3841,7 +4954,7 @@ func TestFromDocument(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
 	assert.ElementsMatch(t, []string{testDocID.String(), "Q42", "hello"}, result.Text["und"])
@@ -3857,7 +4970,7 @@ func TestFromDocumentNilClaims(t *testing.T) {
 		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
 	// The document ID goes only to the "und" bucket, so that is the sole entry.
@@ -4000,7 +5113,7 @@ func TestFromDocumentAllClaimTypesConfidence(t *testing.T) {
 			ctx := t.Context()
 			doc := makeDocWithAllClaimTypes(t, tt.confidence)
 
-			result, errE := c.FromDocument(ctx, doc, nil)
+			result, errE := c.FromDocument(ctx, doc, nil, nil)
 			require.NoError(t, errE, "% -+#.1v", errE)
 			assert.Equal(t, testDocID, result.ID)
 			// text["und"] aggregates the following, after dedupeResult drops
@@ -4070,7 +5183,7 @@ func TestDedupeResultDeMirrorsUnd(t *testing.T) {
 			},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, []string{"shared value"}, result.Text["en"])
@@ -4121,7 +5234,7 @@ func TestEarliestClaimTime(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The earliest of all bounds across all indexed time claims.
@@ -4171,7 +5284,7 @@ func TestEarliestClaimTimeNone(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, result.Time)
 }
@@ -4224,7 +5337,7 @@ func TestEarliestClaimTimeOpenBoundsNotSentinel(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, result.Claims.Time, 2)
 
@@ -4271,7 +5384,7 @@ func TestEarliestClaimTimeOpenBoundsNotSentinel(t *testing.T) {
 	assert.Less(t, *result.Time, math.MaxFloat64)
 }
 
-// TestClaimsCountCountsRecursively verifies that ClaimsCount counts every claim
+// TestClaimsCountCountsRecursively verifies that counts.claims counts every claim
 // in the document, including those nested as sub-claims.
 func TestClaimsCountCountsRecursively(t *testing.T) {
 	t.Parallel()
@@ -4302,10 +5415,10 @@ func TestClaimsCountCountsRecursively(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	require.NotNil(t, result.ClaimsCount)
-	assert.Equal(t, 2, *result.ClaimsCount)
+	require.NotNil(t, result.Counts.Claims)
+	assert.Equal(t, 2, *result.Counts.Claims)
 }
 
 // TestReferencesCount verifies that CountReferences is recorded for ordinary
@@ -4334,12 +5447,12 @@ func TestReferencesCount(t *testing.T) {
 			},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	require.NotNil(t, result.ReferencesCount)
-	assert.Equal(t, 7, *result.ReferencesCount)
+	require.NotNil(t, result.Counts.References)
+	assert.Equal(t, 7, *result.Counts.References)
 
-	// A document that is an instance of CLASS is ignored for referencesCount.
+	// A document that is an instance of CLASS is ignored for counts.references.
 	classDoc := &document.D{
 		CoreDocument: document.CoreDocument{ID: identifier.New()}, //nolint:exhaustruct
 		Claims: &document.ClaimTypes{
@@ -4352,9 +5465,9 @@ func TestReferencesCount(t *testing.T) {
 			},
 		},
 	}
-	result, errE = c.FromDocument(ctx, classDoc, nil)
+	result, errE = c.FromDocument(ctx, classDoc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Nil(t, result.ReferencesCount)
+	assert.Nil(t, result.Counts.References)
 
 	// A document that is an instance of VOCABULARY is ignored too.
 	vocabDoc := &document.D{
@@ -4369,14 +5482,14 @@ func TestReferencesCount(t *testing.T) {
 			},
 		},
 	}
-	result, errE = c.FromDocument(ctx, vocabDoc, nil)
+	result, errE = c.FromDocument(ctx, vocabDoc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Nil(t, result.ReferencesCount)
+	assert.Nil(t, result.Counts.References)
 }
 
 // TestReferencesCountIgnoresTransitiveSubclass verifies that a document which is
 // an instance of a transitive subclass of VOCABULARY is ignored for
-// referencesCount via the class hierarchy.
+// counts.references via the class hierarchy.
 func TestReferencesCountIgnoresTransitiveSubclass(t *testing.T) {
 	t.Parallel()
 
@@ -4409,9 +5522,9 @@ func TestReferencesCountIgnoresTransitiveSubclass(t *testing.T) {
 			},
 		},
 	}
-	result, errE := c.FromDocument(t.Context(), doc, nil)
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Nil(t, result.ReferencesCount)
+	assert.Nil(t, result.Counts.References)
 }
 
 // Tests for error propagation through Visit* methods and FromDocument.
@@ -4436,7 +5549,7 @@ func TestFromDocumentAmountError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4466,7 +5579,7 @@ func TestFromDocumentAmountIntervalError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4490,7 +5603,7 @@ func TestFromDocumentTimeError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4520,7 +5633,7 @@ func TestFromDocumentTimeIntervalError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4543,7 +5656,7 @@ func TestFromDocumentRelationError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4565,7 +5678,7 @@ func TestFromDocumentHasError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4587,7 +5700,7 @@ func TestFromDocumentNoneError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -4609,7 +5722,7 @@ func TestFromDocumentUnknownError(t *testing.T) {
 		},
 	}
 
-	_, errE := c.FromDocument(ctx, doc, nil)
+	_, errE := c.FromDocument(ctx, doc, nil, nil)
 	assert.EqualError(t, errE, "document not found")
 }
 
@@ -6594,7 +7707,7 @@ func TestRecognizedNotIndexedLanguageFallback(t *testing.T) {
 	priority := map[string][]string{"en": {"sl"}}
 	c := newTestConverterWithPriority(t, nil, []*document.D{enLangDoc, slLangDoc}, map[identifier.Identifier]*document.D{docID: doc}, priority)
 
-	result, errE := c.FromDocument(t.Context(), doc, nil)
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// The English display label resolves to the Slovenian name via the en->sl
@@ -6651,7 +7764,7 @@ func TestConversionIndexesOnlyEnabledLanguages(t *testing.T) {
 	priority := map[string][]string{"en": {"und"}}
 	c := newTestConverterWithPriority(t, nil, langs, map[identifier.Identifier]*document.D{docID: doc}, priority)
 
-	result, errE := c.FromDocument(t.Context(), doc, nil)
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// English content is indexed under "en".
@@ -6689,7 +7802,7 @@ func TestDetectLanguageRoutesUntaggedContent(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Contains(t, result.Text["en"], enText, "clearly-English content should route to text.en")
 	assert.NotContains(t, result.Text["und"], enText, "detected content should not also land in und")
@@ -6706,7 +7819,7 @@ func TestDetectLanguageRoutesUntaggedContent(t *testing.T) {
 			}},
 		},
 	}
-	result, errE = c.FromDocument(ctx, shortDoc, nil)
+	result, errE = c.FromDocument(ctx, shortDoc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Contains(t, result.Text["und"], short, "short content stays in und")
 	_, hasEn := result.Text["en"]
@@ -6737,7 +7850,7 @@ func TestDetectLanguageSingleEnabled(t *testing.T) {
 			}},
 		},
 	}
-	result, errE := c.FromDocument(ctx, enDoc, nil)
+	result, errE := c.FromDocument(ctx, enDoc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Contains(t, result.Text["en"], enText, "clearly-English content should route to text.en")
 	assert.NotContains(t, result.Text["und"], enText, "detected content should not also land in und")
@@ -6755,7 +7868,7 @@ func TestDetectLanguageSingleEnabled(t *testing.T) {
 			}},
 		},
 	}
-	result, errE = c.FromDocument(ctx, slDoc, nil)
+	result, errE = c.FromDocument(ctx, slDoc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Contains(t, result.Text["und"], slText, "non-English content stays in und on an English-only site")
 	_, hasEn := result.Text["en"]
@@ -6886,7 +7999,7 @@ func TestDisplayPathsNoFallback(t *testing.T) {
 	// per-language display field: its own label plus its ancestors' labels.
 	// ("Parent EN" also appears in text independently, via the SUBCLASS_OF
 	// reference claim's ToDisplay/ToNaming, which is a separate mechanism.)
-	result, errE := c.FromDocument(ctx, childDoc, nil)
+	result, errE := c.FromDocument(ctx, childDoc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []string{"Child EN", "Parent EN"}, result.Display["en"])
 	assert.ElementsMatch(t, []string{"Child SL", "Parent EN"}, result.Display["sl"])
@@ -7357,7 +8470,11 @@ func TestFromDocumentIncomingInverseRelation(t *testing.T) {
 		newIR(claimID, sourceDocID, propX, propY, identifier.Identifier{}, document.HighConfidence),
 	}
 
-	result, errE := c.FromDocument(ctx, doc, inverseRelations)
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{
+		At:               store.Time{},
+		Users:            nil,
+		InverseRelations: map[string][]store.InverseRelation{"": inverseRelations},
+	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have a reverse relation claim with property Y pointing to source document.
@@ -7400,7 +8517,11 @@ func TestFromDocumentIncomingInverseRelationMultipleInverses(t *testing.T) {
 		newIR(claimID, sourceDocID, propB, propC, identifier.Identifier{}, document.HighConfidence),
 	}
 
-	result, errE := c.FromDocument(ctx, doc, inverseRelations)
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{
+		At:               store.Time{},
+		Users:            nil,
+		InverseRelations: map[string][]store.InverseRelation{"": inverseRelations},
+	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have two reverse relation claims: one for A and one for C.
@@ -7445,7 +8566,11 @@ func TestFromDocumentIncomingInverseRelationBidirectional(t *testing.T) {
 		newIR(identifier.New(), sourceDocID, propA, propB, identifier.Identifier{}, document.HighConfidence),
 	}
 
-	result, errE := c.FromDocument(ctx, doc, inverseRelations)
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{
+		At:               store.Time{},
+		Users:            nil,
+		InverseRelations: map[string][]store.InverseRelation{"": inverseRelations},
+	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should produce a reverse claim with property B.
@@ -7686,11 +8811,20 @@ func makeClassDocWithField(id, fieldPropID identifier.Identifier, inversePropID 
 			To:        document.Reference{ID: *inversePropID},
 		})
 	}
-	claims := &document.ClaimTypes{
+	// Mirror real class documents: the field schema is nested under a FIELDS HasClaim.
+	fieldsSub := &document.ClaimTypes{
 		Has: []document.HasClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, fieldSub),
 				Prop:      document.Reference{ID: internalCore.FieldPropID},
+			},
+		},
+	}
+	claims := &document.ClaimTypes{
+		Has: []document.HasClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, fieldsSub),
+				Prop:      document.Reference{ID: internalCore.FieldsPropID},
 			},
 		},
 	}
@@ -7734,11 +8868,20 @@ func makeClassDocWithSubField(id, parentPropID, childPropID identifier.Identifie
 			},
 		},
 	}
-	claims := &document.ClaimTypes{
+	// Mirror real class documents: the field schema is nested under a FIELDS HasClaim.
+	fieldsSub := &document.ClaimTypes{
 		Has: []document.HasClaim{
 			{
 				CoreClaim: makeCoreClaim(document.HighConfidence, fieldSub),
 				Prop:      document.Reference{ID: internalCore.FieldPropID},
+			},
+		},
+	}
+	claims := &document.ClaimTypes{
+		Has: []document.HasClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, fieldsSub),
+				Prop:      document.Reference{ID: internalCore.FieldsPropID},
 			},
 		},
 	}
@@ -7761,7 +8904,7 @@ func TestBuildFieldInverseProperties(t *testing.T) {
 	c.buildFieldInverseProperties([]*document.D{classDoc})
 
 	// Should have field inverse for top-level field.
-	key := fieldInverseKey{Path: "", SourceProp: fieldProp}
+	key := fieldInverseKey{Class: classID, Path: "", SourceProp: fieldProp}
 	assert.Equal(t, inverseProp, c.fieldInverseProperties[key])
 }
 
@@ -7793,7 +8936,7 @@ func TestBuildFieldInversePropertiesSubField(t *testing.T) {
 	c.buildFieldInverseProperties([]*document.D{classDoc})
 
 	// Should have field inverse for sub-field with parent path.
-	key := fieldInverseKey{Path: parentProp.String(), SourceProp: childProp}
+	key := fieldInverseKey{Class: classID, Path: parentProp.String(), SourceProp: childProp}
 	assert.Equal(t, inverseProp, c.fieldInverseProperties[key])
 }
 
@@ -7826,6 +8969,8 @@ func TestOutgoingInverseRelationsFieldLevel(t *testing.T) {
 			},
 		},
 	}
+
+	addInstanceOf(doc, classID, document.HighConfidence)
 
 	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
 	require.NoError(t, errE)
@@ -7869,6 +9014,8 @@ func TestOutgoingInverseRelationsFieldLevelPrecedence(t *testing.T) {
 			},
 		},
 	}
+
+	addInstanceOf(doc, classID, document.HighConfidence)
 
 	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
 	require.NoError(t, errE)
@@ -7918,6 +9065,8 @@ func TestOutgoingInverseRelationsSubFieldInverse(t *testing.T) {
 		},
 	}
 
+	addInstanceOf(doc, classID, document.HighConfidence)
+
 	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
 	require.NoError(t, errE)
 
@@ -7940,8 +9089,9 @@ func TestOutgoingInverseRelationsDifferentPathsSameProperty(t *testing.T) {
 	inverseA := identifier.New()
 	inverseB := identifier.New()
 
+	classB := identifier.New()
 	classDocA := makeClassDocWithSubField(classID, parentA, childProp, &inverseA)
-	classDocB := makeClassDocWithSubField(identifier.New(), parentB, childProp, &inverseB)
+	classDocB := makeClassDocWithSubField(classB, parentB, childProp, &inverseB)
 
 	c := newTestConverterWithClasses(t, nil, []*document.D{classDocA, classDocB}, nil)
 
@@ -7982,6 +9132,9 @@ func TestOutgoingInverseRelationsDifferentPathsSameProperty(t *testing.T) {
 			},
 		},
 	}
+
+	addInstanceOf(doc, classID, document.HighConfidence)
+	addInstanceOf(doc, classB, document.HighConfidence)
 
 	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
 	require.NoError(t, errE)
@@ -8072,6 +9225,8 @@ func TestOutgoingInverseRelationsStringSubClaimReference(t *testing.T) {
 		},
 	}
 
+	addInstanceOf(doc, classID, document.HighConfidence)
+
 	outgoing, errE := c.OutgoingInverseRelations(t.Context(), doc)
 	require.NoError(t, errE)
 
@@ -8097,7 +9252,7 @@ func TestEncodeFieldPath(t *testing.T) {
 	assert.Equal(t, id1.String()+"/"+id2.String(), encodeFieldPath([]identifier.Identifier{id1, id2}))
 }
 
-func TestFromDocumentHookModifies(t *testing.T) {
+func TestFromDocumentPlain(t *testing.T) {
 	t.Parallel()
 
 	propDoc := makeNamingDoc(testPropID, "My Prop")
@@ -8105,210 +9260,6 @@ func TestFromDocumentHookModifies(t *testing.T) {
 		testPropID: propDoc,
 	}
 	c := newTestConverter(t, nil, nil, extraDocs)
-
-	// Hook adds a string claim to the document.
-	c.Hooks = []func(ctx context.Context, doc *document.D) (*document.D, errors.E){
-		func(_ context.Context, doc *document.D) (*document.D, errors.E) {
-			if doc.Claims == nil {
-				doc.Claims = &document.ClaimTypes{}
-			}
-			doc.Claims.String = append(doc.Claims.String, document.StringClaim{
-				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: testPropID},
-				String:    "injected",
-			})
-			return doc, nil
-		},
-	}
-
-	ctx := t.Context()
-	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
-	}
-
-	result, errE := c.FromDocument(ctx, doc, nil)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, testDocID, result.ID)
-	assert.Equal(t, []string{testDocID.String(), "injected"}, result.Text["und"])
-}
-
-func TestFromDocumentHookError(t *testing.T) {
-	t.Parallel()
-
-	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
-
-	c.Hooks = []func(ctx context.Context, doc *document.D) (*document.D, errors.E){
-		func(_ context.Context, _ *document.D) (*document.D, errors.E) {
-			return nil, errors.New("hook failed")
-		},
-	}
-
-	ctx := t.Context()
-	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
-	}
-
-	_, errE := c.FromDocument(ctx, doc, nil)
-	require.Error(t, errE)
-	assert.EqualError(t, errE, "hook failed")
-	assert.Equal(t, 0, errors.AllDetails(errE)["hook"])
-}
-
-func TestFromDocumentHookReturnsNil(t *testing.T) {
-	t.Parallel()
-
-	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
-
-	c.Hooks = []func(ctx context.Context, doc *document.D) (*document.D, errors.E){
-		func(_ context.Context, _ *document.D) (*document.D, errors.E) {
-			return nil, nil //nolint:nilnil
-		},
-	}
-
-	ctx := t.Context()
-	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
-	}
-
-	_, errE := c.FromDocument(ctx, doc, nil)
-	require.Error(t, errE)
-	assert.EqualError(t, errE, "hook returned nil document")
-	assert.Equal(t, 0, errors.AllDetails(errE)["hook"])
-}
-
-func TestFromDocumentMultipleHooks(t *testing.T) {
-	t.Parallel()
-
-	propDoc := makeNamingDoc(testPropID, "My Prop")
-	extraDocs := map[identifier.Identifier]*document.D{
-		testPropID: propDoc,
-	}
-	c := newTestConverter(t, nil, nil, extraDocs)
-
-	// First hook adds a string claim.
-	// Second hook adds another string claim.
-	c.Hooks = []func(ctx context.Context, doc *document.D) (*document.D, errors.E){
-		func(_ context.Context, doc *document.D) (*document.D, errors.E) {
-			if doc.Claims == nil {
-				doc.Claims = &document.ClaimTypes{}
-			}
-			doc.Claims.String = append(doc.Claims.String, document.StringClaim{
-				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: testPropID},
-				String:    "first",
-			})
-			return doc, nil
-		},
-		func(_ context.Context, doc *document.D) (*document.D, errors.E) {
-			doc.Claims.String = append(doc.Claims.String, document.StringClaim{
-				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-				Prop:      document.Reference{ID: testPropID},
-				String:    "second",
-			})
-			return doc, nil
-		},
-	}
-
-	ctx := t.Context()
-	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
-	}
-
-	result, errE := c.FromDocument(ctx, doc, nil)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.ElementsMatch(t, []string{testDocID.String(), "first", "second"}, result.Text["und"])
-}
-
-func TestFromDocumentHookReplaces(t *testing.T) {
-	t.Parallel()
-
-	propDoc := makeNamingDoc(testPropID, "My Prop")
-	extraDocs := map[identifier.Identifier]*document.D{
-		testPropID: propDoc,
-	}
-	c := newTestConverter(t, nil, nil, extraDocs)
-
-	replacementID := identifier.New()
-
-	// Hook replaces the entire document.
-	c.Hooks = []func(ctx context.Context, doc *document.D) (*document.D, errors.E){
-		func(_ context.Context, _ *document.D) (*document.D, errors.E) {
-			return &document.D{
-				CoreDocument: document.CoreDocument{ID: replacementID}, //nolint:exhaustruct
-				Claims: &document.ClaimTypes{
-					Identifier: []document.IdentifierClaim{
-						{
-							CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-							Prop:      document.Reference{ID: testPropID},
-							Value:     "REPLACED",
-						},
-					},
-				},
-			}, nil
-		},
-	}
-
-	ctx := t.Context()
-	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
-		Claims: &document.ClaimTypes{
-			String: []document.StringClaim{
-				{
-					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
-					Prop:      document.Reference{ID: testPropID},
-					String:    "original",
-				},
-			},
-		},
-	}
-
-	result, errE := c.FromDocument(ctx, doc, nil)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	// Result should use the replacement document.
-	assert.Equal(t, replacementID, result.ID)
-	// The replacement carries the REPLACED identifier value, indexed into text["und"].
-	// The original "original" string from the input document is gone because the hook
-	// substituted the whole document. The seeded ID is the replacement's, not the input's,
-	// because FromDocument seeds the ID after hooks have run.
-	assert.Equal(t, []string{replacementID.String(), "REPLACED"}, result.Text["und"])
-}
-
-func TestFromDocumentMultipleHooksErrorInSecond(t *testing.T) {
-	t.Parallel()
-
-	c := newTestConverter(t, nil, nil, map[identifier.Identifier]*document.D{})
-
-	// First hook succeeds, second fails.
-	c.Hooks = []func(ctx context.Context, doc *document.D) (*document.D, errors.E){
-		func(_ context.Context, doc *document.D) (*document.D, errors.E) {
-			return doc, nil
-		},
-		func(_ context.Context, _ *document.D) (*document.D, errors.E) {
-			return nil, errors.New("second hook failed")
-		},
-	}
-
-	ctx := t.Context()
-	doc := &document.D{
-		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
-	}
-
-	_, errE := c.FromDocument(ctx, doc, nil)
-	require.Error(t, errE)
-	assert.EqualError(t, errE, "second hook failed")
-	// Hook index should be 1 (the second hook).
-	assert.Equal(t, 1, errors.AllDetails(errE)["hook"])
-}
-
-func TestFromDocumentNilHooks(t *testing.T) {
-	t.Parallel()
-
-	propDoc := makeNamingDoc(testPropID, "My Prop")
-	extraDocs := map[identifier.Identifier]*document.D{
-		testPropID: propDoc,
-	}
-	c := newTestConverter(t, nil, nil, extraDocs)
-	// Hooks is nil by default, confirm it works.
 
 	ctx := t.Context()
 	doc := &document.D{
@@ -8324,8 +9275,36 @@ func TestFromDocumentNilHooks(t *testing.T) {
 		},
 	}
 
-	result, errE := c.FromDocument(ctx, doc, nil)
+	result, errE := c.FromDocument(ctx, doc, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, testDocID, result.ID)
 	assert.Equal(t, []string{testDocID.String(), "hello"}, result.Text["und"])
+}
+
+func TestFromDocumentLastUpdated(t *testing.T) {
+	t.Parallel()
+
+	c := newTestConverter(t, nil, nil, nil)
+	ctx := t.Context()
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+	}
+
+	// LastUpdated comes from the document metadata's At timestamp (seconds since the Unix epoch).
+	at := time.Date(2021, time.January, 2, 3, 4, 5, 0, time.UTC)
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time(at), Users: nil, InverseRelations: nil})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotNil(t, result.LastUpdated)
+	assert.InDelta(t, float64(at.Unix()), *result.LastUpdated, 0.001)
+
+	// Without metadata there is no last-updated time.
+	result, errE = c.FromDocument(ctx, doc, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Nil(t, result.LastUpdated)
+
+	// A zero At also yields no last-updated time.
+	result, errE = c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil, InverseRelations: nil})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Nil(t, result.LastUpdated)
 }

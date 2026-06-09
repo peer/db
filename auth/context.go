@@ -17,6 +17,9 @@ var subjectContextKey = &contextKey{"subject"} //nolint:gochecknoglobals
 // rolesContextKey carries the list of roles granted to the caller.
 var rolesContextKey = &contextKey{"roles"} //nolint:gochecknoglobals
 
+// visibilityContextKey carries the caller's resolved visibility level.
+var visibilityContextKey = &contextKey{"visibility"} //nolint:gochecknoglobals
+
 // WithSubject returns ctx with the given subject attached. Called by the auth
 // middleware after token verification.
 func WithSubject(ctx context.Context, subject string) context.Context {
@@ -55,4 +58,18 @@ func Roles(ctx context.Context) []string {
 // HasRole reports whether the given role is present in ctx.
 func HasRole(ctx context.Context, role string) bool {
 	return slices.Contains(Roles(ctx), role)
+}
+
+// WithVisibility returns ctx with the caller's resolved visibility level name
+// attached. Called by the auth middleware after roles are resolved.
+func WithVisibility(ctx context.Context, level string) context.Context {
+	return context.WithValue(ctx, visibilityContextKey, level)
+}
+
+// Visibility returns the caller's resolved visibility level name from ctx, or
+// "" when none was set. A configured level name is never empty (site validation
+// rejects empty names), so "" unambiguously means no level is attached.
+func Visibility(ctx context.Context) string {
+	level, _ := ctx.Value(visibilityContextKey).(string)
+	return level
 }

@@ -1,7 +1,9 @@
+import type { RefValueLike } from "@/utils"
+
 import { assert, describe, expect, test } from "vitest"
 
 import { timeFloat64, validateTime } from "@/document/time"
-import { parseUrl, timePrecisionForRange, timePrecisionForValue, timeStringFromFloat64 } from "@/utils"
+import { computeRefCheckStates, parseUrl, timePrecisionForRange, timePrecisionForValue, timeStringFromFloat64, toggleRefSelection } from "@/utils"
 
 // Unix seconds for 2025-03-02 10:30:45 UTC.
 const SAMPLE_SECONDS = Date.UTC(2025, 2, 2, 10, 30, 45) / 1000
@@ -223,5 +225,116 @@ describe("parseUrl", () => {
     assert.instanceOf(parseUrl("https://example.com", { allowMailto: false }), URL)
     assert.instanceOf(parseUrl("http://example.com/foo", { allowMailto: false }), URL)
     assert.instanceOf(parseUrl("/foo", { allowMailto: false }), URL)
+  })
+})
+
+// Hierarchy artist > {painter, sculptor}, plus artist's "direct" entry and the top-level
+// "missing" entry. Paths are ancestor chains from root to immediate parent; a "direct" entry and
+// a root value list themselves as the parent of nothing else, "missing" has no paths.
+const ARTIST_VALUES: RefValueLike[] = [
+  { id: "artist" },
+  { id: "painter", paths: [["artist"]] },
+  { id: "sculptor", paths: [["artist"]] },
+  { id: "__DIRECT__:artist", paths: [["artist"]] },
+  { id: "__MISSING__" },
+]
+
+function checkedIds(values: readonly RefValueLike[], selected: Iterable<string>): string[] {
+  const states = computeRefCheckStates(values, new Set(selected))
+  return [...states.entries()].filter(([, s]) => s.checked).map(([id]) => id)
+}
+
+function indeterminateIds(values: readonly RefValueLike[], selected: Iterable<string>): string[] {
+  const states = computeRefCheckStates(values, new Set(selected))
+  return [...states.entries()].filter(([, s]) => s.indeterminate).map(([id]) => id)
+}
+
+describe("computeRefCheckStates", () => {
+  test("nothing selected leaves every value unchecked and determinate", () => {
+    assert.sameMembers(checkedIds(ARTIST_VALUES, []), [])
+    assert.sameMembers(indeterminateIds(ARTIST_VALUES, []), [])
+  })
+
+  test("a selected leaf checks itself and leaves the parent indeterminate", () => {
+    assert.sameMembers(checkedIds(ARTIST_VALUES, ["painter"]), ["painter"])
+    assert.sameMembers(indeterminateIds(ARTIST_VALUES, ["painter"]), ["artist"])
+  })
+
+  test("all children selected checks the parent, none indeterminate", () => {
+    const selected = ["painter", "sculptor", "__DIRECT__:artist"]
+    assert.sameMembers(checkedIds(ARTIST_VALUES, selected), [...selected, "artist"])
+    assert.sameMembers(indeterminateIds(ARTIST_VALUES, selected), [])
+  })
+
+  test("the parent value selected on its own checks the parent and all of its children", () => {
+    // The API case: only the parent value is in the filter, yet the whole subtree reads as checked.
+    assert.sameMembers(checkedIds(ARTIST_VALUES, ["artist"]), ["artist", "painter", "sculptor", "__DIRECT__:artist"])
+    assert.sameMembers(indeterminateIds(ARTIST_VALUES, ["artist"]), [])
+  })
+
+  test("a partially covered parent is indeterminate", () => {
+    const selected = ["painter", "__DIRECT__:artist"]
+    assert.sameMembers(checkedIds(ARTIST_VALUES, selected), selected)
+    assert.sameMembers(indeterminateIds(ARTIST_VALUES, selected), ["artist"])
+  })
+})
+
+describe("toggleRefSelection", () => {
+  test("clicking an unchecked parent selects its whole subtree", () => {
+    assert.sameMembers([...toggleRefSelection(ARTIST_VALUES, "artist", new Set())], ["artist", "painter", "sculptor", "__DIRECT__:artist"])
+  })
+
+  test("clicking a checked parent clears its whole subtree", () => {
+    const selected = new Set(["artist", "painter", "sculptor", "__DIRECT__:artist"])
+    assert.sameMembers([...toggleRefSelection(ARTIST_VALUES, "artist", selected)], [])
+  })
+
+  test("deselecting a child decomposes the parent into its remaining siblings", () => {
+    // From a UI selection (parent plus its children stored explicitly).
+    const fromUI = new Set(["artist", "painter", "sculptor", "__DIRECT__:artist"])
+    // From an API selection (only the parent value stored).
+    const fromAPI = new Set(["artist"])
+    const expected = ["sculptor", "__DIRECT__:artist"]
+    // Both converge to the same selection: painter dropped, its siblings and "direct" kept.
+    assert.sameMembers([...toggleRefSelection(ARTIST_VALUES, "painter", fromUI)], expected)
+    assert.sameMembers([...toggleRefSelection(ARTIST_VALUES, "painter", fromAPI)], expected)
+  })
+
+  test("reselecting the last missing sibling re-checks the parent", () => {
+    const afterDeselect = new Set(["sculptor", "__DIRECT__:artist"])
+    const next = toggleRefSelection(ARTIST_VALUES, "painter", afterDeselect)
+    assert.sameMembers([...next], ["painter", "sculptor", "__DIRECT__:artist"])
+    assert.isTrue(computeRefCheckStates(ARTIST_VALUES, next).get("artist")?.checked)
+  })
+
+  test("the missing entry toggles independently of the value tree", () => {
+    assert.sameMembers([...toggleRefSelection(ARTIST_VALUES, "__MISSING__", new Set(["painter"]))], ["painter", "__MISSING__"])
+    assert.sameMembers([...toggleRefSelection(ARTIST_VALUES, "__MISSING__", new Set(["__MISSING__", "painter"]))], ["painter"])
+  })
+
+  test("deselecting through a multi-level hierarchy keeps the untouched branch", () => {
+    // root > mid > {x, y}: selecting root then deselecting x must keep y.
+    const values: RefValueLike[] = [{ id: "root" }, { id: "mid", paths: [["root"]] }, { id: "x", paths: [["root", "mid"]] }, { id: "y", paths: [["root", "mid"]] }]
+    assert.sameMembers([...toggleRefSelection(values, "x", new Set(["root"]))], ["y"])
+  })
+
+  test("deselecting a diamond leaf reached through two parents clears it everywhere", () => {
+    // root > {pa, pb}, both parents of the same leaf.
+    const values: RefValueLike[] = [
+      { id: "root" },
+      { id: "pa", paths: [["root"]] },
+      { id: "pb", paths: [["root"]] },
+      {
+        id: "leaf",
+        paths: [
+          ["root", "pa"],
+          ["root", "pb"],
+        ],
+      },
+    ]
+    // A leaf covered by either parent is checked.
+    assert.isTrue(computeRefCheckStates(values, new Set(["pa"])).get("leaf")?.checked)
+    // Deselecting it from a root-wide selection leaves nothing, since it is the only value below.
+    assert.sameMembers([...toggleRefSelection(values, "leaf", new Set(["root"]))], [])
   })
 })

@@ -10,7 +10,7 @@ import (
 // access token via the per-request Authenticator.
 //
 // metadataHeaderPrefix is the WAF service's MetadataHeaderPrefix. It is
-// prepended to the Roles / UserInfo header names the Authenticator
+// prepended to the Roles/UserInfo header names the Authenticator
 // writes.
 //
 // Register this once on the WAF Service. The caller's lookup is
@@ -19,18 +19,18 @@ import (
 //nolint:contextcheck
 func Middleware(
 	metadataHeaderPrefix string,
-	lookup func(w http.ResponseWriter, req *http.Request) (a Authenticator, allowedRoles map[string][]string, handled bool),
+	lookup func(w http.ResponseWriter, req *http.Request) (a Authenticator, allowedRoles map[string][]string, visibility []VisibilityLevel, handled bool),
 ) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			ctx := req.Context()
 			waf.SetCanonicalLogMessage(ctx, "Auth")
 
-			a, allowedRoles, handled := lookup(w, req)
+			a, allowedRoles, visibility, handled := lookup(w, req)
 			if handled {
 				return
 			}
-			ctx = a.Authenticate(w, req, metadataHeaderPrefix, allowedRoles)
+			ctx = a.Authenticate(w, req, metadataHeaderPrefix, allowedRoles, visibility)
 			next.ServeHTTP(w, req.WithContext(ctx))
 		})
 	}

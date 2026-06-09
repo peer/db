@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"strconv"
 
+	internalSite "gitlab.com/peerdb/peerdb/internal/site"
+
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
@@ -69,7 +71,7 @@ func (s *Service) DocumentGetGet(w http.ResponseWriter, req *http.Request, param
 
 	// TODO: If "s" is provided, should we validate that id is really part of search? Currently we do on the frontend.
 
-	site := waf.MustGetSite[*Site](req.Context())
+	site := waf.MustGetSite[*internalSite.Site](req.Context())
 
 	m := metrics.Duration(internalStore.MetricDatabase).Start()
 	// TODO: Add API to store to just check if the value exists.
@@ -122,7 +124,7 @@ func (s *Service) documentGetData(
 		reqVersion = &v
 	}
 
-	site := waf.MustGetSite[*Site](req.Context())
+	site := waf.MustGetSite[*internalSite.Site](req.Context())
 
 	var dataJSON json.RawMessage
 	var metadata *store.DocumentMetadata
@@ -213,7 +215,7 @@ func (s *Service) DocumentCreatePostAPI(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	// TODO: Support configuring base and not just use the domain.
 	base := []string{site.Domain, "DOCUMENT", identifier.New().String()}
@@ -262,7 +264,7 @@ func (s *Service) DocumentBeginEditPostAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	session, version, errE := site.Base.BeginEditDocumentLatest(ctx, id)
 	if errors.Is(errE, store.ErrAccessDenied) {
@@ -323,7 +325,7 @@ func (s *Service) DocumentSaveChangePostAPI(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	_, errE = site.Base.AppendDocumentChange(ctx, session, buffer, change)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
@@ -364,7 +366,7 @@ func (s *Service) DocumentListChangesGetAPI(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	// TODO: Support more than 5000 changes.
 	changes, errE := site.Base.ListDocumentChanges(ctx, session)
@@ -407,7 +409,7 @@ func (s *Service) DocumentGetChangeGetAPI(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	dataJSON, errE := site.Base.GetDocumentChange(ctx, session, chunk)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
@@ -465,7 +467,7 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 		return
 	}
 
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	errE = site.Base.EndEditDocument(ctx, session, discard)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
@@ -507,7 +509,7 @@ func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, para
 		return
 	}
 
-	site := waf.MustGetSite[*Site](req.Context())
+	site := waf.MustGetSite[*internalSite.Site](req.Context())
 
 	beginMetadata, _, completeMetadata, errE := site.Base.GetEditDocumentSession(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
@@ -562,7 +564,7 @@ func (s *Service) DocumentEditGetAPI(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
-	site := waf.MustGetSite[*Site](req.Context())
+	site := waf.MustGetSite[*internalSite.Site](req.Context())
 
 	beginMetadata, sessionEnded, completeMetadata, errE := site.Base.GetEditDocumentSession(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
@@ -660,7 +662,7 @@ func (s *Service) DocumentChangesGetAPI(w http.ResponseWriter, req *http.Request
 	}
 
 	s.changesetChangesGetAPI(w, req, params, func(ctx context.Context, changesetID identifier.Identifier, after *identifier.Identifier) ([]store.Change, errors.E) {
-		cs, errE := waf.MustGetSite[*Site](ctx).Base.DocumentChangeset(ctx, changesetID)
+		cs, errE := waf.MustGetSite[*internalSite.Site](ctx).Base.DocumentChangeset(ctx, changesetID)
 		if errE != nil {
 			return nil, errE
 		}
@@ -690,7 +692,7 @@ func (s *Service) DocumentChangesGetGetAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	site := waf.MustGetSite[*Site](ctx)
+	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	// Revision 0 means latest revision.
 	dataJSON, _, version, _, errE := site.Base.GetDocumentFromChangeset(ctx, changesetID, id, 0)

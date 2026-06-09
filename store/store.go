@@ -84,6 +84,9 @@ func (c CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetad
 // You can use special None type to configure the Store instance to not
 // use nor store patches.
 type Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch any] struct {
+	// Schema is the PostgreSQL schema this store lives in.
+	Schema string
+
 	// Prefix to use when initializing PostgreSQL objects used by this store.
 	Prefix string
 
@@ -111,8 +114,12 @@ type Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetada
 
 	dbpool         *pgxpool.Pool
 	patchesEnabled bool
-	committed      chan<- CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
-	committedMu    sync.RWMutex
+	// LISTEN/NOTIFY channel names computed once in Init. PostgreSQL notification channels are
+	// database-global (not schema-scoped), so the schema is included to keep channels in different
+	// schemas of the same database isolated from each other.
+	committedChangesetsChannel string
+	committed                  chan<- CommittedChangesets[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]
+	committedMu                sync.RWMutex
 }
 
 // Init initializes the Store.
@@ -129,6 +136,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 	}
 
 	s.patchesEnabled = !isNoneType[Patch]()
+	s.committedChangesetsChannel = s.Schema + "_" + s.Prefix + "Commit"
 
 	// TODO: Use schema management/migration instead.
 	errE := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
@@ -518,7 +526,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 						IF length(_payload) > 7900 THEN
 							_payload := json_build_object('seq', NEW."seq")::text;
 						END IF;
-						PERFORM pg_notify('`+s.Prefix+`CommittedChangesets', _payload);
+						PERFORM pg_notify('`+s.committedChangesetsChannel+`', _payload);
 						RETURN NULL;
 					END;
 				$$;
@@ -554,7 +562,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 
 	if listener != nil {
 		if s.CommittedSize >= 0 {
-			listener.Handle(s.Prefix+"CommittedChangesets", s)
+			listener.Handle(s.committedChangesetsChannel, s)
 		}
 	}
 
@@ -566,7 +574,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 	ctx context.Context, notification *pgconn.Notification, conn *pgx.Conn,
 ) error {
 	switch notification.Channel {
-	case s.Prefix + "CommittedChangesets":
+	case s.committedChangesetsChannel:
 		return s.handleCommittedChangesets(ctx, notification, conn)
 	default:
 		errE := errors.New("unknown notification channel")
@@ -580,7 +588,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 	_ context.Context, channel string, _ *pgx.Conn,
 ) error {
 	switch channel {
-	case s.Prefix + "CommittedChangesets":
+	case s.committedChangesetsChannel:
 		s.Reset()
 	default:
 		errE := errors.New("unknown notification channel")
@@ -611,7 +619,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 // HandlingReady implements internalStore.Handler interface.
 func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMetadata, Patch]) HandlingReady(ctx context.Context, channel string) errors.E {
 	switch channel {
-	case s.Prefix + "CommittedChangesets":
+	case s.committedChangesetsChannel:
 		// We just wait for channel to be available. This means that HandleBacklog has completed.
 		_, errE := s.Committed.Get(ctx)
 		return errE
