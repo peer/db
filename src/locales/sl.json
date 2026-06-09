@@ -33,6 +33,7 @@
       "editingNotAllowed": "Urejanje ni dovoljeno.",
       "loading": "Nalaganje...",
       "loadingDataFailed": "nalaganje podatkov ni uspelo",
+      "dataNotAvailable": "podatki niso na voljo",
       "error": "napaka",
       "valuesNotShown": "1 vrednost ni prikazana. | {count} vrednosti nista prikazani. | {count} vrednosti niso prikazane. | {count} vrednosti ni prikazanih.",
       "allResults": "Vsi od 1 prikazanega rezultata. | Vsi od {count} prikazanih rezultatov.",

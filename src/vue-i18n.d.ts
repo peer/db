@@ -44,6 +44,7 @@ declare module "vue-i18n" {
         editingNotAllowed: string
         loading: string
         loadingDataFailed: string
+        dataNotAvailable: string
         error: string
         valuesNotShown: string
         allResults: string

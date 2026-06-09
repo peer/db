@@ -33,6 +33,7 @@
       "editingNotAllowed": "Editing not allowed.",
       "loading": "Loading...",
       "loadingDataFailed": "loading data failed",
+      "dataNotAvailable": "data not available",
       "error": "error",
       "valuesNotShown": "1 value not shown. | {count} values not shown.",
       "allResults": "All of 1 result shown. | All of {count} results shown.",
