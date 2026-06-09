@@ -728,11 +728,11 @@ func TestBridgeClearInverseRelations(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Preconditions: the live and deleted documents both carry inverse relations.
-	_, metaLive, _, _, errE := s.GetLatest(ctx, docLive)
+	_, metaLive, _, _, errE := s.GetLatest(ctx, docLive) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotEmpty(t, metaLive.InverseRelations, "docLive should start with inverse relations")
 
-	_, metaDeleted, _, _, errE := s.GetLatest(ctx, docDeleted)
+	_, metaDeleted, _, _, errE := s.GetLatest(ctx, docDeleted) //nolint:dogsled
 	require.ErrorIs(t, errE, store.ErrValueDeleted, "docDeleted should be deleted")
 	require.NotEmpty(t, metaDeleted.InverseRelations, "docDeleted should start with inverse relations")
 
@@ -742,17 +742,17 @@ func TestBridgeClearInverseRelations(t *testing.T) {
 	assert.Equal(t, 2, cleared, "only the live and deleted documents carrying inverse relations should be cleared")
 
 	// The live document keeps existing but loses its inverse relations.
-	_, metaLive, _, _, errE = s.GetLatest(ctx, docLive)
+	_, metaLive, _, _, errE = s.GetLatest(ctx, docLive) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Empty(t, metaLive.InverseRelations, "docLive inverse relations should be cleared")
 
 	// The deleted document stays deleted and loses its inverse relations.
-	_, metaDeleted, _, _, errE = s.GetLatest(ctx, docDeleted)
+	_, metaDeleted, _, _, errE = s.GetLatest(ctx, docDeleted) //nolint:dogsled
 	require.ErrorIs(t, errE, store.ErrValueDeleted, "docDeleted should still be deleted after clearing")
 	assert.Empty(t, metaDeleted.InverseRelations, "docDeleted inverse relations should be cleared")
 
 	// The control document had none and is unaffected.
-	_, metaPlain, _, _, errE := s.GetLatest(ctx, docPlain)
+	_, metaPlain, _, _, errE := s.GetLatest(ctx, docPlain) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Empty(t, metaPlain.InverseRelations, "docPlain should remain without inverse relations")
 

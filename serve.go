@@ -101,7 +101,7 @@ func siteRoleNames(site *internalSite.Site) []string {
 }
 
 // Init initializes the HTTP service and is used together with Prepare to implement Run.
-func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) (*Service, func(), errors.E) {
+func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) (*Service, func(), errors.E) { //nolint:maintidx
 	c.Server.Logger = globals.Logger
 
 	sites := map[string]*internalSite.Site{}

@@ -68,7 +68,7 @@ type Site struct {
 
 	Build *Build `json:"build,omitempty" yaml:"-"`
 
-	IndexPrefix string `json:"-" yaml:"indexPrefix,omitempty"`
+	IndexPrefix string `json:"-"                     yaml:"indexPrefix,omitempty"`
 	Schema      string `json:"-"                     yaml:"schema,omitempty"`
 	Title       string `json:"title,omitempty"       yaml:"title,omitempty"`
 	Logo        string `json:"logo,omitempty"        yaml:"logo,omitempty"`

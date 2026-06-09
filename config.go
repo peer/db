@@ -37,10 +37,12 @@ type PostgresConfig struct {
 }
 
 // ElasticConfig contains configuration for ElasticSearch connection.
+//
+//nolint:lll
 type ElasticConfig struct {
-	URL         string `default:"${defaultElastic}" help:"URL of the ElasticSearch instance."                                placeholder:"URL"  short:"e" yaml:"elastic"`
-	IndexPrefix string `default:"${defaultIndexPrefix}" help:"Prefix of ElasticSearch index names to use when sites are not configured." placeholder:"PREFIX" yaml:"indexPrefix"`
-	Shards      int    `default:"${defaultShards}"  help:"Number of ElasticSearch shards when initializing indices."         placeholder:"NUM"            yaml:"shards"`
+	URL         string `default:"${defaultElastic}"     help:"URL of the ElasticSearch instance."                                        placeholder:"URL"    short:"e" yaml:"elastic"`
+	IndexPrefix string `default:"${defaultIndexPrefix}" help:"Prefix of ElasticSearch index names to use when sites are not configured." placeholder:"PREFIX"           yaml:"indexPrefix"`
+	Shards      int    `default:"${defaultShards}"      help:"Number of ElasticSearch shards when initializing indices."                 placeholder:"NUM"              yaml:"shards"`
 }
 
 // Customizer allows a consumer using PeerDB as a library to attach code at well-defined points of the
