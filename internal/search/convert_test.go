@@ -1515,8 +1515,8 @@ func TestMarkReferenceLeaves(t *testing.T) {
 					{Prop: otherProp, To: artist, ToPath: []string{path(artist)}}, //nolint:exhaustruct
 				},
 				SubRef: []SubRefClaim{
-					{ParentProp: parentProp, ParentTo: parentTo, Prop: subProp, To: dog, ToPath: []string{path(mammal, dog)}}, //nolint:exhaustruct
-					{ParentProp: parentProp, ParentTo: parentTo, Prop: subProp, To: mammal, ToPath: []string{path(mammal)}},   //nolint:exhaustruct
+					{ParentProp: parentProp, ParentTo: parentTo, ReferenceClaim: ReferenceClaim{Prop: subProp, To: dog, ToPath: []string{path(mammal, dog)}}}, //nolint:exhaustruct
+					{ParentProp: parentProp, ParentTo: parentTo, ReferenceClaim: ReferenceClaim{Prop: subProp, To: mammal, ToPath: []string{path(mammal)}}},   //nolint:exhaustruct
 				},
 			},
 		},

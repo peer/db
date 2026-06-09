@@ -398,44 +398,15 @@ type UnknownClaim struct {
 //       against a sibling top-level ref filter would still key on ParentTo (since
 //       the top-level filter selects by target identity).
 
-// SubRefClaim represents a denormalized nested reference sub-claim
-// flattened from parent claims (ref, has, none, unknown) for cross-filtering.
+// SubRefClaim represents a denormalized nested reference sub-claim flattened from parent claims
+// (ref, has, none, unknown) for cross-filtering.
+//
+// IsLeaf is computed across the document's sub-references that share the same (ParentProp, ParentTo, Prop).
 type SubRefClaim struct {
-	ParentProp  identifier.Identifier `json:"parentProp"`
-	ParentTo    string                `json:"parentTo"`
-	Prop        identifier.Identifier `json:"prop"`
-	PropDisplay map[string]string     `json:"propDisplay"`
-	PropNaming  map[string][]string   `json:"propNaming"`
-	To          identifier.Identifier `json:"to"`
-	ToDisplay   map[string]string     `json:"toDisplay"`
-	ToNaming    map[string][]string   `json:"toNaming"`
-	// ToPath contains ID-based hierarchy paths from root to the target document.
-	// Each path is prefixed with the hierarchy property ID and ":" separator
-	// (e.g., "<property_ID>:<root_ID>/<parent_ID>/<this_ID>"), followed by
-	// ancestor IDs joined by "/". Multiple paths exist when the target has
-	// multiple parents in a hierarchy or participates in multiple hierarchies.
-	ToPath []string `json:"toPath,omitempty"`
-	// ToFullPath is the hierarchy path of the original (leaf) target this claim was expanded from,
-	// the same for every record produced from one stated sub-claim (the leaf and each of its
-	// ancestors). While ToPath is the path of this record's own To value, ToFullPath identifies the
-	// leaf the record derives from.
-	ToFullPath []string `json:"toFullPath,omitempty"`
-	// ToDisplayPath contains per-language display hierarchy paths from root to the
-	// target document. Each path is a string of display labels joined by null bytes,
-	// which ensures correct hierarchical sort order.
-	ToDisplayPath map[string][]string `json:"toDisplayPath,omitempty"`
-	// IsLeaf is true when the target is a most-specific value for this document under the same
-	// parent: none of its narrower values (descendants in the value hierarchy) are also present.
-	// It lets the sub-reference filter count and select documents that are exactly this value.
-	//
-	// IsLeaf is a property of the whole document (computed across all of its claims for this
-	// property), so it is not the same as ToPath == ToFullPath (which holds for the record whose To is
-	// its own claim's stated value). The two diverge when a document states both a parent and a child
-	// directly: the parent's directly-stated record has ToPath == ToFullPath, but IsLeaf is false
-	// because the child (a narrower value) is also referenced, so the document is not exactly the
-	// parent. That is why IsLeaf is computed and stored separately, not derived from ToPath ==
-	// ToFullPath.
-	IsLeaf bool `json:"isLeaf,omitempty"`
+	ReferenceClaim
+
+	ParentProp identifier.Identifier `json:"parentProp"`
+	ParentTo   string                `json:"parentTo"`
 }
 
 // SubAmountClaim represents a denormalized nested amount sub-claim flattened
@@ -443,17 +414,10 @@ type SubRefClaim struct {
 // match without ES join queries. AmountInterval source claims are stored
 // here too as a range over their bounds.
 type SubAmountClaim struct {
-	ParentProp  identifier.Identifier  `json:"parentProp"`
-	ParentTo    string                 `json:"parentTo"`
-	Prop        identifier.Identifier  `json:"prop"`
-	PropDisplay map[string]string      `json:"propDisplay"`
-	PropNaming  map[string][]string    `json:"propNaming"`
-	Unit        *identifier.Identifier `json:"unit"`
-	Range       RangeFloat             `json:"range"`
-	From        *float64               `json:"from,omitempty"`
-	FromDisplay string                 `json:"fromDisplay,omitempty"`
-	To          *float64               `json:"to,omitempty"`
-	ToDisplay   string                 `json:"toDisplay,omitempty"`
+	AmountClaim
+
+	ParentProp identifier.Identifier `json:"parentProp"`
+	ParentTo   string                `json:"parentTo"`
 }
 
 // SubTimeClaim represents a denormalized nested time sub-claim flattened from
@@ -462,16 +426,10 @@ type SubAmountClaim struct {
 // a range over their bounds. Times are stored as float64 seconds since Unix
 // epoch.
 type SubTimeClaim struct {
-	ParentProp  identifier.Identifier `json:"parentProp"`
-	ParentTo    string                `json:"parentTo"`
-	Prop        identifier.Identifier `json:"prop"`
-	PropDisplay map[string]string     `json:"propDisplay"`
-	PropNaming  map[string][]string   `json:"propNaming"`
-	Range       RangeFloat            `json:"range"`
-	From        *float64              `json:"from,omitempty"`
-	FromDisplay string                `json:"fromDisplay,omitempty"`
-	To          *float64              `json:"to,omitempty"`
-	ToDisplay   string                `json:"toDisplay,omitempty"`
+	TimeClaim
+
+	ParentProp identifier.Identifier `json:"parentProp"`
+	ParentTo   string                `json:"parentTo"`
 }
 
 // SubHasClaim represents a denormalized nested has-only sub-claim flattened
@@ -481,9 +439,8 @@ type SubTimeClaim struct {
 // sub-claims contribute to the appropriate Sub* records of their content
 // types but do not themselves appear as SubHasClaim entries.
 type SubHasClaim struct {
-	ParentProp  identifier.Identifier `json:"parentProp"`
-	ParentTo    string                `json:"parentTo"`
-	Prop        identifier.Identifier `json:"prop"`
-	PropDisplay map[string]string     `json:"propDisplay"`
-	PropNaming  map[string][]string   `json:"propNaming"`
+	HasClaim
+
+	ParentProp identifier.Identifier `json:"parentProp"`
+	ParentTo   string                `json:"parentTo"`
 }

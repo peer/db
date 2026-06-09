@@ -3104,21 +3104,23 @@ func (c *Converter) convertSubRefs(
 	for _, pp := range parentProps {
 		for _, r := range resolved {
 			result = append(result, SubRefClaim{
-				ParentProp:  pp,
-				ParentTo:    parentTo,
-				Prop:        r.Prop,
-				PropDisplay: r.PropDisplay,
-				PropNaming:  r.PropNaming,
-				To:          r.To,
-				ToDisplay:   r.ToDisplay,
-				ToNaming:    r.ToNaming,
-				ToPath:      r.ToPath,
-				// Sub-references are not expanded to value-hierarchy ancestors, so each record's To is
-				// the stated sub-value and its full (leaf) path is its own ToPath.
-				ToFullPath:    r.ToPath,
-				ToDisplayPath: r.ToDisplayPath,
-				// Set by markReferenceLeaves once all of the document's sub-ref claims are collected.
-				IsLeaf: false,
+				ParentProp: pp,
+				ParentTo:   parentTo,
+				ReferenceClaim: ReferenceClaim{
+					Prop:        r.Prop,
+					PropDisplay: r.PropDisplay,
+					PropNaming:  r.PropNaming,
+					To:          r.To,
+					ToDisplay:   r.ToDisplay,
+					ToNaming:    r.ToNaming,
+					ToPath:      r.ToPath,
+					// Sub-references are not expanded to value-hierarchy ancestors, so each record's To is
+					// the stated sub-value and its full (leaf) path is its own ToPath.
+					ToFullPath:    r.ToPath,
+					ToDisplayPath: r.ToDisplayPath,
+					// Set by markReferenceLeaves once all of the document's sub-ref claims are collected.
+					IsLeaf: false,
+				},
 			})
 		}
 	}
@@ -3162,15 +3164,7 @@ func (c *Converter) convertSubAmounts(
 			result = append(result, SubAmountClaim{
 				ParentProp:  pp,
 				ParentTo:    parentTo,
-				Prop:        a.Prop,
-				PropDisplay: a.PropDisplay,
-				PropNaming:  a.PropNaming,
-				Unit:        a.Unit,
-				Range:       a.Range,
-				From:        a.From,
-				FromDisplay: a.FromDisplay,
-				To:          a.To,
-				ToDisplay:   a.ToDisplay,
+				AmountClaim: a,
 			})
 		}
 	}
@@ -3208,16 +3202,9 @@ func (c *Converter) convertSubTimes(
 	for _, pp := range parentProps {
 		for _, t := range indexed {
 			result = append(result, SubTimeClaim{
-				ParentProp:  pp,
-				ParentTo:    parentTo,
-				Prop:        t.Prop,
-				PropDisplay: t.PropDisplay,
-				PropNaming:  t.PropNaming,
-				Range:       t.Range,
-				From:        t.From,
-				FromDisplay: t.FromDisplay,
-				To:          t.To,
-				ToDisplay:   t.ToDisplay,
+				ParentProp: pp,
+				ParentTo:   parentTo,
+				TimeClaim:  t,
 			})
 		}
 	}
@@ -3268,11 +3255,13 @@ func (c *Converter) convertSubHas(
 	for _, pp := range parentProps {
 		for _, r := range resolved {
 			result = append(result, SubHasClaim{
-				ParentProp:  pp,
-				ParentTo:    parentTo,
-				Prop:        r.Prop,
-				PropDisplay: r.PropDisplay,
-				PropNaming:  r.PropNaming,
+				ParentProp: pp,
+				ParentTo:   parentTo,
+				HasClaim: HasClaim{
+					Prop:        r.Prop,
+					PropDisplay: r.PropDisplay,
+					PropNaming:  r.PropNaming,
+				},
 			})
 		}
 	}
