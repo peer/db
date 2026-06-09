@@ -170,7 +170,7 @@ func TestPrefilterExcludeFullPathsResolverError(t *testing.T) {
 	assert.Equal(t, filterID.String(), errors.Details(errE)["filter"])
 }
 
-// hierRefClaim builds one expanded reference record: the record for value `to` with its own toPath,
+// hierRefClaim builds one expanded reference record: the record for value to with its own toPath,
 // stamped with the stated leaf's toFullPath, as convertReference produces at index time.
 func hierRefClaim(prop, to identifier.Identifier, toPath, fullPath []string) internalSearch.ReferenceClaim {
 	return internalSearch.ReferenceClaim{
