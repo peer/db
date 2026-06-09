@@ -1,10 +1,12 @@
 package search_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -798,6 +800,90 @@ func TestBridgePerLevelReindexPresence(t *testing.T) {
 	// The source A is visible everywhere: present in both indexes with its forward relation.
 	assert.True(t, testutils.DocHasReference(ctx, t, esClient, indexEditor, docA, propX, docB), "docA should have the forward relation in the editor index")
 	assert.True(t, testutils.DocHasReference(ctx, t, esClient, indexPublic, docA, propX, docB), "docA should have the forward relation in the public index")
+}
+
+// syncBuffer is a goroutine-safe io.Writer used to capture the bridge's logs from its run goroutine.
+type syncBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (s *syncBuffer) Write(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	n, err := s.buf.Write(p)
+	return n, errors.WithStack(err)
+}
+
+func (s *syncBuffer) String() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.buf.String()
+}
+
+// TestBridgeReferenceTargetResolvesForCountsCheck guards the per-level routing of the reference-target check.
+// The converters are wired to b.GetDocument, as base.Start does in production, so this exercises the per-level
+// getDocument routing that the store-backed test converters bypass. A document A references an existing
+// document B. While accumulating A's change, the bridge resolves B through a level's converter to decide
+// whether it is ignored for counts.references. That lookup must run at a real visibility level: with no level
+// it matches no per-level index and fails for every target, spamming not-found warnings and poisoning the
+// converter's getDocument cache with a false negative (which then surfaces as spurious not-found warnings while
+// rendering documents that reference B). B is visible at every level, so the test asserts no not-found log names B.
+func TestBridgeReferenceTargetResolvesForCountsCheck(t *testing.T) {
+	t.Parallel()
+
+	ctx, env := setupBridge(t)
+	s, b := env.store, env.bridge
+
+	logs := &syncBuffer{}
+	ctx = zerolog.New(logs).WithContext(ctx)
+
+	docA := identifier.New()
+	docB := identifier.New()
+	relProp := identifier.New()
+
+	const lvlPublic, lvlEditor = "public", "editor"
+	indexPublic := internalSearch.LevelIndex(b.Index, lvlPublic)
+	indexEditor := internalSearch.LevelIndex(b.Index, lvlEditor)
+	for _, idx := range []string{indexPublic, indexEditor} {
+		errE := internalSearch.EnsureIndex(ctx, env.esClient, idx, 1, nil)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		t.Cleanup(func() {
+			_, err := env.esClient.Indices.Delete(idx).IgnoreUnavailable(true).Do(context.Background())
+			testutils.RequireNoESError(t, err)
+		})
+	}
+
+	// Insert both documents before the bridge starts, as PopulateAndStart does: the bridge then catches up
+	// both commits with both documents already present in the store. The referencing document A is committed
+	// before its target B, so when A's change is accumulated B has not been indexed yet and its documentInfo is
+	// not cached in the top converter. The reference-target check then resolves B through getDocument, which is
+	// where the missing visibility level fails (B exists in the store, so the lookup must succeed).
+	_, errE := s.Insert(ctx, docA, makeDocWithRelationJSON(t, docA, relProp, docB), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, docB, makeDocJSON(t, docB), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	newConv := func() *internalSearch.Converter {
+		c, errE := internalSearch.NewConverter(nil, nil, nil, nil, b.GetDocument)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		return c
+	}
+	startBridgeWithTargets(ctx, t, env, []internalSearch.Target{
+		{Level: lvlPublic, Index: indexPublic, Converter: newConv()},
+		{Level: lvlEditor, Index: indexEditor, Converter: newConv()},
+	})
+
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// docB exists and is visible at every level, so resolving it for the reference-target check must succeed.
+	for line := range strings.SplitSeq(strings.TrimSpace(logs.String()), "\n") {
+		if line == "" || !strings.Contains(line, docB.String()) {
+			continue
+		}
+		assert.NotContains(t, line, "not found", "reference-target check should resolve docB at its level, got log: %s", line)
+	}
 }
 
 func TestBridgeInverseRelationReindexing(t *testing.T) {

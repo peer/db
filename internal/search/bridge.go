@@ -1271,12 +1271,6 @@ func (b *Bridge) cacheLevels(id identifier.Identifier, version *store.Version, g
 	}
 }
 
-// topConverter returns the converter of the highest-visibility target, used for the visibility-independent
-// inverse-relation and reference-target computations.
-func (b *Bridge) topConverter() *Converter {
-	return b.targets[len(b.targets)-1].Converter
-}
-
 // genOf returns the current generation of the given document in documentCache, which is 0 until it is
 // first invalidated.
 func (b *Bridge) genOf(id identifier.Identifier) uint64 {
@@ -1414,17 +1408,23 @@ func (b *Bridge) outgoingRelationsAndTargets(
 }
 
 // collectChangedReferenceTargets adds to out every document that the changed document
-// started or stopped referencing (the symmetric difference of current and parent
-// reference targets), skipping targets ignored for counts.references.
+// started or stopped referencing at this level (the symmetric difference of current and parent
+// reference targets), skipping targets ignored for counts.references as seen at this level.
+//
+// c is the converter for the level whose reference sets (current/parent) are passed, and ctx must carry that
+// level's visibility. The ignored-for-counts decision is resolved through that level's converter, because the
+// document hooks may present a different schema per level (for example hiding a class), which can change
+// whether a target belongs to an ignored class, and thus whether it is counted, at that level. out is the
+// shared flat set across levels: a target is collected when it is not ignored at some level it changed in, and
+// its per-level counts.references is then recomputed from each level's own index at re-index time.
 func (b *Bridge) collectChangedReferenceTargets(
-	ctx context.Context, current, parent, out map[identifier.Identifier]bool,
+	ctx context.Context, c *Converter, current, parent, out map[identifier.Identifier]bool,
 ) errors.E {
-	converter := b.topConverter()
 	add := func(targetID identifier.Identifier) errors.E {
 		if out[targetID] {
 			return nil
 		}
-		ignored, errE := converter.ReferencesCountIgnored(ctx, targetID)
+		ignored, errE := c.ReferencesCountIgnored(ctx, targetID)
 		if errE != nil {
 			return errE
 		}
@@ -1503,11 +1503,13 @@ func (b *Bridge) accumulateChangeRelations(
 	}
 
 	for i, t := range b.targets {
+		ctxL := auth.WithVisibility(ctx, t.Level)
+
 		currentOutgoing := map[identifier.Identifier][]store.InverseRelation{}
 		currentRefTargets := map[identifier.Identifier]bool{}
 		if !deleted && docs[i] != nil {
 			var errE errors.E
-			currentOutgoing, currentRefTargets, errE = b.outgoingRelationsAndTargets(auth.WithVisibility(ctx, t.Level), t.Converter, docs[i])
+			currentOutgoing, currentRefTargets, errE = b.outgoingRelationsAndTargets(ctxL, t.Converter, docs[i])
 			if errE != nil {
 				return errE
 			}
@@ -1528,8 +1530,9 @@ func (b *Bridge) accumulateChangeRelations(
 		}
 
 		// A target's counts.references changes when this document starts or stops referencing it at this
-		// level. The per-level symmetric difference is merged into the one flat reference-target set.
-		errE := b.collectChangedReferenceTargets(ctx, currentRefTargets, parentRefTargets[i], referenceTargets)
+		// level. The per-level symmetric difference is merged into the one flat reference-target set, with the
+		// ignored-for-counts decision resolved through this level's converter at this level's visibility.
+		errE := b.collectChangedReferenceTargets(ctxL, t.Converter, currentRefTargets, parentRefTargets[i], referenceTargets)
 		if errE != nil {
 			return errE
 		}
