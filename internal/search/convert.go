@@ -3164,27 +3164,31 @@ func (c *Converter) convertSubRefs(
 	return result, nil
 }
 
-// convertSubAmounts extracts amount and amount-interval sub-claims from a
-// parent claim's sub-tree and produces SubAmountClaim entries for each
-// (parentProp, parentTo, sub-claim) combination. Source claims are passed
-// through convertAmount/convertAmountInterval so single-point and interval
-// values use the same indexed range shape as the top-level amounts.
-func (c *Converter) convertSubAmounts(
-	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,
-) ([]SubAmountClaim, errors.E) {
-	var indexed []AmountClaim
-	for _, ac := range document.GetAllClaimsOfTypeWithConfidence[document.AmountClaim](sub, document.LowConfidence) {
-		ic, errE := c.convertAmount(ctx, ac)
+// buildSubValueClaims denormalizes a parent claim's single-point and interval value sub-claims of one
+// kind (amounts or times) into Sub* records. points and intervals are the parent's already-collected
+// source claims, convertPoint and convertInterval index each source shape into the shared Indexed value
+// type, and wrap attaches a parentProp and parentTo to one indexed value. It returns nil when nothing is
+// indexed.
+func buildSubValueClaims[Point, Interval, Indexed, Out any](
+	ctx context.Context,
+	parentProps []identifier.Identifier,
+	parentTo string,
+	points []*Point,
+	intervals []*Interval,
+	convertPoint func(context.Context, *Point) ([]Indexed, errors.E),
+	convertInterval func(context.Context, *Interval) ([]Indexed, errors.E),
+	wrap func(parentProp identifier.Identifier, parentTo string, value Indexed) Out,
+) ([]Out, errors.E) {
+	var indexed []Indexed
+	for _, p := range points {
+		ic, errE := convertPoint(ctx, p)
 		if errE != nil {
 			return nil, errE
 		}
 		indexed = append(indexed, ic...)
 	}
-	for _, aic := range document.GetAllClaimsOfTypeWithConfidence[document.AmountIntervalClaim](sub, document.LowConfidence) {
-		// Sub-claims do not get a fallback UnknownClaim representation, and any
-		// nested sub-refs inside a sub-claim are not flattened a second level
-		// up. Discard the second and third return values.
-		ic, _, _, errE := c.convertAmountInterval(ctx, aic)
+	for _, iv := range intervals {
+		ic, errE := convertInterval(ctx, iv)
 		if errE != nil {
 			return nil, errE
 		}
@@ -3194,57 +3198,58 @@ func (c *Converter) convertSubAmounts(
 		return nil, nil
 	}
 
-	result := make([]SubAmountClaim, 0, len(parentProps)*len(indexed))
+	result := make([]Out, 0, len(parentProps)*len(indexed))
 	for _, pp := range parentProps {
-		for _, a := range indexed {
-			result = append(result, SubAmountClaim{
-				ParentProp:  pp,
-				ParentTo:    parentTo,
-				AmountClaim: a,
-			})
+		for _, v := range indexed {
+			result = append(result, wrap(pp, parentTo, v))
 		}
 	}
 	return result, nil
 }
 
-// convertSubTimes extracts time and time-interval sub-claims from a parent
-// claim's sub-tree and produces SubTimeClaim entries for each (parentProp,
-// parentTo, sub-claim) combination. Source claims are passed through
-// convertTime/convertTimeInterval for the same single-point-or-interval
-// range mapping the top-level times use.
+// convertSubAmounts extracts amount and amount-interval sub-claims from a parent claim's sub-tree and
+// produces SubAmountClaim entries for each (parentProp, parentTo, sub-claim) combination. Source claims
+// are passed through convertAmount/convertAmountInterval so single-point and interval values use the same
+// indexed range shape as the top-level amounts.
+func (c *Converter) convertSubAmounts(
+	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,
+) ([]SubAmountClaim, errors.E) {
+	return buildSubValueClaims(
+		ctx, parentProps, parentTo,
+		document.GetAllClaimsOfTypeWithConfidence[document.AmountClaim](sub, document.LowConfidence),
+		document.GetAllClaimsOfTypeWithConfidence[document.AmountIntervalClaim](sub, document.LowConfidence),
+		c.convertAmount,
+		func(ctx context.Context, aic *document.AmountIntervalClaim) ([]AmountClaim, errors.E) {
+			// Sub-claims do not carry the fallback UnknownClaim or nested sub-claims that convertAmountInterval also returns.
+			ic, _, _, errE := c.convertAmountInterval(ctx, aic)
+			return ic, errE
+		},
+		func(pp identifier.Identifier, parentTo string, a AmountClaim) SubAmountClaim {
+			return SubAmountClaim{ParentProp: pp, ParentTo: parentTo, AmountClaim: a}
+		},
+	)
+}
+
+// convertSubTimes extracts time and time-interval sub-claims from a parent claim's sub-tree and produces
+// SubTimeClaim entries for each (parentProp, parentTo, sub-claim) combination. Source claims are passed
+// through convertTime/convertTimeInterval for the same single-point-or-interval range mapping the
+// top-level times use.
 func (c *Converter) convertSubTimes(
 	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,
 ) ([]SubTimeClaim, errors.E) {
-	var indexed []TimeClaim
-	for _, tc := range document.GetAllClaimsOfTypeWithConfidence[document.TimeClaim](sub, document.LowConfidence) {
-		ic, errE := c.convertTime(ctx, tc)
-		if errE != nil {
-			return nil, errE
-		}
-		indexed = append(indexed, ic...)
-	}
-	for _, tic := range document.GetAllClaimsOfTypeWithConfidence[document.TimeIntervalClaim](sub, document.LowConfidence) {
-		ic, _, _, errE := c.convertTimeInterval(ctx, tic)
-		if errE != nil {
-			return nil, errE
-		}
-		indexed = append(indexed, ic...)
-	}
-	if len(indexed) == 0 {
-		return nil, nil
-	}
-
-	result := make([]SubTimeClaim, 0, len(parentProps)*len(indexed))
-	for _, pp := range parentProps {
-		for _, t := range indexed {
-			result = append(result, SubTimeClaim{
-				ParentProp: pp,
-				ParentTo:   parentTo,
-				TimeClaim:  t,
-			})
-		}
-	}
-	return result, nil
+	return buildSubValueClaims(
+		ctx, parentProps, parentTo,
+		document.GetAllClaimsOfTypeWithConfidence[document.TimeClaim](sub, document.LowConfidence),
+		document.GetAllClaimsOfTypeWithConfidence[document.TimeIntervalClaim](sub, document.LowConfidence),
+		c.convertTime,
+		func(ctx context.Context, tic *document.TimeIntervalClaim) ([]TimeClaim, errors.E) {
+			ic, _, _, errE := c.convertTimeInterval(ctx, tic)
+			return ic, errE
+		},
+		func(pp identifier.Identifier, parentTo string, t TimeClaim) SubTimeClaim {
+			return SubTimeClaim{ParentProp: pp, ParentTo: parentTo, TimeClaim: t}
+		},
+	)
 }
 
 // convertSubHas extracts simple has sub-claims (those with no further
@@ -3260,23 +3265,17 @@ func (c *Converter) convertSubHas(
 		return nil, nil
 	}
 
-	type resolvedSubHas struct {
-		Prop        identifier.Identifier
-		PropDisplay map[string]string
-		PropNaming  map[string][]string
-	}
-	resolved := make([]resolvedSubHas, 0, len(subHas))
+	resolved := make([]HasClaim, 0, len(subHas))
 	for _, hc := range subHas {
 		if hc.Sub != nil && hc.Sub.Size() > 0 {
 			continue
 		}
-		propIDs := c.propagateProp(hc.Prop.ID)
-		for _, pid := range propIDs {
+		for _, pid := range c.propagateProp(hc.Prop.ID) {
 			propDisplay, errE := c.getDisplayStrings(ctx, pid)
 			if errE != nil {
 				return nil, errE
 			}
-			resolved = append(resolved, resolvedSubHas{
+			resolved = append(resolved, HasClaim{
 				Prop:        pid,
 				PropDisplay: propDisplay.Display,
 				PropNaming:  propDisplay.Naming,
@@ -3293,11 +3292,7 @@ func (c *Converter) convertSubHas(
 			result = append(result, SubHasClaim{
 				ParentProp: pp,
 				ParentTo:   parentTo,
-				HasClaim: HasClaim{
-					Prop:        r.Prop,
-					PropDisplay: r.PropDisplay,
-					PropNaming:  r.PropNaming,
-				},
+				HasClaim:   r,
 			})
 		}
 	}
