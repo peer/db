@@ -157,9 +157,10 @@ var _ elastictransport.Logger = (*loggerAdapter)(nil)
 // GetClient creates and configures an Elasticsearch typed client with the specified HTTP client, logger, and URL.
 func GetClient(httpClient *http.Client, logger zerolog.Logger, url string) (*elasticsearch.TypedClient, errors.E) {
 	cfg := elasticsearch.Config{ //nolint:exhaustruct
-		Addresses: []string{strings.TrimSpace(url)},
-		Transport: httpClient.Transport,
-		Logger:    &loggerAdapter{logger},
+		Addresses:     []string{strings.TrimSpace(url)},
+		Transport:     httpClient.Transport,
+		Logger:        &loggerAdapter{logger},
+		AutoDrainBody: true,
 		// We do not enable discovery so that Docker setup is easier.
 		// TODO: Should enabling discovery be a CLI parameter?
 	}
