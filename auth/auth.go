@@ -154,12 +154,18 @@ func (b *baseAuthenticator) Authenticate(
 	// An authenticated caller's roles may raise it above that floor.
 	if level, found := visibilityForRoles(visibility, roles); found {
 		ctx = WithVisibility(ctx, level.Name)
+		// WithVisibility tags the context logger, so we here also tag the canonical logger.
+		waf.SetCanonicalLogField(ctx, "visibility", level.Name)
 	}
 	if !ok {
 		return ctx
 	}
 	ctx = WithSubject(ctx, subject)
+	// WithSubject tags the context logger, so we here also tag the canonical logger.
+	waf.SetCanonicalLogField(ctx, "subject", subject)
 	ctx = WithRoles(ctx, roles)
+	// WithRoles tags the context logger, so we here also tag the canonical logger.
+	waf.SetCanonicalLogField(ctx, "roles", roles)
 	b.writeRolesHeader(w, metadataHeaderPrefix, roles)
 	b.writeUserInfoHeader(ctx, w, metadataHeaderPrefix, subject, token)
 	// Authenticated responses carry per-user data, keep them out of

@@ -21,6 +21,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mohae/deepcopy"
 	"github.com/riverqueue/river"
+	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
@@ -329,6 +330,7 @@ func (b *B) documentsForLevel(ctx context.Context, level string, documents []Sta
 	}
 
 	ctx = auth.WithVisibility(ctx, level)
+	ctx = zerolog.Ctx(ctx).With().Str("index", internalSearch.LevelIndex(b.IndexPrefix, level)).Logger().WithContext(ctx)
 
 	for _, sd := range documents {
 		doc, _, _, _, errE := b.withDocumentHooks(ctx, sd.Document.ID, nil,

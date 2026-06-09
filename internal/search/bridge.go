@@ -188,6 +188,15 @@ type Target struct {
 	Converter *Converter
 }
 
+// levelContext returns ctx with this target's visibility level attached (which also tags the context logger
+// with the "visibility" field) and the per-level ElasticSearch index added to the context logger, so that
+// conversion and indexing logs emitted while processing this target identify both the visibility level and
+// the exact index they belong to.
+func (t Target) levelContext(ctx context.Context) context.Context {
+	ctx = auth.WithVisibility(ctx, t.Level)
+	return zerolog.Ctx(ctx).With().Str("index", t.Index).Logger().WithContext(ctx)
+}
+
 // documentCacheKey keys the bridge document cache by visibility level and document id.
 type documentCacheKey struct {
 	level string
@@ -1025,7 +1034,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 					convertFetchBefore := stats.FetchDuration
 					convertStart := time.Now()
 					gen := gens[i]
-					searchDoc, errE := t.Converter.FromDocument(auth.WithVisibility(ctx, t.Level), docs[i], &gen, metadata)
+					searchDoc, errE := t.Converter.FromDocument(t.levelContext(ctx), docs[i], &gen, metadata)
 					convertDuration += time.Since(convertStart) - (stats.FetchDuration - convertFetchBefore)
 					if errE != nil {
 						return nil, nil, nil, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
@@ -1218,7 +1227,7 @@ func (b *Bridge) produceLevels(
 	}
 	docs := make([]*document.D, len(b.targets))
 	for i, t := range b.targets {
-		ctxL := auth.WithVisibility(ctx, t.Level)
+		ctxL := t.levelContext(ctx)
 
 		// Run the document pre-hooks at this level's visibility. A level may deny access here, in which case
 		// the document is absent at that level (docs[i] stays nil). Any other error aborts the whole conversion.
@@ -1554,7 +1563,7 @@ func (b *Bridge) accumulateChangeRelations(
 			if parentDocs[i] == nil {
 				continue
 			}
-			po, pt, errE := b.outgoingRelationsAndTargets(auth.WithVisibility(ctx, t.Level), t.Converter, parentDocs[i])
+			po, pt, errE := b.outgoingRelationsAndTargets(t.levelContext(ctx), t.Converter, parentDocs[i])
 			if errE != nil {
 				return errE
 			}
@@ -1568,7 +1577,7 @@ func (b *Bridge) accumulateChangeRelations(
 	}
 
 	for i, t := range b.targets {
-		ctxL := auth.WithVisibility(ctx, t.Level)
+		ctxL := t.levelContext(ctx)
 
 		currentOutgoing := map[identifier.Identifier][]store.InverseRelation{}
 		currentRefTargets := map[identifier.Identifier]bool{}
@@ -2235,7 +2244,7 @@ func (b *Bridge) convertForReindex(ctx context.Context, docID identifier.Identif
 			continue
 		}
 		// TODO: Use also information about the view so that documents are searchable by view as well.
-		searchDoc, errE := t.Converter.FromDocument(auth.WithVisibility(ctx, t.Level), docs[i], &gens[i], metadata)
+		searchDoc, errE := t.Converter.FromDocument(t.levelContext(ctx), docs[i], &gens[i], metadata)
 		if errE != nil {
 			return nil, errE
 		}

@@ -3,6 +3,8 @@ package auth
 import (
 	"context"
 	"slices"
+
+	"github.com/rs/zerolog"
 )
 
 // contextKey is used as a value for context keys. Using a pointer keeps it
@@ -20,16 +22,19 @@ var rolesContextKey = &contextKey{"roles"} //nolint:gochecknoglobals
 // visibilityContextKey carries the caller's resolved visibility level.
 var visibilityContextKey = &contextKey{"visibility"} //nolint:gochecknoglobals
 
-// WithSubject returns ctx with the given subject attached. Called by the auth
-// middleware after token verification.
+// WithSubject returns ctx with the given subject attached, and adds a "subject" field with it to the
+// context logger so any log emitted through it identifies the caller. Called by the auth middleware after
+// token verification.
 func WithSubject(ctx context.Context, subject string) context.Context {
-	return context.WithValue(ctx, subjectContextKey, subject)
+	ctx = context.WithValue(ctx, subjectContextKey, subject)
+	return zerolog.Ctx(ctx).With().Str("subject", subject).Logger().WithContext(ctx)
 }
 
-// WithRoles returns ctx with the given roles attached. The slice is stored
-// as-is. Callers should not retain or mutate it after passing it in.
+// WithRoles returns ctx with the given roles attached, and adds a "roles" field with them to the context
+// logger. The slice is stored as-is. Callers should not retain or mutate it after passing it in.
 func WithRoles(ctx context.Context, roles []string) context.Context {
-	return context.WithValue(ctx, rolesContextKey, roles)
+	ctx = context.WithValue(ctx, rolesContextKey, roles)
+	return zerolog.Ctx(ctx).With().Strs("roles", roles).Logger().WithContext(ctx)
 }
 
 // Subject returns the verified subject from ctx, if any.
@@ -60,10 +65,12 @@ func HasRole(ctx context.Context, role string) bool {
 	return slices.Contains(Roles(ctx), role)
 }
 
-// WithVisibility returns ctx with the caller's resolved visibility level name
-// attached. Called by the auth middleware after roles are resolved.
+// WithVisibility returns ctx with the caller's resolved visibility level name attached, and adds a
+// "visibility" field with that level to the context logger so any log emitted through it identifies
+// the visibility level it ran at.
 func WithVisibility(ctx context.Context, level string) context.Context {
-	return context.WithValue(ctx, visibilityContextKey, level)
+	ctx = context.WithValue(ctx, visibilityContextKey, level)
+	return zerolog.Ctx(ctx).With().Str("visibility", level).Logger().WithContext(ctx)
 }
 
 // Visibility returns the caller's resolved visibility level name from ctx, or
