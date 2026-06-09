@@ -96,6 +96,12 @@ type B struct {
 	// which documents searches can see based on the caller. A nil query means no
 	// restriction. It is not applied to the corpus-wide ScoreFactor statistic or
 	// the internal reference-score count, which run without a caller.
+	//
+	// TODO: Gate search ranking to constant scores before returning a per-document (per-user) ACL filter here, to avoid leaking document existence through _score.
+	//       A filter returned here drops documents from the result set but not from the relevance-scoring collection
+	//       statistics (IDF and friends), so on a shared per-level index the _score of accessible hits leaks the existence of
+	//       inaccessible documents. See the term-statistics leak TODO in ResultsGet for the full mechanism, the avoid-list,
+	//       and the constant_score mitigation.
 	SearchQueryHook func(ctx context.Context) (types.QueryVariant, errors.E)
 
 	// RegisterWorkers are called in order to register workers for processing

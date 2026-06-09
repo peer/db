@@ -1033,6 +1033,37 @@ func ResultsGet(
 
 	query := searchData.ToQuery(enabledLanguages, extraFilters...)
 
+	// TODO: Add a constant-score search mode (feature flag) for per-document ACL filters, so they cannot leak document existence through _score term statistics.
+	//       Per-level indexes close the role/visibility side channels: each level's index computes IDF, term and document
+	//       frequencies, and aggregation statistics only over that level's documents. They cannot close it for a per-document
+	//       (per-user) ACL applied as a query-time filter (the SearchQueryHook threaded in here as extraFilters): a filter
+	//       clause drops documents from the result set but not from the collection statistics. BM25 _score mixes per-document
+	//       local stats (term frequency, field length) with collection-global stats (IDF, a function of how many documents in
+	//       the whole index contain the term), so the _score of accessible hits still encodes statistics over inaccessible
+	//       documents. A caller probing a rare term can read _score (or watch ranking shift across probes) and back out the
+	//       rough number of documents behind the ACL that contain it: statistical existence, not content. The Dfsquerythenfetch
+	//       below makes this exact rather than per-shard-noisy by summing document frequencies across shards. One index per
+	//       user is not possible (unbounded, ACLs change), so the inaccessible documents stay in the index, and the only fix
+	//       is to make nothing the caller observes depend on those statistics.
+	//
+	//       Avoid, whenever a per-document ACL filter can be active: exposing _score or ranking by it; the counts.score
+	//       field_value_factor boost below (it carries the same leak when counts.score spans inaccessible documents); More-Like-This
+	//       and significant_terms/significant_text (IDF-by-design, they select terms against the whole-index background, so
+	//       constant_score does not help and they must be kept off any surface where ACL-restricted and accessible documents share an
+	//       index); kNN/vector post-filtering (use a pre-filter, and build the embedding per level so a single global vector does not
+	//       leak stripped fields through embedding inversion).
+	//
+	//       Safe under a per-document ACL filter (post-filter or document-local, nothing to change): ordinary terms, histogram, and
+	//       cardinality facet counts; track_total_hits; highlighting on the matched document. Relevance scoring is the only place ES
+	//       reaches past the filter into collection-global statistics.
+	//
+	//       Implement the flag by dropping relevance ranking when a per-document ACL is active: wrap the matching query in
+	//       constant_score (every match scores the same), skip the counts.score function_score, do not expose _score (set
+	//       track_scores false), and order only by stable per-document keys (time, then displaySort) that do not depend on collection
+	//       statistics. Matching then reduces to a per-document boolean test and the order is independent of inaccessible documents,
+	//       so nothing observable leaks term statistics. A mapping-level alternative to constant_score is to give the text field the
+	//       boolean similarity (it scores on query boosts only, no TF/IDF). (Per-shard IDF noise is not a defense.)
+
 	// Multiplicatively boost ranking by the document's counts.score (its own claims
 	// plus the documents referencing it) so that, among equally relevant text
 	// matches, richer and more connected documents rank higher. factor is corpus-derived
