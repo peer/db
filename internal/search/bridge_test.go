@@ -727,6 +727,79 @@ func TestBridgePerLevelDocumentPresence(t *testing.T) {
 	assert.True(t, testutils.DocExists(ctx, t, env.esClient, indexEditor, docB.String()), "docB should be present in the editor index")
 }
 
+// TestBridgePerLevelReindexPresence covers the per-level reindex path (not the initial commit indexing). A
+// relation A --X--> B (with X inversePropertyOf Y) gives B an inverse relation B --Y--> A, which is added to B
+// through the reindex queue (a second pass over B after A's commit). B is denied at the public level, so the
+// reindex must keep B out of the public index while indexing it, with the inverse relation, into the editor
+// (top, unfiltered) index.
+func TestBridgePerLevelReindexPresence(t *testing.T) {
+	t.Parallel()
+
+	ctx, env := setupBridge(t)
+	s, b, esClient := env.store, env.bridge, env.esClient
+
+	propX := identifier.New()
+	propY := identifier.New()
+	docA := identifier.New()
+	docB := identifier.New()
+
+	const lvlPublic, lvlEditor = "public", "editor"
+
+	// The reindex target B is denied at the public level (like an opted-out document).
+	b.DocumentPostHooks = []func(
+		ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
+	) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E){
+		denyDocumentAtLevel(docB, lvlPublic),
+	}
+
+	indexPublic := internalSearch.LevelIndex(b.Index, lvlPublic)
+	indexEditor := internalSearch.LevelIndex(b.Index, lvlEditor)
+	for _, idx := range []string{indexPublic, indexEditor} {
+		errE := internalSearch.EnsureIndex(ctx, env.esClient, idx, 1, nil)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		t.Cleanup(func() {
+			_, err := env.esClient.Indices.Delete(idx).IgnoreUnavailable(true).Do(context.Background())
+			testutils.RequireNoESError(t, err)
+		})
+	}
+
+	startBridgeWithTargets(ctx, t, env, []internalSearch.Target{
+		{Level: lvlPublic, Index: indexPublic, Converter: makeConverterWithInverse(t, propX, propY, s)},
+		{Level: lvlEditor, Index: indexEditor, Converter: makeConverterWithInverse(t, propX, propY, s)},
+	})
+
+	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, docB, makeDocJSON(t, docB), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, docA, makeDocWithRelationJSON(t, docA, propX, docB), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The reindex of B (denied at public) keeps it out of the public index and indexes it, with the inverse
+	// relation rendered, into the editor index.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		for _, idx := range []string{indexPublic, indexEditor} {
+			_, err := esClient.Indices.Refresh().Index(idx).Do(ctx)
+			if !testutils.AssertNoESError(c, err) {
+				return
+			}
+		}
+		assert.True(c, testutils.DocHasReference(ctx, t, esClient, indexEditor, docB, propY, docA),
+			"docB should carry the inverse relation B --Y--> A in the editor index after reindex")
+		assert.False(c, testutils.DocExists(ctx, t, esClient, indexPublic, docB.String()),
+			"docB must stay absent from the public index after reindex (hidden there)")
+	}, 10*time.Second, 100*time.Millisecond)
+
+	// The source A is visible everywhere: present in both indexes with its forward relation.
+	assert.True(t, testutils.DocHasReference(ctx, t, esClient, indexEditor, docA, propX, docB), "docA should have the forward relation in the editor index")
+	assert.True(t, testutils.DocHasReference(ctx, t, esClient, indexPublic, docA, propX, docB), "docA should have the forward relation in the public index")
+}
+
 func TestBridgeInverseRelationReindexing(t *testing.T) {
 	t.Parallel()
 
