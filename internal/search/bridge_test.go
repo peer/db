@@ -591,6 +591,24 @@ func makeConverterWithInverse(
 	return c
 }
 
+// denyDocumentAtLevel returns a document post-hook that denies access to document id at the given visibility
+// level (modeling an opted-out document), passing every other document and level through unchanged.
+func denyDocumentAtLevel(id identifier.Identifier, level string) func(
+	ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
+) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
+	return func(
+		ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
+	) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
+		if errE != nil {
+			return doc, metadata, version, parentChangesets, errE
+		}
+		if doc != nil && doc.ID == id && auth.Visibility(ctx) == level {
+			return doc, metadata, version, parentChangesets, errors.WithStack(store.ErrAccessDenied)
+		}
+		return doc, metadata, version, parentChangesets, nil
+	}
+}
+
 // TestBridgePerLevelInverseRelations indexes a source document A (with a relation A --X--> B) into two
 // visibility levels, with a post-hook that denies A at the lower "public" level (so A is hidden there). The
 // inverse relation A produces on B must appear in B's metadata only for the unfiltered "editor" level, never
@@ -613,17 +631,7 @@ func TestBridgePerLevelInverseRelations(t *testing.T) {
 	b.DocumentPostHooks = []func(
 		ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
 	) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E){
-		func(
-			ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
-		) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
-			if errE != nil {
-				return doc, metadata, version, parentChangesets, errE
-			}
-			if doc != nil && doc.ID == docA && auth.Visibility(ctx) == lvlPublic {
-				return doc, metadata, version, parentChangesets, errors.WithStack(store.ErrAccessDenied)
-			}
-			return doc, metadata, version, parentChangesets, nil
-		},
+		denyDocumentAtLevel(docA, lvlPublic),
 	}
 
 	indexPublic := internalSearch.LevelIndex(b.Index, lvlPublic)
@@ -662,6 +670,61 @@ func TestBridgePerLevelInverseRelations(t *testing.T) {
 		assert.NotEmpty(c, metadata.InverseRelations[lvlEditor], "docB should have an inverse relation at the editor level")
 		assert.Empty(c, metadata.InverseRelations[lvlPublic], "docB must not have an inverse relation at the public level (source hidden there)")
 	}, 10*time.Second, 100*time.Millisecond)
+}
+
+func TestBridgePerLevelDocumentPresence(t *testing.T) {
+	t.Parallel()
+
+	ctx, env := setupBridge(t)
+	s, b := env.store, env.bridge
+
+	docA := identifier.New()
+	docB := identifier.New()
+
+	const lvlPublic, lvlEditor = "public", "editor"
+
+	// The post-hook denies document A at the public level (like an opted-out document). It must then be
+	// absent from the public index but present in the editor (top, unfiltered) index. Document B is visible
+	// at both levels and must be present in both indexes.
+	b.DocumentPostHooks = []func(
+		ctx context.Context, doc *document.D, metadata *store.DocumentMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
+	) (*document.D, *store.DocumentMetadata, store.Version, []store.Version, errors.E){
+		denyDocumentAtLevel(docA, lvlPublic),
+	}
+
+	indexPublic := internalSearch.LevelIndex(b.Index, lvlPublic)
+	indexEditor := internalSearch.LevelIndex(b.Index, lvlEditor)
+	for _, idx := range []string{indexPublic, indexEditor} {
+		errE := internalSearch.EnsureIndex(ctx, env.esClient, idx, 1, nil)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		t.Cleanup(func() {
+			_, err := env.esClient.Indices.Delete(idx).IgnoreUnavailable(true).Do(context.Background())
+			testutils.RequireNoESError(t, err)
+		})
+	}
+
+	startBridgeWithTargets(ctx, t, env, []internalSearch.Target{
+		{Level: lvlPublic, Index: indexPublic, Converter: newTestBridgeConverter(t)},
+		{Level: lvlEditor, Index: indexEditor, Converter: newTestBridgeConverter(t)},
+	})
+
+	_, errE := s.Insert(ctx, docA, makeDocJSON(t, docA), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, docB, makeDocJSON(t, docB), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = b.Refresh(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Document A is hidden at public: present only in the editor index.
+	assert.False(t, testutils.DocExists(ctx, t, env.esClient, indexPublic, docA.String()), "docA must be absent from the public index (hidden there)")
+	assert.True(t, testutils.DocExists(ctx, t, env.esClient, indexEditor, docA.String()), "docA should be present in the editor index")
+
+	// Document B is visible everywhere: present in both indexes.
+	assert.True(t, testutils.DocExists(ctx, t, env.esClient, indexPublic, docB.String()), "docB should be present in the public index")
+	assert.True(t, testutils.DocExists(ctx, t, env.esClient, indexEditor, docB.String()), "docB should be present in the editor index")
 }
 
 func TestBridgeInverseRelationReindexing(t *testing.T) {

@@ -1,6 +1,7 @@
 package site_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -8,6 +9,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/internal/site"
+	"gitlab.com/peerdb/peerdb/store"
 )
 
 func TestValidateVisibility(t *testing.T) {
@@ -127,4 +129,46 @@ func TestValidateVisibility(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestReadIndex(t *testing.T) {
+	t.Parallel()
+
+	s := &site.Site{}
+	s.Index = "myindex"
+
+	// A caller routes to the index for its resolved visibility level.
+	idx, errE := s.ReadIndex(auth.WithVisibility(context.Background(), "public"))
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "myindex_public", idx)
+
+	idx, errE = s.ReadIndex(auth.WithVisibility(context.Background(), "editor"))
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, "myindex_editor", idx)
+
+	// A caller with no visibility level is denied, so the read route returns 403 Forbidden.
+	_, errE = s.ReadIndex(context.Background())
+	require.Error(t, errE)
+	assert.ErrorIs(t, errE, store.ErrAccessDenied)
+}
+
+func TestLevelIndexes(t *testing.T) {
+	t.Parallel()
+
+	// The configured levels each map to their own index, from lowest to highest.
+	s := &site.Site{}
+	s.Index = "myindex"
+	s.Visibility = []auth.VisibilityLevel{
+		{Name: "public", Roles: nil},
+		{Name: "researcher", Roles: []string{"researcher"}},
+		{Name: "editor", Roles: []string{"editor"}},
+	}
+	assert.Equal(t, []string{"myindex_public", "myindex_researcher", "myindex_editor"}, s.LevelIndexes())
+	assert.Equal(t, "myindex_editor", s.TopIndex())
+
+	// A site that configures no levels defaults to a single "all" level that is both floor and top.
+	s = &site.Site{}
+	s.Index = "myindex"
+	assert.Equal(t, []string{"myindex_all"}, s.LevelIndexes())
+	assert.Equal(t, "myindex_all", s.TopIndex())
 }
