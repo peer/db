@@ -43,6 +43,25 @@ type ElasticConfig struct {
 	Shards      int    `default:"${defaultShards}"  help:"Number of ElasticSearch shards when initializing indices."         placeholder:"NUM"            yaml:"shards"`
 }
 
+// Customizer allows a consumer using PeerDB as a library to attach code at well-defined points of the
+// lifecycle, uniformly across all commands, so that commands cannot diverge in how sites are configured.
+// All hooks are optional. Set it on Globals in code before command-line parsing.
+type Customizer struct {
+	// SiteDefaults is called for every site after the configuration file and command-line flags have been
+	// applied and before the site is validated. It can fill defaults into fields the configuration left
+	// unset (the configuration can then override such fields) or overwrite fields unconditionally (such
+	// fields are fixed by code and the configuration cannot change them). It is also called for sites
+	// synthesized when none are configured (the default site and the domain/certificate-based sites),
+	// and can run more than once for the same site, so it must be idempotent and accept values it
+	// has set itself.
+	SiteDefaults func(site *Site) errors.E
+
+	// ConfigureBase is called for every site right after Init has populated site.Base and before the base
+	// is started, in every command which initializes the base. It is the place to register document, file,
+	// and indexing hooks on the base. It is called exactly once per site.
+	ConfigureBase func(site *Site) errors.E
+}
+
 // Globals describes top-level (global) flags.
 type Globals struct {
 	zerolog.LoggingConfig `yaml:",inline"`
@@ -54,6 +73,9 @@ type Globals struct {
 	Elastic  ElasticConfig  `embed:"" envprefix:"ELASTIC_"  prefix:"elastic."  yaml:"elastic"`
 
 	Sites []internalSite.Site `help:"Site configuration as JSON or YAML. Can be provided multiple times." name:"site" placeholder:"SITE" sep:"none" short:"s" yaml:"sites"`
+
+	// Customize is set in code by a consumer using PeerDB as a library. It is not part of the configuration.
+	Customize Customizer `json:"-" kong:"-" yaml:"-"`
 }
 
 // Validate validates the global configuration.
@@ -65,6 +87,16 @@ func (g *Globals) Validate() error {
 			errE := errors.New("domain is required for site")
 			errors.Details(errE)["site"] = i
 			return errE
+		}
+
+		// Consumer defaults run before validation, so that they see the raw configured state (e.g. an
+		// empty Visibility is still empty, not yet defaulted by validation) and so that the values they
+		// set are validated.
+		if g.Customize.SiteDefaults != nil {
+			errE := g.Customize.SiteDefaults(&site)
+			if errE != nil {
+				return errE
+			}
 		}
 
 		// To make sure validation is called.

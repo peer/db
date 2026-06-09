@@ -138,7 +138,10 @@ func (c *PopulateCommand) Run(globals *Globals) errors.E {
 
 	ctx = globals.Logger.WithContext(ctx)
 
-	InitSites(globals)
+	errE := InitSites(globals)
+	if errE != nil {
+		return errE
+	}
 
 	ctx, cancel := context.WithCancel(ctx)
 

@@ -176,6 +176,18 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 		}
 	}
 
+	// Apply consumer site defaults also to sites synthesized above from the domain or the certificates.
+	// Sites from the configuration already received them during configuration validation. SiteDefaults is
+	// idempotent so the repeated application is safe.
+	if globals.Customize.SiteDefaults != nil {
+		for i := range globals.Sites {
+			errE := globals.Customize.SiteDefaults(&globals.Sites[i])
+			if errE != nil {
+				return nil, nil, errE
+			}
+		}
+	}
+
 	onShutdown, errE := Init(ctx, globals)
 	if errE != nil {
 		return nil, onShutdown, errE

@@ -28,8 +28,12 @@ import (
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
-// InitSites sets up default site configuration and build information if needed.
-func InitSites(globals *Globals) {
+// InitSites sets up default site configuration and build information if needed. It also applies consumer
+// site defaults (through Customize.SiteDefaults) to every site: sites from the configuration already received
+// them during configuration validation, but the default site synthesized here did not, and callers which populate
+// Globals programmatically (without command-line parsing) get them here as well. SiteDefaults is idempotent,
+// so the repeated application is safe.
+func InitSites(globals *Globals) errors.E {
 	if len(globals.Sites) == 0 {
 		globals.Sites = []internalSite.Site{{
 			Site: waf.Site{
@@ -60,6 +64,15 @@ func InitSites(globals *Globals) {
 		}}
 	}
 
+	if globals.Customize.SiteDefaults != nil {
+		for i := range globals.Sites {
+			errE := globals.Customize.SiteDefaults(&globals.Sites[i])
+			if errE != nil {
+				return errE
+			}
+		}
+	}
+
 	// We set build information on sites.
 	if cli.Version != "" || cli.BuildTimestamp != "" || cli.Revision != "" {
 		for i := range globals.Sites {
@@ -71,6 +84,8 @@ func InitSites(globals *Globals) {
 			}
 		}
 	}
+
+	return nil
 }
 
 // startAndWaitSite starts the base for a site, runs optional beforeWait,
@@ -145,7 +160,10 @@ func (c *DBWaitCommand) Run(globals *Globals) errors.E {
 
 	ctx = globals.Logger.WithContext(ctx)
 
-	InitSites(globals)
+	errE := InitSites(globals)
+	if errE != nil {
+		return errE
+	}
 
 	ctx, cancel := context.WithCancel(ctx)
 
@@ -198,7 +216,10 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 
 	ctx = globals.Logger.WithContext(ctx)
 
-	InitSites(globals)
+	errE := InitSites(globals)
+	if errE != nil {
+		return errE
+	}
 
 	// When recreating the index, delete it before Init so that the base's EnsureIndex (run during
 	// startup) recreates it from the current mapping. The documents are then replayed from PostgreSQL
@@ -338,7 +359,10 @@ func (c *DBVacuumCommand) Run(globals *Globals) errors.E {
 
 	ctx = globals.Logger.WithContext(ctx)
 
-	InitSites(globals)
+	errE := InitSites(globals)
+	if errE != nil {
+		return errE
+	}
 
 	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
 	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).
@@ -402,7 +426,10 @@ func (c *DBExportCommand) Run(globals *Globals) (returnErr errors.E) { //nolint:
 
 	ctx = globals.Logger.WithContext(ctx)
 
-	InitSites(globals)
+	errE := InitSites(globals)
+	if errE != nil {
+		return errE
+	}
 
 	ctx, cancel := context.WithCancel(ctx)
 
@@ -512,7 +539,10 @@ func (c *DBWipeCommand) Run(globals *Globals) errors.E {
 
 	ctx = globals.Logger.WithContext(ctx)
 
-	InitSites(globals)
+	errE := InitSites(globals)
+	if errE != nil {
+		return errE
+	}
 
 	// We use context.WithoutCancel here because we want to cancel the pool ourselves and not when context
 	// is cancelled (so that cleanup code which needs PostgreSQL access can continue to use connections).

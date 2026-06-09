@@ -82,9 +82,21 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 	for i := range globals.Sites {
 		site := &globals.Sites[i]
 
+		// Init can be called multiple times and Prepare initializes a site only once. ConfigureBase must
+		// run exactly once per site (hooks must not be registered twice), so it runs only when Prepare
+		// populated the base now.
+		firstInit := site.Base == nil
+
 		errE := site.Prepare(ctx, globals.Logger, globals.WithContext, dbpool, esClient, globals.Elastic.Shards)
 		if errE != nil {
 			return onShutdownF, errE
+		}
+
+		if firstInit && globals.Customize.ConfigureBase != nil {
+			errE = globals.Customize.ConfigureBase(site)
+			if errE != nil {
+				return onShutdownF, errE
+			}
 		}
 	}
 
