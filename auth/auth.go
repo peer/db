@@ -115,13 +115,15 @@ type baseAuthenticator struct {
 }
 
 // Authenticate validates the caller's access token (Authorization Bearer
-// first, falling back to the session cookie) and, on success, returns
-// the request context enriched with subject, roles and the resolved
-// visibility level AND writes two response headers consumed by the frontend:
+// first, falling back to the session cookie). On success it returns the
+// request context enriched with subject, roles and the resolved visibility
+// level. It always writes two response headers consumed by the frontend,
+// empty when the request is unauthenticated:
 //
-//   - "<prefix>Roles": the role list as an SFV inner-list.
-//   - "<prefix>UserInfo": an SFV dictionary with subject (always) and
-//     username (when known).
+//   - "<prefix>Roles": the role list as an SFV inner-list (empty when the
+//     caller has no roles).
+//   - "<prefix>UserInfo": an SFV dictionary with subject (empty for an
+//     unauthenticated request) and username (when known).
 //
 // metadataHeaderPrefix should be the WAF service's MetadataHeaderPrefix so
 // the auth headers stack with the existing Metadata header pattern.
@@ -141,9 +143,16 @@ type baseAuthenticator struct {
 // Concurrent requests for the same subject coalesce into a single upstream
 // call to the issuer's userinfo endpoint (singleflight).
 //
-// On any validation failure no subject, roles or headers are set and the
-// request is treated as unauthenticated; only the no-roles floor visibility
-// level (if configured) is attached. Callers should continue handling.
+// On any validation failure the request is treated as unauthenticated: no
+// subject or roles are attached to the context (only the no-roles floor
+// visibility level, if configured), but the Roles and UserInfo headers are
+// still written empty (an empty role list and an empty subject). They are
+// emitted unconditionally, signed in or not, because a cacheable response
+// carries the auth state in these headers while its body is identical for
+// everyone. On a 304 revalidation the browser merges the response headers
+// over its stored copy and keeps any header the 304 omits, so always
+// emitting them lets a cached signed-in response self-correct to signed-out
+// instead of retaining a stale identity. Callers should continue handling.
 func (b *baseAuthenticator) Authenticate(
 	w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string][]string, visibility []VisibilityLevel,
 ) context.Context {
@@ -158,6 +167,10 @@ func (b *baseAuthenticator) Authenticate(
 		waf.SetCanonicalLogField(ctx, "visibility", level.Name)
 	}
 	if !ok {
+		// Emit empty Roles and UserInfo headers for an unauthenticated request so
+		// a cached signed-in response self-corrects on revalidation.
+		b.writeRolesHeader(w, metadataHeaderPrefix, nil)
+		b.writeUserInfoHeader(ctx, w, metadataHeaderPrefix, "", "")
 		return ctx
 	}
 	ctx = WithSubject(ctx, subject)
@@ -217,15 +230,12 @@ func (b *baseAuthenticator) authenticatedIdentity(
 	return claims.Subject, roles, token, true
 }
 
-// writeRolesHeader emits the Roles response header as an SFV list of
-// strings (one entry per role). Empty role sets do not emit a header.
-// The frontend should use the presence of the UserInfo header (always
-// set when authenticated) to tell "unauthenticated" from "signed in" and not
-// Roles header.
+// writeRolesHeader emits the Roles response header as an SFV list of strings
+// (one entry per role). It is written for every request, an empty list when
+// the caller has no roles, so a 304 revalidation merges over and replaces a
+// stale Roles header rather than keeping it. The frontend tells "signed in"
+// from "unauthenticated" by the UserInfo subject, not by this header.
 func (b *baseAuthenticator) writeRolesHeader(w http.ResponseWriter, prefix string, roles []string) {
-	if len(roles) == 0 {
-		return
-	}
 	list := make([]any, len(roles))
 	for i, r := range roles {
 		list[i] = r
@@ -238,20 +248,24 @@ func (b *baseAuthenticator) writeRolesHeader(w http.ResponseWriter, prefix strin
 	w.Header().Add(prefix+rolesHeader, buf.String())
 }
 
-// writeUserInfoHeader emits the UserInfo response header, falling back to
-// a subject-only payload when the upstream userinfo lookup fails or has not
-// yet populated the cache. Subject is guaranteed to be present so the
-// frontend can always learn the identity of the signed-in user, even when
-// the issuer is unreachable.
+// writeUserInfoHeader emits the UserInfo response header as an SFV dictionary.
+// For an authenticated caller (non-empty subject) it carries the subject plus
+// the username from the userinfo cache, falling back to a subject-only payload
+// when the upstream lookup fails or has not yet populated the cache, so the
+// frontend can always learn the identity even when the issuer is unreachable.
+// For an unauthenticated caller (empty subject) it emits subject="" with no
+// upstream lookup; the header is still written so a 304 revalidation replaces
+// a stale signed-in UserInfo rather than keeping it.
 func (b *baseAuthenticator) writeUserInfoHeader(ctx context.Context, w http.ResponseWriter, prefix, subject, token string) {
-	info, _ := b.userInfoCache.Get(ctx, subject, token)
-	if info.Subject == "" {
-		info.Subject = subject
-	}
-
-	metadata := map[string]any{"subject": info.Subject}
-	if info.Username != "" {
-		metadata["username"] = info.Username
+	metadata := map[string]any{"subject": subject}
+	if subject != "" {
+		info, _ := b.userInfoCache.Get(ctx, subject, token)
+		if info.Subject != "" {
+			metadata["subject"] = info.Subject
+		}
+		if info.Username != "" {
+			metadata["username"] = info.Username
+		}
 	}
 
 	buf := &bytes.Buffer{}

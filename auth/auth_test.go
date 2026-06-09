@@ -259,8 +259,11 @@ func TestAuthenticateSilentlyDropsBadToken(t *testing.T) {
 			_, ok := auth.Subject(ctx)
 			assert.False(t, ok)
 			assert.Empty(t, auth.Roles(ctx))
+			// An unauthenticated request still emits empty auth headers (an empty
+			// Roles list and a UserInfo with an empty subject) so a cached
+			// signed-in response self-corrects on revalidation.
 			assert.Empty(t, w.Header().Get("Roles"))
-			assert.Empty(t, w.Header().Get("Userinfo"))
+			assert.Equal(t, `subject=""`, w.Header().Get("Userinfo"))
 		})
 	}
 }
@@ -422,7 +425,12 @@ func TestAuthenticateValidatesCookieToken(t *testing.T) {
 	assert.Contains(t, userInfoHeader, `subject="user-cookie"`)
 }
 
-func TestAuthenticateSkipsHeadersForAnonymousRequest(t *testing.T) {
+// TestAuthenticateEmitsEmptyHeadersForAnonymousRequest covers the always-emit
+// behaviour: an unauthenticated request still gets the Roles and UserInfo
+// headers, empty (an empty Roles list and a UserInfo with an empty subject),
+// so a cached signed-in response self-corrects through the 304 header
+// merge on revalidation rather than retaining a stale identity.
+func TestAuthenticateEmitsEmptyHeadersForAnonymousRequest(t *testing.T) {
 	t.Parallel()
 
 	authenticator, _, _ := newTestAuthenticator(t)
@@ -433,8 +441,10 @@ func TestAuthenticateSkipsHeadersForAnonymousRequest(t *testing.T) {
 	ctx := authenticator.Authenticate(w, req, "", nil, nil)
 	_, ok := auth.Subject(ctx)
 	assert.False(t, ok)
+	// Both headers are present but empty.
+	require.Len(t, w.Header().Values("Roles"), 1)
 	assert.Empty(t, w.Header().Get("Roles"))
-	assert.Empty(t, w.Header().Get("Userinfo"))
+	assert.Equal(t, `subject=""`, w.Header().Get("Userinfo"))
 }
 
 // TestAuthenticateDropsRolesNotInAllowedSet covers the allowlist behaviour:
@@ -649,7 +659,8 @@ func TestMockAuthenticatorIsolatesPerSite(t *testing.T) {
 
 	// Site B sees the token but its tokenVerifier expects a different
 	// issuer/audience and a different signing key, so the request is
-	// treated as unauthenticated: no subject, no roles, no UserInfo header.
+	// treated as unauthenticated: no subject, no roles, and an empty
+	// UserInfo header (subject="").
 	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/whatever", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenA)
 	w := httptest.NewRecorder()
@@ -659,7 +670,7 @@ func TestMockAuthenticatorIsolatesPerSite(t *testing.T) {
 	_, ok := auth.Subject(ctx)
 	assert.False(t, ok)
 	assert.Empty(t, auth.Roles(ctx))
-	assert.Empty(t, w.Header().Get("Userinfo"))
+	assert.Equal(t, `subject=""`, w.Header().Get("Userinfo"))
 }
 
 // TestSignOutRevokesToken covers the end-to-end revocation path: a
@@ -709,7 +720,7 @@ func TestSignOutRevokesToken(t *testing.T) {
 		_, ok := auth.Subject(authCtx)
 		assert.False(t, ok, "Authenticate should reject the revoked token")
 		assert.Empty(t, auth.Roles(authCtx))
-		assert.Empty(t, w.Header().Get("Userinfo"))
+		assert.Equal(t, `subject=""`, w.Header().Get("Userinfo"))
 	}
 }
 
