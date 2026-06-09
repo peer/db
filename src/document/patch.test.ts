@@ -592,4 +592,38 @@ describe("interval patch Apply clears markers when a value is set", () => {
     assert.equal(claim.fromPrecision, 1)
     assert.equal(claim.fromIsUnknown, false)
   })
+
+  test("TimeIntervalClaimPatch switching toIsUnknown to toIsNone clears toIsUnknown", async () => {
+    const claim = new TimeIntervalClaim({
+      id: Identifier.new().toString(),
+      confidence: 1.0,
+      prop: { id: Identifier.new().toString() },
+      from: "1984",
+      fromPrecision: "y",
+      toIsUnknown: true,
+    })
+
+    await new TimeIntervalClaimPatch({ type: "timeInterval", toIsNone: true }).Apply(claim)
+    assert.equal(claim.toIsNone, true)
+    assert.equal(claim.toIsUnknown, false)
+  })
+
+  test("AmountIntervalClaimPatch switching toIsOpen to toIsUnknown clears toIsOpen and value", async () => {
+    const claim = new AmountIntervalClaim({
+      id: Identifier.new().toString(),
+      confidence: 1.0,
+      prop: { id: Identifier.new().toString() },
+      from: "1.5",
+      fromPrecision: 0.1,
+      to: "9.5",
+      toPrecision: 0.1,
+      toIsOpen: true,
+    })
+
+    await new AmountIntervalClaimPatch({ type: "amountInterval", toIsUnknown: true }).Apply(claim)
+    assert.equal(claim.toIsUnknown, true)
+    assert.equal(claim.toIsOpen, false)
+    assert.equal(claim.to, undefined)
+    assert.equal(claim.toPrecision, undefined)
+  })
 })

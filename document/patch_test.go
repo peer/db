@@ -269,6 +269,63 @@ func TestIntervalClaimPatchApplyClearsMarkers(t *testing.T) {
 		require.NotNil(t, c.From)
 		assert.Equal(t, from, *c.From)
 	})
+
+	// Switching a bound directly from one marker to another must clear the previous
+	// marker. The three markers (IsOpen, IsUnknown, IsNone) are mutually exclusive, so
+	// leaving a stale one set fails validation just like the value-plus-marker case.
+	t.Run("TimeInterval/UnknownToNone", func(t *testing.T) {
+		t.Parallel()
+
+		from := document.Time("1984")
+		yearPrec := document.TimePrecisionYear
+		c := &document.TimeIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+			Prop:          document.Reference{ID: identifier.New()},
+			From:          &from,
+			FromPrecision: &yearPrec,
+			ToIsUnknown:   true,
+		}
+		require.NoError(t, c.Validate(), "% -+#.1v", c.Validate())
+
+		isNone := true
+		applyPatch := document.TimeIntervalClaimPatch{
+			ToIsNone: &isNone,
+		}
+		errE := applyPatch.Apply(c)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.True(t, c.ToIsNone)
+		assert.False(t, c.ToIsUnknown)
+	})
+
+	t.Run("AmountInterval/OpenToUnknown", func(t *testing.T) {
+		t.Parallel()
+
+		from := document.Amount("1.5")
+		fromPrecision := 0.1
+		to := document.Amount("9.5")
+		toPrecision := 0.1
+		c := &document.AmountIntervalClaim{ //nolint:exhaustruct
+			CoreClaim:     document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
+			Prop:          document.Reference{ID: identifier.New()},
+			From:          &from,
+			FromPrecision: &fromPrecision,
+			To:            &to,
+			ToPrecision:   &toPrecision,
+			ToIsOpen:      true,
+		}
+		require.NoError(t, c.Validate(), "% -+#.1v", c.Validate())
+
+		isUnknown := true
+		applyPatch := document.AmountIntervalClaimPatch{
+			ToIsUnknown: &isUnknown,
+		}
+		errE := applyPatch.Apply(c)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.True(t, c.ToIsUnknown)
+		assert.False(t, c.ToIsOpen)
+		assert.Nil(t, c.To)
+		assert.Nil(t, c.ToPrecision)
+	})
 }
 
 func TestAmountClaimValidate(t *testing.T) {
