@@ -152,9 +152,12 @@ func parseMultiTermsBuckets(buckets []types.MultiTermsBucket) ([]FilterResult, e
 }
 
 // FiltersGet retrieves all available filters for the current search.
+// excludes drops, from the ref and subRef discovery aggregations, records a prefilter makes redundant
+// (those derived from a prefilter value), so a facet whose only values come from the prefilter's own
+// value hierarchy is left empty and therefore skipped.
 func FiltersGet( //nolint:maintidx
 	ctx context.Context, getSearchService func() *esSearch.Search, searchSession *Session, enabledLanguages []string,
-	extraFilters ...types.QueryVariant,
+	excludes PrefilterExcludes, extraFilters ...types.QueryVariant,
 ) ([]FilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
@@ -165,15 +168,19 @@ func FiltersGet( //nolint:maintidx
 	query := searchSession.ToQuery(enabledLanguages, extraFilters...)
 
 	searchService := getSearchService()
+	// The "scoped" filter drops records a prefilter makes redundant before the prop terms and total are
+	// computed, so a property whose only ref records come from a prefilter value disappears from discovery.
 	refAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.ref")).
-		AddAggregation("props", esdsl.NewAggregations().
-			Terms(esdsl.NewTermsAggregation().Field("claims.ref.prop").Size(MaxResultsCount).
-				Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
-			AddAggregation("docs", esdsl.NewAggregations().
-				ReverseNested(esdsl.NewReverseNestedAggregation()))).
-		AddAggregation("total", esdsl.NewAggregations().
-			Cardinality(esdsl.NewCardinalityAggregation().Field("claims.ref.prop").PrecisionThreshold(maxPrecisionThreshold)))
+		AddAggregation("scoped", esdsl.NewAggregations().
+			Filter(excludes.refDiscoveryFilter()).
+			AddAggregation("props", esdsl.NewAggregations().
+				Terms(esdsl.NewTermsAggregation().Field("claims.ref.prop").Size(MaxResultsCount).
+					Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
+				AddAggregation("docs", esdsl.NewAggregations().
+					ReverseNested(esdsl.NewReverseNestedAggregation()))).
+			AddAggregation("total", esdsl.NewAggregations().
+				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.ref.prop").PrecisionThreshold(maxPrecisionThreshold))))
 	amountAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.amount")).
 		AddAggregation("props", esdsl.NewAggregations().
@@ -214,19 +221,21 @@ func FiltersGet( //nolint:maintidx
 	// SubRef aggregation discovers available (parentProp, prop) combinations across all sub-references.
 	subRefAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.subRef")).
-		AddAggregation("props", esdsl.NewAggregations().
-			MultiTerms(esdsl.NewMultiTermsAggregation().Terms(
-				esdsl.NewMultiTermLookup().Field("claims.subRef.parentProp"),
-				esdsl.NewMultiTermLookup().Field("claims.subRef.prop"),
-			).Size(MaxResultsCount).Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
-			AddAggregation("docs", esdsl.NewAggregations().
-				ReverseNested(esdsl.NewReverseNestedAggregation()))).
-		AddAggregation("total", esdsl.NewAggregations().
-			Cardinality(esdsl.NewCardinalityAggregation().Script(
-				esdsl.NewScript().Source(esdsl.NewScriptSource().String(
-					`return doc['claims.subRef.parentProp'].value + '|' + doc['claims.subRef.prop'].value`,
-				)),
-			).PrecisionThreshold(maxPrecisionThreshold)))
+		AddAggregation("scoped", esdsl.NewAggregations().
+			Filter(excludes.subRefDiscoveryFilter()).
+			AddAggregation("props", esdsl.NewAggregations().
+				MultiTerms(esdsl.NewMultiTermsAggregation().Terms(
+					esdsl.NewMultiTermLookup().Field("claims.subRef.parentProp"),
+					esdsl.NewMultiTermLookup().Field("claims.subRef.prop"),
+				).Size(MaxResultsCount).Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
+				AddAggregation("docs", esdsl.NewAggregations().
+					ReverseNested(esdsl.NewReverseNestedAggregation()))).
+			AddAggregation("total", esdsl.NewAggregations().
+				Cardinality(esdsl.NewCardinalityAggregation().Script(
+					esdsl.NewScript().Source(esdsl.NewScriptSource().String(
+						`return doc['claims.subRef.parentProp'].value + '|' + doc['claims.subRef.prop'].value`,
+					)),
+				).PrecisionThreshold(maxPrecisionThreshold))))
 	// SubAmount aggregation discovers available (parentProp, prop, unit) combinations
 	// across all sub-amounts. Units are document IDs, so "__missing__" is safe as the
 	// missing-unit placeholder.
@@ -382,7 +391,11 @@ func FiltersGet( //nolint:maintidx
 	if errE != nil {
 		return nil, nil, errE
 	}
-	refTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](refNested.Aggregations, "props")
+	refScoped, errE := internalSearch.AggAs[types.FilterAggregate](refNested.Aggregations, "scoped")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	refTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](refScoped.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -392,7 +405,7 @@ func FiltersGet( //nolint:maintidx
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", refTerms.Buckets)
 		return nil, nil, errE
 	}
-	refTotal, errE := internalSearch.AggAs[types.CardinalityAggregate](refNested.Aggregations, "total")
+	refTotal, errE := internalSearch.AggAs[types.CardinalityAggregate](refScoped.Aggregations, "total")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -449,7 +462,11 @@ func FiltersGet( //nolint:maintidx
 	if errE != nil {
 		return nil, nil, errE
 	}
-	subRefTerms, errE := internalSearch.AggAs[types.MultiTermsAggregate](subRefNested.Aggregations, "props")
+	subRefScoped, errE := internalSearch.AggAs[types.FilterAggregate](subRefNested.Aggregations, "scoped")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	subRefTerms, errE := internalSearch.AggAs[types.MultiTermsAggregate](subRefScoped.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -459,7 +476,7 @@ func FiltersGet( //nolint:maintidx
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", subRefTerms.Buckets)
 		return nil, nil, errE
 	}
-	subRefTotal, errE := internalSearch.AggAs[types.CardinalityAggregate](subRefNested.Aggregations, "total")
+	subRefTotal, errE := internalSearch.AggAs[types.CardinalityAggregate](subRefScoped.Aggregations, "total")
 	if errE != nil {
 		return nil, nil, errE
 	}

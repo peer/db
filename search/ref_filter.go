@@ -226,42 +226,60 @@ func compareRefFilterResults(a, b RefFilterResult) int {
 	return cmp.Compare(refFilterDepth(a), refFilterDepth(b))
 }
 
-// Get retrieves reference filter data for search results.
-func (f *RefFilter) Get(
-	ctx context.Context, getSearchService func() *esSearch.Search,
-	query types.QueryVariant, prop identifier.Identifier,
-) ([]RefFilterResult, map[string]any, errors.E) {
-	metrics, _ := waf.GetMetrics(ctx)
-
-	searchService := getSearchService()
-
-	// Aggregation for documents that have the property: terms on claims.ref.to.
-	// The "paths" sub-aggregation extracts the indexed hierarchy paths for each
-	// value so the frontend can render filter results as a tree. Within a single
-	// claims.ref.to bucket all nested ref records share the same toPath array
-	// (it is computed from the target value, not the source doc), so a terms
-	// aggregation on claims.ref.toPath effectively returns that value's path set.
-	// Size 100 caps the distinct path strings per filter value, which only matters
-	// for diamond or multi-hierarchy values.
-	refAggregation := esdsl.NewAggregations().
-		Nested(esdsl.NewNestedAggregation().Path("claims.ref")).
+// valueAggregation builds the value-count aggregation shared by the reference and sub-reference filters.
+// field is the nested path ("claims.ref" or "claims.subRef") and filterQuery scopes the records counted
+// (the property match plus any prefilter toFullPath exclusion). It produces one "to" bucket per value,
+// each carrying the document count ("docs"), the most-specific/leaf document count ("direct"), and the
+// value's hierarchy paths ("paths"), plus a cardinality "total" of distinct values.
+//
+// The "paths" sub-aggregation extracts the indexed hierarchy paths for each value so the frontend can
+// render filter results as a tree. Within a single <field>.to bucket all nested records share the same
+// toPath array (it is computed from the target value, not the source doc), so a terms aggregation on
+// <field>.toPath effectively returns that value's path set. Size 100 caps the distinct path strings per
+// filter value, which only matters for diamond or multi-hierarchy values.
+func valueAggregation(field string, filterQuery types.QueryVariant) types.AggregationsVariant { //nolint:ireturn
+	return esdsl.NewAggregations().
+		Nested(esdsl.NewNestedAggregation().Path(field)).
 		AddAggregation("filter", esdsl.NewAggregations().
-			Filter(esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String()))).
+			Filter(filterQuery).
 			AddAggregation("props", esdsl.NewAggregations().
-				Terms(esdsl.NewTermsAggregation().Field("claims.ref.to").Size(MaxResultsCount).
+				Terms(esdsl.NewTermsAggregation().Field(field+".to").Size(MaxResultsCount).
 					Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
 				AddAggregation("docs", esdsl.NewAggregations().
 					ReverseNested(esdsl.NewReverseNestedAggregation())).
 				// "direct" counts the documents for which this value is most-specific (a leaf):
 				// they reference the value but none of its narrower values.
 				AddAggregation("direct", esdsl.NewAggregations().
-					Filter(esdsl.NewTermQuery("claims.ref.isLeaf", esdsl.NewFieldValue().Bool(true))).
+					Filter(esdsl.NewTermQuery(field+".isLeaf", esdsl.NewFieldValue().Bool(true))).
 					AddAggregation("docs", esdsl.NewAggregations().
 						ReverseNested(esdsl.NewReverseNestedAggregation()))).
 				AddAggregation("paths", esdsl.NewAggregations().
-					Terms(esdsl.NewTermsAggregation().Field("claims.ref.toPath").Size(100)))). //nolint:mnd
+					Terms(esdsl.NewTermsAggregation().Field(field+".toPath").Size(100)))). //nolint:mnd
 			AddAggregation("total", esdsl.NewAggregations().
-				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.ref.to").PrecisionThreshold(maxPrecisionThreshold))))
+				Cardinality(esdsl.NewCardinalityAggregation().Field(field+".to").PrecisionThreshold(maxPrecisionThreshold))))
+}
+
+// Get retrieves reference filter data for search results.
+//
+// excludeFullPaths, when non-empty, are claims.subRef.toFullPath values to control values dropped from
+// the value aggregation: records derived from a prefilter value so the facet does not re-count the
+// prefilter's own value hierarchy.
+func (f *RefFilter) Get(
+	ctx context.Context, getSearchService func() *esSearch.Search,
+	query types.QueryVariant, prop identifier.Identifier, excludeFullPaths []string,
+) ([]RefFilterResult, map[string]any, errors.E) {
+	metrics, _ := waf.GetMetrics(ctx)
+
+	searchService := getSearchService()
+
+	// The value aggregation is scoped to records for this property. When a prefilter on this property is
+	// active, also drop the records derived from its value so ancestor buckets are not re-counted.
+	refFilterQuery := esdsl.NewBoolQuery().Must(esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String())))
+	if len(excludeFullPaths) > 0 {
+		refFilterQuery = refFilterQuery.MustNot(toFullPathTermsQuery("claims.ref", excludeFullPaths))
+	}
+
+	refAggregation := valueAggregation("claims.ref", refFilterQuery)
 
 	// Aggregation for documents missing the property: count documents where the prop does not exist.
 	missingAggregation := esdsl.NewAggregations().
@@ -430,10 +448,14 @@ func (f *RefFilter) ToSubRefQuery(parentProp, prop identifier.Identifier, parent
 // GetSubRef retrieves sub-reference filter data for search results.
 // It aggregates claims.subRef.to values for a given (parentProp, prop) combination.
 // parentToRestrictions optionally restricts results to specific parentTo values (for cross-filtering).
+//
+// excludeFullPaths, when non-empty, are claims.subRef.toFullPath values to control values dropped from
+// the value aggregation: records derived from a prefilter value so the facet does not re-count the
+// prefilter's own value hierarchy.
 func (f *RefFilter) GetSubRef(
 	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, parentProp, prop identifier.Identifier,
-	parentToRestrictions []identifier.Identifier,
+	parentToRestrictions []identifier.Identifier, excludeFullPaths []string,
 ) ([]RefFilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
@@ -451,30 +473,14 @@ func (f *RefFilter) GetSubRef(
 		}
 		filterMusts = append(filterMusts, esdsl.NewBoolQuery().Should(parentToShoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)))
 	}
+	// When a prefilter on this (parentProp, prop) is active, drop the records derived from its value so
+	// ancestor buckets are not re-counted.
+	subRefFilterQuery := esdsl.NewBoolQuery().Must(filterMusts...)
+	if len(excludeFullPaths) > 0 {
+		subRefFilterQuery = subRefFilterQuery.MustNot(toFullPathTermsQuery("claims.subRef", excludeFullPaths))
+	}
 
-	// Aggregation for documents that have matching subRef: terms on claims.subRef.to.
-	// The "paths" sub-aggregation extracts the indexed hierarchy paths for each
-	// value so the frontend can render filter results as a tree. See RefFilter.Get
-	// for the rationale and parsing rules.
-	subRefAggregation := esdsl.NewAggregations().
-		Nested(esdsl.NewNestedAggregation().Path("claims.subRef")).
-		AddAggregation("filter", esdsl.NewAggregations().
-			Filter(esdsl.NewBoolQuery().Must(filterMusts...)).
-			AddAggregation("props", esdsl.NewAggregations().
-				Terms(esdsl.NewTermsAggregation().Field("claims.subRef.to").Size(MaxResultsCount).
-					Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
-				AddAggregation("docs", esdsl.NewAggregations().
-					ReverseNested(esdsl.NewReverseNestedAggregation())).
-				// "direct" counts the documents for which this value is most-specific (a leaf):
-				// they reference the value but none of its narrower values.
-				AddAggregation("direct", esdsl.NewAggregations().
-					Filter(esdsl.NewTermQuery("claims.subRef.isLeaf", esdsl.NewFieldValue().Bool(true))).
-					AddAggregation("docs", esdsl.NewAggregations().
-						ReverseNested(esdsl.NewReverseNestedAggregation()))).
-				AddAggregation("paths", esdsl.NewAggregations().
-					Terms(esdsl.NewTermsAggregation().Field("claims.subRef.toPath").Size(100)))). //nolint:mnd
-			AddAggregation("total", esdsl.NewAggregations().
-				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.subRef.to").PrecisionThreshold(maxPrecisionThreshold))))
+	subRefAggregation := valueAggregation("claims.subRef", subRefFilterQuery)
 
 	// Aggregation for documents missing this sub-reference.
 	missingAggregation := esdsl.NewAggregations().

@@ -83,6 +83,12 @@ func sessionQueryExcluding(ctx context.Context, session *search.Session, exclude
 	return session.ToQueryExcluding(excludeFilterID, enabledSearchLanguages(ctx), accessFilter), nil
 }
 
+// documentFullPaths resolves a value's full hierarchy paths (the indexed toFullPath form) for the caller's
+// visibility level.
+func (s *Service) documentFullPaths(ctx context.Context, id identifier.Identifier) ([]string, errors.E) {
+	return waf.MustGetSite[*internalSite.Site](ctx).Base.DocumentFullPaths(ctx, id)
+}
+
 func (s *Service) getSearchService(req *http.Request, index string) *esSearch.Search {
 	ctx := req.Context()
 
@@ -222,32 +228,48 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 	var metadata map[string]any
 
 	searchService := s.getSearchServiceClosure(req, index)
+
+	excludes, errE := searchSession.PrefilterExcludeFullPaths(ctx, s.documentFullPaths)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
 	switch {
 	case f.Ref != nil:
 		if len(f.Prop) == 2 { //nolint:mnd
-			data, metadata, errE = f.Ref.GetSubRef(ctx, searchService, query, f.Prop[0], f.Prop[1],
-				collectParentToFromSession(searchSession.Filters, f.Prop[0]))
+			data, metadata, errE = f.Ref.GetSubRef(
+				ctx, searchService, query, f.Prop[0], f.Prop[1],
+				collectParentToFromSession(searchSession.Filters, f.Prop[0]),
+				excludes.SubRef(f.Prop[0], f.Prop[1]),
+			)
 		} else {
-			data, metadata, errE = f.Ref.Get(ctx, searchService, query, f.Prop[0])
+			data, metadata, errE = f.Ref.Get(ctx, searchService, query, f.Prop[0], excludes.Ref(f.Prop[0]))
 		}
 	case f.Amount != nil:
 		if len(f.Prop) == 2 { //nolint:mnd
-			data, metadata, errE = f.Amount.GetSubAmount(ctx, searchService, query, f.Prop[0], f.Prop[1],
-				collectParentToFromSession(searchSession.Filters, f.Prop[0]))
+			data, metadata, errE = f.Amount.GetSubAmount(
+				ctx, searchService, query, f.Prop[0], f.Prop[1],
+				collectParentToFromSession(searchSession.Filters, f.Prop[0]),
+			)
 		} else {
 			data, metadata, errE = f.Amount.Get(ctx, searchService, query, f.Prop[0])
 		}
 	case f.Time != nil:
 		if len(f.Prop) == 2 { //nolint:mnd
-			data, metadata, errE = f.Time.GetSubTime(ctx, searchService, query, f.Prop[0], f.Prop[1],
-				collectParentToFromSession(searchSession.Filters, f.Prop[0]))
+			data, metadata, errE = f.Time.GetSubTime(
+				ctx, searchService, query, f.Prop[0], f.Prop[1],
+				collectParentToFromSession(searchSession.Filters, f.Prop[0]),
+			)
 		} else {
 			data, metadata, errE = f.Time.Get(ctx, searchService, query, f.Prop[0])
 		}
 	case f.Has != nil:
 		if len(f.Prop) == 1 {
-			data, metadata, errE = f.Has.GetSubHas(ctx, searchService, query, f.Prop[0],
-				collectParentToFromSession(searchSession.Filters, f.Prop[0]))
+			data, metadata, errE = f.Has.GetSubHas(
+				ctx, searchService, query, f.Prop[0],
+				collectParentToFromSession(searchSession.Filters, f.Prop[0]),
+			)
 		} else {
 			data, metadata, errE = f.Has.Get(ctx, searchService, query)
 		}
@@ -268,8 +290,6 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 // SearchRefFilterGetAPI handles GET requests for reference filter data by property.
 //
 // Used for inactive filters (not yet in the session).
-//
-//nolint:dupl
 func (s *Service) SearchRefFilterGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
@@ -306,8 +326,13 @@ func (s *Service) SearchRefFilterGetAPI(w http.ResponseWriter, req *http.Request
 	if handled {
 		return
 	}
+	excludes, errE := searchSession.PrefilterExcludeFullPaths(ctx, s.documentFullPaths)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
 	f := search.RefFilter{}
-	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req, index), query, prop)
+	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req, index), query, prop, excludes.Ref(prop))
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -378,8 +403,6 @@ func (s *Service) SearchAmountFilterGetAPI(w http.ResponseWriter, req *http.Requ
 // SearchTimeFilterGetAPI handles GET requests for time filter data by property.
 //
 // Used for inactive filters (not yet in the session).
-//
-//nolint:dupl
 func (s *Service) SearchTimeFilterGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
@@ -473,8 +496,16 @@ func (s *Service) SearchSubRefFilterGetAPI(w http.ResponseWriter, req *http.Requ
 	if handled {
 		return
 	}
+	excludes, errE := searchSession.PrefilterExcludeFullPaths(ctx, s.documentFullPaths)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
 	f := search.RefFilter{}
-	data, metadata, errE := f.GetSubRef(ctx, s.getSearchServiceClosure(req, index), query, parentProp, prop, parentToRestrictions)
+	data, metadata, errE := f.GetSubRef(
+		ctx, s.getSearchServiceClosure(req, index), query, parentProp, prop, parentToRestrictions,
+		excludes.SubRef(parentProp, prop),
+	)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -769,7 +800,13 @@ func (s *Service) SearchFiltersGetAPI(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	data, metadata, errE := search.FiltersGet(ctx, s.getSearchServiceClosure(req, index), searchSession, enabledSearchLanguages(ctx), accessFilter)
+	excludes, errE := searchSession.PrefilterExcludeFullPaths(ctx, s.documentFullPaths)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	data, metadata, errE := search.FiltersGet(ctx, s.getSearchServiceClosure(req, index), searchSession, enabledSearchLanguages(ctx), excludes, accessFilter)
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return
