@@ -14,7 +14,6 @@ import type { SearchSession, SelectButtonOption, ViewType } from "@/types"
 import { ArchiveBoxArrowDownIcon, ArrowDownTrayIcon, Bars4Icon, TableCellsIcon } from "@heroicons/vue/24/outline"
 import { useI18n } from "vue-i18n"
 
-import { CAN_GET_FILE, hasPermission } from "@/auth"
 import SelectButton from "@/components/SelectButton.vue"
 import siteContext from "@/context"
 
@@ -101,7 +100,7 @@ function countFilters(): number {
       @update:model-value="(v) => $emit('viewChange', v)"
     />
 
-    <div v-if="siteContext.features.downloadButtons && hasPermission(CAN_GET_FILE)" class="flex shrink-0 items-center gap-1 rounded-sm bg-slate-200 px-1 py-1">
+    <div v-if="siteContext.features.downloadButtons" class="flex shrink-0 items-center gap-1 rounded-sm bg-slate-200 px-1 py-1">
       <button
         class="h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
         :class="{
