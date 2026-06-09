@@ -263,6 +263,11 @@ const initialDoc = process.env.NODE_ENV !== "production" ? readonly(_initialDoc)
 // session's edit status.
 const isCreating = ref<boolean | null>(null)
 
+// True once we learn the session is no longer active (ended, discarded, or
+// already committed). Such a session has no live change log to resume, so the
+// view shows that it ended and links back to the document instead of editing.
+const sessionEnded = ref(false)
+
 // Potential-duplicates panel, only mounted for create sessions in field form mode.
 const duplicatesRef = useTemplateRef<{ refresh: () => Promise<void> }>("duplicatesRef")
 
@@ -842,6 +847,15 @@ async function loadAndSubscribe() {
     return
   }
 
+  // An inactive session has no live change log to resume. Replaying its changes
+  // onto a fresh document (the create-session path below, taken whenever there is
+  // no version) would throw for any change that targets a pre-existing claim, so
+  // we stop here and let the template show that the session ended.
+  if (!editStatus.active) {
+    sessionEnded.value = true
+    return
+  }
+
   // For edit sessions the API returns a parent version we fetch the document
   // at. For create sessions there is no parent yet (the document is materialized
   // on Save), so we start with an empty document built from the session-allocated
@@ -919,6 +933,7 @@ watch(
     _doc.value = null
     _initialDoc.value = null
     isCreating.value = null
+    sessionEnded.value = false
     committedChange.value = 0
     lastServerChange = 0
     ownChangeNumbers.clear()
@@ -1542,7 +1557,14 @@ function canSave(): boolean {
     </TableOfContents>
     <div ref="el" class="pd-documentedit flex min-w-0 grow flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4">
       <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
-        <template v-if="hasDocumentPermission(ACTION_UPDATE, doc) && doc && classesInitialized">
+        <div v-if="hasDocumentPermission(ACTION_UPDATE, doc) && sessionEnded" class="my-1 text-center sm:my-4">
+          <i18n-t keypath="views.DocumentEdit.sessionEnded" scope="global">
+            <template #document>
+              <DocumentRefInline :id="id" />
+            </template>
+          </i18n-t>
+        </div>
+        <template v-else-if="hasDocumentPermission(ACTION_UPDATE, doc) && doc && classesInitialized">
           <!--
           TODO: Fix how hover interacts with focused tab.
           See: https://github.com/tailwindlabs/tailwindcss/discussions/10123

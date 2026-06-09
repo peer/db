@@ -395,6 +395,7 @@
       "editClaim": "Edit value",
       "addSubClaim": "Add sub-value",
       "potentialDuplicates": "Potential duplicates",
+      "sessionEnded": "Edit session of {document} has ended.",
       "claimTypes": {
         "identifier": "Identifier",
         "string": "String",

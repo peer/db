@@ -395,6 +395,7 @@
       "editClaim": "Uredi vrednost",
       "addSubClaim": "Dodaj pod-vrednost",
       "potentialDuplicates": "Možni dvojniki",
+      "sessionEnded": "Seja urejanja {document} je zaključena.",
       "claimTypes": {
         "identifier": "Identifikator",
         "string": "Enostavno besedilo",

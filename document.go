@@ -1176,7 +1176,7 @@ func (s *Service) DocumentEditGetAPI(w http.ResponseWriter, req *http.Request, p
 			Active:                   false,
 		}, nil)
 	} else if sessionEnded {
-		s.WriteJSON(w, req, `{"active":false}`, nil)
+		s.WriteJSON(w, req, []byte(`{"active":false}`), nil)
 	} else {
 		// Active session: include base and (for edit sessions) version, so the
 		// client can rebuild claim IDs from base and decide whether to fetch the

@@ -406,6 +406,7 @@ declare module "vue-i18n" {
         editClaim: string
         addSubClaim: string
         potentialDuplicates: string
+        sessionEnded: string
         claimTypes: {
           identifier: string
           string: string
