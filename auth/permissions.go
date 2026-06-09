@@ -6,6 +6,7 @@ package auth
 const (
 	CanEditDocument    = "canEditDocument"
 	CanChangesDocument = "canChangesDocument"
+	CanBulkGetFile     = "canBulkGetFile"
 	CanChangesFile     = "canChangesFile"
 	CanEditFile        = "canEditFile"
 )
