@@ -1339,8 +1339,9 @@ func (b *Bridge) invalidateCaches(ids ...identifier.Identifier) {
 
 // ConvertDocument converts an already-fetched document (with its inverse relations carried in metadata)
 // for the read path, rendering it with the converter for the caller's visibility level, so display labels
-// and counts.references reflect that level's index. It returns store.ErrAccessDenied when the caller
-// resolves to no level.
+// and counts.references reflect that level's index.
+//
+// It returns store.ErrAccessDenied when the caller resolves to no level.
 func (b *Bridge) ConvertDocument(ctx context.Context, doc *document.D, metadata *store.DocumentMetadata) (*Document, errors.E) {
 	level := auth.Visibility(ctx)
 	for _, t := range b.targets {
@@ -1348,6 +1349,24 @@ func (b *Bridge) ConvertDocument(ctx context.Context, doc *document.D, metadata 
 			// We pass a nil generation: the document itself is a one-off render and is not
 			// cached, while its referenced documents and ancestors are fetched and cached as usual.
 			return t.Converter.FromDocument(ctx, doc, nil, metadata)
+		}
+	}
+	return nil, errors.WithStack(store.ErrAccessDenied)
+}
+
+// DocumentFullPaths returns the document's hierarchy paths in the same "<hierarchyProp>:<root>/.../<id>"
+// form that convertReference stamps onto a reference claim's toFullPath. A value reached through several
+// parents or several value hierarchies has more than one path; a hierarchy root (a value with no parents)
+// has none. These are computed exactly as the stored toFullPath is, so they identify every indexed
+// record that expanded from this document as a stated (leaf) value.
+//
+// The paths reflect the level's own converter, so an ancestor hidden at that level does not appear in
+// them. It returns store.ErrAccessDenied when the caller resolves to no level.
+func (b *Bridge) DocumentFullPaths(ctx context.Context, id identifier.Identifier) ([]string, errors.E) {
+	level := auth.Visibility(ctx)
+	for _, t := range b.targets {
+		if t.Level == level {
+			return t.Converter.DocumentFullPaths(ctx, id)
 		}
 	}
 	return nil, errors.WithStack(store.ErrAccessDenied)

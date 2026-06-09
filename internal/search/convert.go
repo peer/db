@@ -2457,6 +2457,20 @@ func (c *Converter) ReferencesCountIgnored(ctx context.Context, id identifier.Id
 	return info.IgnoredForReferencesCount, nil
 }
 
+// DocumentFullPaths returns the document's hierarchy paths in the same "<hierarchyProp>:<root>/.../<id>"
+// form that convertReference stamps onto a reference claim's toFullPath. A value reached through several
+// parents or several value hierarchies has more than one path; a hierarchy root (a value with no parents)
+// has none. These are computed exactly as the stored toFullPath is, so they identify every indexed
+// record that expanded from this document as a stated (leaf) value.
+func (c *Converter) DocumentFullPaths(ctx context.Context, id identifier.Identifier) ([]string, errors.E) {
+	info, errE := c.getDocumentInfo(ctx, id)
+	if errE != nil {
+		return nil, errE
+	}
+	paths, _ := info.CollectHierarchyPaths()
+	return paths, nil
+}
+
 func (c *Converter) convertIdentifier(ctx context.Context, claim *document.IdentifierClaim) ([]IdentifierClaim, errors.E) {
 	props := c.propagateProp(claim.Prop.ID)
 	result := make([]IdentifierClaim, 0, len(props))
