@@ -351,6 +351,23 @@ func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Hand
 		c.Server.Logger.Info().Str("domain", site.Domain).Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Msg("serving")
 	}
 
+	// Register the daily auth-cleanup periodic job on each site's river client. site.Start above has
+	// already started the client, so RunOnStart fires the first cleanup shortly after startup.
+	for _, site := range service.Sites {
+		_, err := site.RiverClient.PeriodicJobs().AddSafely(river.NewPeriodicJob(
+			river.PeriodicInterval(authCleanupInterval),
+			func() (river.JobArgs, *river.InsertOpts) {
+				return authCleanupJobArgs{}, nil
+			},
+			&river.PeriodicJobOpts{ //nolint:exhaustruct
+				RunOnStart: true,
+			},
+		))
+		if err != nil {
+			return nil, onShutdownF, errors.WithStack(err)
+		}
+	}
+
 	// Construct the main handler for the service using the router.
 	router := new(waf.Router)
 	handler, errE := service.RouteWith(router)
@@ -387,24 +404,6 @@ func (c *ServeCommand) Run(globals *Globals, files fs.FS) errors.E {
 	defer cancel()
 	if errE != nil {
 		return errE
-	}
-
-	// Register the daily auth-cleanup periodic job on each site's river
-	// client. Prepare has already started the client, so RunOnStart
-	// fires the first cleanup shortly after startup.
-	for _, site := range service.Sites {
-		_, err := site.RiverClient.PeriodicJobs().AddSafely(river.NewPeriodicJob(
-			river.PeriodicInterval(authCleanupInterval),
-			func() (river.JobArgs, *river.InsertOpts) {
-				return authCleanupJobArgs{}, nil
-			},
-			&river.PeriodicJobOpts{ //nolint:exhaustruct
-				RunOnStart: true,
-			},
-		))
-		if err != nil {
-			return errors.WithStack(err)
-		}
 	}
 
 	// It returns only on error or if the server is gracefully shut down using ctrl-c.
