@@ -4,7 +4,7 @@ import type { Router } from "vue-router"
 import { computed } from "vue"
 import { useRouter } from "vue-router"
 
-import { parseUrl } from "@/utils"
+import { isPlainClick, parseUrl } from "@/utils"
 
 // CSS classes stamped onto anchor elements during HTML transformation.
 // There is hierarchy between LINK_CLASS_INTERNAL > LINK_CLASS_INTERNAL_NOVIEW > LINK_CLASS_FILE.
@@ -93,10 +93,8 @@ export function useInternalLinksClick(): (event: MouseEvent) => Promise<void> {
   const router = useRouter()
 
   return async (event: MouseEvent) => {
-    if (event.defaultPrevented) return
     // Only act on plain left-click without modifier keys.
-    if (event.button !== 0) return
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    if (!isPlainClick(event)) return
 
     const target = event.target as HTMLElement | null
     if (!target) return

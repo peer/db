@@ -1165,6 +1165,17 @@ export function useOnScrollOrResize(els: Ref<Element | null>[], callback: () => 
   })
 }
 
+// isPlainClick reports whether a mouse event is a plain left-click the app should handle itself: the
+// primary (left) button, no modifier keys, and default not already prevented. Modified clicks (ctrl/cmd/
+// shift/alt) and middle/aux clicks are left to the browser, so for example ctrl/cmd-click still opens a
+// link in a new tab/window. This mirrors vue-router's guardEvent.
+export function isPlainClick(event: MouseEvent): boolean {
+  if (event.defaultPrevented) return false
+  if (event.button !== 0) return false
+  if (event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) return false
+  return true
+}
+
 export function redirectServerSide(url: string, replace: boolean, lock: Ref<number>) {
   // We increase the lock and never decrease it to wait for browser to do the redirect.
   lock.value += 1

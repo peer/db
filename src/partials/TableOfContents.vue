@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
 import { useFixedNavbar } from "@/navbar"
+import { isPlainClick } from "@/utils"
 import { useVisibilityTracking } from "@/visibility"
 
 const { t } = useI18n({ useScope: "global" })
@@ -227,7 +228,7 @@ function scrollToId(id: string) {
 
 async function onItemClick(event: MouseEvent, id: string) {
   // Let the browser handle modified clicks (open in new tab/window, save link, etc.).
-  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
+  if (!isPlainClick(event)) return
   event.preventDefault()
   // The route.hash watcher does the actual scrolling - pushing a new hash makes back/forward symmetric.
   await router.push({ hash: `#${id}` })
