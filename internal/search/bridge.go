@@ -45,6 +45,18 @@ const reindexJobTimeoutSlack = 5 * time.Minute
 // while draining the reindex queue.
 const reindexMaxBatch = 1000
 
+// bulkSizeFraction is the fraction of http.max_content_length a bulk request may grow to before it is flushed.
+// The remaining headroom covers the per-operation action metadata lines and the HTTP request framing so the
+// request stays under the server limit.
+const bulkSizeFraction = 0.9
+
+// TODO: Remove when upstream exposes bulk request's payload size.
+//       See: https://github.com/elastic/go-elasticsearch/issues/1501
+
+// bulkOpOverhead is a conservative per-operation byte allowance for the bulk action metadata line and its two
+// newlines, added to each document's own serialized size when estimating a bulk request's payload size.
+const bulkOpOverhead = 256
+
 var errCommittedChannelClosed = errors.Base("committed channel is closed")
 
 type bulkError struct {
@@ -52,7 +64,7 @@ type bulkError struct {
 	Index      string            `json:"index,omitempty"`
 	Status     int               `json:"status,omitempty"`
 	ErrorCause *types.ErrorCause `json:"errorCause,omitempty"`
-	Doc        *Document         `json:"doc,omitempty"`
+	Doc        any               `json:"doc,omitempty"`
 }
 
 // bulkDocKey identifies a document indexed into a specific level index.
@@ -245,6 +257,9 @@ type Bridge struct {
 	// reindexSoftDeadline bounds how long a single reindex job drains the queue before flushing and
 	// scheduling a follow-up. It defaults to the reindexSoftDeadline constant and can be lowered in tests.
 	reindexSoftDeadline time.Duration
+	// maxContentLength is ElasticSearch's http.max_content_length in bytes, read from the cluster in Init.
+	// A bulk request is flushed before it reaches bulkSizeFraction of this so it stays under the server limit.
+	maxContentLength int
 }
 
 // Init creates the bridge progress table and registers a NOTIFY handler on the shared listener
@@ -331,6 +346,10 @@ func (b *Bridge) Init(
 	b.reindexQueueMinSeqCond = sync.NewCond(b.reindexQueueMinSeqMu.RLocker())
 	b.reindexQueueMinSeq = math.MaxInt64
 	b.reindexSoftDeadline = reindexSoftDeadline
+	b.maxContentLength, errE = b.fetchMaxContentLength(ctx)
+	if errE != nil {
+		return errE
+	}
 	b.documentCache = map[documentCacheKey]*document.D{}
 	b.cacheGen = map[identifier.Identifier]uint64{}
 	listener.Handle(b.bridgeSeqChannel, b)
@@ -679,6 +698,29 @@ func (b *Bridge) Prepare(ctx context.Context, targets []Target) errors.E {
 	return errors.WithStack(err)
 }
 
+// fetchMaxContentLength reads ElasticSearch's http.max_content_length (in bytes) from the cluster, taking the
+// smallest value reported across nodes because any node may coordinate a bulk request and enforce its own limit.
+func (b *Bridge) fetchMaxContentLength(ctx context.Context) (int, errors.E) {
+	res, err := b.ESClient.Nodes.Info().Metric("http").Do(ctx)
+	if err != nil {
+		return 0, WithESError(err)
+	}
+	limit := 0
+	for _, node := range res.Nodes {
+		if node.Http == nil || node.Http.MaxContentLengthInBytes <= 0 {
+			continue
+		}
+		l := int(node.Http.MaxContentLengthInBytes)
+		if limit == 0 || l < limit {
+			limit = l
+		}
+	}
+	if limit == 0 {
+		return 0, errors.New("ElasticSearch did not report http.max_content_length")
+	}
+	return limit, nil
+}
+
 // Refresh refreshes every per-level ElasticSearch index so that recently indexed documents become searchable.
 func (b *Bridge) Refresh(ctx context.Context) errors.E {
 	for _, t := range b.targets {
@@ -869,6 +911,8 @@ func withCommitDetails(errE errors.E, seq int64, view, changeset, doc string) er
 //       indexCommit operates on a single commit but those could be very small or very large.
 //       Maybe a batch should be made when we reach 1000 documents or if more than 1 second has
 //       passed since the batch was started (so that we index with at most 1 second delay).
+//       A batch should also be split when its serialized payload would exceed ElasticSearch's
+//       http.max_content_length, the way processReindexQueue does for the reindex bulk requests.
 
 // indexCommit collects all document changes from the commit, fetches the latest version
 // of each document, and indexes them to ElasticSearch as a single bulk request.
@@ -1875,6 +1919,10 @@ func (b *Bridge) runReindexQueue(ctx context.Context, job *river.Job[jobArgs]) e
 func (b *Bridge) processReindexQueue(ctx context.Context, snapshotSeq int64, deadline time.Time) (reindexStats, errors.E) {
 	var stats reindexStats
 	var pending []reindexEntry
+	// pendingSize tracks the accumulated serialized payload of pending so a bulk request is flushed before it
+	// would exceed ElasticSearch's http.max_content_length. sizeBudget keeps headroom under that limit.
+	var pendingSize int
+	sizeBudget := int(float64(b.maxContentLength) * bulkSizeFraction)
 	lastFlush := time.Now()
 
 	// flush bulk-indexes and clears the documents accumulated since the last flush, then resets pending
@@ -1888,6 +1936,7 @@ func (b *Bridge) processReindexQueue(ctx context.Context, snapshotSeq int64, dea
 			return errE
 		}
 		pending = pending[:0]
+		pendingSize = 0
 		lastFlush = time.Now()
 		return nil
 	}
@@ -1912,7 +1961,19 @@ func (b *Bridge) processReindexQueue(ctx context.Context, snapshotSeq int64, dea
 			if errE != nil {
 				return stats, errE
 			}
+
+			entrySize := bulkEntrySize(f.docs)
+			// Flush before this entry would push the accumulated bulk request past the payload budget, so the
+			// request stays under ElasticSearch's http.max_content_length. A single entry larger than the budget
+			// (rare) is still added and flushed on its own.
+			if len(pending) > 0 && pendingSize+entrySize > sizeBudget {
+				errE = flush(false)
+				if errE != nil {
+					return stats, errE
+				}
+			}
 			pending = append(pending, f)
+			pendingSize += entrySize
 
 			// We check the deadline after each document because a single large document can take a while to
 			// convert, so a fixed batch could otherwise overshoot the deadline.
@@ -1948,14 +2009,14 @@ func (b *Bridge) processReindexQueue(ctx context.Context, snapshotSeq int64, dea
 	return stats, nil
 }
 
-// reindexEntry is one document fetched from the reindex queue. docs holds the per-level search documents set
-// during conversion (aligned with the bridge targets, nil for a level where the document is hidden) and is
-// nil for documents that were deleted or never existed: those are not indexed, but their queue entries are
-// still removed.
+// reindexEntry is one document fetched from the reindex queue. docs holds the per-level search documents,
+// each already marshaled to JSON for the bulk request, set during conversion (aligned with the bridge targets,
+// nil for a level where the document is hidden) and is nil overall for documents that were deleted or never
+// existed: those are not indexed, but their queue entries are still removed.
 type reindexEntry struct {
 	idStr  string
 	maxSeq int64
-	docs   []*Document
+	docs   []json.RawMessage
 }
 
 // fetchReindexBatch reads up to reindexMaxBatch distinct documents from the reindex queue with their max
@@ -2049,10 +2110,23 @@ func (b *Bridge) flushReindexBatch(
 	return nil
 }
 
+// TODO: Remove when upstream exposes bulk request's payload size.
+//       See: https://github.com/elastic/go-elasticsearch/issues/1501
+
+// bulkEntrySize estimates the bulk request payload, summing the already-marshaled JSON document plus
+// bulkOpOverhead per operation for its action metadata line.
+func bulkEntrySize(docs []json.RawMessage) int {
+	size := 0
+	for _, d := range docs {
+		size += len(d) + bulkOpOverhead
+	}
+	return size
+}
+
 // bulkIndexReindexed bulk-indexes the non-skipped documents in pending and returns how many were indexed.
 func (b *Bridge) bulkIndexReindexed(ctx context.Context, snapshotSeq int64, pending []reindexEntry) (int, errors.E) {
 	bulkService := b.ESClient.Bulk()
-	debugDocs := map[bulkDocKey]*Document{}
+	debugDocs := map[bulkDocKey]json.RawMessage{}
 	indexed := 0
 	for _, e := range pending {
 		if e.docs == nil {
@@ -2116,11 +2190,11 @@ func (b *Bridge) bulkIndexReindexed(ctx context.Context, snapshotSeq int64, pend
 }
 
 // convertForReindex fetches the latest version of a document and converts it to per-level search documents
-// for re-indexing. The returned slice aligns with the bridge targets; an entry is nil for a level where the
-// document is hidden (the commit that hid it already removed it from that level's index). It returns a nil
-// slice (and nil error) when the document was deleted or never existed, in which case the caller still
-// removes its queue entry but does not index it.
-func (b *Bridge) convertForReindex(ctx context.Context, docID identifier.Identifier, stats *reindexStats) ([]*Document, errors.E) {
+// for re-indexing, each marshaled to JSON. The returned slice aligns with the bridge targets; an entry is nil
+// for a level where the document is hidden (the commit that hid it already removed it from that level's index).
+// It returns a nil slice (and nil error) when the document was deleted or never existed, in which case the caller
+// still removes its queue entry but does not index it.
+func (b *Bridge) convertForReindex(ctx context.Context, docID identifier.Identifier, stats *reindexStats) ([]json.RawMessage, errors.E) {
 	// Snapshot each converter's generation before reading, so each installs cache entries for the document
 	// only if the bridge did not invalidate it concurrently while this reindex was converting it.
 	gens := make([]uint64, len(b.targets))
@@ -2153,7 +2227,7 @@ func (b *Bridge) convertForReindex(ctx context.Context, docID identifier.Identif
 		fetchBefore = convStats.FetchDuration
 	}
 	convertStart := time.Now()
-	searchDocs := make([]*Document, len(b.targets))
+	searchDocs := make([]json.RawMessage, len(b.targets))
 	for i, t := range b.targets {
 		if docs[i] == nil {
 			continue
@@ -2163,7 +2237,11 @@ func (b *Bridge) convertForReindex(ctx context.Context, docID identifier.Identif
 		if errE != nil {
 			return nil, errE
 		}
-		searchDocs[i] = searchDoc
+		raw, errE := x.MarshalWithoutEscapeHTML(searchDoc)
+		if errE != nil {
+			return nil, errE
+		}
+		searchDocs[i] = raw
 	}
 	convertElapsed := time.Since(convertStart)
 	if convStats != nil {

@@ -8,3 +8,9 @@ import "time"
 func (b *Bridge) TestingSetReindexSoftDeadline(d time.Duration) {
 	b.reindexSoftDeadline = d
 }
+
+// TestingSetMaxContentLength overrides the ElasticSearch http.max_content_length the bridge uses to size
+// bulk requests. Tests set it small to force the payload-size flush path with tiny documents.
+func (b *Bridge) TestingSetMaxContentLength(n int) {
+	b.maxContentLength = n
+}

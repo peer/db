@@ -1082,6 +1082,60 @@ func TestBridgeReindexContinuation(t *testing.T) {
 	}, 15*time.Second, 200*time.Millisecond)
 }
 
+// TestBridgeReindexSplitsBulkBySize forces the reindex bulk flushes by payload size rather than by document
+// count or deadline: the bulk size budget is set to its minimum, so the size-flush path runs after (almost)
+// every document. It guards that a reindex bulk request is kept under ElasticSearch's http.max_content_length,
+// so the queue still drains and every document is indexed instead of the bulk request being rejected with 413.
+func TestBridgeReindexSplitsBulkBySize(t *testing.T) {
+	t.Parallel()
+
+	ctx, env := setupBridge(t)
+	s, b, esClient := env.store, env.bridge, env.esClient
+
+	// Set the bulk payload budget to its minimum so size, not the document count or the soft deadline (both left
+	// at their defaults), is what forces the bulk requests to be split.
+	b.TestingSetMaxContentLength(1)
+
+	propX := identifier.New()
+	propY := identifier.New()
+
+	startBridge(ctx, t, env, makeConverterWithInverse(t, propX, propY, s))
+
+	_, errE := s.Insert(ctx, propX, makePropertyDocJSON(t, propX, &propY), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, propY, makePropertyDocJSON(t, propY, nil), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Insert several A --X--> B pairs. Each B gains an inverse relation and is enqueued for re-indexing, so the
+	// queue holds multiple distinct documents the size-limited bulk flushes must all drain.
+	type relPair struct{ a, b identifier.Identifier }
+	const numPairs = 5
+	rels := make([]relPair, numPairs)
+	for i := range rels {
+		rels[i] = relPair{a: identifier.New(), b: identifier.New()}
+		_, errE = s.Insert(ctx, rels[i].b, makeDocJSON(t, rels[i].b), dummyMetadata(), dummyCommitMetadata())
+		require.NoError(t, errE, "% -+#.1v", errE)
+		_, errE = s.Insert(ctx, rels[i].a, makeDocWithRelationJSON(t, rels[i].a, propX, rels[i].b), dummyMetadata(), dummyCommitMetadata())
+		require.NoError(t, errE, "% -+#.1v", errE)
+	}
+
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Every B must have been re-indexed with its inverse relation, proving the size-limited bulk flushes drained
+	// the whole queue without losing any document.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, err := esClient.Indices.Refresh().Index(b.Index).Do(ctx)
+		if !testutils.AssertNoESError(c, err) {
+			return
+		}
+		for _, rel := range rels {
+			assert.True(c, testutils.DocHasReference(ctx, t, esClient, b.Index, rel.b, propY, rel.a),
+				"docB should have inverse relation B --Y--> A")
+		}
+	}, 15*time.Second, 200*time.Millisecond)
+}
+
 func TestBridgeInverseRelationMutual(t *testing.T) {
 	t.Parallel()
 
