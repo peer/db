@@ -335,7 +335,7 @@ func (r *River) addQueue(kind string, queueConfig river.QueueConfig) errors.E {
 // share one worker which dispatches among them. Job args are validated like in RiverAddWorker. Like
 // RiverAddWorker it must be called before Start, also because callers extend the returned dispatcher's
 // state (e.g. its prefix table), which must not change once jobs can run.
-func RiverDispatcher[T river.JobArgs, W river.Worker[T]](r *River, create func() (W, river.QueueConfig, errors.E)) (W, errors.E) {
+func RiverDispatcher[T river.JobArgs, W river.Worker[T]](r *River, create func() (W, river.QueueConfig, errors.E)) (W, errors.E) { //nolint:ireturn
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
