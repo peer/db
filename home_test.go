@@ -188,6 +188,17 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		},
 	}
 
+	// The serve extension points must each run exactly once, at the end of Init and Prepare.
+	var afterInitCalls, afterPrepareCalls atomic.Int64
+	serve.AfterInit = func(_ context.Context, _ *peerdb.Service) errors.E {
+		afterInitCalls.Add(1)
+		return nil
+	}
+	serve.AfterPrepare = func(_ context.Context, _ *peerdb.Service) errors.E {
+		afterPrepareCalls.Add(1)
+		return nil
+	}
+
 	err := globals.Validate()
 	require.NoError(t, err)
 
@@ -235,8 +246,10 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Init must have run ConfigureBase exactly once per site, including sites synthesized by serve.Init
-	// (globals.Sites contains them by now).
+	// (globals.Sites contains them by now), and AfterInit exactly once.
 	require.Equal(t, int64(len(globals.Sites)), configureBaseCalls.Load())
+	require.Equal(t, int64(1), afterInitCalls.Load())
+	require.Equal(t, int64(0), afterPrepareCalls.Load())
 
 	t.Cleanup(func() {
 		if onShutdown != nil {
@@ -262,6 +275,9 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	handler, onShutdown, errE := serve.Prepare(t.Context(), service)
 	t.Cleanup(onShutdown)
 	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Prepare must have run AfterPrepare exactly once.
+	require.Equal(t, int64(1), afterPrepareCalls.Load())
 
 	// Now that the base components are running, wait for the bridge to finish
 	// indexing the documents we inserted before Prepare and refresh the

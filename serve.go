@@ -315,6 +315,13 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 
 	service.setRoutes()
 
+	if c.AfterInit != nil {
+		errE = c.AfterInit(ctx, service)
+		if errE != nil {
+			return nil, onShutdown, errE
+		}
+	}
+
 	return service, onShutdown, nil
 }
 
@@ -367,6 +374,13 @@ func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Hand
 		))
 		if err != nil {
 			return nil, onShutdownF, errors.WithStack(err)
+		}
+	}
+
+	if c.AfterPrepare != nil {
+		errE := c.AfterPrepare(ctx, service)
+		if errE != nil {
+			return nil, onShutdownF, errE
 		}
 	}
 

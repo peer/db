@@ -151,6 +151,18 @@ type ServeCommand struct {
 
 	Domain string `                          group:"Let's Encrypt:" help:"Domain name to request for Let's Encrypt's certificate when sites are not configured." name:"tls.domain" placeholder:"STRING"           yaml:"domain"`
 	Title  string `default:"${defaultTitle}"                        help:"Title to be shown to the users when sites are not configured."                                           placeholder:"STRING" short:"T" yaml:"title"`
+
+	// AfterInit is set in code by a consumer using PeerDB as a library. It is called at the end of Init,
+	// after the service has been created and the sites' bases initialized, and before Prepare starts
+	// them, so it can wrap the service, add routes, and register service-scoped river workers (the river
+	// clients are not yet started). It is not part of the configuration.
+	AfterInit func(ctx context.Context, service *Service) errors.E `json:"-" kong:"-" yaml:"-"`
+
+	// AfterPrepare is set in code by a consumer using PeerDB as a library. It is called at the end of
+	// Prepare, after the sites' bases have been started (the river clients are running) and before the
+	// request handler is constructed, so it can e.g. register periodic river jobs. It is not part of the
+	// configuration.
+	AfterPrepare func(ctx context.Context, service *Service) errors.E `json:"-" kong:"-" yaml:"-"`
 }
 
 // Validate validates the serve command configuration.
