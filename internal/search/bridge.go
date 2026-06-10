@@ -77,15 +77,7 @@ type bridgeJob interface {
 	runReindexQueue(ctx context.Context, job *river.Job[jobArgs]) errors.E
 }
 
-//nolint:gochecknoglobals
-var (
-	// Map from schema to map from prefix to bridgeJob.
-	bridges   = map[string]map[string]bridgeJob{}
-	bridgesMu = sync.RWMutex{}
-)
-
 type jobArgs struct {
-	Schema string `json:"schema"`
 	Prefix string `json:"prefix"`
 }
 
@@ -95,33 +87,25 @@ func (jobArgs) Kind() string {
 }
 
 // InsertOpts implements river.JobArgsWithInsertOpts interface.
-func (jobArgs) InsertOpts() river.InsertOpts {
+func (a jobArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{ //nolint:exhaustruct
-		// We use a single worker queue for the bridge so that its jobs are run sequentially.
-		// This prevents duplicate work where multiple parallel jobs would pick the same document
-		// ID to work on.
-		//
-		// We do not use UniqueOpts because River requires JobStateRunning in ByState,
-		// which causes inserts to be silently deduplicated while a job is running.
-		// This creates a race where new BridgeReindexQueue entries added during
-		// job execution are never processed. Instead we currently allow multiple jobs
-		// for correctness even if it means that some jobs will not do anything.
-		// See: https://github.com/riverqueue/river/issues/1178
-		//
-		// Downside of this approach is that if there are multiple bridges (with different schema/prefix
-		// combinations) their own jobs are not run in parallel but still only one at a time.
-		//
-		// TODO: Should we instead of our work queue table BridgeReindexQueue submit one job for each set of updates in updateSeq?
-		//       So instead of having our own table we would maintain what has to be done in job arguments.
-		//       We could still use single worker queue to work on those jobs one at a time.
-		//       In Bridge table we would then maintain two rows, how far committed changesets have been
-		//       processed (a seq number) and how far the reindex queue has been processed (also a seq number).
-		Queue: "bridge",
+		// Every job kind runs in its own queue named after the kind. The queue's single worker
+		// (set at registration) makes bridge jobs run sequentially.
+		Queue: internalStore.RiverQueueName(a.Kind()),
 	}
 }
 
+// worker processes bridge reindex jobs for all bridges registered on one river client. The client polls a
+// single schema, so the worker dispatches only among that schema's bridges, by store prefix.
 type worker struct {
 	river.WorkerDefaults[jobArgs]
+
+	// schema is the PostgreSQL schema of the river client this worker is registered with.
+	schema string
+
+	// byPrefix maps a store prefix to its bridge. It is populated during registration, which happens
+	// before the river client starts, and is read-only afterwards, so it is accessed without locking.
+	byPrefix map[string]bridgeJob
 }
 
 // Timeout implements river.Worker interface. The reindex job drains the queue until reindexSoftDeadline,
@@ -133,14 +117,18 @@ func (w *worker) Timeout(*river.Job[jobArgs]) time.Duration {
 
 // Work implements river.Worker interface.
 func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
-	ctx = internalStore.WithFallbackDBContext(ctx, job.Args.Schema, "bridge")
+	ctx = internalStore.WithFallbackDBContext(ctx, w.schema, "bridge")
 
-	c, errE := w.getBridge(job.Args.Schema, job.Args.Prefix)
-	if errE != nil {
+	b, ok := w.byPrefix[job.Args.Prefix]
+	if !ok {
+		errE := errors.New("bridge not found")
+		details := errors.Details(errE)
+		details["schema"] = w.schema
+		details["prefix"] = job.Args.Prefix
 		return errE
 	}
 
-	errE = c.runReindexQueue(ctx, job)
+	errE := b.runReindexQueue(ctx, job)
 	if errE != nil {
 		// We do not wrap any error into JobCancel because for all errors we want the job to be retried.
 		// Job can safely be rerun multiple times because it keeps track of successful work in its table.
@@ -149,31 +137,6 @@ func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
 	}
 
 	return nil
-}
-
-func (w *worker) getBridge(schema, prefix string) (bridgeJob, errors.E) { //nolint:ireturn
-	bridgesMu.RLock()
-	defer bridgesMu.RUnlock()
-
-	s, ok := bridges[schema]
-	if !ok {
-		errE := errors.New("bridge not found")
-		details := errors.Details(errE)
-		details["schema"] = schema
-		details["prefix"] = prefix
-		return nil, errE
-	}
-
-	c, ok := s[prefix]
-	if !ok {
-		errE := errors.New("bridge not found")
-		details := errors.Details(errE)
-		details["schema"] = schema
-		details["prefix"] = prefix
-		return nil, errE
-	}
-
-	return c, nil
 }
 
 // Target is one (visibility level, ElasticSearch index, converter) that the bridge fans indexing out to.
@@ -276,17 +239,16 @@ type Bridge struct {
 // Init creates the bridge progress table and registers a NOTIFY handler on the shared listener
 // so that WaitUntilCaughtUp is notified immediately when the bridge seq advances.
 func (b *Bridge) Init(
-	ctx context.Context, dbpool *pgxpool.Pool, listener *internalStore.Listener, schema string,
-	riverClient *river.Client[pgx.Tx], workers *river.Workers,
+	ctx context.Context, dbpool *pgxpool.Pool, listener *internalStore.Listener, r *internalStore.River,
 ) errors.E {
 	if b.dbpool != nil {
 		return errors.New("already initialized")
 	}
 	b.dbpool = dbpool
-	b.schema = schema
-	b.riverClient = riverClient
-	b.bridgeSeqChannel = schema + "_" + b.Store.Prefix + "BrSeq"
-	b.bridgeReindexQueueMinSeqChannel = schema + "_" + b.Store.Prefix + "BrQueue"
+	b.schema = r.Schema
+	b.riverClient = r.Client
+	b.bridgeSeqChannel = b.schema + "_" + b.Store.Prefix + "BrSeq"
+	b.bridgeReindexQueueMinSeqChannel = b.schema + "_" + b.Store.Prefix + "BrQueue"
 
 	errE := internalStore.RetryTransaction(ctx, dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
 		_, err := tx.Exec(ctx, `
@@ -348,7 +310,7 @@ func (b *Bridge) Init(
 		return errE
 	}
 
-	errE = b.registerCoordinator(workers)
+	errE = b.registerWorker(r)
 	if errE != nil {
 		return errE
 	}
@@ -369,32 +331,42 @@ func (b *Bridge) Init(
 	return nil
 }
 
-func (b *Bridge) registerCoordinator(workers *river.Workers) errors.E {
-	bridgesMu.Lock()
-	defer bridgesMu.Unlock()
-
-	s, ok := bridges[b.schema]
-	if ok {
-		_, ok := s[b.Store.Prefix]
-		if ok {
-			errE := errors.New("bridge already registered")
-			details := errors.Details(errE)
-			details["schema"] = b.schema
-			details["prefix"] = b.Store.Prefix
-			return errE
+// registerWorker registers this bridge as a job source for bridge reindex jobs on the given river client.
+// The first bridge on a client creates the worker and adds it to the client's workers; further bridges
+// (stores with different prefixes in the same schema) are added to the same worker, which dispatches jobs
+// among them by prefix.
+func (b *Bridge) registerWorker(r *internalStore.River) errors.E {
+	w, errE := internalStore.RiverDispatcher(r, func() (*worker, river.QueueConfig, errors.E) {
+		w := &worker{
+			WorkerDefaults: river.WorkerDefaults[jobArgs]{},
+			schema:         r.Schema,
+			byPrefix:       map[string]bridgeJob{},
 		}
-	} else {
-		s = map[string]bridgeJob{}
-		bridges[b.schema] = s
-
-		// We register the worker if this is the first coordinator for this schema.
-		err := river.AddWorkerSafely(workers, &worker{})
-		if err != nil {
-			return errors.WithStack(err)
-		}
+		// The queue uses a single worker so that bridge jobs run sequentially. This prevents duplicate
+		// work where multiple parallel jobs would pick the same document ID to work on. A downside is
+		// that when there are multiple bridges (with different prefixes) their jobs do not run in
+		// parallel either.
+		//
+		// We do not use InsertOpts with UniqueOpts because River requires JobStateRunning in
+		// ByState, which causes inserts to be silently deduplicated while a job is running.
+		// This creates a race where new BridgeReindexQueue entries added during job
+		// execution are never processed. Instead we currently allow multiple jobs for
+		// correctness even if it means that some jobs will not do anything.
+		// See: https://github.com/riverqueue/river/issues/1183
+		return w, river.QueueConfig{MaxWorkers: 1}, nil //nolint:exhaustruct
+	})
+	if errE != nil {
+		return errE
 	}
 
-	s[b.Store.Prefix] = b
+	if _, ok := w.byPrefix[b.Store.Prefix]; ok {
+		errE := errors.New("bridge already registered")
+		details := errors.Details(errE)
+		details["schema"] = b.schema
+		details["prefix"] = b.Store.Prefix
+		return errE
+	}
+	w.byPrefix[b.Store.Prefix] = b
 
 	return nil
 }
@@ -752,7 +724,6 @@ func (b *Bridge) Prepare(ctx context.Context, targets []Target) errors.E {
 
 	// Submit a startup job to process any leftover rows in BridgeReindexQueue from a previous run.
 	_, err := b.riverClient.Insert(ctx, jobArgs{
-		Schema: b.schema,
 		Prefix: b.Store.Prefix,
 	}, nil)
 	return errors.WithStack(err)
@@ -1793,7 +1764,6 @@ func (b *Bridge) updateSeq(
 
 				// Submit a job to process the queued documents.
 				_, err := b.riverClient.InsertTx(ctx, tx, jobArgs{
-					Schema: b.schema,
 					Prefix: b.Store.Prefix,
 				}, nil)
 				if err != nil {
@@ -2150,7 +2120,6 @@ func (b *Bridge) flushReindexBatch(
 			// Schedule the follow-up in the same transaction as the delete so that, if entries remain, a job
 			// to process them is guaranteed to exist once this delete commits.
 			_, err := b.riverClient.InsertTx(ctx, tx, jobArgs{
-				Schema: b.schema,
 				Prefix: b.Store.Prefix,
 			}, nil)
 			if err != nil {

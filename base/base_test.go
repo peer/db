@@ -69,8 +69,8 @@ func initBaseInfra(t *testing.T, languagePriority map[string][]string) (context.
 	})
 
 	b, _, errE := internalBase.InitComponents(ctx, logger, nil, dbpool, esClient, schema, index, 1, nil, []string{internalSite.AllVisibilityLevel})
-	b.LanguagePriority = languagePriority
 	require.NoError(t, errE, "% -+#.1v", errE)
+	b.LanguagePriority = languagePriority
 
 	return ctx, b, esClient
 }
@@ -1511,7 +1511,7 @@ func TestInitAlreadyInitialized(t *testing.T) {
 	ctx, b, _ := initBaseInfra(t, nil)
 
 	// Second Init should fail with "already initialized".
-	errE := b.Init(ctx, nil, nil, nil, nil, nil)
+	errE := b.Init(ctx, nil, nil, nil, nil)
 	assert.EqualError(t, errE, "already initialized")
 }
 

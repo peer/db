@@ -11,7 +11,6 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/riverqueue/river"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
@@ -128,7 +127,7 @@ type Storage struct {
 
 // Init initializes the Storage.
 func (s *Storage) Init(
-	ctx context.Context, dbpool *pgxpool.Pool, listener *internalStore.Listener, riverClient *river.Client[pgx.Tx], workers *river.Workers,
+	ctx context.Context, dbpool *pgxpool.Pool, listener *internalStore.Listener, r *internalStore.River,
 ) errors.E {
 	if s.store != nil {
 		return errors.New("already initialized")
@@ -155,7 +154,7 @@ func (s *Storage) Init(
 		CompleteSessionTimeout: completeSessionTimeout,
 	}
 	// We do not use Appended and Ended channels here so we pass nil for listener.
-	errE = storageCoordinator.Init(ctx, dbpool, nil, s.Schema, riverClient, workers)
+	errE = storageCoordinator.Init(ctx, dbpool, nil, r)
 	if errE != nil {
 		return errE
 	}

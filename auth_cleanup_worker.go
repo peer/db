@@ -6,6 +6,8 @@ import (
 	internalSite "gitlab.com/peerdb/peerdb/internal/site"
 
 	"github.com/riverqueue/river"
+
+	"gitlab.com/peerdb/peerdb/base"
 )
 
 // authCleanupJobArgs are the arguments for the periodic auth cleanup
@@ -15,6 +17,14 @@ type authCleanupJobArgs struct{}
 
 // Kind implements river.JobArgs.
 func (authCleanupJobArgs) Kind() string { return "AuthCleanup" }
+
+// InsertOpts implements river.JobArgsWithInsertOpts interface.
+func (a authCleanupJobArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{ //nolint:exhaustruct
+		// Every job kind runs in its own queue named after the kind.
+		Queue: base.QueueName(a.Kind()),
+	}
+}
 
 // authCleanupWorker prunes expired rows from the per-site auth flow
 // and revocation stores. The work is delegated to

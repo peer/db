@@ -59,7 +59,7 @@ func initDatabase(t *testing.T) (
 
 	listener := internalStore.NewListener(dbpool)
 
-	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, nil, dbpool, schema)
+	r, errE := internalStore.NewRiver(ctx, logger, nil, dbpool, schema)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	s := &storage.Storage{
@@ -68,15 +68,15 @@ func initDatabase(t *testing.T) (
 		PrimaryCoordinator: nil,
 	}
 
-	errE = s.Init(ctx, dbpool, listener, riverClient, workers)
+	errE = s.Init(ctx, dbpool, listener, r)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	err := riverClient.Start(ctx)
-	require.NoError(t, err)
+	errE = r.Start(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	t.Cleanup(func() {
 		// Wait for the client to stop.
-		<-riverClient.Stopped()
+		<-r.Client.Stopped()
 	})
 
 	errE = listener.Start(ctx)

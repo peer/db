@@ -146,7 +146,7 @@ func initDatabase[Data, Metadata any](
 
 	listener := internalStore.NewListener(dbpool)
 
-	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, nil, dbpool, schema)
+	r, errE := internalStore.NewRiver(ctx, logger, nil, dbpool, schema)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c := &coordinator.Coordinator[Data, Metadata, Metadata, Metadata, Metadata, Metadata]{
@@ -159,15 +159,15 @@ func initDatabase[Data, Metadata any](
 		},
 	}
 
-	errE = c.Init(ctx, dbpool, listener, schema, riverClient, workers)
+	errE = c.Init(ctx, dbpool, listener, r)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	err := riverClient.Start(ctx)
-	require.NoError(t, err)
+	errE = r.Start(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	t.Cleanup(func() {
 		// Wait for the client to stop.
-		<-riverClient.Stopped()
+		<-r.Client.Stopped()
 	})
 
 	errE = listener.Start(ctx)
@@ -536,7 +536,7 @@ func TestNotifyRecovery(t *testing.T) {
 
 	listener := internalStore.NewListener(dbpool)
 
-	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, nil, dbpool, schema)
+	r, errE := internalStore.NewRiver(ctx, logger, nil, dbpool, schema)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	c := &coordinator.Coordinator[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage]{
@@ -550,15 +550,15 @@ func TestNotifyRecovery(t *testing.T) {
 		},
 	}
 
-	errE = c.Init(ctx, dbpool, listener, schema, riverClient, workers)
+	errE = c.Init(ctx, dbpool, listener, r)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	err := riverClient.Start(ctx)
-	require.NoError(t, err)
+	errE = r.Start(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 
 	t.Cleanup(func() {
 		// Wait for the client to stop.
-		<-riverClient.Stopped()
+		<-r.Client.Stopped()
 	})
 
 	errE = listener.Start(ctx)
@@ -584,7 +584,7 @@ func TestNotifyRecovery(t *testing.T) {
 	// Simulate a reconnection on the OperationAppended channel.
 	oldAppendedCh, errE := c.Appended.Get(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	err = c.HandleBacklog(ctx, schema+"_"+c.Prefix+"Operation", nil)
+	err := c.HandleBacklog(ctx, schema+"_"+c.Prefix+"Operation", nil)
 	require.NoError(t, err, "% -+#.1v", err) // This is still errors.E.
 
 	// Old Appended channel must be closed.

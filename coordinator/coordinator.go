@@ -5,7 +5,7 @@ package coordinator
 
 import (
 	"context"
-	"sync"
+	"runtime"
 	"time"
 
 	"github.com/jackc/pgerrcode"
@@ -42,15 +42,7 @@ type coordinatorJob interface {
 	completeSessionTimeout() time.Duration
 }
 
-//nolint:gochecknoglobals
-var (
-	// Map from schema to map from prefix to coordinatorJob.
-	coordinators   = map[string]map[string]coordinatorJob{}
-	coordinatorsMu = sync.RWMutex{}
-)
-
 type jobArgs struct {
-	Schema    string                `json:"schema"`
 	Prefix    string                `json:"prefix"`
 	Session   identifier.Identifier `json:"session"`
 	RequestID string                `json:"requestId"`
@@ -61,16 +53,33 @@ func (jobArgs) Kind() string {
 	return "CoordinatorCompleteSession"
 }
 
+// InsertOpts implements river.JobArgsWithInsertOpts interface.
+func (a jobArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{ //nolint:exhaustruct
+		// Every job kind runs in its own queue named after the kind.
+		Queue: internalStore.RiverQueueName(a.Kind()),
+	}
+}
+
+// worker processes complete-session jobs for all coordinators registered on one river client. The client
+// polls a single schema, so the worker dispatches only among that schema's coordinators, by store prefix.
 type worker struct {
 	river.WorkerDefaults[jobArgs]
+
+	// schema is the PostgreSQL schema of the river client this worker is registered with.
+	schema string
+
+	// byPrefix maps a store prefix to its coordinator. It is populated during registration, which happens
+	// before the river client starts, and is read-only afterwards, so it is accessed without locking.
+	byPrefix map[string]coordinatorJob
 }
 
 // Timeout implements river.Worker interface. It returns the timeout configured on the coordinator that owns
 // the session, so coordinators whose completion can be slow can use a longer timeout than fast ones.
 // Zero falls back to the client default.
 func (w *worker) Timeout(job *river.Job[jobArgs]) time.Duration {
-	c, errE := w.getCoordinator(job.Args.Schema, job.Args.Prefix)
-	if errE != nil {
+	c, ok := w.byPrefix[job.Args.Prefix]
+	if !ok {
 		return 0
 	}
 	return c.completeSessionTimeout()
@@ -78,14 +87,18 @@ func (w *worker) Timeout(job *river.Job[jobArgs]) time.Duration {
 
 // Work implements river.Worker interface.
 func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
-	ctx = internalStore.WithFallbackDBContext(ctx, job.Args.Schema, job.Args.RequestID)
+	ctx = internalStore.WithFallbackDBContext(ctx, w.schema, job.Args.RequestID)
 
-	c, errE := w.getCoordinator(job.Args.Schema, job.Args.Prefix)
-	if errE != nil {
+	c, ok := w.byPrefix[job.Args.Prefix]
+	if !ok {
+		errE := errors.New("coordinator not found")
+		details := errors.Details(errE)
+		details["schema"] = w.schema
+		details["prefix"] = job.Args.Prefix
 		return errE
 	}
 
-	errE = c.runCompleteSession(ctx, job.Args.Session, job)
+	errE := c.runCompleteSession(ctx, job.Args.Session, job)
 	if errE != nil {
 		// CompleteSession and CompleteSessionTx are probably fetching coordinator or some state from
 		// the database. It is not possible to recover from some of these errors, so we cancel the job so
@@ -116,31 +129,6 @@ func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
 	}
 
 	return nil
-}
-
-func (w *worker) getCoordinator(schema, prefix string) (coordinatorJob, errors.E) { //nolint:ireturn
-	coordinatorsMu.RLock()
-	defer coordinatorsMu.RUnlock()
-
-	s, ok := coordinators[schema]
-	if !ok {
-		errE := errors.New("coordinator not found")
-		details := errors.Details(errE)
-		details["schema"] = schema
-		details["prefix"] = prefix
-		return nil, errE
-	}
-
-	c, ok := s[prefix]
-	if !ok {
-		errE := errors.New("coordinator not found")
-		details := errors.Details(errE)
-		details["schema"] = schema
-		details["prefix"] = prefix
-		return nil, errE
-	}
-
-	return c, nil
 }
 
 // OperationAppended represents an operation appended to a session.
@@ -260,17 +248,16 @@ type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteDa
 //
 // A non-nil listener is required when the Appended or Changed channel is set.
 func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) Init(
-	ctx context.Context, dbpool *pgxpool.Pool, listener *internalStore.Listener, schema string,
-	riverClient *river.Client[pgx.Tx], workers *river.Workers,
+	ctx context.Context, dbpool *pgxpool.Pool, listener *internalStore.Listener, r *internalStore.River,
 ) errors.E {
 	if c.dbpool != nil {
 		return errors.New("already initialized")
 	}
 	c.dbpool = dbpool
-	c.schema = schema
-	c.riverClient = riverClient
-	c.sessionStateChannel = schema + "_" + c.Prefix + "Session"
-	c.operationAppendedChannel = schema + "_" + c.Prefix + "Operation"
+	c.schema = r.Schema
+	c.riverClient = r.Client
+	c.sessionStateChannel = c.schema + "_" + c.Prefix + "Session"
+	c.operationAppendedChannel = c.schema + "_" + c.Prefix + "Operation"
 
 	if c.CompleteSessionTx == nil {
 		return errors.New("CompleteSessionTx cannot be nil")
@@ -380,7 +367,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 		return errE
 	}
 
-	errE = c.registerCoordinator(workers)
+	errE = c.registerCoordinator(r)
 	if errE != nil {
 		return errE
 	}
@@ -397,32 +384,31 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	return nil
 }
 
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) registerCoordinator(workers *river.Workers) errors.E {
-	coordinatorsMu.Lock()
-	defer coordinatorsMu.Unlock()
-
-	s, ok := coordinators[c.schema]
-	if ok {
-		_, ok := s[c.Prefix]
-		if ok {
-			errE := errors.New("coordinator already registered")
-			details := errors.Details(errE)
-			details["schema"] = c.schema
-			details["prefix"] = c.Prefix
-			return errE
+// registerCoordinator registers this coordinator as a job source for complete-session jobs on the given
+// river client. The first coordinator on a client creates the worker and adds it to the client's workers;
+// further coordinators (stores with different prefixes in the same schema) are added to the same worker,
+// which dispatches jobs among them by prefix.
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) registerCoordinator(r *internalStore.River) errors.E {
+	w, errE := internalStore.RiverDispatcher(r, func() (*worker, river.QueueConfig, errors.E) {
+		w := &worker{
+			WorkerDefaults: river.WorkerDefaults[jobArgs]{},
+			schema:         r.Schema,
+			byPrefix:       map[string]coordinatorJob{},
 		}
-	} else {
-		s = map[string]coordinatorJob{}
-		coordinators[c.schema] = s
-
-		// We register the worker if this is the first coordinator for this schema.
-		err := river.AddWorkerSafely(workers, &worker{})
-		if err != nil {
-			return errors.WithStack(err)
-		}
+		return w, river.QueueConfig{MaxWorkers: runtime.GOMAXPROCS(0)}, nil //nolint:exhaustruct
+	})
+	if errE != nil {
+		return errE
 	}
 
-	s[c.Prefix] = c
+	if _, ok := w.byPrefix[c.Prefix]; ok {
+		errE := errors.New("coordinator already registered")
+		details := errors.Details(errE)
+		details["schema"] = c.schema
+		details["prefix"] = c.Prefix
+		return errE
+	}
+	w.byPrefix[c.Prefix] = c
 
 	return nil
 }
@@ -475,7 +461,6 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 
 		// We submit a job to the worker to call CompleteSession and CompleteSessionTx and complete the session.
 		_, err = c.riverClient.InsertTx(ctx, tx, jobArgs{
-			Schema:    c.schema,
 			Prefix:    c.Prefix,
 			Session:   session,
 			RequestID: internalStore.MustGetRequestID(ctx),

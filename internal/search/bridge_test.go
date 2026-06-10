@@ -79,12 +79,12 @@ type bridgeStore = store.Store[json.RawMessage, *store.DocumentMetadata, *store.
 // bridgeEnv holds the initialized pieces of a bridge test environment. The river client and the
 // listener are created but not started, so a test can control startup ordering.
 type bridgeEnv struct {
-	dbpool      *pgxpool.Pool
-	store       *bridgeStore
-	bridge      *internalSearch.Bridge
-	listener    *internalStore.Listener
-	riverClient *river.Client[pgx.Tx]
-	esClient    *elasticsearch.TypedClient
+	dbpool   *pgxpool.Pool
+	store    *bridgeStore
+	bridge   *internalSearch.Bridge
+	listener *internalStore.Listener
+	river    *internalStore.River
+	esClient *elasticsearch.TypedClient
 }
 
 // setupBridge creates and initializes the dbpool, ES client, schema, store, and bridge. The river
@@ -138,7 +138,7 @@ func setupBridge(t *testing.T) (context.Context, *bridgeEnv) {
 
 	listener := internalStore.NewListener(dbpool)
 
-	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, nil, dbpool, schema)
+	r, errE := internalStore.NewRiver(ctx, logger, nil, dbpool, schema)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	s := &bridgeStore{
@@ -159,16 +159,16 @@ func setupBridge(t *testing.T) (context.Context, *bridgeEnv) {
 		DocumentPreHooks:  nil,
 		DocumentPostHooks: nil,
 	}
-	errE = b.Init(ctx, dbpool, listener, schema, riverClient, workers)
+	errE = b.Init(ctx, dbpool, listener, r)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	return ctx, &bridgeEnv{
-		dbpool:      dbpool,
-		store:       s,
-		bridge:      b,
-		listener:    listener,
-		riverClient: riverClient,
-		esClient:    esClient,
+		dbpool:   dbpool,
+		store:    s,
+		bridge:   b,
+		listener: listener,
+		river:    r,
+		esClient: esClient,
 	}
 }
 
@@ -189,11 +189,11 @@ func startBridgeWithTargets(ctx context.Context, t *testing.T, env *bridgeEnv, t
 	errE := env.bridge.Prepare(ctx, targets)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	err := env.riverClient.Start(ctx)
-	require.NoError(t, err)
+	errE = env.river.Start(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	t.Cleanup(func() {
 		// Wait for the client to stop.
-		<-env.riverClient.Stopped()
+		<-env.river.Client.Stopped()
 	})
 
 	errE = env.listener.Start(ctx)
@@ -234,10 +234,10 @@ func TestBridgeStartupDrainsReindexQueueBacklog(t *testing.T) {
 	errE = env.bridge.Prepare(ctx, []internalSearch.Target{{Level: "all", Index: env.bridge.IndexPrefix, Converter: newTestBridgeConverter(t)}})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	err := env.riverClient.Start(ctx)
-	require.NoError(t, err)
+	errE = env.river.Start(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
 	t.Cleanup(func() {
-		<-env.riverClient.Stopped()
+		<-env.river.Client.Stopped()
 	})
 
 	// If the startup deadlock regresses, listener.Start blocks here until this context expires and
@@ -1061,7 +1061,7 @@ func TestBridgeReindexJobRecordsOutput(t *testing.T) {
 	// (stored on the job under the "output" metadata key), so it is queryable per job through River.
 	// We match the output by its JSON field names, which also guards their contract.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		jobs, err := env.riverClient.JobList(ctx, river.NewJobListParams().
+		jobs, err := env.river.Client.JobList(ctx, river.NewJobListParams().
 			Kinds("BridgeReindex").
 			States(rivertype.JobStateCompleted).
 			First(1000))
@@ -1144,7 +1144,7 @@ func TestBridgeReindexContinuation(t *testing.T) {
 	// At least one reindex job must have scheduled a follow-up because of the deadline, confirming the
 	// continuation path ran rather than a single job draining everything.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		jobs, err := env.riverClient.JobList(ctx, river.NewJobListParams().
+		jobs, err := env.river.Client.JobList(ctx, river.NewJobListParams().
 			Kinds("BridgeReindex").
 			States(rivertype.JobStateCompleted).
 			First(1000))

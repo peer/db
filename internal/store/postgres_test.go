@@ -662,8 +662,8 @@ func TestNewRiver(t *testing.T) {
 
 	logger := zerolog.New(zerolog.NewTestWriter(t)).With().Timestamp().Logger()
 
-	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, nil, dbpool, schema)
+	r, errE := internalStore.NewRiver(ctx, logger, nil, dbpool, schema)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	require.NotNil(t, riverClient)
-	require.NotNil(t, workers)
+	require.NotNil(t, r)
+	require.NotNil(t, r.Client)
 }

@@ -31,7 +31,7 @@ func (s *Site) Prepare(
 	ctx = internalStore.WithFallbackDBContext(ctx, s.Schema, "init")
 	ctx = logger.WithContext(ctx)
 
-	b, riverClient, errE := internalBase.InitComponents(ctx, logger, withContext, dbpool, esClient, s.Schema, s.IndexPrefix, shards, s.LanguagePriority, s.levelNames())
+	b, r, errE := internalBase.InitComponents(ctx, logger, withContext, dbpool, esClient, s.Schema, s.IndexPrefix, shards, s.LanguagePriority, s.levelNames())
 	if errE != nil {
 		return errE
 	}
@@ -39,7 +39,7 @@ func (s *Site) Prepare(
 	s.Base = b
 	s.DBPool = dbpool
 	s.ESClient = esClient
-	s.RiverClient = riverClient
+	s.RiverClient = r.Client
 
 	errE = s.initDebugRiverHandler(ctx, logger)
 	if errE != nil {

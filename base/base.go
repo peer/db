@@ -17,7 +17,6 @@ import (
 
 	"github.com/elastic/go-elasticsearch/v9"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mohae/deepcopy"
 	"github.com/riverqueue/river"
@@ -105,23 +104,14 @@ type B struct {
 	//       and the constant_score mitigation.
 	SearchQueryHook func(ctx context.Context) (types.QueryVariant, errors.E)
 
-	// RegisterWorkers are called in order to register workers for processing
-	// background jobs before the river client is started. Each callback is
-	// invoked once with the same *river.Workers. Downstream packages append
-	// rather than assign so PeerDB's built-in workers are not silently overwritten.
-	RegisterWorkers []func(context.Context, *river.Workers) errors.E
-
 	// Data type for Store is on purpose not document.D so that we can serve it directly without doing first JSON unmarshal just to marshal it again immediately.
 	documents   *store.Store[json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes]
 	coordinator *coordinator.Coordinator[json.RawMessage, *documentChangeMetadata, *DocumentBeginMetadata, *documentEndMetadata, *documentCompleteData, *DocumentCompleteMetadata]
 	files       *storage.Storage
 	bridge      *internalSearch.Bridge
 
-	// workers is used to register workers before calling Start.
-	workers *river.Workers
-
-	listener    *internalStore.Listener
-	riverClient *river.Client[pgx.Tx]
+	listener *internalStore.Listener
+	river    *internalStore.River
 
 	// languageCodes maps a language document ID to its primary language subtag (e.g., "en").
 	// It is captured from the converter in Start and surfaced via LanguageCodes.
@@ -133,7 +123,7 @@ func (b *B) Init(
 	ctx context.Context,
 	dbpool *pgxpool.Pool, listener *internalStore.Listener,
 	esClient *elasticsearch.TypedClient,
-	riverClient *river.Client[pgx.Tx], workers *river.Workers,
+	r *internalStore.River,
 ) errors.E {
 	if b.documents != nil {
 		return errors.New("already initialized")
@@ -163,7 +153,7 @@ func (b *B) Init(
 		CompleteSessionTimeout: completeSessionTimeout,
 	}
 	// We do not use Appended and Ended channels here so we pass nil for listener.
-	errE = c.Init(ctx, dbpool, nil, b.Schema, riverClient, workers)
+	errE = c.Init(ctx, dbpool, nil, r)
 	if errE != nil {
 		return errE
 	}
@@ -174,7 +164,7 @@ func (b *B) Init(
 		PrimaryCoordinator: &primaryCoordinator{Coordinator: c},
 	}
 	// We do not use the underlying store's Committed channel here so we pass nil as listener.
-	errE = files.Init(ctx, dbpool, nil, riverClient, workers)
+	errE = files.Init(ctx, dbpool, nil, r)
 	if errE != nil {
 		return errE
 	}
@@ -187,7 +177,7 @@ func (b *B) Init(
 		DocumentPreHooks:  nil,
 		DocumentPostHooks: nil,
 	}
-	errE = bridge.Init(ctx, dbpool, listener, b.Schema, riverClient, workers)
+	errE = bridge.Init(ctx, dbpool, listener, r)
 	if errE != nil {
 		return errE
 	}
@@ -196,11 +186,25 @@ func (b *B) Init(
 	b.coordinator = c
 	b.files = files
 	b.bridge = bridge
-	b.workers = workers
 	b.listener = listener
-	b.riverClient = riverClient
+	b.river = r
 
 	return nil
+}
+
+// AddWorker registers a river worker (implementation of jobs) for additional job kinds you can later
+// submit through river client. Every job kind runs in its own queue named after the kind, with the given
+// queue configuration. The kind's JobArgs must set the same queue through InsertOpts. It must be called
+// after Init and before Start. Registration after the river client was started is a hard failure because
+// river does not support it.
+func AddWorker[T river.JobArgs](b *B, worker river.Worker[T], queueConfig river.QueueConfig) errors.E {
+	return internalStore.RiverAddWorker(b.river, worker, queueConfig)
+}
+
+// QueueName derives the river queue name for a job kind. Every job kind runs in its own queue. The kind's
+// JobArgs should use this in InsertOpts so its jobs land in the queue added by AddWorker.
+func QueueName(kind string) string {
+	return internalStore.RiverQueueName(kind)
 }
 
 // indexingPostHook adapts an indexing hook, which only transforms the document, to a document
@@ -279,29 +283,22 @@ func (b *B) Start(ctx context.Context, documents []StartDocument) (func(), error
 		targets = append(targets, internalSearch.Target{Level: level, Index: index, Converter: converter})
 	}
 
-	for _, register := range b.RegisterWorkers {
-		errE := register(ctx, b.workers)
-		if errE != nil {
-			return nil, errE
-		}
-	}
-
 	// We prepare the bridge startup before starting the river client.
 	errE := b.bridge.Prepare(internalStore.WithFallbackDBContext(ctx, b.Schema, "bridge"), targets)
 	if errE != nil {
 		return nil, errE
 	}
 
-	// Now we can start the river client.
-	// It will be stopped when ctx is cancelled.
-	err := b.riverClient.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "river"))
-	if err != nil {
-		return nil, errors.WithStack(err)
+	// Now we can start the river client. It will be stopped when ctx is cancelled.
+	// After this, registering further workers (AddWorker) is a hard failure.
+	errE = b.river.Start(internalStore.WithFallbackDBContext(ctx, b.Schema, "river"))
+	if errE != nil {
+		return nil, errE
 	}
 
 	onShutdown := func() {
 		// Wait for the client to stop.
-		<-b.riverClient.Stopped()
+		<-b.river.Client.Stopped()
 	}
 
 	// After that, we can start the listener.

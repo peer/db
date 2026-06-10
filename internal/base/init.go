@@ -7,7 +7,6 @@ import (
 	"github.com/elastic/go-elasticsearch/v9"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/riverqueue/river"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	z "gitlab.com/tozd/go/zerolog"
@@ -21,7 +20,7 @@ import (
 func InitComponents(
 	ctx context.Context, logger zerolog.Logger, withContext z.WithContextFunc, dbpool *pgxpool.Pool,
 	esClient *elasticsearch.TypedClient, schema, indexPrefix string, shards int, languagePriority map[string][]string, levels []string,
-) (*base.B, *river.Client[pgx.Tx], errors.E) {
+) (*base.B, *internalStore.River, errors.E) {
 	for _, level := range levels {
 		errE := internalSearch.EnsureIndex(ctx, esClient, internalSearch.LevelIndex(indexPrefix, level), shards, languagePriority)
 		if errE != nil {
@@ -38,7 +37,7 @@ func InitComponents(
 
 	listener := internalStore.NewListener(dbpool)
 
-	riverClient, workers, errE := internalStore.NewRiver(ctx, logger, withContext, dbpool, schema)
+	r, errE := internalStore.NewRiver(ctx, logger, withContext, dbpool, schema)
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -55,12 +54,11 @@ func InitComponents(
 		FilePreHooks:            nil,
 		FilePostHooks:           nil,
 		SearchQueryHook:         nil,
-		RegisterWorkers:         nil,
 	}
-	errE = b.Init(ctx, dbpool, listener, esClient, riverClient, workers)
+	errE = b.Init(ctx, dbpool, listener, esClient, r)
 	if errE != nil {
 		return nil, nil, errE
 	}
 
-	return b, riverClient, errE
+	return b, r, errE
 }

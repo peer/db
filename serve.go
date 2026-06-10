@@ -23,6 +23,7 @@ import (
 	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb/auth"
+	"gitlab.com/peerdb/peerdb/base"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
@@ -300,15 +301,16 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 		}
 
 		// Register the per-site auth cleanup worker. The actual periodic
-		// scheduling happens in Run, after the river client has been
-		// started by Prepare. Here we only make sure the worker type is
-		// known to the client when it starts.
-		site.Base.RegisterWorkers = append(site.Base.RegisterWorkers, func(_ context.Context, workers *river.Workers) errors.E {
-			return errors.WithStack(river.AddWorkerSafely(workers, &authCleanupWorker{
-				Site:           site,
-				WorkerDefaults: river.WorkerDefaults[authCleanupJobArgs]{},
-			}))
-		})
+		// scheduling happens in Prepare, after the river client has been
+		// started. Here we only make sure the worker type is known to the
+		// client when it starts.
+		errE = base.AddWorker(site.Base, &authCleanupWorker{
+			Site:           site,
+			WorkerDefaults: river.WorkerDefaults[authCleanupJobArgs]{},
+		}, river.QueueConfig{MaxWorkers: 1}) //nolint:exhaustruct
+		if errE != nil {
+			return nil, onShutdown, errE
+		}
 	}
 
 	service.setRoutes()
