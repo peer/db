@@ -14,11 +14,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
-	"gitlab.com/tozd/go/cli"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
-	"gitlab.com/tozd/waf"
 
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/indexer"
@@ -27,75 +25,6 @@ import (
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
-
-// InitSites sets up default site configuration and build information if needed. It also applies consumer
-// site defaults (through Customize.SiteDefaults) to every site: sites from the configuration already received
-// them during configuration validation, but the default site synthesized here did not, and callers which populate
-// Globals programmatically (without command-line parsing) get them here as well. SiteDefaults is idempotent,
-// so the repeated application is safe.
-func InitSites(globals *Globals) errors.E {
-	if len(globals.Sites) == 0 {
-		globals.Sites = []internalSite.Site{{
-			Site: waf.Site{
-				Domain:   "",
-				CertFile: "",
-				KeyFile:  "",
-			},
-			Build:                nil,
-			IndexPrefix:          globals.Elastic.IndexPrefix,
-			Schema:               globals.Postgres.Schema,
-			Title:                "",
-			Logo:                 "",
-			LogoCompact:          "",
-			LanguagePriority:     nil,
-			DefaultLanguage:      "",
-			LanguageCodes:        nil,
-			Features:             internalSite.SiteFeatures{},
-			Roles:                nil,
-			Visibility:           nil,
-			Auth:                 internalSite.SiteAuthConfig{},
-			MetadataHeaderPrefix: "",
-			Authenticator:        nil,
-			Base:                 nil,
-			DBPool:               nil,
-			ESClient:             nil,
-			RiverClient:          nil,
-			DebugRiverHandler:    nil,
-		}}
-	}
-
-	if globals.Customize.SiteDefaults != nil {
-		for i := range globals.Sites {
-			errE := globals.Customize.SiteDefaults(&globals.Sites[i])
-			if errE != nil {
-				return errE
-			}
-		}
-	}
-
-	// Sites from the configuration were validated during configuration validation already, but the
-	// default site synthesized above was not, so we validate all sites here. Validation is idempotent.
-	for i := range globals.Sites {
-		err := globals.Sites[i].Validate()
-		if err != nil {
-			return errors.WithStack(err)
-		}
-	}
-
-	// We set build information on sites.
-	if cli.Version != "" || cli.BuildTimestamp != "" || cli.Revision != "" {
-		for i := range globals.Sites {
-			site := &globals.Sites[i]
-			site.Build = &internalSite.Build{
-				Version:        cli.Version,
-				BuildTimestamp: cli.BuildTimestamp,
-				Revision:       cli.Revision,
-			}
-		}
-	}
-
-	return nil
-}
 
 // startAndWaitSite starts the base for a site, runs optional beforeWait,
 // then waits for indexing to catch up, and refreshes the ElasticSearch index.
