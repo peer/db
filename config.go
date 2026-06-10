@@ -1,6 +1,8 @@
 package peerdb
 
 import (
+	"context"
+
 	"github.com/alecthomas/kong"
 	mapset "github.com/deckarep/golang-set/v2"
 	"gitlab.com/tozd/go/cli"
@@ -176,6 +178,14 @@ type PopulateCommand struct {
 	SaveDir   string `help:"Save intermediate structs as files into a directory."            name:"save"   placeholder:"DIR" short:"S" type:"path" yaml:"saveDir"`
 	OutputDir string `help:"Save documents as files into a directory."                       name:"output" placeholder:"DIR" short:"O" type:"path" yaml:"outputDir"`
 	DryRun    bool   `help:"Dry run. Do everything, but insert documents into the database."                                                       yaml:"dryRun"`
+
+	// PopulateSite is set in code by a consumer using PeerDB as a library to replace how a site is
+	// populated. When nil, core documents are generated and inserted. It is called with a per-site
+	// cancellable context whose logger carries the site's indexPrefix and schema fields and whose
+	// fallback database context is set. It returns the shutdown function from PopulateAndStart (or nil
+	// when the base was not started). Run cancels the context and then runs the shutdown. It is not
+	// part of the configuration.
+	PopulateSite func(ctx context.Context, site Site) (func(), errors.E) `json:"-" kong:"-" yaml:"-"`
 }
 
 // DBWaitCommand waits for pending indexing to complete.
