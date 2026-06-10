@@ -73,6 +73,15 @@ func InitSites(globals *Globals) errors.E {
 		}
 	}
 
+	// Sites from the configuration were validated during configuration validation already, but the
+	// default site synthesized above was not, so we validate all sites here. Validation is idempotent.
+	for i := range globals.Sites {
+		err := globals.Sites[i].Validate()
+		if err != nil {
+			return errors.WithStack(err)
+		}
+	}
+
 	// We set build information on sites.
 	if cli.Version != "" || cli.BuildTimestamp != "" || cli.Revision != "" {
 		for i := range globals.Sites {

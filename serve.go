@@ -189,6 +189,15 @@ func (c *ServeCommand) Init(ctx context.Context, globals *Globals, files fs.FS) 
 		}
 	}
 
+	// Sites from the configuration were validated during configuration validation already, but sites
+	// synthesized above were not, so we validate all sites here. Validation is idempotent.
+	for i := range globals.Sites {
+		err := globals.Sites[i].Validate()
+		if err != nil {
+			return nil, nil, errors.WithStack(err)
+		}
+	}
+
 	onShutdown, errE := Init(ctx, globals)
 	if errE != nil {
 		return nil, onShutdown, errE

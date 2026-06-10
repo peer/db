@@ -82,6 +82,9 @@ func TestCustomizerInitSites(t *testing.T) {
 	assert.Equal(t, "Customized", globals.Sites[0].Title)
 	assert.Equal(t, "testschema", globals.Sites[0].Schema)
 	assert.Equal(t, "testindex", globals.Sites[0].IndexPrefix)
+	// The synthesized site is validated as well: validation defaulted the empty visibility.
+	require.Len(t, globals.Sites[0].Visibility, 1)
+	assert.Equal(t, internalSite.AllVisibilityLevel, globals.Sites[0].Visibility[0].Name)
 
 	globals.Sites = nil
 	globals.Customize.SiteDefaults = func(_ *peerdb.Site) errors.E {
