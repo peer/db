@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"testing/fstest"
 
@@ -118,7 +119,7 @@ func TestRouteHome(t *testing.T) {
 	testStaticFile(t, "Home", "index.html", "text/html; charset=utf-8")
 }
 
-func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve *peerdb.ServeCommand)) (*httptest.Server, *peerdb.Service) {
+func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve *peerdb.ServeCommand)) (*httptest.Server, *peerdb.Service) { //nolint:maintidx
 	t.Helper()
 
 	if os.Getenv("ELASTIC") == "" {
@@ -167,12 +168,24 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 		setupFunc(globals, serve)
 	}
 
-	for i := range globals.Sites {
-		site := &globals.Sites[i]
-		require.Empty(t, site.Schema)
-		site.Schema = "s" + strings.ToLower(identifier.New().String())
-		require.Empty(t, site.IndexPrefix)
-		site.IndexPrefix = "s" + strings.ToLower(identifier.New().String())
+	// Tests configure sites through the same Customizer mechanism consumers use, so every test here also
+	// exercises its wiring: SiteDefaults fills test defaults during globals.Validate (and for sites
+	// synthesized by serve.Init) and ConfigureBase must run exactly once per site during Init.
+	var configureBaseCalls atomic.Int64
+	globals.Customize = peerdb.Customizer{
+		SiteDefaults: func(site *peerdb.Site) errors.E {
+			if site.Schema == "" {
+				site.Schema = "s" + strings.ToLower(identifier.New().String())
+			}
+			if site.IndexPrefix == "" {
+				site.IndexPrefix = "s" + strings.ToLower(identifier.New().String())
+			}
+			return nil
+		},
+		ConfigureBase: func(_ *peerdb.Site) errors.E {
+			configureBaseCalls.Add(1)
+			return nil
+		},
 	}
 
 	err := globals.Validate()
@@ -220,6 +233,10 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 	dbCtx := internalStore.WithMaxDBPoolConnections(t.Context(), internalStore.TestMaxDBPoolConnections)
 	service, onShutdown, errE := serve.Init(dbCtx, globals, testFiles)
 	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Init must have run ConfigureBase exactly once per site, including sites synthesized by serve.Init
+	// (globals.Sites contains them by now).
+	require.Equal(t, int64(len(globals.Sites)), configureBaseCalls.Load())
 
 	t.Cleanup(func() {
 		if onShutdown != nil {
