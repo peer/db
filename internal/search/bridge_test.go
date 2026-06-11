@@ -124,8 +124,8 @@ func setupBridge(t *testing.T) (context.Context, *bridgeEnv) {
 
 	t.Cleanup(func() {
 		// We do not use t.Context() because we want an active context, not a canceled one.
-		_, err := esClient.Indices.Delete(index).IgnoreUnavailable(true).Do(context.Background())
-		testutils.RequireNoESError(t, err)
+		errE := internalSearch.DeleteIndex(context.Background(), esClient, index)
+		require.NoError(t, errE, "% -+#.1v", errE)
 	})
 
 	errE = internalSearch.EnsureIndex(ctx, esClient, index, 1, nil)
@@ -642,8 +642,8 @@ func TestBridgePerLevelInverseRelations(t *testing.T) {
 		errE := internalSearch.EnsureIndex(ctx, env.esClient, idx, 1, nil)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		t.Cleanup(func() {
-			_, err := env.esClient.Indices.Delete(idx).IgnoreUnavailable(true).Do(context.Background())
-			testutils.RequireNoESError(t, err)
+			errE := internalSearch.DeleteIndex(context.Background(), env.esClient, idx)
+			require.NoError(t, errE, "% -+#.1v", errE)
 		})
 	}
 
@@ -788,8 +788,8 @@ func TestBridgePerLevelDocumentPresence(t *testing.T) {
 		errE := internalSearch.EnsureIndex(ctx, env.esClient, idx, 1, nil)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		t.Cleanup(func() {
-			_, err := env.esClient.Indices.Delete(idx).IgnoreUnavailable(true).Do(context.Background())
-			testutils.RequireNoESError(t, err)
+			errE := internalSearch.DeleteIndex(context.Background(), env.esClient, idx)
+			require.NoError(t, errE, "% -+#.1v", errE)
 		})
 	}
 
@@ -848,8 +848,8 @@ func TestBridgePerLevelReindexPresence(t *testing.T) {
 		errE := internalSearch.EnsureIndex(ctx, env.esClient, idx, 1, nil)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		t.Cleanup(func() {
-			_, err := env.esClient.Indices.Delete(idx).IgnoreUnavailable(true).Do(context.Background())
-			testutils.RequireNoESError(t, err)
+			errE := internalSearch.DeleteIndex(context.Background(), env.esClient, idx)
+			require.NoError(t, errE, "% -+#.1v", errE)
 		})
 	}
 
@@ -937,8 +937,8 @@ func TestBridgeReferenceTargetResolvesForCountsCheck(t *testing.T) {
 		errE := internalSearch.EnsureIndex(ctx, env.esClient, idx, 1, nil)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		t.Cleanup(func() {
-			_, err := env.esClient.Indices.Delete(idx).IgnoreUnavailable(true).Do(context.Background())
-			testutils.RequireNoESError(t, err)
+			errE := internalSearch.DeleteIndex(context.Background(), env.esClient, idx)
+			require.NoError(t, errE, "% -+#.1v", errE)
 		})
 	}
 

@@ -64,8 +64,8 @@ func initBaseInfra(t *testing.T, languagePriority map[string][]string) (context.
 
 	t.Cleanup(func() {
 		// We do not use t.Context() because we want an active context, not a canceled one.
-		_, err := esClient.Indices.Delete(internalSearch.LevelIndex(index, internalSite.AllVisibilityLevel)).IgnoreUnavailable(true).Do(context.Background())
-		testutils.RequireNoESError(t, err)
+		errE := internalSearch.DeleteIndex(context.Background(), esClient, internalSearch.LevelIndex(index, internalSite.AllVisibilityLevel))
+		require.NoError(t, errE, "% -+#.1v", errE)
 	})
 
 	b, _, errE := internalBase.InitComponents(ctx, logger, nil, dbpool, esClient, schema, index, 1, nil, []string{internalSite.AllVisibilityLevel})

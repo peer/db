@@ -49,8 +49,8 @@ func initES(t *testing.T) (*elasticsearch.TypedClient, func() *esSearch.Search, 
 
 	t.Cleanup(func() {
 		// We do not use t.Context() because we want an active context, not a canceled one.
-		_, err := esClient.Indices.Delete(index).IgnoreUnavailable(true).Do(context.Background())
-		testutils.AssertNoESError(t, err)
+		errE := internalSearch.DeleteIndex(context.Background(), esClient, index)
+		assert.NoError(t, errE, "% -+#.1v", errE)
 	})
 
 	errE = internalSearch.EnsureIndex(ctx, esClient, index, 1, nil)

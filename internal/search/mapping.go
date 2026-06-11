@@ -707,7 +707,7 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 // TODO: Generate index configuration automatically from document structs?
 
 // EnabledLanguages returns the sorted set of languages a site indexes, derived from its
-// LanguagePriority (its keys plus "und") or the default SupportedLanguages when unset.
+// LanguagePriority (its keys plus "und"), or only DefaultEnabledLanguage (plus "und") when unset.
 func EnabledLanguages(languagePriority map[string][]string) []string {
 	enabled, _ := EnabledLanguagesFromLanguagePriority(languagePriority)
 	return slices.Sorted(maps.Keys(enabled))
@@ -751,7 +751,8 @@ type mappingData struct {
 }
 
 // Mapping generates PeerDB ElasticSearch mapping for the languages a site enables, derived
-// from its LanguagePriority (nil yields the default all-language mapping).
+// from its LanguagePriority (nil yields a mapping covering only DefaultEnabledLanguage plus
+// the undetermined language).
 func Mapping(languagePriority map[string][]string) ([]byte, errors.E) {
 	langs := EnabledLanguages(languagePriority)
 

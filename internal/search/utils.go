@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -29,8 +31,13 @@ type loggerAdapter struct {
 }
 
 type indexConfigurationStruct struct {
-	Settings map[string]any `json:"settings"`
-	Mappings map[string]any `json:"mappings"`
+	Settings map[string]any                      `json:"settings"`
+	Mappings map[string]any                      `json:"mappings"`
+	Aliases  map[string]aliasConfigurationStruct `json:"aliases,omitempty"`
+}
+
+type aliasConfigurationStruct struct {
+	IsWriteIndex bool `json:"is_write_index"` //nolint:tagliatelle
 }
 
 // LogRoundTrip logs the request and response details using zerolog.
@@ -168,55 +175,110 @@ func GetClient(httpClient *http.Client, logger zerolog.Logger, url string) (*ela
 	return esClient, errors.WithStack(err)
 }
 
-// LevelIndex returns the ElasticSearch index name for the given visibility level, derived from the index prefix.
+// LevelIndex returns the ElasticSearch name for the given visibility level, derived from the index
+// prefix. The name addresses exactly one index, in the layout EnsureIndex creates through an alias.
 func LevelIndex(indexPrefix, level string) string {
 	return indexPrefix + "_" + level
 }
 
-// EnsureIndex makes sure the index for PeerDB documents exists. If not, it creates it.
-// It does not update configuration of an existing index if it is different from
-// what current implementation of EnsureIndex would otherwise create.
-// The shards parameter specifies the number of primary shards for the index. languagePriority
-// selects which languages the index mapping covers (nil yields the default all-language mapping).
-func EnsureIndex(ctx context.Context, esClient *elasticsearch.TypedClient, index string, shards int, languagePriority map[string][]string) errors.E {
-	exists, err := esClient.Indices.Exists(index).IsSuccess(ctx)
+// EnsureIndex makes sure the given name serves an index for PeerDB documents. When nothing exists under
+// the name, it creates a new timestamped index together with an alias from the name to it, in one atomic
+// request, so that a rebuilt index can later replace the live one by atomically moving the alias. The
+// alias is marked as the write index, which makes concurrent creation safe: ElasticSearch allows at most
+// one write index per alias and validates that atomically with index creation, so when two processes
+// race, the losing creation fails as a whole, no matter if the processes generated the same timestamped
+// index name or different ones. The loser then observes that the name is served and treats that as success.
+// EnsureIndex does not update configuration of an existing index or alias if it is different from what
+// the current implementation would otherwise create. The shards parameter specifies the number of primary
+// shards for the index. languagePriority selects which languages the index mapping covers (nil yields a
+// mapping covering only DefaultEnabledLanguage plus the undetermined language).
+func EnsureIndex(ctx context.Context, esClient *elasticsearch.TypedClient, name string, shards int, languagePriority map[string][]string) errors.E {
+	exists, err := esClient.Indices.Exists(name).IsSuccess(ctx)
 	if err != nil {
 		errE := WithESError(err)
-		errors.Details(errE)["index"] = index
+		errors.Details(errE)["index"] = name
+		return errE
+	}
+	if exists {
+		return nil
+	}
+
+	indexConfiguration, errE := Mapping(languagePriority)
+	if errE != nil {
+		return errE
+	}
+	var config indexConfigurationStruct
+	errE = x.UnmarshalWithoutUnknownFields(indexConfiguration, &config)
+	if errE != nil {
 		return errE
 	}
 
-	if !exists {
-		indexConfiguration, errE := Mapping(languagePriority)
-		if errE != nil {
-			return errE
-		}
-		var config indexConfigurationStruct
-		errE = x.UnmarshalWithoutUnknownFields(indexConfiguration, &config)
-		if errE != nil {
-			return errE
-		}
+	config.Settings["number_of_shards"] = shards
+	config.Settings["number_of_replicas"] = 0
+	config.Aliases = map[string]aliasConfigurationStruct{
+		name: {IsWriteIndex: true},
+	}
 
-		config.Settings["number_of_shards"] = shards
-		config.Settings["number_of_replicas"] = 0
+	configJSON, errE := x.MarshalWithoutEscapeHTML(config)
+	if errE != nil {
+		return errE
+	}
 
-		configJSON, errE := x.MarshalWithoutEscapeHTML(config)
-		if errE != nil {
-			return errE
+	index := name + "_" + time.Now().UTC().Format("20060102_150405")
+
+	createIndex, err := esClient.Indices.Create(index).Raw(bytes.NewReader(configJSON)).Do(ctx)
+	if err != nil {
+		// Creation fails when another process won a concurrent EnsureIndex: with resource_already_exists_exception
+		// when both processes generated the same index name, and with illegal_state_exception (the alias would get
+		// more than one write index) when they generated different ones. In both cases nothing was created for us,
+		// so when the name is served now, the other process won and the desired state holds.
+		exists, errExists := esClient.Indices.Exists(name).IsSuccess(ctx)
+		if errExists == nil && exists {
+			return nil
 		}
+		errE := WithESError(err)
+		errors.Details(errE)["index"] = index
+		errors.Details(errE)["alias"] = name
+		return errE
+	}
+	if !createIndex.Acknowledged {
+		// TODO: Wait for acknowledgment using Task API?
+		errE := errors.New("create index not acknowledged")
+		errors.Details(errE)["index"] = index
+		errors.Details(errE)["alias"] = name
+		return errE
+	}
 
-		createIndex, err := esClient.Indices.Create(index).Raw(bytes.NewReader(configJSON)).Do(ctx)
+	return nil
+}
+
+// DeleteIndex deletes whatever serves the given name: when the name is an alias (the layout EnsureIndex
+// creates), the concrete indexes it points to are deleted, which drops the alias with them. When the
+// name is a concrete index, it is deleted directly. A name which does not exist is not an error.
+func DeleteIndex(ctx context.Context, esClient *elasticsearch.TypedClient, name string) errors.E {
+	isAlias, err := esClient.Indices.ExistsAlias(name).IsSuccess(ctx)
+	if err != nil {
+		errE := WithESError(err)
+		errors.Details(errE)["index"] = name
+		return errE
+	}
+
+	target := name
+	if isAlias {
+		res, err := esClient.Indices.GetAlias().Name(name).Do(ctx)
 		if err != nil {
 			errE := WithESError(err)
-			errors.Details(errE)["index"] = index
+			errors.Details(errE)["index"] = name
 			return errE
 		}
-		if !createIndex.Acknowledged {
-			// TODO: Wait for acknowledgment using Task API?
-			errE := errors.New("create index not acknowledged")
-			errors.Details(errE)["index"] = index
-			return errE
-		}
+		target = strings.Join(slices.Sorted(maps.Keys(res)), ",")
+	}
+
+	_, err = esClient.Indices.Delete(target).IgnoreUnavailable(true).Do(ctx)
+	if err != nil {
+		errE := WithESError(err)
+		errors.Details(errE)["index"] = target
+		return errE
 	}
 
 	return nil

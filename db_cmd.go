@@ -161,7 +161,9 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 
 	// When recreating the index, delete it before Init so that the base's EnsureIndex (run during
 	// startup) recreates it from the current mapping. The documents are then replayed from PostgreSQL
-	// into the fresh index below, so a mapping change is applied without losing source data.
+	// into the fresh index below, so a mapping change is applied without losing source data. Deletion
+	// resolves the level name through its alias to the concrete index, if it is an alias (EnsureIndex
+	// creates such alias layout).
 	if c.RecreateIndex {
 		esClient, errE := internalSearch.GetClient(cleanhttp.DefaultPooledClient(), globals.Logger, globals.Elastic.URL)
 		if errE != nil {
@@ -169,10 +171,8 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 		}
 		for _, site := range globals.Sites {
 			for _, index := range site.LevelIndexes() {
-				_, err := esClient.Indices.Delete(index).IgnoreUnavailable(true).Do(ctx)
-				if err != nil {
-					errE := internalSearch.WithESError(err)
-					errors.Details(errE)["index"] = index
+				errE = internalSearch.DeleteIndex(ctx, esClient, index)
+				if errE != nil {
 					return errE
 				}
 				globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("index", index).Msg("index deleted for recreation")
@@ -520,10 +520,8 @@ func (c *DBWipeCommand) Run(globals *Globals) errors.E {
 		globals.Logger.Info().Str("schema", site.Schema).Msg("schema dropped")
 
 		for _, index := range site.LevelIndexes() {
-			_, err := esClient.Indices.Delete(index).IgnoreUnavailable(true).Do(siteCtx)
-			if err != nil {
-				errE := internalSearch.WithESError(err)
-				errors.Details(errE)["index"] = index
+			errE = internalSearch.DeleteIndex(siteCtx, esClient, index)
+			if errE != nil {
 				return errE
 			}
 			globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("index", index).Msg("index deleted")

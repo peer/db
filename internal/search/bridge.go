@@ -79,12 +79,6 @@ type bulkError struct {
 	Doc        any               `json:"doc,omitempty"`
 }
 
-// bulkDocKey identifies a document indexed into a specific level index.
-type bulkDocKey struct {
-	index string
-	id    string
-}
-
 type bridgeJob interface {
 	runReindexQueue(ctx context.Context, job *river.Job[jobArgs]) errors.E
 }
@@ -1150,7 +1144,11 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 	// document started or stopped referencing them.
 	referenceTargets := map[identifier.Identifier]bool{}
 
-	debugDocs := map[bulkDocKey]*Document{}
+	// debugDocs holds the document of each bulk operation by position (nil for delete operations). A failed
+	// operation is matched to its document by position (response items come back in operation order). We
+	// cannot use the index name returned with a failed operation to map back to the document because it is
+	// reported as the concrete index behind the alias the operation targeted.
+	debugDocs := []*Document{}
 
 	for _, cs := range c.Changesets {
 		var after *identifier.Identifier
@@ -1206,6 +1204,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 						if err != nil {
 							return nil, nil, nil, errors.WithStack(err)
 						}
+						debugDocs = append(debugDocs, nil)
 						deleteOps++
 						continue
 					}
@@ -1222,7 +1221,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 					if err != nil {
 						return nil, nil, nil, errors.WithStack(err)
 					}
-					debugDocs[bulkDocKey{index: index, id: id}] = searchDoc
+					debugDocs = append(debugDocs, searchDoc)
 					indexOps++
 				}
 			}
@@ -1251,7 +1250,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 	bulkDuration := time.Since(bulkStart)
 
 	bulkErrors := []bulkError{}
-	for _, item := range response.Items {
+	for i, item := range response.Items {
 		for action, result := range item {
 			if result.Status >= 200 && result.Status <= 299 {
 				continue
@@ -1266,12 +1265,16 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 			if result.Id_ != nil {
 				id = *result.Id_
 			}
+			var doc *Document
+			if i < len(debugDocs) {
+				doc = debugDocs[i]
+			}
 			bulkErrors = append(bulkErrors, bulkError{
 				ID:         id,
 				Index:      result.Index_,
 				Status:     result.Status,
 				ErrorCause: result.Error,
-				Doc:        debugDocs[bulkDocKey{index: result.Index_, id: id}],
+				Doc:        doc,
 			})
 		}
 	}
@@ -2314,7 +2317,11 @@ func bulkEntrySize(docs []json.RawMessage) int {
 // bulkIndexReindexed bulk-indexes the non-skipped documents in pending and returns how many were indexed.
 func (b *Bridge) bulkIndexReindexed(ctx context.Context, snapshotSeq int64, pending []reindexEntry) (int, errors.E) {
 	bulkService := b.ESClient.Bulk()
-	debugDocs := map[bulkDocKey]json.RawMessage{}
+	// debugDocs holds the document of each bulk operation by position (nil for delete operations). A failed
+	// operation is matched to its document by position (response items come back in operation order). We
+	// cannot use the index name returned with a failed operation to map back to the document because it is
+	// reported as the concrete index behind the alias the operation targeted.
+	debugDocs := []json.RawMessage{}
 	indexed := 0
 	for _, e := range pending {
 		if e.docs == nil {
@@ -2333,7 +2340,7 @@ func (b *Bridge) bulkIndexReindexed(ctx context.Context, snapshotSeq int64, pend
 			if err != nil {
 				return 0, errors.WithStack(err)
 			}
-			debugDocs[bulkDocKey{index: index, id: id}] = e.docs[i]
+			debugDocs = append(debugDocs, e.docs[i])
 			indexedAny = true
 		}
 		if indexedAny {
@@ -2349,7 +2356,7 @@ func (b *Bridge) bulkIndexReindexed(ctx context.Context, snapshotSeq int64, pend
 		return 0, WithESError(err)
 	}
 	bulkErrors := []bulkError{}
-	for _, item := range response.Items {
+	for i, item := range response.Items {
 		for _, result := range item {
 			if result.Status >= 200 && result.Status <= 299 {
 				continue
@@ -2358,12 +2365,16 @@ func (b *Bridge) bulkIndexReindexed(ctx context.Context, snapshotSeq int64, pend
 			if result.Id_ != nil {
 				id = *result.Id_
 			}
+			var doc json.RawMessage
+			if i < len(debugDocs) {
+				doc = debugDocs[i]
+			}
 			bulkErrors = append(bulkErrors, bulkError{
 				ID:         id,
 				Index:      result.Index_,
 				Status:     result.Status,
 				ErrorCause: result.Error,
-				Doc:        debugDocs[bulkDocKey{index: result.Index_, id: id}],
+				Doc:        doc,
 			})
 		}
 	}
