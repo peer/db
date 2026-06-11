@@ -57,7 +57,7 @@ func (c Changes) Apply(doc *D) errors.E {
 	for i, change := range c {
 		errE := change.Apply(doc)
 		if errE != nil {
-			errors.Details(errE)["change"] = i
+			errors.Details(errE)["change"] = i + 1
 			return errE
 		}
 	}
