@@ -312,7 +312,7 @@ func histogramFilterGet(
 
 	if docCount == 0 {
 		return []HistogramResult{}, map[string]any{
-			"total":    0,
+			"total":    "0",
 			missingKey: missingCount,
 		}, nil
 	}
@@ -324,7 +324,7 @@ func histogramFilterGet(
 	// unknown claim, which is not indexed under the nested path at all.
 	if minValue == nil || maxValue == nil {
 		return []HistogramResult{}, map[string]any{
-			"total":    0,
+			"total":    "0",
 			missingKey: missingCount,
 		}, nil
 	}

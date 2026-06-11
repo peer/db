@@ -301,7 +301,7 @@ func TestAmountFilterGetEmptyIntegration(t *testing.T) {
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.HistogramResult{}, results)
-	assert.Equal(t, 0, metadata["total"])
+	assert.Equal(t, "0", metadata["total"])
 }
 
 func TestAmountFilterGetWithoutUnitIntegration(t *testing.T) {

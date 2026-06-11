@@ -282,7 +282,7 @@ func TestTimeFilterGetEmptyIntegration(t *testing.T) {
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.HistogramResult{}, results)
-	assert.Equal(t, 0, metadata["total"])
+	assert.Equal(t, "0", metadata["total"])
 }
 
 func TestTimeFilterGetExtendedBoundsIntegration(t *testing.T) {
@@ -594,7 +594,7 @@ func TestTimeFilterGetUnboundedIntegration(t *testing.T) {
 	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), timeProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	assert.Equal(t, 0, metadata["total"])
+	assert.Equal(t, "0", metadata["total"])
 	assert.Equal(t, int64(0), metadata["missing"])
 	assert.Empty(t, results)
 }

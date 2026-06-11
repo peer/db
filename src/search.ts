@@ -774,7 +774,7 @@ async function getHistogramValues<T extends HistogramAmountResult | HistogramTim
   if (!("total" in metadata)) {
     throw new Error(`"total" metadata is missing`)
   }
-  const total = metadata["total"] as number
+  const total = parseInt(String(metadata["total"]), 10)
   const res = { results: doc, total: total } as {
     results: T[]
     total: number
