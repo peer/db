@@ -532,6 +532,72 @@ func TestTimeFilterGetOppositeOpenEndsIntegration(t *testing.T) {
 	assert.Equal(t, int64(1), results[len(results)-1].Count)
 }
 
+// A single open-start claim: its known endpoint is its to value 1000, so the histogram
+// collapses to a single bucket displayed at 1000, but the from metadata bound is lowered
+// by one precision step because the claim does not contain 1000 itself (its range upper
+// bound is exclusive) and a filter using [1000, 1000] bounds would not match it.
+func TestTimeFilterGetOpenStartIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	timeProp := identifier.From("timeProp")
+	t1000 := float64(1000)
+
+	indexTimeIntervalDoc(t, ctx, esClient, index, "openStartOnlyTimeDoc1", timeProp, nil, &t1000)
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.TimeFilter{}
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), timeProp)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, "1", metadata["total"])
+	assert.Equal(t, "999", metadata["from"])
+	assert.Equal(t, "1000", metadata["to"])
+	assert.Equal(t, []search.HistogramResult{{From: 1000.0, Count: 1}}, results)
+}
+
+// A single-value selection round-trips: an active filter using the from and to bounds of a
+// single-bucket response gets the same single-bucket response back (the data still has a
+// single known endpoint value), not a degenerate histogram over the selected bounds.
+func TestTimeFilterGetSingleValueActiveIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	timeProp := identifier.From("timeProp")
+	t1000 := float64(1000)
+
+	indexTimeIntervalDoc(t, ctx, esClient, index, "singleValueTimeDoc1", timeProp, nil, &t1000)
+	refreshIndex(t, ctx, esClient, index)
+
+	gte := float64(999)
+	lte := float64(1000)
+	session := createSession(t, ctx, search.SessionData{
+		Language: "",
+		View:     "",
+		Query:    "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{timeProp},
+			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false},
+		}},
+		Prefilters: nil,
+		Reverse:    nil,
+	})
+
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, "1", metadata["total"])
+	assert.Equal(t, "999", metadata["from"])
+	assert.Equal(t, "1000", metadata["to"])
+	assert.Equal(t, []search.HistogramResult{{From: 1000.0, Count: 1}}, results)
+}
+
 // An open-start claim combined with a bounded claim: aggregating just min over from would
 // put the histogram start at 3000 and hide the open-start document entirely. The combined
 // min comes from its to value 1000 and the histogram start is lowered by one second step

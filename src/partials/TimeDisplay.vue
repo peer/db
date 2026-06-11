@@ -15,9 +15,13 @@ const props = withDefaults(
     precision: TimePrecision
     // Initial display format: "absolute" or "relative".
     format?: "absolute" | "relative"
+    // Whether clicking toggles between the formats. Disable when the display is wrapped
+    // in another clickable element (e.g., a label) which should receive the click.
+    toggle?: boolean
   }>(),
   {
     format: "absolute",
+    toggle: true,
   },
 )
 
@@ -136,6 +140,9 @@ const relativeDisplay = computed(() => {
 
 // Toggle between formats.
 function toggleFormat() {
+  if (!props.toggle) {
+    return
+  }
   currentFormat.value = currentFormat.value === "absolute" ? "relative" : "absolute"
 }
 
@@ -208,7 +215,7 @@ const tooltip = computed(() => {
 </script>
 
 <template>
-  <span class="cursor-pointer" :title="tooltip" @click="toggleFormat" @mouseenter="refreshNowForTooltip">
+  <span :class="{ 'cursor-pointer': toggle }" :title="tooltip" @click="toggleFormat" @mouseenter="refreshNowForTooltip">
     <template v-if="currentFormat === 'absolute'">
       <span v-for="(part, index) in absoluteDisplay.parts" :key="index" :class="{ 'text-neutral-400': !part.precise }">{{ part.text }}</span>
     </template>

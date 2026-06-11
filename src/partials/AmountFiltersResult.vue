@@ -115,6 +115,32 @@ const missingState = computed({
   },
 })
 
+// Selects the single known value using the bounds provided by the backend. The from bound
+// can be below the value itself when needed to match claims ending exclusively at it.
+const singleValueState = computed({
+  get(): boolean {
+    return props.filter?.amount?.gte != null && props.filter.amount.gte === from.value && props.filter.amount.lte === to.value
+  },
+  set(value: boolean) {
+    if (abortController.signal.aborted) {
+      return
+    }
+
+    const updatedFilter: AmountFilterEntry = {
+      id: props.filter?.id ?? "",
+      base: props.filter?.base ?? [],
+      prop: props.filter?.prop ?? [...props.result.props],
+      amount:
+        value && from.value !== null && to.value !== null
+          ? { unit: props.result.unit, gte: from.value, lte: to.value }
+          : { unit: props.result.unit },
+    }
+    if (!equals(props.filter, updatedFilter)) {
+      emit("filterUpdate", updatedFilter.id, updatedFilter)
+    }
+  },
+})
+
 const chartWidth = 200
 const chartHeight = 30
 const barWidth = computed(() => {
@@ -239,6 +265,21 @@ onBeforeUnmount(() => {
         </div>
         <div class="my-1.5 h-2 rounded-sm bg-slate-200"></div>
       </li>
+      <li v-else-if="results.length === 1" class="contents">
+        <CheckBox :id="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/value'" v-model="singleValueState" />
+        <div class="flex items-baseline gap-x-1">
+          <label
+            :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/value'"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            >{{ results[0].from }}</label
+          >
+          <label
+            :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/value'"
+            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            >({{ results[0].count }})</label
+          >
+        </div>
+      </li>
       <li v-else-if="from !== to" class="col-span-2">
         <!-- We subtract 1 from chartWidth because we subtract 1 from bar width, so there would be a gap after the last one. -->
         <svg :viewBox="`0 0 ${chartWidth - 1} ${chartHeight}`">
@@ -261,13 +302,6 @@ onBeforeUnmount(() => {
           </div>
         </div>
         <div ref="sliderEl"></div>
-      </li>
-      <li v-else-if="results.length === 1" class="contents">
-        <div class="h-4 w-4 shrink-0 border border-transparent"></div>
-        <div class="flex items-baseline gap-x-1">
-          <div>{{ results[0].from }}</div>
-          <div>({{ results[0].count }})</div>
-        </div>
       </li>
       <li v-if="(missingCount != null && missingCount > 0) || missingState" class="contents">
         <CheckBox :id="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/missing'" v-model="missingState" />

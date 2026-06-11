@@ -101,23 +101,6 @@ func parseMinMax(aggs map[string]types.Aggregate, key string) (int64, *float64, 
 	return docs.DocCount, minVal, maxVal, minIsToEnd, nil
 }
 
-// parseCountOnly extracts doc count from a nested->filter->docs aggregation result.
-func parseCountOnly(aggs map[string]types.Aggregate, key string) (int64, errors.E) {
-	nested, errE := internalSearch.AggAs[types.NestedAggregate](aggs, key)
-	if errE != nil {
-		return 0, errE
-	}
-	filter, errE := internalSearch.AggAs[types.FilterAggregate](nested.Aggregations, "filter")
-	if errE != nil {
-		return 0, errE
-	}
-	docs, errE := internalSearch.AggAs[types.ReverseNestedAggregate](filter.Aggregations, "docs")
-	if errE != nil {
-		return 0, errE
-	}
-	return docs.DocCount, nil
-}
-
 // parseHistogramBuckets extracts histogram bucket results from a nested->filter->hist aggregation.
 func parseHistogramBuckets(aggs map[string]types.Aggregate, key string) ([]HistogramResult, errors.E) {
 	nested, errE := internalSearch.AggAs[types.NestedAggregate](aggs, key)
@@ -188,7 +171,9 @@ func histogramSubFilterGet(
 // are non-nil, those bounds are used for the histogram range instead of (or
 // to override) the min/max from the data. This provides "hard bounds"
 // (session range narrower than data) and "extended bounds" (session range
-// wider than data).
+// wider than data). When the data has a single known endpoint value, a single
+// bucket is returned even when session bounds are set, so that selecting the
+// single value round-trips to the same response.
 //
 // missingNestedQuery is the nested-path inner query that identifies an entry
 // matching the filter's identity (e.g., prop term for top-level filters, or
@@ -219,96 +204,52 @@ func histogramFilterGet(
 			esdsl.NewNestedQuery(missingNestedQuery).Path(nestedPath),
 		))
 
-	var docCount int64
-	var missingCount int64
-	var minValue, maxValue *float64
-	var minIsToEnd bool
+	// Run min/max aggregation to determine data range and doc count. Claims with an open
+	// (none) end index only the endpoint they have, so aggregating just min over from and
+	// max over to could miss known endpoints or return no value at all. Their known
+	// endpoints are aggregated separately (openStart and openEnd), both to extend the
+	// combined range and because an open start claim determining the min requires
+	// lowering the histogram start (its to is an exclusive range upper bound).
+	minMaxSearchService := getSearchService()
+	minMaxAggregation := esdsl.NewAggregations().
+		Nested(esdsl.NewNestedAggregation().Path(nestedPath)).
+		AddAggregation("filter", esdsl.NewAggregations().
+			Filter(filter).
+			AddAggregation("minFrom", esdsl.NewAggregations().
+				Min(esdsl.NewMinAggregation().Field(fromField))).
+			AddAggregation("maxTo", esdsl.NewAggregations().
+				Max(esdsl.NewMaxAggregation().Field(toField))).
+			AddAggregation("openStart", esdsl.NewAggregations().
+				Filter(esdsl.NewBoolQuery().MustNot(esdsl.NewExistsQuery().Field(fromField))).
+				AddAggregation("minTo", esdsl.NewAggregations().
+					Min(esdsl.NewMinAggregation().Field(toField)))).
+			AddAggregation("openEnd", esdsl.NewAggregations().
+				Filter(esdsl.NewBoolQuery().MustNot(esdsl.NewExistsQuery().Field(toField))).
+				AddAggregation("maxFrom", esdsl.NewAggregations().
+					Max(esdsl.NewMaxAggregation().Field(fromField)))).
+			AddAggregation("docs", esdsl.NewAggregations().
+				ReverseNested(esdsl.NewReverseNestedAggregation())))
+	minMaxSearchService = minMaxSearchService.Size(0).Query(query).
+		AddAggregation("minMax", minMaxAggregation).
+		AddAggregation(missingKey, missingAggregation)
 
-	// If bounds come from the session, we can skip the min/max aggregation (but we still need a doc count).
-	if sessionFrom != nil && sessionTo != nil {
-		// We still need to know if there are any matching documents.
-		// Run a count-only aggregation.
-		countSearchService := getSearchService()
-		countAggregation := esdsl.NewAggregations().
-			Nested(esdsl.NewNestedAggregation().Path(nestedPath)).
-			AddAggregation("filter", esdsl.NewAggregations().
-				Filter(filter).
-				AddAggregation("docs", esdsl.NewAggregations().
-					ReverseNested(esdsl.NewReverseNestedAggregation())))
-		countSearchService = countSearchService.Size(0).Query(query).
-			AddAggregation("count", countAggregation).
-			AddAggregation(missingKey, missingAggregation)
-
-		m := metrics.Duration(internalStore.MetricElasticSearch1).Start()
-		res, err := countSearchService.Do(ctx)
-		m.Stop()
-		if err != nil {
-			return nil, nil, WithESError(err)
-		}
-		metrics.Duration(internalStore.MetricElasticSearchInternal1).Duration = time.Duration(res.Took) * time.Millisecond
-
-		var errE errors.E
-		docCount, errE = parseCountOnly(res.Aggregations, "count")
-		if errE != nil {
-			return nil, nil, errE
-		}
-		missingFilter, errE := internalSearch.AggAs[types.FilterAggregate](res.Aggregations, missingKey)
-		if errE != nil {
-			return nil, nil, errE
-		}
-		missingCount = missingFilter.DocCount
-		// Use session bounds directly.
-		minValue = sessionFrom
-		maxValue = sessionTo
-	} else {
-		// Run min/max aggregation to determine data range and doc count. Claims with an open
-		// (none) end index only the endpoint they have, so aggregating just min over from and
-		// max over to could miss known endpoints or return no value at all. Their known
-		// endpoints are aggregated separately (openStart and openEnd), both to extend the
-		// combined range and because an open start claim determining the min requires
-		// lowering the histogram start (its to is an exclusive range upper bound).
-		minMaxSearchService := getSearchService()
-		minMaxAggregation := esdsl.NewAggregations().
-			Nested(esdsl.NewNestedAggregation().Path(nestedPath)).
-			AddAggregation("filter", esdsl.NewAggregations().
-				Filter(filter).
-				AddAggregation("minFrom", esdsl.NewAggregations().
-					Min(esdsl.NewMinAggregation().Field(fromField))).
-				AddAggregation("maxTo", esdsl.NewAggregations().
-					Max(esdsl.NewMaxAggregation().Field(toField))).
-				AddAggregation("openStart", esdsl.NewAggregations().
-					Filter(esdsl.NewBoolQuery().MustNot(esdsl.NewExistsQuery().Field(fromField))).
-					AddAggregation("minTo", esdsl.NewAggregations().
-						Min(esdsl.NewMinAggregation().Field(toField)))).
-				AddAggregation("openEnd", esdsl.NewAggregations().
-					Filter(esdsl.NewBoolQuery().MustNot(esdsl.NewExistsQuery().Field(toField))).
-					AddAggregation("maxFrom", esdsl.NewAggregations().
-						Max(esdsl.NewMaxAggregation().Field(fromField)))).
-				AddAggregation("docs", esdsl.NewAggregations().
-					ReverseNested(esdsl.NewReverseNestedAggregation())))
-		minMaxSearchService = minMaxSearchService.Size(0).Query(query).
-			AddAggregation("minMax", minMaxAggregation).
-			AddAggregation(missingKey, missingAggregation)
-
-		m := metrics.Duration(internalStore.MetricElasticSearch1).Start()
-		res, err := minMaxSearchService.Do(ctx)
-		m.Stop()
-		if err != nil {
-			return nil, nil, WithESError(err)
-		}
-		metrics.Duration(internalStore.MetricElasticSearchInternal1).Duration = time.Duration(res.Took) * time.Millisecond
-
-		var errE errors.E
-		docCount, minValue, maxValue, minIsToEnd, errE = parseMinMax(res.Aggregations, "minMax")
-		if errE != nil {
-			return nil, nil, errE
-		}
-		missingFilter, errE := internalSearch.AggAs[types.FilterAggregate](res.Aggregations, missingKey)
-		if errE != nil {
-			return nil, nil, errE
-		}
-		missingCount = missingFilter.DocCount
+	m := metrics.Duration(internalStore.MetricElasticSearch1).Start()
+	res, err := minMaxSearchService.Do(ctx)
+	m.Stop()
+	if err != nil {
+		return nil, nil, WithESError(err)
 	}
+	metrics.Duration(internalStore.MetricElasticSearchInternal1).Duration = time.Duration(res.Took) * time.Millisecond
+
+	docCount, minValue, maxValue, minIsToEnd, errE := parseMinMax(res.Aggregations, "minMax")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	missingFilter, errE := internalSearch.AggAs[types.FilterAggregate](res.Aggregations, missingKey)
+	if errE != nil {
+		return nil, nil, errE
+	}
+	missingCount := missingFilter.DocCount
 
 	if docCount == 0 {
 		return []HistogramResult{}, map[string]any{
@@ -329,28 +270,55 @@ func histogramFilterGet(
 		}, nil
 	}
 
-	// Bounds are the same, return a single bucket.
+	// The data has a single known endpoint value, return a single bucket, even when session
+	// bounds are set, so that selecting the single value round-trips to the same response.
+	// The from and to metadata bounds can be used by the client to filter to the single
+	// value. When the value is a known to endpoint of an open start claim, the from bound is
+	// lowered by one precision step like for the histogram, because such a claim does not
+	// contain the value itself (to endpoints are indexed as exclusive range upper bounds).
+	// There is no histogram span to refine the step against, so the step is unrefined.
 	if *minValue == *maxValue {
-		valString := strconv.FormatFloat(*minValue, 'f', -1, 64)
+		fromValue := *minValue
+		if minIsToEnd {
+			fromValue = stepDown(fromValue, math.Inf(1))
+		}
 		return []HistogramResult{{From: *minValue, Count: docCount}}, map[string]any{
 			"total":    "1",
-			"from":     valString,
-			"to":       valString,
+			"from":     strconv.FormatFloat(fromValue, 'f', -1, 64),
+			"to":       strconv.FormatFloat(*maxValue, 'f', -1, 64),
 			missingKey: missingCount,
 		}, nil
 	}
 
-	histogramFrom := *minValue
-	if minIsToEnd {
-		// The min is a known to endpoint and those are indexed as exclusive range upper bounds,
-		// so a claim ending exactly at the min would not overlap a first bucket starting there.
-		// Lower the histogram start so that such claims are counted.
-		histogramFrom = stepDown(histogramFrom, *maxValue-histogramFrom)
+	var histogramFrom, histogramTo float64
+	if sessionFrom != nil && sessionTo != nil {
+		// Use session bounds directly.
+		histogramFrom = *sessionFrom
+		histogramTo = *sessionTo
+		// Equal session bounds cannot span a histogram, return a single bucket at the value.
+		if histogramFrom == histogramTo {
+			valString := strconv.FormatFloat(histogramFrom, 'f', -1, 64)
+			return []HistogramResult{{From: histogramFrom, Count: docCount}}, map[string]any{
+				"total":    "1",
+				"from":     valString,
+				"to":       valString,
+				missingKey: missingCount,
+			}, nil
+		}
+	} else {
+		histogramFrom = *minValue
+		histogramTo = *maxValue
+		if minIsToEnd {
+			// The min is a known to endpoint and those are indexed as exclusive range upper bounds,
+			// so a claim ending exactly at the min would not overlap a first bucket starting there.
+			// Lower the histogram start so that such claims are counted.
+			histogramFrom = stepDown(histogramFrom, histogramTo-histogramFrom)
+		}
 	}
 
 	// Compute interval and upper bound for the histogram. The upper bound may be
 	// adjusted (e.g., rounded up for integer intervals) so the range is evenly divisible.
-	interval, upperBound, intervalString := computeInterval(histogramFrom, *maxValue)
+	interval, upperBound, intervalString := computeInterval(histogramFrom, histogramTo)
 
 	// Compute offset so that bucket boundaries align with histogramFrom.
 	offset := math.Mod(histogramFrom, interval)
@@ -377,8 +345,8 @@ func histogramFilterGet(
 			AddAggregation("hist", histAgg))
 	histogramSearchService = histogramSearchService.Size(0).Query(query).AddAggregation("histogram", histogramAggregation)
 
-	m := metrics.Duration(internalStore.MetricElasticSearch2).Start()
-	res, err := histogramSearchService.Do(ctx)
+	m = metrics.Duration(internalStore.MetricElasticSearch2).Start()
+	res, err = histogramSearchService.Do(ctx)
 	m.Stop()
 	if err != nil {
 		return nil, nil, WithESError(err)
@@ -395,7 +363,7 @@ func histogramFilterGet(
 	metadata := map[string]any{
 		"total":    total,
 		"from":     strconv.FormatFloat(histogramFrom, 'f', -1, 64),
-		"to":       strconv.FormatFloat(*maxValue, 'f', -1, 64),
+		"to":       strconv.FormatFloat(histogramTo, 'f', -1, 64),
 		"interval": intervalString,
 		missingKey: missingCount,
 	}
