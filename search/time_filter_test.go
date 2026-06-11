@@ -406,7 +406,7 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 	assert.Equal(t, int64(26), totalCount)
 }
 
-func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
+func TestTimeFilterGetWideRangeIntegration(t *testing.T) {
 	t.Parallel()
 
 	ctx := t.Context()
