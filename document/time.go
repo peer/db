@@ -334,71 +334,7 @@ func (t Time) windowEndFloat64(precision TimePrecision) (float64, errors.E) {
 	if errE != nil {
 		return 0, errE
 	}
-	return x.TimeToFloat64(addTimePrecision(parsed, precision)), nil
-}
-
-// addTimePrecision returns the time at the end of the precision window
-// starting at t. If the natural step does not survive the float64
-// round-trip via x.TimeToFloat64 it widens to the next coarser precision.
-//
-//nolint:cyclop
-func addTimePrecision(t time.Time, precision TimePrecision) time.Time {
-	var stepped time.Time
-	switch precision {
-	case TimePrecisionGigaYears:
-		stepped = t.AddDate(1_000_000_000, 0, 0) //nolint:mnd
-	case TimePrecisionHundredMegaYears:
-		stepped = t.AddDate(100_000_000, 0, 0) //nolint:mnd
-	case TimePrecisionTenMegaYears:
-		stepped = t.AddDate(10_000_000, 0, 0) //nolint:mnd
-	case TimePrecisionMegaYears:
-		stepped = t.AddDate(1_000_000, 0, 0) //nolint:mnd
-	case TimePrecisionHundredKiloYears:
-		stepped = t.AddDate(100_000, 0, 0) //nolint:mnd
-	case TimePrecisionTenKiloYears:
-		stepped = t.AddDate(10_000, 0, 0) //nolint:mnd
-	case TimePrecisionKiloYears:
-		stepped = t.AddDate(1_000, 0, 0) //nolint:mnd
-	case TimePrecisionHundredYears:
-		stepped = t.AddDate(100, 0, 0) //nolint:mnd
-	case TimePrecisionTenYears:
-		stepped = t.AddDate(10, 0, 0) //nolint:mnd
-	case TimePrecisionYear:
-		stepped = t.AddDate(1, 0, 0)
-	case TimePrecisionMonth:
-		stepped = t.AddDate(0, 1, 0)
-	case TimePrecisionDay:
-		stepped = t.AddDate(0, 0, 1)
-	case TimePrecisionHour:
-		stepped = t.Add(time.Hour)
-	case TimePrecisionMinute:
-		stepped = t.Add(time.Minute)
-	case TimePrecisionSecond:
-		stepped = t.Add(time.Second)
-	case TimePrecisionMillisecond:
-		stepped = t.Add(time.Millisecond)
-	case TimePrecisionMicrosecond:
-		stepped = t.Add(time.Microsecond)
-	case TimePrecisionNanosecond:
-		stepped = t.Add(time.Nanosecond)
-	default:
-		errE := errors.New("unknown precision")
-		errors.Details(errE)["precision"] = precision
-		panic(errE)
-	}
-
-	if x.TimeToFloat64(stepped) == x.TimeToFloat64(t) {
-		if precision == TimePrecisionGigaYears {
-			// Nothing left to widen to.
-			// This should not happen.
-			errE := errors.New("unsupported precision")
-			errors.Details(errE)["t"] = t
-			errors.Details(errE)["precision"] = precision
-			panic(errE)
-		}
-		return addTimePrecision(t, precision-1)
-	}
-	return stepped
+	return x.TimeToFloat64(internalDocument.AddTimePrecision(parsed, precision, 1)), nil
 }
 
 // MarshalText implements encoding.TextMarshaler for Time.

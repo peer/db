@@ -184,7 +184,11 @@ export function equals<T>(a: T, b: T): boolean {
 // second part (beyond a small float64 tolerance) is sub-second and returns "s".
 // Finer precisions are never returned. Otherwise we check divisibility by
 // 60 / 3600 / 86400 for min/h/d, and then walk the calendar fields (and year
-// divisibility) for the coarser tiers.
+// divisibility) for the coarser tiers. Years within the four-digit range are
+// never classified coarser than a year, mirroring inferYearPrecision in
+// src/partials/input/InputTime.format.ts (and timePrecisionForValue on the
+// backend): a value like 2000-01-01 comes from a year-precision claim in
+// human-scale history, not a millennium one.
 export function timePrecisionForValue(seconds: number): TimePrecision {
   // Tolerate small float64 rounding error when classifying "is this an integer
   // number of seconds?". For unix seconds in the human-relevant range the ULP
@@ -202,6 +206,7 @@ export function timePrecisionForValue(seconds: number): TimePrecision {
   const [year, month, day] = toDate(sec)
   if (day > 1) return "d"
   if (month > 1) return "m"
+  if (year > -10_000 && year < 10_000) return "y"
   if (year % 10 !== 0) return "y"
   if (year % 100 !== 0) return "10y"
   if (year % 1_000 !== 0) return "100y"

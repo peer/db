@@ -56,6 +56,7 @@ func (f *AmountFilter) Get(
 		missingNestedQuery, "claims.amount", filter,
 		"claims.amount.from", "claims.amount.to", "claims.amount.range",
 		f.Gte, f.Lte,
+		amountStepDown,
 	)
 }
 
@@ -95,5 +96,6 @@ func (f *AmountFilter) GetSubAmount(
 		parentProp, prop, "claims.subAmount", filter,
 		"claims.subAmount.from", "claims.subAmount.to", "claims.subAmount.range",
 		f.Gte, f.Lte,
+		amountStepDown,
 	)
 }

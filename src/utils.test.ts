@@ -162,18 +162,20 @@ describe("timePrecisionForValue", () => {
     assert.equal(timePrecisionForValue(Date.UTC(2025, 0, 1) / 1000), "y")
   })
 
-  test("returns 10y on Jan 1 of a decade year not divisible by 100", () => {
-    assert.equal(timePrecisionForValue(Date.UTC(2020, 0, 1) / 1000), "10y")
-    // Unix epoch year 1970 is divisible by 10 but not by 100.
-    assert.equal(timePrecisionForValue(0), "10y")
+  test("never returns coarser than y for four-digit years", () => {
+    assert.equal(timePrecisionForValue(Date.UTC(2020, 0, 1) / 1000), "y")
+    assert.equal(timePrecisionForValue(Date.UTC(2100, 0, 1) / 1000), "y")
+    assert.equal(timePrecisionForValue(Date.UTC(2000, 0, 1) / 1000), "y")
+    // Unix epoch year 1970.
+    assert.equal(timePrecisionForValue(0), "y")
+    assert.equal(timePrecisionForValue(Date.UTC(-2000, 0, 1) / 1000), "y")
   })
 
-  test("returns 100y on Jan 1 of a century year not divisible by 1000", () => {
-    assert.equal(timePrecisionForValue(Date.UTC(2100, 0, 1) / 1000), "100y")
-  })
-
-  test("returns k on Jan 1 of a kiloyear not divisible by 10000", () => {
-    assert.equal(timePrecisionForValue(Date.UTC(2000, 0, 1) / 1000), "k")
+  test("uses the year divisibility walk for five-digit and larger years", () => {
+    assert.equal(timePrecisionForValue(Date.UTC(12000, 0, 1) / 1000), "k")
+    assert.equal(timePrecisionForValue(Date.UTC(10000, 0, 1) / 1000), "10k")
+    assert.equal(timePrecisionForValue(Date.UTC(110000, 0, 1) / 1000), "10k")
+    assert.equal(timePrecisionForValue(Date.UTC(100000, 0, 1) / 1000), "100k")
   })
 
   test("tolerates small float64 rounding error", () => {

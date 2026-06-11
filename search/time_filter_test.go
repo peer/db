@@ -37,21 +37,24 @@ func TestTimeFilterGetIntegration(t *testing.T) {
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
+	// The histogram spans the known endpoint window edges [1000, 9001).
 	assert.Equal(t, "1000", metadata["from"])
-	assert.Equal(t, "9000", metadata["to"])
+	assert.Equal(t, "9001", metadata["to"])
 	assertIntervalPrefix(t, "80.0", metadata)
 	assert.Equal(t, "100", metadata["total"])
 	require.Len(t, results, 100)
 
-	// Value 1000 -> bucket[0], value 5000 -> bucket[49], value 9000 -> bucket[99].
+	// Window [1000, 1001) -> bucket[0], window [9000, 9001) -> bucket[99], while window
+	// [5000, 5001) straddles the boundary between buckets [49] and [50] and is counted
+	// in both.
 	var totalCount int64
 	for i, r := range results {
-		assert.InDelta(t, 1000.0+float64(i)*80.00000000000001, r.From, 1e-6, "bucket %d From", i)
+		assert.InDelta(t, 1000.0+float64(i)*80.01000000000002, r.From, 1e-6, "bucket %d From", i)
 		totalCount += r.Count
 		switch i {
 		case 0:
 			assert.Equal(t, int64(1), r.Count, "bucket %d Count (value 1000)", i)
-		case 49:
+		case 49, 50:
 			assert.Equal(t, int64(1), r.Count, "bucket %d Count (value 5000)", i)
 		case 99:
 			assert.Equal(t, int64(1), r.Count, "bucket %d Count (value 9000)", i)
@@ -59,7 +62,7 @@ func TestTimeFilterGetIntegration(t *testing.T) {
 			assert.Equal(t, int64(0), r.Count, "bucket %d Count", i)
 		}
 	}
-	assert.Equal(t, int64(3), totalCount)
+	assert.Equal(t, int64(4), totalCount)
 }
 
 func TestTimeFilterGetMissingIntegration(t *testing.T) {
@@ -73,37 +76,7 @@ func TestTimeFilterGetMissingIntegration(t *testing.T) {
 	t1000 := float64(1000)
 
 	// Doc with the time prop.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("timeDoc1"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time: internalSearch.TimeClaims{{
-				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
-				Range: internalSearch.RangeFloat{
-					GreaterThan: nil, GreaterThanOrEqual: &t1000, LessThan: nil, LessThanOrEqual: &t1000,
-				},
-				From: &t1000, FromDisplay: "", To: &t1000, ToDisplay: "",
-			}},
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	indexTimePointDoc(t, ctx, esClient, index, "timeDoc1", timeProp, &t1000)
 	// Doc without the time prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
 		DisplaySort: nil,
@@ -153,37 +126,7 @@ func TestTimeFilterGetNoMissingIntegration(t *testing.T) {
 	t1000 := float64(1000)
 
 	// All docs have the time prop.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("timeDoc1"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time: internalSearch.TimeClaims{{
-				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
-				Range: internalSearch.RangeFloat{
-					GreaterThan: nil, GreaterThanOrEqual: &t1000, LessThan: nil, LessThanOrEqual: &t1000,
-				},
-				From: &t1000, FromDisplay: "", To: &t1000, ToDisplay: "",
-			}},
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	indexTimePointDoc(t, ctx, esClient, index, "timeDoc1", timeProp, &t1000)
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
@@ -215,17 +158,18 @@ func TestTimeFilterGetInactiveIntegration(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "1000", metadata["from"])
-	assert.Equal(t, "9000", metadata["to"])
+	assert.Equal(t, "9001", metadata["to"])
 	assertIntervalPrefix(t, "80.0", metadata)
 	assert.Equal(t, "100", metadata["total"])
 	require.Len(t, results, 100)
 
-	// Verify total count across all histogram bins equals 3.
+	// Verify total count across all histogram bins equals 4 (the window [5000, 5001)
+	// straddles a bucket boundary and is counted in two buckets).
 	var totalCount int64
 	for _, r := range results {
 		totalCount += r.Count
 	}
-	assert.Equal(t, int64(3), totalCount)
+	assert.Equal(t, int64(4), totalCount)
 }
 
 func TestTimeFilterGetSameValuesIntegration(t *testing.T) {
@@ -237,39 +181,10 @@ func TestTimeFilterGetSameValuesIntegration(t *testing.T) {
 	timeProp := identifier.From("timeProp")
 	t5000 := float64(5000)
 
-	for i := range 2 {
-		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			DisplaySort: nil,
-			ID:          identifier.From("sameTimeDoc", string(rune('0'+i))),
-			Display:     nil,
-			Text:        nil,
-			Time:        nil,
-			LastUpdated: nil,
-			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-			Claims: internalSearch.ClaimTypes{
-				Identifier: nil,
-				String:     nil,
-				HTML:       nil,
-				Amount:     nil,
-				Time: internalSearch.TimeClaims{{
-					Prop: timeProp, PropDisplay: nil, PropNaming: nil,
-					Range: internalSearch.RangeFloat{
-						GreaterThan: nil, GreaterThanOrEqual: &t5000, LessThan: nil, LessThanOrEqual: &t5000,
-					},
-					From: &t5000, FromDisplay: "", To: &t5000, ToDisplay: "",
-				}},
-				Link:      nil,
-				Reference: nil,
-				Has:       nil,
-				None:      nil,
-				Unknown:   nil,
-				SubRef:    nil,
-				SubAmount: nil,
-				SubTime:   nil,
-				SubHas:    nil,
-			},
-		})
-	}
+	// Two open-ended claims with the same known endpoint: the only known endpoint value is
+	// 5000, so the histogram collapses to a single bucket.
+	indexTimeIntervalDoc(t, ctx, esClient, index, "sameTimeDoc0", timeProp, &t5000, nil)
+	indexTimeIntervalDoc(t, ctx, esClient, index, "sameTimeDoc1", timeProp, &t5000, nil)
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
@@ -302,68 +217,8 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 	tNeg500 := float64(-500)
 	t500 := float64(500)
 
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("negTimeDoc1"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time: internalSearch.TimeClaims{{
-				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
-				Range: internalSearch.RangeFloat{
-					GreaterThan: nil, GreaterThanOrEqual: &tNeg500, LessThan: nil, LessThanOrEqual: &tNeg500,
-				},
-				From: &tNeg500, FromDisplay: "", To: &tNeg500, ToDisplay: "",
-			}},
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("negTimeDoc2"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time: internalSearch.TimeClaims{{
-				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
-				Range: internalSearch.RangeFloat{
-					GreaterThan: nil, GreaterThanOrEqual: &t500, LessThan: nil, LessThanOrEqual: &t500,
-				},
-				From: &t500, FromDisplay: "", To: &t500, ToDisplay: "",
-			}},
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	indexTimePointDoc(t, ctx, esClient, index, "negTimeDoc1", timeProp, &tNeg500)
+	indexTimePointDoc(t, ctx, esClient, index, "negTimeDoc2", timeProp, &t500)
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
@@ -382,7 +237,7 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "-500", metadata["from"])
-	assert.Equal(t, "500", metadata["to"])
+	assert.Equal(t, "501", metadata["to"])
 	assertIntervalPrefix(t, "10.0", metadata)
 	assert.Equal(t, "100", metadata["total"])
 	require.Len(t, results, 100)
@@ -390,7 +245,7 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 	// Value -500 in bucket[0], value 500 in bucket[99].
 	var totalCount int64
 	for i, r := range results {
-		assert.InDelta(t, -500.0+float64(i)*10.000000000000002, r.From, 1e-6, "bucket %d From", i)
+		assert.InDelta(t, -500.0+float64(i)*10.010000000000002, r.From, 1e-6, "bucket %d From", i)
 		totalCount += r.Count
 		switch i {
 		case 0:
@@ -443,46 +298,8 @@ func TestTimeFilterGetExtendedBoundsIntegration(t *testing.T) {
 	t4000 := float64(4000)
 	t6000 := float64(6000)
 
-	//nolint:dupl
-	for _, tc := range []struct {
-		id    string
-		value *float64
-	}{
-		{"extTimeDoc1", &t4000},
-		{"extTimeDoc2", &t6000},
-	} {
-		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			DisplaySort: nil,
-			ID:          identifier.From(tc.id),
-			Display:     nil,
-			Text:        nil,
-			Time:        nil,
-			LastUpdated: nil,
-			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-			Claims: internalSearch.ClaimTypes{
-				Identifier: nil,
-				String:     nil,
-				HTML:       nil,
-				Amount:     nil,
-				Time: internalSearch.TimeClaims{{
-					Prop: timeProp, PropDisplay: nil, PropNaming: nil,
-					Range: internalSearch.RangeFloat{
-						GreaterThan: nil, GreaterThanOrEqual: tc.value, LessThan: nil, LessThanOrEqual: tc.value,
-					},
-					From: tc.value, FromDisplay: "", To: tc.value, ToDisplay: "",
-				}},
-				Link:      nil,
-				Reference: nil,
-				Has:       nil,
-				None:      nil,
-				Unknown:   nil,
-				SubRef:    nil,
-				SubAmount: nil,
-				SubTime:   nil,
-				SubHas:    nil,
-			},
-		})
-	}
+	indexTimePointDoc(t, ctx, esClient, index, "extTimeDoc1", timeProp, &t4000)
+	indexTimePointDoc(t, ctx, esClient, index, "extTimeDoc2", timeProp, &t6000)
 	refreshIndex(t, ctx, esClient, index)
 
 	// Session filter with wider range [0, 10000] than data [4000, 6000].
@@ -509,21 +326,22 @@ func TestTimeFilterGetExtendedBoundsIntegration(t *testing.T) {
 	assert.Equal(t, "100", metadata["total"])
 	require.Len(t, results, 100)
 
-	// Value 4000 -> bucket[39], value 6000 -> bucket[59].
+	// Window [4000, 4001) straddles buckets [39] and [40], window [6000, 6001) straddles
+	// buckets [59] and [60].
 	var totalCount int64
 	for i, r := range results {
 		assert.InDelta(t, float64(i)*100.00000000000001, r.From, 1e-6, "bucket %d From", i)
 		totalCount += r.Count
 		switch i {
-		case 39:
+		case 39, 40:
 			assert.Equal(t, int64(1), r.Count, "bucket %d Count (value 4000)", i)
-		case 59:
+		case 59, 60:
 			assert.Equal(t, int64(1), r.Count, "bucket %d Count (value 6000)", i)
 		default:
 			assert.Equal(t, int64(0), r.Count, "bucket %d Count", i)
 		}
 	}
-	assert.Equal(t, int64(2), totalCount)
+	assert.Equal(t, int64(4), totalCount)
 }
 
 func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
@@ -534,74 +352,14 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 
 	timeProp := identifier.From("timeProp")
 
-	// Two time intervals: [0, 2000] and [8000, 10000].
+	// Two time intervals: [0, 2000) and [8000, 10000), with the to values being window ends.
 	t0 := float64(0)
 	t2000 := float64(2000)
 	t8000 := float64(8000)
 	t10000 := float64(10000)
 
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("hardTimeDoc1"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time: internalSearch.TimeClaims{{
-				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
-				Range: internalSearch.RangeFloat{
-					GreaterThan: nil, GreaterThanOrEqual: &t0, LessThan: nil, LessThanOrEqual: &t2000,
-				},
-				From: &t0, FromDisplay: "", To: &t2000, ToDisplay: "",
-			}},
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("hardTimeDoc2"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time: internalSearch.TimeClaims{{
-				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
-				Range: internalSearch.RangeFloat{
-					GreaterThan: nil, GreaterThanOrEqual: &t8000, LessThan: nil, LessThanOrEqual: &t10000,
-				},
-				From: &t8000, FromDisplay: "", To: &t10000, ToDisplay: "",
-			}},
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	indexTimeIntervalDoc(t, ctx, esClient, index, "hardTimeDoc1", timeProp, &t0, &t2000)
+	indexTimeIntervalDoc(t, ctx, esClient, index, "hardTimeDoc2", timeProp, &t8000, &t10000)
 	refreshIndex(t, ctx, esClient, index)
 
 	// Search session filters time between 1000 and 9000.
@@ -664,99 +422,9 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 	// Doc3: point value at 9500.
 	t9500 := float64(9500)
 
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("wideTimeDoc1"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time: internalSearch.TimeClaims{{
-				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
-				Range: internalSearch.RangeFloat{
-					GreaterThan: nil, GreaterThanOrEqual: &t500, LessThan: nil, LessThanOrEqual: &t500,
-				},
-				From: &t500, FromDisplay: "", To: &t500, ToDisplay: "",
-			}},
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("wideTimeDoc2"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time: internalSearch.TimeClaims{{
-				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
-				Range: internalSearch.RangeFloat{
-					GreaterThan: nil, GreaterThanOrEqual: &t2000, LessThan: nil, LessThanOrEqual: &t8000,
-				},
-				From: &t2000, FromDisplay: "", To: &t8000, ToDisplay: "",
-			}},
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("wideTimeDoc3"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount:     nil,
-			Time: internalSearch.TimeClaims{{
-				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
-				Range: internalSearch.RangeFloat{
-					GreaterThan: nil, GreaterThanOrEqual: &t9500, LessThan: nil, LessThanOrEqual: &t9500,
-				},
-				From: &t9500, FromDisplay: "", To: &t9500, ToDisplay: "",
-			}},
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	indexTimePointDoc(t, ctx, esClient, index, "wideTimeDoc1", timeProp, &t500)
+	indexTimeIntervalDoc(t, ctx, esClient, index, "wideTimeDoc2", timeProp, &t2000, &t8000)
+	indexTimePointDoc(t, ctx, esClient, index, "wideTimeDoc3", timeProp, &t9500)
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
@@ -775,16 +443,16 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Equal(t, "500", metadata["from"])
-	assert.Equal(t, "9500", metadata["to"])
+	assert.Equal(t, "9501", metadata["to"])
 	assertIntervalPrefix(t, "90.0", metadata)
 
-	// The wide-range document [2000, 8000] is counted in every bucket it overlaps.
-	// Point value 500 -> bucket[0] (count 1), point value 9500 -> last bucket (count 1).
-	// Wide range [2000, 8000] overlaps 68 buckets in the middle.
+	// The wide-range document [2000, 8000) is counted in every bucket it overlaps.
+	// Point window [500, 501) -> bucket[0] (count 1), point window [9500, 9501) -> last
+	// bucket (count 1). Wide range [2000, 8000) overlaps 68 buckets in the middle.
 	// Total count = 70 (1 + 68 range buckets + 1).
 	var totalCount int64
 	for i, r := range results {
-		assert.InDelta(t, 500.0+float64(i)*90.00000000000001, r.From, 1e-6, "bucket %d From", i)
+		assert.InDelta(t, 500.0+float64(i)*90.01000000000002, r.From, 1e-6, "bucket %d From", i)
 		totalCount += r.Count
 	}
 	assert.Equal(t, int64(70), totalCount)
@@ -792,4 +460,239 @@ func TestTimeFilterGetWideRangeFloategration(t *testing.T) {
 	// First and last buckets have the point values.
 	assert.Equal(t, int64(1), results[0].Count)
 	assert.Equal(t, int64(1), results[len(results)-1].Count)
+}
+
+// A single matching claim with an open (none) end indexes no to field at all, so the max
+// aggregation over it has no value.
+func TestTimeFilterGetOpenEndIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	timeProp := identifier.From("timeProp")
+	t1000 := float64(1000)
+
+	indexTimeIntervalDoc(t, ctx, esClient, index, "openEndTimeDoc1", timeProp, &t1000, nil)
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.TimeFilter{}
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), timeProp)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The only known endpoint value is the from, so the histogram collapses to a single bucket.
+	assert.Equal(t, "1", metadata["total"])
+	assert.Equal(t, "1000", metadata["from"])
+	assert.Equal(t, "1000", metadata["to"])
+	assert.Equal(t, []search.HistogramResult{{From: 1000.0, Count: 1}}, results)
+}
+
+// Claims open-ended in opposite directions: aggregating just min over from and max over to
+// would produce an inverted range (min 5000, max 1000). The combined aggregation over both
+// fields spans all known endpoint values instead.
+func TestTimeFilterGetOppositeOpenEndsIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	timeProp := identifier.From("timeProp")
+	t1000 := float64(1000)
+	t5000 := float64(5000)
+
+	indexTimeIntervalDoc(t, ctx, esClient, index, "oppositeTimeDoc1", timeProp, nil, &t1000)
+	indexTimeIntervalDoc(t, ctx, esClient, index, "oppositeTimeDoc2", timeProp, &t5000, nil)
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.TimeFilter{}
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), timeProp)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, "100", metadata["total"])
+	// The min known endpoint value 1000 is a to value, so the histogram start is lowered by
+	// one second step to catch the open-start document whose range ends exclusively at 1000.
+	assert.Equal(t, "999", metadata["from"])
+	assert.Equal(t, "5000", metadata["to"])
+	assertIntervalPrefix(t, "40.0", metadata)
+	require.Len(t, results, 100)
+
+	// The document with the open start overlaps just the first bucket (its range ends right
+	// below 1000), while the document with the open end overlaps every bucket from 5000 on,
+	// which within hard bounds is just the last one.
+	var totalCount int64
+	for _, r := range results {
+		totalCount += r.Count
+	}
+	assert.Equal(t, int64(2), totalCount)
+	assert.Equal(t, int64(1), results[0].Count)
+	assert.Equal(t, int64(1), results[len(results)-1].Count)
+}
+
+// An open-start claim combined with a bounded claim: aggregating just min over from would
+// put the histogram start at 3000 and hide the open-start document entirely. The combined
+// min comes from its to value 1000 and the histogram start is lowered by one second step
+// below it so the document is counted in the first bucket.
+func TestTimeFilterGetOpenStartWithBoundedIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	timeProp := identifier.From("timeProp")
+	t1000 := float64(1000)
+	t3000 := float64(3000)
+	t5000 := float64(5000)
+
+	indexTimeIntervalDoc(t, ctx, esClient, index, "openStartTimeDoc1", timeProp, nil, &t1000)
+	indexTimeIntervalDoc(t, ctx, esClient, index, "openStartTimeDoc2", timeProp, &t3000, &t5000)
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.TimeFilter{}
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), timeProp)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, "100", metadata["total"])
+	assert.Equal(t, "999", metadata["from"])
+	assert.Equal(t, "5000", metadata["to"])
+	assertIntervalPrefix(t, "40.0", metadata)
+	require.Len(t, results, 100)
+
+	// The open-start document overlaps just the first bucket (its range ends right below
+	// 1000) and the bounded document overlaps the 50 buckets spanning [3000, 5000).
+	var totalCount int64
+	for _, r := range results {
+		totalCount += r.Count
+	}
+	assert.Equal(t, int64(1), results[0].Count)
+	assert.Equal(t, int64(0), results[1].Count)
+	assert.Equal(t, int64(1), results[len(results)-1].Count)
+	assert.Equal(t, int64(51), totalCount)
+}
+
+// A claim with both endpoints open (none) indexes neither the from nor the to field, only
+// sentinel range bounds, so there are no known endpoint values to span a histogram with.
+func TestTimeFilterGetUnboundedIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	timeProp := identifier.From("timeProp")
+
+	indexTimeIntervalDoc(t, ctx, esClient, index, "unboundedTimeDoc1", timeProp, nil, nil)
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.TimeFilter{}
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), timeProp)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, 0, metadata["total"])
+	assert.Equal(t, int64(0), metadata["missing"])
+	assert.Empty(t, results)
+}
+
+// A claim with one unknown endpoint never reaches the index with a missing from or to
+// field: the converter collapses it to a point claim at the known endpoint (see
+// TestConvertTimeIntervalToUnknownWithFrom), so it supplies histogram bounds like any
+// point value, here combined with an open-ended claim supplying the other bound.
+func TestTimeFilterGetUnknownEndIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	timeProp := identifier.From("timeProp")
+	t1000 := float64(1000)
+	t5000 := float64(5000)
+
+	// The indexed shape of an interval claim [1000, unknown) after conversion.
+	indexTimePointDoc(t, ctx, esClient, index, "unknownEndTimeDoc1", timeProp, &t1000)
+	indexTimeIntervalDoc(t, ctx, esClient, index, "unknownEndTimeDoc2", timeProp, &t5000, nil)
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.TimeFilter{}
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), timeProp)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, "100", metadata["total"])
+	assert.Equal(t, "1000", metadata["from"])
+	assert.Equal(t, "5000", metadata["to"])
+	assertIntervalPrefix(t, "40.0", metadata)
+	require.Len(t, results, 100)
+
+	// The collapsed point lands in the first bucket and the open-ended claim overlaps
+	// every bucket from 5000 on, which within hard bounds is just the last one.
+	var totalCount int64
+	for _, r := range results {
+		totalCount += r.Count
+	}
+	assert.Equal(t, int64(2), totalCount)
+	assert.Equal(t, int64(1), results[0].Count)
+	assert.Equal(t, int64(1), results[len(results)-1].Count)
+}
+
+// A claim with both endpoints unknown is converted to an unknown claim (see
+// TestConvertTimeIntervalBothUnknown) and is not indexed under claims.time at all, so
+// its document counts as missing for the filter and does not affect the histogram.
+func TestTimeFilterGetFullyUnknownIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	timeProp := identifier.From("timeProp")
+	t1000 := float64(1000)
+
+	// The indexed shape of an interval claim with both endpoints unknown after conversion.
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		DisplaySort: nil,
+		ID:          identifier.From("fullyUnknownTimeDoc1"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims: internalSearch.ClaimTypes{
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
+			Reference:  nil,
+			Has:        nil,
+			None:       nil,
+			Unknown: internalSearch.UnknownClaims{{
+				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
+			}},
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
+		},
+	})
+	indexTimeIntervalDoc(t, ctx, esClient, index, "fullyUnknownTimeDoc2", timeProp, &t1000, nil)
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.TimeFilter{}
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), timeProp)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, "1", metadata["total"])
+	assert.Equal(t, "1000", metadata["from"])
+	assert.Equal(t, "1000", metadata["to"])
+	assert.Equal(t, int64(1), metadata["missing"])
+	assert.Equal(t, []search.HistogramResult{{From: 1000.0, Count: 1}}, results)
 }

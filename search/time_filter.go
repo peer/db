@@ -22,6 +22,7 @@ func (f *TimeFilter) Get(
 		missingNestedQuery, "claims.time", filter,
 		"claims.time.from", "claims.time.to", "claims.time.range",
 		f.Gte, f.Lte,
+		timeStepDown,
 	)
 }
 
@@ -51,5 +52,6 @@ func (f *TimeFilter) GetSubTime(
 		parentProp, prop, "claims.subTime", filter,
 		"claims.subTime.from", "claims.subTime.to", "claims.subTime.range",
 		f.Gte, f.Lte,
+		timeStepDown,
 	)
 }

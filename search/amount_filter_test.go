@@ -63,28 +63,29 @@ func TestAmountFilterGetIntegration(t *testing.T) {
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	assert.Equal(t, "10", metadata["from"])
-	assert.Equal(t, "90", metadata["to"])
+	// The histogram spans the known endpoint window edges [9.5, 90.5).
+	assert.Equal(t, "9.5", metadata["from"])
+	assert.Equal(t, "90.5", metadata["to"])
 	assertIntervalPrefix(t, "0.8", metadata)
 	assert.Equal(t, "100", metadata["total"])
 	require.Len(t, results, 100)
 
-	// Verify total count across all histogram bins equals 3.
+	// Each precision window is wider than a bucket so every value is counted in two buckets.
 	var totalCount int64
 	for _, r := range results {
 		totalCount += r.Count
 	}
-	assert.Equal(t, int64(3), totalCount)
+	assert.Equal(t, int64(6), totalCount)
 
-	// Verify the three non-zero buckets.
-	// Value 10 -> bucket [0].
-	assert.InDelta(t, 10.0, results[0].From, 1e-10)
+	// Verify the non-zero buckets.
+	// Window [9.5, 10.5) -> buckets [0] and [1].
 	assert.Equal(t, int64(1), results[0].Count)
-	// Value 50 -> bucket [49].
-	assert.InDelta(t, 49.2, results[49].From, 1e-10)
+	assert.Equal(t, int64(1), results[1].Count)
+	// Window [49.5, 50.5) -> buckets [49] and [50].
 	assert.Equal(t, int64(1), results[49].Count)
-	// Value 90 -> bucket [99].
-	assert.InDelta(t, 89.2, results[99].From, 1e-10)
+	assert.Equal(t, int64(1), results[50].Count)
+	// Window [89.5, 90.5) -> buckets [98] and [99].
+	assert.Equal(t, int64(1), results[98].Count)
 	assert.Equal(t, int64(1), results[99].Count)
 }
 
@@ -100,37 +101,7 @@ func TestAmountFilterGetMissingIntegration(t *testing.T) {
 	ten := 10.0
 
 	// Doc with the amount prop.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("amountDoc1"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount: internalSearch.AmountClaims{{
-				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
-				Range: internalSearch.RangeFloat{
-					GreaterThan: nil, GreaterThanOrEqual: &ten, LessThan: nil, LessThanOrEqual: &ten,
-				},
-				From: &ten, FromDisplay: "", To: &ten, ToDisplay: "",
-			}},
-			Time:      nil,
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	indexAmountDoc(t, ctx, esClient, index, "amountDoc1", amountProp, unitID, &ten)
 	// Doc without the amount prop.
 	indexDocument(t, ctx, esClient, index, internalSearch.Document{
 		DisplaySort: nil,
@@ -207,37 +178,7 @@ func TestAmountFilterGetNoMissingIntegration(t *testing.T) {
 	ten := 10.0
 
 	// All docs have the amount prop.
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("amountDoc1"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount: internalSearch.AmountClaims{{
-				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
-				Range: internalSearch.RangeFloat{
-					GreaterThan: nil, GreaterThanOrEqual: &ten, LessThan: nil, LessThanOrEqual: &ten,
-				},
-				From: &ten, FromDisplay: "", To: &ten, ToDisplay: "",
-			}},
-			Time:      nil,
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	indexAmountDoc(t, ctx, esClient, index, "amountDoc1", amountProp, unitID, &ten)
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{})
@@ -283,18 +224,19 @@ func TestAmountFilterGetInactiveIntegration(t *testing.T) {
 	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), amountProp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	assert.Equal(t, "10", metadata["from"])
-	assert.Equal(t, "90", metadata["to"])
+	assert.Equal(t, "9.5", metadata["from"])
+	assert.Equal(t, "90.5", metadata["to"])
 	assertIntervalPrefix(t, "0.8", metadata)
 	assert.Equal(t, "100", metadata["total"])
 	require.Len(t, results, 100)
 
-	// Verify total count across all histogram bins equals 3.
+	// Verify total count across all histogram bins equals 6 (each precision window is
+	// wider than a bucket so every value is counted in two buckets).
 	var totalCount int64
 	for _, r := range results {
 		totalCount += r.Count
 	}
-	assert.Equal(t, int64(3), totalCount)
+	assert.Equal(t, int64(6), totalCount)
 }
 
 func TestAmountFilterGetSameValuesIntegration(t *testing.T) {
@@ -307,39 +249,10 @@ func TestAmountFilterGetSameValuesIntegration(t *testing.T) {
 	unitID := identifier.From("unit")
 	fortyTwo := 42.0
 
-	for i := range 2 {
-		indexDocument(t, ctx, esClient, index, internalSearch.Document{
-			DisplaySort: nil,
-			ID:          identifier.From("sameDoc", string(rune('0'+i))),
-			Display:     nil,
-			Text:        nil,
-			Time:        nil,
-			LastUpdated: nil,
-			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-			Claims: internalSearch.ClaimTypes{
-				Identifier: nil,
-				String:     nil,
-				HTML:       nil,
-				Amount: internalSearch.AmountClaims{{
-					Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
-					Range: internalSearch.RangeFloat{
-						GreaterThan: nil, GreaterThanOrEqual: &fortyTwo, LessThan: nil, LessThanOrEqual: &fortyTwo,
-					},
-					From: &fortyTwo, FromDisplay: "", To: &fortyTwo, ToDisplay: "",
-				}},
-				Time:      nil,
-				Link:      nil,
-				Reference: nil,
-				Has:       nil,
-				None:      nil,
-				Unknown:   nil,
-				SubRef:    nil,
-				SubAmount: nil,
-				SubTime:   nil,
-				SubHas:    nil,
-			},
-		})
-	}
+	// Two open-ended claims with the same known endpoint: the only known endpoint value is
+	// 42, so the histogram collapses to a single bucket.
+	indexAmountIntervalDoc(t, ctx, esClient, index, "sameDoc0", amountProp, &unitID, &fortyTwo, nil)
+	indexAmountIntervalDoc(t, ctx, esClient, index, "sameDoc1", amountProp, &unitID, &fortyTwo, nil)
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
@@ -400,37 +313,9 @@ func TestAmountFilterGetWithoutUnitIntegration(t *testing.T) {
 	amountProp := identifier.From("amountProp")
 	twentyFive := 25.0
 
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("noUnitDoc"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount: internalSearch.AmountClaims{{
-				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: nil,
-				Range: internalSearch.RangeFloat{
-					GreaterThan: nil, GreaterThanOrEqual: &twentyFive, LessThan: nil, LessThanOrEqual: &twentyFive,
-				},
-				From: &twentyFive, FromDisplay: "", To: &twentyFive, ToDisplay: "",
-			}},
-			Time:      nil,
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	// An open-ended claim without a unit: the only known endpoint value is 25, so the
+	// histogram collapses to a single bucket.
+	indexAmountIntervalDoc(t, ctx, esClient, index, "noUnitDoc", amountProp, nil, &twentyFive, nil)
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
@@ -495,30 +380,33 @@ func TestAmountFilterGetGapIntegration(t *testing.T) {
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	assert.Equal(t, "0", metadata["from"])
-	assert.Equal(t, "100", metadata["to"])
-	assertIntervalPrefix(t, "1.000000000000000", metadata)
+	// The histogram spans the known endpoint window edges [-0.5, 100.5).
+	assert.Equal(t, "-0.5", metadata["from"])
+	assert.Equal(t, "100.5", metadata["to"])
+	assertIntervalPrefix(t, "1.01", metadata)
 	assert.Equal(t, "100", metadata["total"])
 	require.Len(t, results, 100)
 
-	// Total count = 3.
+	// Total count = 4 (the window [0.5, 1.5) straddles buckets [0] and [1]).
 	var totalCount int64
 	for _, r := range results {
 		totalCount += r.Count
 	}
-	assert.Equal(t, int64(3), totalCount)
+	assert.Equal(t, int64(4), totalCount)
 
-	// Values 0 and 1 both fall in bucket [0] because interval > 1.
-	assert.InDelta(t, 0.0, results[0].From, 1e-10)
+	// Window [-0.5, 0.5) falls in bucket [0], window [0.5, 1.5) straddles buckets [0] and [1].
+	assert.InDelta(t, -0.5, results[0].From, 1e-10)
 	assert.Equal(t, int64(2), results[0].Count)
+	assert.InDelta(t, 0.51, results[1].From, 1e-10)
+	assert.Equal(t, int64(1), results[1].Count)
 
-	// All buckets from index 1 to 98 should be empty (the gap).
-	for i := 1; i < 99; i++ {
+	// All buckets from index 2 to 98 should be empty (the gap).
+	for i := 2; i < 99; i++ {
 		assert.Equal(t, int64(0), results[i].Count, "bucket %d should be empty", i)
 	}
 
-	// Value 100 falls in bucket [99].
-	assert.InDelta(t, 99.0, results[99].From, 1e-10)
+	// Window [99.5, 100.5) falls in bucket [99].
+	assert.InDelta(t, 99.49, results[99].From, 1e-10)
 	assert.Equal(t, int64(1), results[99].Count)
 }
 
@@ -574,14 +462,14 @@ func TestAmountFilterGetExtendedBoundsIntegration(t *testing.T) {
 	assert.Equal(t, "100", metadata["total"])
 	require.Len(t, results, 100)
 
-	// Verify all 100 buckets: From values increase by ~1.0 from 0, counts are 0
-	// except bucket [39] (value 40) and [59] (value 60).
+	// Verify all 100 buckets: From values increase by ~1.0 from 0, counts are 0 except
+	// the buckets straddled by the windows [39.5, 40.5) and [59.5, 60.5).
 	for i, r := range results {
 		assert.InDelta(t, float64(i), r.From, 1e-10, "bucket %d From", i)
 		switch i {
-		case 39:
+		case 39, 40:
 			assert.Equal(t, int64(1), r.Count, "bucket %d Count (value 40)", i)
-		case 59:
+		case 59, 60:
 			assert.Equal(t, int64(1), r.Count, "bucket %d Count (value 60)", i)
 		default:
 			assert.Equal(t, int64(0), r.Count, "bucket %d Count", i)
@@ -598,74 +486,14 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 	amountProp := identifier.From("amountProp")
 	unitID := identifier.From("unit")
 
-	// Two amount intervals: [0, 20] and [80, 100].
+	// Two amount intervals: [0, 20) and [80, 100), with the to values being window ends.
 	zero := 0.0
 	twenty := 20.0
 	eighty := 80.0
 	hundred := 100.0
 
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("hardDoc1"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount: internalSearch.AmountClaims{{
-				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
-				Range: internalSearch.RangeFloat{
-					GreaterThan: nil, GreaterThanOrEqual: &zero, LessThan: nil, LessThanOrEqual: &twenty,
-				},
-				From: &zero, FromDisplay: "", To: &twenty, ToDisplay: "",
-			}},
-			Time:      nil,
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("hardDoc2"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount: internalSearch.AmountClaims{{
-				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
-				Range: internalSearch.RangeFloat{
-					GreaterThan: nil, GreaterThanOrEqual: &eighty, LessThan: nil, LessThanOrEqual: &hundred,
-				},
-				From: &eighty, FromDisplay: "", To: &hundred, ToDisplay: "",
-			}},
-			Time:      nil,
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	indexAmountIntervalDoc(t, ctx, esClient, index, "hardDoc1", amountProp, &unitID, &zero, &twenty)
+	indexAmountIntervalDoc(t, ctx, esClient, index, "hardDoc2", amountProp, &unitID, &eighty, &hundred)
 	refreshIndex(t, ctx, esClient, index)
 
 	// Search session filters amounts between 10 and 90.
@@ -733,99 +561,9 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 	// Doc3: point value at 95.
 	ninetyFive := 95.0
 
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("wideDoc1"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount: internalSearch.AmountClaims{{
-				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
-				Range: internalSearch.RangeFloat{
-					GreaterThan: nil, GreaterThanOrEqual: &five, LessThan: nil, LessThanOrEqual: &five,
-				},
-				From: &five, FromDisplay: "", To: &five, ToDisplay: "",
-			}},
-			Time:      nil,
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("wideDoc2"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount: internalSearch.AmountClaims{{
-				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
-				Range: internalSearch.RangeFloat{
-					GreaterThan: nil, GreaterThanOrEqual: &twenty, LessThan: nil, LessThanOrEqual: &eighty,
-				},
-				From: &twenty, FromDisplay: "", To: &eighty, ToDisplay: "",
-			}},
-			Time:      nil,
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
-		DisplaySort: nil,
-		ID:          identifier.From("wideDoc3"),
-		Display:     nil,
-		Text:        nil,
-		Time:        nil,
-		LastUpdated: nil,
-		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
-		Claims: internalSearch.ClaimTypes{
-			Identifier: nil,
-			String:     nil,
-			HTML:       nil,
-			Amount: internalSearch.AmountClaims{{
-				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
-				Range: internalSearch.RangeFloat{
-					GreaterThan: nil, GreaterThanOrEqual: &ninetyFive, LessThan: nil, LessThanOrEqual: &ninetyFive,
-				},
-				From: &ninetyFive, FromDisplay: "", To: &ninetyFive, ToDisplay: "",
-			}},
-			Time:      nil,
-			Link:      nil,
-			Reference: nil,
-			Has:       nil,
-			None:      nil,
-			Unknown:   nil,
-			SubRef:    nil,
-			SubAmount: nil,
-			SubTime:   nil,
-			SubHas:    nil,
-		},
-	})
+	indexAmountDoc(t, ctx, esClient, index, "wideDoc1", amountProp, unitID, &five)
+	indexAmountIntervalDoc(t, ctx, esClient, index, "wideDoc2", amountProp, &unitID, &twenty, &eighty)
+	indexAmountDoc(t, ctx, esClient, index, "wideDoc3", amountProp, unitID, &ninetyFive)
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
@@ -843,26 +581,70 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	assert.Equal(t, "5", metadata["from"])
-	assert.Equal(t, "95", metadata["to"])
+	// The histogram spans the known endpoint window edges [4.5, 95.5).
+	assert.Equal(t, "4.5", metadata["from"])
+	assert.Equal(t, "95.5", metadata["to"])
 	assertIntervalPrefix(t, "0.9", metadata)
 	assert.Equal(t, "100", metadata["total"])
 	require.Len(t, results, 100)
 
-	// The wide-range document [20, 80] is counted in every bucket it overlaps.
-	// Point value 5 -> bucket[0] (count 1), point value 95 -> bucket[99] (count 1).
-	// Wide range [20, 80] overlaps many buckets in the middle (count 1 each).
-	// Total count = 70 (1 + 68 range buckets + 1).
+	// The wide-range document [20, 80) is counted in every bucket it overlaps.
+	// Point window [4.5, 5.5) straddles buckets [0] and [1], point window [94.5, 95.5)
+	// straddles buckets [98] and [99]. Wide range [20, 80) overlaps 66 buckets in the
+	// middle. Total count = 70 (2 + 66 range buckets + 2).
 	var totalCount int64
 	for i, r := range results {
-		assert.InDelta(t, 5.0+float64(i)*0.9, r.From, 0.1, "bucket %d From", i)
+		assert.InDelta(t, 4.5+float64(i)*0.91, r.From, 0.1, "bucket %d From", i)
 		totalCount += r.Count
 	}
 	assert.Equal(t, int64(70), totalCount)
 
-	// First and last buckets have the point values.
 	assert.Equal(t, int64(1), results[0].Count)
+	assert.Equal(t, int64(1), results[1].Count)
+	assert.Equal(t, int64(1), results[98].Count)
 	assert.Equal(t, int64(1), results[99].Count)
+}
+
+// An open-start claim combined with a bounded claim: the combined min comes from the
+// open-start claim's to value 10, so the histogram start is lowered by one step of its
+// apparent decimal precision (ten) and the document is counted in the first bucket.
+func TestAmountFilterGetOpenStartWithBoundedIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	amountProp := identifier.From("amountProp")
+	unitID := identifier.From("unit")
+	ten := 10.0
+	thirty := 30.0
+	fifty := 50.0
+
+	indexAmountIntervalDoc(t, ctx, esClient, index, "openStartDoc1", amountProp, &unitID, nil, &ten)
+	indexAmountIntervalDoc(t, ctx, esClient, index, "openStartDoc2", amountProp, &unitID, &thirty, &fifty)
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.AmountFilter{Unit: &unitID} //nolint:exhaustruct
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), amountProp)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, "100", metadata["total"])
+	assert.Equal(t, "0", metadata["from"])
+	assert.Equal(t, "50", metadata["to"])
+	assertIntervalPrefix(t, "0.5", metadata)
+	require.Len(t, results, 100)
+
+	// The open-start document overlaps the buckets below 10 and the bounded document
+	// overlaps the buckets spanning [30, 50).
+	var totalCount int64
+	for _, r := range results {
+		totalCount += r.Count
+	}
+	assert.Equal(t, int64(1), results[0].Count)
+	assert.Equal(t, int64(1), results[len(results)-1].Count)
+	assert.Equal(t, int64(61), totalCount)
 }
 
 func TestComputeInterval(t *testing.T) {

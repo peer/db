@@ -3644,6 +3644,15 @@ func TestConvertTimeIntervalFromUnknownWithTo(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
 	assert.Empty(t, unknownClaims)
+
+	// Collapsed to a single point claim at the to-window: both endpoint fields are
+	// indexed, so the claim feeds histogram min/max aggregations like any point value.
+	require.NotNil(t, timeClaims[0].From)
+	require.NotNil(t, timeClaims[0].To)
+	fromTime := x.TimeFromFloat64(*timeClaims[0].From).UTC()
+	toTime := x.TimeFromFloat64(*timeClaims[0].To).UTC()
+	assert.Equal(t, time.Date(2024, time.June, 15, 0, 0, 0, 0, time.UTC), fromTime)
+	assert.Equal(t, time.Date(2024, time.June, 16, 0, 0, 0, 0, time.UTC), toTime)
 }
 
 func TestConvertTimeIntervalToUnknownWithFrom(t *testing.T) {
@@ -3671,6 +3680,15 @@ func TestConvertTimeIntervalToUnknownWithFrom(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, timeClaims, 1)
 	assert.Empty(t, unknownClaims)
+
+	// Collapsed to a single point claim at the from-window: both endpoint fields are
+	// indexed, so the claim feeds histogram min/max aggregations like any point value.
+	require.NotNil(t, timeClaims[0].From)
+	require.NotNil(t, timeClaims[0].To)
+	fromTime := x.TimeFromFloat64(*timeClaims[0].From).UTC()
+	toTime := x.TimeFromFloat64(*timeClaims[0].To).UTC()
+	assert.Equal(t, time.Date(2024, time.June, 15, 0, 0, 0, 0, time.UTC), fromTime)
+	assert.Equal(t, time.Date(2024, time.June, 16, 0, 0, 0, 0, time.UTC), toTime)
 }
 
 func TestConvertTimeIntervalBothUnknown(t *testing.T) {

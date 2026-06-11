@@ -4,6 +4,7 @@ package document
 import (
 	"bytes"
 	"fmt"
+	"time"
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
@@ -169,4 +170,69 @@ func (p *TimePrecision) UnmarshalJSON(b []byte) error {
 		return errE
 	}
 	return p.UnmarshalText([]byte(s))
+}
+
+// AddTimePrecision returns the time moved by steps precision windows from t (e.g., one
+// window forward for steps of 1 or one window back for steps of -1). If the natural step
+// does not survive the float64 round-trip via x.TimeToFloat64 it widens to the next
+// coarser precision.
+//
+//nolint:cyclop,mnd
+func AddTimePrecision(t time.Time, precision TimePrecision, steps int) time.Time {
+	var stepped time.Time
+	switch precision {
+	case TimePrecisionGigaYears:
+		stepped = t.AddDate(steps*1_000_000_000, 0, 0)
+	case TimePrecisionHundredMegaYears:
+		stepped = t.AddDate(steps*100_000_000, 0, 0)
+	case TimePrecisionTenMegaYears:
+		stepped = t.AddDate(steps*10_000_000, 0, 0)
+	case TimePrecisionMegaYears:
+		stepped = t.AddDate(steps*1_000_000, 0, 0)
+	case TimePrecisionHundredKiloYears:
+		stepped = t.AddDate(steps*100_000, 0, 0)
+	case TimePrecisionTenKiloYears:
+		stepped = t.AddDate(steps*10_000, 0, 0)
+	case TimePrecisionKiloYears:
+		stepped = t.AddDate(steps*1_000, 0, 0)
+	case TimePrecisionHundredYears:
+		stepped = t.AddDate(steps*100, 0, 0)
+	case TimePrecisionTenYears:
+		stepped = t.AddDate(steps*10, 0, 0)
+	case TimePrecisionYear:
+		stepped = t.AddDate(steps, 0, 0)
+	case TimePrecisionMonth:
+		stepped = t.AddDate(0, steps, 0)
+	case TimePrecisionDay:
+		stepped = t.AddDate(0, 0, steps)
+	case TimePrecisionHour:
+		stepped = t.Add(time.Duration(steps) * time.Hour)
+	case TimePrecisionMinute:
+		stepped = t.Add(time.Duration(steps) * time.Minute)
+	case TimePrecisionSecond:
+		stepped = t.Add(time.Duration(steps) * time.Second)
+	case TimePrecisionMillisecond:
+		stepped = t.Add(time.Duration(steps) * time.Millisecond)
+	case TimePrecisionMicrosecond:
+		stepped = t.Add(time.Duration(steps) * time.Microsecond)
+	case TimePrecisionNanosecond:
+		stepped = t.Add(time.Duration(steps) * time.Nanosecond)
+	default:
+		errE := errors.New("unknown precision")
+		errors.Details(errE)["precision"] = precision
+		panic(errE)
+	}
+
+	if x.TimeToFloat64(stepped) == x.TimeToFloat64(t) {
+		if precision == TimePrecisionGigaYears {
+			// Nothing left to widen to.
+			// This should not happen.
+			errE := errors.New("unsupported precision")
+			errors.Details(errE)["t"] = t
+			errors.Details(errE)["precision"] = precision
+			panic(errE)
+		}
+		return AddTimePrecision(t, precision-1, steps)
+	}
+	return stepped
 }
