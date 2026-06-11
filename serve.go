@@ -366,7 +366,12 @@ func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Hand
 			return nil, onShutdownF, errE
 		}
 
-		c.Server.Logger.Info().Str("domain", site.Domain).Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Msg("serving")
+		c.Server.Logger.Info().
+			Str("domain", site.Domain).Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).
+			Strs("visibility", site.LevelNames()).
+			Strs("roles", siteRoleNames(site)).
+			Strs("languages", site.EnabledLanguages()).
+			Msg("serving")
 	}
 
 	// Register the daily auth-cleanup periodic job on each site's river client. site.Start above has

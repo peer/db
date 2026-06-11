@@ -42,13 +42,13 @@ var codeToLingua = map[string]lingua.Language{ //nolint:gochecknoglobals
 	"pt": lingua.Portuguese,
 }
 
-// enabledLanguagesFromLanguagePriority returns the set of enabled languages and the per-language
+// EnabledLanguagesFromLanguagePriority returns the set of enabled languages and the per-language
 // fallback chains to use for display label resolution, given its LanguagePriority configuration.
 //
 // When priority is non-empty, the enabled set is its keys plus "und", and the returned fallback
 // chains are priority verbatim. When priority is nil/empty, only DefaultEnabledLanguage is enabled
 // (plus "und"), with "und" as its fallback.
-func enabledLanguagesFromLanguagePriority(priority map[string][]string) (map[string]bool, map[string][]string) {
+func EnabledLanguagesFromLanguagePriority(priority map[string][]string) (map[string]bool, map[string][]string) {
 	if len(priority) == 0 {
 		enabled := map[string]bool{DefaultEnabledLanguage: true, document.UndeterminedLanguage: true}
 		fallback := map[string][]string{DefaultEnabledLanguage: {document.UndeterminedLanguage}}
@@ -709,7 +709,7 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 // EnabledLanguages returns the sorted set of languages a site indexes, derived from its
 // LanguagePriority (its keys plus "und") or the default SupportedLanguages when unset.
 func EnabledLanguages(languagePriority map[string][]string) []string {
-	enabled, _ := enabledLanguagesFromLanguagePriority(languagePriority)
+	enabled, _ := EnabledLanguagesFromLanguagePriority(languagePriority)
 	return slices.Sorted(maps.Keys(enabled))
 }
 

@@ -491,7 +491,7 @@ func NewConverter(
 	if errE != nil {
 		return nil, errE
 	}
-	enabledLanguages, languagePriority := enabledLanguagesFromLanguagePriority(languagePriority)
+	enabledLanguages, languagePriority := EnabledLanguagesFromLanguagePriority(languagePriority)
 	// Recognized languages are the enabled ones plus any language that appears
 	// only as a fallback target. Those are identified (so they can serve as a
 	// display fallback) but not indexed.

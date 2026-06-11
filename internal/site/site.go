@@ -5,7 +5,9 @@ package site
 import (
 	"context"
 	"io"
+	"maps"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/alecthomas/kong"
@@ -242,8 +244,8 @@ func (s *Site) validateVisibility() errors.E {
 	return nil
 }
 
-// levelNames returns the configured visibility level names, from lowest to highest access.
-func (s *Site) levelNames() []string {
+// LevelNames returns the configured visibility level names, from lowest to highest access.
+func (s *Site) LevelNames() []string {
 	if len(s.Visibility) == 0 {
 		// Validation sets Visibility, but this might be called without validation, so we return the same.
 		return []string{AllVisibilityLevel}
@@ -255,9 +257,17 @@ func (s *Site) levelNames() []string {
 	return names
 }
 
+// EnabledLanguages returns the sorted enabled languages of the site, derived from LanguagePriority the same
+// way the converter and the index mapping derive them: its keys plus the undetermined language, or the
+// default when no language priority is configured.
+func (s *Site) EnabledLanguages() []string {
+	enabled, _ := internalSearch.EnabledLanguagesFromLanguagePriority(s.LanguagePriority)
+	return slices.Sorted(maps.Keys(enabled))
+}
+
 // LevelIndexes returns the ElasticSearch index name for every visibility level, from lowest to highest.
 func (s *Site) LevelIndexes() []string {
-	names := s.levelNames()
+	names := s.LevelNames()
 	indexes := make([]string, len(names))
 	for i, name := range names {
 		indexes[i] = internalSearch.LevelIndex(s.IndexPrefix, name)
@@ -268,7 +278,7 @@ func (s *Site) LevelIndexes() []string {
 // TopIndex returns the ElasticSearch index for the highest (last) visibility level: the unfiltered superset
 // that contains every document. Paths that must see all documents regardless of the caller use it.
 func (s *Site) TopIndex() string {
-	names := s.levelNames()
+	names := s.LevelNames()
 	return internalSearch.LevelIndex(s.IndexPrefix, names[len(names)-1])
 }
 
