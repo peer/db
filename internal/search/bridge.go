@@ -39,6 +39,12 @@ const bridgeRetryDelay = 5 * time.Second
 // listener connection died silently) and no further writes arrive to produce a new one.
 const waitRefreshInterval = 5 * time.Second
 
+// reindexQueueRefreshDebounce is how long the refresher goroutine waits after a BridgeReindexQueue
+// notification before refreshing the cached state, coalescing the bursts of notifications produced
+// while commits enqueue documents and reindex jobs drain them. The refresh is a full-table aggregate,
+// so without debouncing it would run for every INSERT/DELETE statement on the table.
+const reindexQueueRefreshDebounce = time.Second
+
 // reindexSoftDeadline bounds how long a single reindex job spends draining the queue before it flushes
 // what it has and schedules a follow-up job.
 const reindexSoftDeadline = 10 * time.Minute
@@ -234,6 +240,10 @@ type Bridge struct {
 	// reindexQueueCount is the number of distinct document IDs remaining
 	// in BridgeReindexQueue. It is used for progress tracking.
 	reindexQueueCount int64
+	// reindexQueueRefreshSignal carries coalesced BridgeReindexQueue notifications from the
+	// notification handler to the refresher goroutine. It has capacity 1 and is sent to with a
+	// non-blocking send, so any number of pending notifications collapse into one signal.
+	reindexQueueRefreshSignal chan struct{}
 	// reindexSoftDeadline bounds how long a single reindex job drains the queue before flushing and
 	// scheduling a follow-up. It defaults to the reindexSoftDeadline constant and can be lowered in tests.
 	reindexSoftDeadline time.Duration
@@ -324,6 +334,9 @@ func (b *Bridge) Init(
 	b.lastSeqCond = sync.NewCond(b.lastSeqMu.RLocker())
 	b.reindexQueueMinSeqCond = sync.NewCond(b.reindexQueueMinSeqMu.RLocker())
 	b.reindexQueueMinSeq = math.MaxInt64
+	// Channel has capacity 1 and is sent to with a non-blocking send, so any
+	// number of pending notifications collapse into one signal.
+	b.reindexQueueRefreshSignal = make(chan struct{}, 1)
 	b.reindexSoftDeadline = reindexSoftDeadline
 	b.maxContentLength, errE = b.fetchMaxContentLength(ctx)
 	if errE != nil {
@@ -385,7 +398,8 @@ func (b *Bridge) HandleNotification(
 	case b.bridgeSeqChannel:
 		return b.handleBridgeSeq(ctx, notification, conn)
 	case b.bridgeReindexQueueMinSeqChannel:
-		return b.handleBridgeReindexQueueMinSeq(ctx)
+		b.handleBridgeReindexQueueMinSeq()
+		return nil
 	default:
 		errE := errors.New("unknown notification channel")
 		errors.Details(errE)["channel"] = notification.Channel
@@ -464,15 +478,24 @@ func (b *Bridge) fixBridgeSeq(ctx context.Context) (int64, errors.E) {
 	return seq, nil
 }
 
-// handleBridgeReindexQueueMinSeq handles notifications from the BridgeReindexQueue table
-// trigger and broadcasts to any goroutines waiting in WaitUntilCaughtUp.
+// handleBridgeReindexQueueMinSeq handles notifications from the BridgeReindexQueue table trigger.
 //
 // We query MIN(seq) in a separate transaction via updateBridgeReindexQueueMinSeq rather than
 // receiving it as the notification payload. Computing MIN(seq) inside the trigger's read-write
 // transaction would create an unnecessary dependency on the BridgeReindexQueue table, causing
 // serialization conflicts with concurrent INSERTs and DELETEs under serializable isolation.
-func (b *Bridge) handleBridgeReindexQueueMinSeq(ctx context.Context) errors.E {
-	return b.updateBridgeReindexQueueMinSeq(ctx)
+//
+// The statement-level trigger fires for every INSERT and DELETE statement on the table and the
+// refresh is a full-table aggregate, so the handler does not refresh synchronously but only signals
+// runReindexQueueRefresher, which debounces bursts of notifications into at most one refresh per
+// reindexQueueRefreshDebounce. The cached state can therefore lag behind the table for up to the
+// debounce interval. This is safe because waiters confirm against the database before concluding
+// that the queue has drained (see waitForReindexQueueMinSeq).
+func (b *Bridge) handleBridgeReindexQueueMinSeq() {
+	select {
+	case b.reindexQueueRefreshSignal <- struct{}{}:
+	default:
+	}
 }
 
 // updateBridgeReindexQueueMinSeq fetches the current MIN(seq) and COUNT(DISTINCT "id")
@@ -510,6 +533,43 @@ func (b *Bridge) updateBridgeReindexQueueMinSeq(ctx context.Context) errors.E {
 	b.reindexQueueCount = cnt
 	b.reindexQueueMinSeqCond.Broadcast()
 	return nil
+}
+
+// runReindexQueueRefresher refreshes the cached BridgeReindexQueue state whenever
+// handleBridgeReindexQueueMinSeq signals it. After the first signal it waits
+// reindexQueueRefreshDebounce, coalescing further signals into the same refresh, and refreshes
+// once. A signal arriving after the refresh has started begins another cycle, so a refresh always
+// runs after the last signal of a burst. Errors are only logged: waiters periodically refresh the
+// state themselves and confirm against the database before concluding that the queue has drained.
+func (b *Bridge) runReindexQueueRefresher(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-b.reindexQueueRefreshSignal:
+		}
+
+		timer := time.NewTimer(reindexQueueRefreshDebounce)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return
+		case <-timer.C:
+		}
+
+		// A signal which arrived during the debounce window is satisfied by the refresh below,
+		// because the change it describes committed before its notification was delivered, so we
+		// consume it to avoid an immediate second refresh.
+		select {
+		case <-b.reindexQueueRefreshSignal:
+		default:
+		}
+
+		errE := b.updateBridgeReindexQueueMinSeq(ctx)
+		if errE != nil {
+			zerolog.Ctx(ctx).Warn().Err(errE).Msg("reindex queue min seq refresh error")
+		}
+	}
 }
 
 // waitForFixBridgeSeq is similar to WaitUntilCaughtUp but it does not wait for b.lastSeq to catch up with
@@ -613,7 +673,46 @@ func (b *Bridge) waitForUpdateBridgeReindexQueueMinSeq(ctx context.Context) erro
 	return b.waitForReindexQueueMinSeq(ctx, seq, nil, nil)
 }
 
+// waitForReindexQueueMinSeq blocks until no BridgeReindexQueue rows with seq at or below the given
+// seq remain. It waits on the cached state and then confirms against the database before returning:
+// the cached state can claim that the queue has drained while a just-inserted row is not yet
+// reflected, both because handler runs are debounced and because concurrent refreshes can write an
+// older observation over a newer one.
 func (b *Bridge) waitForReindexQueueMinSeq(ctx context.Context, seq int64, count, size *x.Counter) errors.E {
+	for {
+		errE := b.waitForReindexQueueMinSeqCached(ctx, seq, count, size)
+		if errE != nil {
+			return errE
+		}
+
+		// This is a cheap query through the BridgeReindexQueueSeq index.
+		var pending bool
+		errE = internalStore.RetryTransactionWithIsoLevel(ctx, b.dbpool, pgx.ReadCommitted, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+			return internalStore.WithPgxError(
+				tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+b.Store.Prefix+`BridgeReindexQueue" WHERE "seq" <= $1)`, seq).Scan(&pending),
+			)
+		})
+		if errE != nil {
+			return errE
+		}
+		if !pending {
+			return nil
+		}
+
+		// Rows at or below seq exist even though the cached state claimed otherwise. Correct the
+		// cached state, which also broadcasts, and wait again. Newly discovered rows are added to
+		// the progress counters by the next waitForReindexQueueMinSeqCached round.
+		errE = b.updateBridgeReindexQueueMinSeq(ctx)
+		if errE != nil {
+			return errE
+		}
+	}
+}
+
+// waitForReindexQueueMinSeqCached blocks until the cached state says that no BridgeReindexQueue
+// rows with seq at or below the given seq remain. The cached state may be stale; use
+// waitForReindexQueueMinSeq for a confirmed wait.
+func (b *Bridge) waitForReindexQueueMinSeqCached(ctx context.Context, seq int64, count, size *x.Counter) errors.E {
 	b.reindexQueueMinSeqCond.L.Lock()
 	defer b.reindexQueueMinSeqCond.L.Unlock()
 
@@ -833,6 +932,8 @@ func (b *Bridge) Refresh(ctx context.Context) errors.E {
 // the Committed channel before calling Start to assure that there is no gap between catch-up and
 // real-time processing of new commits.
 func (b *Bridge) Start(ctx context.Context) errors.E {
+	go b.runReindexQueueRefresher(ctx)
+
 	go func() {
 		// TODO: Measure how many retries have to be made and abort if it is too much.
 		//       The goal is that if this is happening too often, we should terminate the whole process and let the
