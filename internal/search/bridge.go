@@ -33,6 +33,12 @@ import (
 
 const bridgeRetryDelay = 5 * time.Second
 
+// waitRefreshInterval is how often goroutines waiting in WaitUntilCaughtUp refresh the waited-on state
+// directly from the database. Notifications normally wake them up sooner. The periodic refresh guarantees
+// progress when a notification is lost (its handler failed and pgxlisten does not redeliver, or the
+// listener connection died silently) and no further writes arrive to produce a new one.
+const waitRefreshInterval = 5 * time.Second
+
 // reindexSoftDeadline bounds how long a single reindex job spends draining the queue before it flushes
 // what it has and schedules a follow-up job.
 const reindexSoftDeadline = 10 * time.Minute
@@ -395,15 +401,13 @@ func (b *Bridge) HandleBacklog(
 ) error {
 	switch channel {
 	case b.bridgeSeqChannel:
-		// TODO: Improve what happens on an error.
-		//       Any error from fixBridgeSeq is just logged. Which means that goroutines waiting in WaitUntilCaughtUp
-		//       might continue waiting until some other new commit is made, which might be never.
+		// An error is just logged by pgxlisten, but that is acceptable: goroutines waiting in
+		// WaitUntilCaughtUp periodically refresh the state themselves, so they recover even if
+		// no further notification ever arrives.
 		_, errE := b.fixBridgeSeq(ctx)
 		return errE
 	case b.bridgeReindexQueueMinSeqChannel:
-		// TODO: Improve what happens on an error.
-		//       Any error from updateBridgeReindexQueueMinSeq is just logged. Which means that goroutines waiting
-		//       in WaitUntilCaughtUp might continue waiting until some other new commit is made, which might be never.
+		// On an error, see the comment for the bridgeSeqChannel case above.
 		return b.updateBridgeReindexQueueMinSeq(ctx)
 	default:
 		errE := errors.New("unknown notification channel")
@@ -463,14 +467,10 @@ func (b *Bridge) fixBridgeSeq(ctx context.Context) (int64, errors.E) {
 // handleBridgeReindexQueueMinSeq handles notifications from the BridgeReindexQueue table
 // trigger and broadcasts to any goroutines waiting in WaitUntilCaughtUp.
 //
-// We query MIN(seq) in a separate read-only transaction via updateBridgeReindexQueueMinSeq
-// rather than receiving it as the notification payload. Computing MIN(seq) inside the trigger's
-// read-write transaction would create an unnecessary dependency on the BridgeReindexQueue table,
-// causing serialization conflicts with concurrent INSERTs and DELETEs under serializable isolation.
-// A read-only transaction does not take conflicting predicate locks, avoiding this issue. This is
-// safe because seq values only increase (new INSERTs always have higher seq) and DELETEs only
-// remove rows that have already been processed, so the MIN(seq) observed by the handler is always
-// a correct (or conservatively low) value.
+// We query MIN(seq) in a separate transaction via updateBridgeReindexQueueMinSeq rather than
+// receiving it as the notification payload. Computing MIN(seq) inside the trigger's read-write
+// transaction would create an unnecessary dependency on the BridgeReindexQueue table, causing
+// serialization conflicts with concurrent INSERTs and DELETEs under serializable isolation.
 func (b *Bridge) handleBridgeReindexQueueMinSeq(ctx context.Context) errors.E {
 	return b.updateBridgeReindexQueueMinSeq(ctx)
 }
@@ -478,10 +478,21 @@ func (b *Bridge) handleBridgeReindexQueueMinSeq(ctx context.Context) errors.E {
 // updateBridgeReindexQueueMinSeq fetches the current MIN(seq) and COUNT(DISTINCT "id")
 // from BridgeReindexQueue, updates the in-memory state, and broadcasts to any goroutines
 // waiting in WaitUntilCaughtUp.
+//
+// The query runs at READ COMMITTED isolation. SERIALIZABLE is not needed and is actively harmful here:
+// the full-table aggregate takes a relation-level predicate lock, so with concurrent INSERTs and DELETEs
+// on the table it repeatedly fails with serialization failures (read-only serializable transactions are
+// not exempt unless DEFERRABLE) and forces concurrent writers to retry. READ COMMITTED is correct because
+// a single statement sees one consistent snapshot, so MIN and COUNT are mutually consistent, and because
+// of how the value moves: seq values only increase and DELETEs only remove already processed rows, so a
+// stale value is only ever too low, which merely delays waiters until the next update. The value can also
+// never be too high when a waiter acts on it: waiters are unblocked by the BridgeSeq notification, which
+// the writing transaction queues after this table's notification, and notifications are delivered
+// post-commit and handled in order, so by then this handler has already observed the inserted rows.
 func (b *Bridge) updateBridgeReindexQueueMinSeq(ctx context.Context) errors.E {
 	var minSeq *int64
 	var cnt int64
-	errE := internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+	errE := internalStore.RetryTransactionWithIsoLevel(ctx, b.dbpool, pgx.ReadCommitted, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		return internalStore.WithPgxError(
 			tx.QueryRow(ctx, `SELECT MIN("seq"), COUNT(DISTINCT "id") FROM "`+b.Store.Prefix+`BridgeReindexQueue"`).Scan(&minSeq, &cnt),
 		)
@@ -531,6 +542,29 @@ func (b *Bridge) waitForLastSeq(ctx context.Context, seq int64, count, size *x.C
 		b.lastSeqCond.Broadcast()
 	})
 	defer stop()
+
+	// Periodically refresh lastSeq from the database while waiting. fixBridgeSeq broadcasts
+	// when the seq advances, waking this goroutine to re-check the condition. See
+	// waitRefreshInterval for why waiting on notifications alone is not enough.
+	refreshDone := make(chan struct{})
+	defer close(refreshDone)
+	go func() {
+		ticker := time.NewTicker(waitRefreshInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-refreshDone:
+				return
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				_, errE := b.fixBridgeSeq(ctx)
+				if errE != nil {
+					zerolog.Ctx(ctx).Warn().Err(errE).Msg("bridge seq refresh error")
+				}
+			}
+		}
+	}()
 
 	prevSeq := b.lastSeq
 
@@ -596,6 +630,30 @@ func (b *Bridge) waitForReindexQueueMinSeq(ctx context.Context, seq int64, count
 		b.reindexQueueMinSeqCond.Broadcast()
 	})
 	defer stop()
+
+	// Periodically refresh the queue state from the database while waiting. updateBridgeReindexQueueMinSeq
+	// broadcasts unconditionally, waking this goroutine to re-check the condition. See waitRefreshInterval
+	// for why waiting on notifications alone is not enough: after the queue is fully drained no further
+	// writes happen, so a lost final notification would otherwise leave this goroutine waiting forever.
+	refreshDone := make(chan struct{})
+	defer close(refreshDone)
+	go func() {
+		ticker := time.NewTicker(waitRefreshInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-refreshDone:
+				return
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				errE := b.updateBridgeReindexQueueMinSeq(ctx)
+				if errE != nil {
+					zerolog.Ctx(ctx).Warn().Err(errE).Msg("reindex queue min seq refresh error")
+				}
+			}
+		}
+	}()
 
 	// We use the number of distinct document IDs for progress tracking instead of seq values.
 	// This provides regular progress updates because the count decreases with each processed
