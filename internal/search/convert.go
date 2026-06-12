@@ -1399,6 +1399,20 @@ func (c *Converter) templateFuncs(ctx context.Context, lang string) template.Fun
 		}
 		return tc.Time.String(), nil
 	}
+	// bestTimeInterval returns the best top-level TimeIntervalClaim for a property ID on the document.
+	funcs["bestTimeInterval"] = func(propID identifier.Identifier, doc *document.D) *document.TimeIntervalClaim {
+		if doc == nil {
+			return nil
+		}
+		return document.GetBestClaimOfType[document.TimeIntervalClaim](doc, propID)
+	}
+	// referenceCount returns the number of reference claims for a property ID on the document.
+	funcs["referenceCount"] = func(propID identifier.Identifier, doc *document.D) int {
+		if doc == nil {
+			return 0
+		}
+		return len(document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, propID, document.LowConfidence))
+	}
 	// referenceClaimDoc resolves the target document of a ReferenceClaim.
 	funcs["referenceClaimDoc"] = func(claim *document.ReferenceClaim) (*document.D, error) {
 		if claim == nil {
