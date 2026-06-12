@@ -290,7 +290,7 @@ func TestDocuments_TextClaim(t *testing.T) { //nolint:dupl
 	require.Len(t, doc.Claims.HTML, 4)
 
 	// Check HTML escaping.
-	assert.Equal(t, "&lt;p&gt;Test&lt;/p&gt;", doc.Claims.HTML[0].HTML)
+	assert.Equal(t, "<p>&lt;p&gt;Test&lt;/p&gt;</p>", doc.Claims.HTML[0].HTML)
 	assert.Equal(t, identifier.From("test", "doc1", "DESCRIPTION", "0"), doc.Claims.HTML[0].ID)
 	assert.Equal(t, identifier.From("test", "doc1", "NOTES", "0"), doc.Claims.HTML[1].ID)
 	assert.Equal(t, identifier.From("test", "doc1", "NOTES", "1"), doc.Claims.HTML[2].ID)
@@ -1633,7 +1633,7 @@ func TestDocuments_CoreHTMLWithoutTag(t *testing.T) {
 	// Without html tag, should still be TextClaim.
 	require.Len(t, doc.Claims.HTML, 1)
 
-	assert.Equal(t, "&lt;p&gt;HTML content&lt;/p&gt;", doc.Claims.HTML[0].HTML)
+	assert.Equal(t, "<p>&lt;p&gt;HTML content&lt;/p&gt;</p>", doc.Claims.HTML[0].HTML)
 	assert.Equal(t, identifier.From("test", "doc1", "HTML", "0"), doc.Claims.HTML[0].ID)
 }
 
@@ -1705,7 +1705,7 @@ func TestDocuments_HTMLvsRawHTMLEscaping(t *testing.T) {
 	require.Len(t, doc.Claims.HTML, 2)
 
 	// Verify HTML is escaped.
-	escapedExpected := "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;"
+	escapedExpected := "<p>&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;</p>"
 	assert.Equal(t, escapedExpected, doc.Claims.HTML[0].HTML, "type:html should escape")
 	assert.Equal(t, escapedExpected, doc.Claims.HTML[1].HTML, "core.HTML should escape")
 
@@ -1754,7 +1754,7 @@ func TestDocuments_HTMLvsRawHTMLEscapingWithSurroundingText(t *testing.T) {
 
 	// Verify HTML is escaped (type:html and core.HTML escape special characters first,
 	// so the script tag becomes text and survives sanitization unchanged).
-	escapedExpected := "hello &lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt; world"
+	escapedExpected := "<p>hello &lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt; world</p>"
 	assert.Equal(t, escapedExpected, doc.Claims.HTML[0].HTML, "type:html should escape")
 	assert.Equal(t, escapedExpected, doc.Claims.HTML[2].HTML, "core.HTML should escape")
 
@@ -2071,7 +2071,7 @@ func TestDocuments_HTMLEscaping(t *testing.T) {
 	require.Len(t, doc.Claims.HTML, 1)
 
 	// HTML should be escaped.
-	expected := "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;"
+	expected := "<p>&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;</p>"
 	assert.Equal(t, expected, doc.Claims.HTML[0].HTML)
 	assert.Equal(t, identifier.From("test", "doc1", "CONTENT", "0"), doc.Claims.HTML[0].ID)
 }
@@ -2365,7 +2365,7 @@ func TestDocuments_ValueFieldWithHTMLTag(t *testing.T) { //nolint:dupl
 	require.Len(t, doc.Claims.HTML, 1)
 
 	// HTML should be escaped.
-	assert.Equal(t, "&lt;p&gt;Test&lt;/p&gt;", doc.Claims.HTML[0].HTML)
+	assert.Equal(t, "<p>&lt;p&gt;Test&lt;/p&gt;</p>", doc.Claims.HTML[0].HTML)
 	assert.Equal(t, identifier.From("test", "doc1", "CONTENT", "0"), doc.Claims.HTML[0].ID)
 }
 

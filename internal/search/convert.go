@@ -22,6 +22,7 @@ import (
 	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
+	internalDocument "gitlab.com/peerdb/peerdb/internal/document"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -67,19 +68,6 @@ var inlineHTMLTags = map[string]bool{ //nolint:gochecknoglobals
 // the same regardless of language.
 var noBlockSpaceLanguages = map[string]bool{} //nolint:gochecknoglobals
 
-// isHTMLWhitespace reports whether r is one of the ASCII whitespace characters
-// the HTML spec treats as collapsible whitespace: SPACE, TAB, LF, FF, CR.
-// Notably this excludes vertical tab (U+000B) and all non-ASCII whitespace
-// (NBSP, U+2028, U+2029, ...), those are regular characters per the spec
-// and must not be trimmed or collapsed.
-func isHTMLWhitespace(r rune) bool {
-	switch r {
-	case ' ', '\t', '\n', '\r', '\f':
-		return true
-	}
-	return false
-}
-
 // stripHTML extracts plain text from HTML, inserting a single space between
 // text fragments wherever a separator is implied and concatenating them
 // directly otherwise. Separators are: any non-inline tag, any whitespace-only
@@ -99,7 +87,7 @@ func stripHTML(s, lang string) string {
 	for {
 		tt := tokenizer.Next()
 		if tt == html.ErrorToken {
-			return string(bytes.TrimFunc(buf.Bytes(), isHTMLWhitespace))
+			return string(bytes.TrimFunc(buf.Bytes(), internalDocument.IsHTMLWhitespace))
 		}
 		switch tt { //nolint:exhaustive
 		case html.StartTagToken, html.EndTagToken, html.SelfClosingTagToken:
@@ -112,7 +100,7 @@ func stripHTML(s, lang string) string {
 			if len(raw) == 0 {
 				continue
 			}
-			text := bytes.TrimFunc(raw, isHTMLWhitespace)
+			text := bytes.TrimFunc(raw, internalDocument.IsHTMLWhitespace)
 			if len(text) == 0 {
 				// Whitespace-only text between tags signals a separator
 				// without emitting anything.
@@ -123,8 +111,8 @@ func stripHTML(s, lang string) string {
 			// bytes is sufficient. For multi-byte UTF-8 sequences the lead /
 			// trail byte is in 0xC0-0xFF or 0x80-0xBF, neither overlapping
 			// with the whitespace set, so rune(b) gives the right answer.
-			hasLeading := isHTMLWhitespace(rune(raw[0]))
-			hasTrailing := isHTMLWhitespace(rune(raw[len(raw)-1]))
+			hasLeading := internalDocument.IsHTMLWhitespace(rune(raw[0]))
+			hasTrailing := internalDocument.IsHTMLWhitespace(rune(raw[len(raw)-1]))
 			if buf.Len() > 0 && (needSpace || hasLeading) {
 				buf.WriteByte(' ')
 			}

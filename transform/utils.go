@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"unicode"
+
+	internalDocument "gitlab.com/peerdb/peerdb/internal/document"
 )
 
 //nolint:gochecknoglobals
@@ -76,20 +78,36 @@ func linkify(input string) string {
 	})
 }
 
-// EscapeHTML escapes HTML, linkifies URLs and email addresses, and converts
-// newlines to <br> tags in plain text, making it suitable as HTML rendering
-// of otherwise assuming plain text.
+// TextToHTML converts plain text into HTML: it escapes HTML, linkifies URLs and email
+// addresses, collapses whitespace, converts newlines to br tags, and wraps the result
+// into a paragraph block. Whitespace-only input returns an empty string.
+//
+// The output is in the canonical form the frontend editor serializer produces: runs of
+// collapsible whitespace become a single space and lines have no leading or trailing
+// whitespace, mirroring how the editor parses HTML, so parsing the output into the
+// editor and serializing it back is the identity.
 //
 // It does not sanitize HTML.
-func EscapeHTML(input string) string {
-	result := html.EscapeString(input)
+func TextToHTML(input string) string {
+	if strings.TrimSpace(input) == "" {
+		return ""
+	}
+
+	// Normalize newlines. Respect Windows and Mac newlines.
+	input = strings.ReplaceAll(input, "\r\n", "\n")
+	input = strings.ReplaceAll(input, "\r", "\n")
+
+	lines := strings.Split(input, "\n")
+	for i, line := range lines {
+		// Collapses runs of HTML-collapsible whitespace into a single space and trims
+		// the line. U+00A0 and other Unicode spaces are not collapsed, matching HTML
+		// rendering.
+		lines[i] = strings.Join(strings.FieldsFunc(line, internalDocument.IsHTMLWhitespace), " ")
+	}
+
+	result := html.EscapeString(strings.Join(lines, "\n"))
 
 	result = linkify(result)
 
-	// Convert newlines to <br>. Respect Windows and Mac newlines.
-	result = strings.ReplaceAll(result, "\r\n", "\n")
-	result = strings.ReplaceAll(result, "\r", "\n")
-	result = strings.ReplaceAll(result, "\n", "<br/>")
-
-	return result
+	return "<p>" + strings.ReplaceAll(result, "\n", "<br>") + "</p>"
 }
