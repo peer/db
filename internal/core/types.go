@@ -24,10 +24,17 @@ type Link string
 // File is a string URL, URI or IRI of a file.
 type File string
 
-// HTML is a string with HTML.
+// HTML is a string with plain text which transform converts to HTML
+// (escaped, linkified, wrapped into a paragraph block) and sanitizes.
 type HTML string
 
-// RawHTML is a string with HTML that will not be escaped.
+// RawHTML is a string with HTML which transform does not escape, only sanitizes.
+// Values have to be authored in the canonical form which document.SanitizeHTML
+// returns unchanged and which the frontend editor serializer produces: wrapped
+// into block elements (e.g., <p>...</p>), with the characters & ' < > " escaped
+// as &amp; &#39; &lt; &gt; &#34; in text and attribute values, br for line
+// breaks, and without runs of collapsible whitespace. This keeps stored HTML
+// byte for byte equal to what the editor produces for the same content.
 type RawHTML string
 
 // None is a boolean that indicates a property is known to not have a value.
