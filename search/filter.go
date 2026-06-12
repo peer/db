@@ -101,6 +101,23 @@ func parseMinMax(aggs map[string]types.Aggregate, key string) (int64, *float64, 
 	return docs.DocCount, minVal, maxVal, minIsToEnd, nil
 }
 
+// parseCountOnly extracts doc count from a nested->filter->docs aggregation result.
+func parseCountOnly(aggs map[string]types.Aggregate, key string) (int64, errors.E) {
+	nested, errE := internalSearch.AggAs[types.NestedAggregate](aggs, key)
+	if errE != nil {
+		return 0, errE
+	}
+	filter, errE := internalSearch.AggAs[types.FilterAggregate](nested.Aggregations, "filter")
+	if errE != nil {
+		return 0, errE
+	}
+	docs, errE := internalSearch.AggAs[types.ReverseNestedAggregate](filter.Aggregations, "docs")
+	if errE != nil {
+		return 0, errE
+	}
+	return docs.DocCount, nil
+}
+
 // parseHistogramBuckets extracts histogram bucket results from a nested->filter->hist aggregation.
 func parseHistogramBuckets(aggs map[string]types.Aggregate, key string) ([]HistogramResult, errors.E) {
 	nested, errE := internalSearch.AggAs[types.NestedAggregate](aggs, key)
@@ -233,6 +250,24 @@ func histogramFilterGet(
 		AddAggregation("minMax", minMaxAggregation).
 		AddAggregation(missingKey, missingAggregation)
 
+	// For point session bounds (gte equal to lte) the histogram collapses to a single bucket
+	// and the availability count would not correspond to any click outcome, so the documents
+	// actually matching the point bounds are counted as well, mirroring how the filter query
+	// itself matches them (the range field intersecting the bounds).
+	pointSession := sessionFrom != nil && sessionTo != nil && *sessionFrom == *sessionTo
+	if pointSession {
+		selectedAggregation := esdsl.NewAggregations().
+			Nested(esdsl.NewNestedAggregation().Path(nestedPath)).
+			AddAggregation("filter", esdsl.NewAggregations().
+				Filter(esdsl.NewBoolQuery().Must(
+					filter,
+					esdsl.NewNumberRangeQuery(rangeField).Gte(types.Float64(*sessionFrom)).Lte(types.Float64(*sessionTo)),
+				)).
+				AddAggregation("docs", esdsl.NewAggregations().
+					ReverseNested(esdsl.NewReverseNestedAggregation())))
+		minMaxSearchService = minMaxSearchService.AddAggregation("selected", selectedAggregation)
+	}
+
 	m := metrics.Duration(internalStore.MetricElasticSearch1).Start()
 	res, err := minMaxSearchService.Do(ctx)
 	m.Stop()
@@ -295,10 +330,15 @@ func histogramFilterGet(
 		// Use session bounds directly.
 		histogramFrom = *sessionFrom
 		histogramTo = *sessionTo
-		// Equal session bounds cannot span a histogram, return a single bucket at the value.
+		// Equal session bounds cannot span a histogram, return a single bucket at the value,
+		// counting the documents actually matching the point bounds.
 		if histogramFrom == histogramTo {
+			selectedCount, errE := parseCountOnly(res.Aggregations, "selected")
+			if errE != nil {
+				return nil, nil, errE
+			}
 			valString := strconv.FormatFloat(histogramFrom, 'f', -1, 64)
-			return []HistogramResult{{From: histogramFrom, Count: docCount}}, map[string]any{
+			return []HistogramResult{{From: histogramFrom, Count: selectedCount}}, map[string]any{
 				"total":    "1",
 				"from":     valString,
 				"to":       valString,

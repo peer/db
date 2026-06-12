@@ -647,6 +647,121 @@ func TestAmountFilterGetOpenStartWithBoundedIntegration(t *testing.T) {
 	assert.Equal(t, int64(61), totalCount)
 }
 
+// An active filter with equal bounds on ranged data (only reachable through the API, the
+// slider keeps the handles apart) returns a single bucket whose count is the number of
+// documents actually matching the point bounds, not the availability count.
+func TestAmountFilterGetPointBoundsIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	amountProp := identifier.From("amountProp")
+	unitID := identifier.From("unit")
+	ten := 10.0
+	fifty := 50.0
+
+	indexAmountDoc(t, ctx, esClient, index, "pointBoundsDoc1", amountProp, unitID, &ten)
+	indexAmountDoc(t, ctx, esClient, index, "pointBoundsDoc2", amountProp, unitID, &fifty)
+	refreshIndex(t, ctx, esClient, index)
+
+	// A point inside the window [9.5, 10.5) of the first document.
+	gte := 10.0
+	lte := 10.0
+	session := createSession(t, ctx, search.SessionData{
+		Language: "",
+		View:     "",
+		Query:    "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{amountProp},
+			Amount: &search.AmountFilter{
+				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false,
+			},
+		}},
+		Prefilters: nil,
+		Reverse:    nil,
+	})
+
+	query := session.ToQueryExcluding(*session.Filters[0].ID, nil)
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, query, session.Filters[0].Prop[0])
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, "1", metadata["total"])
+	assert.Equal(t, "10", metadata["from"])
+	assert.Equal(t, "10", metadata["to"])
+	assert.Equal(t, []search.HistogramResult{{From: 10.0, Count: 1}}, results)
+
+	// A point in the gap between the documents matches nothing.
+	gapGte := 30.0
+	gapLte := 30.0
+	gapSession := createSession(t, ctx, search.SessionData{
+		Language: "",
+		View:     "",
+		Query:    "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{amountProp},
+			Amount: &search.AmountFilter{
+				Unit: &unitID, Gte: &gapGte, Lte: &gapLte, Missing: false,
+			},
+		}},
+		Prefilters: nil,
+		Reverse:    nil,
+	})
+
+	gapQuery := gapSession.ToQueryExcluding(*gapSession.Filters[0].ID, nil)
+	results, metadata, errE = gapSession.Filters[0].Amount.Get(ctx, getSearchService, gapQuery, gapSession.Filters[0].Prop[0])
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, "1", metadata["total"])
+	assert.Equal(t, "30", metadata["from"])
+	assert.Equal(t, "30", metadata["to"])
+	assert.Equal(t, []search.HistogramResult{{From: 30.0, Count: 0}}, results)
+}
+
+// A single-value selection round-trips: an active filter using the from and to bounds of a
+// single-bucket response gets the same single-bucket response back (the data still has a
+// single known endpoint value), not a degenerate histogram over the selected bounds.
+func TestAmountFilterGetSingleValueActiveIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	amountProp := identifier.From("amountProp")
+	unitID := identifier.From("unit")
+	ten := 10.0
+
+	indexAmountIntervalDoc(t, ctx, esClient, index, "singleValueDoc1", amountProp, &unitID, nil, &ten)
+	refreshIndex(t, ctx, esClient, index)
+
+	// The bounds a single-bucket response provides for the open-start claim: the from bound
+	// is the value stepped down by its apparent decimal precision (ten).
+	gte := 0.0
+	lte := 10.0
+	session := createSession(t, ctx, search.SessionData{
+		Language: "",
+		View:     "",
+		Query:    "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{amountProp},
+			Amount: &search.AmountFilter{
+				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false,
+			},
+		}},
+		Prefilters: nil,
+		Reverse:    nil,
+	})
+
+	query := session.ToQueryExcluding(*session.Filters[0].ID, nil)
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, query, session.Filters[0].Prop[0])
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, "1", metadata["total"])
+	assert.Equal(t, "0", metadata["from"])
+	assert.Equal(t, "10", metadata["to"])
+	assert.Equal(t, []search.HistogramResult{{From: 10.0, Count: 1}}, results)
+}
+
 func TestComputeInterval(t *testing.T) {
 	t.Parallel()
 

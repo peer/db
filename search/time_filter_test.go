@@ -560,6 +560,71 @@ func TestTimeFilterGetOpenStartIntegration(t *testing.T) {
 	assert.Equal(t, []search.HistogramResult{{From: 1000.0, Count: 1}}, results)
 }
 
+// An active filter with equal bounds on ranged data (only reachable through the API, the
+// slider keeps the handles apart) returns a single bucket whose count is the number of
+// documents actually matching the point bounds, not the availability count.
+func TestTimeFilterGetPointBoundsIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	timeProp := identifier.From("timeProp")
+	t1000 := float64(1000)
+	t5000 := float64(5000)
+
+	indexTimePointDoc(t, ctx, esClient, index, "pointBoundsTimeDoc1", timeProp, &t1000)
+	indexTimePointDoc(t, ctx, esClient, index, "pointBoundsTimeDoc2", timeProp, &t5000)
+	refreshIndex(t, ctx, esClient, index)
+
+	// A point inside the window [1000, 1001) of the first document.
+	gte := 1000.5
+	lte := 1000.5
+	session := createSession(t, ctx, search.SessionData{
+		Language: "",
+		View:     "",
+		Query:    "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{timeProp},
+			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false},
+		}},
+		Prefilters: nil,
+		Reverse:    nil,
+	})
+
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, "1", metadata["total"])
+	assert.Equal(t, "1000.5", metadata["from"])
+	assert.Equal(t, "1000.5", metadata["to"])
+	assert.Equal(t, []search.HistogramResult{{From: 1000.5, Count: 1}}, results)
+
+	// A point in the gap between the documents matches nothing.
+	gapGte := float64(3000)
+	gapLte := float64(3000)
+	gapSession := createSession(t, ctx, search.SessionData{
+		Language: "",
+		View:     "",
+		Query:    "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{timeProp},
+			Time: &search.TimeFilter{Gte: &gapGte, Lte: &gapLte, Missing: false},
+		}},
+		Prefilters: nil,
+		Reverse:    nil,
+	})
+
+	gapQuery := gapSession.ToQueryExcluding(*gapSession.Filters[0].ID, nil)
+	results, metadata, errE = gapSession.Filters[0].Time.Get(ctx, getSearchService, gapQuery, gapSession.Filters[0].Prop[0])
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, "1", metadata["total"])
+	assert.Equal(t, "3000", metadata["from"])
+	assert.Equal(t, "3000", metadata["to"])
+	assert.Equal(t, []search.HistogramResult{{From: 3000.0, Count: 0}}, results)
+}
+
 // A single-value selection round-trips: an active filter using the from and to bounds of a
 // single-bucket response gets the same single-bucket response back (the data still has a
 // single known endpoint value), not a degenerate histogram over the selected bounds.
