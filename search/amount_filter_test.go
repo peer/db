@@ -54,7 +54,7 @@ func TestAmountFilterGetIntegration(t *testing.T) {
 		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop:   []identifier.Identifier{amountProp},
-			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
+			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
 		Prefilters: nil,
 		Reverse:    nil,
@@ -261,7 +261,7 @@ func TestAmountFilterGetSameValuesIntegration(t *testing.T) {
 		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop:   []identifier.Identifier{amountProp},
-			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
+			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
 		Prefilters: nil,
 		Reverse:    nil,
@@ -292,7 +292,7 @@ func TestAmountFilterGetEmptyIntegration(t *testing.T) {
 		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop:   []identifier.Identifier{amountProp},
-			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
+			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
 		Prefilters: nil,
 		Reverse:    nil,
@@ -324,7 +324,7 @@ func TestAmountFilterGetWithoutUnitIntegration(t *testing.T) {
 		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop:   []identifier.Identifier{amountProp},
-			Amount: &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true},
+			Amount: &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
 		Prefilters: nil,
 		Reverse:    nil,
@@ -371,7 +371,7 @@ func TestAmountFilterGetGapIntegration(t *testing.T) {
 		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop:   []identifier.Identifier{amountProp},
-			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
+			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
 		Prefilters: nil,
 		Reverse:    nil,
@@ -445,7 +445,7 @@ func TestAmountFilterGetExtendedBoundsIntegration(t *testing.T) {
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{
-				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false,
+				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false, Exists: false,
 			},
 		}},
 		Prefilters: nil,
@@ -507,7 +507,7 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{
-				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false,
+				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false, Exists: false,
 			},
 		}},
 		Prefilters: nil,
@@ -572,7 +572,7 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop:   []identifier.Identifier{amountProp},
-			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true},
+			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
 		Prefilters: nil,
 		Reverse:    nil,
@@ -675,7 +675,7 @@ func TestAmountFilterGetPointBoundsIntegration(t *testing.T) {
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{
-				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false,
+				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false, Exists: false,
 			},
 		}},
 		Prefilters: nil,
@@ -701,7 +701,7 @@ func TestAmountFilterGetPointBoundsIntegration(t *testing.T) {
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{
-				Unit: &unitID, Gte: &gapGte, Lte: &gapLte, Missing: false,
+				Unit: &unitID, Gte: &gapGte, Lte: &gapLte, Missing: false, Exists: false,
 			},
 		}},
 		Prefilters: nil,
@@ -745,7 +745,7 @@ func TestAmountFilterGetSingleValueActiveIntegration(t *testing.T) {
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{
-				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false,
+				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false, Exists: false,
 			},
 		}},
 		Prefilters: nil,
@@ -760,6 +760,77 @@ func TestAmountFilterGetSingleValueActiveIntegration(t *testing.T) {
 	assert.Equal(t, "0", metadata["from"])
 	assert.Equal(t, "10", metadata["to"])
 	assert.Equal(t, []search.HistogramResult{{From: 10.0, Count: 1}}, results)
+}
+
+// An exists filter matches documents which have the property with the filter's unit and
+// any value, including those whose claims have no known endpoint values at all (an
+// interval with both endpoints none), which no range selection can match.
+func TestAmountFilterGetExistsIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	amountProp := identifier.From("amountProp")
+	unitID := identifier.From("unit")
+
+	// A document with a fully unbounded claim and a document without the property.
+	indexAmountIntervalDoc(t, ctx, esClient, index, "existsDoc1", amountProp, &unitID, nil, nil)
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		DisplaySort: nil,
+		ID:          identifier.From("existsDoc2"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims: internalSearch.ClaimTypes{
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
+			Reference:  nil,
+			Has:        nil,
+			None:       nil,
+			Unknown:    nil,
+			SubRef:     nil,
+			SubAmount:  nil,
+			SubTime:    nil,
+			SubHas:     nil,
+		},
+	})
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{
+		Language: "",
+		View:     "",
+		Query:    "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop:   []identifier.Identifier{amountProp},
+			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: false, Exists: true},
+		}},
+		Prefilters: nil,
+		Reverse:    nil,
+	})
+
+	// The active exists filter round-trips to the counts-only response.
+	query := session.ToQueryExcluding(*session.Filters[0].ID, nil)
+	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, query, session.Filters[0].Prop[0])
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, "0", metadata["total"])
+	assert.Equal(t, int64(1), metadata["missing"])
+	assert.Empty(t, results)
+
+	// With the exists filter applied to the query, only the document with the property
+	// remains, so no document counts as missing anymore.
+	_, metadata, errE = session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQuery(nil), session.Filters[0].Prop[0])
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, "0", metadata["total"])
+	assert.Equal(t, int64(0), metadata["missing"])
 }
 
 func TestComputeInterval(t *testing.T) {

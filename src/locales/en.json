@@ -57,6 +57,7 @@
     },
     "values": {
       "direct": "direct",
+      "exists": "exists",
       "missing": "missing",
       "noName": "no name",
       "none": "none",

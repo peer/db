@@ -188,11 +188,16 @@ func (f *RefFilter) Validate() errors.E {
 }
 
 // AmountFilter contains values for an amount filter.
+//
+// Exists matches documents which have the property (with the filter's unit), with any
+// value. It is the only selection which matches documents whose claims have no known
+// endpoint values at all (an interval with both endpoints none).
 type AmountFilter struct {
 	Unit    *identifier.Identifier `json:"unit,omitempty"`
 	Gte     *float64               `json:"gte,omitempty"`
 	Lte     *float64               `json:"lte,omitempty"`
 	Missing bool                   `json:"missing,omitempty"`
+	Exists  bool                   `json:"exists,omitempty"`
 }
 
 // ToQuery converts the AmountFilter to an ElasticSearch query for the given property.
@@ -203,6 +208,15 @@ func (f *AmountFilter) ToQuery(prop identifier.Identifier) types.QueryVariant { 
 				esdsl.NewTermQuery("claims.amount.prop", esdsl.NewFieldValue().String(prop.String())),
 			).Path("claims.amount"),
 		)
+	}
+
+	if f.Exists {
+		return esdsl.NewNestedQuery(
+			esdsl.NewBoolQuery().Must(
+				esdsl.NewTermQuery("claims.amount.prop", esdsl.NewFieldValue().String(prop.String())),
+				amountUnitFilter(f.Unit),
+			),
+		).Path("claims.amount")
 	}
 
 	r := esdsl.NewNumberRangeQuery("claims.amount.range").Gte(types.Float64(*f.Gte)).Lte(types.Float64(*f.Lte))
@@ -220,11 +234,17 @@ func (f *AmountFilter) ToQuery(prop identifier.Identifier) types.QueryVariant { 
 
 // Validate validates the AmountFilter.
 func (f *AmountFilter) Validate() errors.E {
-	if f.Gte == nil && f.Lte == nil && !f.Missing {
-		return errors.New("both gte and lte or missing has to be set")
+	if f.Gte == nil && f.Lte == nil && !f.Missing && !f.Exists {
+		return errors.New("gte and lte, missing, or exists has to be set")
 	}
 	if (f.Gte != nil || f.Lte != nil) && f.Missing {
 		return errors.New("gte/lte and missing cannot be both set")
+	}
+	if (f.Gte != nil || f.Lte != nil) && f.Exists {
+		return errors.New("gte/lte and exists cannot be both set")
+	}
+	if f.Missing && f.Exists {
+		return errors.New("missing and exists cannot be both set")
 	}
 	if (f.Gte == nil) != (f.Lte == nil) {
 		return errors.New("both gte and lte must be set together")
@@ -261,6 +281,17 @@ func (f *AmountFilter) ToSubAmountQuery(parentProp, prop identifier.Identifier, 
 		)
 	}
 
+	if f.Exists {
+		existsMust := addRestriction([]types.QueryVariant{
+			esdsl.NewTermQuery("claims.subAmount.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+			esdsl.NewTermQuery("claims.subAmount.prop", esdsl.NewFieldValue().String(prop.String())),
+			subAmountUnitFilter(f.Unit),
+		})
+		return esdsl.NewNestedQuery(
+			esdsl.NewBoolQuery().Must(existsMust...),
+		).Path("claims.subAmount")
+	}
+
 	r := esdsl.NewNumberRangeQuery("claims.subAmount.range").Gte(types.Float64(*f.Gte)).Lte(types.Float64(*f.Lte))
 	must := []types.QueryVariant{
 		esdsl.NewTermQuery("claims.subAmount.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
@@ -279,10 +310,15 @@ func (f *AmountFilter) ToSubAmountQuery(parentProp, prop identifier.Identifier, 
 // TimeFilter contains values for a time filter.
 //
 // Gte and Lte are in seconds since Unix epoch.
+//
+// Exists matches documents which have the property, with any value. It is the only
+// selection which matches documents whose claims have no known endpoint values at all
+// (an interval with both endpoints none).
 type TimeFilter struct {
 	Gte     *float64 `json:"gte,omitempty"`
 	Lte     *float64 `json:"lte,omitempty"`
 	Missing bool     `json:"missing,omitempty"`
+	Exists  bool     `json:"exists,omitempty"`
 }
 
 // ToQuery converts the TimeFilter to an ElasticSearch query for the given property.
@@ -293,6 +329,12 @@ func (f *TimeFilter) ToQuery(prop identifier.Identifier) types.QueryVariant { //
 				esdsl.NewTermQuery("claims.time.prop", esdsl.NewFieldValue().String(prop.String())),
 			).Path("claims.time"),
 		)
+	}
+
+	if f.Exists {
+		return esdsl.NewNestedQuery(
+			esdsl.NewTermQuery("claims.time.prop", esdsl.NewFieldValue().String(prop.String())),
+		).Path("claims.time")
 	}
 
 	r := esdsl.NewNumberRangeQuery("claims.time.range").Gte(types.Float64(*f.Gte)).Lte(types.Float64(*f.Lte))
@@ -306,11 +348,17 @@ func (f *TimeFilter) ToQuery(prop identifier.Identifier) types.QueryVariant { //
 
 // Validate validates the TimeFilter.
 func (f *TimeFilter) Validate() errors.E {
-	if f.Gte == nil && f.Lte == nil && !f.Missing {
-		return errors.New("both gte and lte or missing has to be set")
+	if f.Gte == nil && f.Lte == nil && !f.Missing && !f.Exists {
+		return errors.New("gte and lte, missing, or exists has to be set")
 	}
 	if (f.Gte != nil || f.Lte != nil) && f.Missing {
 		return errors.New("gte/lte and missing cannot be both set")
+	}
+	if (f.Gte != nil || f.Lte != nil) && f.Exists {
+		return errors.New("gte/lte and exists cannot be both set")
+	}
+	if f.Missing && f.Exists {
+		return errors.New("missing and exists cannot be both set")
 	}
 	if (f.Gte == nil) != (f.Lte == nil) {
 		return errors.New("both gte and lte must be set together")
@@ -345,6 +393,16 @@ func (f *TimeFilter) ToSubTimeQuery(parentProp, prop identifier.Identifier, pare
 				esdsl.NewBoolQuery().Must(missingMust...),
 			).Path("claims.subTime"),
 		)
+	}
+
+	if f.Exists {
+		existsMust := addRestriction([]types.QueryVariant{
+			esdsl.NewTermQuery("claims.subTime.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+			esdsl.NewTermQuery("claims.subTime.prop", esdsl.NewFieldValue().String(prop.String())),
+		})
+		return esdsl.NewNestedQuery(
+			esdsl.NewBoolQuery().Must(existsMust...),
+		).Path("claims.subTime")
 	}
 
 	r := esdsl.NewNumberRangeQuery("claims.subTime.range").Gte(types.Float64(*f.Gte)).Lte(types.Float64(*f.Lte))

@@ -48,6 +48,7 @@ const filterId = computed(() => props.filter?.id ?? "")
 
 const {
   results,
+  total,
   missing: missingCount,
   from,
   to,
@@ -107,6 +108,31 @@ const missingState = computed({
       base: props.filter?.base ?? [],
       prop: props.filter?.prop ?? [...props.result.props],
       time: value ? { missing: true } : {},
+    }
+    if (!equals(props.filter, updatedFilter)) {
+      emit("filterUpdate", updatedFilter.id, updatedFilter)
+    }
+  },
+})
+
+// Selects documents which have the property, with any value. This is the only selection
+// which matches documents whose claims have no known endpoint values at all, so the exists
+// row is offered when the histogram has nothing to span (and kept visible whenever the
+// filter is active so it can be unchecked).
+const existsState = computed({
+  get(): boolean {
+    return props.filter?.time?.exists === true
+  },
+  set(value: boolean) {
+    if (abortController.signal.aborted) {
+      return
+    }
+
+    const updatedFilter: TimeFilterEntry = {
+      id: props.filter?.id ?? "",
+      base: props.filter?.base ?? [],
+      prop: props.filter?.prop ?? [...props.result.props],
+      time: value ? { exists: true } : {},
     }
     if (!equals(props.filter, updatedFilter)) {
       emit("filterUpdate", updatedFilter.id, updatedFilter)
@@ -285,7 +311,7 @@ onBeforeUnmount(() => {
       <li v-if="error" class="col-span-2">
         <i class="pd-timefiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
-      <li v-else-if="from === null || to === null" class="col-span-2 motion-safe:animate-pulse" aria-hidden="true">
+      <li v-else-if="total === null" class="col-span-2 motion-safe:animate-pulse" aria-hidden="true">
         <div class="my-1.5 grid grid-cols-10 items-end gap-x-1" :style="`aspect-ratio: ${chartWidth - 1} / ${chartHeight}`">
           <div v-for="(h, i) in loadingShortHeights(result.props.join('/'), 10)" :key="i" class="w-auto rounded-sm bg-slate-200" :class="h"></div>
         </div>
@@ -324,6 +350,23 @@ onBeforeUnmount(() => {
           <TimeDisplay :timestamp="rangeDisplay.to" :precision="rangeDisplay.precision" />
         </div>
         <div ref="sliderEl"></div>
+      </li>
+      <!--
+        The exists row is the only selection which matches documents whose claims have no
+        known endpoint values, so it is offered when a loaded response has no histogram to
+        show (total is 0) while documents with the property exist, and it stays visible
+        whenever the exists filter is active so it can be unchecked.
+      -->
+      <li v-if="(total === 0 && result.count > 0) || existsState" class="contents">
+        <CheckBox :id="'time/' + result.props.join('/') + '/exists'" v-model="existsState" />
+        <div class="flex items-baseline gap-x-1">
+          <label :for="'time/' + result.props.join('/') + '/exists'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            ><i>{{ t("common.values.exists") }}</i></label
+          >
+          <label :for="'time/' + result.props.join('/') + '/exists'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            >({{ result.count }})</label
+          >
+        </div>
       </li>
       <li v-if="(missingCount != null && missingCount > 0) || missingState" class="contents">
         <CheckBox :id="'time/' + result.props.join('/') + '/missing'" v-model="missingState" />

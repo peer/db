@@ -88,33 +88,48 @@ func TestFilterValidAmount(t *testing.T) {
 	}{
 		{
 			Name:    "BothGteLteSet",
-			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false}, nil),
+			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false, Exists: false}, nil),
 			WantErr: "",
 		},
 		{
 			Name:    "NoneSet",
-			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true}, nil),
+			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true, Exists: false}, nil),
 			WantErr: "",
 		},
 		{
 			Name:    "NothingSet",
-			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: false}, nil),
-			WantErr: "both gte and lte or missing has to be set",
+			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: false, Exists: false}, nil),
+			WantErr: "gte and lte, missing, or exists has to be set",
 		},
 		{
 			Name:    "GteOnly",
-			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: &gte, Lte: nil, Missing: false}, nil),
+			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: &gte, Lte: nil, Missing: false, Exists: false}, nil),
 			WantErr: "both gte and lte must be set together",
 		},
 		{
 			Name:    "LteOnly",
-			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: nil, Lte: &lte, Missing: false}, nil),
+			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: nil, Lte: &lte, Missing: false, Exists: false}, nil),
 			WantErr: "both gte and lte must be set together",
 		},
 		{
 			Name:    "BothAndMissing",
-			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: true}, nil),
+			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: true, Exists: false}, nil),
 			WantErr: "gte/lte and missing cannot be both set",
+		},
+		{
+			Name:    "ExistsOnly",
+			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: false, Exists: true}, nil),
+			WantErr: "",
+		},
+		{
+			Name:    "BothAndExists",
+			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false, Exists: true}, nil),
+			WantErr: "gte/lte and exists cannot be both set",
+		},
+		{
+			Name:    "MissingAndExists",
+			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true, Exists: true}, nil),
+			WantErr: "missing and exists cannot be both set",
 		},
 	}
 
@@ -145,33 +160,48 @@ func TestFilterValidTime(t *testing.T) {
 	}{
 		{
 			Name:    "BothGteLteSet",
-			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false}),
+			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false, Exists: false}),
 			WantErr: "",
 		},
 		{
 			Name:    "NoneSet",
-			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: nil, Lte: nil, Missing: true}),
+			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: false}),
 			WantErr: "",
 		},
 		{
 			Name:    "NothingSet",
-			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: nil, Lte: nil, Missing: false}),
-			WantErr: "both gte and lte or missing has to be set",
+			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: nil, Lte: nil, Missing: false, Exists: false}),
+			WantErr: "gte and lte, missing, or exists has to be set",
 		},
 		{
 			Name:    "GteOnly",
-			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: &gte, Lte: nil, Missing: false}),
+			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: &gte, Lte: nil, Missing: false, Exists: false}),
 			WantErr: "both gte and lte must be set together",
 		},
 		{
 			Name:    "LteOnly",
-			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: nil, Lte: &lte, Missing: false}),
+			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: nil, Lte: &lte, Missing: false, Exists: false}),
 			WantErr: "both gte and lte must be set together",
 		},
 		{
 			Name:    "BothAndMissing",
-			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: true}),
+			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: true, Exists: false}),
 			WantErr: "gte/lte and missing cannot be both set",
+		},
+		{
+			Name:    "ExistsOnly",
+			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: nil, Lte: nil, Missing: false, Exists: true}),
+			WantErr: "",
+		},
+		{
+			Name:    "BothAndExists",
+			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false, Exists: true}),
+			WantErr: "gte/lte and exists cannot be both set",
+		},
+		{
+			Name:    "MissingAndExists",
+			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: true}),
+			WantErr: "missing and exists cannot be both set",
 		},
 	}
 
@@ -210,12 +240,12 @@ func TestFilterValid(t *testing.T) {
 		},
 		{
 			Name:    "AmountFilter",
-			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false}, nil),
+			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false, Exists: false}, nil),
 			WantErr: "",
 		},
 		{
 			Name:    "TimeFilter",
-			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: &gteTime, Lte: &lteTime, Missing: false}),
+			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: &gteTime, Lte: &lteTime, Missing: false, Exists: false}),
 			WantErr: "",
 		},
 		{
@@ -234,7 +264,7 @@ func TestFilterValid(t *testing.T) {
 			Name: "MultipleClausesRefAndAmount",
 			Filter: func() search.Filter {
 				f := makeTestFilter(prop, &search.RefFilter{Direct: nil, To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil)
-				f.Amount = &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false}
+				f.Amount = &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false, Exists: false}
 				return f
 			}(),
 			WantErr: "exactly one of ref, amount, time, or has must be set",
@@ -243,7 +273,7 @@ func TestFilterValid(t *testing.T) {
 			Name: "MultipleClausesRefAndTime",
 			Filter: func() search.Filter {
 				f := makeTestFilter(prop, &search.RefFilter{Direct: nil, To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil)
-				f.Time = &search.TimeFilter{Gte: &gteTime, Lte: &lteTime, Missing: false}
+				f.Time = &search.TimeFilter{Gte: &gteTime, Lte: &lteTime, Missing: false, Exists: false}
 				return f
 			}(),
 			WantErr: "exactly one of ref, amount, time, or has must be set",
@@ -255,13 +285,13 @@ func TestFilterValid(t *testing.T) {
 		},
 		{
 			Name:    "InvalidAmountFilter",
-			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: false}, nil),
-			WantErr: "both gte and lte or missing has to be set",
+			Filter:  makeTestFilter(prop, nil, &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: false, Exists: false}, nil),
+			WantErr: "gte and lte, missing, or exists has to be set",
 		},
 		{
 			Name:    "InvalidTimeFilter",
-			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: nil, Lte: nil, Missing: false}),
-			WantErr: "both gte and lte or missing has to be set",
+			Filter:  makeTestFilter(prop, nil, nil, &search.TimeFilter{Gte: nil, Lte: nil, Missing: false, Exists: false}),
+			WantErr: "gte and lte, missing, or exists has to be set",
 		},
 		{
 			Name: "InvalidID",
@@ -428,18 +458,18 @@ func TestAmountFilterToQuery(t *testing.T) {
 	}{
 		{
 			Name:   "GteLteUnit",
-			Filter: &search.AmountFilter{Unit: &unit, Gte: &gte, Lte: &lte, Missing: false},
+			Filter: &search.AmountFilter{Unit: &unit, Gte: &gte, Lte: &lte, Missing: false, Exists: false},
 			//nolint:lll
 			Want: `{"nested":{"path":"claims.amount","query":{"bool":{"must":[{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.amount.range":{"gte":1,"lte":10}}},{"term":{"claims.amount.unit":{"value":"7xgMSp3wauK811A8Fwk3rY"}}}]}}}}`,
 		},
 		{
 			Name:   "MissingOnly",
-			Filter: &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true},
+			Filter: &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true, Exists: false},
 			Want:   `{"bool":{"must_not":[{"nested":{"path":"claims.amount","query":{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
 		},
 		{
 			Name:   "GteLteNoUnit",
-			Filter: &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false},
+			Filter: &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false, Exists: false},
 			//nolint:lll
 			Want: `{"nested":{"path":"claims.amount","query":{"bool":{"must":[{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.amount.range":{"gte":1,"lte":10}}}]}}}}`,
 		},
@@ -467,13 +497,13 @@ func TestTimeFilterToQuery(t *testing.T) {
 	}{
 		{
 			Name:   "GteLte",
-			Filter: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false},
+			Filter: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false, Exists: false},
 			//nolint:lll
 			Want: `{"nested":{"path":"claims.time","query":{"bool":{"must":[{"term":{"claims.time.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.time.range":{"gte":1000,"lte":2000}}}]}}}}`,
 		},
 		{
 			Name:   "MissingOnly",
-			Filter: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true},
+			Filter: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: false},
 			Want:   `{"bool":{"must_not":[{"nested":{"path":"claims.time","query":{"term":{"claims.time.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
 		},
 	}
@@ -1641,7 +1671,7 @@ func TestAmountFilterToSubAmountQuery(t *testing.T) {
 	}{
 		{
 			Name:         "GteLteUnitWithoutRestrictions",
-			Filter:       &search.AmountFilter{Unit: &unit, Gte: &gte, Lte: &lte, Missing: false},
+			Filter:       &search.AmountFilter{Unit: &unit, Gte: &gte, Lte: &lte, Missing: false, Exists: false},
 			Restrictions: nil,
 			WantContains: []string{
 				`"claims.subAmount.parentProp":{"value":"` + parentProp.String() + `"}`,
@@ -1655,7 +1685,7 @@ func TestAmountFilterToSubAmountQuery(t *testing.T) {
 		},
 		{
 			Name:         "GteLteWithMultipleRestrictions",
-			Filter:       &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false},
+			Filter:       &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false, Exists: false},
 			Restrictions: []identifier.Identifier{l1, l2},
 			WantContains: []string{
 				`"claims.subAmount.parentTo":{"value":"` + l1.String() + `"}`,
@@ -1666,7 +1696,7 @@ func TestAmountFilterToSubAmountQuery(t *testing.T) {
 		},
 		{
 			Name:         "MissingWithRestriction",
-			Filter:       &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true},
+			Filter:       &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true, Exists: false},
 			Restrictions: []identifier.Identifier{l1},
 			WantContains: []string{
 				`"must_not"`,
@@ -1713,7 +1743,7 @@ func TestTimeFilterToSubTimeQuery(t *testing.T) {
 	}{
 		{
 			Name:         "GteLteWithoutRestrictions",
-			Filter:       &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false},
+			Filter:       &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false, Exists: false},
 			Restrictions: nil,
 			WantContains: []string{
 				`"claims.subTime.parentProp":{"value":"` + parentProp.String() + `"}`,
@@ -1726,7 +1756,7 @@ func TestTimeFilterToSubTimeQuery(t *testing.T) {
 		},
 		{
 			Name:         "GteLteWithMultipleRestrictions",
-			Filter:       &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false},
+			Filter:       &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false, Exists: false},
 			Restrictions: []identifier.Identifier{l1, l2},
 			WantContains: []string{
 				`"claims.subTime.parentTo":{"value":"` + l1.String() + `"}`,
@@ -1737,7 +1767,7 @@ func TestTimeFilterToSubTimeQuery(t *testing.T) {
 		},
 		{
 			Name:         "MissingWithRestriction",
-			Filter:       &search.TimeFilter{Gte: nil, Lte: nil, Missing: true},
+			Filter:       &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: false},
 			Restrictions: []identifier.Identifier{l1},
 			WantContains: []string{
 				`"must_not"`,
@@ -1845,7 +1875,7 @@ func TestSessionToQueryCrossFilterAllTypes(t *testing.T) {
 			Query:    "",
 			Filters: []search.Filter{
 				makeTestFilter(parentProp, &search.RefFilter{Direct: nil, To: []search.ToValue{{ID: l1}}, Missing: false}, nil, nil),
-				makeTestSubAmountFilter(parentProp, subProp, &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false}),
+				makeTestSubAmountFilter(parentProp, subProp, &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false, Exists: false}),
 			},
 			Prefilters: nil,
 			Reverse:    nil,
@@ -1864,7 +1894,7 @@ func TestSessionToQueryCrossFilterAllTypes(t *testing.T) {
 			Query:    "",
 			Filters: []search.Filter{
 				makeTestFilter(parentProp, &search.RefFilter{Direct: nil, To: []search.ToValue{{ID: l1}}, Missing: false}, nil, nil),
-				makeTestSubTimeFilter(parentProp, subProp, &search.TimeFilter{Gte: &gteTime, Lte: &lteTime, Missing: false}),
+				makeTestSubTimeFilter(parentProp, subProp, &search.TimeFilter{Gte: &gteTime, Lte: &lteTime, Missing: false, Exists: false}),
 			},
 			Prefilters: nil,
 			Reverse:    nil,

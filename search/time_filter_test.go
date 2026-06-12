@@ -28,7 +28,7 @@ func TestTimeFilterGetIntegration(t *testing.T) {
 		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true},
+			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
 		Prefilters: nil,
 		Reverse:    nil,
@@ -193,7 +193,7 @@ func TestTimeFilterGetSameValuesIntegration(t *testing.T) {
 		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true},
+			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
 		Prefilters: nil,
 		Reverse:    nil,
@@ -227,7 +227,7 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true},
+			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
 		Prefilters: nil,
 		Reverse:    nil,
@@ -273,7 +273,7 @@ func TestTimeFilterGetEmptyIntegration(t *testing.T) {
 		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true},
+			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
 		Prefilters: nil,
 		Reverse:    nil,
@@ -311,7 +311,7 @@ func TestTimeFilterGetExtendedBoundsIntegration(t *testing.T) {
 		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false},
+			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false, Exists: false},
 		}},
 		Prefilters: nil,
 		Reverse:    nil,
@@ -372,7 +372,7 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false},
+			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false, Exists: false},
 		}},
 		Prefilters: nil,
 		Reverse:    nil,
@@ -433,7 +433,7 @@ func TestTimeFilterGetWideRangeIntegration(t *testing.T) {
 		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true},
+			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
 		Prefilters: nil,
 		Reverse:    nil,
@@ -586,7 +586,7 @@ func TestTimeFilterGetPointBoundsIntegration(t *testing.T) {
 		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false},
+			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false, Exists: false},
 		}},
 		Prefilters: nil,
 		Reverse:    nil,
@@ -609,7 +609,7 @@ func TestTimeFilterGetPointBoundsIntegration(t *testing.T) {
 		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: &gapGte, Lte: &gapLte, Missing: false},
+			Time: &search.TimeFilter{Gte: &gapGte, Lte: &gapLte, Missing: false, Exists: false},
 		}},
 		Prefilters: nil,
 		Reverse:    nil,
@@ -648,7 +648,7 @@ func TestTimeFilterGetSingleValueActiveIntegration(t *testing.T) {
 		Query:    "",
 		Filters: []search.Filter{{ //nolint:exhaustruct
 			Prop: []identifier.Identifier{timeProp},
-			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false},
+			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false, Exists: false},
 		}},
 		Prefilters: nil,
 		Reverse:    nil,
@@ -728,6 +728,76 @@ func TestTimeFilterGetUnboundedIntegration(t *testing.T) {
 	assert.Equal(t, "0", metadata["total"])
 	assert.Equal(t, int64(0), metadata["missing"])
 	assert.Empty(t, results)
+}
+
+// An exists filter matches documents which have the property with any value, including
+// those whose claims have no known endpoint values at all (an interval with both endpoints
+// none), which no range selection can match.
+func TestTimeFilterGetExistsIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	timeProp := identifier.From("timeProp")
+
+	// A document with a fully unbounded claim and a document without the property.
+	indexTimeIntervalDoc(t, ctx, esClient, index, "existsTimeDoc1", timeProp, nil, nil)
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		DisplaySort: nil,
+		ID:          identifier.From("existsTimeDoc2"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims: internalSearch.ClaimTypes{
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
+			Reference:  nil,
+			Has:        nil,
+			None:       nil,
+			Unknown:    nil,
+			SubRef:     nil,
+			SubAmount:  nil,
+			SubTime:    nil,
+			SubHas:     nil,
+		},
+	})
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{
+		Language: "",
+		View:     "",
+		Query:    "",
+		Filters: []search.Filter{{ //nolint:exhaustruct
+			Prop: []identifier.Identifier{timeProp},
+			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: false, Exists: true},
+		}},
+		Prefilters: nil,
+		Reverse:    nil,
+	})
+
+	// The active exists filter round-trips to the counts-only response.
+	query := session.ToQueryExcluding(*session.Filters[0].ID, nil)
+	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, query, session.Filters[0].Prop[0])
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, "0", metadata["total"])
+	assert.Equal(t, int64(1), metadata["missing"])
+	assert.Empty(t, results)
+
+	// With the exists filter applied to the query, only the document with the property
+	// remains, so no document counts as missing anymore.
+	_, metadata, errE = session.Filters[0].Time.Get(ctx, getSearchService, session.ToQuery(nil), session.Filters[0].Prop[0])
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	assert.Equal(t, "0", metadata["total"])
+	assert.Equal(t, int64(0), metadata["missing"])
 }
 
 // A claim with one unknown endpoint never reaches the index with a missing from or to

@@ -169,10 +169,10 @@ function isFilterEmpty(f: Filter): boolean {
     return (!f.ref.to || f.ref.to.length === 0) && !f.ref.missing
   }
   if ("amount" in f) {
-    return f.amount.gte == null && f.amount.lte == null && !f.amount.missing
+    return f.amount.gte == null && f.amount.lte == null && !f.amount.missing && !f.amount.exists
   }
   if ("time" in f) {
-    return f.time.gte == null && f.time.lte == null && !f.time.missing
+    return f.time.gte == null && f.time.lte == null && !f.time.missing && !f.time.exists
   }
   if ("has" in f) {
     return !f.has.props || f.has.props.length === 0

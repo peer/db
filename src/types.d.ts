@@ -87,12 +87,14 @@ export type AmountFilter = {
   gte?: number
   lte?: number
   missing?: boolean
+  exists?: boolean
 }
 
 export type TimeFilter = {
   gte?: number
   lte?: number
   missing?: boolean
+  exists?: boolean
 }
 
 export type HasFilter = {

@@ -57,6 +57,7 @@
     },
     "values": {
       "direct": "neposredno",
+      "exists": "obstaja",
       "missing": "manjkajoče",
       "noName": "brez imena",
       "none": "brez",
