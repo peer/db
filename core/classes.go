@@ -93,12 +93,12 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 			}},
 			Mnemonic: "PROPERTY",
 			Description: []RawHTMLWithLanguage{{
-				Value: "A document describes a property.",
+				Value: "<p>A document describes a property.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Value: "Dokument opisuje lastnost.",
+				Value: "<p>Dokument opisuje lastnost.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},

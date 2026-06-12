@@ -606,12 +606,12 @@ func Properties() ([]any, errors.E) {
 			AlternativeName: nil,
 			Mnemonic:        "VARIANT",
 			Description: []RawHTMLWithLanguage{{
-				Value: "A variant has a unique ID. All values of a variant share this ID.",
+				Value: "<p>A variant has a unique ID. All values of a variant share this ID.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Value: "Varianta ima enoličen ID. Vse vrednosti variante si delijo ta ID.",
+				Value: "<p>Varianta ima enoličen ID. Vse vrednosti variante si delijo ta ID.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -706,12 +706,12 @@ func Properties() ([]any, errors.E) {
 			AlternativeName: nil,
 			Mnemonic:        "LIST",
 			Description: []RawHTMLWithLanguage{{
-				Value: "A list has a unique ID, even a list with just one element. All elements of a list share this ID.",
+				Value: "<p>A list has a unique ID, even a list with just one element. All elements of a list share this ID.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Value: "Seznam ima enoličen ID, celo seznam s samo enim elementom. Vsi elementi seznama si delijo ta ID.",
+				Value: "<p>Seznam ima enoličen ID, celo seznam s samo enim elementom. Vsi elementi seznama si delijo ta ID.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -746,12 +746,12 @@ func Properties() ([]any, errors.E) {
 			AlternativeName: nil,
 			Mnemonic:        "ORDER_IN_LIST",
 			Description: []RawHTMLWithLanguage{{
-				Value: "Order of an element inside its list. Smaller number is earlier in the list.",
+				Value: "<p>Order of an element inside its list. Smaller number is earlier in the list.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Value: "Vrstni red elementa v seznamu. Manjša vrednost je prej v seznamu.",
+				Value: "<p>Vrstni red elementa v seznamu. Manjša vrednost je prej v seznamu.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -908,12 +908,12 @@ func Properties() ([]any, errors.E) {
 			}},
 			Mnemonic: "IN_UNIT",
 			Description: []RawHTMLWithLanguage{{
-				Value: "Unit associated with an amount.",
+				Value: "<p>Unit associated with an amount.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Value: "Enota številčne vrednosti.",
+				Value: "<p>Enota številčne vrednosti.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -1074,12 +1074,12 @@ func Properties() ([]any, errors.E) {
 			AlternativeName: nil,
 			Mnemonic:        "DISPLAY_LABEL_TEMPLATE",
 			Description: []RawHTMLWithLanguage{{
-				Value: "A Go text/template template used to render the display label of the document.",
+				Value: "<p>A Go text/template template used to render the display label of the document.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Value: "Predloga Go text/template za izpis prikazane oznake dokumenta.",
+				Value: "<p>Predloga Go text/template za izpis prikazane oznake dokumenta.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
@@ -1116,12 +1116,12 @@ func Properties() ([]any, errors.E) {
 			AlternativeName: nil,
 			Mnemonic:        "IDENTIFIER_LINK_TEMPLATE",
 			Description: []RawHTMLWithLanguage{{
-				Value: "An RFC 6570 Level 1 URI template with one parameter {identifier} used to construct a link from an identifier value.",
+				Value: "<p>An RFC 6570 Level 1 URI template with one parameter {identifier} used to construct a link from an identifier value.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "en-GB"},
 				}},
 			}, {
-				Value: "Predloga URI po RFC 6570 ravni 1 s parametrom {identifier} za sestavo povezave iz vrednosti identifikatorja.",
+				Value: "<p>Predloga URI po RFC 6570 ravni 1 s parametrom {identifier} za sestavo povezave iz vrednosti identifikatorja.</p>",
 				InLanguage: []Ref{{
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
