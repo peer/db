@@ -198,6 +198,7 @@ func ProcessJSONDocument(ctx context.Context, doc *document.D, specs []PropertyS
 // JSON exports documents as JSON-per-line. Single-pass: each document is written immediately.
 func JSON(ctx context.Context, w io.Writer, docIDs []identifier.Identifier, specs []PropertySpec, names *NameCache, getDoc GetDocFunc) errors.E {
 	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(false)
 
 	for _, docID := range docIDs {
 		doc, errE := getDoc(ctx, docID)
