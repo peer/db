@@ -1611,7 +1611,7 @@ func TestAppendDocumentChangeWithBadBase(t *testing.T) {
 		},
 	})
 	_, errE = b.AppendDocumentChange(ctx, session, changeJSON, 1)
-	assert.EqualError(t, errE, "invalid base")
+	assert.ErrorIs(t, errE, base.ErrInvalidChange)
 
 	// Discard the session.
 	errE = b.EndEditDocument(ctx, session, true)
