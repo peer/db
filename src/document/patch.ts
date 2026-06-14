@@ -189,9 +189,9 @@ export class AddClaimChange implements Change {
   }
 
   // Apply applies the add claim change to the document.
-  // eslint-disable-next-line @typescript-eslint/require-await
   async Apply(doc: D): Promise<void> {
     const newClaim = this.patch.New(this.id)
+    await newClaim.Validate()
 
     if (!this.under) {
       doc.Add(newClaim)
@@ -216,9 +216,9 @@ export class AddClaimChange implements Change {
     if (this.id !== expectedID) {
       throw new Error(`invalid ID: expected ${expectedID}, id ${this.id}`)
     }
-    // Constructing the claim from the patch checks that the patch is complete and that
-    // the resulting claim is valid. This rejects an invalid add already when it is
-    // appended to an edit session, instead of when the session completes.
+    // Constructing the claim from the patch checks that the patch is complete; validating it checks
+    // the resulting claim is valid. This rejects an invalid add already when it is appended to an edit
+    // session, instead of when the session completes.
     await this.patch.New(this.id).Validate()
   }
 }

@@ -280,6 +280,10 @@ func (c AddClaimChange) Apply(doc *D) errors.E {
 	if errE != nil {
 		return errE
 	}
+	errE = newClaim.Validate()
+	if errE != nil {
+		return errE
+	}
 
 	if c.Under == nil {
 		return doc.Add(newClaim)
@@ -311,11 +315,14 @@ func (c AddClaimChange) Validate(base []string, operation int64) errors.E {
 		errors.Details(errE)["expected"] = expectedID.String()
 		return errE
 	}
-	// Constructing the claim from the patch checks that the patch is complete and that
-	// the resulting claim is valid. This rejects an invalid add already when it is
-	// appended to an edit session, instead of when the session completes.
-	_, errE := c.Patch.New(c.ID)
-	return errE
+	// Constructing the claim from the patch checks that the patch is complete; validating it checks
+	// the resulting claim is valid. This rejects an invalid add already when it is appended to an edit
+	// session, instead of when the session completes.
+	newClaim, errE := c.Patch.New(c.ID)
+	if errE != nil {
+		return errE
+	}
+	return newClaim.Validate()
 }
 
 // UnmarshalJSON implements json.Unmarshaler for AddClaimChange.
@@ -521,7 +528,7 @@ func (p IdentifierClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { 
 		Value: p.Value,
 	}
 
-	return c, c.Validate()
+	return c, nil
 }
 
 // Validate checks the patch fields which are set, without access to the target claim.
@@ -621,7 +628,7 @@ func (p StringClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //no
 		String: p.String,
 	}
 
-	return c, c.Validate()
+	return c, nil
 }
 
 // Validate checks the patch fields which are set, without access to the target claim.
@@ -721,7 +728,7 @@ func (p HTMLClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 		HTML: p.HTML,
 	}
 
-	return c, c.Validate()
+	return c, nil
 }
 
 // Validate checks the patch fields which are set, without access to the target claim.
@@ -838,7 +845,7 @@ func (p AmountClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //no
 		Precision: *p.Precision,
 	}
 
-	return c, c.Validate()
+	return c, nil
 }
 
 // Validate checks the patch fields which are set, without access to the target claim.
@@ -965,7 +972,7 @@ func (p AmountIntervalClaimPatch) New(id identifier.Identifier) (Claim, errors.E
 		ToIsNone:      p.ToIsNone != nil && *p.ToIsNone,
 	}
 
-	return c, c.Validate()
+	return c, nil
 }
 
 // Validate checks the patch fields which are set, without access to the target claim.
@@ -1142,7 +1149,7 @@ func (p TimeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 		Precision: *p.Precision,
 	}
 
-	return c, c.Validate()
+	return c, nil
 }
 
 // Validate checks the patch fields which are set, without access to the target claim.
@@ -1269,7 +1276,7 @@ func (p TimeIntervalClaimPatch) New(id identifier.Identifier) (Claim, errors.E) 
 		ToIsNone:      p.ToIsNone != nil && *p.ToIsNone,
 	}
 
-	return c, c.Validate()
+	return c, nil
 }
 
 // Validate checks the patch fields which are set, without access to the target claim.
@@ -1444,7 +1451,7 @@ func (p LinkClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 		IRI: p.IRI,
 	}
 
-	return c, c.Validate()
+	return c, nil
 }
 
 // Validate checks the patch fields which are set, without access to the target claim.
@@ -1553,7 +1560,7 @@ func (p ReferenceClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { /
 		},
 	}
 
-	return c, c.Validate()
+	return c, nil
 }
 
 // Validate checks the patch fields which are set, without access to the target claim.
@@ -1651,7 +1658,7 @@ func (p HasClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolin
 		},
 	}
 
-	return c, c.Validate()
+	return c, nil
 }
 
 // Validate checks the patch fields which are set, without access to the target claim.
@@ -1746,7 +1753,7 @@ func (p NoneClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 		},
 	}
 
-	return c, c.Validate()
+	return c, nil
 }
 
 // Validate checks the patch fields which are set, without access to the target claim.
@@ -1841,7 +1848,7 @@ func (p UnknownClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //n
 		},
 	}
 
-	return c, c.Validate()
+	return c, nil
 }
 
 // Validate checks the patch fields which are set, without access to the target claim.
