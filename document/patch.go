@@ -1457,7 +1457,7 @@ func (p LinkClaimPatch) Validate() errors.E {
 		return errE
 	}
 	if len(p.IRI) > 0 {
-		return validateIRI(p.IRI)
+		return validateURL(p.IRI, true)
 	}
 	return nil
 }

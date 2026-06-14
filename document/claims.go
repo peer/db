@@ -1231,7 +1231,7 @@ func (c *LinkClaim) Validate() errors.E {
 	if errE != nil {
 		return errE
 	}
-	return validateIRI(c.IRI)
+	return validateURL(c.IRI, true)
 }
 
 // ReferenceClaim represents a claim that relates this document to another document.

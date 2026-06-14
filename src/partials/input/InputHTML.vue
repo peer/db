@@ -1921,8 +1921,8 @@ watch(
                   inside onConfirm.
 
                   mailto is refused for blockquote cite, in sync with the
-                  backend sanitizer, which uses resourceURLPattern (no
-                  mailto) for cite and linkHrefPattern for link href.
+                  backend, which validates cite with allowMailto false and
+                  link href with allowMailto true (validateURL in urls.go).
                 -->
                 <InputLink
                   ref="linkInputRef"

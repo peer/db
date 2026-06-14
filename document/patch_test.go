@@ -1428,7 +1428,7 @@ func TestClaimPatchValidate(t *testing.T) {
 
 	change = document.SetClaimChange{ID: identifier.New(), Patch: document.LinkClaimPatch{IRI: "javascript:alert(1)"}}
 	errE = change.Validate(nil, 1)
-	assert.EqualError(t, errE, "disallowed IRI scheme: javascript")
+	assert.EqualError(t, errE, "disallowed URL scheme: javascript")
 
 	// AddClaimChange.Validate validates the patch through New.
 	base := []string{"TqtRsbk7rTKviW3TJapTim"}

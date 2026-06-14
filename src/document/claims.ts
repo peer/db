@@ -553,7 +553,7 @@ export class LinkClaim extends CoreClaim {
 
   // Validate checks that the link claim has a non-empty IRI in the allowed
   // form and valid confidence. The allowed-IRI rules match parseUrl on the
-  // frontend and validateIRI on the backend.
+  // frontend and validateURL on the backend.
   async Validate(): Promise<void> {
     await super.Validate()
     try {

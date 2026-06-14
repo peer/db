@@ -611,8 +611,8 @@ describe("LinkClaim Validate", () => {
     return claim
   }
 
-  // IRI allow/deny rules match validateIRI and the link URL
-  // patterns in document/urls.go.
+  // IRI allow/deny rules match validateURL in document/urls.go (the same URL
+  // validation used for the editor schema's link attributes via validateUrl).
   test.each([
     "https://example.com",
     "https://example.com/path?q=1#section",

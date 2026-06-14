@@ -9,16 +9,18 @@ import {
   type Validator,
 } from "@tozd/prosemirror"
 
+import { validateUrl } from "@/utils"
+
 // Levels supported by the heading node, used by the toolbar.
 export const HEADING_LEVELS = [1, 2, 3, 4] as const
 
-// Named attribute validators referenced by the schema JSON, mirroring linkHrefPattern and
-// resourceURLPattern in the backend's document/urls.go: linkURL allows a same-origin path, an
-// absolute http or https URL, or a mailto URL; resourceURL is the same minus mailto. Non-string
-// values are invalid.
+// Named attribute validators referenced by the schema JSON. They run link attributes through the same
+// parseUrl-based validation (validateUrl) used for LinkClaim IRIs and matching validateURL in the
+// backend's document/urls.go: linkURL (<a href>) allows a same-origin path or an http, https, or
+// mailto URL; resourceURL (<blockquote cite>) is the same minus mailto. Non-string values are invalid.
 const validators: Record<string, Validator> = {
-  linkURL: (value) => typeof value === "string" && /^(?:\/(?:[^/]|$)|https?:\/\/[^/]|mailto:[^/])/i.test(value),
-  resourceURL: (value) => typeof value === "string" && /^(?:\/(?:[^/]|$)|https?:\/\/[^/])/i.test(value),
+  linkURL: (value) => typeof value === "string" && validateUrl(value, { allowMailto: true }),
+  resourceURL: (value) => typeof value === "string" && validateUrl(value, { allowMailto: false }),
 }
 
 // The editor schema is built from the shared schema JSON served at /schema.json, the same document

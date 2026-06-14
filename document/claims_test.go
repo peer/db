@@ -307,7 +307,7 @@ func TestClaimValidations(t *testing.T) { //nolint:maintidx
 	t.Run("LinkClaim/empty", func(t *testing.T) {
 		t.Parallel()
 		c := &document.LinkClaim{CoreClaim: core, Prop: ref, IRI: ""}
-		assert.EqualError(t, c.Validate(), "empty IRI")
+		assert.EqualError(t, c.Validate(), "empty URL")
 	})
 	t.Run("LinkClaim/valid", func(t *testing.T) {
 		t.Parallel()
@@ -315,8 +315,8 @@ func TestClaimValidations(t *testing.T) { //nolint:maintidx
 		require.NoError(t, c.Validate(), "% -+#.1v")
 	})
 
-	// IRI allow/deny rules match parseUrl in src/utils.ts and the link URL
-	// validation in urls.go.
+	// IRI allow/deny rules match parseUrl in src/utils.ts and validateURL in
+	// urls.go (the same URL validation used for the editor schema's link attributes).
 	linkValid := []string{
 		"https://example.com",
 		"https://example.com/path?q=1#section",
@@ -339,17 +339,17 @@ func TestClaimValidations(t *testing.T) { //nolint:maintidx
 		iri      string
 		errorMsg string
 	}{
-		{"#section", "invalid IRI"},
-		{"../foo", "invalid IRI"},
-		{"foo/bar", "invalid IRI"},
-		{"//example.com/foo", "invalid IRI"},
-		{"javascript:alert(1)", "disallowed IRI scheme: javascript"},
-		{"ftp://example.com", "disallowed IRI scheme: ftp"},
-		{"tel:+1234", "disallowed IRI scheme: tel"},
-		{"data:text/html,<script>", "disallowed IRI scheme: data"},
-		{"http:///example.com", "invalid IRI: missing host"},
-		{"https:///example.com", "invalid IRI: missing host"},
-		{"mailto:", "invalid IRI: missing address"},
+		{"#section", "invalid URL"},
+		{"../foo", "invalid URL"},
+		{"foo/bar", "invalid URL"},
+		{"//example.com/foo", "invalid URL"},
+		{"javascript:alert(1)", "disallowed URL scheme: javascript"},
+		{"ftp://example.com", "disallowed URL scheme: ftp"},
+		{"tel:+1234", "disallowed URL scheme: tel"},
+		{"data:text/html,<script>", "disallowed URL scheme: data"},
+		{"http:///example.com", "invalid URL: missing host"},
+		{"https:///example.com", "invalid URL: missing host"},
+		{"mailto:", "invalid URL: missing address"},
 	}
 	for _, tc := range linkInvalid {
 		t.Run("LinkClaim/invalid/"+tc.iri, func(t *testing.T) {

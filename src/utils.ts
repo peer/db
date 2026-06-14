@@ -514,11 +514,10 @@ export async function delay(ms: number, signal?: AbortSignal): Promise<void> {
   signal?.throwIfAborted()
 }
 
-// Schemes accepted by parseUrl. Mirrors allowedLinkClaimSchemes in
-// document/urls.go on the backend. HTML link validation uses this set for
-// <a href> (via linkHrefPattern) and the set minus mailto for <blockquote
-// cite> (via resourceURLPattern). parseUrl callers make the same distinction
-// by passing { allowMailto: false }, keeping both sides in sync.
+// Schemes accepted by parseUrl. Mirrors the schemes validateURL accepts in
+// document/urls.go on the backend. Link validation uses this set for <a href>
+// and the set minus mailto for <blockquote cite>; callers (and validateUrl) make
+// the distinction by passing { allowMailto: false }, keeping both sides in sync.
 export const ALLOWED_LINK_CLAIM_SCHEMES = ["http:", "https:", "mailto:"] as const
 
 const URL_HOST_REGEX = /^https?:\/\/\//i
@@ -582,6 +581,20 @@ export function parseUrl(input: string, { allowMailto = true }: ParseUrlOptions 
     throw new Error("invalid URL: missing address")
   }
   return url
+}
+
+// validateUrl reports whether input is an acceptable URL, by parsing it with parseUrl and ignoring the
+// result (true when parseUrl does not throw). It is the validity check for the editor schema's link
+// attributes, so they go through the same parsing and classification as LinkClaim IRIs rather than a
+// separate regex. It is the boolean counterpart of validateURL on the backend, which returns an error
+// instead of a boolean following the Go validator convention.
+export function validateUrl(input: string, options: ParseUrlOptions = {}): boolean {
+  try {
+    parseUrl(input, options)
+    return true
+  } catch {
+    return false
+  }
 }
 
 // normalizeUrl returns the canonical string for a URL. Same-origin URLs are

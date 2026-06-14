@@ -2,7 +2,6 @@ package document
 
 import (
 	_ "embed"
-	"regexp"
 
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/prosemirror/model"
@@ -27,8 +26,8 @@ var htmlSchema = mustHTMLSchema()
 func mustHTMLSchema() *model.Schema {
 	schema, errE := model.NewSchema(SchemaJSON, model.SchemaCallbacks{
 		Validators: map[string]model.AttrValidator{
-			"linkURL":     namedURLValidator("linkURL", linkHrefPattern),
-			"resourceURL": namedURLValidator("resourceURL", resourceURLPattern),
+			"linkURL":     urlAttrValidator(true),
+			"resourceURL": urlAttrValidator(false),
 		},
 	})
 	if errE != nil {
@@ -37,20 +36,17 @@ func mustHTMLSchema() *model.Schema {
 	return schema
 }
 
-// namedURLValidator builds an attribute validator for a URL attribute, accepting only string
-// values which match the pattern. The patterns (linkHrefPattern, resourceURLPattern) are the
-// documented semantics of the linkURL/resourceURL validators in the shared schema dialect, and
-// mirror validateIRI and the frontend's parseUrl (asserted equivalent in the tests).
-func namedURLValidator(name string, pattern *regexp.Regexp) model.AttrValidator {
+// urlAttrValidator adapts validateURL to the schema attribute validator signature: it requires a
+// string value and validates it with validateURL, allowing mailto only when allowMailto is set. The
+// schema's linkURL (<a href>) uses allowMailto true; resourceURL (<blockquote cite>) uses false. So
+// link attribute values go through the same URL validation as LinkClaim IRIs.
+func urlAttrValidator(allowMailto bool) model.AttrValidator {
 	return func(value any) errors.E {
 		s, ok := value.(string)
 		if !ok {
-			return errors.Errorf("%s: value is not a string", name)
+			return errors.New("URL value is not a string")
 		}
-		if !pattern.MatchString(s) {
-			return errors.Errorf("%s: invalid value: %s", name, s)
-		}
-		return nil
+		return validateURL(s, allowMailto)
 	}
 }
 
