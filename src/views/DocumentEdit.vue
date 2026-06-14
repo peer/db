@@ -232,17 +232,29 @@ const flushRegistry = new Set<FlushFn>()
 
 // Provide shared services for recursive FieldsForm instances.
 provide(getNextChangeNumberKey, () => nextChangeToSubmit++)
-provide(saveChangeKey, async (change: object, changeNumber: number) => {
-  await postJSON(
-    router.apiResolve({
-      name: "DocumentSaveChange",
-      params: { session: props.session },
-      query: encodeQuery({ change: String(changeNumber) }),
-    }).href,
-    change,
-    abortController.signal,
-    null,
-  )
+
+// Serialize saveChange POSTs so changes reach the server in the order they are emitted, even when
+// a single user action emits several across separate handlers (e.g. removing a sub-claim and then
+// its now-empty default parent). The server requires sequential change numbers, so concurrent
+// out-of-order POSTs would conflict. Change numbers are allocated immediately before each
+// saveChange call, so call order matches number order.
+let saveChainTail: Promise<unknown> = Promise.resolve()
+provide(saveChangeKey, (change: object, changeNumber: number): Promise<void> => {
+  const run = saveChainTail.then(async () => {
+    await postJSON(
+      router.apiResolve({
+        name: "DocumentSaveChange",
+        params: { session: props.session },
+        query: encodeQuery({ change: String(changeNumber) }),
+      }).href,
+      change,
+      abortController.signal,
+      null,
+    )
+  })
+  // Keep the chain alive even if this POST rejects, so a later change is not blocked forever.
+  saveChainTail = run.catch(() => undefined)
+  return run
 })
 provide(registerForFlushKey, (instance: FlushFn) => {
   flushRegistry.add(instance)

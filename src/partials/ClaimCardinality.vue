@@ -24,8 +24,8 @@ import type { ValidatedInput } from "@/types"
 
 import { computed, onBeforeUnmount, ref, shallowReactive, useTemplateRef, watch } from "vue"
 
-import { AddClaimChange, claimPatchFrom, RemoveClaimChange } from "@/document"
-import { getClaimValues, makePatchForField } from "@/fields"
+import { AddClaimChange, claimPatchFrom, claimTypeName, RemoveClaimChange } from "@/document"
+import { getClaimValues, makePatchForField, valueTypeToClaimType } from "@/fields"
 import ClaimInput from "@/partials/ClaimInput.vue"
 import { useLocked } from "@/progress"
 import { allErrors, useRegisterForValidation, useValidationRegistry } from "@/validation"
@@ -139,6 +139,7 @@ const slotInputs = shallowReactive(new Map<string, ExposedClaimInput>())
 type ExposedClaimInput = Omit<ValidatedInput, "revert"> & {
   revert: () => Promise<void>
   ensureClaimId: () => Promise<string>
+  hasValue: boolean
 }
 
 function setSlotRef(key: string, el: unknown): void {
@@ -164,6 +165,19 @@ function slotIsEmpty(slot: Slot): boolean {
   return slot.claim === null
 }
 
+// slotHasValue reports whether a slot has a base value, used to decide whether to offer a new
+// trailing slot. A slot whose only content is sub-claims (a default field's none/unknown form,
+// e.g. a studio with notes but no location) has no base value and does not grow a placeholder.
+function slotHasValue(slot: Slot): boolean {
+  const input = slotInputs.get(slot.key)
+  if (input) {
+    return input.hasValue
+  }
+  // No input registered yet (first render): a committed claim of the field's value type has a
+  // value; a default (none/unknown) claim, or no claim, does not.
+  return slot.claim !== null && claimTypeName(slot.claim) === valueTypeToClaimType(props.field.valueType)
+}
+
 // reconcileSlots maintains exactly one trailing empty slot under
 // maxCardinality, growing when the last slot becomes non-empty and
 // shrinking when an empty slot ends up trailing.
@@ -177,16 +191,24 @@ function slotIsEmpty(slot: Slot): boolean {
 // reconcile pushes a fresh slot for it).
 function reconcileSlots(): void {
   const max = props.field.maxCardinality === Infinity ? Number.MAX_SAFE_INTEGER : props.field.maxCardinality
-  // Find the last "filled" slot index (claim present OR ClaimInput
-  // reports non-empty local state).
-  let lastFilledIdx = -1
+  // lastContentIdx: last slot with any content (a value or sub-claims) - these are kept.
+  // lastValueIdx: last slot with a base value - a trailing empty slot is offered only after one of
+  // these. A slot whose only content is sub-claims (a default field's notes-only entry) is kept
+  // but does not grow a further placeholder.
+  let lastContentIdx = -1
+  let lastValueIdx = -1
   for (let i = slots.value.length - 1; i >= 0; i--) {
-    if (!slotIsEmpty(slots.value[i])) {
-      lastFilledIdx = i
+    if (lastContentIdx === -1 && !slotIsEmpty(slots.value[i])) {
+      lastContentIdx = i
+    }
+    if (lastValueIdx === -1 && slotHasValue(slots.value[i])) {
+      lastValueIdx = i
+    }
+    if (lastContentIdx !== -1 && lastValueIdx !== -1) {
       break
     }
   }
-  let desired = lastFilledIdx + 2 // filled slots + one trailing empty
+  let desired = Math.max(lastContentIdx + 1, lastValueIdx + 2) // keep content slots; one trailing empty after the last value
   if (desired > max) desired = max
   if (desired < 1) desired = Math.min(1, max)
 
@@ -406,17 +428,20 @@ async function revertField(): Promise<void> {
     if (slot.claim && slot.baseline) representedBaselineIds.add(slot.baseline.id)
   }
 
-  // 1) Re-add baseline claims that no current slot represents.
+  // 1) Re-add baseline claims that no current slot represents. Resolve the (possibly lazily-
+  // created) parent FIRST so it gets the lower change number and is posted before this claim;
+  // the server requires change numbers to arrive in sequence.
   for (const baseline of slotsCheckpoint.value) {
     if (representedBaselineIds.has(baseline.id)) continue
+    const under = props.parentClaimId ? await props.parentClaimId() : undefined
     const num = getNextChangeNumber()
     const changeBase = [...props.base, "SESSION", props.session, String(num)]
     const newId = (await Identifier.from(...changeBase)).toString()
     const values = getClaimValues(baseline)
     const patch = makePatchForField(props.field, values)
     const addChange = new AddClaimChange({ id: newId, base: changeBase, patch })
-    if (props.parentClaimId) {
-      addChange.under = await props.parentClaimId()
+    if (under !== undefined) {
+      addChange.under = under
     }
     await saveChange(addChange, num)
     const newClaim = claimPatchFrom(patch).New(newId)
@@ -476,6 +501,7 @@ onBeforeUnmount(() => {
       :parent-claim-id="parentClaimId"
       :invalid="invalid || (triggered && missing.flags[idx]) || false"
       :required="triggered && missing.flags[idx]"
+      :is-first="idx === 0"
       :session="session"
       :base="base"
       @update:model-value="(claim) => updateSlotClaim(slot.key, claim)"

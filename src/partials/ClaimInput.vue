@@ -64,6 +64,11 @@ const props = withDefaults(
     // inner validators (see the watch in FieldsFormRow), which surfaces
     // / clears the message as the slot's required state changes.
     required?: boolean
+    // Whether this is the first slot of its field. Only the first slot of a default value field
+    // offers the "fill sub-fields with no value" affordance (which creates the none/unknown form).
+    // Subsequent slots are value-first - their sub-fields appear only once a value is committed -
+    // so a trailing placeholder cannot become a second default-form entry.
+    isFirst?: boolean
     session: string
     base: readonly string[]
   }>(),
@@ -71,6 +76,7 @@ const props = withDefaults(
     parentClaimId: undefined,
     invalid: false,
     required: false,
+    isFirst: false,
   },
 )
 
@@ -135,7 +141,9 @@ function extractSubClaims(claim: DeepReadonly<Claim> | null, subField: DeepReado
 const showSubFields = computed(() => {
   if (props.field.subFields.length === 0) return false
   if (isHas.value) return true
-  if (props.field.default) return true
+  // Only the first slot of a default field shows sub-fields before a value exists (so the single
+  // primary entry can be the none/unknown form). Other slots are value-first.
+  if (props.field.default && props.isFirst) return true
   return props.modelValue !== null
 })
 
@@ -229,6 +237,16 @@ const isEmpty = computed<boolean>(() => {
   return allChildEmpty.value
 })
 
+// hasValue: whether this slot has a base value. Drives whether the cardinality offers a new
+// trailing slot. For presence-only slots the presence/sub-claims are the value, so it mirrors
+// non-emptiness. For value fields it is true only when the value input itself is non-empty: a
+// value field with a default whose only content is sub-claims (e.g. a studio with notes but an
+// unknown location) does NOT count as having a value, so it does not grow a new trailing slot.
+const hasValue = computed<boolean>(() => {
+  if (isPresenceOnly.value) return !isEmpty.value
+  return !localIsEmpty.value
+})
+
 // Compose the ValidatedInput exposed to the outer registry.
 // The framework's revertAll() cascade is fire-and-forget (revertAll is
 // synchronous), so we wrap the async revertField in a void-discarding
@@ -274,17 +292,26 @@ async function ensureClaimId(): Promise<string> {
   } else {
     throw new Error("ensureClaimId called with no committed claim on a non-HAS slot without a default")
   }
+  const newClaim = await addClaimWithParent(patch)
+  emit("update:modelValue", newClaim)
+  return newClaim.GetID()
+}
+
+// addClaimWithParent posts an AddClaimChange for the given patch and returns the new claim. It
+// resolves the (possibly lazily-created) parent FIRST so the parent gets a lower change number
+// and is posted before this claim: the server requires change numbers to arrive in sequence, so
+// posting a child before its lazily-created parent would otherwise conflict.
+async function addClaimWithParent(patch: object): Promise<Claim> {
+  const under = props.parentClaimId ? await props.parentClaimId() : undefined
   const num = getNextChangeNumber()
   const changeBase = [...props.base, "SESSION", props.session, String(num)]
   const newId = (await Identifier.from(...changeBase)).toString()
   const addChange = new AddClaimChange({ id: newId, base: changeBase, patch })
-  if (props.parentClaimId) {
-    addChange.under = await props.parentClaimId()
+  if (under !== undefined) {
+    addChange.under = under
   }
   await saveChange(addChange, num)
-  const newClaim = claimPatchFrom(patch).New(newId)
-  emit("update:modelValue", newClaim)
-  return newId
+  return claimPatchFrom(patch).New(newId)
 }
 
 // commit runs Add / Set / Cast / Remove for the value side of this claim.
@@ -306,27 +333,42 @@ async function commit(): Promise<void> {
   // block the remove/cast, otherwise the row gets stuck and stays red.
   if (localIsEmpty.value) {
     if (!currentClaim) return
-    if (props.field.default && hasAnySubClaims.value) {
-      // The value was cleared but sub-claims remain. Demote the claim to its default
-      // (none/unknown) form, preserving the sub-claims, instead of removing it.
-      if (claimTypeName(currentClaim) === props.field.default) return // already in default form
-      const num = getNextChangeNumber()
-      const patch = makeDefaultPatchForField(props.field)
-      await saveChange(new CastClaimChange({ id: currentClaim.id, patch }), num)
-      const updated = claimPatchFrom(patch).New(currentClaim.id)
-      if (currentClaim.sub) {
-        updated.sub = currentClaim.sub as unknown as ClaimTypes
+    if (props.field.default) {
+      if (props.isFirst) {
+        // First slot of a default field - the only entry allowed to be the default form. If
+        // sub-claims remain (live state), demote a value claim to its default (none/unknown) form,
+        // preserving them. If nothing remains, removal of the now-empty default claim is handled by
+        // onSlotCleanup once focus leaves the whole slot - doing it here would fire while focus is
+        // still in the value input and the user may be mid-edit.
+        if (!allChildEmpty.value && claimTypeName(currentClaim) !== props.field.default) {
+          const num = getNextChangeNumber()
+          const patch = makeDefaultPatchForField(props.field)
+          await saveChange(new CastClaimChange({ id: currentClaim.id, patch }), num)
+          const updated = claimPatchFrom(patch).New(currentClaim.id)
+          if (currentClaim.sub) {
+            updated.sub = currentClaim.sub as unknown as ClaimTypes
+          }
+          emit("update:modelValue", updated)
+        }
+        return
       }
-      emit("update:modelValue", updated)
+      // Non-first slot of a default field: value-first, like a regular field. It must NOT demote to
+      // the default form (only the first slot may be the default form), and a value claim cannot
+      // hold an empty value, so keep it while sub-claims remain (live state), else remove it.
+      if (allChildEmpty.value) {
+        const num = getNextChangeNumber()
+        await saveChange(new RemoveClaimChange({ id: currentClaim.id }), num)
+        emit("update:modelValue", null)
+      }
       return
     }
+    // Regular (non-default) field: a value claim cannot hold an empty value, so keep it when
+    // sub-claims remain, otherwise remove it.
     if (!hasAnySubClaims.value) {
-      // No value and nothing under it: remove the claim.
       const num = getNextChangeNumber()
       await saveChange(new RemoveClaimChange({ id: currentClaim.id }), num)
       emit("update:modelValue", null)
     }
-    // Otherwise (sub-claims but no default) keep the claim; the user can revert.
     return
   }
 
@@ -369,16 +411,7 @@ async function commit(): Promise<void> {
     return
   }
   // No claim yet. Add.
-  const num = getNextChangeNumber()
-  const changeBase = [...props.base, "SESSION", props.session, String(num)]
-  const newId = (await Identifier.from(...changeBase)).toString()
-  const addChange = new AddClaimChange({ id: newId, base: changeBase, patch })
-  if (props.parentClaimId) {
-    addChange.under = await props.parentClaimId()
-  }
-  await saveChange(addChange, num)
-  const newClaim = claimPatchFrom(patch).New(newId)
-  emit("update:modelValue", newClaim)
+  emit("update:modelValue", await addClaimWithParent(patch))
 }
 
 async function onFocusOut(event: FocusEvent): Promise<void> {
@@ -397,6 +430,28 @@ async function onFocusOut(event: FocusEvent): Promise<void> {
   await commit()
 }
 
+// onSlotCleanup runs when focus leaves the whole slot (value input and all sub-fields). For a
+// default field, an entry with no value and no sub-claims is meaningless, so we remove its claim.
+// commit() deliberately leaves this to here: it fires while focus is still inside the value input
+// (and only sees the value side), so removing there would yank a still-empty default entry while
+// the user is mid-edit or about to add a sub-field.
+async function onSlotCleanup(event: FocusEvent): Promise<void> {
+  // Only the first slot of a default field defers its empty-removal to here (commit() leaves it for
+  // the slot-leave). Non-first slots remove an empty entry directly in commit(), like regular
+  // fields, so the cleanup must not also fire there (it would be a double remove).
+  if (!props.field.default || !props.isFirst) return
+  const next = event.relatedTarget as Node | null
+  if (rootRef.value && next instanceof Node && rootRef.value.contains(next)) return // focus stayed in the slot
+  const labelCell = getFieldLabelCell()
+  if (labelCell && next instanceof Node && labelCell.contains(next)) return // moving to the Revert button
+  const currentClaim = props.modelValue
+  if (!currentClaim) return
+  if (!isEmpty.value) return // still has a value or sub-claims
+  const num = getNextChangeNumber()
+  await saveChange(new RemoveClaimChange({ id: currentClaim.id }), num)
+  emit("update:modelValue", null)
+}
+
 // Checkbox-driven presence: NONE / UNKNOWN and HAS-without-sub-fields use
 // a simple checkbox to add or remove the claim outright.
 async function onCheckboxChange(checked: boolean | undefined): Promise<void> {
@@ -405,17 +460,7 @@ async function onCheckboxChange(checked: boolean | undefined): Promise<void> {
   if (desired === currentHas) return
   if (desired) {
     // Add an empty presence claim.
-    const num = getNextChangeNumber()
-    const changeBase = [...props.base, "SESSION", props.session, String(num)]
-    const newId = (await Identifier.from(...changeBase)).toString()
-    const patch = makePatchForField(props.field, emptyFieldEntryValue())
-    const addChange = new AddClaimChange({ id: newId, base: changeBase, patch })
-    if (props.parentClaimId) {
-      addChange.under = await props.parentClaimId()
-    }
-    await saveChange(addChange, num)
-    const newClaim = claimPatchFrom(patch).New(newId)
-    emit("update:modelValue", newClaim)
+    emit("update:modelValue", await addClaimWithParent(makePatchForField(props.field, emptyFieldEntryValue())))
     return
   }
   // Remove the existing claim (sub-claims, if any, cascade with it on the backend).
@@ -442,17 +487,7 @@ async function revertField(): Promise<void> {
     emit("update:modelValue", null)
   } else if (baseline !== null && current === null) {
     // Slot was removed during the session -> resurrect with the baseline values.
-    const num = getNextChangeNumber()
-    const changeBase = [...props.base, "SESSION", props.session, String(num)]
-    const newId = (await Identifier.from(...changeBase)).toString()
-    const patch = makePatchForField(props.field, baselineValue)
-    const addChange = new AddClaimChange({ id: newId, base: changeBase, patch })
-    if (props.parentClaimId) {
-      addChange.under = await props.parentClaimId()
-    }
-    await saveChange(addChange, num)
-    const newClaim = claimPatchFrom(patch).New(newId)
-    emit("update:modelValue", newClaim)
+    emit("update:modelValue", await addClaimWithParent(makePatchForField(props.field, baselineValue)))
   } else if (baseline !== null && current !== null) {
     // Both non-null: if local values diverged from baseline, Set back.
     const currentValues = getClaimValues(current)
@@ -493,11 +528,12 @@ defineExpose({
   // callers (e.g. ClaimCardinality.revertField) can await it.
   revert: revertField,
   ensureClaimId: ensureClaimIdCallback,
+  hasValue,
 })
 </script>
 
 <template>
-  <div ref="rootRef" class="flex min-w-0 grow flex-col gap-y-2">
+  <div ref="rootRef" class="flex min-w-0 grow flex-col gap-y-2" @focusout="onSlotCleanup">
     <!--
       Value input. Skipped for presence-only types (HAS / NONE / UNKNOWN);
       for those, see the checkbox / sub-form blocks below.
