@@ -1,4 +1,3 @@
-import { SHORT_NAME } from "@/core"
 import { searchWithQuery } from "../peerdb_utils"
 import { checkpoint, expect, test } from "../utils"
 
@@ -8,13 +7,15 @@ test.describe("PeerDB Document Navigation", () => {
 
     await searchWithQuery(page, "")
 
-    const shortName = page.locator(`#result-${SHORT_NAME} h2 .link`)
-    await expect(shortName).toBeVisible()
-    await shortName.click()
+    // Empty-query results are ordered by display label, so the first rendered result is the session's
+    // first document (its prev button is disabled). Do not hard-code which document sorts first.
+    const firstResult = page.locator(".pd-searchresult").first().locator("h2 .link")
+    await expect(firstResult).toBeVisible()
+    await firstResult.click()
 
     const documentGet = page.locator(".pd-documentget")
     await expect(documentGet).toBeVisible()
-    await checkpoint(page, "navigation-document-short-name")
+    await checkpoint(page, "navigation-document-first")
 
     // First document does not have a previous one, so prev button is disabled.
     const prevButton = page.locator("#documentget-button-prev")
@@ -34,8 +35,8 @@ test.describe("PeerDB Document Navigation", () => {
     await prevButton.click()
 
     await expect(documentGet).toBeVisible()
-    await checkpoint(page, "navigation-document-short-name")
+    await checkpoint(page, "navigation-document-first")
 
-    console.log('Successfully navigated to "short name" document, navigated to next document, then returned to original via prev button.')
+    console.log("Successfully navigated to the first document, navigated to next document, then returned to original via prev button.")
   })
 })
