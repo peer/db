@@ -1,20 +1,23 @@
 import { Identifier } from "@tozd/identifier"
 
-import { INSTANCE_OF, Namespace, SHORT_NAME, VARIANT } from "@/core"
+import { CARDINALITY, CLASS, DESCRIPTION, INSTANCE_OF, Namespace } from "@/core"
 import { testDocumentPage, testDocumentPageDirect } from "../peerdb_utils"
 import { test } from "../utils"
 
-const PROPERTY_CLASS = (await Identifier.from(Namespace, "PROPERTY")).toString()
 const LITRE_UNIT = (await Identifier.from(Namespace, "UNIT", "l")).toString()
-const SLOVENIAN_LANGUAGE = (await Identifier.from(Namespace, "LANGUAGE", "sl-SI")).toString()
+const ENGLISH_LANGUAGE = (await Identifier.from(Namespace, "LANGUAGE", "en-GB")).toString()
 
+// testDocumentPage navigates via an empty search, whose results are ordered by display label and
+// rendered only up to the initial page limit (50). These documents must therefore have labels that
+// sort within the first page, so pick ones early in the alphabet while keeping a mix of types
+// (property, class, unit, language).
 const DOCUMENTS = [
-  { id: SHORT_NAME, title: "short name" },
+  { id: CARDINALITY, title: "cardinality" },
+  { id: CLASS, title: "class" },
+  { id: DESCRIPTION, title: "description" },
+  { id: ENGLISH_LANGUAGE, title: "English" },
   { id: INSTANCE_OF, title: "instance of" },
-  { id: VARIANT, title: "variant" },
-  { id: PROPERTY_CLASS, title: "property" },
   { id: LITRE_UNIT, title: "litre" },
-  { id: SLOVENIAN_LANGUAGE, title: "Slovenian" },
 ]
 
 test.describe("PeerDB Core Documents", () => {
