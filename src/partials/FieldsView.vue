@@ -55,7 +55,7 @@ function claimsForField(field: FieldData): { claimType: ClaimTypeName; claims: D
   const claimType = valueTypeToClaimType(field.valueType)
   if (hasLanguageClaims(field)) {
     const claims = selectClaimsByLanguage(normalizedClaims.value, claimType, field.propertyId, locale.value, (c) => c.length > 0)
-    return { claimType, claims: (claims ?? []) as DeepReadonly<Claim>[] }
+    return { claimType, claims: claims ?? [] }
   }
   const claims = getClaimsOfTypeWithConfidence(normalizedClaims.value, claimType, field.propertyId) as DeepReadonly<Claim>[]
   return { claimType, claims }

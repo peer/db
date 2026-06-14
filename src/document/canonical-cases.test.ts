@@ -21,7 +21,7 @@ interface CanonicalCase {
   recanonical?: string
 }
 
-const cases = (corpus as { cases: CanonicalCase[] }).cases
+const cases: CanonicalCase[] = corpus.cases
 
 // canonicalize mirrors the backend CanonicalizeHTML: parse the HTML into the editor schema and
 // serialize it back.

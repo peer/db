@@ -255,7 +255,7 @@ export function useFilters(
       const key = filterResultKey(r)
       const existing = best.get(key)
       if (!existing || (r.filterId && !existing.filterId)) {
-        best.set(key, r as FilterResult)
+        best.set(key, r)
       }
     }
     return [...best.values()]
@@ -575,7 +575,7 @@ export function useAmountHistogramValues(
       if (signal.aborted) {
         return
       }
-      _results.value = data.results as HistogramAmountResult[]
+      _results.value = data.results
       _total.value = data.total
       _missing.value = data.missing != null ? data.missing : null
       _from.value = data.from != null ? parseFloat(data.from) : null
@@ -711,7 +711,7 @@ export function useTimeHistogramValues(
       if (signal.aborted) {
         return
       }
-      _results.value = data.results as HistogramTimeResult[]
+      _results.value = data.results
       _total.value = data.total
       _missing.value = data.missing != null ? data.missing : null
       _from.value = data.from != null ? parseFloat(data.from) : null
