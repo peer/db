@@ -41,7 +41,7 @@ export function decodeMetadataListNamed(headers: Headers, prefix: string, name: 
   if (header === "") {
     return []
   }
-  return decodeList(header).map((item) => convertItem(item as Item))
+  return decodeList(header).map((item) => convertItem(item))
 }
 
 export function decodeMetadata(headers: Headers, prefix: string): Metadata {

@@ -38,12 +38,12 @@ const props = defineProps<{
 // per-field slot state stays reactive on doc updates.
 const claimsForField = computed<readonly DeepReadonly<Claim>[]>(() => {
   const claimType = valueTypeToClaimType(props.field.valueType)
-  return getClaimsOfTypeWithConfidence(props.claims, claimType, props.field.propertyId) as readonly DeepReadonly<Claim>[]
+  return getClaimsOfTypeWithConfidence(props.claims, claimType, props.field.propertyId)
 })
 
 const initialClaimsForField = computed<readonly DeepReadonly<Claim>[]>(() => {
   const claimType = valueTypeToClaimType(props.field.valueType)
-  return getClaimsOfTypeWithConfidence(props.initialClaims, claimType, props.field.propertyId) as readonly DeepReadonly<Claim>[]
+  return getClaimsOfTypeWithConfidence(props.initialClaims, claimType, props.field.propertyId)
 })
 
 const cardinalityRef = useTemplateRef<{

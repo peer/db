@@ -13,7 +13,6 @@ import {
   AmountIntervalClaimPatch,
   Changes,
   D,
-  HasClaim,
   HasClaimPatch,
   HTMLClaim,
   HTMLClaimPatch,
@@ -34,7 +33,6 @@ import {
   TimeClaimPatch,
   TimeIntervalClaim,
   TimeIntervalClaimPatch,
-  UnknownClaim,
   UnknownClaimPatch,
 } from "@/document"
 
@@ -112,7 +110,7 @@ describe("patch New and Apply", () => {
 
   test("HasClaimPatch", async () => {
     const p = new HasClaimPatch({ type: "has", prop, confidence: 1.0 })
-    const claim = p.New(Identifier.new().toString()) as HasClaim
+    const claim = p.New(Identifier.new().toString())
     assert.equal(claim.prop.id, prop)
 
     await new HasClaimPatch({ type: "has", confidence: 0.5 }).Apply(claim)
@@ -121,7 +119,7 @@ describe("patch New and Apply", () => {
 
   test("NoneClaimPatch", async () => {
     const p = new NoneClaimPatch({ type: "none", prop, confidence: 1.0 })
-    const claim = p.New(Identifier.new().toString()) as NoneClaim
+    const claim = p.New(Identifier.new().toString())
     assert.equal(claim.prop.id, prop)
 
     const newProp = Identifier.new().toString()
@@ -131,7 +129,7 @@ describe("patch New and Apply", () => {
 
   test("UnknownClaimPatch", async () => {
     const p = new UnknownClaimPatch({ type: "unknown", prop, confidence: 1.0 })
-    const claim = p.New(Identifier.new().toString()) as UnknownClaim
+    const claim = p.New(Identifier.new().toString())
     assert.equal(claim.confidence, 1.0)
 
     await new UnknownClaimPatch({ type: "unknown", confidence: 0.75 }).Apply(claim)

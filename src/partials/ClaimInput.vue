@@ -120,7 +120,7 @@ watch(
 function extractSubClaims(claim: DeepReadonly<Claim> | null, subField: DeepReadonly<FieldData>): readonly DeepReadonly<Claim>[] {
   if (!claim || !claim.sub) return []
   const t = valueTypeToClaimType(subField.valueType)
-  return getClaimsOfTypeWithConfidence(claim.sub, t, subField.propertyId) as readonly DeepReadonly<Claim>[]
+  return getClaimsOfTypeWithConfidence(claim.sub, t, subField.propertyId)
 }
 
 // Whether the sub-ClaimCardinality should be rendered for this slot.
@@ -267,7 +267,7 @@ async function ensureClaimId(): Promise<string> {
   const num = getNextChangeNumber()
   const changeBase = [...props.base, "SESSION", props.session, String(num)]
   const newId = (await Identifier.from(...changeBase)).toString()
-  const patch = makePatchForField(props.field as FieldData, emptyFieldEntryValue())
+  const patch = makePatchForField(props.field, emptyFieldEntryValue())
   const addChange = new AddClaimChange({ id: newId, base: changeBase, patch })
   if (props.parentClaimId) {
     addChange.under = await props.parentClaimId()
@@ -309,7 +309,7 @@ async function commit(): Promise<void> {
     if (formRowRef.value.errors.length > 0) return
   }
   // Local has values. Build the patch.
-  const patch = makePatchForField(props.field as FieldData, local.value)
+  const patch = makePatchForField(props.field, local.value)
   if (currentClaim) {
     // Update existing claim. Only post if values actually changed.
     if (equalFieldEntryValue(local.value, getClaimValues(currentClaim))) {
@@ -370,7 +370,7 @@ async function onCheckboxChange(checked: boolean | undefined): Promise<void> {
     const num = getNextChangeNumber()
     const changeBase = [...props.base, "SESSION", props.session, String(num)]
     const newId = (await Identifier.from(...changeBase)).toString()
-    const patch = makePatchForField(props.field as FieldData, emptyFieldEntryValue())
+    const patch = makePatchForField(props.field, emptyFieldEntryValue())
     const addChange = new AddClaimChange({ id: newId, base: changeBase, patch })
     if (props.parentClaimId) {
       addChange.under = await props.parentClaimId()
@@ -407,7 +407,7 @@ async function revertField(): Promise<void> {
     const num = getNextChangeNumber()
     const changeBase = [...props.base, "SESSION", props.session, String(num)]
     const newId = (await Identifier.from(...changeBase)).toString()
-    const patch = makePatchForField(props.field as FieldData, baselineValue)
+    const patch = makePatchForField(props.field, baselineValue)
     const addChange = new AddClaimChange({ id: newId, base: changeBase, patch })
     if (props.parentClaimId) {
       addChange.under = await props.parentClaimId()
@@ -419,7 +419,7 @@ async function revertField(): Promise<void> {
     // Both non-null: if local values diverged from baseline, Set back.
     const currentValues = getClaimValues(current)
     if (!equalFieldEntryValue(currentValues, baselineValue)) {
-      const patch = makePatchForField(props.field as FieldData, baselineValue)
+      const patch = makePatchForField(props.field, baselineValue)
       const num = getNextChangeNumber()
       await saveChange(new SetClaimChange({ id: current.id, patch }), num)
       const updated = claimPatchFrom(patch).New(current.id)

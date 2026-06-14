@@ -887,7 +887,7 @@ export class LinkClaimPatch implements ClaimPatch {
         parseUrl(this.iri)
       } catch (err) {
         // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-        throw new Error(`invalid IRI: ${err}`)
+        throw new Error(`invalid IRI: ${err}`, { cause: err })
       }
     }
   }

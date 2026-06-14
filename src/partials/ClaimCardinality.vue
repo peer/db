@@ -413,7 +413,7 @@ async function revertField(): Promise<void> {
     const changeBase = [...props.base, "SESSION", props.session, String(num)]
     const newId = (await Identifier.from(...changeBase)).toString()
     const values = getClaimValues(baseline)
-    const patch = makePatchForField(props.field as FieldData, values)
+    const patch = makePatchForField(props.field, values)
     const addChange = new AddClaimChange({ id: newId, base: changeBase, patch })
     if (props.parentClaimId) {
       addChange.under = await props.parentClaimId()

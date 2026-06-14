@@ -75,16 +75,13 @@ async function run(files: DownloadFile[], fileHandle: FileSystemFileHandle | nul
         zipErrorMessage = err.message
         return
       }
-      // fflate's chunks are backed by a regular ArrayBuffer (not SharedArrayBuffer);
-      // narrow the type so write() and Blob() accept it.
-      const c = chunk as Uint8Array<ArrayBuffer>
       if (w) {
-        writePromise = writePromise.then(() => w.write(c))
+        writePromise = writePromise.then(() => w.write(chunk))
         if (final) {
           writePromise = writePromise.then(() => w.close())
         }
       } else {
-        chunks.push(c)
+        chunks.push(chunk)
       }
     }
 
