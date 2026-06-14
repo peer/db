@@ -1529,13 +1529,28 @@ func TestAppendDocumentChangeToEndedSession(t *testing.T) {
 	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
+	// Build a valid change so the append reaches the session-state check instead of failing
+	// earlier during unmarshaling or validation.
+	confidence := document.HighConfidence
+	propID := identifier.New()
+	changeBase := append(append([]string{}, doc.Base...), "SESSION", session.String(), "1")
+	changeJSON := marshalChange(t, document.AddClaimChange{ //nolint:exhaustruct
+		ID:   identifier.From(changeBase...),
+		Base: changeBase,
+		Patch: document.StringClaimPatch{
+			Confidence: &confidence,
+			Prop:       &propID,
+			String:     "test value",
+		},
+	})
+
 	// End session immediately (discard).
 	errE = b.EndEditDocument(ctx, session, true)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Trying to append after ending should fail.
-	_, errE = b.AppendDocumentChange(ctx, session, []byte(`{}`), 1)
-	assert.ErrorIs(t, errE, base.ErrInvalidChange)
+	_, errE = b.AppendDocumentChange(ctx, session, changeJSON, 1)
+	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
 	// Trying to end again should fail.
 	errE = b.EndEditDocument(ctx, session, false)
