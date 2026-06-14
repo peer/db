@@ -70,7 +70,7 @@
 //   - "link": create a link claim,
 //   - "file": create a link claim,
 //   - "html": create a text claim with HTML (content will be escaped),
-//   - "rawhtml": create a text claim with raw HTML (content will be sanitized but not escaped).
+//   - "rawhtml": create a text claim with raw HTML (content will be canonicalized but not escaped).
 //
 // Supported types for boolean fields:
 //
@@ -313,6 +313,21 @@ var (
 	errClaimNotMade       = &claimNotMadeError{}
 	errValueClaimNotFound = errors.Base("value claim not found")
 )
+
+// canonicalHTMLForClaim canonicalizes html into the form stored in an HTMLClaim, sanitizing it
+// by parsing into the editor schema and serializing back. It returns a claimNotMadeError
+// carrying defaultTag when the canonical form carries no content, so empty, whitespace-only, and
+// all-disallowed input produce no claim.
+func canonicalHTMLForClaim(html, defaultTag string) (string, errors.E) {
+	canonical, errE := document.CanonicalizeHTML(html)
+	if errE != nil {
+		return "", errE
+	}
+	if document.IsEmptyHTML(canonical) {
+		return "", errors.WithStack(&claimNotMadeError{Default: defaultTag})
+	}
+	return canonical, nil
+}
 
 const (
 	defaultNone    = "none"
@@ -1388,12 +1403,10 @@ func makeClaim(
 			return nil, errors.New("HTML field used with conflicting tag")
 		}
 
-		// We still sanitize HTML, so that our user HTML is consistent.
-		sanitized := document.SanitizeHTML(TextToHTML(string(h)))
-		if sanitized == "" {
-			return nil, errors.WithStack(&claimNotMadeError{
-				Default: defaultTag,
-			})
+		// We convert plain text to HTML and canonicalize it, so that our user HTML is consistent.
+		canonical, errE := canonicalHTMLForClaim(TextToHTML(string(h)), defaultTag)
+		if errE != nil {
+			return nil, errE
 		}
 
 		claimID := newClaimID(idPath, propertyID, claims)
@@ -1403,7 +1416,7 @@ func makeClaim(
 				Confidence: confidence,
 			},
 			Prop: document.Reference{ID: propertyID},
-			HTML: sanitized,
+			HTML: canonical,
 		}, nil
 	}
 
@@ -1428,12 +1441,10 @@ func makeClaim(
 			return nil, errors.New("raw HTML field used with conflicting tag")
 		}
 
-		// No escaping for raw HTML, but we do sanitize it.
-		sanitized := document.SanitizeHTML(string(rawHTML))
-		if sanitized == "" {
-			return nil, errors.WithStack(&claimNotMadeError{
-				Default: defaultTag,
-			})
+		// No escaping for raw HTML, but we do canonicalize it.
+		canonical, errE := canonicalHTMLForClaim(string(rawHTML), defaultTag)
+		if errE != nil {
+			return nil, errE
 		}
 
 		claimID := newClaimID(idPath, propertyID, claims)
@@ -1443,7 +1454,7 @@ func makeClaim(
 				Confidence: confidence,
 			},
 			Prop: document.Reference{ID: propertyID},
-			HTML: sanitized,
+			HTML: canonical,
 		}, nil
 	}
 
@@ -1540,12 +1551,10 @@ func makeClaim(
 		}
 
 		if typeTag == typeHTML {
-			// We still sanitize HTML, so that our user HTML is consistent.
-			sanitized := document.SanitizeHTML(TextToHTML(str))
-			if sanitized == "" {
-				return nil, errors.WithStack(&claimNotMadeError{
-					Default: defaultTag,
-				})
+			// We convert plain text to HTML and canonicalize it, so that our user HTML is consistent.
+			canonical, errE := canonicalHTMLForClaim(TextToHTML(str), defaultTag)
+			if errE != nil {
+				return nil, errE
 			}
 			return &document.HTMLClaim{
 				CoreClaim: document.CoreClaim{
@@ -1553,17 +1562,15 @@ func makeClaim(
 					Confidence: confidence,
 				},
 				Prop: document.Reference{ID: propertyID},
-				HTML: sanitized,
+				HTML: canonical,
 			}, nil
 		}
 
 		if typeTag == typeRawHTML {
-			// No escaping for raw HTML, but we do sanitize it.
-			sanitized := document.SanitizeHTML(str)
-			if sanitized == "" {
-				return nil, errors.WithStack(&claimNotMadeError{
-					Default: defaultTag,
-				})
+			// No escaping for raw HTML, but we do canonicalize it.
+			canonical, errE := canonicalHTMLForClaim(str, defaultTag)
+			if errE != nil {
+				return nil, errE
 			}
 			return &document.HTMLClaim{
 				CoreClaim: document.CoreClaim{
@@ -1571,7 +1578,7 @@ func makeClaim(
 					Confidence: confidence,
 				},
 				Prop: document.Reference{ID: propertyID},
-				HTML: sanitized,
+				HTML: canonical,
 			}, nil
 		}
 

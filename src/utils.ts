@@ -515,11 +515,10 @@ export async function delay(ms: number, signal?: AbortSignal): Promise<void> {
 }
 
 // Schemes accepted by parseUrl. Mirrors allowedLinkClaimSchemes in
-// document/sanitize.go on the backend. The HTML sanitizer in
-// document/sanitize.go uses this set for <a href> (via linkHrefPattern)
-// and the same set minus mailto for <img src> and <blockquote cite> (via
-// resourceURLPattern). parseUrl callers can pass { allowMailto: false }
-// to drop mailto: from the allowed set.
+// document/urls.go on the backend. HTML link validation uses this set for
+// <a href> (via linkHrefPattern) and the set minus mailto for <blockquote
+// cite> (via resourceURLPattern). parseUrl callers make the same distinction
+// by passing { allowMailto: false }, keeping both sides in sync.
 export const ALLOWED_LINK_CLAIM_SCHEMES = ["http:", "https:", "mailto:"] as const
 
 const URL_HOST_REGEX = /^https?:\/\/\//i

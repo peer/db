@@ -1,8 +1,0 @@
-<HTML><HEAD></HEAD><BODY>
-
-Test 313.
-
-<iframe/ /onload=alert(313)></iframe>
-
-
-</BODY></HTML>

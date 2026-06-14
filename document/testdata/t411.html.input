@@ -1,7 +1,0 @@
-<HTML><HEAD></HEAD>
-
-<BODY onload <!-- --> = alert("XSS")>
-
-Test 411.  Thanks to Kurt Thomas for this attack.
-
-</BODY></HTML>

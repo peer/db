@@ -25,16 +25,16 @@ type Link string
 type File string
 
 // HTML is a string with plain text which transform converts to HTML
-// (escaped, linkified, wrapped into a paragraph block) and sanitizes.
+// (escaped, linkified, wrapped into a paragraph block) and canonicalizes.
 type HTML string
 
-// RawHTML is a string with HTML which transform does not escape, only sanitizes.
-// Values have to be authored in the canonical form which document.SanitizeHTML
-// returns unchanged and which the frontend editor serializer produces: wrapped
-// into block elements (e.g., <p>...</p>), with the characters & ' < > " escaped
-// as &amp; &#39; &lt; &gt; &#34; in text and attribute values, br for line
-// breaks, and without runs of collapsible whitespace. This keeps stored HTML
-// byte for byte equal to what the editor produces for the same content.
+// RawHTML is a string with HTML which transform does not escape, only canonicalizes
+// (parses into the editor schema and serializes back). Because transform canonicalizes
+// any value, a value which is not already canonical is silently rewritten, and content
+// the editor schema cannot represent is dropped. Authoring values already in the
+// canonical form (the form document.CanonicalizeHTML returns unchanged and the frontend
+// editor serializer produces) keeps the stored HTML byte for byte equal to the source
+// and to what the editor produces for the same content.
 type RawHTML string
 
 // None is a boolean that indicates a property is known to not have a value.

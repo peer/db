@@ -8,6 +8,7 @@ import { IN_LANGUAGE, LIST, ORDER_IN_LIST } from "@/core"
 import { amountFloat64, amountWindowEnd, amountWindowStart, validateAmount } from "@/document/amount"
 import { LowConfidence } from "@/document/confidence"
 import { timeFloat64, timeWindowEnd, timeWindowStart, VALID_TIME_PRECISIONS, validateTime } from "@/document/time"
+import { isCanonicalHTML } from "@/partials/input/InputHTML.schema"
 import { parseUrl } from "@/utils"
 
 // Claims is the interface for types that hold and manipulate a collection of claims.
@@ -190,15 +191,16 @@ export class HTMLClaim extends CoreClaim {
     }
   }
 
-  // Validate checks that the HTML claim has non-empty HTML and valid confidence.
-  // TODO: Mirror the backend's HTMLClaim.Validate sanitize-equality check.
-  //       A claim constructed on the frontend is rejected if its HTML differs
-  //       from the sanitizer's output.
-  //       Needs a JS port of the bluemonday policy in document/sanitize.go.
+  // Validate checks that the HTML claim has non-empty, canonical HTML and valid confidence. This
+  // mirrors the backend HTMLClaim.Validate, including the canonical-HTML requirement (isCanonicalHTML
+  // is a parse and serialize round trip through the editor schema) and its error message.
   async Validate(): Promise<void> {
     await super.Validate()
     if (!this.html) {
       throw new Error("empty HTML")
+    }
+    if (!isCanonicalHTML(this.html)) {
+      throw new Error("HTML is not canonical")
     }
   }
 }

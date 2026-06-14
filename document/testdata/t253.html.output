@@ -1,8 +1,0 @@
-
-
- Test 253.
-
-¼script¾alert(¢XSS253¢)¼/script¾
-
-Note: requires page to set US-ASCII encoding.
-

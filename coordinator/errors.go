@@ -9,4 +9,7 @@ var (
 	ErrNotEnded          = errors.Base("session not ended")
 	ErrAlreadyCompleted  = errors.Base("session already completed")
 	ErrConflict          = errors.Base("conflict")
+	// ErrInvalidSessionData is a base error for session data which deterministically
+	// fails validation when completing the session, so retrying cannot succeed.
+	ErrInvalidSessionData = errors.Base("invalid session data")
 )

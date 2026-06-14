@@ -126,6 +126,7 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 		}
 		change, errE := document.ChangeUnmarshalJSON(data)
 		if errE != nil {
+			errE = errors.WrapWith(errE, coordinator.ErrInvalidSessionData)
 			errors.Details(errE)["change"] = ch
 			return nil, errE
 		}
@@ -167,14 +168,16 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 	base := slices.Clone(doc.Base)
 	base = append(base, "SESSION", session.String())
 
+	// Validation and apply failures are deterministic, so they are wrapped with
+	// ErrInvalidSessionData to cancel the complete-session job instead of retrying it.
 	errE = changes.Validate(base)
 	if errE != nil {
-		return nil, errE
+		return nil, errors.WrapWith(errE, coordinator.ErrInvalidSessionData)
 	}
 
 	errE = changes.Apply(&doc)
 	if errE != nil {
-		return nil, errE
+		return nil, errors.WrapWith(errE, coordinator.ErrInvalidSessionData)
 	}
 
 	docJSON, errE := x.MarshalWithoutEscapeHTML(doc)

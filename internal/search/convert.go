@@ -48,13 +48,12 @@ import (
 // line/block break in rendered text. Text fragments separated only by these
 // tags are concatenated directly when extracted to plain text. Every other
 // tag (including unknown ones) inserts a single space between adjacent text
-// fragments. The set tracks the inline elements the document sanitizer
-// allows (document.SanitizeHTML).
+// fragments. The set tracks the inline elements the editor schema allows
+// (the marks in document/schema.json: a, b, i, strike, tt, u).
 var inlineHTMLTags = map[string]bool{ //nolint:gochecknoglobals
 	"a":      true,
 	"b":      true,
 	"i":      true,
-	"img":    true,
 	"strike": true,
 	"tt":     true,
 	"u":      true,

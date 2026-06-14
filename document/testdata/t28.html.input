@@ -1,7 +1,0 @@
-<HTML><HEAD></HEAD><BODY>
-
-This is test 28.
-
-<IMG src="java<script>:alert(28)" "><SCRIPT>var y=5;alert(28);</SCRIPT>">
-
-</BODY></HTML>

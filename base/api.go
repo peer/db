@@ -189,12 +189,14 @@ func (b *B) BeginCreateDocument(ctx context.Context, base []string) (identifier.
 	})
 }
 
+// ErrInvalidChange is a base error for changes which are malformed or fail validation.
+var ErrInvalidChange = errors.Base("invalid change")
+
 // AppendDocumentChange appends a change to an edit session at the given sequence number.
 func (b *B) AppendDocumentChange(ctx context.Context, session identifier.Identifier, data json.RawMessage, seqNo int64) (int64, errors.E) {
 	change, errE := document.ChangeUnmarshalJSON(data)
 	if errE != nil {
-		// TODO: This should make the caller return BadRequestWithError.
-		return 0, errE
+		return 0, errors.WrapWith(errE, ErrInvalidChange)
 	}
 
 	beginMetadata, _, _, errE := b.coordinator.Get(ctx, session)
@@ -207,8 +209,7 @@ func (b *B) AppendDocumentChange(ctx context.Context, session identifier.Identif
 
 	errE = change.Validate(changesetBase, seqNo)
 	if errE != nil {
-		// TODO: This should make the caller return BadRequestWithError.
-		return 0, errE
+		return 0, errors.WrapWith(errE, ErrInvalidChange)
 	}
 
 	return b.coordinator.Append(ctx, session, data, &documentChangeMetadata{

@@ -1,3 +1,0 @@
-<HTML><HEAD></HEAD><BODY> Test 112.
-<IMG SRC=javascript:alert(&quot;XSS112&quot;)>
-</BODY></HTML>

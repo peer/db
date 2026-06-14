@@ -3,6 +3,7 @@ import type { Amount, Confidence, Time, TimePrecision } from "@/document/types"
 
 import { Identifier } from "@tozd/identifier"
 
+import { validateAmount } from "@/document/amount"
 import {
   AmountClaim,
   AmountIntervalClaim,
@@ -18,7 +19,9 @@ import {
   UnknownClaim,
 } from "@/document/claims"
 import { D } from "@/document/document"
-import { equals } from "@/utils"
+import { VALID_TIME_PRECISIONS, validateTime } from "@/document/time"
+import { isCanonicalHTML } from "@/partials/input/InputHTML.schema"
+import { equals, parseUrl } from "@/utils"
 
 // changeFrom creates a Change from a plain object.
 export function changeFrom(obj: object): Change {
@@ -109,6 +112,52 @@ export interface Change {
 interface ClaimPatch {
   New(id: string): Claim
   Apply(claim: Claim): Promise<void>
+
+  // Validate checks the patch on its own, without access to the target claim: at least
+  // one field has to be set and fields which are set have to be valid by themselves.
+  // This allows rejecting an invalid patch already when it is appended to an edit
+  // session, instead of when the session completes. Completeness is checked by New and
+  // constraints which need the target claim are checked by Apply. Mirrors the backend's
+  // ClaimPatch.Validate.
+  Validate(): void
+}
+
+// validatePatchConfidence validates an optional confidence field of a patch.
+function validatePatchConfidence(confidence?: Confidence): void {
+  if (confidence === undefined) {
+    return
+  }
+  if (confidence < -1 || confidence > 1 || !isFinite(confidence)) {
+    throw new Error("confidence out of range [-1, 1]")
+  }
+}
+
+// validatePatchAmount validates optional amount and precision fields of a patch.
+// When only one of them is set, the combination with the other value from the
+// target claim is validated by Apply.
+function validatePatchAmount(amount?: Amount, precision?: number): void {
+  if (precision !== undefined) {
+    if (!isFinite(precision) || precision <= 0) {
+      throw new Error("Precision must be a finite positive number")
+    }
+    if (amount) {
+      validateAmount(amount, precision)
+    }
+  }
+}
+
+// validatePatchTime validates optional time and precision fields of a patch.
+// When only one of them is set, the combination with the other value from the
+// target claim is validated by Apply.
+function validatePatchTime(time?: Time, precision?: TimePrecision): void {
+  if (precision !== undefined) {
+    if (!VALID_TIME_PRECISIONS.has(precision)) {
+      throw new Error("unknown Precision")
+    }
+    if (time) {
+      validateTime(time, precision)
+    }
+  }
 }
 
 // AddClaimChange represents a change that adds a new claim to a document.
@@ -167,6 +216,10 @@ export class AddClaimChange implements Change {
     if (this.id !== expectedID) {
       throw new Error(`invalid ID: expected ${expectedID}, id ${this.id}`)
     }
+    // Constructing the claim from the patch checks that the patch is complete and that
+    // the resulting claim is valid. This rejects an invalid add already when it is
+    // appended to an edit session, instead of when the session completes.
+    await this.patch.New(this.id).Validate()
   }
 }
 
@@ -203,8 +256,11 @@ export class SetClaimChange implements Change {
   }
 
   // Validate validates the set claim change.
+  // eslint-disable-next-line @typescript-eslint/require-await
   async Validate(base: string[], operation: number): Promise<void> {
-    // No validation needed.
+    // Patches in set changes can be partial, so only the fields which are set are
+    // checked here. The full result is validated by Apply when the session completes.
+    this.patch.Validate()
   }
 }
 
@@ -266,11 +322,17 @@ export class IdentifierClaimPatch implements ClaimPatch {
     return new IdentifierClaim({ id, confidence: this.confidence, prop: { id: this.prop }, value: this.value })
   }
 
-  // Apply applies the patch to an existing identifier claim.
-  async Apply(claim: Claim): Promise<void> {
+  // Validate checks the patch fields which are set, without access to the target claim.
+  Validate(): void {
     if (this.confidence === undefined && !this.prop && !this.value) {
       throw new Error("empty patch")
     }
+    validatePatchConfidence(this.confidence)
+  }
+
+  // Apply applies the patch to an existing identifier claim.
+  async Apply(claim: Claim): Promise<void> {
+    this.Validate()
 
     if (!(claim instanceof IdentifierClaim)) {
       throw new Error("not identifier claim")
@@ -309,11 +371,17 @@ export class StringClaimPatch implements ClaimPatch {
     return new StringClaim({ id, confidence: this.confidence, prop: { id: this.prop }, string: this.string })
   }
 
-  // Apply applies the patch to an existing string claim.
-  async Apply(claim: Claim): Promise<void> {
+  // Validate checks the patch fields which are set, without access to the target claim.
+  Validate(): void {
     if (this.confidence === undefined && !this.prop && !this.string) {
       throw new Error("empty patch")
     }
+    validatePatchConfidence(this.confidence)
+  }
+
+  // Apply applies the patch to an existing string claim.
+  async Apply(claim: Claim): Promise<void> {
+    this.Validate()
 
     if (!(claim instanceof StringClaim)) {
       throw new Error("not string claim")
@@ -352,11 +420,24 @@ export class HTMLClaimPatch implements ClaimPatch {
     return new HTMLClaim({ id, confidence: this.confidence, prop: { id: this.prop }, html: this.html })
   }
 
-  // Apply applies the patch to an existing HTML claim.
-  async Apply(claim: Claim): Promise<void> {
+  // Validate checks the patch fields which are set, without access to the target claim.
+  // HTML has to be in the canonical form produced by docToHtml, which the backend
+  // accepts unchanged, so that the stored HTML stays byte for byte equal to what the
+  // client serialized. This mirrors the backend HTMLClaimPatch.Validate, including its
+  // error message.
+  Validate(): void {
     if (this.confidence === undefined && !this.prop && !this.html) {
       throw new Error("empty patch")
     }
+    validatePatchConfidence(this.confidence)
+    if (this.html && !isCanonicalHTML(this.html)) {
+      throw new Error("HTML is not canonical")
+    }
+  }
+
+  // Apply applies the patch to an existing HTML claim.
+  async Apply(claim: Claim): Promise<void> {
+    this.Validate()
 
     if (!(claim instanceof HTMLClaim)) {
       throw new Error("not HTML claim")
@@ -396,11 +477,18 @@ export class AmountClaimPatch implements ClaimPatch {
     return new AmountClaim({ id, confidence: this.confidence, prop: { id: this.prop }, amount: this.amount, precision: this.precision })
   }
 
-  // Apply applies the patch to an existing amount claim.
-  async Apply(claim: Claim): Promise<void> {
+  // Validate checks the patch fields which are set, without access to the target claim.
+  Validate(): void {
     if (this.confidence === undefined && !this.prop && !this.amount && this.precision === undefined) {
       throw new Error("empty patch")
     }
+    validatePatchConfidence(this.confidence)
+    validatePatchAmount(this.amount, this.precision)
+  }
+
+  // Apply applies the patch to an existing amount claim.
+  async Apply(claim: Claim): Promise<void> {
+    this.Validate()
 
     if (!(claim instanceof AmountClaim)) {
       throw new Error("not amount claim")
@@ -463,8 +551,8 @@ export class AmountIntervalClaimPatch implements ClaimPatch {
     })
   }
 
-  // Apply applies the patch to an existing amount interval claim.
-  async Apply(claim: Claim): Promise<void> {
+  // Validate checks the patch fields which are set, without access to the target claim.
+  Validate(): void {
     if (
       this.confidence === undefined &&
       !this.prop &&
@@ -481,6 +569,14 @@ export class AmountIntervalClaimPatch implements ClaimPatch {
     ) {
       throw new Error("empty patch")
     }
+    validatePatchConfidence(this.confidence)
+    validatePatchAmount(this.from, this.fromPrecision)
+    validatePatchAmount(this.to, this.toPrecision)
+  }
+
+  // Apply applies the patch to an existing amount interval claim.
+  async Apply(claim: Claim): Promise<void> {
+    this.Validate()
 
     if (!(claim instanceof AmountIntervalClaim)) {
       throw new Error("not amount interval claim")
@@ -581,11 +677,18 @@ export class TimeClaimPatch implements ClaimPatch {
     return new TimeClaim({ id, confidence: this.confidence, prop: { id: this.prop }, time: this.time, precision: this.precision })
   }
 
-  // Apply applies the patch to an existing time claim.
-  async Apply(claim: Claim): Promise<void> {
+  // Validate checks the patch fields which are set, without access to the target claim.
+  Validate(): void {
     if (this.confidence === undefined && !this.prop && !this.time && this.precision === undefined) {
       throw new Error("empty patch")
     }
+    validatePatchConfidence(this.confidence)
+    validatePatchTime(this.time, this.precision)
+  }
+
+  // Apply applies the patch to an existing time claim.
+  async Apply(claim: Claim): Promise<void> {
+    this.Validate()
 
     if (!(claim instanceof TimeClaim)) {
       throw new Error("not time claim")
@@ -648,8 +751,8 @@ export class TimeIntervalClaimPatch implements ClaimPatch {
     })
   }
 
-  // Apply applies the patch to an existing time interval claim.
-  async Apply(claim: Claim): Promise<void> {
+  // Validate checks the patch fields which are set, without access to the target claim.
+  Validate(): void {
     if (
       this.confidence === undefined &&
       !this.prop &&
@@ -666,6 +769,14 @@ export class TimeIntervalClaimPatch implements ClaimPatch {
     ) {
       throw new Error("empty patch")
     }
+    validatePatchConfidence(this.confidence)
+    validatePatchTime(this.from, this.fromPrecision)
+    validatePatchTime(this.to, this.toPrecision)
+  }
+
+  // Apply applies the patch to an existing time interval claim.
+  async Apply(claim: Claim): Promise<void> {
+    this.Validate()
 
     if (!(claim instanceof TimeIntervalClaim)) {
       throw new Error("not time interval claim")
@@ -765,11 +876,25 @@ export class LinkClaimPatch implements ClaimPatch {
     return new LinkClaim({ id, confidence: this.confidence, prop: { id: this.prop }, iri: this.iri })
   }
 
-  // Apply applies the patch to an existing link claim.
-  async Apply(claim: Claim): Promise<void> {
+  // Validate checks the patch fields which are set, without access to the target claim.
+  Validate(): void {
     if (this.confidence === undefined && !this.prop && !this.iri) {
       throw new Error("empty patch")
     }
+    validatePatchConfidence(this.confidence)
+    if (this.iri) {
+      try {
+        parseUrl(this.iri)
+      } catch (err) {
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+        throw new Error(`invalid IRI: ${err}`)
+      }
+    }
+  }
+
+  // Apply applies the patch to an existing link claim.
+  async Apply(claim: Claim): Promise<void> {
+    this.Validate()
 
     if (!(claim instanceof LinkClaim)) {
       throw new Error("not link claim")
@@ -808,11 +933,17 @@ export class ReferenceClaimPatch implements ClaimPatch {
     return new ReferenceClaim({ id, confidence: this.confidence, prop: { id: this.prop }, to: { id: this.to } })
   }
 
-  // Apply applies the patch to an existing reference claim.
-  async Apply(claim: Claim): Promise<void> {
+  // Validate checks the patch fields which are set, without access to the target claim.
+  Validate(): void {
     if (this.confidence === undefined && !this.prop && !this.to) {
       throw new Error("empty patch")
     }
+    validatePatchConfidence(this.confidence)
+  }
+
+  // Apply applies the patch to an existing reference claim.
+  async Apply(claim: Claim): Promise<void> {
+    this.Validate()
 
     if (!(claim instanceof ReferenceClaim)) {
       throw new Error("not reference claim")
@@ -850,11 +981,17 @@ export class HasClaimPatch implements ClaimPatch {
     return new HasClaim({ id, confidence: this.confidence, prop: { id: this.prop } })
   }
 
-  // Apply applies the patch to an existing has claim.
-  async Apply(claim: Claim): Promise<void> {
+  // Validate checks the patch fields which are set, without access to the target claim.
+  Validate(): void {
     if (this.confidence === undefined && !this.prop) {
       throw new Error("empty patch")
     }
+    validatePatchConfidence(this.confidence)
+  }
+
+  // Apply applies the patch to an existing has claim.
+  async Apply(claim: Claim): Promise<void> {
+    this.Validate()
 
     if (!(claim instanceof HasClaim)) {
       throw new Error("not has claim")
@@ -891,11 +1028,17 @@ export class NoneClaimPatch implements ClaimPatch {
     return new NoneClaim({ id, confidence: this.confidence, prop: { id: this.prop } })
   }
 
-  // Apply applies the patch to an existing none claim.
-  async Apply(claim: Claim): Promise<void> {
+  // Validate checks the patch fields which are set, without access to the target claim.
+  Validate(): void {
     if (this.confidence === undefined && !this.prop) {
       throw new Error("empty patch")
     }
+    validatePatchConfidence(this.confidence)
+  }
+
+  // Apply applies the patch to an existing none claim.
+  async Apply(claim: Claim): Promise<void> {
+    this.Validate()
 
     if (!(claim instanceof NoneClaim)) {
       throw new Error("not none claim")
@@ -932,11 +1075,17 @@ export class UnknownClaimPatch implements ClaimPatch {
     return new UnknownClaim({ id, confidence: this.confidence, prop: { id: this.prop } })
   }
 
-  // Apply applies the patch to an existing unknown claim.
-  async Apply(claim: Claim): Promise<void> {
+  // Validate checks the patch fields which are set, without access to the target claim.
+  Validate(): void {
     if (this.confidence === undefined && !this.prop) {
       throw new Error("empty patch")
     }
+    validatePatchConfidence(this.confidence)
+  }
+
+  // Apply applies the patch to an existing unknown claim.
+  async Apply(claim: Claim): Promise<void> {
+    this.Validate()
     if (!(claim instanceof UnknownClaim)) {
       throw new Error("not unknown claim")
     }

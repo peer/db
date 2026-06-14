@@ -2254,7 +2254,7 @@ func TestStripHTML(t *testing.T) {
 		{"inline anchor", `foo<a href="">bar</a>`, "foobar"},
 		{"inline bold then italic", "<b>foo</b><i>bar</i>", "foobar"},
 		{"inline strike, tt, u", "<strike>a</strike><tt>b</tt><u>c</u>", "abc"},
-		{"void img is inline", `text<img src="x" alt="y"/>more`, "textmore"},
+		{"img is not allowed by the sanitizer, so it separates like unknown tags", `text<img src="x" alt="y"/>more`, "text more"},
 		{"inline inside block", "<p>foo<b>bar</b></p>", "foobar"},
 		{"block surrounding inline-only run", "<p><b>foo</b><i>bar</i></p><p><b>baz</b></p>", "foobar baz"},
 

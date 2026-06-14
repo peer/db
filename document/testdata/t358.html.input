@@ -1,8 +1,0 @@
-<HTML><HEAD></HEAD><BODY>
-
-Test 358.  Check for shenanigans with object tags.
-Credits: Alex K. (kuza55).
-
-<object data="javascript:alert(358)"></object>
-
-</BODY></HTML>

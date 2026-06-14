@@ -26,6 +26,14 @@ func (s *Service) setRoutes() { //nolint:maintidx
 			},
 			Path: "/LICENSE",
 		},
+		"SchemaJSON": {
+			RouteOptions: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.SchemaJSONGet,
+				},
+			},
+			Path: "/schema.json",
+		},
 		"Notice": {
 			RouteOptions: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{

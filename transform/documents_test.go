@@ -320,8 +320,8 @@ func TestDocuments_RawHTMLTextClaim(t *testing.T) {
 
 	// Check HTML is NOT escaped for rawhtml type.
 	assert.Equal(t, "<p>Test</p>", doc.Claims.HTML[0].HTML)
-	assert.Equal(t, "<b>Note 1</b>", doc.Claims.HTML[1].HTML)
-	assert.Equal(t, "<i>Note 2</i>", doc.Claims.HTML[2].HTML)
+	assert.Equal(t, "<p><b>Note 1</b></p>", doc.Claims.HTML[1].HTML)
+	assert.Equal(t, "<p><i>Note 2</i></p>", doc.Claims.HTML[2].HTML)
 
 	// Verify claim IDs.
 	assert.Equal(t, identifier.From("test", "doc1", "RAW_DESCRIPTION", "0"), doc.Claims.HTML[0].ID)
@@ -353,10 +353,10 @@ func TestDocuments_RawHTMLTextClaimWithSurroundingText(t *testing.T) {
 
 	// Check HTML is NOT escaped for rawhtml type.
 	assert.Equal(t, "<p>Test</p>", doc.Claims.HTML[0].HTML)
-	assert.Equal(t, "<b>Note 1</b>", doc.Claims.HTML[1].HTML)
-	assert.Equal(t, "<i>Note 2</i>", doc.Claims.HTML[2].HTML)
+	assert.Equal(t, "<p><b>Note 1</b></p>", doc.Claims.HTML[1].HTML)
+	assert.Equal(t, "<p><i>Note 2</i></p>", doc.Claims.HTML[2].HTML)
 	// Script tag and its content are stripped, but surrounding text remains.
-	assert.Equal(t, "hello  world", doc.Claims.HTML[3].HTML)
+	assert.Equal(t, "<p>hello  world</p>", doc.Claims.HTML[3].HTML)
 
 	// Verify claim IDs.
 	assert.Equal(t, identifier.From("test", "doc1", "RAW_DESCRIPTION", "0"), doc.Claims.HTML[0].ID)
@@ -1758,10 +1758,11 @@ func TestDocuments_HTMLvsRawHTMLEscapingWithSurroundingText(t *testing.T) {
 	assert.Equal(t, escapedExpected, doc.Claims.HTML[0].HTML, "type:html should escape")
 	assert.Equal(t, escapedExpected, doc.Claims.HTML[2].HTML, "core.HTML should escape")
 
-	// Verify RawHTML is sanitized (script tag and its content are stripped, surrounding text remains).
-	sanitizedExpected := "hello  world"
-	assert.Equal(t, sanitizedExpected, doc.Claims.HTML[1].HTML, "type:rawhtml should sanitize")
-	assert.Equal(t, sanitizedExpected, doc.Claims.HTML[3].HTML, "core.RawHTML should sanitize")
+	// Verify RawHTML is canonicalized (script tag and its content are stripped, surrounding text
+	// is wrapped into a paragraph and its whitespace collapsed).
+	canonicalExpected := "<p>hello  world</p>"
+	assert.Equal(t, canonicalExpected, doc.Claims.HTML[1].HTML, "type:rawhtml should canonicalize")
+	assert.Equal(t, canonicalExpected, doc.Claims.HTML[3].HTML, "core.RawHTML should canonicalize")
 
 	// Verify claim IDs.
 	assert.Equal(t, identifier.From("test", "doc1", "ESCAPED", "0"), doc.Claims.HTML[0].ID)

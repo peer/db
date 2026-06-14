@@ -1,7 +1,0 @@
-<HTML><HEAD></HEAD><BODY>
-
-Test 65.
-
-<BGSOUND SRC="javascript:alert(65);"></BGSOUND>
-
-</BODY></HTML>

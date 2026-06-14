@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"slices"
 	"strconv"
 
@@ -201,6 +202,51 @@ var (
 type ClaimPatch interface {
 	New(id identifier.Identifier) (Claim, errors.E)
 	Apply(claim Claim) errors.E
+
+	// Validate checks the patch on its own, without access to the target claim: at least
+	// one field has to be set and fields which are set have to be valid by themselves.
+	// This allows rejecting an invalid patch already when it is appended to an edit
+	// session, instead of when the session completes. Completeness is checked by New and
+	// constraints which need the target claim are checked by Apply.
+	Validate() errors.E
+}
+
+// validatePatchConfidence validates an optional confidence field of a patch.
+func validatePatchConfidence(confidence *Confidence) errors.E {
+	if confidence == nil {
+		return nil
+	}
+	return validateConfidence(*confidence)
+}
+
+// validatePatchAmount validates optional amount and precision fields of a patch.
+// When only one of them is set, the combination with the other value from the
+// target claim is validated by Apply.
+func validatePatchAmount(amount *Amount, precision *float64) errors.E {
+	if precision != nil {
+		if math.IsInf(*precision, 0) || math.IsNaN(*precision) || *precision <= 0 {
+			return errors.New("Precision must be a finite positive number")
+		}
+		if amount != nil {
+			return amount.Validate(*precision)
+		}
+	}
+	return nil
+}
+
+// validatePatchTime validates optional time and precision fields of a patch.
+// When only one of them is set, the combination with the other value from the
+// target claim is validated by Apply.
+func validatePatchTime(t *Time, precision *TimePrecision) errors.E {
+	if precision != nil {
+		if *precision < TimePrecisionGigaYears || *precision > TimePrecisionNanosecond {
+			return errors.New("unknown Precision")
+		}
+		if t != nil {
+			return t.Validate(*precision)
+		}
+	}
+	return nil
 }
 
 var (
@@ -265,7 +311,11 @@ func (c AddClaimChange) Validate(base []string, operation int64) errors.E {
 		errors.Details(errE)["expected"] = expectedID.String()
 		return errE
 	}
-	return nil
+	// Constructing the claim from the patch checks that the patch is complete and that
+	// the resulting claim is valid. This rejects an invalid add already when it is
+	// appended to an edit session, instead of when the session completes.
+	_, errE := c.Patch.New(c.ID)
+	return errE
 }
 
 // UnmarshalJSON implements json.Unmarshaler for AddClaimChange.
@@ -335,7 +385,9 @@ func (c SetClaimChange) Apply(doc *D) errors.E {
 
 // Validate validates the set claim change.
 func (c SetClaimChange) Validate(_ []string, _ int64) errors.E {
-	return nil
+	// Patches in set changes can be partial, so only the fields which are set are
+	// checked here. The full result is validated by Apply when the session completes.
+	return c.Patch.Validate()
 }
 
 // UnmarshalJSON implements json.Unmarshaler for SetClaimChange.
@@ -472,10 +524,19 @@ func (p IdentifierClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { 
 	return c, c.Validate()
 }
 
-// Apply applies the patch to an existing identifier claim.
-func (p IdentifierClaimPatch) Apply(claim Claim) errors.E {
+// Validate checks the patch fields which are set, without access to the target claim.
+func (p IdentifierClaimPatch) Validate() errors.E {
 	if p.Confidence == nil && p.Prop == nil && len(p.Value) == 0 {
 		return errors.New("empty patch")
+	}
+	return validatePatchConfidence(p.Confidence)
+}
+
+// Apply applies the patch to an existing identifier claim.
+func (p IdentifierClaimPatch) Apply(claim Claim) errors.E {
+	errE := p.Validate()
+	if errE != nil {
+		return errE
 	}
 
 	c, ok := claim.(*IdentifierClaim)
@@ -563,10 +624,19 @@ func (p StringClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //no
 	return c, c.Validate()
 }
 
-// Apply applies the patch to an existing string claim.
-func (p StringClaimPatch) Apply(claim Claim) errors.E {
+// Validate checks the patch fields which are set, without access to the target claim.
+func (p StringClaimPatch) Validate() errors.E {
 	if p.Confidence == nil && p.Prop == nil && len(p.String) == 0 {
 		return errors.New("empty patch")
+	}
+	return validatePatchConfidence(p.Confidence)
+}
+
+// Apply applies the patch to an existing string claim.
+func (p StringClaimPatch) Apply(claim Claim) errors.E {
+	errE := p.Validate()
+	if errE != nil {
+		return errE
 	}
 
 	c, ok := claim.(*StringClaim)
@@ -654,10 +724,34 @@ func (p HTMLClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 	return c, c.Validate()
 }
 
-// Apply applies the patch to an existing HTML claim.
-func (p HTMLClaimPatch) Apply(claim Claim) errors.E {
+// Validate checks the patch fields which are set, without access to the target claim.
+// HTML has to be in the canonical form, the same as HTMLClaim.Validate requires, so that
+// the stored HTML stays byte for byte equal to what the client serialized.
+func (p HTMLClaimPatch) Validate() errors.E {
 	if p.Confidence == nil && p.Prop == nil && len(p.HTML) == 0 {
 		return errors.New("empty patch")
+	}
+	errE := validatePatchConfidence(p.Confidence)
+	if errE != nil {
+		return errE
+	}
+	if len(p.HTML) > 0 {
+		canonical, errE := IsCanonicalHTML(p.HTML)
+		if errE != nil {
+			return errE
+		}
+		if !canonical {
+			return errors.New("HTML is not canonical")
+		}
+	}
+	return nil
+}
+
+// Apply applies the patch to an existing HTML claim.
+func (p HTMLClaimPatch) Apply(claim Claim) errors.E {
+	errE := p.Validate()
+	if errE != nil {
+		return errE
 	}
 
 	c, ok := claim.(*HTMLClaim)
@@ -747,10 +841,23 @@ func (p AmountClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //no
 	return c, c.Validate()
 }
 
-// Apply applies the patch to an existing amount claim.
-func (p AmountClaimPatch) Apply(claim Claim) errors.E {
+// Validate checks the patch fields which are set, without access to the target claim.
+func (p AmountClaimPatch) Validate() errors.E {
 	if p.Confidence == nil && p.Prop == nil && p.Amount == nil && p.Precision == nil {
 		return errors.New("empty patch")
+	}
+	errE := validatePatchConfidence(p.Confidence)
+	if errE != nil {
+		return errE
+	}
+	return validatePatchAmount(p.Amount, p.Precision)
+}
+
+// Apply applies the patch to an existing amount claim.
+func (p AmountClaimPatch) Apply(claim Claim) errors.E {
+	errE := p.Validate()
+	if errE != nil {
+		return errE
 	}
 
 	c, ok := claim.(*AmountClaim)
@@ -833,7 +940,7 @@ type AmountIntervalClaimPatch struct {
 }
 
 // New creates a new amount interval claim from the patch.
-func (p AmountIntervalClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:dupl,ireturn
+func (p AmountIntervalClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil {
 		return nil, errors.New("incomplete patch")
 	}
@@ -861,12 +968,31 @@ func (p AmountIntervalClaimPatch) New(id identifier.Identifier) (Claim, errors.E
 	return c, c.Validate()
 }
 
-// Apply applies the patch to an existing amount interval claim.
-func (p AmountIntervalClaimPatch) Apply(claim Claim) errors.E {
+// Validate checks the patch fields which are set, without access to the target claim.
+func (p AmountIntervalClaimPatch) Validate() errors.E {
 	if p.Confidence == nil && p.Prop == nil &&
 		p.From == nil && p.FromPrecision == nil && p.FromIsOpen == nil && p.FromIsUnknown == nil && p.FromIsNone == nil &&
 		p.To == nil && p.ToPrecision == nil && p.ToIsOpen == nil && p.ToIsUnknown == nil && p.ToIsNone == nil {
 		return errors.New("empty patch")
+	}
+	errE := validatePatchConfidence(p.Confidence)
+	if errE != nil {
+		return errE
+	}
+	errE = validatePatchAmount(p.From, p.FromPrecision)
+	if errE != nil {
+		return errE
+	}
+	return validatePatchAmount(p.To, p.ToPrecision)
+}
+
+// Apply applies the patch to an existing amount interval claim.
+//
+//nolint:dupl
+func (p AmountIntervalClaimPatch) Apply(claim Claim) errors.E {
+	errE := p.Validate()
+	if errE != nil {
+		return errE
 	}
 
 	c, ok := claim.(*AmountIntervalClaim)
@@ -1019,10 +1145,23 @@ func (p TimeClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 	return c, c.Validate()
 }
 
-// Apply applies the patch to an existing time claim.
-func (p TimeClaimPatch) Apply(claim Claim) errors.E {
+// Validate checks the patch fields which are set, without access to the target claim.
+func (p TimeClaimPatch) Validate() errors.E {
 	if p.Confidence == nil && p.Prop == nil && p.Time == nil && p.Precision == nil {
 		return errors.New("empty patch")
+	}
+	errE := validatePatchConfidence(p.Confidence)
+	if errE != nil {
+		return errE
+	}
+	return validatePatchTime(p.Time, p.Precision)
+}
+
+// Apply applies the patch to an existing time claim.
+func (p TimeClaimPatch) Apply(claim Claim) errors.E {
+	errE := p.Validate()
+	if errE != nil {
+		return errE
 	}
 
 	c, ok := claim.(*TimeClaim)
@@ -1105,7 +1244,7 @@ type TimeIntervalClaimPatch struct {
 }
 
 // New creates a new time interval claim from the patch.
-func (p TimeIntervalClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:dupl,ireturn
+func (p TimeIntervalClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolint:ireturn
 	if p.Confidence == nil || p.Prop == nil {
 		return nil, errors.New("incomplete patch")
 	}
@@ -1133,12 +1272,31 @@ func (p TimeIntervalClaimPatch) New(id identifier.Identifier) (Claim, errors.E) 
 	return c, c.Validate()
 }
 
-// Apply applies the patch to an existing time interval claim.
-func (p TimeIntervalClaimPatch) Apply(claim Claim) errors.E {
+// Validate checks the patch fields which are set, without access to the target claim.
+func (p TimeIntervalClaimPatch) Validate() errors.E {
 	if p.Confidence == nil && p.Prop == nil &&
 		p.From == nil && p.FromPrecision == nil && p.FromIsOpen == nil && p.FromIsUnknown == nil && p.FromIsNone == nil &&
 		p.To == nil && p.ToPrecision == nil && p.ToIsOpen == nil && p.ToIsUnknown == nil && p.ToIsNone == nil {
 		return errors.New("empty patch")
+	}
+	errE := validatePatchConfidence(p.Confidence)
+	if errE != nil {
+		return errE
+	}
+	errE = validatePatchTime(p.From, p.FromPrecision)
+	if errE != nil {
+		return errE
+	}
+	return validatePatchTime(p.To, p.ToPrecision)
+}
+
+// Apply applies the patch to an existing time interval claim.
+//
+//nolint:dupl
+func (p TimeIntervalClaimPatch) Apply(claim Claim) errors.E {
+	errE := p.Validate()
+	if errE != nil {
+		return errE
 	}
 
 	c, ok := claim.(*TimeIntervalClaim)
@@ -1289,10 +1447,26 @@ func (p LinkClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 	return c, c.Validate()
 }
 
-// Apply applies the patch to an existing link claim.
-func (p LinkClaimPatch) Apply(claim Claim) errors.E {
+// Validate checks the patch fields which are set, without access to the target claim.
+func (p LinkClaimPatch) Validate() errors.E {
 	if p.Confidence == nil && p.Prop == nil && len(p.IRI) == 0 {
 		return errors.New("empty patch")
+	}
+	errE := validatePatchConfidence(p.Confidence)
+	if errE != nil {
+		return errE
+	}
+	if len(p.IRI) > 0 {
+		return validateIRI(p.IRI)
+	}
+	return nil
+}
+
+// Apply applies the patch to an existing link claim.
+func (p LinkClaimPatch) Apply(claim Claim) errors.E {
+	errE := p.Validate()
+	if errE != nil {
+		return errE
 	}
 
 	c, ok := claim.(*LinkClaim)
@@ -1382,10 +1556,19 @@ func (p ReferenceClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { /
 	return c, c.Validate()
 }
 
-// Apply applies the patch to an existing reference claim.
-func (p ReferenceClaimPatch) Apply(claim Claim) errors.E {
+// Validate checks the patch fields which are set, without access to the target claim.
+func (p ReferenceClaimPatch) Validate() errors.E {
 	if p.Confidence == nil && p.Prop == nil && p.To == nil {
 		return errors.New("empty patch")
+	}
+	return validatePatchConfidence(p.Confidence)
+}
+
+// Apply applies the patch to an existing reference claim.
+func (p ReferenceClaimPatch) Apply(claim Claim) errors.E {
+	errE := p.Validate()
+	if errE != nil {
+		return errE
 	}
 
 	c, ok := claim.(*ReferenceClaim)
@@ -1471,10 +1654,19 @@ func (p HasClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //nolin
 	return c, c.Validate()
 }
 
-// Apply applies the patch to an existing has claim.
-func (p HasClaimPatch) Apply(claim Claim) errors.E {
+// Validate checks the patch fields which are set, without access to the target claim.
+func (p HasClaimPatch) Validate() errors.E {
 	if p.Confidence == nil && p.Prop == nil {
 		return errors.New("empty patch")
+	}
+	return validatePatchConfidence(p.Confidence)
+}
+
+// Apply applies the patch to an existing has claim.
+func (p HasClaimPatch) Apply(claim Claim) errors.E {
+	errE := p.Validate()
+	if errE != nil {
+		return errE
 	}
 
 	c, ok := claim.(*HasClaim)
@@ -1557,10 +1749,19 @@ func (p NoneClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //noli
 	return c, c.Validate()
 }
 
-// Apply applies the patch to an existing none claim.
-func (p NoneClaimPatch) Apply(claim Claim) errors.E {
+// Validate checks the patch fields which are set, without access to the target claim.
+func (p NoneClaimPatch) Validate() errors.E {
 	if p.Confidence == nil && p.Prop == nil {
 		return errors.New("empty patch")
+	}
+	return validatePatchConfidence(p.Confidence)
+}
+
+// Apply applies the patch to an existing none claim.
+func (p NoneClaimPatch) Apply(claim Claim) errors.E {
+	errE := p.Validate()
+	if errE != nil {
+		return errE
 	}
 
 	c, ok := claim.(*NoneClaim)
@@ -1643,10 +1844,19 @@ func (p UnknownClaimPatch) New(id identifier.Identifier) (Claim, errors.E) { //n
 	return c, c.Validate()
 }
 
-// Apply applies the patch to an existing unknown claim.
-func (p UnknownClaimPatch) Apply(claim Claim) errors.E {
+// Validate checks the patch fields which are set, without access to the target claim.
+func (p UnknownClaimPatch) Validate() errors.E {
 	if p.Confidence == nil && p.Prop == nil {
 		return errors.New("empty patch")
+	}
+	return validatePatchConfidence(p.Confidence)
+}
+
+// Apply applies the patch to an existing unknown claim.
+func (p UnknownClaimPatch) Apply(claim Claim) errors.E {
+	errE := p.Validate()
+	if errE != nil {
+		return errE
 	}
 
 	c, ok := claim.(*UnknownClaim)

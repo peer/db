@@ -1,7 +1,0 @@
-<HTML><HEAD></HEAD><BODY>
-
-Test 312.
-
-<iframe/src="javascript:alert(312)"></iframe>
-
-</BODY></HTML>

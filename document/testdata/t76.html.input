@@ -1,7 +1,0 @@
-<HTML><HEAD></HEAD><BODY>
-
-Test 76.
-
-<BASE HREF="javascript:alert(76);//">
-
-</BODY></HTML>

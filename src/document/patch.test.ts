@@ -1,3 +1,7 @@
+// @vitest-environment jsdom
+// HTMLClaimPatch.Validate checks HTML canonicality through a parse/serialize round trip
+// in the editor schema, which needs a DOM implementation.
+
 import { Identifier } from "@tozd/identifier"
 import { assert, describe, expect, test } from "vitest"
 
@@ -58,12 +62,12 @@ describe("patch New and Apply", () => {
   })
 
   test("HTMLClaimPatch", async () => {
-    const p = new HTMLClaimPatch({ type: "html", prop, html: "<b>bold</b>", confidence: 1.0 })
+    const p = new HTMLClaimPatch({ type: "html", prop, html: "<p><b>bold</b></p>", confidence: 1.0 })
     const claim = p.New(Identifier.new().toString()) as HTMLClaim
-    assert.equal(claim.html, "<b>bold</b>")
+    assert.equal(claim.html, "<p><b>bold</b></p>")
 
-    await new HTMLClaimPatch({ type: "html", html: "<i>italic</i>" }).Apply(claim)
-    assert.equal(claim.html, "<i>italic</i>")
+    await new HTMLClaimPatch({ type: "html", html: "<p><i>italic</i></p>" }).Apply(claim)
+    assert.equal(claim.html, "<p><i>italic</i></p>")
   })
 
   test("AmountClaimPatch", async () => {
@@ -233,12 +237,12 @@ describe("patch Apply wrong type", () => {
   const cases: [string, object, string][] = [
     ["IdentifierClaimPatch", { type: "id", value: "Q42", confidence: 1.0 }, "not identifier claim"],
     ["StringClaimPatch", { type: "string", string: "x", confidence: 1.0 }, "not string claim"],
-    ["HTMLClaimPatch", { type: "html", html: "x", confidence: 1.0 }, "not HTML claim"],
+    ["HTMLClaimPatch", { type: "html", html: "<p>x</p>", confidence: 1.0 }, "not HTML claim"],
     ["AmountClaimPatch", { type: "amount", amount: "42", precision: 1, confidence: 1.0 }, "not amount claim"],
-    ["AmountIntervalClaimPatch", { type: "amountInterval", from: "1", fromPrecision: 0.1, confidence: 1.0 }, "not amount interval claim"],
+    ["AmountIntervalClaimPatch", { type: "amountInterval", from: "1.0", fromPrecision: 0.1, confidence: 1.0 }, "not amount interval claim"],
     ["TimeClaimPatch", { type: "time", time: "2025", confidence: 1.0 }, "not time claim"],
     ["TimeIntervalClaimPatch", { type: "timeInterval", from: "2020", fromPrecision: "y", confidence: 1.0 }, "not time interval claim"],
-    ["LinkClaimPatch", { type: "link", iri: "x", confidence: 1.0 }, "not link claim"],
+    ["LinkClaimPatch", { type: "link", iri: "https://example.com/", confidence: 1.0 }, "not link claim"],
     ["ReferenceClaimPatch", { type: "ref", to: "x", confidence: 1.0 }, "not reference claim"],
     ["HasClaimPatch", { type: "has", prop, confidence: 1.0 }, "not has claim"],
     ["UnknownClaimPatch", { type: "unknown", prop, confidence: 1.0 }, "not unknown claim"],

@@ -328,7 +328,10 @@ func (s *Service) DocumentSaveChangePostAPI(w http.ResponseWriter, req *http.Req
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	_, errE = site.Base.AppendDocumentChange(ctx, session, buffer, change)
-	if errors.Is(errE, coordinator.ErrSessionNotFound) {
+	if errors.Is(errE, base.ErrInvalidChange) {
+		s.BadRequestWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
 	} else if errors.Is(errE, coordinator.ErrAlreadyEnded) {

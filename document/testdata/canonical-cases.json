@@ -1,0 +1,250 @@
+{
+  "cases": [
+    {
+      "name": "paragraph",
+      "input": "<p>text</p>",
+      "canonical": "<p>text</p>",
+      "valid": true
+    },
+    {
+      "name": "hard break",
+      "input": "<p>a<br>b</p>",
+      "canonical": "<p>a<br>b</p>",
+      "valid": true
+    },
+    {
+      "name": "all marks",
+      "input": "<p><b>bold</b> <i>italic</i> <u>under</u> <strike>strike</strike> <tt>mono</tt></p>",
+      "canonical": "<p><b>bold</b> <i>italic</i> <u>under</u> <strike>strike</strike> <tt>mono</tt></p>",
+      "valid": true
+    },
+    {
+      "name": "headings",
+      "input": "<h1>h1</h1><h2>h2</h2><h3>h3</h3><h4>h4</h4>",
+      "canonical": "<h1>h1</h1><h2>h2</h2><h3>h3</h3><h4>h4</h4>",
+      "valid": true
+    },
+    {
+      "name": "bullet list",
+      "input": "<ul><li><p>a</p></li><li><p>b</p></li></ul>",
+      "canonical": "<ul><li><p>a</p></li><li><p>b</p></li></ul>",
+      "valid": true
+    },
+    {
+      "name": "nested lists",
+      "input": "<ol><li><p>a</p><ul><li><p>nested</p></li></ul></li></ol>",
+      "canonical": "<ol><li><p>a</p><ul><li><p>nested</p></li></ul></li></ol>",
+      "valid": true
+    },
+    {
+      "name": "blockquote",
+      "input": "<blockquote><p>quote</p></blockquote>",
+      "canonical": "<blockquote><p>quote</p></blockquote>",
+      "valid": true
+    },
+    {
+      "name": "blockquote with absolute cite",
+      "input": "<blockquote cite=\"https://example.com/x\"><p>q</p></blockquote>",
+      "canonical": "<blockquote cite=\"https://example.com/x\"><p>q</p></blockquote>",
+      "valid": true
+    },
+    {
+      "name": "blockquote with path cite",
+      "input": "<blockquote cite=\"/sources/1\"><p>q</p></blockquote>",
+      "canonical": "<blockquote cite=\"/sources/1\"><p>q</p></blockquote>",
+      "valid": true
+    },
+    {
+      "name": "preformatted",
+      "input": "<pre>code\nsecond line</pre>",
+      "canonical": "<pre>code\nsecond line</pre>",
+      "valid": true
+    },
+    {
+      "name": "horizontal rule",
+      "input": "<p>before</p><hr><p>after</p>",
+      "canonical": "<p>before</p><hr><p>after</p>",
+      "valid": true
+    },
+    {
+      "name": "links of every allowed kind",
+      "input": "<p><a href=\"/path\">internal</a> <a href=\"https://example.com/\">external</a> <a href=\"mailto:user@example.com\">mail</a></p>",
+      "canonical": "<p><a href=\"/path\">internal</a> <a href=\"https://example.com/\">external</a> <a href=\"mailto:user@example.com\">mail</a></p>",
+      "valid": true
+    },
+    {
+      "name": "escaped characters",
+      "input": "<p>it&#39;s R &amp; D &lt;tag&gt; &#34;quote&#34;</p>",
+      "canonical": "<p>it&#39;s R &amp; D &lt;tag&gt; &#34;quote&#34;</p>",
+      "valid": true
+    },
+    {
+      "name": "non-breaking space stays raw",
+      "input": "<p>a b</p>",
+      "canonical": "<p>a b</p>",
+      "valid": true
+    },
+    {
+      "name": "double space preserved",
+      "input": "<p>a  b</p>",
+      "canonical": "<p>a  b</p>",
+      "valid": true
+    },
+    {
+      "name": "leading space preserved",
+      "input": "<p> lead</p>",
+      "canonical": "<p> lead</p>",
+      "valid": true
+    },
+    {
+      "name": "trailing space preserved",
+      "input": "<p>trail </p>",
+      "canonical": "<p>trail </p>",
+      "valid": true
+    },
+    {
+      "name": "space after hard break preserved",
+      "input": "<p>a<br> b</p>",
+      "canonical": "<p>a<br> b</p>",
+      "valid": true
+    },
+    {
+      "name": "pre keeps double space",
+      "input": "<pre>a  b</pre>",
+      "canonical": "<pre>a  b</pre>",
+      "valid": true
+    },
+    {
+      "name": "empty input",
+      "input": "",
+      "canonical": "<p></p>",
+      "valid": false
+    },
+    {
+      "name": "whitespace only",
+      "input": "   ",
+      "canonical": "<p></p>",
+      "valid": false
+    },
+    {
+      "name": "bare inline content",
+      "input": "<b>bold</b>",
+      "canonical": "<p><b>bold</b></p>",
+      "valid": false
+    },
+    {
+      "name": "nbsp entity",
+      "input": "<p>a&nbsp;b</p>",
+      "canonical": "<p>a b</p>",
+      "valid": false
+    },
+    {
+      "name": "newline becomes space",
+      "input": "<p>a\nb</p>",
+      "canonical": "<p>a b</p>",
+      "valid": false
+    },
+    {
+      "name": "uppercase tags",
+      "input": "<P>upper</P>",
+      "canonical": "<p>upper</p>",
+      "valid": false
+    },
+    {
+      "name": "raw apostrophe and quote",
+      "input": "<p>it's \"quoted\"</p>",
+      "canonical": "<p>it&#39;s &#34;quoted&#34;</p>",
+      "valid": false
+    },
+    {
+      "name": "script dropped",
+      "input": "<p>x</p><script>alert(1)</script>",
+      "canonical": "<p>x</p>",
+      "valid": false
+    },
+    {
+      "name": "image dropped",
+      "input": "<p>a</p><img src=\"/x.png\" alt=\"y\"><p>b</p>",
+      "canonical": "<p>a</p><p>b</p>",
+      "valid": false
+    },
+    {
+      "name": "unsupported heading level",
+      "input": "<h5>too deep</h5>",
+      "canonical": "<p>too deep</p>",
+      "valid": false
+    },
+    {
+      "name": "javascript href dropped",
+      "input": "<p><a href=\"javascript:alert(1)\">x</a></p>",
+      "canonical": "<p>x</p>",
+      "valid": false
+    },
+    {
+      "name": "file href dropped",
+      "input": "<p><a href=\"file:///etc/passwd\">x</a></p>",
+      "canonical": "<p>x</p>",
+      "valid": false
+    },
+    {
+      "name": "document-relative href dropped",
+      "input": "<p><a href=\"relative.html\">x</a></p>",
+      "canonical": "<p>x</p>",
+      "valid": false
+    },
+    {
+      "name": "protocol-relative href dropped",
+      "input": "<p><a href=\"//host/x\">x</a></p>",
+      "canonical": "<p>x</p>",
+      "valid": false
+    },
+    {
+      "name": "javascript cite dropped",
+      "input": "<blockquote cite=\"javascript:alert(1)\"><p>q</p></blockquote>",
+      "canonical": "<blockquote><p>q</p></blockquote>",
+      "valid": false
+    },
+    {
+      "name": "mailto cite dropped",
+      "input": "<blockquote cite=\"mailto:user@example.com\"><p>q</p></blockquote>",
+      "canonical": "<blockquote><p>q</p></blockquote>",
+      "valid": false
+    },
+    {
+      "name": "self-closed br",
+      "input": "<p><br/>self closed</p>",
+      "canonical": "<p><br>self closed</p>",
+      "valid": false
+    },
+    {
+      "name": "word paste",
+      "input": "<p class=\"MsoNormal\" style=\"mso-margin-top-alt:auto\">Hello <b style=\"mso-bidi-font-weight:normal\">world</b><o:p></o:p></p><p class=\"MsoNormal\"><a href=\"file:///C:/report.docx\">report</a></p>",
+      "canonical": "<p>Hello <b>world</b></p><p>report</p>",
+      "valid": false
+    },
+    {
+      "name": "convert apostrophe",
+      "input": "<p>L&#39;art pour l&#39;art</p>",
+      "canonical": "<p>L&#39;art pour l&#39;art</p>",
+      "valid": true
+    },
+    {
+      "name": "convert newline",
+      "input": "<p>line1<br>line2</p>",
+      "canonical": "<p>line1<br>line2</p>",
+      "valid": true
+    },
+    {
+      "name": "convert attachment",
+      "input": "<p>opomba</p><p><a href=\"/f/6XmpqAEPHRGoWB3cBdrvih\">scan.pdf</a></p>",
+      "canonical": "<p>opomba</p><p><a href=\"/f/6XmpqAEPHRGoWB3cBdrvih\">scan.pdf</a></p>",
+      "valid": true
+    },
+    {
+      "name": "convert linkified url",
+      "input": "<p>vir: <a href=\"http://www.mg-lj.si\">www.mg-lj.si</a></p>",
+      "canonical": "<p>vir: <a href=\"http://www.mg-lj.si\">www.mg-lj.si</a></p>",
+      "valid": true
+    }
+  ]
+}

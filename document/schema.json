@@ -1,0 +1,117 @@
+{
+  "topNode": "doc",
+  "nodes": {
+    "doc": {
+      "content": "(block | horizontal_rule)+"
+    },
+    "paragraph": {
+      "group": "block",
+      "content": "inline*",
+      "toHTML": {"tag": "p"},
+      "parseHTML": [{"tag": "p"}]
+    },
+    "blockquote": {
+      "group": "block",
+      "content": "blockquote_paragraph+",
+      "defining": true,
+      "attrs": {
+        "cite": {"default": null, "validate": "resourceURL", "onInvalid": "drop"}
+      },
+      "toHTML": {"tag": "blockquote", "attrs": ["cite"]},
+      "parseHTML": [{"tag": "blockquote", "attrs": {"cite": "cite"}}]
+    },
+    "blockquote_paragraph": {
+      "content": "inline*",
+      "marks": "link bold underline strikethrough monospace",
+      "toHTML": {"tag": "p"},
+      "parseHTML": [{"tag": "p", "context": "blockquote/", "priority": 60}]
+    },
+    "horizontal_rule": {
+      "toHTML": {"tag": "hr"},
+      "parseHTML": [{"tag": "hr"}]
+    },
+    "heading": {
+      "attrs": {
+        "level": {"default": 1}
+      },
+      "group": "block",
+      "content": "inline*",
+      "marks": "",
+      "defining": true,
+      "toHTML": {"tag": "h{level}"},
+      "parseHTML": [
+        {"tag": "h1", "attrs": {"level": 1}},
+        {"tag": "h2", "attrs": {"level": 2}},
+        {"tag": "h3", "attrs": {"level": 3}},
+        {"tag": "h4", "attrs": {"level": 4}}
+      ]
+    },
+    "preformatted": {
+      "group": "block",
+      "content": "text*",
+      "marks": "",
+      "code": true,
+      "defining": true,
+      "toHTML": {"tag": "pre"},
+      "parseHTML": [{"tag": "pre", "preserveWhitespace": "full"}]
+    },
+    "bullet_list": {
+      "group": "block",
+      "content": "list_item+",
+      "toHTML": {"tag": "ul"},
+      "parseHTML": [{"tag": "ul"}]
+    },
+    "ordered_list": {
+      "group": "block",
+      "content": "list_item+",
+      "toHTML": {"tag": "ol"},
+      "parseHTML": [{"tag": "ol"}]
+    },
+    "list_item": {
+      "content": "paragraph (paragraph | bullet_list | ordered_list)*",
+      "defining": true,
+      "toHTML": {"tag": "li"},
+      "parseHTML": [{"tag": "li"}]
+    },
+    "text": {
+      "group": "inline"
+    },
+    "hard_break": {
+      "inline": true,
+      "group": "inline",
+      "selectable": false,
+      "toHTML": {"tag": "br"},
+      "parseHTML": [{"tag": "br"}]
+    }
+  },
+  "marks": {
+    "link": {
+      "attrs": {
+        "href": {"validate": "linkURL", "onInvalid": "rejectRule"}
+      },
+      "inclusive": false,
+      "toHTML": {"tag": "a", "attrs": ["href"]},
+      "parseHTML": [{"tag": "a[href]", "attrs": {"href": "href"}}]
+    },
+    "bold": {
+      "toHTML": {"tag": "b"},
+      "parseHTML": [{"tag": "b"}, {"tag": "strong"}]
+    },
+    "italic": {
+      "toHTML": {"tag": "i"},
+      "parseHTML": [{"tag": "i"}, {"tag": "em"}]
+    },
+    "underline": {
+      "toHTML": {"tag": "u"},
+      "parseHTML": [{"tag": "u"}]
+    },
+    "strikethrough": {
+      "toHTML": {"tag": "strike"},
+      "parseHTML": [{"tag": "strike"}, {"tag": "s"}, {"tag": "del"}]
+    },
+    "monospace": {
+      "toHTML": {"tag": "tt"},
+      "parseHTML": [{"tag": "tt"}]
+    }
+  }
+}

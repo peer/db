@@ -1,10 +1,24 @@
 package document
 
+import (
+	"math"
+
+	"gitlab.com/tozd/go/errors"
+)
+
 // Confidence represents the confidence level of a claim.
 //
 // Its range is [-1, 1] where negative value represents a
 // confidence in a negation of the claim.
 type Confidence float64
+
+// validateConfidence checks that the confidence is inside its range.
+func validateConfidence(confidence Confidence) errors.E {
+	if math.IsInf(float64(confidence), 0) || math.IsNaN(float64(confidence)) || confidence < -1 || confidence > 1 {
+		return errors.New("confidence out of range [-1, 1]")
+	}
+	return nil
+}
 
 const (
 	// HighConfidence represents a high confidence score of 1.0.

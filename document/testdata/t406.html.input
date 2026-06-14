@@ -1,7 +1,0 @@
-<HTML><HEAD></HEAD><BODY>
-
-Test 406.  Thanks to Warren He for this attack.
-
-<form action="javascript:alert(406);"><input type="submit"></form>
-
-</BODY></HTML>

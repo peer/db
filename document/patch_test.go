@@ -23,6 +23,7 @@ type customPatch struct{}
 
 func (p customPatch) New(_ identifier.Identifier) (document.Claim, errors.E) { return nil, nil } //nolint:ireturn,nilnil
 func (p customPatch) Apply(_ document.Claim) errors.E                        { return nil }
+func (p customPatch) Validate() errors.E                                     { return nil }
 
 func TestPatchJSON(t *testing.T) {
 	t.Parallel()
@@ -442,7 +443,7 @@ func TestHTMLClaimPatch(t *testing.T) { //nolint:dupl
 
 	prop := identifier.New()
 	confidence := document.Confidence(1.0)
-	html := "<b>bold</b>"
+	html := "<p><b>bold</b></p>"
 
 	p := document.HTMLClaimPatch{
 		Confidence: &confidence,
@@ -469,7 +470,7 @@ func TestHTMLClaimPatch(t *testing.T) { //nolint:dupl
 	assert.Equal(t, p, p2)
 
 	// Test Apply updates the HTML.
-	newHTML := "<i>italic</i>"
+	newHTML := "<p><i>italic</i></p>"
 	applyPatch := document.HTMLClaimPatch{HTML: newHTML}
 	errE = applyPatch.Apply(claim)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -1395,6 +1396,74 @@ func TestChangesValidateError(t *testing.T) {
 	}
 	errE := changes.Validate(base)
 	assert.EqualError(t, errE, "invalid ID")
+}
+
+// TestClaimPatchValidate tests that add and set changes validate their patches, so that
+// changes which would deterministically fail when an edit session completes are rejected
+// already when they are appended to the session.
+func TestClaimPatchValidate(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+	conf := document.Confidence(1.0)
+	outOfRange := document.Confidence(2.0)
+
+	// Non-canonical HTML (the browser's innerHTML serialization of a non-breaking space).
+	change := document.SetClaimChange{ID: identifier.New(), Patch: document.HTMLClaimPatch{HTML: "<p>a&nbsp;b</p>"}}
+	errE := change.Validate(nil, 1)
+	assert.EqualError(t, errE, "HTML is not canonical")
+
+	// Canonical HTML (a raw U+00A0 character) passes.
+	change = document.SetClaimChange{ID: identifier.New(), Patch: document.HTMLClaimPatch{HTML: "<p>a\u00a0b</p>"}}
+	errE = change.Validate(nil, 1)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	change = document.SetClaimChange{ID: identifier.New(), Patch: document.HTMLClaimPatch{}}
+	errE = change.Validate(nil, 1)
+	assert.EqualError(t, errE, "empty patch")
+
+	change = document.SetClaimChange{ID: identifier.New(), Patch: document.HasClaimPatch{Confidence: &outOfRange}}
+	errE = change.Validate(nil, 1)
+	assert.EqualError(t, errE, "confidence out of range [-1, 1]")
+
+	change = document.SetClaimChange{ID: identifier.New(), Patch: document.LinkClaimPatch{IRI: "javascript:alert(1)"}}
+	errE = change.Validate(nil, 1)
+	assert.EqualError(t, errE, "disallowed IRI scheme: javascript")
+
+	// AddClaimChange.Validate validates the patch through New.
+	base := []string{"TqtRsbk7rTKviW3TJapTim"}
+	id1 := []string{"TqtRsbk7rTKviW3TJapTim", "1"}
+	addChange := document.AddClaimChange{ //nolint:exhaustruct
+		ID:    identifier.From(id1...),
+		Base:  id1,
+		Patch: document.HTMLClaimPatch{HTML: "<p>x</p>"},
+	}
+	errE = addChange.Validate(base, 1)
+	assert.EqualError(t, errE, "incomplete patch")
+
+	addChange = document.AddClaimChange{ //nolint:exhaustruct
+		ID:   identifier.From(id1...),
+		Base: id1,
+		Patch: document.HTMLClaimPatch{
+			Confidence: &conf,
+			Prop:       &prop,
+			HTML:       "<p>a&nbsp;b</p>",
+		},
+	}
+	errE = addChange.Validate(base, 1)
+	assert.EqualError(t, errE, "HTML is not canonical")
+
+	addChange = document.AddClaimChange{ //nolint:exhaustruct
+		ID:   identifier.From(id1...),
+		Base: id1,
+		Patch: document.HTMLClaimPatch{
+			Confidence: &conf,
+			Prop:       &prop,
+			HTML:       "<p>x</p>",
+		},
+	}
+	errE = addChange.Validate(base, 1)
+	require.NoError(t, errE, "% -+#.1v", errE)
 }
 
 // TestAddClaimChangeApplyUnderNotFound tests AddClaimChange.Apply when Under claim doesn't exist.

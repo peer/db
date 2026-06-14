@@ -1919,6 +1919,10 @@ watch(
                   against an empty anchor); in edit modes an emptied
                   value is intentionally allowed and treated as Remove
                   inside onConfirm.
+
+                  mailto is refused for blockquote cite, in sync with the
+                  backend sanitizer, which uses resourceURLPattern (no
+                  mailto) for cite and linkHrefPattern for link href.
                 -->
                 <InputLink
                   ref="linkInputRef"

