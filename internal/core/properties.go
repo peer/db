@@ -18,6 +18,7 @@ var (
 	DescriptionPropID            = identifier.From(Namespace, "DESCRIPTION")
 	DisplayLabelTemplatePropID   = identifier.From(Namespace, "DISPLAY_LABEL_TEMPLATE")
 	DistinctFromPropID           = identifier.From(Namespace, "DISTINCT_FROM")
+	FieldDefaultPropID           = identifier.From(Namespace, "FIELD_DEFAULT")
 	FieldPropID                  = identifier.From(Namespace, "FIELD")
 	FieldsPropID                 = identifier.From(Namespace, "FIELDS")
 	FieldValuesPropID            = identifier.From(Namespace, "FIELD_VALUES")

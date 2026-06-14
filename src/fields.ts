@@ -5,6 +5,7 @@ import type { Claim, ClaimTypeName, TimePrecision } from "@/document"
 import {
   CARDINALITY,
   FIELD,
+  FIELD_DEFAULT,
   FIELD_VALUES,
   FIELDS,
   HAS_PROPERTY,
@@ -69,14 +70,19 @@ export interface FieldData {
   // Highest-confidence FIELD_VALUES search shortcut string, if any. Consumed
   // by InputRef as a filter that constrains which documents may be picked.
   values?: string
+  // The FIELD_DEFAULT value type, if the field's value may be absent: "none" for a
+  // none-value default, "unknown" for an unknown-value default. When set, the field's value
+  // may be stored as a NoneClaim/UnknownClaim (carrying any sub-claims) instead of a value
+  // claim.
+  default?: "none" | "unknown"
 }
 
-// fieldSignature encodes a field's identity beyond its propertyId: its value type and the
-// (recursive, order-independent) signature of its sub-fields. Fields that share a propertyId
-// but differ in value type or sub-field structure get distinct signatures.
+// fieldSignature encodes a field's identity beyond its propertyId: its value type, default, and
+// the (recursive, order-independent) signature of its sub-fields. Fields that share a propertyId
+// but differ in value type, default, or sub-field structure get distinct signatures.
 function fieldSignature(field: DeepReadonly<FieldData>): string {
   const subs = field.subFields.map(fieldSignature).sort()
-  return `${field.propertyId}:${field.valueType}(${subs.join(",")})`
+  return `${field.propertyId}:${field.valueType}:${field.default ?? ""}(${subs.join(",")})`
 }
 
 // fieldKey returns a unique string key for a field, derived from its path plus its signature.
@@ -150,6 +156,14 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
 
   const valueClaim = getBestClaimOfType(claimsTypes, "string", FIELD_VALUES)
 
+  const defaultRef = getBestClaimOfType(claimsTypes, "ref", FIELD_DEFAULT)
+  let fieldDefault: "none" | "unknown" | undefined
+  if (defaultRef?.to.id === VT_NONE) {
+    fieldDefault = "none"
+  } else if (defaultRef?.to.id === VT_UNKNOWN) {
+    fieldDefault = "unknown"
+  }
+
   return {
     propertyId: propRef.to.id,
     valueType: valueTypeRef.to.id,
@@ -159,6 +173,7 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
     subFields,
     path: thisPath,
     values: valueClaim?.string || undefined,
+    default: fieldDefault,
   }
 }
 
@@ -477,20 +492,42 @@ function claimMatchesFieldSubFields(claim: DeepReadonly<Claim>, field: DeepReado
   return false
 }
 
+// isValuelessClaimType reports whether a claim type carries no value of its own (its meaning is
+// its presence plus its sub-claims): HAS, NONE, and UNKNOWN.
+function isValuelessClaimType(claimType: ClaimTypeName): boolean {
+  return claimType === "has" || claimType === "none" || claimType === "unknown"
+}
+
 // getClaimsForField returns the claims that belong to a field.
 //
-// For HAS-typed fields with sub-fields it filters to claims carrying one of the field's
-// sub-field properties, so meta fields sharing a propertyId each match only their own claims.
-// A HAS claim carries no value of its own, so its sub-claims are the only thing identifying
-// which field it belongs to. Value-bearing fields are identified by their value, so their
-// (optional) sub-fields are not used for discrimination and the full claim set is returned.
+// A field always matches claims of its declared value type. A value field with a default also
+// matches the corresponding valueless claim type (NONE/UNKNOWN), because such a field stores an
+// absent value as a NoneClaim/UnknownClaim that still carries its sub-claims (e.g. an artist
+// studio whose location is unknown but which has notes).
+//
+// For valueless claim types (HAS/NONE/UNKNOWN) on a field with sub-fields, we keep only claims
+// carrying one of the field's sub-field properties. A valueless claim has no value of its own,
+// so its sub-claims are what identify it; this keeps sibling fields that share a propertyId
+// from matching each other's claims.
 export function getClaimsForField(claims: DeepReadonly<ClaimTypes> | undefined | null, field: DeepReadonly<FieldData>): DeepReadonly<Claim>[] {
-  const claimType = valueTypeToClaimType(field.valueType)
-  const candidates = getClaimsOfTypeWithConfidence(claims, claimType, field.propertyId) as DeepReadonly<Claim>[]
-  if (claimType === "has" && field.subFields.length > 0) {
-    return candidates.filter((claim) => claimMatchesFieldSubFields(claim, field))
+  const valueType = valueTypeToClaimType(field.valueType)
+  const claimTypes = new Set<ClaimTypeName>([valueType])
+  if (field.default === "none") {
+    claimTypes.add("none")
+  } else if (field.default === "unknown") {
+    claimTypes.add("unknown")
   }
-  return candidates
+
+  const result: DeepReadonly<Claim>[] = []
+  for (const claimType of claimTypes) {
+    for (const claim of getClaimsOfTypeWithConfidence(claims, claimType, field.propertyId) as DeepReadonly<Claim>[]) {
+      if (isValuelessClaimType(claimType) && field.subFields.length > 0 && !claimMatchesFieldSubFields(claim, field)) {
+        continue
+      }
+      result.push(claim)
+    }
+  }
+  return result
 }
 
 // getExistingClaimValues finds existing claims for a field and returns their IDs
@@ -590,4 +627,14 @@ export function makePatchForField(field: FieldData, data: FieldEntryValue): obje
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`unsupported claim type: ${claimType}`)
   }
+}
+
+// makeDefaultPatchForField builds a patch for a field's default (none/unknown) value type, used
+// to lazily create or cast to the valueless form of a value field that has a default. Throws if
+// the field has no default.
+export function makeDefaultPatchForField(field: DeepReadonly<FieldData>): object {
+  if (!field.default) {
+    throw new Error("field has no default")
+  }
+  return { type: field.default, confidence: HighConfidence, prop: field.propertyId }
 }

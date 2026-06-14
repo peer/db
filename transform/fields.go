@@ -455,6 +455,15 @@ func (fc *fieldsCollector) makeField(
 		return internalCore.Field{}, errE
 	}
 
+	// Parse default tag. For simple fields it is on the property field; for struct fields it is
+	// on the value:"" field inside. It records that the value may be a none-value/unknown-value
+	// claim.
+	defaultRef, errE := parseFieldDefault(structField)
+	if errE != nil {
+		errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
+		return internalCore.Field{}, errE
+	}
+
 	return internalCore.Field{
 		Property:        propertyRef,
 		ValueType:       valueTypeRef,
@@ -463,6 +472,7 @@ func (fc *fieldsCollector) makeField(
 		Values:          values,
 		SubField:        subFields,
 		InverseProperty: inverseProperty,
+		Default:         defaultRef,
 	}, nil
 }
 
@@ -744,6 +754,63 @@ func parseStructValueFieldValues(fieldType reflect.Type) ([]string, errors.E) {
 			values, errE := parseStructValueFieldValues(field.Type)
 			if values != nil || errE != nil {
 				return values, errE
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+// parseFieldDefault returns the value type ref for a field's "default" tag, or nil if there is
+// no default. The default tag is on the property field for simple fields, or on the value:""
+// field inside for struct fields (the same place the "values" tag is read from).
+func parseFieldDefault(field reflect.StructField) (*internalCore.Ref, errors.E) {
+	if tag, ok := field.Tag.Lookup("default"); ok {
+		return defaultValueTypeRef(tag)
+	}
+	return parseStructValueFieldDefault(field.Type)
+}
+
+// defaultValueTypeRef maps a "default" tag value ("none" or "unknown") to the corresponding
+// VALUE_TYPE ref. An empty tag yields no default; any other value is an error.
+func defaultValueTypeRef(tag string) (*internalCore.Ref, errors.E) {
+	switch tag {
+	case "":
+		return nil, nil
+	case defaultNone:
+		ref := valueTypeRef("NONE")
+		return &ref, nil
+	case defaultUnknown:
+		ref := valueTypeRef("UNKNOWN")
+		return &ref, nil
+	default:
+		errE := errors.New("default tag must be \"none\" or \"unknown\"")
+		errors.Details(errE)["default"] = tag
+		return nil, errE
+	}
+}
+
+// parseStructValueFieldDefault looks inside a struct type for a value:"" field and returns the
+// value type ref for its "default" tag. Returns nil if the type is not a struct or has no value
+// field with a default.
+func parseStructValueFieldDefault(fieldType reflect.Type) (*internalCore.Ref, errors.E) {
+	fieldType = internalCore.UnwrapSliceAndPointer(fieldType)
+
+	if fieldType.Kind() != reflect.Struct {
+		return nil, nil
+	}
+
+	for i := range fieldType.NumField() {
+		field := fieldType.Field(i)
+		if _, ok := field.Tag.Lookup("value"); ok {
+			return defaultValueTypeRef(field.Tag.Get("default"))
+		}
+
+		// Recurse into embedded structs.
+		if field.Anonymous && field.Type.Kind() == reflect.Struct {
+			ref, errE := parseStructValueFieldDefault(field.Type)
+			if ref != nil || errE != nil {
+				return ref, errE
 			}
 		}
 	}

@@ -26,7 +26,7 @@ import { computed, inject, onBeforeUnmount, onMounted, ref, useTemplateRef, watc
 
 import CheckBox from "@/components/CheckBox.vue"
 import { VT_HAS, VT_NONE, VT_UNKNOWN } from "@/core"
-import { AddClaimChange, claimPatchFrom, getClaimsOfTypeWithConfidence, RemoveClaimChange, SetClaimChange } from "@/document"
+import { AddClaimChange, CastClaimChange, claimPatchFrom, claimTypeName, getClaimsOfTypeWithConfidence, RemoveClaimChange, SetClaimChange } from "@/document"
 import {
   emptyFieldEntryValue,
   equalFieldEntryValue,
@@ -34,6 +34,7 @@ import {
   fieldLabelCellKey,
   getClaimValues,
   getNextChangeNumberKey,
+  makeDefaultPatchForField,
   makePatchForField,
   registerForFlushKey,
   saveChangeKey,
@@ -125,13 +126,16 @@ function extractSubClaims(claim: DeepReadonly<Claim> | null, subField: DeepReado
 
 // Whether the sub-ClaimCardinality should be rendered for this slot.
 // For HAS with sub-fields we always render (the user only edits HAS
-// *through* its sub-claims, which lazy-create the HAS itself). For other
-// types we only render after the parent claim has been committed - a
-// sub-claim requires a parent id, and ensureClaimId for non-HAS just
-// returns the existing id rather than creating one.
+// *through* its sub-claims, which lazy-create the HAS itself). A value field
+// with a default behaves the same: ensureClaimId lazily creates the base as a
+// none/unknown claim so sub-claims can be added before a value is entered
+// (e.g. notes on a studio whose location is still unknown). For other types we
+// only render after the parent claim has been committed - a sub-claim requires
+// a parent id, and ensureClaimId for those just returns the existing id.
 const showSubFields = computed(() => {
   if (props.field.subFields.length === 0) return false
   if (isHas.value) return true
+  if (props.field.default) return true
   return props.modelValue !== null
 })
 
@@ -253,21 +257,26 @@ const validatedInput: ValidatedInput = {
 const { onInteraction: notifyOuter } = useRegisterForValidation(validatedInput)
 forwardInteraction = notifyOuter
 
-// ensureClaimId returns this claim's id, lazily creating an empty HAS
-// claim if needed. Sub-ClaimCardinality passes this down to its slots so
-// their AddClaimChange knows what to set under to.
+// ensureClaimId returns this claim's id, lazily creating an empty base claim
+// if needed. Sub-ClaimCardinality passes this down to its slots so their
+// AddClaimChange knows what to set under to. The lazily-created base is a HAS
+// claim for HAS fields, or the none/unknown default form for a value field
+// with a default (so sub-claims can be attached before a value is entered).
 async function ensureClaimId(): Promise<string> {
   if (props.modelValue !== null) {
     return props.modelValue.id
   }
-  if (!isHas.value) {
-    throw new Error("ensureClaimId called with no committed claim on a non-HAS slot")
+  let patch: object
+  if (isHas.value) {
+    patch = makePatchForField(props.field, emptyFieldEntryValue())
+  } else if (props.field.default) {
+    patch = makeDefaultPatchForField(props.field)
+  } else {
+    throw new Error("ensureClaimId called with no committed claim on a non-HAS slot without a default")
   }
-  // Lazy-create the HAS claim with an empty body.
   const num = getNextChangeNumber()
   const changeBase = [...props.base, "SESSION", props.session, String(num)]
   const newId = (await Identifier.from(...changeBase)).toString()
-  const patch = makePatchForField(props.field, emptyFieldEntryValue())
   const addChange = new AddClaimChange({ id: newId, base: changeBase, patch })
   if (props.parentClaimId) {
     addChange.under = await props.parentClaimId()
@@ -278,53 +287,82 @@ async function ensureClaimId(): Promise<string> {
   return newId
 }
 
-// commitRow runs Add / Set / Remove for the value side of this claim.
+// commit runs Add / Set / Cast / Remove for the value side of this claim.
 // Sub-claims are handled by the nested ClaimCardinality instances and do
 // not go through this path.
+//
+// A value field with a default (none/unknown) can hold either a value claim
+// (a location is known) or the default form carrying only sub-claims (the
+// location is unknown but notes exist). Switching between the two changes the
+// claim type, which a Set cannot do, so we use a Cast to change the type in
+// place while preserving the claim id and its sub-claims.
 async function commit(): Promise<void> {
   if (isPresenceOnly.value) return
   const currentClaim = props.modelValue
-  // Empty path: either remove (no sub-claims) or no-op (sub-claims keep
-  // the parent alive). Skip validation here on purpose. The user is
-  // clearing the input, and a sub-cardinality that would normally fire a
-  // "Required value." for an empty sub-field must NOT block the remove,
-  // otherwise the row gets stuck and stays red.
+  const valueType = valueTypeToClaimType(props.field.valueType)
+
+  // Empty path. Skip validation here on purpose: the user is clearing the input, and a
+  // sub-cardinality that would normally fire "Required value." for an empty sub-field must NOT
+  // block the remove/cast, otherwise the row gets stuck and stays red.
   if (localIsEmpty.value) {
-    if (currentClaim && !hasAnySubClaims.value) {
-      // Remove the claim. Empty value and nothing under it.
+    if (!currentClaim) return
+    if (props.field.default && hasAnySubClaims.value) {
+      // The value was cleared but sub-claims remain. Demote the claim to its default
+      // (none/unknown) form, preserving the sub-claims, instead of removing it.
+      if (claimTypeName(currentClaim) === props.field.default) return // already in default form
+      const num = getNextChangeNumber()
+      const patch = makeDefaultPatchForField(props.field)
+      await saveChange(new CastClaimChange({ id: currentClaim.id, patch }), num)
+      const updated = claimPatchFrom(patch).New(currentClaim.id)
+      if (currentClaim.sub) {
+        updated.sub = currentClaim.sub as unknown as ClaimTypes
+      }
+      emit("update:modelValue", updated)
+      return
+    }
+    if (!hasAnySubClaims.value) {
+      // No value and nothing under it: remove the claim.
       const num = getNextChangeNumber()
       await saveChange(new RemoveClaimChange({ id: currentClaim.id }), num)
       emit("update:modelValue", null)
     }
-    // If the claim exists with sub-claims, keep it (user can revert).
-    // If no claim and empty, nothing to do.
+    // Otherwise (sub-claims but no default) keep the claim; the user can revert.
     return
   }
-  // Non-empty path: Add or Set. Validate the row's inner inputs first so
-  // an invalid value (e.g. "htt" for an IRI) stays in the form
-  // uncommitted. Sub-cardinality validation is deliberately excluded -
-  // see formRowRef definition for why.
+
+  // Non-empty path: Add / Set / Cast. Validate the row's inner inputs first so an invalid value
+  // (e.g. "htt" for an IRI) stays in the form uncommitted. Sub-cardinality validation is
+  // deliberately excluded - see formRowRef definition for why.
   if (formRowRef.value) {
     await formRowRef.value.validate()
     if (formRowRef.value.errors.length > 0) return
   }
-  // Local has values. Build the patch.
   const patch = makePatchForField(props.field, local.value)
   if (currentClaim) {
+    if (claimTypeName(currentClaim) !== valueType) {
+      // The committed claim is the default (none/unknown) form and the user has now entered a
+      // value. Promote it to the value type, preserving the sub-claims.
+      const num = getNextChangeNumber()
+      await saveChange(new CastClaimChange({ id: currentClaim.id, patch }), num)
+      const updated = claimPatchFrom(patch).New(currentClaim.id)
+      if (currentClaim.sub) {
+        updated.sub = currentClaim.sub as unknown as ClaimTypes
+      }
+      emit("update:modelValue", updated)
+      return
+    }
     // Update existing claim. Only post if values actually changed.
     if (equalFieldEntryValue(local.value, getClaimValues(currentClaim))) {
-      // Nothing to do.
       return
     }
     const num = getNextChangeNumber()
     await saveChange(new SetClaimChange({ id: currentClaim.id, patch }), num)
-    // Reconstruct the claim with the new values so the parent sees the
-    // updated state immediately, without waiting for the next doc sync.
+    // Reconstruct the claim with the new values so the parent sees the updated state
+    // immediately, without waiting for the next doc sync.
     const updated = claimPatchFrom(patch).New(currentClaim.id)
     if (currentClaim.sub) {
-      // Preserve sub-claims through the optimistic update. The
-      // DeepReadonly is a type-only concern; at runtime ClaimTypes is
-      // the same object.
+      // Preserve sub-claims through the optimistic update. The DeepReadonly is a type-only
+      // concern; at runtime ClaimTypes is the same object.
       updated.sub = currentClaim.sub as unknown as ClaimTypes
     }
     emit("update:modelValue", updated)

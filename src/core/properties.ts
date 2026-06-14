@@ -14,6 +14,7 @@ export const DESCRIPTION = (await Identifier.from(Namespace, "DESCRIPTION")).toS
 export const DISPLAY_LABEL_TEMPLATE = (await Identifier.from(Namespace, "DISPLAY_LABEL_TEMPLATE")).toString()
 export const DISTINCT_FROM = (await Identifier.from(Namespace, "DISTINCT_FROM")).toString()
 export const FIELD = (await Identifier.from(Namespace, "FIELD")).toString()
+export const FIELD_DEFAULT = (await Identifier.from(Namespace, "FIELD_DEFAULT")).toString()
 export const FIELD_VALUES = (await Identifier.from(Namespace, "FIELD_VALUES")).toString()
 export const FIELDS = (await Identifier.from(Namespace, "FIELDS")).toString()
 export const HAS_PROPERTY = (await Identifier.from(Namespace, "HAS_PROPERTY")).toString()

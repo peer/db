@@ -845,6 +845,18 @@ export const CLAIM_TYPES_MAP: {
 // Claim is the union of all claim types.
 export type Claim = Constructee<(typeof CLAIM_TYPES_MAP)[ClaimTypeName]>
 
+// claimTypeName returns the claim type name (the ClaimTypes key, e.g. "ref" or "unknown") for a
+// claim instance. Used to render a claim by its actual type when a field's claims span more than
+// one type (e.g. a value field whose default lets it also hold none/unknown claims).
+export function claimTypeName(claim: DeepReadonly<Claim>): ClaimTypeName {
+  for (const name of Object.keys(CLAIM_TYPES_MAP) as ClaimTypeName[]) {
+    if (claim instanceof CLAIM_TYPES_MAP[name]) {
+      return name
+    }
+  }
+  throw new Error("unknown claim type")
+}
+
 // ClaimForType extracts the claim class for a given claim type name.
 export type ClaimForType<T extends ClaimTypeName> = Constructee<(typeof CLAIM_TYPES_MAP)[T]>
 

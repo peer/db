@@ -1218,3 +1218,46 @@ func TestFieldsSectionWithEmbeddedAndOrder(t *testing.T) {
 	// Top-level Bar field.
 	assert.Equal(t, core.Ref{ID: mnemonics["BAR"]}, result.Field[0].Property)
 }
+
+type studioValue struct {
+	Place *core.Ref `default:"unknown" value:""`
+	Notes string    `cardinality:"0..1" json:"notes" property:"NOTES"`
+}
+
+// DefaultFields exercises the default tag mapping: a struct value field with default:"unknown"
+// (like an artist studio whose location may be unknown) and a simple field with default:"none".
+type DefaultFields struct {
+	Name   string        `cardinality:"1.."  json:"name"   property:"NAME"`
+	Studio []studioValue `cardinality:"0.."  json:"studio" property:"STATUS"`
+	Code   *string       `cardinality:"0..1" default:"none" json:"code" property:"CODE"`
+}
+
+func TestFieldsDefault(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+
+	result, errE := transform.Fields[DefaultFields](mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotNil(t, result)
+	require.Len(t, result.Field, 3)
+
+	// Name has no default.
+	assert.Equal(t, core.Ref{ID: mnemonics["NAME"]}, result.Field[0].Property)
+	assert.Nil(t, result.Field[0].Default)
+
+	// Studio's value field has default:"unknown" -> VALUE_TYPE UNKNOWN.
+	studio := result.Field[1]
+	assert.Equal(t, core.Ref{ID: mnemonics["STATUS"]}, studio.Property)
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "REFERENCE"}}, studio.ValueType)
+	require.NotNil(t, studio.Default)
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "UNKNOWN"}}, *studio.Default)
+	require.Len(t, studio.SubField, 1)
+	assert.Equal(t, core.Ref{ID: mnemonics["NOTES"]}, studio.SubField[0].Property)
+
+	// Code has default:"none" on the field itself -> VALUE_TYPE NONE.
+	code := result.Field[2]
+	assert.Equal(t, core.Ref{ID: mnemonics["CODE"]}, code.Property)
+	require.NotNil(t, code.Default)
+	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "NONE"}}, *code.Default)
+}

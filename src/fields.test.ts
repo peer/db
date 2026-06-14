@@ -3,9 +3,9 @@ import { assert, describe, test } from "vitest"
 
 import type { FieldData } from "@/fields"
 
-import { CARDINALITY, FIELD, FIELDS, HAS_PROPERTY, HAS_VALUE_TYPE, NAME, ORDER_IN_LIST, SECTION, SUB_FIELD, VT_HAS, VT_REFERENCE } from "@/core"
+import { CARDINALITY, FIELD, FIELDS, HAS_PROPERTY, HAS_VALUE_TYPE, NAME, ORDER_IN_LIST, SECTION, SUB_FIELD, VT_HAS, VT_HTML, VT_REFERENCE } from "@/core"
 import { ClaimTypes, HighConfidence } from "@/document"
-import { extractFieldsFromClaims, fieldKey, getClaimsForField, hasFields, mergeFields } from "@/fields"
+import { extractFieldsFromClaims, fieldKey, getClaimsForField, hasFields, makeDefaultPatchForField, mergeFields } from "@/fields"
 
 const propA = Identifier.new().toString()
 const propB = Identifier.new().toString()
@@ -486,5 +486,53 @@ describe("getClaimsForField", () => {
 
   test("returns empty for null claims", () => {
     assert.equal(getClaimsForField(null, selectionField()).length, 0)
+  })
+})
+
+describe("getClaimsForField default fields", () => {
+  test("a value field with default:unknown also matches unknown claims carrying its sub-field", () => {
+    const studioProp = Identifier.new().toString()
+    const notesProp = Identifier.new().toString()
+    const claims = new ClaimTypes({
+      // A known-location studio.
+      ref: [rawRef(studioProp, Identifier.new().toString())],
+      unknown: [
+        // An unknown-location studio that still has a notes sub-claim.
+        {
+          id: id(),
+          confidence: HighConfidence,
+          prop: { id: studioProp },
+          sub: { html: [{ id: id(), confidence: HighConfidence, prop: { id: notesProp }, html: "<p>n</p>" }] },
+        },
+        // A bare unknown claim with no matching sub-field is excluded.
+        { id: id(), confidence: HighConfidence, prop: { id: studioProp } },
+      ],
+    })
+    const studioField: FieldData = { ...makeField(studioProp, VT_REFERENCE, [makeField(notesProp, VT_HTML)]), default: "unknown" }
+    // The ref (known) claim plus the unknown claim with notes; the bare unknown is excluded.
+    assert.equal(getClaimsForField(claims, studioField).length, 2)
+  })
+
+  test("a value field without a default does not match unknown/none claims", () => {
+    const prop = Identifier.new().toString()
+    const claims = new ClaimTypes({
+      ref: [rawRef(prop, Identifier.new().toString())],
+      unknown: [{ id: id(), confidence: HighConfidence, prop: { id: prop } }],
+    })
+    assert.equal(getClaimsForField(claims, makeField(prop, VT_REFERENCE)).length, 1)
+  })
+})
+
+describe("makeDefaultPatchForField", () => {
+  test("builds a none/unknown patch for a field with a default", () => {
+    const prop = Identifier.new().toString()
+    const noneField: FieldData = { ...makeField(prop, VT_REFERENCE), default: "none" }
+    assert.deepEqual(makeDefaultPatchForField(noneField), { type: "none", confidence: HighConfidence, prop })
+    const unknownField: FieldData = { ...makeField(prop, VT_REFERENCE), default: "unknown" }
+    assert.deepEqual(makeDefaultPatchForField(unknownField), { type: "unknown", confidence: HighConfidence, prop })
+  })
+
+  test("throws for a field without a default", () => {
+    assert.throws(() => makeDefaultPatchForField(makeField(Identifier.new().toString(), VT_REFERENCE)))
   })
 })
