@@ -447,6 +447,26 @@ test("ClaimTypes Validate duplicate ID", async () => {
   await expect(ct.Validate()).rejects.toThrow("duplicate claim ID")
 })
 
+test("ClaimTypes Validate duplicate ID nested in a sub-claim", async () => {
+  // The duplicate ID is shared between a top-level claim and a claim nested in another claim's
+  // sub-claims, so it is caught only by checking uniqueness across the whole tree (AllClaimsWithSub).
+  const sharedID = Identifier.new().toString()
+  const prop = Identifier.new().toString()
+  const ct = new ClaimTypes({
+    string: [
+      {
+        id: Identifier.new().toString(),
+        confidence: 1.0,
+        prop: { id: prop },
+        string: "parent",
+        sub: { string: [{ id: sharedID, confidence: 1.0, prop: { id: prop }, string: "nested" }] },
+      },
+      { id: sharedID, confidence: 0.5, prop: { id: prop }, string: "sibling" },
+    ],
+  })
+  await expect(ct.Validate()).rejects.toThrow("duplicate claim ID")
+})
+
 describe("AmountClaim Validate", () => {
   const id = Identifier.new().toString()
   const prop = Identifier.new().toString()
