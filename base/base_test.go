@@ -1535,7 +1535,7 @@ func TestAppendDocumentChangeToEndedSession(t *testing.T) {
 
 	// Trying to append after ending should fail.
 	_, errE = b.AppendDocumentChange(ctx, session, []byte(`{}`), 1)
-	assert.EqualError(t, errE, "change type not supported")
+	assert.ErrorIs(t, errE, base.ErrInvalidChange)
 
 	// Trying to end again should fail.
 	errE = b.EndEditDocument(ctx, session, false)
@@ -1657,7 +1657,7 @@ func TestAppendDocumentChangeWithInvalidJSON(t *testing.T) {
 
 	// Append invalid change data.
 	_, errE = b.AppendDocumentChange(ctx, session, []byte(`{"type":"invalid"}`), 1)
-	assert.EqualError(t, errE, "change type not supported")
+	assert.ErrorIs(t, errE, base.ErrInvalidChange)
 
 	// Discard the session.
 	errE = b.EndEditDocument(ctx, session, true)
