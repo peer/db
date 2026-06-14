@@ -778,12 +778,12 @@ export class ClaimTypes implements Claims {
   // Validate validates all claims, including nested sub-claims.
   async Validate(): Promise<void> {
     const ids = new Set<string>()
-    for (const claim of this.AllClaims()) {
+    for (const claim of this.AllClaimsWithSub()) {
+      await claim.Validate()
       if (ids.has(claim.GetID())) {
         throw new Error(`duplicate claim ID: ${claim.GetID()}`)
       }
       ids.add(claim.GetID())
-      await claim.Validate()
     }
   }
 }
