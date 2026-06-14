@@ -730,6 +730,37 @@ export class ClaimTypes implements Claims {
     }
   }
 
+  // findContainer returns the ClaimTypes that directly holds the claim with the given id
+  // (this ClaimTypes, or recursively one of its sub-claim collections), or undefined.
+  findContainer(id: string): ClaimTypes | undefined {
+    for (const claim of this.AllClaims()) {
+      if (claim.GetID() === id) {
+        return this
+      }
+      if (claim.sub) {
+        const found = claim.sub.findContainer(id)
+        if (found) {
+          return found
+        }
+      }
+    }
+    return undefined
+  }
+
+  // ReplaceByID replaces the claim with the given id with newClaim, in the same collection
+  // (top-level or nested under a parent) where the original claim was found. Sub-claims are
+  // not transferred to newClaim; the caller handles any sub-claim preservation. Returns the
+  // replaced claim, or undefined if no claim with the given id was found.
+  ReplaceByID(id: string, newClaim: Claim): Claim | undefined {
+    const container = this.findContainer(id)
+    if (!container) {
+      return undefined
+    }
+    const old = container.RemoveByID(id)
+    container.Add(newClaim)
+    return old
+  }
+
   Add(claim: Claim): void {
     for (const [name, claimType] of Object.entries(CLAIM_TYPES_MAP) as ClaimTypesEntry[]) {
       if (claim instanceof claimType) {

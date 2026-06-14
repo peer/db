@@ -723,3 +723,38 @@ test("ClaimTypes Add non-matching object does nothing", () => {
   ct.Add({ id: Identifier.new().toString(), confidence: 1.0, prop: { id: Identifier.new().toString() } } as never)
   assert.equal(ct.Size(), 0)
 })
+
+describe("ReplaceByID", () => {
+  test("replaces a nested claim, preserving its container", () => {
+    const prop = Identifier.new().toString()
+    const topID = Identifier.new().toString()
+    const subID = Identifier.new().toString()
+
+    const ct = new ClaimTypes({})
+    const top = new HasClaim({ id: topID, confidence: HighConfidence, prop: { id: prop } })
+    ct.Add(top)
+    top.Add(new StringClaim({ id: subID, confidence: HighConfidence, prop: { id: prop }, string: "x" }))
+
+    const newSub = new UnknownClaim({ id: subID, confidence: HighConfidence, prop: { id: prop } })
+    const old = ct.ReplaceByID(subID, newSub)
+    assert.instanceOf(old, StringClaim)
+
+    // Only `top` remains at the top level; the replacement stays nested under it.
+    const topLevel = ct.AllClaims()
+    assert.equal(topLevel.length, 1)
+    assert.equal(topLevel[0].GetID(), topID)
+
+    const nested = ct.GetByID(topID)!.GetByID(subID)
+    assert.instanceOf(nested, UnknownClaim)
+  })
+
+  test("returns undefined for a non-existent ID", () => {
+    const ct = new ClaimTypes({})
+    ct.Add(new HasClaim({ id: Identifier.new().toString(), confidence: HighConfidence, prop: { id: Identifier.new().toString() } }))
+    const old = ct.ReplaceByID(
+      Identifier.new().toString(),
+      new UnknownClaim({ id: Identifier.new().toString(), confidence: HighConfidence, prop: { id: Identifier.new().toString() } }),
+    )
+    assert.isUndefined(old)
+  })
+})

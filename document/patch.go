@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"reflect"
 	"slices"
 	"strconv"
 
@@ -27,6 +28,8 @@ func ChangeUnmarshalJSON(data []byte) (Change, errors.E) { //nolint:ireturn
 		return changeUnmarshalJSON[AddClaimChange](data)
 	case "set":
 		return changeUnmarshalJSON[SetClaimChange](data)
+	case "cast":
+		return changeUnmarshalJSON[CastClaimChange](data)
 	case "remove":
 		return changeUnmarshalJSON[RemoveClaimChange](data)
 	default:
@@ -39,7 +42,7 @@ func ChangeUnmarshalJSON(data []byte) (Change, errors.E) { //nolint:ireturn
 // ChangeMarshalJSON marshals a Change to JSON bytes.
 func ChangeMarshalJSON(change Change) ([]byte, errors.E) {
 	switch change.(type) {
-	case AddClaimChange, SetClaimChange, RemoveClaimChange:
+	case AddClaimChange, SetClaimChange, CastClaimChange, RemoveClaimChange:
 	default:
 		errE := errors.New("change type not supported")
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", change)
@@ -195,6 +198,7 @@ type Change interface {
 var (
 	_ Change = AddClaimChange{}
 	_ Change = SetClaimChange{}
+	_ Change = CastClaimChange{}
 	_ Change = RemoveClaimChange{}
 )
 
@@ -498,6 +502,100 @@ func (c RemoveClaimChange) MarshalJSON() ([]byte, error) {
 		C: C(c),
 
 		Type: "remove",
+	}
+	return x.MarshalWithoutEscapeHTML(t)
+}
+
+// CastClaimChange represents a change that changes the type of an existing claim while
+// preserving its ID and its sub-claims. The patch must be a complete patch of the new type:
+// it fully replaces the claim's value, property, and confidence. The new type must differ
+// from the current type; use SetClaimChange to modify a claim of the same type.
+//
+//nolint:recvcheck
+type CastClaimChange struct {
+	ID    identifier.Identifier `json:"id"`
+	Patch ClaimPatch            `json:"patch"`
+}
+
+// Apply applies the cast claim change to the document.
+func (c CastClaimChange) Apply(doc *D) errors.E {
+	claim := doc.GetByID(c.ID)
+	if claim == nil {
+		errE := errors.New("claim not found")
+		errors.Details(errE)["id"] = c.ID
+		return errE
+	}
+	newClaim, errE := c.Patch.New(c.ID)
+	if errE != nil {
+		return errE
+	}
+	if reflect.TypeOf(claim) == reflect.TypeOf(newClaim) {
+		errE := errors.New("cast does not change claim type")
+		errors.Details(errE)["id"] = c.ID
+		return errE
+	}
+	// Preserve the existing sub-claims on the new claim.
+	newClaim.SetSub(claim.GetSub())
+	errE = newClaim.Validate()
+	if errE != nil {
+		return errE
+	}
+	_, errE = doc.ReplaceByID(c.ID, newClaim)
+	return errE
+}
+
+// Validate validates the cast claim change.
+func (c CastClaimChange) Validate(_ []string, _ int64) errors.E {
+	// A cast carries a complete patch of the new type, so completeness is checked here by
+	// constructing the claim. The target claim (its existence and that the type actually
+	// changes) is checked by Apply, which needs access to the document.
+	newClaim, errE := c.Patch.New(c.ID)
+	if errE != nil {
+		return errE
+	}
+	return newClaim.Validate()
+}
+
+// UnmarshalJSON implements json.Unmarshaler for CastClaimChange.
+func (c *CastClaimChange) UnmarshalJSON(data []byte) error {
+	// We define a new type to not recurse into this same UnmarshalJSON.
+	type C CastClaimChange
+	var t struct {
+		C
+
+		Type  string          `json:"type"`
+		Patch json.RawMessage `json:"patch"`
+	}
+	errE := x.UnmarshalWithoutUnknownFields(data, &t)
+	if errE != nil {
+		return errE
+	}
+	if t.Type != "cast" {
+		errE := errors.New("invalid type")
+		errors.Details(errE)["type"] = t.Type
+		return errE
+	}
+	patch, errE := ClaimPatchUnmarshalJSON(t.Patch)
+	if errE != nil {
+		return errE
+	}
+	c.ID = t.ID
+	c.Patch = patch
+	return nil
+}
+
+// MarshalJSON implements json.Marshaler for CastClaimChange.
+func (c CastClaimChange) MarshalJSON() ([]byte, error) {
+	// We define a new type to not recurse into this same MarshalJSON.
+	type C CastClaimChange
+	t := struct {
+		C
+
+		Type string `json:"type"`
+	}{
+		C: C(c),
+
+		Type: "cast",
 	}
 	return x.MarshalWithoutEscapeHTML(t)
 }

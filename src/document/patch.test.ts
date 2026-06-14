@@ -11,6 +11,7 @@ import {
   AmountClaimPatch,
   AmountIntervalClaim,
   AmountIntervalClaimPatch,
+  CastClaimChange,
   Changes,
   D,
   HasClaimPatch,
@@ -34,6 +35,7 @@ import {
   TimeIntervalClaim,
   TimeIntervalClaimPatch,
   UnknownClaimPatch,
+  changeFrom,
 } from "@/document"
 
 describe("patch New and Apply", () => {
@@ -383,6 +385,77 @@ describe("SetClaimChange", () => {
       patch: { type: "string", string: "x" },
     })
     await expect(setChange.Apply(doc)).rejects.toThrow("claim not found")
+  })
+})
+
+describe("CastClaimChange", () => {
+  test("Apply changes type, preserving id and sub-claims", async () => {
+    const base = [Identifier.new().toString()]
+    const prop1 = Identifier.new().toString()
+    const prop2 = Identifier.new().toString()
+    const notesProp = Identifier.new().toString()
+    const target = Identifier.new().toString()
+    const claimID = (await Identifier.from(...base, "1")).toString()
+    const subID = (await Identifier.from(...base, "2")).toString()
+    const doc = new D({ id: (await Identifier.from(...base)).toString(), base })
+
+    // Unknown claim (e.g. studio with an unknown location) with a notes sub-claim.
+    await new Changes(
+      { type: "add", id: claimID, base: [...base, "1"], patch: { type: "unknown", prop: prop1, confidence: 1.0 } },
+      { type: "add", under: claimID, id: subID, base: [...base, "2"], patch: { type: "html", prop: notesProp, html: "<p>notes</p>", confidence: 1.0 } },
+    ).Apply(doc)
+
+    const castChange = new CastClaimChange({
+      type: "cast",
+      id: claimID,
+      patch: { type: "ref", prop: prop2, to: target, confidence: 0.5 },
+    })
+    await castChange.Apply(doc)
+
+    const claim = doc.GetByID(claimID)
+    assert.instanceOf(claim, ReferenceClaim)
+    assert.equal(claim.GetID(), claimID)
+    assert.equal(claim.prop.id, prop2)
+    assert.equal(claim.to.id, target)
+    assert.equal(claim.confidence, 0.5)
+
+    // Sub-claims preserved on the new claim.
+    const sub = claim.GetByID(subID)
+    assert.instanceOf(sub, HTMLClaim)
+    assert.equal(sub.html, "<p>notes</p>")
+  })
+
+  test("Apply rejects a cast that does not change the type", async () => {
+    const base = [Identifier.new().toString()]
+    const prop = Identifier.new().toString()
+    const target = Identifier.new().toString()
+    const claimID = (await Identifier.from(...base, "1")).toString()
+    const doc = new D({ id: (await Identifier.from(...base)).toString(), base })
+    await new Changes({ type: "add", id: claimID, base: [...base, "1"], patch: { type: "ref", prop, to: target, confidence: 1.0 } }).Apply(doc)
+
+    const castChange = new CastClaimChange({ type: "cast", id: claimID, patch: { type: "ref", prop, to: target, confidence: 1.0 } })
+    await expect(castChange.Apply(doc)).rejects.toThrow("cast does not change claim type")
+  })
+
+  test("Apply throws for non-existent ID", async () => {
+    const base = [Identifier.new().toString()]
+    const doc = new D({ id: (await Identifier.from(...base)).toString(), base })
+    const castChange = new CastClaimChange({ type: "cast", id: Identifier.new().toString(), patch: { type: "unknown", prop: Identifier.new().toString(), confidence: 1.0 } })
+    await expect(castChange.Apply(doc)).rejects.toThrow("claim not found")
+  })
+
+  test("Validate rejects an incomplete patch", async () => {
+    const castChange = new CastClaimChange({ type: "cast", id: Identifier.new().toString(), patch: { type: "ref" } })
+    await expect(castChange.Validate([], 1)).rejects.toThrow()
+  })
+
+  test("changeFrom round-trips a cast", () => {
+    const id = Identifier.new().toString()
+    const prop = Identifier.new().toString()
+    const to = Identifier.new().toString()
+    const change = changeFrom({ type: "cast", id, patch: { type: "ref", prop, to, confidence: 1.0 } })
+    assert.instanceOf(change, CastClaimChange)
+    assert.equal(change.id, id)
   })
 })
 

@@ -49,6 +49,10 @@ export class D extends CoreDocument implements ClaimsContainer {
     return this.claims.RemoveByID(id)
   }
 
+  ReplaceByID(id: string, newClaim: Claim): Claim | undefined {
+    return this.claims.ReplaceByID(id, newClaim)
+  }
+
   Add(claim: Claim): void {
     this.claims.Add(claim)
   }

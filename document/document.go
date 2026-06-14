@@ -128,6 +128,16 @@ func (d *D) Add(claim Claim) errors.E {
 	return d.Claims.Add(claim)
 }
 
+// ReplaceByID replaces the claim with the given ID with newClaim, preserving the
+// collection it was found in, and returns the replaced claim (or nil if no claim with the
+// ID exists).
+func (d *D) ReplaceByID(id identifier.Identifier, newClaim Claim) (Claim, errors.E) { //nolint:ireturn
+	if d.Claims == nil {
+		return nil, nil //nolint:nilnil
+	}
+	return d.Claims.ReplaceByID(id, newClaim)
+}
+
 // Size returns the total number of claims in the document.
 //
 // It does not count sub-claims; use SizeWithSub for that.

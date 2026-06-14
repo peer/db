@@ -28,6 +28,8 @@ type Claim interface {
 
 	GetConfidence() Confidence
 	GetProp() Reference
+	GetSub() *ClaimTypes
+	SetSub(sub *ClaimTypes)
 }
 
 // Claims is the interface for types that hold and manipulate a collection of claims.
@@ -466,6 +468,38 @@ func (c *ClaimTypes) RemoveByID(id identifier.Identifier) Claim { //nolint:iretu
 	return v.Result
 }
 
+// findContainer returns the ClaimTypes that directly holds the claim with the given ID
+// (this ClaimTypes, or recursively one of its sub-claim collections), or nil if no claim
+// with that ID exists.
+func (c *ClaimTypes) findContainer(id identifier.Identifier) *ClaimTypes {
+	if c == nil {
+		return nil
+	}
+	for claim := range c.AllClaims() {
+		if claim.GetID() == id {
+			return c
+		}
+		if found := claim.GetSub().findContainer(id); found != nil {
+			return found
+		}
+	}
+	return nil
+}
+
+// ReplaceByID replaces the claim with the given ID with newClaim, in the same collection
+// (top-level or nested under a parent) where the original claim was found. Sub-claims are
+// not transferred to newClaim; the caller handles any sub-claim preservation. It returns
+// the replaced claim, or nil if no claim with the given ID was found.
+func (c *ClaimTypes) ReplaceByID(id identifier.Identifier, newClaim Claim) (Claim, errors.E) { //nolint:ireturn
+	container := c.findContainer(id)
+	if container == nil {
+		return nil, nil //nolint:nilnil
+	}
+	old := container.RemoveByID(id)
+	errE := container.Add(newClaim)
+	return old, errE
+}
+
 // Size returns the total number of claims across all types.
 func (c *ClaimTypes) Size() int {
 	if c == nil {
@@ -610,6 +644,16 @@ func (cc *CoreClaim) GetID() identifier.Identifier {
 // GetConfidence returns the claim's confidence score.
 func (cc *CoreClaim) GetConfidence() Confidence {
 	return cc.Confidence
+}
+
+// GetSub returns the claim's sub-claims, or nil if there are none.
+func (cc *CoreClaim) GetSub() *ClaimTypes {
+	return cc.Sub
+}
+
+// SetSub sets the claim's sub-claims.
+func (cc *CoreClaim) SetSub(sub *ClaimTypes) {
+	cc.Sub = sub
 }
 
 // Validate checks that the claim has valid confidence and that sub-claims are valid.

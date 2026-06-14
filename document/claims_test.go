@@ -140,6 +140,59 @@ func TestCoreClaimMethods(t *testing.T) {
 	assert.Empty(t, removed)
 }
 
+// TestClaimTypesReplaceByID tests that ReplaceByID swaps a claim in place, preserving the
+// collection (top-level or nested under a parent) it was found in.
+func TestClaimTypesReplaceByID(t *testing.T) {
+	t.Parallel()
+
+	prop := identifier.New()
+	topID := identifier.New()
+	subID := identifier.New()
+
+	ct := &document.ClaimTypes{} //nolint:exhaustruct
+	top := &document.HasClaim{
+		CoreClaim: document.CoreClaim{ID: topID, Confidence: 1.0}, //nolint:exhaustruct
+		Prop:      document.Reference{ID: prop},
+	}
+	require.NoError(t, ct.Add(top))
+	sub := &document.StringClaim{
+		CoreClaim: document.CoreClaim{ID: subID, Confidence: 1.0}, //nolint:exhaustruct
+		Prop:      document.Reference{ID: prop},
+		String:    "x",
+	}
+	require.NoError(t, ct.GetByID(topID).Add(sub))
+
+	// Replace the nested sub-claim with a different type.
+	newSub := &document.UnknownClaim{
+		CoreClaim: document.CoreClaim{ID: subID, Confidence: 1.0}, //nolint:exhaustruct
+		Prop:      document.Reference{ID: prop},
+	}
+	old, errE := ct.ReplaceByID(subID, newSub)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotNil(t, old)
+	_, ok := old.(*document.StringClaim)
+	assert.True(t, ok, "replaced claim returned, got %T", old)
+
+	// The replacement stays nested under top, not promoted to the top level.
+	topLevel := slices.Collect(ct.AllClaims())
+	require.Len(t, topLevel, 1)
+	assert.Equal(t, topID, topLevel[0].GetID())
+
+	nested := ct.GetByID(topID).GetByID(subID)
+	require.NotNil(t, nested)
+	_, ok = nested.(*document.UnknownClaim)
+	assert.True(t, ok, "expected *UnknownClaim nested under top, got %T", nested)
+
+	// Replacing a non-existent ID returns nil without error.
+	missing := &document.NoneClaim{
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, //nolint:exhaustruct
+		Prop:      document.Reference{ID: prop},
+	}
+	old, errE = ct.ReplaceByID(identifier.New(), missing)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Nil(t, old)
+}
+
 // TestDocumentWithAllClaimTypes exercises all 12 claim types in a document with all visitor methods.
 func TestDocumentWithAllClaimTypes(t *testing.T) {
 	t.Parallel()

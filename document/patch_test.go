@@ -844,6 +844,111 @@ func TestRemoveClaimChange(t *testing.T) {
 	assert.EqualError(t, errE, "claim not found")
 }
 
+// TestCastClaimChange tests CastClaimChange Apply, Validate, and JSON roundtrip.
+func TestCastClaimChange(t *testing.T) {
+	t.Parallel()
+
+	base := []string{"TqtRsbk7rTKviW3TJapTim"}
+	docID := identifier.From(base...)
+	claimID := identifier.From(base[0], "0")
+	subID := identifier.From(base[0], "1")
+	prop1 := identifier.New()
+	prop2 := identifier.New()
+	notesProp := identifier.New()
+	target := identifier.New()
+	confidence := document.Confidence(1.0)
+
+	doc := &document.D{ //nolint:exhaustruct
+		CoreDocument: document.CoreDocument{ID: docID, Base: base},
+	}
+
+	// Add an UnknownClaim (e.g. studio with an unknown location).
+	addUnknown := document.AddClaimChange{ //nolint:exhaustruct
+		ID:    claimID,
+		Base:  []string{base[0], "0"},
+		Patch: document.UnknownClaimPatch{Confidence: &confidence, Prop: &prop1},
+	}
+	errE := addUnknown.Apply(doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Add a sub-claim (notes) under the unknown claim.
+	addSub := document.AddClaimChange{ //nolint:exhaustruct
+		Under: &claimID,
+		ID:    subID,
+		Base:  []string{base[0], "1"},
+		Patch: document.HTMLClaimPatch{Confidence: &confidence, Prop: &notesProp, HTML: "<p>notes</p>"},
+	}
+	errE = addSub.Apply(doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Cast unknown -> reference: a full patch with a new property, value, and confidence.
+	newConf := document.Confidence(0.5)
+	castChange := document.CastClaimChange{
+		ID:    claimID,
+		Patch: document.ReferenceClaimPatch{Confidence: &newConf, Prop: &prop2, To: &target},
+	}
+
+	// Validate accepts a complete patch.
+	errE = castChange.Validate(base, 0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// JSON roundtrip.
+	changes := document.Changes{castChange}
+	out, errE := x.MarshalWithoutEscapeHTML(changes)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Contains(t, string(out), `"type":"cast"`)
+
+	var changes2 document.Changes
+	errE = x.UnmarshalWithoutUnknownFields(out, &changes2)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, changes, changes2)
+
+	// Apply changes the claim's type, preserving id and sub-claims.
+	errE = castChange.Apply(doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	result := doc.GetByID(claimID)
+	require.NotNil(t, result)
+	ref, ok := result.(*document.ReferenceClaim)
+	require.True(t, ok, "expected *ReferenceClaim, got %T", result)
+	assert.Equal(t, claimID, ref.ID, "id preserved")
+	assert.Equal(t, prop2, ref.Prop.ID, "property changed")
+	assert.Equal(t, target, ref.To.ID, "new value")
+	assert.Equal(t, newConf, ref.Confidence, "new confidence")
+
+	// Sub-claims preserved.
+	require.NotNil(t, ref.Sub)
+	sub := ref.Sub.GetByID(subID)
+	require.NotNil(t, sub)
+	htmlSub, ok := sub.(*document.HTMLClaim)
+	require.True(t, ok, "expected *HTMLClaim, got %T", sub)
+	assert.Equal(t, "<p>notes</p>", htmlSub.HTML)
+
+	// A cast that does not change the type is rejected.
+	castSameType := document.CastClaimChange{
+		ID:    claimID,
+		Patch: document.ReferenceClaimPatch{Confidence: &newConf, Prop: &prop2, To: &target},
+	}
+	errE = castSameType.Apply(doc)
+	assert.EqualError(t, errE, "cast does not change claim type")
+
+	// Apply on a non-existent claim returns an error.
+	castNotFound := document.CastClaimChange{
+		ID:    identifier.New(),
+		Patch: document.UnknownClaimPatch{Confidence: &confidence, Prop: &prop1},
+	}
+	errE = castNotFound.Apply(doc)
+	assert.EqualError(t, errE, "claim not found")
+
+	// Validate rejects an incomplete patch.
+	castIncomplete := document.CastClaimChange{
+		ID:    claimID,
+		Patch: document.ReferenceClaimPatch{}, //nolint:exhaustruct
+	}
+	errE = castIncomplete.Validate(base, 0)
+	assert.Error(t, errE)
+}
+
 // TestClaimPatchMarshalUnmarshalJSON tests ClaimPatchMarshalJSON and ClaimPatchUnmarshalJSON.
 func TestClaimPatchMarshalUnmarshalJSON(t *testing.T) {
 	t.Parallel()

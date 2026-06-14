@@ -41,6 +41,7 @@ export {
   AddClaimChange,
   AmountClaimPatch,
   AmountIntervalClaimPatch,
+  CastClaimChange,
   Changes,
   HTMLClaimPatch,
   HasClaimPatch,

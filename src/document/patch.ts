@@ -33,6 +33,8 @@ export function changeFrom(obj: object): Change {
       return new AddClaimChange(obj)
     case "set":
       return new SetClaimChange(obj)
+    case "cast":
+      return new CastClaimChange(obj)
     case "remove":
       return new RemoveClaimChange(obj)
   }
@@ -261,6 +263,57 @@ export class SetClaimChange implements Change {
     // Patches in set changes can be partial, so only the fields which are set are
     // checked here. The full result is validated by Apply when the session completes.
     this.patch.Validate()
+  }
+}
+
+// CastClaimChange represents a change that changes the type of an existing claim while
+// preserving its id and its sub-claims. The patch must be a complete patch of the new type
+// (it fully replaces the claim's value, property, and confidence). The new type must differ
+// from the current type; use SetClaimChange to modify a claim of the same type.
+export class CastClaimChange implements Change {
+  type: "cast"
+  id!: string
+  patch!: ClaimPatch
+
+  constructor(obj: object) {
+    if ("type" in obj && obj.type !== "cast") {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      throw new Error(`invalid type: ${obj.type}`)
+    }
+    this.type = "cast"
+    Object.assign(this, obj)
+    this.patch = claimPatchFrom(this.patch)
+
+    if (!this.id) {
+      throw new Error("id is required")
+    }
+    if (!this.patch) {
+      throw new Error("patch is required")
+    }
+  }
+
+  // Apply applies the cast claim change to the document.
+  async Apply(doc: D): Promise<void> {
+    const claim = doc.GetByID(this.id)
+    if (!claim) {
+      throw new Error(`claim not found: ${this.id}`)
+    }
+    const newClaim = this.patch.New(this.id)
+    if (claim.constructor === newClaim.constructor) {
+      throw new Error("cast does not change claim type")
+    }
+    // Preserve the existing sub-claims on the new claim.
+    newClaim.sub = claim.sub
+    await newClaim.Validate()
+    doc.ReplaceByID(this.id, newClaim)
+  }
+
+  // Validate validates the cast claim change.
+  async Validate(base: string[], operation: number): Promise<void> {
+    // A cast carries a complete patch of the new type, so completeness is checked here by
+    // constructing the claim. The target claim (its existence and that the type actually
+    // changes) is checked by Apply.
+    await this.patch.New(this.id).Validate()
   }
 }
 
