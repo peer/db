@@ -156,10 +156,7 @@ const singleValueState = computed({
       id: props.filter?.id ?? "",
       base: props.filter?.base ?? [],
       prop: props.filter?.prop ?? [...props.result.props],
-      amount:
-        value && from.value !== null && to.value !== null
-          ? { unit: props.result.unit, gte: from.value, lte: to.value }
-          : { unit: props.result.unit },
+      amount: value && from.value !== null && to.value !== null ? { unit: props.result.unit, gte: from.value, lte: to.value } : { unit: props.result.unit },
     }
     if (!equals(props.filter, updatedFilter)) {
       emit("filterUpdate", updatedFilter.id, updatedFilter)
@@ -299,9 +296,7 @@ onBeforeUnmount(() => {
             :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             >{{ results[0].from }}</label
           >
-          <label
-            :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/value'"
-            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/value'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             >({{ results[0].count }})</label
           >
         </div>
@@ -338,14 +333,10 @@ onBeforeUnmount(() => {
       <li v-if="(total === 0 && result.count > 0) || existsState" class="contents">
         <CheckBox :id="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/exists'" v-model="existsState" />
         <div class="flex items-baseline gap-x-1">
-          <label
-            :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/exists'"
-            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/exists'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             ><i>{{ t("common.values.exists") }}</i></label
           >
-          <label
-            :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/exists'"
-            :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+          <label :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/exists'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             >({{ result.count }})</label
           >
         </div>

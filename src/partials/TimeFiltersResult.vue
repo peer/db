@@ -363,9 +363,7 @@ onBeforeUnmount(() => {
           <label :for="'time/' + result.props.join('/') + '/exists'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             ><i>{{ t("common.values.exists") }}</i></label
           >
-          <label :for="'time/' + result.props.join('/') + '/exists'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-            >({{ result.count }})</label
-          >
+          <label :for="'time/' + result.props.join('/') + '/exists'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ result.count }})</label>
         </div>
       </li>
       <li v-if="(missingCount != null && missingCount > 0) || missingState" class="contents">
