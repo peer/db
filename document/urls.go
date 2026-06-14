@@ -49,7 +49,9 @@ func validateURL(value string, allowMailto bool) errors.E {
 		}
 	case "mailto":
 		if !allowMailto {
-			return errors.Errorf("disallowed URL scheme: %s", u.Scheme)
+			errE := errors.New("disallowed URL scheme")
+			errors.Details(errE)["scheme"] = u.Scheme
+			return errE
 		}
 		// url.Parse accepts "mailto:" with no address (empty Opaque); reject it.
 		if u.Opaque == "" {
@@ -58,7 +60,9 @@ func validateURL(value string, allowMailto bool) errors.E {
 	case "":
 		return errors.New("invalid URL")
 	default:
-		return errors.Errorf("disallowed URL scheme: %s", u.Scheme)
+		errE := errors.New("disallowed URL scheme")
+		errors.Details(errE)["scheme"] = u.Scheme
+		return errE
 	}
 	return nil
 }

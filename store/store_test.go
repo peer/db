@@ -2575,7 +2575,7 @@ func TestConcurrentUpdateExistingMetadata(t *testing.T) {
 		case errors.Is(errE, store.ErrRevisionMismatch):
 			mismatchOrRetry++
 		default:
-			t.Errorf("unexpected error from concurrent UpdateExistingMetadata: % -+#.1v", errE)
+			require.NoError(t, errE, "% -+#.1v", errE)
 		}
 	}
 	wg.Go(func() { bump("a") })
