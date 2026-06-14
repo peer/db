@@ -86,6 +86,11 @@ export default defineConfig({
       output: {
         preserveModules: true,
         preserveModulesRoot: "src",
+        // The Vue plugin gives split SFC blocks module ids carrying a query string (Foo.vue?vue&type=script&setup=true&lang.js). Under preserveModules the Vite bundler
+        // (Rolldown) would otherwise emit those query characters verbatim into filenames, which a consumer's bundler then parses as a "?query" and fails to resolve.
+        // Sanitizing the query characters to plain .js names keeps the per-module output consumable. Rolldown rewrites the importing modules to match the returned names.
+        entryFileNames: (info) => `${info.name.replace(/[?&=]/g, "_")}.js`,
+        chunkFileNames: (info) => `${info.name.replace(/[?&=]/g, "_")}.js`,
       },
       preserveEntrySignatures: "strict",
     },
