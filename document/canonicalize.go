@@ -25,9 +25,11 @@ var SchemaJSON []byte
 var htmlSchema = mustHTMLSchema()
 
 func mustHTMLSchema() *model.Schema {
-	schema, errE := model.NewSchema(SchemaJSON, map[string]model.AttrValidator{
-		"linkURL":     namedURLValidator("linkURL", linkHrefPattern),
-		"resourceURL": namedURLValidator("resourceURL", resourceURLPattern),
+	schema, errE := model.NewSchema(SchemaJSON, model.SchemaCallbacks{
+		Validators: map[string]model.AttrValidator{
+			"linkURL":     namedURLValidator("linkURL", linkHrefPattern),
+			"resourceURL": namedURLValidator("resourceURL", resourceURLPattern),
+		},
 	})
 	if errE != nil {
 		panic(errE)
@@ -103,4 +105,12 @@ func IsCanonicalHTML(input string) (bool, errors.E) {
 // should be made.
 func IsEmptyHTML(canonical string) bool {
 	return canonical == canonicalEmptyHTML
+}
+
+// ParseHTML parses HTML into an editor document using the editor schema (and the same parse options
+// as CanonicalizeHTML). It lets callers walk the structured document, for example to extract its
+// text with Node.TextBetween, instead of re-tokenizing the HTML string. Disallowed content is
+// dropped by the schema, so the result is sanitized.
+func ParseHTML(input string) (*model.Node, errors.E) {
+	return model.ParseHTML(htmlSchema, input, htmlParseOptions)
 }

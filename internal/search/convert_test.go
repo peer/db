@@ -2230,77 +2230,88 @@ func TestVisitIdentifierMissingPropError(t *testing.T) {
 func TestStripHTML(t *testing.T) {
 	t.Parallel()
 
+	// stripDoc extracts text from the editor document a claim's HTML parses into. Real claim.HTML is
+	// validated-canonical, but the parse (document.ParseHTML) handles arbitrary HTML too: it
+	// canonicalizes the input first, so disallowed inline elements (img, an unknown tag, an anchor with
+	// an invalid href) are dropped and their text merges with neighbors, disallowed block elements (div)
+	// still bound blocks, and whitespace runs are preserved while HTML whitespace at the ends is trimmed.
+	// canonical records whether the input is already canonical (true for realistic editor output) and is
+	// asserted.
 	tests := []struct {
-		name string
-		in   string
-		want string
+		name      string
+		in        string
+		want      string
+		canonical bool
 	}{
-		// Baseline.
-		{"plain text", "hello world", "hello world"},
-		{"empty", "", ""},
-		{"tags only", "<br/><br/>", ""},
-		{"single block element", "<p>hello</p>", "hello"},
+		// Canonical editor HTML: separate block nodes are joined by a single space, inline marks
+		// concatenate, a hard break becomes a space, and end whitespace is trimmed.
+		{"empty document", "<p></p>", "", true},
+		{"single paragraph", "<p>hello world</p>", "hello world", true},
+		{"adjacent paragraphs are separated", "<p>hello</p><p>world</p>", "hello world", true},
+		{"heading and paragraph are separated", "<h1>Title</h1><p>body</p>", "Title body", true},
+		{"hard break becomes a space", "<p>foo<br>bar</p>", "foo bar", true},
+		{"blockquote text is separated", "<p>intro</p><blockquote><p>quoted</p></blockquote><p>outro</p>", "intro quoted outro", true},
+		{"list items are separated", "<ul><li><p>foo</p></li><li><p>bar</p></li></ul>", "foo bar", true},
+		{"preformatted keeps inner whitespace", "<pre>a  b</pre>", "a  b", true},
+		{"inline marks concatenate", "<p>foo<b>bar</b><i>baz</i></p>", "foobarbaz", true},
+		{"link text concatenates", `<p>text<a href="/x">link</a>more</p>`, "textlinkmore", true},
+		{"inline-only paragraphs are separated", "<p><b>foo</b><i>bar</i></p><p><b>baz</b></p>", "foobar baz", true},
+		{"inner whitespace is preserved", "<p>foo  bar</p>", "foo  bar", true},
+		{"leading and trailing whitespace is trimmed", "<p> foo </p>", "foo", true},
+		{"unicode text is preserved", "<p>Drago Tršar</p>", "Drago Tršar", true},
 
-		// Block tags insert a single space between text fragments.
-		{"adjacent paragraphs", "<p>hello</p><p>world</p>", "hello world"},
-		{"line break splits", "foo<br>bar", "foo bar"},
-		{"horizontal rule splits", "foo<hr>bar", "foo bar"},
-		{"list items split", "<ul><li>foo</li><li>bar</li></ul>", "foo bar"},
-		{"heading and paragraph", "<h1>Title</h1><p>body</p>", "Title body"},
-		{"blockquote splits", "intro<blockquote>quoted</blockquote>outro", "intro quoted outro"},
-		{"pre splits", "before<pre>code</pre>after", "before code after"},
+		// Arbitrary input: parsing wraps bare content and canonicalizes the structure, but the text
+		// survives. These are the old defensive cases, with the outputs the parse-based path produces.
+		{"bare text is wrapped into a block", "hello world", "hello world", false},
+		{"empty input", "", "", false},
+		{"only hard breaks carry no text", "<br><br>", "", false},
+		{"hard break on bare text becomes a space", "foo<br>bar", "foo bar", false},
+		{"horizontal rule separates bare text", "foo<hr>bar", "foo bar", false},
+		{"list items without paragraphs are separated", "<ul><li>foo</li><li>bar</li></ul>", "foo bar", false},
+		{"blockquote on bare text is separated", "intro<blockquote>quoted</blockquote>outro", "intro quoted outro", false},
+		{"preformatted on bare text is separated", "before<pre>code</pre>after", "before code after", false},
+		{"whitespace between blocks is dropped", "<p>foo</p>   <p>bar</p>", "foo bar", false},
 
-		// Inline tags do NOT insert a space: text fragments are concatenated.
-		{"inline anchor", `foo<a href="">bar</a>`, "foobar"},
-		{"inline bold then italic", "<b>foo</b><i>bar</i>", "foobar"},
-		{"inline strike, tt, u", "<strike>a</strike><tt>b</tt><u>c</u>", "abc"},
-		{"img is not allowed by the sanitizer, so it separates like unknown tags", `text<img src="x" alt="y"/>more`, "text more"},
-		{"inline inside block", "<p>foo<b>bar</b></p>", "foobar"},
-		{"block surrounding inline-only run", "<p><b>foo</b><i>bar</i></p><p><b>baz</b></p>", "foobar baz"},
+		// Disallowed and unknown elements are stripped on parsing. A dropped inline element lets its
+		// neighbors merge (no separator); a block-level one still bounds blocks.
+		{"image is dropped and neighboring text merges", `text<img src="x" alt="y">more`, "textmore", false},
+		{"an empty href drops the link, keeping the text", `foo<a href="">bar</a>`, "foobar", false},
+		{"an anchor without href keeps its text", "foo<a>bar</a>", "foobar", false},
+		{"bare inline marks concatenate", "<b>foo</b><i>bar</i>", "foobar", false},
+		{"bare strike, tt, u concatenate", "<strike>a</strike><tt>b</tt><u>c</u>", "abc", false},
+		{"link concatenated to bare text", `text<a href="/x">link</a>more`, "textlinkmore", false},
+		{"mixed inline run with link", `<b>Drago</b> <a href="/x">Tršar</a>`, "Drago Tršar", false},
+		{"unknown inline tag is transparent and text merges", "foo<unknown>bar</unknown>baz", "foobarbaz", false},
+		{"unknown inline element between marks merges", "<b>foo</b><span>bar</span><i>baz</i>", "foobarbaz", false},
+		{"unknown block elements are separated", "<div>foo</div><div>bar</div>", "foo bar", false},
+		{"unknown block wrapping an inline run merges", "<div><b>foo</b><i>bar</i></div>", "foobar", false},
+		{"unknown block keeps an inner space", "<div><b>foo</b> <i>bar</i></div>", "foo bar", false},
 
-		// Whitespace-only text tokens between tags do not add their own space;
-		// the block tag still provides the single separator.
-		{"whitespace between blocks collapses", "<p>foo</p>   <p>bar</p>", "foo bar"},
-		{"inner whitespace preserved", "<p>foo bar</p>", "foo bar"},
-
-		// Per HTML spec, vertical tab (\v) and NBSP are NOT whitespace, so
-		// they should not be trimmed or treated as separator-only tokens.
-		{"vertical tab is content not whitespace", "   \v   ", "\v"},
-		{"vertical tab between blocks is content", "<p>foo</p>\v<p>bar</p>", "foo \v bar"},
-		{"nbsp is content not whitespace", "     ", " "},
-
-		// Source-side whitespace adjacent to an inline tag is significant: it's
-		// the only signal that visually-rendered text had a gap.
-		{"whitespace before inline", "foo<a>bar</a>", "foobar"},
-		{"whitespace between inline elements", "<b>foo</b> <i>bar</i>", "foo bar"},
-		{"trailing whitespace before inline tag", "foo  <a>bar</a>", "foo bar"},
-		{"leading whitespace inside inline tag", "foo<a>  bar</a>", "foo bar"},
-
-		// Real-world-ish: a sanitizer-shaped fragment with mixed inline.
-		{"mixed inline run with link", `<b>Drago</b> <a href="x">Tršar</a>`, "Drago Tršar"},
-		{"link concatenated to text", `text<a href="">link</a>more`, "textlinkmore"},
-
-		// Unknown tags default to inserting a space (block-like). The
-		// sanitizer normally strips these, but on raw input we prefer
-		// over-tokenizing to silently merging unrelated words.
-		{"unknown tag splits adjacent text", "foo<unknown>bar</unknown>baz", "foo bar baz"},
-		{"unknown tag between inline runs", "<b>foo</b><span>bar</span><i>baz</i>", "foo bar baz"},
-		{"adjacent unknown blocks split", "<div>foo</div><div>bar</div>", "foo bar"},
-		{"unknown wrapper around inline run", "<div><b>foo</b><i>bar</i></div>", "foobar"},
-		{"unknown wrapper with whitespace", "<div><b>foo</b> <i>bar</i></div>", "foo bar"},
+		// Whitespace: runs around inline tags are preserved; HTML whitespace at the ends is trimmed;
+		// vertical tab and non-breaking space are content, not HTML whitespace.
+		{"space between inline marks is kept", "<b>foo</b> <i>bar</i>", "foo bar", false},
+		{"a space run before an inline tag is preserved", "foo  <a>bar</a>", "foo  bar", false},
+		{"a space run inside an inline tag is preserved", "foo<a>  bar</a>", "foo  bar", false},
+		{"vertical tab is content, surrounding spaces trimmed", "   \v   ", "\v", false},
+		{"vertical tab between blocks is content", "<p>foo</p>\v<p>bar</p>", "foo \v bar", false},
+		{"non-breaking spaces are content, not trimmed", "   ", "   ", false},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tc.want, stripHTML(tc.in, document.UndeterminedLanguage))
+			canonical, errE := document.IsCanonicalHTML(tc.in)
+			require.NoError(t, errE, "% -+#.1v", errE)
+			assert.Equal(t, tc.canonical, canonical, "IsCanonicalHTML")
+			doc, errE := document.ParseHTML(tc.in)
+			require.NoError(t, errE, "% -+#.1v", errE)
+			assert.Equal(t, tc.want, stripDoc(doc, document.UndeterminedLanguage))
 		})
 	}
 }
 
-// TestStripHTMLNoBlockSpace exercises the no-block-space language branch by
-// temporarily adding a synthetic language code to noBlockSpaceLanguages. It
-// cannot run in parallel because it mutates a package-level map; for the same
-// reason no other tests should mutate this map.
+// TestStripHTMLNoBlockSpace exercises the no-block-space language branch by temporarily adding a
+// synthetic language code to noBlockSpaceLanguages. It cannot run in parallel because it mutates a
+// package-level map; for the same reason no other tests should mutate this map.
 //
 //nolint:paralleltest
 func TestStripHTMLNoBlockSpace(t *testing.T) {
@@ -2310,26 +2321,32 @@ func TestStripHTMLNoBlockSpace(t *testing.T) {
 	t.Cleanup(func() { delete(noBlockSpaceLanguages, fakeLang) })
 
 	tests := []struct {
-		name string
-		in   string
-		want string
+		name      string
+		in        string
+		want      string
+		canonical bool
 	}{
-		// Block tags do NOT insert a space for no-block-space languages.
-		{"adjacent paragraphs concatenate", "<p>foo</p><p>bar</p>", "foobar"},
-		{"line break does not split", "foo<br>bar", "foobar"},
-		{"unknown tag does not split", "foo<div>bar</div>baz", "foobarbaz"},
-		// Inline tags still concatenate (unchanged from the default branch).
-		{"inline still concatenates", `foo<a href="">bar</a>`, "foobar"},
-		// Source whitespace inside text tokens IS still preserved. The
-		// language switch only changes the implicit-block-separator behavior,
-		// not literal whitespace the author wrote.
-		{"explicit whitespace preserved", "<p>foo</p> <p>bar</p>", "foo bar"},
-		{"inner whitespace preserved", "<p>foo bar</p>", "foo bar"},
+		// Block and hard-break boundaries do not insert a space for no-block-space languages, including
+		// for arbitrary input that parses to separate blocks.
+		{"adjacent paragraphs concatenate", "<p>foo</p><p>bar</p>", "foobar", true},
+		{"hard break does not split", "<p>foo<br>bar</p>", "foobar", true},
+		{"list items concatenate", "<ul><li><p>foo</p></li><li><p>bar</p></li></ul>", "foobar", true},
+		{"unknown block elements concatenate", "<div>foo</div><div>bar</div>", "foobar", false},
+		{"unknown inline tag still merges", "foo<unknown>bar</unknown>baz", "foobarbaz", false},
+		// Inline marks still concatenate (unchanged from the default branch).
+		{"inline marks still concatenate", `<p>foo<a href="/x">bar</a></p>`, "foobar", true},
+		// Literal whitespace inside a block is still preserved; only the implicit block separator is suppressed.
+		{"inner whitespace is preserved", "<p>foo bar</p>", "foo bar", true},
 	}
 	for _, tc := range tests {
 		//nolint:paralleltest
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.want, stripHTML(tc.in, fakeLang))
+			canonical, errE := document.IsCanonicalHTML(tc.in)
+			require.NoError(t, errE, "% -+#.1v", errE)
+			assert.Equal(t, tc.canonical, canonical, "IsCanonicalHTML")
+			doc, errE := document.ParseHTML(tc.in)
+			require.NoError(t, errE, "% -+#.1v", errE)
+			assert.Equal(t, tc.want, stripDoc(doc, fakeLang))
 		})
 	}
 }

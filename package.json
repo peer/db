@@ -105,7 +105,7 @@
     "@heroicons/vue": "^2.2.0",
     "@sidekickicons/vue": "^0.15.0",
     "@tozd/identifier": "^0.8.2",
-    "@tozd/prosemirror": "^0.1.0",
+    "@tozd/prosemirror": "^0.2.0",
     "esm-seedrandom": "^3.0.5-esm.2",
     "fflate": "^0.8.2",
     "heroicons": "^2.2.0",

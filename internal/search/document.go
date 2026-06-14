@@ -154,8 +154,8 @@ type StringClaim struct {
 }
 
 // HTMLClaim represents a claim with HTML content, indexed as plain text. The HTML is
-// converted to text in Go (stripHTML) before indexing, per language, so each entry holds
-// the plain-text rendering of the claim's HTML for that language.
+// converted to text in Go (parsed, then stripDoc) before indexing, per language, so each
+// entry holds the plain-text rendering of the claim's HTML for that language.
 type HTMLClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`

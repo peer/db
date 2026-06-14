@@ -15,9 +15,9 @@ import (
 	"github.com/pemistahl/lingua-go"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
+	"gitlab.com/tozd/go/prosemirror/model"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
-	"golang.org/x/net/html"
 
 	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/document"
@@ -44,81 +44,36 @@ import (
 //       The Converter precomputes schema structure once at startup. So if a property, class, or
 //       language document changes at runtime, the converter keeps using the stale preprocessed structure.
 
-// inlineHTMLTags is the set of HTML tag names that do NOT produce a visible
-// line/block break in rendered text. Text fragments separated only by these
-// tags are concatenated directly when extracted to plain text. Every other
-// tag (including unknown ones) inserts a single space between adjacent text
-// fragments. The set tracks the inline elements the editor schema allows
-// (the marks in document/schema.json: a, b, i, strike, tt, u).
-var inlineHTMLTags = map[string]bool{ //nolint:gochecknoglobals
-	"a":      true,
-	"b":      true,
-	"i":      true,
-	"strike": true,
-	"tt":     true,
-	"u":      true,
-}
-
 // noBlockSpaceLanguages is the set of language codes whose writing system does
-// not use spaces between words/blocks (CJK, Thai, Lao, ...). For these
-// languages stripHTML concatenates text across non-inline tag boundaries
-// instead of inserting a space, because a stray ASCII space would split a
-// token that the language analyzer treats as a single run. Inline tags behave
-// the same regardless of language.
+// not use spaces between words/blocks (CJK, Thai, Lao, ...). For these languages
+// stripDoc concatenates text across block boundaries (and hard breaks) instead
+// of inserting a space, because a stray ASCII space would split a token that the
+// language analyzer treats as a single run.
 var noBlockSpaceLanguages = map[string]bool{} //nolint:gochecknoglobals
 
-// stripHTML extracts plain text from HTML, inserting a single space between
-// text fragments wherever a separator is implied and concatenating them
-// directly otherwise. Separators are: any non-inline tag, any whitespace-only
-// text token between tags, or leading/trailing whitespace within a text
-// fragment. Only the known inline tags do not insert a separator on their own.
-// Unknown tags default to inserting a space. Non-text tokens (Comment/Doctype)
-// are dropped. Returns "" for input that contains no text.
+// stripDoc extracts the plain text of a parsed editor document, inserting a single space between the
+// text of separate block nodes and rendering a hard break as a space, then trimming leading and
+// trailing HTML whitespace. Which tags are blocks comes from the editor schema (the document the HTML
+// parsed into), not from a hand-maintained tag list.
 //
-// lang is the language code the resulting text will be indexed under. for
-// languages listed in noBlockSpaceLanguages, non-inline tag boundaries do not
-// insert a space (their scripts do not use word spaces).
-func stripHTML(s, lang string) string {
-	insertBlockSpace := !noBlockSpaceLanguages[lang]
-	tokenizer := html.NewTokenizer(strings.NewReader(s))
-	var buf bytes.Buffer
-	needSpace := false
-	for {
-		tt := tokenizer.Next()
-		if tt == html.ErrorToken {
-			return string(bytes.TrimFunc(buf.Bytes(), internalDocument.IsHTMLWhitespace))
-		}
-		switch tt { //nolint:exhaustive
-		case html.StartTagToken, html.EndTagToken, html.SelfClosingTagToken:
-			name, _ := tokenizer.TagName()
-			if insertBlockSpace && !inlineHTMLTags[string(name)] {
-				needSpace = true
-			}
-		case html.TextToken:
-			raw := tokenizer.Text()
-			if len(raw) == 0 {
-				continue
-			}
-			text := bytes.TrimFunc(raw, internalDocument.IsHTMLWhitespace)
-			if len(text) == 0 {
-				// Whitespace-only text between tags signals a separator
-				// without emitting anything.
-				needSpace = true
-				continue
-			}
-			// HTML whitespace is single-byte ASCII, so testing the boundary
-			// bytes is sufficient. For multi-byte UTF-8 sequences the lead /
-			// trail byte is in 0xC0-0xFF or 0x80-0xBF, neither overlapping
-			// with the whitespace set, so rune(b) gives the right answer.
-			hasLeading := internalDocument.IsHTMLWhitespace(rune(raw[0]))
-			hasTrailing := internalDocument.IsHTMLWhitespace(rune(raw[len(raw)-1]))
-			if buf.Len() > 0 && (needSpace || hasLeading) {
-				buf.WriteByte(' ')
-			}
-			buf.Write(text)
-			needSpace = hasTrailing
-		}
+// lang is the language code the resulting text will be indexed under. For languages listed in
+// noBlockSpaceLanguages the separator is empty, so block and hard-break boundaries concatenate text
+// directly (their scripts do not use word spaces).
+func stripDoc(doc *model.Node, lang string) string {
+	separator := " "
+	if noBlockSpaceLanguages[lang] {
+		separator = ""
 	}
+	// hard_break is the only inline leaf the schema produces; it stands in for a visible line break,
+	// so it contributes the same separator. Other leaves (horizontal_rule) carry no text.
+	leafText := func(node *model.Node) string {
+		if node.Type.Name == "hard_break" {
+			return separator
+		}
+		return ""
+	}
+	text := doc.TextBetween(0, doc.Content.Size, separator, leafText)
+	return strings.TrimFunc(text, internalDocument.IsHTMLWhitespace)
 }
 
 type displayStrings struct {
@@ -1858,18 +1813,23 @@ func (v *convertVisitor) VisitString(claim *document.StringClaim) (document.Visi
 // VisitHTML converts the claim's HTML to plain text in Go, indexes it as a nested html
 // claim for structured per-property queries, and folds the same plain text into the document's
 // top-level text field under every language the claim resolves to (its IN_LANGUAGE sub-claims, or
-// detected language). stripHTML is called per-language because the language controls whether
-// block-tag boundaries become spaces.
+// detected language). The claim is parsed once and stripDoc is called per-language because the
+// language controls whether block-tag boundaries become spaces.
 func (v *convertVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitResult, errors.E) {
 	if claim.GetConfidence() < document.LowConfidence {
 		return document.Keep, nil
 	}
-	// Detection runs on the plain-text strip; stripHTML's language argument only affects
-	// no-block-space scripts, so the "und" strip is a valid detection input.
-	langs := v.converter.textLanguages(claim.Sub, stripHTML(claim.HTML, document.UndeterminedLanguage))
+	doc, errE := document.ParseHTML(claim.HTML)
+	if errE != nil {
+		return document.Keep, errE
+	}
+	// Detection runs on the plain-text strip; the language argument only affects no-block-space
+	// scripts, so the "und" strip is a valid detection input. The document is parsed once and stripped
+	// per language.
+	langs := v.converter.textLanguages(claim.Sub, stripDoc(doc, document.UndeterminedLanguage))
 	stripped := make(map[string]string, len(langs))
 	for _, lang := range langs {
-		s := stripHTML(claim.HTML, lang)
+		s := stripDoc(doc, lang)
 		v.addText(lang, s)
 		if s != "" {
 			stripped[lang] = s

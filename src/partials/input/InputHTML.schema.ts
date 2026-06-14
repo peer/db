@@ -36,7 +36,7 @@ const response = await fetch("/schema.json", {
 })
 const schemaJSON = (await response.json()) as SchemaJSON
 
-export const schema = buildSchema(schemaJSON, validators)
+export const schema = buildSchema(schemaJSON, { validators })
 
 // preserveWhitespace matches the backend's CanonicalizeHTML (PreserveWhitespaceTrue): runs of spaces
 // are kept so a user's spacing survives a round trip and stays canonical, while newlines collapse to
