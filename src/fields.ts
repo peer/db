@@ -71,9 +71,19 @@ export interface FieldData {
   values?: string
 }
 
-// fieldKey returns a unique string key for a field, derived from its path.
-export function fieldKey(field: FieldData): string {
-  return field.path.join("/")
+// fieldSignature encodes a field's identity beyond its propertyId: its value type and the
+// (recursive, order-independent) signature of its sub-fields. Fields that share a propertyId
+// but differ in value type or sub-field structure get distinct signatures.
+function fieldSignature(field: DeepReadonly<FieldData>): string {
+  const subs = field.subFields.map(fieldSignature).sort()
+  return `${field.propertyId}:${field.valueType}(${subs.join(",")})`
+}
+
+// fieldKey returns a unique string key for a field, derived from its path plus its signature.
+// The path distinguishes sub-fields with the same propertyId under different parents, and the
+// signature distinguishes sibling fields that intentionally share a propertyId.
+export function fieldKey(field: DeepReadonly<FieldData>): string {
+  return `${field.path.join("/")}#${fieldSignature(field)}`
 }
 
 // SectionData represents a section of fields with an identifier and ordering.
@@ -206,9 +216,12 @@ export function extractFieldsFromClaims(claims: DeepReadonly<ClaimTypes> | undef
   return { sections, fields }
 }
 
-// mergeFields merges multiple FieldsData into a single union, deduplicating by property ID.
+// mergeFields merges multiple FieldsData into a single union, deduplicating by field identity
+// (property, value type, and sub-field structure, see fieldKey). Keying on the full identity
+// rather than the propertyId alone keeps sibling fields that intentionally share a property,
+// while still collapsing the same field declared by multiple classes of a multi-class document.
 export function mergeFields(allFields: FieldsData[]): FieldsData {
-  const seenProperties = new Set<string>()
+  const seenKeys = new Set<string>()
   const mergedSections: SectionData[] = []
   const mergedFields: FieldData[] = []
 
@@ -217,12 +230,13 @@ export function mergeFields(allFields: FieldsData[]): FieldsData {
       // Deduplicate fields within sections.
       const newFields: FieldData[] = []
       for (const field of section.fields) {
-        if (!seenProperties.has(field.propertyId)) {
-          seenProperties.add(field.propertyId)
+        const key = fieldKey(field)
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key)
           newFields.push(field)
         } else {
           // TODO: Do something better?
-          console.error("duplicate field", field.propertyId)
+          console.error("duplicate field", key)
         }
       }
       if (newFields.length > 0) {
@@ -240,8 +254,9 @@ export function mergeFields(allFields: FieldsData[]): FieldsData {
     }
 
     for (const field of fieldsData.fields) {
-      if (!seenProperties.has(field.propertyId)) {
-        seenProperties.add(field.propertyId)
+      const key = fieldKey(field)
+      if (!seenKeys.has(key)) {
+        seenKeys.add(key)
         mergedFields.push(field)
       }
     }
@@ -447,14 +462,44 @@ export function equalFieldEntryValue(a: FieldEntryValue, b: FieldEntryValue): bo
   )
 }
 
+// claimMatchesFieldSubFields returns true if the claim carries at least one sub-claim for one
+// of the field's direct sub-field properties (matching that sub-field's value type).
+function claimMatchesFieldSubFields(claim: DeepReadonly<Claim>, field: DeepReadonly<FieldData>): boolean {
+  if (!claim.sub) {
+    return false
+  }
+  for (const subField of field.subFields) {
+    const subClaimType = valueTypeToClaimType(subField.valueType)
+    if (getClaimsOfTypeWithConfidence(claim.sub, subClaimType, subField.propertyId).length > 0) {
+      return true
+    }
+  }
+  return false
+}
+
+// getClaimsForField returns the claims that belong to a field.
+//
+// For HAS-typed fields with sub-fields it filters to claims carrying one of the field's
+// sub-field properties, so meta fields sharing a propertyId each match only their own claims.
+// A HAS claim carries no value of its own, so its sub-claims are the only thing identifying
+// which field it belongs to. Value-bearing fields are identified by their value, so their
+// (optional) sub-fields are not used for discrimination and the full claim set is returned.
+export function getClaimsForField(claims: DeepReadonly<ClaimTypes> | undefined | null, field: DeepReadonly<FieldData>): DeepReadonly<Claim>[] {
+  const claimType = valueTypeToClaimType(field.valueType)
+  const candidates = getClaimsOfTypeWithConfidence(claims, claimType, field.propertyId) as DeepReadonly<Claim>[]
+  if (claimType === "has" && field.subFields.length > 0) {
+    return candidates.filter((claim) => claimMatchesFieldSubFields(claim, field))
+  }
+  return candidates
+}
+
 // getExistingClaimValues finds existing claims for a field and returns their IDs
 // and full FieldEntryValue state.
 export function getExistingClaimValues(claims: DeepReadonly<ClaimTypes> | undefined | null, field: FieldData): ExistingClaimValue[] {
   if (!claims) {
     return []
   }
-  const claimType = valueTypeToClaimType(field.valueType)
-  const existing = getClaimsOfTypeWithConfidence(claims, claimType, field.propertyId)
+  const existing = getClaimsForField(claims, field)
   return existing.map((claim) => ({ claimId: claim.GetID(), ...getClaimValues(claim) }))
 }
 

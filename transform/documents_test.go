@@ -160,7 +160,7 @@ type DocWithNestedEmbedded struct {
 
 type EmbeddedProperties struct {
 	Name   string     `property:"NAME"`
-	Author []core.Ref `property:"HAS_AUTHOR"`
+	Author []core.Ref `property:"HAS_USER"`
 }
 
 type DocWithEmbeddedProperties struct {
@@ -1346,7 +1346,7 @@ func TestDocuments_EmbeddedProperties(t *testing.T) {
 	t.Parallel()
 
 	mnemonics := createMnemonics()
-	mnemonics["HAS_AUTHOR"] = []string{"test", "HAS_AUTHOR"}
+	mnemonics["HAS_USER"] = []string{"test", "HAS_USER"}
 	mnemonics["EXTRA"] = []string{"test", "EXTRA"}
 
 	docs := []any{
@@ -1375,7 +1375,7 @@ func TestDocuments_EmbeddedProperties(t *testing.T) {
 
 	expectedAuthorID := identifier.From("author", "1")
 	assert.Equal(t, expectedAuthorID, doc.Claims.Reference[0].To.ID)
-	assert.Equal(t, identifier.From("test", "doc1", "HAS_AUTHOR", "0"), doc.Claims.Reference[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "HAS_USER", "0"), doc.Claims.Reference[0].ID)
 }
 
 func TestDocuments_EmbeddedLikeCore(t *testing.T) {
@@ -1566,28 +1566,28 @@ func TestDocuments_MultipleFieldsSameProperty(t *testing.T) {
 
 	// Test that multiple fields with same property tag don't create duplicate IDs.
 	type DocWithDuplicateProps struct {
-		ID               []string   `documentid:""`
-		Author           []core.Ref `              property:"HAS_AUTHOR"`
-		AuthorHasUnknown bool       `              property:"HAS_AUTHOR" type:"unknown"`
-		Artist           []core.Ref `              property:"HAS_ARTIST"`
-		ArtistHasUnknown bool       `              property:"HAS_ARTIST" type:"unknown"`
+		ID                []string   `documentid:""`
+		User              []core.Ref `              property:"HAS_USER"`
+		UserHasUnknown    bool       `              property:"HAS_USER"    type:"unknown"`
+		Teacher           []core.Ref `              property:"HAS_TEACHER"`
+		TeacherHasUnknown bool       `              property:"HAS_TEACHER" type:"unknown"`
 	}
 
 	mnemonics := createMnemonics()
-	mnemonics["HAS_AUTHOR"] = []string{"test", "HAS_AUTHOR"}
-	mnemonics["HAS_ARTIST"] = []string{"test", "HAS_ARTIST"}
+	mnemonics["HAS_USER"] = []string{"test", "HAS_USER"}
+	mnemonics["HAS_TEACHER"] = []string{"test", "HAS_TEACHER"}
 
 	docs := []any{
 		&DocWithDuplicateProps{
 			ID: []string{"test", "doc1"},
-			Author: []core.Ref{
+			User: []core.Ref{
 				{ID: []string{"author", "1"}},
 			},
-			AuthorHasUnknown: true, // Creates claim with same property.
-			Artist: []core.Ref{
+			UserHasUnknown: true, // Creates claim with same property.
+			Teacher: []core.Ref{
 				{ID: []string{"artist", "1"}},
 			},
-			ArtistHasUnknown: true,
+			TeacherHasUnknown: true,
 		},
 	}
 
@@ -1598,13 +1598,13 @@ func TestDocuments_MultipleFieldsSameProperty(t *testing.T) {
 
 	// Should have 2 relation claims (Author[0] and Artist[0]).
 	require.Len(t, doc.Claims.Reference, 2)
-	assert.Equal(t, identifier.From("test", "doc1", "HAS_AUTHOR", "0"), doc.Claims.Reference[0].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "HAS_ARTIST", "0"), doc.Claims.Reference[1].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "HAS_USER", "0"), doc.Claims.Reference[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "HAS_TEACHER", "0"), doc.Claims.Reference[1].ID)
 
 	// Should have 2 unknown value claims (AuthorHasUnknown and ArtistHasUnknown).
 	require.Len(t, doc.Claims.Unknown, 2)
-	assert.Equal(t, identifier.From("test", "doc1", "HAS_AUTHOR", "1"), doc.Claims.Unknown[0].ID)
-	assert.Equal(t, identifier.From("test", "doc1", "HAS_ARTIST", "1"), doc.Claims.Unknown[1].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "HAS_USER", "1"), doc.Claims.Unknown[0].ID)
+	assert.Equal(t, identifier.From("test", "doc1", "HAS_TEACHER", "1"), doc.Claims.Unknown[1].ID)
 }
 
 func TestDocuments_CoreHTMLWithoutTag(t *testing.T) {

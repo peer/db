@@ -372,7 +372,7 @@ func (f *RefFilter) Get(
 // parentToRestrictions, when non-empty, restricts the sub-claim match to entries
 // whose claims.subRef.parentTo is one of the listed values. This enables cross-
 // filter joins: when a session has both a parent-level ref filter (e.g.
-// HAS_LOCATION = L1) and a sub-ref filter (e.g. HAS_LOCATION > HAS_ARTIST = A),
+// HAS_LOCATION = L1) and a sub-ref filter (e.g. HAS_LOCATION > HAS_USER = A),
 // the sub-claim is required to live under one of the same parent values, so the
 // result is "A under L1" rather than the looser "A anywhere AND L1 anywhere".
 func (f *RefFilter) ToSubRefQuery(parentProp, prop identifier.Identifier, parentToRestrictions []identifier.Identifier) types.QueryVariant { //nolint:ireturn

@@ -9,7 +9,7 @@ import { useI18n } from "vue-i18n"
 
 import { IN_LANGUAGE } from "@/core"
 import { ClaimTypes, getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
-import { fieldKey, valueTypeToClaimType } from "@/fields"
+import { fieldKey, getClaimsForField, valueTypeToClaimType } from "@/fields"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 
@@ -43,8 +43,7 @@ function sortedByOrder<T extends { orderInList: number }>(items: readonly T[]): 
 
 // Check if any claims for a field have IN_LANGUAGE sub-claims in the actual data.
 function hasLanguageClaims(field: FieldData): boolean {
-  const claimType = valueTypeToClaimType(field.valueType)
-  const claims = getClaimsOfTypeWithConfidence(normalizedClaims.value, claimType, field.propertyId)
+  const claims = getClaimsForField(normalizedClaims.value, field)
   return claims.some((claim) => claim.sub && getClaimsOfTypeWithConfidence(claim.sub, "ref", IN_LANGUAGE).length > 0)
 }
 
@@ -57,7 +56,7 @@ function claimsForField(field: FieldData): { claimType: ClaimTypeName; claims: D
     const claims = selectClaimsByLanguage(normalizedClaims.value, claimType, field.propertyId, locale.value, (c) => c.length > 0)
     return { claimType, claims: claims ?? [] }
   }
-  const claims = getClaimsOfTypeWithConfidence(normalizedClaims.value, claimType, field.propertyId) as DeepReadonly<Claim>[]
+  const claims = getClaimsForField(normalizedClaims.value, field)
   return { claimType, claims }
 }
 

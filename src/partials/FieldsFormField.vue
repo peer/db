@@ -16,8 +16,7 @@ import type { FieldData } from "@/fields"
 
 import { computed, provide, useTemplateRef } from "vue"
 
-import { getClaimsOfTypeWithConfidence } from "@/document"
-import { fieldLabelCellKey, valueTypeToClaimType } from "@/fields"
+import { fieldLabelCellKey, getClaimsForField } from "@/fields"
 import ClaimCardinality from "@/partials/ClaimCardinality.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import InputBadges from "@/partials/InputBadges.vue"
@@ -37,13 +36,11 @@ const props = defineProps<{
 // type). The two computeds are bound through to ClaimCardinality so the
 // per-field slot state stays reactive on doc updates.
 const claimsForField = computed<readonly DeepReadonly<Claim>[]>(() => {
-  const claimType = valueTypeToClaimType(props.field.valueType)
-  return getClaimsOfTypeWithConfidence(props.claims, claimType, props.field.propertyId)
+  return getClaimsForField(props.claims, props.field)
 })
 
 const initialClaimsForField = computed<readonly DeepReadonly<Claim>[]>(() => {
-  const claimType = valueTypeToClaimType(props.field.valueType)
-  return getClaimsOfTypeWithConfidence(props.initialClaims, claimType, props.field.propertyId)
+  return getClaimsForField(props.initialClaims, props.field)
 })
 
 const cardinalityRef = useTemplateRef<{

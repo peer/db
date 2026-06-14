@@ -386,7 +386,7 @@ type UnknownClaim struct {
 //       sub-claim filter independently matches "some entry under any of those
 //       parents", so a session like:
 //       HAS_LOCATION = L
-//       HAS_LOCATION > HAS_ARTIST = A
+//       HAS_LOCATION > HAS_USER = A
 //       HAS_LOCATION > PERIOD in [X,Y]
 //       matches an exhibition where one of its L-entries lists A and another of its
 //       L-entries has period in [X,Y], rather than requiring the same L-entry to

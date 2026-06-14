@@ -140,8 +140,7 @@ func (d documentInfo) CollectHierarchyPaths() ([]string, map[string][]string) {
 type fieldInverseKey struct {
 	// Class is the ID of the class document on which this field is defined. The same
 	// source property can be a field on multiple classes with different inverse
-	// properties (e.g., HAS_ARTIST inverts to HAS_EVENT on an event class and to
-	// HAS_RESOURCE on a resource class), so the class is part of the key.
+	// properties, so the class is part of the key.
 	Class identifier.Identifier
 	// Path is the encoded path of parent HasClaim property IDs leading to this
 	// field position, joined by "/". Empty string for top-level fields.

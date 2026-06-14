@@ -1,9 +1,11 @@
 import { Identifier } from "@tozd/identifier"
 import { assert, describe, test } from "vitest"
 
-import { CARDINALITY, FIELD, FIELDS, HAS_PROPERTY, HAS_VALUE_TYPE, NAME, ORDER_IN_LIST, SECTION, SUB_FIELD } from "@/core"
+import type { FieldData } from "@/fields"
+
+import { CARDINALITY, FIELD, FIELDS, HAS_PROPERTY, HAS_VALUE_TYPE, NAME, ORDER_IN_LIST, SECTION, SUB_FIELD, VT_HAS, VT_REFERENCE } from "@/core"
 import { ClaimTypes, HighConfidence } from "@/document"
-import { extractFieldsFromClaims, hasFields, mergeFields } from "@/fields"
+import { extractFieldsFromClaims, fieldKey, getClaimsForField, hasFields, mergeFields } from "@/fields"
 
 const propA = Identifier.new().toString()
 const propB = Identifier.new().toString()
@@ -97,6 +99,39 @@ async function makeClaimsWithFields(sections: object[], fields: object[]): Promi
   })
   await ct.Validate()
   return ct
+}
+
+// Shared fixtures for the field-identity and claim-matching tests below.
+const userProp = Identifier.new().toString()
+const selectionProp = Identifier.new().toString()
+const extraProp = Identifier.new().toString()
+const user1 = Identifier.new().toString()
+const user2 = Identifier.new().toString()
+
+// makeField builds a FieldData; sub-field paths nest under the parent's propertyId.
+function makeField(propertyId: string, valueType: string, subFields: FieldData[] = []): FieldData {
+  return {
+    propertyId,
+    valueType,
+    orderInList: 3,
+    minCardinality: 0,
+    maxCardinality: Infinity,
+    subFields,
+    path: [propertyId],
+  }
+}
+
+const userField = (): FieldData => makeField(userProp, VT_REFERENCE)
+const selectionField = (): FieldData => makeField(userProp, VT_HAS, [makeField(selectionProp, VT_HAS)])
+const extraField = (): FieldData => makeField(userProp, VT_HAS, [makeField(extraProp, VT_HAS)])
+
+// rawHas builds a raw HAS claim, optionally carrying HAS sub-claims for the given properties.
+function rawHas(prop: string, subProps: string[] = []): object {
+  const obj: Record<string, unknown> = { id: id(), confidence: HighConfidence, prop: { id: prop } }
+  if (subProps.length > 0) {
+    obj.sub = { has: subProps.map((p) => ({ id: id(), confidence: HighConfidence, prop: { id: p } })) }
+  }
+  return obj
 }
 
 describe("hasFields", () => {
@@ -389,5 +424,67 @@ describe("mergeFields", () => {
     // propA already seen in section, so top-level duplicate is skipped.
     assert.equal(result.sections[0].fields.length, 1)
     assert.equal(result.fields.length, 0)
+  })
+
+  test("keeps sibling fields that share a propertyId but differ in value type or sub-fields", () => {
+    const result = mergeFields([{ sections: [], fields: [userField(), selectionField(), extraField()] }])
+    assert.equal(result.fields.length, 3)
+  })
+
+  test("still deduplicates the same field declared by multiple classes", () => {
+    const result = mergeFields([
+      { sections: [], fields: [selectionField()] },
+      { sections: [], fields: [selectionField()] },
+    ])
+    assert.equal(result.fields.length, 1)
+  })
+})
+
+describe("fieldKey", () => {
+  test("distinguishes sibling fields that share a propertyId", () => {
+    const keys = new Set([fieldKey(userField()), fieldKey(selectionField()), fieldKey(extraField())])
+    assert.equal(keys.size, 3)
+  })
+
+  test("is stable for structurally identical fields", () => {
+    assert.equal(fieldKey(selectionField()), fieldKey(selectionField()))
+  })
+})
+
+describe("getClaimsForField", () => {
+  function claims(): ClaimTypes {
+    return new ClaimTypes({
+      ref: [rawRef(userProp, user1), rawRef(userProp, user2)],
+      has: [rawHas(userProp, [selectionProp]), rawHas(userProp, [extraProp])],
+    })
+  }
+
+  test("a relation field returns all relation claims", () => {
+    assert.equal(getClaimsForField(claims(), userField()).length, 2)
+  })
+
+  test("a HAS meta field returns only claims carrying its sub-field", () => {
+    const sel = getClaimsForField(claims(), selectionField())
+    assert.equal(sel.length, 1)
+    assert.equal(sel[0].Get(selectionProp).length, 1)
+    assert.equal(sel[0].Get(extraProp).length, 0)
+
+    const wok = getClaimsForField(claims(), extraField())
+    assert.equal(wok.length, 1)
+    assert.equal(wok[0].Get(extraProp).length, 1)
+  })
+
+  test("the SELECTION field does not match a document that only has EXTRA", () => {
+    const onlyWeOnlyKnow = new ClaimTypes({ has: [rawHas(userProp, [extraProp])] })
+    assert.equal(getClaimsForField(onlyWeOnlyKnow, selectionField()).length, 0)
+    assert.equal(getClaimsForField(onlyWeOnlyKnow, extraField()).length, 1)
+  })
+
+  test("a HAS field without sub-fields is not filtered", () => {
+    assert.equal(getClaimsForField(claims(), makeField(userProp, VT_HAS)).length, 2)
+  })
+
+  test("returns empty for null claims", () => {
+    assert.equal(getClaimsForField(null, selectionField()).length, 0)
   })
 })

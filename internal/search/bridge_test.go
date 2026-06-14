@@ -1565,8 +1565,7 @@ func TestBridgeReferencesCountIncremental(t *testing.T) {
 
 // makeClassDocWithFieldInverse builds a class document whose field schema defines sourceProp
 // as a top-level field with field-level INVERSE_PROPERTY inverseProp. The schema is nested under
-// a FIELDS HasClaim, mirroring how the transform package serializes a class's Fields. This is the
-// shape, e.g., an exhibition class uses to invert HAS_ARTIST to HAS_EVENT.
+// a FIELDS HasClaim, mirroring how the transform package serializes a class's Fields.
 func makeClassDocWithFieldInverse(classID, sourceProp, inverseProp identifier.Identifier) *document.D {
 	fieldSub := &document.ClaimTypes{
 		Reference: []document.ReferenceClaim{
@@ -1681,10 +1680,9 @@ func docTextContains(ctx context.Context, t *testing.T, esClient *elasticsearch.
 }
 
 // TestBridgeFieldInverseRelationFoldsSourceLabelIntoText verifies the end-to-end field-level inverse
-// path: a class defines a field whose inverse is another property (as an exhibition class inverts
-// HAS_ARTIST to HAS_EVENT), so a source document referencing a target gives the target an inverse
-// reference back AND folds the source's display label into the target's text, making the target
-// findable by the source's name.
+// path: a class defines a field whose inverse is another property, so a source document referencing
+// a target gives the target an inverse reference back AND folds the source's display label into the
+// target's text, making the target findable by the source's name.
 func TestBridgeFieldInverseRelationFoldsSourceLabelIntoText(t *testing.T) {
 	t.Parallel()
 
