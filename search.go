@@ -2,6 +2,7 @@ package peerdb
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
@@ -20,6 +21,7 @@ import (
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
 
+	"gitlab.com/peerdb/peerdb/document"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/search"
@@ -923,18 +925,20 @@ func (s *Service) SearchJustResultsPostAPI(w http.ResponseWriter, req *http.Requ
 // maxDuplicates is the maximum number of potential duplicates DocumentFindDuplicatesPostAPI returns.
 const maxDuplicates = 5
 
-// documentFindDuplicatesRequest is the JSON body of DocumentFindDuplicatesPostAPI. Query is the
-// identifying text to match potential duplicates against (typically the new document's name).
-// Exclude is the ID of the document being created, so it is never listed as its own duplicate.
+// documentFindDuplicatesRequest is the JSON body of DocumentFindDuplicatesPostAPI. Document is the
+// in-progress document being created (or edited), whose claims are compared structurally against the
+// index. The document's own ID is excluded from the results, so it is never its own duplicate.
 type documentFindDuplicatesRequest struct {
-	Query   string `json:"query"`
-	Exclude string `json:"exclude,omitempty"`
+	Document json.RawMessage `json:"doc"`
 }
 
 // DocumentFindDuplicatesPostAPI is a POST HTTP request API handler which searches the ElasticSearch
-// index for documents that potentially duplicate the one being created, ranked by how well they match
-// the provided query text. It returns to the client a JSON array of up to maxDuplicates result IDs,
-// excluding the document being created. An empty query returns an empty list.
+// index for documents that potentially duplicate the one in the request, comparing them by structure:
+// each of the document's claims (identifier, string, link, reference including INSTANCE_OF, amount,
+// time, has) contributes a weighted match against documents that share that field, and candidates are
+// ranked by the sum of matched weights (see search.DuplicatesGet). It returns to the client a JSON
+// array of up to maxDuplicates result IDs above the match threshold, excluding the document itself. A
+// document with no matchable claims yields an empty list.
 func (s *Service) DocumentFindDuplicatesPostAPI(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
 	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
@@ -948,16 +952,12 @@ func (s *Service) DocumentFindDuplicatesPostAPI(w http.ResponseWriter, req *http
 		return
 	}
 
-	// Without identifying text there is nothing to match duplicates against.
-	if strings.TrimSpace(request.Query) == "" {
-		s.WriteJSON(w, req, []search.Result{}, nil)
-		return
-	}
-
-	searchData := search.SessionData{Query: request.Query} //nolint:exhaustruct
-	errE = searchData.Validate(ctx, true)
+	// The client sends its in-progress, possibly partial, document. We unmarshal it leniently
+	// (unknown fields are ignored) because it is used only to build a best-effort structural query,
+	// not to mutate anything.
+	doc := new(document.D)
+	errE = x.Unmarshal(request.Document, doc)
 	if errE != nil {
-		errE = errors.WrapWith(errE, search.ErrValidationFailed)
 		s.BadRequestWithError(w, req, errE)
 		return
 	}
@@ -967,36 +967,16 @@ func (s *Service) DocumentFindDuplicatesPostAPI(w http.ResponseWriter, req *http
 		return
 	}
 
-	factor, errE := s.scoreFactor(ctx, req, index)
-	if errE != nil {
-		s.InternalServerErrorWithError(w, req, errE)
-		return
-	}
-
 	accessFilter, errE := searchAccessFilter(ctx)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
 
-	results, _, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req, index), &searchData, enabledSearchLanguages(ctx), factor, accessFilter)
-	if errors.Is(errE, search.ErrValidationFailed) {
-		s.BadRequestWithError(w, req, errE)
-		return
-	} else if errE != nil {
+	duplicates, errE := search.DuplicatesGet(ctx, s.getSearchServiceClosure(req, index), doc, doc.ID, enabledSearchLanguages(ctx), maxDuplicates, accessFilter)
+	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
-	}
-
-	duplicates := make([]search.Result, 0, maxDuplicates)
-	for _, result := range results {
-		if result.ID == request.Exclude {
-			continue
-		}
-		duplicates = append(duplicates, result)
-		if len(duplicates) >= maxDuplicates {
-			break
-		}
 	}
 
 	s.WriteJSON(w, req, duplicates, nil)

@@ -1008,7 +1008,7 @@ function canSave(): boolean {
                   :session="session"
                 />
                 <!-- Potential duplicates of the document being created, refreshed on every field blur. -->
-                <DocumentDuplicates v-if="isCreating" ref="duplicatesRef" :doc="doc" :exclude-id="id" />
+                <DocumentDuplicates v-if="isCreating" ref="duplicatesRef" :doc="doc" />
               </div>
             </TabPanel>
             <!-- "All properties" tab panel. -->

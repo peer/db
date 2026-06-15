@@ -9,6 +9,7 @@ var (
 	TestingComputeInterval         = computeInterval
 	TestingDistinctValuesTotal     = distinctValuesTotal
 	TestingDocumentTextSearchQuery = documentTextSearchQuery
+	TestingDuplicatesQuery         = duplicatesQuery
 	TestingTimePrecisionForValue   = timePrecisionForValue
 	TestingTimeStepDown            = timeStepDown
 )
