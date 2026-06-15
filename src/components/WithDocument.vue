@@ -7,10 +7,14 @@ import { useRouter } from "vue-router"
 
 import { FetchError, getURL } from "@/api"
 import { getRootProgress } from "@/progress"
+import { encodeQuery } from "@/utils"
 
 const props = defineProps<{
   id: string
   name: string
+  // When set, the document is fetched at this version ("changeset-revision" or "changeset")
+  // instead of the latest one. Absent means the latest version.
+  version?: string
 }>()
 
 const { t } = useI18n({ useScope: "global" })
@@ -59,7 +63,7 @@ onUpdated(() => {
 })
 
 watch(
-  () => ({ id: props.id, name: props.name }),
+  () => ({ id: props.id, name: props.name, version: props.version }),
   async (params, oldParams, onCleanup) => {
     const abortController = new AbortController()
     onCleanup(() => abortController.abort())
@@ -69,6 +73,7 @@ watch(
       params: {
         id: params.id,
       },
+      query: encodeQuery({ version: params.version }),
     }).href
     _url.value = newURL
 

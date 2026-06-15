@@ -246,7 +246,14 @@
     },
     "DocumentGet": {
       "tabs": {
-        "allProperties": "Vse lastnosti"
+        "allProperties": "Vse lastnosti",
+        "history": "Zgodovina"
+      },
+      "history": {
+        "author": "Avtor",
+        "changeset": "Changeset",
+        "anonymous": "anonimno",
+        "empty": "Ni zgodovine."
       },
       "referencedBy": "Sklicujoči se",
       "shortcutWithCount": "{name} ({count})"

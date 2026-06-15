@@ -284,6 +284,21 @@ export type DocumentBeginMetadata = {
   version?: string
 }
 
+// A user who contributed to a document version. id is the auth subject string.
+export type HistoryUser = {
+  id: string
+}
+
+// One entry in a document's changeset history, as returned by the DocumentHistory API.
+// at is an RFC3339 timestamp and version is the "changeset-revision" string used to link
+// to the document at that revision.
+export type DocumentHistoryItem = {
+  changeset: string
+  version: string
+  at: string
+  authors?: HistoryUser[]
+}
+
 export type ViewType = "table" | "feed"
 
 export type SelectButtonOption<T> = {

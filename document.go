@@ -169,6 +169,90 @@ func (s *Service) DocumentGetGetAPI(w http.ResponseWriter, req *http.Request, pa
 	s.WriteJSON(w, req, dataJSON, nil)
 }
 
+// documentHistoryItem is one entry in a document's changeset history: the changeset that
+// produced this version, the version string used to link to the document at that version,
+// the timestamp of the change, and the users who contributed to it.
+type documentHistoryItem struct {
+	Changeset identifier.Identifier `json:"changeset"`
+	Version   store.Version         `json:"version"`
+	At        store.Time            `json:"at"`
+	Authors   []store.User          `json:"authors,omitempty"`
+}
+
+// DocumentHistoryGetAPI handles GET requests to list a document's changeset history. Entries are
+// returned newest first, one store page at a time (with optional "after" keyset pagination), each
+// carrying the timestamp, the contributing users, and the version for linking to that revision.
+func (s *Service) DocumentHistoryGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	ctx := req.Context()
+	metrics := waf.MustGetMetrics(ctx)
+
+	id, errE := identifier.MaybeString(params["id"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
+		return
+	}
+
+	var after *identifier.Identifier
+	if req.Form.Has("after") {
+		a, errE := identifier.MaybeString(req.Form.Get("after"))
+		if errE != nil {
+			s.BadRequestWithError(w, req, errors.WithMessage(errE, `"after" is not a valid identifier`))
+			return
+		}
+		after = &a
+	}
+
+	site := waf.MustGetSite[*internalSite.Site](ctx)
+
+	// We confirm the document exists and is accessible to the caller (same access semantics as viewing it)
+	// before exposing its history.
+	m := metrics.Duration(internalStore.MetricDatabase).Start()
+	_, _, _, _, errE = site.Base.GetDocumentLatest(ctx, id) //nolint:dogsled
+	m.Stop()
+	if errors.Is(errE, store.ErrValueNotFound) {
+		// This includes ErrValueDeleted, too.
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	changesets, errE := site.Base.Documents().Changes(ctx, id, after)
+	if errors.Is(errE, store.ErrValueNotFound) {
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	history := make([]documentHistoryItem, 0, len(changesets))
+	for _, changesetID := range changesets {
+		// Revision 0 asks for the latest revision in the changeset. A deleted version still has valid
+		// metadata and version, so we keep it in the history.
+		_, metadata, version, _, errE := site.Base.GetDocumentFromChangeset(ctx, changesetID, id, 0)
+		if errE != nil && !errors.Is(errE, store.ErrValueDeleted) {
+			s.InternalServerErrorWithError(w, req, errE)
+			return
+		}
+		history = append(history, documentHistoryItem{
+			Changeset: changesetID,
+			Version:   version,
+			At:        metadata.At,
+			Authors:   metadata.Users,
+		})
+	}
+
+	s.WriteJSON(w, req, history, nil)
+}
+
 type documentCreateResponse struct {
 	ID      identifier.Identifier `json:"id"`
 	Base    []string              `json:"base"`

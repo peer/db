@@ -284,6 +284,14 @@ func (s *Service) setRoutes() { //nolint:maintidx
 				},
 			},
 		},
+		"DocumentHistory": {
+			Path: "/d/history/:id",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodGet: s.DocumentHistoryGetAPI,
+				},
+			},
+		},
 		"DocumentChanges": {
 			Path: "/d/changes/:changeset",
 			API: waf.RouteOptions{

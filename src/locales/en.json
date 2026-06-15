@@ -246,7 +246,14 @@
     },
     "DocumentGet": {
       "tabs": {
-        "allProperties": "All properties"
+        "allProperties": "All properties",
+        "history": "History"
+      },
+      "history": {
+        "author": "Author",
+        "changeset": "Changeset",
+        "anonymous": "anonymous",
+        "empty": "No history."
       },
       "referencedBy": "Referenced by",
       "shortcutWithCount": "{name} ({count})"

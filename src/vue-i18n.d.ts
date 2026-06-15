@@ -258,6 +258,13 @@ declare module "vue-i18n" {
       DocumentGet: {
         tabs: {
           allProperties: string
+          history: string
+        }
+        history: {
+          author: string
+          changeset: string
+          anonymous: string
+          empty: string
         }
         referencedBy: string
         shortcutWithCount: string

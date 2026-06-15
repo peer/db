@@ -23,6 +23,7 @@ import { INSTANCE_OF, NAME, SEARCH_SHORTCUT } from "@/core"
 import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
 import { decodeMetadata } from "@/metadata"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
+import DocumentHistory from "@/partials/DocumentHistory.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import FieldsView from "@/partials/FieldsView.vue"
 import Footer from "@/partials/Footer.vue"
@@ -46,6 +47,13 @@ const route = useRoute()
 const router = useRouter()
 
 const el = useTemplateRef<HTMLElement>("el")
+
+// When the URL carries a "version" query parameter, the document is fetched and shown at that
+// version instead of the latest one. The History tab links to documents at specific versions.
+const reqVersion = computed(() => {
+  const version = Array.isArray(route.query.version) ? route.query.version[0] : route.query.version
+  return version || undefined
+})
 
 // Data loading only, no controls.
 const progress = useProgress()
@@ -388,7 +396,7 @@ async function onEdit() {
   </Teleport>
   <div ref="el" class="pd-documentget mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4" :data-url="withDocument?.url">
     <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
-      <WithDocumentD :id="id" ref="withDocument" name="DocumentGet">
+      <WithDocumentD :id="id" ref="withDocument" name="DocumentGet" :version="reqVersion">
         <template #default="{ doc }">
           <div v-if="!classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
           <!--
@@ -411,6 +419,11 @@ async function onEdit() {
               <Tab
                 class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
                 >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
+              >
+              <!-- The History tab is shown for every document. -->
+              <Tab
+                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                >{{ t("views.DocumentGet.tabs.history") }}</Tab
               >
             </TabList>
             <h1 v-show="displayLabelComponent?.displayLabel" class="mb-4 text-4xl font-bold drop-shadow-xs"><DisplayLabel ref="displayLabelComponent" :doc="doc" /></h1>
@@ -463,6 +476,10 @@ async function onEdit() {
                     }}</ButtonLink>
                   </div>
                 </div>
+              </TabPanel>
+              <!-- "History" tab panel. The panel (and thus the data fetch) is mounted only when the tab is selected. -->
+              <TabPanel tabindex="-1" class="outline-none">
+                <DocumentHistory :id="id" />
               </TabPanel>
             </TabPanels>
           </TabGroup>
