@@ -42,6 +42,7 @@ func TestDuplicatesQuery(t *testing.T) {
 	name := identifier.From("name")
 	ident := identifier.From("identifier")
 	other := identifier.From("other")
+	desc := identifier.From("description")
 	langs := []string{"en", "und"}
 
 	// reverse is the must_not clause excluding candidates that assert they are distinct from this
@@ -114,6 +115,30 @@ func TestDuplicatesQuery(t *testing.T) {
 					`{"match":{"claims.string.string.en":{"fuzziness":"AUTO","operator":"and","query":"Berlin"}}},`+
 					`{"match":{"claims.string.string.und":{"fuzziness":"AUTO","operator":"and","query":"Berlin"}}}]}}]}}}}}}]}}`,
 				exclude.String(), other.String(), reverse, name.String(),
+			),
+		},
+		{
+			// HTML is stripped to plain text (as the indexer strips it) and matched per language with
+			// operator AND; it contributes the low html weight.
+			Name: "html body matched as stripped text",
+			Doc: &document.D{
+				CoreDocument: document.CoreDocument{ID: exclude, Base: []string{"x", "doc"}},
+				Claims: &document.ClaimTypes{
+					HTML: document.HTMLClaims{{
+						CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+						Prop:      document.Reference{ID: desc},
+						HTML:      "<p>Hello <strong>world</strong></p>",
+					}},
+				},
+			},
+			Want: fmt.Sprintf(
+				`{"bool":{"minimum_should_match":1,"must_not":[{"term":{"id":{"value":%q}}},%s],"should":[`+
+					`{"constant_score":{"boost":1,"filter":{"nested":{"path":"claims.html","query":{"bool":{"must":[`+
+					`{"term":{"claims.html.prop":{"value":%q}}},`+
+					`{"bool":{"minimum_should_match":1,"should":[`+
+					`{"match":{"claims.html.html.en":{"operator":"and","query":"Hello world"}}},`+
+					`{"match":{"claims.html.html.und":{"operator":"and","query":"Hello world"}}}]}}]}}}}}}]}}`,
+				exclude.String(), reverse, desc.String(),
 			),
 		},
 		{

@@ -20,11 +20,11 @@ import (
 
 // Duplicate detection compares a document against the corpus by structure rather than by free text.
 // Each of the document's stated claims becomes one scoring clause that matches existing documents
-// sharing that field: a reference to the same target, an identifier with the same value, a string
-// with the same or a near-matching name (fuzzy, to catch typos and reordered words), an amount/time
-// whose value window overlaps, and so on. A candidate's score is the sum of the weights of the
-// clauses it matches, so a document that agrees on more (and on more identifying) fields ranks higher.
-// We then keep the highest-scoring candidates above a small threshold.
+// sharing that field: a reference to the same target, an identifier with the same value, a string with
+// the same or a near-matching name (fuzzy, to catch typos and reordered words), the same rich-text
+// (HTML) body, an amount/time whose value window overlaps, and so on. A candidate's score is the sum of
+// the weights of the clauses it matches, so a document that agrees on more (and on more identifying)
+// fields ranks higher. We then keep the highest-scoring candidates above a small threshold.
 //
 // We deliberately do not use ElasticSearch More-Like-This or other term-similarity queries: they
 // score on shared analyzed tokens across a flat text field and ignore the claim structure (which
@@ -67,6 +67,10 @@ const (
 	// hasDuplicateWeight is the score a shared "has" property contributes. Mere presence of the same
 	// property is the weakest signal, so it only nudges ranking among already-matching candidates.
 	hasDuplicateWeight = float32(1)
+	// htmlDuplicateWeight is the score a shared HTML body contributes. Matching long rich-text content
+	// is weak and noisy (boilerplate descriptions repeat), so it only nudges ranking among already-
+	// matching candidates and never surfaces a candidate on its own.
+	htmlDuplicateWeight = float32(1)
 
 	// minDuplicateScore is the smallest total score a candidate must reach to be reported. It is
 	// tuned against the weights above so that one identifying field (identifier, link, name), or at
@@ -122,6 +126,15 @@ func duplicateClauses(doc *document.D, enabledLanguages []string) ([]types.Query
 		}
 		add("string\x00"+claim.Prop.ID.String()+"\x00"+claim.String, stringDuplicateWeight,
 			stringDuplicateNested(claim.Prop.ID, claim.String, enabledLanguages))
+	}
+
+	for i := range c.HTML {
+		claim := &c.HTML[i]
+		if claim.GetConfidence() < document.LowConfidence || claim.HTML == "" {
+			continue
+		}
+		add("html\x00"+claim.Prop.ID.String()+"\x00"+claim.HTML, htmlDuplicateWeight,
+			htmlDuplicateNested(claim.Prop.ID, claim.HTML, enabledLanguages))
 	}
 
 	for i := range c.Link {
@@ -212,6 +225,36 @@ func stringDuplicateNested(prop identifier.Identifier, value string, enabledLang
 			esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)),
 		),
 	).Path("claims.string")
+}
+
+// htmlDuplicateNested matches documents whose HTML claim for prop has the same text content. The claim's
+// HTML is stripped to plain text exactly as the indexer strips it (per language, via StripHTML), then
+// matched against each per-language html field requiring every token (operator AND, any order), so it
+// fires on a near-identical body. It is intentionally not fuzzy: HTML bodies are long and duplicates are
+// copy-pasted, so token equality is the useful signal and fuzziness would be costly and noisy. Languages
+// whose HTML cannot be parsed or strips to nothing are skipped; it returns nil when none remain.
+func htmlDuplicateNested(prop identifier.Identifier, html string, enabledLanguages []string) types.QueryVariant { //nolint:ireturn
+	langs := enabledLanguages
+	if len(langs) == 0 {
+		langs = slices.Sorted(maps.Keys(internalSearch.SupportedLanguages))
+	}
+	var shoulds []types.QueryVariant
+	for _, lang := range langs {
+		stripped, errE := internalSearch.StripHTML(html, lang)
+		if errE != nil || stripped == "" {
+			continue
+		}
+		shoulds = append(shoulds, esdsl.NewMatchQuery("claims.html.html."+lang, stripped).Operator(operator.And))
+	}
+	if len(shoulds) == 0 {
+		return nil
+	}
+	return esdsl.NewNestedQuery(
+		esdsl.NewBoolQuery().Must(
+			esdsl.NewTermQuery("claims.html.prop", esdsl.NewFieldValue().String(prop.String())),
+			esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)),
+		),
+	).Path("claims.html")
 }
 
 // amountDuplicateNested matches documents whose amount claim for the same property has a value window

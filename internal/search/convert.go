@@ -76,6 +76,17 @@ func stripDoc(doc *model.Node, lang string) string {
 	return strings.TrimFunc(text, internalDocument.IsHTMLWhitespace)
 }
 
+// StripHTML parses html and returns its plain text, stripped exactly as the indexer strips HTML claim
+// content for the given language (see stripDoc), so a query can match the stored claims.html.html.<lang>
+// field with the same tokenization. It returns an error only when the HTML cannot be parsed.
+func StripHTML(html, lang string) (string, errors.E) {
+	doc, errE := document.ParseHTML(html)
+	if errE != nil {
+		return "", errE
+	}
+	return stripDoc(doc, lang), nil
+}
+
 type displayStrings struct {
 	Display map[string]string
 	Naming  map[string][]string
