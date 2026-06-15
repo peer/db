@@ -266,6 +266,7 @@
       "addClaim": "Add value",
       "editClaim": "Edit value",
       "addSubClaim": "Add sub-value",
+      "potentialDuplicates": "Potential duplicates",
       "claimTypes": {
         "identifier": "Identifier",
         "string": "String",

@@ -42,6 +42,7 @@ import { changeFrom, RemoveClaimChange, SetClaimChange } from "@/document/patch"
 import { getNextChangeNumberKey, registerForFlushKey, saveChangeKey, unregisterForFlushKey } from "@/fields"
 import { classifyLink, LINK_CLASS_FILE } from "@/internal-links"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
+import DocumentDuplicates from "@/partials/DocumentDuplicates.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import FieldsForm from "@/partials/FieldsForm.vue"
 import Footer from "@/partials/Footer.vue"
@@ -217,6 +218,34 @@ const initialDoc = process.env.NODE_ENV !== "production" ? readonly(_initialDoc)
 // (Create vs. Update). Null until loadAndSubscribe has fetched the
 // session's edit status.
 const isCreating = ref<boolean | null>(null)
+
+// Potential-duplicates panel, only mounted for create sessions in field form mode.
+const duplicatesRef = useTemplateRef<{ refresh: () => Promise<void> }>("duplicatesRef")
+
+// Debounce the duplicate search so it runs once a field's blur has committed into the doc (a
+// blur fires a saveChange that the poll applies into doc.claims shortly after), and so rapid
+// tabbing between fields does not fire a search per field.
+let duplicatesTimer: ReturnType<typeof setTimeout> | null = null
+function onFieldsBlur() {
+  if (!isCreating.value) {
+    return
+  }
+  if (duplicatesTimer !== null) {
+    clearTimeout(duplicatesTimer)
+  }
+  duplicatesTimer = setTimeout(() => {
+    duplicatesTimer = null
+    duplicatesRef.value?.refresh().catch((err: unknown) => {
+      console.error("DocumentEdit.onFieldsBlur", err)
+    })
+  }, 400)
+}
+
+onBeforeUnmount(() => {
+  if (duplicatesTimer !== null) {
+    clearTimeout(duplicatesTimer)
+  }
+})
 
 // Tracks the change number which was committed in the backend.
 // A ref so canSave reactively follows whether anything has been added to
@@ -968,15 +997,19 @@ function canSave(): boolean {
           <TabPanels as="template">
             <!-- Class-specific tab. -->
             <TabPanel v-if="classTabId && mergedFieldsData" :key="classTabId" tabindex="-1" class="outline-none">
-              <FieldsForm
-                ref="fieldsFormRef"
-                v-model:invalid="fieldsFormInvalid"
-                :fields-data="mergedFieldsData"
-                :claims="doc.claims"
-                :initial-claims="initialDoc?.claims ?? doc.claims"
-                :base="doc.base"
-                :session="session"
-              />
+              <div @focusout="onFieldsBlur">
+                <FieldsForm
+                  ref="fieldsFormRef"
+                  v-model:invalid="fieldsFormInvalid"
+                  :fields-data="mergedFieldsData"
+                  :claims="doc.claims"
+                  :initial-claims="initialDoc?.claims ?? doc.claims"
+                  :base="doc.base"
+                  :session="session"
+                />
+                <!-- Potential duplicates of the document being created, refreshed on every field blur. -->
+                <DocumentDuplicates v-if="isCreating" ref="duplicatesRef" :doc="doc" :exclude-id="id" />
+              </div>
             </TabPanel>
             <!-- "All properties" tab panel. -->
             <TabPanel tabindex="-1" class="outline-none">

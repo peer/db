@@ -277,6 +277,7 @@ declare module "vue-i18n" {
         addClaim: string
         editClaim: string
         addSubClaim: string
+        potentialDuplicates: string
         claimTypes: {
           identifier: string
           string: string

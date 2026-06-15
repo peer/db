@@ -920,6 +920,88 @@ func (s *Service) SearchJustResultsPostAPI(w http.ResponseWriter, req *http.Requ
 	s.WriteJSON(w, req, data, metadata)
 }
 
+// maxDuplicates is the maximum number of potential duplicates DocumentFindDuplicatesPostAPI returns.
+const maxDuplicates = 5
+
+// documentFindDuplicatesRequest is the JSON body of DocumentFindDuplicatesPostAPI. Query is the
+// identifying text to match potential duplicates against (typically the new document's name).
+// Exclude is the ID of the document being created, so it is never listed as its own duplicate.
+type documentFindDuplicatesRequest struct {
+	Query   string `json:"query"`
+	Exclude string `json:"exclude,omitempty"`
+}
+
+// DocumentFindDuplicatesPostAPI is a POST HTTP request API handler which searches the ElasticSearch
+// index for documents that potentially duplicate the one being created, ranked by how well they match
+// the provided query text. It returns to the client a JSON array of up to maxDuplicates result IDs,
+// excluding the document being created. An empty query returns an empty list.
+func (s *Service) DocumentFindDuplicatesPostAPI(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+	defer req.Body.Close()              //nolint:errcheck
+	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
+
+	ctx := req.Context()
+
+	var request documentFindDuplicatesRequest
+	errE := x.DecodeJSONWithoutUnknownFields(req.Body, &request)
+	if errE != nil {
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+
+	// Without identifying text there is nothing to match duplicates against.
+	if strings.TrimSpace(request.Query) == "" {
+		s.WriteJSON(w, req, []search.Result{}, nil)
+		return
+	}
+
+	searchData := search.SessionData{Query: request.Query} //nolint:exhaustruct
+	errE = searchData.Validate(ctx, true)
+	if errE != nil {
+		errE = errors.WrapWith(errE, search.ErrValidationFailed)
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
+
+	factor, errE := s.scoreFactor(ctx, req, index)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	accessFilter, errE := searchAccessFilter(ctx)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	results, _, errE := search.ResultsGet(ctx, s.getSearchServiceClosure(req, index), &searchData, enabledSearchLanguages(ctx), factor, accessFilter)
+	if errors.Is(errE, search.ErrValidationFailed) {
+		s.BadRequestWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	duplicates := make([]search.Result, 0, maxDuplicates)
+	for _, result := range results {
+		if result.ID == request.Exclude {
+			continue
+		}
+		duplicates = append(duplicates, result)
+		if len(duplicates) >= maxDuplicates {
+			break
+		}
+	}
+
+	s.WriteJSON(w, req, duplicates, nil)
+}
+
 // SearchJustResultsGetAPI is a GET/HEAD HTTP request API handler which searches the
 // ElasticSearch index without creating a search session. It accepts the same query
 // parameter grammar as SearchShortcutGet and returns to the client a JSON with an

@@ -266,6 +266,7 @@
       "addClaim": "Dodaj vrednost",
       "editClaim": "Uredi vrednost",
       "addSubClaim": "Dodaj pod-vrednost",
+      "potentialDuplicates": "Možni dvojniki",
       "claimTypes": {
         "identifier": "Identifikator",
         "string": "Enostavno besedilo",

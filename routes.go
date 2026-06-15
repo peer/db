@@ -266,6 +266,14 @@ func (s *Service) setRoutes() { //nolint:maintidx
 				},
 			},
 		},
+		"DocumentFindDuplicates": {
+			Path: "/d/findDuplicates",
+			API: waf.RouteOptions{
+				Handlers: map[string]waf.Handler{
+					http.MethodPost: s.DocumentFindDuplicatesPostAPI,
+				},
+			},
+		},
 		"DocumentEdit": {
 			RouteOptions: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{
