@@ -169,7 +169,7 @@ const rowSpan = computed(() => {
             }}</ButtonLink>
             <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 text-xl leading-none">
               <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link"
-                ><DisplayLabel :doc="resultDoc"
+                ><DisplayLabel ref="displayLabelComponent" :doc="resultDoc"
               /></RouterLink>
             </h2>
             <ul v-if="tags.length" class="flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
