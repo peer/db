@@ -180,6 +180,7 @@ declare module "vue-i18n" {
         downloadZip: string
         downloadFiles: string
         sort: string
+        print: string
       }
       SearchSortDialog: {
         title: string
@@ -202,10 +203,12 @@ declare module "vue-i18n" {
         error: string
       }
       SearchResultsFeed: {
+        closePrint: string
         moreFilters: string
         shownResults: string
         shownResultsOnly: string
         filtersNotShown: string
+        resultsNotShown: string
         noFilters: string
         filtersAvailable: string
         determiningFilters: string

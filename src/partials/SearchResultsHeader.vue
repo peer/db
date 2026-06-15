@@ -11,7 +11,7 @@ import type { DeepReadonly } from "vue"
 
 import type { SearchSession, SelectButtonOption, ViewType } from "@/types"
 
-import { AdjustmentsHorizontalIcon, ArchiveBoxArrowDownIcon, ArrowDownTrayIcon, Bars4Icon, TableCellsIcon } from "@heroicons/vue/24/outline"
+import { AdjustmentsHorizontalIcon, ArchiveBoxArrowDownIcon, ArrowDownTrayIcon, Bars4Icon, PrinterIcon, TableCellsIcon } from "@heroicons/vue/24/outline"
 import { useI18n } from "vue-i18n"
 
 import { CAN_BULK_GET_FILE, hasPermission } from "@/auth"
@@ -26,9 +26,12 @@ const props = withDefaults(
     isDownloading: boolean
     // sortable shows the sort & grouping button (the feed toolbar; the table does not use it).
     sortable?: boolean
+    // printable shows the print-view button (the feed toolbar; the table does not use it).
+    printable?: boolean
   }>(),
   {
     sortable: false,
+    printable: false,
   },
 )
 
@@ -37,6 +40,7 @@ const $emit = defineEmits<{
   downloadZip: []
   downloadFiles: []
   sortOpen: []
+  printOpen: []
 }>()
 
 const { t } = useI18n({ useScope: "global" })
@@ -101,7 +105,7 @@ function countFilters(): number {
       </template>
     </div>
 
-    <div v-if="sortable" class="flex shrink-0 items-center rounded-sm bg-slate-200 px-1 py-1">
+    <div v-if="sortable" class="pd-print-hidden flex shrink-0 items-center rounded-sm bg-slate-200 px-1 py-1">
       <button
         class="h-full rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
         type="button"
@@ -116,11 +120,25 @@ function countFilters(): number {
       v-if="siteContext.features.searchResultsTable"
       :model-value="searchSession.view"
       :options="selectButtonOptions"
-      class="shrink-0"
+      class="pd-print-hidden shrink-0"
       @update:model-value="(v) => $emit('viewChange', v)"
     />
 
-    <div v-if="siteContext.features.downloadButtons && hasPermission(CAN_BULK_GET_FILE)" class="flex shrink-0 items-center gap-1 rounded-sm bg-slate-200 px-1 py-1">
+    <div v-if="printable" class="pd-print-hidden flex shrink-0 items-center rounded-sm bg-slate-200 px-1 py-1">
+      <button
+        class="h-full rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
+        type="button"
+        :title="t('partials.SearchResultsHeader.print')"
+        @click.prevent="$emit('printOpen')"
+      >
+        <PrinterIcon class="size-6" :alt="t('partials.SearchResultsHeader.print')" />
+      </button>
+    </div>
+
+    <div
+      v-if="siteContext.features.downloadButtons && hasPermission(CAN_BULK_GET_FILE)"
+      class="pd-print-hidden flex shrink-0 items-center gap-1 rounded-sm bg-slate-200 px-1 py-1"
+    >
       <button
         class="h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
         :class="{

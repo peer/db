@@ -617,3 +617,62 @@
     content: "";
   }
 }
+
+/*
+  Print preview helpers. The in-app preview (body.pd-printing) mirrors the @media print layout on screen
+  so users can see, without printing, how the results will look:
+    - pd-print-only:   shown only when previewing or printing (e.g. the timestamp and the filters list).
+    - pd-print-hidden: hidden when previewing or printing (e.g. the right filters column, the toolbar).
+    - pd-preview-only: shown only in the in-app preview, never on a real print (the close button).
+*/
+.pd-print-only,
+.pd-print-only-flex,
+.pd-preview-only {
+  display: none !important;
+}
+
+body.pd-printing header,
+body.pd-printing footer,
+body.pd-printing [role="tablist"] {
+  display: none !important;
+}
+
+body.pd-printing .mt-12,
+body.pd-printing .sm\:mt-\[4\.5rem\] {
+  margin-top: 0 !important;
+}
+
+body.pd-printing .pd-print-only {
+  display: block !important;
+}
+
+body.pd-printing .pd-print-only-flex {
+  display: flex !important;
+}
+
+body.pd-printing .pd-print-hidden {
+  display: none !important;
+}
+
+body.pd-printing .pd-preview-only {
+  display: flex !important;
+}
+
+@media print {
+  .pd-print-only {
+    display: block !important;
+  }
+
+  .pd-print-only-flex {
+    display: flex !important;
+  }
+
+  .pd-print-hidden {
+    display: none !important;
+  }
+
+  .pd-preview-only,
+  body.pd-printing .pd-preview-only {
+    display: none !important;
+  }
+}

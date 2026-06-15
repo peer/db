@@ -168,7 +168,8 @@
       "noResults": "Ni najdenih rezultatov.",
       "downloadZip": "Prenesi datoteke kot zip",
       "downloadFiles": "Prenesi datoteke v mapo",
-      "sort": "Razvrščanje in združevanje"
+      "sort": "Razvrščanje in združevanje",
+      "print": "Pogled za tisk"
     },
     "SearchSortDialog": {
       "title": "Razvrščanje in združevanje",
@@ -191,10 +192,12 @@
       "error": "Napaka pri prenašanju datoteke."
     },
     "SearchResultsFeed": {
+      "closePrint": "Zapri pogled za tisk",
       "moreFilters": "Več filtrov",
       "shownResults": "{i} od 1 rezultata. | {i} od {count} rezultatov.",
       "shownResultsOnly": "{i} od 1 prikazanega rezultata. | {i} od {count} prikazanih rezultatov.",
       "filtersNotShown": "{count} filter ni prikazan. | {count} filtra nista prikazana. | {count} filtri niso prikazani. | {count} filtrov ni prikazanih.",
+      "resultsNotShown": "{count} od {total} rezultatov ni prikazan. | {count} od {total} rezultatov nista prikazana. | {count} od {total} rezultatov niso prikazani. | {count} od {total} rezultatov ni prikazanih.",
       "noFilters": "Ni filtrov na voljo.",
       "filtersAvailable": "{count} filter na voljo. | {count} filtra na voljo. | {count} filtri na voljo. | {count} filtrov na voljo.",
       "determiningFilters": "Ugotavljanje filtrov...",

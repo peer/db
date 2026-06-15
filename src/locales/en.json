@@ -168,7 +168,8 @@
       "noResults": "No results found.",
       "downloadZip": "Download files as zip",
       "downloadFiles": "Download files to folder",
-      "sort": "Sort and grouping"
+      "sort": "Sort and grouping",
+      "print": "Print view"
     },
     "SearchSortDialog": {
       "title": "Sort and grouping",
@@ -191,10 +192,12 @@
       "error": "Error downloading file."
     },
     "SearchResultsFeed": {
+      "closePrint": "Close print view",
       "moreFilters": "More filters",
       "shownResults": "{i} of 1 result. | {i} of {count} results.",
       "shownResultsOnly": "{i} of 1 shown result. | {i} of {count} shown results.",
       "filtersNotShown": "1 filter not shown. | {count} filters not shown.",
+      "resultsNotShown": "1 of {total} result not shown. | {count} of {total} results not shown.",
       "noFilters": "No filters available.",
       "filtersAvailable": "1 filters available. | {count} filters available.",
       "determiningFilters": "Determining filters...",
