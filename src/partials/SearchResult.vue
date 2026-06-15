@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ComponentExposed } from "vue-component-type-helpers"
+import type { DeepReadonly } from "vue"
 
 import type { D } from "@/document"
 import type { Result } from "@/types"
@@ -22,7 +23,7 @@ import { encodeQuery, loadingLongWidth, loadingWidth } from "@/utils"
 
 defineProps<{
   searchSessionId: string
-  result: Result
+  result: DeepReadonly<Result>
 }>()
 
 const { t } = useI18n({ useScope: "global" })

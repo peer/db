@@ -159,6 +159,7 @@ export async function updateSearchSession(
     ...(searchData.filters && searchData.filters.length > 0 ? { filters: searchData.filters } : {}),
     ...(searchData.prefilters && searchData.prefilters.length > 0 ? { prefilters: searchData.prefilters } : {}),
     ...(searchData.reverse ? { reverse: searchData.reverse } : {}),
+    ...(searchData.sort && searchData.sort.length > 0 ? { sort: searchData.sort } : {}),
   }
   const response = await postJSON<UpdateSearchSessionResponse>(
     router.apiResolve({

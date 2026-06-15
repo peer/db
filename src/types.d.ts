@@ -36,8 +36,29 @@ export type HasSearchResult = {
 
 export type FilterResult = RefSearchResult | AmountSearchResult | TimeSearchResult | HasSearchResult
 
+// A search result. When results are grouped, a node with group set is a group heading: id is the
+// referenced value's document ID, count is the number of documents in the group, and group holds the
+// nested sub-groups or the documents. A node without group is a plain result document (a leaf).
 export type Result = {
   id: string
+  count?: number
+  group?: Result[]
+}
+
+// SortColumn identifies a sortable column: a built-in column ("score", "time", "label") with no prop, or
+// a filter column ("ref", "amount", "time") carrying its property path (and unit for amount). A built-in
+// "time" column is distinguished from a "time" filter column by the absence of prop.
+export type SortColumn = {
+  type: "score" | "time" | "label" | "ref" | "amount"
+  prop?: string[]
+  unit?: string
+}
+
+// SortKey is one column in the effective sort order. descending sorts high-to-low. group (ref columns
+// only, in a leading run) groups results by that column's value.
+export type SortKey = SortColumn & {
+  descending?: boolean
+  group?: boolean
 }
 
 export type RefFilterResult = {
@@ -145,6 +166,9 @@ export type SearchSessionData = {
   reverse?: string
   // language is the session's UI language. The backend resolves an empty value to the site default and stores it on the session.
   language?: string
+  // sort is the effective sort order. Empty means the default order (relevance, time, display label). A
+  // leading run of group=true ref columns groups the feed results.
+  sort?: SortKey[]
 }
 
 // Request body for creating a new search session. The optional query sets the initial full-text query.

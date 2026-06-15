@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { PrefilterPayload } from "@/search"
-import type { Filter, SearchSessionData, ViewType } from "@/types"
+import type { Filter, SearchSessionData, SortKey, ViewType } from "@/types"
 import type { DeepReadonly } from "vue"
 
 import { Identifier } from "@tozd/identifier"
@@ -120,6 +120,7 @@ async function applyPrefilters(payloads: PrefilterPayload[] | null) {
     reverse: searchSession.value.reverse,
     prefilters,
     language: searchSession.value.language,
+    sort: searchSession.value.sort,
   })
 }
 
@@ -147,6 +148,7 @@ watch(locale, async () => {
     reverse: searchSession.value.reverse,
     prefilters: searchSession.value.prefilters,
     language: locale.value,
+    sort: searchSession.value.sort,
   })
 })
 
@@ -160,6 +162,7 @@ async function onFiltersUpdate(updatedFilters: Filter[]) {
     reverse: searchSession.value!.reverse,
     prefilters: searchSession.value!.prefilters,
     language: searchSession.value!.language,
+    sort: searchSession.value!.sort,
   })
 }
 
@@ -210,6 +213,7 @@ async function onQueryChange(query: string) {
     reverse: searchSession.value!.reverse,
     prefilters: searchSession.value!.prefilters,
     language: searchSession.value!.language,
+    sort: searchSession.value!.sort,
   })
 }
 
@@ -223,6 +227,7 @@ async function onViewChange(view: ViewType) {
     reverse: searchSession.value!.reverse,
     prefilters: searchSession.value!.prefilters,
     language: searchSession.value!.language,
+    sort: searchSession.value!.sort,
   })
 }
 
@@ -236,6 +241,7 @@ async function onReverseClear() {
     reverse: undefined,
     prefilters: searchSession.value!.prefilters,
     language: searchSession.value!.language,
+    sort: searchSession.value!.sort,
   })
 }
 
@@ -249,6 +255,20 @@ async function onPrefiltersClear() {
     reverse: searchSession.value!.reverse,
     prefilters: undefined,
     language: searchSession.value!.language,
+  })
+}
+
+async function onSortUpdate(sort: SortKey[]) {
+  // Checking abortController is done inside onSearchSessionUpdate.
+
+  await onSearchSessionUpdate({
+    view: searchSession.value!.view,
+    query: searchSession.value!.query,
+    filters: searchSession.value!.filters,
+    reverse: searchSession.value!.reverse,
+    prefilters: searchSession.value!.prefilters,
+    language: searchSession.value!.language,
+    sort: sort.length > 0 ? sort : undefined,
   })
 }
 
@@ -298,6 +318,7 @@ async function onDownloadFiles() {
       @download-files="onDownloadFiles"
       @reverse-clear="onReverseClear"
       @prefilters-clear="onPrefiltersClear"
+      @sort-update="onSortUpdate"
     />
 
     <SearchResultsTable

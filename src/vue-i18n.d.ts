@@ -27,6 +27,8 @@ declare module "vue-i18n" {
         clear: string
         remove: string
         revert: string
+        moveUp: string
+        moveDown: string
         subClaim: string
         loadCountMore: string
         loadMore: string
@@ -177,6 +179,21 @@ declare module "vue-i18n" {
         noResults: string
         downloadZip: string
         downloadFiles: string
+        sort: string
+      }
+      SearchSortDialog: {
+        title: string
+        sortOrder: string
+        addColumn: string
+        empty: string
+        group: string
+        ascending: string
+        descending: string
+        columns: {
+          score: string
+          time: string
+          label: string
+        }
       }
       DownloadOverlay: {
         preparing: string

@@ -11,24 +11,32 @@ import type { DeepReadonly } from "vue"
 
 import type { SearchSession, SelectButtonOption, ViewType } from "@/types"
 
-import { ArchiveBoxArrowDownIcon, ArrowDownTrayIcon, Bars4Icon, TableCellsIcon } from "@heroicons/vue/24/outline"
+import { AdjustmentsHorizontalIcon, ArchiveBoxArrowDownIcon, ArrowDownTrayIcon, Bars4Icon, TableCellsIcon } from "@heroicons/vue/24/outline"
 import { useI18n } from "vue-i18n"
 
 import { CAN_BULK_GET_FILE, hasPermission } from "@/auth"
 import SelectButton from "@/components/SelectButton.vue"
 import siteContext from "@/context"
 
-const props = defineProps<{
-  searchSession: DeepReadonly<SearchSession>
-  searchTotal: number | null
-  searchMoreThanTotal: boolean
-  isDownloading: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    searchSession: DeepReadonly<SearchSession>
+    searchTotal: number | null
+    searchMoreThanTotal: boolean
+    isDownloading: boolean
+    // sortable shows the sort & grouping button (the feed toolbar; the table does not use it).
+    sortable?: boolean
+  }>(),
+  {
+    sortable: false,
+  },
+)
 
 const $emit = defineEmits<{
   viewChange: [value: ViewType]
   downloadZip: []
   downloadFiles: []
+  sortOpen: []
 }>()
 
 const { t } = useI18n({ useScope: "global" })
@@ -91,6 +99,17 @@ function countFilters(): number {
         <div v-else-if="searchMoreThanTotal">{{ t("partials.SearchResultsHeader.resultsFoundMoreThan", { count: searchTotal }) }}</div>
         <div v-else>{{ t("partials.SearchResultsHeader.resultsFound", { count: searchTotal }) }}</div>
       </template>
+    </div>
+
+    <div v-if="sortable" class="flex shrink-0 items-center rounded-sm bg-slate-200 px-1 py-1">
+      <button
+        class="h-full rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
+        type="button"
+        :title="t('partials.SearchResultsHeader.sort')"
+        @click.prevent="$emit('sortOpen')"
+      >
+        <AdjustmentsHorizontalIcon class="size-6" :alt="t('partials.SearchResultsHeader.sort')" />
+      </button>
     </div>
 
     <SelectButton

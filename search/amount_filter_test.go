@@ -49,6 +49,7 @@ func TestAmountFilterGetIntegration(t *testing.T) {
 
 	// Create a session with an amount filter.
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -256,6 +257,7 @@ func TestAmountFilterGetSameValuesIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -287,6 +289,7 @@ func TestAmountFilterGetEmptyIntegration(t *testing.T) {
 	unitID := identifier.From("unit")
 
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -319,6 +322,7 @@ func TestAmountFilterGetWithoutUnitIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -366,6 +370,7 @@ func TestAmountFilterGetGapIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -439,6 +444,7 @@ func TestAmountFilterGetExtendedBoundsIntegration(t *testing.T) {
 	gte := 0.0
 	lte := 100.0
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -501,6 +507,7 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 	gte := 10.0
 	lte := 90.0
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -567,6 +574,7 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -669,6 +677,7 @@ func TestAmountFilterGetPointBoundsIntegration(t *testing.T) {
 	gte := 10.0
 	lte := 10.0
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -695,6 +704,7 @@ func TestAmountFilterGetPointBoundsIntegration(t *testing.T) {
 	gapGte := 30.0
 	gapLte := 30.0
 	gapSession := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -739,6 +749,7 @@ func TestAmountFilterGetSingleValueActiveIntegration(t *testing.T) {
 	gte := 0.0
 	lte := 10.0
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -804,6 +815,7 @@ func TestAmountFilterGetExistsIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",

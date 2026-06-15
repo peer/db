@@ -1085,6 +1085,7 @@ func (s *Service) SearchCreatePostAPI(w http.ResponseWriter, req *http.Request, 
 		Filters:    nil,
 		Prefilters: nil,
 		Reverse:    nil,
+		Sort:       nil,
 	}
 
 	searchSession := &search.Session{
@@ -1248,6 +1249,7 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 		Filters:    nil,
 		Prefilters: nil,
 		Reverse:    reverse,
+		Sort:       nil,
 	}
 
 	for key, toValues := range filterMap {

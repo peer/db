@@ -2,10 +2,10 @@
 import type { ComponentPublicInstance, DeepReadonly } from "vue"
 
 import type { D } from "@/document"
-import type { Filter, Result, SearchSession, ViewType } from "@/types"
+import type { Filter, Result, SearchSession, SortKey, ViewType } from "@/types"
 
 import { FunnelIcon } from "@heroicons/vue/20/solid"
-import { onBeforeUnmount, ref, toRef, useTemplateRef } from "vue"
+import { computed, onBeforeUnmount, ref, toRef, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
@@ -15,7 +15,9 @@ import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
 import PrefilterLabel from "@/partials/PrefilterLabel.vue"
 import SearchResult from "@/partials/SearchResult.vue"
+import SearchResultGroup from "@/partials/SearchResultGroup.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
+import SearchSortDialog from "@/partials/SearchSortDialog.vue"
 import { useBusy } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, filterResultKey, useFilters, useLocationAt } from "@/search"
 import { loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils"
@@ -40,9 +42,16 @@ const $emit = defineEmits<{
   downloadFiles: []
   reverseClear: []
   prefiltersClear: []
+  sortUpdate: [sort: SortKey[]]
 }>()
 
 const { t } = useI18n({ useScope: "global" })
+
+const sortDialogOpen = ref(false)
+
+// Results are grouped when the session's sort has a leading run of group columns; the backend then returns
+// nested results which we render as a group tree instead of a flat list.
+const grouped = computed(() => (props.searchSession.sort ?? []).some((s) => s.group))
 
 const SEARCH_INITIAL_LIMIT = 50
 const SEARCH_INCREASE = 50
@@ -178,51 +187,58 @@ const WithDocumentD = WithDocument<D>
         :search-total="searchTotal"
         :search-more-than-total="searchMoreThanTotal"
         :is-downloading="isDownloading"
+        sortable
         @view-change="(v) => $emit('viewChange', v)"
         @download-zip="$emit('downloadZip')"
         @download-files="$emit('downloadFiles')"
+        @sort-open="sortDialogOpen = true"
       />
 
       <template v-if="searchTotal !== null && searchTotal > 0">
-        <template v-for="(result, i) in limitedSearchResults" :key="result.id">
-          <div v-if="i > 0 && i % 10 === 0" class="pd-pager my-1 sm:my-4">
-            <div v-if="searchResults.length < searchTotal" class="pd-count text-center text-sm">{{
-              t("partials.SearchResultsFeed.shownResultsOnly", { i, count: searchResults.length })
+        <template v-if="grouped">
+          <SearchResultGroup v-for="(node, gi) in searchResults" :key="`${node.id}-${gi}`" :node="node" :search-session-id="searchSession.id" />
+        </template>
+        <template v-else>
+          <template v-for="(result, i) in limitedSearchResults" :key="result.id">
+            <div v-if="i > 0 && i % 10 === 0" class="pd-pager my-1 sm:my-4">
+              <div v-if="searchResults.length < searchTotal" class="pd-count text-center text-sm">{{
+                t("partials.SearchResultsFeed.shownResultsOnly", { i, count: searchResults.length })
+              }}</div>
+              <div v-else-if="searchResults.length == searchTotal" class="pd-count text-center text-sm">{{
+                t("partials.SearchResultsFeed.shownResults", { i, count: searchResults.length })
+              }}</div>
+              <!-- We do not use ProgressBar here because we plan to make this an interactive bar on which you can click to move to that location. -->
+              <div class="pd-track relative h-2 w-full bg-slate-200">
+                <div class="pd-thumb absolute inset-y-0 left-0 bg-secondary-400" :style="{ width: (i / searchResults.length) * 100 + '%' }" />
+              </div>
+            </div>
+            <SearchResult :ref="track(result.id)" :search-session-id="searchSession.id" :result="result" />
+          </template>
+
+          <Button
+            v-if="searchHasMore"
+            id="searchresultsfeed-button-loadmore"
+            ref="searchMoreButton"
+            primary
+            class="w-1/4 min-w-fit self-center"
+            @click.prevent="searchLoadMore"
+            >{{ t("common.buttons.loadMore") }}</Button
+          >
+
+          <div v-else class="my-1 sm:my-4">
+            <!-- Here we assume that MaxResultsCount is always set to a smaller value than what TrackTotalHits is set to. -->
+            <div v-if="searchMoreThanTotal" class="text-center text-sm">{{
+              t("common.status.allResultsMoreThan", { first: searchResults.length, count: searchTotal })
             }}</div>
-            <div v-else-if="searchResults.length == searchTotal" class="pd-count text-center text-sm">{{
-              t("partials.SearchResultsFeed.shownResults", { i, count: searchResults.length })
+            <div v-else-if="searchResults.length < searchTotal" class="text-center text-sm">{{
+              t("common.status.allResultsOnly", { first: searchResults.length, count: searchTotal })
             }}</div>
-            <!-- We do not use ProgressBar here because we plan to make this an interactive bar on which you can click to move to that location. -->
-            <div class="pd-track relative h-2 w-full bg-slate-200">
-              <div class="pd-thumb absolute inset-y-0 left-0 bg-secondary-400" :style="{ width: (i / searchResults.length) * 100 + '%' }" />
+            <div v-else-if="searchResults.length === searchTotal" class="text-center text-sm">{{ t("common.status.allResults", { count: searchResults.length }) }}</div>
+            <div class="relative h-2 w-full bg-slate-200">
+              <div class="absolute inset-y-0 left-0 bg-secondary-400" :style="{ width: 100 + '%' }"></div>
             </div>
           </div>
-          <SearchResult :ref="track(result.id)" :search-session-id="searchSession.id" :result="result" />
         </template>
-
-        <Button
-          v-if="searchHasMore"
-          id="searchresultsfeed-button-loadmore"
-          ref="searchMoreButton"
-          primary
-          class="w-1/4 min-w-fit self-center"
-          @click.prevent="searchLoadMore"
-          >{{ t("common.buttons.loadMore") }}</Button
-        >
-
-        <div v-else class="my-1 sm:my-4">
-          <!-- Here we assume that MaxResultsCount is always set to a smaller value than what TrackTotalHits is set to. -->
-          <div v-if="searchMoreThanTotal" class="text-center text-sm">{{
-            t("common.status.allResultsMoreThan", { first: searchResults.length, count: searchTotal })
-          }}</div>
-          <div v-else-if="searchResults.length < searchTotal" class="text-center text-sm">{{
-            t("common.status.allResultsOnly", { first: searchResults.length, count: searchTotal })
-          }}</div>
-          <div v-else-if="searchResults.length === searchTotal" class="text-center text-sm">{{ t("common.status.allResults", { count: searchResults.length }) }}</div>
-          <div class="relative h-2 w-full bg-slate-200">
-            <div class="absolute inset-y-0 left-0 bg-secondary-400" :style="{ width: 100 + '%' }"></div>
-          </div>
-        </div>
       </template>
     </div>
 
@@ -325,6 +341,14 @@ const WithDocumentD = WithDocument<D>
       </template>
     </div>
   </div>
+
+  <SearchSortDialog
+    :open="sortDialogOpen"
+    :search-session="searchSession"
+    :filter-columns="filtersResults"
+    @close="sortDialogOpen = false"
+    @sort-update="(sort) => $emit('sortUpdate', sort)"
+  />
 
   <Teleport v-if="(searchTotal !== null && searchTotal > 0 && !searchHasMore) || searchTotal === 0" to="footer">
     <Footer class="border-t border-slate-50 bg-slate-200 shadow-sm" />

@@ -112,6 +112,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 
 	// Create a session with a ref filter so we can look up the filter by ID.
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",

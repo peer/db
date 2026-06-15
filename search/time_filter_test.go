@@ -23,6 +23,7 @@ func TestTimeFilterGetIntegration(t *testing.T) {
 
 	// Create a session with a time filter.
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -188,6 +189,7 @@ func TestTimeFilterGetSameValuesIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -222,6 +224,7 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -268,6 +271,7 @@ func TestTimeFilterGetEmptyIntegration(t *testing.T) {
 	timeProp := identifier.From("timeProp")
 
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -306,6 +310,7 @@ func TestTimeFilterGetExtendedBoundsIntegration(t *testing.T) {
 	gte := float64(0)
 	lte := float64(10000)
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -367,6 +372,7 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 	gte := float64(1000)
 	lte := float64(9000)
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -428,6 +434,7 @@ func TestTimeFilterGetWideRangeIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -581,6 +588,7 @@ func TestTimeFilterGetPointBoundsIntegration(t *testing.T) {
 	gte := 1000.5
 	lte := 1000.5
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -604,6 +612,7 @@ func TestTimeFilterGetPointBoundsIntegration(t *testing.T) {
 	gapGte := float64(3000)
 	gapLte := float64(3000)
 	gapSession := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -643,6 +652,7 @@ func TestTimeFilterGetSingleValueActiveIntegration(t *testing.T) {
 	gte := float64(999)
 	lte := float64(1000)
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",
@@ -771,6 +781,7 @@ func TestTimeFilterGetExistsIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
+		Sort:     nil,
 		Language: "",
 		View:     "",
 		Query:    "",

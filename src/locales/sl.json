@@ -16,6 +16,8 @@
       "clear": "Počisti",
       "remove": "Odstrani",
       "revert": "Povrni",
+      "moveUp": "Premakni gor",
+      "moveDown": "Premakni dol",
       "subClaim": "Pod-vrednost",
       "loadCountMore": "{count} več",
       "loadMore": "Naloži več",
@@ -165,7 +167,22 @@
       "resultsFoundMoreThan": "Več kot {count} najden rezultat. | Več kot {count} najdena rezultata. | Več kot {count} najdeni rezultati. | Več kot {count} najdenih rezultatov.",
       "noResults": "Ni najdenih rezultatov.",
       "downloadZip": "Prenesi datoteke kot zip",
-      "downloadFiles": "Prenesi datoteke v mapo"
+      "downloadFiles": "Prenesi datoteke v mapo",
+      "sort": "Razvrščanje in združevanje"
+    },
+    "SearchSortDialog": {
+      "title": "Razvrščanje in združevanje",
+      "sortOrder": "Vrstni red razvrščanja",
+      "addColumn": "Dodaj stolpec",
+      "empty": "Privzeti vrstni red (ustreznost, čas, ime).",
+      "group": "Združi",
+      "ascending": "Naraščajoče",
+      "descending": "Padajoče",
+      "columns": {
+        "score": "Ustreznost",
+        "time": "Čas",
+        "label": "Ime"
+      }
     },
     "DownloadOverlay": {
       "preparing": "V pripravi...",

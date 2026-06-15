@@ -15,12 +15,10 @@ import (
 	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
-	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/fieldtype"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/fieldvaluefactormodifier"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/functionboostmode"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/operator"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/searchtype"
-	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/sortorder"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/totalhitsrelation"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
@@ -593,6 +591,35 @@ func (s *Session) GetFilterByID(id identifier.Identifier) (*Filter, errors.E) {
 	return nil, errors.WithDetails(ErrNotFound, "filter", id)
 }
 
+// Built-in sort column types. Filter columns reuse the filter type strings ("ref", "amount", "time")
+// and carry Prop. A built-in "time" column (the document's earliest time) is distinguished from a
+// "time" filter column by the absence of Prop.
+const (
+	SortScore = "score"
+	SortTime  = "time"
+	SortLabel = "label"
+)
+
+// SortKey is one column in the effective sort order.
+//
+// Type is a built-in column ("score", "time", "label"), which never carries Prop, or a filter column
+// ("ref", "amount", "time") which always carries Prop (a single property ID; sub-claim columns are not
+// supported yet). Unit applies only to amount filter columns. Descending sorts high-to-low (default is
+// ascending). Group, valid only on ref columns, groups results by that column's value; group keys must
+// form a leading contiguous run of the sort order.
+type SortKey struct {
+	Type       string   `json:"type"`
+	Prop       []string `json:"prop,omitempty"`
+	Unit       string   `json:"unit,omitempty"`
+	Descending bool     `json:"descending,omitempty"`
+	Group      bool     `json:"group,omitempty"`
+}
+
+// isFilter reports whether the key is a filter column (carries a property) rather than a built-in column.
+func (k SortKey) isFilter() bool {
+	return len(k.Prop) > 0
+}
+
 // SessionData represents the data of the search session.
 //
 // When Reverse is set, the session is scoped to documents which have a ref claim
@@ -607,6 +634,9 @@ type SessionData struct {
 	// to _score (no should-clause boosting from multi-value matches).
 	Prefilters []Filter               `json:"prefilters,omitempty"`
 	Reverse    *identifier.Identifier `json:"reverse,omitempty"`
+	// Sort is the effective sort order: an ordered list of columns. Empty means the default order
+	// (relevance, then time, then display label). A leading run of group=true ref columns groups results.
+	Sort []SortKey `json:"sort,omitempty"`
 }
 
 // validateFilters validates each filter in filters and records its ID in seen to detect
@@ -658,6 +688,11 @@ func (s *SessionData) Validate(ctx context.Context, withoutSession bool) errors.
 		}
 	}
 
+	errE = validateSort(s.Sort)
+	if errE != nil {
+		return errE
+	}
+
 	st := waf.MustGetSite[*internalSite.Site](ctx)
 	resolved, errE := internalSearch.ResolveLanguage(s.Language, st.LanguagePriority, st.DefaultLanguage)
 	if errE != nil {
@@ -665,6 +700,64 @@ func (s *SessionData) Validate(ctx context.Context, withoutSession bool) errors.
 	}
 	s.Language = resolved
 
+	return nil
+}
+
+// validateSort validates the sort order: every key targets a known column, filter columns carry a single
+// property, only ref columns may be grouped, and group keys form a leading contiguous run.
+func validateSort(sort []SortKey) errors.E {
+	seenNonGroup := false
+	for i := range sort {
+		k := sort[i]
+		if k.isFilter() {
+			switch k.Type {
+			case "ref", "amount", "time":
+			default:
+				errE := errors.New("invalid filter sort column type")
+				errors.Details(errE)["type"] = k.Type
+				errors.Details(errE)["sort"] = i
+				return errE
+			}
+			if len(k.Prop) != 1 {
+				errE := errors.New("filter sort column must have exactly one property")
+				errors.Details(errE)["sort"] = i
+				return errE
+			}
+			if k.Unit != "" && k.Type != "amount" {
+				errE := errors.New("only amount sort columns may have a unit")
+				errors.Details(errE)["sort"] = i
+				return errE
+			}
+		} else {
+			switch k.Type {
+			case SortScore, SortTime, SortLabel:
+			default:
+				errE := errors.New("invalid built-in sort column type")
+				errors.Details(errE)["type"] = k.Type
+				errors.Details(errE)["sort"] = i
+				return errE
+			}
+			if k.Unit != "" {
+				errE := errors.New("built-in sort column may not have a unit")
+				errors.Details(errE)["sort"] = i
+				return errE
+			}
+		}
+		if k.Group {
+			if k.Type != "ref" || !k.isFilter() {
+				errE := errors.New("only ref columns may be grouped")
+				errors.Details(errE)["sort"] = i
+				return errE
+			}
+			if seenNonGroup {
+				errE := errors.New("group columns must be a leading run of the sort order")
+				errors.Details(errE)["sort"] = i
+				return errE
+			}
+		} else {
+			seenNonGroup = true
+		}
+	}
 	return nil
 }
 
@@ -1078,8 +1171,14 @@ func GetSession(_ context.Context, id identifier.Identifier) (*Session, errors.E
 }
 
 // Result represents a search result document.
+//
+// When results are grouped, a node with Group set is a group heading: ID is the referenced value's
+// document ID, Count is the number of documents in the group, and Group holds the nested sub-groups or
+// the documents in that group. A node without Group is a plain result document (a leaf).
 type Result struct {
-	ID string `json:"id"`
+	ID    string   `json:"id"`
+	Count *int64   `json:"count,omitempty"`
+	Group []Result `json:"group,omitempty"`
 }
 
 // ResultsGet retrieves search results for a given search session.
@@ -1142,29 +1241,26 @@ func ResultsGet(
 	}
 
 	searchService := getSearchService()
+	lang := searchData.Language
 
-	// Order results by relevance score (higher first), then by the document's earliest time (newer
-	// first), then by its display label in the session's language (a before z). Without a query,
-	// filters, or prefilters every document scores 0, so the time and display-label keys decide the
-	// order. Documents missing a sort field sort last (missing: _last).
-	sorts := []types.SortCombinationsVariant{
-		esdsl.NewSortOptions().Score_(esdsl.NewScoreSort().Order(sortorder.Desc)),
-		esdsl.NewSortOptions().AddSortOption("time", esdsl.NewFieldSort(sortorder.Desc).Missing(esdsl.NewMissing().String("_last"))),
-		esdsl.NewSortOptions().AddSortOption(
-			"displaySort."+searchData.Language,
-			// unmapped_type keeps the sort working if field for the language is not present in the index mapping.
-			esdsl.NewFieldSort(sortorder.Asc).UnmappedType(fieldtype.Keyword).Missing(esdsl.NewMissing().String("_last")),
-		),
+	// A leading run of group=true sort keys groups the results (feed view only); the remaining keys order
+	// documents within each leaf group. Without group keys, the results are a flat sorted list ordered by
+	// the sort keys, then the default tail (relevance, then earliest time, then display label).
+	groupCols := leadingGroupKeys(searchData.Sort)
+	grouped := len(groupCols) > 0 && searchData.View == ViewFeed
+
+	// Score with global term/document frequencies across all shards (DFS) instead of each shard's local
+	// statistics. With multiple shards a term's IDF otherwise depends on which shard a document happens to
+	// land on, and that skew is amplified by deleted (re-indexed) documents whose term statistics linger
+	// per shard until merged. The result is inconsistent BM25 scoring across documents and unstable ranking.
+	if grouped {
+		searchService = searchService.Size(0).Query(query).
+			AddAggregation(groupAggName, buildGroupAggregation(groupCols, buildSort(searchData.Sort[len(groupCols):], lang), lang)).
+			SearchType(searchtype.Dfsquerythenfetch)
+	} else {
+		searchService = searchService.From(0).Size(MaxResultsCount).Query(query).
+			Sort(buildSort(searchData.Sort, lang)...).SearchType(searchtype.Dfsquerythenfetch)
 	}
-
-	// Score with global term/document frequencies across all shards (DFS) instead of
-	// each shard's local statistics. With multiple shards a term's IDF otherwise depends
-	// on which shard a document happens to land on, and that skew is amplified by deleted
-	// (re-indexed) documents whose term statistics linger per shard until merged. The
-	// result is inconsistent BM25 scoring across documents and unstable ranking. DFS makes
-	// IDF uniform so ranking no longer depends on shard placement. Only the ranked results
-	// query needs this. Queries which run with Size(0) and are not scored.
-	searchService = searchService.From(0).Size(MaxResultsCount).Query(query).Sort(sorts...).SearchType(searchtype.Dfsquerythenfetch)
 
 	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
@@ -1174,9 +1270,18 @@ func ResultsGet(
 	}
 	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
 
-	results := make([]Result, 0, len(res.Hits.Hits))
-	for _, hit := range res.Hits.Hits {
-		results = append(results, Result{ID: *hit.Id_})
+	var results []Result
+	if grouped {
+		var errE errors.E
+		results, errE = foldGroups(res.Aggregations, groupCols)
+		if errE != nil {
+			return nil, nil, errE
+		}
+	} else {
+		results = make([]Result, 0, len(res.Hits.Hits))
+		for _, hit := range res.Hits.Hits {
+			results = append(results, Result{ID: *hit.Id_}) //nolint:exhaustruct
+		}
 	}
 
 	// Total is a string or a number.

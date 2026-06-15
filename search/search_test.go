@@ -560,7 +560,7 @@ func TestSessionToQueryPanicsOnInvalidFilter(t *testing.T) {
 		f.Ref = nil
 		f.Amount = nil
 		f.Time = nil
-		data := search.SessionData{Language: "", View: "", Query: "", Filters: []search.Filter{f}, Prefilters: nil, Reverse: nil}
+		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "", Filters: []search.Filter{f}, Prefilters: nil, Reverse: nil}
 		_ = data.ToQuery(nil)
 	})
 }
@@ -572,7 +572,7 @@ func TestSessionValidate(t *testing.T) {
 		t.Parallel()
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		s := &search.Session{
-			SessionData: search.SessionData{Language: "", View: search.ViewFeed, Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
+			SessionData: search.SessionData{Sort: nil, Language: "", View: search.ViewFeed, Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
 			ID:          identifier.From(base...),
 			Base:        base,
 			Version:     0,
@@ -585,7 +585,7 @@ func TestSessionValidate(t *testing.T) {
 	t.Run("BaseTooShort", func(t *testing.T) {
 		t.Parallel()
 		s := &search.Session{
-			SessionData: search.SessionData{Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
+			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
 			ID:          identifier.From("short"),
 			Base:        []string{"short"},
 			Version:     0,
@@ -600,7 +600,7 @@ func TestSessionValidate(t *testing.T) {
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		wrongID := identifier.New()
 		s := &search.Session{
-			SessionData: search.SessionData{Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
+			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
 			ID:          wrongID,
 			Base:        base,
 			Version:     0,
@@ -614,7 +614,7 @@ func TestSessionValidate(t *testing.T) {
 		t.Parallel()
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		s := &search.Session{
-			SessionData: search.SessionData{Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
+			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
 			ID:          identifier.From(base...),
 			Base:        base,
 			Version:     0,
@@ -628,7 +628,7 @@ func TestSessionValidate(t *testing.T) {
 		t.Parallel()
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		s := &search.Session{
-			SessionData: search.SessionData{Language: "", View: search.ViewTable, Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
+			SessionData: search.SessionData{Sort: nil, Language: "", View: search.ViewTable, Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
 			ID:          identifier.From(base...),
 			Base:        base,
 			Version:     0,
@@ -642,7 +642,7 @@ func TestSessionValidate(t *testing.T) {
 		t.Parallel()
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		s := &search.Session{
-			SessionData: search.SessionData{Language: "", View: "grid", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
+			SessionData: search.SessionData{Sort: nil, Language: "", View: "grid", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
 			ID:          identifier.From(base...),
 			Base:        base,
 			Version:     0,
@@ -659,6 +659,7 @@ func TestSessionValidate(t *testing.T) {
 		// Filter with invalid ref (neither to nor none set).
 		s := &search.Session{
 			SessionData: search.SessionData{
+				Sort:     nil,
 				Language: "",
 				View:     "", Query: "test",
 				Filters: []search.Filter{
@@ -683,6 +684,7 @@ func TestSessionValidate(t *testing.T) {
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		s := &search.Session{
 			SessionData: search.SessionData{
+				Sort:     nil,
 				Language: "",
 				View:     "", Query: "test",
 				Filters: []search.Filter{
@@ -703,7 +705,7 @@ func TestSessionValidate(t *testing.T) {
 		t.Parallel()
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		s := &search.Session{
-			SessionData: search.SessionData{Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
+			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
 			ID:          identifier.From(base...),
 			Base:        base,
 			Version:     0,
@@ -718,7 +720,7 @@ func TestSessionDataValidate(t *testing.T) {
 
 	t.Run("DefaultView", func(t *testing.T) {
 		t.Parallel()
-		data := search.SessionData{Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil}
+		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil}
 		err := data.Validate(siteContext(t.Context()), false)
 		require.NoError(t, err)
 		assert.Equal(t, search.ViewFeed, data.View)
@@ -726,7 +728,7 @@ func TestSessionDataValidate(t *testing.T) {
 
 	t.Run("InvalidView", func(t *testing.T) {
 		t.Parallel()
-		data := search.SessionData{Language: "", View: "grid", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil}
+		data := search.SessionData{Sort: nil, Language: "", View: "grid", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil}
 		err := data.Validate(siteContext(t.Context()), false)
 		require.Error(t, err)
 		assert.EqualError(t, err, "invalid view")
@@ -737,6 +739,7 @@ func TestSessionDataValidate(t *testing.T) {
 		prop := identifier.From("prop")
 		value := identifier.From("value")
 		data := search.SessionData{
+			Sort:     nil,
 			Language: "",
 			View:     "", Query: "test",
 			Filters: []search.Filter{
@@ -753,6 +756,7 @@ func TestSessionDataValidate(t *testing.T) {
 		t.Parallel()
 		prop := identifier.From("prop")
 		data := search.SessionData{
+			Sort:     nil,
 			Language: "",
 			View:     "", Query: "test",
 			Filters: []search.Filter{
@@ -780,19 +784,20 @@ func TestSessionToQuery(t *testing.T) {
 	}{
 		{
 			Name:        "QueryOnly",
-			SessionData: search.SessionData{Language: "", View: "", Query: "hello", Filters: nil, Prefilters: nil, Reverse: nil},
+			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "hello", Filters: nil, Prefilters: nil, Reverse: nil},
 			//nolint:lll
 			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"dis_max":{"queries":[{"simple_query_string":{"default_operator":"and","fields":["text.en","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.en","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.en.unstemmed","text.und"],"query":"hello"}},{"simple_query_string":{"default_operator":"and","fields":["text.pt","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.pt","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.pt.unstemmed","text.und"],"query":"hello"}},{"simple_query_string":{"default_operator":"and","fields":["text.sl","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.sl","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.sl.unstemmed","text.und"],"query":"hello"}}],"tie_breaker":0.1}},{"dis_max":{"queries":[{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.en"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.pt"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.sl"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.und"],"query":"hello","quote_field_suffix":".exact"}}],"tie_breaker":0.1}}]}}]}}`,
 		},
 		{
 			Name:        "Empty",
-			SessionData: search.SessionData{Language: "", View: "", Query: "", Filters: nil, Prefilters: nil, Reverse: nil},
+			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "", Filters: nil, Prefilters: nil, Reverse: nil},
 			// With no scoring clauses the query matches all documents with score 0 via a match_all filter clause.
 			Want: `{"bool":{"filter":[{"match_all":{}}]}}`,
 		},
 		{
 			Name: "QueryAndFilter",
 			SessionData: search.SessionData{
+				Sort:     nil,
 				Language: "",
 				View:     "", Query: "hello",
 				Filters: []search.Filter{
@@ -825,6 +830,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 	t.Run("ReverseOnly", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{
+			Sort:     nil,
 			Language: "",
 			View:     "",
 			Query:    "", Filters: nil,
@@ -842,6 +848,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 	t.Run("ReverseAndFilter", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{
+			Sort:     nil,
 			Language: "",
 			View:     "",
 			Query:    "",
@@ -862,6 +869,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 		t.Parallel()
 		filter := makeTestFilter(prop, &search.RefFilter{Direct: nil, To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil)
 		data := search.SessionData{
+			Sort:       nil,
 			Language:   "",
 			View:       "",
 			Query:      "",
@@ -879,7 +887,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 
 	t.Run("NoReverse", func(t *testing.T) {
 		t.Parallel()
-		data := search.SessionData{Language: "", View: "", Query: "", Filters: nil, Prefilters: nil, Reverse: nil}
+		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "", Filters: nil, Prefilters: nil, Reverse: nil}
 		q := data.ToQuery(nil)
 		assert.JSONEq(t, `{"bool":{"filter":[{"match_all":{}}]}}`, testutils.QueryJSON(t, q))
 	})
@@ -894,7 +902,7 @@ func TestSessionToQueryPrefilters(t *testing.T) {
 	t.Run("PrefilterGoesIntoFilterClause", func(t *testing.T) {
 		t.Parallel()
 		prefilter := makeTestFilter(prop, &search.RefFilter{Direct: nil, To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil)
-		data := search.SessionData{Language: "", View: "", Query: "", Filters: nil, Prefilters: []search.Filter{prefilter}, Reverse: nil}
+		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "", Filters: nil, Prefilters: []search.Filter{prefilter}, Reverse: nil}
 		//nolint:lll
 		want := `{"bool":{"filter":[{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"` + prop.String() + `"}}},{"term":{"claims.ref.to":{"value":"` + value.String() + `"}}}]}}}}]}}`
 		assert.Equal(t, want, testutils.QueryJSON(t, data.ToQuery(nil)))
@@ -905,13 +913,17 @@ func TestSessionToQueryPrefilters(t *testing.T) {
 		ref := &search.RefFilter{Direct: nil, To: []search.ToValue{{ID: value}}, Missing: false}
 
 		// As a regular filter the ref query goes into the scoring must clause.
-		asFilter := search.SessionData{Language: "", View: "", Query: "", Filters: []search.Filter{makeTestFilter(prop, ref, nil, nil)}, Prefilters: nil, Reverse: nil}
+		asFilter := search.SessionData{ //nolint:exhaustruct
+			Filters: []search.Filter{makeTestFilter(prop, ref, nil, nil)},
+		}
 		jFilter := testutils.QueryJSON(t, asFilter.ToQuery(nil))
 		assert.Contains(t, jFilter, `"must":[{"nested"`)
 		assert.NotContains(t, jFilter, `"filter":`)
 
 		// The same filter as a prefilter goes into the non-scoring filter clause instead.
-		asPrefilter := search.SessionData{Language: "", View: "", Query: "", Filters: nil, Prefilters: []search.Filter{makeTestFilter(prop, ref, nil, nil)}, Reverse: nil}
+		asPrefilter := search.SessionData{ //nolint:exhaustruct
+			Prefilters: []search.Filter{makeTestFilter(prop, ref, nil, nil)},
+		}
 		jPrefilter := testutils.QueryJSON(t, asPrefilter.ToQuery(nil))
 		assert.Contains(t, jPrefilter, `"filter":[{"nested"`)
 		assert.NotContains(t, jPrefilter, `"must":[{"nested"`)
@@ -947,6 +959,7 @@ func TestSessionToQueryPrefilterParentToAcrossSets(t *testing.T) {
 	t.Run("PrefilterRestrictsFilter", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{
+			Sort:     nil,
 			Language: "", View: "", Query: "",
 			Filters:    []search.Filter{makeSubRefFilter()},
 			Prefilters: []search.Filter{makeTopRefFilter()},
@@ -961,6 +974,7 @@ func TestSessionToQueryPrefilterParentToAcrossSets(t *testing.T) {
 	t.Run("FilterRestrictsPrefilter", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{
+			Sort:     nil,
 			Language: "", View: "", Query: "",
 			Filters:    []search.Filter{makeTopRefFilter()},
 			Prefilters: []search.Filter{makeSubRefFilter()},
@@ -980,7 +994,7 @@ func TestSessionDataValidateReverse(t *testing.T) {
 
 	t.Run("ReverseSet", func(t *testing.T) {
 		t.Parallel()
-		data := search.SessionData{Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: &reverseID}
+		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: &reverseID}
 		err := data.Validate(siteContext(t.Context()), false)
 		require.NoError(t, err)
 	})
@@ -989,7 +1003,7 @@ func TestSessionDataValidateReverse(t *testing.T) {
 		t.Parallel()
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		s := search.Session{
-			SessionData: search.SessionData{Language: "", View: search.ViewFeed, Query: "", Filters: nil, Prefilters: nil, Reverse: &reverseID},
+			SessionData: search.SessionData{Sort: nil, Language: "", View: search.ViewFeed, Query: "", Filters: nil, Prefilters: nil, Reverse: &reverseID},
 			ID:          identifier.From(base...),
 			Base:        base,
 			Version:     0,
@@ -1011,7 +1025,7 @@ func TestCreateSession(t *testing.T) {
 
 	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 	s := &search.Session{
-		SessionData: search.SessionData{Language: "", View: "", Query: "test search", Filters: nil, Prefilters: nil, Reverse: nil},
+		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test search", Filters: nil, Prefilters: nil, Reverse: nil},
 		ID:          identifier.From(base...),
 		Base:        base,
 		Version:     0,
@@ -1034,7 +1048,7 @@ func TestCreateSessionValidationError(t *testing.T) {
 
 	// Base with only one element triggers validation error.
 	s := &search.Session{
-		SessionData: search.SessionData{Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
+		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
 		ID:          identifier.From("bad"),
 		Base:        []string{"bad"},
 		Version:     0,
@@ -1052,7 +1066,7 @@ func TestUpdateSession(t *testing.T) {
 	// First create a session.
 	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 	s := &search.Session{
-		SessionData: search.SessionData{Language: "", View: "", Query: "original", Filters: nil, Prefilters: nil, Reverse: nil},
+		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "original", Filters: nil, Prefilters: nil, Reverse: nil},
 		ID:          identifier.From(base...),
 		Base:        base,
 		Version:     0,
@@ -1064,7 +1078,7 @@ func TestUpdateSession(t *testing.T) {
 
 	// Update it.
 	updated := &search.Session{
-		SessionData: search.SessionData{Language: "", View: search.ViewTable, Query: "updated", Filters: nil, Prefilters: nil, Reverse: nil},
+		SessionData: search.SessionData{Sort: nil, Language: "", View: search.ViewTable, Query: "updated", Filters: nil, Prefilters: nil, Reverse: nil},
 		ID:          id,
 		Base:        base,
 		Version:     1,
@@ -1086,7 +1100,7 @@ func TestUpdateSessionMissingBase(t *testing.T) {
 
 	// Session with no base at all fails validation.
 	s := &search.Session{ //nolint:exhaustruct
-		SessionData: search.SessionData{Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
+		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
 		Version:     0,
 	}
 	errE := search.UpdateSession(siteContext(ctx), s)
@@ -1101,7 +1115,7 @@ func TestUpdateSessionValidationError(t *testing.T) {
 
 	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 	s := &search.Session{
-		SessionData: search.SessionData{Language: "", View: "", Query: "original", Filters: nil, Prefilters: nil, Reverse: nil},
+		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "original", Filters: nil, Prefilters: nil, Reverse: nil},
 		ID:          identifier.From(base...),
 		Base:        base,
 		Version:     0,
@@ -1111,7 +1125,7 @@ func TestUpdateSessionValidationError(t *testing.T) {
 	id := s.ID
 
 	updated := &search.Session{
-		SessionData: search.SessionData{Language: "", View: "invalid", Query: "updated", Filters: nil, Prefilters: nil, Reverse: nil},
+		SessionData: search.SessionData{Sort: nil, Language: "", View: "invalid", Query: "updated", Filters: nil, Prefilters: nil, Reverse: nil},
 		ID:          id,
 		Base:        base,
 		Version:     1,
@@ -1128,7 +1142,7 @@ func TestGetSession(t *testing.T) {
 
 	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 	s := &search.Session{
-		SessionData: search.SessionData{Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
+		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
 		ID:          identifier.From(base...),
 		Base:        base,
 		Version:     0,
@@ -1153,7 +1167,7 @@ func TestGetSessionFromID(t *testing.T) {
 
 	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 	s := &search.Session{
-		SessionData: search.SessionData{Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
+		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil},
 		ID:          identifier.From(base...),
 		Base:        base,
 		Version:     0,
@@ -1186,7 +1200,7 @@ func TestCreateAndUpdateSessionRoundTrip(t *testing.T) {
 
 	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 	s := &search.Session{
-		SessionData: search.SessionData{Language: "", View: search.ViewFeed, Query: "initial", Filters: nil, Prefilters: nil, Reverse: nil},
+		SessionData: search.SessionData{Sort: nil, Language: "", View: search.ViewFeed, Query: "initial", Filters: nil, Prefilters: nil, Reverse: nil},
 		ID:          identifier.From(base...),
 		Base:        base,
 		Version:     0,
@@ -1197,6 +1211,7 @@ func TestCreateAndUpdateSessionRoundTrip(t *testing.T) {
 
 	s2 := &search.Session{
 		SessionData: search.SessionData{
+			Sort:     nil,
 			Language: "",
 			View:     search.ViewTable, Query: "updated",
 			Filters: []search.Filter{
@@ -1213,7 +1228,7 @@ func TestCreateAndUpdateSessionRoundTrip(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	s3 := &search.Session{
-		SessionData: search.SessionData{Language: "", View: "", Query: "updated again", Filters: nil, Prefilters: nil, Reverse: nil},
+		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "updated again", Filters: nil, Prefilters: nil, Reverse: nil},
 		ID:          id,
 		Base:        base,
 		Version:     2,
@@ -1257,6 +1272,7 @@ func TestGetFilterByID(t *testing.T) {
 	f2 := makeTestFilter(prop, &search.RefFilter{Direct: nil, To: nil, Missing: true}, nil, nil)
 	session := &search.Session{ //nolint:exhaustruct
 		SessionData: search.SessionData{
+			Sort:       nil,
 			Language:   "",
 			View:       "",
 			Query:      "",
@@ -1326,7 +1342,7 @@ func TestJSONSerialization(t *testing.T) {
 
 	t.Run("Result", func(t *testing.T) {
 		t.Parallel()
-		r := search.Result{ID: "doc-123"}
+		r := search.Result{Count: nil, Group: nil, ID: "doc-123"}
 		data, errE := x.MarshalWithoutEscapeHTML(r)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		var decoded search.Result
@@ -1343,6 +1359,7 @@ func TestJSONSerialization(t *testing.T) {
 		id := identifier.From(base...)
 		s := search.Session{
 			SessionData: search.SessionData{
+				Sort:     nil,
 				Language: "",
 				View:     search.ViewTable, Query: "test query",
 				Filters: []search.Filter{
@@ -1480,6 +1497,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 	t.Run("SubRefAlone_NoRestriction", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{
+			Sort:     nil,
 			Language: "",
 			View:     "",
 			Query:    "",
@@ -1497,6 +1515,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 	t.Run("SubRefWithSiblingParentRef_RestrictedToParentTo", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{
+			Sort:     nil,
 			Language: "",
 			View:     "",
 			Query:    "",
@@ -1516,6 +1535,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 	t.Run("SubRefWithSiblingParentRef_MultipleParentTo", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{
+			Sort:     nil,
 			Language: "",
 			View:     "",
 			Query:    "",
@@ -1534,6 +1554,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 	t.Run("SubRefWithSiblingOnDifferentProp_NoRestriction", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{
+			Sort:     nil,
 			Language: "",
 			View:     "",
 			Query:    "",
@@ -1553,6 +1574,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 		// Sibling parent ref filter has Missing=true and no To values, so
 		// there is nothing to restrict by.
 		data := search.SessionData{
+			Sort:     nil,
 			Language: "",
 			View:     "",
 			Query:    "",
@@ -1572,6 +1594,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 		parentRef := makeTestFilter(parentProp, &search.RefFilter{Direct: nil, To: []search.ToValue{{ID: l1}}, Missing: false}, nil, nil)
 		subRef := makeTestSubRefFilter(parentProp, subProp, &search.RefFilter{Direct: nil, To: []search.ToValue{{ID: a}}, Missing: false})
 		data := search.SessionData{
+			Sort:       nil,
 			Language:   "",
 			View:       "",
 			Query:      "",
@@ -1590,6 +1613,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 		parentRef := makeTestFilter(parentProp, &search.RefFilter{Direct: nil, To: []search.ToValue{{ID: l1}}, Missing: false}, nil, nil)
 		subRef := makeTestSubRefFilter(parentProp, subProp, &search.RefFilter{Direct: nil, To: []search.ToValue{{ID: a}}, Missing: false})
 		data := search.SessionData{
+			Sort:       nil,
 			Language:   "",
 			View:       "",
 			Query:      "",
@@ -1870,6 +1894,7 @@ func TestSessionToQueryCrossFilterAllTypes(t *testing.T) {
 	t.Run("SubAmount", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{
+			Sort:     nil,
 			Language: "",
 			View:     "",
 			Query:    "",
@@ -1889,6 +1914,7 @@ func TestSessionToQueryCrossFilterAllTypes(t *testing.T) {
 	t.Run("SubTime", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{
+			Sort:     nil,
 			Language: "",
 			View:     "",
 			Query:    "",
@@ -1908,6 +1934,7 @@ func TestSessionToQueryCrossFilterAllTypes(t *testing.T) {
 	t.Run("SubHas", func(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{
+			Sort:     nil,
 			Language: "",
 			View:     "",
 			Query:    "",

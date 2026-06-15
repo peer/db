@@ -16,6 +16,8 @@
       "clear": "Clear",
       "remove": "Remove",
       "revert": "Revert",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
       "subClaim": "Sub-value",
       "loadCountMore": "{count} more",
       "loadMore": "Load more",
@@ -165,7 +167,22 @@
       "resultsFoundMoreThan": "More than 1 result found. | More than {count} results found.",
       "noResults": "No results found.",
       "downloadZip": "Download files as zip",
-      "downloadFiles": "Download files to folder"
+      "downloadFiles": "Download files to folder",
+      "sort": "Sort and grouping"
+    },
+    "SearchSortDialog": {
+      "title": "Sort and grouping",
+      "sortOrder": "Sort order",
+      "addColumn": "Add column",
+      "empty": "Default order (relevance, time, name).",
+      "group": "Group",
+      "ascending": "Ascending",
+      "descending": "Descending",
+      "columns": {
+        "score": "Relevance",
+        "time": "Time",
+        "label": "Name"
+      }
     },
     "DownloadOverlay": {
       "preparing": "Preparing...",
