@@ -12,6 +12,7 @@ import {
   AmountIntervalClaim,
   AmountIntervalClaimPatch,
   CastClaimChange,
+  changeFrom,
   Changes,
   D,
   HasClaimPatch,
@@ -35,7 +36,6 @@ import {
   TimeIntervalClaim,
   TimeIntervalClaimPatch,
   UnknownClaimPatch,
-  changeFrom,
 } from "@/document"
 
 describe("patch New and Apply", () => {
@@ -440,7 +440,11 @@ describe("CastClaimChange", () => {
   test("Apply throws for non-existent ID", async () => {
     const base = [Identifier.new().toString()]
     const doc = new D({ id: (await Identifier.from(...base)).toString(), base })
-    const castChange = new CastClaimChange({ type: "cast", id: Identifier.new().toString(), patch: { type: "unknown", prop: Identifier.new().toString(), confidence: 1.0 } })
+    const castChange = new CastClaimChange({
+      type: "cast",
+      id: Identifier.new().toString(),
+      patch: { type: "unknown", prop: Identifier.new().toString(), confidence: 1.0 },
+    })
     await expect(castChange.Apply(doc)).rejects.toThrow("claim not found")
   })
 

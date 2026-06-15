@@ -764,7 +764,10 @@ describe("ReplaceByID", () => {
 describe("claimTypeName", () => {
   test("returns the type name for a claim instance", () => {
     const prop = Identifier.new().toString()
-    assert.equal(claimTypeName(new ReferenceClaim({ id: Identifier.new().toString(), confidence: HighConfidence, prop: { id: prop }, to: { id: Identifier.new().toString() } })), "ref")
+    assert.equal(
+      claimTypeName(new ReferenceClaim({ id: Identifier.new().toString(), confidence: HighConfidence, prop: { id: prop }, to: { id: Identifier.new().toString() } })),
+      "ref",
+    )
     assert.equal(claimTypeName(new UnknownClaim({ id: Identifier.new().toString(), confidence: HighConfidence, prop: { id: prop } })), "unknown")
     assert.equal(claimTypeName(new StringClaim({ id: Identifier.new().toString(), confidence: HighConfidence, prop: { id: prop }, string: "x" })), "string")
   })
