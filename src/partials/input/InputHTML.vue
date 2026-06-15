@@ -1920,16 +1920,17 @@ watch(
                   value is intentionally allowed and treated as Remove
                   inside onConfirm.
 
-                  mailto is refused for blockquote cite, in sync with the
-                  backend, which validates cite with allowMailto false and
-                  link href with allowMailto true (validateURL in urls.go).
+                  Contact schemes (mailto and tel) are refused for blockquote
+                  cite, in sync with the backend, which validates cite with
+                  allowContact false and link href with allowContact true
+                  (validateURL in urls.go).
                 -->
                 <InputLink
                   ref="linkInputRef"
                   v-model="linkInputModel"
                   v-bind="errorProps"
                   :readonly="isInactive"
-                  :allow-mailto="bottomContext !== 'blockquote'"
+                  :allow-contact="bottomContext !== 'blockquote'"
                   class="w-full"
                 />
               </div>

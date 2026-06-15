@@ -193,6 +193,7 @@ describe("parseUrl", () => {
     "http://example.com/foo",
     "HTTPS://Example.com",
     "mailto:test@example.com",
+    "tel:+1234",
     "/foo",
     "/foo/bar?q=1#h",
     "/",
@@ -209,24 +210,26 @@ describe("parseUrl", () => {
     ["//example.com/foo", "Invalid URL"],
     ["javascript:alert(1)", "disallowed URL scheme: javascript:"],
     ["ftp://example.com", "disallowed URL scheme: ftp:"],
-    ["tel:+1234", "disallowed URL scheme: tel:"],
     ["data:text/html,<x>", "disallowed URL scheme: data:"],
     ["http:///example.com", "missing host"],
     ["mailto:", "missing address"],
+    ["tel:", "missing number"],
   ])("rejects %s", (input, fragment) => {
     expect(() => parseUrl(input)).toThrow(fragment)
   })
 
-  test("allowMailto=false rejects mailto: even when otherwise valid", () => {
-    // Sanity-check: the same value is accepted with the default (allowMailto=true).
+  test("allowContact=false rejects mailto: and tel: even when otherwise valid", () => {
+    // Sanity-check: the same values are accepted with the default (allowContact=true).
     expect(parseUrl("mailto:test@example.com")).toBeInstanceOf(URL)
-    expect(() => parseUrl("mailto:test@example.com", { allowMailto: false })).toThrow("disallowed URL scheme: mailto:")
+    expect(parseUrl("tel:+1234")).toBeInstanceOf(URL)
+    expect(() => parseUrl("mailto:test@example.com", { allowContact: false })).toThrow("disallowed URL scheme: mailto:")
+    expect(() => parseUrl("tel:+1234", { allowContact: false })).toThrow("disallowed URL scheme: tel:")
   })
 
-  test("allowMailto=false still accepts http / https / leading-slash paths", () => {
-    assert.instanceOf(parseUrl("https://example.com", { allowMailto: false }), URL)
-    assert.instanceOf(parseUrl("http://example.com/foo", { allowMailto: false }), URL)
-    assert.instanceOf(parseUrl("/foo", { allowMailto: false }), URL)
+  test("allowContact=false still accepts http / https / leading-slash paths", () => {
+    assert.instanceOf(parseUrl("https://example.com", { allowContact: false }), URL)
+    assert.instanceOf(parseUrl("http://example.com/foo", { allowContact: false }), URL)
+    assert.instanceOf(parseUrl("/foo", { allowContact: false }), URL)
   })
 })
 

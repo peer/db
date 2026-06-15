@@ -37,16 +37,17 @@ func mustHTMLSchema() *model.Schema {
 }
 
 // urlAttrValidator adapts validateURL to the schema attribute validator signature: it requires a
-// string value and validates it with validateURL, allowing mailto only when allowMailto is set. The
-// schema's linkURL (<a href>) uses allowMailto true; resourceURL (<blockquote cite>) uses false. So
-// link attribute values go through the same URL validation as LinkClaim IRIs.
-func urlAttrValidator(allowMailto bool) model.AttrValidator {
+// string value and validates it with validateURL, allowing the contact schemes (mailto and tel) only
+// when allowContact is set. The schema's linkURL (<a href>) uses allowContact true; resourceURL
+// (<blockquote cite>) uses false. So link attribute values go through the same URL validation as
+// LinkClaim IRIs.
+func urlAttrValidator(allowContact bool) model.AttrValidator {
 	return func(value any) errors.E {
 		s, ok := value.(string)
 		if !ok {
 			return errors.New("URL value is not a string")
 		}
-		return validateURL(s, allowMailto)
+		return validateURL(s, allowContact)
 	}
 }
 

@@ -640,6 +640,7 @@ describe("LinkClaim Validate", () => {
     "http://example.com/foo",
     "HTTPS://Example.com",
     "mailto:test@example.com",
+    "tel:+1234",
     "/foo",
     "/foo/bar?q=1#h",
     "/",
@@ -656,10 +657,10 @@ describe("LinkClaim Validate", () => {
     ["//example.com/foo", "invalid IRI"],
     ["javascript:alert(1)", "disallowed URL scheme: javascript:"],
     ["ftp://example.com", "disallowed URL scheme: ftp:"],
-    ["tel:+1234", "disallowed URL scheme: tel:"],
     ["data:text/html,<x>", "disallowed URL scheme: data:"],
     ["http:///example.com", "invalid URL: missing host"],
     ["mailto:", "invalid URL: missing address"],
+    ["tel:", "invalid URL: missing number"],
   ])("rejects %s", async (iri, fragment) => {
     const claim = makeClaim(iri)
     await expect(claim.Validate()).rejects.toThrow(fragment)

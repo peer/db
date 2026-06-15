@@ -16,11 +16,12 @@ export const HEADING_LEVELS = [1, 2, 3, 4] as const
 
 // Named attribute validators referenced by the schema JSON. They run link attributes through the same
 // parseUrl-based validation (validateUrl) used for LinkClaim IRIs and matching validateURL in the
-// backend's document/urls.go: linkURL (<a href>) allows a same-origin path or an http, https, or
-// mailto URL; resourceURL (<blockquote cite>) is the same minus mailto. Non-string values are invalid.
+// backend's document/urls.go: linkURL (<a href>) allows a same-origin path or an http, https, mailto,
+// or tel URL; resourceURL (<blockquote cite>) is the same minus the contact schemes (mailto and tel).
+// Non-string values are invalid.
 const validators: Record<string, Validator> = {
-  linkURL: (value) => typeof value === "string" && validateUrl(value, { allowMailto: true }),
-  resourceURL: (value) => typeof value === "string" && validateUrl(value, { allowMailto: false }),
+  linkURL: (value) => typeof value === "string" && validateUrl(value, { allowContact: true }),
+  resourceURL: (value) => typeof value === "string" && validateUrl(value, { allowContact: false }),
 }
 
 // The editor schema is built from the shared schema JSON served at /schema.json, the same document

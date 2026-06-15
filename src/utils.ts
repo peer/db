@@ -516,23 +516,24 @@ export async function delay(ms: number, signal?: AbortSignal): Promise<void> {
 
 // Schemes accepted by parseUrl. Mirrors the schemes validateURL accepts in
 // document/urls.go on the backend. Link validation uses this set for <a href>
-// and the set minus mailto for <blockquote cite>; callers (and validateUrl) make
-// the distinction by passing { allowMailto: false }, keeping both sides in sync.
-export const ALLOWED_LINK_CLAIM_SCHEMES = ["http:", "https:", "mailto:"] as const
+// and the set minus the contact schemes (mailto and tel) for <blockquote cite>;
+// callers (and validateUrl) make the distinction by passing { allowContact: false },
+// keeping both sides in sync.
+export const ALLOWED_LINK_CLAIM_SCHEMES = ["http:", "https:", "mailto:", "tel:"] as const
 
 const URL_HOST_REGEX = /^https?:\/\/\//i
 
 // Options accepted by parseUrl (and forwarded by normalizeUrl).
 export type ParseUrlOptions = {
   // Defaults to true.
-  allowMailto?: boolean
+  allowContact?: boolean
 }
 
 // parseUrl parses an input URL and validates it against the project's link
 // allowlist. It accepts:
 //   - Same-origin paths starting with "/" (but not "//"): "/foo", "/a?b=c#d", "/"
-//   - Absolute URLs whose scheme is in ALLOWED_LINK_CLAIM_SCHEMES (mailto
-//     excluded when options.allowMailto is false).
+//   - Absolute URLs whose scheme is in ALLOWED_LINK_CLAIM_SCHEMES (the contact
+//     schemes mailto and tel excluded when options.allowContact is false).
 //
 // It throws on:
 //   - Empty input
@@ -540,12 +541,12 @@ export type ParseUrlOptions = {
 //   - Protocol-relative URLs ("//host/path")
 //   - Document-relative paths ("foo", "../foo")
 //   - Fragment-only refs ("#section")
-//   - Absolute URLs with any other scheme (javascript:, data:, tel:, ftp:, ...)
+//   - Absolute URLs with any other scheme (javascript:, data:, ftp:, ...)
 //   - Degenerate forms like "http:///x" (the WHATWG URL parser silently
 //     normalizes those to "http://x/", moving the path into the host; we
 //     reject before parsing so the backend, which does not normalize, sees
 //     the same outcome)
-//   - Bare "mailto:" with no address.
+//   - Bare "mailto:" with no address, or bare "tel:" with no number.
 //
 // Leading-slash paths are resolved against window.location.href when
 // available so downstream same-origin checks (normalizeUrl, classifyLink,
@@ -553,7 +554,7 @@ export type ParseUrlOptions = {
 // environments without window (Node, isolated tests) a synthetic base is
 // used; the validation rules are syntactic, so the same-origin information
 // is simply not meaningful there.
-export function parseUrl(input: string, { allowMailto = true }: ParseUrlOptions = {}): URL {
+export function parseUrl(input: string, { allowContact = true }: ParseUrlOptions = {}): URL {
   if (!input) {
     throw new Error("empty URL")
   }
@@ -573,12 +574,16 @@ export function parseUrl(input: string, { allowMailto = true }: ParseUrlOptions 
   if (!ALLOWED_LINK_CLAIM_SCHEMES.includes(url.protocol)) {
     throw new Error(`disallowed URL scheme: ${url.protocol}`)
   }
-  if (!allowMailto && url.protocol === "mailto:") {
+  if (!allowContact && (url.protocol === "mailto:" || url.protocol === "tel:")) {
     throw new Error(`disallowed URL scheme: ${url.protocol}`)
   }
   // The URL constructor accepts "mailto:" with no address. Reject it.
   if (url.protocol === "mailto:" && !url.pathname) {
     throw new Error("invalid URL: missing address")
+  }
+  // The URL constructor accepts "tel:" with no number. Reject it.
+  if (url.protocol === "tel:" && !url.pathname) {
+    throw new Error("invalid URL: missing number")
   }
   return url
 }

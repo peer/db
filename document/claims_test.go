@@ -376,6 +376,7 @@ func TestClaimValidations(t *testing.T) { //nolint:maintidx
 		"http://example.com/foo",
 		"HTTPS://Example.com",
 		"mailto:test@example.com",
+		"tel:+1234",
 		"/foo",
 		"/foo/bar?q=1#h",
 		"/",
@@ -398,11 +399,11 @@ func TestClaimValidations(t *testing.T) { //nolint:maintidx
 		{"//example.com/foo", "invalid URL"},
 		{"javascript:alert(1)", "disallowed URL scheme"},
 		{"ftp://example.com", "disallowed URL scheme"},
-		{"tel:+1234", "disallowed URL scheme"},
 		{"data:text/html,<script>", "disallowed URL scheme"},
 		{"http:///example.com", "invalid URL: missing host"},
 		{"https:///example.com", "invalid URL: missing host"},
 		{"mailto:", "invalid URL: missing address"},
+		{"tel:", "invalid URL: missing number"},
 	}
 	for _, tc := range linkInvalid {
 		t.Run("LinkClaim/invalid/"+tc.iri, func(t *testing.T) {
