@@ -29,6 +29,7 @@ linters:
         - "add"
         - "amount"
         - "amountInterval"
+        - "cast"
         - "CLASS"
         - "DISTINCT_FROM"
         - "docs"

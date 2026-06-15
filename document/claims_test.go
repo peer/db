@@ -149,14 +149,14 @@ func TestClaimTypesReplaceByID(t *testing.T) {
 	topID := identifier.New()
 	subID := identifier.New()
 
-	ct := &document.ClaimTypes{} //nolint:exhaustruct
+	ct := &document.ClaimTypes{}
 	top := &document.HasClaim{
-		CoreClaim: document.CoreClaim{ID: topID, Confidence: 1.0}, //nolint:exhaustruct
+		CoreClaim: document.CoreClaim{ID: topID, Confidence: 1.0},
 		Prop:      document.Reference{ID: prop},
 	}
 	require.NoError(t, ct.Add(top))
 	sub := &document.StringClaim{
-		CoreClaim: document.CoreClaim{ID: subID, Confidence: 1.0}, //nolint:exhaustruct
+		CoreClaim: document.CoreClaim{ID: subID, Confidence: 1.0},
 		Prop:      document.Reference{ID: prop},
 		String:    "x",
 	}
@@ -164,7 +164,7 @@ func TestClaimTypesReplaceByID(t *testing.T) {
 
 	// Replace the nested sub-claim with a different type.
 	newSub := &document.UnknownClaim{
-		CoreClaim: document.CoreClaim{ID: subID, Confidence: 1.0}, //nolint:exhaustruct
+		CoreClaim: document.CoreClaim{ID: subID, Confidence: 1.0},
 		Prop:      document.Reference{ID: prop},
 	}
 	old, errE := ct.ReplaceByID(subID, newSub)
@@ -185,7 +185,7 @@ func TestClaimTypesReplaceByID(t *testing.T) {
 
 	// Replacing a non-existent ID returns nil without error.
 	missing := &document.NoneClaim{
-		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0}, //nolint:exhaustruct
+		CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: 1.0},
 		Prop:      document.Reference{ID: prop},
 	}
 	old, errE = ct.ReplaceByID(identifier.New(), missing)

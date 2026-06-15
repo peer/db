@@ -858,7 +858,7 @@ func TestCastClaimChange(t *testing.T) {
 	target := identifier.New()
 	confidence := document.Confidence(1.0)
 
-	doc := &document.D{ //nolint:exhaustruct
+	doc := &document.D{
 		CoreDocument: document.CoreDocument{ID: docID, Base: base},
 	}
 
@@ -872,7 +872,7 @@ func TestCastClaimChange(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Add a sub-claim (notes) under the unknown claim.
-	addSub := document.AddClaimChange{ //nolint:exhaustruct
+	addSub := document.AddClaimChange{
 		Under: &claimID,
 		ID:    subID,
 		Base:  []string{base[0], "1"},
@@ -914,7 +914,7 @@ func TestCastClaimChange(t *testing.T) {
 	assert.Equal(t, claimID, ref.ID, "id preserved")
 	assert.Equal(t, prop2, ref.Prop.ID, "property changed")
 	assert.Equal(t, target, ref.To.ID, "new value")
-	assert.Equal(t, newConf, ref.Confidence, "new confidence")
+	assert.Equal(t, newConf, ref.Confidence, "new confidence") //nolint:testifylint
 
 	// Sub-claims preserved.
 	require.NotNil(t, ref.Sub)
@@ -943,7 +943,7 @@ func TestCastClaimChange(t *testing.T) {
 	// Validate rejects an incomplete patch.
 	castIncomplete := document.CastClaimChange{
 		ID:    claimID,
-		Patch: document.ReferenceClaimPatch{}, //nolint:exhaustruct
+		Patch: document.ReferenceClaimPatch{},
 	}
 	errE = castIncomplete.Validate(base, 0)
 	assert.Error(t, errE)

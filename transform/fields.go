@@ -776,7 +776,7 @@ func parseFieldDefault(field reflect.StructField) (*internalCore.Ref, errors.E) 
 func defaultValueTypeRef(tag string) (*internalCore.Ref, errors.E) {
 	switch tag {
 	case "":
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	case defaultNone:
 		ref := valueTypeRef("NONE")
 		return &ref, nil
@@ -797,7 +797,7 @@ func parseStructValueFieldDefault(fieldType reflect.Type) (*internalCore.Ref, er
 	fieldType = internalCore.UnwrapSliceAndPointer(fieldType)
 
 	if fieldType.Kind() != reflect.Struct {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	for i := range fieldType.NumField() {
@@ -815,5 +815,5 @@ func parseStructValueFieldDefault(fieldType reflect.Type) (*internalCore.Ref, er
 		}
 	}
 
-	return nil, nil
+	return nil, nil //nolint:nilnil
 }

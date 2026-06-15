@@ -1220,16 +1220,16 @@ func TestFieldsSectionWithEmbeddedAndOrder(t *testing.T) {
 }
 
 type studioValue struct {
-	Place *core.Ref `default:"unknown" value:""`
-	Notes string    `cardinality:"0..1" json:"notes" property:"NOTES"`
+	Place *core.Ref `                   default:"unknown"                               value:""`
+	Notes string    `cardinality:"0..1"                   json:"notes" property:"NOTES"`
 }
 
 // DefaultFields exercises the default tag mapping: a struct value field with default:"unknown"
 // (like an artist studio whose location may be unknown) and a simple field with default:"none".
 type DefaultFields struct {
-	Name   string        `cardinality:"1.."  json:"name"   property:"NAME"`
-	Studio []studioValue `cardinality:"0.."  json:"studio" property:"STATUS"`
-	Code   *string       `cardinality:"0..1" default:"none" json:"code" property:"CODE"`
+	Name   string        `cardinality:"1.."                 json:"name"   property:"NAME"`
+	Studio []studioValue `cardinality:"0.."                 json:"studio" property:"STATUS"`
+	Code   *string       `cardinality:"0..1" default:"none" json:"code"   property:"CODE"`
 }
 
 func TestFieldsDefault(t *testing.T) {
