@@ -574,6 +574,53 @@ func (s *Service) documentEndEdit(w http.ResponseWriter, req *http.Request, para
 	s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
 }
 
+// DocumentDeletePostAPI handles POST requests to delete a document.
+func (s *Service) DocumentDeletePostAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
+	defer req.Body.Close()              //nolint:errcheck
+	defer io.Copy(io.Discard, req.Body) //nolint:errcheck
+
+	ctx := req.Context()
+
+	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	}
+
+	id, errE := identifier.MaybeString(params["id"])
+	if errE != nil {
+		s.BadRequestWithError(w, req, errors.WithMessage(errE, `"id" is not a valid identifier`))
+		return
+	}
+
+	var ea emptyRequest
+	errE = x.DecodeJSONWithoutUnknownFields(req.Body, &ea)
+	if errE != nil {
+		s.BadRequestWithError(w, req, errE)
+		return
+	}
+
+	site := waf.MustGetSite[*internalSite.Site](ctx)
+
+	errE = site.Base.DeleteDocument(ctx, id)
+	if errors.Is(errE, store.ErrValueNotFound) {
+		// This includes ErrValueDeleted, too.
+		s.NotFoundWithError(w, req, errE)
+		return
+	} else if errors.Is(errE, store.ErrConflict) {
+		waf.Error(w, req, http.StatusConflict)
+		return
+	} else if errors.Is(errE, store.ErrAccessDenied) {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	} else if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
+}
+
 // DocumentEditGet is a GET/HEAD HTTP request handler which returns HTML frontend for editing documents.
 func (s *Service) DocumentEditGet(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()

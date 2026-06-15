@@ -138,6 +138,38 @@ func (b *B) InsertDocument(ctx context.Context, doc *document.D) errors.E {
 	return errE
 }
 
+// DeleteDocument deletes the latest version of the document, committing a delete changeset.
+//
+// The delete is recorded as a new version (the document's data becomes nil) so the change history is
+// preserved and the document can be undeleted later. System-managed metadata (inverse relations) is
+// carried over so it is restored if the document is undeleted.
+func (b *B) DeleteDocument(ctx context.Context, id identifier.Identifier) errors.E {
+	doc, oldMetadata, version, _, errE := b.GetDocumentLatestDoc(ctx, id)
+	if errE != nil {
+		return errE
+	}
+
+	user := store.UserFromContext(ctx)
+
+	// The changeset base mirrors the convention used elsewhere (doc base plus a marker and a unique
+	// component), so the derived changeset ID does not collide with the document's other changesets.
+	changesetBase := slices.Clone(doc.Base)
+	changesetBase = append(changesetBase, "CHANGESET", identifier.New().String())
+
+	metadata := &store.DocumentMetadata{
+		At:               store.Time(time.Now().UTC()),
+		Users:            internalStore.SortedUniqueUsers([]*store.User{user}),
+		InverseRelations: nil,
+	}
+	metadata.CarryOver(oldMetadata)
+
+	_, errE = b.documents.Delete(ctx, id, version.Changeset, metadata, &store.CommitMetadata{
+		Base: changesetBase,
+		User: user,
+	})
+	return errE
+}
+
 // TODO: Add also a version of BeginEditDocumentLatest method which allows you to specify the version of the document from which the edit session should start.
 
 // BeginEditDocumentLatest begins an edit session for the latest version of the document.

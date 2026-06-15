@@ -6,12 +6,12 @@ import type { D } from "@/document"
 import type { DocumentBeginEditResponse, QueryValues } from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
-import { ChevronLeftIcon, ChevronRightIcon, PencilIcon } from "@heroicons/vue/20/solid"
+import { ChevronLeftIcon, ChevronRightIcon, PencilIcon, TrashIcon } from "@heroicons/vue/20/solid"
 import { computed, onBeforeUnmount, ref, toRef, useTemplateRef, watch, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
-import { headURLDirect, postJSON } from "@/api"
+import { deleteFromCache, headURLDirect, postJSON } from "@/api"
 import { CAN_EDIT_DOCUMENT, hasPermission } from "@/auth"
 import Button from "@/components/Button.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
@@ -67,6 +67,13 @@ const editLock = lockScope(getParentLock())
 const editBusy = localCounter(editLock)
 function getEditLock() {
   return editLock
+}
+
+// Independent lock-scope for the Delete button, mirroring the Edit button's.
+const deleteLock = lockScope(getParentLock())
+const deleteBusy = localCounter(deleteLock)
+function getDeleteLock() {
+  return deleteLock
 }
 
 const abortController = new AbortController()
@@ -341,6 +348,50 @@ async function onEdit() {
     editBusy.value -= 1
   }
 }
+
+async function onDelete() {
+  if (abortController.signal.aborted) {
+    return
+  }
+
+  deleteBusy.value += 1
+  try {
+    await postJSON(
+      router.apiResolve({
+        name: "DocumentDelete",
+        params: {
+          id: props.id,
+        },
+      }).href,
+      {},
+      abortController.signal,
+      deleteBusy,
+    )
+    if (abortController.signal.aborted) {
+      return
+    }
+    // The document no longer exists, so drop its cached response and leave the page.
+    deleteFromCache(
+      router.apiResolve({
+        name: "DocumentGet",
+        params: {
+          id: props.id,
+        },
+      }).href,
+    )
+    await router.push({
+      name: "Home",
+    })
+  } catch (err) {
+    if (abortController.signal.aborted) {
+      return
+    }
+    // TODO: Show notification with error.
+    console.error("DocumentGet.onDelete", err)
+  } finally {
+    deleteBusy.value -= 1
+  }
+}
 </script>
 
 <template>
@@ -389,6 +440,12 @@ async function onEdit() {
           <Button :progress="editBusy" type="button" primary @click.prevent="onEdit">
             <PencilIcon class="size-5 sm:hidden" :alt="t('common.buttons.edit')" />
             <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
+          </Button>
+        </WithLock>
+        <WithLock v-if="hasPermission(CAN_EDIT_DOCUMENT)" :lock="getDeleteLock">
+          <Button :progress="deleteBusy" type="button" primary @click.prevent="onDelete">
+            <TrashIcon class="size-5 sm:hidden" :alt="t('common.buttons.delete')" />
+            <span class="hidden sm:inline">{{ t("common.buttons.delete") }}</span>
           </Button>
         </WithLock>
       </template>

@@ -18,6 +18,7 @@ declare module "vue-i18n" {
         create: string
         upload: string
         edit: string
+        delete: string
         save: string
         discard: string
         add: string
