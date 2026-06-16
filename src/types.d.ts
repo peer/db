@@ -39,6 +39,8 @@ export type FilterResult = RefSearchResult | AmountSearchResult | TimeSearchResu
 // A search result. When results are grouped, a node with group set is a group heading: id is the
 // referenced value's document ID, count is the number of documents in the group, and group holds the
 // nested sub-groups or the documents. A node without group is a plain result document (a leaf).
+// A group heading whose id is "__MISSING__" is the synthetic "missing" group: it holds the documents
+// that are missing this level's grouping property (same sentinel the reference filter uses).
 export type Result = {
   id: string
   count?: number

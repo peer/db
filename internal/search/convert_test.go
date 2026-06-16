@@ -1476,6 +1476,56 @@ func TestConvertRelationOverlappingAncestors(t *testing.T) {
 	assert.Contains(t, toIDs, sharedAncestor)
 }
 
+func TestConvertReferenceFlatValue(t *testing.T) {
+	t.Parallel()
+
+	subentityDoc := makePropertyDoc(internalCore.SubentityOfPropID, nil)
+	subclassDoc := makePropertyDoc(internalCore.SubclassOfPropID, &internalCore.SubentityOfPropID)
+	instanceDoc := makePropertyDoc(internalCore.InstanceOfPropID, &internalCore.SubentityOfPropID)
+	properties := []*document.D{subentityDoc, subclassDoc, instanceDoc}
+
+	// A target in no value hierarchy: only a naming claim, no SUBCLASS_OF/PART_OF/etc.
+	target := identifier.New()
+	targetClaims := &document.ClaimTypes{}
+	targetClaims.String = append(targetClaims.String, document.StringClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: internalCore.NamingPropID},
+		String:    "Target",
+	})
+	targetDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: target}, //nolint:exhaustruct
+		Claims:       targetClaims,
+	}
+
+	propDoc := makeNamingDoc(testPropID, "Rel Prop")
+	extraDocs := map[identifier.Identifier]*document.D{
+		testPropID: propDoc,
+		target:     targetDoc,
+	}
+	c := newTestConverter(t, properties, nil, extraDocs)
+
+	ctx := t.Context()
+	claim := &document.ReferenceClaim{
+		CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+		Prop:      document.Reference{ID: testPropID},
+		To:        document.Reference{ID: target},
+	}
+	errE := claim.Validate()
+	require.NoError(t, errE, "% -+#.1v", errE)
+	result, _, errE := c.convertReference(ctx, claim)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// A flat value expands to exactly one record (itself, no ancestors), carrying a single self path on
+	// both toPath and toFullPath so it groups and prefilters as a one-node hierarchy.
+	require.Len(t, result, 1)
+	r := result[0]
+	assert.Equal(t, target, r.To)
+	selfPath := SelfHierarchyPathPrefix + target.String()
+	assert.Equal(t, []string{selfPath}, r.ToPath)
+	assert.Equal(t, []string{selfPath}, r.ToFullPath)
+	assert.Equal(t, []string{"Target"}, r.ToDisplayPath["und"])
+}
+
 func TestMarkReferenceLeaves(t *testing.T) {
 	t.Parallel()
 
@@ -3923,9 +3973,13 @@ func TestConvertRelationWithClassAncestors(t *testing.T) {
 	require.Len(t, targetClaim.ToDisplayPath["und"], 1)
 	assert.Equal(t, "Parent Class\x00Target", targetClaim.ToDisplayPath["und"][0])
 
-	// Parent class claim has no hierarchy path (it's a root).
-	assert.Empty(t, parentClaim.ToPath)
-	assert.Empty(t, parentClaim.ToDisplayPath)
+	// Parent class is a hierarchy root, so its own value path is the synthetic self path (it groups and
+	// prefilters as a one-node hierarchy). Its toFullPath is still the stated leaf's path, stamped onto
+	// every expanded record.
+	require.Len(t, parentClaim.ToPath, 1)
+	assert.Equal(t, SelfHierarchyPathPrefix+testParentClass.String(), parentClaim.ToPath[0])
+	require.Len(t, parentClaim.ToDisplayPath["und"], 1)
+	assert.Equal(t, "Parent Class", parentClaim.ToDisplayPath["und"][0])
 }
 
 func TestConvertRelationWithClassSelfCycle(t *testing.T) {

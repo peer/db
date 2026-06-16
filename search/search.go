@@ -1175,6 +1175,9 @@ func GetSession(_ context.Context, id identifier.Identifier) (*Session, errors.E
 // When results are grouped, a node with Group set is a group heading: ID is the referenced value's
 // document ID, Count is the number of documents in the group, and Group holds the nested sub-groups or
 // the documents in that group. A node without Group is a plain result document (a leaf).
+//
+// A group heading whose ID is MissingValueID is the synthetic "missing" group: it holds the documents
+// that are missing this level's grouping property (the frontend renders it with a localized label).
 type Result struct {
 	ID    string   `json:"id"`
 	Count *int64   `json:"count,omitempty"`

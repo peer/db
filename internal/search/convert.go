@@ -144,6 +144,32 @@ func (d documentInfo) CollectHierarchyPaths() ([]string, map[string][]string) {
 	return toPath, toDisplayPath
 }
 
+// SelfHierarchyPathPrefix prefixes the synthetic self path used for a value that participates in no value
+// hierarchy, mirroring the "<hierarchyProp>:" prefix real hierarchy paths carry. The __SELF__ sentinel
+// cannot equal a real hierarchy property id (it is not a valid identifier), so a self path never collides
+// with a real path.
+const SelfHierarchyPathPrefix = "__SELF__:"
+
+// HierarchyPathsOrSelf returns the value's hierarchy paths and per-language display paths, falling back to
+// a single self path ("__SELF__:<id>") with the value's own display label when the value is in no value
+// hierarchy. This makes every leaf value groupable and prefilterable as a one-node hierarchy: its single
+// segment is dropped by ancestor and facet parsing (referencePathAncestors, parseToPath) but kept by
+// grouping (pathSegments), so it forms a single-level group. id is the value this documentInfo describes.
+func (d documentInfo) HierarchyPathsOrSelf(id identifier.Identifier) ([]string, map[string][]string) {
+	toPath, toDisplayPath := d.CollectHierarchyPaths()
+	if len(toPath) > 0 {
+		return toPath, toDisplayPath
+	}
+	var selfDisplayPath map[string][]string
+	for lang, label := range d.Display.Display {
+		if selfDisplayPath == nil {
+			selfDisplayPath = map[string][]string{}
+		}
+		selfDisplayPath[lang] = []string{label}
+	}
+	return []string{SelfHierarchyPathPrefix + id.String()}, selfDisplayPath
+}
+
 // fieldInverseKey identifies a position within a specific class's field hierarchy
 // for field-level inverse property lookup. Class is the class the field is defined
 // on, Path is the encoded sequence of parent HasClaim property IDs, and SourceProp
@@ -2430,15 +2456,15 @@ func (c *Converter) ReferencesCountIgnored(ctx context.Context, id identifier.Id
 
 // DocumentFullPaths returns the document's hierarchy paths in the same "<hierarchyProp>:<root>/.../<id>"
 // form that convertReference stamps onto a reference claim's toFullPath. A value reached through several
-// parents or several value hierarchies has more than one path; a hierarchy root (a value with no parents)
-// has none. These are computed exactly as the stored toFullPath is, so they identify every indexed
-// record that expanded from this document as a stated (leaf) value.
+// parents or several value hierarchies has more than one path; a value in no value hierarchy gets a single
+// self path ("__SELF__:<id>"). These are computed exactly as the stored toFullPath is, so they identify
+// every indexed record that expanded from this document as a stated (leaf) value.
 func (c *Converter) DocumentFullPaths(ctx context.Context, id identifier.Identifier) ([]string, errors.E) {
 	info, errE := c.getDocumentInfo(ctx, id)
 	if errE != nil {
 		return nil, errE
 	}
-	paths, _ := info.CollectHierarchyPaths()
+	paths, _ := info.HierarchyPathsOrSelf(id)
 	return paths, nil
 }
 
@@ -3075,8 +3101,8 @@ func (c *Converter) convertSubRefs(
 		}
 
 		// fullPath is the stated sub-value's own (leaf) hierarchy path, stamped onto every record this
-		// sub-value expands into (the value itself and each of its ancestors).
-		fullPath, _ := mrToInfo.CollectHierarchyPaths()
+		// sub-value expands into (the value itself and each of its ancestors). A flat sub-value gets a self path.
+		fullPath, _ := mrToInfo.HierarchyPathsOrSelf(mr.To.ID)
 
 		// targets is the stated sub-value plus its ancestors from all value hierarchies.
 		targets := []identifier.Identifier{mr.To.ID}
@@ -3106,7 +3132,7 @@ func (c *Converter) convertSubRefs(
 						return nil, errE
 					}
 				}
-				toPath, toDisplayPath := tidInfo.CollectHierarchyPaths()
+				toPath, toDisplayPath := tidInfo.HierarchyPathsOrSelf(tid)
 				resolved = append(resolved, resolvedSubRef{
 					Prop:          pid,
 					PropDisplay:   propDisplay.Display,
@@ -3307,8 +3333,8 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 
 	// fullPath is the original (leaf) target's hierarchy path. It is stamped onto every record this
 	// claim expands into (the target and each of its ancestors), so a prefilter can identify and drop
-	// all records derived from a given leaf value.
-	fullPath, _ := targetInfo.CollectHierarchyPaths()
+	// all records derived from a given leaf value. A flat target (in no hierarchy) gets a self path.
+	fullPath, _ := targetInfo.HierarchyPathsOrSelf(claim.To.ID)
 
 	result := make([]ReferenceClaim, 0, len(props)*len(targets))
 	for _, pid := range props {
@@ -3329,8 +3355,8 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 					return nil, subClaims{}, errE
 				}
 			}
-			// Collect hierarchy paths across all value hierarchy types.
-			toPath, toDisplayPath := tidInfo.CollectHierarchyPaths()
+			// Collect hierarchy paths across all value hierarchy types, or a self path for a flat value.
+			toPath, toDisplayPath := tidInfo.HierarchyPathsOrSelf(tid)
 			result = append(result, ReferenceClaim{
 				Prop:          pid,
 				PropDisplay:   propDisplay.Display,

@@ -21,9 +21,11 @@ import (
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
-// MissingRefFilterID is a special ID used for the "missing" bucket in reference filter results.
-// It represents documents that do not have a value for the filtered property.
-const MissingRefFilterID = "__MISSING__"
+// MissingValueID is the synthetic API ID for the "missing" bucket: documents that have no claim at all for
+// a property (the property is absent, which is distinct from an explicit none or unknown claim). It labels
+// the missing entry in reference filter results and the missing group in grouped search results; the
+// frontend special-cases this ID and renders it with the common.values.missing label.
+const MissingValueID = "__MISSING__"
 
 // DirectRefFilterPrefix prefixes the synthetic "direct" value id in reference filter results;
 // the suffix is the parent value id. It is appended as a child of a value that has narrower values
@@ -347,7 +349,7 @@ func (f *RefFilter) Get(
 
 	// Include the missing bucket if there are documents without this property.
 	if missingCount > 0 {
-		results = append(results, RefFilterResult{ID: MissingRefFilterID, Count: missingCount, Paths: nil})
+		results = append(results, RefFilterResult{ID: MissingValueID, Count: missingCount, Paths: nil})
 	}
 
 	// Order for hierarchical tree rendering on the frontend.
@@ -551,7 +553,7 @@ func (f *RefFilter) GetSubRef(
 
 	// Include the missing bucket if there are documents without this sub-reference.
 	if missingCount > 0 {
-		results = append(results, RefFilterResult{ID: MissingRefFilterID, Count: missingCount, Paths: nil})
+		results = append(results, RefFilterResult{ID: MissingValueID, Count: missingCount, Paths: nil})
 	}
 
 	// Order for hierarchical tree rendering on the frontend.

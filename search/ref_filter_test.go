@@ -326,7 +326,7 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 
 	// Results should include target1 (count 1) and __MISSING__ (count 2), sorted by count descending.
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: search.MissingRefFilterID, Count: 2, Paths: nil},
+		{ID: search.MissingValueID, Count: 2, Paths: nil},
 		{ID: target1.String(), Count: 1, Paths: nil},
 	}, results)
 	// Total includes the missing bucket.
