@@ -102,7 +102,7 @@ func TestValidateShortcut(t *testing.T) {
 
 		errE := transform.TestingValidateShortcut("ns.example.com,KIND")
 		require.Error(t, errE)
-		assert.EqualError(t, errE, "search shortcut part must have a non-empty key and value separated by '='")
+		assert.EqualError(t, errE, "entry must have a non-empty key and value separated by '='")
 	})
 
 	t.Run("empty value", func(t *testing.T) {
@@ -110,7 +110,7 @@ func TestValidateShortcut(t *testing.T) {
 
 		errE := transform.TestingValidateShortcut("ns.example.com,KIND=")
 		require.Error(t, errE)
-		assert.EqualError(t, errE, "search shortcut part must have a non-empty key and value separated by '='")
+		assert.EqualError(t, errE, "entry must have a non-empty key and value separated by '='")
 	})
 
 	t.Run("key with too many colons", func(t *testing.T) {
@@ -141,6 +141,6 @@ func TestValidateShortcut(t *testing.T) {
 
 		errE := transform.TestingValidateShortcut("ns.example.com,KIND=ns.example.com,,A")
 		require.Error(t, errE)
-		assert.EqualError(t, errE, "search shortcut value is not a valid identifier: empty identifier part")
+		assert.EqualError(t, errE, "empty identifier part")
 	})
 }

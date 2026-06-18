@@ -5,4 +5,6 @@ var (
 	TestingErrClaimNotMade error = errClaimNotMade
 
 	TestingValidateShortcut = validateShortcut //nolint:gochecknoglobals
+
+	TestingValidateEmbed = validateEmbed //nolint:gochecknoglobals
 )

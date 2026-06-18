@@ -217,6 +217,7 @@ type Field struct {
 	Values          []string              `cardinality:"0.."  json:"values,omitempty"          property:"FIELD_VALUES"`
 	SubField        []Field               `cardinality:"0.."  json:"subField,omitempty"        property:"SUB_FIELD"`
 	InverseProperty *Ref                  `cardinality:"0..1" json:"inverseProperty,omitempty" property:"INVERSE_PROPERTY" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
+	Embed           []string              `cardinality:"0.."  json:"embed,omitempty"           property:"EMBED_PROPERTY"`
 	Default         *Ref                  `cardinality:"0..1" json:"default,omitempty"         property:"FIELD_DEFAULT"    values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,VALUE_TYPE"`
 }
 

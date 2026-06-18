@@ -8563,6 +8563,7 @@ func TestFromDocumentIncomingInverseRelation(t *testing.T) {
 		At:               store.Time{},
 		Users:            nil,
 		InverseRelations: map[string][]store.InverseRelation{"": inverseRelations},
+		Embedding:        nil,
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -8610,6 +8611,7 @@ func TestFromDocumentIncomingInverseRelationMultipleInverses(t *testing.T) {
 		At:               store.Time{},
 		Users:            nil,
 		InverseRelations: map[string][]store.InverseRelation{"": inverseRelations},
+		Embedding:        nil,
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -8659,6 +8661,7 @@ func TestFromDocumentIncomingInverseRelationBidirectional(t *testing.T) {
 		At:               store.Time{},
 		Users:            nil,
 		InverseRelations: map[string][]store.InverseRelation{"": inverseRelations},
+		Embedding:        nil,
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -9029,6 +9032,315 @@ func TestBuildFieldInversePropertiesSubField(t *testing.T) {
 	assert.Equal(t, inverseProp, c.fieldInverseProperties[key])
 }
 
+// makeClassDocWithEmbedField creates a class document with a single top-level FIELD that has the given
+// property and the given embed entries, stored as EMBED_PROPERTY string claims.
+func makeClassDocWithEmbedField(id, fieldPropID identifier.Identifier, embed []string) *document.D {
+	fieldSub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+				Prop:      document.Reference{ID: internalCore.HasPropertyPropID},
+				To:        document.Reference{ID: fieldPropID},
+			},
+		},
+	}
+	for _, entry := range embed {
+		fieldSub.String = append(fieldSub.String, document.StringClaim{
+			CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+			Prop:      document.Reference{ID: internalCore.EmbedPropertyPropID},
+			String:    entry,
+		})
+	}
+	fieldsSub := &document.ClaimTypes{
+		Has: []document.HasClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, fieldSub),
+				Prop:      document.Reference{ID: internalCore.FieldPropID},
+			},
+		},
+	}
+	claims := &document.ClaimTypes{
+		Has: []document.HasClaim{
+			{
+				CoreClaim: makeCoreClaim(document.HighConfidence, fieldsSub),
+				Prop:      document.Reference{ID: internalCore.FieldsPropID},
+			},
+		},
+	}
+	return &document.D{
+		CoreDocument: document.CoreDocument{ID: id}, //nolint:exhaustruct
+		Claims:       claims,
+	}
+}
+
+func TestBuildFieldEmbedSpecs(t *testing.T) {
+	t.Parallel()
+
+	classID := identifier.New()
+	fieldProp := identifier.New()
+	dest := identifier.New()
+	source := identifier.New()
+
+	classDoc := makeClassDocWithEmbedField(classID, fieldProp, []string{dest.String() + "=" + source.String()})
+
+	c := &Converter{}
+	c.buildFieldEmbedSpecs([]*document.D{classDoc})
+
+	key := fieldEmbedKey{Class: classID, Path: "", FieldProp: fieldProp}
+	require.Len(t, c.fieldEmbedSpecs[key], 1)
+	spec := c.fieldEmbedSpecs[key][0]
+	assert.Equal(t, dest, spec.Dest)
+	assert.Equal(t, []identifier.Identifier{source}, spec.Source)
+}
+
+func TestFromDocumentEmbed(t *testing.T) {
+	t.Parallel()
+
+	classID := identifier.New()
+	fieldProp := identifier.New()  // A's reference field to B, configured for embedding.
+	sourceProp := identifier.New() // The property of B to read.
+	destProp := identifier.New()   // The property under which the embedded claims are attached on A.
+	valueID := identifier.New()    // B's reference target, the value that gets embedded into A.
+
+	// The class defines field fieldProp embedding B's sourceProp under destProp.
+	classDoc := makeClassDocWithEmbedField(classID, fieldProp, []string{destProp.String() + "=" + sourceProp.String()})
+
+	// Target document B has a reference claim sourceProp -> valueID.
+	targetDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testTargetDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: sourceProp},
+					To:        document.Reference{ID: valueID},
+				},
+			},
+		},
+	}
+
+	c := newTestConverterWithClasses(t, nil, []*document.D{classDoc}, map[identifier.Identifier]*document.D{
+		testTargetDocID:               targetDoc,
+		fieldProp:                     makeNamingDoc(fieldProp, "field"),
+		sourceProp:                    makeNamingDoc(sourceProp, "source"),
+		destProp:                      makeNamingDoc(destProp, "dest"),
+		valueID:                       makeNamingDoc(valueID, "value"),
+		internalCore.InstanceOfPropID: makeNamingDoc(internalCore.InstanceOfPropID, "instance of"),
+	})
+
+	// Source document A: an instance of classID with a reference claim fieldProp -> B.
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID, Base: []string{"test", testDocID.String()}},
+		Claims: &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+					To:        document.Reference{ID: classID},
+				},
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: fieldProp},
+					To:        document.Reference{ID: testTargetDocID},
+				},
+			},
+		},
+	}
+
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The embedded claim appears as a sub-reference under A's reference to B, carrying the destination
+	// property and B's value.
+	found := false
+	for _, sub := range result.Claims.SubRef {
+		if sub.Prop == destProp && sub.To == valueID && sub.ParentProp == fieldProp && sub.ParentTo == testTargetDocID.String() {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "expected embedded sub-reference not found in %+v", result.Claims.SubRef)
+}
+
+func TestFromDocumentEmbedStringDropped(t *testing.T) {
+	t.Parallel()
+
+	classID := identifier.New()
+	fieldProp := identifier.New()
+	sourceProp := identifier.New()
+	destProp := identifier.New()
+
+	classDoc := makeClassDocWithEmbedField(classID, fieldProp, []string{destProp.String() + "=" + sourceProp.String()})
+
+	// Target document B has a string claim on sourceProp.
+	targetDoc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testTargetDocID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			String: []document.StringClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: sourceProp},
+					String:    "embedded text value",
+				},
+			},
+		},
+	}
+
+	c := newTestConverterWithClasses(t, nil, []*document.D{classDoc}, map[identifier.Identifier]*document.D{
+		testTargetDocID:               targetDoc,
+		fieldProp:                     makeNamingDoc(fieldProp, "field"),
+		sourceProp:                    makeNamingDoc(sourceProp, "source"),
+		destProp:                      makeNamingDoc(destProp, "dest"),
+		internalCore.InstanceOfPropID: makeNamingDoc(internalCore.InstanceOfPropID, "instance of"),
+	})
+
+	doc := &document.D{
+		CoreDocument: document.CoreDocument{ID: testDocID, Base: []string{"test", testDocID.String()}},
+		Claims: &document.ClaimTypes{
+			Reference: []document.ReferenceClaim{
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+					To:        document.Reference{ID: classID},
+				},
+				{
+					CoreClaim: makeCoreClaim(document.HighConfidence, nil),
+					Prop:      document.Reference{ID: fieldProp},
+					To:        document.Reference{ID: testTargetDocID},
+				},
+			},
+		},
+	}
+
+	result, errE := c.FromDocument(t.Context(), doc, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// An embedded string becomes an ordinary string sub-claim of the reference. Textual sub-claims have no
+	// structured record and are not folded into text (the same as a native string sub-claim), so the value is
+	// not searchable. Folding textual sub-claims into text in the conversion would later make both native and
+	// embedded ones searchable at once.
+	found := false
+	for _, values := range result.Text {
+		for _, value := range values {
+			if value == "embedded text value" {
+				found = true
+			}
+		}
+	}
+	assert.False(t, found, "embedded string should not be folded into text, got %+v", result.Text)
+}
+
+func TestEmbedPathsTouch(t *testing.T) {
+	t.Parallel()
+
+	propA := identifier.New()
+	propB := identifier.New()
+	propC := identifier.New()
+	paths := [][]identifier.Identifier{{propA}, {propB, propC}}
+
+	// Only the leaf (last) property of each path gates re-indexing.
+	assert.True(t, embedPathsTouch(paths, map[identifier.Identifier]bool{propA: true}), "leaf of a single-segment path")
+	assert.True(t, embedPathsTouch(paths, map[identifier.Identifier]bool{propC: true}), "leaf of a multi-segment path")
+	assert.False(t, embedPathsTouch(paths, map[identifier.Identifier]bool{propB: true}), "intermediate segment is not the leaf")
+	assert.False(t, embedPathsTouch(paths, map[identifier.Identifier]bool{identifier.New(): true}), "unrelated property")
+	assert.False(t, embedPathsTouch(paths, nil), "no changed properties")
+	assert.False(t, embedPathsTouch(nil, map[identifier.Identifier]bool{propA: true}), "no paths")
+}
+
+func TestFillChangedProperties(t *testing.T) {
+	t.Parallel()
+
+	propName := identifier.New()
+	propDesc := identifier.New()
+	propParent := identifier.New()
+	propSub := identifier.New()
+
+	stringClaim := func(id, prop identifier.Identifier, value string) document.StringClaim {
+		return document.StringClaim{
+			CoreClaim: document.CoreClaim{ID: id, Confidence: document.HighConfidence},
+			Prop:      document.Reference{ID: prop},
+			String:    value,
+		}
+	}
+	docWith := func(claims *document.ClaimTypes) *document.D {
+		return &document.D{
+			CoreDocument: document.CoreDocument{ID: testDocID}, //nolint:exhaustruct
+			Claims:       claims,
+		}
+	}
+
+	t.Run("modified value", func(t *testing.T) {
+		t.Parallel()
+
+		claimID := identifier.New()
+		current := docWith(&document.ClaimTypes{String: []document.StringClaim{stringClaim(claimID, propName, "new")}})
+		parent := docWith(&document.ClaimTypes{String: []document.StringClaim{stringClaim(claimID, propName, "old")}})
+		changed := map[identifier.Identifier]bool{}
+		errE := fillChangedProperties(changed, current, []*document.D{parent})
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.Equal(t, map[identifier.Identifier]bool{propName: true}, changed)
+	})
+
+	t.Run("unchanged", func(t *testing.T) {
+		t.Parallel()
+
+		claimID := identifier.New()
+		current := docWith(&document.ClaimTypes{String: []document.StringClaim{stringClaim(claimID, propName, "same")}})
+		parent := docWith(&document.ClaimTypes{String: []document.StringClaim{stringClaim(claimID, propName, "same")}})
+		changed := map[identifier.Identifier]bool{}
+		errE := fillChangedProperties(changed, current, []*document.D{parent})
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.Empty(t, changed)
+	})
+
+	t.Run("added and removed", func(t *testing.T) {
+		t.Parallel()
+
+		current := docWith(&document.ClaimTypes{String: []document.StringClaim{stringClaim(identifier.New(), propName, "n")}})
+		parent := docWith(&document.ClaimTypes{String: []document.StringClaim{stringClaim(identifier.New(), propDesc, "d")}})
+		changed := map[identifier.Identifier]bool{}
+		errE := fillChangedProperties(changed, current, []*document.D{parent})
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.Equal(t, map[identifier.Identifier]bool{propName: true, propDesc: true}, changed)
+	})
+
+	t.Run("only a sub-claim changed", func(t *testing.T) {
+		t.Parallel()
+
+		hasID := identifier.New()
+		subID := identifier.New()
+		has := func(value string) *document.ClaimTypes {
+			return &document.ClaimTypes{
+				Has: []document.HasClaim{
+					{
+						CoreClaim: document.CoreClaim{
+							ID:         hasID,
+							Confidence: document.HighConfidence,
+							Sub:        &document.ClaimTypes{String: []document.StringClaim{stringClaim(subID, propSub, value)}},
+						},
+						Prop: document.Reference{ID: propParent},
+					},
+				},
+			}
+		}
+		changed := map[identifier.Identifier]bool{}
+		errE := fillChangedProperties(changed, docWith(has("new")), []*document.D{docWith(has("old"))})
+		require.NoError(t, errE, "% -+#.1v", errE)
+		// The change is attributed to the sub-claim's property, not the parent has-claim's.
+		assert.Equal(t, map[identifier.Identifier]bool{propSub: true}, changed)
+	})
+
+	t.Run("deleted document", func(t *testing.T) {
+		t.Parallel()
+
+		parent := docWith(&document.ClaimTypes{String: []document.StringClaim{stringClaim(identifier.New(), propName, "n")}})
+		changed := map[identifier.Identifier]bool{}
+		errE := fillChangedProperties(changed, nil, []*document.D{parent})
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.Equal(t, map[identifier.Identifier]bool{propName: true}, changed)
+	})
+}
+
 func TestOutgoingInverseRelationsFieldLevel(t *testing.T) {
 	t.Parallel()
 
@@ -9382,7 +9694,7 @@ func TestFromDocumentLastUpdated(t *testing.T) {
 
 	// LastUpdated comes from the document metadata's At timestamp (seconds since the Unix epoch).
 	at := time.Date(2021, time.January, 2, 3, 4, 5, 0, time.UTC)
-	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time(at), Users: nil, InverseRelations: nil})
+	result, errE := c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time(at), Users: nil, InverseRelations: nil, Embedding: nil})
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotNil(t, result.LastUpdated)
 	assert.InDelta(t, float64(at.Unix()), *result.LastUpdated, 0.001)
@@ -9393,7 +9705,7 @@ func TestFromDocumentLastUpdated(t *testing.T) {
 	assert.Nil(t, result.LastUpdated)
 
 	// A zero At also yields no last-updated time.
-	result, errE = c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil, InverseRelations: nil})
+	result, errE = c.FromDocument(ctx, doc, nil, &store.DocumentMetadata{At: store.Time{}, Users: nil, InverseRelations: nil, Embedding: nil})
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, result.LastUpdated)
 }

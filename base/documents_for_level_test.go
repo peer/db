@@ -68,7 +68,7 @@ func TestDocumentsForLevelMetadataClone(t *testing.T) {
 
 	id := identifier.New()
 	doc := &document.D{CoreDocument: document.CoreDocument{ID: id, Base: []string{"test", id.String()}}}
-	meta := &store.DocumentMetadata{At: store.Time{}, Users: nil, InverseRelations: map[string][]store.InverseRelation{"public": nil}}
+	meta := &store.DocumentMetadata{At: store.Time{}, Users: nil, InverseRelations: map[string][]store.InverseRelation{"public": nil}, Embedding: nil}
 	docs := []base.StartDocument{
 		{Document: doc, Metadata: meta, Version: store.Version{}, ParentChangesets: nil},
 	}

@@ -47,6 +47,7 @@ func dummyMetadata() *store.DocumentMetadata {
 		At:               store.Time(time.Now().UTC()),
 		Users:            nil,
 		InverseRelations: nil,
+		Embedding:        nil,
 	}
 }
 
@@ -532,6 +533,100 @@ func makeDocWithRelationJSON(t *testing.T, docID, propID, targetID identifier.Id
 	return data
 }
 
+// makeEmbedClassDoc builds a class document with a single top-level field on relProp configured to embed
+// the referenced document's sourceProp under destProp (via an EMBED_PROPERTY string claim).
+func makeEmbedClassDoc(classID, relProp, destProp, sourceProp identifier.Identifier) *document.D {
+	fieldSub := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+				Prop:      document.Reference{ID: internalCore.HasPropertyPropID},
+				To:        document.Reference{ID: relProp},
+			},
+		},
+		String: []document.StringClaim{
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+				Prop:      document.Reference{ID: internalCore.EmbedPropertyPropID},
+				String:    destProp.String() + "=" + sourceProp.String(),
+			},
+		},
+	}
+	fieldsSub := &document.ClaimTypes{
+		Has: []document.HasClaim{
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence, Sub: fieldSub},
+				Prop:      document.Reference{ID: internalCore.FieldPropID},
+			},
+		},
+	}
+	return &document.D{
+		CoreDocument: document.CoreDocument{ID: classID}, //nolint:exhaustruct
+		Claims: &document.ClaimTypes{
+			Has: []document.HasClaim{
+				{
+					CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence, Sub: fieldsSub},
+					Prop:      document.Reference{ID: internalCore.FieldsPropID},
+				},
+			},
+		},
+	}
+}
+
+// makeEmbedDocJSON creates a document that is an instance of classID and, when target is non-nil, references
+// it via relProp (the embed-configured field).
+func makeEmbedDocJSON(t *testing.T, docID, classID, relProp identifier.Identifier, target *identifier.Identifier) json.RawMessage {
+	t.Helper()
+	claims := &document.ClaimTypes{
+		Reference: []document.ReferenceClaim{
+			{
+				CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+				Prop:      document.Reference{ID: internalCore.InstanceOfPropID},
+				To:        document.Reference{ID: classID},
+			},
+		},
+	}
+	if target != nil {
+		claims.Reference = append(claims.Reference, document.ReferenceClaim{
+			CoreClaim: document.CoreClaim{ID: identifier.New(), Confidence: document.HighConfidence},
+			Prop:      document.Reference{ID: relProp},
+			To:        document.Reference{ID: *target},
+		})
+	}
+	doc := document.D{
+		CoreDocument: document.CoreDocument{ID: docID}, //nolint:exhaustruct
+		Claims:       claims,
+	}
+	data, errE := x.MarshalWithoutEscapeHTML(doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	return data
+}
+
+// makeConverterWithEmbed creates a converter configured with the given embed class document. The getDocument
+// callback fetches referenced documents from the store.
+func makeConverterWithEmbed(t *testing.T, classDoc *document.D, s *bridgeStore) *internalSearch.Converter {
+	t.Helper()
+
+	c, errE := internalSearch.NewConverter(nil, nil, []*document.D{classDoc}, nil, func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		data, _, _, _, errE := s.GetLatest(ctx, id)
+		if errors.Is(errE, store.ErrValueNotFound) {
+			return &document.D{
+				CoreDocument: document.CoreDocument{ID: id}, //nolint:exhaustruct
+			}, nil
+		} else if errE != nil {
+			return nil, errE
+		}
+		var doc document.D
+		errE = x.UnmarshalWithoutUnknownFields(data, &doc)
+		if errE != nil {
+			return nil, errE
+		}
+		return &doc, nil
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	return c
+}
+
 // makeConverterWithInverse creates a converter that knows about inverse properties.
 // propX has inversePropertyOf propY. The getDocument callback fetches from the store.
 func makeConverterWithInverse(
@@ -674,6 +769,75 @@ func TestBridgePerLevelInverseRelations(t *testing.T) {
 	}, 10*time.Second, 100*time.Millisecond)
 }
 
+// TestBridgeMutualEmbedding verifies that two documents embedding from each other are handled without an
+// infinite re-index loop. Each document's metadata records the other as embedding from it, and committing the
+// second cross-reference fires the first document's re-index, which (because a re-index never enqueues further
+// work) terminates: WaitUntilCaughtUp returns rather than hanging.
+func TestBridgeMutualEmbedding(t *testing.T) {
+	t.Parallel()
+
+	ctx, env := setupBridge(t)
+	s, b := env.store, env.bridge
+
+	classID := identifier.New()
+	relProp := identifier.New()
+	destProp := identifier.New()
+	sourceProp := identifier.New()
+	docA := identifier.New()
+	docB := identifier.New()
+
+	classDoc := makeEmbedClassDoc(classID, relProp, destProp, sourceProp)
+	startBridge(ctx, t, env, makeConverterWithEmbed(t, classDoc, s))
+
+	// Insert both documents without the cross-references first, so each already exists when the other later
+	// starts embedding from it (the embedding set is maintained only for targets that already exist).
+	_, errE := s.Insert(ctx, docA, makeEmbedDocJSON(t, docA, classID, relProp, nil), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, docB, makeEmbedDocJSON(t, docB, classID, relProp, nil), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// A starts embedding from B. The replace carries over the bridge-maintained metadata, as a real edit does
+	// through the API layer's CarryOver, so the embedding set is not lost across versions.
+	_, metaA, vA, _, errE := s.GetLatest(ctx, docA)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	newMetaA := dummyMetadata()
+	newMetaA.CarryOver(metaA)
+	_, errE = s.Replace(ctx, docA, vA.Changeset, makeEmbedDocJSON(t, docA, classID, relProp, &docB), newMetaA, dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// B starts embedding from A, closing the cycle. Firing B's embedding set re-indexes A, but the re-index
+	// fires no further work, so the cycle terminates and WaitUntilCaughtUp returns.
+	_, metaB, vB, _, errE := s.GetLatest(ctx, docB)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	newMetaB := dummyMetadata()
+	newMetaB.CarryOver(metaB)
+	_, errE = s.Replace(ctx, docB, vB.Changeset, makeEmbedDocJSON(t, docB, classID, relProp, &docA), newMetaB, dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Each document records the other as embedding from it: A embeds from B (so B's set holds A) and B embeds
+	// from A (so A's set holds B).
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, metaA, _, _, errE := s.GetLatest(ctx, docA)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		_, metaB, _, _, errE := s.GetLatest(ctx, docB)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		// Each entry records the source paths embedded from that document. Both directions embed the single
+		// source property sourceProp, so each path-set is {[sourceProp]}.
+		assert.Equal(c, [][]identifier.Identifier{{sourceProp}}, metaB.Embedding[docA], "B's embedding entry for A should record the embedded source path")
+		assert.Equal(c, [][]identifier.Identifier{{sourceProp}}, metaA.Embedding[docB], "A's embedding entry for B should record the embedded source path")
+	}, 10*time.Second, 100*time.Millisecond)
+}
+
 // TestBridgeClearInverseRelations verifies that ClearInverseRelations removes the accumulated
 // inverse-relation metadata from every document in the store, including deleted ones, while leaving
 // documents that have none untouched, and that it is idempotent.
@@ -705,6 +869,7 @@ func TestBridgeClearInverseRelations(t *testing.T) {
 					Confidence: document.HighConfidence,
 				}},
 			},
+			Embedding: nil,
 		}
 	}
 

@@ -3,6 +3,7 @@ package search
 import (
 	"bytes"
 	"context"
+	"maps"
 	"math"
 	"slices"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/mohae/deepcopy"
 	"github.com/pemistahl/lingua-go"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
@@ -23,6 +25,7 @@ import (
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalDocument "gitlab.com/peerdb/peerdb/internal/document"
+	"gitlab.com/peerdb/peerdb/internal/shortcut"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -172,15 +175,16 @@ func (d documentInfo) HierarchyPathsOrSelf(id identifier.Identifier) ([]string, 
 
 // fieldInverseKey identifies a position within a specific class's field hierarchy
 // for field-level inverse property lookup. Class is the class the field is defined
-// on, Path is the encoded sequence of parent HasClaim property IDs, and SourceProp
+// on, Path is the encoded sequence of parent claim property IDs, and SourceProp
 // is the property at this position.
 type fieldInverseKey struct {
 	// Class is the ID of the class document on which this field is defined. The same
 	// source property can be a field on multiple classes with different inverse
 	// properties, so the class is part of the key.
 	Class identifier.Identifier
-	// Path is the encoded path of parent HasClaim property IDs leading to this
-	// field position, joined by "/". Empty string for top-level fields.
+	// Path is the encoded path of parent claim property IDs leading to this field position, joined by "/" (the
+	// parent claims may be of any type that carries sub-claims, for example a has, reference, none, or unknown
+	// claim). Empty string for top-level fields.
 	Path string
 	// SourceProp is the property ID of the claim at this field position.
 	SourceProp identifier.Identifier
@@ -232,6 +236,10 @@ type Converter struct {
 	// class documents that define fields with INVERSE_PROPERTY. Field-level inverse
 	// properties take precedence over property-level INVERSE_PROPERTY_OF.
 	fieldInverseProperties map[fieldInverseKey]identifier.Identifier
+	// fieldEmbedSpecs maps a (class, field path, source property ID) tuple to the embed specs defined on
+	// class field definitions via EMBED_PROPERTY. Built from all class documents that define fields with
+	// embed configuration. Empty when no class configures embedding, which short-circuits the whole feature.
+	fieldEmbedSpecs map[fieldEmbedKey][]embedSpec
 	// languagePriority defines per-language fallback order for display label resolution.
 	// It maps a language to its ordered fallback languages for display label resolution.
 	// If a language is not a key, fallback is only the undetermined language.
@@ -495,6 +503,7 @@ func NewConverter(
 		namingProperties:         nil,
 		inverseProperties:        nil,
 		fieldInverseProperties:   nil,
+		fieldEmbedSpecs:          nil,
 		languagePriority:         languagePriority,
 		enabledLanguages:         enabledLanguages,
 		recognizedLanguages:      recognizedLanguages,
@@ -514,6 +523,7 @@ func NewConverter(
 	c.buildLanguageCodes(languages)
 	c.buildInverseProperties(properties)
 	c.buildFieldInverseProperties(classes)
+	c.buildFieldEmbedSpecs(classes)
 	return c, nil
 }
 
@@ -1590,32 +1600,6 @@ func (v *convertVisitor) deduplicateResult() {
 	v.result.Text[document.UndeterminedLanguage] = filtered
 }
 
-// earliestClaimTime returns the lowest time value across all of the document's
-// time claims (top-level and sub-claims), or nil when the document has none. Both
-// bounds of each claim are considered, so a point timestamp contributes its single
-// value, a closed interval its earlier bound, and an open-start interval its only
-// known bound. Values are seconds since the Unix epoch.
-func earliestClaimTime(claims *ClaimTypes) *float64 {
-	var earliest *float64
-	consider := func(v *float64) {
-		if v == nil {
-			return
-		}
-		if earliest == nil || *v < *earliest {
-			earliest = v
-		}
-	}
-	for i := range claims.Time {
-		consider(claims.Time[i].From)
-		consider(claims.Time[i].To)
-	}
-	for i := range claims.SubTime {
-		consider(claims.SubTime[i].From)
-		consider(claims.SubTime[i].To)
-	}
-	return earliest
-}
-
 // deduplicateStrings returns vals with duplicates removed, preserving first-seen order.
 // It filters in place, reusing the backing array.
 func deduplicateStrings(vals []string) []string {
@@ -2057,6 +2041,42 @@ func (c *Converter) FromDocument(
 		}
 	}
 
+	// Compute the document's info (display label and hierarchy paths) from the clean (pre-augmentation)
+	// in-memory document, which may differ from what is in the store (hooks).
+	info, errE := c.computeDocumentInfo(ctx, doc.ID, doc, gen, map[identifier.Identifier]bool{})
+	if errE != nil {
+		return nil, errE
+	}
+
+	// The document-intrinsic fields (display, claim count, earliest time) are derived from the document's own
+	// claims, so they are computed from the clean doc, before it is augmented below. The incoming inverse
+	// claims and embedded claims are indexed as ordinary claims by the single conversion, but they must not
+	// inflate the claim count or shift the document's own earliest time, so they are excluded here.
+	earliestTime, errE := c.earliestDocumentTime(ctx, doc)
+	if errE != nil {
+		return nil, errE
+	}
+	claimsCount := doc.SizeWithSub()
+
+	// Build the augmented document the conversion runs over: the clean doc plus embedded claims (added as
+	// sub-claims of its reference claims) and incoming inverse claims (added as top-level reference claims).
+	// Embedding runs first so it walks only the document's own references, not the synthetic inverse ones
+	// (an optimization). The clean doc is deep-copied first so neither the caller's document nor any
+	// cached copy is mutated.
+	augmented := doc
+	if len(inverseRelations) > 0 || len(c.fieldEmbedSpecs) > 0 {
+		augmentedCopy, ok := deepcopy.Copy(doc).(*document.D)
+		if !ok {
+			return nil, errors.New("deep copy returned unexpected type")
+		}
+		augmented = augmentedCopy
+		errE = c.addEmbeddedClaims(ctx, augmented)
+		if errE != nil {
+			return nil, errE
+		}
+		c.addInverseClaims(ctx, augmented, inverseRelations)
+	}
+
 	v := &convertVisitor{
 		ctx:       ctx,
 		converter: c,
@@ -2065,20 +2085,14 @@ func (c *Converter) FromDocument(
 			Display:     nil,
 			DisplaySort: nil,
 			Text:        nil,
-			Time:        nil,
+			Time:        earliestTime,
 			LastUpdated: lastUpdated,
-			Counts:      Counts{References: nil, Claims: nil, Score: nil},
+			Counts:      Counts{References: nil, Claims: &claimsCount, Score: nil},
 			Claims:      ClaimTypes{},
 		},
 		docID: doc.ID,
 	}
 
-	// Compute the document's info (display label and hierarchy paths) from the
-	// in-memory document, which may differ from what is in the store (hooks).
-	info, errE := c.computeDocumentInfo(ctx, doc.ID, doc, gen, map[identifier.Identifier]bool{})
-	if errE != nil {
-		return nil, errE
-	}
 	// Build the top-level "display" field per language: the rendered display
 	// label plus the document's ancestor display labels (its hierarchy paths),
 	// so the document is also findable by its categories/ancestors.
@@ -2109,26 +2123,11 @@ func (c *Converter) FromDocument(
 	// from any language.
 	v.addText(document.UndeterminedLanguage, doc.ID.String())
 
-	errE = doc.Visit(v)
+	// Convert the augmented document in a single pass: every claim is indexed the same way regardless of
+	// whether it is the document's own, an incoming inverse claim, or an embedded one.
+	errE = augmented.Visit(v)
 	if errE != nil {
 		return nil, errE
-	}
-
-	// Process incoming inverse relations from metadata.
-	for _, ir := range inverseRelations {
-		claims, subs, errE := c.convertReference(ctx, &document.ReferenceClaim{
-			CoreClaim: document.CoreClaim{
-				ID:         inverseReferenceClaimID(doc.Base, ir.InverseRelationKey),
-				Confidence: ir.Confidence,
-			},
-			Prop: document.Reference{ID: ir.TargetProp},
-			To:   document.Reference{ID: ir.Source},
-		})
-		if errE != nil {
-			return nil, errE
-		}
-		v.result.Claims.Reference = append(v.result.Claims.Reference, claims...)
-		v.appendSubClaims(subs)
 	}
 
 	// Fold every non-text-claim display label into the top-level text bucket
@@ -2143,14 +2142,7 @@ func (c *Converter) FromDocument(
 	// reference filter can count and select documents that are exactly a value ("direct").
 	v.markReferenceLeaves()
 
-	// Index the document's earliest time so it can be sorted/filtered by time
-	// at the top level without descending into nested time claims.
-	v.result.Time = earliestClaimTime(&v.result.Claims)
-
-	// Index the document's recursive claim count and, unless the document is
-	// ignored for counts.references, the number of documents referencing it.
-	claimsCount := doc.SizeWithSub()
-	v.result.Counts.Claims = &claimsCount
+	// Index, unless the document is ignored for counts.references, the number of documents referencing it.
 	if c.CountReferences != nil && !info.IgnoredForReferencesCount {
 		count, errE := c.CountReferences(ctx, doc.ID)
 		if errE != nil {
@@ -2443,6 +2435,700 @@ func (c *Converter) OutgoingReferenceTargets(doc *document.D) map[identifier.Ide
 		targets[ref.To.ID] = true
 	}
 	return targets
+}
+
+// fieldEmbedKey identifies a position within a specific class's field hierarchy for field-level embed
+// configuration lookup, the same way fieldInverseKey does for inverse properties.
+type fieldEmbedKey struct {
+	// Class is the ID of the class document on which this field is defined.
+	Class identifier.Identifier
+	// Path is the encoded path of parent claim property IDs leading to this field position, joined by "/" (the
+	// parent claims may be of any type that carries sub-claims, for example a has, reference, none, or unknown
+	// claim). Empty string for top-level fields.
+	Path string
+	// FieldProp is the property of the reference claim at this field position: the field that carries the embed
+	// configuration and references the document to embed from.
+	FieldProp identifier.Identifier
+}
+
+// embedSpec is a single resolved embed entry. Dest is the property under which the embedded claims are
+// attached on the embedding document. Source is the path navigating the referenced document's claims: the
+// first property selects that document's claims, each further property selects sub-claims under the previous
+// match, and the claims reached by the last property are the ones copied in.
+type embedSpec struct {
+	Dest   identifier.Identifier
+	Source []identifier.Identifier
+}
+
+// parseEmbedEntry parses one "destination=source" embed entry into a resolved embedSpec. The destination
+// is a single property and the source is a ":"-separated path of properties navigating within the
+// referenced document. Both sides must resolve to identifiers (literals are not valid in embed entries).
+func parseEmbedEntry(entry string) (embedSpec, errors.E) {
+	parsed, errE := shortcut.ParseEntry(entry)
+	if errE != nil {
+		return embedSpec{}, errE
+	}
+	if len(parsed.Key) != 1 || !parsed.Key[0].IsIdentifier() {
+		errE := errors.New("invalid embed entry destination")
+		errors.Details(errE)["entry"] = entry
+		return embedSpec{}, errE
+	}
+	source := make([]identifier.Identifier, 0, len(parsed.Value))
+	for _, segment := range parsed.Value {
+		if !segment.IsIdentifier() {
+			errE := errors.New("invalid embed entry source")
+			errors.Details(errE)["entry"] = entry
+			return embedSpec{}, errE
+		}
+		source = append(source, segment.Identifier())
+	}
+	return embedSpec{Dest: parsed.Key[0].Identifier(), Source: source}, nil
+}
+
+// buildFieldEmbedSpecs extracts embed configuration from class document field hierarchies.
+// For each class it walks the field tree (FIELD -> SUB_FIELD) and records any
+// EMBED_PROPERTY settings as (class, field path, source property) -> embed specs.
+func (c *Converter) buildFieldEmbedSpecs(classes []*document.D) {
+	c.fieldEmbedSpecs = map[fieldEmbedKey][]embedSpec{}
+	for _, cls := range classes {
+		for _, fields := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](cls, internalCore.FieldsPropID, document.LowConfidence) {
+			for _, field := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](fields, internalCore.FieldPropID, document.LowConfidence) {
+				c.processFieldEmbed(cls.ID, nil, field)
+			}
+			for _, section := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](fields, internalCore.SectionPropID, document.LowConfidence) {
+				for _, field := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](section, internalCore.FieldPropID, document.LowConfidence) {
+					c.processFieldEmbed(cls.ID, nil, field)
+				}
+			}
+		}
+	}
+}
+
+// processFieldEmbed extracts embed specs from a single field HasClaim and recurses into SUB_FIELD HasClaims.
+// classID is the class the field is defined on, and parentPath tracks the accumulated property IDs from
+// parent fields. Entries that do not parse are skipped.
+func (c *Converter) processFieldEmbed(classID identifier.Identifier, parentPath []identifier.Identifier, field *document.HasClaim) {
+	hasPropRef := document.GetBestClaimOfType[document.ReferenceClaim](field, internalCore.HasPropertyPropID)
+	if hasPropRef == nil {
+		return
+	}
+	propID := hasPropRef.To.ID
+
+	var specs []embedSpec
+	for _, claim := range document.GetClaimsOfTypeWithConfidence[document.StringClaim](field, internalCore.EmbedPropertyPropID, document.LowConfidence) {
+		spec, errE := parseEmbedEntry(claim.String)
+		if errE != nil {
+			continue
+		}
+		specs = append(specs, spec)
+	}
+	if len(specs) > 0 {
+		key := fieldEmbedKey{Class: classID, Path: encodeFieldPath(parentPath), FieldProp: propID}
+		c.fieldEmbedSpecs[key] = specs
+	}
+
+	childPath := append(slices.Clone(parentPath), propID)
+	for _, subField := range document.GetClaimsOfTypeWithConfidence[document.HasClaim](field, internalCore.SubFieldPropID, document.LowConfidence) {
+		c.processFieldEmbed(classID, childPath, subField)
+	}
+}
+
+// resolveEmbedSpecs returns the embed specs that apply to a reference claim with the given field property at
+// the given field path, collected across all of the document's classes and deduplicated.
+func (c *Converter) resolveEmbedSpecs(classes, path []identifier.Identifier, fieldProp identifier.Identifier) []embedSpec {
+	if len(c.fieldEmbedSpecs) == 0 {
+		return nil
+	}
+	encodedPath := encodeFieldPath(path)
+	var specs []embedSpec
+	seen := map[string]bool{}
+	for _, classID := range classes {
+		key := fieldEmbedKey{Class: classID, Path: encodedPath, FieldProp: fieldProp}
+		for _, spec := range c.fieldEmbedSpecs[key] {
+			dedupKey := spec.Dest.String() + "=" + encodeFieldPath(spec.Source)
+			if seen[dedupKey] {
+				continue
+			}
+			seen[dedupKey] = true
+			specs = append(specs, spec)
+		}
+	}
+	return specs
+}
+
+// embedTask records a reference claim whose field is configured for embedding, together with the embed
+// specs that apply to it.
+type embedTask struct {
+	claim *document.ReferenceClaim
+	specs []embedSpec
+}
+
+// embedVisitor implements document.Visitor to collect embed tasks from a document. It tracks the document's
+// classes and the current field path (via sub-claim nesting), the same way inverseRelationsVisitor does, and
+// for each reference claim resolves the field-level embed specs that apply to it.
+type embedVisitor struct {
+	converter *Converter
+	classes   []identifier.Identifier
+	path      []identifier.Identifier
+	tasks     []embedTask
+}
+
+var _ document.Visitor = (*embedVisitor)(nil)
+
+// recurse pushes propID onto the path, visits sub-claims, then pops.
+func (v *embedVisitor) recurse(propID identifier.Identifier, claim document.Claim) errors.E {
+	v.path = append(v.path, propID)
+	errE := claim.Visit(v)
+	v.path = v.path[:len(v.path)-1]
+	return errE
+}
+
+func (v *embedVisitor) VisitIdentifier(claim *document.IdentifierClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+func (v *embedVisitor) VisitString(claim *document.StringClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+func (v *embedVisitor) VisitHTML(claim *document.HTMLClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+func (v *embedVisitor) VisitAmount(claim *document.AmountClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+func (v *embedVisitor) VisitAmountInterval(claim *document.AmountIntervalClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+func (v *embedVisitor) VisitTime(claim *document.TimeClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+func (v *embedVisitor) VisitTimeInterval(claim *document.TimeIntervalClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+func (v *embedVisitor) VisitLink(claim *document.LinkClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+// VisitReference records an embed task when the reference claim's field is configured for embedding, then
+// recurses into sub-claims to find further nested references.
+func (v *embedVisitor) VisitReference(claim *document.ReferenceClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	specs := v.converter.resolveEmbedSpecs(v.classes, v.path, claim.Prop.ID)
+	if len(specs) > 0 {
+		v.tasks = append(v.tasks, embedTask{claim: claim, specs: specs})
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+func (v *embedVisitor) VisitHas(claim *document.HasClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+func (v *embedVisitor) VisitNone(claim *document.NoneClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+func (v *embedVisitor) VisitUnknown(claim *document.UnknownClaim) (document.VisitResult, errors.E) {
+	if claim.GetConfidence() < document.LowConfidence {
+		return document.Keep, nil
+	}
+	return document.Keep, v.recurse(claim.Prop.ID, claim)
+}
+
+// collectEmbedTasks walks the document and returns the embed tasks for its reference claims whose fields are
+// configured for embedding.
+func (c *Converter) collectEmbedTasks(doc *document.D) ([]embedTask, errors.E) {
+	instanceOf := document.GetClaimsOfTypeWithConfidence[document.ReferenceClaim](doc, internalCore.InstanceOfPropID, document.LowConfidence)
+	classes := make([]identifier.Identifier, 0, len(instanceOf))
+	for _, rel := range instanceOf {
+		classes = append(classes, rel.To.ID)
+	}
+	v := &embedVisitor{converter: c, classes: classes, path: nil, tasks: nil}
+	errE := doc.Visit(v)
+	if errE != nil {
+		return nil, errE
+	}
+	return v.tasks, nil
+}
+
+// OutgoingEmbeds returns the documents this document embeds claims from, each mapped to the deduplicated
+// source paths it embeds from that document (a source path is the property-ID sequence within the target
+// document that an embed spec navigates). The targets are the direct targets of the document's reference
+// claims whose fields are configured with EMBED_PROPERTY. The bridge records the embedding document, with
+// these paths, in each target's metadata embedding set, so that committing a target re-indexes the embedding
+// document and refreshes its embedded copy.
+func (c *Converter) OutgoingEmbeds(doc *document.D) (map[identifier.Identifier][][]identifier.Identifier, errors.E) {
+	result := map[identifier.Identifier][][]identifier.Identifier{}
+	if len(c.fieldEmbedSpecs) == 0 {
+		return result, nil
+	}
+	tasks, errE := c.collectEmbedTasks(doc)
+	if errE != nil {
+		return nil, errE
+	}
+	seen := map[identifier.Identifier]map[string]bool{}
+	for _, task := range tasks {
+		target := task.claim.To.ID
+		if seen[target] == nil {
+			seen[target] = map[string]bool{}
+		}
+		for _, spec := range task.specs {
+			key := encodeFieldPath(spec.Source)
+			if seen[target][key] {
+				continue
+			}
+			seen[target][key] = true
+			result[target] = append(result[target], spec.Source)
+		}
+	}
+	return result, nil
+}
+
+// mergeEmbeds merges a document's outgoing embeds (each target document to the source paths embedded from it)
+// into embeds, keying each target's paths by their encoded form so that paths recurring across visibility
+// levels are deduplicated into one set per target.
+func mergeEmbeds(embeds map[identifier.Identifier]map[string][]identifier.Identifier, outgoing map[identifier.Identifier][][]identifier.Identifier) {
+	for targetID, paths := range outgoing {
+		if embeds[targetID] == nil {
+			embeds[targetID] = map[string][]identifier.Identifier{}
+		}
+		for _, path := range paths {
+			embeds[targetID][encodeFieldPath(path)] = path
+		}
+	}
+}
+
+// samePathSet reports whether two embed path-sets (each keyed by encoded path) cover the same set of paths.
+func samePathSet(a, b map[string][]identifier.Identifier) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for key := range a {
+		if _, ok := b[key]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// sortedPaths returns the source paths of an embed path-set, ordered by their encoded form for deterministic
+// storage in document metadata.
+func sortedPaths(pathSet map[string][]identifier.Identifier) [][]identifier.Identifier {
+	keys := make([]string, 0, len(pathSet))
+	for key := range pathSet {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	paths := make([][]identifier.Identifier, 0, len(keys))
+	for _, key := range keys {
+		paths = append(paths, pathSet[key])
+	}
+	return paths
+}
+
+// embedPathsTouch reports whether the leaf (last) property of any embed source path is in the changed set. It
+// gates embedding re-indexing: a document is re-indexed only when a document it embeds from changes a property
+// whose value it embeds. Only the leaf property matters, because an embed copies the claims at the end of the
+// path; a change to an intermediate property only adds or removes the leaf claims it navigates to, which
+// already flags the leaf property, while a change to an intermediate claim's own value (it still navigates to
+// the same leaves) does not change what is embedded.
+func embedPathsTouch(paths [][]identifier.Identifier, changed map[identifier.Identifier]bool) bool {
+	for _, path := range paths {
+		if len(path) == 0 {
+			continue
+		}
+		if changed[path[len(path)-1]] {
+			return true
+		}
+	}
+	return false
+}
+
+// fillChangedProperties adds to changed the property IDs of every claim (top-level or nested) whose own value,
+// excluding its sub-claims, was added, removed, or modified between the current document and its parent
+// versions. Sub-claims are compared as their own claims, so a change confined to a sub-claim is attributed to
+// the sub-claim's property, not its parent's. A current claim signature absent from every parent is an
+// addition or modification; a parent claim signature absent from the current is a removal.
+func fillChangedProperties(changed map[identifier.Identifier]bool, current *document.D, parents []*document.D) errors.E {
+	currentStates, errE := claimValueStates(current)
+	if errE != nil {
+		return errE
+	}
+	parentStates := map[string]identifier.Identifier{}
+	for _, parent := range parents {
+		states, errE := claimValueStates(parent)
+		if errE != nil {
+			return errE
+		}
+		maps.Copy(parentStates, states)
+	}
+	for key, prop := range currentStates {
+		if _, ok := parentStates[key]; !ok {
+			changed[prop] = true
+		}
+	}
+	for key, prop := range parentStates {
+		if _, ok := currentStates[key]; !ok {
+			changed[prop] = true
+		}
+	}
+	return nil
+}
+
+// claimValueStates maps a signature of each of the document's claims (top-level and nested), excluding its
+// sub-claims, to that claim's property ID. A claim's signature changes when its own value changes but not when
+// only its sub-claims change.
+func claimValueStates(doc *document.D) (map[string]identifier.Identifier, errors.E) {
+	states := map[string]identifier.Identifier{}
+	if doc == nil {
+		return states, nil
+	}
+	for claim := range doc.AllClaimsWithSub() {
+		key, errE := claimValueKey(claim)
+		if errE != nil {
+			return nil, errE
+		}
+		states[key] = claim.GetProp().ID
+	}
+	return states, nil
+}
+
+// claimValueKey returns a signature of a claim's own value, excluding its sub-claims (compared separately as
+// their own claims). The claim's ID is part of the signature so that removing one of several otherwise
+// identical claims is detected as a change.
+func claimValueKey(claim document.Claim) (string, errors.E) {
+	copied, ok := deepcopy.Copy(claim).(document.Claim)
+	if !ok {
+		return "", errors.New("deep copy returned unexpected type")
+	}
+	copied.SetSub(nil)
+	data, errE := x.MarshalWithoutEscapeHTML(copied)
+	if errE != nil {
+		return "", errE
+	}
+	return string(data), nil
+}
+
+// matchEmbedSource navigates the source path within a referenced document and returns the claims it selects:
+// the document's claims with the first property, then the sub-claims with each further property under the
+// previous match. Only claims at or above LowConfidence are followed and returned.
+func matchEmbedSource(target *document.D, source []identifier.Identifier) []document.Claim {
+	if len(source) == 0 {
+		return nil
+	}
+	matched := claimsAtLeastLowConfidence(target.Get(source[0]))
+	for _, segment := range source[1:] {
+		var next []document.Claim
+		for _, m := range matched {
+			next = append(next, m.Get(segment)...)
+		}
+		matched = claimsAtLeastLowConfidence(next)
+	}
+	return matched
+}
+
+// claimsAtLeastLowConfidence returns the claims whose confidence is at or above LowConfidence.
+func claimsAtLeastLowConfidence(claims []document.Claim) []document.Claim {
+	out := make([]document.Claim, 0, len(claims))
+	for _, claim := range claims {
+		if claim.GetConfidence() < document.LowConfidence {
+			continue
+		}
+		out = append(out, claim)
+	}
+	return out
+}
+
+// embedCopyVisitor rebuilds a single claim into an embedded copy: the source claim's value and confidence,
+// re-propertied to the destination property, re-identified with the given deterministic ID, and with no
+// sub-claims.
+type embedCopyVisitor struct {
+	prop   document.Reference
+	id     identifier.Identifier
+	result document.Claim
+}
+
+var _ document.Visitor = (*embedCopyVisitor)(nil)
+
+func (v *embedCopyVisitor) VisitIdentifier(c *document.IdentifierClaim) (document.VisitResult, errors.E) {
+	cp := *c
+	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
+	v.result = &cp
+	return document.Keep, nil
+}
+
+func (v *embedCopyVisitor) VisitString(c *document.StringClaim) (document.VisitResult, errors.E) {
+	cp := *c
+	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
+	v.result = &cp
+	return document.Keep, nil
+}
+
+func (v *embedCopyVisitor) VisitHTML(c *document.HTMLClaim) (document.VisitResult, errors.E) {
+	cp := *c
+	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
+	v.result = &cp
+	return document.Keep, nil
+}
+
+func (v *embedCopyVisitor) VisitAmount(c *document.AmountClaim) (document.VisitResult, errors.E) {
+	cp := *c
+	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
+	v.result = &cp
+	return document.Keep, nil
+}
+
+func (v *embedCopyVisitor) VisitAmountInterval(c *document.AmountIntervalClaim) (document.VisitResult, errors.E) {
+	cp := *c
+	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
+	v.result = &cp
+	return document.Keep, nil
+}
+
+func (v *embedCopyVisitor) VisitTime(c *document.TimeClaim) (document.VisitResult, errors.E) {
+	cp := *c
+	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
+	v.result = &cp
+	return document.Keep, nil
+}
+
+func (v *embedCopyVisitor) VisitTimeInterval(c *document.TimeIntervalClaim) (document.VisitResult, errors.E) {
+	cp := *c
+	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
+	v.result = &cp
+	return document.Keep, nil
+}
+
+func (v *embedCopyVisitor) VisitLink(c *document.LinkClaim) (document.VisitResult, errors.E) {
+	cp := *c
+	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
+	v.result = &cp
+	return document.Keep, nil
+}
+
+func (v *embedCopyVisitor) VisitReference(c *document.ReferenceClaim) (document.VisitResult, errors.E) {
+	cp := *c
+	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
+	v.result = &cp
+	return document.Keep, nil
+}
+
+func (v *embedCopyVisitor) VisitHas(c *document.HasClaim) (document.VisitResult, errors.E) {
+	cp := *c
+	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
+	v.result = &cp
+	return document.Keep, nil
+}
+
+func (v *embedCopyVisitor) VisitNone(c *document.NoneClaim) (document.VisitResult, errors.E) {
+	cp := *c
+	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
+	v.result = &cp
+	return document.Keep, nil
+}
+
+func (v *embedCopyVisitor) VisitUnknown(c *document.UnknownClaim) (document.VisitResult, errors.E) {
+	cp := *c
+	cp.ID, cp.Prop, cp.Sub = v.id, v.prop, nil
+	v.result = &cp
+	return document.Keep, nil
+}
+
+// embedClaimCopy returns a copy of src as a new claim with the given destination property and ID and no
+// sub-claims, preserving the source claim's value and confidence. src is added to a throwaway container so
+// that ClaimTypes.Visit dispatches it to the typed embedCopyVisitor method that rebuilds itT the container
+// holds a value copy, so src itself is not modified.
+func embedClaimCopy(src document.Claim, prop, id identifier.Identifier) (document.Claim, errors.E) { //nolint:ireturn
+	container := &document.ClaimTypes{}
+	errE := container.Add(src)
+	if errE != nil {
+		return nil, errE
+	}
+	v := &embedCopyVisitor{prop: document.Reference{ID: prop}, id: id, result: nil}
+	errE = container.Visit(v)
+	if errE != nil {
+		return nil, errE
+	}
+	return v.result, nil
+}
+
+// embeddedClaimID computes a deterministic, unique claim ID for a synthetic embedded claim copied into a
+// document. It combines the embedding document's base with the host reference claim, the target document,
+// the source claim, and the destination property, so that the same embedding always yields the same ID
+// (stable across re-indexing) and distinct embeddings never collide.
+func embeddedClaimID(base []string, hostClaimID, target, sourceClaimID, destProp identifier.Identifier) identifier.Identifier {
+	base = slices.Clone(base)
+	base = append(base, "EMBEDDED_CLAIM", hostClaimID.String(), target.String(), sourceClaimID.String(), destProp.String())
+	return identifier.From(base...)
+}
+
+// addInverseClaims adds the document's incoming inverse relations to it as synthetic top-level reference
+// claims, each pointing back to the source document via the inverse property, with a deterministic ID. The
+// single conversion then indexes them like any other reference claim. The relations are already filtered to
+// the indexing visibility level by the caller.
+func (c *Converter) addInverseClaims(ctx context.Context, doc *document.D, inverseRelations []store.InverseRelation) {
+	for _, ir := range inverseRelations {
+		claimID := inverseReferenceClaimID(doc.Base, ir.InverseRelationKey)
+		errE := doc.Add(&document.ReferenceClaim{
+			CoreClaim: document.CoreClaim{
+				ID:         claimID,
+				Confidence: ir.Confidence,
+			},
+			Prop: document.Reference{ID: ir.TargetProp},
+			To:   document.Reference{ID: ir.Source},
+		})
+		if errE != nil {
+			// The synthetic ID is a function of the inverse relation key, so a deterministic-ID collision would be
+			// the identical claim and is benign. The relations come from the InverseRelationKey-deduplicated metadata
+			// set, so in normal operation this never fires. Add reports a duplicate ID and we skip but log it.
+			zerolog.Ctx(ctx).Warn().Err(errE).
+				Str("id", doc.ID.String()).
+				Str("claimId", claimID.String()).
+				Str("sourceId", ir.Source.String()).
+				Str("sourceClaimId", ir.Claim.String()).
+				Msg("duplicate claim ID while adding inverse relations")
+		}
+	}
+}
+
+// addEmbeddedClaims walks the document's reference claims and, for each whose field is configured for
+// embedding, fetches the referenced document at the indexing level (its post-hook document, without the
+// target's own inverse or embedded claims), navigates each embed spec's source path to the matched claims, and
+// attaches deterministic copies of them as sub-claims of the reference claim, under the spec's destination
+// property. The copies are ordinary sub-claims, so the single conversion indexes them exactly like the
+// reference claim's own sub-claims, with no embedding-specific conversion. It should run before addInverseClaims
+// so it walks only the document's own references, not the synthetic inverse ones (an optimization, because
+// we do not have a way to specficy for synthetic inverse claims what, if anything, to embed).
+func (c *Converter) addEmbeddedClaims(ctx context.Context, doc *document.D) errors.E {
+	tasks, errE := c.collectEmbedTasks(doc)
+	if errE != nil {
+		return errE
+	}
+	for _, task := range tasks {
+		target, errE := c.getDocument(ctx, task.claim.To.ID)
+		if errE != nil {
+			if errors.Is(errE, store.ErrValueNotFound) {
+				// The referenced document does not exist or is hidden at this level. Nothing to embed; a later
+				// commit creating or revealing it re-indexes this document through the target's embedding set.
+				continue
+			}
+			return errE
+		}
+		for _, spec := range task.specs {
+			for _, m := range matchEmbedSource(target, spec.Source) {
+				id := embeddedClaimID(doc.Base, task.claim.ID, task.claim.To.ID, m.GetID(), spec.Dest)
+				copied, errE := embedClaimCopy(m, spec.Dest, id)
+				if errE != nil {
+					return errE
+				}
+				if task.claim.Sub == nil {
+					task.claim.Sub = &document.ClaimTypes{}
+				}
+
+				errE = task.claim.Sub.Add(copied)
+				if errE != nil {
+					// The synthetic ID keys on the source claim ID and destination property, not the source path, so two
+					// copies collide only when the same source claim is copied to the same destination under this host claim.
+					// For a well-formed target that does not occur (distinct source paths match distinct claims, identical
+					// specs are deduped). It is a defensive guard against a malformed target with duplicate claim IDs (which
+					// is an invalid document). Add reports a duplicate ID and we skip but log it.
+					zerolog.Ctx(ctx).Warn().Err(errE).
+						Str("id", doc.ID.String()).
+						Str("claimId", id.String()).
+						Str("targetId", task.claim.To.ID.String()).
+						Str("targetClaimId", m.GetID().String()).
+						Msg("duplicate claim ID while adding embedded claims")
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// earliestDocumentTime returns the document's earliest indexed time, computed from its own claims (top-level
+// and nested) the same way the conversion does, via the document.Time window bounds and convertTimeInterval.
+// It is computed from the clean document, before inverse and embedded claims are added, so neither shifts the
+// document's own time (an embedded time would otherwise leak in through its sub-time record).
+func (c *Converter) earliestDocumentTime(ctx context.Context, doc *document.D) (*float64, errors.E) {
+	var earliest *float64
+	consider := func(v float64) {
+		if earliest == nil || v < *earliest {
+			e := v
+			earliest = &e
+		}
+	}
+	for claim := range doc.AllClaimsWithSub() {
+		if claim.GetConfidence() < document.LowConfidence {
+			continue
+		}
+		switch cl := claim.(type) {
+		case *document.TimeClaim:
+			from, errE := cl.Time.WindowStartFloat64(cl.Precision, false)
+			if errE != nil {
+				errors.Details(errE)["claim"] = cl
+				return nil, errE
+			}
+			to, errE := cl.Time.WindowEndFloat64(cl.Precision, false)
+			if errE != nil {
+				errors.Details(errE)["claim"] = cl
+				return nil, errE
+			}
+			consider(from)
+			consider(to)
+		case *document.TimeIntervalClaim:
+			times, _, _, errE := c.convertTimeInterval(ctx, cl)
+			if errE != nil {
+				return nil, errE
+			}
+			for i := range times {
+				if times[i].From != nil {
+					consider(*times[i].From)
+				}
+				if times[i].To != nil {
+					consider(*times[i].To)
+				}
+			}
+		}
+	}
+	return earliest, nil
 }
 
 // ReferencesCountIgnored reports whether the document with the given ID is ignored for counts.references.

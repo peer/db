@@ -1024,11 +1024,11 @@ func (b *Bridge) run(ctx context.Context) errors.E {
 			return errE
 		}
 		for _, commit := range commits {
-			addedInverseRelations, removedInverseRelations, referenceTargets, errE := b.indexCommit(ctx, commit)
+			addedInverseRelations, removedInverseRelations, referenceTargets, embeds, errE := b.indexCommit(ctx, commit)
 			if errE != nil {
 				return errE
 			}
-			errE = b.updateSeq(ctx, commit.Seq, addedInverseRelations, removedInverseRelations, referenceTargets)
+			errE = b.updateSeq(ctx, commit.Seq, addedInverseRelations, removedInverseRelations, referenceTargets, embeds)
 			if errE != nil {
 				return errE
 			}
@@ -1064,12 +1064,12 @@ func (b *Bridge) run(ctx context.Context) errors.E {
 			if c.Seq <= lastSeq {
 				continue
 			}
-			addedInverseRelations, removedInverseRelations, referenceTargets, errE := b.indexCommit(ctx, c)
+			addedInverseRelations, removedInverseRelations, referenceTargets, embeds, errE := b.indexCommit(ctx, c)
 			if errE != nil {
 				return errE
 			}
 			// The bridge table is only advanced after indexing returned no error.
-			errE = b.updateSeq(ctx, c.Seq, addedInverseRelations, removedInverseRelations, referenceTargets)
+			errE = b.updateSeq(ctx, c.Seq, addedInverseRelations, removedInverseRelations, referenceTargets, embeds)
 			if errE != nil {
 				return errE
 			}
@@ -1105,12 +1105,23 @@ func withCommitDetails(errE errors.E, seq int64, view, changeset, doc string) er
 // The first returned map contains, for each target document ID, the inverse relations that
 // should be stored in that document's metadata. The second returned map contains
 // inverse relations that should be removed from the document's metadata.
+// embedChanges carries the embedding work a commit implies. set maps each target document to the source
+// documents whose embedding entry on it should be set (or updated) to the source paths they embed from it.
+// removed maps each target document to the source documents whose embedding entry on it should be removed.
+// fire is the set of documents to re-index because a document they embed from was committed (the firing of
+// the embedding maps of the changed documents).
+type embedChanges struct {
+	set     map[identifier.Identifier]map[identifier.Identifier][][]identifier.Identifier
+	removed map[identifier.Identifier]map[identifier.Identifier]bool
+	fire    map[identifier.Identifier]bool
+}
+
 func (b *Bridge) indexCommit( //nolint:maintidx
 	ctx context.Context,
 	committed store.CommittedChangesets[
 		json.RawMessage, *store.DocumentMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, document.Changes,
 	],
-) (map[identifier.Identifier]map[string][]store.InverseRelation, map[identifier.Identifier]map[string][]store.InverseRelation, map[identifier.Identifier]bool, errors.E) {
+) (map[identifier.Identifier]map[string][]store.InverseRelation, map[identifier.Identifier]map[string][]store.InverseRelation, map[identifier.Identifier]bool, embedChanges, errors.E) { //nolint:lll
 	logger := zerolog.Ctx(ctx)
 	start := time.Now()
 	var stats ConversionStats
@@ -1122,7 +1133,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 	if errE != nil {
 		errors.Details(errE)["seq"] = committed.Seq
 		errors.Details(errE)["view"] = committed.View.Name()
-		return nil, nil, nil, errE
+		return nil, nil, nil, embedChanges{}, errE
 	}
 
 	indexOps := 0
@@ -1144,6 +1155,15 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 	// document started or stopped referencing them.
 	referenceTargets := map[identifier.Identifier]bool{}
 
+	// Collect the embedding work this commit implies: which source documents to add to or remove from each
+	// target's metadata embedding set (maintenance), and which documents to re-index because a document they
+	// embed from changed (firing).
+	embeds := embedChanges{
+		set:     map[identifier.Identifier]map[identifier.Identifier][][]identifier.Identifier{},
+		removed: map[identifier.Identifier]map[identifier.Identifier]bool{},
+		fire:    map[identifier.Identifier]bool{},
+	}
+
 	// debugDocs holds the document of each bulk operation by position (nil for delete operations). A failed
 	// operation is matched to its document by position (response items come back in operation order). We
 	// cannot use the index name returned with a failed operation to map back to the document because it is
@@ -1157,7 +1177,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 			page, errE := cs.Changes(ctx, after)
 			changesDuration += time.Since(changesStart)
 			if errE != nil {
-				return nil, nil, nil, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), "")
+				return nil, nil, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), "")
 			}
 			for _, change := range page {
 				// The document changed in this commit, so drop any cached info and fetched content for it,
@@ -1178,20 +1198,39 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 				docs, metadata, parentChangesets, deleted, errE := b.produceLevels(ctx, change.ID, &change.Version)
 				getDuration += time.Since(getStart)
 				if errE != nil {
-					return nil, nil, nil, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
+					return nil, nil, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
 				}
 
-				// Collect, for other documents, the inverse-relation and counts.references changes implied by
-				// this document's change, computed per level from this document's per-level versions.
+				// Collect this document's changed property IDs only when it has embedders, since the firing gate
+				// below is otherwise unused. accumulateChangeRelations fills it from the per-level claim diff.
+				var changedProps map[identifier.Identifier]bool
+				if metadata != nil && len(metadata.Embedding) > 0 {
+					changedProps = map[identifier.Identifier]bool{}
+				}
+
+				// Collect, for other documents, the inverse-relation, counts.references, and embedding changes
+				// implied by this document's change, computed per level from this document's per-level versions.
 				accumulateFetchBefore := stats.FetchDuration
 				accumulateStart := time.Now()
 				errE = b.accumulateChangeRelations(
 					ctx, change.ID, deleted, docs, parentChangesets,
 					addedInverseRelations, removedInverseRelations, referenceTargets,
+					embeds.set, embeds.removed, changedProps,
 				)
 				accumulateDuration += time.Since(accumulateStart) - (stats.FetchDuration - accumulateFetchBefore)
 				if errE != nil {
-					return nil, nil, nil, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
+					return nil, nil, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
+				}
+
+				// Re-index the documents that embed claims from this one so their embedded copy is refreshed, but
+				// only those that embed a property which changed in this commit (when the document is deleted every
+				// embedded property counts as changed, so all of them are re-indexed).
+				if metadata != nil {
+					for embedderID, paths := range metadata.Embedding {
+						if embedPathsTouch(paths, changedProps) {
+							embeds.fire[embedderID] = true
+						}
+					}
 				}
 
 				// Index each level's version into its index, or delete it there when the document is deleted
@@ -1202,7 +1241,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 					if deleted || docs[i] == nil {
 						err := bulkService.DeleteOp(types.DeleteOperation{Index_: &index, Id_: &id}) //nolint:exhaustruct
 						if err != nil {
-							return nil, nil, nil, errors.WithStack(err)
+							return nil, nil, nil, embedChanges{}, errors.WithStack(err)
 						}
 						debugDocs = append(debugDocs, nil)
 						deleteOps++
@@ -1215,11 +1254,11 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 					searchDoc, errE := t.Converter.FromDocument(t.levelContext(ctx), docs[i], &gen, metadata)
 					convertDuration += time.Since(convertStart) - (stats.FetchDuration - convertFetchBefore)
 					if errE != nil {
-						return nil, nil, nil, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
+						return nil, nil, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
 					}
 					err := bulkService.IndexOp(types.IndexOperation{Index_: &index, Id_: &id}, searchDoc) //nolint:exhaustruct
 					if err != nil {
-						return nil, nil, nil, errors.WithStack(err)
+						return nil, nil, nil, embedChanges{}, errors.WithStack(err)
 					}
 					debugDocs = append(debugDocs, searchDoc)
 					indexOps++
@@ -1239,13 +1278,13 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 			Int("deleted", 0).
 			Dur("duration", time.Since(start)).
 			Msg("bridge indexed commit")
-		return nil, nil, nil, nil
+		return nil, nil, nil, embedChanges{}, nil
 	}
 
 	bulkStart := time.Now()
 	response, err := bulkService.Do(ctx)
 	if err != nil {
-		return nil, nil, nil, WithESError(err)
+		return nil, nil, nil, embedChanges{}, WithESError(err)
 	}
 	bulkDuration := time.Since(bulkStart)
 
@@ -1284,7 +1323,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 		errors.Details(errE)["view"] = committed.View.Name()
 		// We do not name this field "errors" to not confuse go-errors package which tries to parse it as joined errors.
 		errors.Details(errE)["esErrors"] = bulkErrors
-		return nil, nil, nil, errE
+		return nil, nil, nil, embedChanges{}, errE
 	}
 
 	// The counts here are the work this commit implies for other documents. indexed/deleted are the
@@ -1316,7 +1355,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 		Dur("duration", time.Since(start)).
 		Msg("bridge indexed commit")
 
-	return addedInverseRelations, removedInverseRelations, referenceTargets, nil
+	return addedInverseRelations, removedInverseRelations, referenceTargets, embeds, nil
 }
 
 // diffOutgoingInverseRelations compares current and parent outgoing inverse relations,
@@ -1725,10 +1764,25 @@ func (b *Bridge) accumulateChangeRelations(
 	ctx context.Context, changeID identifier.Identifier, deleted bool, docs []*document.D, parentChangesets []store.Version,
 	addedInverseRelations, removedInverseRelations map[identifier.Identifier]map[string][]store.InverseRelation,
 	referenceTargets map[identifier.Identifier]bool,
+	setEmbedders map[identifier.Identifier]map[identifier.Identifier][][]identifier.Identifier,
+	removedEmbedders map[identifier.Identifier]map[identifier.Identifier]bool,
+	changedProps map[identifier.Identifier]bool,
 ) errors.E {
-	// Aggregate each parent version's outgoing relations and reference targets, per level.
+	// When changedProps is non-nil, the changed document's own changed property IDs are collected into it, so
+	// that committing this document re-indexes only the embedders that embed a property which changed. It is
+	// computed per visibility level (current versus parent versions) and unioned, the same way the embed
+	// targets are, so a change seen only at one level (for example a hook-altered claim) is still caught.
+	// parentDocsByLevel collects the parent versions of each level for that diff.
+	var parentDocsByLevel [][]*document.D
+	if changedProps != nil {
+		parentDocsByLevel = make([][]*document.D, len(b.targets))
+	}
+
+	// Aggregate each parent version's outgoing relations and reference targets per level, and its outgoing
+	// embed source paths unioned across levels (one path-set per target document, keyed by encoded path).
 	parentOutgoing := make([]map[identifier.Identifier][]store.InverseRelation, len(b.targets))
 	parentRefTargets := make([]map[identifier.Identifier]bool, len(b.targets))
+	parentEmbeds := map[identifier.Identifier]map[string][]identifier.Identifier{}
 	for i := range b.targets {
 		parentOutgoing[i] = map[identifier.Identifier][]store.InverseRelation{}
 		parentRefTargets[i] = map[identifier.Identifier]bool{}
@@ -1755,9 +1809,18 @@ func (b *Bridge) accumulateChangeRelations(
 			for targetID := range pt {
 				parentRefTargets[i][targetID] = true
 			}
+			outgoingEmbeds, errE := t.Converter.OutgoingEmbeds(parentDocs[i])
+			if errE != nil {
+				return errE
+			}
+			mergeEmbeds(parentEmbeds, outgoingEmbeds)
+			if changedProps != nil {
+				parentDocsByLevel[i] = append(parentDocsByLevel[i], parentDocs[i])
+			}
 		}
 	}
 
+	currentEmbeds := map[identifier.Identifier]map[string][]identifier.Identifier{}
 	for i, t := range b.targets {
 		ctxL := t.levelContext(ctx)
 
@@ -1769,6 +1832,11 @@ func (b *Bridge) accumulateChangeRelations(
 			if errE != nil {
 				return errE
 			}
+			outgoingEmbeds, errE := t.Converter.OutgoingEmbeds(docs[i])
+			if errE != nil {
+				return errE
+			}
+			mergeEmbeds(currentEmbeds, outgoingEmbeds)
 		}
 
 		added, removed := diffOutgoingInverseRelations(currentOutgoing, parentOutgoing[i])
@@ -1791,6 +1859,42 @@ func (b *Bridge) accumulateChangeRelations(
 		errE := b.collectChangedReferenceTargets(ctxL, t.Converter, currentRefTargets, parentRefTargets[i], referenceTargets)
 		if errE != nil {
 			return errE
+		}
+	}
+
+	// Diff the document's current embed source paths against its parents', per target document (both are the
+	// union across visibility levels). When the path-set for a target appears or changes, set this document's
+	// entry, with the union of paths, in that target's metadata embedding set; when it disappears, remove it.
+	// The metadata update is applied, without re-indexing the target, in updateSeq.
+	for targetID, current := range currentEmbeds {
+		if samePathSet(current, parentEmbeds[targetID]) {
+			continue
+		}
+		if setEmbedders[targetID] == nil {
+			setEmbedders[targetID] = map[identifier.Identifier][][]identifier.Identifier{}
+		}
+		setEmbedders[targetID][changeID] = sortedPaths(current)
+	}
+	for targetID := range parentEmbeds {
+		if _, ok := currentEmbeds[targetID]; ok {
+			continue
+		}
+		if removedEmbedders[targetID] == nil {
+			removedEmbedders[targetID] = map[identifier.Identifier]bool{}
+		}
+		removedEmbedders[targetID][changeID] = true
+	}
+
+	if changedProps != nil {
+		for i := range b.targets {
+			var current *document.D
+			if !deleted {
+				current = docs[i]
+			}
+			errE := fillChangedProperties(changedProps, current, parentDocsByLevel[i])
+			if errE != nil {
+				return errE
+			}
 		}
 	}
 
@@ -1824,14 +1928,16 @@ func anyNonEmpty(byLevel map[string][]store.InverseRelation) bool {
 	return false
 }
 
-// updateSeq advances the bridge table to seq, updates document metadata with inverse
-// relations, and enqueues both the documents whose inverse relations changed and the
-// documents whose counts.references must be refreshed (referenceTargets) for re-indexing,
-// all in a single transaction.
+// updateSeq advances the bridge table to seq, updates document metadata with inverse relations and embedding
+// sets, and enqueues for re-indexing the documents whose inverse relations changed, whose counts.references
+// must be refreshed (referenceTargets), and which embed from a committed document (embeds.fire), all in a
+// single transaction. Documents whose only metadata change is their own embedding set are updated but not
+// enqueued.
 func (b *Bridge) updateSeq(
 	ctx context.Context, seq int64,
 	addedInverseRelations, removedInverseRelations map[identifier.Identifier]map[string][]store.InverseRelation,
 	referenceTargets map[identifier.Identifier]bool,
+	embeds embedChanges,
 ) errors.E {
 	logger := zerolog.Ctx(ctx)
 	start := time.Now()
@@ -1847,6 +1953,18 @@ func (b *Bridge) updateSeq(
 		}
 		for docID, byLevel := range removedInverseRelations {
 			if anyNonEmpty(byLevel) {
+				affectedDocs[docID] = true
+			}
+		}
+		// Targets whose embedding set changes also need a metadata update (but, unlike inverse-relation
+		// targets, no re-indexing).
+		for docID, sources := range embeds.set {
+			if len(sources) > 0 {
+				affectedDocs[docID] = true
+			}
+		}
+		for docID, sources := range embeds.removed {
+			if len(sources) > 0 {
 				affectedDocs[docID] = true
 			}
 		}
@@ -1883,17 +2001,36 @@ func (b *Bridge) updateSeq(
 			for level, irs := range addedInverseRelations[docID] {
 				metadata.AddInverseRelations(level, irs)
 			}
+			for sourceID := range embeds.removed[docID] {
+				metadata.RemoveEmbedding(sourceID)
+			}
+			for sourceID, paths := range embeds.set[docID] {
+				metadata.SetEmbedding(sourceID, paths)
+			}
 			updates = append(updates, preparedUpdate{id: docID, version: version, metadata: metadata})
 		}
 
-		// Enqueue both the documents whose inverse-relation metadata changed and the
-		// documents whose counts.references must be refreshed; the same worker re-indexes
-		// both. Reference targets get no metadata update.
-		enqueue := make(map[identifier.Identifier]bool, len(updates)+len(referenceTargets))
-		for _, u := range updates {
-			enqueue[u.id] = true
+		// Enqueue the documents that must be re-indexed: those whose inverse-relation metadata changed (they
+		// gain or lose a synthetic inverse claim), those whose counts.references must be refreshed, and those
+		// that embed from a committed document (their embedded copy must be refreshed). Reference targets and
+		// embed-firing documents get no metadata update. Documents whose only metadata change is their own
+		// embedding set are deliberately not enqueued: their search document does not depend on which documents
+		// embed from them.
+		enqueue := make(map[identifier.Identifier]bool, len(updates)+len(referenceTargets)+len(embeds.fire))
+		for docID, byLevel := range addedInverseRelations {
+			if anyNonEmpty(byLevel) {
+				enqueue[docID] = true
+			}
+		}
+		for docID, byLevel := range removedInverseRelations {
+			if anyNonEmpty(byLevel) {
+				enqueue[docID] = true
+			}
 		}
 		for docID := range referenceTargets {
+			enqueue[docID] = true
+		}
+		for docID := range embeds.fire {
 			enqueue[docID] = true
 		}
 

@@ -35,6 +35,7 @@ func (b *B) InsertOrReplaceDocument(ctx context.Context, doc *document.D) errors
 		At:               store.Time(time.Now().UTC()),
 		Users:            nil,
 		InverseRelations: nil,
+		Embedding:        nil,
 	}
 
 	// Each doc.Id has to be unique, so each doc.Base is unique as well.

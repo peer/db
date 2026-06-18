@@ -191,6 +191,7 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 		At:               endMetadata.At,
 		Users:            internalStore.SortedUniqueUsers(changeUsers),
 		InverseRelations: nil,
+		Embedding:        nil,
 	}
 	newMetadata.CarryOver(oldMetadata)
 
@@ -277,6 +278,7 @@ func (b *B) completeDocumentSessionTx(
 				At:               data.EndMetadata.At,
 				Users:            internalStore.SortedUniqueUsers([]*store.User{data.BeginMetadata.User}),
 				InverseRelations: nil,
+				Embedding:        nil,
 			},
 			&store.CommitMetadata{Base: firstBase, User: data.EndMetadata.User},
 		)

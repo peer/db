@@ -329,6 +329,11 @@ type FieldsWithInverseProperty struct {
 	Name   string   `cardinality:"1.."                          json:"name"   property:"NAME"`
 }
 
+type FieldsWithEmbed struct {
+	Parent core.Ref `cardinality:"0..1" embed:"test,CITY=test,NAME" json:"parent" property:"PARENT"`
+	Name   string   `cardinality:"1.."                              json:"name"   property:"NAME"`
+}
+
 type FieldsWithSharedSubStruct struct {
 	First  SharedSubStruct `cardinality:"1" json:"first"  property:"FIRST"`
 	Second SharedSubStruct `cardinality:"1" json:"second" property:"SECOND"`
@@ -1084,6 +1089,27 @@ func TestFieldsInverseProperty(t *testing.T) {
 	f = result.Field[1]
 	assert.Equal(t, core.Ref{ID: mnemonics["NAME"]}, f.Property)
 	assert.Nil(t, f.InverseProperty)
+}
+
+func TestFieldsEmbed(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+
+	result, errE := transform.Fields[FieldsWithEmbed](mnemonics)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Field, 2)
+
+	// Parent has embed set, stored as the raw entry to be parsed and resolved by the converter.
+	f := result.Field[0]
+	assert.Equal(t, core.Ref{ID: mnemonics["PARENT"]}, f.Property)
+	assert.Equal(t, []string{"test,CITY=test,NAME"}, f.Embed)
+
+	// Name has no embed.
+	f = result.Field[1]
+	assert.Equal(t, core.Ref{ID: mnemonics["NAME"]}, f.Property)
+	assert.Empty(t, f.Embed)
 }
 
 func TestFieldsStandaloneFieldSection(t *testing.T) {

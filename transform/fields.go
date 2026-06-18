@@ -172,6 +172,11 @@ func (fc *fieldsCollector) processLevel(
 				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
 				return errE
 			}
+			if _, hasEmbed := field.Tag.Lookup("embed"); hasEmbed {
+				errE := errors.New("embed tag cannot be used with value tag")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return errE
+			}
 			if strings.TrimSpace(field.Tag.Get("section")) != "" {
 				errE := errors.New("section tag cannot be used with value tag")
 				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
@@ -289,6 +294,11 @@ func (fc *fieldsCollector) processSubFields(
 		if _, ok := field.Tag.Lookup("value"); ok {
 			if _, hasInverse := field.Tag.Lookup("inverseProperty"); hasInverse {
 				errE := errors.New("inverseProperty tag cannot be used with value tag")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return nil, errE
+			}
+			if _, hasEmbed := field.Tag.Lookup("embed"); hasEmbed {
+				errE := errors.New("embed tag cannot be used with value tag")
 				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
 				return nil, errE
 			}
@@ -449,6 +459,13 @@ func (fc *fieldsCollector) makeField(
 		inverseProperty = &internalCore.Ref{ID: inverseBase}
 	}
 
+	// Parse embed tag.
+	embed, errE := parseEmbedTag(structField)
+	if errE != nil {
+		errors.Details(errE)["field"] = strings.Join(fieldPath, ".")
+		return internalCore.Field{}, errE
+	}
+
 	// Collect sub-fields from struct types.
 	subFields, errE := fc.collectSubFields(structField.Type, fieldPath, structPath)
 	if errE != nil {
@@ -472,6 +489,7 @@ func (fc *fieldsCollector) makeField(
 		Values:          values,
 		SubField:        subFields,
 		InverseProperty: inverseProperty,
+		Embed:           embed,
 		Default:         defaultRef,
 	}, nil
 }

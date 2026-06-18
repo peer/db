@@ -103,6 +103,14 @@ type DocumentMetadata struct {
 	// documents are seen at that level. The sets are kept strictly separate so that indexing one level
 	// never leaks a source not visible there.
 	InverseRelations map[string][]InverseRelation `json:"inverseRelations,omitempty"`
+
+	// Embedding maps each document that embeds claims from this document (a document with a reference claim to
+	// this one on a field configured with EMBED_PROPERTY) to the source paths it embeds: each path is the
+	// sequence of property IDs, within this document, that the embedding document copies (a single property for
+	// a direct embed, or a property path for a nested one). It is maintained from the embedding side: a document
+	// sets its own entry here when it is committed and embeds from this document, and removes it when it stops.
+	// The paths are the union across visibility levels.
+	Embedding map[identifier.Identifier][][]identifier.Identifier `json:"embedding,omitempty"`
 }
 
 // CommitMetadata contains metadata about a commit.
@@ -177,6 +185,24 @@ func (m *DocumentMetadata) RemoveInverseRelations(level string, relations []Inve
 	}
 }
 
+// SetEmbedding records that the document with the given ID embeds claims from this document using the given
+// source paths (the union across visibility levels), replacing any existing entry for it.
+func (m *DocumentMetadata) SetEmbedding(id identifier.Identifier, paths [][]identifier.Identifier) {
+	if m.Embedding == nil {
+		m.Embedding = map[identifier.Identifier][][]identifier.Identifier{}
+	}
+	m.Embedding[id] = paths
+}
+
+// RemoveEmbedding removes the entry for the document with the given ID from the set of documents that embed
+// claims from this document. When the set becomes empty it is reset to nil.
+func (m *DocumentMetadata) RemoveEmbedding(id identifier.Identifier) {
+	delete(m.Embedding, id)
+	if len(m.Embedding) == 0 {
+		m.Embedding = nil
+	}
+}
+
 // CarryOver sets system-managed fields in this metadata based on old metadata.
 //
 // This should be called on new metadata before committing a new version of a
@@ -186,6 +212,7 @@ func (m *DocumentMetadata) CarryOver(old *DocumentMetadata) {
 		return
 	}
 	m.InverseRelations = old.InverseRelations
+	m.Embedding = old.Embedding
 }
 
 // NoMetadata represents an empty metadata structure.

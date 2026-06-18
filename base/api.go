@@ -131,6 +131,7 @@ func (b *B) InsertDocument(ctx context.Context, doc *document.D) errors.E {
 		At:               store.Time(time.Now().UTC()),
 		Users:            internalStore.SortedUniqueUsers([]*store.User{user}),
 		InverseRelations: nil,
+		Embedding:        nil,
 	}, &store.CommitMetadata{
 		Base: changesetBase,
 		User: user,
@@ -160,6 +161,7 @@ func (b *B) DeleteDocument(ctx context.Context, id identifier.Identifier) errors
 		At:               store.Time(time.Now().UTC()),
 		Users:            internalStore.SortedUniqueUsers([]*store.User{user}),
 		InverseRelations: nil,
+		Embedding:        nil,
 	}
 	metadata.CarryOver(oldMetadata)
 
