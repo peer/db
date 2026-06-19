@@ -139,6 +139,7 @@ type IdentifierClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
 	PropNaming  map[string][]string   `json:"propNaming"`
+	PropSortKey map[string]string     `json:"propSortKey,omitempty"`
 	Value       string                `json:"value"`
 }
 
@@ -147,6 +148,7 @@ type StringClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
 	PropNaming  map[string][]string   `json:"propNaming"`
+	PropSortKey map[string]string     `json:"propSortKey,omitempty"`
 
 	// String maps each language the claim resolves to (its IN_LANGUAGE sub-claims, or
 	// detected language) to the claim's value. Every entry holds the same value.
@@ -160,6 +162,7 @@ type HTMLClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
 	PropNaming  map[string][]string   `json:"propNaming"`
+	PropSortKey map[string]string     `json:"propSortKey,omitempty"`
 
 	// HTML maps each language the claim resolves to (its IN_LANGUAGE sub-claims, or detected
 	// language) to the plain-text rendering of the claim's HTML for that language.
@@ -278,6 +281,7 @@ type AmountClaim struct {
 	Prop        identifier.Identifier  `json:"prop"`
 	PropDisplay map[string]string      `json:"propDisplay"`
 	PropNaming  map[string][]string    `json:"propNaming"`
+	PropSortKey map[string]string      `json:"propSortKey,omitempty"`
 	Unit        *identifier.Identifier `json:"unit"`
 	Range       RangeFloat             `json:"range"`
 	From        *float64               `json:"from,omitempty"`
@@ -294,6 +298,7 @@ type TimeClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
 	PropNaming  map[string][]string   `json:"propNaming"`
+	PropSortKey map[string]string     `json:"propSortKey,omitempty"`
 	Range       RangeFloat            `json:"range"`
 	From        *float64              `json:"from,omitempty"`
 	FromDisplay string                `json:"fromDisplay,omitempty"`
@@ -306,6 +311,7 @@ type LinkClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
 	PropNaming  map[string][]string   `json:"propNaming"`
+	PropSortKey map[string]string     `json:"propSortKey,omitempty"`
 	IRI         string                `json:"iri"`
 }
 
@@ -314,9 +320,13 @@ type ReferenceClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
 	PropNaming  map[string][]string   `json:"propNaming"`
+	PropSortKey map[string]string     `json:"propSortKey,omitempty"`
 	To          identifier.Identifier `json:"to"`
 	ToDisplay   map[string]string     `json:"toDisplay"`
 	ToNaming    map[string][]string   `json:"toNaming"`
+	// ToSortKey is, per language, the value's own display label as a sort_key_normalizer keyword, so facet
+	// values can be sorted by their display label (independent of the hierarchy ToPathSortKey).
+	ToSortKey map[string]string `json:"toSortKey,omitempty"`
 	// ToPath contains ID-based hierarchy paths from root to the target document.
 	// Each path is prefixed with the hierarchy property ID and ":" separator
 	// (e.g., "<property_ID>:<root_ID>/<parent_ID>/<this_ID>"), followed by
@@ -328,10 +338,18 @@ type ReferenceClaim struct {
 	// While ToPath is the path of this record's own To value, ToFullPath identifies the leaf the
 	// record derives from.
 	ToFullPath []string `json:"toFullPath,omitempty"`
-	// ToDisplayPath contains per-language display hierarchy paths from root to the
-	// target document. Each path is a string of display labels joined by null bytes,
-	// which ensures correct hierarchical sort order.
-	ToDisplayPath map[string][]string `json:"toDisplayPath,omitempty"`
+	// ToDisplayPath contains per-language display hierarchy paths from root to the target document. Each
+	// path is a string of display labels joined by null bytes. It is not indexed (json:"-"): it is kept in
+	// memory only to fold the hierarchy labels into the searchable text (addDisplayPathLabels) and to build
+	// ToPathSortKey. Sorting uses ToPathSortKey instead.
+	ToDisplayPath map[string][]string `json:"-"`
+	// ToPathSortKey contains, per language, combination of ToDisplayPath and ToPath, one sort key per hierarchy
+	// path: the display path (labels joined by null bytes), then SortKeySeparator, then the hex-encoded ToPath entry.
+	// The label half folds under sort_key_normalizer for case/diacritic-insensitive ordering, while the
+	// hex id half (lowercase, fold-stable) preserves the exact ToPath so grouping can recover it. It is the
+	// single key for ref-column sorting and for grouping: ordering by it sorts by label with the id as a
+	// tiebreaker, so distinct values that share a display label stay distinct.
+	ToPathSortKey map[string][]string `json:"toPathSortKey,omitempty"`
 	// IsLeaf is true when the target is a most-specific value for this document: the document
 	// references it but none of its narrower values (its descendants in the value hierarchy) for
 	// the same property. It lets the reference filter count and select documents that are exactly
@@ -357,6 +375,7 @@ type HasClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
 	PropNaming  map[string][]string   `json:"propNaming"`
+	PropSortKey map[string]string     `json:"propSortKey,omitempty"`
 }
 
 // NoneClaim represents a claim that explicitly states no value exists for a property.
@@ -364,6 +383,7 @@ type NoneClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
 	PropNaming  map[string][]string   `json:"propNaming"`
+	PropSortKey map[string]string     `json:"propSortKey,omitempty"`
 }
 
 // UnknownClaim represents a claim where the value for a property is known to exist but is unknown.
@@ -371,6 +391,7 @@ type UnknownClaim struct {
 	Prop        identifier.Identifier `json:"prop"`
 	PropDisplay map[string]string     `json:"propDisplay"`
 	PropNaming  map[string][]string   `json:"propNaming"`
+	PropSortKey map[string]string     `json:"propSortKey,omitempty"`
 }
 
 // TODO: Index the parent claim's own ID alongside ParentTo.

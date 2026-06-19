@@ -89,11 +89,3 @@ func TestFoldLevelFlat(t *testing.T) {
 	}
 	assert.Equal(t, want, got)
 }
-
-func TestPathSegments(t *testing.T) {
-	t.Parallel()
-
-	assert.Equal(t, []string{"eu", "fr", "paris"}, pathSegments("locProp:eu/fr/paris"))
-	assert.Equal(t, []string{"eu"}, pathSegments("locProp:eu"))
-	assert.Nil(t, pathSegments("noprefix"))
-}

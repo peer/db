@@ -3,6 +3,7 @@ package search
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"maps"
 	"math"
 	"slices"
@@ -95,9 +96,55 @@ type displayStrings struct {
 	Naming  map[string][]string
 }
 
-// hierarchyPathSeparator is the null byte used as separator in display hierarchy paths.
+// HierarchyPathSeparator is the null byte used as separator in display hierarchy paths.
 // It sorts before all printable characters, ensuring correct hierarchical ordering.
-const hierarchyPathSeparator = "\x00"
+const HierarchyPathSeparator = "\x00"
+
+// SortKeySeparator separates the display-label half from the hex-encoded id half in a ToPathSortKey value. It
+// is a low control byte, distinct from the null byte that joins hierarchy levels, so it sorts before any
+// printable label character (keeping the label the primary sort) and is left untouched by the truncate and
+// icu_folding steps of sort_key_normalizer.
+const SortKeySeparator = "\x01"
+
+// idByteLen is the raw byte size of an identifier.Identifier, the chunk size used to encode
+// and decode the id chain in a sort key.
+const idByteLen = len(identifier.Identifier{})
+
+// EncodeSortKeyPath builds the id half of a ToPathSortKey from a toPath ("<hierProp>:<id1>/.../<idN>" or
+// "__SELF__:<id>"): it drops the prefix (which no path consumer reads) and hex-encodes the chain ids as
+// their raw 16-byte values. The lowercase hex survives sort_key_normalizer's folding, so it is a stable
+// tiebreaker after the display label, and DecodeSortKeyPath reverses it back to the id chain.
+func EncodeSortKeyPath(toPath string) string {
+	_, chain, ok := strings.Cut(toPath, ":")
+	if !ok {
+		chain = toPath
+	}
+	raw := make([]byte, 0, idByteLen)
+	for seg := range strings.SplitSeq(chain, "/") {
+		id, errE := identifier.MaybeString(seg)
+		if errE != nil {
+			continue
+		}
+		raw = append(raw, id[:]...)
+	}
+	return hex.EncodeToString(raw)
+}
+
+// DecodeSortKeyPath reverses EncodeSortKeyPath: it hex-decodes the concatenated raw 16-byte ids and returns
+// the id chain (root to leaf) as strings. It returns nil for a malformed value.
+func DecodeSortKeyPath(encoded string) []string {
+	raw, err := hex.DecodeString(encoded)
+	if err != nil || len(raw)%idByteLen != 0 {
+		return nil
+	}
+	ids := make([]string, 0, len(raw)/idByteLen)
+	for i := 0; i+idByteLen <= len(raw); i += idByteLen {
+		var id identifier.Identifier
+		copy(id[:], raw[i:i+idByteLen])
+		ids = append(ids, id.String())
+	}
+	return ids
+}
 
 // documentInfo holds information about a document: display strings,
 // transitive ancestors, and hierarchy paths for each value hierarchy type.
@@ -123,28 +170,43 @@ type documentInfo struct {
 	depGens map[identifier.Identifier]uint64
 }
 
-// CollectHierarchyPaths collects all hierarchy paths, combining paths from all
-// value hierarchy types into single slices. ID paths are prefixed with the hierarchy
-// property ID and ":" separator (e.g., "<SUBCLASS_OF_ID>:<root_ID>/<parent_ID>/<this_ID>")
-// to identify which hierarchy each path belongs to.
-func (d documentInfo) CollectHierarchyPaths() ([]string, map[string][]string) {
+// CollectHierarchyPaths collects this document's hierarchy paths across all value hierarchy types into
+// parallel slices. ID paths are prefixed with the hierarchy property ID and ":" (e.g.
+// "<SUBCLASS_OF_ID>:<root_ID>/<parent_ID>/<this_ID>"). toDisplayPath holds the matching per-language
+// display paths (labels joined by null bytes). toPathSortKey holds, parallel to toPath, the grouping/sorting
+// key for each path: the display path, then SortKeySeparator, then the id chain's raw bytes hex-encoded
+// (see EncodeSortKeyPath). The hierarchy properties are flattened in a deterministic order so the three stay aligned.
+// Within one hierarchy property IDPaths and DisplayPaths are already built in lockstep.
+func (d documentInfo) CollectHierarchyPaths() ([]string, map[string][]string, map[string][]string) {
 	var toPath []string
-	for hierProp, paths := range d.IDPaths {
+	var toDisplayPath, toPathSortKey map[string][]string
+	hierProps := make([]identifier.Identifier, 0, len(d.IDPaths))
+	for hierProp := range d.IDPaths {
+		hierProps = append(hierProps, hierProp)
+	}
+	slices.SortFunc(hierProps, func(a, b identifier.Identifier) int { return bytes.Compare(a[:], b[:]) })
+
+	for _, hierProp := range hierProps {
 		prefix := hierProp.String() + ":"
-		for _, p := range paths {
-			toPath = append(toPath, prefix+p)
-		}
-	}
-	var toDisplayPath map[string][]string
-	for _, dpaths := range d.DisplayPaths {
-		for lang, paths := range dpaths {
-			if toDisplayPath == nil {
-				toDisplayPath = map[string][]string{}
+		dpByLang := d.DisplayPaths[hierProp]
+		for i, p := range d.IDPaths[hierProp] {
+			fullID := prefix + p
+			toPath = append(toPath, fullID)
+			hexID := EncodeSortKeyPath(fullID)
+			for lang, dpaths := range dpByLang {
+				if i >= len(dpaths) {
+					continue
+				}
+				if toDisplayPath == nil {
+					toDisplayPath = map[string][]string{}
+					toPathSortKey = map[string][]string{}
+				}
+				toDisplayPath[lang] = append(toDisplayPath[lang], dpaths[i])
+				toPathSortKey[lang] = append(toPathSortKey[lang], dpaths[i]+SortKeySeparator+hexID)
 			}
-			toDisplayPath[lang] = append(toDisplayPath[lang], paths...)
 		}
 	}
-	return toPath, toDisplayPath
+	return toPath, toDisplayPath, toPathSortKey
 }
 
 // SelfHierarchyPathPrefix prefixes the synthetic self path used for a value that participates in no value
@@ -153,24 +215,28 @@ func (d documentInfo) CollectHierarchyPaths() ([]string, map[string][]string) {
 // with a real path.
 const SelfHierarchyPathPrefix = "__SELF__:"
 
-// HierarchyPathsOrSelf returns the value's hierarchy paths and per-language display paths, falling back to
-// a single self path ("__SELF__:<id>") with the value's own display label when the value is in no value
-// hierarchy. This makes every leaf value groupable and prefilterable as a one-node hierarchy: its single
-// segment is dropped by ancestor and facet parsing (referencePathAncestors, parseToPath) but kept by
-// grouping (pathSegments), so it forms a single-level group. id is the value this documentInfo describes.
-func (d documentInfo) HierarchyPathsOrSelf(id identifier.Identifier) ([]string, map[string][]string) {
-	toPath, toDisplayPath := d.CollectHierarchyPaths()
+// HierarchyPathsOrSelf returns the value's hierarchy paths, per-language display paths and per-language
+// sort keys (see CollectHierarchyPaths), falling back to a single self path ("__SELF__:<id>") with the
+// value's own display label when the value is in no value hierarchy. This makes every leaf value groupable
+// and prefilterable as a one-node hierarchy: its single toPath segment is dropped by ancestor and facet
+// parsing (referencePathAncestors, parseToPath) but kept in the sort key (which decodes to the single id),
+// so it forms a single-level group. id is the value this documentInfo describes.
+func (d documentInfo) HierarchyPathsOrSelf(id identifier.Identifier) ([]string, map[string][]string, map[string][]string) {
+	toPath, toDisplayPath, toPathSortKey := d.CollectHierarchyPaths()
 	if len(toPath) > 0 {
-		return toPath, toDisplayPath
+		return toPath, toDisplayPath, toPathSortKey
 	}
-	var selfDisplayPath map[string][]string
+	selfPath := SelfHierarchyPathPrefix + id.String()
+	hexID := EncodeSortKeyPath(selfPath)
 	for lang, label := range d.Display.Display {
-		if selfDisplayPath == nil {
-			selfDisplayPath = map[string][]string{}
+		if toDisplayPath == nil {
+			toDisplayPath = map[string][]string{}
+			toPathSortKey = map[string][]string{}
 		}
-		selfDisplayPath[lang] = []string{label}
+		toDisplayPath[lang] = []string{label}
+		toPathSortKey[lang] = []string{label + SortKeySeparator + hexID}
 	}
-	return []string{SelfHierarchyPathPrefix + id.String()}, selfDisplayPath
+	return []string{selfPath}, toDisplayPath, toPathSortKey
 }
 
 // fieldInverseKey identifies a position within a specific class's field hierarchy
@@ -1099,13 +1165,13 @@ func (c *Converter) extendDisplayPaths(
 
 		if len(paths) > 0 {
 			for _, pp := range paths {
-				hierDisplayPaths[lang] = append(hierDisplayPaths[lang], pp+hierarchyPathSeparator+thisDisplay)
+				hierDisplayPaths[lang] = append(hierDisplayPaths[lang], pp+HierarchyPathSeparator+thisDisplay)
 			}
 		} else {
 			// Parent is a root (no paths yet), create a two-level path.
 			// Parent display might be an empty string and this is OK.
 			parentDisplay := parentInfo.Display.Display[lang]
-			hierDisplayPaths[lang] = append(hierDisplayPaths[lang], parentDisplay+hierarchyPathSeparator+thisDisplay)
+			hierDisplayPaths[lang] = append(hierDisplayPaths[lang], parentDisplay+HierarchyPathSeparator+thisDisplay)
 		}
 	}
 }
@@ -1182,7 +1248,7 @@ func (c *Converter) makeDisplayStrings(ctx context.Context, doc *document.D) (di
 // sanitizeDisplayString removes the hierarchy path separator from a display string to
 // prevent any issues with potential conflicts between display strings and hierarchy path separators.
 func sanitizeDisplayString(s string) string {
-	return strings.ReplaceAll(s, hierarchyPathSeparator, "")
+	return strings.ReplaceAll(s, HierarchyPathSeparator, "")
 }
 
 // getDisplayStrings is a convenience wrapper around getDocumentInfo that
@@ -1617,7 +1683,7 @@ func deduplicateStrings(vals []string) []string {
 
 // addDisplay populates the top-level display field: for each enabled language it
 // adds the rendered display label and the labels of the document's ancestor
-// hierarchy paths (split on hierarchyPathSeparator). The display field uses the
+// hierarchy paths (split on HierarchyPathSeparator). The display field uses the
 // und_text analyzer for every language, so the per-language ancestor labels
 // (which may be fallback-resolved and mixed-language) are kept under their own
 // language rather than collapsed into "und".
@@ -1637,7 +1703,7 @@ func (v *convertVisitor) addDisplay(labels map[string]string, paths map[string][
 	}
 	for lang, langPaths := range paths {
 		for _, path := range langPaths {
-			for label := range strings.SplitSeq(path, hierarchyPathSeparator) {
+			for label := range strings.SplitSeq(path, HierarchyPathSeparator) {
 				add(lang, label)
 			}
 		}
@@ -1646,13 +1712,13 @@ func (v *convertVisitor) addDisplay(labels map[string]string, paths map[string][
 
 // addDisplayPathLabels folds the labels of per-language display hierarchy paths
 // into the "und" text bucket. Each path is a chain of ancestor display labels
-// joined by hierarchyPathSeparator; the labels are split out and added
+// joined by HierarchyPathSeparator; the labels are split out and added
 // individually so each ancestor name is searchable. Like other display labels,
 // they go to "und" because they are fallback-resolved and may mix languages.
 func (v *convertVisitor) addDisplayPathLabels(paths map[string][]string) {
 	for _, langPaths := range paths {
 		for _, path := range langPaths {
-			for label := range strings.SplitSeq(path, hierarchyPathSeparator) {
+			for label := range strings.SplitSeq(path, HierarchyPathSeparator) {
 				v.addText(document.UndeterminedLanguage, label)
 			}
 		}
@@ -2096,21 +2162,23 @@ func (c *Converter) FromDocument(
 	// Build the top-level "display" field per language: the rendered display
 	// label plus the document's ancestor display labels (its hierarchy paths),
 	// so the document is also findable by its categories/ancestors.
-	_, docDisplayPaths := info.CollectHierarchyPaths()
+	_, docDisplayPaths, _ := info.CollectHierarchyPaths()
 	v.addDisplay(info.Display.Display, docDisplayPaths)
 
-	// Index only the primary rendered display label per language (no ancestor labels) as a
-	// single-valued keyword, so results can be sorted by the label shown to the user. The und
-	// (language-neutral) bucket is omitted: results sort only by the session's language (never und),
-	// and that language's displaySort already carries the und value through the fallback chain, so a
-	// displaySort.und would never be read (and the mapping is dynamic: strict, so it must not be set).
+	// Index the primary rendered display label per language (no ancestor labels) as a single-valued sort
+	// key "<label>\x01<hex(document id)>", so results sort by the label shown to the user with the document's
+	// own id as a stable tiebreaker (so equally-labeled documents have a deterministic order). The und
+	// (language-neutral) bucket is omitted: results sort only by the session's language (never und), and that
+	// language's displaySort already carries the und value through the fallback chain, so a displaySort.und
+	// would never be read (and the mapping is dynamic: strict, so it must not be set).
 	if len(info.Display.Display) > 0 {
 		displaySort := make(map[string]string, len(info.Display.Display))
+		idTiebreak := SortKeySeparator + hex.EncodeToString(v.docID[:])
 		for lang, label := range info.Display.Display {
 			if lang == document.UndeterminedLanguage {
 				continue
 			}
-			displaySort[lang] = label
+			displaySort[lang] = label + idTiebreak
 		}
 		if len(displaySort) > 0 {
 			v.result.DisplaySort = displaySort
@@ -3150,7 +3218,7 @@ func (c *Converter) DocumentFullPaths(ctx context.Context, id identifier.Identif
 	if errE != nil {
 		return nil, errE
 	}
-	paths, _ := info.HierarchyPathsOrSelf(id)
+	paths, _, _ := info.HierarchyPathsOrSelf(id)
 	return paths, nil
 }
 
@@ -3166,6 +3234,7 @@ func (c *Converter) convertIdentifier(ctx context.Context, claim *document.Ident
 		result = append(result, IdentifierClaim{
 			Prop:        pid,
 			PropDisplay: propDisplay.Display,
+			PropSortKey: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
 			Value:       claim.Value,
 		})
@@ -3191,6 +3260,7 @@ func (c *Converter) convertString(ctx context.Context, claim *document.StringCla
 		result = append(result, StringClaim{
 			Prop:        pid,
 			PropDisplay: propDisplay.Display,
+			PropSortKey: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
 			String:      str,
 		})
@@ -3212,6 +3282,7 @@ func (c *Converter) convertHTML(ctx context.Context, claim *document.HTMLClaim, 
 		result = append(result, HTMLClaim{
 			Prop:        pid,
 			PropDisplay: propDisplay.Display,
+			PropSortKey: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
 			HTML:        stripped,
 		})
@@ -3231,6 +3302,7 @@ func (c *Converter) convertLink(ctx context.Context, claim *document.LinkClaim) 
 		result = append(result, LinkClaim{
 			Prop:        pid,
 			PropDisplay: propDisplay.Display,
+			PropSortKey: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
 			IRI:         claim.IRI,
 		})
@@ -3279,6 +3351,7 @@ func (c *Converter) convertAmount(ctx context.Context, claim *document.AmountCla
 		result = append(result, AmountClaim{
 			Prop:        pid,
 			PropDisplay: propDisplay.Display,
+			PropSortKey: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
 			Unit:        unit,
 			Range:       rangeFloat,
@@ -3458,6 +3531,7 @@ func (c *Converter) convertAmountInterval(
 		result = append(result, AmountClaim{
 			Prop:        pid,
 			PropDisplay: propDisplay.Display,
+			PropSortKey: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
 			Unit:        unit,
 			Range:       rangeFloat,
@@ -3509,6 +3583,7 @@ func (c *Converter) convertTime(ctx context.Context, claim *document.TimeClaim) 
 		result = append(result, TimeClaim{
 			Prop:        pid,
 			PropDisplay: propDisplay.Display,
+			PropSortKey: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
 			Range:       rangeFloat,
 			From:        &from,
@@ -3679,6 +3754,7 @@ func (c *Converter) convertTimeInterval(ctx context.Context, claim *document.Tim
 		result = append(result, TimeClaim{
 			Prop:        pid,
 			PropDisplay: propDisplay.Display,
+			PropSortKey: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
 			Range:       rangeFloat,
 			From:        from,
@@ -3772,12 +3848,15 @@ func (c *Converter) convertSubRefs(
 		Prop          identifier.Identifier
 		PropDisplay   map[string]string
 		PropNaming    map[string][]string
+		PropSortKey   map[string]string
 		To            identifier.Identifier
 		ToDisplay     map[string]string
 		ToNaming      map[string][]string
+		ToSortKey     map[string]string
 		ToPath        []string
 		ToFullPath    []string
 		ToDisplayPath map[string][]string
+		ToPathSortKey map[string][]string
 	}
 	resolved := make([]resolvedSubRef, 0, len(subRelations))
 	for _, mr := range subRelations {
@@ -3788,7 +3867,7 @@ func (c *Converter) convertSubRefs(
 
 		// fullPath is the stated sub-value's own (leaf) hierarchy path, stamped onto every record this
 		// sub-value expands into (the value itself and each of its ancestors). A flat sub-value gets a self path.
-		fullPath, _ := mrToInfo.HierarchyPathsOrSelf(mr.To.ID)
+		fullPath, _, _ := mrToInfo.HierarchyPathsOrSelf(mr.To.ID)
 
 		// targets is the stated sub-value plus its ancestors from all value hierarchies.
 		targets := []identifier.Identifier{mr.To.ID}
@@ -3818,17 +3897,20 @@ func (c *Converter) convertSubRefs(
 						return nil, errE
 					}
 				}
-				toPath, toDisplayPath := tidInfo.HierarchyPathsOrSelf(tid)
+				toPath, toDisplayPath, toPathSortKey := tidInfo.HierarchyPathsOrSelf(tid)
 				resolved = append(resolved, resolvedSubRef{
 					Prop:          pid,
 					PropDisplay:   propDisplay.Display,
+					PropSortKey:   propDisplay.Display,
 					PropNaming:    propDisplay.Naming,
 					To:            tid,
 					ToDisplay:     tidInfo.Display.Display,
+					ToSortKey:     tidInfo.Display.Display,
 					ToNaming:      tidInfo.Display.Naming,
 					ToPath:        toPath,
 					ToFullPath:    fullPath,
 					ToDisplayPath: toDisplayPath,
+					ToPathSortKey: toPathSortKey,
 				})
 			}
 		}
@@ -3844,13 +3926,16 @@ func (c *Converter) convertSubRefs(
 				ReferenceClaim: ReferenceClaim{
 					Prop:          r.Prop,
 					PropDisplay:   r.PropDisplay,
+					PropSortKey:   r.PropSortKey,
 					PropNaming:    r.PropNaming,
 					To:            r.To,
 					ToDisplay:     r.ToDisplay,
+					ToSortKey:     r.ToSortKey,
 					ToNaming:      r.ToNaming,
 					ToPath:        r.ToPath,
 					ToFullPath:    r.ToFullPath,
 					ToDisplayPath: r.ToDisplayPath,
+					ToPathSortKey: r.ToPathSortKey,
 					// Set by markReferenceLeaves once all of the document's sub-ref claims are collected.
 					IsLeaf: false,
 				},
@@ -3975,6 +4060,7 @@ func (c *Converter) convertSubHas(
 			resolved = append(resolved, HasClaim{
 				Prop:        pid,
 				PropDisplay: propDisplay.Display,
+				PropSortKey: propDisplay.Display,
 				PropNaming:  propDisplay.Naming,
 			})
 		}
@@ -4020,7 +4106,7 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 	// fullPath is the original (leaf) target's hierarchy path. It is stamped onto every record this
 	// claim expands into (the target and each of its ancestors), so a prefilter can identify and drop
 	// all records derived from a given leaf value. A flat target (in no hierarchy) gets a self path.
-	fullPath, _ := targetInfo.HierarchyPathsOrSelf(claim.To.ID)
+	fullPath, _, _ := targetInfo.HierarchyPathsOrSelf(claim.To.ID)
 
 	result := make([]ReferenceClaim, 0, len(props)*len(targets))
 	for _, pid := range props {
@@ -4042,17 +4128,20 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 				}
 			}
 			// Collect hierarchy paths across all value hierarchy types, or a self path for a flat value.
-			toPath, toDisplayPath := tidInfo.HierarchyPathsOrSelf(tid)
+			toPath, toDisplayPath, toPathSortKey := tidInfo.HierarchyPathsOrSelf(tid)
 			result = append(result, ReferenceClaim{
 				Prop:          pid,
 				PropDisplay:   propDisplay.Display,
+				PropSortKey:   propDisplay.Display,
 				PropNaming:    propDisplay.Naming,
 				To:            tid,
 				ToDisplay:     tidInfo.Display.Display,
+				ToSortKey:     tidInfo.Display.Display,
 				ToNaming:      tidInfo.Display.Naming,
 				ToPath:        toPath,
 				ToFullPath:    fullPath,
 				ToDisplayPath: toDisplayPath,
+				ToPathSortKey: toPathSortKey,
 				// Set by markReferenceLeaves once all of the document's reference claims are collected.
 				IsLeaf: false,
 			})
@@ -4102,6 +4191,7 @@ func (c *Converter) convertHas(ctx context.Context, claim *document.HasClaim) ([
 		result = append(result, HasClaim{
 			Prop:        pid,
 			PropDisplay: propDisplay.Display,
+			PropSortKey: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
 		})
 	}
@@ -4127,6 +4217,7 @@ func (c *Converter) convertNone(ctx context.Context, claim *document.NoneClaim) 
 		result = append(result, NoneClaim{
 			Prop:        pid,
 			PropDisplay: propDisplay.Display,
+			PropSortKey: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
 		})
 	}
@@ -4152,6 +4243,7 @@ func (c *Converter) convertUnknown(ctx context.Context, claim *document.UnknownC
 		result = append(result, UnknownClaim{
 			Prop:        pid,
 			PropDisplay: propDisplay.Display,
+			PropSortKey: propDisplay.Display,
 			PropNaming:  propDisplay.Naming,
 		})
 	}

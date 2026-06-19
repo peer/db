@@ -25,9 +25,9 @@ func defaultSortTail(lang string) []types.SortCombinationsVariant {
 
 // sortKeyToOption translates one sort key to an ElasticSearch sort option, or returns nil for an
 // unknown column. Filter columns sort on a nested claim field scoped to the column's property: ref
-// columns by their value's display label (claims.ref.toDisplayPath), amount/time columns by the
-// numeric "from" endpoint. mode min (ascending) / max (descending) picks which of a document's several
-// values for the property decides its position.
+// columns by their value's sort key (claims.ref.toPathSortKey, the folded display label with an id tiebreaker),
+// amount/time columns by the numeric "from" endpoint. mode min (ascending) / max (descending) picks
+// which of a document's several values for the property decides its position.
 func sortKeyToOption(k SortKey, lang string) types.SortCombinationsVariant { //nolint:ireturn
 	order := sortorder.Asc
 	mode := sortmode.Min
@@ -58,7 +58,7 @@ func sortKeyToOption(k SortKey, lang string) types.SortCombinationsVariant { //n
 	switch k.Type {
 	case "ref":
 		path = "claims.ref"
-		field = "claims.ref.toDisplayPath." + lang
+		field = "claims.ref.toPathSortKey." + lang
 		keyword = true
 		musts = append(musts, esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop)))
 	case "amount":

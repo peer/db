@@ -11,6 +11,13 @@ import (
 	"gitlab.com/peerdb/peerdb/search"
 )
 
+// sortKey builds the indexed "en" toPathSortKey value for a value at idPath whose display path is disp,
+// matching what the converter stamps: the display path, then SortKeySeparator, then the id chain encoded by
+// EncodeSortKeyPath. ElasticSearch folds the display half via the keyword normalizer; the hex id half survives.
+func sortKey(disp, idPath string) map[string][]string {
+	return map[string][]string{"en": {disp + internalSearch.SortKeySeparator + internalSearch.EncodeSortKeyPath(idPath)}}
+}
+
 // hierRef builds an indexed reference claim for a value at a hierarchy path. toPath is
 // "<prop>:<root>/.../<value>" and disp is the matching display labels joined by the null byte.
 //
@@ -20,21 +27,22 @@ func hierRef(prop, to identifier.Identifier, toPath, disp string, isLeaf bool) i
 		Prop:          prop,
 		To:            to,
 		ToPath:        []string{toPath},
-		ToDisplayPath: map[string][]string{"en": {disp}},
+		ToPathSortKey: sortKey(disp, toPath),
 		IsLeaf:        isLeaf,
 	}
 }
 
 // flatRef builds an indexed reference claim for a flat value (one in no value hierarchy), with the self
-// path the indexer stamps onto such a value: toPath is "__SELF__:<value>" and toDisplayPath its label.
+// path the indexer stamps onto such a value: toPath is "__SELF__:<value>" and its sort key carries disp.
 //
 //nolint:exhaustruct
 func flatRef(prop, to identifier.Identifier, disp string) internalSearch.ReferenceClaim {
+	selfPath := internalSearch.SelfHierarchyPathPrefix + to.String()
 	return internalSearch.ReferenceClaim{
 		Prop:          prop,
 		To:            to,
-		ToPath:        []string{internalSearch.SelfHierarchyPathPrefix + to.String()},
-		ToDisplayPath: map[string][]string{"en": {disp}},
+		ToPath:        []string{selfPath},
+		ToPathSortKey: sortKey(disp, selfPath),
 		IsLeaf:        true,
 	}
 }

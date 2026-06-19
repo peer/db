@@ -885,7 +885,7 @@ func TestTimeFilterGetFullyUnknownIntegration(t *testing.T) {
 			Has:        nil,
 			None:       nil,
 			Unknown: internalSearch.UnknownClaims{{
-				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
+				Prop: timeProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
 			}},
 			SubRef:    nil,
 			SubAmount: nil,

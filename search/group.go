@@ -19,11 +19,6 @@ const groupTopK = 100
 // groupAggName is the top-level aggregation key under which the grouping aggregation is added.
 const groupAggName = "group"
 
-// hierarchyPathSeparator is the null byte separating display labels in toDisplayPath (mirrors
-// internal/search.hierarchyPathSeparator); it sorts before all printable characters so display paths
-// sort hierarchically.
-const hierarchyPathSeparator = "\x00"
-
 // buildGroupAggregation builds the document-level grouping aggregation for the given leading group
 // columns. It is wrapped in a match_all filter so the aggregation under groupAggName is a single
 // document-level container: inside, "g" is the present branch (documents grouped by their leaf values of
@@ -76,13 +71,13 @@ func presentBranch(cols []SortKey, idx int, withinSort []types.SortCombinationsV
 		back = back.AddAggregation(b.key, b.agg)
 	}
 
+	// The bucket key is the value's toPathSortKey (folded display path, then the hex-encoded id path). Ordering
+	// by _key ascending truncates to the alphabetically-first MaxResultsCount values exactly (term ordering
+	// is exact across shards, unlike _count), and the hex id half keeps distinct values that share a display
+	// label in separate buckets. parsePresent splits the key back into the id chain and display labels.
 	buckets := esdsl.NewAggregations().
-		Terms(esdsl.NewTermsAggregation().Field("claims.ref.toPath").Size(MaxResultsCount)).
-		// The size-1 desc bucket is the longest toDisplayPath for this value, i.e. the full leaf display
-		// path; its segments label the value and all of its synthesized ancestors for ordering.
-		AddAggregation("dp", esdsl.NewAggregations().Terms(
-			esdsl.NewTermsAggregation().Field("claims.ref.toDisplayPath."+lang).Size(1).
-				Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"_key": sortorder.Desc})))).
+		Terms(esdsl.NewTermsAggregation().Field("claims.ref.toPathSortKey."+lang).Size(MaxResultsCount).
+			Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"_key": sortorder.Asc}))).
 		AddAggregation("back", back)
 
 	filterQuery := esdsl.NewBoolQuery().Must(
@@ -199,11 +194,11 @@ func parsePresent(docAggs map[string]types.Aggregate, cols []SortKey, idx int) (
 	entries := make([]bucketEntry, 0, len(buckets))
 	for i := range buckets {
 		bucket := buckets[i]
-		toPath, ok := bucket.Key.(string)
+		key, ok := bucket.Key.(string)
 		if !ok {
 			continue
 		}
-		ids := pathSegments(toPath)
+		ids, labels := parseSortKey(key)
 		if len(ids) == 0 {
 			continue
 		}
@@ -220,7 +215,7 @@ func parsePresent(docAggs map[string]types.Aggregate, cols []SortKey, idx int) (
 
 		entries = append(entries, bucketEntry{
 			ids:    ids,
-			labels: displaySegments(bucket.Aggregations, "dp"),
+			labels: labels,
 			count:  back.DocCount,
 			direct: direct,
 		})
@@ -303,31 +298,14 @@ func (n *groupNode) results(desc bool) []Result {
 	return append(out, n.direct...)
 }
 
-// pathSegments splits a toPath ("<propID>:<rootID>/.../<leafID>") into the hierarchy id chain from root
-// to leaf. A flat value's self path ("__SELF__:<id>") yields a single-segment chain, so it forms a
-// single-level group.
-func pathSegments(toPath string) []string {
-	_, chain, ok := strings.Cut(toPath, ":")
+// parseSortKey splits a toPathSortKey bucket key ("<displayPath>\x01<hex(raw id chain)>") into the value's
+// id chain (root to leaf) and the matching display labels. The id half is the chain's raw bytes hex-encoded
+// (see internalSearch.DecodeSortKeyPath) so it survives the keyword normalizer; the display half is the
+// (folded) per-level labels joined by null bytes. It returns nil ids when the id half is malformed.
+func parseSortKey(key string) ([]string, []string) {
+	displayPath, encodedIDs, ok := strings.Cut(key, internalSearch.SortKeySeparator)
 	if !ok {
-		return nil
+		return nil, nil
 	}
-	return strings.Split(chain, "/")
-}
-
-// displaySegments reads the leaf value's full display path from the "dp" sub-aggregation and splits it
-// into per-level labels.
-func displaySegments(aggs map[string]types.Aggregate, key string) []string {
-	dp, errE := internalSearch.AggAs[types.StringTermsAggregate](aggs, key)
-	if errE != nil {
-		return nil
-	}
-	buckets, ok := dp.Buckets.([]types.StringTermsBucket)
-	if !ok || len(buckets) == 0 {
-		return nil
-	}
-	label, ok := buckets[0].Key.(string)
-	if !ok {
-		return nil
-	}
-	return strings.Split(label, hierarchyPathSeparator)
+	return internalSearch.DecodeSortKeyPath(encodedIDs), strings.Split(displayPath, internalSearch.HierarchyPathSeparator)
 }

@@ -174,9 +174,9 @@ func TestPrefilterExcludeFullPathsResolverError(t *testing.T) {
 // stamped with the stated leaf's toFullPath, as convertReference produces at index time.
 func hierRefClaim(prop, to identifier.Identifier, toPath, fullPath []string) internalSearch.ReferenceClaim {
 	return internalSearch.ReferenceClaim{
-		Prop: prop, PropDisplay: nil, PropNaming: nil,
-		To: to, ToDisplay: nil, ToNaming: nil,
-		ToPath: toPath, ToFullPath: fullPath, ToDisplayPath: nil,
+		Prop: prop, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+		To: to, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
+		ToPath: toPath, ToFullPath: fullPath, ToDisplayPath: nil, ToPathSortKey: nil,
 		IsLeaf: false,
 	}
 }

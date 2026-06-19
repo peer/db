@@ -39,8 +39,8 @@ func TestRefFilterGetIntegration(t *testing.T) {
 			Time:       nil,
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
-				Prop: refProp, PropDisplay: nil, PropNaming: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil,
+				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 				IsLeaf: false,
 			}},
 			Has: nil, None: nil, Unknown: nil,
@@ -66,8 +66,8 @@ func TestRefFilterGetIntegration(t *testing.T) {
 			Time:       nil,
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
-				Prop: refProp, PropDisplay: nil, PropNaming: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil,
+				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 				IsLeaf: false,
 			}},
 			Has:       nil,
@@ -95,8 +95,8 @@ func TestRefFilterGetIntegration(t *testing.T) {
 			Time:       nil,
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
-				Prop: refProp, PropDisplay: nil, PropNaming: nil,
-				To: target2, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil,
+				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+				To: target2, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 				IsLeaf: false,
 			}},
 			Has:       nil,
@@ -165,8 +165,8 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 			Time:       nil,
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
-				Prop: refProp, PropDisplay: nil, PropNaming: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil,
+				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 				IsLeaf: false,
 			}},
 			Has:       nil,
@@ -194,8 +194,8 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 			Time:       nil,
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
-				Prop: refProp, PropDisplay: nil, PropNaming: nil,
-				To: target2, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil,
+				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+				To: target2, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 				IsLeaf: false,
 			}},
 			Has:       nil,
@@ -251,8 +251,8 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 			Time:       nil,
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
-				Prop: refProp, PropDisplay: nil, PropNaming: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil,
+				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 				IsLeaf: false,
 			}},
 			Has:       nil,
@@ -359,8 +359,8 @@ func TestRefFilterGetNoMissingIntegration(t *testing.T) {
 			Time:       nil,
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
-				Prop: refProp, PropDisplay: nil, PropNaming: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil,
+				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 				IsLeaf: false,
 			}},
 			Has:       nil,
@@ -438,18 +438,18 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{
 				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil,
-					To: dog, ToDisplay: nil, ToNaming: nil, ToPath: []string{dogPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil,
+					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+					To: dog, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{dogPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil,
-					To: mammal, ToDisplay: nil, ToNaming: nil, ToPath: []string{mammalPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil,
+					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+					To: mammal, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{mammalPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil,
-					To: animal, ToDisplay: nil, ToNaming: nil, ToPath: []string{animalPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil,
+					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+					To: animal, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{animalPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 			},
@@ -511,13 +511,13 @@ func TestRefFilterDirectIntegration(t *testing.T) {
 	// expansion (not most-specific, so isLeaf is false on the artist claim).
 	painterClaims := internalSearch.ReferenceClaims{
 		{
-			Prop: refProp, PropDisplay: nil, PropNaming: nil,
-			To: painter, ToDisplay: nil, ToNaming: nil, ToPath: []string{painterPath}, ToFullPath: []string{painterPath}, ToDisplayPath: nil,
+			Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+			To: painter, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{painterPath}, ToFullPath: []string{painterPath}, ToDisplayPath: nil, ToPathSortKey: nil,
 			IsLeaf: true,
 		},
 		{
-			Prop: refProp, PropDisplay: nil, PropNaming: nil,
-			To: artist, ToDisplay: nil, ToNaming: nil, ToPath: []string{artistPath}, ToFullPath: []string{painterPath}, ToDisplayPath: nil,
+			Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+			To: artist, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{artistPath}, ToFullPath: []string{painterPath}, ToDisplayPath: nil, ToPathSortKey: nil,
 			IsLeaf: false,
 		},
 	}
@@ -526,21 +526,22 @@ func TestRefFilterDirectIntegration(t *testing.T) {
 	// outcounts the artist "direct" entry, while painter undercounts it.
 	sculptorClaims := internalSearch.ReferenceClaims{
 		{
-			Prop: refProp, PropDisplay: nil, PropNaming: nil,
-			To: sculptor, ToDisplay: nil, ToNaming: nil, ToPath: []string{sculptorPath}, ToFullPath: []string{sculptorPath}, ToDisplayPath: nil,
+			Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+			To: sculptor, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
+			ToPath: []string{sculptorPath}, ToFullPath: []string{sculptorPath}, ToDisplayPath: nil, ToPathSortKey: nil,
 			IsLeaf: true,
 		},
 		{
-			Prop: refProp, PropDisplay: nil, PropNaming: nil,
-			To: artist, ToDisplay: nil, ToNaming: nil, ToPath: []string{artistPath}, ToFullPath: []string{sculptorPath}, ToDisplayPath: nil,
+			Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+			To: artist, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{artistPath}, ToFullPath: []string{sculptorPath}, ToDisplayPath: nil, ToPathSortKey: nil,
 			IsLeaf: false,
 		},
 	}
 	// An artist-only document is most-specific artist (isLeaf), with no narrower painter or sculptor.
 	artistClaims := internalSearch.ReferenceClaims{
 		{
-			Prop: refProp, PropDisplay: nil, PropNaming: nil,
-			To: artist, ToDisplay: nil, ToNaming: nil, ToPath: []string{artistPath}, ToFullPath: []string{artistPath}, ToDisplayPath: nil,
+			Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+			To: artist, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{artistPath}, ToFullPath: []string{artistPath}, ToDisplayPath: nil, ToPathSortKey: nil,
 			IsLeaf: true,
 		},
 	}
@@ -666,8 +667,9 @@ func TestRefFilterGetDiamondIntegration(t *testing.T) {
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{
 				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil,
-					To: leaf, ToDisplay: nil, ToNaming: nil, ToPath: []string{leafPathA, leafPathB}, ToFullPath: []string{leafPathA, leafPathB}, ToDisplayPath: nil,
+					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+					To: leaf, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
+					ToPath: []string{leafPathA, leafPathB}, ToFullPath: []string{leafPathA, leafPathB}, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 			},
@@ -746,33 +748,39 @@ func TestRefFilterGetMultipleInheritanceIntegration(t *testing.T) {
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{
 				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil,
-					To: leaf, ToDisplay: nil, ToNaming: nil, ToPath: []string{leafViaDeep, leafViaShallow}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil,
+					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+					To: leaf, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{leafViaDeep, leafViaShallow},
+					ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil,
-					To: deepParent, ToDisplay: nil, ToNaming: nil, ToPath: []string{deepParentPath}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil,
+					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+					To: deepParent, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{deepParentPath},
+					ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil,
-					To: shallowParent, ToDisplay: nil, ToNaming: nil, ToPath: []string{shallowParentPath}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil,
+					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+					To: shallowParent, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{shallowParentPath},
+					ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil,
-					To: mid2, ToDisplay: nil, ToNaming: nil, ToPath: []string{mid2Path}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil,
+					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+					To: mid2, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
+					ToPath: []string{mid2Path}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil,
-					To: mid1, ToDisplay: nil, ToNaming: nil, ToPath: []string{mid1Path}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil,
+					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+					To: mid1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
+					ToPath: []string{mid1Path}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 				{
-					Prop: refProp, PropDisplay: nil, PropNaming: nil,
-					To: root, ToDisplay: nil, ToNaming: nil, ToPath: []string{rootPath}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil,
+					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+					To: root, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
+					ToPath: []string{rootPath}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 			},
@@ -864,27 +872,27 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 				{
 					ParentProp: parentProp, ParentTo: parentTo,
 					ReferenceClaim: internalSearch.ReferenceClaim{
-						Prop: subProp, PropDisplay: nil, PropNaming: nil,
-						To: dog, ToDisplay: nil, ToNaming: nil,
-						ToPath: []string{dogPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil,
+						Prop: subProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+						To: dog, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
+						ToPath: []string{dogPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil, ToPathSortKey: nil,
 						IsLeaf: false,
 					},
 				},
 				{
 					ParentProp: parentProp, ParentTo: parentTo,
 					ReferenceClaim: internalSearch.ReferenceClaim{
-						Prop: subProp, PropDisplay: nil, PropNaming: nil,
-						To: mammal, ToDisplay: nil, ToNaming: nil,
-						ToPath: []string{mammalPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil,
+						Prop: subProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+						To: mammal, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
+						ToPath: []string{mammalPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil, ToPathSortKey: nil,
 						IsLeaf: false,
 					},
 				},
 				{
 					ParentProp: parentProp, ParentTo: parentTo,
 					ReferenceClaim: internalSearch.ReferenceClaim{
-						Prop: subProp, PropDisplay: nil, PropNaming: nil,
-						To: animal, ToDisplay: nil, ToNaming: nil,
-						ToPath: []string{animalPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil,
+						Prop: subProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
+						To: animal, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
+						ToPath: []string{animalPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil, ToPathSortKey: nil,
 						IsLeaf: false,
 					},
 				},

@@ -103,16 +103,15 @@ func multiLanguageText(langs []string) string {
 	})
 }
 
-// We use display paths so that we can sort documents based on display labels shown to users which represent hierarchies they are in.
-// It works together with idPath, idPath groups results and then we sort by displayPath.
-func displayPath(langs []string) string {
+// sortKey builds the per-language keyword (sort_key_normalizer) mapping shared by the sort-key fields.
+// The normalizer folds the label for case/diacritic-insensitive ordering while leaving any hex id half intact.
+func sortKey(langs []string) string {
 	return langProperties(langs, func(string) string {
-		return `{"type":"keyword","normalizer":"display_label_normalizer"}`
+		return `{"type":"keyword","normalizer":"sort_key_normalizer"}`
 	})
 }
 
-// We use ID path to be able to group documents based on their ID paths which represent hierarchies they are in.
-// It works together with displayPath, idPath groups results and then we sort by displayPath.
+// idPath is the keyword mapping for a value's ID hierarchy paths.
 const idPath = `{
 	"type": "keyword",
 	"normalizer": "id_path_normalizer"
@@ -132,10 +131,9 @@ const indexPrefixes = `"index_prefixes":{"min_chars":1,"max_chars":8}`
 // so we use the und_text analyzer for all languages here and not language-specific analyzers.
 //
 // displayLabelProperty is the per-language mapping for a claim's propDisplay/toDisplay fields: the
-// und_text main field carries index_prefixes for trailing-prefix (analyze_wildcard) queries, an
-// "exact" sub-field (exact_text) for diacritic-preserved matching, and a "keyword" sub-field
-// (display_label_normalizer) for sorting.
-const displayLabelProperty = `{"type":"text","analyzer":"und_text",` + indexPrefixes + `,"fields":{"exact":{"type":"text","analyzer":"exact_text"},"keyword":{"type":"keyword","normalizer":"display_label_normalizer"}}}` //nolint:lll
+// und_text main field carries index_prefixes for trailing-prefix (analyze_wildcard) queries and an
+// "exact" sub-field (exact_text) for diacritic-preserved matching.
+const displayLabelProperty = `{"type":"text","analyzer":"und_text",` + indexPrefixes + `,"fields":{"exact":{"type":"text","analyzer":"exact_text"}}}`
 
 // propDisplay builds the per-language display-label mapping for a claim's propDisplay and toDisplay fields.
 func propDisplay(langs []string) string {
@@ -155,11 +153,12 @@ func displayProperties(langs []string) string {
 }
 
 // displaySortProperties builds the top-level "displaySort" field: per enabled language (except und) a
-// single keyword (display_label_normalizer) holding only the document's primary resolved display label.
-// It is single-valued (no ancestor path labels), so results sort by the label shown to the user. The
-// und (language-neutral) bucket is omitted: results sort only by the session's language (never und),
-// and that language's displaySort already carries the und value through the fallback chain, so a
-// displaySort.und would never be read.
+// single keyword (sort_key_normalizer) holding the document's primary resolved display label, then
+// SortKeySeparator, then the hex-encoded document id, so results sort by the label shown to the user with
+// the document's own id as a stable tiebreaker. It is single-valued (no ancestor path labels). The und
+// (language-neutral) bucket is omitted: results sort only by the session's language (never und), and that
+// language's displaySort already carries the und value through the fallback chain, so a displaySort.und
+// would never be read.
 func displaySortProperties(langs []string) string {
 	nonUnd := make([]string, 0, len(langs))
 	for _, lang := range langs {
@@ -169,7 +168,7 @@ func displaySortProperties(langs []string) string {
 		nonUnd = append(nonUnd, lang)
 	}
 	return langProperties(nonUnd, func(string) string {
-		return `{"type":"keyword","normalizer":"display_label_normalizer"}`
+		return `{"type":"keyword","normalizer":"sort_key_normalizer"}`
 	})
 }
 
@@ -203,6 +202,10 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 					propDisplay(langs),
 				},
 				{
+					"propSortKey",
+					sortKey(langs),
+				},
+				{
 					"propNaming",
 					multiLanguageText(langs),
 				},
@@ -229,6 +232,10 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 					propDisplay(langs),
 				},
 				{
+					"propSortKey",
+					sortKey(langs),
+				},
+				{
 					"propNaming",
 					multiLanguageText(langs),
 				},
@@ -248,6 +255,10 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 				{
 					"propDisplay",
 					propDisplay(langs),
+				},
+				{
+					"propSortKey",
+					sortKey(langs),
 				},
 				{
 					"propNaming",
@@ -271,6 +282,10 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 				{
 					"propDisplay",
 					propDisplay(langs),
+				},
+				{
+					"propSortKey",
+					sortKey(langs),
 				},
 				{
 					"propNaming",
@@ -331,6 +346,10 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 					propDisplay(langs),
 				},
 				{
+					"propSortKey",
+					sortKey(langs),
+				},
+				{
 					"propNaming",
 					multiLanguageText(langs),
 				},
@@ -384,6 +403,10 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 					propDisplay(langs),
 				},
 				{
+					"propSortKey",
+					sortKey(langs),
+				},
+				{
 					"propNaming",
 					multiLanguageText(langs),
 				},
@@ -410,6 +433,10 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 					propDisplay(langs),
 				},
 				{
+					"propSortKey",
+					sortKey(langs),
+				},
+				{
 					"propNaming",
 					multiLanguageText(langs),
 				},
@@ -420,6 +447,10 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 				{
 					"toDisplay",
 					propDisplay(langs),
+				},
+				{
+					"toSortKey",
+					sortKey(langs),
 				},
 				{
 					"toNaming",
@@ -434,8 +465,8 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 					idPath,
 				},
 				{
-					"toDisplayPath",
-					displayPath(langs),
+					"toPathSortKey",
+					sortKey(langs),
 				},
 				{
 					"isLeaf",
@@ -458,6 +489,10 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 					propDisplay(langs),
 				},
 				{
+					"propSortKey",
+					sortKey(langs),
+				},
+				{
 					"propNaming",
 					multiLanguageText(langs),
 				},
@@ -475,6 +510,10 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 					propDisplay(langs),
 				},
 				{
+					"propSortKey",
+					sortKey(langs),
+				},
+				{
 					"propNaming",
 					multiLanguageText(langs),
 				},
@@ -490,6 +529,10 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 				{
 					"propDisplay",
 					propDisplay(langs),
+				},
+				{
+					"propSortKey",
+					sortKey(langs),
 				},
 				{
 					"propNaming",
@@ -519,6 +562,10 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 					propDisplay(langs),
 				},
 				{
+					"propSortKey",
+					sortKey(langs),
+				},
+				{
 					"propNaming",
 					multiLanguageText(langs),
 				},
@@ -529,6 +576,10 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 				{
 					"toDisplay",
 					propDisplay(langs),
+				},
+				{
+					"toSortKey",
+					sortKey(langs),
 				},
 				{
 					"toNaming",
@@ -543,8 +594,8 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 					idPath,
 				},
 				{
-					"toDisplayPath",
-					displayPath(langs),
+					"toPathSortKey",
+					sortKey(langs),
 				},
 				{
 					"isLeaf",
@@ -572,6 +623,10 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 				{
 					"propDisplay",
 					propDisplay(langs),
+				},
+				{
+					"propSortKey",
+					sortKey(langs),
 				},
 				{
 					"propNaming",
@@ -637,6 +692,10 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 					propDisplay(langs),
 				},
 				{
+					"propSortKey",
+					sortKey(langs),
+				},
+				{
 					"propNaming",
 					multiLanguageText(langs),
 				},
@@ -694,6 +753,10 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 				{
 					"propDisplay",
 					propDisplay(langs),
+				},
+				{
+					"propSortKey",
+					sortKey(langs),
 				},
 				{
 					"propNaming",

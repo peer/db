@@ -105,7 +105,7 @@ func indexAmountDoc(t *testing.T, ctx context.Context, esClient *elasticsearch.T
 			String:     nil,
 			HTML:       nil,
 			Amount: internalSearch.AmountClaims{{
-				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: &unitID,
+				Prop: amountProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil, Unit: &unitID,
 				Range: internalSearch.RangeFloat{
 					GreaterThan: nil, GreaterThanOrEqual: &from, LessThan: &to, LessThanOrEqual: nil,
 				},
@@ -159,7 +159,7 @@ func indexAmountIntervalDoc(t *testing.T, ctx context.Context, esClient *elastic
 			String:     nil,
 			HTML:       nil,
 			Amount: internalSearch.AmountClaims{{
-				Prop: amountProp, PropDisplay: nil, PropNaming: nil, Unit: unit,
+				Prop: amountProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil, Unit: unit,
 				Range: rangeFloat,
 				From:  from, FromDisplay: "", To: to, ToDisplay: "",
 			}},
@@ -201,7 +201,7 @@ func indexTimePointDoc(t *testing.T, ctx context.Context, esClient *elasticsearc
 			HTML:       nil,
 			Amount:     nil,
 			Time: internalSearch.TimeClaims{{
-				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
+				Prop: timeProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
 				Range: internalSearch.RangeFloat{
 					GreaterThan: nil, GreaterThanOrEqual: &from, LessThan: &to, LessThanOrEqual: nil,
 				},
@@ -303,7 +303,7 @@ func indexTimeIntervalDoc(t *testing.T, ctx context.Context, esClient *elasticse
 			HTML:       nil,
 			Amount:     nil,
 			Time: internalSearch.TimeClaims{{
-				Prop: timeProp, PropDisplay: nil, PropNaming: nil,
+				Prop: timeProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
 				Range: rangeFloat,
 				From:  from, FromDisplay: "", To: to, ToDisplay: "",
 			}},

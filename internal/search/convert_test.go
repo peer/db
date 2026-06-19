@@ -2,6 +2,7 @@ package search //nolint:testpackage
 
 import (
 	"context"
+	"encoding/hex"
 	"math"
 	"strings"
 	"testing"
@@ -1524,6 +1525,36 @@ func TestConvertReferenceFlatValue(t *testing.T) {
 	assert.Equal(t, []string{selfPath}, r.ToPath)
 	assert.Equal(t, []string{selfPath}, r.ToFullPath)
 	assert.Equal(t, []string{"Target"}, r.ToDisplayPath["und"])
+	// The sort key pairs the (raw, pre-fold) display label with the chain's raw id bytes hex-encoded (a flat
+	// value's chain is just its own id; the __SELF__ prefix is dropped).
+	require.Len(t, r.ToPathSortKey["und"], 1)
+	assert.Equal(t, "Target"+SortKeySeparator+hex.EncodeToString(target[:]), r.ToPathSortKey["und"][0])
+	// The facet sort keys carry the property's and value's own display labels (for sorting/filtering facet values).
+	assert.Equal(t, r.PropDisplay, r.PropSortKey)
+	assert.Equal(t, r.ToDisplay, r.ToSortKey)
+	assert.Equal(t, "Target", r.ToSortKey["und"])
+}
+
+func TestEncodeDecodeSortKeyPath(t *testing.T) {
+	t.Parallel()
+
+	a, b, c := identifier.New(), identifier.New(), identifier.New()
+	hierProp := identifier.New()
+
+	// A hierarchical toPath: the hierarchy-property prefix is dropped and the chain ids are the raw bytes.
+	toPath := hierProp.String() + ":" + a.String() + "/" + b.String() + "/" + c.String()
+	enc := EncodeSortKeyPath(toPath)
+	assert.Equal(t, hex.EncodeToString(append(append(append([]byte{}, a[:]...), b[:]...), c[:]...)), enc)
+	assert.Equal(t, []string{a.String(), b.String(), c.String()}, DecodeSortKeyPath(enc))
+
+	// A self path encodes just the value's own id.
+	selfEnc := EncodeSortKeyPath(SelfHierarchyPathPrefix + a.String())
+	assert.Equal(t, hex.EncodeToString(a[:]), selfEnc)
+	assert.Equal(t, []string{a.String()}, DecodeSortKeyPath(selfEnc))
+
+	// Malformed values decode to nil.
+	assert.Nil(t, DecodeSortKeyPath("zz")) // not hex.
+	assert.Nil(t, DecodeSortKeyPath("ab")) // not a whole number of 16-byte ids.
 }
 
 func TestMarkReferenceLeaves(t *testing.T) {
@@ -3972,6 +4003,11 @@ func TestConvertRelationWithClassAncestors(t *testing.T) {
 	assert.Equal(t, internalCore.SubclassOfPropID.String()+":"+testParentClass.String()+"/"+testTargetDocID.String(), targetClaim.ToPath[0])
 	require.Len(t, targetClaim.ToDisplayPath["und"], 1)
 	assert.Equal(t, "Parent Class\x00Target", targetClaim.ToDisplayPath["und"][0])
+	// The sort key pairs that display path with the chain's raw id bytes (parent then target) hex-encoded,
+	// validating both the id/display alignment across levels and the raw-byte encoding.
+	require.Len(t, targetClaim.ToPathSortKey["und"], 1)
+	targetChainRaw := append(append([]byte{}, testParentClass[:]...), testTargetDocID[:]...)
+	assert.Equal(t, "Parent Class\x00Target"+SortKeySeparator+hex.EncodeToString(targetChainRaw), targetClaim.ToPathSortKey["und"][0])
 
 	// Parent class is a hierarchy root, so its own value path is the synthetic self path (it groups and
 	// prefilters as a one-node hierarchy). Its toFullPath is still the stated leaf's path, stamped onto
@@ -3980,6 +4016,8 @@ func TestConvertRelationWithClassAncestors(t *testing.T) {
 	assert.Equal(t, SelfHierarchyPathPrefix+testParentClass.String(), parentClaim.ToPath[0])
 	require.Len(t, parentClaim.ToDisplayPath["und"], 1)
 	assert.Equal(t, "Parent Class", parentClaim.ToDisplayPath["und"][0])
+	require.Len(t, parentClaim.ToPathSortKey["und"], 1)
+	assert.Equal(t, "Parent Class"+SortKeySeparator+hex.EncodeToString(testParentClass[:]), parentClaim.ToPathSortKey["und"][0])
 }
 
 func TestConvertRelationWithClassSelfCycle(t *testing.T) {
