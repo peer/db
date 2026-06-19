@@ -2790,6 +2790,55 @@ func TestNotificationFallbackFailureCallsReset(t *testing.T) {
 	require.NotEqual(t, oldCh, newCh, "Reset() created a new channel")
 }
 
+// TestCommitNotificationSurvivesSchemaRename verifies that the commit NOTIFY channel tracks the schema the
+// trigger fires in rather than a name baked in at creation. A blue-green schema swap renames the schema, after
+// which a store (and thus its listener) is configured for the new name. The AfterInsert trigger must notify the
+// new-name channel; if it kept notifying the pre-rename channel (the bug), a listener on the new name would
+// never hear about commits and the bridge would only sync on restart. We rename the schema, listen on the
+// channel a renamed store would use, fire the trigger via a CommitLog insert, and require the notification.
+func TestCommitNotificationSurvivesSchemaRename(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _, _ := initDatabase[json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage](t, "jsonb")
+
+	oldSchema := s.Schema
+	prefix := s.Prefix
+	newSchema := "s" + strings.ToLower(identifier.New().String())
+
+	// conn renames the schema and later fires the trigger; listenConn subscribes to the channel a store
+	// configured for the renamed schema would use. Two connections keep this an ordinary cross-connection NOTIFY,
+	// independent of the store pool whose search_path still points at the now-renamed schema.
+	conn, err := pgx.Connect(ctx, os.Getenv("POSTGRES"))
+	require.NoError(t, err)
+	defer conn.Close(context.Background()) //nolint:errcheck
+	listenConn, err := pgx.Connect(ctx, os.Getenv("POSTGRES"))
+	require.NoError(t, err)
+	defer listenConn.Close(context.Background()) //nolint:errcheck
+
+	_, err = conn.Exec(ctx, `ALTER SCHEMA "`+oldSchema+`" RENAME TO "`+newSchema+`"`)
+	require.NoError(t, err)
+
+	// Store.committedChangesetsChannel is Schema + "_" + Prefix + "Commit"; a store configured for the renamed
+	// schema listens on this.
+	wantChannel := newSchema + "_" + prefix + "Commit"
+	_, err = listenConn.Exec(ctx, `LISTEN "`+wantChannel+`"`)
+	require.NoError(t, err)
+
+	// Committing a row into the renamed schema's CommitLog fires the AfterInsert trigger. With the fix the
+	// trigger derives the channel from TG_TABLE_SCHEMA (the renamed schema) and notifies wantChannel; without it
+	// the trigger keeps notifying the pre-rename schema's channel and the wait below times out.
+	_, err = conn.Exec(ctx,
+		`INSERT INTO "`+newSchema+`"."`+prefix+`CommitLog" ("view", "name", "changesets") VALUES ($1, $2, $3)`,
+		identifier.New().String(), store.MainView, []string{identifier.New().String()})
+	require.NoError(t, err)
+
+	waitCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	notification, err := listenConn.WaitForNotification(waitCtx)
+	require.NoError(t, err, "expected a NOTIFY on the renamed schema's channel; without the fix the trigger notifies the pre-rename schema name")
+	assert.Equal(t, wantChannel, notification.Channel)
+}
+
 // TestUpdateExistingMetadataOnCommittedChangeset verifies that metadata can
 // be updated on an already-committed changeset and that doing so bumps the
 // revision; the changeset must remain committed (still cannot be discarded).

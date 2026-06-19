@@ -643,3 +643,63 @@ func TestNotifyRecovery(t *testing.T) {
 		}
 	}, 5*time.Second, 10*time.Millisecond)
 }
+
+// TestSessionNotificationSurvivesSchemaRename verifies that the coordinator's session NOTIFY channel tracks the
+// schema its functions run in (via current_schema()) rather than a name baked in at creation, so it keeps
+// working after a blue-green schema rename. We rename the schema, seed a session, call EndSession with the
+// renamed schema's search_path (as the app does), and require the NOTIFY on the renamed schema's channel; the
+// pre-fix function would notify the old schema name and the wait would time out.
+func TestSessionNotificationSurvivesSchemaRename(t *testing.T) {
+	t.Parallel()
+
+	ctx, c, _, _ := initDatabase[json.RawMessage, json.RawMessage](
+		t, "jsonb",
+		nil,
+		func(_ context.Context, _ identifier.Identifier, _ json.RawMessage) (json.RawMessage, errors.E) {
+			return testutils.DummyData, nil
+		},
+	)
+	prefix := c.Prefix
+
+	conn, err := pgx.Connect(ctx, os.Getenv("POSTGRES"))
+	require.NoError(t, err)
+	defer conn.Close(context.Background()) //nolint:errcheck
+	listenConn, err := pgx.Connect(ctx, os.Getenv("POSTGRES"))
+	require.NoError(t, err)
+	defer listenConn.Close(context.Background()) //nolint:errcheck
+
+	// initDatabase does not expose the schema it created its objects in; find it from the Sessions table (the
+	// prefix is unique per test).
+	var oldSchema string
+	err = conn.QueryRow(ctx, `SELECT schemaname FROM pg_tables WHERE tablename = $1`, prefix+"Sessions").Scan(&oldSchema)
+	require.NoError(t, err)
+
+	newSchema := "s" + strings.ToLower(identifier.New().String())
+	_, err = conn.Exec(ctx, `ALTER SCHEMA "`+oldSchema+`" RENAME TO "`+newSchema+`"`)
+	require.NoError(t, err)
+
+	// Seed a not-yet-ended session in the renamed schema so EndSession has something to end.
+	session := identifier.New().String()
+	_, err = conn.Exec(ctx, `INSERT INTO "`+newSchema+`"."`+prefix+`Sessions" ("session", "beginMetadata") VALUES ($1, $2)`,
+		session, json.RawMessage(`{}`))
+	require.NoError(t, err)
+
+	// The channel a coordinator configured for the renamed schema listens on (Schema + "_" + Prefix + "Session").
+	wantChannel := newSchema + "_" + prefix + "Session"
+	_, err = listenConn.Exec(ctx, `LISTEN "`+wantChannel+`"`)
+	require.NoError(t, err)
+
+	// Call EndSession with search_path set to the renamed schema, exactly as the app's connection has it, so
+	// current_schema() inside the function resolves to it. With the fix the function notifies wantChannel; without
+	// it the function keeps notifying the pre-rename schema's channel and the wait below times out.
+	_, err = conn.Exec(ctx, `SET search_path TO "`+newSchema+`"`)
+	require.NoError(t, err)
+	_, err = conn.Exec(ctx, `SELECT "`+prefix+`EndSession"($1, $2)`, session, json.RawMessage(`{}`))
+	require.NoError(t, err)
+
+	waitCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	notification, err := listenConn.WaitForNotification(waitCtx)
+	require.NoError(t, err, "expected a NOTIFY on the renamed schema's channel; without the fix EndSession notifies the pre-rename schema name")
+	assert.Equal(t, wantChannel, notification.Channel)
+}

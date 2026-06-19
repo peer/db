@@ -300,7 +300,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 						RAISE EXCEPTION 'session already ended' USING ERRCODE='`+errorCodeAlreadyEnded+`';
 					END IF;
 					UPDATE "`+c.Prefix+`Sessions" SET "endMetadata"=_metadata WHERE "session"=_session;
-					PERFORM pg_notify('`+c.sessionStateChannel+`',json_build_object('session', _session, 'state', '`+string(SessionStateEnded)+`')::text);
+					PERFORM pg_notify(current_schema() || '_' || '`+c.Prefix+`Session',json_build_object('session', _session, 'state', '`+string(SessionStateEnded)+`')::text);
 				END;
 			$$;
 
@@ -322,7 +322,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 					END IF;
 					DELETE FROM "`+c.Prefix+`Operations" WHERE "session"=_session;
 					UPDATE "`+c.Prefix+`Sessions" SET "completeMetadata"=_metadata WHERE "session"=_session;
-					PERFORM pg_notify('`+c.sessionStateChannel+`',json_build_object('session', _session, 'state', '`+string(SessionStateCompleted)+`')::text);
+					PERFORM pg_notify(current_schema() || '_' || '`+c.Prefix+`Session',json_build_object('session', _session, 'state', '`+string(SessionStateCompleted)+`')::text);
 				END;
 			$$;
 
@@ -347,7 +347,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 					IF NOT FOUND THEN
 						RAISE EXCEPTION 'conflict' USING ERRCODE='`+errorCodeConflict+`';
 					END IF;
-					PERFORM pg_notify('`+c.operationAppendedChannel+`',json_build_object('session', _session, 'operation', _operation)::text);
+					PERFORM pg_notify(current_schema() || '_' || '`+c.Prefix+`Operation',json_build_object('session', _session, 'operation', _operation)::text);
 					RETURN _operation;
 				END;
 			$$;

@@ -283,7 +283,7 @@ func (b *Bridge) Init(
 			CREATE FUNCTION "`+b.Store.Prefix+`BridgeAfterUpdateFunc"()
 				RETURNS TRIGGER LANGUAGE plpgsql AS $$
 				BEGIN
-					PERFORM pg_notify('`+b.bridgeSeqChannel+`', NEW."seq"::text);
+					PERFORM pg_notify(TG_TABLE_SCHEMA || '_' || '`+b.Store.Prefix+`BrSeq', NEW."seq"::text);
 					RETURN NULL;
 				END;
 			$$;
@@ -308,7 +308,7 @@ func (b *Bridge) Init(
 					-- Computing MIN(seq) inside this read-write trigger would create an unnecessary dependency on the table, conflicting with
 					-- concurrent INSERTs and DELETEs under serializable isolation, but it is not really necessary to know the MIN(seq) from
 					-- inside the transaction because the handler can only obtain >= MIN(seq) through a later query.
-					PERFORM pg_notify('`+b.bridgeReindexQueueMinSeqChannel+`', '');
+					PERFORM pg_notify(TG_TABLE_SCHEMA || '_' || '`+b.Store.Prefix+`BrQueue', '');
 					RETURN NULL;
 				END;
 			$$;

@@ -526,7 +526,7 @@ func (s *Store[Data, Metadata, CreateViewMetadata, ReleaseViewMetadata, CommitMe
 						IF length(_payload) > 7900 THEN
 							_payload := json_build_object('seq', NEW."seq")::text;
 						END IF;
-						PERFORM pg_notify('`+s.committedChangesetsChannel+`', _payload);
+						PERFORM pg_notify(TG_TABLE_SCHEMA || '_' || '`+s.Prefix+`Commit', _payload);
 						RETURN NULL;
 					END;
 				$$;
