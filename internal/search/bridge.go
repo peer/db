@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"math"
+	"net/http"
 	"strconv"
 	"sync"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/operationtype"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/versiontype"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -56,6 +58,16 @@ const reindexJobTimeoutSlack = 5 * time.Minute
 // reindexMaxBatch is the maximum number of documents accumulated into a single ElasticSearch bulk request
 // while draining the reindex queue.
 const reindexMaxBatch = 1000
+
+const reindexJobTimeout = reindexSoftDeadline + reindexJobTimeoutSlack
+
+// gcDeletes is the index.gc_deletes retention for delete tombstones, used by EnsureIndex. External
+// versioning only stops a stale reindex write from resurrecting a deleted document while ElasticSearch still
+// remembers the delete's version, which it does for gc_deletes after the delete. A reindex reads a document
+// and writes it later in the same job, so the read-to-write span is bounded by a job's lifetime. Retaining
+// tombstones for at least that long covers every stale write a job can still emit. We use the full job budget
+// (soft deadline plus the slack before River cancels it) so the tombstone outlasts the last possible flush.
+const gcDeletes = reindexJobTimeout
 
 // bulkSizeFraction is the fraction of http.max_content_length a bulk request may grow to before it is flushed.
 // The remaining headroom covers the per-operation action metadata lines and the HTTP request framing so the
@@ -118,7 +130,7 @@ type worker struct {
 // so it needs a longer timeout than the client default: that deadline plus slack for the final flush and
 // follow-up scheduling. Setting it here scopes the longer timeout to the reindex job only, not to all jobs.
 func (w *worker) Timeout(*river.Job[jobArgs]) time.Duration {
-	return reindexSoftDeadline + reindexJobTimeoutSlack
+	return reindexJobTimeout
 }
 
 // Work implements river.Worker interface.
@@ -1146,6 +1158,16 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 	var getDuration, accumulateDuration, convertDuration time.Duration
 	bulkService := b.ESClient.Bulk()
 
+	// Every index and delete in this commit carries the commit seq as an external ElasticSearch version. The
+	// async reindex queue is a second writer to the same documents and versions its writes with its (older)
+	// snapshot seq, so external_gte makes ElasticSearch reject any reindex write whose version is below the
+	// document's current version. That stops a slow reindex, which read a document before it was deleted here,
+	// from resurrecting it by landing its stale index after this delete. The seq is monotonic across commits,
+	// so successive writes to a document never regress. The matching tombstone retention is index.gc_deletes,
+	// set in EnsureIndex to outlast a reindex job.
+	commitVersion := committed.Seq
+	externalGte := versiontype.Externalgte
+
 	// Collect inverse relations from all processed documents, keyed by target document and then by visibility
 	// level: each level's set is computed from the source document as seen at that level.
 	addedInverseRelations := map[identifier.Identifier]map[string][]store.InverseRelation{}
@@ -1239,7 +1261,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 				for i, t := range b.targets {
 					index := t.Index
 					if deleted || docs[i] == nil {
-						err := bulkService.DeleteOp(types.DeleteOperation{Index_: &index, Id_: &id}) //nolint:exhaustruct
+						err := bulkService.DeleteOp(types.DeleteOperation{Index_: &index, Id_: &id, Version: &commitVersion, VersionType: &externalGte}) //nolint:exhaustruct
 						if err != nil {
 							return nil, nil, nil, embedChanges{}, errors.WithStack(err)
 						}
@@ -1256,7 +1278,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 					if errE != nil {
 						return nil, nil, nil, embedChanges{}, withCommitDetails(errE, committed.Seq, committed.View.Name(), cs.String(), change.ID.String())
 					}
-					err := bulkService.IndexOp(types.IndexOperation{Index_: &index, Id_: &id}, searchDoc) //nolint:exhaustruct
+					err := bulkService.IndexOp(types.IndexOperation{Index_: &index, Id_: &id, Version: &commitVersion, VersionType: &externalGte}, searchDoc) //nolint:exhaustruct
 					if err != nil {
 						return nil, nil, nil, embedChanges{}, errors.WithStack(err)
 					}
@@ -1298,6 +1320,12 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 			// This can happen when indexCommit is retried after the bulk request
 			// succeeded but updateSeq failed.
 			if action == operationtype.Delete && result.Status == 404 {
+				continue
+			}
+			// A version conflict means a higher-versioned write (a later commit, or a reindex with a newer
+			// snapshot seq) already won. The external versioning makes that outcome correct, so the conflict is
+			// expected and benign: the document holds the newer state.
+			if result.Status == http.StatusConflict {
 				continue
 			}
 			id := ""
@@ -2460,6 +2488,13 @@ func (b *Bridge) bulkIndexReindexed(ctx context.Context, snapshotSeq int64, pend
 	// reported as the concrete index behind the alias the operation targeted.
 	debugDocs := []json.RawMessage{}
 	indexed := 0
+	// Each reindex write carries the job's snapshot seq as an external ElasticSearch version. A reindex reads
+	// a document's latest version but only ever processes queue entries at or below this snapshot, so any delete
+	// it has not yet observed is from a commit above the snapshot and thus carries a strictly higher version.
+	// external_gte then makes ElasticSearch reject this write, so a reindex that read a document before it was
+	// deleted cannot resurrect it by landing its stale index after the delete.
+	reindexVersion := snapshotSeq
+	externalGte := versiontype.Externalgte
 	for _, e := range pending {
 		if e.docs == nil {
 			// Document does not exist.
@@ -2473,7 +2508,7 @@ func (b *Bridge) bulkIndexReindexed(ctx context.Context, snapshotSeq int64, pend
 				continue
 			}
 			index := t.Index
-			err := bulkService.IndexOp(types.IndexOperation{Index_: &index, Id_: &id}, e.docs[i]) //nolint:exhaustruct
+			err := bulkService.IndexOp(types.IndexOperation{Index_: &index, Id_: &id, Version: &reindexVersion, VersionType: &externalGte}, e.docs[i]) //nolint:exhaustruct
 			if err != nil {
 				return 0, errors.WithStack(err)
 			}
@@ -2496,6 +2531,13 @@ func (b *Bridge) bulkIndexReindexed(ctx context.Context, snapshotSeq int64, pend
 	for i, item := range response.Items {
 		for _, result := range item {
 			if result.Status >= 200 && result.Status <= 299 {
+				continue
+			}
+			// A version conflict means a newer commit (a later index or a delete) already wrote this document
+			// with a higher version while this reindex was converting its older snapshot. The newer state is
+			// correct, so the conflict is expected and benign: in particular it is what stops a reindex that
+			// read a document before it was deleted from resurrecting it.
+			if result.Status == http.StatusConflict {
 				continue
 			}
 			id := ""
