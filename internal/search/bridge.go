@@ -1053,10 +1053,12 @@ func (b *Bridge) run(ctx context.Context) errors.E {
 	ticker := time.NewTicker(bridgeRefreshInterval)
 	defer ticker.Stop()
 	for {
+		fromTicker := false
 		select {
 		case <-ctx.Done():
 			return errors.WithStack(ctx.Err())
 		case <-ticker.C:
+			fromTicker = true
 		case _, ok := <-ch:
 			if !ok {
 				// Channel was closed which means that notifications about commits made might have been
@@ -1064,9 +1066,24 @@ func (b *Bridge) run(ctx context.Context) errors.E {
 				return errors.WithStack(errCommittedChannelClosed)
 			}
 		}
-		lastSeq, _, errE = b.catchUp(ctx, lastSeq)
+		var processed int
+		start := time.Now()
+		fromSeq := lastSeq
+		lastSeq, processed, errE = b.catchUp(ctx, lastSeq)
 		if errE != nil {
 			return errE
+		}
+		if processed > 0 {
+			msg := "bridge wake-up from notification"
+			if fromTicker {
+				msg = "bridge wake-up from ticker"
+			}
+			logger.Debug().
+				Int64("fromSeq", fromSeq).
+				Int64("toSeq", lastSeq).
+				Int("commits", processed).
+				Dur("duration", time.Since(start)).
+				Msg(msg)
 		}
 	}
 }
