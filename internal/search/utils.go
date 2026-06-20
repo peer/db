@@ -216,8 +216,8 @@ func EnsureIndex(ctx context.Context, esClient *elasticsearch.TypedClient, name 
 
 	config.Settings["number_of_shards"] = shards
 	config.Settings["number_of_replicas"] = 0
-	// Retain delete tombstones long enough that the external versioning on the bridge's writes keeps rejecting a
-	// stale reindex write (versioned with an older snapshot seq) until that reindex job cannot emit it anymore.
+	// Retain delete tombstones so that the external versioning on the bridge's writes keeps rejecting a
+	// stale reindex write (versioned with an older snapshot seq). Delete tombstones are kept in ElasticSearch memory.
 	config.Settings["index.gc_deletes"] = strconv.FormatInt(gcDeletes.Milliseconds(), 10) + "ms"
 	config.Aliases = map[string]aliasConfigurationStruct{
 		name: {IsWriteIndex: true},

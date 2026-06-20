@@ -69,11 +69,14 @@ const reindexJobTimeout = reindexSoftDeadline + reindexJobTimeoutSlack
 
 // gcDeletes is the index.gc_deletes retention for delete tombstones, used by EnsureIndex. External
 // versioning only stops a stale reindex write from resurrecting a deleted document while ElasticSearch still
-// remembers the delete's version, which it does for gc_deletes after the delete. A reindex reads a document
-// and writes it later in the same job, so the read-to-write span is bounded by a job's lifetime. Retaining
-// tombstones for at least that long covers every stale write a job can still emit. We use the full job budget
-// (soft deadline plus the slack before River cancels it) so the tombstone outlasts the last possible flush.
-const gcDeletes = reindexJobTimeout
+// remembers the delete's version, which it does for gc_deletes after the delete. A single reindex job reads a
+// document and writes it later within the same job, so its read-to-write span is bounded by the job's lifetime
+// (reindexJobTimeout), and retaining tombstones for that long would cover every stale write one job can emit.
+// A stale write can however arrive much later than a single job: a full store reindex replays the whole commit
+// log, and several processes can (re)index concurrently with one lagging behind. We therefore extend retention
+// to one day as an approximation of how long those take. The max keeps the value correct if reindexJobTimeout
+// is ever raised above a day. Delete tombstones are kept in ElasticSearch memory.
+const gcDeletes = max(reindexJobTimeout, 24*time.Hour)
 
 // bulkSizeFraction is the fraction of http.max_content_length a bulk request may grow to before it is flushed.
 // The remaining headroom covers the per-operation action metadata lines and the HTTP request framing so the
@@ -1194,7 +1197,7 @@ func (b *Bridge) indexCommit( //nolint:maintidx
 	// document's current version. That stops a slow reindex, which read a document before it was deleted here,
 	// from resurrecting it by landing its stale index after this delete. The seq is monotonic across commits,
 	// so successive writes to a document never regress. The matching tombstone retention is index.gc_deletes,
-	// set in EnsureIndex to outlast a reindex job.
+	// set in EnsureIndex.
 	commitVersion := committed.Seq
 	externalGte := versiontype.Externalgte
 
