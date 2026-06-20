@@ -35,6 +35,12 @@ import (
 
 const bridgeRetryDelay = 5 * time.Second
 
+// bridgeRefreshInterval is how often the real-time loop falls back to polling CommitLog directly. A commit
+// notification still wakes the loop immediately in the normal case. This only bounds the worst case when a
+// notification is lost or never delivered (for example a stale or dead LISTEN channel), so that committed
+// work is indexed within this interval instead of waiting for the next notification or process restart.
+const bridgeRefreshInterval = 30 * time.Second
+
 // waitRefreshInterval is how often goroutines waiting in WaitUntilCaughtUp refresh the waited-on state
 // directly from the database. Notifications normally wake them up sooner. The periodic refresh guarantees
 // progress when a notification is lost (its handler failed and pgxlisten does not redeliver, or the
@@ -1024,32 +1030,11 @@ func (b *Bridge) run(ctx context.Context) errors.E {
 	logger := zerolog.Ctx(ctx)
 	catchUpStart := time.Now()
 	catchUpStartSeq := lastSeq
-	catchUpCommits := 0
 
 	// Catch-up: index any commits in CommitLog newer than lastSeq.
-	for {
-		if ctx.Err() != nil {
-			return errors.WithStack(ctx.Err())
-		}
-		commits, errE := b.Store.CommitLog(ctx, &lastSeq, nil)
-		if errE != nil {
-			return errE
-		}
-		for _, commit := range commits {
-			addedInverseRelations, removedInverseRelations, referenceTargets, embeds, errE := b.indexCommit(ctx, commit)
-			if errE != nil {
-				return errE
-			}
-			errE = b.updateSeq(ctx, commit.Seq, addedInverseRelations, removedInverseRelations, referenceTargets, embeds)
-			if errE != nil {
-				return errE
-			}
-			lastSeq = commit.Seq
-			catchUpCommits++
-		}
-		if len(commits) < store.MaxPageLength {
-			break
-		}
+	lastSeq, catchUpCommits, errE := b.catchUp(ctx, lastSeq)
+	if errE != nil {
+		return errE
 	}
 
 	// Catch-up phase covers commits already in CommitLog at startup. Logging it shows how long the
@@ -1061,31 +1046,59 @@ func (b *Bridge) run(ctx context.Context) errors.E {
 		Dur("duration", time.Since(catchUpStart)).
 		Msg("bridge catch-up complete")
 
-	// Real-time: process new commits from the channel.
+	// Real-time: a commit notification wakes the loop to catch up immediately. The ticker is a fallback that
+	// catches up even when no notification arrives (a lost notification, or a stale or dead LISTEN channel), so
+	// committed work cannot stay unindexed until the next process restart. Both wake-ups run the same CommitLog
+	// catch-up from lastSeq, so a notification that skips ahead never leaves an unprocessed gap.
+	ticker := time.NewTicker(bridgeRefreshInterval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return errors.WithStack(ctx.Err())
-		case c, ok := <-ch:
+		case <-ticker.C:
+		case _, ok := <-ch:
 			if !ok {
 				// Channel was closed which means that notifications about commits made might have been
 				// missed and we should take corrective actions. We return the sentinel error.
 				return errors.WithStack(errCommittedChannelClosed)
 			}
-			// Skip commits already processed during catch-up.
-			if c.Seq <= lastSeq {
-				continue
-			}
-			addedInverseRelations, removedInverseRelations, referenceTargets, embeds, errE := b.indexCommit(ctx, c)
+		}
+		lastSeq, _, errE = b.catchUp(ctx, lastSeq)
+		if errE != nil {
+			return errE
+		}
+	}
+}
+
+// catchUp indexes every commit in CommitLog newer than lastSeq, paging through them, and returns the new
+// lastSeq and how many commits it indexed. run uses it for the startup backlog and as the single processing
+// path on every real-time wake-up, so that a commit whose notification was lost or never delivered is still
+// indexed and a notification that skips ahead never leaves an unprocessed gap.
+func (b *Bridge) catchUp(ctx context.Context, lastSeq int64) (int64, int, errors.E) {
+	processed := 0
+	for {
+		if ctx.Err() != nil {
+			return lastSeq, processed, errors.WithStack(ctx.Err())
+		}
+		commits, errE := b.Store.CommitLog(ctx, &lastSeq, nil)
+		if errE != nil {
+			return lastSeq, processed, errE
+		}
+		for _, commit := range commits {
+			addedInverseRelations, removedInverseRelations, referenceTargets, embeds, errE := b.indexCommit(ctx, commit)
 			if errE != nil {
-				return errE
+				return lastSeq, processed, errE
 			}
-			// The bridge table is only advanced after indexing returned no error.
-			errE = b.updateSeq(ctx, c.Seq, addedInverseRelations, removedInverseRelations, referenceTargets, embeds)
+			errE = b.updateSeq(ctx, commit.Seq, addedInverseRelations, removedInverseRelations, referenceTargets, embeds)
 			if errE != nil {
-				return errE
+				return lastSeq, processed, errE
 			}
-			lastSeq = c.Seq
+			lastSeq = commit.Seq
+			processed++
+		}
+		if len(commits) < store.MaxPageLength {
+			return lastSeq, processed, nil
 		}
 	}
 }
