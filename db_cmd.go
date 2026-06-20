@@ -207,17 +207,17 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 	// called before any onShutdown waits.
 	defer cancel()
 
-	// With --recreate-index we also clear the accumulated inverse-relation metadata from the store (for every
-	// document, including deleted ones) before replaying, so the reindex rebuilds it from a clean slate rather
-	// than diffing on top of stale or wrongly-leveled entries. This runs after Init (the store is available)
-	// but before any base is started, so it does not race the bridge.
+	// With --recreate-index we also clear the bridge-maintained metadata (inverse relations and embedding sets)
+	// from the store (for every document, including deleted ones) before replaying, so the reindex rebuilds it
+	// from a clean slate rather than diffing on top of stale or wrongly-leveled entries. This runs after Init
+	// (the store is available) but before any base is started, so it does not race the bridge.
 	if c.RecreateIndex {
 		for _, site := range globals.Sites {
-			cleared, errE := site.Base.ClearInverseRelations(ctx)
+			cleared, errE := site.Base.ClearSystemManagedMetadata(ctx)
 			if errE != nil {
 				return errE
 			}
-			globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Int("cleared", cleared).Msg("cleared inverse relations")
+			globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Int("cleared", cleared).Msg("cleared system-managed metadata")
 		}
 	}
 

@@ -50,10 +50,10 @@ func (b *B) ResetBridgeProgress(ctx context.Context) errors.E {
 	return b.bridge.ResetSeq(ctx)
 }
 
-// ClearInverseRelations removes the accumulated inverse-relation metadata from every document in the store,
-// including deleted ones, so a subsequent full reindex rebuilds it from a clean slate instead of diffing on
-// top of stale or wrongly-leveled entries. It returns the number of documents whose metadata was changed and
-// must run while the bridge is not processing (before Start).
-func (b *B) ClearInverseRelations(ctx context.Context) (int, errors.E) {
-	return b.bridge.ClearInverseRelations(ctx)
+// ClearSystemManagedMetadata removes the bridge-maintained metadata from every document in the store, including
+// deleted ones, so a subsequent full reindex rebuilds it from a clean slate instead of diffing on top of stale
+// or wrongly-leveled entries. It returns the number of documents whose metadata was changed and must run while
+// the bridge is not processing (before Start).
+func (b *B) ClearSystemManagedMetadata(ctx context.Context) (int, errors.E) {
+	return b.bridge.ClearSystemManagedMetadata(ctx)
 }

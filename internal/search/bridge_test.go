@@ -838,91 +838,129 @@ func TestBridgeMutualEmbedding(t *testing.T) {
 	}, 10*time.Second, 100*time.Millisecond)
 }
 
-// TestBridgeClearInverseRelations verifies that ClearInverseRelations removes the accumulated
-// inverse-relation metadata from every document in the store, including deleted ones, while leaving
-// documents that have none untouched, and that it is idempotent.
+// TestBridgeClearSystemManagedMetadata verifies that ClearSystemManagedMetadata removes the bridge-maintained
+// metadata from every document in the store, including deleted ones, while leaving documents that have neither
+// untouched, and that it is idempotent. A document carrying only an embedding set (no inverse relations) must
+// also be cleared.
 //
-// The inverse-relation metadata is seeded directly rather than via the full bridge pipeline so the deleted
-// document case is deterministic: ClearInverseRelations only reads and rewrites store metadata, so it does
-// not require the bridge to be running.
-func TestBridgeClearInverseRelations(t *testing.T) {
+// The metadata is seeded directly rather than via the full bridge pipeline so the deleted document case is
+// deterministic: ClearSystemManagedMetadata only reads and rewrites store metadata, so it does not require the
+// bridge to be running.
+func TestBridgeClearSystemManagedMetadata(t *testing.T) {
 	t.Parallel()
 
 	ctx, env := setupBridge(t)
 	s, b := env.store, env.bridge
 
-	// withInverse returns metadata carrying a single inverse relation at the "all" level, modeling what the
-	// bridge accumulates for a target of a relation claim.
-	withInverse := func(source, target identifier.Identifier) *store.DocumentMetadata {
-		return &store.DocumentMetadata{
-			At:    store.Time(time.Now().UTC()),
-			Users: nil,
-			InverseRelations: map[string][]store.InverseRelation{
-				"all": {{
-					InverseRelationKey: store.InverseRelationKey{
-						Claim:      identifier.New(),
-						Source:     source,
-						TargetProp: identifier.New(),
-					},
-					SourceProp: identifier.New(),
-					Target:     target,
-					Confidence: document.HighConfidence,
-				}},
-			},
-			Embedding: nil,
+	// inverseRelations returns a single inverse relation at the "all" level, modeling what the bridge accumulates
+	// for a target of a relation claim.
+	inverseRelations := func(source, target identifier.Identifier) map[string][]store.InverseRelation {
+		return map[string][]store.InverseRelation{
+			"all": {{
+				InverseRelationKey: store.InverseRelationKey{
+					Claim:      identifier.New(),
+					Source:     source,
+					TargetProp: identifier.New(),
+				},
+				SourceProp: identifier.New(),
+				Target:     target,
+				Confidence: document.HighConfidence,
+			}},
 		}
 	}
 
-	// docLive: a live document that has an inverse relation.
+	// embedding returns an embedding set with a single embedder, modeling what the bridge maintains for a
+	// document whose claims another document embeds.
+	embedding := func(embedder identifier.Identifier) map[identifier.Identifier][][]identifier.Identifier {
+		return map[identifier.Identifier][][]identifier.Identifier{
+			embedder: {{identifier.New()}},
+		}
+	}
+
+	meta := func(inverse map[string][]store.InverseRelation, embed map[identifier.Identifier][][]identifier.Identifier) *store.DocumentMetadata {
+		return &store.DocumentMetadata{
+			At:               store.Time(time.Now().UTC()),
+			Users:            nil,
+			InverseRelations: inverse,
+			Embedding:        embed,
+		}
+	}
+
+	// both returns metadata carrying both an inverse relation (targeting target) and an embedding set.
+	both := func(target identifier.Identifier) *store.DocumentMetadata {
+		return meta(inverseRelations(identifier.New(), target), embedding(identifier.New()))
+	}
+
+	// docLive: a live document carrying both an inverse relation and an embedding set.
 	docLive := identifier.New()
-	_, errE := s.Insert(ctx, docLive, makeDocJSON(t, docLive), withInverse(identifier.New(), docLive), dummyCommitMetadata())
+	_, errE := s.Insert(ctx, docLive, makeDocJSON(t, docLive), both(docLive), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// docDeleted: a document that has an inverse relation and is then deleted, carrying the inverse-relation
-	// metadata onto the delete (as a real delete does via CarryOver). The normal indexing path never touches a
-	// deleted document's inverse relations, so without clearing they would linger forever.
+	// docDeleted: a document carrying both, then deleted, carrying the metadata onto the delete (as a real delete
+	// does via CarryOver). The normal indexing path never touches a deleted document's system-managed metadata,
+	// so without clearing it would linger forever.
 	docDeleted := identifier.New()
-	vDeleted, errE := s.Insert(ctx, docDeleted, makeDocJSON(t, docDeleted), withInverse(identifier.New(), docDeleted), dummyCommitMetadata())
+	vDeleted, errE := s.Insert(ctx, docDeleted, makeDocJSON(t, docDeleted), both(docDeleted), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
-	_, errE = s.Delete(ctx, docDeleted, vDeleted.Changeset, withInverse(identifier.New(), docDeleted), dummyCommitMetadata())
+	_, errE = s.Delete(ctx, docDeleted, vDeleted.Changeset, both(docDeleted), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// docPlain: a live document with no inverse relations, the control that must stay untouched.
+	// docEmbed: a live document carrying only an embedding set (no inverse relations); it must be cleared too.
+	docEmbed := identifier.New()
+	_, errE = s.Insert(ctx, docEmbed, makeDocJSON(t, docEmbed), meta(nil, embedding(identifier.New())), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// docPlain: a live document with neither, the control that must stay untouched.
 	docPlain := identifier.New()
 	_, errE = s.Insert(ctx, docPlain, makeDocJSON(t, docPlain), dummyMetadata(), dummyCommitMetadata())
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Preconditions: the live and deleted documents both carry inverse relations.
+	// Preconditions.
 	_, metaLive, _, _, errE := s.GetLatest(ctx, docLive) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotEmpty(t, metaLive.InverseRelations, "docLive should start with inverse relations")
+	require.NotEmpty(t, metaLive.Embedding, "docLive should start with an embedding set")
 
 	_, metaDeleted, _, _, errE := s.GetLatest(ctx, docDeleted) //nolint:dogsled
 	require.ErrorIs(t, errE, store.ErrValueDeleted, "docDeleted should be deleted")
 	require.NotEmpty(t, metaDeleted.InverseRelations, "docDeleted should start with inverse relations")
+	require.NotEmpty(t, metaDeleted.Embedding, "docDeleted should start with an embedding set")
 
-	// Clear inverse relations for every document, including the deleted one.
-	cleared, errE := b.ClearInverseRelations(ctx)
+	_, metaEmbed, _, _, errE := s.GetLatest(ctx, docEmbed) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, 2, cleared, "only the live and deleted documents carrying inverse relations should be cleared")
+	require.Empty(t, metaEmbed.InverseRelations, "docEmbed should start with no inverse relations")
+	require.NotEmpty(t, metaEmbed.Embedding, "docEmbed should start with an embedding set")
 
-	// The live document keeps existing but loses its inverse relations.
+	// Clear system-managed metadata for every document, including the deleted one.
+	cleared, errE := b.ClearSystemManagedMetadata(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, 3, cleared, "the live, deleted, and embedding-only documents should be cleared")
+
+	// The live document keeps existing but loses both fields.
 	_, metaLive, _, _, errE = s.GetLatest(ctx, docLive) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Empty(t, metaLive.InverseRelations, "docLive inverse relations should be cleared")
+	assert.Empty(t, metaLive.Embedding, "docLive embedding set should be cleared")
 
-	// The deleted document stays deleted and loses its inverse relations.
+	// The deleted document stays deleted and loses both fields.
 	_, metaDeleted, _, _, errE = s.GetLatest(ctx, docDeleted) //nolint:dogsled
 	require.ErrorIs(t, errE, store.ErrValueDeleted, "docDeleted should still be deleted after clearing")
 	assert.Empty(t, metaDeleted.InverseRelations, "docDeleted inverse relations should be cleared")
+	assert.Empty(t, metaDeleted.Embedding, "docDeleted embedding set should be cleared")
 
-	// The control document had none and is unaffected.
+	// The embedding-only document keeps existing but loses its embedding set.
+	_, metaEmbed, _, _, errE = s.GetLatest(ctx, docEmbed) //nolint:dogsled
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Empty(t, metaEmbed.Embedding, "docEmbed embedding set should be cleared")
+
+	// The control document had neither and is unaffected.
 	_, metaPlain, _, _, errE := s.GetLatest(ctx, docPlain) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Empty(t, metaPlain.InverseRelations, "docPlain should remain without inverse relations")
+	assert.Empty(t, metaPlain.Embedding, "docPlain should remain without an embedding set")
 
 	// Clearing again finds nothing left to clear.
-	cleared, errE = b.ClearInverseRelations(ctx)
+	cleared, errE = b.ClearSystemManagedMetadata(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Zero(t, cleared, "a second clear should find nothing to clear")
 }
