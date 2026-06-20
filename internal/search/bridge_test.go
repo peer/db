@@ -932,9 +932,13 @@ func TestBridgeClearSystemManagedMetadata(t *testing.T) {
 	require.NotEmpty(t, metaEmbed.Embedding, "docEmbed should start with an embedding set")
 
 	// Clear system-managed metadata for every document, including the deleted one.
-	cleared, errE := b.ClearSystemManagedMetadata(ctx)
+	count := x.NewCounter(0)
+	size := x.NewCounter(0)
+	cleared, errE := b.ClearSystemManagedMetadata(ctx, count, size)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, 3, cleared, "the live, deleted, and embedding-only documents should be cleared")
+	assert.Equal(t, int64(4), size.Count(), "size is increased by the total document count (all four, including the deleted and the untouched one)")
+	assert.Equal(t, int64(4), count.Count(), "count is reconciled to exactly the total, regardless of how many were cleared")
 
 	// The live document keeps existing but loses both fields.
 	_, metaLive, _, _, errE = s.GetLatest(ctx, docLive) //nolint:dogsled
@@ -960,7 +964,7 @@ func TestBridgeClearSystemManagedMetadata(t *testing.T) {
 	assert.Empty(t, metaPlain.Embedding, "docPlain should remain without an embedding set")
 
 	// Clearing again finds nothing left to clear.
-	cleared, errE = b.ClearSystemManagedMetadata(ctx)
+	cleared, errE = b.ClearSystemManagedMetadata(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Zero(t, cleared, "a second clear should find nothing to clear")
 }
@@ -1015,9 +1019,13 @@ func TestBridgeEnqueueAllForReindex(t *testing.T) {
 	require.False(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, docDeleted.String()), "docDeleted should be absent before reindex")
 
 	// Enqueue every committed document (including the deleted one) and drain the queue.
-	enqueued, errE := b.EnqueueAllForReindex(ctx)
+	count := x.NewCounter(0)
+	size := x.NewCounter(0)
+	enqueued, errE := b.EnqueueAllForReindex(ctx, count, size)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, 4, enqueued, "all four committed documents (including the deleted one) are enqueued")
+	assert.Equal(t, int64(4), size.Count(), "size is increased by the document total")
+	assert.Equal(t, int64(4), count.Count(), "count is reconciled to exactly the document total")
 
 	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)

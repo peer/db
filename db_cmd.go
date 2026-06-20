@@ -28,7 +28,10 @@ import (
 
 // startAndWaitSite starts the base for a site, runs optional beforeWait,
 // then waits for indexing to catch up, and refreshes the ElasticSearch index.
-func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site internalSite.Site, beforeWait func(ctx context.Context) errors.E) (func(), errors.E) {
+func startAndWaitSite(
+	ctx context.Context, logger zerolog.Logger, site internalSite.Site,
+	beforeWait func(ctx context.Context, count, size *x.Counter) errors.E,
+) (func(), errors.E) {
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
 	ctx = internalStore.WithFallbackDBContext(ctx, site.Schema, "db")
 
@@ -60,7 +63,7 @@ func startAndWaitSite(ctx context.Context, logger zerolog.Logger, site internalS
 	}()
 
 	if beforeWait != nil {
-		errE = beforeWait(ctx)
+		errE = beforeWait(ctx, count, size)
 		if errE != nil {
 			return onShutdown, errE
 		}
@@ -209,31 +212,17 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 	// called before any onShutdown waits.
 	defer cancel()
 
-	// With --recreate-index we also clear the bridge-maintained metadata (inverse relations and embedding sets)
-	// from the store (for every document, including deleted ones) before replaying, so the reindex rebuilds it
-	// from a clean slate rather than diffing on top of stale or wrongly-leveled entries. This runs after Init
-	// (the store is available) but before any base is started, so it does not race the bridge.
-	if c.RecreateIndex {
-		for _, site := range globals.Sites {
-			cleared, errE := site.Base.ClearSystemManagedMetadata(ctx)
-			if errE != nil {
-				return errE
-			}
-			globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Int("cleared", cleared).Msg("cleared system-managed metadata")
-		}
-	}
-
 	for _, site := range globals.Sites {
 		globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Msg("reindexing")
 
 		// The regular reindex re-renders every document's current state through the reindex queue: it enqueues
 		// every document and drains the queue, reading each at its latest version (so deleted documents are
-		// skipped, never transiently re-created) without touching metadata. --recreate-index instead resets the
-		// bridge so the whole commit log is replayed into the freshly recreated index, which rebuilds the
-		// system-managed metadata that was cleared above. EnqueueAllForReindex is run after the site is caught up
-		// (in beforeWait, after Start, which reads the persisted indexed seq), so its entries drain at that seq.
-		beforeWait := func(ctx context.Context) errors.E {
-			enqueued, errE := site.Base.EnqueueAllForReindex(ctx)
+		// skipped, never transiently re-created) without touching metadata. --recreate-index instead clears the
+		// bridge-maintained metadata and resets the bridge so the whole commit log is replayed into the freshly
+		// recreated index, which rebuilds that metadata from a clean slate. Both run in beforeWait so they feed
+		// the same "indexing" progress (count/size) as the drain or replay that follows.
+		beforeWait := func(ctx context.Context, count, size *x.Counter) errors.E {
+			enqueued, errE := site.Base.EnqueueAllForReindex(ctx, count, size)
 			if errE != nil {
 				return errE
 			}
@@ -241,7 +230,14 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 			return nil
 		}
 		if c.RecreateIndex {
-			beforeWait = func(ctx context.Context) errors.E {
+			beforeWait = func(ctx context.Context, count, size *x.Counter) errors.E {
+				// The bridge is idle here: its seq is not reset until ResetBridgeProgress below, so on start it
+				// saw itself caught up and is not updating metadata, so the clear does not race it.
+				cleared, errE := site.Base.ClearSystemManagedMetadata(ctx, count, size)
+				if errE != nil {
+					return errE
+				}
+				globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Int("cleared", cleared).Msg("cleared system-managed metadata")
 				return site.Base.ResetBridgeProgress(ctx)
 			}
 		}

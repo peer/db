@@ -844,8 +844,21 @@ func (b *Bridge) ResetSeq(ctx context.Context) errors.E {
 //
 // It must run while the bridge is not processing (before Start), so the version read by GetLatest stays the
 // latest one for the UpdateExistingMetadata optimistic-concurrency check.
-func (b *Bridge) ClearSystemManagedMetadata(ctx context.Context) (int, errors.E) {
+//
+// When count and size are non-nil they track progress: size is increased once by the document total and count is
+// increased as documents are traversed, ending exactly at that total (so this phase shares the same counters as
+// later phases, which add their own totals to size).
+func (b *Bridge) ClearSystemManagedMetadata(ctx context.Context, count, size *x.Counter) (int, errors.E) {
+	total, errE := b.Store.Count(ctx, true)
+	if errE != nil {
+		return 0, errE
+	}
+	if size != nil {
+		size.Add(total)
+	}
+
 	cleared := 0
+	var traversed int64
 	var after *identifier.Identifier
 	for {
 		// List returns every committed value id, including deleted ones, in id order, for keyset pagination.
@@ -879,8 +892,18 @@ func (b *Bridge) ClearSystemManagedMetadata(ctx context.Context) (int, errors.E)
 			}
 			cleared++
 		}
+		if count != nil {
+			count.Add(int64(len(ids)))
+		}
+		traversed += int64(len(ids))
 		lastID := ids[len(ids)-1]
 		after = &lastID
+	}
+
+	// Reconcile so count was increased by exactly the total reported by Store.Count (matching the size
+	// increase), even if the number of listed ids differed due to concurrent changes between Count and List.
+	if count != nil {
+		count.Add(total - traversed)
 	}
 	return cleared, nil
 }
@@ -897,7 +920,19 @@ func (b *Bridge) ClearSystemManagedMetadata(ctx context.Context) (int, errors.E)
 // (those were all written at a seq the bridge had already indexed), so the re-render overrides any stale
 // higher-versioned entry a prior reindex-queue run left, while a concurrent live commit (a strictly higher seq)
 // still wins.
-func (b *Bridge) EnqueueAllForReindex(ctx context.Context) (int, errors.E) {
+//
+// When count and size are non-nil they track the enqueue progress the same way ClearSystemManagedMetadata does:
+// size is increased once by the document total and count is increased as documents are enqueued, ending exactly
+// at that total. The drain phase (WaitUntilCaughtUp) then adds its own total to the same counters.
+func (b *Bridge) EnqueueAllForReindex(ctx context.Context, count, size *x.Counter) (int, errors.E) {
+	total, errE := b.Store.Count(ctx, true)
+	if errE != nil {
+		return 0, errE
+	}
+	if size != nil {
+		size.Add(total)
+	}
+
 	seq, errE := b.getSeq(ctx)
 	if errE != nil {
 		return 0, errE
@@ -930,8 +965,17 @@ func (b *Bridge) EnqueueAllForReindex(ctx context.Context) (int, errors.E) {
 			return enqueued, errE
 		}
 		enqueued += len(ids)
+		if count != nil {
+			count.Add(int64(len(ids)))
+		}
 		lastID := ids[len(ids)-1]
 		after = &lastID
+	}
+
+	// Reconcile so count was increased by exactly the total reported by Store.Count (matching the size
+	// increase), even if the number of listed ids differed due to concurrent changes between Count and List.
+	if count != nil {
+		count.Add(total - int64(enqueued))
 	}
 
 	if enqueued == 0 {
