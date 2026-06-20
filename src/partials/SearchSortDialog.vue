@@ -186,7 +186,7 @@ function builtinLabel(type: string): string {
                 <template #unit><DocumentRefInline :id="key.unit" :link="false" /></template>
               </i18n-t>
               <DocumentRefInline v-else-if="key.prop" :id="key.prop[0]" :link="false" />
-              <template v-else>{{ builtinLabel(key.type) }}</template>
+              <i v-else>{{ builtinLabel(key.type) }}</i>
             </span>
             <button
               type="button"
@@ -228,7 +228,7 @@ function builtinLabel(type: string): string {
                     <template #unit><DocumentRefInline :id="entry.col.unit" :link="false" /></template>
                   </i18n-t>
                   <DocumentRefInline v-else-if="entry.col.prop" :id="entry.col.prop[0]" :link="false" />
-                  <template v-else>{{ builtinLabel(entry.col.type) }}</template>
+                  <i v-else>{{ builtinLabel(entry.col.type) }}</i>
                 </span>
               </button>
             </li>

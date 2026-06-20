@@ -181,9 +181,9 @@
       "ascending": "Naraščajoče",
       "descending": "Padajoče",
       "columns": {
-        "score": "Ustreznost",
-        "time": "Čas",
-        "label": "Ime"
+        "score": "ustreznost",
+        "time": "čas",
+        "label": "ime"
       }
     },
     "DownloadOverlay": {

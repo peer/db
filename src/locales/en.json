@@ -181,9 +181,9 @@
       "ascending": "Ascending",
       "descending": "Descending",
       "columns": {
-        "score": "Relevance",
-        "time": "Time",
-        "label": "Name"
+        "score": "relevance",
+        "time": "time",
+        "label": "name"
       }
     },
     "DownloadOverlay": {
