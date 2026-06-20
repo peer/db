@@ -181,7 +181,11 @@ function builtinLabel(type: string): string {
               </button>
             </div>
             <span class="min-w-0 grow truncate">
-              <DocumentRefInline v-if="key.prop" :id="key.prop[0]" :link="false" />
+              <i18n-t v-if="key.prop && key.unit" keypath="common.labelWithUnit" scope="global" tag="span">
+                <template #label><DocumentRefInline :id="key.prop[0]" :link="false" /></template>
+                <template #unit><DocumentRefInline :id="key.unit" :link="false" /></template>
+              </i18n-t>
+              <DocumentRefInline v-else-if="key.prop" :id="key.prop[0]" :link="false" />
               <template v-else>{{ builtinLabel(key.type) }}</template>
             </span>
             <button
@@ -219,7 +223,11 @@ function builtinLabel(type: string): string {
               >
                 <PlusIcon class="size-4 shrink-0 text-primary-600" :alt="t('partials.SearchSortDialog.addColumn')" />
                 <span class="min-w-0 grow truncate">
-                  <DocumentRefInline v-if="entry.col.prop" :id="entry.col.prop[0]" :link="false" />
+                  <i18n-t v-if="entry.col.prop && entry.col.unit" keypath="common.labelWithUnit" scope="global" tag="span">
+                    <template #label><DocumentRefInline :id="entry.col.prop[0]" :link="false" /></template>
+                    <template #unit><DocumentRefInline :id="entry.col.unit" :link="false" /></template>
+                  </i18n-t>
+                  <DocumentRefInline v-else-if="entry.col.prop" :id="entry.col.prop[0]" :link="false" />
                   <template v-else>{{ builtinLabel(entry.col.type) }}</template>
                 </span>
               </button>

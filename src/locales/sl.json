@@ -1,5 +1,6 @@
 {
   "common": {
+    "labelWithUnit": "{label} ({unit})",
     "buttons": {
       "search": "Išči",
       "cancel": "Prekliči",

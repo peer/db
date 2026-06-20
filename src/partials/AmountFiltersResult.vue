@@ -266,11 +266,20 @@ onBeforeUnmount(() => {
         @click.prevent="clearFilter"
         >{{ t("common.buttons.clear") }}</Button
       >
-      <template v-if="result.props.length === 2">
-        <DocumentRefInline :id="result.props[0]" class="mb-1.5 text-lg leading-none" />
-        <span class="mb-1.5 text-lg leading-none">&gt;</span>
-        <DocumentRefInline :id="result.props[1]" class="mb-1.5 text-lg leading-none" />
-      </template>
+      <i18n-t v-if="result.unit" keypath="common.labelWithUnit" scope="global" tag="span" class="mb-1.5 text-lg leading-none">
+        <template #label>
+          <DocumentRefInline :id="result.props[0]" />
+          <template v-if="result.props.length === 2"> &gt; <DocumentRefInline :id="result.props[1]" /></template>
+        </template>
+        <template #unit>
+          <DocumentRefInline :id="result.unit" :link="false" />
+        </template>
+      </i18n-t>
+      <span v-else-if="result.props.length === 2" class="mb-1.5 text-lg leading-none">
+        <DocumentRefInline :id="result.props[0]" />
+        &gt;
+        <DocumentRefInline :id="result.props[1]" />
+      </span>
       <DocumentRefInline v-else :id="result.props[0]" class="mb-1.5 text-lg leading-none" />
       ({{ result.count }})
     </div>
