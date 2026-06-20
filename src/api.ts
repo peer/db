@@ -6,7 +6,7 @@ import siteContext from "@/context"
 import { decodeMetadata } from "@/metadata"
 import { Queue } from "@/queue"
 
-const queue = new Queue({ concurrency: 100 })
+const queue = new Queue({ concurrency: 50 })
 
 // TODO: Use WeakRef with already reactive and new D() documents.
 const localGetCache = new Map<string, { doc: unknown; metadata: Metadata }>()

@@ -83,8 +83,8 @@ onMounted(() => {
   }, 1000)
 })
 
-const SEARCH_INITIAL_LIMIT = 50
-const SEARCH_INCREASE = 50
+const SEARCH_INITIAL_LIMIT = 10
+const SEARCH_INCREASE = 10
 
 const {
   limitedResults: limitedSearchResults,
