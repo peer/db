@@ -1280,6 +1280,10 @@ func ResultsGet(
 		if errE != nil {
 			return nil, nil, errE
 		}
+		// foldGroups assembles every bucket's documents (up to groupTopK each); the flat path is bounded by
+		// Size(MaxResultsCount), but Elasticsearch cannot bound across grouping buckets, so cap the assembled
+		// tree to the first MaxResultsCount results here.
+		results, _ = limitGroups(results, MaxResultsCount)
 	} else {
 		results = make([]Result, 0, len(res.Hits.Hits))
 		for _, hit := range res.Hits.Hits {

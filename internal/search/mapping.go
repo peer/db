@@ -804,13 +804,20 @@ func ResolveLanguage(language string, languagePriority map[string][]string, defa
 	return language, nil
 }
 
+// MaxInnerResultWindow is the index.max_inner_result_window setting: ElasticSearch's cap on the from+size of
+// a top_hits (or inner_hits) aggregation. The grouped search collects up to this many documents per leaf
+// group via top_hits, so the search package's per-group size (groupTopK) must not exceed it. ElasticSearch's
+// default is 100.
+const MaxInnerResultWindow = 1000
+
 // mappingData is the data passed to the mapping template. Display and Text hold the
 // prebuilt per-language top-level property blocks; ClaimTypes drives the claims block.
 type mappingData struct {
-	Display     string
-	DisplaySort string
-	Text        string
-	ClaimTypes  []claimType
+	Display              string
+	DisplaySort          string
+	Text                 string
+	ClaimTypes           []claimType
+	MaxInnerResultWindow int
 }
 
 // Mapping generates PeerDB ElasticSearch mapping for the languages a site enables, derived
@@ -826,10 +833,11 @@ func Mapping(languagePriority map[string][]string) ([]byte, errors.E) {
 
 	var b bytes.Buffer
 	err = t.Execute(&b, mappingData{
-		Display:     displayProperties(langs),
-		DisplaySort: displaySortProperties(langs),
-		Text:        textProperties(langs),
-		ClaimTypes:  buildClaimTypes(langs),
+		Display:              displayProperties(langs),
+		DisplaySort:          displaySortProperties(langs),
+		Text:                 textProperties(langs),
+		ClaimTypes:           buildClaimTypes(langs),
+		MaxInnerResultWindow: MaxInnerResultWindow,
 	})
 	if err != nil {
 		return nil, errors.WithStack(err)

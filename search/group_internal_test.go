@@ -89,3 +89,73 @@ func TestFoldLevelFlat(t *testing.T) {
 	}
 	assert.Equal(t, want, got)
 }
+
+func TestLimitGroups(t *testing.T) {
+	t.Parallel()
+
+	// Three flat groups whose Count reports the true group size: g1 and g2 hold two documents each, g3 one.
+	tree := func() []Result {
+		return []Result{
+			{ID: "g1", Count: cnt(2), Group: []Result{{ID: "d1"}, {ID: "d2"}}}, //nolint:exhaustruct
+			{ID: "g2", Count: cnt(2), Group: []Result{{ID: "d3"}, {ID: "d4"}}}, //nolint:exhaustruct
+			{ID: "g3", Count: cnt(1), Group: []Result{{ID: "d5"}}},             //nolint:exhaustruct
+		}
+	}
+
+	// A limit at or above the total leaf count keeps the whole tree unchanged.
+	got, n := limitGroups(tree(), 10)
+	assert.Equal(t, 5, n)
+	assert.Equal(t, tree(), got)
+
+	// A limit of three keeps g1 whole (two docs) plus the first doc of g2, dropping g2's second doc and all of
+	// g3. Group headings do not consume the budget, and the kept g2 heading keeps its true Count of two.
+	got, n = limitGroups(tree(), 3)
+	assert.Equal(t, 3, n)
+	assert.Equal(t, []Result{
+		{ID: "g1", Count: cnt(2), Group: []Result{{ID: "d1"}, {ID: "d2"}}}, //nolint:exhaustruct
+		{ID: "g2", Count: cnt(2), Group: []Result{{ID: "d3"}}},             //nolint:exhaustruct
+	}, got)
+
+	// A limit that exactly fills g1 drops the later groups entirely: no empty headings are emitted.
+	got, n = limitGroups(tree(), 2)
+	assert.Equal(t, 2, n)
+	assert.Equal(t, []Result{
+		{ID: "g1", Count: cnt(2), Group: []Result{{ID: "d1"}, {ID: "d2"}}}, //nolint:exhaustruct
+	}, got)
+}
+
+func TestLimitGroupsNested(t *testing.T) {
+	t.Parallel()
+
+	// Two-level grouping: outer o1 nests inner i1 (two docs) and i2 (one doc); outer o2 nests i3 (two docs).
+	tree := func() []Result {
+		return []Result{
+			{ID: "o1", Count: cnt(3), Group: []Result{
+				{ID: "i1", Count: cnt(2), Group: []Result{{ID: "d1"}, {ID: "d2"}}}, //nolint:exhaustruct
+				{ID: "i2", Count: cnt(1), Group: []Result{{ID: "d3"}}},             //nolint:exhaustruct
+			}},
+			{ID: "o2", Count: cnt(2), Group: []Result{
+				{ID: "i3", Count: cnt(2), Group: []Result{{ID: "d4"}, {ID: "d5"}}}, //nolint:exhaustruct
+			}},
+		}
+	}
+
+	// A limit of three keeps all of o1 (i1 with two docs, i2 with one) and drops o2 entirely.
+	got, n := limitGroups(tree(), 3)
+	assert.Equal(t, 3, n)
+	assert.Equal(t, []Result{
+		{ID: "o1", Count: cnt(3), Group: []Result{
+			{ID: "i1", Count: cnt(2), Group: []Result{{ID: "d1"}, {ID: "d2"}}}, //nolint:exhaustruct
+			{ID: "i2", Count: cnt(1), Group: []Result{{ID: "d3"}}},             //nolint:exhaustruct
+		}},
+	}, got)
+
+	// A limit of two fills i1 and drops the now-empty i2 along with the whole o2 branch.
+	got, n = limitGroups(tree(), 2)
+	assert.Equal(t, 2, n)
+	assert.Equal(t, []Result{
+		{ID: "o1", Count: cnt(3), Group: []Result{
+			{ID: "i1", Count: cnt(2), Group: []Result{{ID: "d1"}, {ID: "d2"}}}, //nolint:exhaustruct
+		}},
+	}, got)
+}

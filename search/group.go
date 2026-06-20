@@ -12,9 +12,17 @@ import (
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 )
 
-// groupTopK is the maximum number of documents returned per leaf group. A leaf group with more members
-// is truncated to its first groupTopK by the within-group sort.
-const groupTopK = 100
+// groupTopK is the maximum number of documents collected per leaf group by its top_hits aggregation. It
+// equals MaxResultsCount because the whole grouped response is capped at MaxResultsCount results (see
+// limitGroups) and those results may all fall within a single group, so a smaller per-group cap could drop
+// documents that belong within the first MaxResultsCount. A leaf group with more members keeps its first
+// groupTopK by the within-group sort.
+const groupTopK = MaxResultsCount
+
+// ElasticSearch caps a top_hits aggregation's size at the index's max_inner_result_window, which the mapping
+// sets to internalSearch.MaxInnerResultWindow. groupTopK must not exceed it; this assertion fails the build
+// otherwise (the runtime symptom would be an ElasticSearch "result window is too large" error).
+const _ = uint(internalSearch.MaxInnerResultWindow - groupTopK)
 
 // groupAggName is the top-level aggregation key under which the grouping aggregation is added.
 const groupAggName = "group"
@@ -134,6 +142,37 @@ func foldGroups(aggs map[string]types.Aggregate, groupCols []SortKey) ([]Result,
 		return nil, errE
 	}
 	return foldDocLevel(top.Aggregations, groupCols, 0)
+}
+
+// limitGroups keeps only the first limit leaf (document) results of a grouped tree in traversal order and
+// returns the kept tree together with the number of leaf results it holds. Group headings do not count
+// toward the limit, and a multi-valued document appearing under several groups counts once per appearance.
+// A group all of whose results fall past the limit is dropped, so no empty heading is emitted. This applies
+// in Go the cap the flat path gets from Size(MaxResultsCount); Elasticsearch cannot apply it across the
+// grouping buckets because the limit spans groups. A kept heading's Count is left untouched: it reports the
+// true number of documents in the group, even when not all of them are sent.
+func limitGroups(results []Result, limit int) ([]Result, int) {
+	out := make([]Result, 0, len(results))
+	used := 0
+	for i := range results {
+		if used >= limit {
+			break
+		}
+		r := results[i]
+		if r.Group == nil {
+			out = append(out, r)
+			used++
+			continue
+		}
+		kept, n := limitGroups(r.Group, limit-used)
+		if n == 0 {
+			continue
+		}
+		r.Group = kept
+		out = append(out, r)
+		used += n
+	}
+	return out, used
 }
 
 // foldDocLevel folds the document-level aggregations at group level idx into ordered results: the present
