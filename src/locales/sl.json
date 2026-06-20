@@ -176,14 +176,14 @@
       "title": "Razvrščanje in združevanje",
       "sortOrder": "Vrstni red razvrščanja",
       "addColumn": "Dodaj stolpec",
-      "empty": "Privzeti vrstni red (ustreznost, čas, ime).",
+      "empty": "Privzeti vrstni red (ustreznost, čas, prikazana oznaka).",
       "group": "Združi",
       "ascending": "Naraščajoče",
       "descending": "Padajoče",
       "columns": {
         "score": "ustreznost",
         "time": "čas",
-        "label": "ime"
+        "label": "prikazana oznaka"
       }
     },
     "DownloadOverlay": {

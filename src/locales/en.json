@@ -176,14 +176,14 @@
       "title": "Sort and grouping",
       "sortOrder": "Sort order",
       "addColumn": "Add column",
-      "empty": "Default order (relevance, time, name).",
+      "empty": "Default order (relevance, time, display label).",
       "group": "Group",
       "ascending": "Ascending",
       "descending": "Descending",
       "columns": {
         "score": "relevance",
         "time": "time",
-        "label": "name"
+        "label": "display label"
       }
     },
     "DownloadOverlay": {
