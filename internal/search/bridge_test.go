@@ -965,6 +965,77 @@ func TestBridgeClearSystemManagedMetadata(t *testing.T) {
 	assert.Zero(t, cleared, "a second clear should find nothing to clear")
 }
 
+// TestBridgeEnqueueAllForReindex verifies that EnqueueAllForReindex re-renders every live document into
+// ElasticSearch via the reindex queue while skipping deleted documents (never resurrecting them) and leaving
+// document metadata untouched. This is the regular "db reindex" path, which does not replay the commit log.
+func TestBridgeEnqueueAllForReindex(t *testing.T) {
+	t.Parallel()
+
+	ctx, env := setupBridge(t)
+	s, b, esClient := env.store, env.bridge, env.esClient
+
+	startBridge(ctx, t, env, newTestBridgeConverter(t))
+
+	// docLive1, docLive2: live documents. docDeleted: inserted then deleted. docMeta: a live document carrying
+	// inverse-relation metadata that the reindex must leave untouched.
+	docLive1 := identifier.New()
+	docLive2 := identifier.New()
+	docDeleted := identifier.New()
+	docMeta := identifier.New()
+
+	metaWithInverse := &store.DocumentMetadata{ //nolint:exhaustruct
+		At: store.Time(time.Now().UTC()),
+		InverseRelations: map[string][]store.InverseRelation{
+			"all": {{
+				InverseRelationKey: store.InverseRelationKey{Claim: identifier.New(), Source: identifier.New(), TargetProp: identifier.New()},
+				SourceProp:         identifier.New(),
+				Target:             docMeta,
+				Confidence:         document.HighConfidence,
+			}},
+		},
+	}
+
+	_, errE := s.Insert(ctx, docLive1, makeDocJSON(t, docLive1), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, docLive2, makeDocJSON(t, docLive2), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Insert(ctx, docMeta, makeDocJSON(t, docMeta), metaWithInverse, dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	vDel, errE := s.Insert(ctx, docDeleted, makeDocJSON(t, docDeleted), dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, errE = s.Delete(ctx, docDeleted, vDel.Changeset, dummyMetadata(), dummyCommitMetadata())
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, err := esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
+	testutils.RequireNoESError(t, err)
+	require.True(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, docLive1.String()), "docLive1 should exist before reindex")
+	require.True(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, docMeta.String()), "docMeta should exist before reindex")
+	require.False(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, docDeleted.String()), "docDeleted should be absent before reindex")
+
+	// Enqueue every committed document (including the deleted one) and drain the queue.
+	enqueued, errE := b.EnqueueAllForReindex(ctx)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, 4, enqueued, "all four committed documents (including the deleted one) are enqueued")
+
+	errE = b.WaitUntilCaughtUp(ctx, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, err = esClient.Indices.Refresh().Index(b.IndexPrefix).Do(ctx)
+	testutils.RequireNoESError(t, err)
+
+	// Live documents are re-rendered (present); the deleted one is skipped, never resurrected.
+	assert.True(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, docLive1.String()), "docLive1 present after reindex")
+	assert.True(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, docLive2.String()), "docLive2 present after reindex")
+	assert.True(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, docMeta.String()), "docMeta present after reindex")
+	assert.False(t, testutils.DocExists(ctx, t, esClient, b.IndexPrefix, docDeleted.String()), "docDeleted must not be resurrected by the reindex")
+
+	// The reindex did not touch document metadata: docMeta keeps its inverse relations.
+	_, meta, _, _, errE := s.GetLatest(ctx, docMeta) //nolint:dogsled
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.NotEmpty(t, meta.InverseRelations, "docMeta inverse relations should survive the reindex untouched")
+}
+
 func TestBridgePerLevelDocumentPresence(t *testing.T) {
 	t.Parallel()
 

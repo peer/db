@@ -885,6 +885,67 @@ func (b *Bridge) ClearSystemManagedMetadata(ctx context.Context) (int, errors.E)
 	return cleared, nil
 }
 
+// EnqueueAllForReindex enqueues every committed document (via Store.List, including deleted ones) into the
+// reindex queue and submits a job to drain it, so the bridge re-renders each document's current state into
+// ElasticSearch. Unlike the commit-log replay (ResetSeq) it reads each document once at its latest version, so a
+// deleted document is skipped rather than transiently re-created, and it never touches document metadata,
+// leaving the bridge-maintained inverse relations and embedding sets as they are. It returns the number of
+// documents enqueued.
+//
+// Entries are enqueued at the current indexed seq. The drain stamps its writes with the job's snapshot seq (the
+// indexed seq at run time, never below the enqueue seq), which is at least every existing ElasticSearch version
+// (those were all written at a seq the bridge had already indexed), so the re-render overrides any stale
+// higher-versioned entry a prior reindex-queue run left, while a concurrent live commit (a strictly higher seq)
+// still wins.
+func (b *Bridge) EnqueueAllForReindex(ctx context.Context) (int, errors.E) {
+	seq, errE := b.getSeq(ctx)
+	if errE != nil {
+		return 0, errE
+	}
+
+	enqueued := 0
+	var after *identifier.Identifier
+	for {
+		// List returns every committed value id, including deleted ones, in id order, for keyset pagination.
+		ids, errE := b.Store.List(ctx, after)
+		if errE != nil {
+			return enqueued, errE
+		}
+		if len(ids) == 0 {
+			break
+		}
+		idStrings := make([]string, len(ids))
+		for i, id := range ids {
+			idStrings[i] = id.String()
+		}
+		errE = internalStore.RetryTransaction(ctx, b.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+			_, err := tx.Exec(ctx, `
+				INSERT INTO "`+b.Store.Prefix+`BridgeReindexQueue" ("id", "seq")
+					SELECT unnest($1::text[]), $2
+					ON CONFLICT ("id", "seq") DO NOTHING
+			`, idStrings, seq)
+			return internalStore.WithPgxError(err)
+		})
+		if errE != nil {
+			return enqueued, errE
+		}
+		enqueued += len(ids)
+		lastID := ids[len(ids)-1]
+		after = &lastID
+	}
+
+	if enqueued == 0 {
+		return 0, nil
+	}
+
+	// Submit a single job to drain the entries we just enqueued.
+	_, err := b.riverClient.Insert(ctx, jobArgs{Prefix: b.Store.Prefix}, nil)
+	if err != nil {
+		return enqueued, errors.WithStack(err)
+	}
+	return enqueued, nil
+}
+
 // Prepare stores the converter and submits a startup job that processes any leftover rows
 // in BridgeReindexQueue from a previous run.
 //

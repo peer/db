@@ -57,3 +57,10 @@ func (b *B) ResetBridgeProgress(ctx context.Context) errors.E {
 func (b *B) ClearSystemManagedMetadata(ctx context.Context) (int, errors.E) {
 	return b.bridge.ClearSystemManagedMetadata(ctx)
 }
+
+// EnqueueAllForReindex enqueues every document for re-indexing and submits a job to drain the queue, so the
+// bridge re-renders each document's current state into ElasticSearch without replaying the commit log or
+// touching any document metadata. It returns the number of documents enqueued.
+func (b *B) EnqueueAllForReindex(ctx context.Context) (int, errors.E) {
+	return b.bridge.EnqueueAllForReindex(ctx)
+}

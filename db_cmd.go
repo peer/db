@@ -145,8 +145,10 @@ func (c *DBWaitCommand) Run(globals *Globals) errors.E {
 	return nil
 }
 
-// Run executes the db reindex command which resets the bridge progress,
-// re-processes all commits from the beginning, and then exits.
+// Run executes the db reindex command which re-indexes every document and then exits. By default it re-renders
+// each document's current state through the reindex queue, leaving the indices and metadata in place. With
+// --recreate-index it instead recreates the indices and replays the whole commit log, rebuilding the
+// system-managed metadata too (for a mapping change or a metadata rebuild).
 func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 	// We stop gracefully on ctrl-c and TERM signal.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -224,21 +226,39 @@ func (c *DBReindexCommand) Run(globals *Globals) errors.E {
 	for _, site := range globals.Sites {
 		globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Msg("reindexing")
 
-		onS, errE := startAndWaitSite(ctx, globals.Logger, site, func(ctx context.Context) errors.E {
-			return site.Base.ResetBridgeProgress(ctx)
-		})
+		// The regular reindex re-renders every document's current state through the reindex queue: it enqueues
+		// every document and drains the queue, reading each at its latest version (so deleted documents are
+		// skipped, never transiently re-created) without touching metadata. --recreate-index instead resets the
+		// bridge so the whole commit log is replayed into the freshly recreated index, which rebuilds the
+		// system-managed metadata that was cleared above. EnqueueAllForReindex is run after the site is caught up
+		// (in beforeWait, after Start, which reads the persisted indexed seq), so its entries drain at that seq.
+		beforeWait := func(ctx context.Context) errors.E {
+			enqueued, errE := site.Base.EnqueueAllForReindex(ctx)
+			if errE != nil {
+				return errE
+			}
+			globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Str("schema", site.Schema).Int("enqueued", enqueued).Msg("enqueued documents for reindex")
+			return nil
+		}
+		if c.RecreateIndex {
+			beforeWait = func(ctx context.Context) errors.E {
+				return site.Base.ResetBridgeProgress(ctx)
+			}
+		}
+
+		onS, errE := startAndWaitSite(ctx, globals.Logger, site, beforeWait)
 		onShutdown = append(onShutdown, onS)
 		if errE != nil {
 			return errE
 		}
 
-		// Replaying the whole commit log re-indexes each document once per commit that changes it.
-		// In particular a reference target is rewritten every time a new referrer appears, so hub
-		// documents accumulate many superseded (deleted) Lucene versions. Those deletes linger per
-		// shard until merged and bloat the index (they also skew per-shard term statistics).
-		// Now that the site is caught up, expunge them. We use only_expunge_deletes rather than
-		// max_num_segments because the index keeps receiving live writes after a reindex, and
-		// full-merging an index that is still written to is discouraged.
+		// Re-indexing rewrites documents, leaving superseded (deleted) Lucene versions behind: the regular
+		// reindex rewrites each document once, while --recreate-index replaying the commit log rewrites a
+		// document once per commit that changes it (so a reference target hub accumulates many). Those deletes
+		// linger per shard until merged and bloat the index (they also skew per-shard term statistics). Now that
+		// the site is caught up, expunge them. We use only_expunge_deletes rather than max_num_segments because
+		// the index keeps receiving live writes after a reindex, and full-merging an index that is still written
+		// to is discouraged.
 		globals.Logger.Info().Str("indexPrefix", site.IndexPrefix).Msg("expunging deletes")
 
 		for _, index := range site.LevelIndexes() {
