@@ -18,7 +18,7 @@ import { searchPagerKey } from "@/utils"
 // document (the same sentinel the reference filter uses, see RefFilterTreeRow).
 //
 // depth is the nesting level, used to break the full-width progress pager out of the group indentation.
-const props = withDefaults(
+withDefaults(
   defineProps<{
     node: DeepReadonly<Result>
     searchSessionId: string
@@ -32,13 +32,19 @@ const props = withDefaults(
 const { t } = useI18n()
 
 // The progress pager data SearchResultsFeed computes for the whole tree (which leaf a pager precedes, the
-// unique results shown, and the matching total). A leaf gets a pager when pagerBefore has an entry for it,
-// whose value is the count of unique results before it.
+// unique results shown, and the matching total).
 const pager = inject(
   searchPagerKey,
   computed(() => ({ pagerBefore: new Map<object, number>(), shown: 0, total: 0 })),
 )
-const pagerI = computed(() => (props.node.group ? undefined : pager.value.pagerBefore.get(toRaw(props.node))))
+
+// childPagerIndex returns the unique-result count to show on the pager that precedes a leaf child, or
+// undefined when that child gets no pager (group children and leaves not on a 10-result boundary are not in
+// the map). The pager is rendered as its own list item before the child, so it is a standalone flex item
+// with the same spacing above and below as the flat view's pager, rather than crowding the card under it.
+function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
+  return pager.value.pagerBefore.get(toRaw(child))
+}
 </script>
 
 <template>
@@ -49,13 +55,15 @@ const pagerI = computed(() => (props.node.group ? undefined : pager.value.pagerB
       <span v-if="node.count != null" class="shrink-0 font-normal text-slate-500">({{ node.count }})</span>
     </div>
     <ul class="flex flex-col gap-y-1 pl-4 sm:gap-y-4 sm:pl-6">
-      <li v-for="(child, i) in node.group" :key="`${child.id}-${i}`">
-        <SearchResultGroup :node="child" :search-session-id="searchSessionId" :depth="depth + 1" />
-      </li>
+      <template v-for="(child, i) in node.group" :key="`${child.id}-${i}`">
+        <li v-if="childPagerIndex(child) !== undefined">
+          <SearchResultsPager :i="childPagerIndex(child)!" :shown="pager.shown" :total="pager.total" :depth="depth + 1" />
+        </li>
+        <li>
+          <SearchResultGroup :node="child" :search-session-id="searchSessionId" :depth="depth + 1" />
+        </li>
+      </template>
     </ul>
   </div>
-  <template v-else>
-    <SearchResultsPager v-if="pagerI !== undefined" :i="pagerI" :shown="pager.shown" :total="pager.total" :depth="depth" />
-    <SearchResult :search-session-id="searchSessionId" :result="node" />
-  </template>
+  <SearchResult v-else :search-session-id="searchSessionId" :result="node" />
 </template>
