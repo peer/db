@@ -58,37 +58,27 @@ const sortDialogOpen = ref(false)
 const grouped = computed(() => (props.searchSession.sort ?? []).some((s) => s.group))
 
 // In the grouped view the actual results are leaf nodes nested under group headings, and a document placed
-// under several groups appears several times. We count each result only on its first appearance, so a
-// progress pager marks every 10 unique results (possibly spanning more than 10 cards). A single ordered walk
-// records, keyed by the leaf node a pager precedes, how many unique results come before it, plus the total
-// unique count; these are provided to the SearchResultGroup tree so a nested pager can render and size its
-// bar without drilling state through every level. Counting unique results also makes the shown total match
-// the server's distinct-document total.
-const groupedPager = computed(() => {
+// under several groups appears several times. groupedTotals walks the whole tree once to count each result
+// only on its first appearance (so the shown total matches the server's distinct-document total) and to mark
+// every later occurrence as a duplicate (rendered as a back-reference instead of in full). It is independent
+// of the load-more limit; the per-pager positions are computed separately over the rendered subset below.
+const groupedTotals = computed(() => {
   const seen = new Set<string>()
-  const pagerBefore = new Map<object, number>()
   const duplicates = new Set<object>()
   const walk = (nodes: DeepReadonly<Result[]>): void => {
     for (const node of nodes) {
       if (node.group) {
         walk(node.group)
       } else if (!seen.has(node.id)) {
-        const uniqueBefore = seen.size
         seen.add(node.id)
-        if (uniqueBefore > 0 && uniqueBefore % 10 === 0) {
-          pagerBefore.set(toRaw(node), uniqueBefore)
-        }
       } else {
-        // The document already appeared earlier in the traversal (multi-placement); mark this leaf so it
-        // renders as a back-reference to the first occurrence instead of in full.
         duplicates.add(toRaw(node))
       }
     }
   }
   walk(props.searchResults)
-  return { pagerBefore, shown: seen.size, total: props.searchTotal ?? 0, duplicates }
+  return { shown: seen.size, duplicates }
 })
-provide(searchPagerKey, groupedPager)
 
 // Print view: an in-app preview of how the results print. It shares its layout with actual printing
 // (@media print): the filters move above the results as a list, a live timestamp shows top-right, and
@@ -142,7 +132,7 @@ watch(
   },
 )
 const limitedGroupedResults = computed(() => {
-  const total = groupedPager.value.shown
+  const total = groupedTotals.value.shown
   let limit = Math.min(groupLimit.value, total)
   // If the last increase would reveal SKIP_TO_END or fewer remaining results, just show all of them.
   if (limit + SKIP_TO_END >= total) {
@@ -150,9 +140,48 @@ const limitedGroupedResults = computed(() => {
   }
   return limitGroupedResults(props.searchResults, limit)
 })
-const groupedHasMore = computed(() => limitedGroupedResults.value.shown < groupedPager.value.shown)
+const groupedHasMore = computed(() => limitedGroupedResults.value.shown < groupedTotals.value.shown)
 function groupedLoadMore(): void {
   groupLimit.value += SEARCH_INCREASE
+}
+
+// groupedPager records, over the results actually rendered (the limited tree, so node identities match what
+// is on screen), where each progress pager goes: pagerBefore maps the node a pager precedes to the count of
+// unique results before it. When a pager lands at the start of a new group it is keyed to that group node, so
+// it renders above the group's heading rather than below it; otherwise it is keyed to the leaf. shown, total,
+// and duplicates come from the whole-tree groupedTotals so the bars size against the full result set. These
+// are provided to the SearchResultGroup tree so a nested pager can render without drilling state through it.
+const groupedPager = computed(() => {
+  const seen = new Set<string>()
+  const pagerBefore = new Map<object, number>()
+  // Groups entered since the last leaf, outermost first; the next leaf seen is their shared first leaf.
+  let pending: DeepReadonly<Result>[] = []
+  const walk = (nodes: DeepReadonly<Result[]>): void => {
+    for (const node of nodes) {
+      if (node.group) {
+        pending.push(node)
+        walk(node.group)
+      } else {
+        if (!seen.has(node.id)) {
+          const uniqueBefore = seen.size
+          seen.add(node.id)
+          if (uniqueBefore > 0 && uniqueBefore % 10 === 0) {
+            pagerBefore.set(toRaw(pending.length > 0 ? pending[0] : node), uniqueBefore)
+          }
+        }
+        pending = []
+      }
+    }
+  }
+  walk(limitedGroupedResults.value.results)
+  return { pagerBefore, shown: groupedTotals.value.shown, total: props.searchTotal ?? 0, duplicates: groupedTotals.value.duplicates }
+})
+provide(searchPagerKey, groupedPager)
+
+// topPagerIndex returns the unique-result count for a pager that precedes a top-level group (one that begins
+// at a 10-result boundary), or undefined when none does. Nested pagers are placed by SearchResultGroup.
+function topPagerIndex(node: DeepReadonly<Result>): number | undefined {
+  return groupedPager.value.pagerBefore.get(toRaw(node))
 }
 
 // hasMore reports whether either view still has results to reveal. It gates the footer, which should appear
@@ -353,13 +382,16 @@ const WithDocumentD = WithDocument<D>
 
       <template v-if="searchTotal !== null && searchTotal > 0">
         <template v-if="grouped">
-          <SearchResultGroup
-            v-for="(node, gi) in limitedGroupedResults.results"
-            :key="`${node.id}-${gi}`"
-            :node="node"
-            :search-session-id="searchSession.id"
-            :depth="0"
-          />
+          <template v-for="(node, gi) in limitedGroupedResults.results" :key="`${node.id}-${gi}`">
+            <SearchResultsPager
+              v-if="topPagerIndex(node) !== undefined"
+              :i="topPagerIndex(node)!"
+              :shown="groupedPager.shown"
+              :total="groupedPager.total"
+              :depth="0"
+            />
+            <SearchResultGroup :node="node" :search-session-id="searchSession.id" :depth="0" />
+          </template>
 
           <Button
             v-if="groupedHasMore"

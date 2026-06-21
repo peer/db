@@ -49,10 +49,10 @@ function isDuplicate(node: DeepReadonly<Result>): boolean {
 // "at" scroll position follows grouped results the same as flat ones.
 const track = inject(searchTrackKey, () => () => undefined)
 
-// childPagerIndex returns the unique-result count to show on the pager that precedes a leaf child, or
-// undefined when that child gets no pager (group children and leaves not on a 10-result boundary are not in
-// the map). The pager is rendered as its own list item before the child, so it is a standalone flex item
-// with the same spacing above and below as the flat view's pager, rather than crowding the card under it.
+// childPagerIndex returns the unique-result count to show on the pager that precedes a child, or undefined
+// when that child gets no pager. The child may be a leaf or a group: a pager landing at a group's start is
+// keyed to the group node so it renders above the heading. The pager is its own list item before the child,
+// a standalone flex item with the same spacing above and below as the flat view's pager.
 function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
   return pager.value.pagerBefore.get(toRaw(child))
 }
