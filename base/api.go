@@ -78,11 +78,13 @@ func (b *B) DocumentChangeset(ctx context.Context, id identifier.Identifier) (
 func (b *B) GetDocumentFromChangeset(
 	ctx context.Context, changesetID, id identifier.Identifier, revision int64,
 ) (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
-	changeset, errE := b.documents.Changeset(ctx, changesetID)
-	if errE != nil {
-		return nil, nil, store.Version{}, nil, errE
-	}
-	return changeset.Get(ctx, id, revision)
+	return b.withHooks(ctx, id, nil, func() (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
+		changeset, errE := b.documents.Changeset(ctx, changesetID)
+		if errE != nil {
+			return nil, nil, store.Version{}, nil, errE
+		}
+		return changeset.Get(ctx, id, revision)
+	})
 }
 
 // FileChangeset returns the requested changeset from the file store.
@@ -103,7 +105,17 @@ func (b *B) FileChangeset(ctx context.Context, id identifier.Identifier) (
 func (b *B) GetFileFromChangeset(
 	ctx context.Context, changesetID, id identifier.Identifier, revision int64,
 ) (io.ReadSeekCloser, *storage.FileMetadata, store.Version, []store.Version, errors.E) {
-	return b.files.GetFromChangeset(ctx, changesetID, id, revision)
+	for _, hook := range b.FilePreHooks {
+		errE := hook(ctx, id, nil)
+		if errE != nil {
+			return nil, nil, store.Version{}, nil, errE
+		}
+	}
+	file, metadata, version, parentChangesets, errE := b.files.GetFromChangeset(ctx, changesetID, id, revision)
+	for _, hook := range b.FilePostHooks {
+		file, metadata, version, parentChangesets, errE = hook(ctx, file, metadata, version, parentChangesets, errE)
+	}
+	return file, metadata, version, parentChangesets, errE
 }
 
 // InsertDocument inserts a new document.
