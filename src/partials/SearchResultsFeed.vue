@@ -384,6 +384,9 @@ const WithDocumentD = WithDocument<D>
         @print-open="printMode = true"
       />
 
+      <!-- Print-only: the active filters (prefilters first) listed under the status line, which acts as their heading. -->
+      <SearchPrintFilters :filters="printFilters" class="pd-print-only" />
+
       <!-- Print-only: the reverse scope (documents referencing a target), shown above the filters list. -->
       <div v-if="searchSession.reverse" class="pd-print-only">
         <i18n-t keypath="partials.SearchResultsFeed.resultsReferencing" scope="global">
@@ -402,9 +405,6 @@ const WithDocumentD = WithDocument<D>
           </template>
         </i18n-t>
       </div>
-
-      <!-- Print-only: the active filters (prefilters first) listed under the status line, which acts as their heading. -->
-      <SearchPrintFilters :filters="printFilters" class="pd-print-only" />
 
       <template v-if="searchTotal !== null && searchTotal > 0">
         <template v-if="grouped">
