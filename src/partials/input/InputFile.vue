@@ -69,6 +69,10 @@ const router = useRouter()
 const progress = ref(0)
 const total = ref<number | undefined>(undefined)
 
+// Did upload fail and should should the error message be shown in the bottom toolbar?
+// Cleared when a new upload starts or the value is cleared.
+const uploadError = ref<boolean>(false)
+
 // Data modification and controls; useValidation writes to this lock during
 // validation so the button locks itself while a validator is in flight.
 const lock = useLock()
@@ -125,6 +129,7 @@ const { runValidation, validatedInput } = useValidation(
   () => {
     model.value = ""
     errors.value = []
+    uploadError.value = false
     if (fileInputEl.value) {
       fileInputEl.value.value = ""
     }
@@ -202,6 +207,7 @@ async function onUpload(file: File) {
   if (progress.value !== 0) {
     throw new Error("upload already in progress")
   }
+  uploadError.value = false
   // Setting progress to 1 shows the intermediate progress bar.
   progress.value = 1
   total.value = undefined
@@ -218,7 +224,7 @@ async function onUpload(file: File) {
     if (abortController.signal.aborted) {
       return
     }
-    // TODO: Show notification with error.
+    uploadError.value = true
     console.error("InputFile.onUpload", err)
   } finally {
     progress.value = 0
@@ -304,28 +310,32 @@ async function onDrop(e: DragEvent) {
   <div v-else-if="!hasPermission(CAN_EDIT_FILE)" v-tw-merge v-bind="$attrs" class="pd-inputfile text-gray-500 italic">{{
     t("partials.input.InputFile.noPermission")
   }}</div>
-  <div v-else v-tw-merge v-bind="$attrs" class="pd-inputfile flex w-full flex-row gap-2">
-    <Button
-      ref="browseButtonRef"
-      type="button"
-      class="min-w-0 flex-1"
-      :progress="progress"
-      :total="total"
-      :active="isDragOver"
-      :disabled="readonly"
-      :invalid="invalid"
-      :aria-invalid="invalid || undefined"
-      @click.prevent="onBrowse"
-      @dragover.prevent="onDragOver"
-      @dragenter.prevent="onDragOver"
-      @dragleave.prevent="onDragLeave"
-      @drop.prevent="onDrop"
-      @focus="onBrowseFocus"
-      @blur="onBlur"
-      >{{ t("partials.input.InputFile.dropOrBrowse") }}</Button
-    >
-    <WithLock :lock="getParentLockRef">
-      <Button v-if="progress !== 0" type="button" class="shrink-0" @click.prevent="onCancel">{{ t("common.buttons.cancel") }}</Button>
-    </WithLock>
-  </div>
+  <template v-else>
+    <div v-tw-merge v-bind="$attrs" class="pd-inputfile flex w-full flex-row gap-2">
+      <Button
+        ref="browseButtonRef"
+        type="button"
+        class="min-w-0 flex-1"
+        :progress="progress"
+        :total="total"
+        :active="isDragOver"
+        :disabled="readonly"
+        :invalid="invalid"
+        :aria-invalid="invalid || undefined"
+        @click.prevent="onBrowse"
+        @dragover.prevent="onDragOver"
+        @dragenter.prevent="onDragOver"
+        @dragleave.prevent="onDragLeave"
+        @drop.prevent="onDrop"
+        @focus="onBrowseFocus"
+        @blur="onBlur"
+        >{{ t("partials.input.InputFile.dropOrBrowse") }}</Button
+      >
+      <WithLock :lock="getParentLockRef">
+        <Button v-if="progress !== 0" type="button" class="shrink-0" @click.prevent="onCancel">{{ t("common.buttons.cancel") }}</Button>
+      </WithLock>
+    </div>
+    <!-- TODO: Push validation error to the parent. -->
+    <p v-if="uploadError" class="mt-1 text-sm text-error-600" role="alert">{{ t("common.errors.upload") }}</p>
+  </template>
 </template>

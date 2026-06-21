@@ -31,7 +31,8 @@
       "signOut": "Odjava"
     },
     "errors": {
-      "unexpected": "Nepričakovana napaka. Prosimo, poskusite znova."
+      "unexpected": "Nepričakovana napaka. Prosimo, poskusite znova.",
+      "upload": "Nalaganje ni uspelo. Prosimo, poskusite znova."
     },
     "status": {
       "editingNotAllowed": "Urejanje ni dovoljeno.",

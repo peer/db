@@ -18,6 +18,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/coordinator"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/internal/testutils"
 	"gitlab.com/peerdb/peerdb/storage"
@@ -387,8 +388,8 @@ func TestContentAddressedDeduplication(t *testing.T) {
 const helloHash = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
 
 // TestEndUploadHashMismatch verifies that when the client-provided hash does not match the assembled
-// file, the completion job fails permanently (cancelled rather than retried), the session never
-// completes, and the file is not stored.
+// file, completion fails the hash check permanently: the file is not stored, but the session is still
+// completed (its uploaded chunks are deleted) and marked as errored.
 func TestEndUploadHashMismatch(t *testing.T) {
 	t.Parallel()
 
@@ -404,12 +405,21 @@ func TestEndUploadHashMismatch(t *testing.T) {
 	errE = s.EndUpload(ctx, session, nil, "0000000000000000000000000000000000000000000000000000000000000000")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// The completion job runs and fails permanently, so the session never completes. A broken check
-	// would store the file and complete the session, which this rejects.
-	require.Never(t, func() bool {
-		_, _, cm, errE := s.Coordinator().Get(ctx, session)
+	// The completion job fails the hash check, and the on-error completion still completes the session,
+	// deleting its chunks and marking it errored.
+	var cm *storage.CompleteMetadata
+	require.Eventually(t, func() bool {
+		_, _, cm, errE = s.Coordinator().Get(ctx, session)
 		return errE == nil && cm != nil
-	}, 3*time.Second, 100*time.Millisecond)
+	}, 5*time.Second, 10*time.Millisecond)
+
+	assert.True(t, cm.Errored)
+	assert.False(t, cm.Discarded)
+	assert.Nil(t, cm.ID)
+
+	// The uploaded chunks were deleted when the session completed.
+	_, errE = s.ListChunks(ctx, session)
+	assert.ErrorIs(t, errE, coordinator.ErrAlreadyCompleted)
 
 	// The file was not stored.
 	count, errE := s.Store().Count(ctx, false)

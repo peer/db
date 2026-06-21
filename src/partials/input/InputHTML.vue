@@ -288,6 +288,10 @@ const uploadProgress = ref<number>(0)
 const uploadTotal = ref<number | undefined>(undefined)
 let uploadAbort: AbortController | null = null
 
+// Did upload fail and should should the error message be shown in the bottom toolbar?
+// Set in the upload catch blocks, cleared when a new upload starts or the user dismisses it.
+const uploadError = ref<boolean>(false)
+
 // Visual feedback for dragging a file over the Replace button. Set on
 // dragover/dragenter, cleared on dragleave/drop. Drives the Button's
 // :active prop so the button highlights as a valid drop target.
@@ -385,6 +389,7 @@ const { runValidation, validatedInput } = useValidation(
   () => {
     model.value = ""
     errors.value = []
+    uploadError.value = false
   },
   // Reuse our structural emptiness ref (an empty editor serialises to
   // "<p></p>", a truthy string; the default !model.value check would say it
@@ -590,6 +595,7 @@ function onAttachFile() {
 async function startAttachUpload(files: File[]) {
   if (files.length === 0) return
   if (!hasPermission(CAN_EDIT_FILE)) return
+  uploadError.value = false
   uploadAbort = new AbortController()
   try {
     for (let i = 0; i < files.length; i++) {
@@ -611,9 +617,12 @@ async function startAttachUpload(files: File[]) {
     }
   } catch (err) {
     // Cancel (AbortError) or network failure - stop the batch. Files
-    // inserted before the error keep their place; the user's editor
+    // inserted before the error keep their place. The user's editor
     // content is otherwise untouched.
-    // TODO: Show to user the error if it is not an abort.
+    if (uploadAbort?.signal.aborted) {
+      return
+    }
+    uploadError.value = true
     console.error("InputHTML.startAttachUpload", err)
   } finally {
     uploadingFile.value = null
@@ -750,6 +759,13 @@ function onCancelUpload() {
   uploadAbort?.abort()
 }
 
+// Dismiss the failed-upload message in the bottom toolbar, releasing it back to
+// whatever the cursor is on.
+function onDismissUploadError() {
+  uploadError.value = false
+  view?.focus()
+}
+
 // Set right before .click() on the hidden Replace file input, consumed
 // by the next focusout on the bottom toolbar. Chrome (and others)
 // dispatches a synthetic blur on the trigger when the native picker
@@ -785,6 +801,7 @@ function onReplaceFileClick() {
 async function startReplaceUpload(file: File) {
   if (!view || editPin.value?.kind !== "link") return
   if (!hasPermission(CAN_EDIT_FILE)) return
+  uploadError.value = false
   uploadingFile.value = file
   uploadProgress.value = 1
   uploadTotal.value = undefined
@@ -796,9 +813,12 @@ async function startReplaceUpload(file: File) {
     applyLinkHref(view, editPin.value, href)
     // TODO: Show the user some success message. Because it is not really visible that the link changed.
   } catch (err) {
-    // Cancel (AbortError) or network failure - silently drop. The
-    // editor still holds the original file link.
-    // TODO: Show to user the error if it is not an abort.
+    // Cancel (AbortError) or network failure - the editor still holds the
+    // original file link.
+    if (uploadAbort?.signal.aborted) {
+      return
+    }
+    uploadError.value = true
     console.error("InputHTML.startReplaceUpload", err)
   } finally {
     uploadingFile.value = null
@@ -880,7 +900,7 @@ const blockType = computed<string>(() => {
 // cursor wandering off the link / blockquote; finally we fall back to the
 // live cursor context (link wins over blockquote so editing a link nested
 // in a blockquote does not silently rewrite the cite).
-const bottomContext = computed<"drop-target" | "upload" | "insert" | "link" | "blockquote" | null>(() => {
+const bottomContext = computed<"drop-target" | "upload" | "upload-error" | "insert" | "link" | "blockquote" | null>(() => {
   // Drop-target wins over everything else: while a file is being dragged
   // over the editor we replace whatever toolbar was open with a "drop
   // file" prompt that also accepts the drop. onWrapperDragEnter
@@ -895,6 +915,9 @@ const bottomContext = computed<"drop-target" | "upload" | "insert" | "link" | "b
   // re-resolve back to their natural mode (file-edit for Replace via
   // editPin, or whatever the cursor lands in for Attach).
   if (uploadingFile.value !== null) return "upload"
+  // A failed upload keeps the toolbar so the error is visible until the user dismisses it or
+  // starts another upload.
+  if (uploadError.value) return "upload-error"
   if (insertingLink.value) return "insert"
   if (editPin.value) return editPin.value.kind
   if (activeMarks.value.link) return "link"
@@ -925,6 +948,7 @@ const isStorageLinkContext = computed<boolean>(() => bottomContext.value === "li
 const bottomLabel = computed<string>(() => {
   if (bottomContext.value === "drop-target") return t("partials.input.InputHTML.bottomToolbar.dropFileLabel")
   if (bottomContext.value === "upload") return t("partials.input.InputHTML.bottomToolbar.uploadingLabel", { name: uploadingFile.value?.name ?? "" })
+  if (bottomContext.value === "upload-error") return t("common.errors.upload")
   if (isStorageLinkContext.value) return t("partials.input.InputHTML.bottomToolbar.fileLabel")
   if (bottomContext.value === "link" || bottomContext.value === "insert") return t("partials.input.InputHTML.bottomToolbar.linkLabel")
   if (bottomContext.value === "blockquote") return t("partials.input.InputHTML.bottomToolbar.blockquoteLabel")
@@ -959,10 +983,11 @@ const isLinkInputDirty = computed(() => linkInputModel.value !== linkInputAnchor
 // of the URL InputLink. The blockquote split keys off currentLinkValue
 // so the moment a cite is applied the mode flips from add to edit and
 // the primary label changes accordingly.
-type BottomMode = "drop-target" | "link-insert" | "link-edit" | "file-edit" | "blockquote-add" | "blockquote-edit" | "upload" | null
+type BottomMode = "drop-target" | "link-insert" | "link-edit" | "file-edit" | "blockquote-add" | "blockquote-edit" | "upload" | "upload-error" | null
 const bottomMode = computed<BottomMode>(() => {
   if (bottomContext.value === "drop-target") return "drop-target"
   if (bottomContext.value === "upload") return "upload"
+  if (bottomContext.value === "upload-error") return "upload-error"
   if (bottomContext.value === "insert") return "link-insert"
   if (bottomContext.value === "link") return isStorageLinkContext.value ? "file-edit" : "link-edit"
   if (bottomContext.value === "blockquote") return currentLinkValue.value === "" ? "blockquote-add" : "blockquote-edit"
@@ -1141,8 +1166,9 @@ async function onConfirm() {
     case "drop-target":
     case "file-edit":
     case "upload":
-      // drop-target, file-edit and upload modes do not render the
-      // form / InputLink, so onConfirm (form @submit) cannot fire
+    case "upload-error":
+      // drop-target, file-edit, upload and upload-error modes do not render
+      // the form / InputLink, so onConfirm (form @submit) cannot fire
       // here in practice - the v-else around the <form> branch
       // ensures it. Listed for exhaustive-switch lint coverage only.
       break
@@ -1854,6 +1880,14 @@ watch(
         </div>
         <ProgressBar :progress="uploadProgress" :total="uploadTotal" />
       </template>
+      <!--
+        Upload-error mode: the most recent upload failed. The message stays until
+        the user dismisses it or starts another upload.
+      -->
+      <div v-else-if="bottomMode === 'upload-error'" class="flex flex-row items-center gap-2 py-1 pr-2 pl-4" role="alert">
+        <span class="min-w-0 flex-1 truncate text-sm text-error-600" :title="bottomLabel">{{ bottomLabel }}</span>
+        <Button type="button" class="shrink-0 px-3 py-2" @click.prevent="onDismissUploadError">{{ t("common.buttons.close") }}</Button>
+      </div>
       <!--
         File-edit mode: the cursor is on a same-origin storage link.
       -->

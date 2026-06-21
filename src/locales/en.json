@@ -31,7 +31,8 @@
       "signOut": "Sign Out"
     },
     "errors": {
-      "unexpected": "Unexpected error. Please try again."
+      "unexpected": "Unexpected error. Please try again.",
+      "upload": "Upload failed. Please try again."
     },
     "status": {
       "editingNotAllowed": "Editing not allowed.",

@@ -280,6 +280,7 @@ export type StorageUploadStatus = {
   active: boolean
   id?: string
   discarded?: boolean
+  errored?: boolean
 }
 
 // DocumentEditStatus is the response shape of GET /d/edit/:id/:session (DocumentEdit API).

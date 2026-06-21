@@ -152,12 +152,13 @@ func (b *B) Init(
 	}
 
 	c := &coordinator.Coordinator[json.RawMessage, *documentChangeMetadata, *DocumentBeginMetadata, *documentEndMetadata, *documentCompleteData, *DocumentCompleteMetadata]{
-		Prefix:                 "docs",
-		DataType:               "jsonb",
-		MetadataType:           "jsonb",
-		CompleteSession:        b.completeDocumentSession,
-		CompleteSessionTx:      b.completeDocumentSessionTx,
-		CompleteSessionTimeout: completeSessionTimeout,
+		Prefix:                   "docs",
+		DataType:                 "jsonb",
+		MetadataType:             "jsonb",
+		CompleteSession:          b.completeDocumentSession,
+		CompleteSessionTx:        b.completeDocumentSessionTx,
+		CompleteSessionOnErrorTx: b.completeSessionOnErrorTx,
+		CompleteSessionTimeout:   completeSessionTimeout,
 	}
 	// We do not use Appended and Ended channels here so we pass nil for listener.
 	errE = c.Init(ctx, dbpool, nil, r)

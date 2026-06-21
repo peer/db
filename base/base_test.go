@@ -1666,14 +1666,22 @@ func TestDocumentEditSessionCompletionWithApplyError(t *testing.T) {
 	_, errE = b.AppendDocumentChange(ctx, session, changeJSON, seqNo)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// End session. The async completion will fail during Apply.
+	// End session. The async completion fails during Apply, which is a permanent error, so the on-error
+	// completion still completes the session, marked as errored.
 	errE = b.EndEditDocument(ctx, session, false)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Wait for the River job to attempt and fail.
-	time.Sleep(5 * time.Second)
-
-	// TODO: We should record the failure in session metadata and check it here.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		_, _, completeMetadata, errE := b.GetEditDocumentSession(ctx, session)
+		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		if assert.NotNil(c, completeMetadata) {
+			assert.True(c, completeMetadata.Errored)
+			assert.False(c, completeMetadata.Discarded)
+			assert.Nil(c, completeMetadata.Changeset)
+		}
+	}, 10*time.Second, 100*time.Millisecond)
 
 	// Document should remain unchanged.
 	_, _, versionAfter, _, errE := b.GetDocumentLatest(ctx, docID) //nolint:dogsled

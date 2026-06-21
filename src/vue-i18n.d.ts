@@ -43,6 +43,7 @@ declare module "vue-i18n" {
       }
       errors: {
         unexpected: string
+        upload: string
       }
       status: {
         editingNotAllowed: string

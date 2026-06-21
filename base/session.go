@@ -59,6 +59,7 @@ type documentCompleteData struct {
 // DocumentCompleteMetadata contains metadata captured when document edit session completes.
 type DocumentCompleteMetadata struct {
 	Discarded bool `json:"discarded,omitempty"`
+	Errored   bool `json:"errored,omitempty"`
 
 	Changeset *identifier.Identifier `json:"changeset,omitempty"`
 
@@ -235,6 +236,7 @@ func (b *B) completeDocumentSessionTx(
 
 		return &DocumentCompleteMetadata{
 			Discarded: true,
+			Errored:   false,
 			Changeset: nil,
 			Time:      time.Since(time.Time(data.EndMetadata.At)).Milliseconds(),
 		}, nil
@@ -306,8 +308,46 @@ func (b *B) completeDocumentSessionTx(
 
 	return &DocumentCompleteMetadata{
 		Discarded: false,
+		Errored:   false,
 		Changeset: &version.Changeset,
 		Time:      time.Since(time.Time(data.EndMetadata.At)).Milliseconds(),
+	}, nil
+}
+
+func (b *B) completeSessionOnErrorTx(
+	ctx context.Context,
+	_ pgx.Tx,
+	session identifier.Identifier,
+	completeErr error,
+) (*DocumentCompleteMetadata, errors.E) {
+	beginMetadata, endMetadata, _, errE := b.coordinator.Get(ctx, session)
+	if errE != nil {
+		return nil, errE
+	}
+
+	changesetBase := slices.Clone(beginMetadata.Base)
+	changesetBase = append(changesetBase, "SESSION", session.String())
+
+	changesetID := identifier.From(changesetBase...)
+	changeset, errE := b.files.Store().Changeset(ctx, changesetID)
+	if errE != nil {
+		return nil, errE
+	}
+
+	// There might be files uploaded into a changeset in file storage store.
+	// We discard the changeset here to remove them.
+	// Discarding an empty (or an already discarded) changeset is not an error,
+	// so this should not error if no file uploads were made into the document edit session.
+	errE = changeset.Discard(ctx)
+	if errE != nil {
+		return nil, errE
+	}
+
+	return &DocumentCompleteMetadata{
+		Discarded: completeErr == nil,
+		Errored:   completeErr != nil,
+		Changeset: nil,
+		Time:      time.Since(time.Time(endMetadata.At)).Milliseconds(),
 	}, nil
 }
 

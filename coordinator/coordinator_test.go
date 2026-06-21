@@ -110,6 +110,7 @@ func initDatabase[Data, Metadata any](
 	t *testing.T, dataType string,
 	completeSession func(context.Context, identifier.Identifier) (Metadata, errors.E),
 	completeSessionTx func(context.Context, identifier.Identifier, Metadata) (Metadata, errors.E),
+	completeSessionOnErrorTx func(context.Context, identifier.Identifier, error) (Metadata, errors.E),
 ) (
 	context.Context,
 	*coordinator.Coordinator[Data, Metadata, Metadata, Metadata, Metadata, Metadata],
@@ -149,6 +150,15 @@ func initDatabase[Data, Metadata any](
 	r, errE := internalStore.NewRiver(ctx, logger, nil, dbpool, schema)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
+	if completeSessionOnErrorTx == nil {
+		// Tests that do not trigger a permanent completion error do not exercise this path. If one ever
+		// does without configuring it, fail loudly rather than completing with NULL metadata.
+		completeSessionOnErrorTx = func(_ context.Context, _ identifier.Identifier, _ error) (Metadata, errors.E) {
+			var zero Metadata
+			return zero, errors.New("completeSessionOnErrorTx not configured for this test")
+		}
+	}
+
 	c := &coordinator.Coordinator[Data, Metadata, Metadata, Metadata, Metadata, Metadata]{
 		Prefix:          prefix,
 		DataType:        dataType,
@@ -156,6 +166,9 @@ func initDatabase[Data, Metadata any](
 		CompleteSession: completeSession,
 		CompleteSessionTx: func(ctx context.Context, _ pgx.Tx, session identifier.Identifier, data Metadata) (Metadata, errors.E) {
 			return completeSessionTx(ctx, session, data)
+		},
+		CompleteSessionOnErrorTx: func(ctx context.Context, _ pgx.Tx, session identifier.Identifier, completeErr error) (Metadata, errors.E) {
+			return completeSessionOnErrorTx(ctx, session, completeErr)
 		},
 	}
 
@@ -222,6 +235,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 			completedSessions.Append(session)
 			return d.CompleteMetadata, nil
 		},
+		nil,
 	)
 
 	session, errE := c.Begin(ctx, d.BeginMetadata)
@@ -368,6 +382,7 @@ func TestErrors(t *testing.T) {
 		func(_ context.Context, _ identifier.Identifier, _ json.RawMessage) (json.RawMessage, errors.E) {
 			return testutils.DummyData, nil
 		},
+		nil,
 	)
 
 	_, _, _, errE := c.Get(ctx, identifier.New()) //nolint:dogsled
@@ -456,6 +471,7 @@ func TestListPagination(t *testing.T) {
 		func(_ context.Context, _ identifier.Identifier, _ json.RawMessage) (json.RawMessage, errors.E) {
 			return testutils.DummyData, nil
 		},
+		nil,
 	)
 
 	operations := []int64{} //nolint:prealloc
@@ -505,6 +521,64 @@ func TestListPagination(t *testing.T) {
 	assert.ErrorIs(t, errE, coordinator.ErrOperationNotFound)
 }
 
+// TestCompleteSessionOnError verifies that when completion fails with a permanent error, the
+// CompleteSessionOnErrorTx callback runs: the session is still completed (its operations are deleted)
+// with the on-error metadata, and the callback receives the failing error.
+func TestCompleteSessionOnError(t *testing.T) {
+	t.Parallel()
+
+	if os.Getenv("POSTGRES") == "" {
+		t.Skip("POSTGRES is not available")
+	}
+
+	completeErrCh := make(chan error, 1)
+
+	ctx, c, _, _ := initDatabase[json.RawMessage, json.RawMessage](
+		t, "jsonb",
+		nil,
+		func(_ context.Context, _ identifier.Identifier, _ json.RawMessage) (json.RawMessage, errors.E) {
+			// Completion fails deterministically, so the job is cancelled instead of retried.
+			return nil, errors.WrapWith(errors.New("boom"), coordinator.ErrInvalidSessionData)
+		},
+		func(_ context.Context, _ identifier.Identifier, completeErr error) (json.RawMessage, errors.E) {
+			select {
+			case completeErrCh <- completeErr:
+			default:
+			}
+			return json.RawMessage(`{"errored": true}`), nil
+		},
+	)
+
+	session, errE := c.Begin(ctx, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	_, errE = c.Append(ctx, session, testutils.DummyData, testutils.DummyData, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = c.End(ctx, session, testutils.DummyData)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The normal completion fails, but the on-error completion still completes the session.
+	var completeMetadata json.RawMessage
+	require.Eventually(t, func() bool {
+		_, _, completeMetadata, errE = c.Get(ctx, session)
+		return errE == nil && completeMetadata != nil
+	}, 5*time.Second, 10*time.Millisecond)
+	assert.JSONEq(t, `{"errored": true}`, string(completeMetadata))
+
+	// The session's operations were deleted when it completed.
+	_, errE = c.List(ctx, session, nil)
+	assert.ErrorIs(t, errE, coordinator.ErrAlreadyCompleted)
+
+	// The callback received the permanent error that failed completion.
+	select {
+	case completeErr := <-completeErrCh:
+		assert.ErrorIs(t, completeErr, coordinator.ErrInvalidSessionData)
+	default:
+		t.Error("CompleteSessionOnErrorTx was not called")
+	}
+}
+
 func TestNotifyRecovery(t *testing.T) {
 	t.Parallel()
 
@@ -546,6 +620,9 @@ func TestNotifyRecovery(t *testing.T) {
 		DataType:     "jsonb",
 		MetadataType: "jsonb",
 		CompleteSessionTx: func(_ context.Context, _ pgx.Tx, _ identifier.Identifier, _ json.RawMessage) (json.RawMessage, errors.E) {
+			return json.RawMessage(`{}`), nil
+		},
+		CompleteSessionOnErrorTx: func(_ context.Context, _ pgx.Tx, _ identifier.Identifier, _ error) (json.RawMessage, errors.E) {
 			return json.RawMessage(`{}`), nil
 		},
 	}
@@ -658,6 +735,7 @@ func TestSessionNotificationSurvivesSchemaRename(t *testing.T) {
 		func(_ context.Context, _ identifier.Identifier, _ json.RawMessage) (json.RawMessage, errors.E) {
 			return testutils.DummyData, nil
 		},
+		nil,
 	)
 	prefix := c.Prefix
 

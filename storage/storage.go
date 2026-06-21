@@ -44,7 +44,7 @@ type endMetadata struct {
 	// Hash is the lowercase hex SHA-256 of the file contents as computed by the client while uploading.
 	// Completion compares it against the hash of the assembled file and fails the upload (it is not
 	// stored) on a mismatch, so corruption between the client and the assembled file is detected.
-	Hash string `json:"hash"`
+	Hash string `json:"hash,omitempty"`
 	// User is the user who ended the upload session (the committer). nil when
 	// unauthenticated. Lands in CommitMetadata.User when the file is committed
 	// standalone. NOT included in the Users union on FileMetadata.
@@ -63,6 +63,7 @@ type completeData struct {
 // CompleteMetadata contains metadata captured when file upload session completes.
 type CompleteMetadata struct {
 	Discarded bool `json:"discarded,omitempty"`
+	Errored   bool `json:"errored,omitempty"`
 
 	ID *identifier.Identifier `json:"id,omitempty"`
 
@@ -162,12 +163,13 @@ func (s *Storage) Init(
 	}
 
 	storageCoordinator := &coordinator.Coordinator[[]byte, *chunkMetadata, *beginMetadata, *endMetadata, *completeData, *CompleteMetadata]{
-		Prefix:                 s.Prefix,
-		DataType:               "bytea",
-		MetadataType:           "jsonb",
-		CompleteSession:        s.completeStorageSession,
-		CompleteSessionTx:      s.completeStorageSessionTx,
-		CompleteSessionTimeout: completeSessionTimeout,
+		Prefix:                   s.Prefix,
+		DataType:                 "bytea",
+		MetadataType:             "jsonb",
+		CompleteSession:          s.completeStorageSession,
+		CompleteSessionTx:        s.completeStorageSessionTx,
+		CompleteSessionOnErrorTx: s.completeSessionOnErrorTx,
+		CompleteSessionTimeout:   completeSessionTimeout,
 	}
 	// We do not use Appended and Ended channels here so we pass nil for listener.
 	errE = storageCoordinator.Init(ctx, dbpool, nil, r)
@@ -662,6 +664,7 @@ func (s *Storage) completeStorageSessionTx(ctx context.Context, _ pgx.Tx, sessio
 	if data.EndMetadata.Discarded {
 		return &CompleteMetadata{
 			Discarded: true,
+			Errored:   false,
 			ID:        nil,
 			Chunks:    0,
 			Time:      time.Since(time.Time(data.EndMetadata.At)).Milliseconds(),
@@ -677,6 +680,7 @@ func (s *Storage) completeStorageSessionTx(ctx context.Context, _ pgx.Tx, sessio
 			// The primary session has already ended or completed. We discard the file upload.
 			return &CompleteMetadata{
 				Discarded: true,
+				Errored:   false,
 				ID:        nil,
 				Chunks:    0,
 				Time:      time.Since(time.Time(data.EndMetadata.At)).Milliseconds(),
@@ -712,9 +716,25 @@ func (s *Storage) completeStorageSessionTx(ctx context.Context, _ pgx.Tx, sessio
 
 	return &CompleteMetadata{
 		Discarded: false,
+		Errored:   false,
 		ID:        &id,
 		Chunks:    data.Chunks,
 		Time:      time.Since(time.Time(data.EndMetadata.At)).Milliseconds(),
+	}, nil
+}
+
+func (s *Storage) completeSessionOnErrorTx(ctx context.Context, _ pgx.Tx, session identifier.Identifier, completeErr error) (*CompleteMetadata, errors.E) {
+	_, endMetadata, _, errE := s.coordinator.Get(ctx, session)
+	if errE != nil {
+		return nil, errE
+	}
+
+	return &CompleteMetadata{
+		Discarded: completeErr == nil,
+		Errored:   completeErr != nil,
+		ID:        nil,
+		Chunks:    0,
+		Time:      time.Since(time.Time(endMetadata.At)).Milliseconds(),
 	}, nil
 }
 

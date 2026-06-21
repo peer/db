@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
+	"github.com/riverqueue/river/rivertype"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
@@ -39,6 +40,7 @@ const (
 
 type coordinatorJob interface {
 	runCompleteSession(ctx context.Context, session identifier.Identifier, job *river.Job[jobArgs]) errors.E
+	completeSessionOnError(ctx context.Context, session identifier.Identifier, job *river.Job[jobArgs], err error) errors.E
 	completeSessionTimeout() time.Duration
 }
 
@@ -85,24 +87,11 @@ func (w *worker) Timeout(job *river.Job[jobArgs]) time.Duration {
 	return c.completeSessionTimeout()
 }
 
-// Work implements river.Worker interface.
-func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
-	ctx = internalStore.WithFallbackDBContext(ctx, w.schema, job.Args.RequestID)
-
-	c, ok := w.byPrefix[job.Args.Prefix]
-	if !ok {
-		errE := errors.New("coordinator not found")
-		details := errors.Details(errE)
-		details["schema"] = w.schema
-		details["prefix"] = job.Args.Prefix
-		return errE
-	}
-
-	errE := c.runCompleteSession(ctx, job.Args.Session, job)
+func cancelPermanentError(errE errors.E) error {
 	if errE != nil {
-		// CompleteSession and CompleteSessionTx are probably fetching coordinator or some state from
-		// the database. It is not possible to recover from some of these errors, so we cancel the job so
-		// that it does not retry unnecessarily.
+		// CompleteSession, CompleteSessionTx, and CompleteSessionOnErrorTx are probably fetching coordinator
+		// or some state from the database. It is not possible to recover from some of these errors, so we cancel
+		// the job so that it does not retry unnecessarily.
 		// TODO: Maybe our errors should have some "is permanent" flag we could use here?
 		if errors.Is(errE, ErrSessionNotFound) {
 			return river.JobCancel(errE) //nolint:wrapcheck
@@ -131,6 +120,37 @@ func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) error {
 	}
 
 	return nil
+}
+
+// Work implements river.Worker interface.
+func (w *worker) Work(ctx context.Context, job *river.Job[jobArgs]) (err error) {
+	ctx = internalStore.WithFallbackDBContext(ctx, w.schema, job.Args.RequestID)
+
+	c, ok := w.byPrefix[job.Args.Prefix]
+	if !ok {
+		errE := errors.New("coordinator not found")
+		details := errors.Details(errE)
+		details["schema"] = w.schema
+		details["prefix"] = job.Args.Prefix
+		return errE
+	}
+
+	defer func() {
+		if cancel, ok := errors.AsType[*rivertype.JobCancelError](err); ok {
+			cancelErr := cancel.Unwrap()
+			extraErr := cancelPermanentError(c.completeSessionOnError(ctx, job.Args.Session, job, cancelErr))
+			if errors.Is(extraErr, &rivertype.JobCancelError{}) {
+				// Both errors are permanent, so we join them.
+				err = errors.Join(cancel, extraErr)
+			} else if extraErr != nil {
+				// We remove river.JobCancel wrapping and use cancelErr directly because completeSessionOnError
+				// failed with a transient error, so we want everything to be retried.
+				err = errors.Join(cancelErr, extraErr)
+			}
+		}
+	}()
+
+	return cancelPermanentError(c.runCompleteSession(ctx, job.Args.Session, job))
 }
 
 // OperationAppended represents an operation appended to a session.
@@ -204,6 +224,13 @@ type Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteDa
 	// completed and all operations for the session are deleted.
 	CompleteSessionTx func(ctx context.Context, tx pgx.Tx, session identifier.Identifier, data CompleteData) (CompleteMetadata, errors.E)
 
+	// CompleteSessionOnErrorTx is called after a session has ended and after CompleteSessionTx has failed
+	// with a permanent error.  CompleteSessionOnErrorTx is required.
+	//
+	// After CompleteSessionOnErrorTx successfully completes, the session is considered
+	// completed and all operations for the session are deleted.
+	CompleteSessionOnErrorTx func(ctx context.Context, tx pgx.Tx, session identifier.Identifier, completeErr error) (CompleteMetadata, errors.E)
+
 	// CompleteSessionTimeout is the maximum time the CoordinatorCompleteSession job for this coordinator is
 	// allowed to run before River cancels it. Zero means the River client default is used. Set a larger value
 	// for coordinators whose completion can be slow.
@@ -263,6 +290,9 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 
 	if c.CompleteSessionTx == nil {
 		return errors.New("CompleteSessionTx cannot be nil")
+	}
+	if c.CompleteSessionOnErrorTx == nil {
+		return errors.New("CompleteSessionOnErrorTx cannot be nil")
 	}
 
 	// TODO: Use schema management/migration instead.
@@ -536,6 +566,58 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 		// We mark the job as completed inside a transaction.
 		_, err = river.JobCompleteTx[*riverpgxv5.Driver](ctx, tx, job)
 		return errors.WithStack(err)
+	})
+
+	if errE != nil {
+		details := errors.Details(errE)
+		details["session"] = session.String()
+		details["schema"] = c.schema
+		details["prefix"] = c.Prefix
+	}
+	return errE
+}
+
+// completeSessionOnError completes the session on a permanent error.
+//
+// It deletes all operations associated with the session and marks the session as completed with error.
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) completeSessionOnError(
+	ctx context.Context, session identifier.Identifier, _ *river.Job[jobArgs], completeErr error,
+) errors.E {
+	errE := internalStore.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Completing a session deletes all of its operations, which for a large upload (multiple
+		// chunk rows holding the file's bytes) can take much longer than the default statement timeout.
+		// Completion is a bounded background job (River's per-job Timeout and the job context bound how
+		// long it may run), so we lift the per-statement timeout for this transaction. SET LOCAL is
+		// reset when the transaction ends, so it does not affect other users of the connection.
+		_, err := tx.Exec(ctx, `SET LOCAL statement_timeout = 0`)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+
+		metadata, errE := c.CompleteSessionOnErrorTx(ctx, tx, session, completeErr)
+		if errE != nil {
+			return errE
+		}
+
+		_, err = tx.Exec(ctx, `SELECT "`+c.Prefix+`CompleteSession"($1, $2)`, session.String(), metadata)
+		if err != nil {
+			errE := internalStore.WithPgxError(err)
+			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
+				switch pgError.Code {
+				case errorCodeSessionNotFound:
+					return errors.WrapWith(errE, ErrSessionNotFound)
+				case errorCodeNotEnded:
+					return errors.WrapWith(errE, ErrNotEnded)
+				case errorCodeAlreadyCompleted:
+					return errors.WrapWith(errE, ErrAlreadyCompleted)
+				}
+			}
+			return errE
+		}
+
+		// TODO: Mark the job as canceled inside a transaction.
+		//       See: https://github.com/riverqueue/river/pull/1219
+		return nil
 	})
 
 	if errE != nil {

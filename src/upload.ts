@@ -189,6 +189,9 @@ export async function uploadFile(
           succeeded = true
           return status.id
         }
+        if (status.errored) {
+          throw new Error("upload failed")
+        }
         if (status.discarded) {
           throw new Error("upload session was discarded")
         }
