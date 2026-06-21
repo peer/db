@@ -212,16 +212,16 @@ func (s *Storage) filePath(hash string) string {
 // rename lands last wins and the contents are equal.
 func (s *Storage) WriteFile(reader io.ReadSeeker) (string, string, int64, errors.E) {
 	// First pass: hash the contents and measure their size by streaming, without buffering them.
-	etag, size, err := x.ComputeEtagReader(reader)
-	if err != nil {
-		return "", "", 0, errors.WithStack(err)
+	etag, size, errE := x.ComputeEtagReader(reader)
+	if errE != nil {
+		return "", "", 0, errE
 	}
 	// The content hash is the strong ETag without its surrounding quotes; it addresses the file on
 	// disk and is what we store as the file data, so the quotes are never stored.
 	hash := strings.Trim(etag, `"`)
 	path := s.filePath(hash)
 
-	_, err = os.Stat(path)
+	_, err := os.Stat(path)
 	if err == nil {
 		// The file is already stored and is therefore complete; there is nothing to do.
 		return hash, etag, size, nil
@@ -276,7 +276,7 @@ func (s *Storage) WriteFile(reader io.ReadSeeker) (string, string, int64, errors
 		return "", "", n, errE
 	}
 
-	errE := s.finalizeTempFile(tmp, hash)
+	errE = s.finalizeTempFile(tmp, hash)
 	if errE != nil {
 		return "", "", n, errE
 	}
@@ -507,9 +507,8 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 		errors.Details(errE)["path"] = tmp.Name()
 		return nil, errE
 	}
-	etag, _, err := x.ComputeEtagReader(tmp)
-	if err != nil {
-		errE := errors.WithStack(err)
+	etag, _, errE := x.ComputeEtagReader(tmp)
+	if errE != nil {
 		errors.Details(errE)["path"] = tmp.Name()
 		return nil, errE
 	}
