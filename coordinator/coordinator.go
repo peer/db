@@ -502,7 +502,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	}
 
 	errE := internalStore.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		// Completing a session deletes all of its operations, which for a large upload (millions of
+		// Completing a session deletes all of its operations, which for a large upload (multiple
 		// chunk rows holding the file's bytes) can take much longer than the default statement timeout.
 		// Completion is a bounded background job (River's per-job Timeout and the job context bound how
 		// long it may run), so we lift the per-statement timeout for this transaction. SET LOCAL is
