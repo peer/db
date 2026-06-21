@@ -25,7 +25,7 @@ import TimeDisplay from "@/partials/TimeDisplay.vue"
 import { useBusy } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, filterResultKey, useFilters, useLocationAt } from "@/search"
 import { limitGroupedResults, loadingWidth, searchPagerKey, SKIP_TO_END, useLimitResults, useOnScrollOrResize } from "@/utils"
-import { useVisibilityTracking } from "@/visibility"
+import { searchTrackKey, useVisibilityTracking } from "@/visibility"
 
 const props = defineProps<{
   // Search props.
@@ -177,6 +177,9 @@ const {
 } = useLimitResults(filtersResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
 
 const { track, visibles } = useVisibilityTracking()
+// The grouped result tree renders leaf results deep in SearchResultGroup, so the tracker is provided for
+// those leaves to register the same way the flat results do here.
+provide(searchTrackKey, track)
 
 const abortController = new AbortController()
 
@@ -193,11 +196,30 @@ const searchMoreButton = useTemplateRef<ComponentPublicInstance>("searchMoreButt
 const filtersMoreButton = useTemplateRef<ComponentPublicInstance>("filtersMoreButton")
 const supportPageOffset = window.pageYOffset !== undefined
 
-useLocationAt(
-  toRef(() => props.searchResults),
-  toRef(() => props.searchTotal),
-  visibles,
-)
+// orderedResults is the results in display order, used to pick the topmost visible result for the "at" query
+// parameter: the flat list as-is, or the grouped tree's leaf results flattened into traversal order (each
+// result once). Without this, grouped leaf ids would not map to a position and "at" could not follow scroll.
+const orderedResults = computed<DeepReadonly<Result[]>>(() => {
+  if (!grouped.value) {
+    return props.searchResults
+  }
+  const out: DeepReadonly<Result>[] = []
+  const seen = new Set<string>()
+  const walk = (nodes: DeepReadonly<Result[]>): void => {
+    for (const node of nodes) {
+      if (node.group) {
+        walk(node.group)
+      } else if (!seen.has(node.id)) {
+        seen.add(node.id)
+        out.push(node)
+      }
+    }
+  }
+  walk(props.searchResults)
+  return out
+})
+
+useLocationAt(orderedResults, toRef(() => props.searchTotal), visibles)
 
 const content = useTemplateRef<HTMLElement>("content")
 

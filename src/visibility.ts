@@ -1,4 +1,4 @@
-import type { ComponentPublicInstance, DeepReadonly, Ref } from "vue"
+import type { ComponentPublicInstance, DeepReadonly, InjectionKey, Ref } from "vue"
 
 import { onBeforeUnmount, readonly, ref } from "vue"
 
@@ -6,6 +6,15 @@ export interface VisibilityTrackingOptions {
   rootMargin?: string
   threshold?: number | number[]
 }
+
+// TrackRef is the factory useVisibilityTracking returns: track(id) yields a Vue ref callback that observes
+// (or, with null, stops observing) the element rendering result id.
+export type TrackRef = (id: string) => (el: Element | ComponentPublicInstance | null) => void
+
+// searchTrackKey provides the result-visibility tracker from SearchResultsFeed down to the nested
+// SearchResultGroup tree, so grouped leaf results are tracked for the "at" scroll position the same as flat
+// results are.
+export const searchTrackKey: InjectionKey<TrackRef> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-search-track") : Symbol()
 
 export function useVisibilityTracking(options: VisibilityTrackingOptions = {}): {
   track: (id: string) => (el: Element | ComponentPublicInstance | null) => void

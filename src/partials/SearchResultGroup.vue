@@ -10,6 +10,7 @@ import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import SearchResult from "@/partials/SearchResult.vue"
 import SearchResultsPager from "@/partials/SearchResultsPager.vue"
 import { searchPagerKey } from "@/utils"
+import { searchTrackKey } from "@/visibility"
 
 // A grouped result node. When node.group is set it is a group heading (node.id is the referenced value's
 // document, node.count its size); otherwise it is a plain result document. The same document may appear
@@ -38,6 +39,10 @@ const pager = inject(
   computed(() => ({ pagerBefore: new Map<object, number>(), shown: 0, total: 0 })),
 )
 
+// track registers each leaf result with the feed's visibility observer (a no-op when not provided) so the
+// "at" scroll position follows grouped results the same as flat ones.
+const track = inject(searchTrackKey, () => () => undefined)
+
 // childPagerIndex returns the unique-result count to show on the pager that precedes a leaf child, or
 // undefined when that child gets no pager (group children and leaves not on a 10-result boundary are not in
 // the map). The pager is rendered as its own list item before the child, so it is a standalone flex item
@@ -65,5 +70,5 @@ function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
       </template>
     </ul>
   </div>
-  <SearchResult v-else :search-session-id="searchSessionId" :result="node" />
+  <SearchResult v-else :ref="track(node.id)" :search-session-id="searchSessionId" :result="node" />
 </template>
