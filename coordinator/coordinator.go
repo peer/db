@@ -502,12 +502,22 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	}
 
 	errE := internalStore.RetryTransaction(ctx, c.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		// Completing a session deletes all of its operations, which for a large upload (millions of
+		// chunk rows holding the file's bytes) can take much longer than the default statement timeout.
+		// Completion is a bounded background job (River's per-job Timeout and the job context bound how
+		// long it may run), so we lift the per-statement timeout for this transaction. SET LOCAL is
+		// reset when the transaction ends, so it does not affect other users of the connection.
+		_, err := tx.Exec(ctx, `SET LOCAL statement_timeout = 0`)
+		if err != nil {
+			return internalStore.WithPgxError(err)
+		}
+
 		metadata, errE := c.CompleteSessionTx(ctx, tx, session, data)
 		if errE != nil {
 			return errE
 		}
 
-		_, err := tx.Exec(ctx, `SELECT "`+c.Prefix+`CompleteSession"($1, $2)`, session.String(), metadata)
+		_, err = tx.Exec(ctx, `SELECT "`+c.Prefix+`CompleteSession"($1, $2)`, session.String(), metadata)
 		if err != nil {
 			errE := internalStore.WithPgxError(err)
 			if pgError, ok := errors.AsType[*pgconn.PgError](errE); ok {
