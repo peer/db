@@ -391,17 +391,19 @@ const WithDocumentD = WithDocument<D>
       <div v-if="searchSession.reverse" class="pd-print-only">
         <i18n-t keypath="partials.SearchResultsFeed.resultsReferencing" scope="global">
           <template #label>
-            <WithDocumentD :id="searchSession.reverse" name="DocumentGet">
-              <template #default="{ doc }">
-                <DisplayLabel :doc="doc" />
-              </template>
-              <template #loading>
-                <span
-                  class="pd-withdocument-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
-                  :class="[loadingWidth(searchSession.reverse!)]"
-                />
-              </template>
-            </WithDocumentD>
+            <RouterLink :to="{ name: 'DocumentGet', params: { id: searchSession.reverse } }" class="link">
+              <WithDocumentD :id="searchSession.reverse" name="DocumentGet">
+                <template #default="{ doc }">
+                  <DisplayLabel :doc="doc" />
+                </template>
+                <template #loading>
+                  <span
+                    class="pd-withdocument-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
+                    :class="[loadingWidth(searchSession.reverse!)]"
+                  />
+                </template>
+              </WithDocumentD>
+            </RouterLink>
           </template>
         </i18n-t>
       </div>
