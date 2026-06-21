@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	internalSite "gitlab.com/peerdb/peerdb/internal/site"
@@ -544,7 +545,39 @@ func (c *DBWipeCommand) Run(globals *Globals) errors.E {
 		}
 	}
 
+	// File contents live on disk in the storage directory, content-addressed and shared across all
+	// sites, so we clear it once as part of the wipe.
+	errE = clearDirContents(globals.Storage.Dir)
+	if errE != nil {
+		return errE
+	}
+	globals.Logger.Info().Str("dir", globals.Storage.Dir).Msg("storage directory cleared")
+
 	globals.Logger.Info().Msg("db wipe done")
 
+	return nil
+}
+
+// clearDirContents removes everything inside dir, leaving dir itself in place. A missing directory is
+// treated as already empty.
+func clearDirContents(dir string) errors.E {
+	entries, err := os.ReadDir(dir)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = dir
+		return errE
+	}
+	for _, entry := range entries {
+		path := filepath.Join(dir, entry.Name())
+		err := os.RemoveAll(path)
+		if err != nil {
+			errE := errors.WithStack(err)
+			errors.Details(errE)["path"] = path
+			return errE
+		}
+	}
 	return nil
 }

@@ -219,7 +219,8 @@ type DBReindexCommand struct {
 // DBVacuumCommand reclaims dead tuples in PostgreSQL and expunges deleted documents from ElasticSearch for all sites.
 type DBVacuumCommand struct{}
 
-// DBWipeCommand drops PostgreSQL schemas and deletes ElasticSearch indices for all sites.
+// DBWipeCommand drops PostgreSQL schemas and deletes ElasticSearch indices for all sites, and clears
+// the storage directory holding file contents.
 type DBWipeCommand struct{}
 
 // DBExportCommand exports documents to CSV, JSON, or struct.
@@ -240,10 +241,10 @@ type DBDiagramCommand struct {
 
 // DBCommand contains sub-commands for managing database.
 type DBCommand struct {
-	Wait    DBWaitCommand    `cmd:"" help:"Wait for pending indexing to complete and exit."      yaml:"wait"`
-	Reindex DBReindexCommand `cmd:"" help:"Force full reindex of all documents."                 yaml:"reindex"`
-	Vacuum  DBVacuumCommand  `cmd:"" help:"Vacuum PostgreSQL and expunge ElasticSearch deletes." yaml:"vacuum"`
-	Wipe    DBWipeCommand    `cmd:"" help:"Wipe PostgreSQL schemas and ElasticSearch indices."   yaml:"wipe"`
-	Export  DBExportCommand  `cmd:"" help:"Export documents to CSV, JSON, or struct."            yaml:"export"`
-	Diagram DBDiagramCommand `cmd:"" help:"Output Mermaid ER diagram of classes and fields."     yaml:"diagram"`
+	Wait    DBWaitCommand    `cmd:"" help:"Wait for pending indexing to complete and exit."                        yaml:"wait"`
+	Reindex DBReindexCommand `cmd:"" help:"Force full reindex of all documents."                                   yaml:"reindex"`
+	Vacuum  DBVacuumCommand  `cmd:"" help:"Vacuum PostgreSQL and expunge ElasticSearch deletes."                   yaml:"vacuum"`
+	Wipe    DBWipeCommand    `cmd:"" help:"Wipe PostgreSQL schemas, ElasticSearch indices, and storage directory." yaml:"wipe"`
+	Export  DBExportCommand  `cmd:"" help:"Export documents to CSV, JSON, or struct."                              yaml:"export"`
+	Diagram DBDiagramCommand `cmd:"" help:"Output Mermaid ER diagram of classes and fields."                       yaml:"diagram"`
 }
