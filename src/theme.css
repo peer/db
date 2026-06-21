@@ -7,7 +7,12 @@
 /* Applies a utility only to elements inside the navbar. */
 @custom-variant navbar (.pd-navbar &);
 
-@theme inline {
+/*
+  Primary and secondary are overridable color aliases, kept out of the "@theme inline" block below on purpose.
+  Because they are not inlined, the generated utilities reference var(--color-primary-*) and var(--color-secondary-*),
+  so a library consumer can override these variables at runtime.
+*/
+@theme {
   /* Primary color */
   --color-primary-50: var(--color-indigo-50);
   --color-primary-100: var(--color-indigo-100);
@@ -33,7 +38,9 @@
   --color-secondary-800: var(--color-yellow-800);
   --color-secondary-900: var(--color-yellow-900);
   --color-secondary-950: var(--color-yellow-950);
+}
 
+@theme inline {
   /* Error color */
   --color-error-50: var(--color-red-50);
   --color-error-100: var(--color-red-100);
@@ -615,6 +622,37 @@
   .prose a[href^="#"]::after,
   .prose a[href^="/"]::after {
     content: "";
+  }
+
+  /*
+    Print the primary and secondary colors in grayscale so links, and other primary/secondary-colored text, print in gray ink instead of color. The override
+    targets the semantic --color-primary-* and --color-secondary-* aliases, so it keeps working even when a library consumer remaps those colors.
+    The in-app print preview (body.pd-printing) intentionally keeps the on-screen colors.
+  */
+  :root {
+    --color-primary-50: var(--color-gray-50);
+    --color-primary-100: var(--color-gray-100);
+    --color-primary-200: var(--color-gray-200);
+    --color-primary-300: var(--color-gray-300);
+    --color-primary-400: var(--color-gray-400);
+    --color-primary-500: var(--color-gray-500);
+    --color-primary-600: var(--color-gray-600);
+    --color-primary-700: var(--color-gray-700);
+    --color-primary-800: var(--color-gray-800);
+    --color-primary-900: var(--color-gray-900);
+    --color-primary-950: var(--color-gray-950);
+
+    --color-secondary-50: var(--color-gray-50);
+    --color-secondary-100: var(--color-gray-100);
+    --color-secondary-200: var(--color-gray-200);
+    --color-secondary-300: var(--color-gray-300);
+    --color-secondary-400: var(--color-gray-400);
+    --color-secondary-500: var(--color-gray-500);
+    --color-secondary-600: var(--color-gray-600);
+    --color-secondary-700: var(--color-gray-700);
+    --color-secondary-800: var(--color-gray-800);
+    --color-secondary-900: var(--color-gray-900);
+    --color-secondary-950: var(--color-gray-950);
   }
 }
 
