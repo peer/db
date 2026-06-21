@@ -67,7 +67,7 @@ function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
     </div>
     <ul class="flex flex-col gap-y-1 pl-4 sm:gap-y-4 sm:pl-6">
       <template v-for="(child, i) in node.group" :key="`${child.id}-${i}`">
-        <li v-if="childPagerIndex(child) !== undefined">
+        <li v-if="childPagerIndex(child) !== undefined" class="pd-print-hidden">
           <SearchResultsPager :i="childPagerIndex(child)!" :shown="pager.shown" :total="pager.total" :depth="depth + 1" />
         </li>
         <li>
