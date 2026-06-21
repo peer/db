@@ -67,6 +67,7 @@ const grouped = computed(() => (props.searchSession.sort ?? []).some((s) => s.gr
 const groupedPager = computed(() => {
   const seen = new Set<string>()
   const pagerBefore = new Map<object, number>()
+  const duplicates = new Set<object>()
   const walk = (nodes: DeepReadonly<Result[]>): void => {
     for (const node of nodes) {
       if (node.group) {
@@ -77,11 +78,15 @@ const groupedPager = computed(() => {
         if (uniqueBefore > 0 && uniqueBefore % 10 === 0) {
           pagerBefore.set(toRaw(node), uniqueBefore)
         }
+      } else {
+        // The document already appeared earlier in the traversal (multi-placement); mark this leaf so it
+        // renders as a back-reference to the first occurrence instead of in full.
+        duplicates.add(toRaw(node))
       }
     }
   }
   walk(props.searchResults)
-  return { pagerBefore, shown: seen.size, total: props.searchTotal ?? 0 }
+  return { pagerBefore, shown: seen.size, total: props.searchTotal ?? 0, duplicates }
 })
 provide(searchPagerKey, groupedPager)
 

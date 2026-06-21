@@ -230,7 +230,9 @@
       "moreColumns": "More columns"
     },
     "SearchResult": {
-      "details": "Details"
+      "details": "Details",
+      "resultShownAlready": "Result already shown {above}.",
+      "above": "above"
     },
     "FieldsForm": {
       "from": "From",

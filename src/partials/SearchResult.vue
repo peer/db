@@ -7,6 +7,7 @@ import type { Result } from "@/types"
 
 import { computed, onBeforeUnmount, toRef, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
+import { useRoute } from "vue-router"
 
 import ButtonLink from "@/components/ButtonLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
@@ -21,12 +22,29 @@ import { useDocumentFields } from "@/useDocumentFields"
 import { useParentClasses } from "@/useParentClasses"
 import { encodeQuery, loadingLongWidth, loadingWidth } from "@/utils"
 
-defineProps<{
-  searchSessionId: string
-  result: DeepReadonly<Result>
-}>()
+const props = withDefaults(
+  defineProps<{
+    searchSessionId: string
+    result: DeepReadonly<Result>
+    // duplicate is true when this result's document already appeared earlier in the grouped results; the card
+    // then shows only its heading and a link back to the first occurrence instead of its contents.
+    duplicate?: boolean
+  }>(),
+  {
+    duplicate: false,
+  },
+)
 
 const { t } = useI18n({ useScope: "global" })
+
+// duplicateOfLink points at the first occurrence of this result through the "at" query parameter, the link a
+// duplicate card offers back to it.
+const route = useRoute()
+const duplicateOfLink = computed(() => ({
+  name: route.name as string,
+  params: route.params,
+  query: encodeQuery({ ...route.query, at: props.result.id }),
+}))
 
 const el = useTemplateRef<HTMLElement>("el")
 
@@ -132,7 +150,43 @@ const rowSpan = computed(() => {
   >
     <WithDocumentD :id="result.id" ref="withDocument" name="DocumentGet">
       <template #default="{ doc: resultDoc }">
-        <component :is="customResultComponent" v-if="customResultComponent" :doc="resultDoc" :search-session-id="searchSessionId" />
+        <div v-if="duplicate">
+          <ButtonLink
+            :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }"
+            class="pd-print-hidden float-end mb-1 ml-4 px-4"
+            >{{ t("partials.SearchResult.details") }}</ButtonLink
+          >
+          <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 text-xl leading-none">
+            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link"
+              ><DisplayLabel ref="displayLabelComponent" :doc="resultDoc"
+            /></RouterLink>
+          </h2>
+          <ul v-if="tags.length" class="mb-2 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
+            <template v-for="tag of tags" :key="tag.id">
+              <WithDocumentD :id="tag.id" name="DocumentGet">
+                <template #default="{ doc, url }">
+                  <li class="rounded-xs bg-slate-100 px-1.5 py-0.5 leading-none text-gray-600 shadow-xs" :data-url="url">
+                    <DisplayLabel :doc="doc" />
+                  </li>
+                </template>
+                <template #loading="{ url }">
+                  <li
+                    class="pd-withdocument-loading h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
+                    :data-url="url"
+                    :class="[loadingWidth(tag.id)]"
+                    aria-hidden="true"
+                  ></li>
+                </template>
+              </WithDocumentD>
+            </template>
+          </ul>
+          <i18n-t keypath="partials.SearchResult.resultShownAlready" scope="global" tag="p" class="text-slate-500 italic">
+            <template #above>
+              <RouterLink :to="duplicateOfLink" class="link">{{ t("partials.SearchResult.above") }}</RouterLink>
+            </template>
+          </i18n-t>
+        </div>
+        <component :is="customResultComponent" v-else-if="customResultComponent" :doc="resultDoc" :search-session-id="searchSessionId" />
         <div v-else-if="fieldsData && resultDoc.claims">
           <ButtonLink
             :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }"

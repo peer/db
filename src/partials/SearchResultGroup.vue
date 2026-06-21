@@ -36,8 +36,14 @@ const { t } = useI18n()
 // unique results shown, and the matching total).
 const pager = inject(
   searchPagerKey,
-  computed(() => ({ pagerBefore: new Map<object, number>(), shown: 0, total: 0 })),
+  computed(() => ({ pagerBefore: new Map<object, number>(), shown: 0, total: 0, duplicates: new Set<object>() })),
 )
+
+// isDuplicate reports whether a leaf result's document already appeared earlier in the grouped tree, in which
+// case its card is rendered as a back-reference to the first occurrence.
+function isDuplicate(node: DeepReadonly<Result>): boolean {
+  return pager.value.duplicates.has(toRaw(node))
+}
 
 // track registers each leaf result with the feed's visibility observer (a no-op when not provided) so the
 // "at" scroll position follows grouped results the same as flat ones.
@@ -70,5 +76,5 @@ function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
       </template>
     </ul>
   </div>
-  <SearchResult v-else :ref="track(node.id)" :search-session-id="searchSessionId" :result="node" />
+  <SearchResult v-else :ref="track(node.id)" :search-session-id="searchSessionId" :result="node" :duplicate="isDuplicate(node)" />
 </template>

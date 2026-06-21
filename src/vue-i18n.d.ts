@@ -242,6 +242,8 @@ declare module "vue-i18n" {
       }
       SearchResult: {
         details: string
+        resultShownAlready: string
+        above: string
       }
       FieldsForm: {
         from: string

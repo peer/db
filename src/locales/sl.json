@@ -230,7 +230,9 @@
       "moreColumns": "Več stolpcev"
     },
     "SearchResult": {
-      "details": "Podrobnosti"
+      "details": "Podrobnosti",
+      "resultShownAlready": "Rezultat je že prikazan {above}.",
+      "above": "zgoraj"
     },
     "FieldsForm": {
       "from": "Od",
