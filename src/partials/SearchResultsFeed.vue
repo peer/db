@@ -17,13 +17,14 @@ import PrefilterLabel from "@/partials/PrefilterLabel.vue"
 import SearchPrintFilters from "@/partials/SearchPrintFilters.vue"
 import SearchResult from "@/partials/SearchResult.vue"
 import SearchResultGroup from "@/partials/SearchResultGroup.vue"
+import SearchResultsEndBar from "@/partials/SearchResultsEndBar.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import SearchResultsPager from "@/partials/SearchResultsPager.vue"
 import SearchSortDialog from "@/partials/SearchSortDialog.vue"
 import TimeDisplay from "@/partials/TimeDisplay.vue"
 import { useBusy } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, filterResultKey, useFilters, useLocationAt } from "@/search"
-import { loadingWidth, searchPagerKey, useLimitResults, useOnScrollOrResize } from "@/utils"
+import { limitGroupedResults, loadingWidth, searchPagerKey, SKIP_TO_END, useLimitResults, useOnScrollOrResize } from "@/utils"
 import { useVisibilityTracking } from "@/visibility"
 
 const props = defineProps<{
@@ -63,28 +64,26 @@ const grouped = computed(() => (props.searchSession.sort ?? []).some((s) => s.gr
 // unique count; these are provided to the SearchResultGroup tree so a nested pager can render and size its
 // bar without drilling state through every level. Counting unique results also makes the shown total match
 // the server's distinct-document total.
-provide(
-  searchPagerKey,
-  computed(() => {
-    const seen = new Set<string>()
-    const pagerBefore = new Map<object, number>()
-    const walk = (nodes: DeepReadonly<Result[]>): void => {
-      for (const node of nodes) {
-        if (node.group) {
-          walk(node.group)
-        } else if (!seen.has(node.id)) {
-          const uniqueBefore = seen.size
-          seen.add(node.id)
-          if (uniqueBefore > 0 && uniqueBefore % 10 === 0) {
-            pagerBefore.set(toRaw(node), uniqueBefore)
-          }
+const groupedPager = computed(() => {
+  const seen = new Set<string>()
+  const pagerBefore = new Map<object, number>()
+  const walk = (nodes: DeepReadonly<Result[]>): void => {
+    for (const node of nodes) {
+      if (node.group) {
+        walk(node.group)
+      } else if (!seen.has(node.id)) {
+        const uniqueBefore = seen.size
+        seen.add(node.id)
+        if (uniqueBefore > 0 && uniqueBefore % 10 === 0) {
+          pagerBefore.set(toRaw(node), uniqueBefore)
         }
       }
     }
-    walk(props.searchResults)
-    return { pagerBefore, shown: seen.size, total: props.searchTotal ?? 0 }
-  }),
-)
+  }
+  walk(props.searchResults)
+  return { pagerBefore, shown: seen.size, total: props.searchTotal ?? 0 }
+})
+provide(searchPagerKey, groupedPager)
 
 // Print view: an in-app preview of how the results print. It shares its layout with actual printing
 // (@media print): the filters move above the results as a list, a live timestamp shows top-right, and
@@ -126,6 +125,34 @@ const {
   SEARCH_INITIAL_LIMIT,
   SEARCH_INCREASE,
 )
+
+// The grouped view reveals results incrementally like the flat list above, but the tree is limited by unique
+// result (matching the pagers and all-shown bar) rather than by array slice. The backend returns the whole
+// tree at once, so this is purely client-side. groupLimit resets whenever a new result set arrives.
+const groupLimit = ref(SEARCH_INITIAL_LIMIT)
+watch(
+  () => props.searchResults,
+  () => {
+    groupLimit.value = SEARCH_INITIAL_LIMIT
+  },
+)
+const limitedGroupedResults = computed(() => {
+  const total = groupedPager.value.shown
+  let limit = Math.min(groupLimit.value, total)
+  // If the last increase would reveal SKIP_TO_END or fewer remaining results, just show all of them.
+  if (limit + SKIP_TO_END >= total) {
+    limit = total
+  }
+  return limitGroupedResults(props.searchResults, limit)
+})
+const groupedHasMore = computed(() => limitedGroupedResults.value.shown < groupedPager.value.shown)
+function groupedLoadMore(): void {
+  groupLimit.value += SEARCH_INCREASE
+}
+
+// hasMore reports whether either view still has results to reveal. It gates the footer, which should appear
+// only once the user has reached the end of the results, the same in the grouped view as in the flat one.
+const hasMore = computed(() => (grouped.value ? groupedHasMore.value : searchHasMore.value))
 
 const filtersEl = useTemplateRef<HTMLElement>("filtersEl")
 const filtersEnabled = ref(false)
@@ -299,7 +326,29 @@ const WithDocumentD = WithDocument<D>
 
       <template v-if="searchTotal !== null && searchTotal > 0">
         <template v-if="grouped">
-          <SearchResultGroup v-for="(node, gi) in searchResults" :key="`${node.id}-${gi}`" :node="node" :search-session-id="searchSession.id" :depth="0" />
+          <SearchResultGroup
+            v-for="(node, gi) in limitedGroupedResults.results"
+            :key="`${node.id}-${gi}`"
+            :node="node"
+            :search-session-id="searchSession.id"
+            :depth="0"
+          />
+
+          <Button
+            v-if="groupedHasMore"
+            id="searchresultsfeed-button-loadmore"
+            ref="searchMoreButton"
+            primary
+            class="pd-print-hidden w-1/4 min-w-fit self-center"
+            @click.prevent="groupedLoadMore"
+            >{{ t("common.buttons.loadMore") }}</Button
+          >
+
+          <!-- Print: instead of a load-more button, note how many results are not shown. -->
+          <div v-if="searchTotal - limitedGroupedResults.shown > 0" class="pd-print-only my-1 text-center text-sm sm:my-4">
+            {{ t("partials.SearchResultsFeed.resultsNotShown", { count: searchTotal - limitedGroupedResults.shown, total: searchTotal }) }}
+          </div>
+          <SearchResultsEndBar v-else :first="groupedPager.shown" :total="searchTotal" :more-than-total="searchMoreThanTotal" />
         </template>
         <template v-else>
           <template v-for="(result, i) in limitedSearchResults" :key="result.id">
@@ -322,19 +371,8 @@ const WithDocumentD = WithDocument<D>
             {{ t("partials.SearchResultsFeed.resultsNotShown", { count: searchTotal - limitedSearchResults.length, total: searchTotal }) }}
           </div>
 
-          <div v-else class="pd-print-hidden my-1 sm:my-4">
-            <!-- Here we assume that MaxResultsCount is always set to a smaller value than what TrackTotalHits is set to. -->
-            <div v-if="searchMoreThanTotal" class="text-center text-sm">{{
-              t("common.status.allResultsMoreThan", { first: searchResults.length, count: searchTotal })
-            }}</div>
-            <div v-else-if="searchResults.length < searchTotal" class="text-center text-sm">{{
-              t("common.status.allResultsOnly", { first: searchResults.length, count: searchTotal })
-            }}</div>
-            <div v-else-if="searchResults.length === searchTotal" class="text-center text-sm">{{ t("common.status.allResults", { count: searchResults.length }) }}</div>
-            <div class="relative h-2 w-full bg-slate-200">
-              <div class="absolute inset-y-0 left-0 bg-secondary-400" :style="{ width: 100 + '%' }"></div>
-            </div>
-          </div>
+          <!-- Here we assume that MaxResultsCount is always set to a smaller value than what TrackTotalHits is set to. -->
+          <SearchResultsEndBar v-else :first="searchResults.length" :total="searchTotal" :more-than-total="searchMoreThanTotal" />
         </template>
       </template>
     </div>
@@ -447,7 +485,7 @@ const WithDocumentD = WithDocument<D>
     @sort-update="(sort) => $emit('sortUpdate', sort)"
   />
 
-  <Teleport v-if="(searchTotal !== null && searchTotal > 0 && !searchHasMore) || searchTotal === 0" to="footer">
+  <Teleport v-if="(searchTotal !== null && searchTotal > 0 && !hasMore) || searchTotal === 0" to="footer">
     <Footer class="border-t border-slate-50 bg-slate-200 shadow-sm" />
   </Teleport>
 </template>

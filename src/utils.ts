@@ -1,7 +1,7 @@
 import type { ComputedRef, DeepReadonly, InjectionKey, Ref } from "vue"
 
 import type { TimePrecision } from "@/document"
-import type { GetDisplayLabel, Mutable, QueryValues, QueryValuesWithOptional } from "@/types"
+import type { GetDisplayLabel, Mutable, QueryValues, QueryValuesWithOptional, Result } from "@/types"
 
 import { Identifier } from "@tozd/identifier"
 import { prng_alea } from "esm-seedrandom"
@@ -26,6 +26,41 @@ export const SKIP_TO_END = 2
 // cards yet still mark 10 new results.
 export const searchPagerKey: InjectionKey<ComputedRef<{ pagerBefore: Map<object, number>; shown: number; total: number }>> =
   process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-search-pager") : Symbol()
+
+// limitGroupedResults truncates a grouped result tree to the leaves that appear before its (limit+1)th unique
+// result in document order, pruning any group left empty, and returns that tree with the number of unique
+// results it contains. The backend sends the whole tree at once, so this drives the grouped view's client
+// side load-more. Counting unique documents (a multi-placed document once) makes revealing 10 more line up
+// with the every-10 unique-result pagers: a leaf already seen is kept, a new leaf beyond the limit stops the
+// walk. Group nodes are shallow-copied with their kept children; leaf nodes are returned as-is so their
+// identity still matches the pager map.
+export function limitGroupedResults(nodes: DeepReadonly<Result[]>, limit: number): { results: DeepReadonly<Result>[]; shown: number } {
+  const seen = new Set<string>()
+  let stopped = false
+  const walk = (input: DeepReadonly<Result[]>): DeepReadonly<Result>[] => {
+    const out: DeepReadonly<Result>[] = []
+    for (const node of input) {
+      if (stopped) {
+        break
+      }
+      if (node.group) {
+        const kept = walk(node.group)
+        if (kept.length > 0) {
+          out.push({ ...node, group: kept })
+        }
+      } else if (seen.has(node.id)) {
+        out.push(node)
+      } else if (seen.size < limit) {
+        seen.add(node.id)
+        out.push(node)
+      } else {
+        stopped = true
+      }
+    }
+    return out
+  }
+  return { results: walk(nodes), shown: seen.size }
+}
 
 // RefValueLike is the minimal shape of a reference filter value the selection logic needs: the
 // value id and its hierarchy paths. Each path is an ancestor chain from a root to the value's
