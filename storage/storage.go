@@ -6,7 +6,10 @@ package storage
 import (
 	"cmp"
 	"context"
+	"os"
+	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -42,7 +45,9 @@ type endMetadata struct {
 }
 
 type completeData struct {
-	Buffer       []byte
+	// Hash is the content hash addressing the assembled file on disk.
+	// It is stored in the underlying store in data column.
+	Hash         string
 	FileMetadata *FileMetadata
 	EndMetadata  *endMetadata
 	Chunks       int64
@@ -117,11 +122,17 @@ type Storage struct {
 	// Prefix to use when initializing PostgreSQL objects used by this storage.
 	Prefix string
 
+	// Dir is the directory under which file contents are stored. Files are content-addressed:
+	// the underlying store holds only a file's content hash while the contents themselves live on
+	// disk under Dir, sharded into two levels of subdirectories by the first two characters of the
+	// hash. It is required.
+	Dir string
+
 	// PrimaryCoordinator can be set to the primary session coordinator which allows one to
 	// upload files into changesets managed by the primary session coordinator.
 	PrimaryCoordinator PrimaryCoordinator
 
-	store       *store.Store[[]byte, *FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None]
+	store       *store.Store[string, *FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None]
 	coordinator *coordinator.Coordinator[[]byte, *chunkMetadata, *beginMetadata, *endMetadata, *completeData, *CompleteMetadata]
 }
 
@@ -133,10 +144,14 @@ func (s *Storage) Init(
 		return errors.New("already initialized")
 	}
 
-	storageStore := &store.Store[[]byte, *FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None]{
+	if s.Dir == "" {
+		return errors.New("storage directory not configured")
+	}
+
+	storageStore := &store.Store[string, *FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None]{
 		Schema:       s.Schema,
 		Prefix:       s.Prefix,
-		DataType:     "bytea",
+		DataType:     "text",
 		MetadataType: "jsonb",
 		PatchType:    "",
 	}
@@ -166,13 +181,219 @@ func (s *Storage) Init(
 }
 
 // Store returns the underlying store.Store instance.
-func (s *Storage) Store() *store.Store[[]byte, *FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None] {
+func (s *Storage) Store() *store.Store[string, *FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None] {
 	return s.store
 }
 
 // Coordinator returns the underlying coordinator.Coordinator instance.
 func (s *Storage) Coordinator() *coordinator.Coordinator[[]byte, *chunkMetadata, *beginMetadata, *endMetadata, *completeData, *CompleteMetadata] {
 	return s.coordinator
+}
+
+// filePath returns the on-disk path of the file contents addressed by the given content hash.
+//
+// Files are content-addressed: the hash is the file name, placed under two levels of subdirectories
+// named after its first and second characters so that no single directory holds too many files.
+func (s *Storage) filePath(hash string) string {
+	return filepath.Join(s.Dir, hash[0:1], hash[1:2], hash)
+}
+
+// WriteFile stores the file contents into the storage directory and returns the content hash that
+// addresses them (and is stored as the file data in the underlying store), together with the strong
+// ETag used for HTTP responses.
+//
+// Storage is content-addressed, so writing contents that are already stored (same hash, hence the
+// same bytes) is idempotent: if a file is already present at its final path it is skipped. The hash
+// is later resolved back into the contents by Get, GetLatest, and GetFromChangeset.
+//
+// The contents are written to a uniquely named temporary file, fsynced, and then atomically renamed
+// to the final path, and finally the directory is fsynced. This way a file present at the final path
+// is always complete, even after an interrupted write or a crash, so the skip above is safe. A unique
+// temporary name lets concurrent writers of the same contents proceed without clashing; whichever
+// rename lands last wins and the contents are equal.
+func (s *Storage) WriteFile(data []byte) (string, string, errors.E) {
+	etag := x.ComputeEtag(data)
+	// The content hash is the strong ETag without its surrounding quotes; it addresses the file on
+	// disk and is what we store as the file data, so the quotes are never stored.
+	hash := strings.Trim(etag, `"`)
+	path := s.filePath(hash)
+
+	_, err := os.Stat(path)
+	if err == nil {
+		// The file is already stored and is therefore complete; there is nothing to do.
+		return hash, etag, nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = path
+		return "", "", errE
+	}
+
+	dir := filepath.Dir(path)
+	err = os.MkdirAll(dir, 0o700) //nolint:mnd
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = path
+		return "", "", errE
+	}
+
+	tmp, err := os.CreateTemp(dir, filepath.Base(path)+".*.new")
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = path
+		return "", "", errE
+	}
+	tmpPath := tmp.Name()
+	// On any error path the temporary file is closed and removed. After a successful rename it no
+	// longer exists under tmpPath, so the Remove is then a no-op, as is the second Close.
+	defer func() {
+		_ = tmp.Close()
+		_ = os.Remove(tmpPath)
+	}()
+
+	_, err = tmp.Write(data)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = tmpPath
+		return "", "", errE
+	}
+
+	// We fsync the contents so they are durably on disk before the rename publishes the file at its
+	// final path; otherwise a crash could leave a visible but incomplete file there.
+	err = tmp.Sync()
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = tmpPath
+		return "", "", errE
+	}
+
+	err = tmp.Close()
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = tmpPath
+		return "", "", errE
+	}
+
+	err = os.Rename(tmpPath, path)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = path
+		return "", "", errE
+	}
+
+	// We fsync the directory so the rename itself is durable across a crash.
+	errE := fsyncDir(dir)
+	if errE != nil {
+		return "", "", errE
+	}
+
+	return hash, etag, nil
+}
+
+// fsyncDir flushes a directory's entries (such as a rename just performed in it) to disk so they
+// survive a crash.
+func fsyncDir(dir string) errors.E {
+	d, err := os.Open(dir) //nolint:gosec
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = dir
+		return errE
+	}
+	defer func() { _ = d.Close() }()
+
+	err = d.Sync()
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = dir
+		return errE
+	}
+	return nil
+}
+
+// readFile reads the contents of the file addressed by the given content hash from the storage directory.
+func (s *Storage) readFile(hash string) ([]byte, errors.E) {
+	path := s.filePath(hash)
+	data, err := os.ReadFile(path) //nolint:gosec
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = path
+		return nil, errE
+	}
+	return data, nil
+}
+
+// resolveFile turns a read from the underlying store, where the stored data is the file's content
+// hash, into the actual file contents read from the storage directory.
+//
+// Store errors (including ErrValueNotFound and ErrValueDeleted) are passed through unchanged with
+// nil contents; for a deleted version there is no hash to resolve, but the metadata, version, and
+// parent changesets the store returned remain valid.
+func (s *Storage) resolveFile(
+	hash string, metadata *FileMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
+) ([]byte, *FileMetadata, store.Version, []store.Version, errors.E) {
+	if errE != nil {
+		return nil, metadata, version, parentChangesets, errE
+	}
+	if hash == "" {
+		errE = errors.New("stored file hash is empty")
+		errors.Details(errE)["version"] = version.String()
+		return nil, metadata, version, parentChangesets, errE
+	}
+	contents, errE := s.readFile(hash)
+	if errE != nil {
+		return nil, metadata, version, parentChangesets, errE
+	}
+	return contents, metadata, version, parentChangesets, nil
+}
+
+// attachID records the file id on a non-nil error's details so that an error surfaced while resolving
+// a file can be traced back to the file it concerns.
+// It returns errE unchanged for convenient inline use at the call sites.
+func attachID(id identifier.Identifier, errE errors.E) errors.E {
+	if errE != nil {
+		errors.Details(errE)["id"] = id.String()
+	}
+	return errE
+}
+
+// Get returns the contents of a stored file at the given version, resolving the etag stored in the
+// underlying store into the contents read from the storage directory.
+//
+// It returns also file metadata, the version of the file (if the requested version has 0 for
+// revision, the file with the latest revision is returned and the returned version contains this
+// revision number), and parent changesets of the file at this version.
+func (s *Storage) Get(
+	ctx context.Context, id identifier.Identifier, version store.Version,
+) ([]byte, *FileMetadata, store.Version, []store.Version, errors.E) {
+	data, metadata, version, parentChangesets, errE := s.resolveFile(s.store.Get(ctx, id, version))
+	return data, metadata, version, parentChangesets, attachID(id, errE)
+}
+
+// GetLatest returns the contents of the latest version of a stored file, resolving the etag stored
+// in the underlying store into the contents read from the storage directory.
+//
+// It returns also file metadata, the version of the file, and parent changesets of the file at
+// this version.
+func (s *Storage) GetLatest(
+	ctx context.Context, id identifier.Identifier,
+) ([]byte, *FileMetadata, store.Version, []store.Version, errors.E) {
+	data, metadata, version, parentChangesets, errE := s.resolveFile(s.store.GetLatest(ctx, id))
+	return data, metadata, version, parentChangesets, attachID(id, errE)
+}
+
+// GetFromChangeset returns the contents of a stored file at the given revision in the changeset,
+// resolving the etag stored in the underlying store into the contents read from the storage directory.
+//
+// If revision is 0, the latest revision is returned. If the file has been deleted in the changeset,
+// it returns ErrValueDeleted, but other returned values are valid as well.
+func (s *Storage) GetFromChangeset(
+	ctx context.Context, changesetID, id identifier.Identifier, revision int64,
+) ([]byte, *FileMetadata, store.Version, []store.Version, errors.E) {
+	changeset, errE := s.store.Changeset(ctx, changesetID)
+	if errE != nil {
+		return nil, nil, store.Version{}, nil, attachID(id, errE)
+	}
+	data, metadata, version, parentChangesets, errE := s.resolveFile(changeset.Get(ctx, id, revision))
+	return data, metadata, version, parentChangesets, attachID(id, errE)
 }
 
 func (s *Storage) completeStorageSession(ctx context.Context, session identifier.Identifier) (*completeData, errors.E) {
@@ -183,7 +404,7 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 
 	if endMetadata.Discarded {
 		return &completeData{
-			Buffer:       nil,
+			Hash:         "",
 			FileMetadata: nil,
 			EndMetadata:  endMetadata,
 			Chunks:       0,
@@ -268,18 +489,26 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 		chunkUsers = append(chunkUsers, chunks[i].Metadata.User)
 	}
 
+	// We write the assembled contents to disk before the changeset is committed (in
+	// completeStorageSessionTx) so that the file is on disk by the time the hash referencing it is
+	// stored. The hash is what gets stored as the file data in the underlying store.
+	hash, etag, errE := s.WriteFile(buffer)
+	if errE != nil {
+		return nil, errE
+	}
+
 	metadata := &FileMetadata{
 		At:        endMetadata.At,
 		Base:      base,
 		Size:      beginMetadata.Size,
 		MediaType: beginMetadata.MediaType,
 		Filename:  beginMetadata.Filename,
-		Etag:      x.ComputeEtag(buffer),
+		Etag:      etag,
 		Users:     internalStore.SortedUniqueUsers(chunkUsers),
 	}
 
 	return &completeData{
-		Buffer:       buffer,
+		Hash:         hash,
 		FileMetadata: metadata,
 		EndMetadata:  endMetadata,
 		Chunks:       int64(len(chunksList)),
@@ -316,7 +545,8 @@ func (s *Storage) completeStorageSessionTx(ctx context.Context, _ pgx.Tx, sessio
 		if errE != nil {
 			return nil, errE
 		}
-		_, errE = changeset.Insert(ctx, id, data.Buffer, data.FileMetadata)
+		// The contents are already on disk (written in completeStorageSession); we store only the hash.
+		_, errE = changeset.Insert(ctx, id, data.Hash, data.FileMetadata)
 		if errE != nil {
 			return nil, errE
 		}
@@ -327,7 +557,8 @@ func (s *Storage) completeStorageSessionTx(ctx context.Context, _ pgx.Tx, sessio
 		changesetBase = append(changesetBase, "SESSION", session.String())
 
 		// We do not have to use the "tx" parameter because we access the transaction through ctx.
-		_, errE := s.store.Insert(ctx, id, data.Buffer, data.FileMetadata, &store.CommitMetadata{
+		// The contents are already on disk (written in completeStorageSession); we store only the hash.
+		_, errE := s.store.Insert(ctx, id, data.Hash, data.FileMetadata, &store.CommitMetadata{
 			Base: changesetBase,
 			User: data.EndMetadata.User,
 		})

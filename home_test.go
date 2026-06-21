@@ -148,6 +148,9 @@ func startTestServer(t *testing.T, setupFunc func(globals *peerdb.Globals, serve
 			IndexPrefix: "s" + strings.ToLower(identifier.New().String()),
 			Shards:      1,
 		},
+		Storage: peerdb.StorageConfig{
+			Dir: t.TempDir(),
+		},
 	}
 
 	serve := &peerdb.ServeCommand{ //nolint:exhaustruct

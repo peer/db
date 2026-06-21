@@ -78,20 +78,26 @@ func (b *B) InsertOrReplaceFile(ctx context.Context, base []string, data []byte,
 		mediaType = mtype.String()
 	}
 
+	// The contents go to disk; the underlying store holds only the content hash referencing them.
+	hash, etag, errE := b.files.WriteFile(data)
+	if errE != nil {
+		return id, errE
+	}
+
 	metadata := &storage.FileMetadata{
 		At:        store.Time(time.Now().UTC()),
 		Base:      base,
 		Size:      int64(len(data)),
 		MediaType: mediaType,
 		Filename:  filename,
-		Etag:      x.ComputeEtag(data),
+		Etag:      etag,
 		Users:     nil,
 	}
 
 	// Each base is unique.
 	changesetBase := slices.Clone(base)
 	changesetBase = append(changesetBase, "CHANGESET", "FIRST")
-	_, errE := b.files.Store().Insert(ctx, id, data, metadata, &store.CommitMetadata{
+	_, errE = b.files.Store().Insert(ctx, id, hash, metadata, &store.CommitMetadata{
 		Base: changesetBase,
 		User: nil,
 	})
@@ -104,7 +110,7 @@ func (b *B) InsertOrReplaceFile(ctx context.Context, base []string, data []byte,
 		}
 		changesetBase := slices.Clone(base)
 		changesetBase = append(changesetBase, "CHANGESET", "REPLACE", version.Changeset.String())
-		_, errE = b.files.Store().Replace(ctx, id, version.Changeset, data, metadata, &store.CommitMetadata{
+		_, errE = b.files.Store().Replace(ctx, id, version.Changeset, hash, metadata, &store.CommitMetadata{
 			Base: changesetBase,
 			User: nil,
 		})

@@ -73,7 +73,7 @@ func (b *B) DocumentChangeset(ctx context.Context, id identifier.Identifier) (
 // If revision is 0, the latest revision is returned.
 //
 // If the document has been deleted in the changeset, it returns ErrValueDeleted,
-// but other returned values are valid as well..
+// but other returned values are valid as well.
 func (b *B) GetDocumentFromChangeset(
 	ctx context.Context, changesetID, id identifier.Identifier, revision int64,
 ) (json.RawMessage, *store.DocumentMetadata, store.Version, []store.Version, errors.E) {
@@ -86,7 +86,7 @@ func (b *B) GetDocumentFromChangeset(
 
 // FileChangeset returns the requested changeset from the file store.
 func (b *B) FileChangeset(ctx context.Context, id identifier.Identifier) (
-	store.Changeset[[]byte, *storage.FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None],
+	store.Changeset[string, *storage.FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None],
 	errors.E,
 ) {
 	return b.files.Store().Changeset(ctx, id)
@@ -101,11 +101,7 @@ func (b *B) FileChangeset(ctx context.Context, id identifier.Identifier) (
 func (b *B) GetFileFromChangeset(
 	ctx context.Context, changesetID, id identifier.Identifier, revision int64,
 ) ([]byte, *storage.FileMetadata, store.Version, []store.Version, errors.E) {
-	changeset, errE := b.files.Store().Changeset(ctx, changesetID)
-	if errE != nil {
-		return nil, nil, store.Version{}, nil, errE
-	}
-	return changeset.Get(ctx, id, revision)
+	return b.files.GetFromChangeset(ctx, changesetID, id, revision)
 }
 
 // InsertDocument inserts a new document.
@@ -362,7 +358,7 @@ func (b *B) GetFile(
 			return nil, nil, store.Version{}, nil, errE
 		}
 	}
-	data, metadata, version, parentChangesets, errE := b.files.Store().Get(ctx, id, version)
+	data, metadata, version, parentChangesets, errE := b.files.Get(ctx, id, version)
 	for _, hook := range b.FilePostHooks {
 		data, metadata, version, parentChangesets, errE = hook(ctx, data, metadata, version, parentChangesets, errE)
 	}
@@ -380,7 +376,7 @@ func (b *B) GetFileLatest(ctx context.Context, id identifier.Identifier) ([]byte
 			return nil, nil, store.Version{}, nil, errE
 		}
 	}
-	data, metadata, version, parentChangesets, errE := b.files.Store().GetLatest(ctx, id)
+	data, metadata, version, parentChangesets, errE := b.files.GetLatest(ctx, id)
 	for _, hook := range b.FilePostHooks {
 		data, metadata, version, parentChangesets, errE = hook(ctx, data, metadata, version, parentChangesets, errE)
 	}

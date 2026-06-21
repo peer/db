@@ -47,6 +47,11 @@ type ElasticConfig struct {
 	Shards      int    `default:"${defaultShards}"      help:"Number of ElasticSearch shards when initializing indices."                 placeholder:"NUM"              yaml:"shards"`
 }
 
+// StorageConfig contains configuration for file storage.
+type StorageConfig struct {
+	Dir string `help:"Directory under which to store files." placeholder:"PATH" required:"" type:"path" yaml:"dir"`
+}
+
 // Customizer allows a consumer using PeerDB as a library to attach code at well-defined points of the
 // lifecycle, uniformly across all commands, so that commands cannot diverge in how sites are configured.
 // All hooks are optional. Set it on Globals in code before command-line parsing.
@@ -75,6 +80,7 @@ type Globals struct {
 
 	Postgres PostgresConfig `embed:"" envprefix:"POSTGRES_" prefix:"postgres." yaml:"postgres"`
 	Elastic  ElasticConfig  `embed:"" envprefix:"ELASTIC_"  prefix:"elastic."  yaml:"elastic"`
+	Storage  StorageConfig  `embed:"" envprefix:"STORAGE_"  prefix:"storage."  yaml:"storage"`
 
 	Sites []internalSite.Site `help:"Site configuration as JSON or YAML. Can be provided multiple times." name:"site" placeholder:"SITE" sep:"none" short:"s" yaml:"sites"`
 

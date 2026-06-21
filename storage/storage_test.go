@@ -3,6 +3,7 @@ package storage_test
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -24,7 +25,7 @@ func initDatabase(t *testing.T) (
 	context.Context,
 	*storage.Storage,
 	*testutils.LockableSlice[store.CommittedChangesets[
-		[]byte, *storage.FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None,
+		string, *storage.FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None,
 	]],
 ) {
 	t.Helper()
@@ -65,6 +66,7 @@ func initDatabase(t *testing.T) (
 	s := &storage.Storage{
 		Schema:             schema,
 		Prefix:             prefix,
+		Dir:                t.TempDir(),
 		PrimaryCoordinator: nil,
 	}
 
@@ -83,7 +85,7 @@ func initDatabase(t *testing.T) (
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	channelContents := new(testutils.LockableSlice[store.CommittedChangesets[
-		[]byte, *storage.FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None,
+		string, *storage.FileMetadata, *store.NoMetadata, *store.NoMetadata, *store.CommitMetadata, store.None,
 	]])
 
 	go func() {
@@ -175,7 +177,16 @@ func TestHappyPath(t *testing.T) {
 	expectedBase := append(append([]string{}, fileBase...), "STORAGE", session.String())
 	expectedFileID := identifier.From(expectedBase...)
 
-	data, metadata, _, _, errE := s.Store().GetLatest(ctx, expectedFileID)
+	const expectedHash = "pToAccwccTt9AbUHM5VQIeF7QsgW0Dv5Ka-eZS5O22Y"
+	const expectedEtag = `"` + expectedHash + `"`
+
+	// The underlying store now holds only the file's content hash (no quotes), not its contents.
+	storedData, metadata, _, _, errE := s.Store().GetLatest(ctx, expectedFileID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, expectedHash, storedData)
+
+	// Storage.GetLatest resolves the stored hash into the actual contents read from disk.
+	data, _, _, _, errE := s.GetLatest(ctx, expectedFileID) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []byte("bafooqrxzy"), data)
 
@@ -183,15 +194,26 @@ func TestHappyPath(t *testing.T) {
 	assert.Equal(t, int64(10), metadata.Size)
 	assert.Equal(t, "text/plain", metadata.MediaType)
 	assert.Equal(t, "test.txt", metadata.Filename)
-	assert.Equal(t, `"pToAccwccTt9AbUHM5VQIeF7QsgW0Dv5Ka-eZS5O22Y"`, metadata.Etag)
+	// The strong ETag in metadata keeps its quotes for HTTP responses.
+	assert.Equal(t, expectedEtag, metadata.Etag)
+
+	// The contents live on disk under dir/a/b/hash, addressed by the bare content hash.
+	onDisk, err := os.ReadFile(filepath.Join(s.Dir, expectedHash[0:1], expectedHash[1:2], expectedHash))
+	require.NoError(t, err)
+	assert.Equal(t, []byte("bafooqrxzy"), onDisk)
+
+	// Get at the resolved version returns the same contents.
+	_, _, version, _, errE := s.Store().GetLatest(ctx, expectedFileID) //nolint:dogsled
+	require.NoError(t, errE, "% -+#.1v", errE)
+	dataAtVersion, _, _, _, errE := s.Get(ctx, expectedFileID, version) //nolint:dogsled
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []byte("bafooqrxzy"), dataAtVersion)
 
 	// Verify file metadata Base is recorded and file ID is derivable from it.
 	assert.Equal(t, expectedBase, metadata.Base)
 	assert.Equal(t, expectedFileID, identifier.From(metadata.Base...))
 
 	// Verify changeset ID is derivable from its base.
-	_, _, version, _, errE := s.Store().GetLatest(ctx, expectedFileID) //nolint:dogsled
-	require.NoError(t, errE, "% -+#.1v", errE)
 	changesetBase := append(append([]string{}, expectedBase...), "SESSION", session.String())
 	assert.Equal(t, identifier.From(changesetBase...), version.Changeset)
 
@@ -237,4 +259,101 @@ func TestErrors(t *testing.T) {
 	if assert.NoError(t, errE, "% -+#.1v", errE) {
 		assert.Equal(t, int64(0), count)
 	}
+}
+
+// TestInitRequiresDir verifies that initializing storage without a directory configured fails
+// before any database access.
+func TestInitRequiresDir(t *testing.T) {
+	t.Parallel()
+
+	s := &storage.Storage{ //nolint:exhaustruct
+		Schema: "test",
+		Prefix: "test_",
+	}
+	errE := s.Init(t.Context(), nil, nil, nil)
+	assert.ErrorContains(t, errE, "storage directory not configured")
+}
+
+// TestWriteFileAtomicAndIdempotent verifies that WriteFile writes the contents atomically, leaving no
+// temporary file behind, and skips rewriting contents that are already stored at their final path.
+//
+// WriteFile only touches the storage directory, so this exercises it without a database.
+func TestWriteFileAtomicAndIdempotent(t *testing.T) {
+	t.Parallel()
+
+	s := &storage.Storage{Dir: t.TempDir()} //nolint:exhaustruct
+
+	hash, etag, errE := s.WriteFile([]byte("hello world"))
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, `"`+hash+`"`, etag)
+
+	leafDir := filepath.Join(s.Dir, hash[0:1], hash[1:2])
+	path := filepath.Join(leafDir, hash)
+
+	// The contents are at the final path and no temporary file is left behind.
+	onDisk, err := os.ReadFile(path) //nolint:gosec
+	require.NoError(t, err)
+	assert.Equal(t, []byte("hello world"), onDisk)
+	entries, err := os.ReadDir(leafDir)
+	require.NoError(t, err)
+	if assert.Len(t, entries, 1) {
+		assert.Equal(t, hash, entries[0].Name())
+	}
+
+	// A file already present at the final path is trusted as complete and not rewritten. We tamper
+	// with it and verify that a second WriteFile of the same contents leaves the tampered bytes in place.
+	require.NoError(t, os.WriteFile(path, []byte("tampered"), 0o600))
+	hash2, etag2, errE := s.WriteFile([]byte("hello world"))
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, hash, hash2)
+	assert.Equal(t, etag, etag2)
+	onDisk, err = os.ReadFile(path) //nolint:gosec
+	require.NoError(t, err)
+	assert.Equal(t, []byte("tampered"), onDisk)
+}
+
+// TestContentAddressedDeduplication verifies that two distinct files with identical contents are
+// stored once on disk: both resolve to the same bytes and share a single content-addressed file.
+func TestContentAddressedDeduplication(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, channelContents := initDatabase(t)
+
+	upload := func(base []string) identifier.Identifier {
+		t.Helper()
+		session, errE := s.BeginUploadNew(ctx, base, 5, "text/plain", "f.txt")
+		require.NoError(t, errE, "% -+#.1v", errE)
+		errE = s.UploadChunk(ctx, session, []byte("hello"), 0)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		errE = s.EndUpload(ctx, session, nil)
+		require.NoError(t, errE, "% -+#.1v", errE)
+		return identifier.From(append(append([]string{}, base...), "STORAGE", session.String())...)
+	}
+
+	id1 := upload([]string{"dedup", "one"})
+	id2 := upload([]string{"dedup", "two"})
+
+	require.Eventually(t, func() bool { return channelContents.Len() >= 2 }, 5*time.Second, 10*time.Millisecond)
+
+	data1, meta1, _, _, errE := s.GetLatest(ctx, id1)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	data2, meta2, _, _, errE := s.GetLatest(ctx, id2)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Two distinct files with the same contents resolve to the same bytes and share one etag.
+	assert.NotEqual(t, id1, id2)
+	assert.Equal(t, []byte("hello"), data1)
+	assert.Equal(t, []byte("hello"), data2)
+	assert.Equal(t, meta1.Etag, meta2.Etag)
+
+	// The underlying store holds the bare content hash (no quotes), matching the metadata etag.
+	hash := strings.Trim(meta1.Etag, `"`)
+	storedData, _, _, _, errE := s.Store().GetLatest(ctx, id1) //nolint:dogsled
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, hash, storedData)
+
+	// They are backed by a single file on disk addressed by the shared content hash.
+	onDisk, err := os.ReadFile(filepath.Join(s.Dir, hash[0:1], hash[1:2], hash)) //nolint:gosec
+	require.NoError(t, err)
+	assert.Equal(t, []byte("hello"), onDisk)
 }

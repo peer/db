@@ -50,6 +50,10 @@ type B struct {
 	Schema      string
 	IndexPrefix string
 
+	// StorageDir is the directory under which file contents are stored. The file store holds only
+	// each file's content hash while the contents live on disk under StorageDir. It is required.
+	StorageDir string
+
 	// Levels is the ordered list of visibility level names (lowest to highest). The bridge indexes each
 	// document into one index per level: the highest (last) level must be the unfiltered superset used for
 	// the visibility-independent inverse-relation accumulation, so its hooks must not filter anything.
@@ -161,6 +165,7 @@ func (b *B) Init(
 	files := &storage.Storage{
 		Schema:             b.Schema,
 		Prefix:             "files",
+		Dir:                b.StorageDir,
 		PrimaryCoordinator: &primaryCoordinator{Coordinator: c},
 	}
 	// We do not use the underlying store's Committed channel here so we pass nil as listener.

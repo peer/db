@@ -90,7 +90,7 @@ func Init(ctx context.Context, globals *Globals) (func(), errors.E) {
 		// populated the base now.
 		firstInit := site.Base == nil
 
-		errE := site.Prepare(ctx, globals.Logger, globals.WithContext, dbpool, esClient, globals.Elastic.Shards)
+		errE := site.Prepare(ctx, globals.Logger, globals.WithContext, dbpool, esClient, globals.Elastic.Shards, globals.Storage.Dir)
 		if errE != nil {
 			return onShutdownF, errE
 		}

@@ -19,7 +19,7 @@ import (
 // the site has already been initialized.
 func (s *Site) Prepare(
 	ctx context.Context, logger zerolog.Logger, withContext z.WithContextFunc,
-	dbpool *pgxpool.Pool, esClient *elasticsearch.TypedClient, shards int,
+	dbpool *pgxpool.Pool, esClient *elasticsearch.TypedClient, shards int, storageDir string,
 ) errors.E {
 	if s.initialized {
 		return nil
@@ -31,7 +31,7 @@ func (s *Site) Prepare(
 	ctx = internalStore.WithFallbackDBContext(ctx, s.Schema, "init")
 	ctx = logger.WithContext(ctx)
 
-	b, r, errE := internalBase.InitComponents(ctx, logger, withContext, dbpool, esClient, s.Schema, s.IndexPrefix, shards, s.LanguagePriority, s.LevelNames())
+	b, r, errE := internalBase.InitComponents(ctx, logger, withContext, dbpool, esClient, s.Schema, s.IndexPrefix, shards, storageDir, s.LanguagePriority, s.LevelNames())
 	if errE != nil {
 		return errE
 	}
