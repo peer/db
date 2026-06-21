@@ -1,6 +1,7 @@
 package base_test
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"os"
@@ -267,7 +268,7 @@ func TestInsertOrReplaceFile(t *testing.T) {
 	data := []byte("hello world")
 
 	// Insert.
-	fileID, errE := b.InsertOrReplaceFile(ctx, fileBase, data, "test.txt")
+	fileID, errE := b.InsertOrReplaceFile(ctx, fileBase, bytes.NewReader(data), "test.txt")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Verify file ID is derived from base.
@@ -289,7 +290,7 @@ func TestInsertOrReplaceFile(t *testing.T) {
 
 	// Replace with new content.
 	newData := []byte("updated content")
-	fileID2, errE := b.InsertOrReplaceFile(ctx, fileBase, newData, "test2.txt")
+	fileID2, errE := b.InsertOrReplaceFile(ctx, fileBase, bytes.NewReader(newData), "test2.txt")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, fileID, fileID2)
 
@@ -1510,7 +1511,7 @@ func TestInsertOrReplaceFileDetectsMediaType(t *testing.T) {
 	data := []byte("some binary data")
 
 	// Use a filename with no recognizable extension so mime detection by content is used.
-	fileID, errE := b.InsertOrReplaceFile(ctx, fileBase, data, "noext")
+	fileID, errE := b.InsertOrReplaceFile(ctx, fileBase, bytes.NewReader(data), "noext")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	file, metadata, _, _, errE := b.GetFileLatest(ctx, fileID)

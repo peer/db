@@ -2,6 +2,7 @@ package base
 
 import (
 	"context"
+	"io"
 	"mime"
 	"path/filepath"
 	"slices"
@@ -67,19 +68,30 @@ func (b *B) InsertOrReplaceDocument(ctx context.Context, doc *document.D) errors
 
 // InsertOrReplaceFile inserts or replaces the file based on the ID computed from base.
 //
+// The contents are read from reader, which must be seekable: it is read to detect the media type
+// (when not determined from the filename), then rewound and read again to hash and store the contents.
+//
 // It is useful for bulk importing data where you do not care about metadata and history tracking.
-func (b *B) InsertOrReplaceFile(ctx context.Context, base []string, data []byte, filename string) (identifier.Identifier, errors.E) {
+func (b *B) InsertOrReplaceFile(ctx context.Context, base []string, reader io.ReadSeeker, filename string) (identifier.Identifier, errors.E) {
 	id := identifier.From(base...)
 
 	mediaType := mime.TypeByExtension(filepath.Ext(filename))
 	if mediaType == "" {
-		// Unable to determine media type by extension. Try to detect it by content.
-		mtype := mimetype.Detect(data)
+		// Unable to determine media type by extension. Detect it from the contents, then rewind so
+		// the contents can be read again in full.
+		mtype, err := mimetype.DetectReader(reader)
+		if err != nil {
+			return id, errors.WithStack(err)
+		}
 		mediaType = mtype.String()
+		_, err = reader.Seek(0, io.SeekStart)
+		if err != nil {
+			return id, errors.WithStack(err)
+		}
 	}
 
 	// The contents go to disk; the underlying store holds only the content hash referencing them.
-	hash, etag, errE := b.files.WriteFile(data)
+	hash, etag, size, errE := b.files.WriteFile(reader)
 	if errE != nil {
 		return id, errE
 	}
@@ -87,7 +99,7 @@ func (b *B) InsertOrReplaceFile(ctx context.Context, base []string, data []byte,
 	metadata := &storage.FileMetadata{
 		At:        store.Time(time.Now().UTC()),
 		Base:      base,
-		Size:      int64(len(data)),
+		Size:      size,
 		MediaType: mediaType,
 		Filename:  filename,
 		Etag:      etag,

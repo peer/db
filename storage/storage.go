@@ -4,6 +4,7 @@
 package storage
 
 import (
+	"bytes"
 	"cmp"
 	"context"
 	"io"
@@ -199,9 +200,13 @@ func (s *Storage) filePath(hash string) string {
 	return filepath.Join(s.Dir, hash[0:1], hash[1:2], hash)
 }
 
-// WriteFile stores the file contents into the storage directory and returns the content hash that
-// addresses them (and is stored as the file data in the underlying store), together with the strong
-// ETag used for HTTP responses.
+// WriteFile streams the contents read from reader into the storage directory and returns the content
+// hash that addresses them (and is stored as the file data in the underlying store), the strong ETag
+// used for HTTP responses, and the number of bytes written.
+//
+// reader must be seekable: the contents are read once to compute the hash (which determines the final
+// path) and, if not already stored, read again from the start to write them, so they are never fully
+// buffered in memory.
 //
 // Storage is content-addressed, so writing contents that are already stored (same hash, hence the
 // same bytes) is idempotent: if a file is already present at its final path it is skipped. The hash
@@ -212,21 +217,33 @@ func (s *Storage) filePath(hash string) string {
 // is always complete, even after an interrupted write or a crash, so the skip above is safe. A unique
 // temporary name lets concurrent writers of the same contents proceed without clashing; whichever
 // rename lands last wins and the contents are equal.
-func (s *Storage) WriteFile(data []byte) (string, string, errors.E) {
-	etag := x.ComputeEtag(data)
+func (s *Storage) WriteFile(reader io.ReadSeeker) (string, string, int64, errors.E) {
+	// First pass: hash the contents and measure their size by streaming, without buffering them.
+	etag, size, err := x.ComputeEtagReader(reader)
+	if err != nil {
+		return "", "", 0, errors.WithStack(err)
+	}
 	// The content hash is the strong ETag without its surrounding quotes; it addresses the file on
 	// disk and is what we store as the file data, so the quotes are never stored.
 	hash := strings.Trim(etag, `"`)
 	path := s.filePath(hash)
 
-	_, err := os.Stat(path)
+	_, err = os.Stat(path)
 	if err == nil {
 		// The file is already stored and is therefore complete; there is nothing to do.
-		return hash, etag, nil
+		return hash, etag, size, nil
 	} else if !errors.Is(err, os.ErrNotExist) {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["path"] = path
-		return "", "", errE
+		return "", "", 0, errE
+	}
+
+	// Second pass: rewind to the start so we can stream the contents into the temporary file.
+	_, err = reader.Seek(0, io.SeekStart)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = path
+		return "", "", 0, errE
 	}
 
 	dir := filepath.Dir(path)
@@ -234,14 +251,14 @@ func (s *Storage) WriteFile(data []byte) (string, string, errors.E) {
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["path"] = path
-		return "", "", errE
+		return "", "", 0, errE
 	}
 
 	tmp, err := os.CreateTemp(dir, hash+".*.new")
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["path"] = path
-		return "", "", errE
+		return "", "", 0, errE
 	}
 	tmpPath := tmp.Name()
 	// On any error path the temporary file is closed and removed. After a successful rename it no
@@ -251,11 +268,19 @@ func (s *Storage) WriteFile(data []byte) (string, string, errors.E) {
 		_ = os.Remove(tmpPath)
 	}()
 
-	_, err = tmp.Write(data)
+	n, err := io.Copy(tmp, reader)
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["path"] = tmpPath
-		return "", "", errE
+		return "", "", n, errE
+	}
+
+	if n != size {
+		errE := errors.New("file size mismatch")
+		errors.Details(errE)["expected"] = size
+		errors.Details(errE)["got"] = n
+		errors.Details(errE)["path"] = tmpPath
+		return "", "", n, errE
 	}
 
 	// We fsync the contents so they are durably on disk before the rename publishes the file at its
@@ -264,30 +289,30 @@ func (s *Storage) WriteFile(data []byte) (string, string, errors.E) {
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["path"] = tmpPath
-		return "", "", errE
+		return "", "", n, errE
 	}
 
 	err = tmp.Close()
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["path"] = tmpPath
-		return "", "", errE
+		return "", "", n, errE
 	}
 
 	err = os.Rename(tmpPath, path)
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["path"] = path
-		return "", "", errE
+		return "", "", n, errE
 	}
 
 	// We fsync the directory so the rename itself is durable across a crash.
 	errE := fsyncDir(dir)
 	if errE != nil {
-		return "", "", errE
+		return "", "", n, errE
 	}
 
-	return hash, etag, nil
+	return hash, etag, n, nil
 }
 
 // fsyncDir flushes a directory's entries (such as a rename just performed in it) to disk so they
@@ -497,8 +522,9 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 
 	// We write the assembled contents to disk before the changeset is committed (in
 	// completeStorageSessionTx) so that the file is on disk by the time the hash referencing it is
-	// stored. The hash is what gets stored as the file data in the underlying store.
-	hash, etag, errE := s.WriteFile(buffer)
+	// stored. The hash is what gets stored as the file data in the underlying store. The size is
+	// already known and validated as beginMetadata.Size, so we ignore the size WriteFile reports.
+	hash, etag, _, errE := s.WriteFile(bytes.NewReader(buffer))
 	if errE != nil {
 		return nil, errE
 	}

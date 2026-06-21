@@ -293,9 +293,10 @@ func TestWriteFileAtomicAndIdempotent(t *testing.T) {
 
 	s := &storage.Storage{Dir: t.TempDir()} //nolint:exhaustruct
 
-	hash, etag, errE := s.WriteFile([]byte("hello world"))
+	hash, etag, size, errE := s.WriteFile(strings.NewReader("hello world"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, `"`+hash+`"`, etag)
+	assert.Equal(t, int64(len("hello world")), size)
 
 	leafDir := filepath.Join(s.Dir, hash[0:1], hash[1:2])
 	path := filepath.Join(leafDir, hash)
@@ -313,10 +314,11 @@ func TestWriteFileAtomicAndIdempotent(t *testing.T) {
 	// A file already present at the final path is trusted as complete and not rewritten. We tamper
 	// with it and verify that a second WriteFile of the same contents leaves the tampered bytes in place.
 	require.NoError(t, os.WriteFile(path, []byte("tampered"), 0o600))
-	hash2, etag2, errE := s.WriteFile([]byte("hello world"))
+	hash2, etag2, size2, errE := s.WriteFile(strings.NewReader("hello world"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, hash, hash2)
 	assert.Equal(t, etag, etag2)
+	assert.Equal(t, size, size2)
 	onDisk, err = os.ReadFile(path) //nolint:gosec
 	require.NoError(t, err)
 	assert.Equal(t, []byte("tampered"), onDisk)
