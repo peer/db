@@ -2,6 +2,7 @@ package base_test
 
 import (
 	"context"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -248,6 +249,15 @@ func TestInsertOrReplaceDocumentCarriesOverMetadata(t *testing.T) {
 	assert.NotEmpty(t, metadata.InverseRelations, "docB should still have inverse relations after replace")
 }
 
+// readAndClose reads all contents from the file handle and closes it.
+func readAndClose(t *testing.T, file io.ReadSeekCloser) []byte {
+	t.Helper()
+	contents, err := io.ReadAll(file)
+	require.NoError(t, err)
+	require.NoError(t, file.Close())
+	return contents
+}
+
 func TestInsertOrReplaceFile(t *testing.T) {
 	t.Parallel()
 
@@ -264,9 +274,9 @@ func TestInsertOrReplaceFile(t *testing.T) {
 	assert.Equal(t, identifier.From(fileBase...), fileID)
 
 	// Verify it exists and changeset ID for FIRST is derivable.
-	fileData, metadata, fileVersion1, _, errE := b.GetFileLatest(ctx, fileID)
+	file, metadata, fileVersion1, _, errE := b.GetFileLatest(ctx, fileID)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, data, fileData)
+	assert.Equal(t, data, readAndClose(t, file))
 	assert.Equal(t, "test.txt", metadata.Filename)
 
 	// Verify file metadata Base is recorded.
@@ -284,9 +294,9 @@ func TestInsertOrReplaceFile(t *testing.T) {
 	assert.Equal(t, fileID, fileID2)
 
 	// Verify it was replaced and changeset ID for REPLACE is derivable.
-	fileData, metadata, fileVersion2, _, errE := b.GetFileLatest(ctx, fileID)
+	file, metadata, fileVersion2, _, errE := b.GetFileLatest(ctx, fileID)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, newData, fileData)
+	assert.Equal(t, newData, readAndClose(t, file))
 	assert.Equal(t, "test2.txt", metadata.Filename)
 
 	// Verify file metadata Base is still recorded after replace.
@@ -1132,8 +1142,13 @@ func TestFileUpload(t *testing.T) {
 	expectedBase := append(append([]string{}, fileBase...), "STORAGE", session.String())
 	expectedFileID := identifier.From(expectedBase...)
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		fileData, metadata, _, _, errE := b.GetFileLatest(ctx, expectedFileID)
+		file, metadata, _, _, errE := b.GetFileLatest(ctx, expectedFileID)
 		if !assert.NoError(c, errE, "% -+#.1v", errE) {
+			return
+		}
+		defer func() { _ = file.Close() }()
+		fileData, err := io.ReadAll(file)
+		if !assert.NoError(c, err) {
 			return
 		}
 		assert.Equal(c, data, fileData)
@@ -1498,8 +1513,9 @@ func TestInsertOrReplaceFileDetectsMediaType(t *testing.T) {
 	fileID, errE := b.InsertOrReplaceFile(ctx, fileBase, data, "noext")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	_, metadata, _, _, errE := b.GetFileLatest(ctx, fileID) //nolint:dogsled
+	file, metadata, _, _, errE := b.GetFileLatest(ctx, fileID)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NoError(t, file.Close())
 	assert.Equal(t, "noext", metadata.Filename)
 	// Should have detected a media type (content-based detection).
 	assert.NotEmpty(t, metadata.MediaType)
@@ -1824,9 +1840,9 @@ func TestFileUploadDuringDocumentEdit(t *testing.T) {
 	// Verify the file is now available (committed by the document session).
 	expectedBase := append(append([]string{}, fileBase...), "STORAGE", uploadSession.String())
 	expectedFileID := identifier.From(expectedBase...)
-	data, metadata, _, _, errE := b.GetFileLatest(ctx, expectedFileID)
+	file, metadata, _, _, errE := b.GetFileLatest(ctx, expectedFileID)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, fileData, data)
+	assert.Equal(t, fileData, readAndClose(t, file))
 	assert.Equal(t, "edit-file.txt", metadata.Filename)
 	// Verify file metadata Base is recorded and file ID is derivable from it.
 	assert.Equal(t, expectedBase, metadata.Base)
@@ -1835,9 +1851,9 @@ func TestFileUploadDuringDocumentEdit(t *testing.T) {
 	// Verify the file is also accessible through the changeset.
 	changesetBase := append(append([]string{}, doc.Base...), "SESSION", session.String())
 	changesetID := identifier.From(changesetBase...)
-	changesetData, changesetMetadata, changesetVersion, _, errE := b.GetFileFromChangeset(ctx, changesetID, expectedFileID, 0)
+	changesetFile, changesetMetadata, changesetVersion, _, errE := b.GetFileFromChangeset(ctx, changesetID, expectedFileID, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, fileData, changesetData)
+	assert.Equal(t, fileData, readAndClose(t, changesetFile))
 	assert.Equal(t, "edit-file.txt", changesetMetadata.Filename)
 	assert.Equal(t, changesetID, changesetVersion.Changeset)
 }

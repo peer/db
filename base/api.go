@@ -3,6 +3,7 @@ package base
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"slices"
 	"time"
 
@@ -92,7 +93,8 @@ func (b *B) FileChangeset(ctx context.Context, id identifier.Identifier) (
 	return b.files.Store().Changeset(ctx, id)
 }
 
-// GetFileFromChangeset returns the file at the given revision in the changeset.
+// GetFileFromChangeset returns an open handle on the file at the given revision in the changeset.
+// The caller is responsible for closing the returned handle.
 //
 // If revision is 0, the latest revision is returned.
 //
@@ -100,7 +102,7 @@ func (b *B) FileChangeset(ctx context.Context, id identifier.Identifier) (
 // but other returned values are valid as well.
 func (b *B) GetFileFromChangeset(
 	ctx context.Context, changesetID, id identifier.Identifier, revision int64,
-) ([]byte, *storage.FileMetadata, store.Version, []store.Version, errors.E) {
+) (io.ReadSeekCloser, *storage.FileMetadata, store.Version, []store.Version, errors.E) {
 	return b.files.GetFromChangeset(ctx, changesetID, id, revision)
 }
 
@@ -344,41 +346,43 @@ func (b *B) CountFiles(ctx context.Context) (int64, errors.E) {
 	return b.files.Store().Count(ctx, false)
 }
 
-// GetFile returns a stored file at the given version.
+// GetFile returns an open handle on a stored file at the given version. The caller is responsible
+// for closing the returned handle.
 //
 // It returns also file metadata, the version of the file (if requested version
 // has 0 for revision, a file with the latest revision is returned and returned version
 // contains this revision number), and parent changesets of the file at this version.
 func (b *B) GetFile(
 	ctx context.Context, id identifier.Identifier, version store.Version,
-) ([]byte, *storage.FileMetadata, store.Version, []store.Version, errors.E) {
+) (io.ReadSeekCloser, *storage.FileMetadata, store.Version, []store.Version, errors.E) {
 	for _, hook := range b.FilePreHooks {
 		errE := hook(ctx, id, &version)
 		if errE != nil {
 			return nil, nil, store.Version{}, nil, errE
 		}
 	}
-	data, metadata, version, parentChangesets, errE := b.files.Get(ctx, id, version)
+	file, metadata, version, parentChangesets, errE := b.files.Get(ctx, id, version)
 	for _, hook := range b.FilePostHooks {
-		data, metadata, version, parentChangesets, errE = hook(ctx, data, metadata, version, parentChangesets, errE)
+		file, metadata, version, parentChangesets, errE = hook(ctx, file, metadata, version, parentChangesets, errE)
 	}
-	return data, metadata, version, parentChangesets, errE
+	return file, metadata, version, parentChangesets, errE
 }
 
-// GetFileLatest returns the latest version of a stored file.
+// GetFileLatest returns an open handle on the latest version of a stored file. The caller is
+// responsible for closing the returned handle.
 //
 // It returns also file metadata, the version of the file, and parent
 // changesets of the file at this version.
-func (b *B) GetFileLatest(ctx context.Context, id identifier.Identifier) ([]byte, *storage.FileMetadata, store.Version, []store.Version, errors.E) {
+func (b *B) GetFileLatest(ctx context.Context, id identifier.Identifier) (io.ReadSeekCloser, *storage.FileMetadata, store.Version, []store.Version, errors.E) {
 	for _, hook := range b.FilePreHooks {
 		errE := hook(ctx, id, nil)
 		if errE != nil {
 			return nil, nil, store.Version{}, nil, errE
 		}
 	}
-	data, metadata, version, parentChangesets, errE := b.files.GetLatest(ctx, id)
+	file, metadata, version, parentChangesets, errE := b.files.GetLatest(ctx, id)
 	for _, hook := range b.FilePostHooks {
-		data, metadata, version, parentChangesets, errE = hook(ctx, data, metadata, version, parentChangesets, errE)
+		file, metadata, version, parentChangesets, errE = hook(ctx, file, metadata, version, parentChangesets, errE)
 	}
-	return data, metadata, version, parentChangesets, errE
+	return file, metadata, version, parentChangesets, errE
 }

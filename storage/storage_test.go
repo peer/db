@@ -2,6 +2,7 @@ package storage_test
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -104,6 +105,15 @@ func initDatabase(t *testing.T) (
 	return ctx, s, channelContents
 }
 
+// readAndClose reads all contents from the handle and closes it.
+func readAndClose(t *testing.T, file io.ReadSeekCloser) []byte {
+	t.Helper()
+	contents, err := io.ReadAll(file)
+	require.NoError(t, err)
+	require.NoError(t, file.Close())
+	return contents
+}
+
 func TestHappyPath(t *testing.T) {
 	t.Parallel()
 
@@ -185,10 +195,10 @@ func TestHappyPath(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, expectedHash, storedData)
 
-	// Storage.GetLatest resolves the stored hash into the actual contents read from disk.
-	data, _, _, _, errE := s.GetLatest(ctx, expectedFileID) //nolint:dogsled
+	// Storage.GetLatest resolves the stored hash into an open handle on the contents on disk.
+	file, _, _, _, errE := s.GetLatest(ctx, expectedFileID) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, []byte("bafooqrxzy"), data)
+	assert.Equal(t, []byte("bafooqrxzy"), readAndClose(t, file))
 
 	assert.False(t, time.Time(metadata.At).IsZero())
 	assert.Equal(t, int64(10), metadata.Size)
@@ -202,12 +212,12 @@ func TestHappyPath(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []byte("bafooqrxzy"), onDisk)
 
-	// Get at the resolved version returns the same contents.
+	// Get at the resolved version returns an open handle on the same contents.
 	_, _, version, _, errE := s.Store().GetLatest(ctx, expectedFileID) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
-	dataAtVersion, _, _, _, errE := s.Get(ctx, expectedFileID, version) //nolint:dogsled
+	fileAtVersion, _, _, _, errE := s.Get(ctx, expectedFileID, version) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, []byte("bafooqrxzy"), dataAtVersion)
+	assert.Equal(t, []byte("bafooqrxzy"), readAndClose(t, fileAtVersion))
 
 	// Verify file metadata Base is recorded and file ID is derivable from it.
 	assert.Equal(t, expectedBase, metadata.Base)
@@ -335,10 +345,12 @@ func TestContentAddressedDeduplication(t *testing.T) {
 
 	require.Eventually(t, func() bool { return channelContents.Len() >= 2 }, 5*time.Second, 10*time.Millisecond)
 
-	data1, meta1, _, _, errE := s.GetLatest(ctx, id1)
+	file1, meta1, _, _, errE := s.GetLatest(ctx, id1)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	data2, meta2, _, _, errE := s.GetLatest(ctx, id2)
+	data1 := readAndClose(t, file1)
+	file2, meta2, _, _, errE := s.GetLatest(ctx, id2)
 	require.NoError(t, errE, "% -+#.1v", errE)
+	data2 := readAndClose(t, file2)
 
 	// Two distinct files with the same contents resolve to the same bytes and share one etag.
 	assert.NotEqual(t, id1, id2)

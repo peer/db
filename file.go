@@ -1,7 +1,6 @@
 package peerdb
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"net/http"
@@ -411,14 +410,14 @@ func (s *Service) StorageGetGet(w http.ResponseWriter, req *http.Request, params
 
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
-	var data []byte
+	var file io.ReadSeekCloser
 	var metadata *storage.FileMetadata
 	var version store.Version
 
 	if reqVersion != nil {
-		data, metadata, version, _, errE = site.Base.GetFile(ctx, id, *reqVersion)
+		file, metadata, version, _, errE = site.Base.GetFile(ctx, id, *reqVersion)
 	} else {
-		data, metadata, version, _, errE = site.Base.GetFileLatest(ctx, id)
+		file, metadata, version, _, errE = site.Base.GetFileLatest(ctx, id)
 	}
 
 	if errors.Is(errE, store.ErrValueNotFound) {
@@ -431,9 +430,9 @@ func (s *Service) StorageGetGet(w http.ResponseWriter, req *http.Request, params
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
+	defer func() { _ = file.Close() }()
 
 	w.Header().Set("Content-Type", metadata.MediaType)
-	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Etag", metadata.Etag)
 	w.Header().Set("Version", version.String())
@@ -441,7 +440,9 @@ func (s *Service) StorageGetGet(w http.ResponseWriter, req *http.Request, params
 		w.Header().Set("Content-Disposition", `inline; filename*=UTF-8''`+rfc5987Filename(metadata.Filename))
 	}
 
-	http.ServeContent(w, req, "", time.Time(metadata.At), bytes.NewReader(data))
+	// http.ServeContent streams from the handle and sets Content-Length (and handles range requests)
+	// by seeking, so we do not set Content-Length ourselves.
+	http.ServeContent(w, req, "", time.Time(metadata.At), file)
 }
 
 // StorageChangesGetAPI handles GET requests to list changes in a file changeset.
@@ -486,7 +487,7 @@ func (s *Service) StorageChangesGetGet(w http.ResponseWriter, req *http.Request,
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	// Revision 0 means latest revision.
-	data, metadata, version, _, errE := site.Base.GetFileFromChangeset(ctx, changesetID, id, 0)
+	file, metadata, version, _, errE := site.Base.GetFileFromChangeset(ctx, changesetID, id, 0)
 	if errors.Is(errE, store.ErrValueNotFound) {
 		// This includes ErrValueDeleted, too.
 		s.NotFoundWithError(w, req, errE)
@@ -501,9 +502,9 @@ func (s *Service) StorageChangesGetGet(w http.ResponseWriter, req *http.Request,
 		s.InternalServerErrorWithError(w, req, errE)
 		return
 	}
+	defer func() { _ = file.Close() }()
 
 	w.Header().Set("Content-Type", metadata.MediaType)
-	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Etag", metadata.Etag)
 	w.Header().Set("Version", version.String())
@@ -511,5 +512,7 @@ func (s *Service) StorageChangesGetGet(w http.ResponseWriter, req *http.Request,
 		w.Header().Set("Content-Disposition", `inline; filename*=UTF-8''`+rfc5987Filename(metadata.Filename))
 	}
 
-	http.ServeContent(w, req, "", time.Time(metadata.At), bytes.NewReader(data))
+	// http.ServeContent streams from the handle and sets Content-Length (and handles range requests)
+	// by seeking, so we do not set Content-Length ourselves.
+	http.ServeContent(w, req, "", time.Time(metadata.At), file)
 }

@@ -6,6 +6,7 @@ package storage
 import (
 	"cmp"
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -309,27 +310,29 @@ func fsyncDir(dir string) errors.E {
 	return nil
 }
 
-// readFile reads the contents of the file addressed by the given content hash from the storage directory.
-func (s *Storage) readFile(hash string) ([]byte, errors.E) {
+// openFile opens the file addressed by the given content hash in the storage directory. The caller
+// is responsible for closing the returned handle.
+func (s *Storage) openFile(hash string) (*os.File, errors.E) {
 	path := s.filePath(hash)
-	data, err := os.ReadFile(path) //nolint:gosec
+	file, err := os.Open(path) //nolint:gosec
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["path"] = path
 		return nil, errE
 	}
-	return data, nil
+	return file, nil
 }
 
 // resolveFile turns a read from the underlying store, where the stored data is the file's content
-// hash, into the actual file contents read from the storage directory.
+// hash, into an open handle on the file contents in the storage directory. The caller is responsible
+// for closing the returned handle.
 //
-// Store errors (including ErrValueNotFound and ErrValueDeleted) are passed through unchanged with
-// nil contents; for a deleted version there is no hash to resolve, but the metadata, version, and
+// Store errors (including ErrValueNotFound and ErrValueDeleted) are passed through unchanged with a
+// nil handle; for a deleted version there is no hash to resolve, but the metadata, version, and
 // parent changesets the store returned remain valid.
 func (s *Storage) resolveFile(
 	hash string, metadata *FileMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
-) ([]byte, *FileMetadata, store.Version, []store.Version, errors.E) {
+) (io.ReadSeekCloser, *FileMetadata, store.Version, []store.Version, errors.E) {
 	if errE != nil {
 		return nil, metadata, version, parentChangesets, errE
 	}
@@ -338,11 +341,11 @@ func (s *Storage) resolveFile(
 		errors.Details(errE)["version"] = version.String()
 		return nil, metadata, version, parentChangesets, errE
 	}
-	contents, errE := s.readFile(hash)
+	file, errE := s.openFile(hash)
 	if errE != nil {
 		return nil, metadata, version, parentChangesets, errE
 	}
-	return contents, metadata, version, parentChangesets, nil
+	return file, metadata, version, parentChangesets, nil
 }
 
 // attachID records the file id on a non-nil error's details so that an error surfaced while resolving
@@ -355,45 +358,48 @@ func attachID(id identifier.Identifier, errE errors.E) errors.E {
 	return errE
 }
 
-// Get returns the contents of a stored file at the given version, resolving the etag stored in the
-// underlying store into the contents read from the storage directory.
+// Get returns an open handle on the contents of a stored file at the given version, resolving the
+// hash stored in the underlying store into an open handle on the file in the storage directory. The
+// caller is responsible for closing the returned handle.
 //
 // It returns also file metadata, the version of the file (if the requested version has 0 for
 // revision, the file with the latest revision is returned and the returned version contains this
 // revision number), and parent changesets of the file at this version.
 func (s *Storage) Get(
 	ctx context.Context, id identifier.Identifier, version store.Version,
-) ([]byte, *FileMetadata, store.Version, []store.Version, errors.E) {
-	data, metadata, version, parentChangesets, errE := s.resolveFile(s.store.Get(ctx, id, version))
-	return data, metadata, version, parentChangesets, attachID(id, errE)
+) (io.ReadSeekCloser, *FileMetadata, store.Version, []store.Version, errors.E) {
+	file, metadata, version, parentChangesets, errE := s.resolveFile(s.store.Get(ctx, id, version))
+	return file, metadata, version, parentChangesets, attachID(id, errE)
 }
 
-// GetLatest returns the contents of the latest version of a stored file, resolving the etag stored
-// in the underlying store into the contents read from the storage directory.
+// GetLatest returns an open handle on the contents of the latest version of a stored file, resolving
+// the hash stored in the underlying store into an open handle on the file in the storage directory.
+// The caller is responsible for closing the returned handle.
 //
 // It returns also file metadata, the version of the file, and parent changesets of the file at
 // this version.
 func (s *Storage) GetLatest(
 	ctx context.Context, id identifier.Identifier,
-) ([]byte, *FileMetadata, store.Version, []store.Version, errors.E) {
-	data, metadata, version, parentChangesets, errE := s.resolveFile(s.store.GetLatest(ctx, id))
-	return data, metadata, version, parentChangesets, attachID(id, errE)
+) (io.ReadSeekCloser, *FileMetadata, store.Version, []store.Version, errors.E) {
+	file, metadata, version, parentChangesets, errE := s.resolveFile(s.store.GetLatest(ctx, id))
+	return file, metadata, version, parentChangesets, attachID(id, errE)
 }
 
-// GetFromChangeset returns the contents of a stored file at the given revision in the changeset,
-// resolving the etag stored in the underlying store into the contents read from the storage directory.
+// GetFromChangeset returns an open handle on the contents of a stored file at the given revision in
+// the changeset, resolving the hash stored in the underlying store into an open handle on the file in
+// the storage directory. The caller is responsible for closing the returned handle.
 //
 // If revision is 0, the latest revision is returned. If the file has been deleted in the changeset,
 // it returns ErrValueDeleted, but other returned values are valid as well.
 func (s *Storage) GetFromChangeset(
 	ctx context.Context, changesetID, id identifier.Identifier, revision int64,
-) ([]byte, *FileMetadata, store.Version, []store.Version, errors.E) {
+) (io.ReadSeekCloser, *FileMetadata, store.Version, []store.Version, errors.E) {
 	changeset, errE := s.store.Changeset(ctx, changesetID)
 	if errE != nil {
 		return nil, nil, store.Version{}, nil, attachID(id, errE)
 	}
-	data, metadata, version, parentChangesets, errE := s.resolveFile(changeset.Get(ctx, id, revision))
-	return data, metadata, version, parentChangesets, attachID(id, errE)
+	file, metadata, version, parentChangesets, errE := s.resolveFile(changeset.Get(ctx, id, revision))
+	return file, metadata, version, parentChangesets, attachID(id, errE)
 }
 
 func (s *Storage) completeStorageSession(ctx context.Context, session identifier.Identifier) (*completeData, errors.E) {

@@ -12,6 +12,7 @@ package base
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"slices"
 	"time"
 
@@ -89,10 +90,12 @@ type B struct {
 	// FilePreHooks are called before fetching the file from the store.
 	FilePreHooks []func(ctx context.Context, id identifier.Identifier, version *store.Version) errors.E
 
-	// FilePostHooks are called after fetching the file from the store.
+	// FilePostHooks are called after fetching the file from the store. The file is an open handle on
+	// the contents; a hook that drops or replaces it (returns a different handle or a non-nil error)
+	// is responsible for closing the handle it received.
 	FilePostHooks []func(
-		ctx context.Context, data []byte, metadata *storage.FileMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
-	) ([]byte, *storage.FileMetadata, store.Version, []store.Version, errors.E)
+		ctx context.Context, file io.ReadSeekCloser, metadata *storage.FileMetadata, version store.Version, parentChangesets []store.Version, errE errors.E,
+	) (io.ReadSeekCloser, *storage.FileMetadata, store.Version, []store.Version, errors.E)
 
 	// SearchQueryHook, when set, is called per request and returns an optional
 	// filter query that is added (as a bool filter clause) to every search
