@@ -389,6 +389,7 @@ export function useLimitResults<T>(
   limitedResults: DeepReadonly<Ref<T[]>>
   hasMore: DeepReadonly<Ref<boolean>>
   loadMore: () => void
+  loadAll: () => void
 } {
   let limit = 0
 
@@ -417,6 +418,11 @@ export function useLimitResults<T>(
         limit = results.value.length
       }
       _hasMore.value = limit < results.value.length
+      _limitedResults.value = results.value.slice(0, limit) as T[]
+    },
+    loadAll: () => {
+      limit = results.value.length
+      _hasMore.value = false
       _limitedResults.value = results.value.slice(0, limit) as T[]
     },
   }

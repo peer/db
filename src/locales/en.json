@@ -195,6 +195,7 @@
     },
     "SearchResultsFeed": {
       "closePrint": "Close print view",
+      "loadAll": "Load all",
       "moreFilters": "More filters",
       "shownResults": "{i} of 1 result. | {i} of {count} results.",
       "shownResultsOnly": "{i} of 1 shown result. | {i} of {count} shown results.",

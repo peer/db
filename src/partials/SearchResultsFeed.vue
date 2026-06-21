@@ -115,6 +115,7 @@ const {
   limitedResults: limitedSearchResults,
   hasMore: searchHasMore,
   loadMore: searchLoadMore,
+  loadAll: searchLoadAll,
 } = useLimitResults(
   toRef(() => props.searchResults),
   SEARCH_INITIAL_LIMIT,
@@ -143,6 +144,9 @@ const limitedGroupedResults = computed(() => {
 const groupedHasMore = computed(() => limitedGroupedResults.value.shown < groupedTotals.value.shown)
 function groupedLoadMore(): void {
   groupLimit.value += SEARCH_INCREASE
+}
+function groupedLoadAll(): void {
+  groupLimit.value = groupedTotals.value.shown
 }
 
 // groupedPager records, over the results actually rendered (the limited tree, so node identities match what
@@ -187,6 +191,16 @@ function topPagerIndex(node: DeepReadonly<Result>): number | undefined {
 // hasMore reports whether either view still has results to reveal. It gates the footer, which should appear
 // only once the user has reached the end of the results, the same in the grouped view as in the flat one.
 const hasMore = computed(() => (grouped.value ? groupedHasMore.value : searchHasMore.value))
+
+// loadAll reveals every remaining loaded result at once (up to the server cap), used by the print view's
+// "Load all" button so a printout is not limited to the incrementally revealed subset.
+function loadAll(): void {
+  if (grouped.value) {
+    groupedLoadAll()
+  } else {
+    searchLoadAll()
+  }
+}
 
 const filtersEl = useTemplateRef<HTMLElement>("filtersEl")
 const filtersEnabled = ref(false)
@@ -335,8 +349,8 @@ const WithDocumentD = WithDocument<D>
       class="flex-auto basis-3/4 flex-col gap-y-1 rounded-sm [--pd-indent:calc(var(--spacing)*4)] focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:flex sm:gap-y-4 sm:[--pd-indent:calc(var(--spacing)*6)]"
       :class="filtersEnabled ? 'hidden' : 'flex'"
     >
-      <!-- Print row: the close button (preview only, left) and a live timestamp (right). -->
-      <div class="pd-print-only-flex mb-2 items-center">
+      <!-- Print row: the close and load-all buttons (preview only, left) and a live timestamp (right). -->
+      <div class="pd-print-only-flex mb-2 items-center gap-x-2">
         <button
           type="button"
           class="pd-preview-only items-center gap-x-1 rounded-sm bg-slate-700 px-3 py-2 text-sm text-white shadow-lg outline-none hover:bg-slate-800 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
@@ -344,6 +358,14 @@ const WithDocumentD = WithDocument<D>
         >
           <XMarkIcon class="size-5" :alt="t('partials.SearchResultsFeed.closePrint')" />
           {{ t("partials.SearchResultsFeed.closePrint") }}
+        </button>
+        <button
+          v-if="hasMore"
+          type="button"
+          class="pd-preview-only items-center gap-x-1 rounded-sm bg-primary-600 px-3 py-2 text-sm text-white shadow-lg outline-none hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
+          @click.prevent="loadAll"
+        >
+          {{ t("partials.SearchResultsFeed.loadAll") }}
         </button>
         <div class="ml-auto text-sm text-slate-600"><TimeDisplay :timestamp="now" precision="s" :toggle="false" /></div>
       </div>

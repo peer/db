@@ -195,6 +195,7 @@
     },
     "SearchResultsFeed": {
       "closePrint": "Zapri pogled za tisk",
+      "loadAll": "Naloži vse",
       "moreFilters": "Več filtrov",
       "shownResults": "{i} od 1 rezultata. | {i} od {count} rezultatov.",
       "shownResultsOnly": "{i} od 1 prikazanega rezultata. | {i} od {count} prikazanih rezultatov.",
