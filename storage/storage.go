@@ -4,7 +4,6 @@
 package storage
 
 import (
-	"bytes"
 	"cmp"
 	"context"
 	"io"
@@ -76,16 +75,10 @@ type chunkMetadata struct {
 	User *store.User `json:"user,omitempty"`
 }
 
-type chunk struct {
-	Chunk    int64
-	Data     []byte
-	Metadata chunkMetadata
-}
-
 type chunkPos struct {
-	start  int64
-	length int64
-	chunk  int64
+	Start  int64
+	Length int64
+	Chunk  int64
 }
 
 // FileMetadata contains metadata about a stored file.
@@ -283,36 +276,66 @@ func (s *Storage) WriteFile(reader io.ReadSeeker) (string, string, int64, errors
 		return "", "", n, errE
 	}
 
+	errE := s.finalizeTempFile(tmp, hash)
+	if errE != nil {
+		return "", "", n, errE
+	}
+
+	return hash, etag, n, nil
+}
+
+// finalizeTempFile durably places the open temporary file, whose contents hash to hash, at its
+// content-addressed final path. It fsyncs the contents, then either discards the temporary file when a
+// file is already stored at the final path (a concurrent writer placed identical contents) or
+// atomically renames it into place and fsyncs the directory. It closes the temporary file; the
+// caller's own removal of the temporary path becomes a no-op after a successful rename.
+func (s *Storage) finalizeTempFile(tmp *os.File, hash string) errors.E {
+	tmpPath := tmp.Name()
+
 	// We fsync the contents so they are durably on disk before the rename publishes the file at its
 	// final path; otherwise a crash could leave a visible but incomplete file there.
-	err = tmp.Sync()
+	err := tmp.Sync()
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["path"] = tmpPath
-		return "", "", n, errE
+		return errE
 	}
 
 	err = tmp.Close()
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["path"] = tmpPath
-		return "", "", n, errE
+		return errE
+	}
+
+	path := s.filePath(hash)
+	_, err = os.Stat(path)
+	if err == nil {
+		// The file is already stored and is therefore complete; there is nothing to do.
+		return nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = path
+		return errE
+	}
+
+	dir := filepath.Dir(path)
+	err = os.MkdirAll(dir, 0o700) //nolint:mnd
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = path
+		return errE
 	}
 
 	err = os.Rename(tmpPath, path)
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["path"] = path
-		return "", "", n, errE
+		return errE
 	}
 
 	// We fsync the directory so the rename itself is durable across a crash.
-	errE := fsyncDir(dir)
-	if errE != nil {
-		return "", "", n, errE
-	}
-
-	return hash, etag, n, nil
+	return fsyncDir(dir)
 }
 
 // fsyncDir flushes a directory's entries (such as a rename just performed in it) to disk so they
@@ -448,86 +471,57 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 		return nil, errE
 	}
 
-	chunks := make([]chunk, 0, len(chunksList))
-	for _, c := range chunksList {
-		data, metadata, errE := s.coordinator.GetData(ctx, session, c)
-		if errE != nil {
-			errors.Details(errE)["chunk"] = c
-			return nil, errE
-		}
-		chunks = append(chunks, chunk{
-			Chunk:    c,
-			Data:     data,
-			Metadata: *metadata,
-		})
+	// We assemble the uploaded chunks into a temporary file on disk and then store it.
+	// The temporary file is created in the storage directory root because its final,
+	// content-addressed location is only known once the assembled contents have been hashed.
+	err := os.MkdirAll(s.Dir, 0o700) //nolint:mnd
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = s.Dir
+		return nil, errE
 	}
-	// chunksList is sorted from newest to the oldest chunk and we use a stable sort here, so the
-	// result is that if there are multiple chunks at the same start, newer will be used first.
-	// For chunks with different starts that partially overlap, the chunk with the larger start
-	// is processed last and overwrites the overlapping region, regardless of upload order.
-	slices.SortStableFunc(chunks, func(a, b chunk) int {
-		return cmp.Compare(a.Metadata.Start, b.Metadata.Start)
-	})
+	tmp, err := os.CreateTemp(s.Dir, "assemble-"+session.String()+".*.tmp")
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = s.Dir
+		return nil, errE
+	}
+	// On any error path the temporary file is closed and removed. After finalizeTempFile renames it
+	// into place the Remove is a no-op, as is the second Close.
+	defer func() {
+		_ = tmp.Close()
+		_ = os.Remove(tmp.Name())
+	}()
 
-	// TODO: Do not do this in memory.
-	//       This opens a simple attack where attacker begins upload claiming large size and then ends it, requiring us to allocate memory here.
-	size := int64(0)
-	buffer := make([]byte, beginMetadata.Size)
-
-	// This should match implementation in validateChunks.
-	for _, c := range chunks {
-		if c.Metadata.Start > size {
-			errE = errors.Errorf("%w: gap between chunks", ErrEndNotPossible)
-			errors.Details(errE)["end"] = size
-			errors.Details(errE)["start"] = c.Metadata.Start
-			errors.Details(errE)["chunk"] = c.Chunk
-			return nil, errE
-		}
-		end := c.Metadata.Start + c.Metadata.Length
-		if end > beginMetadata.Size {
-			// This should have already been checked in UploadChunk so it is not an ErrEndNotPossible.
-			errE = errors.New("chunk larger than file")
-			errors.Details(errE)["start"] = c.Metadata.Start
-			errors.Details(errE)["end"] = end
-			errors.Details(errE)["size"] = beginMetadata.Size
-			errors.Details(errE)["chunk"] = c.Chunk
-			return nil, errE
-		}
-		if end <= size {
-			// We already have this data.
-			continue
-		}
-		copy(buffer[c.Metadata.Start:end], c.Data)
-		size = end
+	users, errE := s.assembleChunks(ctx, session, beginMetadata, chunksList, tmp)
+	if errE != nil {
+		return nil, errE
 	}
 
-	if size < beginMetadata.Size {
-		errE = errors.Errorf("%w: chunks smaller than file", ErrEndNotPossible)
-		errors.Details(errE)["chunks"] = size
-		errors.Details(errE)["size"] = beginMetadata.Size
+	// We hash the assembled file and place it at its content-addressed final path before the changeset
+	// is committed (in completeStorageSessionTx), so the file is on disk by the time the hash
+	// referencing it is stored. The hash is what gets stored as the file data in the underlying store.
+	_, err = tmp.Seek(0, io.SeekStart)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = tmp.Name()
+		return nil, errE
+	}
+	etag, _, err := x.ComputeEtagReader(tmp)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = tmp.Name()
+		return nil, errE
+	}
+	hash := strings.Trim(etag, `"`)
+
+	errE = s.finalizeTempFile(tmp, hash)
+	if errE != nil {
 		return nil, errE
 	}
 
 	base := slices.Clone(beginMetadata.Base)
 	base = append(base, "STORAGE", session.String())
-
-	// chunkUsers collects the begin user and every per-chunk user. The end
-	// user is intentionally excluded (it belongs on CommitMetadata.User).
-	// internalStore.SortedUniqueUsers drops nils, so unauthenticated participants are skipped.
-	chunkUsers := make([]*store.User, 0, len(chunks)+1)
-	chunkUsers = append(chunkUsers, beginMetadata.User)
-	for i := range chunks {
-		chunkUsers = append(chunkUsers, chunks[i].Metadata.User)
-	}
-
-	// We write the assembled contents to disk before the changeset is committed (in
-	// completeStorageSessionTx) so that the file is on disk by the time the hash referencing it is
-	// stored. The hash is what gets stored as the file data in the underlying store. The size is
-	// already known and validated as beginMetadata.Size, so we ignore the size WriteFile reports.
-	hash, etag, _, errE := s.WriteFile(bytes.NewReader(buffer))
-	if errE != nil {
-		return nil, errE
-	}
 
 	metadata := &FileMetadata{
 		At:        endMetadata.At,
@@ -536,7 +530,7 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 		MediaType: beginMetadata.MediaType,
 		Filename:  beginMetadata.Filename,
 		Etag:      etag,
-		Users:     internalStore.SortedUniqueUsers(chunkUsers),
+		Users:     users,
 	}
 
 	return &completeData{
@@ -545,6 +539,89 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 		EndMetadata:  endMetadata,
 		Chunks:       int64(len(chunksList)),
 	}, nil
+}
+
+// assembleChunks writes the uploaded chunks for the session into dst at their respective offsets,
+// validating that they cover the whole file without gaps (matching validateChunks), and returns the
+// deduplicated set of users who contributed to the upload (the begin user plus every chunk uploader).
+//
+// Chunk contents are read one chunk at a time and written at the chunk's offset, so the whole file is
+// never held in memory.
+func (s *Storage) assembleChunks(
+	ctx context.Context, session identifier.Identifier, beginMetadata *beginMetadata, chunksList []int64, dst *os.File,
+) ([]store.User, errors.E) {
+	// First we read every chunk's position and uploader (but not its contents) so we can order the
+	// chunks by start and collect the contributing users.
+	chunks := make([]chunkPos, 0, len(chunksList))
+	chunkUsers := make([]*store.User, 0, len(chunksList)+1)
+	// chunkUsers collects the begin user and every per-chunk user. The end user is intentionally
+	// excluded (it belongs on CommitMetadata.User). internalStore.SortedUniqueUsers drops nils, so
+	// unauthenticated participants are skipped.
+	chunkUsers = append(chunkUsers, beginMetadata.User)
+	for _, c := range chunksList {
+		metadata, errE := s.coordinator.GetMetadata(ctx, session, c)
+		if errE != nil {
+			errors.Details(errE)["chunk"] = c
+			return nil, errE
+		}
+		chunks = append(chunks, chunkPos{Start: metadata.Start, Length: metadata.Length, Chunk: c})
+		chunkUsers = append(chunkUsers, metadata.User)
+	}
+	// chunksList is sorted from newest to the oldest chunk and we use a stable sort here, so the
+	// result is that if there are multiple chunks at the same start, newer will be used first.
+	// For chunks with different starts that partially overlap, the chunk with the larger start
+	// is processed last and overwrites the overlapping region, regardless of upload order.
+	slices.SortStableFunc(chunks, func(a, b chunkPos) int {
+		return cmp.Compare(a.Start, b.Start)
+	})
+
+	// This should match implementation in validateChunks.
+	size := int64(0)
+	for _, c := range chunks {
+		if c.Start > size {
+			errE := errors.Errorf("%w: gap between chunks", ErrEndNotPossible)
+			errors.Details(errE)["end"] = size
+			errors.Details(errE)["start"] = c.Start
+			errors.Details(errE)["chunk"] = c.Chunk
+			return nil, errE
+		}
+		end := c.Start + c.Length
+		if end > beginMetadata.Size {
+			// This should have already been checked in UploadChunk so it is not an ErrEndNotPossible.
+			errE := errors.New("chunk larger than file")
+			errors.Details(errE)["start"] = c.Start
+			errors.Details(errE)["end"] = end
+			errors.Details(errE)["size"] = beginMetadata.Size
+			errors.Details(errE)["chunk"] = c.Chunk
+			return nil, errE
+		}
+		if end <= size {
+			// We already have this data, so we do not need to read or write the chunk.
+			continue
+		}
+		data, _, errE := s.coordinator.GetData(ctx, session, c.Chunk)
+		if errE != nil {
+			errors.Details(errE)["chunk"] = c.Chunk
+			return nil, errE
+		}
+		_, err := dst.WriteAt(data, c.Start)
+		if err != nil {
+			errE := errors.WithStack(err)
+			errors.Details(errE)["chunk"] = c.Chunk
+			errors.Details(errE)["path"] = dst.Name()
+			return nil, errE
+		}
+		size = end
+	}
+
+	if size < beginMetadata.Size {
+		errE := errors.Errorf("%w: chunks smaller than file", ErrEndNotPossible)
+		errors.Details(errE)["chunks"] = size
+		errors.Details(errE)["size"] = beginMetadata.Size
+		return nil, errE
+	}
+
+	return internalStore.SortedUniqueUsers(chunkUsers), nil
 }
 
 func (s *Storage) completeStorageSessionTx(ctx context.Context, _ pgx.Tx, session identifier.Identifier, data *completeData) (*CompleteMetadata, errors.E) {
@@ -709,9 +786,9 @@ func (s *Storage) validateChunks(ctx context.Context, session identifier.Identif
 			return errE
 		}
 		chunks = append(chunks, chunkPos{
-			start:  start,
-			length: length,
-			chunk:  c,
+			Start:  start,
+			Length: length,
+			Chunk:  c,
 		})
 	}
 	// chunksList is sorted from newest to the oldest chunk and we use a stable sort here, so the
@@ -719,28 +796,28 @@ func (s *Storage) validateChunks(ctx context.Context, session identifier.Identif
 	// For chunks with different starts that partially overlap, the chunk with the larger start
 	// is processed last and overwrites the overlapping region, regardless of upload order.
 	slices.SortStableFunc(chunks, func(a, b chunkPos) int {
-		return cmp.Compare(a.start, b.start)
+		return cmp.Compare(a.Start, b.Start)
 	})
 
 	size := int64(0)
 
 	// This should match implementation in completeStorageSession.
 	for _, p := range chunks {
-		if p.start > size {
+		if p.Start > size {
 			errE = errors.Errorf("%w: gap between chunks", ErrEndNotPossible)
 			errors.Details(errE)["end"] = size
-			errors.Details(errE)["start"] = p.start
-			errors.Details(errE)["chunk"] = p.chunk
+			errors.Details(errE)["start"] = p.Start
+			errors.Details(errE)["chunk"] = p.Chunk
 			return errE
 		}
-		end := p.start + p.length
+		end := p.Start + p.Length
 		if end > beginMetadata.Size {
 			// This should have already been checked in UploadChunk so it is not an ErrEndNotPossible.
 			errE = errors.New("chunk larger than file")
-			errors.Details(errE)["start"] = p.start
+			errors.Details(errE)["start"] = p.Start
 			errors.Details(errE)["end"] = end
 			errors.Details(errE)["size"] = beginMetadata.Size
-			errors.Details(errE)["chunk"] = p.chunk
+			errors.Details(errE)["chunk"] = p.Chunk
 			return errE
 		}
 		if end <= size {
