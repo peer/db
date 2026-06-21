@@ -5,7 +5,7 @@ import type { D } from "@/document"
 import type { Filter, Result, SearchSession, SortKey, ViewType } from "@/types"
 
 import { FunnelIcon, XMarkIcon } from "@heroicons/vue/20/solid"
-import { computed, onBeforeUnmount, onMounted, ref, toRef, useTemplateRef, watch } from "vue"
+import { computed, onBeforeUnmount, onMounted, provide, ref, toRaw, toRef, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
@@ -18,11 +18,12 @@ import SearchPrintFilters from "@/partials/SearchPrintFilters.vue"
 import SearchResult from "@/partials/SearchResult.vue"
 import SearchResultGroup from "@/partials/SearchResultGroup.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
+import SearchResultsPager from "@/partials/SearchResultsPager.vue"
 import SearchSortDialog from "@/partials/SearchSortDialog.vue"
 import TimeDisplay from "@/partials/TimeDisplay.vue"
 import { useBusy } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, filterResultKey, useFilters, useLocationAt } from "@/search"
-import { loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils"
+import { loadingWidth, searchPagerKey, useLimitResults, useOnScrollOrResize } from "@/utils"
 import { useVisibilityTracking } from "@/visibility"
 
 const props = defineProps<{
@@ -54,6 +55,36 @@ const sortDialogOpen = ref(false)
 // Results are grouped when the session's sort has a leading run of group columns; the backend then returns
 // nested results which we render as a group tree instead of a flat list.
 const grouped = computed(() => (props.searchSession.sort ?? []).some((s) => s.group))
+
+// In the grouped view the actual results are leaf nodes nested under group headings, and a document placed
+// under several groups appears several times. We count each result only on its first appearance, so a
+// progress pager marks every 10 unique results (possibly spanning more than 10 cards). A single ordered walk
+// records, keyed by the leaf node a pager precedes, how many unique results come before it, plus the total
+// unique count; these are provided to the SearchResultGroup tree so a nested pager can render and size its
+// bar without drilling state through every level. Counting unique results also makes the shown total match
+// the server's distinct-document total.
+provide(
+  searchPagerKey,
+  computed(() => {
+    const seen = new Set<string>()
+    const pagerBefore = new Map<object, number>()
+    const walk = (nodes: DeepReadonly<Result[]>): void => {
+      for (const node of nodes) {
+        if (node.group) {
+          walk(node.group)
+        } else if (!seen.has(node.id)) {
+          const uniqueBefore = seen.size
+          seen.add(node.id)
+          if (uniqueBefore > 0 && uniqueBefore % 10 === 0) {
+            pagerBefore.set(toRaw(node), uniqueBefore)
+          }
+        }
+      }
+    }
+    walk(props.searchResults)
+    return { pagerBefore, shown: seen.size, total: props.searchTotal ?? 0 }
+  }),
+)
 
 // Print view: an in-app preview of how the results print. It shares its layout with actual printing
 // (@media print): the filters move above the results as a list, a live timestamp shows top-right, and
@@ -214,7 +245,7 @@ const WithDocumentD = WithDocument<D>
     <div
       id="search-results"
       tabindex="-1"
-      class="flex-auto basis-3/4 flex-col gap-y-1 rounded-sm focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:flex sm:gap-y-4"
+      class="flex-auto basis-3/4 flex-col gap-y-1 rounded-sm [--pd-indent:calc(var(--spacing)*4)] focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:flex sm:gap-y-4 sm:[--pd-indent:calc(var(--spacing)*6)]"
       :class="filtersEnabled ? 'hidden' : 'flex'"
     >
       <!-- Print row: the close button (preview only, left) and a live timestamp (right). -->
@@ -268,22 +299,11 @@ const WithDocumentD = WithDocument<D>
 
       <template v-if="searchTotal !== null && searchTotal > 0">
         <template v-if="grouped">
-          <SearchResultGroup v-for="(node, gi) in searchResults" :key="`${node.id}-${gi}`" :node="node" :search-session-id="searchSession.id" />
+          <SearchResultGroup v-for="(node, gi) in searchResults" :key="`${node.id}-${gi}`" :node="node" :search-session-id="searchSession.id" :depth="0" />
         </template>
         <template v-else>
           <template v-for="(result, i) in limitedSearchResults" :key="result.id">
-            <div v-if="i > 0 && i % 10 === 0" class="pd-pager pd-print-hidden my-1 sm:my-4">
-              <div v-if="searchResults.length < searchTotal" class="pd-count text-center text-sm">{{
-                t("partials.SearchResultsFeed.shownResultsOnly", { i, count: searchResults.length })
-              }}</div>
-              <div v-else-if="searchResults.length == searchTotal" class="pd-count text-center text-sm">{{
-                t("partials.SearchResultsFeed.shownResults", { i, count: searchResults.length })
-              }}</div>
-              <!-- We do not use ProgressBar here because we plan to make this an interactive bar on which you can click to move to that location. -->
-              <div class="pd-track relative h-2 w-full bg-slate-200">
-                <div class="pd-thumb absolute inset-y-0 left-0 bg-secondary-400" :style="{ width: (i / searchResults.length) * 100 + '%' }" />
-              </div>
-            </div>
+            <SearchResultsPager v-if="i > 0 && i % 10 === 0" :i="i" :shown="searchResults.length" :total="searchTotal" />
             <SearchResult :ref="track(result.id)" :search-session-id="searchSession.id" :result="result" />
           </template>
 

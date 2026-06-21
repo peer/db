@@ -1,4 +1,4 @@
-import type { DeepReadonly, Ref } from "vue"
+import type { ComputedRef, DeepReadonly, InjectionKey, Ref } from "vue"
 
 import type { TimePrecision } from "@/document"
 import type { GetDisplayLabel, Mutable, QueryValues, QueryValuesWithOptional } from "@/types"
@@ -17,6 +17,15 @@ import { hour, minute, second, toDate } from "@/time"
 
 // If the last increase would be equal or less than this number, just skip to the end.
 export const SKIP_TO_END = 2
+
+// searchPagerKey carries, from SearchResultsFeed down to the nested SearchResultGroup tree, what the progress
+// pagers need: pagerBefore maps each leaf result node before which a pager should appear (one every 10 unique
+// results) to the count of unique results preceding it; shown is the total number of unique results rendered;
+// total is the number of matching documents. Counting unique results means a multi-placed document, which
+// appears under several groups, is tallied only on its first appearance, so a pager can span more than 10
+// cards yet still mark 10 new results.
+export const searchPagerKey: InjectionKey<ComputedRef<{ pagerBefore: Map<object, number>; shown: number; total: number }>> =
+  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-search-pager") : Symbol()
 
 // RefValueLike is the minimal shape of a reference filter value the selection logic needs: the
 // value id and its hierarchy paths. Each path is an ancestor chain from a root to the value's
