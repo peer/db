@@ -1,7 +1,9 @@
 # This Dockerfile requires DOCKER_BUILDKIT=1 to be build.
 # We do not use syntax header so that we do not have to wait
 # for the Dockerfile frontend image to be pulled.
-FROM node:24.10-alpine3.22 AS node-build
+# The frontend dist is architecture-independent, so we build it once on the native build
+# platform instead of re-running the bundler under emulation for every target platform.
+FROM --platform=$BUILDPLATFORM node:24.10-alpine3.22 AS node-build
 
 ARG VITE_COVERAGE
 ARG VITE_E2E_TESTS
