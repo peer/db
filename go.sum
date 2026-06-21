@@ -323,8 +323,8 @@ gitlab.com/tozd/go/errors v0.11.1 h1:xMPBH+ecV0+8q60QtAGZ1E62FMuOOwpMP0hD4JZfjVo
 gitlab.com/tozd/go/errors v0.11.1/go.mod h1:9oQ31+x7iUOEVsrXLDR+iMD8794G5uqLp6eEnYtvD8M=
 gitlab.com/tozd/go/prosemirror v0.2.0 h1:Er6Ivw+yCZbpE60ZvB/c0ih4Yhb/9ntDDe1zAe9tJH4=
 gitlab.com/tozd/go/prosemirror v0.2.0/go.mod h1:F8M93ZuF/yw5E7Q7nPAnJbM+DPHcVeBS1XbGf4mF7ls=
-gitlab.com/tozd/go/x v0.0.0-20260611215144-8ef394a0957d h1:kO57bxjagtJOWW5kFpcN+ORkC2n/C/gLxabZuuzOJqA=
-gitlab.com/tozd/go/x v0.0.0-20260611215144-8ef394a0957d/go.mod h1:D3M+8J6dO5jk6eETvvFerwRfZ1ACARcceelz892aVyA=
+gitlab.com/tozd/go/x v0.0.0-20260621100254-a764833005f7 h1:ZzsYEyiFdBwge2QcTgQqHPgfZz8OGYFy2d1/olRxAd0=
+gitlab.com/tozd/go/x v0.0.0-20260621100254-a764833005f7/go.mod h1:uWclnYXhE3NhHGfB8yPGHFkeAcIUvpes4YKFXEXzujs=
 gitlab.com/tozd/go/zerolog v0.11.5-0.20260611093043-190c71b8bcda h1:+TbzXG0qt0u8J/0cCeNAxNI4/cDh3HiSSWdAT0a7if8=
 gitlab.com/tozd/go/zerolog v0.11.5-0.20260611093043-190c71b8bcda/go.mod h1:ka0DToFzoMewpADCf2otD0CtpylPLxmF4pibklyoolA=
 gitlab.com/tozd/identifier v0.8.2 h1:OO35kXje84CYhWQIX3UYedLJZmi11ZvcpffD7pQajAI=

@@ -33,7 +33,7 @@ require (
 	github.com/temoto/robotstxt v1.1.2
 	gitlab.com/tozd/go/cli v0.7.0
 	gitlab.com/tozd/go/prosemirror v0.2.0
-	gitlab.com/tozd/go/x v0.0.0-20260611215144-8ef394a0957d
+	gitlab.com/tozd/go/x v0.0.0-20260621100254-a764833005f7
 	gitlab.com/tozd/go/zerolog v0.11.5-0.20260611093043-190c71b8bcda
 	gitlab.com/tozd/identifier v0.8.2
 	gitlab.com/tozd/waf v0.24.1-0.20260611104638-49c13c820954

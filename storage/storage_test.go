@@ -187,8 +187,10 @@ func TestHappyPath(t *testing.T) {
 	expectedBase := append(append([]string{}, fileBase...), "STORAGE", session.String())
 	expectedFileID := identifier.From(expectedBase...)
 
-	const expectedHash = "pToAccwccTt9AbUHM5VQIeF7QsgW0Dv5Ka-eZS5O22Y"
-	const expectedEtag = `"` + expectedHash + `"`
+	// The on-disk file name and the stored data are the lowercase hex SHA-256 of the contents, while
+	// the strong ETag keeps the base64url encoding (and quotes) for HTTP responses.
+	const expectedHash = "a53a0071cc1c713b7d01b50733955021e17b42c816d03bf929af9e652e4edb66"
+	const expectedEtag = `"pToAccwccTt9AbUHM5VQIeF7QsgW0Dv5Ka-eZS5O22Y"`
 
 	// The underlying store now holds only the file's content hash (no quotes), not its contents.
 	storedData, metadata, _, _, errE := s.Store().GetLatest(ctx, expectedFileID)
@@ -295,7 +297,9 @@ func TestWriteFileAtomicAndIdempotent(t *testing.T) {
 
 	hash, etag, size, errE := s.WriteFile(strings.NewReader("hello world"))
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, `"`+hash+`"`, etag)
+	// The hash is the lowercase hex digest; the etag keeps the base64url encoding (and quotes).
+	assert.Equal(t, "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9", hash)
+	assert.Equal(t, `"uU0nuZNNPgilLlLX2n2r-sSE7-N6U4DukIj3rOLvzek"`, etag)
 	assert.Equal(t, int64(len("hello world")), size)
 
 	leafDir := filepath.Join(s.Dir, hash[0:1], hash[1:2])
@@ -360,14 +364,14 @@ func TestContentAddressedDeduplication(t *testing.T) {
 	assert.Equal(t, []byte("hello"), data2)
 	assert.Equal(t, meta1.Etag, meta2.Etag)
 
-	// The underlying store holds the bare content hash (no quotes), matching the metadata etag.
-	hash := strings.Trim(meta1.Etag, `"`)
+	// The underlying store holds the bare lowercase-hex content hash, distinct from the base64url etag.
+	const helloHash = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
 	storedData, _, _, _, errE := s.Store().GetLatest(ctx, id1) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, hash, storedData)
+	assert.Equal(t, helloHash, storedData)
 
 	// They are backed by a single file on disk addressed by the shared content hash.
-	onDisk, err := os.ReadFile(filepath.Join(s.Dir, hash[0:1], hash[1:2], hash)) //nolint:gosec
+	onDisk, err := os.ReadFile(filepath.Join(s.Dir, helloHash[0:1], helloHash[1:2], helloHash))
 	require.NoError(t, err)
 	assert.Equal(t, []byte("hello"), onDisk)
 }

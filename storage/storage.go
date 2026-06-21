@@ -6,6 +6,8 @@ package storage
 import (
 	"cmp"
 	"context"
+	"encoding/base64"
+	"encoding/hex"
 	"io"
 	"os"
 	"path/filepath"
@@ -193,6 +195,18 @@ func (s *Storage) filePath(hash string) string {
 	return filepath.Join(s.Dir, hash[0:1], hash[1:2], hash)
 }
 
+// etagToHash converts a strong ETag (a quoted, base64url-encoded SHA-256 digest) into the lowercase
+// hex encoding of the same digest. The hex form is what addresses the file on disk and is stored as
+// the file data, because hex is safe on case-insensitive filesystems (such as Windows) while base64 is
+// not (it would let two distinct digests collide by case).
+func etagToHash(etag string) (string, errors.E) {
+	sum, err := base64.RawURLEncoding.DecodeString(strings.Trim(etag, `"`))
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+	return hex.EncodeToString(sum), nil
+}
+
 // WriteFile streams the contents read from reader into the storage directory and returns the content
 // hash that addresses them (and is stored as the file data in the underlying store), the strong ETag
 // used for HTTP responses, and the number of bytes written.
@@ -216,9 +230,11 @@ func (s *Storage) WriteFile(reader io.ReadSeeker) (string, string, int64, errors
 	if errE != nil {
 		return "", "", 0, errE
 	}
-	// The content hash is the strong ETag without its surrounding quotes; it addresses the file on
-	// disk and is what we store as the file data, so the quotes are never stored.
-	hash := strings.Trim(etag, `"`)
+	// The file is content-addressed by the hex digest derived from the strong ETag.
+	hash, errE := etagToHash(etag)
+	if errE != nil {
+		return "", "", 0, errE
+	}
 	path := s.filePath(hash)
 
 	_, err := os.Stat(path)
@@ -512,7 +528,10 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 		errors.Details(errE)["path"] = tmp.Name()
 		return nil, errE
 	}
-	hash := strings.Trim(etag, `"`)
+	hash, errE := etagToHash(etag)
+	if errE != nil {
+		return nil, errE
+	}
 
 	errE = s.finalizeTempFile(tmp, hash)
 	if errE != nil {
