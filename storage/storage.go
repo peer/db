@@ -237,7 +237,7 @@ func (s *Storage) WriteFile(data []byte) (string, string, errors.E) {
 		return "", "", errE
 	}
 
-	tmp, err := os.CreateTemp(dir, filepath.Base(path)+".*.new")
+	tmp, err := os.CreateTemp(dir, hash+".*.new")
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["path"] = path
