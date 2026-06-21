@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -25,6 +26,23 @@ import (
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/store"
 )
+
+// storedFileMode is the permission mode applied to stored files. os.CreateTemp creates files as 0o600
+// (owner only), so we relax them to 0o644 (adjusted by the process umask, the same way the OS applies it
+// to the 0o755 storage directories) so that a process running as a different user than the writer can
+// read the blobs, for example a containerized server reading files a bulk import wrote.
+//
+//nolint:gochecknoglobals,mnd
+var storedFileMode = modeWithUmask(0o644)
+
+// modeWithUmask returns mode with the current process umask applied, the same masking the OS performs
+// when creating a file. It reads the umask by momentarily setting it to 0 and restoring it. This runs at
+// package initialization, before the program creates files concurrently, so the transient change is safe.
+func modeWithUmask(mode os.FileMode) os.FileMode {
+	um := syscall.Umask(0)
+	syscall.Umask(um)
+	return mode &^ os.FileMode(um) //nolint:gosec
+}
 
 type beginMetadata struct {
 	At        store.Time `json:"at"`
@@ -262,7 +280,7 @@ func (s *Storage) WriteFile(reader io.ReadSeeker) (string, string, int64, errors
 	}
 
 	dir := filepath.Dir(path)
-	err = os.MkdirAll(dir, 0o700) //nolint:mnd
+	err = os.MkdirAll(dir, 0o755) //nolint:gosec,mnd
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["path"] = path
@@ -282,6 +300,14 @@ func (s *Storage) WriteFile(reader io.ReadSeeker) (string, string, int64, errors
 		_ = tmp.Close()
 		_ = os.Remove(tmpPath)
 	}()
+
+	// os.CreateTemp creates the file 0o600. Relax it so a reader running as a different user than the writer can read the blob.
+	err = tmp.Chmod(storedFileMode)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = tmpPath
+		return "", "", 0, errE
+	}
 
 	n, err := io.Copy(tmp, reader)
 	if err != nil {
@@ -342,7 +368,7 @@ func (s *Storage) finalizeTempFile(tmp *os.File, hash string) errors.E {
 	}
 
 	dir := filepath.Dir(path)
-	err = os.MkdirAll(dir, 0o700) //nolint:mnd
+	err = os.MkdirAll(dir, 0o755) //nolint:gosec,mnd
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["path"] = path
@@ -496,7 +522,7 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 	// We assemble the uploaded chunks into a temporary file on disk and then store it.
 	// The temporary file is created in the storage directory root because its final,
 	// content-addressed location is only known once the assembled contents have been hashed.
-	err := os.MkdirAll(s.Dir, 0o700) //nolint:mnd
+	err := os.MkdirAll(s.Dir, 0o755) //nolint:gosec,mnd
 	if err != nil {
 		errE := errors.WithStack(err)
 		errors.Details(errE)["path"] = s.Dir
@@ -514,6 +540,14 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 		_ = tmp.Close()
 		_ = os.Remove(tmp.Name())
 	}()
+
+	// os.CreateTemp creates the file 0o600. Relax it so a reader running as a different user than the writer can read the blob.
+	err = tmp.Chmod(storedFileMode)
+	if err != nil {
+		errE := errors.WithStack(err)
+		errors.Details(errE)["path"] = tmp.Name()
+		return nil, errE
+	}
 
 	users, errE := s.assembleChunks(ctx, session, beginMetadata, chunksList, tmp)
 	if errE != nil {

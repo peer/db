@@ -28,9 +28,9 @@ func TestLoad(t *testing.T) {
 
 		dir := t.TempDir()
 
-		err := os.WriteFile(filepath.Join(dir, "a.json"), []byte(`{"name":"Alice","value":1}`), 0o600)
+		err := os.WriteFile(filepath.Join(dir, "a.json"), []byte(`{"name":"Alice","value":1}`), 0o644) //nolint:gosec
 		require.NoError(t, err)
-		err = os.WriteFile(filepath.Join(dir, "b.json"), []byte(`{"name":"Bob","value":2}`), 0o600)
+		err = os.WriteFile(filepath.Join(dir, "b.json"), []byte(`{"name":"Bob","value":2}`), 0o644) //nolint:gosec
 		require.NoError(t, err)
 
 		results, errE := transform.Load[TestJSONData](t.Context(), dir)
@@ -73,11 +73,11 @@ func TestLoad(t *testing.T) {
 
 		dir := t.TempDir()
 
-		err := os.WriteFile(filepath.Join(dir, "data.json"), []byte(`{"name":"Alice","value":1}`), 0o600)
+		err := os.WriteFile(filepath.Join(dir, "data.json"), []byte(`{"name":"Alice","value":1}`), 0o644) //nolint:gosec
 		require.NoError(t, err)
-		err = os.WriteFile(filepath.Join(dir, "readme.txt"), []byte("not json"), 0o600)
+		err = os.WriteFile(filepath.Join(dir, "readme.txt"), []byte("not json"), 0o644) //nolint:gosec
 		require.NoError(t, err)
-		err = os.WriteFile(filepath.Join(dir, "data.yaml"), []byte("name: Alice"), 0o600)
+		err = os.WriteFile(filepath.Join(dir, "data.yaml"), []byte("name: Alice"), 0o644) //nolint:gosec
 		require.NoError(t, err)
 
 		results, errE := transform.Load[TestJSONData](t.Context(), dir)
@@ -94,7 +94,7 @@ func TestLoad(t *testing.T) {
 
 		dir := t.TempDir()
 
-		err := os.WriteFile(filepath.Join(dir, "bad.json"), []byte(`{invalid json`), 0o600)
+		err := os.WriteFile(filepath.Join(dir, "bad.json"), []byte(`{invalid json`), 0o644) //nolint:gosec
 		require.NoError(t, err)
 
 		_, errE := transform.Load[TestJSONData](t.Context(), dir)
@@ -106,7 +106,7 @@ func TestLoad(t *testing.T) {
 
 		dir := t.TempDir()
 
-		err := os.WriteFile(filepath.Join(dir, "a.json"), []byte(`{"name":"Alice","value":1}`), 0o600)
+		err := os.WriteFile(filepath.Join(dir, "a.json"), []byte(`{"name":"Alice","value":1}`), 0o644) //nolint:gosec
 		require.NoError(t, err)
 
 		ctx, cancel := context.WithCancel(t.Context())
@@ -122,12 +122,12 @@ func TestLoad(t *testing.T) {
 
 		dir := t.TempDir()
 		subdir := filepath.Join(dir, "sub")
-		err := os.Mkdir(subdir, 0o700)
+		err := os.Mkdir(subdir, 0o755) //nolint:gosec
 		require.NoError(t, err)
 
-		err = os.WriteFile(filepath.Join(dir, "root.json"), []byte(`{"name":"Root","value":0}`), 0o600)
+		err = os.WriteFile(filepath.Join(dir, "root.json"), []byte(`{"name":"Root","value":0}`), 0o644) //nolint:gosec
 		require.NoError(t, err)
-		err = os.WriteFile(filepath.Join(subdir, "nested.json"), []byte(`{"name":"Nested","value":99}`), 0o600)
+		err = os.WriteFile(filepath.Join(subdir, "nested.json"), []byte(`{"name":"Nested","value":99}`), 0o644) //nolint:gosec
 		require.NoError(t, err)
 
 		results, errE := transform.Load[TestJSONData](t.Context(), dir)
@@ -146,13 +146,13 @@ func TestLoad(t *testing.T) {
 
 		dir := t.TempDir()
 		jsonFile := filepath.Join(dir, "data.json")
-		err := os.WriteFile(jsonFile, []byte(`{"name":"Alice","value":1}`), 0o600)
+		err := os.WriteFile(jsonFile, []byte(`{"name":"Alice","value":1}`), 0o644) //nolint:gosec
 		require.NoError(t, err)
 
 		// Make the file unreadable.
 		err = os.Chmod(jsonFile, 0o000)
 		require.NoError(t, err)
-		t.Cleanup(func() { _ = os.Chmod(jsonFile, 0o600) })
+		t.Cleanup(func() { _ = os.Chmod(jsonFile, 0o644) }) //nolint:gosec
 
 		_, errE := transform.Load[TestJSONData](t.Context(), dir)
 		require.Error(t, errE)
@@ -167,15 +167,15 @@ func TestLoad(t *testing.T) {
 
 		dir := t.TempDir()
 		subdir := filepath.Join(dir, "sub")
-		err := os.Mkdir(subdir, 0o700)
+		err := os.Mkdir(subdir, 0o755) //nolint:gosec
 		require.NoError(t, err)
-		err = os.WriteFile(filepath.Join(subdir, "data.json"), []byte(`{"name":"Alice","value":1}`), 0o600)
+		err = os.WriteFile(filepath.Join(subdir, "data.json"), []byte(`{"name":"Alice","value":1}`), 0o644) //nolint:gosec
 		require.NoError(t, err)
 
 		// Make the subdirectory unreadable (prevents WalkDir from listing its contents).
 		err = os.Chmod(subdir, 0o000)
 		require.NoError(t, err)
-		t.Cleanup(func() { _ = os.Chmod(subdir, 0o700) }) //nolint:gosec
+		t.Cleanup(func() { _ = os.Chmod(subdir, 0o755) }) //nolint:gosec
 
 		_, errE := transform.Load[TestJSONData](t.Context(), dir)
 		require.Error(t, errE)

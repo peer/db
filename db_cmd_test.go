@@ -16,9 +16,9 @@ func TestClearDirContents(t *testing.T) {
 
 	dir := t.TempDir()
 	// Populate the directory with a top-level file and a nested subdirectory with a file.
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "assemble-abc.tmp"), []byte("x"), 0o600))
-	require.NoError(t, os.MkdirAll(filepath.Join(dir, "a", "b"), 0o700))
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "a", "b", "hash"), []byte("y"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "assemble-abc.tmp"), []byte("x"), 0o644)) //nolint:gosec
+	require.NoError(t, os.MkdirAll(filepath.Join(dir, "a", "b"), 0o755))                         //nolint:gosec
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "a", "b", "hash"), []byte("y"), 0o644))   //nolint:gosec
 
 	errE := peerdb.TestingClearDirContents(dir)
 	require.NoError(t, errE, "% -+#.1v", errE)

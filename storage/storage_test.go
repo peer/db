@@ -326,7 +326,7 @@ func TestWriteFileAtomicAndIdempotent(t *testing.T) {
 
 	// A file already present at the final path is trusted as complete and not rewritten. We tamper
 	// with it and verify that a second WriteFile of the same contents leaves the tampered bytes in place.
-	require.NoError(t, os.WriteFile(path, []byte("tampered"), 0o600))
+	require.NoError(t, os.WriteFile(path, []byte("tampered"), 0o644)) //nolint:gosec
 	hash2, etag2, size2, errE := s.WriteFile(strings.NewReader("hello world"))
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, hash, hash2)
