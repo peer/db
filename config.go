@@ -49,7 +49,7 @@ type ElasticConfig struct {
 
 // StorageConfig contains configuration for file storage.
 type StorageConfig struct {
-	Dir string `help:"Directory under which to store files." placeholder:"PATH" required:"" type:"path" yaml:"dir"`
+	Dir string `help:"Directory under which to store files." placeholder:"PATH" required:"" short:"S" type:"path" yaml:"dir"`
 }
 
 // Customizer allows a consumer using PeerDB as a library to attach code at well-defined points of the
@@ -193,7 +193,7 @@ func (c *ServeCommand) Validate() error {
 
 // PopulateCommand contains configuration for the populate command.
 type PopulateCommand struct {
-	SaveDir   string `help:"Save intermediate structs as files into a directory."            name:"save"   placeholder:"DIR" short:"S" type:"path" yaml:"saveDir"`
+	SaveDir   string `help:"Save intermediate structs as files into a directory."            name:"save"   placeholder:"DIR"           type:"path" yaml:"saveDir"`
 	OutputDir string `help:"Save documents as files into a directory."                       name:"output" placeholder:"DIR" short:"O" type:"path" yaml:"outputDir"`
 	DryRun    bool   `help:"Dry run. Do everything, but insert documents into the database."                                                       yaml:"dryRun"`
 

@@ -49,6 +49,7 @@ codeclimate.json
 
 # Data
 /.cache
+/.storage
 /output
 
 # Binaries
