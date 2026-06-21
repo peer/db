@@ -153,3 +153,36 @@ func TestWithDocumentHooksDeleted(t *testing.T) {
 	assert.Nil(t, doc)
 	assert.True(t, sawNil, "a post-hook runs with a nil document for a deleted document")
 }
+
+// TestGetDocumentFromChangesetRunsPreHooks verifies that GetDocumentFromChangeset runs the document
+// pre-hooks. A denying pre-hook blocks the read before the store is reached, so the (nil) store is
+// never touched.
+func TestGetDocumentFromChangesetRunsPreHooks(t *testing.T) {
+	t.Parallel()
+
+	b := &base.B{ //nolint:exhaustruct
+		DocumentPreHooks: []docPreHook{
+			func(_ context.Context, _ identifier.Identifier, _ *store.Version) errors.E {
+				return errors.WithStack(store.ErrAccessDenied)
+			},
+		},
+	}
+	_, _, _, _, errE := b.GetDocumentFromChangeset(t.Context(), identifier.New(), testDocID, 0) //nolint:dogsled
+	assert.ErrorIs(t, errE, store.ErrAccessDenied)
+}
+
+// TestGetFileFromChangesetRunsPreHooks verifies that GetFileFromChangeset runs the file pre-hooks. A
+// denying pre-hook blocks the read before the store is reached, so the (nil) store is never touched.
+func TestGetFileFromChangesetRunsPreHooks(t *testing.T) {
+	t.Parallel()
+
+	b := &base.B{ //nolint:exhaustruct
+		FilePreHooks: []func(ctx context.Context, id identifier.Identifier, version *store.Version) errors.E{
+			func(_ context.Context, _ identifier.Identifier, _ *store.Version) errors.E {
+				return errors.WithStack(store.ErrAccessDenied)
+			},
+		},
+	}
+	_, _, _, _, errE := b.GetFileFromChangeset(t.Context(), identifier.New(), identifier.New(), 0) //nolint:dogsled
+	assert.ErrorIs(t, errE, store.ErrAccessDenied)
+}
