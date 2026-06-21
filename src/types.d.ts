@@ -270,6 +270,12 @@ export type StorageBeginUploadResponse = {
   session: string
 }
 
+export type StorageEndUploadRequest = {
+  // Lowercase hex SHA-256 of the file contents, computed by the client while uploading. The upload
+  // fails if the assembled file does not hash to it.
+  hash: string
+}
+
 export type StorageUploadStatus = {
   active: boolean
   id?: string

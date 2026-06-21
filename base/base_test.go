@@ -3,6 +3,8 @@ package base_test
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"os"
 	"strings"
@@ -257,6 +259,12 @@ func readAndClose(t *testing.T, file io.ReadSeekCloser) []byte {
 	require.NoError(t, err)
 	require.NoError(t, file.Close())
 	return contents
+}
+
+// hashOf returns the lowercase hex SHA-256 of data, the form a client provides when ending an upload.
+func hashOf(data []byte) string {
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:])
 }
 
 func TestInsertOrReplaceFile(t *testing.T) {
@@ -1136,7 +1144,7 @@ func TestFileUpload(t *testing.T) {
 	assert.Positive(t, length)
 
 	// End upload.
-	errE = b.EndUpload(ctx, session)
+	errE = b.EndUpload(ctx, session, hashOf(data))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for the file to become available. File ID is derived from base + "STORAGE" + session.
@@ -1796,7 +1804,7 @@ func TestFileUploadDuringDocumentEdit(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// End the upload linked to the document edit session.
-	errE = b.EndEditDocumentUpload(ctx, uploadSession, session)
+	errE = b.EndEditDocumentUpload(ctx, uploadSession, session, hashOf(fileData))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Wait for the upload session to complete (file inserted into changeset but not committed).
@@ -1883,7 +1891,7 @@ func TestFileUploadDuringDocumentEditDiscard(t *testing.T) {
 	errE = b.UploadChunk(ctx, uploadSession, fileData, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.EndEditDocumentUpload(ctx, uploadSession, session)
+	errE = b.EndEditDocumentUpload(ctx, uploadSession, session, hashOf(fileData))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Discard the document edit session (no document changes).
@@ -1936,7 +1944,7 @@ func TestEndEditDocumentUploadEndedSession(t *testing.T) {
 	errE = b.UploadChunk(ctx, uploadSession, fileData, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.EndEditDocumentUpload(ctx, uploadSession, session)
+	errE = b.EndEditDocumentUpload(ctx, uploadSession, session, hashOf(fileData))
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
 	// The file upload itself can still be discarded.
@@ -1970,7 +1978,7 @@ func TestFileUploadCompletionAfterEditSessionDiscard(t *testing.T) {
 
 	// End the upload linked to the document edit session.
 	// This succeeds because the edit session is still active.
-	errE = b.EndEditDocumentUpload(ctx, uploadSession, session)
+	errE = b.EndEditDocumentUpload(ctx, uploadSession, session, hashOf(fileData))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Now discard the document edit session.
@@ -2073,7 +2081,7 @@ func TestGetUploadSession(t *testing.T) {
 	errE = b.UploadChunk(ctx, session, data, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = b.EndUpload(ctx, session)
+	errE = b.EndUpload(ctx, session, hashOf(data))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Session should be ended.

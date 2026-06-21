@@ -245,6 +245,12 @@ func (s *Service) StorageGetChunkGetAPI(w http.ResponseWriter, req *http.Request
 
 type emptyRequest struct{}
 
+// endUploadRequest is the body of a finalize-upload request. Hash is the lowercase hex SHA-256 of the
+// file contents computed by the client. The upload fails if the assembled file does not hash to it.
+type endUploadRequest struct {
+	Hash string `json:"hash"`
+}
+
 // StorageEndUploadPostAPI handles POST requests to finalize a file upload session.
 func (s *Service) StorageEndUploadPostAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	defer req.Body.Close()              //nolint:errcheck
@@ -264,8 +270,8 @@ func (s *Service) StorageEndUploadPostAPI(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	var ea emptyRequest
-	errE = x.DecodeJSONWithoutUnknownFields(req.Body, &ea)
+	var er endUploadRequest
+	errE = x.DecodeJSONWithoutUnknownFields(req.Body, &er)
 	if errE != nil {
 		s.BadRequestWithError(w, req, errE)
 		return
@@ -273,7 +279,7 @@ func (s *Service) StorageEndUploadPostAPI(w http.ResponseWriter, req *http.Reque
 
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
-	errE = site.Base.EndUpload(ctx, session)
+	errE = site.Base.EndUpload(ctx, session, er.Hash)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return

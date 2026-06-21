@@ -108,6 +108,7 @@
     "@tozd/prosemirror": "^0.2.0",
     "esm-seedrandom": "^3.0.5-esm.2",
     "fflate": "^0.8.3",
+    "hash-wasm": "^4.12.0",
     "heroicons": "^2.2.0",
     "lodash-es": "^4.18.1",
     "nouislider": "^15.8.1",

@@ -1,7 +1,9 @@
 import type { Ref } from "vue"
 import type { Router } from "vue-router"
 
-import type { StorageBeginUploadRequest, StorageBeginUploadResponse, StorageUploadStatus } from "@/types"
+import type { StorageBeginUploadRequest, StorageBeginUploadResponse, StorageEndUploadRequest, StorageUploadStatus } from "@/types"
+
+import { createSHA256 } from "hash-wasm"
 
 import { getURLDirect, postBlob, postJSON } from "@/api"
 import { delay, encodeQuery } from "@/utils"
@@ -92,8 +94,18 @@ export async function uploadFile(
       return ""
     }
 
+    // We compute the SHA-256 of the file incrementally as we read each chunk, so the whole file is
+    // never held in memory, and send it when ending the upload. The backend recomputes the hash of the
+    // assembled file and fails the upload on a mismatch, detecting corruption in transit.
+    const hasher = await createSHA256()
+
     for (let chunkStart = 0; chunkStart < file.size; chunkStart += MAX_PAYLOAD_SIZE) {
       const chunkEnd = Math.min(chunkStart + MAX_PAYLOAD_SIZE, file.size)
+      // chunk is a lazy, file-backed Blob. We read its bytes once to feed the hasher (the buffer is
+      // transient and freed after), and hand the same Blob to postBlob, which streams it from the file
+      // without us holding it in memory.
+      const chunk = file.slice(chunkStart, chunkEnd)
+      hasher.update(new Uint8Array(await chunk.arrayBuffer()))
       // TODO: We should switch implementation of postBlob to XMLHttpRequest and obtain progress inside a chunk.
       await postBlob(
         router.apiResolve({
@@ -104,7 +116,7 @@ export async function uploadFile(
           // Because start is less than MAX_PAYLOAD_SIZE, toString() never uses scientific notation.
           query: encodeQuery({ start: chunkStart.toString() }),
         }).href,
-        file.slice(chunkStart, chunkEnd),
+        chunk,
         abortSignal,
         progress,
       )
@@ -132,6 +144,10 @@ export async function uploadFile(
       }
     }, SWITCH_TIME_MS)
 
+    const endUploadRequest: StorageEndUploadRequest = {
+      hash: hasher.digest("hex"),
+    }
+
     try {
       await postJSON(
         router.apiResolve({
@@ -140,7 +156,7 @@ export async function uploadFile(
             session: beginUploadResponse.session,
           },
         }).href,
-        {},
+        endUploadRequest,
         abortSignal,
         // We do not mind progress being additionally increased beyond total because
         // progress bar clamps it at 100%.

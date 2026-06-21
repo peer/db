@@ -41,6 +41,10 @@ type endMetadata struct {
 	At             store.Time             `json:"at"`
 	PrimarySession *identifier.Identifier `json:"primarySession,omitempty"`
 	Discarded      bool                   `json:"discarded,omitempty"`
+	// Hash is the lowercase hex SHA-256 of the file contents as computed by the client while uploading.
+	// Completion compares it against the hash of the assembled file and fails the upload (it is not
+	// stored) on a mismatch, so corruption between the client and the assembled file is detected.
+	Hash string `json:"hash"`
 	// User is the user who ended the upload session (the committer). nil when
 	// unauthenticated. Lands in CommitMetadata.User when the file is committed
 	// standalone. NOT included in the Users union on FileMetadata.
@@ -533,6 +537,18 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 		return nil, errE
 	}
 
+	// The assembled file must hash to the value the client computed over the contents it uploaded. On a
+	// mismatch the contents were corrupted between the client and the assembled file, so we do not store
+	// the file (the temporary file is discarded) and fail the completion. The assembled file hashes the
+	// same on every retry, so this is permanent: we wrap it with ErrInvalidSessionData so the completion
+	// job is cancelled instead of retried.
+	if endMetadata.Hash != hash {
+		errE := errors.New("uploaded file hash does not match the client-provided hash")
+		errors.Details(errE)["expected"] = endMetadata.Hash
+		errors.Details(errE)["got"] = hash
+		return nil, errors.WrapWith(errE, coordinator.ErrInvalidSessionData)
+	}
+
 	errE = s.finalizeTempFile(tmp, hash)
 	if errE != nil {
 		return nil, errE
@@ -761,8 +777,11 @@ func (s *Storage) GetChunk(ctx context.Context, session identifier.Identifier, c
 
 // EndUpload finalizes an upload session and assembles the file.
 //
+// hash is the lowercase hex SHA-256 of the file contents computed by the client; the assembled file's
+// hash is checked against it at completion and the upload fails on a mismatch.
+//
 // It returns the ID of the file.
-func (s *Storage) EndUpload(ctx context.Context, session identifier.Identifier, primarySession *identifier.Identifier) errors.E {
+func (s *Storage) EndUpload(ctx context.Context, session identifier.Identifier, primarySession *identifier.Identifier, hash string) errors.E {
 	if primarySession != nil && s.PrimaryCoordinator == nil {
 		return errors.New("primary session coordinator not set")
 	}
@@ -778,6 +797,7 @@ func (s *Storage) EndUpload(ctx context.Context, session identifier.Identifier, 
 		At:             store.Time(time.Now().UTC()),
 		PrimarySession: primarySession,
 		Discarded:      false,
+		Hash:           hash,
 		User:           store.UserFromContext(ctx),
 	}
 	return s.coordinator.End(ctx, session, metadata)
@@ -860,6 +880,7 @@ func (s *Storage) DiscardUpload(ctx context.Context, session identifier.Identifi
 		At:             store.Time(time.Now().UTC()),
 		PrimarySession: nil,
 		Discarded:      true,
+		Hash:           "",
 		User:           store.UserFromContext(ctx),
 	}
 	return s.coordinator.End(ctx, session, metadata)

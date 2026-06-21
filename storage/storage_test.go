@@ -2,6 +2,8 @@ package storage_test
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"os"
 	"path/filepath"
@@ -114,6 +116,12 @@ func readAndClose(t *testing.T, file io.ReadSeekCloser) []byte {
 	return contents
 }
 
+// hashOf returns the lowercase hex SHA-256 of data, the form a client provides to EndUpload.
+func hashOf(data []byte) string {
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:])
+}
+
 func TestHappyPath(t *testing.T) {
 	t.Parallel()
 
@@ -159,7 +167,7 @@ func TestHappyPath(t *testing.T) {
 	assert.Equal(t, int64(2), start)
 	assert.Equal(t, int64(3), length)
 
-	errE = s.EndUpload(ctx, session, nil)
+	errE = s.EndUpload(ctx, session, nil, hashOf([]byte("bafooqrxzy")))
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
@@ -251,13 +259,13 @@ func TestErrors(t *testing.T) {
 	errE = s.UploadChunk(ctx, session, []byte("bar"), 5)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = s.EndUpload(ctx, session, nil)
+	errE = s.EndUpload(ctx, session, nil, "")
 	assert.ErrorContains(t, errE, "gap between chunks")
 
 	errE = s.UploadChunk(ctx, session, []byte("zy"), 3)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = s.EndUpload(ctx, session, nil)
+	errE = s.EndUpload(ctx, session, nil, "")
 	assert.ErrorContains(t, errE, "chunks smaller than file")
 
 	errE = s.UploadChunk(ctx, session, []byte("large"), 8)
@@ -341,7 +349,7 @@ func TestContentAddressedDeduplication(t *testing.T) {
 		require.NoError(t, errE, "% -+#.1v", errE)
 		errE = s.UploadChunk(ctx, session, []byte("hello"), 0)
 		require.NoError(t, errE, "% -+#.1v", errE)
-		errE = s.EndUpload(ctx, session, nil)
+		errE = s.EndUpload(ctx, session, nil, helloHash)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		return identifier.From(append(append([]string{}, base...), "STORAGE", session.String())...)
 	}
@@ -365,7 +373,6 @@ func TestContentAddressedDeduplication(t *testing.T) {
 	assert.Equal(t, meta1.Etag, meta2.Etag)
 
 	// The underlying store holds the bare lowercase-hex content hash, distinct from the base64url etag.
-	const helloHash = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
 	storedData, _, _, _, errE := s.Store().GetLatest(ctx, id1) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, helloHash, storedData)
@@ -374,4 +381,69 @@ func TestContentAddressedDeduplication(t *testing.T) {
 	onDisk, err := os.ReadFile(filepath.Join(s.Dir, helloHash[0:1], helloHash[1:2], helloHash))
 	require.NoError(t, err)
 	assert.Equal(t, []byte("hello"), onDisk)
+}
+
+// helloHash is the lowercase hex SHA-256 of "hello".
+const helloHash = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+
+// TestEndUploadHashMismatch verifies that when the client-provided hash does not match the assembled
+// file, the completion job fails permanently (cancelled rather than retried), the session never
+// completes, and the file is not stored.
+func TestEndUploadHashMismatch(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, _ := initDatabase(t)
+
+	fileBase := []string{"test", "mismatch"}
+	session, errE := s.BeginUploadNew(ctx, fileBase, 5, "text/plain", "f.txt")
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = s.UploadChunk(ctx, session, []byte("hello"), 0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// End with a hash that does not match the uploaded contents.
+	errE = s.EndUpload(ctx, session, nil, "0000000000000000000000000000000000000000000000000000000000000000")
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The completion job runs and fails permanently, so the session never completes. A broken check
+	// would store the file and complete the session, which this rejects.
+	require.Never(t, func() bool {
+		_, _, cm, errE := s.Coordinator().Get(ctx, session)
+		return errE == nil && cm != nil
+	}, 3*time.Second, 100*time.Millisecond)
+
+	// The file was not stored.
+	count, errE := s.Store().Count(ctx, false)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(0), count)
+}
+
+// TestEndUploadHashMatch verifies that a correct client-provided hash lets the upload complete and the
+// file is stored.
+func TestEndUploadHashMatch(t *testing.T) {
+	t.Parallel()
+
+	ctx, s, channelContents := initDatabase(t)
+
+	fileBase := []string{"test", "match"}
+	session, errE := s.BeginUploadNew(ctx, fileBase, 5, "text/plain", "f.txt")
+	require.NoError(t, errE, "% -+#.1v", errE)
+	errE = s.UploadChunk(ctx, session, []byte("hello"), 0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// End with the correct lowercase hex SHA-256 of the uploaded contents.
+	errE = s.EndUpload(ctx, session, nil, helloHash)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Eventually(t, func() bool { return channelContents.Len() >= 1 }, 5*time.Second, 10*time.Millisecond)
+
+	_, _, cm, errE := s.Coordinator().Get(ctx, session)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.NotNil(t, cm)
+	assert.NotNil(t, cm.ID)
+
+	// The file is stored and resolves to the uploaded contents.
+	expectedID := identifier.From(append(append([]string{}, fileBase...), "STORAGE", session.String())...)
+	file, _, _, _, errE := s.GetLatest(ctx, expectedID) //nolint:dogsled
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []byte("hello"), readAndClose(t, file))
 }

@@ -316,12 +316,18 @@ func (b *B) GetChunk(ctx context.Context, session identifier.Identifier, chunk i
 }
 
 // EndUpload finalizes a file upload session outside of a document edit session, assembling the uploaded chunks.
-func (b *B) EndUpload(ctx context.Context, session identifier.Identifier) errors.E {
-	return b.files.EndUpload(ctx, session, nil)
+//
+// hash is the lowercase hex SHA-256 of the file contents computed by the client. The upload fails (the
+// file is not stored) if the assembled file does not hash to it.
+func (b *B) EndUpload(ctx context.Context, session identifier.Identifier, hash string) errors.E {
+	return b.files.EndUpload(ctx, session, nil, hash)
 }
 
 // EndEditDocumentUpload finalizes a file upload session inside of a document edit session, assembling the uploaded chunks.
-func (b *B) EndEditDocumentUpload(ctx context.Context, session, documentSession identifier.Identifier) errors.E {
+//
+// hash is the lowercase hex SHA-256 of the file contents computed by the client. The upload fails (the
+// file is not stored) if the assembled file does not hash to it.
+func (b *B) EndEditDocumentUpload(ctx context.Context, session, documentSession identifier.Identifier, hash string) errors.E {
 	_, endMetadata, completeMetadata, errE := b.coordinator.Get(ctx, documentSession)
 	if errE != nil {
 		return errE
@@ -335,7 +341,7 @@ func (b *B) EndEditDocumentUpload(ctx context.Context, session, documentSession 
 		return errors.WithStack(coordinator.ErrAlreadyCompleted)
 	}
 
-	return b.files.EndUpload(ctx, session, &documentSession)
+	return b.files.EndUpload(ctx, session, &documentSession, hash)
 }
 
 // DiscardUpload discards a file upload session without storing the file.
