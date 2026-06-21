@@ -388,7 +388,7 @@ const WithDocumentD = WithDocument<D>
       <SearchPrintFilters :filters="printFilters" class="pd-print-only" />
 
       <!-- Print-only: the reverse scope (documents referencing a target), shown above the filters list. -->
-      <div v-if="searchSession.reverse" class="pd-print-only">
+      <div v-if="searchSession.reverse" class="pd-print-only mx-1">
         <i18n-t keypath="partials.SearchResultsFeed.resultsReferencing" scope="global">
           <template #label>
             <RouterLink :to="{ name: 'DocumentGet', params: { id: searchSession.reverse } }" class="link">
