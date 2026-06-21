@@ -253,7 +253,11 @@ const orderedResults = computed<DeepReadonly<Result[]>>(() => {
   return out
 })
 
-useLocationAt(orderedResults, toRef(() => props.searchTotal), visibles)
+useLocationAt(
+  orderedResults,
+  toRef(() => props.searchTotal),
+  visibles,
+)
 
 const content = useTemplateRef<HTMLElement>("content")
 
@@ -383,13 +387,7 @@ const WithDocumentD = WithDocument<D>
       <template v-if="searchTotal !== null && searchTotal > 0">
         <template v-if="grouped">
           <template v-for="(node, gi) in limitedGroupedResults.results" :key="`${node.id}-${gi}`">
-            <SearchResultsPager
-              v-if="topPagerIndex(node) !== undefined"
-              :i="topPagerIndex(node)!"
-              :shown="groupedPager.shown"
-              :total="groupedPager.total"
-              :depth="0"
-            />
+            <SearchResultsPager v-if="topPagerIndex(node) !== undefined" :i="topPagerIndex(node)!" :shown="groupedPager.shown" :total="groupedPager.total" :depth="0" />
             <SearchResultGroup :node="node" :search-session-id="searchSession.id" :depth="0" />
           </template>
 
@@ -407,7 +405,12 @@ const WithDocumentD = WithDocument<D>
           <div v-if="searchTotal - limitedGroupedResults.shown > 0" class="pd-print-only my-1 text-center text-sm sm:my-4">
             {{ t("partials.SearchResultsFeed.resultsNotShown", { count: searchTotal - limitedGroupedResults.shown, total: searchTotal }) }}
           </div>
-          <SearchResultsEndBar v-else :first="groupedPager.shown" :total="searchTotal" :more-than-total="searchMoreThanTotal" />
+
+          <!--
+            The end bar shows once nothing more can be loaded, including when the result cap (MaxResultsCount, assumed
+            below TrackTotalHits) hides some matches.
+          -->
+          <SearchResultsEndBar v-if="!groupedHasMore" :first="groupedPager.shown" :total="searchTotal" :more-than-total="searchMoreThanTotal" />
         </template>
         <template v-else>
           <template v-for="(result, i) in limitedSearchResults" :key="result.id">
@@ -430,8 +433,11 @@ const WithDocumentD = WithDocument<D>
             {{ t("partials.SearchResultsFeed.resultsNotShown", { count: searchTotal - limitedSearchResults.length, total: searchTotal }) }}
           </div>
 
-          <!-- Here we assume that MaxResultsCount is always set to a smaller value than what TrackTotalHits is set to. -->
-          <SearchResultsEndBar v-else :first="searchResults.length" :total="searchTotal" :more-than-total="searchMoreThanTotal" />
+          <!--
+            The end bar shows once nothing more can be loaded, including when the result cap (MaxResultsCount, assumed
+            below TrackTotalHits) hides some matches.
+          -->
+          <SearchResultsEndBar v-if="!searchHasMore" :first="searchResults.length" :total="searchTotal" :more-than-total="searchMoreThanTotal" />
         </template>
       </template>
     </div>
