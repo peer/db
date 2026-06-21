@@ -22,7 +22,7 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <template v-if="node.group">
+  <div v-if="node.group" class="pd-searchresultgroup">
     <div class="pd-searchresultgroup-header flex items-baseline gap-x-1 border-b border-slate-200 py-1 font-semibold text-slate-700">
       <i v-if="node.id === '__MISSING__'" class="min-w-0 truncate">{{ t("common.values.missing") }}</i>
       <DocumentRefInline v-else :id="node.id" :link="false" class="min-w-0 truncate" />
@@ -33,6 +33,6 @@ const { t } = useI18n()
         <SearchResultGroup :node="child" :search-session-id="searchSessionId" />
       </li>
     </ul>
-  </template>
+  </div>
   <SearchResult v-else :search-session-id="searchSessionId" :result="node" />
 </template>
