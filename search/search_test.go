@@ -769,6 +769,22 @@ func TestSessionDataValidate(t *testing.T) {
 		require.Error(t, err)
 		assert.EqualError(t, err, "to, direct, or missing has to be set")
 	})
+
+	t.Run("ReverseExpandWithoutReverse", func(t *testing.T) {
+		t.Parallel()
+		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: true}
+		err := data.Validate(siteContext(t.Context()), false)
+		require.Error(t, err)
+		assert.EqualError(t, err, "reverseExpand is set without reverse")
+	})
+
+	t.Run("ReverseExpandWithReverse", func(t *testing.T) {
+		t.Parallel()
+		reverse := identifier.From("target")
+		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: &reverse, ReverseExpand: true}
+		err := data.Validate(siteContext(t.Context()), false)
+		require.NoError(t, err)
+	})
 }
 
 func TestSessionToQuery(t *testing.T) {

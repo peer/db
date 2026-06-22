@@ -168,6 +168,9 @@ export type SearchSessionData = {
   // prefilters constrain results like filters but do not contribute to ranking. They are populated by search shortcuts.
   prefilters?: Filter[]
   reverse?: string
+  // reverseExpand, valid only when reverse is set, is presentational: in the print view it renders the
+  // referenced target as its full result card instead of a one-line "results referencing" heading.
+  reverseExpand?: boolean
   // language is the session's UI language. The backend resolves an empty value to the site default and stores it on the session.
   language?: string
   // sort is the effective sort order. Empty means the default order (relevance, time, display label). A

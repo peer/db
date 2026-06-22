@@ -636,6 +636,9 @@ type SessionData struct {
 	// to _score (no should-clause boosting from multi-value matches).
 	Prefilters []Filter               `json:"prefilters,omitempty"`
 	Reverse    *identifier.Identifier `json:"reverse,omitempty"`
+	// ReverseExpand, valid only when Reverse is set, is purely presentational: in the print view it renders
+	// the referenced target as its full result card instead of a one-line "results referencing" heading.
+	ReverseExpand bool `json:"reverseExpand,omitempty"`
 	// Sort is the effective sort order: an ordered list of columns. Empty means the default order
 	// (relevance, then time, then display label). A leading run of group=true ref columns groups results.
 	Sort []SortKey `json:"sort,omitempty"`
@@ -693,6 +696,10 @@ func (s *SessionData) Validate(ctx context.Context, withoutSession bool) errors.
 	errE = validateSort(s.Sort)
 	if errE != nil {
 		return errE
+	}
+
+	if s.ReverseExpand && s.Reverse == nil {
+		return errors.New("reverseExpand is set without reverse")
 	}
 
 	st := waf.MustGetSite[*internalSite.Site](ctx)

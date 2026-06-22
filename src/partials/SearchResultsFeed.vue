@@ -4,7 +4,8 @@ import type { ComponentPublicInstance, DeepReadonly } from "vue"
 import type { D } from "@/document"
 import type { Filter, Result, SearchSession, SortKey, ViewType } from "@/types"
 
-import { FunnelIcon, XMarkIcon } from "@heroicons/vue/20/solid"
+import { ChevronUpDownIcon, FunnelIcon, XMarkIcon } from "@heroicons/vue/20/solid"
+import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
 import { computed, onBeforeUnmount, onMounted, provide, ref, toRaw, toRef, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
@@ -46,6 +47,7 @@ const $emit = defineEmits<{
   downloadZip: []
   downloadFiles: []
   reverseClear: []
+  reverseExpandUpdate: [expand: boolean]
   prefiltersClear: []
   sortUpdate: [sort: SortKey[]]
 }>()
@@ -423,25 +425,55 @@ const WithDocumentD = WithDocument<D>
       <!-- Print-only: the active filters (prefilters first) listed under the status line, which acts as their heading. -->
       <SearchPrintFilters :filters="printFilters" class="pd-print-only" />
 
-      <!-- Print-only: the reverse scope (documents referencing a target), shown above the filters list. -->
-      <div v-if="searchSession.reverse" class="pd-print-only mx-1">
-        <i18n-t keypath="partials.SearchResultsFeed.resultsReferencing" scope="global">
-          <template #label>
-            <RouterLink :to="{ name: 'DocumentGet', params: { id: searchSession.reverse } }" class="link">
-              <WithDocumentD :id="searchSession.reverse" name="DocumentGet">
-                <template #default="{ doc }">
-                  <DisplayLabel :doc="doc" />
-                </template>
-                <template #loading>
-                  <span
-                    class="pd-withdocument-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
-                    :class="[loadingWidth(searchSession.reverse!)]"
-                  />
-                </template>
-              </WithDocumentD>
-            </RouterLink>
-          </template>
-        </i18n-t>
+      <!--
+        Print-only: the reverse scope (documents referencing a target), shown above the filters list. When
+        reverseExpand is set it shows the target's full result card instead of the one-line heading. The
+        expand/collapse controls are preview-only (interactive), so a real print just shows the chosen form.
+      -->
+      <div v-if="searchSession.reverse" class="pd-print-only">
+        <!-- Collapsed: the referenced target inline, with a control to expand it into its full card. -->
+        <div v-if="!searchSession.reverseExpand" class="mx-1 flex items-baseline gap-x-1">
+          <i18n-t keypath="partials.SearchResultsFeed.resultsReferencing" scope="global">
+            <template #label>
+              <RouterLink :to="{ name: 'DocumentGet', params: { id: searchSession.reverse } }" class="link">
+                <WithDocumentD :id="searchSession.reverse" name="DocumentGet">
+                  <template #default="{ doc }">
+                    <DisplayLabel :doc="doc" />
+                  </template>
+                  <template #loading>
+                    <span
+                      class="pd-withdocument-loading inline-block h-2 rounded-sm bg-slate-200 motion-safe:animate-pulse"
+                      :class="[loadingWidth(searchSession.reverse!)]"
+                    />
+                  </template>
+                </WithDocumentD>
+              </RouterLink>
+            </template>
+          </i18n-t>
+          <button
+            type="button"
+            class="pd-preview-only shrink-0 self-center rounded-sm p-0.5 text-slate-400 outline-none hover:bg-slate-200 hover:text-slate-600 focus:ring-2 focus:ring-primary-500"
+            :title="t('partials.SearchResultsFeed.expandReferencing')"
+            @click.prevent="$emit('reverseExpandUpdate', true)"
+          >
+            <ChevronUpDownIcon class="size-5" :alt="t('partials.SearchResultsFeed.expandReferencing')" />
+          </button>
+        </div>
+        <!-- Expanded: a heading with a collapse control, followed by the referenced target's full card. -->
+        <template v-else>
+          <div class="mx-1 flex items-baseline gap-x-1">
+            {{ t("partials.SearchResultsFeed.resultsReferencingExpanded") }}
+            <button
+              type="button"
+              class="pd-preview-only shrink-0 self-center rounded-sm p-0.5 text-slate-400 outline-none hover:bg-slate-200 hover:text-slate-600 focus:ring-2 focus:ring-primary-500"
+              :title="t('partials.SearchResultsFeed.collapseReferencing')"
+              @click.prevent="$emit('reverseExpandUpdate', false)"
+            >
+              <ChevronDownUpIcon class="size-5" :alt="t('partials.SearchResultsFeed.collapseReferencing')" />
+            </button>
+          </div>
+          <SearchResult :search-session-id="searchSession.id" :result="{ id: searchSession.reverse }" class="mt-1 sm:mt-4" />
+        </template>
       </div>
 
       <template v-if="searchTotal !== null && searchTotal > 0">

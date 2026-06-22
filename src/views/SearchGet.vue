@@ -118,6 +118,7 @@ async function applyPrefilters(payloads: PrefilterPayload[] | null) {
     query: searchSession.value.query,
     filters: searchSession.value.filters,
     reverse: searchSession.value.reverse,
+    reverseExpand: searchSession.value.reverseExpand,
     prefilters,
     language: searchSession.value.language,
     sort: searchSession.value.sort,
@@ -146,6 +147,7 @@ watch(locale, async () => {
     query: searchSession.value.query,
     filters: searchSession.value.filters,
     reverse: searchSession.value.reverse,
+    reverseExpand: searchSession.value.reverseExpand,
     prefilters: searchSession.value.prefilters,
     language: locale.value,
     sort: searchSession.value.sort,
@@ -160,6 +162,7 @@ async function onFiltersUpdate(updatedFilters: Filter[]) {
     query: searchSession.value!.query,
     filters: updatedFilters.length > 0 ? updatedFilters : undefined,
     reverse: searchSession.value!.reverse,
+    reverseExpand: searchSession.value!.reverseExpand,
     prefilters: searchSession.value!.prefilters,
     language: searchSession.value!.language,
     sort: searchSession.value!.sort,
@@ -211,6 +214,7 @@ async function onQueryChange(query: string) {
     query,
     filters: searchSession.value!.filters,
     reverse: searchSession.value!.reverse,
+    reverseExpand: searchSession.value!.reverseExpand,
     prefilters: searchSession.value!.prefilters,
     language: searchSession.value!.language,
     sort: searchSession.value!.sort,
@@ -225,6 +229,7 @@ async function onViewChange(view: ViewType) {
     query: searchSession.value!.query,
     filters: searchSession.value!.filters,
     reverse: searchSession.value!.reverse,
+    reverseExpand: searchSession.value!.reverseExpand,
     prefilters: searchSession.value!.prefilters,
     language: searchSession.value!.language,
     sort: searchSession.value!.sort,
@@ -239,6 +244,7 @@ async function onReverseClear() {
     query: searchSession.value!.query,
     filters: searchSession.value!.filters,
     reverse: undefined,
+    reverseExpand: undefined,
     prefilters: searchSession.value!.prefilters,
     language: searchSession.value!.language,
     sort: searchSession.value!.sort,
@@ -253,6 +259,7 @@ async function onPrefiltersClear() {
     query: searchSession.value!.query,
     filters: searchSession.value!.filters,
     reverse: searchSession.value!.reverse,
+    reverseExpand: searchSession.value!.reverseExpand,
     prefilters: undefined,
     language: searchSession.value!.language,
   })
@@ -266,9 +273,25 @@ async function onSortUpdate(sort: SortKey[]) {
     query: searchSession.value!.query,
     filters: searchSession.value!.filters,
     reverse: searchSession.value!.reverse,
+    reverseExpand: searchSession.value!.reverseExpand,
     prefilters: searchSession.value!.prefilters,
     language: searchSession.value!.language,
     sort: sort.length > 0 ? sort : undefined,
+  })
+}
+
+async function onReverseExpandUpdate(reverseExpand: boolean) {
+  // Checking abortController is done inside onSearchSessionUpdate.
+
+  await onSearchSessionUpdate({
+    view: searchSession.value!.view,
+    query: searchSession.value!.query,
+    filters: searchSession.value!.filters,
+    reverse: searchSession.value!.reverse,
+    reverseExpand,
+    prefilters: searchSession.value!.prefilters,
+    language: searchSession.value!.language,
+    sort: searchSession.value!.sort,
   })
 }
 
@@ -317,6 +340,7 @@ async function onDownloadFiles() {
       @download-zip="onDownloadZip"
       @download-files="onDownloadFiles"
       @reverse-clear="onReverseClear"
+      @reverse-expand-update="onReverseExpandUpdate"
       @prefilters-clear="onPrefiltersClear"
       @sort-update="onSortUpdate"
     />
