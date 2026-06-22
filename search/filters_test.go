@@ -172,13 +172,14 @@ func TestFiltersGetIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
-		Sort:       nil,
-		Language:   "",
-		View:       "",
-		Query:      "",
-		Filters:    nil,
-		Prefilters: nil,
-		Reverse:    nil,
+		Sort:          nil,
+		Language:      "",
+		View:          "",
+		Query:         "",
+		Filters:       nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	filterResults, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", search.PrefilterExcludes{})
@@ -305,13 +306,14 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
-		Sort:       nil,
-		Language:   "",
-		View:       "",
-		Query:      "searchable",
-		Filters:    nil,
-		Prefilters: nil,
-		Reverse:    nil,
+		Sort:          nil,
+		Language:      "",
+		View:          "",
+		Query:         "searchable",
+		Filters:       nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", search.PrefilterExcludes{})
@@ -378,13 +380,14 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 	refreshIndex(t, ctx, esClient, index)
 
 	session := createSession(t, ctx, search.SessionData{
-		Sort:       nil,
-		Language:   "",
-		View:       "",
-		Query:      "",
-		Filters:    nil,
-		Prefilters: nil,
-		Reverse:    nil,
+		Sort:          nil,
+		Language:      "",
+		View:          "",
+		Query:         "",
+		Filters:       nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", search.PrefilterExcludes{})

@@ -1075,13 +1075,14 @@ func (s *Service) SearchCreatePostAPI(w http.ResponseWriter, req *http.Request, 
 	id := identifier.From(base...)
 
 	sessionData := search.SessionData{
-		View:       search.ViewFeed,
-		Query:      request.Query,
-		Language:   request.Language,
-		Filters:    nil,
-		Prefilters: nil,
-		Reverse:    nil,
-		Sort:       nil,
+		View:          search.ViewFeed,
+		Query:         request.Query,
+		Language:      request.Language,
+		Filters:       nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
+		Sort:          nil,
 	}
 
 	searchSession := &search.Session{
@@ -1239,13 +1240,14 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 	id := identifier.From(base...)
 
 	searchData := search.SessionData{
-		View:       search.ViewFeed,
-		Query:      "",
-		Language:   language,
-		Filters:    nil,
-		Prefilters: nil,
-		Reverse:    reverse,
-		Sort:       nil,
+		View:          search.ViewFeed,
+		Query:         "",
+		Language:      language,
+		Filters:       nil,
+		Prefilters:    nil,
+		Reverse:       reverse,
+		ReverseExpand: false,
+		Sort:          nil,
 	}
 
 	for key, toValues := range filterMap {

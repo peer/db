@@ -57,8 +57,9 @@ func TestAmountFilterGetIntegration(t *testing.T) {
 			Prop:   []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -265,8 +266,9 @@ func TestAmountFilterGetSameValuesIntegration(t *testing.T) {
 			Prop:   []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -297,8 +299,9 @@ func TestAmountFilterGetEmptyIntegration(t *testing.T) {
 			Prop:   []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -330,8 +333,9 @@ func TestAmountFilterGetWithoutUnitIntegration(t *testing.T) {
 			Prop:   []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -378,8 +382,9 @@ func TestAmountFilterGetGapIntegration(t *testing.T) {
 			Prop:   []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -454,8 +459,9 @@ func TestAmountFilterGetExtendedBoundsIntegration(t *testing.T) {
 				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false, Exists: false,
 			},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -517,8 +523,9 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false, Exists: false,
 			},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -582,8 +589,9 @@ func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
 			Prop:   []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -687,8 +695,9 @@ func TestAmountFilterGetPointBoundsIntegration(t *testing.T) {
 				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false, Exists: false,
 			},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	query := session.ToQueryExcluding(*session.Filters[0].ID, nil)
@@ -714,8 +723,9 @@ func TestAmountFilterGetPointBoundsIntegration(t *testing.T) {
 				Unit: &unitID, Gte: &gapGte, Lte: &gapLte, Missing: false, Exists: false,
 			},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	gapQuery := gapSession.ToQueryExcluding(*gapSession.Filters[0].ID, nil)
@@ -759,8 +769,9 @@ func TestAmountFilterGetSingleValueActiveIntegration(t *testing.T) {
 				Unit: &unitID, Gte: &gte, Lte: &lte, Missing: false, Exists: false,
 			},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	query := session.ToQueryExcluding(*session.Filters[0].ID, nil)
@@ -823,8 +834,9 @@ func TestAmountFilterGetExistsIntegration(t *testing.T) {
 			Prop:   []identifier.Identifier{amountProp},
 			Amount: &search.AmountFilter{Unit: &unitID, Gte: nil, Lte: nil, Missing: false, Exists: true},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	// The active exists filter round-trips to the counts-only response.

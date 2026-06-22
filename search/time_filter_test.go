@@ -31,8 +31,9 @@ func TestTimeFilterGetIntegration(t *testing.T) {
 			Prop: []identifier.Identifier{timeProp},
 			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -197,8 +198,9 @@ func TestTimeFilterGetSameValuesIntegration(t *testing.T) {
 			Prop: []identifier.Identifier{timeProp},
 			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -232,8 +234,9 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 			Prop: []identifier.Identifier{timeProp},
 			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -279,8 +282,9 @@ func TestTimeFilterGetEmptyIntegration(t *testing.T) {
 			Prop: []identifier.Identifier{timeProp},
 			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -318,8 +322,9 @@ func TestTimeFilterGetExtendedBoundsIntegration(t *testing.T) {
 			Prop: []identifier.Identifier{timeProp},
 			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false, Exists: false},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -380,8 +385,9 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 			Prop: []identifier.Identifier{timeProp},
 			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false, Exists: false},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -442,8 +448,9 @@ func TestTimeFilterGetWideRangeIntegration(t *testing.T) {
 			Prop: []identifier.Identifier{timeProp},
 			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: false},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -596,8 +603,9 @@ func TestTimeFilterGetPointBoundsIntegration(t *testing.T) {
 			Prop: []identifier.Identifier{timeProp},
 			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false, Exists: false},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -620,8 +628,9 @@ func TestTimeFilterGetPointBoundsIntegration(t *testing.T) {
 			Prop: []identifier.Identifier{timeProp},
 			Time: &search.TimeFilter{Gte: &gapGte, Lte: &gapLte, Missing: false, Exists: false},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	gapQuery := gapSession.ToQueryExcluding(*gapSession.Filters[0].ID, nil)
@@ -660,8 +669,9 @@ func TestTimeFilterGetSingleValueActiveIntegration(t *testing.T) {
 			Prop: []identifier.Identifier{timeProp},
 			Time: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false, Exists: false},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -789,8 +799,9 @@ func TestTimeFilterGetExistsIntegration(t *testing.T) {
 			Prop: []identifier.Identifier{timeProp},
 			Time: &search.TimeFilter{Gte: nil, Lte: nil, Missing: false, Exists: true},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	// The active exists filter round-trips to the counts-only response.

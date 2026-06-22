@@ -124,8 +124,9 @@ func TestRefFilterGetIntegration(t *testing.T) {
 				Missing: false,
 			},
 		}},
-		Prefilters: nil,
-		Reverse:    nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 
 	results, metadata, errE := session.Filters[0].Ref.Get(

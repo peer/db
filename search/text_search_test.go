@@ -64,13 +64,14 @@ func TestTextSearchUndWildcardCaseAndDiacritic(t *testing.T) {
 		t.Run(q, func(t *testing.T) {
 			t.Parallel()
 			session := createSession(t, ctx, search.SessionData{
-				Sort:       nil,
-				Language:   "",
-				View:       "",
-				Query:      q,
-				Filters:    nil,
-				Prefilters: nil,
-				Reverse:    nil,
+				Sort:          nil,
+				Language:      "",
+				View:          "",
+				Query:         q,
+				Filters:       nil,
+				Prefilters:    nil,
+				Reverse:       nil,
+				ReverseExpand: false,
 			})
 			results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 			require.NoError(t, errE, "% -+#.1v", errE)
@@ -120,13 +121,14 @@ func TestTextSearchUndQuotedExactVsFolded(t *testing.T) {
 	// because it matches in two clauses (exact and folded) while doc2 only
 	// matches the folded one.
 	quotedSession := createSession(t, ctx, search.SessionData{
-		Sort:       nil,
-		Language:   "",
-		View:       "",
-		Query:      `"Žagar"`,
-		Filters:    nil,
-		Prefilters: nil,
-		Reverse:    nil,
+		Sort:          nil,
+		Language:      "",
+		View:          "",
+		Query:         `"Žagar"`,
+		Filters:       nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &quotedSession.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -141,13 +143,14 @@ func TestTextSearchUndQuotedExactVsFolded(t *testing.T) {
 	// Quoted "Zagar" should also match both, with doc2 ranked first (it's the
 	// literal exact match for "Zagar").
 	quotedFoldedSession := createSession(t, ctx, search.SessionData{
-		Sort:       nil,
-		Language:   "",
-		View:       "",
-		Query:      `"Zagar"`,
-		Filters:    nil,
-		Prefilters: nil,
-		Reverse:    nil,
+		Sort:          nil,
+		Language:      "",
+		View:          "",
+		Query:         `"Zagar"`,
+		Filters:       nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 	results, _, errE = search.ResultsGet(ctx, getSearchService, &quotedFoldedSession.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -190,13 +193,14 @@ func TestTextSearchUndUnquotedFoldsBoth(t *testing.T) {
 	// Unquoted "žagar" is folded to "zagar" by und_text on both query and
 	// index sides. Both docs match (their indexed tokens also fold to "zagar").
 	session := createSession(t, ctx, search.SessionData{
-		Sort:       nil,
-		Language:   "",
-		View:       "",
-		Query:      "žagar",
-		Filters:    nil,
-		Prefilters: nil,
-		Reverse:    nil,
+		Sort:          nil,
+		Language:      "",
+		View:          "",
+		Query:         "žagar",
+		Filters:       nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -247,13 +251,14 @@ func TestTextSearchStemmedPhraseEnglish(t *testing.T) {
 	// Quoted phrase, singular noun: should match doc1 via the stemmed-phrase
 	// clause (text.en, no quote_field_suffix, english_stemmer applied).
 	session := createSession(t, ctx, search.SessionData{
-		Sort:       nil,
-		Language:   "",
-		View:       "",
-		Query:      `"running shoe"`,
-		Filters:    nil,
-		Prefilters: nil,
-		Reverse:    nil,
+		Sort:          nil,
+		Language:      "",
+		View:          "",
+		Query:         `"running shoe"`,
+		Filters:       nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -317,13 +322,14 @@ func TestTextSearchExactFieldRejectsFolded(t *testing.T) {
 	// other via folded). Smith doesn't match. Doc1 with literal Müller ranks
 	// first because it matches in two clauses.
 	session := createSession(t, ctx, search.SessionData{
-		Sort:       nil,
-		Language:   "",
-		View:       "",
-		Query:      `"Müller"`,
-		Filters:    nil,
-		Prefilters: nil,
-		Reverse:    nil,
+		Sort:          nil,
+		Language:      "",
+		View:          "",
+		Query:         `"Müller"`,
+		Filters:       nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
 	})
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
