@@ -21,6 +21,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mohae/deepcopy"
 	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver"
 	"github.com/rs/zerolog"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
@@ -64,6 +65,10 @@ const reindexJobTimeoutSlack = 5 * time.Minute
 // reindexMaxBatch is the maximum number of documents accumulated into a single ElasticSearch bulk request
 // while draining the reindex queue.
 const reindexMaxBatch = 1000
+
+// reindexJobDeleteBatch is the maximum number of redundant pending reindex jobs deletePendingReindexJobs
+// removes per JobDeleteMany call, so a very large backlog is drained in bounded statements.
+const reindexJobDeleteBatch = 1000
 
 const reindexJobTimeout = reindexSoftDeadline + reindexJobTimeoutSlack
 
@@ -2295,6 +2300,7 @@ type reindexJobOutput struct {
 	Seq             int64   `json:"seq"`
 	Duration        float64 `json:"duration"`
 	RefreshDuration float64 `json:"refreshDuration"`
+	DeletedJobs     int64   `json:"deletedJobs"`
 
 	// Values from reindexStats.
 	Reindexed         int     `json:"reindexed"`
@@ -2316,9 +2322,54 @@ type reindexJobOutput struct {
 	FetchDuration   float64 `json:"fetchDuration"`
 }
 
+// deletePendingReindexJobs deletes this bridge's pending (available) reindex jobs and returns how many it
+// removed. updateSeq schedules one reindex job per commit that enqueues, so a populate or a busy ingest
+// leaves a large backlog of jobs that each only refresh the index and find nothing to do. The running job
+// that calls this drains every queue entry already committed (the snapshot it takes next is at or above
+// every such entry's seq, because updateSeq enqueues the row and advances the bridge seq in one transaction),
+// so those pending jobs are redundant. Entries enqueued after this delete keep their own jobs.
+//
+// It goes through River's JobDeleteMany, whose query already skips running and row-locked jobs, scoped via
+// the where clause to this bridge's own prefix and to the available state, so it never removes another
+// bridge's jobs, a running job, or finalized history. JobDeleteMany is bounded per call, so we delete in
+// batches until drained, which also keeps a very large backlog from exceeding the statement timeout.
+func (b *Bridge) deletePendingReindexJobs(ctx context.Context) (int64, errors.E) {
+	executor := b.riverClient.Driver().GetExecutor()
+	var deleted int64
+	for {
+		jobs, err := executor.JobDeleteMany(ctx, &riverdriver.JobDeleteManyParams{ //nolint:exhaustruct
+			Max:           reindexJobDeleteBatch,
+			NamedArgs:     map[string]any{"kind": jobArgs{}.Kind(), "prefix": b.Store.Prefix},
+			OrderByClause: "id",
+			Schema:        b.schema,
+			WhereClause:   `kind = @kind AND state = 'available' AND args ->> 'prefix' = @prefix`,
+		})
+		if err != nil {
+			return deleted, errors.WithStack(err)
+		}
+		deleted += int64(len(jobs))
+		if len(jobs) < reindexJobDeleteBatch {
+			break
+		}
+	}
+	return deleted, nil
+}
+
 func (b *Bridge) runReindexQueue(ctx context.Context, job *river.Job[jobArgs]) errors.E {
 	logger := zerolog.Ctx(ctx)
 	jobStart := time.Now()
+
+	// Collapse the redundant backlog before snapshotting. updateSeq schedules a reindex job per commit that
+	// enqueues, so a populate or a busy ingest leaves a large number of pending jobs that each only refresh
+	// the index and then find nothing to do. We delete this bridge's pending jobs first; the snapshot we take
+	// next is at or above every already-committed queue entry, so this run covers what those jobs would have
+	// done, while entries enqueued after the delete keep their own jobs. Deleting before the snapshot is what
+	// keeps it safe. It is an optimization, so a failure only gets logged: the reindexing below still runs.
+	deletedJobs, errE := b.deletePendingReindexJobs(ctx)
+	if errE != nil {
+		logger.Warn().Err(errE).Msg("deleting pending reindex jobs failed")
+		deletedJobs = 0
+	}
 
 	// Snapshot the bridge seq, then refresh the index. updateSeq advances the bridge seq in the
 	// same transaction that enqueues an entry, after indexCommit has bulk-indexed the changed
@@ -2353,6 +2404,7 @@ func (b *Bridge) runReindexQueue(ctx context.Context, job *river.Job[jobArgs]) e
 		Seq:             snapshotSeq,
 		Duration:        duration.Seconds(),
 		RefreshDuration: refreshDuration.Seconds(),
+		DeletedJobs:     deletedJobs,
 
 		Reindexed:         stats.Reindexed,
 		Skipped:           stats.Skipped,
@@ -2381,6 +2433,7 @@ func (b *Bridge) runReindexQueue(ctx context.Context, job *river.Job[jobArgs]) e
 		Int64("seq", snapshotSeq).
 		Dur("duration", duration).
 		Dur("refreshDuration", refreshDuration).
+		Int64("deletedJobs", deletedJobs).
 
 		// Values from reindexStats.
 		Int("reindexed", stats.Reindexed).
