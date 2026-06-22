@@ -785,8 +785,10 @@ func FiltersGet( //nolint:maintidx
 	refTotalValue := refTotal.Value
 	amountTotalValue := amountTotal.Value
 	timeTotalValue := timeTotal.Value
-	// Has filter contributes at most 1 to the total (one filter for all has claims), counted whenever any
-	// document has a has claim, regardless of the value query.
+	// The top-level has facet is a single "has property" filter for all simple has claims, so it contributes
+	// at most 1 to the total, counted whenever any document has such a claim, regardless of the value query.
+	// Nested has claims are not counted here: they are the subHas facets, counted below as one filter per
+	// parent property (subHasTotalValue).
 	var hasTotalValue int64
 	if hasDocCount > 0 {
 		hasTotalValue = 1
