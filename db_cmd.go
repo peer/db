@@ -21,7 +21,6 @@ import (
 
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/indexer"
-	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalExport "gitlab.com/peerdb/peerdb/internal/export"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
@@ -36,21 +35,10 @@ func startAndWaitSite(
 	// We set fallback context values which are used to set application name on PostgreSQL connections.
 	ctx = internalStore.WithFallbackDBContext(ctx, site.Schema, "db")
 
-	documents, errE := site.FetchDocuments(ctx, internalCore.PropertyClassID)
+	documents, errE := site.ConverterDocuments(ctx)
 	if errE != nil {
 		return nil, errE
 	}
-	languages, errE := site.FetchDocuments(ctx, internalCore.LanguageClassID)
-	if errE != nil {
-		return nil, errE
-	}
-	classes, errE := site.FetchDocuments(ctx, internalCore.ClassClassID)
-	if errE != nil {
-		return nil, errE
-	}
-
-	documents = append(documents, languages...)
-	documents = append(documents, classes...)
 
 	onShutdown, errE := site.Start(ctx, documents)
 	if errE != nil {

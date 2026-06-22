@@ -24,6 +24,7 @@ import (
 	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/base"
 	"gitlab.com/peerdb/peerdb/document"
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	"gitlab.com/peerdb/peerdb/store"
 )
@@ -302,7 +303,7 @@ func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifi
 
 // FetchDocuments returns all documents that are instances of classID by loading their latest stored
 // versions. It is used to load the property, class, and language documents that a site's converter
-// needs at startup.
+// needs at startup (see ConverterDocuments).
 //
 // It reads the raw stored documents directly and unfiltered, without the read-path document hooks
 // (and thus any permission checks).
@@ -332,6 +333,27 @@ func (s *Site) FetchDocuments(ctx context.Context, classID identifier.Identifier
 		})
 	}
 
+	return documents, nil
+}
+
+// ConverterDocuments loads the documents the site's converter needs: the property, class, and language
+// documents (instances of the respective core meta-classes). All three kinds are required. Every path
+// that starts the base from stored documents loads them through this, so they cannot drift apart.
+func (s *Site) ConverterDocuments(ctx context.Context) ([]base.StartDocument, errors.E) {
+	documents, errE := s.FetchDocuments(ctx, internalCore.PropertyClassID)
+	if errE != nil {
+		return nil, errE
+	}
+	languages, errE := s.FetchDocuments(ctx, internalCore.LanguageClassID)
+	if errE != nil {
+		return nil, errE
+	}
+	classes, errE := s.FetchDocuments(ctx, internalCore.ClassClassID)
+	if errE != nil {
+		return nil, errE
+	}
+	documents = append(documents, languages...)
+	documents = append(documents, classes...)
 	return documents, nil
 }
 

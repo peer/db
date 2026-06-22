@@ -24,7 +24,6 @@ import (
 
 	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/base"
-	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
 // authCleanupInterval is how often the per-site auth cleanup job runs.
@@ -349,21 +348,10 @@ func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Hand
 	for _, site := range service.Sites {
 		siteCtx := internalStore.WithFallbackDBContext(ctx, site.Schema, "prepare")
 
-		documents, errE := site.FetchDocuments(siteCtx, internalCore.PropertyClassID)
+		documents, errE := site.ConverterDocuments(siteCtx)
 		if errE != nil {
 			return nil, onShutdownF, errE
 		}
-		languages, errE := site.FetchDocuments(siteCtx, internalCore.LanguageClassID)
-		if errE != nil {
-			return nil, onShutdownF, errE
-		}
-		classes, errE := site.FetchDocuments(siteCtx, internalCore.ClassClassID)
-		if errE != nil {
-			return nil, onShutdownF, errE
-		}
-
-		documents = append(documents, languages...)
-		documents = append(documents, classes...)
 
 		onS, errE := site.Start(siteCtx, documents)
 		onShutdown = append(onShutdown, onS)
