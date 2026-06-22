@@ -473,6 +473,8 @@ const WithDocumentD = WithDocument<D>
             </button>
           </div>
           <SearchResult :search-session-id="searchSession.id" :result="{ id: searchSession.reverse }" class="mt-1 sm:mt-4" />
+          <!-- Separator below the expanded reference card, matching the border under a group heading. -->
+          <hr class="mt-1 border-slate-200 sm:mt-4" />
         </template>
       </div>
 
