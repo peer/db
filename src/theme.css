@@ -568,6 +568,11 @@
 
 /* Print styles. */
 @media print {
+  /* Shrink the root font so all rem-based text (and spacing) prints more compactly than on screen. */
+  html {
+    font-size: 75%;
+  }
+
   /* Hide navigation and footer. */
   header,
   footer {
