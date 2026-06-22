@@ -578,9 +578,13 @@
 
 /* Print styles. */
 @media print {
-  /* Shrink the root font so all rem-based text (and spacing) prints more compactly than on screen. */
+  /*
+    Shrink the root font so all rem-based text (and spacing) prints more compactly than on screen. Also drop the
+    gray screen background (set on <html>) so it does not print as a gray fill; the in-app preview keeps it.
+  */
   html {
     font-size: 75%;
+    background-color: white !important;
   }
 
   /* Hide navigation and footer. */

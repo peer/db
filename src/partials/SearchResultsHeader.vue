@@ -77,7 +77,9 @@ function countFilters(): number {
 
 <template>
   <div class="pd-searchresultsheader flex flex-row gap-x-1 sm:gap-x-4">
-    <div class="flex w-full flex-row items-center justify-between gap-x-1 rounded-sm bg-slate-200 px-2 py-1 sm:gap-x-4 sm:px-4 sm:py-2 print:px-1 print:py-0">
+    <div
+      class="flex w-full flex-row items-center justify-between gap-x-1 rounded-sm bg-slate-200 px-2 py-1 sm:gap-x-4 sm:px-4 sm:py-2 print:bg-transparent print:px-1 print:py-0"
+    >
       <div v-if="searchTotal === null && searchSession.query">
         <i18n-t keypath="partials.SearchResultsHeader.searchingQueryFiltersInProgress" :plural="countFilters()" scope="global">
           <template #query>
