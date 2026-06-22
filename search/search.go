@@ -1151,19 +1151,14 @@ func labelMatchQuery( //nolint:ireturn
 		langs = slices.Sorted(maps.Keys(internalSearch.SupportedLanguages))
 	}
 
-	shoulds := make([]types.QueryVariant, 0, (len(valueNamingFields)+2*len(valueDisplayFields)+len(propNamingFields)+2*len(propDisplayFields))*len(langs))
+	// Value labels (a referenced document's name) match like the main result search: the prefix is an
+	// analyze_wildcard query, keeping the typed trailing "*".
+	shoulds := valueSearchClauses(valueNamingFields, valueDisplayFields, q, langs)
+	// Property labels (a controlled property name) match with the same regular recall, but a match_phrase_prefix
+	// prefix, so a multi-word name like "instance of" matches as an ordered phrase.
+	shoulds = append(shoulds, propSearchClauses(propNamingFields, propDisplayFields, q, langs)...)
 
-	// Value labels: regular search query (stemmed naming recall + exact-routed/wildcard display), with the
-	// query left as typed so its trailing "*" prefix-matches.
-	shoulds = append(shoulds, searchTextClauses(valueNamingFields, valueDisplayFields, q, langs)...)
-
-	// Property labels: match_phrase_prefix over the whole label. The frontend's trailing "*" is stripped (the
-	// prefix is intrinsic); an all-wildcard query then carries no property text and contributes no clause.
-	if propQuery := strings.TrimSuffix(q, "*"); propQuery != "" {
-		shoulds = append(shoulds, phrasePrefixClauses(propNamingFields, propDisplayFields, propQuery, langs)...)
-	}
-
-	// A query that is only wildcards leaves no clause (every facet is shown in full).
+	// A query that is only wildcards over no value fields leaves no clause (every facet is shown in full).
 	if len(shoulds) == 0 {
 		return esdsl.NewMatchAllQuery()
 	}
@@ -1176,12 +1171,12 @@ func propLabelMatchQuery(namingFields, displayFields []string, q string, enabled
 	return labelMatchQuery(nil, nil, namingFields, displayFields, q, enabledLanguages)
 }
 
-// searchTextClauses builds the value-label clauses of labelMatchQuery, mirroring documentTextSearchQuery's
-// recall scoped to a value's denormalized fields: each naming field is matched stemmed per language combined
-// with the language-neutral und bucket, and each display field is matched with quoted phrases routed to its
-// diacritic-preserved "exact" sub-field and a trailing "*" analyzed for prefix search.
-func searchTextClauses(namingFields, displayFields []string, q string, langs []string) []types.QueryVariant {
-	clauses := make([]types.QueryVariant, 0, (len(namingFields)+len(displayFields))*len(langs))
+// regularRecallClauses builds the non-prefix recall shared by value and property label matching, via
+// simple_query_string: each naming field matched stemmed per language combined with the language-neutral und
+// bucket (inflected full-word recall), and each display field matched with quoted phrases routed to its
+// diacritic-preserved "exact" sub-field. The query is passed verbatim.
+func regularRecallClauses(namingFields, displayFields []string, q string, langs []string) []types.QueryVariant {
+	var clauses []types.QueryVariant
 	for _, namingField := range namingFields {
 		undNaming := namingField + "." + document.UndeterminedLanguage
 		hasLang := false
@@ -1198,33 +1193,64 @@ func searchTextClauses(namingFields, displayFields []string, q string, langs []s
 	}
 	for _, displayField := range displayFields {
 		for _, lang := range langs {
-			clauses = append(clauses, esdsl.NewSimpleQueryStringQuery(q).
-				Fields(displayField+"."+lang).
-				DefaultOperator(operator.And).
-				QuoteFieldSuffix(".exact").
-				AnalyzeWildcard(true))
+			clauses = append(clauses, esdsl.NewSimpleQueryStringQuery(q).Fields(displayField+"."+lang).DefaultOperator(operator.And).QuoteFieldSuffix(".exact"))
 		}
 	}
 	return clauses
 }
 
-// phrasePrefixClauses builds the property-label clauses of labelMatchQuery: a match_phrase_prefix over each
-// naming and display field (and each display field's diacritic-preserved "exact" sub-field), which prefix-
-// matches a whole multi-word property name as an ordered phrase.
-func phrasePrefixClauses(namingFields, displayFields []string, q string, langs []string) []types.QueryVariant {
-	clauses := make([]types.QueryVariant, 0, (len(namingFields)+2*len(displayFields))*len(langs))
+// valueSearchClauses matches a value label (a referenced document's name) like the main result search:
+// regularRecallClauses plus an analyze_wildcard simple_query_string over the unstemmed surface fields (a
+// language bucket's .unstemmed sub-field with the und bucket, and the und_text display field), so the typed
+// trailing "*" prefix-matches regardless of case or diacritics. The query keeps its trailing "*".
+func valueSearchClauses(namingFields, displayFields []string, q string, langs []string) []types.QueryVariant {
+	clauses := regularRecallClauses(namingFields, displayFields, q, langs)
 	for _, namingField := range namingFields {
+		undNaming := namingField + "." + document.UndeterminedLanguage
+		hasLang := false
 		for _, lang := range langs {
-			clauses = append(clauses, esdsl.NewMatchPhrasePrefixQuery(namingField+"."+lang, q))
+			if lang == document.UndeterminedLanguage {
+				continue
+			}
+			hasLang = true
+			clauses = append(clauses, esdsl.NewSimpleQueryStringQuery(q).Fields(namingField+"."+lang+".unstemmed", undNaming).DefaultOperator(operator.And).AnalyzeWildcard(true))
+		}
+		if !hasLang {
+			clauses = append(clauses, esdsl.NewSimpleQueryStringQuery(q).Fields(undNaming).DefaultOperator(operator.And).AnalyzeWildcard(true))
 		}
 	}
 	for _, displayField := range displayFields {
 		for _, lang := range langs {
-			field := displayField + "." + lang
-			clauses = append(clauses,
-				esdsl.NewMatchPhrasePrefixQuery(field, q),
-				esdsl.NewMatchPhrasePrefixQuery(field+".exact", q),
-			)
+			clauses = append(clauses, esdsl.NewSimpleQueryStringQuery(q).Fields(displayField+"."+lang).DefaultOperator(operator.And).AnalyzeWildcard(true))
+		}
+	}
+	return clauses
+}
+
+// propSearchClauses matches a property label (a controlled property name) with the same regularRecallClauses
+// as valueSearchClauses, differing only in the prefix: a match_phrase_prefix over the unstemmed surface fields
+// (a language bucket's .unstemmed sub-field or the und bucket, and the und_text display field) rather than an
+// analyze_wildcard query, so a multi-word name like "instance of" matches as an ordered phrase. It takes the
+// raw query and strips the trailing "*" itself (match_phrase_prefix prefixes the last term intrinsically); an
+// all-wildcard query then adds no prefix clause.
+func propSearchClauses(namingFields, displayFields []string, q string, langs []string) []types.QueryVariant {
+	clauses := regularRecallClauses(namingFields, displayFields, q, langs)
+	prefix := strings.TrimSuffix(q, "*")
+	if prefix == "" {
+		return clauses
+	}
+	for _, namingField := range namingFields {
+		for _, lang := range langs {
+			field := namingField + "." + lang
+			if lang != document.UndeterminedLanguage {
+				field += ".unstemmed"
+			}
+			clauses = append(clauses, esdsl.NewMatchPhrasePrefixQuery(field, prefix))
+		}
+	}
+	for _, displayField := range displayFields {
+		for _, lang := range langs {
+			clauses = append(clauses, esdsl.NewMatchPhrasePrefixQuery(displayField+"."+lang, prefix))
 		}
 	}
 	return clauses
