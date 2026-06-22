@@ -301,7 +301,8 @@ func (s *Site) fetchDocumentIDs(ctx context.Context, classID identifier.Identifi
 }
 
 // FetchDocuments returns all documents that are instances of classID by loading their latest stored
-// versions. It is used to load the property and language documents a site needs at startup.
+// versions. It is used to load the property, class, and language documents that a site's converter
+// needs at startup.
 //
 // It reads the raw stored documents directly and unfiltered, without the read-path document hooks
 // (and thus any permission checks).

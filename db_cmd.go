@@ -44,8 +44,13 @@ func startAndWaitSite(
 	if errE != nil {
 		return nil, errE
 	}
+	classes, errE := site.FetchDocuments(ctx, internalCore.ClassClassID)
+	if errE != nil {
+		return nil, errE
+	}
 
 	documents = append(documents, languages...)
+	documents = append(documents, classes...)
 
 	onShutdown, errE := site.Start(ctx, documents)
 	if errE != nil {

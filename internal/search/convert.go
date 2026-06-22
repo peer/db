@@ -530,7 +530,7 @@ func (c *Converter) genSelfForCaching(id identifier.Identifier, doc *document.D,
 // value hierarchy types. properties contains all property documents (used for SUBPROPERTY_OF
 // hierarchy and discovering other hierarchy types), languages contains language documents
 // needed for language code extraction, classes contains class documents with field definitions
-// (used for field-level INVERSE_PROPERTY), languagePriority defines per-language fallback
+// (used for field-level INVERSE_PROPERTY and EMBED_PROPERTY), languagePriority defines per-language fallback
 // order for display label resolution, and getDocument is a callback to fetch documents by ID.
 //
 // Value hierarchies (e.g., SUBCLASS_OF) are computed lazily during conversion.

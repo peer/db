@@ -245,8 +245,8 @@ type StartDocument struct {
 
 // Start starts the base.
 //
-// Documents are documents with properties and vocabularies which are used
-// to index documents for search.
+// Documents ar property, class, and language documents used to index
+// documents for search. All three kinds must be provided.
 //
 // You have to call this or PopulateAndStart for each base after Init.
 func (b *B) Start(ctx context.Context, documents []StartDocument) (func(), errors.E) {

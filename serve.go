@@ -357,8 +357,13 @@ func (c *ServeCommand) Prepare(ctx context.Context, service *Service) (http.Hand
 		if errE != nil {
 			return nil, onShutdownF, errE
 		}
+		classes, errE := site.FetchDocuments(siteCtx, internalCore.ClassClassID)
+		if errE != nil {
+			return nil, onShutdownF, errE
+		}
 
 		documents = append(documents, languages...)
+		documents = append(documents, classes...)
 
 		onS, errE := site.Start(siteCtx, documents)
 		onShutdown = append(onShutdown, onS)
