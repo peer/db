@@ -251,6 +251,7 @@ declare module "vue-i18n" {
       }
       SearchResultGroup: {
         expand: string
+        collapse: string
       }
       FieldsForm: {
         from: string

@@ -2,6 +2,7 @@
 import type { DeepReadonly } from "vue"
 
 import { ChevronUpDownIcon } from "@heroicons/vue/20/solid"
+import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
 import { computed, inject, toRaw } from "vue"
 import { useI18n } from "vue-i18n"
 
@@ -45,10 +46,10 @@ const { t } = useI18n()
 const levelExpanded = computed(() => props.expandLevels[props.depth] ?? false)
 const expanded = computed(() => props.node.id !== "__MISSING__" && levelExpanded.value)
 
-// expandLevel switches this group level to its expanded form in the search state, the in-place equivalent of
-// the sort dialog's Expand checkbox. It is offered on a heading only while the level is not yet expanded;
-// turning it off again is done from the sort dialog.
-const expandLevel = inject(searchExpandKey, () => undefined)
+// setExpand switches this group level between its expanded (full result cards) and collapsed (one-line
+// headings) forms in the search state, the in-place equivalent of the sort dialog's Expand checkbox. The
+// heading offers it to expand, the expanded card offers it to collapse.
+const setExpand = inject(searchExpandKey, () => undefined)
 
 // The progress pager data SearchResultsFeed computes for the whole tree (which leaf a pager precedes, the
 // unique results shown, and the matching total).
@@ -82,7 +83,21 @@ function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
       An expanded group value shows the full result card for its document. It is not a search result and is
       not registered with the visibility tracker, so the "at" scroll position keeps following the leaves.
     -->
-    <SearchResult v-if="expanded" :search-session-id="searchSessionId" :result="node" />
+    <SearchResult v-if="expanded" :search-session-id="searchSessionId" :result="node">
+      <template #labelAside>
+        <span class="flex shrink-0 items-baseline gap-x-1 text-base font-normal text-slate-500">
+          <span v-if="node.count != null">({{ node.count }})</span>
+          <button
+            type="button"
+            class="self-center rounded-sm p-0.5 text-slate-400 outline-none hover:bg-slate-200 hover:text-slate-600 focus:ring-2 focus:ring-primary-500"
+            :title="t('partials.SearchResultGroup.collapse')"
+            @click.prevent="setExpand(depth, false)"
+          >
+            <ChevronDownUpIcon class="size-5" :alt="t('partials.SearchResultGroup.collapse')" />
+          </button>
+        </span>
+      </template>
+    </SearchResult>
     <div v-else class="pd-searchresultgroup-header flex items-baseline gap-x-1 border-b border-slate-200 py-1 font-semibold text-slate-700">
       <i v-if="node.id === '__MISSING__'" class="min-w-0 truncate">{{ t("common.values.missing") }}</i>
       <DocumentRefInline v-else :id="node.id" class="min-w-0 truncate" />
@@ -92,9 +107,9 @@ function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
         type="button"
         class="shrink-0 self-center rounded-sm p-0.5 font-normal text-slate-400 outline-none hover:bg-slate-200 hover:text-slate-600 focus:ring-2 focus:ring-primary-500"
         :title="t('partials.SearchResultGroup.expand')"
-        @click.prevent="expandLevel(depth)"
+        @click.prevent="setExpand(depth, true)"
       >
-        <ChevronUpDownIcon class="size-4" :alt="t('partials.SearchResultGroup.expand')" />
+        <ChevronUpDownIcon class="size-5" :alt="t('partials.SearchResultGroup.expand')" />
       </button>
     </div>
     <ul class="flex flex-col gap-y-1 pl-4 sm:gap-y-4 sm:pl-6">

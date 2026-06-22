@@ -156,10 +156,11 @@ const rowSpan = computed(() => {
             class="pd-print-hidden float-end mb-1 ml-4 px-4"
             >{{ t("partials.SearchResult.details") }}</ButtonLink
           >
-          <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 text-xl leading-none">
-            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link"
+          <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 flex items-baseline gap-x-1 text-xl leading-none">
+            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link min-w-0"
               ><DisplayLabel ref="displayLabelComponent" :doc="resultDoc"
             /></RouterLink>
+            <slot name="labelAside" />
           </h2>
           <ul v-if="tags.length" class="mb-2 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
             <template v-for="tag of tags" :key="tag.id">
@@ -193,10 +194,11 @@ const rowSpan = computed(() => {
             class="pd-print-hidden float-end mb-1 ml-4 px-4"
             >{{ t("partials.SearchResult.details") }}</ButtonLink
           >
-          <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 text-xl leading-none">
-            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link"
+          <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 flex items-baseline gap-x-1 text-xl leading-none">
+            <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link min-w-0"
               ><DisplayLabel ref="displayLabelComponent" :doc="resultDoc"
             /></RouterLink>
+            <slot name="labelAside" />
           </h2>
           <ul v-if="tags.length" class="mb-2 flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
             <template v-for="tag of tags" :key="tag.id">
@@ -224,10 +226,11 @@ const rowSpan = computed(() => {
             <ButtonLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="pd-print-hidden float-end px-4">{{
               t("partials.SearchResult.details")
             }}</ButtonLink>
-            <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 text-xl leading-none">
-              <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link"
+            <h2 v-show="displayLabelComponent?.displayLabel" class="mb-2 flex items-baseline gap-x-1 text-xl leading-none">
+              <RouterLink :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }" class="link min-w-0"
                 ><DisplayLabel ref="displayLabelComponent" :doc="resultDoc"
               /></RouterLink>
+              <slot name="labelAside" />
             </h2>
             <ul v-if="tags.length" class="flex flex-row flex-wrap content-start items-baseline gap-1 text-sm">
               <template v-for="tag of tags" :key="tag.id">

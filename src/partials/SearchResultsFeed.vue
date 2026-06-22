@@ -72,19 +72,19 @@ const groupExpand = computed<boolean[]>(() => {
   return out
 })
 
-// expandLevel switches the grouping level at depth to its expanded form by setting expand on that group
-// column and emitting the change, the same update the sort dialog's Expand checkbox makes. It is provided to
-// the nested SearchResultGroup tree so a group heading's expand control can trigger it in place; undoing it is
-// done from the sort dialog.
-function expandLevel(depth: number): void {
+// setExpandLevel sets whether the grouping level at depth is expanded by writing expand on that group column
+// and emitting the change, the same update the sort dialog's Expand checkbox makes. It is provided to the
+// nested SearchResultGroup tree so a heading's expand control and an expanded card's collapse control can both
+// trigger it in place.
+function setExpandLevel(depth: number, expand: boolean): void {
   const newSort = clone(props.searchSession.sort ?? [])
   if (depth < 0 || depth >= newSort.length || !newSort[depth].group) {
     return
   }
-  newSort[depth].expand = true
+  newSort[depth].expand = expand
   $emit("sortUpdate", newSort)
 }
-provide(searchExpandKey, expandLevel)
+provide(searchExpandKey, setExpandLevel)
 
 // In the grouped view the actual results are leaf nodes nested under group headings, and a document placed
 // under several groups appears several times. groupedTotals walks the whole tree once to count each result

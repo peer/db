@@ -239,7 +239,8 @@
       "above": "zgoraj"
     },
     "SearchResultGroup": {
-      "expand": "Razširi"
+      "expand": "Razširi",
+      "collapse": "Strni"
     },
     "FieldsForm": {
       "from": "Od",

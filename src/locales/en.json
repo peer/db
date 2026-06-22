@@ -239,7 +239,8 @@
       "above": "above"
     },
     "SearchResultGroup": {
-      "expand": "Expand"
+      "expand": "Expand",
+      "collapse": "Collapse"
     },
     "FieldsForm": {
       "from": "From",
