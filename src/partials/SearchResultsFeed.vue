@@ -12,6 +12,7 @@ import { useI18n } from "vue-i18n"
 import Button from "@/components/Button.vue"
 import InputText from "@/components/InputText.vue"
 import WithDocument from "@/components/WithDocument.vue"
+import WithLock from "@/components/WithLock.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
@@ -242,7 +243,8 @@ const filtersEnabled = ref(false)
 // values are limited to the matching ones (a facet reached by its name shows all of its values).
 const filterQuery = ref("")
 
-// Data loading and controls for data loading.
+// Data loading and controls for data loading. The filter-pane search box opts out of this lock (see
+// filterBoxLock) so it stays editable while results refresh.
 const busy = useBusy()
 const {
   results: filtersResults,
@@ -255,6 +257,15 @@ const {
   filtersEl,
   busy,
 )
+
+// Lock provided around just the filter-pane search box. It is a constant zero, so the box never enters the
+// readonly/disabled state busy puts the rest of the pane in: narrowing by typing must not disable the box.
+// Each keystroke aborts the previous request and issues a new one (see useFilters). The box has no
+// validation of its own, so nothing else would lock it.
+const filterBoxLock = ref(0)
+function getFilterBoxLock() {
+  return filterBoxLock
+}
 
 const {
   limitedResults: limitedFiltersResults,
@@ -621,7 +632,9 @@ const WithDocumentD = WithDocument<D>
             -->
             <div v-if="filtersTotal > 0" class="mb-1 text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: filtersTotal }) }}</div>
 
-            <InputText v-model="filterQuery" class="pd-print-hidden w-full" :aria-label="t('partials.SearchResultsFeed.filtersSearchLabel')" />
+            <WithLock :lock="getFilterBoxLock">
+              <InputText v-model="filterQuery" class="pd-print-hidden w-full" :aria-label="t('partials.SearchResultsFeed.filtersSearchLabel')" />
+            </WithLock>
           </div>
 
           <template v-for="filter in limitedFiltersResults" :key="filter.filterId ?? filterResultKey(filter)">
