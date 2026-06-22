@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { DeepReadonly } from "vue"
 
+import { ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { computed, inject, toRaw } from "vue"
 import { useI18n } from "vue-i18n"
 
@@ -9,7 +10,7 @@ import type { Result } from "@/types"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import SearchResult from "@/partials/SearchResult.vue"
 import SearchResultsPager from "@/partials/SearchResultsPager.vue"
-import { searchPagerKey } from "@/utils"
+import { searchExpandKey, searchPagerKey } from "@/utils"
 import { searchTrackKey } from "@/visibility"
 
 // A grouped result node. When node.group is set it is a group heading (node.id is the referenced value's
@@ -38,9 +39,16 @@ const props = withDefaults(
 
 const { t } = useI18n()
 
-// expanded reports whether this group heading renders as a full result card. The synthetic "missing" group
-// has no document to show a card for, so it always stays a one-line heading.
-const expanded = computed(() => props.node.id !== "__MISSING__" && (props.expandLevels[props.depth] ?? false))
+// levelExpanded reports whether this group level (across all of its values) is expanded into full result
+// cards; expanded reports whether this particular heading renders as a card. The synthetic "missing" group
+// has no document to show a card for, so it always stays a one-line heading even when the level is expanded.
+const levelExpanded = computed(() => props.expandLevels[props.depth] ?? false)
+const expanded = computed(() => props.node.id !== "__MISSING__" && levelExpanded.value)
+
+// expandLevel switches this group level to its expanded form in the search state, the in-place equivalent of
+// the sort dialog's Expand checkbox. It is offered on a heading only while the level is not yet expanded;
+// turning it off again is done from the sort dialog.
+const expandLevel = inject(searchExpandKey, () => undefined)
 
 // The progress pager data SearchResultsFeed computes for the whole tree (which leaf a pager precedes, the
 // unique results shown, and the matching total).
@@ -79,6 +87,15 @@ function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
       <i v-if="node.id === '__MISSING__'" class="min-w-0 truncate">{{ t("common.values.missing") }}</i>
       <DocumentRefInline v-else :id="node.id" class="min-w-0 truncate" />
       <span v-if="node.count != null" class="shrink-0 font-normal text-slate-500">({{ node.count }})</span>
+      <button
+        v-if="!levelExpanded"
+        type="button"
+        class="shrink-0 self-center rounded-sm p-0.5 font-normal text-slate-400 outline-none hover:bg-slate-200 hover:text-slate-600 focus:ring-2 focus:ring-primary-500"
+        :title="t('partials.SearchResultGroup.expand')"
+        @click.prevent="expandLevel(depth)"
+      >
+        <ChevronUpDownIcon class="size-4" :alt="t('partials.SearchResultGroup.expand')" />
+      </button>
     </div>
     <ul class="flex flex-col gap-y-1 pl-4 sm:gap-y-4 sm:pl-6">
       <template v-for="(child, i) in node.group" :key="`${child.id}-${i}`">

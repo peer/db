@@ -42,6 +42,12 @@ export const SKIP_TO_END = 2
 export const searchPagerKey: InjectionKey<ComputedRef<{ pagerBefore: Map<object, number>; shown: number; total: number; duplicates: Set<object> }>> =
   process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-search-pager") : Symbol()
 
+// searchExpandKey carries, from SearchResultsFeed down to the nested SearchResultGroup tree, a callback that
+// switches a grouping level to its expanded form (each group value shown as a full result card instead of a
+// one-line heading). It takes the depth of the group level to expand, the same change the sort dialog's Expand
+// checkbox makes; undoing it is done from the sort dialog. The default is a no-op for trees without a provider.
+export const searchExpandKey: InjectionKey<(depth: number) => void> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-search-expand") : Symbol()
+
 // limitGroupedResults truncates a grouped result tree to the leaves that appear before its (limit+1)th unique
 // result in document order, pruning any group left empty, and returns that tree with the number of unique
 // results it contains. The backend sends the whole tree at once, so this drives the grouped view's client

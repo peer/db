@@ -25,7 +25,7 @@ import SearchSortDialog from "@/partials/SearchSortDialog.vue"
 import TimeDisplay from "@/partials/TimeDisplay.vue"
 import { useBusy } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, filterResultKey, useFilters, useLocationAt } from "@/search"
-import { limitGroupedResults, loadingWidth, searchPagerKey, SKIP_TO_END, useLimitResults, useOnScrollOrResize } from "@/utils"
+import { clone, limitGroupedResults, loadingWidth, searchExpandKey, searchPagerKey, SKIP_TO_END, useLimitResults, useOnScrollOrResize } from "@/utils"
 import { searchTrackKey, useVisibilityTracking } from "@/visibility"
 
 const props = defineProps<{
@@ -71,6 +71,20 @@ const groupExpand = computed<boolean[]>(() => {
   }
   return out
 })
+
+// expandLevel switches the grouping level at depth to its expanded form by setting expand on that group
+// column and emitting the change, the same update the sort dialog's Expand checkbox makes. It is provided to
+// the nested SearchResultGroup tree so a group heading's expand control can trigger it in place; undoing it is
+// done from the sort dialog.
+function expandLevel(depth: number): void {
+  const newSort = clone(props.searchSession.sort ?? [])
+  if (depth < 0 || depth >= newSort.length || !newSort[depth].group) {
+    return
+  }
+  newSort[depth].expand = true
+  $emit("sortUpdate", newSort)
+}
+provide(searchExpandKey, expandLevel)
 
 // In the grouped view the actual results are leaf nodes nested under group headings, and a document placed
 // under several groups appears several times. groupedTotals walks the whole tree once to count each result

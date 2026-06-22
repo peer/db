@@ -249,6 +249,9 @@ declare module "vue-i18n" {
         resultShownAlready: string
         above: string
       }
+      SearchResultGroup: {
+        expand: string
+      }
       FieldsForm: {
         from: string
         to: string

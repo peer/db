@@ -238,6 +238,9 @@
       "resultShownAlready": "Result already shown {above}.",
       "above": "above"
     },
+    "SearchResultGroup": {
+      "expand": "Expand"
+    },
     "FieldsForm": {
       "from": "From",
       "to": "To"

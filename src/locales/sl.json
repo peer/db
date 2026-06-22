@@ -238,6 +238,9 @@
       "resultShownAlready": "Rezultat je že prikazan {above}.",
       "above": "zgoraj"
     },
+    "SearchResultGroup": {
+      "expand": "Razširi"
+    },
     "FieldsForm": {
       "from": "Od",
       "to": "Do"
