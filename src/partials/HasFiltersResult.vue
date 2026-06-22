@@ -17,11 +17,19 @@ import { useLocked, useProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useHasFilters } from "@/search"
 import { equals, loadingWidth, useInitialLoad, useLimitResults } from "@/utils"
 
-const props = defineProps<{
-  searchSession: DeepReadonly<SearchSession>
-  result: HasSearchResult
-  filter?: HasFilterEntry
-}>()
+const props = withDefaults(
+  defineProps<{
+    searchSession: DeepReadonly<SearchSession>
+    result: HasSearchResult
+    filter?: HasFilterEntry
+    // Free-text query that narrows the listed properties to those whose name matches it. Empty means no narrowing.
+    query?: string
+  }>(),
+  {
+    filter: undefined,
+    query: "",
+  },
+)
 
 const locked = useLocked()
 
@@ -55,10 +63,15 @@ const {
   toRef(() => props.searchSession),
   filterId,
   computed(() => props.result.props ?? []),
+  toRef(() => props.query),
   el,
   progress,
 )
 const { laterLoad } = useInitialLoad(progress)
+
+// While a value query is active and no property matches, the whole facet is hidden so the filter pane shows
+// only facets with matching values. During loading (total still null) the facet stays visible.
+const hiddenByQuery = computed(() => props.query !== "" && total.value === 0)
 
 // Extract the selected prop IDs from the filter value.
 const selectedIds = computed((): string[] => {
@@ -118,7 +131,7 @@ const WithDocumentD = WithDocument<D>
 </script>
 
 <template>
-  <div class="pd-hasfiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
+  <div v-if="!hiddenByQuery" class="pd-hasfiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div :id="labelId">
       <Button
         v-if="filter"

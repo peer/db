@@ -15,11 +15,20 @@ import { computeRefCheckStates, equals, loadingWidth, SKIP_TO_END, toggleRefSele
 
 type FlatEntry = { node: RefFilterTreeNode; depth: number }
 
-const props = defineProps<{
-  searchSession: DeepReadonly<SearchSession>
-  result: RefSearchResult
-  filter?: RefFilterEntry
-}>()
+const props = withDefaults(
+  defineProps<{
+    searchSession: DeepReadonly<SearchSession>
+    result: RefSearchResult
+    filter?: RefFilterEntry
+    // Free-text query that narrows the listed values to those whose name matches it; when it matches this
+    // facet's own property name instead, all values are shown. Empty means no narrowing.
+    query?: string
+  }>(),
+  {
+    filter: undefined,
+    query: "",
+  },
+)
 
 const emit = defineEmits<{
   filterUpdate: [filterId: string, filter: RefFilterEntry]
@@ -57,10 +66,15 @@ const {
   toRef(() => props.searchSession),
   filterId,
   computed(() => props.result.props),
+  toRef(() => props.query),
   el,
   progress,
 )
 const { laterLoad } = useInitialLoad(progress)
+
+// While a value query is active and no value matches, the whole facet is hidden so the filter pane shows
+// only facets with matching values. During loading (total still null) the facet stays visible.
+const hiddenByQuery = computed(() => props.query !== "" && total.value === 0)
 
 // Extract the selected "to" IDs from the filter value.
 const selectedIds = computed((): string[] => {
@@ -299,7 +313,7 @@ function onToggle(node: RefFilterTreeNode) {
 </script>
 
 <template>
-  <div class="pd-reffiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
+  <div v-if="!hiddenByQuery" class="pd-reffiltersresult flex flex-col" :class="{ 'data-reloading': laterLoad }" :data-url="resultsUrl">
     <div :id="labelId">
       <Button
         v-if="filter"

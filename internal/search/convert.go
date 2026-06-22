@@ -1261,6 +1261,24 @@ func (c *Converter) getDisplayStrings(ctx context.Context, id identifier.Identif
 	return info.Display, nil
 }
 
+// resolveParentPropDisplays resolves the display and naming labels of each parent property, deduplicated, so
+// they can be denormalized onto the sub-claim records a parent claim produces. This lets a sub-facet
+// ("parentProp > prop") be matched by its parent property's name.
+func (c *Converter) resolveParentPropDisplays(ctx context.Context, parentProps []identifier.Identifier) (map[identifier.Identifier]displayStrings, errors.E) {
+	out := make(map[identifier.Identifier]displayStrings, len(parentProps))
+	for _, pp := range parentProps {
+		if _, ok := out[pp]; ok {
+			continue
+		}
+		ds, errE := c.getDisplayStrings(ctx, pp)
+		if errE != nil {
+			return nil, errE
+		}
+		out[pp] = ds
+	}
+	return out, nil
+}
+
 // displayLabelTemplate returns the best display label template for each supported
 // language by looking at the document's INSTANCE_OF class documents. Templates can
 // have IN_LANGUAGE sub-claims to specify which language they apply to; templates
@@ -3917,12 +3935,18 @@ func (c *Converter) convertSubRefs(
 	}
 
 	// Cross product of parentProps x resolved sub-refs.
+	parentDisplays, errE := c.resolveParentPropDisplays(ctx, parentProps)
+	if errE != nil {
+		return nil, errE
+	}
 	result := make([]SubRefClaim, 0, len(parentProps)*len(resolved))
 	for _, pp := range parentProps {
 		for _, r := range resolved {
 			result = append(result, SubRefClaim{
-				ParentProp: pp,
-				ParentTo:   parentTo,
+				ParentProp:        pp,
+				ParentPropDisplay: parentDisplays[pp].Display,
+				ParentPropNaming:  parentDisplays[pp].Naming,
+				ParentTo:          parentTo,
 				ReferenceClaim: ReferenceClaim{
 					Prop:          r.Prop,
 					PropDisplay:   r.PropDisplay,
@@ -3993,9 +4017,13 @@ func buildSubValueClaims[Point, Interval, Indexed, Out any](
 // produces SubAmountClaim entries for each (parentProp, parentTo, sub-claim) combination. Source claims
 // are passed through convertAmount/convertAmountInterval so single-point and interval values use the same
 // indexed range shape as the top-level amounts.
-func (c *Converter) convertSubAmounts(
+func (c *Converter) convertSubAmounts( //nolint:dupl
 	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,
 ) ([]SubAmountClaim, errors.E) {
+	parentDisplays, errE := c.resolveParentPropDisplays(ctx, parentProps)
+	if errE != nil {
+		return nil, errE
+	}
 	return buildSubValueClaims(
 		ctx, parentProps, parentTo,
 		document.GetAllClaimsOfTypeWithConfidence[document.AmountClaim](sub, document.LowConfidence),
@@ -4007,7 +4035,10 @@ func (c *Converter) convertSubAmounts(
 			return ic, errE
 		},
 		func(pp identifier.Identifier, parentTo string, a AmountClaim) SubAmountClaim {
-			return SubAmountClaim{ParentProp: pp, ParentTo: parentTo, AmountClaim: a}
+			return SubAmountClaim{
+				ParentProp: pp, ParentPropDisplay: parentDisplays[pp].Display, ParentPropNaming: parentDisplays[pp].Naming,
+				ParentTo: parentTo, AmountClaim: a,
+			}
 		},
 	)
 }
@@ -4016,9 +4047,13 @@ func (c *Converter) convertSubAmounts(
 // SubTimeClaim entries for each (parentProp, parentTo, sub-claim) combination. Source claims are passed
 // through convertTime/convertTimeInterval for the same single-point-or-interval range mapping the
 // top-level times use.
-func (c *Converter) convertSubTimes(
+func (c *Converter) convertSubTimes( //nolint:dupl
 	ctx context.Context, sub *document.ClaimTypes, parentProps []identifier.Identifier, parentTo string,
 ) ([]SubTimeClaim, errors.E) {
+	parentDisplays, errE := c.resolveParentPropDisplays(ctx, parentProps)
+	if errE != nil {
+		return nil, errE
+	}
 	return buildSubValueClaims(
 		ctx, parentProps, parentTo,
 		document.GetAllClaimsOfTypeWithConfidence[document.TimeClaim](sub, document.LowConfidence),
@@ -4029,7 +4064,10 @@ func (c *Converter) convertSubTimes(
 			return ic, errE
 		},
 		func(pp identifier.Identifier, parentTo string, t TimeClaim) SubTimeClaim {
-			return SubTimeClaim{ParentProp: pp, ParentTo: parentTo, TimeClaim: t}
+			return SubTimeClaim{
+				ParentProp: pp, ParentPropDisplay: parentDisplays[pp].Display, ParentPropNaming: parentDisplays[pp].Naming,
+				ParentTo: parentTo, TimeClaim: t,
+			}
 		},
 	)
 }
@@ -4069,13 +4107,19 @@ func (c *Converter) convertSubHas(
 		return nil, nil
 	}
 
+	parentDisplays, errE := c.resolveParentPropDisplays(ctx, parentProps)
+	if errE != nil {
+		return nil, errE
+	}
 	result := make([]SubHasClaim, 0, len(parentProps)*len(resolved))
 	for _, pp := range parentProps {
 		for _, r := range resolved {
 			result = append(result, SubHasClaim{
-				ParentProp: pp,
-				ParentTo:   parentTo,
-				HasClaim:   r,
+				ParentProp:        pp,
+				ParentPropDisplay: parentDisplays[pp].Display,
+				ParentPropNaming:  parentDisplays[pp].Naming,
+				ParentTo:          parentTo,
+				HasClaim:          r,
 			})
 		}
 	}

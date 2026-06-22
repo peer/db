@@ -47,11 +47,8 @@ import WithDocument from "@/components/WithDocument.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import { useLock } from "@/progress"
 import { shortcutToFilters } from "@/shortcut"
-import { anySignal, loadingWidth } from "@/utils"
+import { addPrefixWildcard, anySignal, loadingWidth } from "@/utils"
 import { useValidation } from "@/validation"
-
-// Wildcard to see if a string ends with unicode letter or number.
-const WILDCARD_SEARCH_REGEX = /[\p{L}\p{N}]$/u
 
 const props = withDefaults(
   defineProps<{
@@ -199,9 +196,7 @@ async function search(q: string) {
   }
 
   // Add wildcard for prefix search if query ends with unicode letter or number.
-  if (WILDCARD_SEARCH_REGEX.test(q)) {
-    q = q + "*"
-  }
+  q = addPrefixWildcard(q)
 
   searchProgress.value += 1
   try {

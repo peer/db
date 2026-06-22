@@ -181,7 +181,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 		Reverse:    nil,
 	})
 
-	filterResults, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, search.PrefilterExcludes{})
+	filterResults, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", search.PrefilterExcludes{})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// We should have 3 filters: ref, amount, and time.
@@ -314,7 +314,7 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 		Reverse:    nil,
 	})
 
-	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, search.PrefilterExcludes{})
+	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", search.PrefilterExcludes{})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// With query "searchable", only 1 doc matches, so ref filter should have count 1.
@@ -387,7 +387,7 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 		Reverse:    nil,
 	})
 
-	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, search.PrefilterExcludes{})
+	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", search.PrefilterExcludes{})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Should have exactly one amount filter with empty unit and count 1.
@@ -399,4 +399,88 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 		FilterID: "",
 		Count:    int64(1),
 	}, filterResults[0])
+}
+
+func TestFiltersGetValueQueryIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	instanceOf := identifier.From("instanceOf")
+	germany := identifier.From("germany")
+	height := identifier.From("height")
+	unitID := identifier.From("unitID")
+	ten := 10.0
+
+	// A reference facet "instance of" with a value "Germany".
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
+		ID: identifier.From("facetDoc1"),
+		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
+			Reference: internalSearch.ReferenceClaims{{ //nolint:exhaustruct
+				Prop: instanceOf, PropDisplay: map[string]string{"en": "instance of"},
+				To: germany, ToDisplay: map[string]string{"en": "Germany"},
+			}},
+		},
+	})
+	// An amount facet "Height"; amounts have no value label, so this facet is reachable only by its name.
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
+		ID: identifier.From("facetDoc2"),
+		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
+			Amount: internalSearch.AmountClaims{{ //nolint:exhaustruct
+				Prop: height, PropDisplay: map[string]string{"en": "Height"}, Unit: &unitID,
+				Range: internalSearch.RangeFloat{GreaterThanOrEqual: &ten, LessThanOrEqual: &ten}, //nolint:exhaustruct
+				From:  &ten, To: &ten,
+			}},
+		},
+	})
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+	enabledLanguages := internalSearch.EnabledLanguages(nil)
+
+	has := func(results []search.FilterResult, typ string, prop identifier.Identifier) bool {
+		for _, r := range results {
+			if r.Type == typ && len(r.Props) > 0 && r.Props[0] == prop.String() {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Without a query both facets are available.
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "", search.PrefilterExcludes{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.True(t, has(results, "ref", instanceOf))
+	assert.True(t, has(results, "amount", height))
+	// The available-filters total is the count of all facets and must not change as the box is typed in.
+	assert.Equal(t, "2", metadata["total"])
+
+	// Matching a facet by its own property name keeps only that facet, but the total stays the same.
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "instance*", search.PrefilterExcludes{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.True(t, has(results, "ref", instanceOf))
+	assert.False(t, has(results, "amount", height))
+	assert.Equal(t, "2", metadata["total"])
+
+	// Matching a reference facet by one of its value names keeps that facet too.
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "germ*", search.PrefilterExcludes{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.True(t, has(results, "ref", instanceOf))
+	assert.False(t, has(results, "amount", height))
+	assert.Equal(t, "2", metadata["total"])
+
+	// An amount facet is reachable by its name even though its values (numbers) cannot be searched.
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "heig*", search.PrefilterExcludes{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.True(t, has(results, "amount", height))
+	assert.False(t, has(results, "ref", instanceOf))
+	assert.Equal(t, "2", metadata["total"])
+
+	// A query that matches no facet name or value returns no facets, yet the total still reports both.
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "zzz*", search.PrefilterExcludes{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.False(t, has(results, "ref", instanceOf))
+	assert.False(t, has(results, "amount", height))
+	assert.Equal(t, "2", metadata["total"])
 }

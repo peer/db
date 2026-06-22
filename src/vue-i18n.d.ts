@@ -214,6 +214,8 @@ declare module "vue-i18n" {
         resultsNotShown: string
         noFilters: string
         filtersAvailable: string
+        filtersSearchLabel: string
+        filtersNoMatch: string
         determiningFilters: string
         skipToFilters: string
         skipToResults: string

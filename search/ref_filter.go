@@ -269,14 +269,28 @@ func valueAggregation(field string, filterQuery types.QueryVariant) types.Aggreg
 func (f *RefFilter) Get(
 	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, prop identifier.Identifier, excludeFullPaths []string,
+	valueQuery string, enabledLanguages []string,
 ) ([]RefFilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
 	searchService := getSearchService()
 
-	// The value aggregation is scoped to records for this property. When a prefilter on this property is
-	// active, also drop the records derived from its value so ancestor buckets are not re-counted.
-	refFilterQuery := esdsl.NewBoolQuery().Must(esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String())))
+	// The value aggregation is scoped to records for this property. valueQuery additionally restricts the
+	// facet to records whose value name or this property's own name matches the user-typed text, so the
+	// pane can be narrowed without changing the search; it never alters which documents match.
+	// Because the property name is the same on every record, when it matches the query the whole facet
+	// passes (all values are shown), which is what a user searching for the facet by name wants.
+	refFilterMusts := []types.QueryVariant{esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String()))}
+	if valueQuery != "" {
+		refFilterMusts = append(refFilterMusts, labelMatchQuery(
+			[]string{"claims.ref.toNaming"}, []string{"claims.ref.toDisplay"},
+			[]string{"claims.ref.propNaming"}, []string{"claims.ref.propDisplay"},
+			valueQuery, enabledLanguages,
+		))
+	}
+	refFilterQuery := esdsl.NewBoolQuery().Must(refFilterMusts...)
+	// When a prefilter on this property is active, also drop the records derived from its value so ancestor
+	// buckets are not re-counted.
 	if len(excludeFullPaths) > 0 {
 		refFilterQuery = refFilterQuery.MustNot(toFullPathTermsQuery("claims.ref", excludeFullPaths))
 	}
@@ -294,6 +308,18 @@ func (f *RefFilter) Get(
 	searchService = searchService.Size(0).Query(query).
 		AddAggregation("ref", refAggregation).
 		AddAggregation("missing", missingAggregation)
+
+	// When a value query is active, the missing bucket is only kept if the query matches this property's own
+	// name (the user is searching for the facet by name and wants the whole facet, missing included). propMatch
+	// counts documents that have a record for this property whose property name matches the query.
+	if valueQuery != "" {
+		searchService = searchService.AddAggregation("propMatch", esdsl.NewAggregations().Filter(
+			esdsl.NewNestedQuery(esdsl.NewBoolQuery().Must(
+				esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String())),
+				propLabelMatchQuery([]string{"claims.ref.propNaming"}, []string{"claims.ref.propDisplay"}, valueQuery, enabledLanguages),
+			)).Path("claims.ref"),
+		))
+	}
 
 	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
@@ -333,6 +359,17 @@ func (f *RefFilter) Get(
 	}
 	missingCount := missingFilter.DocCount
 
+	// The missing bucket is shown when there is no value query, or when the value query matches this
+	// property's own name (the facet was reached by name, so the whole facet, missing included, is shown).
+	includeMissing := valueQuery == ""
+	if valueQuery != "" {
+		propMatch, errE := internalSearch.AggAs[types.FilterAggregate](res.Aggregations, "propMatch")
+		if errE != nil {
+			return nil, nil, errE
+		}
+		includeMissing = propMatch.DocCount > 0
+	}
+
 	results, errE := bucketsToRefFilterResults(refBuckets, "ref")
 	if errE != nil {
 		return nil, nil, errE
@@ -347,8 +384,9 @@ func (f *RefFilter) Get(
 	}
 	results = append(results, direct...)
 
-	// Include the missing bucket if there are documents without this property.
-	if missingCount > 0 {
+	// Include the missing bucket if there are documents without this property. The missing bucket has no
+	// display label, so it is shown only when the facet is not being narrowed by a value name.
+	if missingCount > 0 && includeMissing {
 		results = append(results, RefFilterResult{ID: MissingValueID, Count: missingCount, Paths: nil})
 	}
 
@@ -358,7 +396,7 @@ func (f *RefFilter) Get(
 
 	refTotalValue := distinctValuesTotal(len(refBuckets), refTotal.Value) + int64(len(direct))
 	// Include missing in the total if present.
-	if missingCount > 0 {
+	if missingCount > 0 && includeMissing {
 		refTotalValue++
 	}
 	total := strconv.FormatInt(refTotalValue, 10)
@@ -458,6 +496,7 @@ func (f *RefFilter) GetSubRef(
 	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, parentProp, prop identifier.Identifier,
 	parentToRestrictions []identifier.Identifier, excludeFullPaths []string,
+	valueQuery string, enabledLanguages []string,
 ) ([]RefFilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
@@ -475,9 +514,21 @@ func (f *RefFilter) GetSubRef(
 		}
 		filterMusts = append(filterMusts, esdsl.NewBoolQuery().Should(parentToShoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)))
 	}
+	// valueQuery restricts the facet to records whose value name or this sub-property's own name matches the
+	// user-typed text, so the pane can be narrowed without changing the search; it never alters which
+	// documents match. The parent property name is not denormalized on sub-reference records, so a sub-facet
+	// is matched by its sub-property and value names only.
+	if valueQuery != "" {
+		filterMusts = append(filterMusts, labelMatchQuery(
+			[]string{"claims.subRef.toNaming"}, []string{"claims.subRef.toDisplay"},
+			[]string{"claims.subRef.propNaming", "claims.subRef.parentPropNaming"},
+			[]string{"claims.subRef.propDisplay", "claims.subRef.parentPropDisplay"},
+			valueQuery, enabledLanguages,
+		))
+	}
+	subRefFilterQuery := esdsl.NewBoolQuery().Must(filterMusts...)
 	// When a prefilter on this (parentProp, prop) is active, drop the records derived from its value so
 	// ancestor buckets are not re-counted.
-	subRefFilterQuery := esdsl.NewBoolQuery().Must(filterMusts...)
 	if len(excludeFullPaths) > 0 {
 		subRefFilterQuery = subRefFilterQuery.MustNot(toFullPathTermsQuery("claims.subRef", excludeFullPaths))
 	}
@@ -498,6 +549,22 @@ func (f *RefFilter) GetSubRef(
 	searchService = searchService.Size(0).Query(query).
 		AddAggregation("subRef", subRefAggregation).
 		AddAggregation("missing", missingAggregation)
+
+	// When a value query is active, the missing bucket is only kept if the query matches this sub-property's
+	// own name or its parent property's name (the facet was reached by name and the whole facet, missing
+	// included, is shown). propMatch counts documents that have a record for this (parentProp, prop) whose
+	// sub-property or parent-property name matches.
+	if valueQuery != "" {
+		searchService = searchService.AddAggregation("propMatch", esdsl.NewAggregations().Filter(
+			esdsl.NewNestedQuery(esdsl.NewBoolQuery().Must(
+				esdsl.NewTermQuery("claims.subRef.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+				esdsl.NewTermQuery("claims.subRef.prop", esdsl.NewFieldValue().String(prop.String())),
+				propLabelMatchQuery(
+					[]string{"claims.subRef.propNaming", "claims.subRef.parentPropNaming"},
+					[]string{"claims.subRef.propDisplay", "claims.subRef.parentPropDisplay"}, valueQuery, enabledLanguages),
+			)).Path("claims.subRef"),
+		))
+	}
 
 	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
@@ -537,6 +604,17 @@ func (f *RefFilter) GetSubRef(
 	}
 	missingCount := missingFilter.DocCount
 
+	// The missing bucket is shown when there is no value query, or when the value query matches this
+	// sub-property's own name (the facet was reached by name, so the whole facet, missing included, is shown).
+	includeMissing := valueQuery == ""
+	if valueQuery != "" {
+		propMatch, errE := internalSearch.AggAs[types.FilterAggregate](res.Aggregations, "propMatch")
+		if errE != nil {
+			return nil, nil, errE
+		}
+		includeMissing = propMatch.DocCount > 0
+	}
+
 	results, errE := bucketsToRefFilterResults(subRefBuckets, "subRef")
 	if errE != nil {
 		return nil, nil, errE
@@ -551,8 +629,9 @@ func (f *RefFilter) GetSubRef(
 	}
 	results = append(results, direct...)
 
-	// Include the missing bucket if there are documents without this sub-reference.
-	if missingCount > 0 {
+	// Include the missing bucket if there are documents without this sub-reference. The missing bucket has
+	// no display label, so it is shown only when the facet is not being narrowed by a value name.
+	if missingCount > 0 && includeMissing {
 		results = append(results, RefFilterResult{ID: MissingValueID, Count: missingCount, Paths: nil})
 	}
 
@@ -561,7 +640,7 @@ func (f *RefFilter) GetSubRef(
 	slices.SortStableFunc(results, compareRefFilterResults)
 
 	subRefTotalValue := distinctValuesTotal(len(subRefBuckets), subRefTotal.Value) + int64(len(direct))
-	if missingCount > 0 {
+	if missingCount > 0 && includeMissing {
 		subRefTotalValue++
 	}
 	total := strconv.FormatInt(subRefTotalValue, 10)

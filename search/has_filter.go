@@ -32,6 +32,7 @@ func (f *HasFilter) GetSubHas(
 	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, parentProp identifier.Identifier,
 	parentToRestrictions []identifier.Identifier,
+	valueQuery string, enabledLanguages []string,
 ) ([]HasFilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
@@ -46,6 +47,13 @@ func (f *HasFilter) GetSubHas(
 			shoulds = append(shoulds, esdsl.NewTermQuery("claims.subHas.parentTo", esdsl.NewFieldValue().String(pto.String())))
 		}
 		filterMusts = append(filterMusts, esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)))
+	}
+	// valueQuery restricts the facet to has-properties whose display label matches the user-typed text, so
+	// the filter pane can be narrowed without changing the search. It never alters which documents match.
+	if valueQuery != "" {
+		filterMusts = append(filterMusts, propLabelMatchQuery(
+			[]string{"claims.subHas.propNaming", "claims.subHas.parentPropNaming"},
+			[]string{"claims.subHas.propDisplay", "claims.subHas.parentPropDisplay"}, valueQuery, enabledLanguages))
 	}
 
 	subHasAggregation := esdsl.NewAggregations().
@@ -120,24 +128,33 @@ func (f *HasFilter) GetSubHas(
 // Get retrieves has filter data for search results.
 func (f *HasFilter) Get(
 	ctx context.Context, getSearchService func() *esSearch.Search,
-	query types.QueryVariant,
+	query types.QueryVariant, valueQuery string, enabledLanguages []string,
 ) ([]HasFilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
 	searchService := getSearchService()
+
+	// valueQuery restricts the facet to has-properties whose display label matches the user-typed text, so
+	// the filter pane can be narrowed without changing the search. It never alters which documents match.
+	var hasFilterQuery types.QueryVariant = esdsl.NewMatchAllQuery()
+	if valueQuery != "" {
+		hasFilterQuery = propLabelMatchQuery([]string{"claims.has.propNaming"}, []string{"claims.has.propDisplay"}, valueQuery, enabledLanguages)
+	}
 
 	// Aggregation for has claims: terms on claims.has.prop.
 	// Only simple has claims (without sub-claims) are indexed in claims.has, so no
 	// additional filtering is needed. Has claims with sub-claims are stored in claims.subRef.
 	hasAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.has")).
-		AddAggregation("props", esdsl.NewAggregations().
-			Terms(esdsl.NewTermsAggregation().Field("claims.has.prop").Size(MaxResultsCount).
-				Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
-			AddAggregation("docs", esdsl.NewAggregations().
-				ReverseNested(esdsl.NewReverseNestedAggregation()))).
-		AddAggregation("total", esdsl.NewAggregations().
-			Cardinality(esdsl.NewCardinalityAggregation().Field("claims.has.prop").PrecisionThreshold(maxPrecisionThreshold)))
+		AddAggregation("filter", esdsl.NewAggregations().
+			Filter(hasFilterQuery).
+			AddAggregation("props", esdsl.NewAggregations().
+				Terms(esdsl.NewTermsAggregation().Field("claims.has.prop").Size(MaxResultsCount).
+					Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
+				AddAggregation("docs", esdsl.NewAggregations().
+					ReverseNested(esdsl.NewReverseNestedAggregation()))).
+			AddAggregation("total", esdsl.NewAggregations().
+				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.has.prop").PrecisionThreshold(maxPrecisionThreshold))))
 
 	searchService = searchService.Size(0).Query(query).
 		AddAggregation("has", hasAggregation)
@@ -154,7 +171,11 @@ func (f *HasFilter) Get(
 	if errE != nil {
 		return nil, nil, errE
 	}
-	hasTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](hasNested.Aggregations, "props")
+	hasFilter, errE := internalSearch.AggAs[types.FilterAggregate](hasNested.Aggregations, "filter")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	hasTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](hasFilter.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -164,7 +185,7 @@ func (f *HasFilter) Get(
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", hasTerms.Buckets)
 		return nil, nil, errE
 	}
-	hasTotal, errE := internalSearch.AggAs[types.CardinalityAggregate](hasNested.Aggregations, "total")
+	hasTotal, errE := internalSearch.AggAs[types.CardinalityAggregate](hasFilter.Aggregations, "total")
 	if errE != nil {
 		return nil, nil, errE
 	}

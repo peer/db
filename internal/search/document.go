@@ -426,8 +426,10 @@ type UnknownClaim struct {
 type SubRefClaim struct {
 	ReferenceClaim
 
-	ParentProp identifier.Identifier `json:"parentProp"`
-	ParentTo   string                `json:"parentTo"`
+	ParentProp        identifier.Identifier `json:"parentProp"`
+	ParentPropDisplay map[string]string     `json:"parentPropDisplay"`
+	ParentPropNaming  map[string][]string   `json:"parentPropNaming"`
+	ParentTo          string                `json:"parentTo"`
 }
 
 // SubAmountClaim represents a denormalized nested amount sub-claim flattened
@@ -437,8 +439,10 @@ type SubRefClaim struct {
 type SubAmountClaim struct {
 	AmountClaim
 
-	ParentProp identifier.Identifier `json:"parentProp"`
-	ParentTo   string                `json:"parentTo"`
+	ParentProp        identifier.Identifier `json:"parentProp"`
+	ParentPropDisplay map[string]string     `json:"parentPropDisplay"`
+	ParentPropNaming  map[string][]string   `json:"parentPropNaming"`
+	ParentTo          string                `json:"parentTo"`
 }
 
 // SubTimeClaim represents a denormalized nested time sub-claim flattened from
@@ -449,8 +453,10 @@ type SubAmountClaim struct {
 type SubTimeClaim struct {
 	TimeClaim
 
-	ParentProp identifier.Identifier `json:"parentProp"`
-	ParentTo   string                `json:"parentTo"`
+	ParentProp        identifier.Identifier `json:"parentProp"`
+	ParentPropDisplay map[string]string     `json:"parentPropDisplay"`
+	ParentPropNaming  map[string][]string   `json:"parentPropNaming"`
+	ParentTo          string                `json:"parentTo"`
 }
 
 // SubHasClaim represents a denormalized nested has-only sub-claim flattened
@@ -462,6 +468,8 @@ type SubTimeClaim struct {
 type SubHasClaim struct {
 	HasClaim
 
-	ParentProp identifier.Identifier `json:"parentProp"`
-	ParentTo   string                `json:"parentTo"`
+	ParentProp        identifier.Identifier `json:"parentProp"`
+	ParentPropDisplay map[string]string     `json:"parentPropDisplay"`
+	ParentPropNaming  map[string][]string   `json:"parentPropNaming"`
+	ParentTo          string                `json:"parentTo"`
 }

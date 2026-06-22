@@ -3,10 +3,29 @@ import type { RefValueLike } from "@/utils"
 import { assert, describe, expect, test } from "vitest"
 
 import { timeFloat64, validateTime } from "@/document/time"
-import { computeRefCheckStates, parseUrl, timePrecisionForRange, timePrecisionForValue, timeStringFromFloat64, toggleRefSelection } from "@/utils"
+import { addPrefixWildcard, computeRefCheckStates, parseUrl, timePrecisionForRange, timePrecisionForValue, timeStringFromFloat64, toggleRefSelection } from "@/utils"
 
 // Unix seconds for 2025-03-02 10:30:45 UTC.
 const SAMPLE_SECONDS = Date.UTC(2025, 2, 2, 10, 30, 45) / 1000
+
+describe("addPrefixWildcard", () => {
+  test("appends a wildcard when the query ends with a letter or number", () => {
+    assert.equal(addPrefixWildcard("germ"), "germ*")
+    assert.equal(addPrefixWildcard("123"), "123*")
+    assert.equal(addPrefixWildcard("united sta"), "united sta*")
+    // Unicode letters count too.
+    assert.equal(addPrefixWildcard("ljublj"), "ljublj*")
+    assert.equal(addPrefixWildcard("ž"), "ž*")
+  })
+
+  test("leaves the query unchanged when it does not end with a letter or number", () => {
+    assert.equal(addPrefixWildcard(""), "")
+    assert.equal(addPrefixWildcard("germany "), "germany ")
+    assert.equal(addPrefixWildcard("germany*"), "germany*")
+    assert.equal(addPrefixWildcard('"exact phrase"'), '"exact phrase"')
+    assert.equal(addPrefixWildcard("foo-"), "foo-")
+  })
+})
 
 describe("timePrecisionForRange", () => {
   test("returns s for spans under an hour", () => {

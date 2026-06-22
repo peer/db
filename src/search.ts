@@ -23,7 +23,7 @@ import { computed, onBeforeUnmount, readonly, ref, watch } from "vue"
 import { stringifyQuery, useRoute, useRouter } from "vue-router"
 
 import { getURL, getURLDirect, postJSON } from "@/api"
-import { anySignal, encodeQuery } from "@/utils"
+import { addPrefixWildcard, anySignal, encodeQuery } from "@/utils"
 
 export const FILTERS_INITIAL_LIMIT = 10
 export const FILTERS_INCREASE = 10
@@ -219,6 +219,7 @@ export function filterResultKey(filter: DeepReadonly<FilterResult>): string {
 
 export function useFilters(
   searchSessionRef: Ref<SearchSessionRef>,
+  valueQuery: Ref<string>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
@@ -244,7 +245,9 @@ export function useFilters(
       // is ignored and always the latest version is returned), but we pass it anyway so that
       // URL changes when version changes and search results are re-fetched.
       // TODO: Change this once we have proper support for versions.
-      query: encodeQuery({ version: `${searchSessionRef.value.version}` }),
+      // valueQuery narrows the listed facets to those reachable by the typed text (by a value name or the
+      // facet's own property name), sent as the "q" parameter so a keystroke re-fetches the matching facets.
+      query: encodeQuery({ version: `${searchSessionRef.value.version}`, q: valueQuery.value ? addPrefixWildcard(valueQuery.value) : undefined }),
     }).href
   })
 
@@ -365,6 +368,7 @@ export function useRefFilters(
   searchSessionRef: Ref<SearchSessionRef>,
   filterId: Ref<string>,
   props: Ref<readonly string[]>,
+  valueQuery: Ref<string>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
@@ -379,7 +383,9 @@ export function useRefFilters(
     // TODO: Implement proper versioning.
     //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
     //       but the backend does not really use the parameter and always returns the latest version.
-    const query = encodeQuery({ version: `${searchSessionRef.value.version}` })
+    // valueQuery narrows the listed facet values to those whose display label matches the typed text; it is
+    // sent as the "q" parameter (with a prefix wildcard appended) so a keystroke re-fetches the limited values.
+    const query = encodeQuery({ version: `${searchSessionRef.value.version}`, q: valueQuery.value ? addPrefixWildcard(valueQuery.value) : undefined })
     const id = filterId.value
     if (id) {
       // Active filter: use filter ID route.
@@ -410,6 +416,7 @@ export function useHasFilters(
   searchSessionRef: Ref<SearchSessionRef>,
   filterId: Ref<string>,
   props: Ref<readonly string[]>,
+  valueQuery: Ref<string>,
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
@@ -424,7 +431,9 @@ export function useHasFilters(
     // TODO: Implement proper versioning.
     //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
     //       but the backend does not really use the parameter and always returns the latest version.
-    const query = encodeQuery({ version: `${searchSessionRef.value.version}` })
+    // valueQuery narrows the listed has-properties to those whose display label matches the typed text; it is
+    // sent as the "q" parameter (with a prefix wildcard appended) so a keystroke re-fetches the limited values.
+    const query = encodeQuery({ version: `${searchSessionRef.value.version}`, q: valueQuery.value ? addPrefixWildcard(valueQuery.value) : undefined })
     const id = filterId.value
     if (id) {
       // Active filter: use filter ID route.

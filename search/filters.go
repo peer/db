@@ -157,7 +157,7 @@ func parseMultiTermsBuckets(buckets []types.MultiTermsBucket) ([]FilterResult, e
 // value hierarchy is left empty and therefore skipped.
 func FiltersGet( //nolint:maintidx
 	ctx context.Context, getSearchService func() *esSearch.Search, searchSession *Session, enabledLanguages []string,
-	excludes PrefilterExcludes, extraFilters ...types.QueryVariant,
+	valueQuery string, excludes PrefilterExcludes, extraFilters ...types.QueryVariant,
 ) ([]FilterResult, map[string]any, errors.E) {
 	metrics, _ := waf.GetMetrics(ctx)
 
@@ -168,29 +168,73 @@ func FiltersGet( //nolint:maintidx
 	query := searchSession.ToQuery(enabledLanguages, extraFilters...)
 
 	searchService := getSearchService()
+
+	// When a value query is active, each discovery aggregation is narrowed to facets the query can reach,
+	// either through one of the facet's values or through the facet's own property name. Reference facets
+	// match on value and property names; amount, time and has facets only have a property name to match
+	// (their values are numbers, dates, or the listed properties themselves). This mirrors the matching the
+	// per-facet value endpoints use, so a facet that appears here always has at least one value to show.
+	//
+	// The value query narrows only which facets (the "props"/"matched" sub-aggregations) are returned; the
+	// per-type "total" counts stay outside it, so the total number of available filters (shown to the user
+	// next to the search box) reflects the search itself and does not change as the box is typed in.
+	matchAll := types.QueryVariant(esdsl.NewMatchAllQuery())
+	refMatch, amountMatch, timeMatch, hasMatch := matchAll, matchAll, matchAll, matchAll
+	subRefMatch, subAmountMatch, subTimeMatch, subHasMatch := matchAll, matchAll, matchAll, matchAll
+	if valueQuery != "" {
+		// Reference facets match on value names (regular search query) and the property name (phrase-prefix).
+		refMatch = labelMatchQuery(
+			[]string{"claims.ref.toNaming"}, []string{"claims.ref.toDisplay"},
+			[]string{"claims.ref.propNaming"}, []string{"claims.ref.propDisplay"}, valueQuery, enabledLanguages)
+		// Sub-facets ("parentProp > prop") also match on the parent property's name, denormalized onto the
+		// sub-claim records as parentPropNaming/parentPropDisplay.
+		subRefMatch = labelMatchQuery(
+			[]string{"claims.subRef.toNaming"}, []string{"claims.subRef.toDisplay"},
+			[]string{"claims.subRef.propNaming", "claims.subRef.parentPropNaming"},
+			[]string{"claims.subRef.propDisplay", "claims.subRef.parentPropDisplay"}, valueQuery, enabledLanguages)
+		// Amount, time and has facets have no value documents to search, so they match on property names only.
+		amountMatch = propLabelMatchQuery([]string{"claims.amount.propNaming"}, []string{"claims.amount.propDisplay"}, valueQuery, enabledLanguages)
+		timeMatch = propLabelMatchQuery([]string{"claims.time.propNaming"}, []string{"claims.time.propDisplay"}, valueQuery, enabledLanguages)
+		hasMatch = propLabelMatchQuery([]string{"claims.has.propNaming"}, []string{"claims.has.propDisplay"}, valueQuery, enabledLanguages)
+		subAmountMatch = propLabelMatchQuery(
+			[]string{"claims.subAmount.propNaming", "claims.subAmount.parentPropNaming"},
+			[]string{"claims.subAmount.propDisplay", "claims.subAmount.parentPropDisplay"}, valueQuery, enabledLanguages)
+		subTimeMatch = propLabelMatchQuery(
+			[]string{"claims.subTime.propNaming", "claims.subTime.parentPropNaming"},
+			[]string{"claims.subTime.propDisplay", "claims.subTime.parentPropDisplay"}, valueQuery, enabledLanguages)
+		subHasMatch = propLabelMatchQuery(
+			[]string{"claims.subHas.propNaming", "claims.subHas.parentPropNaming"},
+			[]string{"claims.subHas.propDisplay", "claims.subHas.parentPropDisplay"}, valueQuery, enabledLanguages)
+	}
 	// The "scoped" filter drops records a prefilter makes redundant before the prop terms and total are
 	// computed, so a property whose only ref records come from a prefilter value disappears from discovery.
+	// The "matched" filter under it narrows the returned prop terms by the value query, while "total" stays
+	// outside it so the available-filters total is unaffected by the value query.
 	refAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.ref")).
 		AddAggregation("scoped", esdsl.NewAggregations().
 			Filter(excludes.refDiscoveryFilter()).
-			AddAggregation("props", esdsl.NewAggregations().
-				Terms(esdsl.NewTermsAggregation().Field("claims.ref.prop").Size(MaxResultsCount).
-					Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
-				AddAggregation("docs", esdsl.NewAggregations().
-					ReverseNested(esdsl.NewReverseNestedAggregation()))).
+			AddAggregation("matched", esdsl.NewAggregations().
+				Filter(refMatch).
+				AddAggregation("props", esdsl.NewAggregations().
+					Terms(esdsl.NewTermsAggregation().Field("claims.ref.prop").Size(MaxResultsCount).
+						Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
+					AddAggregation("docs", esdsl.NewAggregations().
+						ReverseNested(esdsl.NewReverseNestedAggregation())))).
 			AddAggregation("total", esdsl.NewAggregations().
 				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.ref.prop").PrecisionThreshold(maxPrecisionThreshold))))
 	amountAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.amount")).
-		AddAggregation("props", esdsl.NewAggregations().
-			MultiTerms(esdsl.NewMultiTermsAggregation().Terms(
-				esdsl.NewMultiTermLookup().Field("claims.amount.prop"),
-				// Units are document IDs, so valid units can never be string "__missing__".
-				esdsl.NewMultiTermLookup().Field("claims.amount.unit").Missing(esdsl.NewMissing().String("__missing__")),
-			).Size(MaxResultsCount).Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
-			AddAggregation("docs", esdsl.NewAggregations().
-				ReverseNested(esdsl.NewReverseNestedAggregation()))).
+		AddAggregation("filtered", esdsl.NewAggregations().
+			Filter(amountMatch).
+			AddAggregation("props", esdsl.NewAggregations().
+				MultiTerms(esdsl.NewMultiTermsAggregation().Terms(
+					esdsl.NewMultiTermLookup().Field("claims.amount.prop"),
+					// Units are document IDs, so valid units can never be string "__missing__".
+					esdsl.NewMultiTermLookup().Field("claims.amount.unit").Missing(esdsl.NewMissing().String("__missing__")),
+				).Size(MaxResultsCount).Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
+				AddAggregation("docs", esdsl.NewAggregations().
+					ReverseNested(esdsl.NewReverseNestedAggregation())))).
 		AddAggregation("total", esdsl.NewAggregations().
 			// TODO: Use a runtime field.
 			//       See: https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-aggregations-metrics-cardinality-aggregation.html#_script_4
@@ -203,33 +247,44 @@ func FiltersGet( //nolint:maintidx
 			).PrecisionThreshold(maxPrecisionThreshold)))
 	timeAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.time")).
-		AddAggregation("props", esdsl.NewAggregations().
-			Terms(esdsl.NewTermsAggregation().Field("claims.time.prop").Size(MaxResultsCount).
-				Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
-			AddAggregation("docs", esdsl.NewAggregations().
-				ReverseNested(esdsl.NewReverseNestedAggregation()))).
+		AddAggregation("filtered", esdsl.NewAggregations().
+			Filter(timeMatch).
+			AddAggregation("props", esdsl.NewAggregations().
+				Terms(esdsl.NewTermsAggregation().Field("claims.time.prop").Size(MaxResultsCount).
+					Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
+				AddAggregation("docs", esdsl.NewAggregations().
+					ReverseNested(esdsl.NewReverseNestedAggregation())))).
 		AddAggregation("total", esdsl.NewAggregations().
 			Cardinality(esdsl.NewCardinalityAggregation().Field("claims.time.prop").PrecisionThreshold(maxPrecisionThreshold)))
 	// Has aggregation counts documents that have at least one has claim.
 	// Only simple has claims (without sub-claims) are indexed in claims.has, so no
 	// additional filtering is needed. Unlike other filter types, has produces a single
 	// filter rather than one per property.
+	// The outer filter counts documents with any has claim, so the has facet contributes to the available
+	// filters total regardless of the value query. The inner "matched" filter counts those whose has-property
+	// matches the value query, deciding whether the has facet is returned.
 	hasAggregation := esdsl.NewAggregations().
 		Filter(esdsl.NewNestedQuery(
 			esdsl.NewMatchAllQuery(),
-		).Path("claims.has"))
+		).Path("claims.has")).
+		AddAggregation("matched", esdsl.NewAggregations().
+			Filter(esdsl.NewNestedQuery(
+				hasMatch,
+			).Path("claims.has")))
 	// SubRef aggregation discovers available (parentProp, prop) combinations across all sub-references.
 	subRefAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.subRef")).
 		AddAggregation("scoped", esdsl.NewAggregations().
 			Filter(excludes.subRefDiscoveryFilter()).
-			AddAggregation("props", esdsl.NewAggregations().
-				MultiTerms(esdsl.NewMultiTermsAggregation().Terms(
-					esdsl.NewMultiTermLookup().Field("claims.subRef.parentProp"),
-					esdsl.NewMultiTermLookup().Field("claims.subRef.prop"),
-				).Size(MaxResultsCount).Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
-				AddAggregation("docs", esdsl.NewAggregations().
-					ReverseNested(esdsl.NewReverseNestedAggregation()))).
+			AddAggregation("matched", esdsl.NewAggregations().
+				Filter(subRefMatch).
+				AddAggregation("props", esdsl.NewAggregations().
+					MultiTerms(esdsl.NewMultiTermsAggregation().Terms(
+						esdsl.NewMultiTermLookup().Field("claims.subRef.parentProp"),
+						esdsl.NewMultiTermLookup().Field("claims.subRef.prop"),
+					).Size(MaxResultsCount).Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
+					AddAggregation("docs", esdsl.NewAggregations().
+						ReverseNested(esdsl.NewReverseNestedAggregation())))).
 			AddAggregation("total", esdsl.NewAggregations().
 				Cardinality(esdsl.NewCardinalityAggregation().Script(
 					esdsl.NewScript().Source(esdsl.NewScriptSource().String(
@@ -241,14 +296,16 @@ func FiltersGet( //nolint:maintidx
 	// missing-unit placeholder.
 	subAmountAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.subAmount")).
-		AddAggregation("props", esdsl.NewAggregations().
-			MultiTerms(esdsl.NewMultiTermsAggregation().Terms(
-				esdsl.NewMultiTermLookup().Field("claims.subAmount.parentProp"),
-				esdsl.NewMultiTermLookup().Field("claims.subAmount.prop"),
-				esdsl.NewMultiTermLookup().Field("claims.subAmount.unit").Missing(esdsl.NewMissing().String("__missing__")),
-			).Size(MaxResultsCount).Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
-			AddAggregation("docs", esdsl.NewAggregations().
-				ReverseNested(esdsl.NewReverseNestedAggregation()))).
+		AddAggregation("filtered", esdsl.NewAggregations().
+			Filter(subAmountMatch).
+			AddAggregation("props", esdsl.NewAggregations().
+				MultiTerms(esdsl.NewMultiTermsAggregation().Terms(
+					esdsl.NewMultiTermLookup().Field("claims.subAmount.parentProp"),
+					esdsl.NewMultiTermLookup().Field("claims.subAmount.prop"),
+					esdsl.NewMultiTermLookup().Field("claims.subAmount.unit").Missing(esdsl.NewMissing().String("__missing__")),
+				).Size(MaxResultsCount).Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
+				AddAggregation("docs", esdsl.NewAggregations().
+					ReverseNested(esdsl.NewReverseNestedAggregation())))).
 		AddAggregation("total", esdsl.NewAggregations().
 			// TODO: Use a runtime field.
 			//       See: https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-aggregations-metrics-cardinality-aggregation.html#_script_4
@@ -261,13 +318,15 @@ func FiltersGet( //nolint:maintidx
 	// SubTime aggregation discovers available (parentProp, prop) combinations across all sub-times.
 	subTimeAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.subTime")).
-		AddAggregation("props", esdsl.NewAggregations().
-			MultiTerms(esdsl.NewMultiTermsAggregation().Terms(
-				esdsl.NewMultiTermLookup().Field("claims.subTime.parentProp"),
-				esdsl.NewMultiTermLookup().Field("claims.subTime.prop"),
-			).Size(MaxResultsCount).Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
-			AddAggregation("docs", esdsl.NewAggregations().
-				ReverseNested(esdsl.NewReverseNestedAggregation()))).
+		AddAggregation("filtered", esdsl.NewAggregations().
+			Filter(subTimeMatch).
+			AddAggregation("props", esdsl.NewAggregations().
+				MultiTerms(esdsl.NewMultiTermsAggregation().Terms(
+					esdsl.NewMultiTermLookup().Field("claims.subTime.parentProp"),
+					esdsl.NewMultiTermLookup().Field("claims.subTime.prop"),
+				).Size(MaxResultsCount).Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
+				AddAggregation("docs", esdsl.NewAggregations().
+					ReverseNested(esdsl.NewReverseNestedAggregation())))).
 		AddAggregation("total", esdsl.NewAggregations().
 			Cardinality(esdsl.NewCardinalityAggregation().Script(
 				esdsl.NewScript().Source(esdsl.NewScriptSource().String(
@@ -279,11 +338,13 @@ func FiltersGet( //nolint:maintidx
 	// HasFilter.Props, so discovery only enumerates parentProp.
 	subHasAggregation := esdsl.NewAggregations().
 		Nested(esdsl.NewNestedAggregation().Path("claims.subHas")).
-		AddAggregation("props", esdsl.NewAggregations().
-			Terms(esdsl.NewTermsAggregation().Field("claims.subHas.parentProp").Size(MaxResultsCount).
-				Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
-			AddAggregation("docs", esdsl.NewAggregations().
-				ReverseNested(esdsl.NewReverseNestedAggregation()))).
+		AddAggregation("filtered", esdsl.NewAggregations().
+			Filter(subHasMatch).
+			AddAggregation("props", esdsl.NewAggregations().
+				Terms(esdsl.NewTermsAggregation().Field("claims.subHas.parentProp").Size(MaxResultsCount).
+					Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
+				AddAggregation("docs", esdsl.NewAggregations().
+					ReverseNested(esdsl.NewReverseNestedAggregation())))).
 		AddAggregation("total", esdsl.NewAggregations().
 			Cardinality(esdsl.NewCardinalityAggregation().Field("claims.subHas.parentProp").PrecisionThreshold(maxPrecisionThreshold)))
 	searchService = searchService.Size(0).Query(query).
@@ -395,7 +456,11 @@ func FiltersGet( //nolint:maintidx
 	if errE != nil {
 		return nil, nil, errE
 	}
-	refTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](refScoped.Aggregations, "props")
+	refMatched, errE := internalSearch.AggAs[types.FilterAggregate](refScoped.Aggregations, "matched")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	refTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](refMatched.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -415,7 +480,11 @@ func FiltersGet( //nolint:maintidx
 	if errE != nil {
 		return nil, nil, errE
 	}
-	amountTerms, errE := internalSearch.AggAs[types.MultiTermsAggregate](amountNested.Aggregations, "props")
+	amountFiltered, errE := internalSearch.AggAs[types.FilterAggregate](amountNested.Aggregations, "filtered")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	amountTerms, errE := internalSearch.AggAs[types.MultiTermsAggregate](amountFiltered.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -435,7 +504,11 @@ func FiltersGet( //nolint:maintidx
 	if errE != nil {
 		return nil, nil, errE
 	}
-	timeTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](timeNested.Aggregations, "props")
+	timeFiltered, errE := internalSearch.AggAs[types.FilterAggregate](timeNested.Aggregations, "filtered")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	timeTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](timeFiltered.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -450,12 +523,19 @@ func FiltersGet( //nolint:maintidx
 		return nil, nil, errE
 	}
 
-	// Parse has aggregation.
+	// Parse has aggregation. hasDocCount is the documents with any has claim (drives the available-filters
+	// total); hasMatchedCount is those whose has-property matches the value query (drives whether the facet
+	// is returned).
 	hasFilterAgg, errE := internalSearch.AggAs[types.FilterAggregate](res.Aggregations, "has")
 	if errE != nil {
 		return nil, nil, errE
 	}
 	hasDocCount := hasFilterAgg.DocCount
+	hasMatchedAgg, errE := internalSearch.AggAs[types.FilterAggregate](hasFilterAgg.Aggregations, "matched")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	hasMatchedCount := hasMatchedAgg.DocCount
 
 	// Parse subRef aggregation.
 	subRefNested, errE := internalSearch.AggAs[types.NestedAggregate](res.Aggregations, "subRef")
@@ -466,7 +546,11 @@ func FiltersGet( //nolint:maintidx
 	if errE != nil {
 		return nil, nil, errE
 	}
-	subRefTerms, errE := internalSearch.AggAs[types.MultiTermsAggregate](subRefScoped.Aggregations, "props")
+	subRefMatched, errE := internalSearch.AggAs[types.FilterAggregate](subRefScoped.Aggregations, "matched")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	subRefTerms, errE := internalSearch.AggAs[types.MultiTermsAggregate](subRefMatched.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -486,7 +570,11 @@ func FiltersGet( //nolint:maintidx
 	if errE != nil {
 		return nil, nil, errE
 	}
-	subAmountTerms, errE := internalSearch.AggAs[types.MultiTermsAggregate](subAmountNested.Aggregations, "props")
+	subAmountFiltered, errE := internalSearch.AggAs[types.FilterAggregate](subAmountNested.Aggregations, "filtered")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	subAmountTerms, errE := internalSearch.AggAs[types.MultiTermsAggregate](subAmountFiltered.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -506,7 +594,11 @@ func FiltersGet( //nolint:maintidx
 	if errE != nil {
 		return nil, nil, errE
 	}
-	subTimeTerms, errE := internalSearch.AggAs[types.MultiTermsAggregate](subTimeNested.Aggregations, "props")
+	subTimeFiltered, errE := internalSearch.AggAs[types.FilterAggregate](subTimeNested.Aggregations, "filtered")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	subTimeTerms, errE := internalSearch.AggAs[types.MultiTermsAggregate](subTimeFiltered.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -526,7 +618,11 @@ func FiltersGet( //nolint:maintidx
 	if errE != nil {
 		return nil, nil, errE
 	}
-	subHasTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](subHasNested.Aggregations, "props")
+	subHasFiltered, errE := internalSearch.AggAs[types.FilterAggregate](subHasNested.Aggregations, "filtered")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	subHasTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](subHasFiltered.Aggregations, "props")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -586,14 +682,15 @@ func FiltersGet( //nolint:maintidx
 	results = append(results, subTimeResults...)
 	results = append(results, subHasResults...)
 
-	// Add has filter result if any documents have has claims.
-	if hasDocCount > 0 {
+	// Add the has filter result when a has-property matches the value query (any has claim when there is no
+	// query). Its count is the matching documents, mirroring how the other facets narrow under a query.
+	if hasMatchedCount > 0 {
 		results = append(results, FilterResult{
 			Props:    nil,
 			Type:     "has",
 			Unit:     "",
 			FilterID: "",
-			Count:    hasDocCount,
+			Count:    hasMatchedCount,
 		})
 	}
 
@@ -680,18 +777,24 @@ func FiltersGet( //nolint:maintidx
 		results = results[:MaxResultsCount]
 	}
 
-	refTotalValue := distinctValuesTotal(len(refBuckets), refTotal.Value)
-	amountTotalValue := distinctValuesTotal(len(amountBuckets), amountTotal.Value)
-	timeTotalValue := distinctValuesTotal(len(timeBuckets), timeTotal.Value)
-	// Has filter contributes at most 1 to the total (one filter for all has claims).
+	// The available-filters total is the distinct facet count per type, taken from the cardinality
+	// aggregations which are computed outside the value-query filter, so the total reflects the search and is
+	// not narrowed as the filter-pane search box is typed in. The cardinality is exact for the facet counts
+	// in play (well under the precision threshold). The per-type bucket lists are the value-query-narrowed
+	// facets that are actually returned, and are not used for the total.
+	refTotalValue := refTotal.Value
+	amountTotalValue := amountTotal.Value
+	timeTotalValue := timeTotal.Value
+	// Has filter contributes at most 1 to the total (one filter for all has claims), counted whenever any
+	// document has a has claim, regardless of the value query.
 	var hasTotalValue int64
 	if hasDocCount > 0 {
 		hasTotalValue = 1
 	}
-	subRefTotalValue := distinctValuesTotal(len(subRefBuckets), subRefTotal.Value)
-	subAmountTotalValue := distinctValuesTotal(len(subAmountBuckets), subAmountTotal.Value)
-	subTimeTotalValue := distinctValuesTotal(len(subTimeBuckets), subTimeTotal.Value)
-	subHasTotalValue := distinctValuesTotal(len(subHasBuckets), subHasTotal.Value)
+	subRefTotalValue := subRefTotal.Value
+	subAmountTotalValue := subAmountTotal.Value
+	subTimeTotalValue := subTimeTotal.Value
+	subHasTotalValue := subHasTotal.Value
 	total := strconv.FormatInt(
 		refTotalValue+amountTotalValue+timeTotalValue+hasTotalValue+
 			subRefTotalValue+subAmountTotalValue+subTimeTotalValue+subHasTotalValue,

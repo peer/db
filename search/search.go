@@ -1117,6 +1117,112 @@ func documentTextSearchQuery(searchQuery string, defaultOperator operator.Operat
 	return esdsl.NewBoolQuery().Must(recall).Should(phrase)
 }
 
+// labelMatchQuery builds the query that narrows a facet to records whose name matches the user-typed text q,
+// OR-ing two kinds of label match so a facet can be reached either through one of its values or through a
+// property name:
+//
+//   - Value labels (valueNamingFields/valueDisplayFields, for example claims.ref.toNaming / toDisplay) are
+//     the referenced document's name. A value can be any document, so these are matched the same way the main
+//     result search matches documents: a simple_query_string giving stemmed recall over the naming strings
+//     and exact-routed, diacritic-folded, prefix matching over the display label. The frontend's trailing "*"
+//     is kept here for prefix search, exactly as the main search and the reference autocomplete input do.
+//   - Property labels (propNamingFields/propDisplayFields, for example claims.ref.propDisplay, a parent
+//     property's claims.subRef.parentPropDisplay, or a has-property's claims.has.propDisplay) come from the
+//     controlled set of properties and are matched with match_phrase_prefix over the whole label, which
+//     prefix-matches a multi-word name as an ordered phrase (so "instance of" matches) and does its own
+//     prefixing, so the trailing "*" is stripped there.
+//
+// The result feeds an aggregation filter, which runs in filter context (facet values are ordered by document
+// count, not scored), so relevance and phrase-proximity boosts would be inert and are intentionally omitted;
+// only clauses that change the matched set are included. enabledLanguages selects the per-language sub-fields
+// present in the index; an empty list falls back to all supported ones.
+func labelMatchQuery( //nolint:ireturn
+	valueNamingFields, valueDisplayFields, propNamingFields, propDisplayFields []string, q string, enabledLanguages []string,
+) types.QueryVariant {
+	langs := enabledLanguages
+	if len(langs) == 0 {
+		langs = slices.Sorted(maps.Keys(internalSearch.SupportedLanguages))
+	}
+
+	shoulds := make([]types.QueryVariant, 0, (len(valueNamingFields)+2*len(valueDisplayFields)+len(propNamingFields)+2*len(propDisplayFields))*len(langs))
+
+	// Value labels: regular search query (stemmed naming recall + exact-routed/wildcard display), with the
+	// query left as typed so its trailing "*" prefix-matches.
+	shoulds = append(shoulds, searchTextClauses(valueNamingFields, valueDisplayFields, q, langs)...)
+
+	// Property labels: match_phrase_prefix over the whole label. The frontend's trailing "*" is stripped (the
+	// prefix is intrinsic); an all-wildcard query then carries no property text and contributes no clause.
+	if propQuery := strings.TrimSuffix(q, "*"); propQuery != "" {
+		shoulds = append(shoulds, phrasePrefixClauses(propNamingFields, propDisplayFields, propQuery, langs)...)
+	}
+
+	// A query that is only wildcards leaves no clause (every facet is shown in full).
+	if len(shoulds) == 0 {
+		return esdsl.NewMatchAllQuery()
+	}
+	return esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
+}
+
+// propLabelMatchQuery is labelMatchQuery for facets whose only searchable label is a property name (amount,
+// time, has, and the sub-claim discovery and missing-bucket gating). Those have no value documents to search.
+func propLabelMatchQuery(namingFields, displayFields []string, q string, enabledLanguages []string) types.QueryVariant { //nolint:ireturn
+	return labelMatchQuery(nil, nil, namingFields, displayFields, q, enabledLanguages)
+}
+
+// searchTextClauses builds the value-label clauses of labelMatchQuery, mirroring documentTextSearchQuery's
+// recall scoped to a value's denormalized fields: each naming field is matched stemmed per language combined
+// with the language-neutral und bucket, and each display field is matched with quoted phrases routed to its
+// diacritic-preserved "exact" sub-field and a trailing "*" analyzed for prefix search.
+func searchTextClauses(namingFields, displayFields []string, q string, langs []string) []types.QueryVariant {
+	clauses := make([]types.QueryVariant, 0, (len(namingFields)+len(displayFields))*len(langs))
+	for _, namingField := range namingFields {
+		undNaming := namingField + "." + document.UndeterminedLanguage
+		hasLang := false
+		for _, lang := range langs {
+			if lang == document.UndeterminedLanguage {
+				continue
+			}
+			hasLang = true
+			clauses = append(clauses, esdsl.NewSimpleQueryStringQuery(q).Fields(namingField+"."+lang, undNaming).DefaultOperator(operator.And))
+		}
+		if !hasLang {
+			clauses = append(clauses, esdsl.NewSimpleQueryStringQuery(q).Fields(undNaming).DefaultOperator(operator.And))
+		}
+	}
+	for _, displayField := range displayFields {
+		for _, lang := range langs {
+			clauses = append(clauses, esdsl.NewSimpleQueryStringQuery(q).
+				Fields(displayField+"."+lang).
+				DefaultOperator(operator.And).
+				QuoteFieldSuffix(".exact").
+				AnalyzeWildcard(true))
+		}
+	}
+	return clauses
+}
+
+// phrasePrefixClauses builds the property-label clauses of labelMatchQuery: a match_phrase_prefix over each
+// naming and display field (and each display field's diacritic-preserved "exact" sub-field), which prefix-
+// matches a whole multi-word property name as an ordered phrase.
+func phrasePrefixClauses(namingFields, displayFields []string, q string, langs []string) []types.QueryVariant {
+	clauses := make([]types.QueryVariant, 0, (len(namingFields)+2*len(displayFields))*len(langs))
+	for _, namingField := range namingFields {
+		for _, lang := range langs {
+			clauses = append(clauses, esdsl.NewMatchPhrasePrefixQuery(namingField+"."+lang, q))
+		}
+	}
+	for _, displayField := range displayFields {
+		for _, lang := range langs {
+			field := displayField + "." + lang
+			clauses = append(clauses,
+				esdsl.NewMatchPhrasePrefixQuery(field, q),
+				esdsl.NewMatchPhrasePrefixQuery(field+".exact", q),
+			)
+		}
+	}
+	return clauses
+}
+
 // TODO: Use a database instead.
 var searches = sync.Map{} //nolint:gochecknoglobals
 

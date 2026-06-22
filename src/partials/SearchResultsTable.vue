@@ -70,6 +70,9 @@ const {
   url: filtersURL,
 } = useFilters(
   toRef(() => props.searchSession),
+  // The table view lists filter columns for the whole table and has no filter-pane search box, so the
+  // value query is always empty here.
+  toRef(() => ""),
   // We use the content element because data about filters is needed to display columns for the whole table.
   // Using only <tr> element inside <thead> (where data-url attribute is set for filters) would not convey that requirement.
   content,

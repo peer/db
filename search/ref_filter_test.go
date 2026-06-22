@@ -128,7 +128,9 @@ func TestRefFilterGetIntegration(t *testing.T) {
 		Reverse:    nil,
 	})
 
-	results, metadata, errE := session.Filters[0].Ref.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0], nil)
+	results, metadata, errE := session.Filters[0].Ref.Get(
+		ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0], nil, "", nil,
+	)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Results are sorted by count descending: target1 (count 2) first, target2 (count 1) second.
@@ -214,7 +216,7 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 
 	// Query for ref filter values using the session's full query and prop from outside the session.
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Results order is non-deterministic when counts are equal.
@@ -321,7 +323,7 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Results should include target1 (count 1) and __MISSING__ (count 2), sorted by count descending.
@@ -377,7 +379,7 @@ func TestRefFilterGetNoMissingIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// No missing bucket since all documents have the prop.
@@ -467,7 +469,7 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// One source doc per bucket; on equal counts results are ordered by hierarchy
@@ -588,7 +590,7 @@ func TestRefFilterDirectIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// artist aggregates all nine documents; its children (the sculptor value, the artist "direct"
@@ -687,7 +689,7 @@ func TestRefFilterGetDiamondIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil)
+	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, results, 1)
@@ -798,7 +800,7 @@ func TestRefFilterGetMultipleInheritanceIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 6)
 	assert.Equal(t, "6", metadata["total"])
@@ -870,7 +872,7 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 			Unknown:    nil,
 			SubRef: internalSearch.SubRefClaims{
 				{
-					ParentProp: parentProp, ParentTo: parentTo,
+					ParentProp: parentProp, ParentPropDisplay: nil, ParentPropNaming: nil, ParentTo: parentTo,
 					ReferenceClaim: internalSearch.ReferenceClaim{
 						Prop: subProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
 						To: dog, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
@@ -879,7 +881,7 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 					},
 				},
 				{
-					ParentProp: parentProp, ParentTo: parentTo,
+					ParentProp: parentProp, ParentPropDisplay: nil, ParentPropNaming: nil, ParentTo: parentTo,
 					ReferenceClaim: internalSearch.ReferenceClaim{
 						Prop: subProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
 						To: mammal, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
@@ -888,7 +890,7 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 					},
 				},
 				{
-					ParentProp: parentProp, ParentTo: parentTo,
+					ParentProp: parentProp, ParentPropDisplay: nil, ParentPropNaming: nil, ParentTo: parentTo,
 					ReferenceClaim: internalSearch.ReferenceClaim{
 						Prop: subProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
 						To: animal, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
@@ -907,7 +909,7 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil)
+	results, metadata, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "", nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// On equal counts results are ordered by hierarchy depth ascending, so
@@ -918,4 +920,153 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 		{ID: dog.String(), Count: 1, Paths: [][]string{{animal.String(), mammal.String()}}},
 	}, results)
 	assert.Equal(t, "3", metadata["total"])
+}
+
+func TestRefFilterGetValueQueryIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	refProp := identifier.From("refProp")
+	otherProp := identifier.From("otherProp")
+	germany := identifier.From("germany")
+	france := identifier.From("france")
+	germanium := identifier.From("germanium")
+
+	// Two documents referencing values with distinct display labels under refProp. Germany also carries an
+	// alternative naming string so the facet search can be exercised against the naming fields, not just the
+	// display label.
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
+		ID: identifier.From("refDoc1"),
+		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
+			Reference: internalSearch.ReferenceClaims{{ //nolint:exhaustruct
+				Prop: refProp, To: germany, ToDisplay: map[string]string{"en": "Germany"}, ToNaming: map[string][]string{"en": {"Deutschland"}},
+			}},
+		},
+	})
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
+		ID: identifier.From("refDoc2"),
+		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
+			Reference: internalSearch.ReferenceClaims{{ //nolint:exhaustruct
+				Prop: refProp, To: france, ToDisplay: map[string]string{"en": "France"},
+			}},
+		},
+	})
+	// A document referencing a value under a different property whose label also matches "germ*". The value
+	// query on refProp must not leak this value, which guards against the per-property scope being dropped.
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
+		ID: identifier.From("refDoc3"),
+		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
+			Reference: internalSearch.ReferenceClaims{{ //nolint:exhaustruct
+				Prop: otherProp, To: germanium, ToDisplay: map[string]string{"en": "Germanium"},
+			}},
+		},
+	})
+	// A document without refProp contributes a missing bucket that the value query must drop.
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
+		ID:     identifier.From("refDoc4"),
+		Claims: internalSearch.ClaimTypes{},
+	})
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	enabledLanguages := internalSearch.EnabledLanguages(nil)
+	f := search.RefFilter{}
+
+	// The value query (a prefix wildcard, as the frontend appends) narrows the facet to the matching value
+	// under this property only. Germanium matches "germ*" too but belongs to otherProp, so it must not leak.
+	// The missing bucket is dropped because it has no display label to match.
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "germ*", enabledLanguages)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []search.RefFilterResult{
+		{ID: germany.String(), Count: 1, Paths: nil},
+	}, results)
+	assert.Equal(t, "1", metadata["total"])
+
+	// Matching is over all naming strings, not just the display label: Germany's alternative name
+	// "Deutschland" is found even though its display label is "Germany".
+	results, _, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "deutsch*", enabledLanguages)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []search.RefFilterResult{
+		{ID: germany.String(), Count: 1, Paths: nil},
+	}, results)
+
+	// A bare "*" matches everything, including this property's own name, so the whole facet is shown (all
+	// values plus the missing bucket), still scoped to this property.
+	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "*", enabledLanguages)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.ElementsMatch(t, []search.RefFilterResult{
+		{ID: germany.String(), Count: 1, Paths: nil},
+		{ID: france.String(), Count: 1, Paths: nil},
+		{ID: search.MissingValueID, Count: 2, Paths: nil},
+	}, results)
+	assert.Equal(t, "3", metadata["total"])
+
+	// An empty value query restores all values, including the missing bucket.
+	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", enabledLanguages)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.ElementsMatch(t, []search.RefFilterResult{
+		{ID: germany.String(), Count: 1, Paths: nil},
+		{ID: france.String(), Count: 1, Paths: nil},
+		{ID: search.MissingValueID, Count: 2, Paths: nil},
+	}, results)
+	assert.Equal(t, "3", metadata["total"])
+}
+
+func TestRefFilterGetSubRefParentNameQueryIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	parentProp := identifier.From("hasLocation")
+	parentTo := identifier.From("venue").String()
+	subProp := identifier.From("hasUser")
+	alice := identifier.From("alice")
+
+	// A sub-reference facet "has location > has user" with value "Alice". The parent property's label is
+	// denormalized so the facet can be matched by it.
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
+		ID: identifier.From("subDoc1"),
+		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
+			SubRef: internalSearch.SubRefClaims{{ //nolint:exhaustruct
+				ParentProp:        parentProp,
+				ParentPropDisplay: map[string]string{"en": "has location"},
+				ParentTo:          parentTo,
+				ReferenceClaim: internalSearch.ReferenceClaim{ //nolint:exhaustruct
+					Prop: subProp, PropDisplay: map[string]string{"en": "has user"},
+					To: alice, ToDisplay: map[string]string{"en": "Alice"},
+				},
+			}},
+		},
+	})
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+	enabledLanguages := internalSearch.EnabledLanguages(nil)
+	f := search.RefFilter{}
+
+	expected := []search.RefFilterResult{{ID: alice.String(), Count: 1, Paths: nil}}
+
+	// Matched by the parent property's name ("has location").
+	results, _, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "has location*", enabledLanguages)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, expected, results)
+
+	// Matched by the sub-property's name ("has user").
+	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "has user*", enabledLanguages)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, expected, results)
+
+	// Matched by the value's name ("Alice").
+	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "alic*", enabledLanguages)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, expected, results)
+
+	// A query that matches neither the parent, sub-property, nor value names returns nothing.
+	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "zzz*", enabledLanguages)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Empty(t, results)
 }

@@ -10,11 +10,21 @@ import HasFiltersResult from "@/partials/HasFiltersResult.vue"
 import RefFiltersResult from "@/partials/RefFiltersResult.vue"
 import TimeFiltersResult from "@/partials/TimeFiltersResult.vue"
 
-const props = defineProps<{
-  result: FilterResult
-  searchSession: DeepReadonly<SearchSession>
-  filters: Filter[]
-}>()
+const props = withDefaults(
+  defineProps<{
+    result: FilterResult
+    searchSession: DeepReadonly<SearchSession>
+    filters: Filter[]
+    // Free-text query narrowing reference and has facet values to those whose value or property name
+    // matches; empty means no narrowing. It is forwarded only to reference and has facets, the ones with
+    // searchable values; amount and time facets carry no such values, so they render in full (the facet list
+    // itself is already narrowed to matching facets by the backend).
+    query?: string
+  }>(),
+  {
+    query: "",
+  },
+)
 
 const $emit = defineEmits<{
   filterUpdate: [filterId: string, filter: Filter]
@@ -76,6 +86,7 @@ function onFilterUpdate(filterId: string, filter: Filter) {
     :search-session="searchSession"
     :result="result"
     :filter="findRefFilter(result)"
+    :query="query"
     v-bind="$attrs"
     @filter-update="onFilterUpdate"
   />
@@ -106,6 +117,7 @@ function onFilterUpdate(filterId: string, filter: Filter) {
     :search-session="searchSession"
     :result="result"
     :filter="findHasFilter(result)"
+    :query="query"
     v-bind="$attrs"
     @filter-update="onFilterUpdate"
   />

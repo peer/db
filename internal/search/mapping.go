@@ -550,6 +550,14 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 					relationID,
 				},
 				{
+					"parentPropDisplay",
+					propDisplay(langs),
+				},
+				{
+					"parentPropNaming",
+					multiLanguageText(langs),
+				},
+				{
 					"parentTo",
 					relationID,
 				},
@@ -611,6 +619,14 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 				{
 					"parentProp",
 					relationID,
+				},
+				{
+					"parentPropDisplay",
+					propDisplay(langs),
+				},
+				{
+					"parentPropNaming",
+					multiLanguageText(langs),
 				},
 				{
 					"parentTo",
@@ -680,6 +696,14 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 					relationID,
 				},
 				{
+					"parentPropDisplay",
+					propDisplay(langs),
+				},
+				{
+					"parentPropNaming",
+					multiLanguageText(langs),
+				},
+				{
 					"parentTo",
 					relationID,
 				},
@@ -741,6 +765,14 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 				{
 					"parentProp",
 					relationID,
+				},
+				{
+					"parentPropDisplay",
+					propDisplay(langs),
+				},
+				{
+					"parentPropNaming",
+					multiLanguageText(langs),
 				},
 				{
 					"parentTo",

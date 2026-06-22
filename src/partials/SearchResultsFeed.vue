@@ -9,6 +9,7 @@ import { computed, onBeforeUnmount, onMounted, provide, ref, toRaw, toRef, useTe
 import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
+import InputText from "@/components/InputText.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import FiltersResult from "@/partials/FiltersResult.vue"
@@ -205,6 +206,12 @@ function loadAll(): void {
 const filtersEl = useTemplateRef<HTMLElement>("filtersEl")
 const filtersEnabled = ref(false)
 
+// filterQuery is the free-text the user typed into the filter-pane search box. It narrows which filters
+// and filter values are shown (via the API) without changing the search itself: the facet list is limited
+// to facets reachable by the text (through a value name or the facet's own property name), and each facet's
+// values are limited to the matching ones (a facet reached by its name shows all of its values).
+const filterQuery = ref("")
+
 // Data loading and controls for data loading.
 const busy = useBusy()
 const {
@@ -214,6 +221,7 @@ const {
   url: filtersURL,
 } = useFilters(
   toRef(() => props.searchSession),
+  filterQuery,
   filtersEl,
   busy,
 )
@@ -486,7 +494,7 @@ const WithDocumentD = WithDocument<D>
       </div>
 
       <template v-else>
-        <div v-if="searchSession.reverse" class="text-center text-sm">
+        <div v-if="searchSession.reverse" class="text-sm">
           <Button
             type="button"
             class="float-right ml-2 px-2.5 py-1"
@@ -514,7 +522,7 @@ const WithDocumentD = WithDocument<D>
           </i18n-t>
         </div>
 
-        <div v-if="searchSession.prefilters && searchSession.prefilters.length > 0" class="text-center text-sm">
+        <div v-if="searchSession.prefilters && searchSession.prefilters.length > 0" class="text-sm">
           <Button
             type="button"
             class="float-right ml-2 px-2.5 py-1"
@@ -537,18 +545,29 @@ const WithDocumentD = WithDocument<D>
           </template>
         </div>
 
-        <div v-if="filtersTotal === 0" class="my-1 sm:my-4">
+        <!-- No filters at all and not searching: there is nothing to search, so the box is not shown. -->
+        <div v-if="filtersTotal === 0 && !filterQuery" class="my-1 sm:my-4">
           <div class="text-center text-sm">{{ t("partials.SearchResultsFeed.noFilters") }}</div>
         </div>
 
-        <template v-else-if="filtersTotal > 0 || searchSession.reverse">
-          <div class="text-center text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: filtersTotal }) }}</div>
+        <template v-else-if="filtersTotal > 0 || filterQuery || searchSession.reverse">
+          <div>
+            <!--
+              The count is the number of filters available for the current search and stays constant as the
+              box is typed in; the box only narrows which filters and filter values are shown (by a value name
+              or the facet's own name), never the search itself.
+            -->
+            <div v-if="filtersTotal > 0" class="mb-1 text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: filtersTotal }) }}</div>
+
+            <InputText v-model="filterQuery" class="pd-print-hidden w-full" :aria-label="t('partials.SearchResultsFeed.filtersSearchLabel')" />
+          </div>
 
           <template v-for="filter in limitedFiltersResults" :key="filter.filterId ?? filterResultKey(filter)">
             <FiltersResult
               :result="filter"
               :search-session="searchSession"
               :filters="filters"
+              :query="filterQuery"
               class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm"
               @filter-update="(filterId, filter) => $emit('filterUpdate', filterId, filter)"
             />
@@ -558,9 +577,13 @@ const WithDocumentD = WithDocument<D>
             t("partials.SearchResultsFeed.moreFilters")
           }}</Button>
 
-          <div v-else-if="filtersTotal > limitedFiltersResults.length" class="text-center text-sm">{{
-            t("partials.SearchResultsFeed.filtersNotShown", { count: filtersTotal - limitedFiltersResults.length })
+          <!-- Counts of shown vs returned use the (possibly narrowed) returned facets, not the constant total. -->
+          <div v-else-if="filtersResults.length > limitedFiltersResults.length" class="text-center text-sm">{{
+            t("partials.SearchResultsFeed.filtersNotShown", { count: filtersResults.length - limitedFiltersResults.length })
           }}</div>
+
+          <!-- A search that matches no filter still keeps the box visible so the query can be changed or cleared. -->
+          <div v-if="filtersResults.length === 0 && filterQuery" class="text-center text-sm">{{ t("partials.SearchResultsFeed.filtersNoMatch") }}</div>
         </template>
       </template>
     </div>

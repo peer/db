@@ -221,6 +221,10 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 		return
 	}
 
+	// valueQuery narrows a reference or has facet to the values whose display label matches the typed text.
+	valueQuery := req.URL.Query().Get("q")
+	enabledLanguages := enabledSearchLanguages(ctx)
+
 	index, handled := s.resolveReadIndex(w, req)
 	if handled {
 		return
@@ -244,9 +248,10 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 				ctx, searchService, query, f.Prop[0], f.Prop[1],
 				collectParentToFromSession(searchSession.Filters, f.Prop[0]),
 				excludes.SubRef(f.Prop[0], f.Prop[1]),
+				valueQuery, enabledLanguages,
 			)
 		} else {
-			data, metadata, errE = f.Ref.Get(ctx, searchService, query, f.Prop[0], excludes.Ref(f.Prop[0]))
+			data, metadata, errE = f.Ref.Get(ctx, searchService, query, f.Prop[0], excludes.Ref(f.Prop[0]), valueQuery, enabledLanguages)
 		}
 	case f.Amount != nil:
 		if len(f.Prop) == 2 { //nolint:mnd
@@ -271,9 +276,10 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 			data, metadata, errE = f.Has.GetSubHas(
 				ctx, searchService, query, f.Prop[0],
 				collectParentToFromSession(searchSession.Filters, f.Prop[0]),
+				valueQuery, enabledLanguages,
 			)
 		} else {
-			data, metadata, errE = f.Has.Get(ctx, searchService, query)
+			data, metadata, errE = f.Has.Get(ctx, searchService, query, valueQuery, enabledLanguages)
 		}
 	default:
 		panic(errors.New("invalid filter"))
@@ -334,7 +340,10 @@ func (s *Service) SearchRefFilterGetAPI(w http.ResponseWriter, req *http.Request
 		return
 	}
 	f := search.RefFilter{}
-	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req, index), query, prop, excludes.Ref(prop))
+	data, metadata, errE := f.Get(
+		ctx, s.getSearchServiceClosure(req, index), query, prop, excludes.Ref(prop),
+		req.URL.Query().Get("q"), enabledSearchLanguages(ctx),
+	)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -507,6 +516,7 @@ func (s *Service) SearchSubRefFilterGetAPI(w http.ResponseWriter, req *http.Requ
 	data, metadata, errE := f.GetSubRef(
 		ctx, s.getSearchServiceClosure(req, index), query, parentProp, prop, parentToRestrictions,
 		excludes.SubRef(parentProp, prop),
+		req.URL.Query().Get("q"), enabledSearchLanguages(ctx),
 	)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -668,7 +678,7 @@ func (s *Service) SearchHasFilterGetAPI(w http.ResponseWriter, req *http.Request
 		return
 	}
 	f := search.HasFilter{}
-	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req, index), query)
+	data, metadata, errE := f.Get(ctx, s.getSearchServiceClosure(req, index), query, req.URL.Query().Get("q"), enabledSearchLanguages(ctx))
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -716,7 +726,10 @@ func (s *Service) SearchSubHasFilterGetAPI(w http.ResponseWriter, req *http.Requ
 		return
 	}
 	f := search.HasFilter{}
-	data, metadata, errE := f.GetSubHas(ctx, s.getSearchServiceClosure(req, index), query, parentProp, parentToRestrictions)
+	data, metadata, errE := f.GetSubHas(
+		ctx, s.getSearchServiceClosure(req, index), query, parentProp, parentToRestrictions,
+		req.URL.Query().Get("q"), enabledSearchLanguages(ctx),
+	)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
@@ -808,7 +821,10 @@ func (s *Service) SearchFiltersGetAPI(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	data, metadata, errE := search.FiltersGet(ctx, s.getSearchServiceClosure(req, index), searchSession, enabledSearchLanguages(ctx), excludes, accessFilter)
+	data, metadata, errE := search.FiltersGet(
+		ctx, s.getSearchServiceClosure(req, index), searchSession, enabledSearchLanguages(ctx),
+		req.URL.Query().Get("q"), excludes, accessFilter,
+	)
 	if errors.Is(errE, search.ErrValidationFailed) {
 		s.BadRequestWithError(w, req, errE)
 		return

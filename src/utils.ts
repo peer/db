@@ -15,6 +15,18 @@ import { yearPrecisionMultiple } from "@/document/time"
 import { getDisplayLabelFunctions } from "@/registry/display-label"
 import { hour, minute, second, toDate } from "@/time"
 
+// Wildcard to see if a string ends with unicode letter or number.
+const WILDCARD_SEARCH_REGEX = /[\p{L}\p{N}]$/u
+
+// addPrefixWildcard appends "*" to a search query that ends with a unicode letter or number so the last
+// term is matched as a prefix. A query ending in whitespace or punctuation (or empty) is returned unchanged.
+export function addPrefixWildcard(query: string): string {
+  if (WILDCARD_SEARCH_REGEX.test(query)) {
+    return query + "*"
+  }
+  return query
+}
+
 // If the last increase would be equal or less than this number, just skip to the end.
 export const SKIP_TO_END = 2
 
