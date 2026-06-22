@@ -514,10 +514,10 @@ func (f *RefFilter) GetSubRef(
 		}
 		filterMusts = append(filterMusts, esdsl.NewBoolQuery().Should(parentToShoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)))
 	}
-	// valueQuery restricts the facet to records whose value name or this sub-property's own name matches the
-	// user-typed text, so the pane can be narrowed without changing the search; it never alters which
-	// documents match. The parent property name is not denormalized on sub-reference records, so a sub-facet
-	// is matched by its sub-property and value names only.
+	// valueQuery restricts the facet to records whose value name, this sub-property's own name, or the parent
+	// property's name matches the user-typed text, so the pane can be narrowed without changing the search; it
+	// never alters which documents match. The parent property name is denormalized onto sub-reference records
+	// as parentPropNaming/parentPropDisplay, so a sub-facet ("parentProp > prop") is matchable by it too.
 	if valueQuery != "" {
 		filterMusts = append(filterMusts, labelMatchQuery(
 			[]string{"claims.subRef.toNaming"}, []string{"claims.subRef.toDisplay"},
