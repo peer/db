@@ -2337,7 +2337,7 @@ func (b *Bridge) deletePendingReindexJobs(ctx context.Context) (int64, errors.E)
 	executor := b.riverClient.Driver().GetExecutor()
 	var deleted int64
 	for {
-		jobs, err := executor.JobDeleteMany(ctx, &riverdriver.JobDeleteManyParams{ //nolint:exhaustruct
+		jobs, err := executor.JobDeleteMany(ctx, &riverdriver.JobDeleteManyParams{
 			Max:           reindexJobDeleteBatch,
 			NamedArgs:     map[string]any{"kind": jobArgs{}.Kind(), "prefix": b.Store.Prefix},
 			OrderByClause: "id",
