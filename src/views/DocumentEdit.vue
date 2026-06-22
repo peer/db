@@ -992,7 +992,7 @@ function canSave(): boolean {
               }}</span></Tab
             >
           </TabList>
-          <h1 v-show="displayLabelComponent?.displayLabel" class="mb-4 text-4xl font-bold drop-shadow-xs"><DisplayLabel ref="displayLabelComponent" :doc="doc" /></h1>
+          <h1 v-show="displayLabelComponent?.displayLabel" class="mb-4 text-2xl font-bold drop-shadow-xs"><DisplayLabel ref="displayLabelComponent" :doc="doc" /></h1>
           <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
           <TabPanels as="template">
             <!-- Class-specific tab. -->
