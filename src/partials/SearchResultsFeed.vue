@@ -58,6 +58,20 @@ const sortDialogOpen = ref(false)
 // nested results which we render as a group tree instead of a flat list.
 const grouped = computed(() => (props.searchSession.sort ?? []).some((s) => s.group))
 
+// groupExpand[d] reports whether the group level at depth d should render each group value as a full result
+// card instead of a one-line heading. It mirrors the leading run of group columns (the same order as the
+// tree's nesting), so SearchResultGroup can read its own level by depth.
+const groupExpand = computed<boolean[]>(() => {
+  const out: boolean[] = []
+  for (const s of props.searchSession.sort ?? []) {
+    if (!s.group) {
+      break
+    }
+    out.push(s.expand ?? false)
+  }
+  return out
+})
+
 // In the grouped view the actual results are leaf nodes nested under group headings, and a document placed
 // under several groups appears several times. groupedTotals walks the whole tree once to count each result
 // only on its first appearance (so the shown total matches the server's distinct-document total) and to mark
@@ -420,7 +434,7 @@ const WithDocumentD = WithDocument<D>
         <template v-if="grouped">
           <template v-for="(node, gi) in limitedGroupedResults.results" :key="`${node.id}-${gi}`">
             <SearchResultsPager v-if="topPagerIndex(node) !== undefined" :i="topPagerIndex(node)!" :shown="groupedPager.shown" :total="groupedPager.total" :depth="0" />
-            <SearchResultGroup :node="node" :search-session-id="searchSession.id" :depth="0" />
+            <SearchResultGroup :node="node" :search-session-id="searchSession.id" :depth="0" :expand-levels="groupExpand" />
           </template>
 
           <Button

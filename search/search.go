@@ -606,13 +606,15 @@ const (
 // ("ref", "amount", "time") which always carries Prop (a single property ID; sub-claim columns are not
 // supported yet). Unit applies only to amount filter columns. Descending sorts high-to-low (default is
 // ascending). Group, valid only on ref columns, groups results by that column's value; group keys must
-// form a leading contiguous run of the sort order.
+// form a leading contiguous run of the sort order. Expand, valid only on grouped columns, renders each
+// group value as a full result card instead of a one-line heading; it is purely presentational.
 type SortKey struct {
 	Type       string   `json:"type"`
 	Prop       []string `json:"prop,omitempty"`
 	Unit       string   `json:"unit,omitempty"`
 	Descending bool     `json:"descending,omitempty"`
 	Group      bool     `json:"group,omitempty"`
+	Expand     bool     `json:"expand,omitempty"`
 }
 
 // isFilter reports whether the key is a filter column (carries a property) rather than a built-in column.
@@ -756,6 +758,11 @@ func validateSort(sort []SortKey) errors.E {
 			}
 		} else {
 			seenNonGroup = true
+		}
+		if k.Expand && !k.Group {
+			errE := errors.New("only grouped columns may be expanded")
+			errors.Details(errE)["sort"] = i
+			return errE
 		}
 	}
 	return nil

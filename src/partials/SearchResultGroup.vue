@@ -19,18 +19,28 @@ import { searchTrackKey } from "@/visibility"
 // document (the same sentinel the reference filter uses, see RefFilterTreeRow).
 //
 // depth is the nesting level, used to break the full-width progress pager out of the group indentation.
-withDefaults(
+//
+// expandLevels[d] reports whether the group at depth d is rendered as a full result card for its grouping
+// value's document instead of a one-line heading. It is indexed by depth so the recursive children read
+// their own level; it is the same array for the whole tree.
+const props = withDefaults(
   defineProps<{
     node: DeepReadonly<Result>
     searchSessionId: string
     depth?: number
+    expandLevels?: readonly boolean[]
   }>(),
   {
     depth: 0,
+    expandLevels: () => [],
   },
 )
 
 const { t } = useI18n()
+
+// expanded reports whether this group heading renders as a full result card. The synthetic "missing" group
+// has no document to show a card for, so it always stays a one-line heading.
+const expanded = computed(() => props.node.id !== "__MISSING__" && (props.expandLevels[props.depth] ?? false))
 
 // The progress pager data SearchResultsFeed computes for the whole tree (which leaf a pager precedes, the
 // unique results shown, and the matching total).
@@ -60,7 +70,12 @@ function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
 
 <template>
   <div v-if="node.group" class="pd-searchresultgroup flex flex-col gap-y-1 sm:gap-y-4">
-    <div class="pd-searchresultgroup-header flex items-baseline gap-x-1 border-b border-slate-200 py-1 font-semibold text-slate-700">
+    <!--
+      An expanded group value shows the full result card for its document. It is not a search result and is
+      not registered with the visibility tracker, so the "at" scroll position keeps following the leaves.
+    -->
+    <SearchResult v-if="expanded" :search-session-id="searchSessionId" :result="node" />
+    <div v-else class="pd-searchresultgroup-header flex items-baseline gap-x-1 border-b border-slate-200 py-1 font-semibold text-slate-700">
       <i v-if="node.id === '__MISSING__'" class="min-w-0 truncate">{{ t("common.values.missing") }}</i>
       <DocumentRefInline v-else :id="node.id" class="min-w-0 truncate" />
       <span v-if="node.count != null" class="shrink-0 font-normal text-slate-500">({{ node.count }})</span>
@@ -71,7 +86,7 @@ function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
           <SearchResultsPager :i="childPagerIndex(child)!" :shown="pager.shown" :total="pager.total" :depth="depth + 1" />
         </li>
         <li>
-          <SearchResultGroup :node="child" :search-session-id="searchSessionId" :depth="depth + 1" />
+          <SearchResultGroup :node="child" :search-session-id="searchSessionId" :depth="depth + 1" :expand-levels="expandLevels" />
         </li>
       </template>
     </ul>

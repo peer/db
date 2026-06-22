@@ -190,6 +190,7 @@ declare module "vue-i18n" {
         addColumn: string
         empty: string
         group: string
+        expand: string
         ascending: string
         descending: string
         columns: {

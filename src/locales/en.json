@@ -179,6 +179,7 @@
       "addColumn": "Add column",
       "empty": "Default order (relevance, time, display label).",
       "group": "Group",
+      "expand": "Expand",
       "ascending": "Ascending",
       "descending": "Descending",
       "columns": {

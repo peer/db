@@ -63,6 +63,7 @@ const availableColumns = computed<{ col: SortColumn; descending: boolean }[]>(()
 })
 
 // normalizeGroups enforces the invariant that grouped columns are a leading contiguous run of ref columns.
+// expand only applies to grouped columns, so it is cleared whenever a column ends up ungrouped.
 function normalizeGroups(s: SortKey[]): SortKey[] {
   let run = true
   for (const k of s) {
@@ -71,6 +72,7 @@ function normalizeGroups(s: SortKey[]): SortKey[] {
     }
     run = false
     k.group = false
+    k.expand = false
   }
   return s
 }
@@ -132,6 +134,14 @@ function toggleGroup(i: number): void {
       newSort[j].group = true
     }
   }
+  emitSort(newSort)
+}
+
+// toggleExpand flips whether the grouped column at i renders its group values as full result cards. It is
+// offered only while the column is grouped, and emitSort clears it again should the column become ungrouped.
+function toggleExpand(i: number): void {
+  const newSort = clone(sort.value)
+  newSort[i].expand = !newSort[i].expand
   emitSort(newSort)
 }
 
@@ -200,6 +210,10 @@ function builtinLabel(type: string): string {
             <label v-if="canGroup(i)" class="flex shrink-0 cursor-pointer items-center gap-x-1 text-sm">
               <CheckBox :model-value="key.group ?? false" @update:model-value="toggleGroup(i)" />
               {{ t("partials.SearchSortDialog.group") }}
+            </label>
+            <label v-if="canGroup(i) && key.group" class="flex shrink-0 cursor-pointer items-center gap-x-1 text-sm">
+              <CheckBox :model-value="key.expand ?? false" @update:model-value="toggleExpand(i)" />
+              {{ t("partials.SearchSortDialog.expand") }}
             </label>
             <button
               type="button"

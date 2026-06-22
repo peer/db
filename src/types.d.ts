@@ -57,10 +57,12 @@ export type SortColumn = {
 }
 
 // SortKey is one column in the effective sort order. descending sorts high-to-low. group (ref columns
-// only, in a leading run) groups results by that column's value.
+// only, in a leading run) groups results by that column's value. expand (grouped columns only) renders
+// each group value as a full result card instead of a one-line heading.
 export type SortKey = SortColumn & {
   descending?: boolean
   group?: boolean
+  expand?: boolean
 }
 
 export type RefFilterResult = {
