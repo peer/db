@@ -494,7 +494,7 @@ async function onDelete() {
               <TabPanel v-if="hasFieldsViewPanel" tabindex="-1" class="outline-none">
                 <div class="flex flex-row items-start gap-4">
                   <div class="min-w-0 grow"><FieldsView :fields-data="mergedFieldsData!" :claims="doc.claims" sections /></div>
-                  <div class="flex shrink-0 flex-col gap-2">
+                  <div class="pd-print-hidden flex shrink-0 flex-col gap-2">
                     <template v-for="(shortcut, i) of searchShortcuts" :key="i">
                       <ButtonLink v-if="showShortcut(shortcut.count)" :to="{ name: 'SearchShortcut', query: shortcut.query }">{{
                         shortcutLabel(shortcut.name, shortcut.count)
@@ -522,7 +522,7 @@ async function onDelete() {
                       </tbody>
                     </table>
                   </div>
-                  <div v-if="!hasFieldsViewPanel" class="flex shrink-0 flex-col gap-2">
+                  <div v-if="!hasFieldsViewPanel" class="pd-print-hidden flex shrink-0 flex-col gap-2">
                     <template v-for="(shortcut, i) of searchShortcuts" :key="i">
                       <ButtonLink v-if="showShortcut(shortcut.count)" :to="{ name: 'SearchShortcut', query: shortcut.query }">{{
                         shortcutLabel(shortcut.name, shortcut.count)
