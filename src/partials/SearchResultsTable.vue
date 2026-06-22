@@ -301,7 +301,7 @@ function onCloseFilterModal() {
                   <template #default="{ doc, url }">
                     <Button
                       :data-url="url"
-                      class="flex w-full max-w-[400px] flex-row items-center justify-between gap-x-1 p-2 leading-none shadow-none inset-ring-0"
+                      class="flex w-full max-w-100 flex-row items-center justify-between gap-x-1 p-2 leading-none shadow-none inset-ring-0"
                       @click.prevent="onOpenFilterModal(filter)"
                     >
                       <span class="truncate"><DisplayLabel :doc="doc" /></span>
@@ -364,8 +364,8 @@ function onCloseFilterModal() {
                         -->
                         <div
                           :ref="trackTruncation(result.id, `${filter.filterId ?? `${filter.type}/${filter.props?.join('/') ?? ''}`}`)"
-                          class="min-h-[calc(1lh+var(--spacing)*2)] max-w-[400px] overscroll-contain p-2"
-                          :class="[rowExpanded ? 'max-h-[300px] overflow-auto' : 'max-h-[calc(1lh+var(--spacing)*2)] truncate overflow-clip']"
+                          class="min-h-[calc(1lh+var(--spacing)*2)] max-w-100 overscroll-contain p-2"
+                          :class="[rowExpanded ? 'max-h-75 overflow-auto' : 'max-h-[calc(1lh+var(--spacing)*2)] truncate overflow-clip']"
                         >
                           <div v-if="(cellTruncated && rowExpanded) || cellExpanded || cellTruncated" class="float-right mt-[calc((1lh-var(--spacing)*5)/2)] flex gap-1">
                             <RouterLink
@@ -482,7 +482,7 @@ function onCloseFilterModal() {
     <!-- Full-screen container to center the panel. -->
     <div class="fixed inset-0 flex items-center justify-center">
       <DialogPanel
-        class="flex h-full w-full flex-col overflow-y-auto rounded-none bg-white p-1 shadow-none sm:relative sm:inset-auto sm:h-auto sm:max-h-[600px] sm:max-w-xl sm:rounded-sm sm:p-4 sm:shadow-sm"
+        class="flex h-full w-full flex-col overflow-y-auto rounded-none bg-white p-1 shadow-none sm:relative sm:inset-auto sm:h-auto sm:max-h-150 sm:max-w-xl sm:rounded-sm sm:p-4 sm:shadow-sm"
       >
         <FiltersResult
           :result="activeFilter!"

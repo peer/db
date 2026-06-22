@@ -1555,7 +1555,7 @@ watch(
       ref="toolbarEl"
       role="toolbar"
       :aria-label="t('partials.input.InputHTML.toolbar.label')"
-      class="sticky top-[calc(3rem+var(--pd-navbar-top,0px))] z-10 flex flex-wrap items-center gap-1 rounded-t-sm border-b border-neutral-200 bg-slate-100 px-1 py-1 sm:top-[calc(4.5rem+var(--pd-navbar-top,0px))]"
+      class="sticky top-[calc(var(--pd-navbar-height)+var(--pd-navbar-top,0px))] z-10 flex flex-wrap items-center gap-1 rounded-t-sm border-b border-neutral-200 bg-slate-100 px-1 py-1"
       @keydown="onToolbarKeyDown"
       @focusin="onToolbarFocusIn"
     >

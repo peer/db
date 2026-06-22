@@ -297,7 +297,7 @@ async function onDownloadFiles() {
       </template>
     </NavBar>
   </Teleport>
-  <div ref="searchEl" class="pd-searchget mt-12 w-full border-t border-transparent sm:mt-[4.5rem]" :data-url="searchURL">
+  <div ref="searchEl" class="pd-searchget mt-[var(--pd-navbar-height)] w-full border-t border-transparent" :data-url="searchURL">
     <div v-if="searchSessionError || searchResultsError" class="my-1 text-center sm:my-4"
       ><i class="pd-searchget-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i></div
     >

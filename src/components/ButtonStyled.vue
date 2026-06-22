@@ -77,7 +77,7 @@ defineOptions({
       of width. Everywhere else the wrapper is display: contents and thus layout neutral, so button
       content (including flex layouts) behaves like there is no wrapper.
     -->
-    <span class="pd-buttonstyled-label contents navbar:block navbar:[mask-image:linear-gradient(to_right,black_calc(100%-0.875rem),transparent)] navbar:px-3.5"
+    <span class="pd-buttonstyled-label contents navbar:block navbar:[mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(3.5)),transparent)] navbar:px-3.5"
       ><slot
     /></span>
   </component>

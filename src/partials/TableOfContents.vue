@@ -231,7 +231,7 @@ watch(
 </script>
 
 <template>
-  <nav ref="tocRef" :aria-label="t('partials.TableOfContents.label')" class="pd-toc sticky top-12 flex flex-col gap-y-1 py-2 sm:top-[4.5rem]">
+  <nav ref="tocRef" :aria-label="t('partials.TableOfContents.label')" class="pd-toc sticky top-[var(--pd-navbar-height)] flex flex-col gap-y-1 py-2">
     <slot />
     <a
       v-for="target in targets"

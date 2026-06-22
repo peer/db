@@ -968,7 +968,7 @@ function canSave(): boolean {
       </template>
     </NavBar>
   </Teleport>
-  <div ref="el" class="pd-documentedit mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4">
+  <div ref="el" class="pd-documentedit mt-[var(--pd-navbar-height)] flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4">
     <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <template v-if="hasPermission(CAN_EDIT_DOCUMENT) && doc && classesInitialized">
         <!--
@@ -981,13 +981,13 @@ function canSave(): boolean {
               v-if="classTabId && mergedFieldsData"
               :key="classTabId"
               class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-              ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%-1rem),transparent)] px-4 py-3 whitespace-nowrap"
+              ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(4)),transparent)] px-4 py-3 whitespace-nowrap"
                 ><DocumentRefInline :id="classTabId" :link="false" title /></span
             ></Tab>
             <Tab
               :title="t('views.DocumentEdit.tabs.allProperties')"
               class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-              ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%-1rem),transparent)] px-4 py-3 whitespace-nowrap">{{
+              ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(4)),transparent)] px-4 py-3 whitespace-nowrap">{{
                 t("views.DocumentEdit.tabs.allProperties")
               }}</span></Tab
             >
@@ -1048,7 +1048,7 @@ function canSave(): boolean {
                       :title="claimTypeLabel(type)"
                       class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
                       :class="claimTypeDisabled(type) ? 'cursor-not-allowed opacity-50' : 'not-aria-selected:hover:bg-slate-50'"
-                      ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%-1rem),transparent)] px-4 py-3 whitespace-nowrap">{{
+                      ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(4)),transparent)] px-4 py-3 whitespace-nowrap">{{
                         claimTypeLabel(type)
                       }}</span></Tab
                     >

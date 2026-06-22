@@ -451,7 +451,11 @@ async function onDelete() {
       </template>
     </NavBar>
   </Teleport>
-  <div ref="el" class="pd-documentget mt-12 flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:mt-[4.5rem] sm:gap-y-4 sm:p-4" :data-url="withDocument?.url">
+  <div
+    ref="el"
+    class="pd-documentget mt-[var(--pd-navbar-height)] flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4"
+    :data-url="withDocument?.url"
+  >
     <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <WithDocumentD :id="id" ref="withDocument" name="DocumentGet" :version="reqVersion">
         <template #default="{ doc }">

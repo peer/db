@@ -149,7 +149,7 @@ async function onCreate(classId: string) {
   <Teleport to="header">
     <NavBar />
   </Teleport>
-  <div class="pd-documentcreate mt-12 flex w-full flex-col items-center p-1 sm:mt-[4.5rem] sm:p-4">
+  <div class="pd-documentcreate mt-[var(--pd-navbar-height)] flex w-full flex-col items-center p-1 sm:p-4">
     <div v-if="!loaded" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
     <div v-else-if="classesWithFields.length === 0" class="my-1 text-center sm:my-4">{{ t("views.DocumentCreate.noClasses") }}</div>
     <div v-else class="flex w-full max-w-md flex-col gap-y-2 sm:gap-y-4">
