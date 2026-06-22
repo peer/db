@@ -89,7 +89,7 @@ function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
           <span v-if="node.count != null">({{ node.count }})</span>
           <button
             type="button"
-            class="self-center rounded-sm p-0.5 text-slate-400 outline-none hover:bg-slate-200 hover:text-slate-600 focus:ring-2 focus:ring-primary-500"
+            class="self-center rounded-sm p-0.5 text-slate-400 outline-none hover:bg-slate-200 hover:text-slate-600 focus:ring-2 focus:ring-primary-500 print:hidden"
             :title="t('partials.SearchResultGroup.collapse')"
             @click.prevent="setExpand(depth, false)"
           >
@@ -105,7 +105,7 @@ function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
       <button
         v-if="!levelExpanded"
         type="button"
-        class="shrink-0 self-center rounded-sm p-0.5 font-normal text-slate-400 outline-none hover:bg-slate-200 hover:text-slate-600 focus:ring-2 focus:ring-primary-500"
+        class="shrink-0 self-center rounded-sm p-0.5 font-normal text-slate-400 outline-none hover:bg-slate-200 hover:text-slate-600 focus:ring-2 focus:ring-primary-500 print:hidden"
         :title="t('partials.SearchResultGroup.expand')"
         @click.prevent="setExpand(depth, true)"
       >
