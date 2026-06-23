@@ -153,7 +153,7 @@ async function onCreate(classId: string) {
     <div v-if="!loaded" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
     <div v-else-if="classesWithFields.length === 0" class="my-1 text-center sm:my-4">{{ t("views.DocumentCreate.noClasses") }}</div>
     <div v-else class="flex w-full max-w-md flex-col gap-y-2 sm:gap-y-4">
-      <h1 class="text-center text-lg font-medium">{{ t("views.DocumentCreate.title") }}</h1>
+      <h1 class="text-center text-3xl font-medium">{{ t("views.DocumentCreate.title") }}</h1>
       <Button v-for="cls in classesWithFields" :key="cls.id" type="button" @click.prevent="onCreate(cls.id)">
         <DisplayLabel :doc="cls" />
       </Button>

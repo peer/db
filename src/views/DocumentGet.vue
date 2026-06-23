@@ -510,7 +510,7 @@ async function onDelete() {
                 >{{ t("views.DocumentGet.tabs.history") }}</Tab
               >
             </TabList>
-            <h1 v-show="displayLabelComponent?.displayLabel" class="mb-4 text-2xl font-bold drop-shadow-xs"><DisplayLabel ref="displayLabelComponent" :doc="doc" /></h1>
+            <h1 v-show="displayLabelComponent?.displayLabel" class="mb-4 text-3xl font-bold drop-shadow-xs"><DisplayLabel ref="displayLabelComponent" :doc="doc" /></h1>
             <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
             <TabPanels as="template">
               <!-- Page content tab panel: the document's content rendered as prose, in the current language. -->
