@@ -15,6 +15,7 @@
       "insert": "Insert",
       "update": "Update",
       "clear": "Clear",
+      "showAll": "Show all",
       "remove": "Remove",
       "revert": "Revert",
       "moveUp": "Move up",

@@ -26,6 +26,7 @@ declare module "vue-i18n" {
         insert: string
         update: string
         clear: string
+        showAll: string
         remove: string
         revert: string
         moveUp: string

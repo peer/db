@@ -4,9 +4,10 @@ import type { DeepReadonly } from "vue"
 import type { Claim } from "@/document"
 import type { FieldData, FieldsData, SectionData } from "@/fields"
 
-import { computed } from "vue"
+import { computed, ref } from "vue"
 import { useI18n } from "vue-i18n"
 
+import Button from "@/components/Button.vue"
 import { IN_LANGUAGE } from "@/core"
 import { ClaimTypes, claimTypeName, getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
 import { fieldKey, getClaimsForField, valueTypeToClaimType } from "@/fields"
@@ -18,13 +19,27 @@ const props = withDefaults(
     fieldsData: DeepReadonly<FieldsData>
     claims: DeepReadonly<ClaimTypes>
     sections?: boolean
+    // When limited is true, fields whose property repeats show only the first few claim values, with a
+    // "Show all" button to reveal the rest. Used in compact contexts like search result cards.
+    limited?: boolean
   }>(),
   {
     sections: false,
+    limited: false,
   },
 )
 
-const { locale } = useI18n({ useScope: "global" })
+const { t, locale } = useI18n({ useScope: "global" })
+
+// Number of repeating claim values shown for a field before the "Show all" button when limited is true.
+const LIMITED_CLAIMS = 3
+
+// Field keys (see fieldKey) for fields whose repeating claim values have been expanded via "Show all".
+const expandedFields = ref(new Set<string>())
+
+function expandField(field: FieldData): void {
+  expandedFields.value = new Set(expandedFields.value).add(fieldKey(field))
+}
 
 // Ensure claims is a proper ClaimTypes instance (props may receive raw JSON from WithDocument).
 const normalizedClaims = computed(() => {
@@ -65,6 +80,21 @@ function hasValues(field: FieldData): boolean {
   return claimsForField(field).length > 0
 }
 
+// The claim values to render for a field. When limited and the field is not expanded, repeating values
+// are capped at LIMITED_CLAIMS so the remaining ones stay hidden behind the "Show all" button.
+function displayedClaimsForField(field: FieldData): DeepReadonly<Claim>[] {
+  const claims = claimsForField(field)
+  if (props.limited && !expandedFields.value.has(fieldKey(field)) && claims.length > LIMITED_CLAIMS) {
+    return claims.slice(0, LIMITED_CLAIMS)
+  }
+  return claims
+}
+
+// Count of claim values currently hidden for a field (zero unless limited and the field is collapsed).
+function hiddenClaimsCount(field: FieldData): number {
+  return claimsForField(field).length - displayedClaimsForField(field).length
+}
+
 // Get sub-claims for a specific claim (for recursive sub-fields).
 function getSubClaims(claimId: string): ClaimTypes {
   const claim = normalizedClaims.value.GetByID(claimId)
@@ -87,7 +117,7 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
       <!-- Top-level fields first (sorted by orderInList). -->
       <template v-for="field in sortedByOrder(fieldsData.fields)" :key="fieldKey(field)">
         <template v-if="hasValues(field)">
-          <template v-for="(claim, cIndex) in claimsForField(field)" :key="claim.GetID()">
+          <template v-for="(claim, cIndex) in displayedClaimsForField(field)" :key="claim.GetID()">
             <tr>
               <td v-if="cIndex === 0" class="w-1/5 px-2 py-1 align-top font-medium text-gray-700">
                 <DocumentRefInline :id="field.propertyId" :link="false" />
@@ -101,10 +131,16 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
             <tr v-if="field.subFields.length > 0 && claim.sub">
               <td></td>
               <td class="px-2 py-0">
-                <FieldsView :fields-data="{ sections: [], fields: field.subFields }" :claims="getSubClaims(claim.GetID())" />
+                <FieldsView :fields-data="{ sections: [], fields: field.subFields }" :claims="getSubClaims(claim.GetID())" :limited="limited" />
               </td>
             </tr>
           </template>
+          <tr v-if="hiddenClaimsCount(field) > 0">
+            <td></td>
+            <td class="px-2 py-1">
+              <Button type="button" class="px-2.5 py-1" @click.prevent="expandField(field)">{{ t("common.buttons.showAll") }}</Button>
+            </td>
+          </tr>
         </template>
       </template>
 
@@ -117,7 +153,7 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
             </tr>
             <template v-for="field in sortedByOrder(section.fields)" :key="fieldKey(field)">
               <template v-if="hasValues(field)">
-                <template v-for="(claim, cIndex) in claimsForField(field)" :key="claim.GetID()">
+                <template v-for="(claim, cIndex) in displayedClaimsForField(field)" :key="claim.GetID()">
                   <tr>
                     <td v-if="cIndex === 0" class="w-1/5 px-2 py-1 align-top font-medium text-gray-700">
                       <DocumentRefInline :id="field.propertyId" :link="false" />
@@ -131,10 +167,16 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
                   <tr v-if="field.subFields.length > 0 && claim.sub">
                     <td></td>
                     <td class="px-2 py-0">
-                      <FieldsView :fields-data="{ sections: [], fields: field.subFields }" :claims="getSubClaims(claim.GetID())" />
+                      <FieldsView :fields-data="{ sections: [], fields: field.subFields }" :claims="getSubClaims(claim.GetID())" :limited="limited" />
                     </td>
                   </tr>
                 </template>
+                <tr v-if="hiddenClaimsCount(field) > 0">
+                  <td></td>
+                  <td class="px-2 py-1">
+                    <Button type="button" class="px-2.5 py-1" @click.prevent="expandField(field)">{{ t("common.buttons.showAll") }}</Button>
+                  </td>
+                </tr>
               </template>
             </template>
           </template>

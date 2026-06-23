@@ -230,7 +230,7 @@ const rowSpan = computed(() => {
               </WithDocumentD>
             </template>
           </ul>
-          <FieldsView :fields-data="fieldsData" :claims="resultDoc.claims" />
+          <FieldsView :fields-data="fieldsData" :claims="resultDoc.claims" limited />
         </div>
         <div v-else class="grid grid-cols-1 gap-4" :class="previewFiles.length ? `sm:grid-cols-[256px_auto] ${gridRows}` : ''">
           <div>
