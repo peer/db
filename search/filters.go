@@ -192,16 +192,26 @@ func FiltersGet( //nolint:maintidx
 			[]string{"claims.subRef.toNaming"}, []string{"claims.subRef.toDisplay"},
 			[]string{"claims.subRef.propNaming", "claims.subRef.parentPropNaming"},
 			[]string{"claims.subRef.propDisplay", "claims.subRef.parentPropDisplay"}, valueQuery, enabledLanguages)
-		// Amount, time and has facets have no value documents to search, so they match on property names only.
-		amountMatch = propLabelMatchQuery([]string{"claims.amount.propNaming"}, []string{"claims.amount.propDisplay"}, valueQuery, enabledLanguages)
-		timeMatch = propLabelMatchQuery([]string{"claims.time.propNaming"}, []string{"claims.time.propDisplay"}, valueQuery, enabledLanguages)
+		// Amount and time facets have no value documents, but their value bounds carry a formatted display
+		// label (from/toDisplay), so they match on the property name or on a value-bound display.
+		amountMatch = amountTimeMatchQuery(
+			[]string{"claims.amount.propNaming"}, []string{"claims.amount.propDisplay"},
+			[]string{"claims.amount.fromDisplay", "claims.amount.toDisplay"}, valueQuery, enabledLanguages)
+		timeMatch = amountTimeMatchQuery(
+			[]string{"claims.time.propNaming"}, []string{"claims.time.propDisplay"},
+			[]string{"claims.time.fromDisplay", "claims.time.toDisplay"}, valueQuery, enabledLanguages)
+		// The has facet has no value documents to search, so it matches on property names only.
 		hasMatch = propLabelMatchQuery([]string{"claims.has.propNaming"}, []string{"claims.has.propDisplay"}, valueQuery, enabledLanguages)
-		subAmountMatch = propLabelMatchQuery(
+		// Sub-amount and sub-time facets match like amount/time (property name or value-bound display), plus the
+		// parent property's name.
+		subAmountMatch = amountTimeMatchQuery(
 			[]string{"claims.subAmount.propNaming", "claims.subAmount.parentPropNaming"},
-			[]string{"claims.subAmount.propDisplay", "claims.subAmount.parentPropDisplay"}, valueQuery, enabledLanguages)
-		subTimeMatch = propLabelMatchQuery(
+			[]string{"claims.subAmount.propDisplay", "claims.subAmount.parentPropDisplay"},
+			[]string{"claims.subAmount.fromDisplay", "claims.subAmount.toDisplay"}, valueQuery, enabledLanguages)
+		subTimeMatch = amountTimeMatchQuery(
 			[]string{"claims.subTime.propNaming", "claims.subTime.parentPropNaming"},
-			[]string{"claims.subTime.propDisplay", "claims.subTime.parentPropDisplay"}, valueQuery, enabledLanguages)
+			[]string{"claims.subTime.propDisplay", "claims.subTime.parentPropDisplay"},
+			[]string{"claims.subTime.fromDisplay", "claims.subTime.toDisplay"}, valueQuery, enabledLanguages)
 		subHasMatch = propLabelMatchQuery(
 			[]string{"claims.subHas.propNaming", "claims.subHas.parentPropNaming"},
 			[]string{"claims.subHas.propDisplay", "claims.subHas.parentPropDisplay"}, valueQuery, enabledLanguages)

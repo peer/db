@@ -142,6 +142,13 @@ const indexPrefixes = `"index_prefixes":{"min_chars":1,"max_chars":8}`
 // "exact" sub-field (exact_text) for diacritic-preserved matching.
 const displayLabelProperty = `{"type":"text","analyzer":"und_text",` + indexPrefixes + `,"fields":{"exact":{"type":"text","analyzer":"exact_text"}}}`
 
+// valueBoundDisplay is the mapping for amount or time claim's fromDisplay/toDisplay fields, the
+// formatted display of its value bounds. It is a flat und_text field: the bounds carry no language and
+// are not sorted on, so there are no per-language buckets, and the content is numeric/temporal text with
+// no diacritics, so no "exact" sub-field is needed. index_prefixes accelerates the trailing-prefix
+// (analyze_wildcard) queries the filter pane runs over it.
+const valueBoundDisplay = `{"type":"text","analyzer":"und_text",` + indexPrefixes + `}`
+
 // propDisplay builds the per-language display-label mapping for a claim's propDisplay and toDisplay fields.
 func propDisplay(langs []string) string {
 	return langProperties(langs, func(string) string {
@@ -317,12 +324,7 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 				},
 				{
 					"fromDisplay",
-					// We do not use "propDisplay" here. We do not need a multi-field here because we only search
-					// over display here and we do not sort by it. There are no languages either.
-					`{
-						"type": "text",
-						"analyzer": "und_text"
-					}`,
+					valueBoundDisplay,
 				},
 				{
 					"to",
@@ -332,12 +334,7 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 				},
 				{
 					"toDisplay",
-					// We do not use "propDisplay" here. We do not need a multi-field here because we only search
-					// over display here and we do not sort by it. There are no languages either.
-					`{
-						"type": "text",
-						"analyzer": "und_text"
-					}`,
+					valueBoundDisplay,
 				},
 			},
 		},
@@ -374,12 +371,7 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 				},
 				{
 					"fromDisplay",
-					// We do not use "propDisplay" here. We do not need a multi-field here because we only search
-					// over display here and we do not sort by it. There are no languages either.
-					`{
-						"type": "text",
-						"analyzer": "und_text"
-					}`,
+					valueBoundDisplay,
 				},
 				{
 					"to",
@@ -389,12 +381,7 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 				},
 				{
 					"toDisplay",
-					// We do not use "propDisplay" here. We do not need a multi-field here because we only search
-					// over display here and we do not sort by it. There are no languages either.
-					`{
-						"type": "text",
-						"analyzer": "und_text"
-					}`,
+					valueBoundDisplay,
 				},
 			},
 		},
@@ -673,10 +660,7 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 				},
 				{
 					"fromDisplay",
-					`{
-						"type": "text",
-						"analyzer": "und_text"
-					}`,
+					valueBoundDisplay,
 				},
 				{
 					"to",
@@ -686,10 +670,7 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 				},
 				{
 					"toDisplay",
-					`{
-						"type": "text",
-						"analyzer": "und_text"
-					}`,
+					valueBoundDisplay,
 				},
 			},
 		},
@@ -744,10 +725,7 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 				},
 				{
 					"fromDisplay",
-					`{
-						"type": "text",
-						"analyzer": "und_text"
-					}`,
+					valueBoundDisplay,
 				},
 				{
 					"to",
@@ -757,10 +735,7 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 				},
 				{
 					"toDisplay",
-					`{
-						"type": "text",
-						"analyzer": "und_text"
-					}`,
+					valueBoundDisplay,
 				},
 			},
 		},

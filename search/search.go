@@ -1172,10 +1172,35 @@ func labelMatchQuery( //nolint:ireturn
 	return esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
 }
 
-// propLabelMatchQuery is labelMatchQuery for facets whose only searchable label is a property name (amount,
-// time, has, and the sub-claim discovery and missing-bucket gating). Those have no value documents to search.
+// propLabelMatchQuery is labelMatchQuery for facets whose only searchable label is a property name (has, and
+// the sub-claim discovery and missing-bucket gating). Those have no value documents to search.
 func propLabelMatchQuery(namingFields, displayFields []string, q string, enabledLanguages []string) types.QueryVariant { //nolint:ireturn
 	return labelMatchQuery(nil, nil, namingFields, displayFields, q, enabledLanguages)
+}
+
+// amountTimeMatchQuery matches an amount or time facet (top-level or sub) by a property name or by the
+// formatted display of its value bounds. The property name fields (per-language propNaming/propDisplay, plus
+// the parent property's for sub-facets) use propSearchClauses, the same match_phrase_prefix plus regular
+// recall as other property labels. The value bounds (the flat und_text from/toDisplay fields, which carry no
+// per-language buckets or sub-fields) are matched value-style, with an analyze_wildcard simple_query_string
+// that keeps the typed trailing "*", so a typed year or number surfaces its facet. A match on either label
+// surfaces the whole facet (its histogram still renders in full, since amount and time facets do not narrow
+// their values by the query).
+func amountTimeMatchQuery(propNamingFields, propDisplayFields, valueDisplayFields []string, q string, enabledLanguages []string) types.QueryVariant { //nolint:ireturn
+	langs := enabledLanguages
+	if len(langs) == 0 {
+		langs = slices.Sorted(maps.Keys(internalSearch.SupportedLanguages))
+	}
+
+	shoulds := propSearchClauses(propNamingFields, propDisplayFields, q, langs)
+	for _, field := range valueDisplayFields {
+		shoulds = append(shoulds, esdsl.NewSimpleQueryStringQuery(q).Fields(field).DefaultOperator(operator.And).AnalyzeWildcard(true))
+	}
+
+	if len(shoulds) == 0 {
+		return esdsl.NewMatchAllQuery()
+	}
+	return esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
 }
 
 // regularRecallClauses builds the non-prefix recall shared by value and property label matching, via

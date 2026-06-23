@@ -327,6 +327,235 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 	}
 }
 
+func TestFiltersGetAmountTimeValueDisplayQueryIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	amountProp := identifier.From("amountProp")
+	unitID := identifier.From("unitID")
+	timeProp := identifier.From("timeProp")
+
+	amountVal := float64(1500)
+	timeVal := float64(1577836800)
+
+	// The amount and time value bounds carry a formatted display label (from/toDisplay). The property names
+	// are left unset, so a query can only match through a value-bound display.
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		DisplaySort: nil,
+		ID:          identifier.From("amountTimeDoc"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims: internalSearch.ClaimTypes{
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount: internalSearch.AmountClaims{{
+				Prop:        amountProp,
+				PropDisplay: nil,
+				PropNaming:  nil,
+				PropSortKey: nil,
+				Unit:        &unitID,
+				Range: internalSearch.RangeFloat{
+					GreaterThan:        nil,
+					GreaterThanOrEqual: &amountVal,
+					LessThan:           nil,
+					LessThanOrEqual:    &amountVal,
+				},
+				From:        &amountVal,
+				FromDisplay: "1500",
+				To:          &amountVal,
+				ToDisplay:   "1500",
+			}},
+			Time: internalSearch.TimeClaims{{
+				Prop:        timeProp,
+				PropDisplay: nil,
+				PropNaming:  nil,
+				PropSortKey: nil,
+				Range: internalSearch.RangeFloat{
+					GreaterThan:        nil,
+					GreaterThanOrEqual: &timeVal,
+					LessThan:           nil,
+					LessThanOrEqual:    &timeVal,
+				},
+				From:        &timeVal,
+				FromDisplay: "2020-01-01 00:00:00",
+				To:          &timeVal,
+				ToDisplay:   "2020-01-01 00:00:00",
+			}},
+			Link:      nil,
+			Reference: nil,
+			Has:       nil,
+			None:      nil,
+			Unknown:   nil,
+			SubRef:    nil,
+			SubAmount: nil,
+			SubTime:   nil,
+			SubHas:    nil,
+		},
+	})
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{
+		Sort:          nil,
+		Language:      "",
+		View:          "",
+		Query:         "",
+		Filters:       nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
+	})
+
+	// hasFacet reports whether a facet of the given type for the given prop is in the results.
+	hasFacet := func(results []search.FilterResult, facetType, prop string) bool {
+		for _, fr := range results {
+			if fr.Type == facetType && len(fr.Props) > 0 && fr.Props[0] == prop {
+				return true
+			}
+		}
+		return false
+	}
+
+	// A query matching the amount value-bound display surfaces the amount facet but not the time facet.
+	amountResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "1500*", search.PrefilterExcludes{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.True(t, hasFacet(amountResults, "amount", amountProp.String()), "amount facet should match its value display")
+	assert.False(t, hasFacet(amountResults, "time", timeProp.String()), "time facet should not match the amount value")
+
+	// A query matching the time value-bound display surfaces the time facet but not the amount facet.
+	timeResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "2020*", search.PrefilterExcludes{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.True(t, hasFacet(timeResults, "time", timeProp.String()), "time facet should match its value display")
+	assert.False(t, hasFacet(timeResults, "amount", amountProp.String()), "amount facet should not match the time value")
+}
+
+func TestFiltersGetSubAmountTimeValueDisplayQueryIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	parentProp := identifier.From("parentProp")
+	parentTo := identifier.From("parentTo")
+	subAmountProp := identifier.From("subAmountProp")
+	subTimeProp := identifier.From("subTimeProp")
+	unitID := identifier.From("unitID")
+
+	amountVal := float64(1500)
+	timeVal := float64(1577836800)
+
+	// Sub-amount and sub-time value bounds carry the same flat from/toDisplay labels as their top-level
+	// counterparts. The property names are left unset, so a query can only match through a value-bound display.
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+		DisplaySort: nil,
+		ID:          identifier.From("subAmountTimeDoc"),
+		Display:     nil,
+		Text:        nil,
+		Time:        nil,
+		LastUpdated: nil,
+		Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+		Claims: internalSearch.ClaimTypes{
+			Identifier: nil,
+			String:     nil,
+			HTML:       nil,
+			Amount:     nil,
+			Time:       nil,
+			Link:       nil,
+			Reference:  nil,
+			Has:        nil,
+			None:       nil,
+			Unknown:    nil,
+			SubRef:     nil,
+			SubAmount: internalSearch.SubAmountClaims{{
+				AmountClaim: internalSearch.AmountClaim{
+					Prop:        subAmountProp,
+					PropDisplay: nil,
+					PropNaming:  nil,
+					PropSortKey: nil,
+					Unit:        &unitID,
+					Range: internalSearch.RangeFloat{
+						GreaterThan:        nil,
+						GreaterThanOrEqual: &amountVal,
+						LessThan:           nil,
+						LessThanOrEqual:    &amountVal,
+					},
+					From:        &amountVal,
+					FromDisplay: "1500",
+					To:          &amountVal,
+					ToDisplay:   "1500",
+				},
+				ParentProp:        parentProp,
+				ParentPropDisplay: nil,
+				ParentPropNaming:  nil,
+				ParentTo:          parentTo.String(),
+			}},
+			SubTime: internalSearch.SubTimeClaims{{
+				TimeClaim: internalSearch.TimeClaim{
+					Prop:        subTimeProp,
+					PropDisplay: nil,
+					PropNaming:  nil,
+					PropSortKey: nil,
+					Range: internalSearch.RangeFloat{
+						GreaterThan:        nil,
+						GreaterThanOrEqual: &timeVal,
+						LessThan:           nil,
+						LessThanOrEqual:    &timeVal,
+					},
+					From:        &timeVal,
+					FromDisplay: "2020-01-01 00:00:00",
+					To:          &timeVal,
+					ToDisplay:   "2020-01-01 00:00:00",
+				},
+				ParentProp:        parentProp,
+				ParentPropDisplay: nil,
+				ParentPropNaming:  nil,
+				ParentTo:          parentTo.String(),
+			}},
+			SubHas: nil,
+		},
+	})
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{
+		Sort:          nil,
+		Language:      "",
+		View:          "",
+		Query:         "",
+		Filters:       nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
+	})
+
+	// hasSubFacet reports whether a sub-facet (keyed by parentProp + prop) of the given type is in the results.
+	// Sub-amount and sub-time facets are returned with type "amount"/"time" and a two-element Props slice.
+	hasSubFacet := func(results []search.FilterResult, facetType, parent, prop string) bool {
+		for _, fr := range results {
+			if fr.Type == facetType && len(fr.Props) == 2 && fr.Props[0] == parent && fr.Props[1] == prop {
+				return true
+			}
+		}
+		return false
+	}
+
+	// A query matching the sub-amount value-bound display surfaces the sub-amount facet but not sub-time.
+	amountResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "1500*", search.PrefilterExcludes{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.True(t, hasSubFacet(amountResults, "amount", parentProp.String(), subAmountProp.String()), "sub-amount facet should match its value display")
+	assert.False(t, hasSubFacet(amountResults, "time", parentProp.String(), subTimeProp.String()), "sub-time facet should not match the amount value")
+
+	// A query matching the sub-time value-bound display surfaces the sub-time facet but not sub-amount.
+	timeResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "2020*", search.PrefilterExcludes{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.True(t, hasSubFacet(timeResults, "time", parentProp.String(), subTimeProp.String()), "sub-time facet should match its value display")
+	assert.False(t, hasSubFacet(timeResults, "amount", parentProp.String(), subAmountProp.String()), "sub-amount facet should not match the time value")
+}
+
 func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 	t.Parallel()
 
