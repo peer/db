@@ -177,6 +177,10 @@ const maxCount = computed(() => {
 let slider: API | null = null
 const sliderEl = useTemplateRef<HTMLElement>("sliderEl")
 
+const valueFormat = {
+  to: (value: number): string => parseFloat(value.toFixed(5)).toString(),
+}
+
 watchEffect(() => {
   if (slider && slider.target != sliderEl.value) {
     slider.destroy()
@@ -208,11 +212,9 @@ watchEffect(() => {
       keyboardPageMultiplier: 10,
       animate: false,
       behaviour: "snap",
-      ariaFormat: {
-        to: (value: number): string => {
-          return parseFloat(value.toFixed(5)).toString()
-        },
-      },
+      // Tooltips are shown only while a handle is being dragged, see the noUi-tooltip rules in theme.css.
+      tooltips: [valueFormat, valueFormat],
+      ariaFormat: valueFormat,
     })
     slider.on("change", onSliderChange)
   } else if (slider) {

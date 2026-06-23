@@ -460,6 +460,19 @@
   @apply cursor-not-allowed bg-primary-300 hover:bg-primary-300 focus:ring-primary-300 active:bg-primary-300;
 }
 
+/*
+  Tooltips are shown only while a handle is actively being dragged. noUiSlider adds the
+  noUi-active class to the handle during interaction, so the tooltip stays hidden otherwise.
+  See: https://refreshless.com/nouislider/examples/#section-tooltips-hover
+*/
+.noUi-tooltip {
+  @apply hidden rounded-sm border-none bg-gray-800 px-1.5 py-0.5 text-xs leading-none whitespace-nowrap text-white shadow-sm;
+}
+
+.noUi-active .noUi-tooltip {
+  @apply block;
+}
+
 .pd-inputhtml-editor .ProseMirror {
   /*
     Minimum height is three paragraphs of one-line text (similar to text

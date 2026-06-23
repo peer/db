@@ -210,6 +210,13 @@ const singleValueDisplay = computed(() => {
 let slider: API | null = null
 const sliderEl = useTemplateRef<HTMLElement>("sliderEl")
 
+const tooltipFormat = {
+  to: (value: number): string => {
+    const precision = rangeDisplay.value?.precision ?? timePrecisionForValue(value)
+    return timeStringFromFloat64(value, precision)
+  },
+}
+
 watchEffect(() => {
   if (slider && slider.target != sliderEl.value) {
     slider.destroy()
@@ -241,11 +248,9 @@ watchEffect(() => {
       keyboardPageMultiplier: 10,
       animate: false,
       behaviour: "snap",
-      ariaFormat: {
-        to: (value: number): string => {
-          return new Date(value * 1000).toISOString()
-        },
-      },
+      // Tooltips are shown only while a handle is being dragged, see the noUi-tooltip rules in theme.css.
+      tooltips: [tooltipFormat, tooltipFormat],
+      ariaFormat: tooltipFormat,
     })
     slider.on("change", onSliderChange)
   } else if (slider) {
