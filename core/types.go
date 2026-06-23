@@ -204,3 +204,19 @@ type ValueType struct {
 	VocabularyFields
 	DocumentFields
 }
+
+// PageFields contains fields specific to a page.
+//
+//nolint:lll
+type PageFields struct {
+	Title       []StringWithLanguage  `cardinality:"1.."  json:"title"                 property:"NAME"`
+	Mnemonic    string                `cardinality:"0..1" json:"mnemonic,omitempty"    property:"MNEMONIC"`
+	Description []RawHTMLWithLanguage `cardinality:"0.."  json:"description,omitempty" property:"DESCRIPTION"`
+	Content     []RawHTMLWithLanguage `cardinality:"0.."  json:"content,omitempty"     property:"CONTENT"`
+}
+
+// Page represents a page document.
+type Page struct {
+	PageFields
+	DocumentFields
+}
