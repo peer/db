@@ -14,6 +14,7 @@ var (
 	AlternativeNamePropID        = identifier.From(Namespace, "ALTERNATIVE_NAME")
 	CardinalityPropID            = identifier.From(Namespace, "CARDINALITY")
 	CodePropID                   = identifier.From(Namespace, "CODE")
+	ContentPropID                = identifier.From(Namespace, "CONTENT")
 	DefaultVariantPropID         = identifier.From(Namespace, "DEFAULT_VARIANT")
 	DescriptionPropID            = identifier.From(Namespace, "DESCRIPTION")
 	DisplayLabelTemplatePropID   = identifier.From(Namespace, "DISPLAY_LABEL_TEMPLATE")

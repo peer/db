@@ -8,6 +8,7 @@ import "gitlab.com/tozd/identifier"
 var (
 	ClassClassID      = identifier.From(Namespace, "CLASS")
 	LanguageClassID   = identifier.From(Namespace, "LANGUAGE")
+	PageClassID       = identifier.From(Namespace, "PAGE")
 	PropertyClassID   = identifier.From(Namespace, "PROPERTY")
 	UnitClassID       = identifier.From(Namespace, "UNIT")
 	ValueTypeClassID  = identifier.From(Namespace, "VALUE_TYPE")

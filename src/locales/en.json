@@ -283,6 +283,7 @@
     "DocumentGet": {
       "tabs": {
         "allProperties": "All properties",
+        "content": "Content",
         "history": "History"
       },
       "history": {

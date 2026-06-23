@@ -294,6 +294,7 @@ declare module "vue-i18n" {
       DocumentGet: {
         tabs: {
           allProperties: string
+          content: string
           history: string
         }
         history: {

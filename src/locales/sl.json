@@ -283,6 +283,7 @@
     "DocumentGet": {
       "tabs": {
         "allProperties": "Vse lastnosti",
+        "content": "Vsebina",
         "history": "Zgodovina"
       },
       "history": {

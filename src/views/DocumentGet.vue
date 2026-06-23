@@ -19,9 +19,10 @@ import InputTextLink from "@/components/InputTextLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import WithLock from "@/components/WithLock.vue"
 import siteContext from "@/context"
-import { INSTANCE_OF, NAME, SEARCH_SHORTCUT } from "@/core"
+import { CONTENT, INSTANCE_OF, NAME, PAGE, SEARCH_SHORTCUT } from "@/core"
 import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
 import { decodeMetadata } from "@/metadata"
+import ClaimValueHtml from "@/partials/claimvalue/ClaimValueHtml.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import DocumentHistory from "@/partials/DocumentHistory.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
@@ -154,10 +155,26 @@ function afterClick() {
   document.getElementById("search-input-text")?.focus()
 }
 
+// Whether this document is a page (an instance of the PAGE class). Pages get a dedicated
+// layout: a "Content" tab plus the "all properties" and "history" tabs. The class-based
+// registry tabs and the FieldsView tab are not shown for pages.
+const isPage = computed(() => {
+  const doc = withDocument.value?.doc
+  if (!doc?.claims) return false
+  return getClaimsOfTypeWithConfidence(doc.claims, "ref", INSTANCE_OF).some((ref) => ref.to.id === PAGE)
+})
+
+// The page content claims in the current language, rendered as prose in the content tab.
+const pageContent = computed(() => {
+  const doc = withDocument.value?.doc
+  if (!isPage.value || !doc?.claims) return []
+  return selectClaimsByLanguage(doc.claims, "html", CONTENT, locale.value, (c) => c.length > 0) ?? []
+})
+
 const documentComponents = getDocumentComponents()
 const documentTabs = computed(() => {
   const doc = withDocument.value?.doc
-  if (!doc?.claims) return []
+  if (isPage.value || !doc?.claims) return []
   const refs = getClaimsOfTypeWithConfidence(doc.claims, "ref", INSTANCE_OF)
   const tabs: { component: Raw<Component>; id: string }[] = []
   for (const ref of refs) {
@@ -172,7 +189,7 @@ const documentTabs = computed(() => {
 // Whether the class-based FieldsView tab panel is rendered.
 // Side links (search shortcuts + "referenced by") render inside this panel
 // when available, otherwise inside the "all properties" panel.
-const hasFieldsViewPanel = computed(() => documentTabs.value.length === 0 && classTabId.value !== null && mergedFieldsData.value !== null)
+const hasFieldsViewPanel = computed(() => !isPage.value && documentTabs.value.length === 0 && classTabId.value !== null && mergedFieldsData.value !== null)
 
 type SearchShortcut = { name: string; raw: string }
 type ResolvedShortcut = { name: string; query: QueryValues; count: string | null }
@@ -466,6 +483,12 @@ async function onDelete() {
           -->
           <TabGroup v-else manual>
             <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100">
+              <!-- The page content tab. The page title is shown as the h1 heading below. -->
+              <Tab
+                v-if="isPage"
+                class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                >{{ t("views.DocumentGet.tabs.content") }}</Tab
+              >
               <Tab
                 v-for="documentTab in documentTabs"
                 :key="documentTab.id"
@@ -490,6 +513,10 @@ async function onDelete() {
             <h1 v-show="displayLabelComponent?.displayLabel" class="mb-4 text-2xl font-bold drop-shadow-xs"><DisplayLabel ref="displayLabelComponent" :doc="doc" /></h1>
             <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
             <TabPanels as="template">
+              <!-- Page content tab panel: the document's content rendered as prose, in the current language. -->
+              <TabPanel v-if="isPage" tabindex="-1" class="outline-none">
+                <ClaimValueHtml v-for="content in pageContent" :key="content.id" :claim="content" />
+              </TabPanel>
               <!-- Registry tabs. -->
               <TabPanel v-for="documentTab in documentTabs" :key="documentTab.id" tabindex="-1" class="outline-none">
                 <component :is="documentTab.component" :doc="doc" />

@@ -7,6 +7,7 @@ import { Namespace } from "@/core/namespace"
 // Keep this list in sync with internal/core/classes.go and sorted alphabetically.
 export const CLASS = (await Identifier.from(Namespace, "CLASS")).toString()
 export const LANGUAGE = (await Identifier.from(Namespace, "LANGUAGE")).toString()
+export const PAGE = (await Identifier.from(Namespace, "PAGE")).toString()
 export const PROPERTY = (await Identifier.from(Namespace, "PROPERTY")).toString()
 export const UNIT = (await Identifier.from(Namespace, "UNIT")).toString()
 export const VALUE_TYPE = (await Identifier.from(Namespace, "VALUE_TYPE")).toString()

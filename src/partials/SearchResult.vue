@@ -11,8 +11,8 @@ import { useRoute } from "vue-router"
 
 import ButtonLink from "@/components/ButtonLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
-import { DESCRIPTION, INSTANCE_OF, SUBCLASS_OF } from "@/core"
-import { getBestClaimOfType, getClaimsOfTypeWithConfidence } from "@/document"
+import { DESCRIPTION, INSTANCE_OF, PAGE, SUBCLASS_OF } from "@/core"
+import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
 import { useInternalLinksClick, useTransformedHtml } from "@/internal-links"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import FieldsView from "@/partials/FieldsView.vue"
@@ -35,7 +35,7 @@ const props = withDefaults(
   },
 )
 
-const { t } = useI18n({ useScope: "global" })
+const { t, locale } = useI18n({ useScope: "global" })
 
 // duplicateOfLink points at the first occurrence of this result through the "at" query parameter, the link a
 // duplicate card offers back to it.
@@ -75,6 +75,15 @@ const customResultComponent = computed(() => {
   return null
 })
 
+// Whether this result is a page (an instance of the PAGE class). Pages are kept out of the
+// FieldsView layout so they render via the generic card (title, the instance-of "page" badge,
+// and the description) instead of dumping the Content field into the result.
+const isPage = computed(() => {
+  const doc = withDocument.value?.doc
+  if (!doc?.claims) return false
+  return getClaimsOfTypeWithConfidence(doc.claims, "ref", INSTANCE_OF).some((ref) => ref.to.id === PAGE)
+})
+
 // Resolve field definitions for this document.
 const docRef = toRef(() => withDocument.value?.doc ?? null)
 const { classDocs, instanceOfClassIds } = useParentClasses(docRef, el, progress)
@@ -84,7 +93,8 @@ const onDescriptionClick = useInternalLinksClick()
 
 // TODO: Do not hard-code properties?
 const description = computed(() => {
-  return getBestClaimOfType(withDocument.value?.doc?.claims, "html", DESCRIPTION)?.html || ""
+  const claims = selectClaimsByLanguage(withDocument.value?.doc?.claims, "html", DESCRIPTION, locale.value, (c) => c.length > 0 && !!c[0].html)
+  return claims && claims.length > 0 ? claims[0].html : ""
 })
 const transformedDescription = useTransformedHtml(description)
 
@@ -188,7 +198,8 @@ const rowSpan = computed(() => {
           </i18n-t>
         </div>
         <component :is="customResultComponent" v-else-if="customResultComponent" :doc="resultDoc" :search-session-id="searchSessionId" />
-        <div v-else-if="fieldsData && resultDoc.claims">
+        <!-- Pages skip the FieldsView layout (which would dump the Content field into the card) and fall through to the generic card below, which renders title, the instance-of "page" badge, and the description. -->
+        <div v-else-if="!isPage && fieldsData && resultDoc.claims">
           <ButtonLink
             :to="{ name: 'DocumentGet', params: { id: resultDoc.id }, query: encodeQuery({ s: searchSessionId }) }"
             class="pd-print-hidden float-end mb-1 ml-4 px-4"

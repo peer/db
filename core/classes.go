@@ -117,6 +117,41 @@ func Classes(mnemonics map[string][]string) ([]any, errors.E) {
 		},
 	})
 
+	fields, errE = transform.Fields[Page](mnemonics)
+	if errE != nil {
+		return nil, errE
+	}
+	documents = append(documents, &Class{
+		ClassFields: ClassFields{
+			Name: []StringWithLanguage{{
+				Value: "page",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "stran",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:            nil,
+			AlternativeName:      nil,
+			Mnemonic:             "PAGE",
+			Description:          nil,
+			SubclassOf:           nil,
+			AbstractClass:        false,
+			DisplayLabelTemplate: nil,
+			SearchShortcut:       nil,
+			Fields:               fields,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "PAGE"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "CLASS"},
+			}},
+		},
+	})
+
 	fields, errE = transform.Fields[Language](mnemonics)
 	if errE != nil {
 		return nil, errE

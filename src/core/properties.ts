@@ -9,6 +9,7 @@ export const ABSTRACT_CLASS = (await Identifier.from(Namespace, "ABSTRACT_CLASS"
 export const ALTERNATIVE_NAME = (await Identifier.from(Namespace, "ALTERNATIVE_NAME")).toString()
 export const CARDINALITY = (await Identifier.from(Namespace, "CARDINALITY")).toString()
 export const CODE = (await Identifier.from(Namespace, "CODE")).toString()
+export const CONTENT = (await Identifier.from(Namespace, "CONTENT")).toString()
 export const DEFAULT_VARIANT = (await Identifier.from(Namespace, "DEFAULT_VARIANT")).toString()
 export const DESCRIPTION = (await Identifier.from(Namespace, "DESCRIPTION")).toString()
 export const DISPLAY_LABEL_TEMPLATE = (await Identifier.from(Namespace, "DISPLAY_LABEL_TEMPLATE")).toString()
