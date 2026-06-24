@@ -14,7 +14,7 @@ import FilterPropLabel from "@/partials/FilterPropLabel.vue"
 import TimeDisplay from "@/partials/TimeDisplay.vue"
 import { useLocked, useProgress } from "@/progress"
 import { useTimeHistogramValues } from "@/search"
-import { equals, loadingShortHeights, timePrecisionForRange, timePrecisionForValue, timeStringFromFloat64, useInitialLoad } from "@/utils"
+import { equals, loadingShortHeights, timePrecisionForValue, timeRangeDisplay, timeStringFromFloat64, useInitialLoad } from "@/utils"
 
 const props = defineProps<{
   searchSession: DeepReadonly<SearchSession>
@@ -179,18 +179,7 @@ const rangeDisplay = computed(() => {
   if (from.value === null || to.value === null) {
     return null
   }
-  let f = Math.floor(from.value)
-  let t = Math.ceil(to.value)
-  if (f === t) {
-    f -= 0.5
-    t += 0.5
-  }
-  const precision = timePrecisionForRange(f, t)
-  return {
-    precision,
-    from: timeStringFromFloat64(f, precision),
-    to: timeStringFromFloat64(t, precision),
-  }
+  return timeRangeDisplay(from.value, to.value)
 })
 
 // When the histogram collapses to a single bucket, the bucket's from is the
@@ -328,7 +317,7 @@ onBeforeUnmount(() => {
         <CheckBox :id="'time/' + result.props.join('/') + '/value'" v-model="singleValueState" />
         <div class="flex items-baseline gap-x-1">
           <label v-if="singleValueDisplay" :for="'time/' + result.props.join('/') + '/value'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">
-            <TimeDisplay :timestamp="singleValueDisplay.timestamp" :precision="singleValueDisplay.precision" :toggle="false" />
+            <TimeDisplay :timestamp="singleValueDisplay.timestamp" :precision="singleValueDisplay.precision" />
           </label>
           <label :for="'time/' + result.props.join('/') + '/value'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             >({{ results[0].count }})</label

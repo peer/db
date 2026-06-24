@@ -7,6 +7,7 @@ import { useI18n } from "vue-i18n"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import FilterPropLabel from "@/partials/FilterPropLabel.vue"
 import RefFilterValues from "@/partials/RefFilterValues.vue"
+import TimeRange from "@/partials/TimeRange.vue"
 import { listFormatParts } from "@/utils"
 
 // The session's active filters, rendered as a plain readable list for the print layout.
@@ -15,10 +16,6 @@ defineProps<{
 }>()
 
 const { locale, t } = useI18n({ useScope: "global" })
-
-function formatTime(seconds: number): string {
-  return new Date(seconds * 1000).toLocaleString()
-}
 
 // A has filter's properties interleaved with the locale's list separators (via Intl.ListFormat): each entry
 // is either a separator to print or a property id to render. The properties are OR-ed by the filter, so they
@@ -55,7 +52,7 @@ function hasValueParts(values: readonly { id: string }[]): Array<{ separator: st
           <template #values>
             <i v-if="filter.time.missing">{{ t("common.values.missing") }}</i>
             <i v-else-if="filter.time.exists">{{ t("common.values.exists") }}</i>
-            <template v-else-if="filter.time.gte != null">{{ formatTime(filter.time.gte) }} – {{ formatTime(filter.time.lte) }}</template>
+            <TimeRange v-else-if="filter.time.gte != null" :from="filter.time.gte" :to="filter.time.lte" />
           </template>
         </i18n-t>
         <i18n-t v-else-if="'has' in filter && filter.has.props && filter.has.props.length > 0" keypath="common.labelWithValues" scope="global">

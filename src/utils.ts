@@ -410,6 +410,24 @@ export function timeStringFromFloat64(seconds: number, precision: TimePrecision)
   }
 }
 
+// timeRangeDisplay picks a single display precision for both edges of a float64 unix-second range so they line up
+// visually, and renders each edge as a claim Time string at that precision. The lower edge is floored and the upper
+// edge ceiled, and a zero-width range is spread by half a second so a span-based precision can still be derived.
+export function timeRangeDisplay(from: number, to: number): { precision: TimePrecision; from: string; to: string } {
+  let f = Math.floor(from)
+  let t = Math.ceil(to)
+  if (f === t) {
+    f -= 0.5
+    t += 0.5
+  }
+  const precision = timePrecisionForRange(f, t)
+  return {
+    precision,
+    from: timeStringFromFloat64(f, precision),
+    to: timeStringFromFloat64(t, precision),
+  }
+}
+
 // NAMING_PROPERTIES lists the properties considered for display labels.
 // This matches the backend's naming properties (sub-properties of NAMING).
 // TODO: Derive this dynamically from the property hierarchy instead of hard-coding.
