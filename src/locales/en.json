@@ -234,6 +234,9 @@
     "TimeFiltersResult": {
       "clearFilter": "@:partials.AmountFiltersResult.clearFilter"
     },
+    "FilterPropLabel": {
+      "hasProperty": "@:partials.HasFiltersResult.title"
+    },
     "SearchResultsTable": {
       "expandRow": "Expand row",
       "collapseRow": "Collapse row",

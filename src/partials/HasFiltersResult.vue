@@ -12,7 +12,7 @@ import Button from "@/components/Button.vue"
 import CheckBox from "@/components/CheckBox.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
-import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import FilterPropLabel from "@/partials/FilterPropLabel.vue"
 import { useLocked, useProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useHasFilters } from "@/search"
 import { equals, loadingWidth, useInitialLoad, useLimitResults } from "@/utils"
@@ -142,11 +142,7 @@ const WithDocumentD = WithDocument<D>
         @click.prevent="clearFilter"
         >{{ t("common.buttons.clear") }}</Button
       >
-      <template v-if="result.props && result.props.length === 1">
-        <DocumentRefInline :id="result.props[0]" class="mb-1.5 text-lg leading-none" />
-        <span class="mb-1.5 text-lg leading-none">&gt;</span>
-      </template>
-      <span class="mb-1.5 text-lg leading-none">{{ t("partials.HasFiltersResult.title") }}</span>
+      <span class="mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props ?? []" append-has /></span>
       ({{ result.count }})
     </div>
     <ul ref="el" role="group" :aria-labelledby="labelId" class="grid grid-cols-[max-content_auto] gap-x-1">

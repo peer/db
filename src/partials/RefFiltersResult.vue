@@ -7,7 +7,7 @@ import { computed, onBeforeUnmount, toRef, useId, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
-import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import FilterPropLabel from "@/partials/FilterPropLabel.vue"
 import RefFilterTreeRow from "@/partials/RefFilterTreeRow.vue"
 import { useProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useRefFilters } from "@/search"
@@ -324,12 +324,7 @@ function onToggle(node: RefFilterTreeNode) {
         @click.prevent="clearFilter"
         >{{ t("common.buttons.clear") }}</Button
       >
-      <span v-if="result.props.length === 2" class="mb-1.5 text-lg leading-none">
-        <DocumentRefInline :id="result.props[0]" />
-        &gt;
-        <DocumentRefInline :id="result.props[1]" />
-      </span>
-      <DocumentRefInline v-else :id="result.props[0]" class="mb-1.5 text-lg leading-none" />
+      <span class="mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props" /></span>
       ({{ result.count }})
     </div>
     <ul ref="el" role="group" :aria-labelledby="labelId" class="flex flex-col">

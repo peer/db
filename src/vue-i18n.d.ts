@@ -245,6 +245,9 @@ declare module "vue-i18n" {
       TimeFiltersResult: {
         clearFilter: string
       }
+      FilterPropLabel: {
+        hasProperty: string
+      }
       SearchResultsTable: {
         expandRow: string
         collapseRow: string

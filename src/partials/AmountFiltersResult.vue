@@ -11,6 +11,7 @@ import { useI18n } from "vue-i18n"
 import Button from "@/components/Button.vue"
 import CheckBox from "@/components/CheckBox.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import FilterPropLabel from "@/partials/FilterPropLabel.vue"
 import { useLocked, useProgress } from "@/progress"
 import { useAmountHistogramValues } from "@/search"
 import { equals, loadingShortHeights, useInitialLoad } from "@/utils"
@@ -269,20 +270,12 @@ onBeforeUnmount(() => {
         >{{ t("common.buttons.clear") }}</Button
       >
       <i18n-t v-if="result.unit" keypath="common.labelWithUnit" scope="global" tag="span" class="mb-1.5 text-lg leading-none">
-        <template #label>
-          <DocumentRefInline :id="result.props[0]" />
-          <template v-if="result.props.length === 2"> &gt; <DocumentRefInline :id="result.props[1]" /></template>
-        </template>
+        <template #label><FilterPropLabel :prop-ids="result.props" /></template>
         <template #unit>
           <DocumentRefInline :id="result.unit" :link="false" />
         </template>
       </i18n-t>
-      <span v-else-if="result.props.length === 2" class="mb-1.5 text-lg leading-none">
-        <DocumentRefInline :id="result.props[0]" />
-        &gt;
-        <DocumentRefInline :id="result.props[1]" />
-      </span>
-      <DocumentRefInline v-else :id="result.props[0]" class="mb-1.5 text-lg leading-none" />
+      <span v-else class="mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props" /></span>
       ({{ result.count }})
     </div>
     <ul ref="el" role="group" :aria-labelledby="labelId" class="grid grid-cols-[max-content_auto] gap-x-1 gap-y-3">

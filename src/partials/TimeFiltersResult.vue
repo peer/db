@@ -10,7 +10,7 @@ import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
 import CheckBox from "@/components/CheckBox.vue"
-import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import FilterPropLabel from "@/partials/FilterPropLabel.vue"
 import TimeDisplay from "@/partials/TimeDisplay.vue"
 import { useLocked, useProgress } from "@/progress"
 import { useTimeHistogramValues } from "@/search"
@@ -304,12 +304,7 @@ onBeforeUnmount(() => {
         @click.prevent="clearFilter"
         >{{ t("common.buttons.clear") }}</Button
       >
-      <span v-if="result.props.length === 2" class="mb-1.5 text-lg leading-none">
-        <DocumentRefInline :id="result.props[0]" />
-        &gt;
-        <DocumentRefInline :id="result.props[1]" />
-      </span>
-      <DocumentRefInline v-else :id="result.props[0]" class="mb-1.5 text-lg leading-none" />
+      <span class="mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props" /></span>
       ({{ result.count }})
     </div>
     <ul ref="el" role="group" :aria-labelledby="labelId" class="grid grid-cols-[max-content_auto] gap-x-1 gap-y-3">
