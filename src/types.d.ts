@@ -107,20 +107,18 @@ export type RefFilter = {
   missing?: boolean
 }
 
-export type AmountFilter = {
-  unit?: string
-  gte?: number
-  lte?: number
-  missing?: boolean
-  exists?: boolean
-}
+// A numeric or temporal filter selection: a range with both bounds set, the documents missing the property (missing), the documents
+// having any value (exists), or an empty selection. The variants are mutually exclusive, so a range always carries both bounds and an
+// empty selection (the payload that removes the filter from the session) carries none.
+type RangeSelection = { gte: number; lte: number; missing?: never; exists?: never }
+type MissingSelection = { missing: true; gte?: never; lte?: never; exists?: never }
+type ExistsSelection = { exists: true; gte?: never; lte?: never; missing?: never }
+type EmptySelection = { gte?: never; lte?: never; missing?: never; exists?: never }
+type RangeFilterSelection = RangeSelection | MissingSelection | ExistsSelection | EmptySelection
 
-export type TimeFilter = {
-  gte?: number
-  lte?: number
-  missing?: boolean
-  exists?: boolean
-}
+export type AmountFilter = { unit?: string } & RangeFilterSelection
+
+export type TimeFilter = RangeFilterSelection
 
 export type HasFilter = {
   props?: HasValue[]
