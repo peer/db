@@ -36,6 +36,19 @@ const (
 	PartSeparator = ","
 )
 
+// Reserved literal tokens that callers interpret (they are not identifiers).
+const (
+	// SelfValue is the value token a caller resolves to the containing document's own identifier.
+	SelfValue = "self"
+	// ReverseKey is the key token that scopes a search to documents referencing the value via any property.
+	ReverseKey = "reverse"
+	// MissingValue is the value token that selects a property's "missing" bucket (documents with no claim for it).
+	MissingValue = "missing"
+	// DirectValue is the leading value segment that marks a "direct" (most-specific) target: the following
+	// segment, separated by PathSeparator, is the target identifier.
+	DirectValue = "direct"
+)
+
 // Segment is one ":"-separated piece of an entry's key or value. Exactly one of its fields carries the
 // piece: when it is an identifier token (a "," list of base parts hashed via identifier.From, or a
 // 22-character base58 identifier) Path holds the resolved identifier as its single element and Literal is

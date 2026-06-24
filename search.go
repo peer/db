@@ -23,6 +23,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/document"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
+	"gitlab.com/peerdb/peerdb/internal/shortcut"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/search"
 	"gitlab.com/peerdb/peerdb/store"
@@ -1172,12 +1173,125 @@ func (s *Service) SearchUpdatePostAPI(w http.ResponseWriter, req *http.Request, 
 }
 
 // shortcutPropKey identifies a filter group parsed from search shortcut query parameters.
-// When nested is true, parent and prop together identify a sub-ref filter; otherwise
-// prop is a top-level prop.
+// When Nested is true, Parent and Prop together identify a sub-ref filter; otherwise
+// Prop is a top-level prop.
 type shortcutPropKey struct {
-	parent identifier.Identifier
-	prop   identifier.Identifier
-	nested bool
+	Parent identifier.Identifier
+	Prop   identifier.Identifier
+	Nested bool
+}
+
+// shortcutDirectQueryPrefix prefixes a query parameter value to select its identifier as a "direct"
+// (most-specific) match instead of a plain target. It mirrors the "direct:<identifier>" form of the
+// shortcut string grammar.
+const shortcutDirectQueryPrefix = shortcut.DirectValue + shortcut.PathSeparator
+
+// shortcutQueryGroup accumulates the selections parsed for one filter group from search shortcut query
+// parameters: plain target values (To), "direct" most-specific target values, and whether the "missing"
+// bucket was selected.
+type shortcutQueryGroup struct {
+	To      []search.ToValue
+	Direct  []search.ToValue
+	Missing bool
+}
+
+// add parses one query parameter value into the group: the literal "missing" selects the missing bucket,
+// a "direct:<identifier>" value adds a most-specific target, and any other value is a plain target. The
+// identifier (for the plain and direct forms) must be valid.
+func (g *shortcutQueryGroup) add(value string) errors.E {
+	if value == shortcut.MissingValue {
+		g.Missing = true
+		return nil
+	}
+	if idStr, ok := strings.CutPrefix(value, shortcutDirectQueryPrefix); ok {
+		valueID, errE := identifier.MaybeString(idStr)
+		if errE != nil {
+			return errors.WithMessage(errE, "query parameter direct value is not a valid identifier")
+		}
+		g.Direct = append(g.Direct, search.ToValue{ID: valueID})
+		return nil
+	}
+	valueID, errE := identifier.MaybeString(value)
+	if errE != nil {
+		return errors.WithMessage(errE, "query parameter value is not a valid identifier")
+	}
+	g.To = append(g.To, search.ToValue{ID: valueID})
+	return nil
+}
+
+// parseShortcutPropKey parses a query parameter key into a shortcutPropKey: a single property, or a
+// "parent:prop" nested sub-reference. Both sides must be valid identifiers.
+func parseShortcutPropKey(prop string) (shortcutPropKey, errors.E) {
+	if parentStr, propStr, ok := strings.Cut(prop, ":"); ok {
+		parentID, errE := identifier.MaybeString(parentStr)
+		if errE != nil {
+			return shortcutPropKey{}, errors.WithMessage(errE, "query parameter key parent prop is not a valid identifier")
+		}
+		propID, errE := identifier.MaybeString(propStr)
+		if errE != nil {
+			return shortcutPropKey{}, errors.WithMessage(errE, "query parameter key nested prop is not a valid identifier")
+		}
+		return shortcutPropKey{Parent: parentID, Prop: propID, Nested: true}, nil
+	}
+	propID, errE := identifier.MaybeString(prop)
+	if errE != nil {
+		return shortcutPropKey{}, errors.WithMessage(errE, "query parameter key is not a valid identifier")
+	}
+	return shortcutPropKey{Parent: identifier.Identifier{}, Prop: propID, Nested: false}, nil
+}
+
+// parseShortcutQueryGroups parses search shortcut query parameters into per-property filter groups plus
+// the optional reverse target, the optional language, and the optional full-text query. Each value is a
+// plain identifier (a target), the literal "missing" (the missing bucket), or "direct:<identifier>" (a
+// most-specific target). It is the pure core of parseSearchShortcutQuery and carries no site or session concerns.
+func parseShortcutQueryGroups(query url.Values) (map[shortcutPropKey]*shortcutQueryGroup, *identifier.Identifier, string, string, errors.E) {
+	groups := map[shortcutPropKey]*shortcutQueryGroup{}
+	var reverse *identifier.Identifier
+	var language string
+	var fullTextQuery string
+	for prop, values := range query {
+		if prop == shortcut.ReverseKey {
+			if len(values) != 1 {
+				return nil, nil, "", "", errors.New(`"reverse" query parameter must be set exactly once`)
+			}
+			reverseID, errE := identifier.MaybeString(values[0])
+			if errE != nil {
+				return nil, nil, "", "", errors.WithMessage(errE, `"reverse" query parameter value is not a valid identifier`)
+			}
+			reverse = &reverseID
+			continue
+		}
+		if prop == "language" {
+			if len(values) != 1 {
+				return nil, nil, "", "", errors.New(`"language" query parameter must be set exactly once`)
+			}
+			language = values[0]
+			continue
+		}
+		if prop == "q" {
+			if len(values) != 1 {
+				return nil, nil, "", "", errors.New(`"q" query parameter must be set exactly once`)
+			}
+			fullTextQuery = values[0]
+			continue
+		}
+		key, errE := parseShortcutPropKey(prop)
+		if errE != nil {
+			return nil, nil, "", "", errE
+		}
+		group := groups[key]
+		if group == nil {
+			group = &shortcutQueryGroup{To: nil, Direct: nil, Missing: false}
+			groups[key] = group
+		}
+		for _, value := range values {
+			errE := group.add(value)
+			if errE != nil {
+				return nil, nil, "", "", errE
+			}
+		}
+	}
+	return groups, reverse, language, fullTextQuery, nil
 }
 
 // parseSearchShortcutQuery parses query parameters using the search shortcut grammar
@@ -1185,62 +1299,9 @@ type shortcutPropKey struct {
 func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Session, errors.E) {
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
-	// Group values by property.
-	filterMap := map[shortcutPropKey][]search.ToValue{}
-	var reverse *identifier.Identifier
-	var language string
-	var fullTextQuery string
-	for prop, values := range query {
-		if prop == "reverse" {
-			if len(values) != 1 {
-				return nil, errors.New(`"reverse" query parameter must be set exactly once`)
-			}
-			reverseID, errE := identifier.MaybeString(values[0])
-			if errE != nil {
-				return nil, errors.WithMessage(errE, `"reverse" query parameter value is not a valid identifier`)
-			}
-			reverse = &reverseID
-			continue
-		}
-		if prop == "language" {
-			if len(values) != 1 {
-				return nil, errors.New(`"language" query parameter must be set exactly once`)
-			}
-			language = values[0]
-			continue
-		}
-		if prop == "q" {
-			if len(values) != 1 {
-				return nil, errors.New(`"q" query parameter must be set exactly once`)
-			}
-			fullTextQuery = values[0]
-			continue
-		}
-		var key shortcutPropKey
-		if parentStr, propStr, ok := strings.Cut(prop, ":"); ok {
-			parentID, errE := identifier.MaybeString(parentStr)
-			if errE != nil {
-				return nil, errors.WithMessage(errE, "query parameter key parent prop is not a valid identifier")
-			}
-			propID, errE := identifier.MaybeString(propStr)
-			if errE != nil {
-				return nil, errors.WithMessage(errE, "query parameter key nested prop is not a valid identifier")
-			}
-			key = shortcutPropKey{parent: parentID, prop: propID, nested: true}
-		} else {
-			propID, errE := identifier.MaybeString(prop)
-			if errE != nil {
-				return nil, errors.WithMessage(errE, "query parameter key is not a valid identifier")
-			}
-			key = shortcutPropKey{parent: identifier.Identifier{}, prop: propID, nested: false}
-		}
-		for _, value := range values {
-			valueID, errE := identifier.MaybeString(value)
-			if errE != nil {
-				return nil, errors.WithMessage(errE, "query parameter value is not a valid identifier")
-			}
-			filterMap[key] = append(filterMap[key], search.ToValue{ID: valueID})
-		}
+	groups, reverse, language, fullTextQuery, errE := parseShortcutQueryGroups(query)
+	if errE != nil {
+		return nil, errE
 	}
 
 	// TODO: Support configuring base and not just use the domain.
@@ -1258,14 +1319,14 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 		Sort:          nil,
 	}
 
-	for key, toValues := range filterMap {
+	for key, group := range groups {
 		filterBase := append(slices.Clone(base), "FILTER", identifier.New().String())
 		filterID := identifier.From(filterBase...)
 		var props []identifier.Identifier
-		if key.nested {
-			props = []identifier.Identifier{key.parent, key.prop}
+		if key.Nested {
+			props = []identifier.Identifier{key.Parent, key.Prop}
 		} else {
-			props = []identifier.Identifier{key.prop}
+			props = []identifier.Identifier{key.Prop}
 		}
 		// Search shortcuts populate Prefilters (not Filters): the shortcut defines the scope the
 		// user is looking at, so it constrains results without contributing to ranking, and the
@@ -1276,9 +1337,9 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 			Base: filterBase,
 			Prop: props,
 			Ref: &search.RefFilter{
-				To:      toValues,
-				Direct:  nil,
-				Missing: false,
+				To:      group.To,
+				Direct:  group.Direct,
+				Missing: group.Missing,
 			},
 			Amount: nil,
 			Time:   nil,
@@ -1293,7 +1354,7 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 		Version:     0,
 	}
 
-	errE := searchSession.Validate(ctx)
+	errE = searchSession.Validate(ctx)
 	if errE != nil {
 		return nil, errors.WrapWith(errE, search.ErrValidationFailed)
 	}
@@ -1336,6 +1397,11 @@ func (s *Service) createShortcutSession(w http.ResponseWriter, req *http.Request
 //
 // A key of the form "parentProp:prop" creates a nested (sub-ref) prefilter, matching
 // reference sub-claims under parentProp whose property is prop.
+//
+// A value is normally a target value ID, but two forms are special: the literal "missing"
+// selects the property's missing bucket (documents that have no claim for it), and a value of
+// the form "direct:<valueID>" selects the target as a most-specific (leaf) match. Both can be
+// mixed with plain target values for the same property.
 //
 // The "reverse" query parameter is special: its value is a document ID that scopes
 // the session to documents which reference that ID via any property.

@@ -141,6 +141,34 @@ describe("shortcutToFilters", () => {
     const payload = await shortcutToFilters("reverse=ns.example.com,DOC")
     assert.notProperty(payload, "filters")
   })
+
+  test("builds a missing selection from a 'missing' value", async () => {
+    const payload = await shortcutToFilters("ns.example.com,KIND=missing")
+    const prop = (await Identifier.from("ns.example.com", "KIND")).toString()
+    assert.deepEqual(payload.filters, [{ prop: [prop], ref: { missing: true } }])
+  })
+
+  test("builds a direct selection from a 'direct:' value", async () => {
+    const payload = await shortcutToFilters("ns.example.com,KIND=direct:ns.example.com,A")
+    const prop = (await Identifier.from("ns.example.com", "KIND")).toString()
+    const value = (await Identifier.from("ns.example.com", "A")).toString()
+    assert.deepEqual(payload.filters, [{ prop: [prop], ref: { direct: [{ id: value }] } }])
+  })
+
+  test("groups to, direct, and missing for the same property into one filter", async () => {
+    const payload = await shortcutToFilters("ns.example.com,KIND=ns.example.com,A&ns.example.com,KIND=direct:ns.example.com,B&ns.example.com,KIND=missing")
+    const prop = (await Identifier.from("ns.example.com", "KIND")).toString()
+    const a = (await Identifier.from("ns.example.com", "A")).toString()
+    const b = (await Identifier.from("ns.example.com", "B")).toString()
+    assert.deepEqual(payload.filters, [{ prop: [prop], ref: { to: [{ id: a }], direct: [{ id: b }], missing: true } }])
+  })
+
+  test("substitutes 'self' inside a direct value", async () => {
+    const self = Identifier.new().toString()
+    const payload = await shortcutToFilters("ns.example.com,KIND=direct:self", self)
+    const prop = (await Identifier.from("ns.example.com", "KIND")).toString()
+    assert.deepEqual(payload.filters, [{ prop: [prop], ref: { direct: [{ id: self }] } }])
+  })
 })
 
 describe("shortcutToQuery", () => {
@@ -182,5 +210,26 @@ describe("shortcutToQuery", () => {
 
   test("throws when 'self' is referenced without a self prop", async () => {
     await expect(shortcutToQuery("ns.example.com,KIND=self")).rejects.toThrowError(/no self ID was provided/)
+  })
+
+  test("encodes a missing selection as the 'missing' value", async () => {
+    const query = await shortcutToQuery("ns.example.com,KIND=missing")
+    const prop = (await Identifier.from("ns.example.com", "KIND")).toString()
+    assert.deepEqual(query, { [prop]: ["missing"] })
+  })
+
+  test("encodes a direct selection with the 'direct:' prefix", async () => {
+    const query = await shortcutToQuery("ns.example.com,KIND=direct:ns.example.com,A")
+    const prop = (await Identifier.from("ns.example.com", "KIND")).toString()
+    const value = (await Identifier.from("ns.example.com", "A")).toString()
+    assert.deepEqual(query, { [prop]: ["direct:" + value] })
+  })
+
+  test("groups to, direct, and missing values under one key", async () => {
+    const query = await shortcutToQuery("ns.example.com,KIND=ns.example.com,A&ns.example.com,KIND=direct:ns.example.com,B&ns.example.com,KIND=missing")
+    const prop = (await Identifier.from("ns.example.com", "KIND")).toString()
+    const a = (await Identifier.from("ns.example.com", "A")).toString()
+    const b = (await Identifier.from("ns.example.com", "B")).toString()
+    assert.deepEqual(query, { [prop]: [a, "direct:" + b, "missing"] })
   })
 })

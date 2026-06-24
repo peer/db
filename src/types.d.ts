@@ -148,7 +148,7 @@ export type ShortcutPair = { key: string; value: string }
 // Payload shape for the SearchJustResults POST endpoint built.
 export type JustResultsFilters = {
   reverse?: string
-  filters?: { prop: string[]; ref: { to: { id: string }[] } }[]
+  filters?: { prop: string[]; ref: { to?: { id: string }[]; direct?: { id: string }[]; missing?: boolean } }[]
 }
 
 export type SearchSession = {

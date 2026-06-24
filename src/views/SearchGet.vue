@@ -115,7 +115,16 @@ async function applyPrefilters(payloads: PrefilterPayload[] | null) {
     for (const payload of payloads) {
       const filterBase = [...searchSession.value.base, "FILTER", Identifier.new().toString()]
       const id = (await Identifier.from(...filterBase)).toString()
-      prefilters.push({ id, base: filterBase, prop: payload.prop, ref: { to: payload.to } })
+      prefilters.push({
+        id,
+        base: filterBase,
+        prop: payload.prop,
+        ref: {
+          to: payload.to.length > 0 ? payload.to : undefined,
+          direct: payload.direct.length > 0 ? payload.direct : undefined,
+          missing: payload.missing ? true : undefined,
+        },
+      })
     }
   }
   await onSearchSessionUpdate({

@@ -23,14 +23,16 @@ import { computed, onBeforeUnmount, readonly, ref, watch } from "vue"
 import { stringifyQuery, useRoute, useRouter } from "vue-router"
 
 import { getURL, getURLDirect, postJSON } from "@/api"
+import { RESERVED_DIRECT_PREFIX, RESERVED_MISSING } from "@/shortcut"
 import { addPrefixWildcard, anySignal, encodeQuery } from "@/utils"
 
 export const FILTERS_INITIAL_LIMIT = 10
 export const FILTERS_INCREASE = 10
 
-// PrefilterPayload is a single reference prefilter derived from a search shortcut query: a property
-// path and the target value ids it constrains to.
-export type PrefilterPayload = { prop: string[]; to: { id: string }[] }
+// PrefilterPayload is a single reference prefilter derived from a search shortcut query: a property path
+// and the selections it constrains to. Mirroring the backend, a value is a plain target (to), a
+// most-specific target (direct), or the missing bucket (missing).
+export type PrefilterPayload = { prop: string[]; to: { id: string }[]; direct: { id: string }[]; missing: boolean }
 
 // SearchShortcutController is provided by the SearchGet view so navbar search shortcut buttons can
 // toggle the current session's prefilters in place instead of navigating. It is absent outside SearchGet.
@@ -48,8 +50,9 @@ export const searchShortcutControllerKey: InjectionKey<SearchShortcutController>
 
 // queryToPrefilterPayloads maps a search shortcut query (the SearchShortcut route query) to reference
 // prefilter payloads, mirroring the backend parseSearchShortcutQuery: each key is a property (split on
-// ":" for a nested sub-reference), each value is a target id, and the reserved "reverse", "language" and
-// "q" (full-text query) keys are skipped.
+// ":" for a nested sub-reference), and each value is a target id, the literal "missing" (the missing
+// bucket), or "direct:<id>" (a most-specific target). The reserved "reverse", "language" and "q"
+// (full-text query) keys are skipped.
 export function queryToPrefilterPayloads(query: QueryValues): PrefilterPayload[] {
   const payloads: PrefilterPayload[] = []
   for (const [key, value] of Object.entries(query)) {
@@ -58,15 +61,27 @@ export function queryToPrefilterPayloads(query: QueryValues): PrefilterPayload[]
     }
     const prop = key.split(":")
     const values = Array.isArray(value) ? value : [value]
-    payloads.push({ prop, to: values.map((id) => ({ id })) })
+    const to: { id: string }[] = []
+    const direct: { id: string }[] = []
+    let missing = false
+    for (const v of values) {
+      if (v === RESERVED_MISSING) {
+        missing = true
+      } else if (v.startsWith(RESERVED_DIRECT_PREFIX)) {
+        direct.push({ id: v.slice(RESERVED_DIRECT_PREFIX.length) })
+      } else {
+        to.push({ id: v })
+      }
+    }
+    payloads.push({ prop, to, direct, missing })
   }
   return payloads
 }
 
-// prefilterSignature normalizes a property path and its target ids to a stable string so two prefilters
+// prefilterSignature normalizes a property path and its selections to a stable string so two prefilters
 // can be compared ignoring filter id/base and value order.
-function prefilterSignature(prop: readonly string[], ids: readonly string[]): string {
-  return prop.join(":") + "=" + [...ids].sort().join(",")
+function prefilterSignature(prop: readonly string[], to: readonly string[], direct: readonly string[], missing: boolean): string {
+  return prop.join(":") + "=" + [...to].sort().join(",") + "|direct=" + [...direct].sort().join(",") + "|missing=" + missing
 }
 
 // prefiltersMatch reports whether the session's prefilters are exactly the set of reference prefilters
@@ -81,6 +96,8 @@ export function prefiltersMatch(prefilters: DeepReadonly<Filter[]> | undefined, 
       prefilterSignature(
         f.prop,
         (f.ref.to ?? []).map((t) => t.id),
+        (f.ref.direct ?? []).map((t) => t.id),
+        f.ref.missing === true,
       ),
     )
   }
@@ -88,6 +105,8 @@ export function prefiltersMatch(prefilters: DeepReadonly<Filter[]> | undefined, 
     prefilterSignature(
       p.prop,
       p.to.map((t) => t.id),
+      p.direct.map((t) => t.id),
+      p.missing,
     ),
   )
   if (have.length !== want.length) {
