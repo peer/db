@@ -13,6 +13,7 @@ import { ClaimTypes, claimTypeName, getClaimsOfTypeWithConfidence, selectClaimsB
 import { fieldKey, getClaimsForField, valueTypeToClaimType } from "@/fields"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import { SKIP_TO_END } from "@/utils"
 
 const props = withDefaults(
   defineProps<{
@@ -81,10 +82,11 @@ function hasValues(field: FieldData): boolean {
 }
 
 // The claim values to render for a field. When limited and the field is not expanded, repeating values
-// are capped at LIMITED_CLAIMS so the remaining ones stay hidden behind the "Show all" button.
+// are capped at LIMITED_CLAIMS so the remaining ones stay hidden behind the "Show all" button. If capping
+// would leave only SKIP_TO_END or fewer values hidden, all values are shown instead of the button.
 function displayedClaimsForField(field: FieldData): DeepReadonly<Claim>[] {
   const claims = claimsForField(field)
-  if (props.limited && !expandedFields.value.has(fieldKey(field)) && claims.length > LIMITED_CLAIMS) {
+  if (props.limited && !expandedFields.value.has(fieldKey(field)) && claims.length > LIMITED_CLAIMS + SKIP_TO_END) {
     return claims.slice(0, LIMITED_CLAIMS)
   }
   return claims
