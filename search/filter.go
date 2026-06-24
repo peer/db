@@ -22,6 +22,11 @@ import (
 const (
 	histogramBins = 100
 
+	// boundsExpansion is the fraction of the selected range added on each side when session
+	// bounds are set, so the slider can be dragged outward to widen the current selection. The
+	// expanded bounds are clamped to the unfiltered data range (see histogramFilterGet).
+	boundsExpansion = 0.1
+
 	// missingKey is the aggregation/metadata key used for the count of documents missing the filtered property.
 	missingKey = "missing"
 )
@@ -180,17 +185,28 @@ func histogramSubFilterGet(
 	)
 }
 
+// expandSessionBounds widens the selected [from, to] range by boundsExpansion of its span on each
+// side so the slider can be dragged outward to expand the selection, clamped to the unfiltered data
+// range [dataMin, dataMax] so it never extends past the data. A selection already wider than the
+// data (extended bounds) is kept as is so the current selection always fits within the slider.
+func expandSessionBounds(from, to, dataMin, dataMax float64) (float64, float64) {
+	margin := (to - from) * boundsExpansion
+	return min(from, max(from-margin, dataMin)), max(to, min(to+margin, dataMax))
+}
+
 // histogramFilterGet retrieves histogram filter data for search results.
 // It runs a min/max aggregation followed by a histogram aggregation on the
 // specified nested path. The parent filter is excluded from the session query
 // so that the histogram shows values available under the other filters, not
 // restricted by the current filter's own values. If sessionFrom and sessionTo
-// are non-nil, those bounds are used for the histogram range instead of (or
-// to override) the min/max from the data. This provides "hard bounds"
-// (session range narrower than data) and "extended bounds" (session range
-// wider than data). When the data has a single known endpoint value, a single
-// bucket is returned even when session bounds are set, so that selecting the
-// single value round-trips to the same response.
+// are non-nil, the histogram range is the selected range widened by a margin
+// (boundsExpansion of the selected span) on each side and clamped to the data
+// min/max, so the slider can be dragged outward to expand the selection without
+// ever extending past the data. A selection wider than the data ("extended
+// bounds") is kept as is so the current selection always fits within the slider.
+// When the data has a single known endpoint value, a single bucket is returned
+// even when session bounds are set, so that selecting the single value
+// round-trips to the same response.
 //
 // missingNestedQuery is the nested-path inner query that identifies an entry
 // matching the filter's identity (e.g., prop term for top-level filters, or
@@ -345,6 +361,8 @@ func histogramFilterGet(
 				missingKey: missingCount,
 			}, nil
 		}
+		// Widen the selection so the slider can be dragged outward, clamped to the data range.
+		histogramFrom, histogramTo = expandSessionBounds(histogramFrom, histogramTo, *minValue, *maxValue)
 	} else {
 		histogramFrom = *minValue
 		histogramTo = *maxValue

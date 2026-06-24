@@ -195,10 +195,13 @@ watchEffect(() => {
   const gte = props.filter?.amount?.gte ?? null
   const lte = props.filter?.amount?.lte ?? null
   const isMissing = props.filter?.amount?.missing === true
-  const rangeMin = gte == null ? from.value : Math.max(gte, from.value)
-  const rangeMax = lte == null ? to.value : Math.min(lte, to.value)
-  const rangeStart = gte == null ? from.value : gte
-  const rangeEnd = lte == null ? to.value : lte
+  // The backend sends from/to as the slider track bounds (the full data range, or the current
+  // selection widened by a margin and clamped to the data) and gte/lte as the handle positions,
+  // so the handles can be dragged outward into the widened track to expand the selection.
+  const rangeMin = from.value
+  const rangeMax = to.value
+  const rangeStart = gte == null ? from.value : Math.max(from.value, Math.min(gte, to.value))
+  const rangeEnd = lte == null ? to.value : Math.max(from.value, Math.min(lte, to.value))
   if (!slider && sliderEl.value) {
     slider = noUiSlider.create(sliderEl.value, {
       start: [rangeStart, rangeEnd],

@@ -531,31 +531,32 @@ func TestAmountFilterGetHardBoundsIntegration(t *testing.T) {
 	results, metadata, errE := session.Filters[0].Amount.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// The session filter provides bounds [10, 90], so the histogram uses those
-	// instead of the data range [0, 100].
-	assert.Equal(t, "10", metadata["from"])
-	assert.Equal(t, "90", metadata["to"])
+	// The session bounds [10, 90] are widened by 10% of the selected span (8) on each side so the
+	// slider can be dragged outward, then clamped to the unfiltered data range [0, 100]. So the
+	// histogram spans [2, 98].
+	assert.Equal(t, "2", metadata["from"])
+	assert.Equal(t, "98", metadata["to"])
 
-	// With hard_bounds, the histogram is clipped to [10, 90] and has exactly 100 buckets.
+	// The widened histogram spans [2, 98] and has exactly 100 buckets.
 	assert.Equal(t, "100", metadata["total"])
 	require.Len(t, results, 100)
 
-	// Doc [0,20] overlaps bins 0-12 (From 10 to ~19.6), doc [80,100] overlaps bins 87-99 (From ~79.6 to ~89.2).
-	// Total count = 13 + 13 = 26.
+	// With interval 0.96, doc [0,20] overlaps bins 0-18 and doc [80,100] overlaps bins 81-99.
+	// Total count = 19 + 19 = 38.
 	var totalCount int64
 	for i, r := range results {
-		assert.InDelta(t, 10.0+float64(i)*0.8, r.From, 0.1, "bucket %d From", i)
+		assert.InDelta(t, 2.0+float64(i)*0.96, r.From, 0.1, "bucket %d From", i)
 		totalCount += r.Count
 		switch {
-		case i <= 12:
+		case i <= 18:
 			assert.Equal(t, int64(1), r.Count, "bucket %d Count (from doc [0,20])", i)
-		case i >= 87:
+		case i >= 81:
 			assert.Equal(t, int64(1), r.Count, "bucket %d Count (from doc [80,100])", i)
 		default:
 			assert.Equal(t, int64(0), r.Count, "bucket %d Count", i)
 		}
 	}
-	assert.Equal(t, int64(26), totalCount)
+	assert.Equal(t, int64(38), totalCount)
 }
 
 func TestAmountFilterGetWideRangeIntegration(t *testing.T) {
