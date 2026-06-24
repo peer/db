@@ -264,7 +264,9 @@ export type ListFormatPart = { type: "literal"; value: string } | { type: "eleme
 export function listFormatParts(locale: string, count: number, type: "conjunction" | "disjunction" | "unit" = "unit"): ListFormatPart[] {
   const formatter = new Intl.ListFormat(locale, { style: "long", type })
   const indices = Array.from({ length: count }, (_, i) => String(i))
-  return formatter.formatToParts(indices).map((part) => (part.type === "literal" ? { type: "literal", value: part.value } : { type: "element", index: Number(part.value) }))
+  return formatter
+    .formatToParts(indices)
+    .map((part) => (part.type === "literal" ? { type: "literal", value: part.value } : { type: "element", index: Number(part.value) }))
 }
 
 // Approximate seconds-per-year used when picking a coarser-than-day precision.

@@ -33,8 +33,11 @@ const tokens = computed((): RefFilterValueToken[] => refFilterValueTokens(props.
 // The token list interleaved with the locale's list separators (via Intl.ListFormat): each entry is either
 // a separator to print or a token to render. The values are OR-ed by the filter, so they are listed as a
 // disjunction (in English "a, b, or c").
-const valueParts = computed((): Array<{ separator: string } | { token: RefFilterValueToken }> =>
-  listFormatParts(locale.value, tokens.value.length, "disjunction").map((part) => (part.type === "literal" ? { separator: part.value } : { token: tokens.value[part.index] })),
+const valueParts = computed(
+  (): Array<{ separator: string } | { token: RefFilterValueToken }> =>
+    listFormatParts(locale.value, tokens.value.length, "disjunction").map((part) =>
+      part.type === "literal" ? { separator: part.value } : { token: tokens.value[part.index] },
+    ),
 )
 </script>
 

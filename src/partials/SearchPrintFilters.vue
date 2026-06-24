@@ -38,9 +38,8 @@ function hasValueParts(values: readonly { id: string }[]): Array<{ separator: st
         <i18n-t v-else-if="'amount' in filter" keypath="common.labelWithValues" scope="global">
           <template #label><FilterPropLabel :prop-ids="filter.prop" :link="false" /></template>
           <template #values
-            >{{ filter.amount.gte ?? "" }} - {{ filter.amount.lte ?? "" }}
-            <DocumentRefInline v-if="filter.amount.unit" :id="filter.amount.unit" :link="false" /></template
-          >
+            >{{ filter.amount.gte ?? "" }} - {{ filter.amount.lte ?? "" }} <DocumentRefInline v-if="filter.amount.unit" :id="filter.amount.unit" :link="false"
+          /></template>
         </i18n-t>
         <i18n-t v-else-if="'time' in filter" keypath="common.labelWithValues" scope="global">
           <template #label><FilterPropLabel :prop-ids="filter.prop" :link="false" /></template>
