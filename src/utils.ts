@@ -1,7 +1,7 @@
 import type { ComputedRef, DeepReadonly, InjectionKey, Ref } from "vue"
 
 import type { TimePrecision } from "@/document"
-import type { GetDisplayLabel, Mutable, QueryValues, QueryValuesWithOptional, Result } from "@/types"
+import type { GetDisplayLabel, Mutable, QueryValues, QueryValuesWithOptional, RefFilter, Result } from "@/types"
 
 import { Identifier } from "@tozd/identifier"
 import { prng_alea } from "esm-seedrandom"
@@ -227,6 +227,29 @@ export function toggleRefSelection(values: readonly RefValueLike[], id: string, 
     next.add(value.id)
   }
   return next
+}
+
+// RefFilterValueToken is one rendered entry of a reference filter's selection: a selected value (its id,
+// with direct marking the "most-specific only" variant the facet tree labels "direct"), or the synthetic
+// missing entry. A flat display iterates these to list the whole selection uniformly.
+export type RefFilterValueToken = { kind: "value"; id: string; direct: boolean } | { kind: "missing" }
+
+// refFilterValueTokens flattens a reference filter's active selection into a single ordered list: each To
+// value, then each Direct value (marked direct), then the missing entry when set. It lets a flat summary
+// (the print filter list, a prefilter label) render every part of the selection, direct-only selections
+// included, with correct separators.
+export function refFilterValueTokens(ref: DeepReadonly<RefFilter>): RefFilterValueToken[] {
+  const tokens: RefFilterValueToken[] = []
+  for (const value of ref.to ?? []) {
+    tokens.push({ kind: "value", id: value.id, direct: false })
+  }
+  for (const value of ref.direct ?? []) {
+    tokens.push({ kind: "value", id: value.id, direct: true })
+  }
+  if (ref.missing) {
+    tokens.push({ kind: "missing" })
+  }
+  return tokens
 }
 
 // Approximate seconds-per-year used when picking a coarser-than-day precision.

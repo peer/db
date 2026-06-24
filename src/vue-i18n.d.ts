@@ -12,6 +12,8 @@ declare module "vue-i18n" {
   export interface DefineLocaleMessage {
     common: {
       labelWithUnit: string
+      labelWithValues: string
+      valueWithDirect: string
       buttons: {
         search: string
         cancel: string

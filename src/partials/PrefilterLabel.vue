@@ -2,31 +2,19 @@
 import type { Filter } from "@/types"
 import type { DeepReadonly } from "vue"
 
-import { computed } from "vue"
+import FilterPropLabel from "@/partials/FilterPropLabel.vue"
+import RefFilterValues from "@/partials/RefFilterValues.vue"
 
-import DocumentRefInline from "@/partials/DocumentRefInline.vue"
-
-const props = defineProps<{
+defineProps<{
   filter: DeepReadonly<Filter>
 }>()
-
-// Only reference prefilters carry "to" values to list (search shortcuts produce ref prefilters).
-// Other filter kinds show just their property path.
-const values = computed(() => ("ref" in props.filter && props.filter.ref.to ? props.filter.ref.to : []))
 </script>
 
 <template>
   <span class="pd-prefilter-label">
-    <template v-for="(prop, i) in filter.prop" :key="prop">
-      <template v-if="i > 0">{{ " > " }}</template>
-      <DocumentRefInline :id="prop" />
-    </template>
-    <template v-if="values.length > 0">
-      {{ ": " }}
-      <template v-for="(value, i) in values" :key="value.id">
-        <template v-if="i > 0">{{ ", " }}</template>
-        <DocumentRefInline :id="value.id" />
-      </template>
-    </template>
+    <RefFilterValues v-if="'ref' in filter" :ref-filter="filter.ref">
+      <FilterPropLabel :prop-ids="filter.prop" />
+    </RefFilterValues>
+    <FilterPropLabel v-else :prop-ids="filter.prop" />
   </span>
 </template>

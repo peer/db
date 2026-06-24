@@ -180,7 +180,7 @@ async function onFiltersUpdate(updatedFilters: Filter[]) {
 // isFilterEmpty returns true if the filter has no active selection.
 function isFilterEmpty(f: Filter): boolean {
   if ("ref" in f) {
-    return (!f.ref.to || f.ref.to.length === 0) && !f.ref.missing
+    return (!f.ref.to || f.ref.to.length === 0) && (!f.ref.direct || f.ref.direct.length === 0) && !f.ref.missing
   }
   if ("amount" in f) {
     return f.amount.gte == null && f.amount.lte == null && !f.amount.missing && !f.amount.exists

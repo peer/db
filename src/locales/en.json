@@ -1,6 +1,8 @@
 {
   "common": {
     "labelWithUnit": "{label} ({unit})",
+    "labelWithValues": "{label}: {values}",
+    "valueWithDirect": "{value} ({direct})",
     "buttons": {
       "search": "Search",
       "cancel": "Cancel",
