@@ -16,15 +16,20 @@ export class Queue {
         if (options?.signal?.aborted) {
           //eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
           reject(options.signal.reason)
-        } else {
-          this._pendingCount++
-          try {
-            fn().then(resolve, reject)
-          } finally {
-            this._pendingCount--
-          }
+          // An aborted task never counted towards _pendingCount, so just try to start the next one.
+          this._flush()
+          return
         }
-        this._flush()
+
+        this._pendingCount++
+        // The task stays counted until fn settles, so _pendingCount reflects
+        // in-flight work and the concurrency limit holds.
+        fn()
+          .then(resolve, reject)
+          .finally(() => {
+            this._pendingCount--
+            this._flush()
+          })
       }
 
       this._tasks.push(run)
