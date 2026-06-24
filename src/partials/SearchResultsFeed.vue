@@ -32,6 +32,7 @@ import {
   limitGroupedResults,
   loadingWidth,
   searchExpandKey,
+  searchHiddenClaimsKey,
   searchLoadAllClaimsKey,
   searchPagerKey,
   SKIP_TO_END,
@@ -136,6 +137,17 @@ watch(printMode, (on) => {
 // behind a per-field "Show all" button. It resets together with the result limit when a new result set arrives.
 const loadAllClaims = ref(false)
 provide(searchLoadAllClaimsKey, loadAllClaims)
+
+// Number of FieldsView instances that currently have repeating claim values hidden behind a "Show all" button.
+// anyHiddenClaims lets the print view's "Load all" button appear whenever there is anything left to reveal,
+// including when every result already fits on screen but some result still caps its claims. Each FieldsView
+// keeps contribution balanced, so the total never drifts.
+const hiddenClaimsTotal = ref(0)
+function reportHiddenClaims(delta: number): void {
+  hiddenClaimsTotal.value += delta
+}
+provide(searchHiddenClaimsKey, reportHiddenClaims)
+const anyHiddenClaims = computed(() => hiddenClaimsTotal.value > 0)
 
 // nowTimestamp is a local-time string in the claim Time format, ticked every second so the print
 // timestamp (and an actual print) always shows the current time.
@@ -251,6 +263,7 @@ function loadAll(): void {
     searchLoadAll()
   }
   loadAllClaims.value = true
+  hiddenClaimsTotal.value = 0
 }
 
 const filtersEl = useTemplateRef<HTMLElement>("filtersEl")
@@ -428,7 +441,7 @@ const WithDocumentD = WithDocument<D>
           {{ t("partials.SearchResultsFeed.closePrint") }}
         </button>
         <button
-          v-if="hasMore"
+          v-if="hasMore || anyHiddenClaims"
           type="button"
           class="pd-preview-only items-center gap-x-1 rounded-sm bg-primary-600 px-3 py-2 text-sm text-white shadow-lg outline-none hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
           @click.prevent="loadAll"

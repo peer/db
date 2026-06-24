@@ -56,6 +56,13 @@ export const searchExpandKey: InjectionKey<(depth: number, expand: boolean) => v
 // provider (the default is undefined) FieldsView keeps its normal capping.
 export const searchLoadAllClaimsKey: InjectionKey<Readonly<Ref<boolean>>> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-search-load-all-claims") : Symbol()
 
+// searchHiddenClaimsKey carries, from each result's FieldsView up to SearchResultsFeed, a callback reporting a
+// change in how many FieldsView instances currently have repeating claim values hidden behind a "Show
+// all" button. The print view uses the sum of these so its "Load all" button can appear even when every result
+// already fits on screen, letting a printout be made complete. Without a provider (the default is undefined)
+// FieldsView reports nothing.
+export const searchHiddenClaimsKey: InjectionKey<(delta: number) => void> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-search-hidden-claims") : Symbol()
+
 // limitGroupedResults truncates a grouped result tree to the leaves that appear before its (limit+1)th unique
 // result in document order, pruning any group left empty, and returns that tree with the number of unique
 // results it contains. The backend sends the whole tree at once, so this drives the grouped view's client

@@ -4,7 +4,7 @@ import type { DeepReadonly } from "vue"
 import type { Claim } from "@/document"
 import type { FieldData, FieldsData, SectionData } from "@/fields"
 
-import { computed, inject, ref } from "vue"
+import { computed, inject, onBeforeUnmount, ref, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
@@ -13,7 +13,7 @@ import { ClaimTypes, claimTypeName, getClaimsOfTypeWithConfidence, selectClaimsB
 import { fieldKey, getClaimsForField, valueTypeToClaimType } from "@/fields"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
-import { searchLoadAllClaimsKey, SKIP_TO_END } from "@/utils"
+import { searchHiddenClaimsKey, searchLoadAllClaimsKey, SKIP_TO_END } from "@/utils"
 
 const props = withDefaults(
   defineProps<{
@@ -101,6 +101,45 @@ function displayedClaimsForField(field: FieldData): DeepReadonly<Claim>[] {
 function hiddenClaimsCount(field: FieldData): number {
   return claimsForField(field).length - displayedClaimsForField(field).length
 }
+
+// Report to the search print view whether any field this instance renders still has repeating claim values hidden,
+// so its "Load all" button can appear even when every result already fits. Sub-fields render their own FieldsView
+// and report separately, so only this instance's own fields count here.
+const reportHiddenClaims = inject(searchHiddenClaimsKey, null)
+
+const hasHiddenClaims = computed(() => {
+  const fields = [...props.fieldsData.fields]
+  if (props.sections) {
+    for (const section of props.fieldsData.sections) {
+      fields.push(...section.fields)
+    }
+  }
+  return fields.some((field) => hiddenClaimsCount(field) > 0)
+})
+
+// Emit each transition as a +1/-1 delta, guarded by reported so this instance is only ever counted once, and on
+// unmount release a contribution that is still standing, so the print view's total stays balanced. Syncing the
+// watcher keeps reported in lockstep with hasHiddenClaims so the count is accurate the moment a card loads.
+let reported = 0
+watch(
+  hasHiddenClaims,
+  (now) => {
+    if (now && reported === 0) {
+      reportHiddenClaims?.(1)
+      reported = 1
+    } else if (!now && reported === 1) {
+      reportHiddenClaims?.(-1)
+      reported = 0
+    }
+  },
+  { immediate: true, flush: "sync" },
+)
+
+onBeforeUnmount(() => {
+  if (reported > 0) {
+    reportHiddenClaims?.(-reported)
+  }
+})
 
 // Get sub-claims for a specific claim (for recursive sub-fields).
 function getSubClaims(claimId: string): ClaimTypes {
