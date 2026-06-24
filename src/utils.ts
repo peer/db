@@ -50,6 +50,12 @@ export const searchPagerKey: InjectionKey<ComputedRef<{ pagerBefore: Map<object,
 export const searchExpandKey: InjectionKey<(depth: number, expand: boolean) => void> =
   process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-search-expand") : Symbol()
 
+// searchLoadAllClaimsKey carries, from SearchResultsFeed down to each result's FieldsView, whether the print
+// view's "Load all" button has been pressed. When true, FieldsView shows every repeating claim value instead
+// of capping them behind a "Show all" button, so a printout is not limited to the first few values. Without a
+// provider (the default is undefined) FieldsView keeps its normal capping.
+export const searchLoadAllClaimsKey: InjectionKey<Readonly<Ref<boolean>>> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-search-load-all-claims") : Symbol()
+
 // limitGroupedResults truncates a grouped result tree to the leaves that appear before its (limit+1)th unique
 // result in document order, pruning any group left empty, and returns that tree with the number of unique
 // results it contains. The backend sends the whole tree at once, so this drives the grouped view's client

@@ -4,7 +4,7 @@ import type { DeepReadonly } from "vue"
 import type { Claim } from "@/document"
 import type { FieldData, FieldsData, SectionData } from "@/fields"
 
-import { computed, ref } from "vue"
+import { computed, inject, ref } from "vue"
 import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
@@ -13,7 +13,7 @@ import { ClaimTypes, claimTypeName, getClaimsOfTypeWithConfidence, selectClaimsB
 import { fieldKey, getClaimsForField, valueTypeToClaimType } from "@/fields"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
-import { SKIP_TO_END } from "@/utils"
+import { searchLoadAllClaimsKey, SKIP_TO_END } from "@/utils"
 
 const props = withDefaults(
   defineProps<{
@@ -34,6 +34,10 @@ const { t, locale } = useI18n({ useScope: "global" })
 
 // Number of repeating claim values shown for a field before the "Show all" button when limited is true.
 const LIMITED_CLAIMS = 3
+
+// Set by the search print view's "Load all" button (see searchLoadAllClaimsKey). When true, every repeating
+// claim value is shown regardless of the limit, so a printout is not cut off at LIMITED_CLAIMS.
+const loadAllClaims = inject(searchLoadAllClaimsKey, null)
 
 // Field keys (see fieldKey) for fields whose repeating claim values have been expanded via "Show all".
 const expandedFields = ref(new Set<string>())
@@ -83,10 +87,11 @@ function hasValues(field: FieldData): boolean {
 
 // The claim values to render for a field. When limited and the field is not expanded, repeating values
 // are capped at LIMITED_CLAIMS so the remaining ones stay hidden behind the "Show all" button. If capping
-// would leave only SKIP_TO_END or fewer values hidden, all values are shown instead of the button.
+// would leave only SKIP_TO_END or fewer values hidden, all values are shown instead of the button. The print
+// view's "Load all" button (loadAllClaims) lifts the cap entirely so a printout shows every value.
 function displayedClaimsForField(field: FieldData): DeepReadonly<Claim>[] {
   const claims = claimsForField(field)
-  if (props.limited && !expandedFields.value.has(fieldKey(field)) && claims.length > LIMITED_CLAIMS + SKIP_TO_END) {
+  if (props.limited && !loadAllClaims?.value && !expandedFields.value.has(fieldKey(field)) && claims.length > LIMITED_CLAIMS + SKIP_TO_END) {
     return claims.slice(0, LIMITED_CLAIMS)
   }
   return claims

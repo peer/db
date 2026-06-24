@@ -27,7 +27,17 @@ import SearchSortDialog from "@/partials/SearchSortDialog.vue"
 import TimeDisplay from "@/partials/TimeDisplay.vue"
 import { useBusy } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, filterResultKey, useFilters, useLocationAt } from "@/search"
-import { clone, limitGroupedResults, loadingWidth, searchExpandKey, searchPagerKey, SKIP_TO_END, useLimitResults, useOnScrollOrResize } from "@/utils"
+import {
+  clone,
+  limitGroupedResults,
+  loadingWidth,
+  searchExpandKey,
+  searchLoadAllClaimsKey,
+  searchPagerKey,
+  SKIP_TO_END,
+  useLimitResults,
+  useOnScrollOrResize,
+} from "@/utils"
 import { searchTrackKey, useVisibilityTracking } from "@/visibility"
 
 const props = defineProps<{
@@ -121,6 +131,12 @@ watch(printMode, (on) => {
   document.body.classList.toggle("pd-printing", on)
 })
 
+// Whether the print view's "Load all" button has been pressed. Provided to each result's FieldsView so that,
+// alongside revealing every result, it also reveals every repeating claim value instead of capping them
+// behind a per-field "Show all" button. It resets together with the result limit when a new result set arrives.
+const loadAllClaims = ref(false)
+provide(searchLoadAllClaimsKey, loadAllClaims)
+
 // nowTimestamp is a local-time string in the claim Time format, ticked every second so the print
 // timestamp (and an actual print) always shows the current time.
 function nowTimestamp(): string {
@@ -162,6 +178,7 @@ watch(
   () => props.searchResults,
   () => {
     groupLimit.value = SEARCH_INITIAL_LIMIT
+    loadAllClaims.value = false
   },
 )
 const limitedGroupedResults = computed(() => {
@@ -224,14 +241,16 @@ function topPagerIndex(node: DeepReadonly<Result>): number | undefined {
 // only once the user has reached the end of the results, the same in the grouped view as in the flat one.
 const hasMore = computed(() => (grouped.value ? groupedHasMore.value : searchHasMore.value))
 
-// loadAll reveals every remaining loaded result at once (up to the server cap), used by the print view's
-// "Load all" button so a printout is not limited to the incrementally revealed subset.
+// loadAll reveals every remaining loaded result at once (up to the server cap) and every repeating claim value
+// inside each result, used by the print view's "Load all" button so a printout is not limited to the
+// incrementally revealed subset of results nor to the first few values of a repeating field.
 function loadAll(): void {
   if (grouped.value) {
     groupedLoadAll()
   } else {
     searchLoadAll()
   }
+  loadAllClaims.value = true
 }
 
 const filtersEl = useTemplateRef<HTMLElement>("filtersEl")
