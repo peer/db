@@ -252,6 +252,21 @@ export function refFilterValueTokens(ref: DeepReadonly<RefFilter>): RefFilterVal
   return tokens
 }
 
+// ListFormatPart is one piece of a locale-formatted list: a literal separator to print verbatim, or a
+// reference (by index) to the element the caller renders at that position.
+export type ListFormatPart = { type: "literal"; value: string } | { type: "element"; index: number }
+
+// listFormatParts formats a list of count items into the locale's list parts via Intl.ListFormat, so a list
+// of rich elements (components, not strings) can be rendered with locale-correct separators between them
+// (and any trailing conjunction). The items are formatted as their indices and each element part is mapped
+// back to its index for the caller to resolve; literal parts carry the separators. type selects the
+// enumeration style: "unit" is a plain comma-style list with no added "and"/"or".
+export function listFormatParts(locale: string, count: number, type: "conjunction" | "disjunction" | "unit" = "unit"): ListFormatPart[] {
+  const formatter = new Intl.ListFormat(locale, { style: "long", type })
+  const indices = Array.from({ length: count }, (_, i) => String(i))
+  return formatter.formatToParts(indices).map((part) => (part.type === "literal" ? { type: "literal", value: part.value } : { type: "element", index: Number(part.value) }))
+}
+
 // Approximate seconds-per-year used when picking a coarser-than-day precision.
 // Exact-year math is unnecessary here. We only need the right order of magnitude.
 const SECONDS_PER_YEAR = 60 * 60 * 24 * 365

@@ -2,17 +2,29 @@
 import type { Filter } from "@/types"
 import type { DeepReadonly } from "vue"
 
+import { useI18n } from "vue-i18n"
+
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import FilterPropLabel from "@/partials/FilterPropLabel.vue"
 import RefFilterValues from "@/partials/RefFilterValues.vue"
+import { listFormatParts } from "@/utils"
 
 // The session's active filters, rendered as a plain readable list for the print layout.
 defineProps<{
   filters: DeepReadonly<Filter[]>
 }>()
 
+const { locale } = useI18n({ useScope: "global" })
+
 function formatTime(seconds: number): string {
   return new Date(seconds * 1000).toLocaleString()
+}
+
+// A has filter's properties interleaved with the locale's list separators (via Intl.ListFormat): each entry
+// is either a separator to print or a property id to render. The properties are OR-ed by the filter, so they
+// are listed as a disjunction (in English "a, b, or c").
+function hasValueParts(values: readonly { id: string }[]): Array<{ separator: string } | { id: string }> {
+  return listFormatParts(locale.value, values.length, "disjunction").map((part) => (part.type === "literal" ? { separator: part.value } : { id: values[part.index].id }))
 }
 </script>
 
@@ -37,9 +49,9 @@ function formatTime(seconds: number): string {
         <i18n-t v-else-if="'has' in filter && filter.has.props && filter.has.props.length > 0" keypath="common.labelWithValues" scope="global">
           <template #label><FilterPropLabel :prop-ids="filter.prop" :link="false" /></template>
           <template #values>
-            <template v-for="(value, i) in filter.has.props" :key="value.id">
-              <template v-if="i > 0">{{ ", " }}</template>
-              <DocumentRefInline :id="value.id" :link="false" />
+            <template v-for="(part, i) in hasValueParts(filter.has.props)" :key="i">
+              <template v-if="'separator' in part">{{ part.separator }}</template>
+              <DocumentRefInline v-else :id="part.id" :link="false" />
             </template>
           </template>
         </i18n-t>

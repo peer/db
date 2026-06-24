@@ -7,7 +7,7 @@ import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
-import { refFilterValueTokens } from "@/utils"
+import { listFormatParts, refFilterValueTokens } from "@/utils"
 
 // Renders a reference filter's label together with its active selection as "label: value, value (direct)".
 // The label (the filter's property path) comes from the default slot so the caller controls its markup
@@ -25,30 +25,35 @@ const props = withDefaults(
   },
 )
 
-const { t } = useI18n({ useScope: "global" })
+const { t, locale } = useI18n({ useScope: "global" })
 
 // The filter's active selection as an ordered token list: To values, then Direct values, then missing.
 const tokens = computed((): RefFilterValueToken[] => refFilterValueTokens(props.refFilter))
 
-function tokenKey(token: RefFilterValueToken): string {
-  return token.kind === "missing" ? "__missing__" : token.id + (token.direct ? "/direct" : "")
-}
+// The token list interleaved with the locale's list separators (via Intl.ListFormat): each entry is either
+// a separator to print or a token to render. The values are OR-ed by the filter, so they are listed as a
+// disjunction (in English "a, b, or c").
+const valueParts = computed((): Array<{ separator: string } | { token: RefFilterValueToken }> =>
+  listFormatParts(locale.value, tokens.value.length, "disjunction").map((part) => (part.type === "literal" ? { separator: part.value } : { token: tokens.value[part.index] })),
+)
 </script>
 
 <template>
   <i18n-t v-if="tokens.length > 0" keypath="common.labelWithValues" scope="global">
     <template #label><slot /></template>
     <template #values>
-      <template v-for="(token, i) in tokens" :key="tokenKey(token)">
-        <template v-if="i > 0">{{ ", " }}</template>
-        <i v-if="token.kind === 'missing'">{{ t("common.values.missing") }}</i>
-        <i18n-t v-else-if="token.direct" keypath="common.valueWithDirect" scope="global">
-          <template #value><DocumentRefInline :id="token.id" :link="link" /></template>
-          <template #direct
-            ><i>{{ t("common.values.direct") }}</i></template
-          >
-        </i18n-t>
-        <DocumentRefInline v-else :id="token.id" :link="link" />
+      <template v-for="(part, i) in valueParts" :key="i">
+        <template v-if="'separator' in part">{{ part.separator }}</template>
+        <template v-else>
+          <i v-if="part.token.kind === 'missing'">{{ t("common.values.missing") }}</i>
+          <i18n-t v-else-if="part.token.direct" keypath="common.valueWithDirect" scope="global">
+            <template #value><DocumentRefInline :id="part.token.id" :link="link" /></template>
+            <template #direct
+              ><i>{{ t("common.values.direct") }}</i></template
+            >
+          </i18n-t>
+          <DocumentRefInline v-else :id="part.token.id" :link="link" />
+        </template>
       </template>
     </template>
   </i18n-t>
