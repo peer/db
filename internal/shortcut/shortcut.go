@@ -49,6 +49,17 @@ const (
 	DirectValue = "direct"
 )
 
+// Search shortcut query parameter keys the search shortcut endpoint reads from the URL query alongside
+// ReverseKey. Unlike the tokens above they are not part of the shortcut string grammar: they carry the
+// session language and full-text query that augment a shortcut, and live here so the search shortcut
+// vocabulary stays in one place.
+const (
+	// LanguageKey is the query parameter key that sets the search session language.
+	LanguageKey = "language"
+	// QueryKey is the query parameter key that sets the search session full-text query.
+	QueryKey = "q"
+)
+
 // Segment is one ":"-separated piece of an entry's key or value. Exactly one of its fields carries the
 // piece: when it is an identifier token (a "," list of base parts hashed via identifier.From, or a
 // 22-character base58 identifier) Path holds the resolved identifier as its single element and Literal is

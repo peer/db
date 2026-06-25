@@ -23,7 +23,7 @@ import { computed, onBeforeUnmount, readonly, ref, watch } from "vue"
 import { stringifyQuery, useRoute, useRouter } from "vue-router"
 
 import { getURL, getURLDirect, postJSON } from "@/api"
-import { RESERVED_DIRECT_PREFIX, RESERVED_MISSING } from "@/shortcut"
+import { RESERVED_DIRECT_PREFIX, RESERVED_LANGUAGE, RESERVED_MISSING, RESERVED_QUERY, RESERVED_REVERSE } from "@/shortcut"
 import { addPrefixWildcard, anySignal, encodeQuery } from "@/utils"
 
 export const FILTERS_INITIAL_LIMIT = 10
@@ -56,7 +56,7 @@ export const searchShortcutControllerKey: InjectionKey<SearchShortcutController>
 export function queryToPrefilterPayloads(query: QueryValues): PrefilterPayload[] {
   const payloads: PrefilterPayload[] = []
   for (const [key, value] of Object.entries(query)) {
-    if (key === "reverse" || key === "language" || key === "q") {
+    if (key === RESERVED_REVERSE || key === RESERVED_LANGUAGE || key === RESERVED_QUERY) {
       continue
     }
     const prop = key.split(":")
@@ -142,8 +142,8 @@ export async function createSearchSession(router: Router, query: string, languag
 export async function createShortcutSession(router: Router, query: LocationQuery, language: string, abortSignal: AbortSignal, progress: Ref<number>): Promise<void> {
   // We add the current UI language to the shortcut query unless it already sets one explicitly.
   const augmentedQuery: LocationQuery = { ...query }
-  if (!("language" in augmentedQuery)) {
-    augmentedQuery.language = language
+  if (!(RESERVED_LANGUAGE in augmentedQuery)) {
+    augmentedQuery[RESERVED_LANGUAGE] = language
   }
   const response = await postJSON<CreateSearchSessionResponse>(
     router.apiResolve({

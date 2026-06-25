@@ -1261,14 +1261,14 @@ func parseShortcutQueryGroups(query url.Values) (map[shortcutPropKey]*shortcutQu
 			reverse = &reverseID
 			continue
 		}
-		if prop == "language" {
+		if prop == shortcut.LanguageKey {
 			if len(values) != 1 {
 				return nil, nil, "", "", errors.New(`"language" query parameter must be set exactly once`)
 			}
 			language = values[0]
 			continue
 		}
-		if prop == "q" {
+		if prop == shortcut.QueryKey {
 			if len(values) != 1 {
 				return nil, nil, "", "", errors.New(`"q" query parameter must be set exactly once`)
 			}

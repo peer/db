@@ -5,12 +5,20 @@ import { Identifier } from "@tozd/identifier"
 import { encodeQuery } from "@/utils"
 
 // Reserved tokens in the search shortcut grammar.
-const RESERVED_REVERSE = "reverse"
+export const RESERVED_REVERSE = "reverse"
 const RESERVED_SELF = "self"
 // RESERVED_MISSING is the value token that selects a property's "missing" bucket.
 export const RESERVED_MISSING = "missing"
 // RESERVED_DIRECT_PREFIX prefixes a value to select its identifier as a "direct" (most-specific) match.
 export const RESERVED_DIRECT_PREFIX = "direct:"
+
+// Search shortcut query parameter keys read from the SearchShortcut route query alongside RESERVED_REVERSE.
+// Unlike the grammar tokens above they are not part of the shortcut string: they carry the session language
+// and full-text query that augment a shortcut.
+// RESERVED_LANGUAGE is the query parameter key that sets the search session language.
+export const RESERVED_LANGUAGE = "language"
+// RESERVED_QUERY is the query parameter key that sets the search session full-text query.
+export const RESERVED_QUERY = "q"
 
 // resolveShortcutID resolves a search shortcut identifier token into its
 // canonical 22-character form. Multi-part tokens (comma-separated) are hashed
