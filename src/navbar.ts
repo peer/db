@@ -10,6 +10,16 @@ prefersReducedMotionQuery.addEventListener("change", (e) => {
   prefersReducedMotion.value = e.matches
 })
 
+// The current value of the navbar search query input, kept in sync by NavBarSearch while it is mounted.
+// Sibling navbar components (the search shortcut buttons) and the SearchGet view read it so that clicking
+// a search shortcut combines the possibly uncommitted query with the shortcut, the same query the search
+// button would submit. There is at most one navbar at a time, so a single shared value is sufficient.
+const navbarSearchQuery = ref("")
+
+export function useNavbarSearchQuery(): Ref<string> {
+  return navbarSearchQuery
+}
+
 // Whether the navbar is in fixed mode (always at viewport top) rather than auto-hide. Reactive so callers
 // can react to config or reduced-motion changes. Shared by useNavbar itself and any consumer that needs to
 // account for a permanently-visible navbar (e.g. computing scroll-to-anchor offsets).

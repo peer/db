@@ -1189,6 +1189,7 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 	filterMap := map[shortcutPropKey][]search.ToValue{}
 	var reverse *identifier.Identifier
 	var language string
+	var fullTextQuery string
 	for prop, values := range query {
 		if prop == "reverse" {
 			if len(values) != 1 {
@@ -1206,6 +1207,13 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 				return nil, errors.New(`"language" query parameter must be set exactly once`)
 			}
 			language = values[0]
+			continue
+		}
+		if prop == "q" {
+			if len(values) != 1 {
+				return nil, errors.New(`"q" query parameter must be set exactly once`)
+			}
+			fullTextQuery = values[0]
 			continue
 		}
 		var key shortcutPropKey
@@ -1241,7 +1249,7 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 
 	searchData := search.SessionData{
 		View:          search.ViewFeed,
-		Query:         "",
+		Query:         fullTextQuery,
 		Language:      language,
 		Filters:       nil,
 		Prefilters:    nil,
@@ -1331,6 +1339,9 @@ func (s *Service) createShortcutSession(w http.ResponseWriter, req *http.Request
 //
 // The "reverse" query parameter is special: its value is a document ID that scopes
 // the session to documents which reference that ID via any property.
+//
+// The "q" query parameter is special: its value sets the session's full-text query, so a shortcut
+// can combine prefilters with a free-text search (for example the query already typed in the navbar).
 func (s *Service) SearchShortcutGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	searchSession := s.createShortcutSession(w, req, req.URL.Query())
 	if searchSession == nil {

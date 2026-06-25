@@ -9,6 +9,7 @@ import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import { useDownload } from "@/download"
+import { useNavbarSearchQuery } from "@/navbar"
 import DownloadOverlay from "@/partials/DownloadOverlay.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
@@ -37,6 +38,10 @@ onBeforeUnmount(() => {
 })
 
 const searchEl = useTemplateRef<HTMLElement>("searchEl")
+
+// The current navbar search input value, so applying a prefilter can commit the possibly uncommitted
+// query, just as clicking the search button does.
+const navbarSearchQuery = useNavbarSearchQuery()
 
 const searchSessionVersion = ref(0)
 
@@ -115,7 +120,10 @@ async function applyPrefilters(payloads: PrefilterPayload[] | null) {
   }
   await onSearchSessionUpdate({
     view: searchSession.value.view,
-    query: searchSession.value.query,
+    // Commit the current navbar query input together with the prefilter change, so clicking a search
+    // shortcut behaves like clicking the search button (using the possibly edited, uncommitted query)
+    // and in addition sets the prefilter.
+    query: navbarSearchQuery.value,
     filters: searchSession.value.filters,
     reverse: searchSession.value.reverse,
     reverseExpand: searchSession.value.reverseExpand,

@@ -13,6 +13,7 @@ import type { QueryValues } from "@/types"
 import { computed, inject } from "vue"
 
 import ButtonLink from "@/components/ButtonLink.vue"
+import { useNavbarSearchQuery } from "@/navbar"
 import { useLocked } from "@/progress"
 import { prefiltersMatch, queryToPrefilterPayloads, searchShortcutControllerKey } from "@/search"
 
@@ -30,6 +31,16 @@ const props = withDefaults(
 // navigates to the SearchShortcut route as a normal link.
 const controller = inject(searchShortcutControllerKey, null)
 const locked = useLocked()
+const navbarSearchQuery = useNavbarSearchQuery()
+
+// The SearchShortcut route the link navigates to (when there is no controller, or for modified clicks).
+// We carry the current navbar query input value along as the reserved "q" parameter so the freshly
+// created session combines the typed query with the shortcut prefilters, just as the search button
+// would submit the query. An empty query is omitted so the link stays clean.
+const to = computed(() => ({
+  name: "SearchShortcut" as const,
+  query: navbarSearchQuery.value ? { ...props.query, q: navbarSearchQuery.value } : props.query,
+}))
 
 const payloads = computed(() => queryToPrefilterPayloads(props.query))
 const active = computed(() => controller != null && prefiltersMatch(controller.prefilters.value, payloads.value))
@@ -58,7 +69,7 @@ function onClickCapture(event: MouseEvent) {
 </script>
 
 <template>
-  <ButtonLink :to="{ name: 'SearchShortcut', query }" :active="active" :disabled="disabled" :primary="primary" @click.capture="onClickCapture">
+  <ButtonLink :to="to" :active="active" :disabled="disabled" :primary="primary" @click.capture="onClickCapture">
     <slot />
   </ButtonLink>
 </template>

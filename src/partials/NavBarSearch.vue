@@ -4,12 +4,13 @@ import type { DeepReadonly } from "vue"
 import type { SearchSession } from "@/types"
 
 import { MagnifyingGlassIcon } from "@heroicons/vue/20/solid"
-import { onBeforeUnmount, ref, watchEffect } from "vue"
+import { onBeforeUnmount, ref, watch, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import Button from "@/components/Button.vue"
 import InputText from "@/components/InputText.vue"
+import { useNavbarSearchQuery } from "@/navbar"
 import { useBusy } from "@/progress"
 import { createSearchSession } from "@/search"
 
@@ -36,6 +37,8 @@ const abortController = new AbortController()
 
 const searchQuery = ref("")
 
+const navbarSearchQuery = useNavbarSearchQuery()
+
 watchEffect(() => {
   if (abortController.signal.aborted) {
     return
@@ -48,6 +51,17 @@ watchEffect(() => {
   // We update the search query in one direction only when search session changes.
   searchQuery.value = props.searchSession.query || ""
 })
+
+// We publish the current (possibly uncommitted) input value so that sibling navbar search shortcut
+// buttons and the SearchGet view can submit it when a shortcut is clicked, the same query the search
+// button submits via onSubmit.
+watch(
+  searchQuery,
+  (query) => {
+    navbarSearchQuery.value = query
+  },
+  { immediate: true, flush: "sync" },
+)
 
 onBeforeUnmount(() => {
   abortController.abort()

@@ -48,12 +48,12 @@ export const searchShortcutControllerKey: InjectionKey<SearchShortcutController>
 
 // queryToPrefilterPayloads maps a search shortcut query (the SearchShortcut route query) to reference
 // prefilter payloads, mirroring the backend parseSearchShortcutQuery: each key is a property (split on
-// ":" for a nested sub-reference), each value is a target id, and the reserved "reverse" and "language"
-// keys are skipped.
+// ":" for a nested sub-reference), each value is a target id, and the reserved "reverse", "language" and
+// "q" (full-text query) keys are skipped.
 export function queryToPrefilterPayloads(query: QueryValues): PrefilterPayload[] {
   const payloads: PrefilterPayload[] = []
   for (const [key, value] of Object.entries(query)) {
-    if (key === "reverse" || key === "language") {
+    if (key === "reverse" || key === "language" || key === "q") {
       continue
     }
     const prop = key.split(":")
