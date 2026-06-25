@@ -1,4 +1,4 @@
-package store //nolint:testpackage
+package store_test
 
 import (
 	"bytes"
@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/tozd/go/errors"
 	z "gitlab.com/tozd/go/zerolog"
+
+	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 // TestJobLoggingMiddleware verifies that the per-job context logger buffers the job's debug logs and
@@ -51,7 +53,7 @@ func TestJobLoggingMiddleware(t *testing.T) {
 			t.Parallel()
 
 			var buf bytes.Buffer
-			m := &jobLoggingMiddleware{MiddlewareDefaults: river.MiddlewareDefaults{}, WithContext: newWithContext(&buf)}
+			m := &internalStore.JobLoggingMiddleware{MiddlewareDefaults: river.MiddlewareDefaults{}, WithContext: newWithContext(&buf)}
 			doInner := func(ctx context.Context) error {
 				zerolog.Ctx(ctx).Debug().Msg("buffered-debug")
 				if tc.panics {

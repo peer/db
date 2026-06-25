@@ -1,9 +1,11 @@
-package auth
+package auth_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"gitlab.com/peerdb/peerdb/auth"
 )
 
 // TestSafeRedirectPath covers the same-site path validation used by
@@ -36,7 +38,7 @@ func TestSafeRedirectPath(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tt.want, safeRedirectPath(tt.in))
+			assert.Equal(t, tt.want, auth.TestingSafeRedirectPath(tt.in))
 		})
 	}
 }

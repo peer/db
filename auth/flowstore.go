@@ -29,13 +29,13 @@ const flowTTL = 24 * time.Hour
 // flowState is the per-flow data we need to remember between the authorize
 // redirect (sent to the issuer) and the callback (issued back to us).
 type flowState struct {
-	// codeVerifier is the PKCE verifier matching the challenge sent to the issuer.
-	codeVerifier string
-	nonce        string
-	// redirect is where the caller asked to land after a successful sign-in,
+	// CodeVerifier is the PKCE verifier matching the challenge sent to the issuer.
+	CodeVerifier string
+	Nonce        string
+	// Redirect is where the caller asked to land after a successful sign-in,
 	// validated to be a same-site path by safeRedirectPath before being
 	// stored.
-	redirect string
+	Redirect string
 }
 
 // flowStore persists the authentication flow state in the per-site PostgreSQL
@@ -93,7 +93,7 @@ func (s *flowStore) BeginFlow(ctx context.Context, state string, fs flowState) e
 		_, err := tx.Exec(ctx, `
 			INSERT INTO "AuthFlows" ("state", "codeVerifier", "nonce", "redirect", "expiresAt")
 			VALUES ($1, $2, $3, $4, now() + make_interval(secs => $5))
-		`, state, fs.codeVerifier, fs.nonce, fs.redirect, flowTTL.Seconds())
+		`, state, fs.CodeVerifier, fs.Nonce, fs.Redirect, flowTTL.Seconds())
 		return internalStore.WithPgxError(err)
 	})
 }
@@ -109,7 +109,7 @@ func (s *flowStore) ConsumeFlow(ctx context.Context, state string) (flowState, e
 			WHERE "state" = $1 AND "expiresAt" > now()
 			RETURNING "codeVerifier", "nonce", "redirect"
 		`, state)
-		err := row.Scan(&fs.codeVerifier, &fs.nonce, &fs.redirect)
+		err := row.Scan(&fs.CodeVerifier, &fs.Nonce, &fs.Redirect)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errors.WithStack(errFlowNotFound)
 		}

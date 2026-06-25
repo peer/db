@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"gitlab.com/peerdb/peerdb/internal/core"
+	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 )
 
 // TestParseCardinalityTag covers the full cardinality-tag grammar:
@@ -32,7 +32,7 @@ func TestParseCardinalityTag(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			minC, maxC, errE := core.ParseCardinalityTag(tc.tag)
+			minC, maxC, errE := internalCore.ParseCardinalityTag(tc.tag)
 			require.NoError(t, errE, "% -+#.1v", errE)
 			assert.Equal(t, tc.wantMin, minC)
 			assert.Equal(t, tc.wantMax, maxC)
@@ -63,7 +63,7 @@ func TestParseCardinalityTag_Invalid(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			_, _, errE := core.ParseCardinalityTag(tc.tag)
+			_, _, errE := internalCore.ParseCardinalityTag(tc.tag)
 			assert.Error(t, errE, "expected error for %q", tc.tag)
 		})
 	}

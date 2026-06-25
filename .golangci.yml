@@ -92,6 +92,8 @@ linters:
     testifylint:
       require-error:
         fn-pattern: ^(NoError|NotErrorIs)$
+    testpackage:
+      skip-regexp: internal_test\.go$
   exclusions:
     generated: strict
     warn-unused: true

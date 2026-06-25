@@ -22,9 +22,7 @@ var (
 	TestingValidateDiagramTypes     = validateDiagramTypes
 )
 
-// TestingWalkSubFields invokes walkSubFields and returns its emitted rows and
-// relations as deterministic strings so external tests don't need to touch
-// the unexported diagramFieldRow/diagramRelation types.
+// Returns emitted rows and relations as deterministic strings so external tests do not touch the unexported diagramFieldRow/diagramRelation types.
 func TestingWalkSubFields(
 	entityName, parentMnemonic string,
 	t reflect.Type,

@@ -115,14 +115,14 @@ func missingBranch(cols []SortKey, idx int, withinSort []types.SortCombinationsV
 	return missing
 }
 
-// bucketEntry is one leaf-value bucket of a group level: ids is the value's hierarchy id path (root to
-// leaf), labels the matching display labels, count the number of documents at this value, and direct the
+// bucketEntry is one leaf-value bucket of a group level: IDs is the value's hierarchy id path (root to
+// leaf), Labels the matching display labels, Count the number of documents at this value, and Direct the
 // already-folded content attached at this value (the next column's groups, or the documents).
 type bucketEntry struct {
-	ids    []string
-	labels []string
-	count  int64
-	direct []Result
+	IDs    []string
+	Labels []string
+	Count  int64
+	Direct []Result
 }
 
 // leadingGroupKeys returns the leading contiguous run of group=true sort keys, which define the group
@@ -253,10 +253,10 @@ func parsePresent(docAggs map[string]types.Aggregate, cols []SortKey, idx int) (
 		}
 
 		entries = append(entries, bucketEntry{
-			ids:    ids,
-			labels: labels,
-			count:  back.DocCount,
-			direct: direct,
+			IDs:    ids,
+			Labels: labels,
+			Count:  back.DocCount,
+			Direct: direct,
 		})
 	}
 	return entries, nil
@@ -299,21 +299,21 @@ func foldLevel(entries []bucketEntry, desc bool) []Result {
 	root := newGroupNode("")
 	for _, e := range entries {
 		node := root
-		for i, id := range e.ids {
+		for i, id := range e.IDs {
 			child, ok := node.children[id]
 			if !ok {
 				child = newGroupNode(id)
 				node.children[id] = child
 				node.order = append(node.order, id)
 			}
-			if child.label == "" && i < len(e.labels) {
-				child.label = e.labels[i]
+			if child.label == "" && i < len(e.Labels) {
+				child.label = e.Labels[i]
 			}
 			node = child
 		}
-		count := e.count
+		count := e.Count
 		node.count = &count
-		node.direct = append(node.direct, e.direct...)
+		node.direct = append(node.direct, e.Direct...)
 	}
 	return root.results(desc)
 }

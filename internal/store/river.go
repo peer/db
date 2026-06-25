@@ -141,17 +141,17 @@ func (r riverErrorHandler) HandlePanic(ctx context.Context, job *rivertype.JobRo
 	return nil
 }
 
-// jobLoggingMiddleware wraps each job's work in a per-job context logger so that the job's debug logs
+// JobLoggingMiddleware wraps each job's work in a per-job context logger so that the job's debug logs
 // are buffered and only flushed when the job fails or panics, the same way requests are logged. It is
 // a no-op when WithContext is nil.
-type jobLoggingMiddleware struct {
+type JobLoggingMiddleware struct {
 	river.MiddlewareDefaults
 
 	WithContext z.WithContextFunc
 }
 
 // Work implements rivertype.WorkerMiddleware.
-func (m *jobLoggingMiddleware) Work(ctx context.Context, _ *rivertype.JobRow, doInner func(context.Context) error) error {
+func (m *JobLoggingMiddleware) Work(ctx context.Context, _ *rivertype.JobRow, doInner func(context.Context) error) error {
 	if m.WithContext == nil {
 		return doInner(ctx)
 	}
@@ -405,7 +405,7 @@ func NewRiver(
 	riverClient, err := river.NewClient(driver, &river.Config{ //nolint:exhaustruct
 		Workers: workers,
 		Middleware: []rivertype.Middleware{
-			&jobLoggingMiddleware{MiddlewareDefaults: river.MiddlewareDefaults{}, WithContext: withContext},
+			&JobLoggingMiddleware{MiddlewareDefaults: river.MiddlewareDefaults{}, WithContext: withContext},
 		},
 		// Every job kind runs in its own queue (named after the kind), added by RiverAddWorker or
 		// RiverDispatcher when the kind's worker is registered, so a client only ever fetches jobs of

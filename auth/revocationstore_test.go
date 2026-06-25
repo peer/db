@@ -1,4 +1,4 @@
-package auth
+package auth_test
 
 import (
 	"context"
@@ -11,17 +11,18 @@ import (
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
+	"gitlab.com/peerdb/peerdb/auth"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
 // newTestRevocationStore returns a fully initialised revocationStore
 // scoped to a fresh per-test schema, plus the ctx the caller should
 // thread into Revoke / IsRevoked.
-func newTestRevocationStore(t *testing.T) (context.Context, *revocationStore) {
+func newTestRevocationStore(t *testing.T) (context.Context, *auth.TestingRevocationStore) {
 	t.Helper()
 
-	ctx, dbpool := TestingInitPool(t)
-	rs := newRevocationStore(dbpool)
+	ctx, dbpool := auth.TestingInitPool(t)
+	rs := auth.TestingNewRevocationStore(dbpool)
 	errE := rs.Init(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	return ctx, rs
@@ -84,7 +85,7 @@ func TestRevocationStoreNotRevokedCacheRefreshesAfterTTL(t *testing.T) {
 	exp := time.Now().Add(time.Hour)
 
 	clock := time.Now()
-	rs.now = func() time.Time { return clock }
+	rs.TestingSetNow(func() time.Time { return clock })
 
 	// Cold lookup: not revoked, cached as "not revoked" for an hour.
 	revoked, errE := rs.IsRevoked(ctx, token, exp)
@@ -94,8 +95,8 @@ func TestRevocationStoreNotRevokedCacheRefreshesAfterTTL(t *testing.T) {
 	// Out-of-band write directly into the table, bypassing the store
 	// (so the store's cache does not learn about it). This simulates
 	// a revocation written by another process.
-	errE = internalStore.RetryTransaction(ctx, rs.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `INSERT INTO "RevokedTokens" ("tokenHash", "expiresAt") VALUES ($1, $2)`, hashToken(token), exp)
+	errE = internalStore.RetryTransaction(ctx, rs.TestingDBPool(), pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		_, err := tx.Exec(ctx, `INSERT INTO "RevokedTokens" ("tokenHash", "expiresAt") VALUES ($1, $2)`, auth.TestingHashToken(token), exp)
 		return internalStore.WithPgxError(err)
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -107,7 +108,7 @@ func TestRevocationStoreNotRevokedCacheRefreshesAfterTTL(t *testing.T) {
 
 	// Step past notRevokedCacheTTL: the cache entry is stale, IsRevoked
 	// re-queries the database and sees the revocation.
-	clock = clock.Add(notRevokedCacheTTL + time.Second)
+	clock = clock.Add(auth.TestingNotRevokedCacheTTL + time.Second)
 	revoked, errE = rs.IsRevoked(ctx, token, exp)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.True(t, revoked, "after cache TTL the DB-side revocation must surface")
@@ -139,7 +140,7 @@ func TestRevocationStoreRevokePrimesCache(t *testing.T) {
 	// would make any SQL fail. We Close after IsRevoked so the
 	// deferred t.Cleanup pool-close still works (it's a no-op the
 	// second time).
-	rs.dbpool.Close()
+	rs.TestingDBPool().Close()
 
 	revoked, errE = rs.IsRevoked(ctx, token, exp)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -164,23 +165,23 @@ func TestRevocationStoreCleanupExpired(t *testing.T) {
 	require.NoError(t, rs.Revoke(ctx, freshToken, exp), "% -+#.1v")
 
 	// Age the first row out of its window.
-	errE := internalStore.RetryTransaction(ctx, rs.dbpool, pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
-		_, err := tx.Exec(ctx, `UPDATE "RevokedTokens" SET "expiresAt" = now() - interval '1 second' WHERE "tokenHash" = $1`, hashToken(expiredToken))
+	errE := internalStore.RetryTransaction(ctx, rs.TestingDBPool(), pgx.ReadWrite, func(ctx context.Context, tx pgx.Tx) errors.E {
+		_, err := tx.Exec(ctx, `UPDATE "RevokedTokens" SET "expiresAt" = now() - interval '1 second' WHERE "tokenHash" = $1`, auth.TestingHashToken(expiredToken))
 		return internalStore.WithPgxError(err)
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	errE = rs.cleanupExpired(ctx)
+	errE = rs.TestingCleanupExpired(ctx)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Verify directly via SQL: the aged row is gone, the fresh row stays.
 	var expiredCount, freshCount int
-	errE = internalStore.RetryTransaction(ctx, rs.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
-		err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM "RevokedTokens" WHERE "tokenHash" = $1`, hashToken(expiredToken)).Scan(&expiredCount)
+	errE = internalStore.RetryTransaction(ctx, rs.TestingDBPool(), pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
+		err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM "RevokedTokens" WHERE "tokenHash" = $1`, auth.TestingHashToken(expiredToken)).Scan(&expiredCount)
 		if err != nil {
 			return internalStore.WithPgxError(err)
 		}
-		err = tx.QueryRow(ctx, `SELECT COUNT(*) FROM "RevokedTokens" WHERE "tokenHash" = $1`, hashToken(freshToken)).Scan(&freshCount)
+		err = tx.QueryRow(ctx, `SELECT COUNT(*) FROM "RevokedTokens" WHERE "tokenHash" = $1`, auth.TestingHashToken(freshToken)).Scan(&freshCount)
 		return internalStore.WithPgxError(err)
 	})
 	require.NoError(t, errE, "% -+#.1v", errE)

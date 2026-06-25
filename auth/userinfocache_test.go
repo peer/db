@@ -1,4 +1,4 @@
-package auth
+package auth_test
 
 import (
 	"encoding/json"
@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/peerdb/peerdb/auth"
 )
 
 // TestUserInfoCacheSetThenGet covers the primed-cache path: a value
@@ -18,8 +20,8 @@ import (
 func TestUserInfoCacheSetThenGet(t *testing.T) {
 	t.Parallel()
 
-	c := newUserInfoCache("", nil)
-	c.set("user-1", userInfo{Subject: "user-1", Username: "alice"})
+	c := auth.TestingNewUserInfoCache("", nil)
+	c.TestingSet("user-1", auth.TestingUserInfo{Subject: "user-1", Username: "alice"})
 
 	info, errE := c.Get(t.Context(), "user-1", "any-token")
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -34,7 +36,7 @@ func TestUserInfoCacheSetThenGet(t *testing.T) {
 func TestUserInfoCacheMissNoEndpoint(t *testing.T) {
 	t.Parallel()
 
-	c := newUserInfoCache("", nil)
+	c := auth.TestingNewUserInfoCache("", nil)
 	_, errE := c.Get(t.Context(), "user-1", "any-token")
 	require.Error(t, errE, "missing endpoint must surface an error so the caller can fall back to subject-only")
 }
@@ -58,7 +60,7 @@ func TestUserInfoCacheFetchesThenCaches(t *testing.T) {
 	}))
 	t.Cleanup(ts.Close)
 
-	c := newUserInfoCache(ts.URL, cleanhttp.DefaultPooledClient())
+	c := auth.TestingNewUserInfoCache(ts.URL, cleanhttp.DefaultPooledClient())
 
 	info, errE := c.Get(t.Context(), "user-1", "my-token")
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -87,7 +89,7 @@ func TestUserInfoCacheFetchFailureNotCached(t *testing.T) {
 	}))
 	t.Cleanup(ts.Close)
 
-	c := newUserInfoCache(ts.URL, cleanhttp.DefaultPooledClient())
+	c := auth.TestingNewUserInfoCache(ts.URL, cleanhttp.DefaultPooledClient())
 
 	_, errE := c.Get(t.Context(), "user-1", "my-token")
 	require.Error(t, errE)
@@ -111,7 +113,7 @@ func TestUserInfoCacheFallsBackToSubject(t *testing.T) {
 	}))
 	t.Cleanup(ts.Close)
 
-	c := newUserInfoCache(ts.URL, cleanhttp.DefaultPooledClient())
+	c := auth.TestingNewUserInfoCache(ts.URL, cleanhttp.DefaultPooledClient())
 
 	info, errE := c.Get(t.Context(), "user-1", "tok")
 	require.NoError(t, errE, "% -+#.1v", errE)

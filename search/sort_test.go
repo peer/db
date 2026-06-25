@@ -1,22 +1,24 @@
-package search
+package search_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"gitlab.com/peerdb/peerdb/search"
 )
 
 func TestValidateSort(t *testing.T) {
 	t.Parallel()
 
-	refKey := func() SortKey {
-		return SortKey{Type: "ref", Prop: []string{"prop"}} //nolint:exhaustruct
+	refKey := func() search.SortKey {
+		return search.SortKey{Type: "ref", Prop: []string{"prop"}} //nolint:exhaustruct
 	}
 
 	tests := []struct {
 		name    string
-		sort    []SortKey
+		sort    []search.SortKey
 		wantErr bool
 	}{
 		{
@@ -26,20 +28,20 @@ func TestValidateSort(t *testing.T) {
 		},
 		{ //nolint:exhaustruct
 			name: "grouped ref",
-			sort: []SortKey{{Type: "ref", Prop: []string{"prop"}, Group: true}}, //nolint:exhaustruct
+			sort: []search.SortKey{{Type: "ref", Prop: []string{"prop"}, Group: true}}, //nolint:exhaustruct
 		},
 		{ //nolint:exhaustruct
 			name: "grouped and expanded ref",
-			sort: []SortKey{{Type: "ref", Prop: []string{"prop"}, Group: true, Expand: true}}, //nolint:exhaustruct
+			sort: []search.SortKey{{Type: "ref", Prop: []string{"prop"}, Group: true, Expand: true}}, //nolint:exhaustruct
 		},
 		{
 			name:    "expand without group",
-			sort:    []SortKey{{Type: "ref", Prop: []string{"prop"}, Expand: true}}, //nolint:exhaustruct
+			sort:    []search.SortKey{{Type: "ref", Prop: []string{"prop"}, Expand: true}}, //nolint:exhaustruct
 			wantErr: true,
 		},
 		{
 			name: "second level expanded only",
-			sort: []SortKey{
+			sort: []search.SortKey{
 				refKey(),
 				{Type: "ref", Prop: []string{"prop2"}, Group: true, Expand: true}, //nolint:exhaustruct
 			},
@@ -48,7 +50,7 @@ func TestValidateSort(t *testing.T) {
 		},
 		{ //nolint:exhaustruct
 			name: "both grouped, second expanded",
-			sort: []SortKey{
+			sort: []search.SortKey{
 				{Type: "ref", Prop: []string{"prop"}, Group: true},                //nolint:exhaustruct
 				{Type: "ref", Prop: []string{"prop2"}, Group: true, Expand: true}, //nolint:exhaustruct
 			},
@@ -59,7 +61,7 @@ func TestValidateSort(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			errE := validateSort(tt.sort)
+			errE := search.TestingValidateSort(tt.sort)
 			if tt.wantErr {
 				assert.Error(t, errE)
 			} else {

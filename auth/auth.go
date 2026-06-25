@@ -308,9 +308,9 @@ func signInFlow(
 	nonce := identifier.New().String()
 
 	errE := fs.BeginFlow(ctx, state, flowState{
-		codeVerifier: codeVerifier,
-		nonce:        nonce,
-		redirect:     redirect,
+		CodeVerifier: codeVerifier,
+		Nonce:        nonce,
+		Redirect:     redirect,
 	})
 	if errE != nil {
 		return "", errE
@@ -369,14 +369,14 @@ func callbackFlow(
 		return "", time.Time{}, "", errE
 	}
 
-	token, expiry, errE := exchangeCode(ctx, code, flow.codeVerifier, flow.nonce)
+	token, expiry, errE := exchangeCode(ctx, code, flow.CodeVerifier, flow.Nonce)
 	if errE != nil {
 		// Token exchange / JWT validation failures are caller-induced
 		// (bad code, signature mismatch, nonce mismatch, ...).
 		return "", time.Time{}, "", errors.WrapWith(errE, ErrSignInFailed)
 	}
 
-	return token, expiry, flow.redirect, nil
+	return token, expiry, flow.Redirect, nil
 }
 
 // signOutFlow is the shared body of OIDCAuthenticator.SignOut and

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -17,9 +18,27 @@ import (
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
 
-var TestingResolveAccessToken = resolveAccessToken //nolint:gochecknoglobals
+//nolint:gochecknoglobals
+var (
+	TestingResolveAccessToken = resolveAccessToken
+	VisibilityForRoles        = visibilityForRoles
+	TestingSafeRedirectPath   = safeRedirectPath
+	TestingHashToken          = hashToken
+	TestingErrFlowNotFound    = errFlowNotFound //nolint:errname
+)
 
-const TestingAccessTokenCookieName = accessTokenCookieName
+const (
+	TestingAccessTokenCookieName = accessTokenCookieName
+	TestingNotRevokedCacheTTL    = notRevokedCacheTTL
+)
+
+type (
+	TestingFlowStore       = flowStore
+	TestingFlowState       = flowState
+	TestingRevocationStore = revocationStore
+	TestingUserInfoCache   = userInfoCache
+	TestingUserInfo        = userInfo
+)
 
 func (a *MockAuthenticator) TestingAuthCodeURL(state, codeVerifier, nonce string) string {
 	return a.authCodeURL(state, codeVerifier, nonce)
@@ -29,8 +48,6 @@ func (a *MockAuthenticator) TestingExchangeCode(ctx context.Context, code, codeV
 	return a.exchangeCode(ctx, code, codeVerifier, expectedNonce)
 }
 
-// TestingInitPool returns a per-test PostgreSQL pool scoped to a fresh schema.
-//
 //nolint:paralleltest
 func TestingInitPool(t *testing.T) (context.Context, *pgxpool.Pool) {
 	t.Helper()
@@ -61,4 +78,40 @@ func TestingInitPool(t *testing.T) (context.Context, *pgxpool.Pool) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	return ctx, dbpool
+}
+
+func TestingNewFlowStore(dbpool *pgxpool.Pool) *flowStore {
+	return newFlowStore(dbpool)
+}
+
+func TestingNewRevocationStore(dbpool *pgxpool.Pool) *revocationStore {
+	return newRevocationStore(dbpool)
+}
+
+func TestingNewUserInfoCache(endpoint string, client *http.Client) *userInfoCache {
+	return newUserInfoCache(endpoint, client)
+}
+
+func (s *flowStore) TestingDBPool() *pgxpool.Pool {
+	return s.dbpool
+}
+
+func (s *flowStore) TestingCleanupExpired(ctx context.Context) errors.E {
+	return s.cleanupExpired(ctx)
+}
+
+func (s *revocationStore) TestingDBPool() *pgxpool.Pool {
+	return s.dbpool
+}
+
+func (s *revocationStore) TestingSetNow(now func() time.Time) {
+	s.now = now
+}
+
+func (s *revocationStore) TestingCleanupExpired(ctx context.Context) errors.E {
+	return s.cleanupExpired(ctx)
+}
+
+func (c *userInfoCache) TestingSet(subject string, info userInfo) {
+	c.set(subject, info)
 }
