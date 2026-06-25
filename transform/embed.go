@@ -7,7 +7,7 @@ import (
 	"gitlab.com/tozd/go/errors"
 
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
-	internalShortcut "gitlab.com/peerdb/peerdb/internal/shortcut"
+	"gitlab.com/peerdb/peerdb/internal/shortcut"
 )
 
 // validateEmbedEntry verifies that entry is a well-formed embed entry "destination=source".
@@ -20,7 +20,7 @@ import (
 // 22-character base58 identifier, the same form a search shortcut uses. The destination does not
 // support a path, embedding always lands directly under a single property.
 func validateEmbedEntry(entry string) errors.E {
-	parsed, errE := internalShortcut.ParseEntry(entry)
+	parsed, errE := shortcut.ParseEntry(entry)
 	if errE != nil {
 		return errE
 	}
@@ -55,7 +55,7 @@ func validateEmbed(s string) errors.E {
 	if s == "" {
 		return errors.New("embed must not be empty")
 	}
-	for entry := range strings.SplitSeq(s, internalShortcut.EntrySeparator) {
+	for entry := range strings.SplitSeq(s, shortcut.EntrySeparator) {
 		errE := validateEmbedEntry(entry)
 		if errE != nil {
 			return errE
@@ -86,5 +86,5 @@ func parseEmbedTag(field reflect.StructField) ([]string, errors.E) {
 		return nil, errE
 	}
 
-	return strings.Split(tag, internalShortcut.EntrySeparator), nil
+	return strings.Split(tag, shortcut.EntrySeparator), nil
 }

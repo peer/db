@@ -23,7 +23,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/document"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
-	internalShortcut "gitlab.com/peerdb/peerdb/internal/shortcut"
+	"gitlab.com/peerdb/peerdb/internal/shortcut"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/search"
 	"gitlab.com/peerdb/peerdb/store"
@@ -1184,7 +1184,7 @@ type shortcutPropKey struct {
 // shortcutDirectQueryPrefix prefixes a query parameter value to select its identifier as a "direct"
 // (most-specific) match instead of a plain target. It mirrors the "direct:<identifier>" form of the
 // shortcut string grammar.
-const shortcutDirectQueryPrefix = internalShortcut.DirectValue + internalShortcut.PathSeparator
+const shortcutDirectQueryPrefix = shortcut.DirectValue + shortcut.PathSeparator
 
 // shortcutQueryGroup accumulates the selections parsed for one filter group from search shortcut query
 // parameters: plain target values (To), "direct" most-specific target values, and whether the "missing"
@@ -1199,7 +1199,7 @@ type shortcutQueryGroup struct {
 // a "direct:<identifier>" value adds a most-specific target, and any other value is a plain target. The
 // identifier (for the plain and direct forms) must be valid.
 func (g *shortcutQueryGroup) add(value string) errors.E {
-	if value == internalShortcut.MissingValue {
+	if value == shortcut.MissingValue {
 		g.Missing = true
 		return nil
 	}
@@ -1250,7 +1250,7 @@ func parseShortcutQueryGroups(query url.Values) (map[shortcutPropKey]*shortcutQu
 	var language string
 	var fullTextQuery string
 	for prop, values := range query {
-		if prop == internalShortcut.ReverseKey {
+		if prop == shortcut.ReverseKey {
 			if len(values) != 1 {
 				return nil, nil, "", "", errors.New(`"reverse" query parameter must be set exactly once`)
 			}

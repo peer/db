@@ -26,7 +26,7 @@ import (
 	"gitlab.com/peerdb/peerdb/document"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
 	internalDocument "gitlab.com/peerdb/peerdb/internal/document"
-	internalShortcut "gitlab.com/peerdb/peerdb/internal/shortcut"
+	"gitlab.com/peerdb/peerdb/internal/shortcut"
 	"gitlab.com/peerdb/peerdb/store"
 )
 
@@ -2550,7 +2550,7 @@ type embedSpec struct {
 // is a single property and the source is a ":"-separated path of properties navigating within the
 // referenced document. Both sides must resolve to identifiers (literals are not valid in embed entries).
 func parseEmbedEntry(entry string) (embedSpec, errors.E) {
-	parsed, errE := internalShortcut.ParseEntry(entry)
+	parsed, errE := shortcut.ParseEntry(entry)
 	if errE != nil {
 		return embedSpec{}, errE
 	}

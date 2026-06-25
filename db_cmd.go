@@ -21,7 +21,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/document"
 	"gitlab.com/peerdb/peerdb/indexer"
-	internalExport "gitlab.com/peerdb/peerdb/internal/export"
+	"gitlab.com/peerdb/peerdb/internal/export"
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 )
@@ -441,7 +441,7 @@ func (c *DBExportCommand) Run(globals *Globals) (returnErr errors.E) { //nolint:
 			return doc, errE
 		}
 
-		errE = internalExport.Export(siteCtx, w, site.ESClient, site.TopIndex(), getDoc, internalExport.Config{
+		errE = export.Export(siteCtx, w, site.ESClient, site.TopIndex(), getDoc, export.Config{
 			Format:     c.Format,
 			InstanceOf: c.InstanceOf,
 			Properties: c.Property,
@@ -475,7 +475,7 @@ func (c *DBDiagramCommand) Run(globals *Globals) (returnErr errors.E) { //nolint
 		w = f
 	}
 
-	return internalExport.Diagram(globals.Logger, w, c.SkipCore)
+	return export.Diagram(globals.Logger, w, c.SkipCore)
 }
 
 // Run executes the db wipe command which drops PostgreSQL schemas
