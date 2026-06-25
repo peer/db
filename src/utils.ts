@@ -286,10 +286,6 @@ export function listFormatParts(locale: string, count: number, type: "conjunctio
 // Exact-year math is unnecessary here. We only need the right order of magnitude.
 const SECONDS_PER_YEAR = 60 * 60 * 24 * 365
 
-export function formatValue(amount: number): string {
-  return parseFloat(amount.toFixed(5)).toString()
-}
-
 export function clone<T>(input: T): Mutable<T> {
   // We are using lodash cloneDeep which supports symbols.
   return cloneDeep(toRaw(input))
@@ -425,6 +421,64 @@ export function timeRangeDisplay(from: number, to: number): { precision: TimePre
     precision,
     from: timeStringFromFloat64(f, precision),
     to: timeStringFromFloat64(t, precision),
+  }
+}
+
+// amountValueDecimals returns how many fractional digits a single amount value carries, mirroring NewAmountDetectPrecision
+// in document/amount.go (which counts the decimals of the value's string form). Amounts are sent at full float64 precision,
+// so we read the digits from the value's shortest decimal representation, expanding the exponent notation that very small
+// values use so those digits are still counted.
+export function amountValueDecimals(value: number): number {
+  if (!isFinite(value) || Number.isInteger(value)) {
+    return 0
+  }
+  const s = Math.abs(value).toString()
+  const e = s.indexOf("e")
+  if (e < 0) {
+    return s.length - s.indexOf(".") - 1
+  }
+  // Exponential form like "1.23e-7": the fractional digits are the mantissa's decimals plus the negative exponent.
+  const mantissa = s.slice(0, e)
+  const exponent = parseInt(s.slice(e + 1), 10)
+  const dot = mantissa.indexOf(".")
+  const mantissaDecimals = dot < 0 ? 0 : mantissa.length - dot - 1
+  return Math.max(0, mantissaDecimals - exponent)
+}
+
+// amountStringFromFloat64 renders an amount value rounded to the given number of fractional digits, trimming trailing
+// zeros. The digit count is clamped to toFixed's supported range.
+export function amountStringFromFloat64(value: number, decimals: number): string {
+  return parseFloat(value.toFixed(Math.min(Math.max(decimals, 0), 100))).toString()
+}
+
+// Frontend-only display heuristic: the histogram the slider is built from has histogramBins (100) buckets in
+// search/filter.go, so showing two orders of magnitude (log10(100)) finer than the span gives roughly one displayed
+// digit per bucket. The backend itself sends amounts at full precision.
+const amountRangeBucketDigits = 2
+
+// amountRangeDecimals picks how many fractional digits to show for both edges of a numeric range: the number needed to
+// resolve one histogram bucket. The backend's bucket width is span/histogramBins (computeInterval in
+// search/amount_filter.go), so this is amountRangeBucketDigits - floor(log10(span)) = -floor(log10(span/100)). Turning
+// that into a display digit count is frontend-only (the backend emits amounts at full precision), the amount analog of
+// timePrecisionForRange. The lower clamp of 12 matches amountStepDown's smallest step (1e-12) in search/step_down.go.
+export function amountRangeDecimals(from: number, to: number): number {
+  const span = Math.abs(to - from)
+  if (!(span > 0) || !isFinite(span)) {
+    // A zero-width or non-finite span carries no precision of its own, so fall back to the value's own precision.
+    return amountValueDecimals(from)
+  }
+  return Math.min(Math.max(amountRangeBucketDigits - Math.floor(Math.log10(span)), 0), 12)
+}
+
+// amountRangeDisplay rounds both edges of a numeric range to a decimal precision derived from the span between them
+// (see amountRangeDecimals), trimming trailing zeros so the labels stay readable instead of showing full float64 noise.
+// The shared precision is returned too so callers (e.g. slider tooltips) can render other values to match.
+export function amountRangeDisplay(from: number, to: number): { decimals: number; from: string; to: string } {
+  const decimals = amountRangeDecimals(from, to)
+  return {
+    decimals,
+    from: amountStringFromFloat64(from, decimals),
+    to: amountStringFromFloat64(to, decimals),
   }
 }
 

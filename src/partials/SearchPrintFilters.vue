@@ -4,6 +4,7 @@ import type { DeepReadonly } from "vue"
 
 import { useI18n } from "vue-i18n"
 
+import AmountRange from "@/partials/AmountRange.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import FilterPropLabel from "@/partials/FilterPropLabel.vue"
 import RefFilterValues from "@/partials/RefFilterValues.vue"
@@ -44,7 +45,7 @@ function hasValueParts(values: readonly { id: string }[]): Array<{ separator: st
           <template #values>
             <i v-if="filter.amount.missing">{{ t("common.values.missing") }}</i>
             <i v-else-if="filter.amount.exists">{{ t("common.values.exists") }}</i>
-            <template v-else-if="filter.amount.gte != null">{{ filter.amount.gte }} – {{ filter.amount.lte }}</template>
+            <AmountRange v-else-if="filter.amount.gte != null" :from="filter.amount.gte" :to="filter.amount.lte" />
           </template>
         </i18n-t>
         <i18n-t v-else-if="'time' in filter" keypath="common.labelWithValues" scope="global">

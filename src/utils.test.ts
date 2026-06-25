@@ -3,7 +3,19 @@ import type { RefValueLike } from "@/utils"
 import { assert, describe, expect, test } from "vitest"
 
 import { timeFloat64, validateTime } from "@/document/time"
-import { addPrefixWildcard, computeRefCheckStates, parseUrl, timePrecisionForRange, timePrecisionForValue, timeStringFromFloat64, toggleRefSelection } from "@/utils"
+import {
+  addPrefixWildcard,
+  amountRangeDecimals,
+  amountRangeDisplay,
+  amountStringFromFloat64,
+  amountValueDecimals,
+  computeRefCheckStates,
+  parseUrl,
+  timePrecisionForRange,
+  timePrecisionForValue,
+  timeStringFromFloat64,
+  toggleRefSelection,
+} from "@/utils"
 
 // Unix seconds for 2025-03-02 10:30:45 UTC.
 const SAMPLE_SECONDS = Date.UTC(2025, 2, 2, 10, 30, 45) / 1000
@@ -202,6 +214,70 @@ describe("timePrecisionForValue", () => {
     assert.equal(timePrecisionForValue(60 + 1e-9), "min")
     // Likewise on the negative side.
     assert.equal(timePrecisionForValue(60 - 1e-9), "min")
+  })
+})
+
+describe("amountRangeDecimals", () => {
+  test("shows more digits for narrower spans", () => {
+    assert.equal(amountRangeDecimals(0, 1_000_000), 0)
+    assert.equal(amountRangeDecimals(0, 100), 0)
+    assert.equal(amountRangeDecimals(3.14159, 9.87654), 2)
+    assert.equal(amountRangeDecimals(1234.5678, 1234.9999), 3)
+    assert.equal(amountRangeDecimals(0, 0.001), 5)
+  })
+
+  test("ignores argument order", () => {
+    assert.equal(amountRangeDecimals(9.87654, 3.14159), 2)
+  })
+
+  test("clamps to [0, 12]", () => {
+    assert.equal(amountRangeDecimals(0, 1e20), 0)
+    assert.equal(amountRangeDecimals(0, 1e-20), 12)
+  })
+
+  test("falls back to the value's own precision for a zero-width or non-finite span", () => {
+    assert.equal(amountRangeDecimals(5, 5), 0)
+    assert.equal(amountRangeDecimals(3.5, 3.5), 1)
+    assert.equal(amountRangeDecimals(0, Infinity), 0)
+  })
+})
+
+describe("amountValueDecimals", () => {
+  test("counts the fractional digits of the value", () => {
+    assert.equal(amountValueDecimals(42), 0)
+    assert.equal(amountValueDecimals(-42), 0)
+    assert.equal(amountValueDecimals(3.1), 1)
+    assert.equal(amountValueDecimals(3.14), 2)
+    assert.equal(amountValueDecimals(3.142), 3)
+    assert.equal(amountValueDecimals(-1.5), 1)
+  })
+
+  test("expands exponent notation used by very small values", () => {
+    assert.equal(amountValueDecimals(1e-7), 7)
+    assert.equal(amountValueDecimals(1.23e-7), 9)
+  })
+
+  test("returns 0 for non-finite values", () => {
+    assert.equal(amountValueDecimals(Infinity), 0)
+    assert.equal(amountValueDecimals(NaN), 0)
+  })
+})
+
+describe("amountStringFromFloat64", () => {
+  test("rounds to the given digits and trims trailing zeros", () => {
+    assert.equal(amountStringFromFloat64(3.14159, 2), "3.14")
+    assert.equal(amountStringFromFloat64(3.1, 2), "3.1")
+    assert.equal(amountStringFromFloat64(1234.9999, 3), "1235")
+    assert.equal(amountStringFromFloat64(42, 0), "42")
+  })
+})
+
+describe("amountRangeDisplay", () => {
+  test("rounds both edges to the span precision and trims trailing zeros", () => {
+    assert.deepEqual(amountRangeDisplay(0, 1), { decimals: 2, from: "0", to: "1" })
+    assert.deepEqual(amountRangeDisplay(3.14159, 9.87654), { decimals: 2, from: "3.14", to: "9.88" })
+    assert.deepEqual(amountRangeDisplay(1234.5678, 1234.9999), { decimals: 3, from: "1234.568", to: "1235" })
+    assert.deepEqual(amountRangeDisplay(0, 1_000_000), { decimals: 0, from: "0", to: "1000000" })
   })
 })
 

@@ -14,7 +14,7 @@ import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import FilterPropLabel from "@/partials/FilterPropLabel.vue"
 import { useLocked, useProgress } from "@/progress"
 import { useAmountHistogramValues } from "@/search"
-import { equals, loadingShortHeights, useInitialLoad } from "@/utils"
+import { amountRangeDisplay, amountStringFromFloat64, amountValueDecimals, equals, loadingShortHeights, useInitialLoad } from "@/utils"
 
 const props = defineProps<{
   searchSession: DeepReadonly<SearchSession>
@@ -175,11 +175,32 @@ const maxCount = computed(() => {
   return Math.max(...results.value.map((r) => r.count))
 })
 
+// Round both edges of the histogram span to a precision derived from the span so the axis labels stay readable.
+const rangeDisplay = computed(() => {
+  if (from.value === null || to.value === null) {
+    return null
+  }
+  return amountRangeDisplay(from.value, to.value)
+})
+
+// When the histogram collapses to a single bucket, the bucket's from is the claim value itself. Render it at the
+// precision the value appears to be carrying.
+const singleValueDisplay = computed(() => {
+  if (results.value.length !== 1) {
+    return null
+  }
+  const v = results.value[0].from
+  return amountStringFromFloat64(v, amountValueDecimals(v))
+})
+
 let slider: API | null = null
 const sliderEl = useTemplateRef<HTMLElement>("sliderEl")
 
-const valueFormat = {
-  to: (value: number): string => parseFloat(value.toFixed(5)).toString(),
+const tooltipFormat = {
+  to: (value: number): string => {
+    const decimals = rangeDisplay.value?.decimals ?? amountValueDecimals(value)
+    return amountStringFromFloat64(value, decimals)
+  },
 }
 
 watchEffect(() => {
@@ -217,8 +238,8 @@ watchEffect(() => {
       animate: false,
       behaviour: "snap",
       // Tooltips are shown only while a handle is being dragged, see the noUi-tooltip rules in theme.css.
-      tooltips: [valueFormat, valueFormat],
-      ariaFormat: valueFormat,
+      tooltips: [tooltipFormat, tooltipFormat],
+      ariaFormat: tooltipFormat,
     })
     slider.on("change", onSliderChange)
   } else if (slider) {
@@ -301,7 +322,8 @@ onBeforeUnmount(() => {
           <label
             :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/value'"
             :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
-            >{{ results[0].from }}</label
+            :title="String(results[0].from)"
+            >{{ singleValueDisplay }}</label
           >
           <label :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/value'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
             >({{ results[0].count }})</label
@@ -321,12 +343,12 @@ onBeforeUnmount(() => {
             :x="i * barWidth"
           ></rect>
         </svg>
-        <div class="flex flex-row justify-between gap-x-1">
-          <div>
-            {{ from }}
+        <div v-if="rangeDisplay" class="flex flex-row justify-between gap-x-1">
+          <div :title="String(from)">
+            {{ rangeDisplay.from }}
           </div>
-          <div>
-            {{ to }}
+          <div :title="String(to)">
+            {{ rangeDisplay.to }}
           </div>
         </div>
         <div ref="sliderEl"></div>
