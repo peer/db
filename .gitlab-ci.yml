@@ -490,7 +490,7 @@ reuse:
   stage: test
 
   image:
-    name: fsfe/reuse:latest
+    name: fsfe/reuse:6
     entrypoint: [""]
 
   script:

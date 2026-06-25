@@ -1,0 +1,22 @@
+version = 1
+SPDX-PackageName = "PeerDB"
+SPDX-PackageSupplier = "<https://gitlab.com/peerdb/peerdb>"
+SPDX-PackageDownloadLocation = "https://gitlab.com/peerdb/peerdb"
+
+[[annotations]]
+path = "**"
+precedence = "closest"
+SPDX-FileCopyrightText = "© 2020 PeerDB contributors <https://gitlab.com/peerdb/peerdb>"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = ["**.md", "**.txt", "**.csv"]
+precedence = "closest"
+SPDX-FileCopyrightText = "© 2020 PeerDB contributors <https://gitlab.com/peerdb/peerdb>"
+SPDX-License-Identifier = "CC0-1.0"
+
+[[annotations]]
+path = ["**.svg", "**.jpg", "**.jpeg", "**.png"]
+precedence = "closest"
+SPDX-FileCopyrightText = "© respective copyright holders. All rights reserved."
+SPDX-License-Identifier = "LicenseRef-All-Rights-Reserved"

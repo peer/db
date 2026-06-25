@@ -1,0 +1,6 @@
+All rights reserved.
+
+Files referring to this license are copyrighted by their respective owners.
+They are not licensed under this project's open-source license and may not be
+used, reproduced, modified, or distributed without permission from the
+respective copyright holder.
