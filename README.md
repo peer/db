@@ -608,6 +608,23 @@ npm run test-e2e
 There is also a [read-only GitHub mirror available](https://github.com/peer/db),
 if you need to fork the project there.
 
+## License
+
+PeerDB is open source software released under the [Apache 2.0 license](./LICENSE).
+It contains third-party open source components which are licensed under their
+respective open source licenses. Some of them are used on the frontend and are
+distributed to the user while using PeerDB. The list of those components and
+their licenses is available for a deployed instance at its `/NOTICE` URL path.
+
+The software is provided on an "as is" basis, without warranties or conditions of any kind, either express
+or implied, including, without limitation, any warranties or conditions of title, non-infringement,
+merchantability, or fitness for a particular purpose. See the [Apache 2.0 license](./LICENSE) for the full
+disclaimer of warranty and limitation of liability.
+
+Logos and other graphical elements in [public](./public/) directory and elsewhere are copyrighted
+by their respective owners. They are not licensed under this project's open-source license and may
+not be used, reproduced, modified, or distributed without permission from the respective copyright holder.
+
 ## Acknowledgements
 
 This project was funded through the [NGI0 Discovery Fund](https://nlnet.nl/discovery/), a
