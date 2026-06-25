@@ -704,7 +704,8 @@ func (b *Bridge) waitForReindexQueueMinSeq(ctx context.Context, seq int64, count
 	// under load) would understate size and freeze the progress counter in waitForReindexQueueMinSeqCached
 	// until the queue drained past it. waitForUpdateBridgeReindexQueueMinSeq therefore refreshes twice; we
 	// accept that to keep the two callers independent.
-	if errE := b.updateBridgeReindexQueueMinSeq(ctx); errE != nil {
+	errE := b.updateBridgeReindexQueueMinSeq(ctx)
+	if errE != nil {
 		// Best-effort progress accounting: log and fall back to the cached value rather than fail the wait.
 		zerolog.Ctx(ctx).Warn().Err(errE).Msg("initial reindex queue size refresh failed")
 	}
