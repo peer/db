@@ -210,7 +210,6 @@ declare module "vue-i18n" {
       }
       SearchResultsFeed: {
         closePrint: string
-        loadAll: string
         moreFilters: string
         shownResults: string
         shownResultsOnly: string

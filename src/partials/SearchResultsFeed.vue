@@ -430,7 +430,7 @@ const WithDocumentD = WithDocument<D>
       class="flex-auto basis-3/4 flex-col gap-y-1 rounded-sm [--pd-indent:calc(var(--spacing)*4)] focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:flex sm:gap-y-4 sm:[--pd-indent:calc(var(--spacing)*6)]"
       :class="filtersEnabled ? 'hidden' : 'flex'"
     >
-      <!-- Print row: the close and load-all buttons (preview only, left) and a live timestamp (right). -->
+      <!-- Print row: the close and show-all buttons (preview only, left) and a live timestamp (right). -->
       <div class="pd-print-only-flex mb-2 items-center gap-x-2">
         <button
           type="button"
@@ -446,7 +446,7 @@ const WithDocumentD = WithDocument<D>
           class="pd-preview-only items-center gap-x-1 rounded-sm bg-primary-600 px-3 py-2 text-sm text-white shadow-lg outline-none hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
           @click.prevent="loadAll"
         >
-          {{ t("partials.SearchResultsFeed.loadAll") }}
+          {{ t("common.buttons.showAll") }}
         </button>
         <div class="ml-auto text-sm text-slate-600"><TimeDisplay :timestamp="now" precision="s" :toggle="false" /></div>
       </div>
