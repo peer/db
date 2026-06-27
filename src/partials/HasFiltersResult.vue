@@ -15,7 +15,7 @@ import DisplayLabel from "@/partials/DisplayLabel.vue"
 import FilterPropLabel from "@/partials/FilterPropLabel.vue"
 import { useLocked, useProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useHasFilters } from "@/search"
-import { equals, loadingWidth, useInitialLoad, useLimitResults } from "@/utils"
+import { equals, loadingWidth, useInitialLoad, useLimitResults, useReportFilterVisibility } from "@/utils"
 
 const props = withDefaults(
   defineProps<{
@@ -72,6 +72,9 @@ const { laterLoad } = useInitialLoad(progress)
 // While a value query is active and no property matches, the whole facet is hidden so the filter pane shows
 // only facets with matching values. During loading (total still null) the facet stays visible.
 const hiddenByQuery = computed(() => props.query !== "" && total.value === 0)
+
+// Report visibility to the filter pane so it can show the no-match message only when no facet is visible.
+useReportFilterVisibility(() => !hiddenByQuery.value)
 
 // Extract the selected prop IDs from the filter value.
 const selectedIds = computed((): string[] => {

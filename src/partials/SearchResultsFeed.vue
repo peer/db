@@ -6,7 +6,7 @@ import type { Filter, Result, SearchSession, SortKey, ViewType } from "@/types"
 
 import { ChevronUpDownIcon, FunnelIcon, XMarkIcon } from "@heroicons/vue/20/solid"
 import { ChevronDownUpIcon } from "@sidekickicons/vue/20/solid"
-import { computed, onBeforeUnmount, onMounted, provide, ref, toRaw, toRef, useTemplateRef, watch } from "vue"
+import { computed, onBeforeUnmount, onMounted, provide, reactive, ref, toRaw, toRef, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
@@ -32,6 +32,7 @@ import {
   limitGroupedResults,
   loadingWidth,
   searchExpandKey,
+  searchFilterVisibilityKey,
   searchHiddenClaimsKey,
   searchLoadAllClaimsKey,
   searchPagerKey,
@@ -310,6 +311,31 @@ const {
 // available-filters total is then zero and facet discovery returns nothing else). We keep showing these so
 // an enabled filter can always be cleared, instead of collapsing the pane to the "no filters" message.
 const hasActiveFilters = computed(() => filtersResults.value.some((result) => Boolean(result.filterId)))
+
+// Visibility of each rendered filter facet, keyed by the stable id it reports through searchFilterVisibilityKey. A
+// reference or has facet hides itself while no value matches the filter-pane search (see hiddenByQuery); amount and
+// time facets have no such state and stay visible. Tracking the real per-facet state (rather than inferring it from
+// the result list, which cannot see each facet's own value query) keeps the no-match message in sync with the screen.
+const filterVisibility = reactive(new Map<string, boolean>())
+function reportFilterVisibility(id: string, visible: boolean | null): void {
+  if (visible === null) {
+    filterVisibility.delete(id)
+  } else {
+    filterVisibility.set(id, visible)
+  }
+}
+provide(searchFilterVisibilityKey, reportFilterVisibility)
+
+// Whether any rendered filter facet is currently visible. While a search is in progress and this is false the
+// list is empty on screen, so we show the no-match message in its place.
+const anyFilterVisible = computed(() => {
+  for (const visible of filterVisibility.values()) {
+    if (visible) {
+      return true
+    }
+  }
+  return false
+})
 
 const { track, visibles } = useVisibilityTracking()
 // The grouped result tree renders leaf results deep in SearchResultGroup, so the tracker is provided for
@@ -702,8 +728,12 @@ const WithDocumentD = WithDocument<D>
             t("partials.SearchResultsFeed.filtersNotShown", { count: filtersResults.length - limitedFiltersResults.length })
           }}</div>
 
-          <!-- A search that matches no filter still keeps the box visible so the query can be changed or cleared. -->
-          <div v-if="filtersResults.length === 0 && filterQuery" class="text-center text-sm">{{ t("partials.SearchResultsFeed.filtersNoMatch") }}</div>
+          <!--
+            When a search hides every facet (each reference or has facet hides itself while no value matches it, and
+            no always-visible amount or time facet remains), the list is empty on screen, so the no-match message
+            takes its place; the box stays above so the query can be changed or cleared.
+          -->
+          <div v-if="!anyFilterVisible && filterQuery" class="text-center text-sm">{{ t("partials.SearchResultsFeed.filtersNoMatch") }}</div>
         </template>
       </template>
     </div>

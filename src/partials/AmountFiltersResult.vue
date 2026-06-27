@@ -14,7 +14,7 @@ import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import FilterPropLabel from "@/partials/FilterPropLabel.vue"
 import { useLocked, useProgress } from "@/progress"
 import { useAmountHistogramValues } from "@/search"
-import { amountRangeDisplay, amountStringFromFloat64, amountValueDecimals, equals, loadingShortHeights, useInitialLoad } from "@/utils"
+import { amountRangeDisplay, amountStringFromFloat64, amountValueDecimals, equals, loadingShortHeights, useInitialLoad, useReportFilterVisibility } from "@/utils"
 
 const props = defineProps<{
   searchSession: DeepReadonly<SearchSession>
@@ -63,6 +63,10 @@ const {
   progress,
 )
 const { laterLoad } = useInitialLoad(progress)
+
+// This facet has no hidden-by-query state, so it stays visible whenever rendered. Report that to the filter pane
+// so its no-match message appears only when no facet is visible.
+useReportFilterVisibility(() => true)
 
 function clearFilter() {
   if (abortController.signal.aborted || !props.filter) {

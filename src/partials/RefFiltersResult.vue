@@ -11,7 +11,7 @@ import FilterPropLabel from "@/partials/FilterPropLabel.vue"
 import RefFilterTreeRow from "@/partials/RefFilterTreeRow.vue"
 import { useProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useRefFilters } from "@/search"
-import { computeRefCheckStates, equals, loadingWidth, SKIP_TO_END, toggleRefSelection, useInitialLoad, useLimitResults } from "@/utils"
+import { computeRefCheckStates, equals, loadingWidth, SKIP_TO_END, toggleRefSelection, useInitialLoad, useLimitResults, useReportFilterVisibility } from "@/utils"
 
 type FlatEntry = { node: RefFilterTreeNode; depth: number }
 
@@ -75,6 +75,9 @@ const { laterLoad } = useInitialLoad(progress)
 // While a value query is active and no value matches, the whole facet is hidden so the filter pane shows
 // only facets with matching values. During loading (total still null) the facet stays visible.
 const hiddenByQuery = computed(() => props.query !== "" && total.value === 0)
+
+// Report visibility to the filter pane so it can show the no-match message only when no facet is visible.
+useReportFilterVisibility(() => !hiddenByQuery.value)
 
 // Extract the selected "to" IDs from the filter value.
 const selectedIds = computed((): string[] => {

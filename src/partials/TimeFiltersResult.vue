@@ -14,7 +14,7 @@ import FilterPropLabel from "@/partials/FilterPropLabel.vue"
 import TimeDisplay from "@/partials/TimeDisplay.vue"
 import { useLocked, useProgress } from "@/progress"
 import { useTimeHistogramValues } from "@/search"
-import { equals, loadingShortHeights, timePrecisionForValue, timeRangeDisplay, timeStringFromFloat64, useInitialLoad } from "@/utils"
+import { equals, loadingShortHeights, timePrecisionForValue, timeRangeDisplay, timeStringFromFloat64, useInitialLoad, useReportFilterVisibility } from "@/utils"
 
 const props = defineProps<{
   searchSession: DeepReadonly<SearchSession>
@@ -62,6 +62,10 @@ const {
   progress,
 )
 const { laterLoad } = useInitialLoad(progress)
+
+// This facet has no hidden-by-query state, so it stays visible whenever rendered. Report that to the filter pane
+// so its no-match message appears only when no facet is visible.
+useReportFilterVisibility(() => true)
 
 function clearFilter() {
   if (abortController.signal.aborted || !props.filter) {

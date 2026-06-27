@@ -6,7 +6,7 @@ import type { GetDisplayLabel, Mutable, QueryValues, QueryValuesWithOptional, Re
 import { Identifier } from "@tozd/identifier"
 import { prng_alea } from "esm-seedrandom"
 import { cloneDeep, isEqual } from "lodash-es"
-import { onBeforeUnmount, onMounted, readonly, ref, shallowRef, toRaw, watch, watchEffect } from "vue"
+import { inject, onBeforeUnmount, onMounted, readonly, ref, shallowRef, toRaw, useId, watch, watchEffect } from "vue"
 
 import { INSTANCE_OF, NAME, TITLE } from "@/core"
 import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document/claims"
@@ -62,6 +62,28 @@ export const searchLoadAllClaimsKey: InjectionKey<Readonly<Ref<boolean>>> = proc
 // already fits on screen, letting a printout be made complete. Without a provider (the default is undefined)
 // FieldsView reports nothing.
 export const searchHiddenClaimsKey: InjectionKey<(delta: number) => void> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-search-hidden-claims") : Symbol()
+
+// searchFilterVisibilityKey carries, from each rendered filter facet up to SearchResultsFeed, a callback
+// reporting whether that facet is currently visible: a reference or has facet hides itself while no value matches
+// the filter-pane search (see hiddenByQuery), while amount and time facets have no such state and stay visible.
+// Each facet reports by a stable id and reports null on unmount. SearchResultsFeed shows the "no filters match"
+// message only while a search is in progress and no facet is visible, so the message tracks exactly what is on
+// screen. Without a provider (the default is undefined) a facet reports nothing.
+export const searchFilterVisibilityKey: InjectionKey<(id: string, visible: boolean | null) => void> =
+  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-search-filter-visibility") : Symbol()
+
+// useReportFilterVisibility reports a filter facet's visibility to the filter pane through searchFilterVisibilityKey,
+// keyed by a stable id and cleared on unmount, so the pane shows its no-match message only when nothing is visible.
+export function useReportFilterVisibility(visible: () => boolean): void {
+  const report = inject(searchFilterVisibilityKey, null)
+  if (!report) {
+    return
+  }
+  const id = useId()
+  onMounted(() => report(id, visible()))
+  watch(visible, (v) => report(id, v))
+  onBeforeUnmount(() => report(id, null))
+}
 
 // limitGroupedResults truncates a grouped result tree to the leaves that appear before its (limit+1)th unique
 // result in document order, pruning any group left empty, and returns that tree with the number of unique
