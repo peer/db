@@ -118,7 +118,7 @@ func TestCreateOptionsIntegration(t *testing.T) {
 		return fullPaths[id], nil
 	}
 
-	options, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, documentFullPaths)
+	options, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, documentFullPaths, "")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	ids := make([]string, 0, len(options))
@@ -141,6 +141,26 @@ func TestCreateOptionsIntegration(t *testing.T) {
 	// classA is a root (no ancestor paths); classE renders under both of its parents.
 	assert.Empty(t, paths[classA.String()])
 	assert.ElementsMatch(t, [][]string{{classA.String(), classB.String()}, {classA.String(), classC.String()}}, paths[classE.String()])
+
+	// With a limit on classB, only classB and its descendant classE are offered; the limit's ancestor classA
+	// is kept as a non-creatable label, and the unrelated classC and classD are dropped.
+	limited, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, documentFullPaths, classB.String())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	limitedIDs := make([]string, 0, len(limited))
+	limitedCanCreate := map[string]bool{}
+	for _, o := range limited {
+		limitedIDs = append(limitedIDs, o.ID)
+		limitedCanCreate[o.ID] = o.CanCreate
+	}
+	assert.Equal(t, []string{classA.String(), classB.String(), classE.String()}, limitedIDs)
+	assert.False(t, limitedCanCreate[classA.String()])
+	assert.True(t, limitedCanCreate[classB.String()])
+	assert.True(t, limitedCanCreate[classE.String()])
+
+	// An unknown limit id yields nothing.
+	none, errE := search.CreateOptions(ctx, getSearchService, nil, loadDocument, documentFullPaths, identifier.From("createClassMissing").String())
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Empty(t, none)
 }
 
 func TestClassCreatable(t *testing.T) {

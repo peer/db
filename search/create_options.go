@@ -71,6 +71,16 @@ func ancestorChains(fullPaths []string) [][]string {
 	return out
 }
 
+// pathsContain reports whether id appears anywhere in the given ancestor chains.
+func pathsContain(paths [][]string, id string) bool {
+	for _, path := range paths {
+		if slices.Contains(path, id) {
+			return true
+		}
+	}
+	return false
+}
+
 // CreateOptions returns the classes to offer in the create-document view, ordered for tree rendering.
 //
 // The set is every class (a document that is an instance of the core CLASS), each tagged with whether a
@@ -83,12 +93,18 @@ func ancestorChains(fullPaths []string) [][]string {
 // caller may access. loadDocument reads a class document (returning a nil document, no error, when it is
 // not found or not accessible, so the class is skipped) to determine createability, and documentFullPaths
 // resolves its SUBCLASS_OF ancestor paths.
+//
+// When limit is non-empty, the offering is restricted to that class id and its descendants: only they keep
+// their creatability, the limit class's ancestors are kept solely as structural labels (forced
+// non-creatable) so the tree still renders from a root down to the limit, and every other class is dropped.
+// An unknown limit id yields an empty result.
 func CreateOptions(
 	ctx context.Context,
 	getSearchService func() *esSearch.Search,
 	accessFilter types.QueryVariant,
 	loadDocument func(context.Context, identifier.Identifier) (*document.D, errors.E),
 	documentFullPaths func(context.Context, identifier.Identifier) ([]string, errors.E),
+	limit string,
 ) ([]ClassCreateOption, errors.E) {
 	counts, errE := instanceCounts(ctx, getSearchService, accessFilter)
 	if errE != nil {
@@ -129,6 +145,42 @@ func CreateOptions(
 			},
 			canCreate: classCreatable(doc),
 		})
+	}
+
+	if limit != "" {
+		// Find the limit class so its ancestors can be kept as labels. A nil set after the loop means the
+		// limit id is not a known class.
+		var limitAncestors map[string]bool
+		for i := range entries {
+			if entries[i].res.ID != limit {
+				continue
+			}
+			limitAncestors = map[string]bool{}
+			for _, path := range entries[i].res.Paths {
+				for _, ancestor := range path {
+					limitAncestors[ancestor] = true
+				}
+			}
+			break
+		}
+		if limitAncestors == nil {
+			return []ClassCreateOption{}, nil
+		}
+		// Keep the limit class and its descendants with their own creatability, and the limit class's
+		// ancestors as non-creatable labels; drop everything else.
+		scoped := make([]classEntry, 0, len(entries))
+		for _, e := range entries {
+			switch {
+			case e.res.ID == limit:
+			case limitAncestors[e.res.ID]:
+				e.canCreate = false
+			case pathsContain(e.res.Paths, limit):
+			default:
+				continue
+			}
+			scoped = append(scoped, e)
+		}
+		entries = scoped
 	}
 
 	// Collect every class that is an ancestor of a creatable class; these are kept as structural nodes.

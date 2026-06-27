@@ -350,6 +350,18 @@ func (s *Service) DocumentCreateOptionsGetAPI(w http.ResponseWriter, req *http.R
 		return
 	}
 
+	// An optional "limit" restricts the offered classes to that class and its descendants (with its
+	// ancestors shown only as labels).
+	limit := ""
+	if l := req.URL.Query().Get("limit"); l != "" {
+		limitID, errE := identifier.MaybeString(l)
+		if errE != nil {
+			s.BadRequestWithError(w, req, errors.WithMessage(errE, `"limit" is not a valid identifier`))
+			return
+		}
+		limit = limitID.String()
+	}
+
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
 	// loadDocument reads a class document so search.CreateOptions can decide createability. CreateOptions
@@ -359,7 +371,7 @@ func (s *Service) DocumentCreateOptionsGetAPI(w http.ResponseWriter, req *http.R
 		return doc, errE
 	}
 
-	classes, errE := search.CreateOptions(ctx, s.getSearchServiceClosure(req, index), accessFilter, loadDocument, s.documentFullPaths)
+	classes, errE := search.CreateOptions(ctx, s.getSearchServiceClosure(req, index), accessFilter, loadDocument, s.documentFullPaths, limit)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return
