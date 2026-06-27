@@ -83,29 +83,17 @@ func fullToPathChain(raw string) []string {
 	return strings.Split(chain, "/")
 }
 
-// collectPaths extracts all distinct hierarchy paths for a single filter bucket
-// from a "paths" terms sub-aggregation on a toPath field. Each input bucket key
-// is one raw path string; this function parses each and drops empty results.
+// collectPaths extracts the distinct hierarchy ancestor chains for a single filter value from its "paths"
+// terms sub-aggregation on a toPath field. Each bucket key is one raw path string; it adapts those to the
+// ancestorChains primitive.
 func collectPaths(buckets []types.StringTermsBucket) [][]string {
-	if len(buckets) == 0 {
-		return nil
-	}
-	out := make([][]string, 0, len(buckets))
+	raw := make([]string, 0, len(buckets))
 	for _, b := range buckets {
-		key, ok := b.Key.(string)
-		if !ok {
-			continue
+		if key, ok := b.Key.(string); ok {
+			raw = append(raw, key)
 		}
-		ancestors := parseToPath(key)
-		if len(ancestors) == 0 {
-			continue
-		}
-		out = append(out, ancestors)
 	}
-	if len(out) == 0 {
-		return nil
-	}
-	return out
+	return ancestorChains(raw)
 }
 
 // bucketsToRefFilterResults turns the top-level terms-aggregation buckets of a
