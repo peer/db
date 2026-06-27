@@ -1,7 +1,7 @@
 import { Identifier } from "@tozd/identifier"
 import { assert, describe, expect, test } from "vitest"
 
-import { parseShortcut, resolveShortcutID, shortcutToFilters, shortcutToQuery } from "@/shortcut"
+import { createShortcutToQuery, parseShortcut, resolveShortcutID, shortcutToFilters, shortcutToQuery } from "@/shortcut"
 
 describe("parseShortcut", () => {
   test("parses a single key/value pair", () => {
@@ -231,5 +231,39 @@ describe("shortcutToQuery", () => {
     const a = (await Identifier.from("ns.example.com", "A")).toString()
     const b = (await Identifier.from("ns.example.com", "B")).toString()
     assert.deepEqual(query, { [prop]: [a, "direct:" + b, "missing"] })
+  })
+})
+
+describe("createShortcutToQuery", () => {
+  test("keeps 'limit' as a literal key and resolves its value", async () => {
+    const query = await createShortcutToQuery("limit=ns.example.com,RESOURCE")
+    const resource = (await Identifier.from("ns.example.com", "RESOURCE")).toString()
+    assert.deepEqual(query, { limit: [resource] })
+  })
+
+  test("resolves a property=value entry into an initial reference claim", async () => {
+    const query = await createShortcutToQuery("ns.example.com,PROP=ns.example.com,VAL")
+    const prop = (await Identifier.from("ns.example.com", "PROP")).toString()
+    const value = (await Identifier.from("ns.example.com", "VAL")).toString()
+    assert.deepEqual(query, { [prop]: [value] })
+  })
+
+  test("substitutes 'self' in the value with the supplied self ID", async () => {
+    const self = Identifier.new().toString()
+    const query = await createShortcutToQuery("ns.example.com,PROP=self", self)
+    const prop = (await Identifier.from("ns.example.com", "PROP")).toString()
+    assert.deepEqual(query, { [prop]: [self] })
+  })
+
+  test("combines a limit with a self-referencing property claim", async () => {
+    const self = Identifier.new().toString()
+    const query = await createShortcutToQuery("limit=ns.example.com,RESOURCE&ns.example.com,PROP=self", self)
+    const resource = (await Identifier.from("ns.example.com", "RESOURCE")).toString()
+    const prop = (await Identifier.from("ns.example.com", "PROP")).toString()
+    assert.deepEqual(query, { limit: [resource], [prop]: [self] })
+  })
+
+  test("throws when 'self' is referenced without a self ID", async () => {
+    await expect(createShortcutToQuery("ns.example.com,PROP=self")).rejects.toThrowError(/no self ID was provided/)
   })
 })

@@ -11,6 +11,10 @@ const RESERVED_SELF = "self"
 export const RESERVED_MISSING = "missing"
 // RESERVED_DIRECT_PREFIX prefixes a value to select its identifier as a "direct" (most-specific) match.
 export const RESERVED_DIRECT_PREFIX = "direct:"
+// RESERVED_LIMIT is a create-shortcut key (not a search-shortcut one): it restricts the create view to its
+// value class and that class's descendants. It is recognized only by createShortcutToQuery below; the
+// generic grammar parser treats it like any other literal key.
+export const RESERVED_LIMIT = "limit"
 
 // Search shortcut query parameter keys read from the SearchShortcut route query alongside RESERVED_REVERSE.
 // Unlike the grammar tokens above they are not part of the shortcut string: they carry the session language
@@ -168,4 +172,20 @@ export async function shortcutToQuery(s: string, self?: string): Promise<QueryVa
     ;(filter[k] ??= []).push(v)
   }
   return encodeQuery(filter)
+}
+
+// createShortcutToQuery parses a CREATE_SHORTCUT string (it uses the same grammar as a search shortcut) and
+// resolves it into a URL query map for the create-document view. The "limit" key is kept verbatim (it
+// restricts the offered classes to its value class and descendants); every other key is a property
+// identifier (resolved). Each value is resolved to an identifier, with "self" substituted by the supplied
+// self ID, so a non-limit entry becomes an initial reference claim (property=value). Throws if the shortcut
+// references "self" but none was provided. Nested keys, "missing", and "direct:" are not used for creation.
+export async function createShortcutToQuery(s: string, self?: string): Promise<QueryValues> {
+  const query: Record<string, string[]> = {}
+  for (const { key, value } of parseShortcut(s)) {
+    const resolvedKey = key === RESERVED_LIMIT ? RESERVED_LIMIT : await resolveShortcutID(key)
+    const resolvedValue = value === RESERVED_SELF ? requireSelf(self) : await resolveShortcutID(value)
+    ;(query[resolvedKey] ??= []).push(resolvedValue)
+  }
+  return encodeQuery(query)
 }

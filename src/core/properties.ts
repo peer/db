@@ -10,6 +10,7 @@ export const ALTERNATIVE_NAME = (await Identifier.from(Namespace, "ALTERNATIVE_N
 export const CARDINALITY = (await Identifier.from(Namespace, "CARDINALITY")).toString()
 export const CODE = (await Identifier.from(Namespace, "CODE")).toString()
 export const CONTENT = (await Identifier.from(Namespace, "CONTENT")).toString()
+export const CREATE_SHORTCUT = (await Identifier.from(Namespace, "CREATE_SHORTCUT")).toString()
 export const DEFAULT_VARIANT = (await Identifier.from(Namespace, "DEFAULT_VARIANT")).toString()
 export const DESCRIPTION = (await Identifier.from(Namespace, "DESCRIPTION")).toString()
 export const DISPLAY_LABEL_TEMPLATE = (await Identifier.from(Namespace, "DISPLAY_LABEL_TEMPLATE")).toString()

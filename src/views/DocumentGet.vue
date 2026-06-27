@@ -19,8 +19,8 @@ import InputTextLink from "@/components/InputTextLink.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import WithLock from "@/components/WithLock.vue"
 import siteContext from "@/context"
-import { CONTENT, INSTANCE_OF, NAME, PAGE, SEARCH_SHORTCUT } from "@/core"
-import { getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
+import { CONTENT, CREATE_SHORTCUT, INSTANCE_OF, NAME, PAGE, SEARCH_SHORTCUT } from "@/core"
+import { getBestClaimOfType, getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
 import { decodeMetadata } from "@/metadata"
 import ClaimValueHtml from "@/partials/claimvalue/ClaimValueHtml.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
@@ -31,10 +31,11 @@ import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
+import SearchShortcutLink from "@/partials/SearchShortcutLink.vue"
 import { getParentLock, localCounter, lockScope, useProgress } from "@/progress"
 import { getDocumentComponents } from "@/registry/document"
 import { useSearch, useSearchSession } from "@/search"
-import { shortcutToQuery } from "@/shortcut"
+import { createShortcutToQuery, shortcutToQuery } from "@/shortcut"
 import { useDocumentFields } from "@/useDocumentFields"
 import { useParentClasses } from "@/useParentClasses"
 import { anySignal, encodeQuery, loadingLongWidth } from "@/utils"
@@ -191,8 +192,8 @@ const documentTabs = computed(() => {
 // when available, otherwise inside the "all properties" panel.
 const hasFieldsViewPanel = computed(() => !isPage.value && documentTabs.value.length === 0 && classTabId.value !== null && mergedFieldsData.value !== null)
 
-type SearchShortcut = { name: string; raw: string }
-type ResolvedShortcut = { name: string; query: QueryValues; count: string | null }
+type SearchShortcut = { name: string; raw: string; createRaw: string | null }
+type ResolvedShortcut = { name: string; query: QueryValues; count: string | null; createQuery: QueryValues | null }
 
 async function fetchShortcutCount(query: QueryValues, signal: AbortSignal): Promise<string | null> {
   const url = router.apiResolve({ name: "SearchJustResults", query }).href
@@ -211,6 +212,10 @@ async function fetchShortcutCount(query: QueryValues, signal: AbortSignal): Prom
 const searchShortcuts = ref<ResolvedShortcut[]>([])
 watch(
   () => {
+    // The create shortcut is only read (and later resolved) for users who can create documents, since the
+    // "+" button leads to the create view which requires that permission, so it would not work for others.
+    // Reading the permission here also recomputes the list when the caller's roles change.
+    const canCreate = hasPermission(CAN_EDIT_DOCUMENT)
     const result: SearchShortcut[] = []
     // The same shortcut can be declared on several parent classes, so we deduplicate by the raw
     // shortcut string (the link, not the label) and keep the first occurrence.
@@ -229,7 +234,10 @@ watch(
           continue
         }
         seen.add(shortcut.string)
-        result.push({ name: name[0].string, raw: shortcut.string })
+        // The optional CREATE_SHORTCUT sub-claim (cardinality 0..1) turns the shortcut into a "create" action,
+        // but only for users who can create documents.
+        const createRaw = canCreate ? getBestClaimOfType(shortcut.sub, "string", CREATE_SHORTCUT)?.string || null : null
+        result.push({ name: name[0].string, raw: shortcut.string, createRaw })
       }
     }
     return result
@@ -238,7 +246,17 @@ watch(
     const result: ResolvedShortcut[] = []
     for (const shortcut of shortcuts) {
       try {
-        result.push({ name: shortcut.name, query: await shortcutToQuery(shortcut.raw, props.id), count: null })
+        const query = await shortcutToQuery(shortcut.raw, props.id)
+        // A malformed create shortcut should not drop the whole search shortcut, so it is resolved on its own.
+        let createQuery: QueryValues | null = null
+        if (shortcut.createRaw) {
+          try {
+            createQuery = await createShortcutToQuery(shortcut.createRaw, props.id)
+          } catch (err) {
+            console.error("DocumentGet.createShortcut", shortcut, err)
+          }
+        }
+        result.push({ name: shortcut.name, query, count: null, createQuery })
       } catch (err) {
         console.error("DocumentGet.searchShortcuts", shortcut, err)
       }
@@ -527,13 +545,18 @@ async function onDelete() {
                   <div class="min-w-0 grow"><FieldsView :fields-data="mergedFieldsData!" :claims="doc.claims" sections /></div>
                   <div class="pd-print-hidden flex shrink-0 flex-col gap-2">
                     <template v-for="(shortcut, i) of searchShortcuts" :key="i">
-                      <ButtonLink v-if="showShortcut(shortcut.count)" :to="{ name: 'SearchShortcut', query: shortcut.query }">{{
-                        shortcutLabel(shortcut.name, shortcut.count)
-                      }}</ButtonLink>
+                      <SearchShortcutLink
+                        v-if="showShortcut(shortcut.count)"
+                        :query="shortcut.query"
+                        :label="shortcutLabel(shortcut.name, shortcut.count)"
+                        :create-query="shortcut.createQuery"
+                      />
                     </template>
-                    <ButtonLink v-if="showShortcut(referencedByCount)" :to="{ name: 'SearchShortcut', query: encodeQuery({ reverse: id }) }">{{
-                      shortcutLabel(t("views.DocumentGet.referencedBy"), referencedByCount)
-                    }}</ButtonLink>
+                    <SearchShortcutLink
+                      v-if="showShortcut(referencedByCount)"
+                      :query="encodeQuery({ reverse: id })"
+                      :label="shortcutLabel(t('views.DocumentGet.referencedBy'), referencedByCount)"
+                    />
                   </div>
                 </div>
               </TabPanel>
@@ -555,13 +578,18 @@ async function onDelete() {
                   </div>
                   <div v-if="!hasFieldsViewPanel" class="pd-print-hidden flex shrink-0 flex-col gap-2">
                     <template v-for="(shortcut, i) of searchShortcuts" :key="i">
-                      <ButtonLink v-if="showShortcut(shortcut.count)" :to="{ name: 'SearchShortcut', query: shortcut.query }">{{
-                        shortcutLabel(shortcut.name, shortcut.count)
-                      }}</ButtonLink>
+                      <SearchShortcutLink
+                        v-if="showShortcut(shortcut.count)"
+                        :query="shortcut.query"
+                        :label="shortcutLabel(shortcut.name, shortcut.count)"
+                        :create-query="shortcut.createQuery"
+                      />
                     </template>
-                    <ButtonLink v-if="showShortcut(referencedByCount)" :to="{ name: 'SearchShortcut', query: encodeQuery({ reverse: id }) }">{{
-                      shortcutLabel(t("views.DocumentGet.referencedBy"), referencedByCount)
-                    }}</ButtonLink>
+                    <SearchShortcutLink
+                      v-if="showShortcut(referencedByCount)"
+                      :query="encodeQuery({ reverse: id })"
+                      :label="shortcutLabel(t('views.DocumentGet.referencedBy'), referencedByCount)"
+                    />
                   </div>
                 </div>
               </TabPanel>

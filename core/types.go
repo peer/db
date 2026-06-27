@@ -125,7 +125,8 @@ type RawHTMLWithLanguage struct {
 type SearchShortcut struct {
 	Value string `json:"value" value:""`
 
-	Name []StringWithLanguage `cardinality:"0.." json:"name,omitempty" property:"NAME"`
+	Name           []StringWithLanguage `cardinality:"0.."  json:"name,omitempty"           property:"NAME"`
+	CreateShortcut string               `cardinality:"0..1" json:"createShortcut,omitempty" property:"CREATE_SHORTCUT"`
 }
 
 // LinkWithMediaType represents link (URL, URI or IRI) with its media type.
