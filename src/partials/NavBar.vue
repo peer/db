@@ -63,6 +63,14 @@ useValidationRegistry()
       </RouterLink>
       <slot name="start"><NavBarSearch /></slot>
       <component :is="c" v-for="(c, i) in navbarComponents" :key="i" :home="false" />
+      <!--
+        Zero-width spacer that right-aligns the end slot and the trailing buttons. ml-auto absorbs only the free space left
+        after the start search box has grown to its max-w-xl, so the search box keeps priority over what a competing grow
+        spacer would take. The negative right margin cancels the flex gap the spacer would otherwise add on its right side,
+        so a single gap (matching gap-x-1 sm:gap-x-4) separates the left and right groups. The trailing buttons stay direct
+        flex children, so they keep shrinking proportionally with the rest of the navbar when space is tight.
+      -->
+      <div class="-mr-1 ml-auto sm:-mr-4"></div>
       <slot name="end" />
       <CreateButton />
       <LanguageSwitcher />
