@@ -261,7 +261,7 @@ func TestRefFilterGetPrefilterExcludeIntegration(t *testing.T) {
 	f := search.RefFilter{}
 
 	// Without an exclude both ancestors are double-counted: each is reached through dog and through cat.
-	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil)
+	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	counts := map[string]int64{}
 	for _, r := range results {
@@ -274,7 +274,7 @@ func TestRefFilterGetPrefilterExcludeIntegration(t *testing.T) {
 
 	// Excluding dog's toFullPath drops dogDoc's records: dog disappears and the ancestors deflate to the
 	// single document (catDoc) that still reaches them.
-	excluded, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, []string{dogPath}, "", nil)
+	excluded, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, []string{dogPath}, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.RefFilterResult{
 		{ID: animal.String(), Count: 1, Paths: nil},

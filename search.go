@@ -249,10 +249,10 @@ func (s *Service) SearchFilterGetAPI(w http.ResponseWriter, req *http.Request, p
 				ctx, searchService, query, f.Prop[0], f.Prop[1],
 				collectParentToFromSession(searchSession.Filters, f.Prop[0]),
 				excludes.SubRef(f.Prop[0], f.Prop[1]),
-				valueQuery, enabledLanguages,
+				valueQuery, enabledLanguages, s.documentFullPaths,
 			)
 		} else {
-			data, metadata, errE = f.Ref.Get(ctx, searchService, query, f.Prop[0], excludes.Ref(f.Prop[0]), valueQuery, enabledLanguages)
+			data, metadata, errE = f.Ref.Get(ctx, searchService, query, f.Prop[0], excludes.Ref(f.Prop[0]), valueQuery, enabledLanguages, s.documentFullPaths)
 		}
 	case f.Amount != nil:
 		if len(f.Prop) == 2 { //nolint:mnd
@@ -343,7 +343,7 @@ func (s *Service) SearchRefFilterGetAPI(w http.ResponseWriter, req *http.Request
 	f := search.RefFilter{}
 	data, metadata, errE := f.Get(
 		ctx, s.getSearchServiceClosure(req, index), query, prop, excludes.Ref(prop),
-		req.URL.Query().Get("q"), enabledSearchLanguages(ctx),
+		req.URL.Query().Get("q"), enabledSearchLanguages(ctx), s.documentFullPaths,
 	)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
@@ -517,7 +517,7 @@ func (s *Service) SearchSubRefFilterGetAPI(w http.ResponseWriter, req *http.Requ
 	data, metadata, errE := f.GetSubRef(
 		ctx, s.getSearchServiceClosure(req, index), query, parentProp, prop, parentToRestrictions,
 		excludes.SubRef(parentProp, prop),
-		req.URL.Query().Get("q"), enabledSearchLanguages(ctx),
+		req.URL.Query().Get("q"), enabledSearchLanguages(ctx), s.documentFullPaths,
 	)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)

@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/go/x"
 	"gitlab.com/tozd/identifier"
 	"gitlab.com/tozd/waf"
@@ -318,6 +319,15 @@ func indexTimeIntervalDoc(t *testing.T, ctx context.Context, esClient *elasticse
 			SubHas:    nil,
 		},
 	})
+}
+
+// newPathResolver builds a search.HierarchyPathsResolver backed by a map from value id to its indexed
+// hierarchy path strings ("<hierProp>:<root>/.../<self>"), so tests can inject a selected value's ancestors
+// without an Elasticsearch round-trip. An id not in the map resolves to no paths.
+func newPathResolver(paths map[identifier.Identifier][]string) search.HierarchyPathsResolver {
+	return func(_ context.Context, id identifier.Identifier) ([]string, errors.E) {
+		return paths[id], nil
+	}
 }
 
 // createSession is a test helper that creates a search session from SessionData.

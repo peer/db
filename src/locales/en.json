@@ -206,6 +206,7 @@
       "resultsNotShown": "1 of {total} result not shown. | {count} of {total} results not shown.",
       "noFilters": "No filters available.",
       "filtersAvailable": "Search 1 available filter: | Search {count} available filters:",
+      "filtersActive": "Search 1 active filter: | Search {count} active filters:",
       "filtersSearchLabel": "Search filters and filter values",
       "filtersNoMatch": "No filters match your search.",
       "determiningFilters": "Determining filters...",

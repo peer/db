@@ -24,6 +24,57 @@ type HasFilterResult struct {
 	Count int64  `json:"count"`
 }
 
+// mergeSelectedHasProps appends, at count 0, any selected has-property not already present in the value list,
+// so an active has filter always shows its selection (otherwise dropped when it matches no document under the
+// rest of the search) and each property stays individually deselectable. The has facet is flat, so no
+// hierarchy is involved.
+func mergeSelectedHasProps(results []HasFilterResult, props []HasValue) []HasFilterResult {
+	present := make(map[string]bool, len(results))
+	for _, r := range results {
+		present[r.ID] = true
+	}
+	for _, p := range props {
+		id := p.ID.String()
+		if present[id] {
+			continue
+		}
+		results = append(results, HasFilterResult{ID: id, Count: 0})
+		present[id] = true
+	}
+	return results
+}
+
+// hasPropsTermsQuery matches has (or sub-has) records whose prop field is one of the selected property ids.
+// field is the nested path ("claims.has" or "claims.subHas").
+func hasPropsTermsQuery(field string, props []HasValue) types.QueryVariant { //nolint:ireturn
+	values := make([]types.FieldValueVariant, len(props))
+	for i, p := range props {
+		values[i] = esdsl.NewFieldValue().String(p.ID.String())
+	}
+	return esdsl.NewTermsQuery().AddTermsQuery(field+".prop", esdsl.NewTermsQueryField().FieldValues(values...))
+}
+
+// mergeMatchedHasProps appends, during a value search, at count 0, each selected has-property whose label
+// matched the typed text (the matched set comes from the selectedMatch global aggregation) and that is not
+// already present. It is the value-search counterpart of mergeSelectedHasProps, which force-shows the whole
+// selection outside a search; here only the matched selected properties are surfaced, so a selected property
+// (which has zero documents in the search scope) stays searchable by its own label.
+func mergeMatchedHasProps(results []HasFilterResult, props []HasValue, matched map[string]bool) []HasFilterResult {
+	present := make(map[string]bool, len(results))
+	for _, r := range results {
+		present[r.ID] = true
+	}
+	for _, p := range props {
+		id := p.ID.String()
+		if !matched[id] || present[id] {
+			continue
+		}
+		results = append(results, HasFilterResult{ID: id, Count: 0})
+		present[id] = true
+	}
+	return results
+}
+
 // GetSubHas retrieves sub-has filter data for search results. It aggregates
 // claims.subHas.prop values nested under a parent claim with the given
 // parentProp, optionally restricted to listed parentTo values for
@@ -50,10 +101,12 @@ func (f *HasFilter) GetSubHas(
 	}
 	// valueQuery restricts the facet to has-properties whose display label matches the user-typed text, so
 	// the filter pane can be narrowed without changing the search. It never alters which documents match.
+	var propLabelMatch types.QueryVariant
 	if valueQuery != "" {
-		filterMusts = append(filterMusts, propLabelMatchQuery(
+		propLabelMatch = propLabelMatchQuery(
 			[]string{"claims.subHas.propNaming", "claims.subHas.parentPropNaming"},
-			[]string{"claims.subHas.propDisplay", "claims.subHas.parentPropDisplay"}, valueQuery, enabledLanguages))
+			[]string{"claims.subHas.propDisplay", "claims.subHas.parentPropDisplay"}, valueQuery, enabledLanguages)
+		filterMusts = append(filterMusts, propLabelMatch)
 	}
 
 	subHasAggregation := esdsl.NewAggregations().
@@ -70,6 +123,18 @@ func (f *HasFilter) GetSubHas(
 
 	searchService = searchService.Size(0).Query(query).
 		AddAggregation("subHas", subHasAggregation)
+
+	// During a value search, label-match the selected sub-has properties globally so an active filter's selection
+	// (which has zero documents in the search scope) can still be narrowed by its own label. It is scoped to the
+	// parent property and the selected prop ids, mirroring the facet's own filter.
+	if valueQuery != "" && len(f.Props) > 0 {
+		selectedMatchFilter := esdsl.NewBoolQuery().Must(
+			esdsl.NewTermQuery("claims.subHas.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+			propLabelMatch,
+			hasPropsTermsQuery("claims.subHas", f.Props),
+		)
+		searchService = searchService.AddAggregation("selectedMatch", selectedMatchAggregation("claims.subHas", "prop", selectedMatchFilter))
+	}
 
 	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
@@ -116,6 +181,22 @@ func (f *HasFilter) GetSubHas(
 		}
 		results = append(results, HasFilterResult{ID: key, Count: bucketDocs.DocCount})
 	}
+	// Outside a value search, force-show the selected properties (at count 0 when unmatched) so the selection is
+	// always visible and deselectable. During a value search a selected property is shown only when its own label
+	// matches the typed text (from the selectedMatch aggregation), so it stays searchable but is not force-shown.
+	if valueQuery == "" {
+		results = mergeSelectedHasProps(results, f.Props)
+	} else if len(f.Props) > 0 {
+		selectedMatch, errE := internalSearch.AggAs[types.GlobalAggregate](res.Aggregations, "selectedMatch")
+		if errE != nil {
+			return nil, nil, errE
+		}
+		matched, errE := parseSelectedMatchIDs(selectedMatch)
+		if errE != nil {
+			return nil, nil, errE
+		}
+		results = mergeMatchedHasProps(results, f.Props, matched)
+	}
 
 	subHasTotalValue := distinctValuesTotal(len(subHasBuckets), subHasTotal.Value)
 	total := strconv.FormatInt(subHasTotalValue, 10)
@@ -137,8 +218,10 @@ func (f *HasFilter) Get(
 	// valueQuery restricts the facet to has-properties whose display label matches the user-typed text, so
 	// the filter pane can be narrowed without changing the search. It never alters which documents match.
 	var hasFilterQuery types.QueryVariant = esdsl.NewMatchAllQuery()
+	var propLabelMatch types.QueryVariant
 	if valueQuery != "" {
-		hasFilterQuery = propLabelMatchQuery([]string{"claims.has.propNaming"}, []string{"claims.has.propDisplay"}, valueQuery, enabledLanguages)
+		propLabelMatch = propLabelMatchQuery([]string{"claims.has.propNaming"}, []string{"claims.has.propDisplay"}, valueQuery, enabledLanguages)
+		hasFilterQuery = propLabelMatch
 	}
 
 	// Aggregation for has claims: terms on claims.has.prop.
@@ -158,6 +241,14 @@ func (f *HasFilter) Get(
 
 	searchService = searchService.Size(0).Query(query).
 		AddAggregation("has", hasAggregation)
+
+	// During a value search, label-match the selected has-properties globally so an active filter's selection
+	// (which has zero documents in the search scope) can still be narrowed by its own label, using the SAME
+	// matcher real properties use. The has facet is flat, so there are no ancestors to surface.
+	if valueQuery != "" && len(f.Props) > 0 {
+		selectedMatchFilter := esdsl.NewBoolQuery().Must(propLabelMatch, hasPropsTermsQuery("claims.has", f.Props))
+		searchService = searchService.AddAggregation("selectedMatch", selectedMatchAggregation("claims.has", "prop", selectedMatchFilter))
+	}
 
 	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
@@ -203,6 +294,22 @@ func (f *HasFilter) Get(
 			return nil, nil, errE
 		}
 		results = append(results, HasFilterResult{ID: key, Count: bucketDocs.DocCount})
+	}
+	// Outside a value search, force-show the selected properties (at count 0 when unmatched) so the selection is
+	// always visible and deselectable. During a value search a selected property is shown only when its own label
+	// matches the typed text (from the selectedMatch aggregation), so it stays searchable but is not force-shown.
+	if valueQuery == "" {
+		results = mergeSelectedHasProps(results, f.Props)
+	} else if len(f.Props) > 0 {
+		selectedMatch, errE := internalSearch.AggAs[types.GlobalAggregate](res.Aggregations, "selectedMatch")
+		if errE != nil {
+			return nil, nil, errE
+		}
+		matched, errE := parseSelectedMatchIDs(selectedMatch)
+		if errE != nil {
+			return nil, nil, errE
+		}
+		results = mergeMatchedHasProps(results, f.Props, matched)
 	}
 
 	hasTotalValue := distinctValuesTotal(len(hasBuckets), hasTotal.Value)

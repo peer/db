@@ -306,11 +306,12 @@ const {
   loadMore: filtersLoadMore,
 } = useLimitResults(filtersResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
 
-// Whether the result list contains any active (enabled) filter. The backend emits a facet carrying the
-// filter id for every active filter, even when the current combination of filters matches no document (the
-// available-filters total is then zero and facet discovery returns nothing else). We keep showing these so
-// an enabled filter can always be cleared, instead of collapsing the pane to the "no filters" message.
-const hasActiveFilters = computed(() => filtersResults.value.some((result) => Boolean(result.filterId)))
+// Number of active (enabled) filters in the result list. The backend emits a facet carrying the filter id for
+// every active filter, even when the current combination of filters matches no document (the available-filters
+// total is then zero and facet discovery returns nothing else). We keep showing these so an enabled filter can
+// always be cleared, instead of collapsing the pane to the "no filters" message.
+const activeFiltersCount = computed(() => filtersResults.value.filter((result) => Boolean(result.filterId)).length)
+const hasActiveFilters = computed(() => activeFiltersCount.value > 0)
 
 // Visibility of each rendered filter facet, keyed by the stable id it reports through searchFilterVisibilityKey. A
 // reference or has facet hides itself while no value matches the filter-pane search (see hiddenByQuery); amount and
@@ -692,16 +693,19 @@ const WithDocumentD = WithDocument<D>
 
         <template v-else>
           <!--
-            The search box only narrows the available filters, so it is shown only when there are some (or a
-            search is already in progress). With only active filters left to clear there is nothing to narrow.
+            The search box narrows which filters and filter values are shown, so it is shown whenever there are
+            facets to narrow: available filters, active filters (their values can still be searched, e.g. to find
+            one to deselect), or while a search is already in progress.
           -->
-          <div v-if="filtersTotal > 0 || filterQuery">
+          <div v-if="filtersTotal > 0 || hasActiveFilters || filterQuery">
             <!--
-              The count is the number of filters available for the current search and stays constant as the
-              box is typed in; the box only narrows which filters and filter values are shown (by a value name
-              or the facet's own name), never the search itself.
+              The count is the number of filters for the current search and stays constant as the box is typed
+              in; the box only narrows which filters and filter values are shown (by a value name or the facet's
+              own name), never the search itself. When only active filters are shown (none available to add), the
+              label counts those instead.
             -->
             <div v-if="filtersTotal > 0" class="mb-1 text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: filtersTotal }) }}</div>
+            <div v-else-if="hasActiveFilters" class="mb-1 text-sm">{{ t("partials.SearchResultsFeed.filtersActive", { count: activeFiltersCount }) }}</div>
 
             <WithLock :lock="getFilterBoxLock">
               <InputText v-model="filterQuery" class="pd-print-hidden w-full" :aria-label="t('partials.SearchResultsFeed.filtersSearchLabel')" />

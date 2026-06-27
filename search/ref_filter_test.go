@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -130,7 +131,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 	})
 
 	results, metadata, errE := session.Filters[0].Ref.Get(
-		ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0], nil, "", nil,
+		ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0], nil, "", nil, nil,
 	)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
@@ -217,7 +218,7 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 
 	// Query for ref filter values using the session's full query and prop from outside the session.
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Results order is non-deterministic when counts are equal.
@@ -324,7 +325,7 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Results should include target1 (count 1) and __MISSING__ (count 2), sorted by count descending.
@@ -380,7 +381,7 @@ func TestRefFilterGetNoMissingIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// No missing bucket since all documents have the prop.
@@ -470,7 +471,7 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// One source doc per bucket; on equal counts results are ordered by hierarchy
@@ -591,7 +592,7 @@ func TestRefFilterDirectIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// artist aggregates all nine documents; its children (the sculptor value, the artist "direct"
@@ -690,7 +691,7 @@ func TestRefFilterGetDiamondIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil)
+	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, results, 1)
@@ -801,7 +802,7 @@ func TestRefFilterGetMultipleInheritanceIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, results, 6)
 	assert.Equal(t, "6", metadata["total"])
@@ -910,7 +911,7 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 	session := createSession(t, ctx, search.SessionData{})
 
 	f := search.RefFilter{}
-	results, metadata, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "", nil)
+	results, metadata, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// On equal counts results are ordered by hierarchy depth ascending, so
@@ -979,7 +980,7 @@ func TestRefFilterGetValueQueryIntegration(t *testing.T) {
 	// The value query (a prefix wildcard, as the frontend appends) narrows the facet to the matching value
 	// under this property only. Germanium matches "germ*" too but belongs to otherProp, so it must not leak.
 	// The missing bucket is dropped because it has no display label to match.
-	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "germ*", enabledLanguages)
+	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "germ*", enabledLanguages, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.RefFilterResult{
 		{ID: germany.String(), Count: 1, Paths: nil},
@@ -988,7 +989,7 @@ func TestRefFilterGetValueQueryIntegration(t *testing.T) {
 
 	// Matching is over all naming strings, not just the display label: Germany's alternative name
 	// "Deutschland" is found even though its display label is "Germany".
-	results, _, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "deutsch*", enabledLanguages)
+	results, _, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "deutsch*", enabledLanguages, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.RefFilterResult{
 		{ID: germany.String(), Count: 1, Paths: nil},
@@ -996,7 +997,7 @@ func TestRefFilterGetValueQueryIntegration(t *testing.T) {
 
 	// A bare "*" matches everything, including this property's own name, so the whole facet is shown (all
 	// values plus the missing bucket), still scoped to this property.
-	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "*", enabledLanguages)
+	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "*", enabledLanguages, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []search.RefFilterResult{
 		{ID: germany.String(), Count: 1, Paths: nil},
@@ -1006,7 +1007,7 @@ func TestRefFilterGetValueQueryIntegration(t *testing.T) {
 	assert.Equal(t, "3", metadata["total"])
 
 	// An empty value query restores all values, including the missing bucket.
-	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", enabledLanguages)
+	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", enabledLanguages, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []search.RefFilterResult{
 		{ID: germany.String(), Count: 1, Paths: nil},
@@ -1052,22 +1053,548 @@ func TestRefFilterGetSubRefParentNameQueryIntegration(t *testing.T) {
 	expected := []search.RefFilterResult{{ID: alice.String(), Count: 1, Paths: nil}}
 
 	// Matched by the parent property's name ("has location").
-	results, _, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "has location*", enabledLanguages)
+	results, _, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "has location*", enabledLanguages, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, expected, results)
 
 	// Matched by the sub-property's name ("has user").
-	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "has user*", enabledLanguages)
+	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "has user*", enabledLanguages, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, expected, results)
 
 	// Matched by the value's name ("Alice").
-	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "alic*", enabledLanguages)
+	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "alic*", enabledLanguages, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, expected, results)
 
 	// A query that matches neither the parent, sub-property, nor value names returns nothing.
-	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "zzz*", enabledLanguages)
+	results, _, errE = f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "zzz*", enabledLanguages, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Empty(t, results)
+}
+
+// refResultsByID indexes reference filter results by their value id for assertions.
+func refResultsByID(results []search.RefFilterResult) map[string]search.RefFilterResult {
+	out := make(map[string]search.RefFilterResult, len(results))
+	for _, r := range results {
+		out[r.ID] = r
+	}
+	return out
+}
+
+// TestRefFilterGetSelectedValuesWithAncestorsIntegration verifies that an active reference filter always shows
+// its selected values together with their ancestor chain, even when a selection matches no document under the
+// rest of the search. It also covers the deselection regression: with two selected values where one matches
+// and one does not, both remain present (so deselecting the matching one cannot silently drop the other).
+func TestRefFilterGetSelectedValuesWithAncestorsIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	instanceOf := identifier.From("instanceOf")
+	hierProp := identifier.From("hierProp")
+	vocabulary := identifier.From("vocabulary")
+	unit := identifier.From("unit")
+	class := identifier.From("class")
+
+	// Hierarchy: vocabulary > {unit, class}. Paths follow the indexed "<hierProp>:<root>/.../<this>" form.
+	vocabularyPath := hierProp.String() + ":" + vocabulary.String()
+	unitPath := vocabularyPath + "/" + unit.String()
+	classPath := vocabularyPath + "/" + class.String()
+
+	// unitDoc references unit (expanded to unit + vocabulary); classDoc references class (expanded likewise).
+	indexDocument(t, ctx, esClient, index, refDoc("unitDoc", internalSearch.ReferenceClaims{
+		hierRefClaim(instanceOf, unit, []string{unitPath}, []string{unitPath}),
+		hierRefClaim(instanceOf, vocabulary, []string{vocabularyPath}, []string{unitPath}),
+	}))
+	indexDocument(t, ctx, esClient, index, refDoc("classDoc", internalSearch.ReferenceClaims{
+		hierRefClaim(instanceOf, class, []string{classPath}, []string{classPath}),
+		hierRefClaim(instanceOf, vocabulary, []string{vocabularyPath}, []string{classPath}),
+	}))
+	refreshIndex(t, ctx, esClient, index)
+
+	// The rest of the search matches only classDoc, so unit has zero documents here. Both unit and class are
+	// selected; unit must still appear (at count 0) together with its ancestor vocabulary.
+	restOfSearch := esdsl.NewNestedQuery(
+		esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(class.String())),
+	).Path("claims.ref")
+	f := search.RefFilter{To: []search.ToValue{{ID: class}, {ID: unit}}} //nolint:exhaustruct
+	resolver := newPathResolver(map[identifier.Identifier][]string{
+		unit:  {unitPath},
+		class: {classPath},
+	})
+	results, _, errE := f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "", nil, resolver)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	byID := refResultsByID(results)
+	// unit is shown at count 0 with vocabulary as its ancestor, even though no matching document has it.
+	require.Contains(t, byID, unit.String())
+	assert.Equal(t, int64(0), byID[unit.String()].Count)
+	assert.Equal(t, [][]string{{vocabulary.String()}}, byID[unit.String()].Paths)
+	// class (selected and matched) keeps its real count, also under vocabulary.
+	require.Contains(t, byID, class.String())
+	assert.Equal(t, int64(1), byID[class.String()].Count)
+	assert.Equal(t, [][]string{{vocabulary.String()}}, byID[class.String()].Paths)
+	// vocabulary (the shared ancestor) is present so the tree can render vocabulary -> {unit, class}.
+	require.Contains(t, byID, vocabulary.String())
+	assert.Empty(t, byID[vocabulary.String()].Paths)
+}
+
+// TestRefFilterGetSelectedValueVanishedIntegration verifies that a selected value with no indexed hierarchy
+// anywhere (it references no document at all) still appears flat at count 0, so it stays deselectable.
+func TestRefFilterGetSelectedValueVanishedIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	instanceOf := identifier.From("instanceOf")
+	hierProp := identifier.From("hierProp")
+	vocabulary := identifier.From("vocabulary")
+	class := identifier.From("class")
+	ghost := identifier.From("ghost")
+
+	vocabularyPath := hierProp.String() + ":" + vocabulary.String()
+	classPath := vocabularyPath + "/" + class.String()
+
+	indexDocument(t, ctx, esClient, index, refDoc("classDoc", internalSearch.ReferenceClaims{
+		hierRefClaim(instanceOf, class, []string{classPath}, []string{classPath}),
+		hierRefClaim(instanceOf, vocabulary, []string{vocabularyPath}, []string{classPath}),
+	}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	// ghost is selected but referenced by no document, so it has no indexed toPath. It must still be returned
+	// flat (no ancestors) at count 0.
+	f := search.RefFilter{To: []search.ToValue{{ID: ghost}}} //nolint:exhaustruct
+	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), instanceOf, nil, "", nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	byID := refResultsByID(results)
+	require.Contains(t, byID, ghost.String())
+	assert.Equal(t, int64(0), byID[ghost.String()].Count)
+	assert.Empty(t, byID[ghost.String()].Paths)
+}
+
+// TestRefFilterGetSubRefSelectedValueWithAncestorsIntegration verifies the same selected-value surfacing for
+// sub-reference filters: an active sub-ref selection is always shown together with its ancestor chain, even
+// when it matches no document under the rest of the search.
+func TestRefFilterGetSubRefSelectedValueWithAncestorsIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	parentProp := identifier.From("parentProp")
+	parentTo := identifier.From("parentToValue").String()
+	subProp := identifier.From("subProp")
+	hierProp := identifier.From("hierProp")
+	animal := identifier.From("animal")
+	mammal := identifier.From("mammal")
+	dog := identifier.From("dog")
+	cat := identifier.From("cat")
+
+	animalPath := hierProp.String() + ":" + animal.String()
+	mammalPath := animalPath + "/" + mammal.String()
+	dogPath := mammalPath + "/" + dog.String()
+	catPath := mammalPath + "/" + cat.String()
+
+	subHierClaim := func(to identifier.Identifier, toPath, fullPath string) internalSearch.SubRefClaim {
+		return internalSearch.SubRefClaim{ //nolint:exhaustruct
+			ParentProp: parentProp, ParentTo: parentTo,
+			ReferenceClaim: internalSearch.ReferenceClaim{ //nolint:exhaustruct
+				Prop: subProp, To: to, ToPath: []string{toPath}, ToFullPath: []string{fullPath},
+			},
+		}
+	}
+
+	// subDog references dog (expanded to dog, mammal, animal); subCat references cat (expanded likewise).
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
+		ID: identifier.From("subDog"),
+		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
+			SubRef: internalSearch.SubRefClaims{
+				subHierClaim(dog, dogPath, dogPath),
+				subHierClaim(mammal, mammalPath, dogPath),
+				subHierClaim(animal, animalPath, dogPath),
+			},
+		},
+	})
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
+		ID: identifier.From("subCat"),
+		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
+			SubRef: internalSearch.SubRefClaims{
+				subHierClaim(cat, catPath, catPath),
+				subHierClaim(mammal, mammalPath, catPath),
+				subHierClaim(animal, animalPath, catPath),
+			},
+		},
+	})
+	refreshIndex(t, ctx, esClient, index)
+
+	// The rest of the search matches only subCat, so dog has zero documents here. dog is selected; it must
+	// still appear at count 0 with its full ancestor chain (animal -> mammal -> dog).
+	restOfSearch := esdsl.NewNestedQuery(
+		esdsl.NewTermQuery("claims.subRef.to", esdsl.NewFieldValue().String(cat.String())),
+	).Path("claims.subRef")
+	f := search.RefFilter{To: []search.ToValue{{ID: dog}}} //nolint:exhaustruct
+	resolver := newPathResolver(map[identifier.Identifier][]string{dog: {dogPath}})
+	results, _, errE := f.GetSubRef(ctx, getSearchService, restOfSearch, parentProp, subProp, nil, nil, "", nil, resolver)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	byID := refResultsByID(results)
+	require.Contains(t, byID, dog.String())
+	assert.Equal(t, int64(0), byID[dog.String()].Count)
+	assert.Equal(t, [][]string{{animal.String(), mammal.String()}}, byID[dog.String()].Paths)
+	// The ancestors are present so the tree can render animal -> mammal -> dog.
+	require.Contains(t, byID, mammal.String())
+	require.Contains(t, byID, animal.String())
+	// cat (from the rest of the search) keeps its real count.
+	require.Contains(t, byID, cat.String())
+	assert.Equal(t, int64(1), byID[cat.String()].Count)
+}
+
+// TestRefFilterGetMissingOnlySelectionIntegration verifies that a missing-only selection that matches nothing
+// still produces the missing row (at count 0) so it can be unchecked, without needing the selected-values
+// aggregation.
+func TestRefFilterGetMissingOnlySelectionIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	instanceOf := identifier.From("instanceOf")
+	class := identifier.From("class")
+
+	// Every indexed document has the property, so the missing count is zero and the existing code would not add
+	// a missing row on its own.
+	indexDocument(t, ctx, esClient, index, refDoc("classDoc", internalSearch.ReferenceClaims{
+		hierRefClaim(instanceOf, class, nil, nil),
+	}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.RefFilter{Missing: true} //nolint:exhaustruct
+	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), instanceOf, nil, "", nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	byID := refResultsByID(results)
+	require.Contains(t, byID, search.MissingValueID)
+	assert.Equal(t, int64(0), byID[search.MissingValueID].Count)
+}
+
+// TestRefFilterGetValueSearchHierarchyIntegration verifies the interaction between an active selection and a
+// filter-pane value search: the search only changes which values are shown, never their counts; a matched
+// value's ancestors are shown for tree context with their real (no-search) counts; and selected values are not
+// force-shown unless they match the search.
+func TestRefFilterGetValueSearchHierarchyIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	instanceOf := identifier.From("instanceOf")
+	hierProp := identifier.From("hierProp")
+	vocabulary := identifier.From("vocabulary")
+	unit := identifier.From("unit")
+	language := identifier.From("language")
+	class := identifier.From("class")
+
+	vocabularyPath := hierProp.String() + ":" + vocabulary.String()
+	unitPath := vocabularyPath + "/" + unit.String()
+	languagePath := vocabularyPath + "/" + language.String()
+	classPath := hierProp.String() + ":" + class.String()
+
+	// A reference claim carrying a display label (so the value-query label match can find it) and its toPath.
+	hierClaim := func(to identifier.Identifier, display, toPath, fullPath string) internalSearch.ReferenceClaim {
+		return internalSearch.ReferenceClaim{ //nolint:exhaustruct
+			Prop: instanceOf, To: to, ToDisplay: map[string]string{"en": display},
+			ToPath: []string{toPath}, ToFullPath: []string{fullPath},
+		}
+	}
+
+	// Hierarchy: vocabulary > {unit, language}; class is a separate root. Counts: vocabulary 3 (two unit docs
+	// plus one language doc), unit 2, language 1, class 1.
+	indexDocument(t, ctx, esClient, index, refDoc("unitDoc1", internalSearch.ReferenceClaims{
+		hierClaim(unit, "unit", unitPath, unitPath),
+		hierClaim(vocabulary, "vocabulary", vocabularyPath, unitPath),
+	}))
+	indexDocument(t, ctx, esClient, index, refDoc("unitDoc2", internalSearch.ReferenceClaims{
+		hierClaim(unit, "unit", unitPath, unitPath),
+		hierClaim(vocabulary, "vocabulary", vocabularyPath, unitPath),
+	}))
+	indexDocument(t, ctx, esClient, index, refDoc("languageDoc", internalSearch.ReferenceClaims{
+		hierClaim(language, "language", languagePath, languagePath),
+		hierClaim(vocabulary, "vocabulary", vocabularyPath, languagePath),
+	}))
+	indexDocument(t, ctx, esClient, index, refDoc("classDoc", internalSearch.ReferenceClaims{
+		hierClaim(class, "class", classPath, classPath),
+	}))
+	refreshIndex(t, ctx, esClient, index)
+
+	enabledLanguages := internalSearch.EnabledLanguages(nil)
+	query := createSession(t, ctx, search.SessionData{}).ToQuery(enabledLanguages)
+	// unit is the active selection; this must not force it to show during a search that it does not match.
+	f := search.RefFilter{To: []search.ToValue{{ID: unit}}} //nolint:exhaustruct
+	resolver := newPathResolver(map[identifier.Identifier][]string{unit: {unitPath}})
+
+	// Searching the value name "unit" shows unit and, for tree context, its ancestor vocabulary with its real
+	// (no-search) count of 3, not 0. The sibling language and the unrelated class are not shown.
+	results, metadata, errE := f.Get(ctx, getSearchService, query, instanceOf, nil, "unit*", enabledLanguages, resolver)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	byID := refResultsByID(results)
+	require.Contains(t, byID, unit.String())
+	assert.Equal(t, int64(2), byID[unit.String()].Count)
+	assert.Equal(t, [][]string{{vocabulary.String()}}, byID[unit.String()].Paths)
+	require.Contains(t, byID, vocabulary.String())
+	assert.Equal(t, int64(3), byID[vocabulary.String()].Count)
+	assert.NotContains(t, byID, language.String())
+	assert.NotContains(t, byID, class.String())
+	assert.Equal(t, "2", metadata["total"])
+
+	// Searching "voca" shows vocabulary (real count 3). unit does not match and is not force-shown, even though
+	// it is the active selection; vocabulary's other descendants are not shown either.
+	results, metadata, errE = f.Get(ctx, getSearchService, query, instanceOf, nil, "voca*", enabledLanguages, resolver)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	byID = refResultsByID(results)
+	require.Contains(t, byID, vocabulary.String())
+	assert.Equal(t, int64(3), byID[vocabulary.String()].Count)
+	assert.NotContains(t, byID, unit.String())
+	assert.NotContains(t, byID, language.String())
+	assert.NotContains(t, byID, class.String())
+	assert.Equal(t, "1", metadata["total"])
+
+	// Searching "class" shows only class. The selected unit and its ancestor vocabulary are not force-shown.
+	results, _, errE = f.Get(ctx, getSearchService, query, instanceOf, nil, "class*", enabledLanguages, resolver)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	byID = refResultsByID(results)
+	require.Contains(t, byID, class.String())
+	assert.Equal(t, int64(1), byID[class.String()].Count)
+	assert.NotContains(t, byID, vocabulary.String())
+	assert.NotContains(t, byID, unit.String())
+}
+
+// TestRefFilterGetSelectedAugmentValueSearchIntegration verifies that an active reference filter's augmented
+// values (its selection plus their ancestors), which have zero documents in the current search scope, are
+// searchable in the filter pane by the SAME Elasticsearch label matcher real values use: a selected value
+// matches by its display label or any naming string, and an ancestor matches only because its descendant is
+// selected (so searching the ancestor surfaces it without pulling in the descendant). A non-matching term
+// hides the augment; outside a search the whole augment is shown at count 0.
+func TestRefFilterGetSelectedAugmentValueSearchIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	instanceOf := identifier.From("instanceOf")
+	hierProp := identifier.From("hierProp")
+	vocabulary := identifier.From("vocabulary")
+	unit := identifier.From("unit")
+	class := identifier.From("class")
+
+	vocabularyPath := hierProp.String() + ":" + vocabulary.String()
+	unitPath := vocabularyPath + "/" + unit.String()
+	classPath := hierProp.String() + ":" + class.String()
+
+	// A reference claim carrying a display label and optional naming strings (so the value-query label match can
+	// find the value by either), plus its toPath.
+	hierNamedClaim := func(to identifier.Identifier, display string, naming []string, toPath, fullPath string) internalSearch.ReferenceClaim {
+		var toNaming map[string][]string
+		if naming != nil {
+			toNaming = map[string][]string{"en": naming}
+		}
+		return internalSearch.ReferenceClaim{ //nolint:exhaustruct
+			Prop: instanceOf, To: to, ToDisplay: map[string]string{"en": display}, ToNaming: toNaming,
+			ToPath: []string{toPath}, ToFullPath: []string{fullPath},
+		}
+	}
+
+	// unitDoc references unit (expanded to unit + vocabulary); classDoc references class. The search scope below
+	// matches only classDoc, so unit and vocabulary have zero documents in scope, yet exist globally.
+	indexDocument(t, ctx, esClient, index, refDoc("unitDoc", internalSearch.ReferenceClaims{
+		hierNamedClaim(unit, "unit", []string{"metre"}, unitPath, unitPath),
+		hierNamedClaim(vocabulary, "vocabulary", nil, vocabularyPath, unitPath),
+	}))
+	indexDocument(t, ctx, esClient, index, refDoc("classDoc", internalSearch.ReferenceClaims{
+		hierNamedClaim(class, "class", nil, classPath, classPath),
+	}))
+	refreshIndex(t, ctx, esClient, index)
+
+	enabledLanguages := internalSearch.EnabledLanguages(nil)
+	// The rest of the search matches only classDoc, so the selected unit is not in scope.
+	restOfSearch := esdsl.NewNestedQuery(
+		esdsl.NewTermQuery("claims.ref.to", esdsl.NewFieldValue().String(class.String())),
+	).Path("claims.ref")
+	// unit is the active selection; its augment is unit plus its ancestor vocabulary.
+	f := search.RefFilter{To: []search.ToValue{{ID: unit}}} //nolint:exhaustruct
+	resolver := newPathResolver(map[identifier.Identifier][]string{unit: {unitPath}})
+
+	// Searching unit's display label surfaces unit (at count 0) and its ancestor vocabulary for tree context,
+	// even though neither is in the search scope. The in-scope class value does not match and is not shown.
+	results, _, errE := f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "unit*", enabledLanguages, resolver)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	byID := refResultsByID(results)
+	require.Contains(t, byID, unit.String())
+	assert.Equal(t, int64(0), byID[unit.String()].Count)
+	assert.Equal(t, [][]string{{vocabulary.String()}}, byID[unit.String()].Paths)
+	require.Contains(t, byID, vocabulary.String())
+	assert.Equal(t, int64(0), byID[vocabulary.String()].Count)
+	assert.NotContains(t, byID, class.String())
+
+	// Searching unit by one of its naming strings ("metre") surfaces it too: the augment is matched by the full
+	// value matcher (display plus naming), not only the display label.
+	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "metr*", enabledLanguages, resolver)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	byID = refResultsByID(results)
+	require.Contains(t, byID, unit.String())
+	require.Contains(t, byID, vocabulary.String())
+
+	// Searching the ancestor's label ("voca") surfaces vocabulary only because its descendant unit is selected;
+	// unit itself does not match and is not pulled in.
+	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "voca*", enabledLanguages, resolver)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	byID = refResultsByID(results)
+	require.Contains(t, byID, vocabulary.String())
+	assert.Equal(t, int64(0), byID[vocabulary.String()].Count)
+	assert.NotContains(t, byID, unit.String())
+
+	// Searching "class" matches the real in-scope class value and hides the augment entirely.
+	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "class*", enabledLanguages, resolver)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	byID = refResultsByID(results)
+	require.Contains(t, byID, class.String())
+	assert.Equal(t, int64(1), byID[class.String()].Count)
+	assert.NotContains(t, byID, unit.String())
+	assert.NotContains(t, byID, vocabulary.String())
+
+	// Outside a value search the whole augment (unit plus vocabulary) is force-shown at count 0 alongside the
+	// in-scope class value.
+	results, _, errE = f.Get(ctx, getSearchService, restOfSearch, instanceOf, nil, "", enabledLanguages, resolver)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	byID = refResultsByID(results)
+	require.Contains(t, byID, unit.String())
+	assert.Equal(t, int64(0), byID[unit.String()].Count)
+	assert.Equal(t, [][]string{{vocabulary.String()}}, byID[unit.String()].Paths)
+	require.Contains(t, byID, vocabulary.String())
+	assert.Equal(t, int64(0), byID[vocabulary.String()].Count)
+	require.Contains(t, byID, class.String())
+	assert.Equal(t, int64(1), byID[class.String()].Count)
+}
+
+// TestRefFilterGetSubRefSelectedAugmentValueSearchIntegration verifies the same augment searchability for
+// sub-reference filters: an active sub-ref selection (plus its ancestors), which has zero documents in the
+// current search scope, is searchable by display label or naming string, an ancestor surfaces only because
+// its selected descendant pulls it into the augment, a non-matching term hides the augment, and outside a
+// search the whole augment is shown at count 0.
+func TestRefFilterGetSubRefSelectedAugmentValueSearchIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	parentProp := identifier.From("parentProp")
+	parentTo := identifier.From("parentToValue").String()
+	subProp := identifier.From("subProp")
+	hierProp := identifier.From("hierProp")
+	animal := identifier.From("animal")
+	mammal := identifier.From("mammal")
+	dog := identifier.From("dog")
+	other := identifier.From("other")
+
+	animalPath := hierProp.String() + ":" + animal.String()
+	mammalPath := animalPath + "/" + mammal.String()
+	dogPath := mammalPath + "/" + dog.String()
+	otherPath := hierProp.String() + ":" + other.String()
+
+	subNamedClaim := func(to identifier.Identifier, display string, naming []string, toPath, fullPath string) internalSearch.SubRefClaim {
+		var toNaming map[string][]string
+		if naming != nil {
+			toNaming = map[string][]string{"en": naming}
+		}
+		return internalSearch.SubRefClaim{ //nolint:exhaustruct
+			ParentProp: parentProp, ParentTo: parentTo,
+			ReferenceClaim: internalSearch.ReferenceClaim{ //nolint:exhaustruct
+				Prop: subProp, To: to, ToDisplay: map[string]string{"en": display}, ToNaming: toNaming,
+				ToPath: []string{toPath}, ToFullPath: []string{fullPath},
+			},
+		}
+	}
+
+	// subDog references dog (expanded to dog, mammal, animal); subOther references the unrelated other root. The
+	// search scope below matches only subOther, so dog and its ancestors have zero documents in scope.
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
+		ID: identifier.From("subDog"),
+		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
+			SubRef: internalSearch.SubRefClaims{
+				subNamedClaim(dog, "dog", []string{"canine"}, dogPath, dogPath),
+				subNamedClaim(mammal, "mammal", nil, mammalPath, dogPath),
+				subNamedClaim(animal, "animal", nil, animalPath, dogPath),
+			},
+		},
+	})
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:exhaustruct
+		ID: identifier.From("subOther"),
+		Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
+			SubRef: internalSearch.SubRefClaims{
+				subNamedClaim(other, "other", nil, otherPath, otherPath),
+			},
+		},
+	})
+	refreshIndex(t, ctx, esClient, index)
+
+	enabledLanguages := internalSearch.EnabledLanguages(nil)
+	restOfSearch := esdsl.NewNestedQuery(
+		esdsl.NewTermQuery("claims.subRef.to", esdsl.NewFieldValue().String(other.String())),
+	).Path("claims.subRef")
+	f := search.RefFilter{To: []search.ToValue{{ID: dog}}} //nolint:exhaustruct
+	resolver := newPathResolver(map[identifier.Identifier][]string{dog: {dogPath}})
+
+	// Searching dog's display label surfaces dog (count 0) with its full ancestor chain, even though dog is not
+	// in scope.
+	results, _, errE := f.GetSubRef(ctx, getSearchService, restOfSearch, parentProp, subProp, nil, nil, "dog*", enabledLanguages, resolver)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	byID := refResultsByID(results)
+	require.Contains(t, byID, dog.String())
+	assert.Equal(t, int64(0), byID[dog.String()].Count)
+	assert.Equal(t, [][]string{{animal.String(), mammal.String()}}, byID[dog.String()].Paths)
+	require.Contains(t, byID, mammal.String())
+	require.Contains(t, byID, animal.String())
+	assert.NotContains(t, byID, other.String())
+
+	// Searching dog by a naming string ("canine") surfaces it too.
+	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, parentProp, subProp, nil, nil, "canin*", enabledLanguages, resolver)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	byID = refResultsByID(results)
+	require.Contains(t, byID, dog.String())
+
+	// Searching the ancestor's label ("anim") surfaces animal only because its descendant dog is selected; dog
+	// and the intermediate mammal are not pulled in.
+	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, parentProp, subProp, nil, nil, "anim*", enabledLanguages, resolver)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	byID = refResultsByID(results)
+	require.Contains(t, byID, animal.String())
+	assert.Equal(t, int64(0), byID[animal.String()].Count)
+	assert.NotContains(t, byID, dog.String())
+	assert.NotContains(t, byID, mammal.String())
+
+	// Searching "other" matches the real in-scope value and hides the augment.
+	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, parentProp, subProp, nil, nil, "other*", enabledLanguages, resolver)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	byID = refResultsByID(results)
+	require.Contains(t, byID, other.String())
+	assert.Equal(t, int64(1), byID[other.String()].Count)
+	assert.NotContains(t, byID, dog.String())
+	assert.NotContains(t, byID, animal.String())
+
+	// Outside a value search the whole augment (dog plus its ancestors) is force-shown at count 0.
+	results, _, errE = f.GetSubRef(ctx, getSearchService, restOfSearch, parentProp, subProp, nil, nil, "", enabledLanguages, resolver)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	byID = refResultsByID(results)
+	require.Contains(t, byID, dog.String())
+	assert.Equal(t, int64(0), byID[dog.String()].Count)
+	require.Contains(t, byID, mammal.String())
+	require.Contains(t, byID, animal.String())
+	require.Contains(t, byID, other.String())
 }

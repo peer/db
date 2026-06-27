@@ -206,6 +206,7 @@
       "resultsNotShown": "{count} od {total} rezultatov ni prikazan. | {count} od {total} rezultatov nista prikazana. | {count} od {total} rezultatov niso prikazani. | {count} od {total} rezultatov ni prikazanih.",
       "noFilters": "Ni filtrov na voljo.",
       "filtersAvailable": "Išči po {count} filtru na voljo: | Išči po {count} filtrih na voljo: | Išči po {count} filtrih na voljo: | Išči po {count} filtrih na voljo:",
+      "filtersActive": "Išči po {count} aktivnem filtru: | Išči po {count} aktivnih filtrih: | Išči po {count} aktivnih filtrih: | Išči po {count} aktivnih filtrih:",
       "filtersSearchLabel": "Išči po filtrih in vrednostih filtrov",
       "filtersNoMatch": "Noben filter ne ustreza iskanju.",
       "determiningFilters": "Ugotavljanje filtrov...",
