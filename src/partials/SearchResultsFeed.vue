@@ -305,6 +305,12 @@ const {
   loadMore: filtersLoadMore,
 } = useLimitResults(filtersResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
 
+// Whether the result list contains any active (enabled) filter. The backend emits a facet carrying the
+// filter id for every active filter, even when the current combination of filters matches no document (the
+// available-filters total is then zero and facet discovery returns nothing else). We keep showing these so
+// an enabled filter can always be cleared, instead of collapsing the pane to the "no filters" message.
+const hasActiveFilters = computed(() => filtersResults.value.some((result) => Boolean(result.filterId)))
+
 const { track, visibles } = useVisibilityTracking()
 // The grouped result tree renders leaf results deep in SearchResultGroup, so the tracker is provided for
 // those leaves to register the same way the flat results do here.
@@ -650,13 +656,20 @@ const WithDocumentD = WithDocument<D>
           </template>
         </div>
 
-        <!-- No filters at all and not searching: there is nothing to search, so the box is not shown. -->
-        <div v-if="filtersTotal === 0 && !filterQuery" class="my-1 sm:my-4">
+        <!--
+          No filters at all and not searching: there is nothing to search, so the box is not shown.
+          Active filters keep the pane open even when nothing is available, so they can still be cleared.
+        -->
+        <div v-if="filtersTotal === 0 && !filterQuery && !hasActiveFilters" class="my-1 sm:my-4">
           <div class="text-center text-sm">{{ t("partials.SearchResultsFeed.noFilters") }}</div>
         </div>
 
-        <template v-else-if="filtersTotal > 0 || filterQuery || searchSession.reverse">
-          <div>
+        <template v-else>
+          <!--
+            The search box only narrows the available filters, so it is shown only when there are some (or a
+            search is already in progress). With only active filters left to clear there is nothing to narrow.
+          -->
+          <div v-if="filtersTotal > 0 || filterQuery">
             <!--
               The count is the number of filters available for the current search and stays constant as the
               box is typed in; the box only narrows which filters and filter values are shown (by a value name
