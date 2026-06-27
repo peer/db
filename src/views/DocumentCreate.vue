@@ -1,21 +1,18 @@
 <script setup lang="ts">
-import type { D } from "@/document"
-import type { DocumentCreateResponse, JustResultsFilters, Result } from "@/types"
+import type { ClassCreateResult, CreateOptionsResponse, DocumentCreateResponse } from "@/types"
 
-import { onBeforeMount, onBeforeUnmount, ref } from "vue"
+import { computed, onBeforeMount, onBeforeUnmount, ref } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import { getURL, postJSON } from "@/api"
-import Button from "@/components/Button.vue"
-import { CLASS, INSTANCE_OF } from "@/core"
+import { INSTANCE_OF } from "@/core"
 import { HighConfidence } from "@/document"
-import { hasFields, isAbstractClass } from "@/fields"
-import DisplayLabel from "@/partials/DisplayLabel.vue"
+import ClassTreeList from "@/partials/ClassTreeList.vue"
 import Footer from "@/partials/Footer.vue"
 import NavBar from "@/partials/NavBar.vue"
 import { useBusy } from "@/progress"
-import { encodeQuery, makeAddClaimChange } from "@/utils"
+import { buildRefTree, encodeQuery, makeAddClaimChange } from "@/utils"
 
 const { t } = useI18n({ useScope: "global" })
 const router = useRouter()
@@ -26,8 +23,13 @@ const busy = useBusy()
 
 const abortController = new AbortController()
 
-const classesWithFields = ref<D[]>([])
+const classes = ref<ClassCreateResult[]>([])
 const loaded = ref(false)
+
+// The backend returns the classes already ordered for tree rendering (classes with more documents first,
+// zero-document ones last); buildRefTree turns that flat list into the hierarchy, duplicating a class under
+// each of its parents.
+const tree = computed(() => buildRefTree(classes.value))
 
 onBeforeUnmount(() => {
   abortController.abort()
@@ -40,38 +42,12 @@ async function loadClasses() {
 
   busy.value += 1
   try {
-    // Get search results for documents that are instances of CLASS.
-    const results = await postJSON<Result[]>(
-      router.apiResolve({ name: "SearchJustResults" }).href,
-      {
-        // We do not provide filter IDs and base for SearchJustResults API endpoint.
-        filters: [{ prop: [INSTANCE_OF], ref: { to: [{ id: CLASS }] } }],
-      } satisfies JustResultsFilters,
-      abortController.signal,
-      null,
-    )
+    const { doc } = await getURL<CreateOptionsResponse>(router.apiResolve({ name: "DocumentCreateOptions" }).href, null, abortController.signal, null)
     if (abortController.signal.aborted) {
       return
     }
 
-    // Fetch each class document and check for fields.
-    const classes: D[] = []
-    for (const result of results) {
-      try {
-        const { doc } = await getURL<D>(router.apiResolve({ name: "DocumentGet", params: { id: result.id } }).href, null, abortController.signal, null)
-        if (abortController.signal.aborted) {
-          return
-        }
-        if (hasFields(doc.claims) && !isAbstractClass(doc.claims)) {
-          classes.push(doc)
-        }
-      } catch (err) {
-        // TODO: Do something better?
-        console.error("DocumentCreate.loadClasses", err)
-      }
-    }
-
-    classesWithFields.value = classes
+    classes.value = doc.classes
     loaded.value = true
   } catch (err) {
     if (abortController.signal.aborted) {
@@ -149,14 +125,12 @@ async function onCreate(classId: string) {
   <Teleport to="header">
     <NavBar />
   </Teleport>
-  <div class="pd-documentcreate mt-[var(--pd-navbar-height)] flex w-full flex-col items-center p-1 sm:p-4">
-    <div v-if="!loaded" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
-    <div v-else-if="classesWithFields.length === 0" class="my-1 text-center sm:my-4">{{ t("views.DocumentCreate.noClasses") }}</div>
-    <div v-else class="flex w-full max-w-md flex-col gap-y-2 sm:gap-y-4">
-      <h1 class="text-center text-3xl font-medium">{{ t("views.DocumentCreate.title") }}</h1>
-      <Button v-for="cls in classesWithFields" :key="cls.id" type="button" @click.prevent="onCreate(cls.id)">
-        <DisplayLabel :doc="cls" />
-      </Button>
+  <div class="pd-documentcreate mt-[var(--pd-navbar-height)] flex w-full flex-col p-1 sm:p-4 xl:px-16">
+    <div v-if="!loaded" class="my-1 sm:my-4">{{ t("common.status.loading") }}</div>
+    <div v-else-if="tree.length === 0" class="my-1 sm:my-4">{{ t("views.DocumentCreate.noClasses") }}</div>
+    <div v-else class="flex w-full flex-col gap-y-2 sm:gap-y-4">
+      <h1 class="text-3xl font-bold drop-shadow-xs">{{ t("views.DocumentCreate.title") }}</h1>
+      <ClassTreeList :nodes="tree" :on-create="onCreate" />
     </div>
   </div>
   <Teleport to="footer">

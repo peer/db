@@ -8,6 +8,8 @@ type TestingBucketEntry = bucketEntry
 var (
 	TestingAmountStepDown          = amountStepDown
 	TestingAmountUnitFilter        = amountUnitFilter
+	TestingAncestorChains          = ancestorChains
+	TestingClassCreatable          = classCreatable
 	TestingComputeInterval         = computeInterval
 	TestingDistinctValuesTotal     = distinctValuesTotal
 	TestingDocumentTextSearchQuery = documentTextSearchQuery

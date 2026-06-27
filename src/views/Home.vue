@@ -65,7 +65,7 @@ const homeComponent = getHomeComponent()
       -->
       <RouterLink :to="{ name: 'SearchShortcut' }" class="mb-10 flex w-full max-w-2xl justify-center self-center p-4 sm:w-4/5 md:w-2/3 lg:w-1/2">
         <img v-if="siteContext.logo" :src="siteContext.logo" :alt="siteContext.title" :title="siteContext.title" class="logo max-h-48 max-w-full" />
-        <h1 v-else class="text-5xl font-bold">{{ siteContext.title }}</h1>
+        <h1 v-else class="text-5xl font-bold drop-shadow-xs">{{ siteContext.title }}</h1>
       </RouterLink>
     </div>
     <div class="flex flex-row justify-center gap-x-1 px-1 sm:gap-x-4 sm:px-4">

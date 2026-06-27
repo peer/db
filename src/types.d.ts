@@ -71,11 +71,34 @@ export type RefFilterResult = {
   paths?: string[][]
 }
 
-export type RefFilterTreeNode = {
-  res: RefFilterResult
-  // res.id for the canonical placement; res.id + "|" + ancestorKey for diamond duplicates.
+// TreeNode is one node in a value-hierarchy tree built from a flat, path-carrying result list (see
+// buildRefTree). res is the underlying result, key uniquely identifies this placement (res.id for the
+// canonical placement; res.id + "|" + ancestorKey for diamond duplicates under additional parents), and
+// children are the nodes placed under it.
+export type TreeNode<T> = {
+  res: T
   key: string
-  children: RefFilterTreeNode[]
+  children: TreeNode<T>[]
+}
+
+export type RefFilterTreeNode = TreeNode<RefFilterResult>
+
+// ClassCreateResult is one class returned by the DocumentCreateOptions endpoint. paths are the SUBCLASS_OF
+// ancestor chains (root to immediate parent), one per parent, so the class renders once under each parent.
+// canCreate is true when a document can be created for the class; non-creatable classes appear only as
+// structural ancestors of creatable ones.
+export type ClassCreateResult = {
+  id: string
+  paths?: string[][]
+  canCreate: boolean
+}
+
+export type ClassCreateTreeNode = TreeNode<ClassCreateResult>
+
+// CreateOptionsResponse is the body of the DocumentCreateOptions endpoint: the classes for the create
+// view, already ordered for tree rendering. It is an object so it can grow more fields later.
+export type CreateOptionsResponse = {
+  classes: ClassCreateResult[]
 }
 
 export type HasFilterResult = {

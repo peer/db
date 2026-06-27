@@ -18,6 +18,7 @@ import (
 	"gitlab.com/peerdb/peerdb/auth"
 	"gitlab.com/peerdb/peerdb/base"
 	"gitlab.com/peerdb/peerdb/coordinator"
+	"gitlab.com/peerdb/peerdb/document"
 	internalStore "gitlab.com/peerdb/peerdb/internal/store"
 	"gitlab.com/peerdb/peerdb/search"
 	"gitlab.com/peerdb/peerdb/store"
@@ -315,6 +316,56 @@ func (s *Service) DocumentCreatePostAPI(w http.ResponseWriter, req *http.Request
 		Base:    base,
 		Session: session,
 	}, nil)
+}
+
+// createOptionsResponse is the JSON body of DocumentCreateOptionsGetAPI. Classes are the classes to offer
+// in the create-document view, already ordered for tree rendering. It is an object (rather than a bare
+// array) so it can carry more create-time options in the future without breaking clients.
+type createOptionsResponse struct {
+	Classes []search.ClassCreateOption `json:"classes"`
+}
+
+// DocumentCreateOptionsGetAPI is a GET HTTP request API handler which returns the classes offered in the
+// create-document view as a flat, render-ordered list the frontend builds into a tree (see
+// search.CreateOptions): every class a document can be created for, plus the structural ancestors needed
+// to place them, with classes that have more documents ordered first. It uses the same permission gate as
+// the create page.
+func (s *Service) DocumentCreateOptionsGetAPI(w http.ResponseWriter, req *http.Request, _ waf.Params) {
+	ctx := req.Context()
+
+	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	if errE != nil {
+		s.ForbiddenWithError(w, req, errE)
+		return
+	}
+
+	index, handled := s.resolveReadIndex(w, req)
+	if handled {
+		return
+	}
+
+	accessFilter, errE := searchAccessFilter(ctx)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	site := waf.MustGetSite[*internalSite.Site](ctx)
+
+	// loadDocument reads a class document so search.CreateOptions can decide createability. CreateOptions
+	// skips a class that is not found or not accessible (an ErrValueNotFound or ErrAccessDenied error).
+	loadDocument := func(ctx context.Context, id identifier.Identifier) (*document.D, errors.E) {
+		doc, _, _, _, errE := site.Base.GetDocumentLatestDoc(ctx, id)
+		return doc, errE
+	}
+
+	classes, errE := search.CreateOptions(ctx, s.getSearchServiceClosure(req, index), accessFilter, loadDocument, s.documentFullPaths)
+	if errE != nil {
+		s.InternalServerErrorWithError(w, req, errE)
+		return
+	}
+
+	s.WriteJSON(w, req, createOptionsResponse{Classes: classes}, nil)
 }
 
 type documentBeginEditResponse struct {

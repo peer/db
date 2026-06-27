@@ -59,7 +59,9 @@ useValidationRegistry()
           :title="siteContext.title"
           class="pd-navbar-logo h-10 group-focus:ring-2 group-focus:ring-primary-500 group-focus:ring-offset-1"
         />
-        <h1 v-else class="pd-navbar-logo text-4xl font-bold group-focus:ring-2 group-focus:ring-primary-500 group-focus:ring-offset-1">{{ siteContext.title }}</h1>
+        <h1 v-else class="pd-navbar-logo text-4xl font-bold drop-shadow-xs group-focus:ring-2 group-focus:ring-primary-500 group-focus:ring-offset-1">{{
+          siteContext.title
+        }}</h1>
       </RouterLink>
       <slot name="start"><NavBarSearch /></slot>
       <component :is="c" v-for="(c, i) in navbarComponents" :key="i" :home="false" />

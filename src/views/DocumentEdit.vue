@@ -1036,7 +1036,7 @@ function canSave(): boolean {
                 </tbody>
               </table>
               <form ref="claimFormRef" @submit.prevent="onSubmit" @reset="onReset">
-                <h2 class="mt-4 text-xl font-bold drop-shadow-xs">{{
+                <h2 class="mt-4 text-xl font-medium">{{
                   editingClaimId ? t("views.DocumentEdit.editClaim") : subClaimParentId ? t("views.DocumentEdit.addSubClaim") : t("views.DocumentEdit.addClaim")
                 }}</h2>
                 <TabGroup :selected-index="selectedClaimTab" @change="onChangeClaimTab">

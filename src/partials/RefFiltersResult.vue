@@ -11,7 +11,17 @@ import FilterPropLabel from "@/partials/FilterPropLabel.vue"
 import RefFilterTreeRow from "@/partials/RefFilterTreeRow.vue"
 import { useProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useRefFilters } from "@/search"
-import { computeRefCheckStates, equals, loadingWidth, SKIP_TO_END, toggleRefSelection, useInitialLoad, useLimitResults, useReportFilterVisibility } from "@/utils"
+import {
+  buildRefTree,
+  computeRefCheckStates,
+  equals,
+  loadingWidth,
+  SKIP_TO_END,
+  toggleRefSelection,
+  useInitialLoad,
+  useLimitResults,
+  useReportFilterVisibility,
+} from "@/utils"
 
 type FlatEntry = { node: RefFilterTreeNode; depth: number }
 
@@ -139,49 +149,10 @@ const checkboxState = computed({
 
 const selectedSet = computed(() => new Set<string>(checkboxState.value))
 
-// Build the static tree from the full result set. Iteration order is the
-// count-desc order returned by the API. For each result, find which of its paths
-// reaches an already-placed ancestor; attach under each such ancestor as a child,
-// or push as a root. Diamond duplicates share res.id with their canonical
-// placement and only carry rendered children at the canonical position.
-const tree = computed((): RefFilterTreeNode[] => {
-  const roots: RefFilterTreeNode[] = []
-  const firstNodeById: Record<string, RefFilterTreeNode> = {}
-  for (const res of results.value as RefFilterResult[]) {
-    const paths = res.paths ?? []
-    const attachTo: RefFilterTreeNode[] = []
-    const seenAncestorIds = new Set<string>()
-    for (const path of paths) {
-      for (let i = path.length - 1; i >= 0; i--) {
-        const ancestorId = path[i]
-        if (firstNodeById[ancestorId]) {
-          if (!seenAncestorIds.has(ancestorId)) {
-            attachTo.push(firstNodeById[ancestorId])
-            seenAncestorIds.add(ancestorId)
-          }
-          break
-        }
-      }
-    }
-    if (attachTo.length === 0) {
-      const node: RefFilterTreeNode = { res, key: res.id, children: [] }
-      roots.push(node)
-      if (!firstNodeById[res.id]) {
-        firstNodeById[res.id] = node
-      }
-    } else {
-      attachTo.forEach((ancestorNode, idx) => {
-        const key = idx === 0 ? res.id : res.id + "|" + ancestorNode.key
-        const node: RefFilterTreeNode = { res, key, children: [] }
-        ancestorNode.children.push(node)
-        if (!firstNodeById[res.id]) {
-          firstNodeById[res.id] = node
-        }
-      })
-    }
-  }
-  return roots
-})
+// Build the static tree from the full result set. Iteration order is the count-desc order returned by the
+// API, which buildRefTree preserves while placing each value under its deepest already-placed ancestor
+// (duplicated under each parent for diamond hierarchies).
+const tree = computed((): RefFilterTreeNode[] => buildRefTree(results.value as RefFilterResult[]))
 
 // Bottom-up "any of this subtree (including self) is selected" map. A node
 // counts as "selected" for sort purposes when its own id is in the selection

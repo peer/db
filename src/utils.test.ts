@@ -9,6 +9,7 @@ import {
   amountRangeDisplay,
   amountStringFromFloat64,
   amountValueDecimals,
+  buildRefTree,
   computeRefCheckStates,
   parseUrl,
   timePrecisionForRange,
@@ -325,6 +326,61 @@ describe("parseUrl", () => {
     assert.instanceOf(parseUrl("https://example.com", { allowContact: false }), URL)
     assert.instanceOf(parseUrl("http://example.com/foo", { allowContact: false }), URL)
     assert.instanceOf(parseUrl("/foo", { allowContact: false }), URL)
+  })
+})
+
+describe("buildRefTree", () => {
+  test("nests children under their placed ancestor, preserving input order", () => {
+    const tree = buildRefTree([
+      { id: "A", paths: [] },
+      { id: "B", paths: [["A"]] },
+      { id: "C", paths: [["A"]] },
+    ])
+    assert.lengthOf(tree, 1)
+    assert.equal(tree[0].res.id, "A")
+    assert.deepEqual(
+      tree[0].children.map((n) => n.res.id),
+      ["B", "C"],
+    )
+    assert.deepEqual(
+      tree[0].children.map((n) => n.key),
+      ["B", "C"],
+    )
+  })
+
+  test("duplicates a value under each of its parents (diamond)", () => {
+    const tree = buildRefTree([
+      { id: "A", paths: [] },
+      { id: "B", paths: [["A"]] },
+      { id: "C", paths: [["A"]] },
+      {
+        id: "E",
+        paths: [
+          ["A", "B"],
+          ["A", "C"],
+        ],
+      },
+    ])
+    const [b, c] = tree[0].children
+    // E renders under both parents; the canonical (first) placement keeps key "E", the duplicate is suffixed.
+    assert.deepEqual(
+      b.children.map((n) => n.res.id),
+      ["E"],
+    )
+    assert.deepEqual(
+      c.children.map((n) => n.res.id),
+      ["E"],
+    )
+    assert.equal(b.children[0].key, "E")
+    assert.equal(c.children[0].key, "E|" + c.key)
+  })
+
+  test("values without a placed ancestor are roots", () => {
+    const tree = buildRefTree([{ id: "A", paths: [] }, { id: "B" }])
+    assert.deepEqual(
+      tree.map((n) => n.res.id),
+      ["A", "B"],
+    )
   })
 })
 

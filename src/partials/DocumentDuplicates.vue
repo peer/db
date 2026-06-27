@@ -60,7 +60,7 @@ defineExpose({
 
 <template>
   <div v-if="duplicates.length > 0" class="pd-documentduplicates mt-4 rounded-sm border border-slate-200 bg-slate-50 p-4">
-    <h2 class="text-sm font-semibold text-slate-700">{{ t("views.DocumentEdit.potentialDuplicates") }}</h2>
+    <h2 class="text-sm font-medium text-slate-700">{{ t("views.DocumentEdit.potentialDuplicates") }}</h2>
     <ul class="mt-2 flex flex-col gap-y-1">
       <li v-for="duplicate in duplicates" :key="duplicate.id">
         <DocumentRefInline :id="duplicate.id" />

@@ -1,7 +1,7 @@
 import type { ComputedRef, DeepReadonly, InjectionKey, Ref } from "vue"
 
 import type { TimePrecision } from "@/document"
-import type { GetDisplayLabel, Mutable, QueryValues, QueryValuesWithOptional, RefFilter, Result } from "@/types"
+import type { GetDisplayLabel, Mutable, QueryValues, QueryValuesWithOptional, RefFilter, Result, TreeNode } from "@/types"
 
 import { Identifier } from "@tozd/identifier"
 import { prng_alea } from "esm-seedrandom"
@@ -125,6 +125,51 @@ export function limitGroupedResults(nodes: DeepReadonly<Result[]>, limit: number
 // immediate parent; a "direct" entry's path ends with its own value, and the top-level "missing"
 // entry has no paths. RefFilterResult satisfies this.
 export type RefValueLike = { id: string; paths?: string[][] }
+
+// buildRefTree builds a value-hierarchy tree from a flat, count-ordered result list. Iteration order is
+// preserved: for each result, the deepest already-placed ancestor across its paths becomes its parent (one
+// placement per distinct such ancestor, so a value with several parents is duplicated under each), or the
+// result becomes a root when no ancestor is placed yet. Diamond duplicates share res.id with their canonical
+// placement and only carry rendered children at that canonical position. The result list must be ordered so
+// every value follows its ancestors (count-descending then depth-ascending does this).
+export function buildRefTree<T extends RefValueLike>(results: readonly T[]): TreeNode<T>[] {
+  const roots: TreeNode<T>[] = []
+  const firstNodeById: Record<string, TreeNode<T>> = {}
+  for (const res of results) {
+    const paths = res.paths ?? []
+    const attachTo: TreeNode<T>[] = []
+    const seenAncestorIds = new Set<string>()
+    for (const path of paths) {
+      for (let i = path.length - 1; i >= 0; i--) {
+        const ancestorId = path[i]
+        if (firstNodeById[ancestorId]) {
+          if (!seenAncestorIds.has(ancestorId)) {
+            attachTo.push(firstNodeById[ancestorId])
+            seenAncestorIds.add(ancestorId)
+          }
+          break
+        }
+      }
+    }
+    if (attachTo.length === 0) {
+      const node: TreeNode<T> = { res, key: res.id, children: [] }
+      roots.push(node)
+      if (!firstNodeById[res.id]) {
+        firstNodeById[res.id] = node
+      }
+    } else {
+      attachTo.forEach((ancestorNode, idx) => {
+        const key = idx === 0 ? res.id : res.id + "|" + ancestorNode.key
+        const node: TreeNode<T> = { res, key, children: [] }
+        ancestorNode.children.push(node)
+        if (!firstNodeById[res.id]) {
+          firstNodeById[res.id] = node
+        }
+      })
+    }
+  }
+  return roots
+}
 
 // RefCheckState is the tri-state a reference filter value renders as.
 export type RefCheckState = { checked: boolean; indeterminate: boolean }
