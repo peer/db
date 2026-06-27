@@ -693,11 +693,12 @@ const WithDocumentD = WithDocument<D>
 
         <template v-else>
           <!--
-            The search box narrows which filters and filter values are shown, so it is shown whenever there are
-            facets to narrow: available filters, active filters (their values can still be searched, e.g. to find
-            one to deselect), or while a search is already in progress.
+            This branch is the complement of the no-filters case above, so there are always facets to narrow:
+            available filters, active filters (their values can still be searched, e.g. to find one to deselect),
+            or a search already in progress. The search box is therefore always shown here; it narrows which
+            filters and filter values are shown, never the search itself.
           -->
-          <div v-if="filtersTotal > 0 || hasActiveFilters || filterQuery">
+          <div>
             <!--
               The count is the number of filters for the current search and stays constant as the box is typed
               in; the box only narrows which filters and filter values are shown (by a value name or the facet's
