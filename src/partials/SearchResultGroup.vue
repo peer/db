@@ -11,7 +11,7 @@ import type { Result } from "@/types"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import SearchResult from "@/partials/SearchResult.vue"
 import SearchResultsPager from "@/partials/SearchResultsPager.vue"
-import { searchExpandKey, searchPagerKey } from "@/utils"
+import { MISSING_VALUE_ID, searchExpandKey, searchPagerKey } from "@/utils"
 import { searchTrackKey } from "@/visibility"
 
 // A grouped result node. When node.group is set it is a group heading (node.id is the referenced value's
@@ -44,7 +44,7 @@ const { t } = useI18n()
 // cards; expanded reports whether this particular heading renders as a card. The synthetic "missing" group
 // has no document to show a card for, so it always stays a one-line heading even when the level is expanded.
 const levelExpanded = computed(() => props.expandLevels[props.depth] ?? false)
-const expanded = computed(() => props.node.id !== "__MISSING__" && levelExpanded.value)
+const expanded = computed(() => props.node.id !== MISSING_VALUE_ID && levelExpanded.value)
 
 // setExpand switches this group level between its expanded (full result cards) and collapsed (one-line
 // headings) forms in the search state, the in-place equivalent of the sort dialog's Expand checkbox. The
@@ -99,7 +99,7 @@ function childPagerIndex(child: DeepReadonly<Result>): number | undefined {
       </template>
     </SearchResult>
     <div v-else class="pd-searchresultgroup-header flex items-baseline gap-x-1 border-b border-slate-200 py-1 font-semibold text-slate-700">
-      <i v-if="node.id === '__MISSING__'" class="min-w-0 truncate">{{ t("common.values.missing") }}</i>
+      <i v-if="node.id === MISSING_VALUE_ID" class="min-w-0 truncate">{{ t("common.values.missing") }}</i>
       <DocumentRefInline v-else :id="node.id" class="min-w-0 truncate" />
       <span v-if="node.count != null" class="shrink-0 font-normal text-slate-500">({{ node.count }})</span>
       <button

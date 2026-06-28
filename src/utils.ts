@@ -311,8 +311,11 @@ export function toggleRefSelection(values: readonly RefValueLike[], id: string, 
 
 // DIRECT_REF_FILTER_PREFIX marks a reference filter value's "direct" (most-specific) entry. In the rendered
 // value list and the checkbox selection a "direct" entry carries its value id behind this prefix, the same
-// way "__MISSING__" carries the missing selection.
+// way MISSING_VALUE_ID carries the missing selection.
 export const DIRECT_REF_FILTER_PREFIX = "__DIRECT__:"
+
+// MISSING_VALUE_ID is the synthetic id for the "missing" entry, the documents that lack the property.
+export const MISSING_VALUE_ID = "__MISSING__"
 
 // refOverlayVisibleIds computes which reference-filter result ids stay visible when a filter-pane value search
 // narrows the facet: the directly matched value ids, every ancestor of a match (from the primary results' paths,

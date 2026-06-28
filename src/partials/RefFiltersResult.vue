@@ -17,6 +17,7 @@ import {
   DIRECT_REF_FILTER_PREFIX,
   equals,
   loadingWidth,
+  MISSING_VALUE_ID,
   refOverlayVisibleIds,
   SKIP_TO_END,
   toggleRefSelection,
@@ -134,7 +135,7 @@ const checkboxState = computed({
       ids.push(DIRECT_REF_FILTER_PREFIX + id)
     }
     if (isMissingSelected.value) {
-      ids.push("__MISSING__")
+      ids.push(MISSING_VALUE_ID)
     }
     return ids
   },
@@ -143,9 +144,9 @@ const checkboxState = computed({
       return
     }
 
-    const missingSelected = value.includes("__MISSING__")
+    const missingSelected = value.includes(MISSING_VALUE_ID)
     const directIds = value.filter((v) => v.startsWith(DIRECT_REF_FILTER_PREFIX)).map((v) => v.slice(DIRECT_REF_FILTER_PREFIX.length))
-    const toIds = value.filter((v) => v !== "__MISSING__" && !v.startsWith(DIRECT_REF_FILTER_PREFIX))
+    const toIds = value.filter((v) => v !== MISSING_VALUE_ID && !v.startsWith(DIRECT_REF_FILTER_PREFIX))
     const to: ToValue[] | undefined = toIds.length > 0 ? toIds.map((id) => ({ id })) : undefined
     const direct: ToValue[] | undefined = directIds.length > 0 ? directIds.map((id) => ({ id })) : undefined
     const missing = missingSelected ? true : undefined

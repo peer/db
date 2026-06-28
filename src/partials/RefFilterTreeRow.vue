@@ -12,7 +12,7 @@ import CheckBox from "@/components/CheckBox.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import { useLocked } from "@/progress"
-import { loadingWidth } from "@/utils"
+import { DIRECT_REF_FILTER_PREFIX, loadingWidth, MISSING_VALUE_ID } from "@/utils"
 
 const props = defineProps<{
   node: RefFilterTreeNode
@@ -45,13 +45,13 @@ const inputId = computed(() => "ref/" + props.propsKey + "/" + props.node.key)
   <li>
     <div class="flex items-baseline gap-x-1">
       <CheckBox :id="inputId" :model-value="checked" :indeterminate="indeterminate" @update:model-value="handleToggle" />
-      <template v-if="node.res.id === '__MISSING__'">
+      <template v-if="node.res.id === MISSING_VALUE_ID">
         <label :for="inputId" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
           ><i>{{ t("common.values.missing") }}</i></label
         >
         <label :for="inputId" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ node.res.count }})</label>
       </template>
-      <template v-else-if="node.res.id.startsWith('__DIRECT__:')">
+      <template v-else-if="node.res.id.startsWith(DIRECT_REF_FILTER_PREFIX)">
         <label :for="inputId" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
           ><i>{{ t("common.values.direct") }}</i></label
         >
