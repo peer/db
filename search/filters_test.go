@@ -716,3 +716,221 @@ func TestFiltersGetValueQueryIntegration(t *testing.T) {
 	assert.False(t, has(results, "amount", height))
 	assert.Equal(t, "2", metadata["total"])
 }
+
+func TestFiltersGetRefDiscoveryCountValueQueryIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	instanceOf := identifier.From("instanceOf")
+	color := identifier.From("color")
+	germany := identifier.From("germany")
+	france := identifier.From("france")
+	spain := identifier.From("spain")
+	red := identifier.From("red")
+
+	// refDoc builds a document with a single reference claim under prop with the given value label.
+	refDoc := func(id string, prop, to identifier.Identifier, propLabel, toLabel string) internalSearch.Document {
+		return internalSearch.Document{ //nolint:exhaustruct
+			ID: identifier.From(id),
+			Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
+				Reference: internalSearch.ReferenceClaims{{ //nolint:exhaustruct
+					Prop: prop, PropDisplay: map[string]string{"en": propLabel},
+					To: to, ToDisplay: map[string]string{"en": toLabel},
+				}},
+			},
+		}
+	}
+
+	// The "instance of" reference facet has three documents but only one value ("Germany") matches "germ*".
+	indexDocument(t, ctx, esClient, index, refDoc("refDoc1", instanceOf, germany, "instance of", "Germany"))
+	indexDocument(t, ctx, esClient, index, refDoc("refDoc2", instanceOf, france, "instance of", "France"))
+	indexDocument(t, ctx, esClient, index, refDoc("refDoc3", instanceOf, spain, "instance of", "Spain"))
+	// The "color" reference facet matches neither "germ*" by value nor by its own property name.
+	indexDocument(t, ctx, esClient, index, refDoc("refDoc4", color, red, "color", "red"))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+	enabledLanguages := internalSearch.EnabledLanguages(nil)
+
+	// count returns the reported count of the ref facet for prop, and whether it is present.
+	count := func(results []search.FilterResult, prop identifier.Identifier) (int64, bool) {
+		for _, r := range results {
+			if r.Type == "ref" && len(r.Props) == 1 && r.Props[0] == prop.String() {
+				return r.Count, true
+			}
+		}
+		return 0, false
+	}
+
+	// Without a value query both facets are available at their full document counts.
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "", search.PrefilterExcludes{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c, ok := count(results, instanceOf)
+	assert.True(t, ok, "instance of facet present without query")
+	assert.Equal(t, int64(3), c)
+	c, ok = count(results, color)
+	assert.True(t, ok, "color facet present without query")
+	assert.Equal(t, int64(1), c)
+	assert.Equal(t, "2", metadata["total"])
+
+	// A value query matching only one of the three values keeps the facet at its full count (3, not 1) and
+	// drops the facet that matches nothing, while the available-filters total is unchanged.
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "germ*", search.PrefilterExcludes{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c, ok = count(results, instanceOf)
+	assert.True(t, ok, "instance of facet present under matching query")
+	assert.Equal(t, int64(3), c)
+	_, ok = count(results, color)
+	assert.False(t, ok, "color facet absent under non-matching query")
+	assert.Equal(t, "2", metadata["total"])
+
+	// A query that matches nothing drops both facets but still reports the full total.
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "zzz*", search.PrefilterExcludes{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, ok = count(results, instanceOf)
+	assert.False(t, ok, "instance of facet absent under non-matching query")
+	_, ok = count(results, color)
+	assert.False(t, ok, "color facet absent under non-matching query")
+	assert.Equal(t, "2", metadata["total"])
+}
+
+func TestFiltersGetHasDiscoveryCountValueQueryIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	colorProp := identifier.From("colorProp")
+	shapeProp := identifier.From("shapeProp")
+
+	// hasDoc builds a document with a single has claim under prop with the given property label.
+	hasDoc := func(id string, prop identifier.Identifier, propLabel string) internalSearch.Document {
+		return internalSearch.Document{ //nolint:exhaustruct
+			ID: identifier.From(id),
+			Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
+				Has: internalSearch.HasClaims{{ //nolint:exhaustruct
+					Prop: prop, PropDisplay: map[string]string{"en": propLabel},
+				}},
+			},
+		}
+	}
+
+	// Three documents have a has claim, but only one of them carries the "color" has-property.
+	indexDocument(t, ctx, esClient, index, hasDoc("hasDoc1", colorProp, "color"))
+	indexDocument(t, ctx, esClient, index, hasDoc("hasDoc2", shapeProp, "shape"))
+	indexDocument(t, ctx, esClient, index, hasDoc("hasDoc3", shapeProp, "shape"))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+	enabledLanguages := internalSearch.EnabledLanguages(nil)
+
+	// hasCount returns the single has facet's count (has facets carry no Props) and whether it is present.
+	hasCount := func(results []search.FilterResult) (int64, bool) {
+		for _, r := range results {
+			if r.Type == "has" && len(r.Props) == 0 {
+				return r.Count, true
+			}
+		}
+		return 0, false
+	}
+
+	// Without a value query the has facet reports all documents with any has claim.
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "", search.PrefilterExcludes{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c, ok := hasCount(results)
+	assert.True(t, ok, "has facet present without query")
+	assert.Equal(t, int64(3), c)
+	assert.Equal(t, "1", metadata["total"])
+
+	// A value query matching only one has-property keeps the facet at its full document count (3, not 1),
+	// while the available-filters total is unchanged.
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "color*", search.PrefilterExcludes{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c, ok = hasCount(results)
+	assert.True(t, ok, "has facet present under matching query")
+	assert.Equal(t, int64(3), c)
+	assert.Equal(t, "1", metadata["total"])
+
+	// A query matching no has-property drops the facet but still reports it in the total.
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "zzz*", search.PrefilterExcludes{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	_, ok = hasCount(results)
+	assert.False(t, ok, "has facet absent under non-matching query")
+	assert.Equal(t, "1", metadata["total"])
+}
+
+func TestFiltersGetSubRefDiscoveryCountValueQueryIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	parentProp := identifier.From("parentProp")
+	parentTo := identifier.From("parentTo")
+	instanceOf := identifier.From("instanceOf")
+	color := identifier.From("color")
+	germany := identifier.From("germany")
+	france := identifier.From("france")
+	spain := identifier.From("spain")
+	red := identifier.From("red")
+
+	// subRefDoc builds a document with a single sub-reference claim under (parentProp, prop) with the value label.
+	subRefDoc := func(id string, prop, to identifier.Identifier, toLabel string) internalSearch.Document {
+		return internalSearch.Document{ //nolint:exhaustruct
+			ID: identifier.From(id),
+			Claims: internalSearch.ClaimTypes{ //nolint:exhaustruct
+				SubRef: internalSearch.SubRefClaims{{ //nolint:exhaustruct
+					ReferenceClaim: internalSearch.ReferenceClaim{ //nolint:exhaustruct
+						Prop: prop, To: to, ToDisplay: map[string]string{"en": toLabel},
+					},
+					ParentProp: parentProp, ParentTo: parentTo.String(),
+				}},
+			},
+		}
+	}
+
+	// The (parentProp, "instance of") sub-reference facet has three documents but only one value matches "germ*".
+	indexDocument(t, ctx, esClient, index, subRefDoc("subRefDoc1", instanceOf, germany, "Germany"))
+	indexDocument(t, ctx, esClient, index, subRefDoc("subRefDoc2", instanceOf, france, "France"))
+	indexDocument(t, ctx, esClient, index, subRefDoc("subRefDoc3", instanceOf, spain, "Spain"))
+	// The (parentProp, "color") sub-reference facet matches nothing under "germ*".
+	indexDocument(t, ctx, esClient, index, subRefDoc("subRefDoc4", color, red, "red"))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+	enabledLanguages := internalSearch.EnabledLanguages(nil)
+
+	// count returns the reported count of the sub-reference facet for (parentProp, prop), and whether present.
+	count := func(results []search.FilterResult, prop identifier.Identifier) (int64, bool) {
+		for _, r := range results {
+			if r.Type == "ref" && len(r.Props) == 2 && r.Props[0] == parentProp.String() && r.Props[1] == prop.String() {
+				return r.Count, true
+			}
+		}
+		return 0, false
+	}
+
+	// Without a value query both sub-facets are available at their full document counts.
+	results, metadata, errE := search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "", search.PrefilterExcludes{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c, ok := count(results, instanceOf)
+	assert.True(t, ok, "instance of sub-facet present without query")
+	assert.Equal(t, int64(3), c)
+	c, ok = count(results, color)
+	assert.True(t, ok, "color sub-facet present without query")
+	assert.Equal(t, int64(1), c)
+	assert.Equal(t, "2", metadata["total"])
+
+	// A value query matching only one value keeps the sub-facet at its full count (3, not 1) and drops the
+	// sub-facet that matches nothing, while the available-filters total is unchanged.
+	results, metadata, errE = search.FiltersGet(ctx, getSearchService, session, enabledLanguages, "germ*", search.PrefilterExcludes{})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	c, ok = count(results, instanceOf)
+	assert.True(t, ok, "instance of sub-facet present under matching query")
+	assert.Equal(t, int64(3), c)
+	_, ok = count(results, color)
+	assert.False(t, ok, "color sub-facet absent under non-matching query")
+	assert.Equal(t, "2", metadata["total"])
+}
