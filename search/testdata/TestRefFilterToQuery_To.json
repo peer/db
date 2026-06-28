@@ -1,0 +1,25 @@
+{
+  "nested": {
+    "path": "claims.ref",
+    "query": {
+      "bool": {
+        "must": [
+          {
+            "term": {
+              "claims.ref.prop": {
+                "value": "Vg7NV61DJJ5HS2nheTZrQE"
+              }
+            }
+          },
+          {
+            "term": {
+              "claims.ref.to": {
+                "value": "SM5iogb5kamoWQ2S65rzHz"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

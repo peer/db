@@ -12,6 +12,7 @@ import (
 
 	esSearch "github.com/elastic/go-elasticsearch/v9/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,6 +20,7 @@ import (
 	"gitlab.com/tozd/identifier"
 
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
+	"gitlab.com/peerdb/peerdb/internal/testutils"
 	"gitlab.com/peerdb/peerdb/search"
 )
 
@@ -78,10 +80,43 @@ func captureAggregationRequest(t *testing.T, call func(getSearchService func() *
 	return captured
 }
 
+// goldenName derives a golden file name from the running test name, replacing the "/" subtest separator with
+// "_" so a subtest like TestRefFilterToQuery/To maps to the golden file testdata/TestRefFilterToQuery_To.json.
+func goldenName(t *testing.T) string {
+	t.Helper()
+	return strings.ReplaceAll(t.Name(), "/", "_")
+}
+
+// assertJSONGolden re-marshals got indented (unmarshaling to any first, so map keys are sorted and the diff is
+// readable) and compares it with the golden file testdata/<name>.json. With -update-golden it writes the golden
+// file instead.
+func assertJSONGolden(t *testing.T, name string, got []byte) {
+	t.Helper()
+
+	var value any
+	errE := x.Unmarshal(got, &value)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	indented, err := json.MarshalIndent(value, "", "  ")
+	require.NoError(t, err)
+
+	path := filepath.Join("testdata", name+".json")
+
+	if *updateGolden {
+		errMk := os.MkdirAll("testdata", 0o755) //nolint:gosec
+		require.NoError(t, errMk)
+		errW := os.WriteFile(path, append(indented, '\n'), 0o644) //nolint:gosec
+		require.NoError(t, errW)
+		return
+	}
+
+	want, err := os.ReadFile(path) //nolint:gosec
+	require.NoError(t, err, "missing golden file %s, run with -update-golden", path)
+	assert.JSONEq(t, string(want), string(indented))
+}
+
 // assertAggregationsGolden extracts the top-level "aggregations" object from a captured Elasticsearch request
-// body, re-marshals it indented (so map keys are sorted and the diff is readable), and compares it with the
-// golden file testdata/<name>.json. With -update-golden it writes the golden file instead. Only the
-// aggregation structure is snapshotted here; the document-matching query is covered by the ToQuery goldens.
+// body and snapshots it via assertJSONGolden under the golden file testdata/<name>.json. Only the aggregation
+// structure is snapshotted here; the document-matching query is covered by the ToQuery goldens.
 func assertAggregationsGolden(t *testing.T, name string, requestBody []byte) {
 	t.Helper()
 
@@ -92,25 +127,14 @@ func assertAggregationsGolden(t *testing.T, name string, requestBody []byte) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotEmpty(t, body.Aggregations, "captured request has no aggregations")
 
-	var aggs any
-	errE = x.Unmarshal(body.Aggregations, &aggs)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	got, err := json.MarshalIndent(aggs, "", "  ")
-	require.NoError(t, err)
+	assertJSONGolden(t, name, body.Aggregations)
+}
 
-	path := filepath.Join("testdata", name+".json")
-
-	if *updateGolden {
-		errMk := os.MkdirAll("testdata", 0o755) //nolint:gosec
-		require.NoError(t, errMk)
-		errW := os.WriteFile(path, append(got, '\n'), 0o644) //nolint:gosec
-		require.NoError(t, errW)
-		return
-	}
-
-	want, err := os.ReadFile(path) //nolint:gosec
-	require.NoError(t, err, "missing golden file %s, run with -update-golden", path)
-	assert.JSONEq(t, string(want), string(got))
+// assertQueryGolden snapshots the JSON of an Elasticsearch query under a golden file named after the running
+// test or subtest, so each ToQuery snapshot lives in testdata/<test name>.json.
+func assertQueryGolden(t *testing.T, q types.QueryVariant) {
+	t.Helper()
+	assertJSONGolden(t, goldenName(t), []byte(testutils.QueryJSON(t, q)))
 }
 
 // aggregationsGoldenSession builds, without touching the database, a session carrying one active reference

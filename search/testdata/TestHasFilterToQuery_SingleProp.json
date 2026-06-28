@@ -1,0 +1,12 @@
+{
+  "nested": {
+    "path": "claims.has",
+    "query": {
+      "term": {
+        "claims.has.prop": {
+          "value": "SM5iogb5kamoWQ2S65rzHz"
+        }
+      }
+    }
+  }
+}

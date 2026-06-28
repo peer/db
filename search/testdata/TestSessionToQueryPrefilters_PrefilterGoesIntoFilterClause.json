@@ -1,0 +1,31 @@
+{
+  "bool": {
+    "filter": [
+      {
+        "nested": {
+          "path": "claims.ref",
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "term": {
+                    "claims.ref.prop": {
+                      "value": "4EB1kqHAskLaz9t1on8sQA"
+                    }
+                  }
+                },
+                {
+                  "term": {
+                    "claims.ref.to": {
+                      "value": "UYamgAkUR6EpFzMduRTqJG"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}

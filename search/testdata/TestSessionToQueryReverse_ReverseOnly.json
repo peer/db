@@ -1,0 +1,37 @@
+{
+  "bool": {
+    "filter": [
+      {
+        "bool": {
+          "minimum_should_match": 1,
+          "should": [
+            {
+              "nested": {
+                "path": "claims.ref",
+                "query": {
+                  "term": {
+                    "claims.ref.to": {
+                      "value": "RTZbV3UiK7F9XZAkE5Dt55"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "nested": {
+                "path": "claims.subRef",
+                "query": {
+                  "term": {
+                    "claims.subRef.to": {
+                      "value": "RTZbV3UiK7F9XZAkE5Dt55"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

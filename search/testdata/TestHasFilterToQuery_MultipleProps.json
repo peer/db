@@ -1,0 +1,31 @@
+{
+  "bool": {
+    "minimum_should_match": 1,
+    "should": [
+      {
+        "nested": {
+          "path": "claims.has",
+          "query": {
+            "term": {
+              "claims.has.prop": {
+                "value": "SM5iogb5kamoWQ2S65rzHz"
+              }
+            }
+          }
+        }
+      },
+      {
+        "nested": {
+          "path": "claims.has",
+          "query": {
+            "term": {
+              "claims.has.prop": {
+                "value": "1eNbijZLjE6RCP9J3v6yz1"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

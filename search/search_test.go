@@ -410,18 +410,14 @@ func TestRefFilterToQuery(t *testing.T) {
 	tests := []struct {
 		Name   string
 		Filter *search.RefFilter
-		Want   string
 	}{
 		{
 			Name:   "To",
 			Filter: &search.RefFilter{Direct: nil, To: []search.ToValue{{ID: value}}, Missing: false},
-			//nolint:lll
-			Want: `{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}}`,
 		},
 		{
 			Name:   "MissingOnly",
 			Filter: &search.RefFilter{Direct: nil, To: nil, Missing: true},
-			Want:   `{"bool":{"must_not":[{"nested":{"path":"claims.ref","query":{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
 		},
 		{
 			Name: "MultipleTo",
@@ -430,15 +426,13 @@ func TestRefFilterToQuery(t *testing.T) {
 				To:      []search.ToValue{{ID: value}, {ID: identifier.From("value2")}},
 				Missing: false,
 			},
-			//nolint:lll
-			Want: `{"bool":{"minimum_should_match":1,"should":[{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}},{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"1eNbijZLjE6RCP9J3v6yz1"}}}]}}}}]}}`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tt.Want, testutils.QueryJSON(t, tt.Filter.ToQuery(prop)))
+			assertQueryGolden(t, tt.Filter.ToQuery(prop))
 		})
 	}
 }
@@ -454,31 +448,25 @@ func TestAmountFilterToQuery(t *testing.T) {
 	tests := []struct {
 		Name   string
 		Filter *search.AmountFilter
-		Want   string
 	}{
 		{
 			Name:   "GteLteUnit",
 			Filter: &search.AmountFilter{Unit: &unit, Gte: &gte, Lte: &lte, Missing: false, Exists: false},
-			//nolint:lll
-			Want: `{"nested":{"path":"claims.amount","query":{"bool":{"must":[{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.amount.range":{"gte":1,"lte":10}}},{"term":{"claims.amount.unit":{"value":"7xgMSp3wauK811A8Fwk3rY"}}}]}}}}`,
 		},
 		{
 			Name:   "MissingOnly",
 			Filter: &search.AmountFilter{Unit: nil, Gte: nil, Lte: nil, Missing: true, Exists: false},
-			Want:   `{"bool":{"must_not":[{"nested":{"path":"claims.amount","query":{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
 		},
 		{
 			Name:   "GteLteNoUnit",
 			Filter: &search.AmountFilter{Unit: nil, Gte: &gte, Lte: &lte, Missing: false, Exists: false},
-			//nolint:lll
-			Want: `{"nested":{"path":"claims.amount","query":{"bool":{"must":[{"term":{"claims.amount.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.amount.range":{"gte":1,"lte":10}}}]}}}}`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tt.Want, testutils.QueryJSON(t, tt.Filter.ToQuery(prop)))
+			assertQueryGolden(t, tt.Filter.ToQuery(prop))
 		})
 	}
 }
@@ -493,25 +481,21 @@ func TestTimeFilterToQuery(t *testing.T) {
 	tests := []struct {
 		Name   string
 		Filter *search.TimeFilter
-		Want   string
 	}{
 		{
 			Name:   "GteLte",
 			Filter: &search.TimeFilter{Gte: &gte, Lte: &lte, Missing: false, Exists: false},
-			//nolint:lll
-			Want: `{"nested":{"path":"claims.time","query":{"bool":{"must":[{"term":{"claims.time.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"range":{"claims.time.range":{"gte":1000,"lte":2000}}}]}}}}`,
 		},
 		{
 			Name:   "MissingOnly",
 			Filter: &search.TimeFilter{Gte: nil, Lte: nil, Missing: true, Exists: false},
-			Want:   `{"bool":{"must_not":[{"nested":{"path":"claims.time","query":{"term":{"claims.time.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}}}}]}}`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tt.Want, testutils.QueryJSON(t, tt.Filter.ToQuery(prop)))
+			assertQueryGolden(t, tt.Filter.ToQuery(prop))
 		})
 	}
 }
@@ -524,27 +508,23 @@ func TestHasFilterToQuery(t *testing.T) {
 	tests := []struct {
 		Name   string
 		Filter *search.HasFilter
-		Want   string
 	}{
 		{
 			Name:   "SingleProp",
 			Filter: &search.HasFilter{Props: []search.HasValue{{ID: value}}},
-			Want:   `{"nested":{"path":"claims.has","query":{"term":{"claims.has.prop":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}}}`,
 		},
 		{
 			Name: "MultipleProps",
 			Filter: &search.HasFilter{
 				Props: []search.HasValue{{ID: value}, {ID: identifier.From("value2")}},
 			},
-			//nolint:lll
-			Want: `{"bool":{"minimum_should_match":1,"should":[{"nested":{"path":"claims.has","query":{"term":{"claims.has.prop":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}}},{"nested":{"path":"claims.has","query":{"term":{"claims.has.prop":{"value":"1eNbijZLjE6RCP9J3v6yz1"}}}}}]}}`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tt.Want, testutils.QueryJSON(t, tt.Filter.ToQuery()))
+			assertQueryGolden(t, tt.Filter.ToQuery())
 		})
 	}
 }
@@ -800,19 +780,14 @@ func TestSessionToQuery(t *testing.T) {
 	tests := []struct {
 		Name        string
 		SessionData search.SessionData
-		Want        string
 	}{
 		{
 			Name:        "QueryOnly",
 			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "hello", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
-			//nolint:lll
-			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"dis_max":{"queries":[{"simple_query_string":{"default_operator":"and","fields":["text.en","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.en","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.en.unstemmed","text.und"],"query":"hello"}},{"simple_query_string":{"default_operator":"and","fields":["text.pt","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.pt","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.pt.unstemmed","text.und"],"query":"hello"}},{"simple_query_string":{"default_operator":"and","fields":["text.sl","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.sl","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.sl.unstemmed","text.und"],"query":"hello"}}],"tie_breaker":0.1}},{"dis_max":{"queries":[{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.en"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.pt"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.sl"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.und"],"query":"hello","quote_field_suffix":".exact"}}],"tie_breaker":0.1}}]}}]}}`,
 		},
 		{
 			Name:        "Empty",
 			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
-			// With no scoring clauses the query matches all documents with score 0 via a match_all filter clause.
-			Want: `{"bool":{"filter":[{"match_all":{}}]}}`,
 		},
 		{
 			Name: "QueryAndFilter",
@@ -827,8 +802,6 @@ func TestSessionToQuery(t *testing.T) {
 				Reverse:       nil,
 				ReverseExpand: false,
 			},
-			//nolint:lll
-			Want: `{"bool":{"must":[{"bool":{"should":[{"term":{"id":{"value":"hello"}}},{"dis_max":{"queries":[{"simple_query_string":{"default_operator":"and","fields":["text.en","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.en","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.en.unstemmed","text.und"],"query":"hello"}},{"simple_query_string":{"default_operator":"and","fields":["text.pt","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.pt","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.pt.unstemmed","text.und"],"query":"hello"}},{"simple_query_string":{"default_operator":"and","fields":["text.sl","text.und"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"default_operator":"and","fields":["text.sl","text.und"],"query":"hello"}},{"simple_query_string":{"analyze_wildcard":true,"default_operator":"and","fields":["text.sl.unstemmed","text.und"],"query":"hello"}}],"tie_breaker":0.1}},{"dis_max":{"queries":[{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.en"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.pt"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.sl"],"query":"hello","quote_field_suffix":".exact"}},{"simple_query_string":{"analyze_wildcard":true,"boost":3,"default_operator":"and","fields":["display.und"],"query":"hello","quote_field_suffix":".exact"}}],"tie_breaker":0.1}}]}},{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"Vg7NV61DJJ5HS2nheTZrQE"}}},{"term":{"claims.ref.to":{"value":"SM5iogb5kamoWQ2S65rzHz"}}}]}}}}]}}`,
 		},
 	}
 
@@ -836,7 +809,7 @@ func TestSessionToQuery(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
 			q := tt.SessionData.ToQuery(nil)
-			assert.Equal(t, tt.Want, testutils.QueryJSON(t, q))
+			assertQueryGolden(t, q)
 		})
 	}
 }
@@ -860,11 +833,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 			ReverseExpand: false,
 		}
 		q := data.ToQuery(nil)
-		want := `{"bool":{"filter":[{"bool":{"minimum_should_match":1,"should":[` +
-			`{"nested":{"path":"claims.ref","query":{"term":{"claims.ref.to":{"value":"` + reverseID.String() + `"}}}}},` +
-			`{"nested":{"path":"claims.subRef","query":{"term":{"claims.subRef.to":{"value":"` + reverseID.String() + `"}}}}}` +
-			`]}}]}}`
-		assert.Equal(t, want, testutils.QueryJSON(t, q))
+		assertQueryGolden(t, q)
 	})
 
 	t.Run("ReverseAndFilter", func(t *testing.T) {
@@ -913,7 +882,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 		t.Parallel()
 		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false}
 		q := data.ToQuery(nil)
-		assert.JSONEq(t, `{"bool":{"filter":[{"match_all":{}}]}}`, testutils.QueryJSON(t, q))
+		assertQueryGolden(t, q)
 	})
 }
 
@@ -927,9 +896,7 @@ func TestSessionToQueryPrefilters(t *testing.T) {
 		t.Parallel()
 		prefilter := makeTestFilter(prop, &search.RefFilter{Direct: nil, To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil)
 		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "", Filters: nil, Prefilters: []search.Filter{prefilter}, Reverse: nil, ReverseExpand: false}
-		//nolint:lll
-		want := `{"bool":{"filter":[{"nested":{"path":"claims.ref","query":{"bool":{"must":[{"term":{"claims.ref.prop":{"value":"` + prop.String() + `"}}},{"term":{"claims.ref.to":{"value":"` + value.String() + `"}}}]}}}}]}}`
-		assert.Equal(t, want, testutils.QueryJSON(t, data.ToQuery(nil)))
+		assertQueryGolden(t, data.ToQuery(nil))
 	})
 
 	t.Run("FilterScoresButPrefilterDoesNot", func(t *testing.T) {

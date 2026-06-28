@@ -1,0 +1,57 @@
+{
+  "bool": {
+    "minimum_should_match": 1,
+    "should": [
+      {
+        "nested": {
+          "path": "claims.ref",
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "term": {
+                    "claims.ref.prop": {
+                      "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                    }
+                  }
+                },
+                {
+                  "term": {
+                    "claims.ref.to": {
+                      "value": "SM5iogb5kamoWQ2S65rzHz"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "nested": {
+          "path": "claims.ref",
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "term": {
+                    "claims.ref.prop": {
+                      "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                    }
+                  }
+                },
+                {
+                  "term": {
+                    "claims.ref.to": {
+                      "value": "1eNbijZLjE6RCP9J3v6yz1"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}
