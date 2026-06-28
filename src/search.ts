@@ -1,4 +1,4 @@
-import type { ComputedRef, DeepReadonly, InjectionKey, Ref } from "vue"
+import type { DeepReadonly, InjectionKey, Ref } from "vue"
 import type { LocationQuery, Router } from "vue-router"
 
 import type {
@@ -438,12 +438,13 @@ export function useRefFilters(
   )
 }
 
-// useRefFilterMatches fetches only the set of value ids that directly match a filter-pane value search for a
-// reference facet. It shares useRefFilters' URL shape but returns a null URL (fetching nothing) while the
-// value search is empty, so the unfiltered primary facet stays the single source of counts, tree and check
-// states. The backend answers a non-empty search with id-only entries (one per directly matching value id,
-// plus the missing entry when the property's own name matched), which the facet overlays visually on top of
-// its primary results. total is the number of matching ids, or null while no search is active or in flight.
+// useRefFilterMatches fetches the values that match a filter-pane value search for a reference facet. It
+// shares useRefFilters' URL shape but returns a null URL (fetching nothing) while the value search is empty,
+// so the unfiltered primary facet stays the single source of counts, tree and check states whenever no search
+// is active. The backend answers a non-empty search with the matched values and their ancestors carrying full
+// data ({id, count, paths}, plus "direct" and missing entries), so a value that is beyond the loaded primary
+// list can still be rendered from these results. The facet merges these onto its primary results. total is the
+// number of matching values, or null while no search is active or in flight.
 export function useRefFilterMatches(
   searchSessionRef: Ref<SearchSessionRef>,
   filterId: Ref<string>,
@@ -452,7 +453,7 @@ export function useRefFilterMatches(
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
-  matchedIds: ComputedRef<Set<string>>
+  results: DeepReadonly<Ref<RefFilterResult[]>>
   total: DeepReadonly<Ref<number | null>>
   error: DeepReadonly<Ref<string | null>>
   url: DeepReadonly<Ref<string | null>>
@@ -466,9 +467,7 @@ export function useRefFilterMatches(
     return refFilterURL(router, searchSessionRef.value, filterId.value, props.value, addPrefixWildcard(valueQuery.value))
   })
 
-  const matchedIds = computed(() => new Set(results.value.map((r) => r.id)))
-
-  return { matchedIds, total, error, url }
+  return { results, total, error, url }
 }
 
 // hasFilterURL builds the API URL for a has filter facet: the active-filter route when a filter id is set,
@@ -525,12 +524,12 @@ export function useHasFilters(
   )
 }
 
-// useHasFilterMatches fetches only the set of property ids that directly match a filter-pane value search for
-// a has facet. It shares useHasFilters' URL shape but returns a null URL (fetching nothing) while the value
-// search is empty, so the unfiltered primary facet stays the single source of counts. The backend answers a
-// non-empty search with id-only entries (one per directly matching property id), which the facet overlays
-// visually on top of its primary results. total is the number of matching ids, or null while no search is
-// active or in flight.
+// useHasFilterMatches fetches the properties that match a filter-pane value search for a has facet. It shares
+// useHasFilters' URL shape but returns a null URL (fetching nothing) while the value search is empty, so the
+// unfiltered primary facet stays the single source of counts whenever no search is active. The backend answers
+// a non-empty search with the matched properties carrying full data ({id, count}), so a property that is beyond
+// the loaded primary list can still be rendered from these results. The facet merges these onto its primary
+// results. total is the number of matching properties, or null while no search is active or in flight.
 export function useHasFilterMatches(
   searchSessionRef: Ref<SearchSessionRef>,
   filterId: Ref<string>,
@@ -539,7 +538,7 @@ export function useHasFilterMatches(
   el: Ref<Element | null>,
   progress: Ref<number>,
 ): {
-  matchedIds: ComputedRef<Set<string>>
+  results: DeepReadonly<Ref<HasFilterResult[]>>
   total: DeepReadonly<Ref<number | null>>
   error: DeepReadonly<Ref<string | null>>
   url: DeepReadonly<Ref<string | null>>
@@ -553,9 +552,7 @@ export function useHasFilterMatches(
     return hasFilterURL(router, searchSessionRef.value, filterId.value, props.value, addPrefixWildcard(valueQuery.value))
   })
 
-  const matchedIds = computed(() => new Set(results.value.map((r) => r.id)))
-
-  return { matchedIds, total, error, url }
+  return { results, total, error, url }
 }
 
 export function useAmountHistogramValues(

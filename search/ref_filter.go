@@ -539,10 +539,10 @@ func mergeSelectedEntries(results []RefFilterResult, selected map[string][][]str
 	return results
 }
 
-// valueAggregationBuckets unwraps a value aggregation built with valueAggregation under name (nested -> filter
-// -> props) into its top-level value buckets. It is the shared shape of the reference, sub-reference, has, and
-// sub-has value aggregations.
-func valueAggregationBuckets(aggs map[string]types.Aggregate, name string) ([]types.StringTermsBucket, errors.E) {
+// parseAllValues parses an unfiltered value aggregation (built with valueAggregation under the given name)
+// into a map of value id to its result (real document count and hierarchy paths). It is used during a
+// filter-pane value search to recover the ancestors of matched values with their unchanged (no-search) counts.
+func parseAllValues(aggs map[string]types.Aggregate, name string) (map[string]RefFilterResult, errors.E) {
 	nested, errE := internalSearch.AggAs[types.NestedAggregate](aggs, name)
 	if errE != nil {
 		return nil, errE
@@ -561,148 +561,138 @@ func valueAggregationBuckets(aggs map[string]types.Aggregate, name string) ([]ty
 		errors.Details(errE)["type"] = fmt.Sprintf("%T", terms.Buckets)
 		return nil, errE
 	}
-	return buckets, nil
-}
-
-// matchingValueIDs returns the deduplicated value (or property) ids that matched a filter-pane value search: the
-// in-scope value aggregation's bucket keys (under name) unioned with the augment ids the selectedMatch global
-// aggregation matched. Bucket keys come first, in the aggregation's docs-descending order, then the matched
-// augment ids in sorted order, so the result is deterministic. hasSelectedMatch reports whether the selectedMatch
-// aggregation was added (the active filter has an augment id set), so its parse is skipped when it is absent.
-func matchingValueIDs(aggs map[string]types.Aggregate, name string, hasSelectedMatch bool) ([]string, errors.E) {
-	buckets, errE := valueAggregationBuckets(aggs, name)
+	results, errE := bucketsToRefFilterResults(buckets, name)
 	if errE != nil {
 		return nil, errE
 	}
-	seen := make(map[string]bool, len(buckets))
-	out := make([]string, 0, len(buckets))
-	for _, bucket := range buckets {
-		key, ok := bucket.Key.(string)
-		if !ok {
-			errE := errors.New("unexpected key type for " + name + " bucket")
-			errors.Details(errE)["type"] = fmt.Sprintf("%T", bucket.Key)
-			return nil, errE
-		}
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-		out = append(out, key)
-	}
-	if !hasSelectedMatch {
-		return out, nil
-	}
-	selectedMatch, errE := internalSearch.AggAs[types.GlobalAggregate](aggs, "selectedMatch")
-	if errE != nil {
-		return nil, errE
-	}
-	matched, errE := parseSelectedMatchIDs(selectedMatch)
-	if errE != nil {
-		return nil, errE
-	}
-	matchedIDs := make([]string, 0, len(matched))
-	for id := range matched {
-		matchedIDs = append(matchedIDs, id)
-	}
-	slices.Sort(matchedIDs)
-	for _, id := range matchedIDs {
-		if seen[id] {
-			continue
-		}
-		seen[id] = true
-		out = append(out, id)
+	out := make(map[string]RefFilterResult, len(results))
+	for _, r := range results {
+		out[r.ID] = r
 	}
 	return out, nil
 }
 
-// buildRefValueSearchResults assembles the reference (or sub-reference) value-search response: the matched value
-// ids (matchingValueIDs) wrapped as id-only RefFilterResult entries (no count, paths, direct, or ancestor
-// expansion), plus a trailing {ID: MissingValueID} entry when the typed text matched this property's own name
-// (the propMatch aggregation has documents), which tells the frontend to also show the missing bucket carried by
-// its unfiltered primary. The metadata total is the number of returned ids. name is the value aggregation name
-// ("ref" or "subRef"); hasSelectedMatch reports whether the selectedMatch aggregation was added.
-func buildRefValueSearchResults(aggs map[string]types.Aggregate, name string, hasSelectedMatch bool) ([]RefFilterResult, map[string]any, errors.E) {
-	ids, errE := matchingValueIDs(aggs, name, hasSelectedMatch)
-	if errE != nil {
-		return nil, nil, errE
+// addMatchedAncestors adds, during a value search, the ancestor values of the values already in results (the
+// matched values), taking their real counts and paths from allValues, so the matched values render under their
+// tree context. A value search only changes what is shown, never the counts. It returns the updated results and
+// how many ancestor entries were added (for the total). Direct and missing entries carry no ancestor paths.
+func addMatchedAncestors(results []RefFilterResult, allValues map[string]RefFilterResult) ([]RefFilterResult, int) {
+	present := make(map[string]bool, len(results))
+	for _, r := range results {
+		present[r.ID] = true
 	}
-	propMatch, errE := internalSearch.AggAs[types.FilterAggregate](aggs, "propMatch")
-	if errE != nil {
-		return nil, nil, errE
+	ancestors := map[string]bool{}
+	for _, r := range results {
+		if r.ID == MissingValueID || strings.HasPrefix(r.ID, DirectRefFilterPrefix) {
+			continue
+		}
+		for _, path := range r.Paths {
+			for _, anc := range path {
+				ancestors[anc] = true
+			}
+		}
 	}
-	if propMatch.DocCount > 0 {
-		ids = append(ids, MissingValueID)
+	added := 0
+	for id := range ancestors {
+		if present[id] {
+			continue
+		}
+		value, ok := allValues[id]
+		if !ok {
+			continue
+		}
+		results = append(results, RefFilterResult{ID: id, Count: value.Count, Paths: value.Paths})
+		present[id] = true
+		added++
 	}
-	results := make([]RefFilterResult, 0, len(ids))
-	for _, id := range ids {
-		results = append(results, RefFilterResult{ID: id, Count: 0, Paths: nil})
-	}
-	total := strconv.FormatInt(int64(len(results)), 10)
-	return results, map[string]any{
-		"total": total,
-	}, nil
+	return results, added
 }
 
-// getMatchingRefValueIDs runs the reference filter's value-search path: it returns only the value ids whose value
-// name or this property's own name matched valueQuery, as id-only results (see buildRefValueSearchResults). The
-// match set is the union of the in-scope value aggregation's bucket keys and the augment ids (the active filter's
-// selected values and their ancestors) the selectedMatch aggregation matched. It is split out of Get so the
-// value-search and the no-search paths each stay small.
-func (f *RefFilter) getMatchingRefValueIDs(
-	ctx context.Context, getSearchService func() *esSearch.Search,
-	query types.QueryVariant, prop identifier.Identifier, excludeFullPaths []string,
-	valueQuery string, enabledLanguages []string, resolver HierarchyPathsResolver,
-) ([]RefFilterResult, map[string]any, errors.E) {
-	metrics, _ := waf.GetMetrics(ctx)
-
-	searchService := getSearchService()
-
-	// Resolve the augment (the active filter's selected values plus their ancestors) so the selectedMatch
-	// aggregation can label-match the whole augment id set in Elasticsearch; those values have zero documents in
-	// the search scope and so never appear in the value aggregation.
-	selectedIdents, _ := selectedRefIDs(f)
-	augment, errE := resolveSelectedAugment(ctx, resolver, selectedIdents)
+// mergeSearchAugment adds, during a value search, the augment values whose label matched the typed text. The
+// augment ids that matched come from the "selectedMatch" global aggregation; each matched id is shown together
+// with its ancestors (for tree context, from the resolver-built augment), but a matched ancestor does NOT pull
+// in its descendants. It returns the updated results and how many entries were appended (for the total).
+func mergeSearchAugment(
+	aggs map[string]types.Aggregate, results []RefFilterResult, f *RefFilter, augment map[string][][]string, selectedIDs []string,
+) ([]RefFilterResult, int, errors.E) {
+	selectedMatch, errE := internalSearch.AggAs[types.GlobalAggregate](aggs, "selectedMatch")
 	if errE != nil {
-		return nil, nil, errE
+		return nil, 0, errE
+	}
+	matched, errE := parseSelectedMatchIDs(selectedMatch)
+	if errE != nil {
+		return nil, 0, errE
 	}
 
-	propTerm := esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String()))
-	// The value match scopes the facet to records whose value name or this property's own name matches the typed
-	// text; the property name is the same on every record, so a property-name match passes the whole facet.
-	valueLabelMatch := labelMatchQuery(
-		[]string{"claims.ref.toNaming"}, []string{"claims.ref.toDisplay"},
-		[]string{"claims.ref.propNaming"}, []string{"claims.ref.propDisplay"},
-		valueQuery, enabledLanguages,
-	)
-	refFilterQuery := esdsl.NewBoolQuery().Must(propTerm, valueLabelMatch)
-	// When a prefilter on this property is active, drop the records derived from its value so the facet does not
-	// re-count the prefilter's own value hierarchy.
-	if len(excludeFullPaths) > 0 {
-		refFilterQuery = refFilterQuery.MustNot(toFullPathTermsQuery("claims.ref", excludeFullPaths))
+	// shown is the matched augment ids plus, for each, its ancestors (so the tree context renders); a matched
+	// ancestor brings only itself and its own ancestors, never its descendants.
+	shown := make(map[string]bool, len(matched))
+	for id := range matched {
+		shown[id] = true
+		for _, path := range augment[id] {
+			for _, anc := range path {
+				shown[anc] = true
+			}
+		}
 	}
 
-	searchService = searchService.Size(0).Query(query).
-		AddAggregation("ref", valueAggregation("claims.ref", refFilterQuery))
-	searchService = addRefSelectedMatchAggregation(searchService, "claims.ref", []types.QueryVariant{propTerm}, valueLabelMatch, augment)
-	// propMatch counts documents that have a record for this property whose property name matches the query; when
-	// it is non-zero the missing bucket should show (the facet was reached by name, so the whole facet, missing
-	// included, is shown).
-	searchService = searchService.AddAggregation("propMatch", esdsl.NewAggregations().Filter(
-		esdsl.NewNestedQuery(esdsl.NewBoolQuery().Must(
-			propTerm,
-			propLabelMatchQuery([]string{"claims.ref.propNaming"}, []string{"claims.ref.propDisplay"}, valueQuery, enabledLanguages),
-		)).Path("claims.ref"),
-	))
-
-	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
-	res, err := searchService.Do(ctx)
-	m.Stop()
-	if err != nil {
-		return nil, nil, WithESError(err)
+	filteredAugment := make(map[string][][]string, len(shown))
+	for id := range shown {
+		if paths, ok := augment[id]; ok {
+			filteredAugment[id] = paths
+		}
 	}
-	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
+	matchedSelectedIDs := make([]string, 0, len(selectedIDs))
+	for _, id := range selectedIDs {
+		if shown[id] {
+			matchedSelectedIDs = append(matchedSelectedIDs, id)
+		}
+	}
+	matchedDirect := make([]ToValue, 0, len(f.Direct))
+	for _, d := range f.Direct {
+		if shown[d.ID.String()] {
+			matchedDirect = append(matchedDirect, d)
+		}
+	}
 
-	return buildRefValueSearchResults(res.Aggregations, "ref", len(augment) > 0)
+	// The missing bucket is governed by the existing includeMissing/propMatch logic, not by the augment, so the
+	// merge runs with missing=false here.
+	before := len(results)
+	results = mergeSelectedEntries(results, filteredAugment, matchedSelectedIDs, matchedDirect, false)
+	return results, len(results) - before, nil
+}
+
+// applySelectionOrAncestors finalizes a reference (or sub-reference) filter's value list. Outside a value
+// search it merges the active filter's augment (selected values and their ancestors, resolved up front via the
+// resolver) at count 0 so the selection is always visible and individually deselectable. During a value search
+// it instead adds the matched real values' ancestors (with their unchanged counts and paths from the "allRef"
+// aggregation) for tree context and, from the "selectedMatch" global aggregation, the augment values whose
+// label matched the typed text (plus those matches' ancestors); it does not force-show the rest of the
+// selection. It returns the updated results and the number of entries added beyond the value aggregation (for
+// the total). augment maps augment value/ancestor ids to their paths; selectedIDs are the explicitly selected
+// to/direct value ids.
+func applySelectionOrAncestors(
+	aggs map[string]types.Aggregate, results []RefFilterResult, valueQuery string, f *RefFilter, augment map[string][][]string, selectedIDs []string,
+) ([]RefFilterResult, int, errors.E) {
+	if valueQuery == "" {
+		return mergeSelectedEntries(results, augment, selectedIDs, f.Direct, f.Missing), 0, nil
+	}
+
+	allValues, errE := parseAllValues(aggs, "allRef")
+	if errE != nil {
+		return nil, 0, errE
+	}
+	results, added := addMatchedAncestors(results, allValues)
+
+	// The selectedMatch aggregation is only present when the augment is non-empty (it is added alongside it).
+	if len(augment) == 0 {
+		return results, added, nil
+	}
+	results, augmentAdded, errE := mergeSearchAugment(aggs, results, f, augment, selectedIDs)
+	if errE != nil {
+		return nil, 0, errE
+	}
+	return results, added + augmentAdded, nil
 }
 
 // Get retrieves reference filter data for search results.
@@ -715,27 +705,36 @@ func (f *RefFilter) Get(
 	query types.QueryVariant, prop identifier.Identifier, excludeFullPaths []string,
 	valueQuery string, enabledLanguages []string, resolver HierarchyPathsResolver,
 ) ([]RefFilterResult, map[string]any, errors.E) {
-	// During a filter-pane value search the response carries only the matching value ids (an overlay the frontend
-	// applies on top of its unfiltered primary), so it takes a dedicated path.
-	if valueQuery != "" {
-		return f.getMatchingRefValueIDs(ctx, getSearchService, query, prop, excludeFullPaths, valueQuery, enabledLanguages, resolver)
-	}
-
 	metrics, _ := waf.GetMetrics(ctx)
 
 	searchService := getSearchService()
 
 	// Resolve the augment (the active filter's selected values plus their ancestors, with hierarchy paths) up
-	// front via the resolver, so it can be force-shown at count 0, keeping the selection visible and individually
-	// deselectable even when it matches no document under the rest of the search.
+	// front via the resolver, so during a value search the selectedMatch aggregation can label-match the whole
+	// augment id set in Elasticsearch (those values have zero documents in the search scope and so never appear
+	// in the value aggregation).
 	selectedIdents, selectedIDs := selectedRefIDs(f)
 	augment, errE := resolveSelectedAugment(ctx, resolver, selectedIdents)
 	if errE != nil {
 		return nil, nil, errE
 	}
 
-	// The value aggregation is scoped to records for this property.
-	refFilterQuery := esdsl.NewBoolQuery().Must(esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String())))
+	// The value aggregation is scoped to records for this property. valueQuery additionally restricts the
+	// facet to records whose value name or this property's own name matches the user-typed text, so the
+	// pane can be narrowed without changing the search; it never alters which documents match.
+	// Because the property name is the same on every record, when it matches the query the whole facet
+	// passes (all values are shown), which is what a user searching for the facet by name wants.
+	refFilterMusts := []types.QueryVariant{esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String()))}
+	var valueLabelMatch types.QueryVariant
+	if valueQuery != "" {
+		valueLabelMatch = labelMatchQuery(
+			[]string{"claims.ref.toNaming"}, []string{"claims.ref.toDisplay"},
+			[]string{"claims.ref.propNaming"}, []string{"claims.ref.propDisplay"},
+			valueQuery, enabledLanguages,
+		)
+		refFilterMusts = append(refFilterMusts, valueLabelMatch)
+	}
+	refFilterQuery := esdsl.NewBoolQuery().Must(refFilterMusts...)
 	// When a prefilter on this property is active, also drop the records derived from its value so ancestor
 	// buckets are not re-counted.
 	if len(excludeFullPaths) > 0 {
@@ -755,6 +754,35 @@ func (f *RefFilter) Get(
 	searchService = searchService.Size(0).Query(query).
 		AddAggregation("ref", refAggregation).
 		AddAggregation("missing", missingAggregation)
+
+	// During a value search the value aggregation above is narrowed to matching values, which drops their
+	// ancestors. allRef recomputes every value's count and paths without the value-query narrowing, so the
+	// matched values' ancestors can be shown for tree context with their unchanged (no-search) counts.
+	// selectedMatch additionally label-matches the augment id set globally, so the active filter's selected
+	// values and their ancestors (which have zero documents in the search scope) can still be narrowed by the
+	// typed text using the SAME matcher real values use. Outside a value search the augment is force-shown
+	// wholesale (in applySelectionOrAncestors) and neither aggregation is needed.
+	if valueQuery != "" {
+		baseFilterQuery := esdsl.NewBoolQuery().Must(esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String())))
+		if len(excludeFullPaths) > 0 {
+			baseFilterQuery = baseFilterQuery.MustNot(toFullPathTermsQuery("claims.ref", excludeFullPaths))
+		}
+		searchService = searchService.AddAggregation("allRef", valueAggregation("claims.ref", baseFilterQuery))
+		searchService = addRefSelectedMatchAggregation(searchService, "claims.ref",
+			[]types.QueryVariant{esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String()))}, valueLabelMatch, augment)
+	}
+
+	// When a value query is active, the missing bucket is only kept if the query matches this property's own
+	// name (the user is searching for the facet by name and wants the whole facet, missing included). propMatch
+	// counts documents that have a record for this property whose property name matches the query.
+	if valueQuery != "" {
+		searchService = searchService.AddAggregation("propMatch", esdsl.NewAggregations().Filter(
+			esdsl.NewNestedQuery(esdsl.NewBoolQuery().Must(
+				esdsl.NewTermQuery("claims.ref.prop", esdsl.NewFieldValue().String(prop.String())),
+				propLabelMatchQuery([]string{"claims.ref.propNaming"}, []string{"claims.ref.propDisplay"}, valueQuery, enabledLanguages),
+			)).Path("claims.ref"),
+		))
+	}
 
 	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
@@ -794,6 +822,17 @@ func (f *RefFilter) Get(
 	}
 	missingCount := missingFilter.DocCount
 
+	// The missing bucket is shown when there is no value query, or when the value query matches this
+	// property's own name (the facet was reached by name, so the whole facet, missing included, is shown).
+	includeMissing := valueQuery == ""
+	if valueQuery != "" {
+		propMatch, errE := internalSearch.AggAs[types.FilterAggregate](res.Aggregations, "propMatch")
+		if errE != nil {
+			return nil, nil, errE
+		}
+		includeMissing = propMatch.DocCount > 0
+	}
+
 	results, errE := bucketsToRefFilterResults(refBuckets, "ref")
 	if errE != nil {
 		return nil, nil, errE
@@ -808,22 +847,24 @@ func (f *RefFilter) Get(
 	}
 	results = append(results, direct...)
 
-	// Include the missing bucket if there are documents without this property.
-	if missingCount > 0 {
+	// Include the missing bucket if there are documents without this property. The missing bucket has no
+	// display label, so it is shown only when the facet is not being narrowed by a value name.
+	if missingCount > 0 && includeMissing {
 		results = append(results, RefFilterResult{ID: MissingValueID, Count: missingCount, Paths: nil})
 	}
 
-	// Force-show the active filter's augment (selected values and their ancestors) at count 0 so the selection is
-	// always visible and individually deselectable.
-	results = mergeSelectedEntries(results, augment, selectedIDs, f.Direct, f.Missing)
+	results, addedAncestors, errE := applySelectionOrAncestors(res.Aggregations, results, valueQuery, f, augment, selectedIDs)
+	if errE != nil {
+		return nil, nil, errE
+	}
 
 	// Order for hierarchical tree rendering on the frontend.
 	// This also puts missing and the direct entries in the right positions.
 	slices.SortStableFunc(results, compareRefFilterResults)
 
-	refTotalValue := distinctValuesTotal(len(refBuckets), refTotal.Value) + int64(len(direct))
+	refTotalValue := distinctValuesTotal(len(refBuckets), refTotal.Value) + int64(len(direct)) + int64(addedAncestors)
 	// Include missing in the total if present.
-	if missingCount > 0 {
+	if missingCount > 0 && includeMissing {
 		refTotalValue++
 	}
 	total := strconv.FormatInt(refTotalValue, 10)
@@ -912,79 +953,6 @@ func (f *RefFilter) ToSubRefQuery(parentProp, prop identifier.Identifier, parent
 	return esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
 }
 
-// getMatchingSubRefValueIDs runs the sub-reference filter's value-search path: it returns only the value ids
-// whose value name, this sub-property's own name, or the parent property's name matched valueQuery, as id-only
-// results (see buildRefValueSearchResults). The match set is the union of the in-scope value aggregation's bucket
-// keys and the augment ids the selectedMatch aggregation matched. It is split out of GetSubRef so the
-// value-search and the no-search paths each stay small.
-func (f *RefFilter) getMatchingSubRefValueIDs(
-	ctx context.Context, getSearchService func() *esSearch.Search,
-	query types.QueryVariant, parentProp, prop identifier.Identifier,
-	parentToRestrictions []identifier.Identifier, excludeFullPaths []string,
-	valueQuery string, enabledLanguages []string, resolver HierarchyPathsResolver,
-) ([]RefFilterResult, map[string]any, errors.E) {
-	metrics, _ := waf.GetMetrics(ctx)
-
-	searchService := getSearchService()
-
-	selectedIdents, _ := selectedRefIDs(f)
-	augment, errE := resolveSelectedAugment(ctx, resolver, selectedIdents)
-	if errE != nil {
-		return nil, nil, errE
-	}
-
-	parentPropTerm := esdsl.NewTermQuery("claims.subRef.parentProp", esdsl.NewFieldValue().String(parentProp.String()))
-	propTerm := esdsl.NewTermQuery("claims.subRef.prop", esdsl.NewFieldValue().String(prop.String()))
-	filterMusts := []types.QueryVariant{parentPropTerm, propTerm}
-	if len(parentToRestrictions) > 0 {
-		parentToShoulds := make([]types.QueryVariant, 0, len(parentToRestrictions))
-		for _, pto := range parentToRestrictions {
-			parentToShoulds = append(parentToShoulds, esdsl.NewTermQuery("claims.subRef.parentTo", esdsl.NewFieldValue().String(pto.String())))
-		}
-		filterMusts = append(filterMusts, esdsl.NewBoolQuery().Should(parentToShoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)))
-	}
-	// The value match scopes the facet to records whose value name, this sub-property's own name, or the parent
-	// property's name matches the typed text. The parent property name is denormalized onto sub-reference records
-	// as parentPropNaming/parentPropDisplay, so a sub-facet ("parentProp > prop") is matchable by it too.
-	valueLabelMatch := labelMatchQuery(
-		[]string{"claims.subRef.toNaming"}, []string{"claims.subRef.toDisplay"},
-		[]string{"claims.subRef.propNaming", "claims.subRef.parentPropNaming"},
-		[]string{"claims.subRef.propDisplay", "claims.subRef.parentPropDisplay"},
-		valueQuery, enabledLanguages,
-	)
-	filterMusts = append(filterMusts, valueLabelMatch)
-	subRefFilterQuery := esdsl.NewBoolQuery().Must(filterMusts...)
-	if len(excludeFullPaths) > 0 {
-		subRefFilterQuery = subRefFilterQuery.MustNot(toFullPathTermsQuery("claims.subRef", excludeFullPaths))
-	}
-
-	searchService = searchService.Size(0).Query(query).
-		AddAggregation("subRef", valueAggregation("claims.subRef", subRefFilterQuery))
-	// The selectedMatch is scoped to parentProp + prop and the augment ids, deliberately without the parentTo
-	// restriction so a checked value is never hidden.
-	searchService = addRefSelectedMatchAggregation(searchService, "claims.subRef", []types.QueryVariant{parentPropTerm, propTerm}, valueLabelMatch, augment)
-	// propMatch counts documents that have a record for this (parentProp, prop) whose sub-property or parent
-	// property name matches the query; when it is non-zero the missing bucket should show.
-	searchService = searchService.AddAggregation("propMatch", esdsl.NewAggregations().Filter(
-		esdsl.NewNestedQuery(esdsl.NewBoolQuery().Must(
-			parentPropTerm, propTerm,
-			propLabelMatchQuery(
-				[]string{"claims.subRef.propNaming", "claims.subRef.parentPropNaming"},
-				[]string{"claims.subRef.propDisplay", "claims.subRef.parentPropDisplay"}, valueQuery, enabledLanguages),
-		)).Path("claims.subRef"),
-	))
-
-	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
-	res, err := searchService.Do(ctx)
-	m.Stop()
-	if err != nil {
-		return nil, nil, WithESError(err)
-	}
-	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
-
-	return buildRefValueSearchResults(res.Aggregations, "subRef", len(augment) > 0)
-}
-
 // GetSubRef retrieves sub-reference filter data for search results.
 // It aggregates claims.subRef.to values for a given (parentProp, prop) combination.
 // parentToRestrictions optionally restricts results to specific parentTo values (for cross-filtering).
@@ -998,21 +966,13 @@ func (f *RefFilter) GetSubRef(
 	parentToRestrictions []identifier.Identifier, excludeFullPaths []string,
 	valueQuery string, enabledLanguages []string, resolver HierarchyPathsResolver,
 ) ([]RefFilterResult, map[string]any, errors.E) {
-	// During a filter-pane value search the response carries only the matching value ids (an overlay the frontend
-	// applies on top of its unfiltered primary), so it takes a dedicated path.
-	if valueQuery != "" {
-		return f.getMatchingSubRefValueIDs(
-			ctx, getSearchService, query, parentProp, prop, parentToRestrictions, excludeFullPaths, valueQuery, enabledLanguages, resolver,
-		)
-	}
-
 	metrics, _ := waf.GetMetrics(ctx)
 
 	searchService := getSearchService()
 
 	// Resolve the augment (the active filter's selected values plus their ancestors, with hierarchy paths) up
-	// front via the resolver, so it can be force-shown at count 0, keeping the selection visible and individually
-	// deselectable even when it matches no document under the rest of the search.
+	// front via the resolver, so during a value search the selectedMatch aggregation can label-match the whole
+	// augment id set in Elasticsearch (those values have zero documents in the search scope).
 	selectedIdents, selectedIDs := selectedRefIDs(f)
 	augment, errE := resolveSelectedAugment(ctx, resolver, selectedIdents)
 	if errE != nil {
@@ -1030,6 +990,23 @@ func (f *RefFilter) GetSubRef(
 			parentToShoulds = append(parentToShoulds, esdsl.NewTermQuery("claims.subRef.parentTo", esdsl.NewFieldValue().String(pto.String())))
 		}
 		filterMusts = append(filterMusts, esdsl.NewBoolQuery().Should(parentToShoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)))
+	}
+	// Base filter musts (parentProp, prop, optional parentTo) without the value-query narrowing, used by the
+	// allRef aggregation during a value search to recover matched values' ancestors with their no-search counts.
+	baseFilterMusts := slices.Clone(filterMusts)
+	// valueQuery restricts the facet to records whose value name, this sub-property's own name, or the parent
+	// property's name matches the user-typed text, so the pane can be narrowed without changing the search; it
+	// never alters which documents match. The parent property name is denormalized onto sub-reference records
+	// as parentPropNaming/parentPropDisplay, so a sub-facet ("parentProp > prop") is matchable by it too.
+	var valueLabelMatch types.QueryVariant
+	if valueQuery != "" {
+		valueLabelMatch = labelMatchQuery(
+			[]string{"claims.subRef.toNaming"}, []string{"claims.subRef.toDisplay"},
+			[]string{"claims.subRef.propNaming", "claims.subRef.parentPropNaming"},
+			[]string{"claims.subRef.propDisplay", "claims.subRef.parentPropDisplay"},
+			valueQuery, enabledLanguages,
+		)
+		filterMusts = append(filterMusts, valueLabelMatch)
 	}
 	subRefFilterQuery := esdsl.NewBoolQuery().Must(filterMusts...)
 	// When a prefilter on this (parentProp, prop) is active, drop the records derived from its value so
@@ -1054,6 +1031,42 @@ func (f *RefFilter) GetSubRef(
 	searchService = searchService.Size(0).Query(query).
 		AddAggregation("subRef", subRefAggregation).
 		AddAggregation("missing", missingAggregation)
+
+	// During a value search, allRef recomputes every value's count and paths without the value-query narrowing
+	// so the matched values' ancestors can be shown for tree context with their unchanged (no-search) counts.
+	// selectedMatch additionally label-matches the augment id set globally so the active filter's selected
+	// values and their ancestors (which have zero documents in the search scope) can still be narrowed by the
+	// typed text. It is scoped to parentProp + prop and the augment ids, deliberately without the parentTo
+	// restriction so a checked value is never hidden. Outside a value search the augment is force-shown
+	// wholesale (in applySelectionOrAncestors) and neither aggregation is needed.
+	if valueQuery != "" {
+		baseFilterQuery := esdsl.NewBoolQuery().Must(baseFilterMusts...)
+		if len(excludeFullPaths) > 0 {
+			baseFilterQuery = baseFilterQuery.MustNot(toFullPathTermsQuery("claims.subRef", excludeFullPaths))
+		}
+		searchService = searchService.AddAggregation("allRef", valueAggregation("claims.subRef", baseFilterQuery))
+		searchService = addRefSelectedMatchAggregation(searchService, "claims.subRef",
+			[]types.QueryVariant{
+				esdsl.NewTermQuery("claims.subRef.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+				esdsl.NewTermQuery("claims.subRef.prop", esdsl.NewFieldValue().String(prop.String())),
+			}, valueLabelMatch, augment)
+	}
+
+	// When a value query is active, the missing bucket is only kept if the query matches this sub-property's
+	// own name or its parent property's name (the facet was reached by name and the whole facet, missing
+	// included, is shown). propMatch counts documents that have a record for this (parentProp, prop) whose
+	// sub-property or parent-property name matches.
+	if valueQuery != "" {
+		searchService = searchService.AddAggregation("propMatch", esdsl.NewAggregations().Filter(
+			esdsl.NewNestedQuery(esdsl.NewBoolQuery().Must(
+				esdsl.NewTermQuery("claims.subRef.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
+				esdsl.NewTermQuery("claims.subRef.prop", esdsl.NewFieldValue().String(prop.String())),
+				propLabelMatchQuery(
+					[]string{"claims.subRef.propNaming", "claims.subRef.parentPropNaming"},
+					[]string{"claims.subRef.propDisplay", "claims.subRef.parentPropDisplay"}, valueQuery, enabledLanguages),
+			)).Path("claims.subRef"),
+		))
+	}
 
 	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
@@ -1093,6 +1106,17 @@ func (f *RefFilter) GetSubRef(
 	}
 	missingCount := missingFilter.DocCount
 
+	// The missing bucket is shown when there is no value query, or when the value query matches this
+	// sub-property's own name (the facet was reached by name, so the whole facet, missing included, is shown).
+	includeMissing := valueQuery == ""
+	if valueQuery != "" {
+		propMatch, errE := internalSearch.AggAs[types.FilterAggregate](res.Aggregations, "propMatch")
+		if errE != nil {
+			return nil, nil, errE
+		}
+		includeMissing = propMatch.DocCount > 0
+	}
+
 	results, errE := bucketsToRefFilterResults(subRefBuckets, "subRef")
 	if errE != nil {
 		return nil, nil, errE
@@ -1107,21 +1131,23 @@ func (f *RefFilter) GetSubRef(
 	}
 	results = append(results, direct...)
 
-	// Include the missing bucket if there are documents without this sub-reference.
-	if missingCount > 0 {
+	// Include the missing bucket if there are documents without this sub-reference. The missing bucket has
+	// no display label, so it is shown only when the facet is not being narrowed by a value name.
+	if missingCount > 0 && includeMissing {
 		results = append(results, RefFilterResult{ID: MissingValueID, Count: missingCount, Paths: nil})
 	}
 
-	// Force-show the active filter's augment (selected values and their ancestors) at count 0 so the selection is
-	// always visible and individually deselectable.
-	results = mergeSelectedEntries(results, augment, selectedIDs, f.Direct, f.Missing)
+	results, addedAncestors, errE := applySelectionOrAncestors(res.Aggregations, results, valueQuery, f, augment, selectedIDs)
+	if errE != nil {
+		return nil, nil, errE
+	}
 
 	// Order for hierarchical tree rendering on the frontend.
 	// This also puts missing and the direct entries in the right positions.
 	slices.SortStableFunc(results, compareRefFilterResults)
 
-	subRefTotalValue := distinctValuesTotal(len(subRefBuckets), subRefTotal.Value) + int64(len(direct))
-	if missingCount > 0 {
+	subRefTotalValue := distinctValuesTotal(len(subRefBuckets), subRefTotal.Value) + int64(len(direct)) + int64(addedAncestors)
+	if missingCount > 0 && includeMissing {
 		subRefTotalValue++
 	}
 	total := strconv.FormatInt(subRefTotalValue, 10)

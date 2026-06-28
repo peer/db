@@ -317,42 +317,23 @@ export const DIRECT_REF_FILTER_PREFIX = "__DIRECT__:"
 // MISSING_VALUE_ID is the synthetic id for the "missing" entry, the documents that lack the property.
 export const MISSING_VALUE_ID = "__MISSING__"
 
-// refOverlayVisibleIds computes which reference-filter result ids stay visible when a filter-pane value search
-// narrows the facet: the directly matched value ids, every ancestor of a match (from the primary results' paths,
-// so the match's tree path stays), each matched value's "direct" entry, and the missing entry when it matched.
-// The result is a visual overlay over the unfiltered primary results, so counts, tree and check states keep
-// coming from the primary results and only the hidden values are removed from view.
-export function refOverlayVisibleIds(primary: readonly RefValueLike[], matchedIds: ReadonlySet<string>): Set<string> {
-  const byId = new Map<string, RefValueLike>()
-  for (const entry of primary) {
-    byId.set(entry.id, entry)
-  }
-
-  const visible = new Set<string>(matchedIds)
-
-  // Each matched value keeps its whole tree path, so add every ancestor in every path of each match.
-  for (const id of matchedIds) {
-    const entry = byId.get(id)
-    if (!entry) {
+// mergeRefOverlay combines a reference facet's loaded primary values with the values returned by a filter-pane
+// value search into a single value list. Every primary entry is kept in its original order, then every match
+// whose id is not already in primary is appended in match order (an id present in both keeps the primary entry,
+// so its count, paths and check state stay exactly as they were loaded). A match that is not in primary becomes
+// a new entry rendered from its own data, so a value beyond the loaded primary list is still reachable. Because
+// a not-loaded value was not visible before, taking it from the match data cannot change anything already shown.
+export function mergeRefOverlay<T extends RefValueLike>(primary: readonly T[], matchResults: readonly T[]): T[] {
+  const ids = new Set<string>(primary.map((entry) => entry.id))
+  const combined = [...primary]
+  for (const entry of matchResults) {
+    if (ids.has(entry.id)) {
       continue
     }
-    for (const path of entry.paths ?? []) {
-      for (const ancestor of path) {
-        visible.add(ancestor)
-      }
-    }
+    ids.add(entry.id)
+    combined.push(entry)
   }
-
-  // A "direct" entry shows only when its own value directly matched, not when that value appears merely as an
-  // ancestor of a match: an ancestor's "direct" entry stands for documents that are that ancestor and no
-  // narrower value, which do not match the typed text.
-  for (const entry of primary) {
-    if (entry.id.startsWith(DIRECT_REF_FILTER_PREFIX) && matchedIds.has(entry.id.slice(DIRECT_REF_FILTER_PREFIX.length))) {
-      visible.add(entry.id)
-    }
-  }
-
-  return visible
+  return combined
 }
 
 // RefFilterValueToken is one rendered entry of a reference filter's selection: a selected value (its id,

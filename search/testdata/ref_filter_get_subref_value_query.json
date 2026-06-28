@@ -1,4 +1,108 @@
 {
+  "allRef": {
+    "aggregations": {
+      "filter": {
+        "aggregations": {
+          "props": {
+            "aggregations": {
+              "direct": {
+                "aggregations": {
+                  "docs": {
+                    "reverse_nested": {}
+                  }
+                },
+                "filter": {
+                  "term": {
+                    "claims.subRef.isLeaf": {
+                      "value": true
+                    }
+                  }
+                }
+              },
+              "docs": {
+                "reverse_nested": {}
+              },
+              "paths": {
+                "terms": {
+                  "field": "claims.subRef.toPath",
+                  "size": 100
+                }
+              }
+            },
+            "terms": {
+              "field": "claims.subRef.to",
+              "order": {
+                "docs": "desc"
+              },
+              "size": 1000
+            }
+          },
+          "total": {
+            "cardinality": {
+              "field": "claims.subRef.to",
+              "precision_threshold": 40000
+            }
+          }
+        },
+        "filter": {
+          "bool": {
+            "must": [
+              {
+                "term": {
+                  "claims.subRef.parentProp": {
+                    "value": "XHaC94kLmNZ5NtifgrStop"
+                  }
+                }
+              },
+              {
+                "term": {
+                  "claims.subRef.prop": {
+                    "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "nested": {
+      "path": "claims.subRef"
+    }
+  },
+  "missing": {
+    "filter": {
+      "bool": {
+        "must_not": [
+          {
+            "nested": {
+              "path": "claims.subRef",
+              "query": {
+                "bool": {
+                  "must": [
+                    {
+                      "term": {
+                        "claims.subRef.parentProp": {
+                          "value": "XHaC94kLmNZ5NtifgrStop"
+                        }
+                      }
+                    },
+                    {
+                      "term": {
+                        "claims.subRef.prop": {
+                          "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
   "propMatch": {
     "filter": {
       "nested": {

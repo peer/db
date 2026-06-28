@@ -1,3 +1,4 @@
+import type { RefFilterResult } from "@/types"
 import type { RefValueLike } from "@/utils"
 
 import { assert, describe, expect, test } from "vitest"
@@ -11,8 +12,8 @@ import {
   amountValueDecimals,
   buildRefTree,
   computeRefCheckStates,
+  mergeRefOverlay,
   parseUrl,
-  refOverlayVisibleIds,
   timePrecisionForRange,
   timePrecisionForValue,
   timeStringFromFloat64,
@@ -496,45 +497,51 @@ describe("toggleRefSelection", () => {
   })
 })
 
-// Two independent hierarchies: art > painting > {oil, watercolor} (painting also carries a "direct" entry),
-// and music > guitar, plus the top-level "missing" entry. Paths are ancestor chains from a root to the value's
-// immediate parent; the "direct" entry's path ends with its own value (painting), and "missing" has no paths.
-const OVERLAY_PRIMARY: RefValueLike[] = [
-  { id: "art" },
-  { id: "painting", paths: [["art"]] },
-  { id: "oil", paths: [["art", "painting"]] },
-  { id: "watercolor", paths: [["art", "painting"]] },
-  { id: "__DIRECT__:painting", paths: [["art", "painting"]] },
-  { id: "music" },
-  { id: "guitar", paths: [["music"]] },
-  { id: "__MISSING__" },
-]
-
-describe("refOverlayVisibleIds", () => {
-  test("a match pulls in its ancestors and its direct entry", () => {
-    // painting matched: its ancestor (art) keeps the tree path, and its "direct" entry rides along.
-    assert.sameMembers([...refOverlayVisibleIds(OVERLAY_PRIMARY, new Set(["painting"]))], ["painting", "art", "__DIRECT__:painting"])
+describe("mergeRefOverlay", () => {
+  test("a match already in primary keeps the primary data and is not duplicated", () => {
+    const primary: RefFilterResult[] = [
+      { id: "art", count: 10 },
+      { id: "painting", count: 4, paths: [["art"]] },
+    ]
+    // The match carries a different count and extra paths for an id already loaded in primary.
+    const matchResults: RefFilterResult[] = [{ id: "painting", count: 99, paths: [["art"], ["other"]] }]
+    const combined = mergeRefOverlay(primary, matchResults)
+    // The combined list is exactly the primary list: the already-loaded id is not appended again.
+    assert.deepEqual(combined, primary)
+    // The primary entry wins, so its count and paths are kept and the match's differing data is ignored.
+    const painting = combined.find((e) => e.id === "painting")
+    assert.equal(painting?.count, 4)
+    assert.deepEqual(painting?.paths, [["art"]])
   })
 
-  test("the missing entry passes through", () => {
-    assert.sameMembers([...refOverlayVisibleIds(OVERLAY_PRIMARY, new Set(["__MISSING__"]))], ["__MISSING__"])
+  test("a match not in primary is appended with its match-provided count and paths", () => {
+    // sculpture is beyond the loaded primary list, so the combined list must reach it from the match data.
+    const primary: RefFilterResult[] = [{ id: "art", count: 10 }]
+    const matchResults: RefFilterResult[] = [
+      { id: "art", count: 10 },
+      { id: "sculpture", count: 2, paths: [["art"]] },
+    ]
+    const combined = mergeRefOverlay(primary, matchResults)
+    const sculpture = combined.find((e) => e.id === "sculpture")
+    assert.isDefined(sculpture)
+    assert.equal(sculpture?.count, 2)
+    assert.deepEqual(sculpture?.paths, [["art"]])
   })
 
-  test("an unmatched sibling and an ancestor's direct entry are excluded", () => {
-    // oil matched: its ancestors (art, painting) keep the tree path, but painting's "direct" entry does not ride
-    // along, because painting itself did not match (only oil did). The sibling watercolor stays hidden too.
-    const visible = refOverlayVisibleIds(OVERLAY_PRIMARY, new Set(["oil"]))
-    assert.sameMembers([...visible], ["oil", "art", "painting"])
-    assert.isFalse(visible.has("__DIRECT__:painting"))
-    assert.isFalse(visible.has("watercolor"))
-  })
-
-  test("an ancestor whose descendant did not match is excluded", () => {
-    // guitar matched: only its own ancestor (music) is pulled in; art (and everything under it) stays hidden.
-    const visible = refOverlayVisibleIds(OVERLAY_PRIMARY, new Set(["guitar"]))
-    assert.sameMembers([...visible], ["guitar", "music"])
-    assert.isFalse(visible.has("art"))
-    // The missing entry is shown only when it is itself in the match set, so a value-only match hides it.
-    assert.isFalse(visible.has("__MISSING__"))
+  test("combined order is primary first, then the not-in-primary matches in match order", () => {
+    const primary: RefFilterResult[] = [
+      { id: "a", count: 3 },
+      { id: "b", count: 2 },
+    ]
+    const matchResults: RefFilterResult[] = [
+      { id: "b", count: 2 },
+      { id: "c", count: 1 },
+      { id: "d", count: 1 },
+    ]
+    const combined = mergeRefOverlay(primary, matchResults)
+    assert.deepEqual(
+      combined.map((e) => e.id),
+      ["a", "b", "c", "d"],
+    )
   })
 })

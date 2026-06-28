@@ -2,7 +2,7 @@
 import type { DeepReadonly } from "vue"
 
 import type { D } from "@/document"
-import type { HasFilterEntry, HasSearchResult, HasValue, SearchSession } from "@/types"
+import type { HasFilterEntry, HasFilterResult, HasSearchResult, HasValue, SearchSession } from "@/types"
 
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 import { computed, onBeforeUnmount, ref, toRef, useId, useTemplateRef } from "vue"
@@ -15,7 +15,7 @@ import DisplayLabel from "@/partials/DisplayLabel.vue"
 import FilterPropLabel from "@/partials/FilterPropLabel.vue"
 import { useLocked, useProgress } from "@/progress"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useHasFilterMatches, useHasFilters } from "@/search"
-import { equals, loadingWidth, useInitialLoad, useLimitResults, useReportFilterVisibility } from "@/utils"
+import { equals, loadingWidth, mergeRefOverlay, useInitialLoad, useLimitResults, useReportFilterVisibility } from "@/utils"
 
 const props = withDefaults(
   defineProps<{
@@ -86,15 +86,24 @@ const searching = computed(() => props.query !== "")
 // stay shown and the facet does not flicker to a hidden or empty state.
 const overlayActive = computed(() => searching.value && matches.total.value !== null)
 
-// The primary properties narrowed to the value search overlay: every property stays when the overlay is
-// inactive, otherwise only those whose id matched. Has filters are flat, so there are no ancestors or "direct"
-// entries to keep, the visible set is exactly the matched ids.
+// The match response properties: empty while no value search is active, otherwise the matched properties with
+// full data (counts).
+const matchResults = matches.results
+
+// The combined property list: every loaded primary property, then any matched property that is not in the
+// loaded primary list (appended with its match-provided count, so a property beyond the loaded primary list is
+// reachable). When no value search is active matchResults is empty, so this equals the primary results.
+const combined = computed((): HasFilterResult[] => mergeRefOverlay(primary.results.value as HasFilterResult[], matchResults.value as HasFilterResult[]))
+
+// The combined properties narrowed to the value search overlay: every property when the overlay is inactive,
+// otherwise only those whose id is in the match response. Has filters are flat, so the visible set is exactly
+// the match response's ids; a loaded property keeps its primary count and a not-loaded match its match count.
 const visibleResults = computed(() => {
   if (!overlayActive.value) {
-    return primary.results.value
+    return combined.value
   }
-  const ids = matches.matchedIds.value
-  return primary.results.value.filter((res) => ids.has(res.id))
+  const ids = new Set(matchResults.value.map((r) => r.id))
+  return combined.value.filter((res) => ids.has(res.id))
 })
 
 // While the value search is active and no property in this facet is visible, the whole facet is hidden so the

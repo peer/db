@@ -17,8 +17,8 @@ import {
   DIRECT_REF_FILTER_PREFIX,
   equals,
   loadingWidth,
+  mergeRefOverlay,
   MISSING_VALUE_ID,
-  refOverlayVisibleIds,
   SKIP_TO_END,
   toggleRefSelection,
   useInitialLoad,
@@ -103,9 +103,22 @@ const searching = computed(() => props.query !== "")
 // shown and the facet does not flicker to a hidden or empty state.
 const overlayActive = computed(() => searching.value && matches.total.value !== null)
 
-// The ids that stay visible under the active value search, or null to show everything. It is computed over
-// the full primary results so a match keeps its tree path (ancestors) and its "direct" entry.
-const visibleIds = computed(() => (overlayActive.value ? refOverlayVisibleIds(primary.results.value as RefFilterResult[], matches.matchedIds.value) : null))
+// The match response values: empty while no value search is active, otherwise the matched values and their
+// ancestors carrying full data (counts and paths), including the matched values' "direct" entries and the
+// missing entry when the property's own name matched.
+const matchResults = matches.results
+
+// The value list the tree, the check states and the toggle all run over: every loaded primary value, then any
+// matched value that is not in the loaded primary list. A loaded value keeps its primary data (count, paths,
+// check state) so its tree and check states are unchanged; a not-loaded match is appended as a selectable leaf
+// rendered from the match data, so a value beyond the loaded primary list is reachable. When no value search is
+// active matchResults is empty, so this equals the primary results.
+const combined = computed((): RefFilterResult[] => mergeRefOverlay(primary.results.value as RefFilterResult[], matchResults.value as RefFilterResult[]))
+
+// The ids that stay visible under the active value search, or null to show everything. The match response
+// already includes each match's ancestors and its "direct" and missing entries, so the visible set is exactly
+// the match response's ids.
+const visibleIds = computed(() => (overlayActive.value ? new Set(matchResults.value.map((r) => r.id)) : null))
 
 // Extract the selected "to" IDs from the filter value.
 const selectedIds = computed((): string[] => {
@@ -167,11 +180,12 @@ const checkboxState = computed({
 
 const selectedSet = computed(() => new Set<string>(checkboxState.value))
 
-// Build the static tree from the full primary result set. Iteration order is the count-desc order returned by
-// the API, which buildRefTree preserves while placing each value under its deepest already-placed ancestor
-// (duplicated under each parent for diamond hierarchies). The value search never narrows this, so the tree and
-// the check states it feeds always cover the whole facet.
-const tree = computed((): RefFilterTreeNode[] => buildRefTree(primary.results.value as RefFilterResult[]))
+// Build the static tree from the combined value set (the loaded primary values plus any not-loaded matches).
+// Iteration order is the count-desc order returned by the API, which buildRefTree preserves while placing each
+// value under its deepest already-placed ancestor (duplicated under each parent for diamond hierarchies). The
+// value search only hides values from this tree, it never recomputes it, so the tree and the check states it
+// feeds always cover the whole combined set.
+const tree = computed((): RefFilterTreeNode[] => buildRefTree(combined.value))
 
 // Bottom-up "any of this subtree (including self) is selected" map. A node
 // counts as "selected" for sort purposes when its own id is in the selection
@@ -311,9 +325,9 @@ function clearFilter() {
 
 // Per-value tri-state for rendering: a value is checked when its own value, or an ancestor, is
 // selected, or when all of its children are; indeterminate when only part of its subtree is. See
-// computeRefCheckStates. The whole facet's primary results feed it, so a value's state does not depend on
+// computeRefCheckStates. The whole combined value set feeds it, so a value's state does not depend on
 // whether the rows under it are currently paginated into view nor on the active value search.
-const checkStates = computed(() => computeRefCheckStates(primary.results.value as RefFilterResult[], selectedSet.value))
+const checkStates = computed(() => computeRefCheckStates(combined.value, selectedSet.value))
 
 // Clicking a node toggles its whole subtree. Clicking an unchecked or indeterminate value selects
 // the value, its narrower values and its "direct" entry; clicking a checked value deselects that
@@ -323,7 +337,7 @@ function onToggle(node: RefFilterTreeNode) {
   if (abortController.signal.aborted) {
     return
   }
-  checkboxState.value = [...toggleRefSelection(primary.results.value as RefFilterResult[], node.res.id, selectedSet.value)]
+  checkboxState.value = [...toggleRefSelection(combined.value, node.res.id, selectedSet.value)]
 }
 </script>
 
