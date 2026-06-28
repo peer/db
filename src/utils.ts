@@ -1,7 +1,22 @@
 import type { ComputedRef, DeepReadonly, InjectionKey, Ref } from "vue"
 
 import type { TimePrecision } from "@/document"
-import type { GetDisplayLabel, Mutable, QueryValues, QueryValuesWithOptional, RefFilter, RefFilterResult, Result, TreeNode } from "@/types"
+import type {
+  GetDisplayLabel,
+  ListFormatPart,
+  Mutable,
+  ParseUrlOptions,
+  QueryValues,
+  QueryValuesWithOptional,
+  RefCheckState,
+  RefFilter,
+  RefFilterResult,
+  RefFilterValueToken,
+  RefValueLike,
+  RefValueWithCounts,
+  Result,
+  TreeNode,
+} from "@/types"
 
 import { Identifier } from "@tozd/identifier"
 import { prng_alea } from "esm-seedrandom"
@@ -120,18 +135,6 @@ export function limitGroupedResults(nodes: DeepReadonly<Result[]>, limit: number
   return { results: walk(nodes), shown: seen.size }
 }
 
-// RefValueLike is the minimal shape of a reference filter value the selection logic needs: the
-// value id and its hierarchy paths. Each path is an ancestor chain from a root to the value's
-// immediate parent; a "direct" entry's path ends with its own value, and the top-level "missing"
-// entry has no paths. RefFilterResult satisfies this.
-export type RefValueLike = { id: string; paths?: string[][] }
-
-// RefValueWithCounts extends the minimal value shape with the document count and the exact number of
-// distinct child values (childCount) the all-children promotion gate needs. RefFilterResult satisfies it.
-// When count/childCount are absent (older callers and tests), a value is treated as promotable so the
-// prior promotion behavior is preserved.
-export type RefValueWithCounts = RefValueLike & { count?: number; childCount?: number }
-
 // buildRefTree builds a value-hierarchy tree from a flat, count-ordered result list. Iteration order is
 // preserved: for each result, the deepest already-placed ancestor across its paths becomes its parent (one
 // placement per distinct such ancestor, so a value with several parents is duplicated under each), or the
@@ -176,9 +179,6 @@ export function buildRefTree<T extends RefValueLike>(results: readonly T[]): Tre
   }
   return roots
 }
-
-// RefCheckState is the tri-state a reference filter value renders as.
-export type RefCheckState = { checked: boolean; indeterminate: boolean }
 
 // refChildrenByValue maps each value id to the ids of its immediate children. A value's immediate
 // parent is the last element of each of its hierarchy paths, so every value is registered as a
@@ -417,11 +417,6 @@ export function mergeRefOverlay<T extends RefValueLike>(primary: readonly T[], m
   return combined
 }
 
-// RefFilterValueToken is one rendered entry of a reference filter's selection: a selected value (its id,
-// with direct marking the "most-specific only" variant the facet tree labels "direct"), or the synthetic
-// missing entry. A flat display iterates these to list the whole selection uniformly.
-export type RefFilterValueToken = { kind: "value"; id: string; direct: boolean } | { kind: "missing" }
-
 // refFilterValueTokens flattens a reference filter's active selection into a single ordered list: each To
 // value, then each Direct value (marked direct), then the missing entry when set. It lets a flat summary
 // (the print filter list, a prefilter label) render every part of the selection, direct-only selections
@@ -439,10 +434,6 @@ export function refFilterValueTokens(ref: DeepReadonly<RefFilter>): RefFilterVal
   }
   return tokens
 }
-
-// ListFormatPart is one piece of a locale-formatted list: a literal separator to print verbatim, or a
-// reference (by index) to the element the caller renders at that position.
-export type ListFormatPart = { type: "literal"; value: string } | { type: "element"; index: number }
 
 // listFormatParts formats a list of count items into the locale's list parts via Intl.ListFormat, so a list
 // of rich elements (components, not strings) can be rendered with locale-correct separators between them
@@ -895,12 +886,6 @@ export async function delay(ms: number, signal?: AbortSignal): Promise<void> {
 export const ALLOWED_LINK_CLAIM_SCHEMES = ["http:", "https:", "mailto:", "tel:"] as const
 
 const URL_HOST_REGEX = /^https?:\/\/\//i
-
-// Options accepted by parseUrl (and forwarded by normalizeUrl).
-export type ParseUrlOptions = {
-  // Defaults to true.
-  allowContact?: boolean
-}
 
 // parseUrl parses an input URL and validates it against the project's link
 // allowlist. It accepts:

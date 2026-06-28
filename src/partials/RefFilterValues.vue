@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { RefFilter } from "@/types"
-import type { RefFilterValueToken } from "@/utils"
 import type { DeepReadonly } from "vue"
+
+import type { RefFilter, RefFilterValueToken } from "@/types"
 
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"

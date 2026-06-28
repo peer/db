@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { D } from "@/document"
-import type { RefFilterTreeNode } from "@/types"
-import type { RefCheckState } from "@/utils"
+import type { RefCheckState, RefFilterTreeNode } from "@/types"
 
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 import { computed } from "vue"

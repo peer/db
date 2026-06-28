@@ -87,6 +87,26 @@ export type TreeNode<T> = {
 
 export type RefFilterTreeNode = TreeNode<RefFilterResult>
 
+// RefValueLike is the minimal shape of a reference filter value the selection logic needs: the
+// value id and its hierarchy paths. Each path is an ancestor chain from a root to the value's
+// immediate parent; a "direct" entry's path ends with its own value, and the top-level "missing"
+// entry has no paths. RefFilterResult satisfies this.
+export type RefValueLike = { id: string; paths?: string[][] }
+
+// RefValueWithCounts extends the minimal value shape with the document count and the exact number of
+// distinct child values (childCount) the all-children promotion gate needs. RefFilterResult satisfies it.
+// When count/childCount are absent (older callers and tests), a value is treated as promotable so the
+// prior promotion behavior is preserved.
+export type RefValueWithCounts = RefValueLike & { count?: number; childCount?: number }
+
+// RefCheckState is the tri-state a reference filter value renders as.
+export type RefCheckState = { checked: boolean; indeterminate: boolean }
+
+// RefFilterValueToken is one rendered entry of a reference filter's selection: a selected value (its id,
+// with direct marking the "most-specific only" variant the facet tree labels "direct"), or the synthetic
+// missing entry. A flat display iterates these to list the whole selection uniformly.
+export type RefFilterValueToken = { kind: "value"; id: string; direct: boolean } | { kind: "missing" }
+
 // ClassCreateResult is one class returned by the DocumentCreateOptions endpoint. paths are the SUBCLASS_OF
 // ancestor chains (root to immediate parent), one per parent, so the class renders once under each parent.
 // canCreate is true when a document can be created for the class; non-creatable classes appear only as
@@ -512,4 +532,14 @@ export type ValidatedInput = {
   // isDirty is compared. Called when an input's controls are shown or
   // when they are reset so subsequent edits show up as dirty.
   checkpoint: () => void
+}
+
+// ListFormatPart is one piece of a locale-formatted list: a literal separator to print verbatim, or a
+// reference (by index) to the element the caller renders at that position.
+export type ListFormatPart = { type: "literal"; value: string } | { type: "element"; index: number }
+
+// ParseUrlOptions are the options accepted by parseUrl (and forwarded by normalizeUrl).
+export type ParseUrlOptions = {
+  // Defaults to true.
+  allowContact?: boolean
 }

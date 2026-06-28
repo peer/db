@@ -1,5 +1,4 @@
-import type { RefFilterResult } from "@/types"
-import type { RefValueLike } from "@/utils"
+import type { RefFilterResult, RefValueLike } from "@/types"
 
 import { assert, describe, expect, test } from "vitest"
 
