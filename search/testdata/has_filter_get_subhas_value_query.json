@@ -1,0 +1,334 @@
+{
+  "selectedMatch": {
+    "aggregations": {
+      "nested": {
+        "aggregations": {
+          "filter": {
+            "aggregations": {
+              "match": {
+                "terms": {
+                  "field": "claims.subHas.prop",
+                  "size": 1000
+                }
+              }
+            },
+            "filter": {
+              "bool": {
+                "must": [
+                  {
+                    "term": {
+                      "claims.subHas.parentProp": {
+                        "value": "XHaC94kLmNZ5NtifgrStop"
+                      }
+                    }
+                  },
+                  {
+                    "bool": {
+                      "minimum_should_match": 1,
+                      "should": [
+                        {
+                          "simple_query_string": {
+                            "default_operator": "and",
+                            "fields": [
+                              "claims.subHas.propNaming.en",
+                              "claims.subHas.propNaming.und"
+                            ],
+                            "query": "col*"
+                          }
+                        },
+                        {
+                          "simple_query_string": {
+                            "default_operator": "and",
+                            "fields": [
+                              "claims.subHas.parentPropNaming.en",
+                              "claims.subHas.parentPropNaming.und"
+                            ],
+                            "query": "col*"
+                          }
+                        },
+                        {
+                          "simple_query_string": {
+                            "default_operator": "and",
+                            "fields": [
+                              "claims.subHas.propDisplay.en"
+                            ],
+                            "query": "col*",
+                            "quote_field_suffix": ".exact"
+                          }
+                        },
+                        {
+                          "simple_query_string": {
+                            "default_operator": "and",
+                            "fields": [
+                              "claims.subHas.propDisplay.und"
+                            ],
+                            "query": "col*",
+                            "quote_field_suffix": ".exact"
+                          }
+                        },
+                        {
+                          "simple_query_string": {
+                            "default_operator": "and",
+                            "fields": [
+                              "claims.subHas.parentPropDisplay.en"
+                            ],
+                            "query": "col*",
+                            "quote_field_suffix": ".exact"
+                          }
+                        },
+                        {
+                          "simple_query_string": {
+                            "default_operator": "and",
+                            "fields": [
+                              "claims.subHas.parentPropDisplay.und"
+                            ],
+                            "query": "col*",
+                            "quote_field_suffix": ".exact"
+                          }
+                        },
+                        {
+                          "match_phrase_prefix": {
+                            "claims.subHas.propNaming.en.unstemmed": {
+                              "query": "col"
+                            }
+                          }
+                        },
+                        {
+                          "match_phrase_prefix": {
+                            "claims.subHas.propNaming.und": {
+                              "query": "col"
+                            }
+                          }
+                        },
+                        {
+                          "match_phrase_prefix": {
+                            "claims.subHas.parentPropNaming.en.unstemmed": {
+                              "query": "col"
+                            }
+                          }
+                        },
+                        {
+                          "match_phrase_prefix": {
+                            "claims.subHas.parentPropNaming.und": {
+                              "query": "col"
+                            }
+                          }
+                        },
+                        {
+                          "match_phrase_prefix": {
+                            "claims.subHas.propDisplay.en": {
+                              "query": "col"
+                            }
+                          }
+                        },
+                        {
+                          "match_phrase_prefix": {
+                            "claims.subHas.propDisplay.und": {
+                              "query": "col"
+                            }
+                          }
+                        },
+                        {
+                          "match_phrase_prefix": {
+                            "claims.subHas.parentPropDisplay.en": {
+                              "query": "col"
+                            }
+                          }
+                        },
+                        {
+                          "match_phrase_prefix": {
+                            "claims.subHas.parentPropDisplay.und": {
+                              "query": "col"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "terms": {
+                      "claims.subHas.prop": [
+                        "Vg7NV61DJJ5HS2nheTZrQE"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "nested": {
+          "path": "claims.subHas"
+        }
+      }
+    },
+    "global": {}
+  },
+  "subHas": {
+    "aggregations": {
+      "filter": {
+        "aggregations": {
+          "props": {
+            "aggregations": {
+              "docs": {
+                "reverse_nested": {}
+              }
+            },
+            "terms": {
+              "field": "claims.subHas.prop",
+              "order": {
+                "docs": "desc"
+              },
+              "size": 1000
+            }
+          },
+          "total": {
+            "cardinality": {
+              "field": "claims.subHas.prop",
+              "precision_threshold": 40000
+            }
+          }
+        },
+        "filter": {
+          "bool": {
+            "must": [
+              {
+                "term": {
+                  "claims.subHas.parentProp": {
+                    "value": "XHaC94kLmNZ5NtifgrStop"
+                  }
+                }
+              },
+              {
+                "bool": {
+                  "minimum_should_match": 1,
+                  "should": [
+                    {
+                      "simple_query_string": {
+                        "default_operator": "and",
+                        "fields": [
+                          "claims.subHas.propNaming.en",
+                          "claims.subHas.propNaming.und"
+                        ],
+                        "query": "col*"
+                      }
+                    },
+                    {
+                      "simple_query_string": {
+                        "default_operator": "and",
+                        "fields": [
+                          "claims.subHas.parentPropNaming.en",
+                          "claims.subHas.parentPropNaming.und"
+                        ],
+                        "query": "col*"
+                      }
+                    },
+                    {
+                      "simple_query_string": {
+                        "default_operator": "and",
+                        "fields": [
+                          "claims.subHas.propDisplay.en"
+                        ],
+                        "query": "col*",
+                        "quote_field_suffix": ".exact"
+                      }
+                    },
+                    {
+                      "simple_query_string": {
+                        "default_operator": "and",
+                        "fields": [
+                          "claims.subHas.propDisplay.und"
+                        ],
+                        "query": "col*",
+                        "quote_field_suffix": ".exact"
+                      }
+                    },
+                    {
+                      "simple_query_string": {
+                        "default_operator": "and",
+                        "fields": [
+                          "claims.subHas.parentPropDisplay.en"
+                        ],
+                        "query": "col*",
+                        "quote_field_suffix": ".exact"
+                      }
+                    },
+                    {
+                      "simple_query_string": {
+                        "default_operator": "and",
+                        "fields": [
+                          "claims.subHas.parentPropDisplay.und"
+                        ],
+                        "query": "col*",
+                        "quote_field_suffix": ".exact"
+                      }
+                    },
+                    {
+                      "match_phrase_prefix": {
+                        "claims.subHas.propNaming.en.unstemmed": {
+                          "query": "col"
+                        }
+                      }
+                    },
+                    {
+                      "match_phrase_prefix": {
+                        "claims.subHas.propNaming.und": {
+                          "query": "col"
+                        }
+                      }
+                    },
+                    {
+                      "match_phrase_prefix": {
+                        "claims.subHas.parentPropNaming.en.unstemmed": {
+                          "query": "col"
+                        }
+                      }
+                    },
+                    {
+                      "match_phrase_prefix": {
+                        "claims.subHas.parentPropNaming.und": {
+                          "query": "col"
+                        }
+                      }
+                    },
+                    {
+                      "match_phrase_prefix": {
+                        "claims.subHas.propDisplay.en": {
+                          "query": "col"
+                        }
+                      }
+                    },
+                    {
+                      "match_phrase_prefix": {
+                        "claims.subHas.propDisplay.und": {
+                          "query": "col"
+                        }
+                      }
+                    },
+                    {
+                      "match_phrase_prefix": {
+                        "claims.subHas.parentPropDisplay.en": {
+                          "query": "col"
+                        }
+                      }
+                    },
+                    {
+                      "match_phrase_prefix": {
+                        "claims.subHas.parentPropDisplay.und": {
+                          "query": "col"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "nested": {
+      "path": "claims.subHas"
+    }
+  }
+}

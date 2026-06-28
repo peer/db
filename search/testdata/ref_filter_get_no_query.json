@@ -1,0 +1,86 @@
+{
+  "missing": {
+    "filter": {
+      "bool": {
+        "must_not": [
+          {
+            "nested": {
+              "path": "claims.ref",
+              "query": {
+                "term": {
+                  "claims.ref.prop": {
+                    "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "ref": {
+    "aggregations": {
+      "filter": {
+        "aggregations": {
+          "props": {
+            "aggregations": {
+              "direct": {
+                "aggregations": {
+                  "docs": {
+                    "reverse_nested": {}
+                  }
+                },
+                "filter": {
+                  "term": {
+                    "claims.ref.isLeaf": {
+                      "value": true
+                    }
+                  }
+                }
+              },
+              "docs": {
+                "reverse_nested": {}
+              },
+              "paths": {
+                "terms": {
+                  "field": "claims.ref.toPath",
+                  "size": 100
+                }
+              }
+            },
+            "terms": {
+              "field": "claims.ref.to",
+              "order": {
+                "docs": "desc"
+              },
+              "size": 1000
+            }
+          },
+          "total": {
+            "cardinality": {
+              "field": "claims.ref.to",
+              "precision_threshold": 40000
+            }
+          }
+        },
+        "filter": {
+          "bool": {
+            "must": [
+              {
+                "term": {
+                  "claims.ref.prop": {
+                    "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "nested": {
+      "path": "claims.ref"
+    }
+  }
+}

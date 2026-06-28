@@ -1,0 +1,372 @@
+{
+  "active_0": {
+    "aggregations": {
+      "nested": {
+        "aggregations": {
+          "filter": {
+            "aggregations": {
+              "docs": {
+                "reverse_nested": {}
+              }
+            },
+            "filter": {
+              "term": {
+                "claims.ref.prop": {
+                  "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                }
+              }
+            }
+          }
+        },
+        "nested": {
+          "path": "claims.ref"
+        }
+      }
+    },
+    "filter": {
+      "bool": {
+        "filter": [
+          {
+            "match_all": {}
+          }
+        ]
+      }
+    }
+  },
+  "amount": {
+    "aggregations": {
+      "props": {
+        "aggregations": {
+          "docs": {
+            "reverse_nested": {}
+          },
+          "matched": {
+            "aggregations": {
+              "matchedDocs": {
+                "reverse_nested": {}
+              }
+            },
+            "filter": {
+              "match_all": {}
+            }
+          }
+        },
+        "multi_terms": {
+          "order": {
+            "docs": "desc"
+          },
+          "size": 1000,
+          "terms": [
+            {
+              "field": "claims.amount.prop"
+            },
+            {
+              "field": "claims.amount.unit",
+              "missing": "__missing__"
+            }
+          ]
+        }
+      },
+      "total": {
+        "cardinality": {
+          "precision_threshold": 40000,
+          "script": {
+            "source": "return doc['claims.amount.prop'].value + '|' + (doc['claims.amount.unit'].size() \u003e 0 ? doc['claims.amount.unit'].value : '__missing__')"
+          }
+        }
+      }
+    },
+    "nested": {
+      "path": "claims.amount"
+    }
+  },
+  "has": {
+    "aggregations": {
+      "matched": {
+        "filter": {
+          "nested": {
+            "path": "claims.has",
+            "query": {
+              "match_all": {}
+            }
+          }
+        }
+      }
+    },
+    "filter": {
+      "nested": {
+        "path": "claims.has",
+        "query": {
+          "match_all": {}
+        }
+      }
+    }
+  },
+  "ref": {
+    "aggregations": {
+      "scoped": {
+        "aggregations": {
+          "props": {
+            "aggregations": {
+              "docs": {
+                "reverse_nested": {}
+              },
+              "matched": {
+                "aggregations": {
+                  "matchedDocs": {
+                    "reverse_nested": {}
+                  }
+                },
+                "filter": {
+                  "match_all": {}
+                }
+              }
+            },
+            "terms": {
+              "field": "claims.ref.prop",
+              "order": {
+                "docs": "desc"
+              },
+              "size": 1000
+            }
+          },
+          "total": {
+            "cardinality": {
+              "field": "claims.ref.prop",
+              "precision_threshold": 40000
+            }
+          }
+        },
+        "filter": {
+          "bool": {}
+        }
+      }
+    },
+    "nested": {
+      "path": "claims.ref"
+    }
+  },
+  "subAmount": {
+    "aggregations": {
+      "props": {
+        "aggregations": {
+          "docs": {
+            "reverse_nested": {}
+          },
+          "matched": {
+            "aggregations": {
+              "matchedDocs": {
+                "reverse_nested": {}
+              }
+            },
+            "filter": {
+              "match_all": {}
+            }
+          }
+        },
+        "multi_terms": {
+          "order": {
+            "docs": "desc"
+          },
+          "size": 1000,
+          "terms": [
+            {
+              "field": "claims.subAmount.parentProp"
+            },
+            {
+              "field": "claims.subAmount.prop"
+            },
+            {
+              "field": "claims.subAmount.unit",
+              "missing": "__missing__"
+            }
+          ]
+        }
+      },
+      "total": {
+        "cardinality": {
+          "precision_threshold": 40000,
+          "script": {
+            "source": "return doc['claims.subAmount.parentProp'].value + '|' + doc['claims.subAmount.prop'].value + '|' + (doc['claims.subAmount.unit'].size() \u003e 0 ? doc['claims.subAmount.unit'].value : '__missing__')"
+          }
+        }
+      }
+    },
+    "nested": {
+      "path": "claims.subAmount"
+    }
+  },
+  "subHas": {
+    "aggregations": {
+      "props": {
+        "aggregations": {
+          "docs": {
+            "reverse_nested": {}
+          },
+          "matched": {
+            "aggregations": {
+              "matchedDocs": {
+                "reverse_nested": {}
+              }
+            },
+            "filter": {
+              "match_all": {}
+            }
+          }
+        },
+        "terms": {
+          "field": "claims.subHas.parentProp",
+          "order": {
+            "docs": "desc"
+          },
+          "size": 1000
+        }
+      },
+      "total": {
+        "cardinality": {
+          "field": "claims.subHas.parentProp",
+          "precision_threshold": 40000
+        }
+      }
+    },
+    "nested": {
+      "path": "claims.subHas"
+    }
+  },
+  "subRef": {
+    "aggregations": {
+      "scoped": {
+        "aggregations": {
+          "props": {
+            "aggregations": {
+              "docs": {
+                "reverse_nested": {}
+              },
+              "matched": {
+                "aggregations": {
+                  "matchedDocs": {
+                    "reverse_nested": {}
+                  }
+                },
+                "filter": {
+                  "match_all": {}
+                }
+              }
+            },
+            "multi_terms": {
+              "order": {
+                "docs": "desc"
+              },
+              "size": 1000,
+              "terms": [
+                {
+                  "field": "claims.subRef.parentProp"
+                },
+                {
+                  "field": "claims.subRef.prop"
+                }
+              ]
+            }
+          },
+          "total": {
+            "cardinality": {
+              "precision_threshold": 40000,
+              "script": {
+                "source": "return doc['claims.subRef.parentProp'].value + '|' + doc['claims.subRef.prop'].value"
+              }
+            }
+          }
+        },
+        "filter": {
+          "bool": {}
+        }
+      }
+    },
+    "nested": {
+      "path": "claims.subRef"
+    }
+  },
+  "subTime": {
+    "aggregations": {
+      "props": {
+        "aggregations": {
+          "docs": {
+            "reverse_nested": {}
+          },
+          "matched": {
+            "aggregations": {
+              "matchedDocs": {
+                "reverse_nested": {}
+              }
+            },
+            "filter": {
+              "match_all": {}
+            }
+          }
+        },
+        "multi_terms": {
+          "order": {
+            "docs": "desc"
+          },
+          "size": 1000,
+          "terms": [
+            {
+              "field": "claims.subTime.parentProp"
+            },
+            {
+              "field": "claims.subTime.prop"
+            }
+          ]
+        }
+      },
+      "total": {
+        "cardinality": {
+          "precision_threshold": 40000,
+          "script": {
+            "source": "return doc['claims.subTime.parentProp'].value + '|' + doc['claims.subTime.prop'].value"
+          }
+        }
+      }
+    },
+    "nested": {
+      "path": "claims.subTime"
+    }
+  },
+  "time": {
+    "aggregations": {
+      "props": {
+        "aggregations": {
+          "docs": {
+            "reverse_nested": {}
+          },
+          "matched": {
+            "aggregations": {
+              "matchedDocs": {
+                "reverse_nested": {}
+              }
+            },
+            "filter": {
+              "match_all": {}
+            }
+          }
+        },
+        "terms": {
+          "field": "claims.time.prop",
+          "order": {
+            "docs": "desc"
+          },
+          "size": 1000
+        }
+      },
+      "total": {
+        "cardinality": {
+          "field": "claims.time.prop",
+          "precision_threshold": 40000
+        }
+      }
+    },
+    "nested": {
+      "path": "claims.time"
+    }
+  }
+}
