@@ -12,6 +12,7 @@ import {
   buildRefTree,
   computeRefCheckStates,
   parseUrl,
+  refOverlayVisibleIds,
   timePrecisionForRange,
   timePrecisionForValue,
   timeStringFromFloat64,
@@ -492,5 +493,48 @@ describe("toggleRefSelection", () => {
     assert.isTrue(computeRefCheckStates(values, new Set(["pa"])).get("leaf")?.checked)
     // Deselecting it from a root-wide selection leaves nothing, since it is the only value below.
     assert.sameMembers([...toggleRefSelection(values, "leaf", new Set(["root"]))], [])
+  })
+})
+
+// Two independent hierarchies: art > painting > {oil, watercolor} (painting also carries a "direct" entry),
+// and music > guitar, plus the top-level "missing" entry. Paths are ancestor chains from a root to the value's
+// immediate parent; the "direct" entry's path ends with its own value (painting), and "missing" has no paths.
+const OVERLAY_PRIMARY: RefValueLike[] = [
+  { id: "art" },
+  { id: "painting", paths: [["art"]] },
+  { id: "oil", paths: [["art", "painting"]] },
+  { id: "watercolor", paths: [["art", "painting"]] },
+  { id: "__DIRECT__:painting", paths: [["art", "painting"]] },
+  { id: "music" },
+  { id: "guitar", paths: [["music"]] },
+  { id: "__MISSING__" },
+]
+
+describe("refOverlayVisibleIds", () => {
+  test("a match pulls in its ancestors and its direct entry", () => {
+    // painting matched: its ancestor (art) keeps the tree path, and its "direct" entry rides along.
+    assert.sameMembers([...refOverlayVisibleIds(OVERLAY_PRIMARY, new Set(["painting"]))], ["painting", "art", "__DIRECT__:painting"])
+  })
+
+  test("the missing entry passes through", () => {
+    assert.sameMembers([...refOverlayVisibleIds(OVERLAY_PRIMARY, new Set(["__MISSING__"]))], ["__MISSING__"])
+  })
+
+  test("an unmatched sibling and an ancestor's direct entry are excluded", () => {
+    // oil matched: its ancestors (art, painting) keep the tree path, but painting's "direct" entry does not ride
+    // along, because painting itself did not match (only oil did). The sibling watercolor stays hidden too.
+    const visible = refOverlayVisibleIds(OVERLAY_PRIMARY, new Set(["oil"]))
+    assert.sameMembers([...visible], ["oil", "art", "painting"])
+    assert.isFalse(visible.has("__DIRECT__:painting"))
+    assert.isFalse(visible.has("watercolor"))
+  })
+
+  test("an ancestor whose descendant did not match is excluded", () => {
+    // guitar matched: only its own ancestor (music) is pulled in; art (and everything under it) stays hidden.
+    const visible = refOverlayVisibleIds(OVERLAY_PRIMARY, new Set(["guitar"]))
+    assert.sameMembers([...visible], ["guitar", "music"])
+    assert.isFalse(visible.has("art"))
+    // The missing entry is shown only when it is itself in the match set, so a value-only match hides it.
+    assert.isFalse(visible.has("__MISSING__"))
   })
 })

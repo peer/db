@@ -5,7 +5,7 @@ import type { D } from "@/document"
 import type { HasFilterEntry, HasSearchResult, HasValue, SearchSession } from "@/types"
 
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
-import { computed, onBeforeUnmount, toRef, useId, useTemplateRef } from "vue"
+import { computed, onBeforeUnmount, ref, toRef, useId, useTemplateRef } from "vue"
 import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
@@ -14,7 +14,7 @@ import WithDocument from "@/components/WithDocument.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import FilterPropLabel from "@/partials/FilterPropLabel.vue"
 import { useLocked, useProgress } from "@/progress"
-import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useHasFilters } from "@/search"
+import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, useHasFilterMatches, useHasFilters } from "@/search"
 import { equals, loadingWidth, useInitialLoad, useLimitResults, useReportFilterVisibility } from "@/utils"
 
 const props = withDefaults(
@@ -54,24 +54,52 @@ const progress = useProgress()
 // The filter ID from the session's filter, if it exists.
 const filterId = computed(() => props.filter?.id ?? "")
 
-const {
-  results,
-  total,
-  error,
-  url: resultsUrl,
-} = useHasFilters(
-  toRef(() => props.searchSession),
+const session = toRef(() => props.searchSession)
+const propsRef = computed(() => props.result.props ?? [])
+
+// EMPTY is a stable, always-empty value query so the primary facet always fetches the unfiltered (q="")
+// results and refetches only when the session/version or props change. The primary results are the single
+// source of counts; the value search is layered on top as a visual overlay that only hides properties.
+const EMPTY = ref("")
+
+const primary = useHasFilters(session, filterId, propsRef, EMPTY, el, progress)
+const matches = useHasFilterMatches(
+  session,
   filterId,
-  computed(() => props.result.props ?? []),
+  propsRef,
   toRef(() => props.query),
   el,
   progress,
 )
+
+// Template-facing aliases for the primary facet (top-level refs unwrap in the template).
+const error = primary.error
+const resultsUrl = primary.url
+const loading = computed(() => primary.total.value === null)
+
 const { laterLoad } = useInitialLoad(progress)
 
-// While a value query is active and no property matches, the whole facet is hidden so the filter pane shows
-// only facets with matching values. During loading (total still null) the facet stays visible.
-const hiddenByQuery = computed(() => props.query !== "" && total.value === 0)
+const searching = computed(() => props.query !== "")
+
+// The overlay is active only once the value search has been typed and its matches have returned. While the
+// match fetch is still in flight (matches.total is null) the overlay is inactive, so all primary properties
+// stay shown and the facet does not flicker to a hidden or empty state.
+const overlayActive = computed(() => searching.value && matches.total.value !== null)
+
+// The primary properties narrowed to the value search overlay: every property stays when the overlay is
+// inactive, otherwise only those whose id matched. Has filters are flat, so there are no ancestors or "direct"
+// entries to keep, the visible set is exactly the matched ids.
+const visibleResults = computed(() => {
+  if (!overlayActive.value) {
+    return primary.results.value
+  }
+  const ids = matches.matchedIds.value
+  return primary.results.value.filter((res) => ids.has(res.id))
+})
+
+// While the value search is active and no property in this facet is visible, the whole facet is hidden so the
+// filter pane shows only facets with matching values. Until the overlay is active the facet stays visible.
+const hiddenByQuery = computed(() => overlayActive.value && visibleResults.value.length === 0)
 
 // Report visibility to the filter pane so it can show the no-match message only when no facet is visible.
 useReportFilterVisibility(() => !hiddenByQuery.value)
@@ -87,10 +115,14 @@ const selectedIds = computed((): string[] => {
 // Reorder so selected options come first (each group keeps the count-desc order from the API).
 const sortedResults = computed(() => {
   const selected = new Set<string>(selectedIds.value)
-  return [...results.value.filter((res) => selected.has(res.id)), ...results.value.filter((res) => !selected.has(res.id))]
+  return [...visibleResults.value.filter((res) => selected.has(res.id)), ...visibleResults.value.filter((res) => !selected.has(res.id))]
 })
 
 const { limitedResults, hasMore, loadMore } = useLimitResults(sortedResults, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
+
+// The number of properties the user can still reach: the whole facet count from the primary results when not
+// searching, or the count of the currently visible overlay when a value search is active.
+const displayTotal = computed((): number => (overlayActive.value ? visibleResults.value.length : (primary.total.value ?? 0)))
 
 function clearFilter() {
   if (abortController.signal.aborted || !props.filter) {
@@ -152,7 +184,7 @@ const WithDocumentD = WithDocument<D>
       <li v-if="error" class="col-span-2">
         <i class="pd-hasfiltersresult-error text-error-600">{{ t("common.status.loadingDataFailed") }}</i>
       </li>
-      <template v-else-if="total === null">
+      <template v-else-if="loading">
         <li v-for="i in 3" :key="i" class="contents">
           <div class="my-1.5 h-2 w-4 rounded-sm bg-slate-200 motion-safe:animate-pulse" aria-hidden="true"></div>
           <div class="flex items-baseline gap-x-1" aria-hidden="true">
@@ -198,11 +230,11 @@ const WithDocumentD = WithDocument<D>
         </li>
       </template>
     </ul>
-    <Button v-if="total !== null && hasMore" primary class="mt-2 w-1/2 min-w-fit self-center" @click.prevent="loadMore">{{
-      t("common.buttons.loadCountMore", { count: total - limitedResults.length })
+    <Button v-if="!loading && hasMore" primary class="mt-2 w-1/2 min-w-fit self-center" @click.prevent="loadMore">{{
+      t("common.buttons.loadCountMore", { count: displayTotal - limitedResults.length })
     }}</Button>
-    <div v-else-if="total !== null && total > limitedResults.length" class="mt-2 text-center text-sm">
-      {{ t("common.status.valuesNotShown", { count: total - limitedResults.length }) }}
+    <div v-else-if="!loading && displayTotal > limitedResults.length" class="mt-2 text-center text-sm">
+      {{ t("common.status.valuesNotShown", { count: displayTotal - limitedResults.length }) }}
     </div>
   </div>
 </template>

@@ -54,25 +54,113 @@ func hasPropsTermsQuery(field string, props []HasValue) types.QueryVariant { //n
 	return esdsl.NewTermsQuery().AddTermsQuery(field+".prop", esdsl.NewTermsQueryField().FieldValues(values...))
 }
 
-// mergeMatchedHasProps appends, during a value search, at count 0, each selected has-property whose label
-// matched the typed text (the matched set comes from the selectedMatch global aggregation) and that is not
-// already present. It is the value-search counterpart of mergeSelectedHasProps, which force-shows the whole
-// selection outside a search; here only the matched selected properties are surfaced, so a selected property
-// (which has zero documents in the search scope) stays searchable by its own label.
-func mergeMatchedHasProps(results []HasFilterResult, props []HasValue, matched map[string]bool) []HasFilterResult {
-	present := make(map[string]bool, len(results))
-	for _, r := range results {
-		present[r.ID] = true
+// buildHasValueSearchResults assembles a has (or sub-has) value-search response: the matched property ids
+// (matchingValueIDs, the union of the in-scope value aggregation's bucket keys under name and the augment ids the
+// selectedMatch aggregation matched) wrapped as id-only HasFilterResult entries. The has facet is flat and has no
+// missing bucket, so there are no ancestors, counts, or missing entry; the frontend applies these ids as a visual
+// overlay on top of its unfiltered primary. The metadata total is the number of returned ids. hasSelectedMatch
+// reports whether the selectedMatch aggregation was added.
+func buildHasValueSearchResults(aggs map[string]types.Aggregate, name string, hasSelectedMatch bool) ([]HasFilterResult, map[string]any, errors.E) {
+	ids, errE := matchingValueIDs(aggs, name, hasSelectedMatch)
+	if errE != nil {
+		return nil, nil, errE
 	}
-	for _, p := range props {
-		id := p.ID.String()
-		if !matched[id] || present[id] {
-			continue
-		}
+	results := make([]HasFilterResult, 0, len(ids))
+	for _, id := range ids {
 		results = append(results, HasFilterResult{ID: id, Count: 0})
-		present[id] = true
 	}
-	return results
+	total := strconv.FormatInt(int64(len(results)), 10)
+	return results, map[string]any{
+		"total": total,
+	}, nil
+}
+
+// hasPropAggregation builds the property-count aggregation shared by the has and sub-has filters. field is the
+// nested path ("claims.has" or "claims.subHas") and filterQuery scopes the records counted. It produces one
+// "props" bucket per property with its document count ("docs", reverse_nested to the document level) and a
+// cardinality "total" of distinct properties. The has facet is flat, so there is no hierarchy sub-aggregation.
+func hasPropAggregation(field string, filterQuery types.QueryVariant) types.AggregationsVariant { //nolint:ireturn
+	return esdsl.NewAggregations().
+		Nested(esdsl.NewNestedAggregation().Path(field)).
+		AddAggregation("filter", esdsl.NewAggregations().
+			Filter(filterQuery).
+			AddAggregation("props", esdsl.NewAggregations().
+				Terms(esdsl.NewTermsAggregation().Field(field+".prop").Size(MaxResultsCount).
+					Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
+				AddAggregation("docs", esdsl.NewAggregations().
+					ReverseNested(esdsl.NewReverseNestedAggregation()))).
+			AddAggregation("total", esdsl.NewAggregations().
+				Cardinality(esdsl.NewCardinalityAggregation().Field(field+".prop").PrecisionThreshold(maxPrecisionThreshold))))
+}
+
+// hasBucketsToResults turns the property buckets of a has (or sub-has) aggregation into HasFilterResult entries,
+// reading each bucket's "docs" reverse_nested count. kind labels error messages (has or subHas).
+func hasBucketsToResults(buckets []types.StringTermsBucket, kind string) ([]HasFilterResult, errors.E) {
+	results := make([]HasFilterResult, 0, len(buckets))
+	for _, bucket := range buckets {
+		bucketDocs, errE := internalSearch.AggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
+		if errE != nil {
+			return nil, errE
+		}
+		key, ok := bucket.Key.(string)
+		if !ok {
+			errE := errors.New("unexpected key type for " + kind + " bucket")
+			errors.Details(errE)["type"] = fmt.Sprintf("%T", bucket.Key)
+			return nil, errE
+		}
+		results = append(results, HasFilterResult{ID: key, Count: bucketDocs.DocCount})
+	}
+	return results, nil
+}
+
+// getMatchingSubHasPropIDs runs the sub-has filter's value-search path: it returns only the property ids whose
+// sub-property or parent-property name matched valueQuery, as id-only results (see buildHasValueSearchResults).
+// The match set is the union of the in-scope value aggregation's bucket keys and the selected property ids the
+// selectedMatch aggregation matched. It is split out of GetSubHas so each path stays small.
+func (f *HasFilter) getMatchingSubHasPropIDs(
+	ctx context.Context, getSearchService func() *esSearch.Search,
+	query types.QueryVariant, parentProp identifier.Identifier,
+	parentToRestrictions []identifier.Identifier,
+	valueQuery string, enabledLanguages []string,
+) ([]HasFilterResult, map[string]any, errors.E) {
+	metrics, _ := waf.GetMetrics(ctx)
+
+	searchService := getSearchService()
+
+	parentPropTerm := esdsl.NewTermQuery("claims.subHas.parentProp", esdsl.NewFieldValue().String(parentProp.String()))
+	filterMusts := []types.QueryVariant{parentPropTerm}
+	if len(parentToRestrictions) > 0 {
+		shoulds := make([]types.QueryVariant, 0, len(parentToRestrictions))
+		for _, pto := range parentToRestrictions {
+			shoulds = append(shoulds, esdsl.NewTermQuery("claims.subHas.parentTo", esdsl.NewFieldValue().String(pto.String())))
+		}
+		filterMusts = append(filterMusts, esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)))
+	}
+	propLabelMatch := propLabelMatchQuery(
+		[]string{"claims.subHas.propNaming", "claims.subHas.parentPropNaming"},
+		[]string{"claims.subHas.propDisplay", "claims.subHas.parentPropDisplay"}, valueQuery, enabledLanguages)
+	filterMusts = append(filterMusts, propLabelMatch)
+
+	searchService = searchService.Size(0).Query(query).
+		AddAggregation("subHas", hasPropAggregation("claims.subHas", esdsl.NewBoolQuery().Must(filterMusts...)))
+
+	// The selectedMatch label-matches the selected sub-has properties globally so an active filter's selection
+	// (which has zero documents in the search scope) stays searchable by its own label. It is scoped to the parent
+	// property and the selected prop ids, mirroring the facet's own filter.
+	if len(f.Props) > 0 {
+		selectedMatchFilter := esdsl.NewBoolQuery().Must(parentPropTerm, propLabelMatch, hasPropsTermsQuery("claims.subHas", f.Props))
+		searchService = searchService.AddAggregation("selectedMatch", selectedMatchAggregation("claims.subHas", "prop", selectedMatchFilter))
+	}
+
+	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
+	res, err := searchService.Do(ctx)
+	m.Stop()
+	if err != nil {
+		return nil, nil, WithESError(err)
+	}
+	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
+
+	return buildHasValueSearchResults(res.Aggregations, "subHas", len(f.Props) > 0)
 }
 
 // GetSubHas retrieves sub-has filter data for search results. It aggregates
@@ -85,6 +173,12 @@ func (f *HasFilter) GetSubHas(
 	parentToRestrictions []identifier.Identifier,
 	valueQuery string, enabledLanguages []string,
 ) ([]HasFilterResult, map[string]any, errors.E) {
+	// During a filter-pane value search the response carries only the matching property ids (an overlay the
+	// frontend applies on top of its unfiltered primary), so it takes a dedicated path.
+	if valueQuery != "" {
+		return f.getMatchingSubHasPropIDs(ctx, getSearchService, query, parentProp, parentToRestrictions, valueQuery, enabledLanguages)
+	}
+
 	metrics, _ := waf.GetMetrics(ctx)
 
 	searchService := getSearchService()
@@ -99,42 +193,9 @@ func (f *HasFilter) GetSubHas(
 		}
 		filterMusts = append(filterMusts, esdsl.NewBoolQuery().Should(shoulds...).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1)))
 	}
-	// valueQuery restricts the facet to has-properties whose display label matches the user-typed text, so
-	// the filter pane can be narrowed without changing the search. It never alters which documents match.
-	var propLabelMatch types.QueryVariant
-	if valueQuery != "" {
-		propLabelMatch = propLabelMatchQuery(
-			[]string{"claims.subHas.propNaming", "claims.subHas.parentPropNaming"},
-			[]string{"claims.subHas.propDisplay", "claims.subHas.parentPropDisplay"}, valueQuery, enabledLanguages)
-		filterMusts = append(filterMusts, propLabelMatch)
-	}
-
-	subHasAggregation := esdsl.NewAggregations().
-		Nested(esdsl.NewNestedAggregation().Path("claims.subHas")).
-		AddAggregation("filter", esdsl.NewAggregations().
-			Filter(esdsl.NewBoolQuery().Must(filterMusts...)).
-			AddAggregation("props", esdsl.NewAggregations().
-				Terms(esdsl.NewTermsAggregation().Field("claims.subHas.prop").Size(MaxResultsCount).
-					Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
-				AddAggregation("docs", esdsl.NewAggregations().
-					ReverseNested(esdsl.NewReverseNestedAggregation()))).
-			AddAggregation("total", esdsl.NewAggregations().
-				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.subHas.prop").PrecisionThreshold(maxPrecisionThreshold))))
 
 	searchService = searchService.Size(0).Query(query).
-		AddAggregation("subHas", subHasAggregation)
-
-	// During a value search, label-match the selected sub-has properties globally so an active filter's selection
-	// (which has zero documents in the search scope) can still be narrowed by its own label. It is scoped to the
-	// parent property and the selected prop ids, mirroring the facet's own filter.
-	if valueQuery != "" && len(f.Props) > 0 {
-		selectedMatchFilter := esdsl.NewBoolQuery().Must(
-			esdsl.NewTermQuery("claims.subHas.parentProp", esdsl.NewFieldValue().String(parentProp.String())),
-			propLabelMatch,
-			hasPropsTermsQuery("claims.subHas", f.Props),
-		)
-		searchService = searchService.AddAggregation("selectedMatch", selectedMatchAggregation("claims.subHas", "prop", selectedMatchFilter))
-	}
+		AddAggregation("subHas", hasPropAggregation("claims.subHas", esdsl.NewBoolQuery().Must(filterMusts...)))
 
 	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
@@ -167,36 +228,13 @@ func (f *HasFilter) GetSubHas(
 		return nil, nil, errE
 	}
 
-	results := make([]HasFilterResult, 0, len(subHasBuckets))
-	for _, bucket := range subHasBuckets {
-		bucketDocs, errE := internalSearch.AggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
-		if errE != nil {
-			return nil, nil, errE
-		}
-		key, ok := bucket.Key.(string)
-		if !ok {
-			errE := errors.New("unexpected key type for subHas bucket")
-			errors.Details(errE)["type"] = fmt.Sprintf("%T", bucket.Key)
-			return nil, nil, errE
-		}
-		results = append(results, HasFilterResult{ID: key, Count: bucketDocs.DocCount})
+	results, errE := hasBucketsToResults(subHasBuckets, "subHas")
+	if errE != nil {
+		return nil, nil, errE
 	}
-	// Outside a value search, force-show the selected properties (at count 0 when unmatched) so the selection is
-	// always visible and deselectable. During a value search a selected property is shown only when its own label
-	// matches the typed text (from the selectedMatch aggregation), so it stays searchable but is not force-shown.
-	if valueQuery == "" {
-		results = mergeSelectedHasProps(results, f.Props)
-	} else if len(f.Props) > 0 {
-		selectedMatch, errE := internalSearch.AggAs[types.GlobalAggregate](res.Aggregations, "selectedMatch")
-		if errE != nil {
-			return nil, nil, errE
-		}
-		matched, errE := parseSelectedMatchIDs(selectedMatch)
-		if errE != nil {
-			return nil, nil, errE
-		}
-		results = mergeMatchedHasProps(results, f.Props, matched)
-	}
+	// Force-show the selected properties (at count 0 when unmatched) so the selection is always visible and
+	// deselectable.
+	results = mergeSelectedHasProps(results, f.Props)
 
 	subHasTotalValue := distinctValuesTotal(len(subHasBuckets), subHasTotal.Value)
 	total := strconv.FormatInt(subHasTotalValue, 10)
@@ -206,8 +244,10 @@ func (f *HasFilter) GetSubHas(
 	}, nil
 }
 
-// Get retrieves has filter data for search results.
-func (f *HasFilter) Get(
+// getMatchingHasPropIDs runs the has filter's value-search path: it returns only the property ids whose property
+// name matched valueQuery, as id-only results (see buildHasValueSearchResults). The match set is the union of the
+// in-scope value aggregation's bucket keys and the selected property ids the selectedMatch aggregation matched.
+func (f *HasFilter) getMatchingHasPropIDs(
 	ctx context.Context, getSearchService func() *esSearch.Search,
 	query types.QueryVariant, valueQuery string, enabledLanguages []string,
 ) ([]HasFilterResult, map[string]any, errors.E) {
@@ -215,40 +255,50 @@ func (f *HasFilter) Get(
 
 	searchService := getSearchService()
 
-	// valueQuery restricts the facet to has-properties whose display label matches the user-typed text, so
-	// the filter pane can be narrowed without changing the search. It never alters which documents match.
-	var hasFilterQuery types.QueryVariant = esdsl.NewMatchAllQuery()
-	var propLabelMatch types.QueryVariant
-	if valueQuery != "" {
-		propLabelMatch = propLabelMatchQuery([]string{"claims.has.propNaming"}, []string{"claims.has.propDisplay"}, valueQuery, enabledLanguages)
-		hasFilterQuery = propLabelMatch
+	propLabelMatch := propLabelMatchQuery([]string{"claims.has.propNaming"}, []string{"claims.has.propDisplay"}, valueQuery, enabledLanguages)
+
+	searchService = searchService.Size(0).Query(query).
+		AddAggregation("has", hasPropAggregation("claims.has", propLabelMatch))
+
+	// The selectedMatch label-matches the selected has-properties globally so an active filter's selection (which
+	// has zero documents in the search scope) stays searchable by its own label, using the SAME matcher real
+	// properties use. The has facet is flat, so there are no ancestors to surface.
+	if len(f.Props) > 0 {
+		selectedMatchFilter := esdsl.NewBoolQuery().Must(propLabelMatch, hasPropsTermsQuery("claims.has", f.Props))
+		searchService = searchService.AddAggregation("selectedMatch", selectedMatchAggregation("claims.has", "prop", selectedMatchFilter))
 	}
+
+	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
+	res, err := searchService.Do(ctx)
+	m.Stop()
+	if err != nil {
+		return nil, nil, WithESError(err)
+	}
+	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
+
+	return buildHasValueSearchResults(res.Aggregations, "has", len(f.Props) > 0)
+}
+
+// Get retrieves has filter data for search results.
+func (f *HasFilter) Get(
+	ctx context.Context, getSearchService func() *esSearch.Search,
+	query types.QueryVariant, valueQuery string, enabledLanguages []string,
+) ([]HasFilterResult, map[string]any, errors.E) {
+	// During a filter-pane value search the response carries only the matching property ids (an overlay the
+	// frontend applies on top of its unfiltered primary), so it takes a dedicated path.
+	if valueQuery != "" {
+		return f.getMatchingHasPropIDs(ctx, getSearchService, query, valueQuery, enabledLanguages)
+	}
+
+	metrics, _ := waf.GetMetrics(ctx)
+
+	searchService := getSearchService()
 
 	// Aggregation for has claims: terms on claims.has.prop.
 	// Only simple has claims (without sub-claims) are indexed in claims.has, so no
 	// additional filtering is needed. Has claims with sub-claims are stored in claims.subRef.
-	hasAggregation := esdsl.NewAggregations().
-		Nested(esdsl.NewNestedAggregation().Path("claims.has")).
-		AddAggregation("filter", esdsl.NewAggregations().
-			Filter(hasFilterQuery).
-			AddAggregation("props", esdsl.NewAggregations().
-				Terms(esdsl.NewTermsAggregation().Field("claims.has.prop").Size(MaxResultsCount).
-					Order(esdsl.NewAggregateOrder().Map(map[string]sortorder.SortOrder{"docs": sortorder.Desc}))).
-				AddAggregation("docs", esdsl.NewAggregations().
-					ReverseNested(esdsl.NewReverseNestedAggregation()))).
-			AddAggregation("total", esdsl.NewAggregations().
-				Cardinality(esdsl.NewCardinalityAggregation().Field("claims.has.prop").PrecisionThreshold(maxPrecisionThreshold))))
-
 	searchService = searchService.Size(0).Query(query).
-		AddAggregation("has", hasAggregation)
-
-	// During a value search, label-match the selected has-properties globally so an active filter's selection
-	// (which has zero documents in the search scope) can still be narrowed by its own label, using the SAME
-	// matcher real properties use. The has facet is flat, so there are no ancestors to surface.
-	if valueQuery != "" && len(f.Props) > 0 {
-		selectedMatchFilter := esdsl.NewBoolQuery().Must(propLabelMatch, hasPropsTermsQuery("claims.has", f.Props))
-		searchService = searchService.AddAggregation("selectedMatch", selectedMatchAggregation("claims.has", "prop", selectedMatchFilter))
-	}
+		AddAggregation("has", hasPropAggregation("claims.has", esdsl.NewMatchAllQuery()))
 
 	m := metrics.Duration(internalStore.MetricElasticSearch).Start()
 	res, err := searchService.Do(ctx)
@@ -281,36 +331,13 @@ func (f *HasFilter) Get(
 		return nil, nil, errE
 	}
 
-	results := make([]HasFilterResult, 0, len(hasBuckets))
-	for _, bucket := range hasBuckets {
-		bucketDocs, errE := internalSearch.AggAs[types.ReverseNestedAggregate](bucket.Aggregations, "docs")
-		if errE != nil {
-			return nil, nil, errE
-		}
-		key, ok := bucket.Key.(string)
-		if !ok {
-			errE := errors.New("unexpected key type for has bucket")
-			errors.Details(errE)["type"] = fmt.Sprintf("%T", bucket.Key)
-			return nil, nil, errE
-		}
-		results = append(results, HasFilterResult{ID: key, Count: bucketDocs.DocCount})
+	results, errE := hasBucketsToResults(hasBuckets, "has")
+	if errE != nil {
+		return nil, nil, errE
 	}
-	// Outside a value search, force-show the selected properties (at count 0 when unmatched) so the selection is
-	// always visible and deselectable. During a value search a selected property is shown only when its own label
-	// matches the typed text (from the selectedMatch aggregation), so it stays searchable but is not force-shown.
-	if valueQuery == "" {
-		results = mergeSelectedHasProps(results, f.Props)
-	} else if len(f.Props) > 0 {
-		selectedMatch, errE := internalSearch.AggAs[types.GlobalAggregate](res.Aggregations, "selectedMatch")
-		if errE != nil {
-			return nil, nil, errE
-		}
-		matched, errE := parseSelectedMatchIDs(selectedMatch)
-		if errE != nil {
-			return nil, nil, errE
-		}
-		results = mergeMatchedHasProps(results, f.Props, matched)
-	}
+	// Force-show the selected properties (at count 0 when unmatched) so the selection is always visible and
+	// deselectable.
+	results = mergeSelectedHasProps(results, f.Props)
 
 	hasTotalValue := distinctValuesTotal(len(hasBuckets), hasTotal.Value)
 	total := strconv.FormatInt(hasTotalValue, 10)

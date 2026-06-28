@@ -1,4 +1,4 @@
-import type { DeepReadonly, InjectionKey, Ref } from "vue"
+import type { ComputedRef, DeepReadonly, InjectionKey, Ref } from "vue"
 import type { LocationQuery, Router } from "vue-router"
 
 import type {
@@ -384,6 +384,38 @@ function useSearchResults<T extends Result | FilterResult | RefFilterResult | Ha
   }
 }
 
+// refFilterURL builds the API URL for a reference filter facet: the active-filter route when a filter id is
+// set, the sub-ref route for a two-prop path, or the top-level ref route otherwise. q is the already
+// prefix-wildcarded value search, or undefined for the unfiltered (primary) facet.
+function refFilterURL(router: Router, session: SearchSessionRef, filterId: string, props: readonly string[], q: string | undefined): string {
+  // TODO: Implement proper versioning.
+  //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
+  //       but the backend does not really use the parameter and always returns the latest version.
+  const query = encodeQuery({ version: `${session.version}`, q })
+  if (filterId) {
+    // Active filter: use filter ID route.
+    return router.apiResolve({
+      name: "SearchFilterGet",
+      params: { id: session.id, filter: filterId },
+      query,
+    }).href
+  }
+  if (props.length === 2) {
+    // Sub-ref filter: use parentProp + prop route.
+    return router.apiResolve({
+      name: "SearchSubRefFilter",
+      params: { id: session.id, parentProp: props[0], prop: props[1] },
+      query,
+    }).href
+  }
+  // Inactive filter: use prop-based route.
+  return router.apiResolve({
+    name: "SearchRefFilter",
+    params: { id: session.id, prop: props[0] },
+    query,
+  }).href
+}
+
 export function useRefFilters(
   searchSessionRef: Ref<SearchSessionRef>,
   filterId: Ref<string>,
@@ -399,37 +431,76 @@ export function useRefFilters(
 } {
   const router = useRouter()
 
-  return useSearchResults<RefFilterResult>(el, progress, () => {
-    // TODO: Implement proper versioning.
-    //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
-    //       but the backend does not really use the parameter and always returns the latest version.
-    // valueQuery narrows the listed facet values to those whose display label matches the typed text; it is
-    // sent as the "q" parameter (with a prefix wildcard appended) so a keystroke re-fetches the limited values.
-    const query = encodeQuery({ version: `${searchSessionRef.value.version}`, q: valueQuery.value ? addPrefixWildcard(valueQuery.value) : undefined })
-    const id = filterId.value
-    if (id) {
-      // Active filter: use filter ID route.
-      return router.apiResolve({
-        name: "SearchFilterGet",
-        params: { id: searchSessionRef.value.id, filter: id },
-        query,
-      }).href
+  // valueQuery narrows the listed facet values to those whose display label matches the typed text; it is
+  // sent as the "q" parameter (with a prefix wildcard appended) so a keystroke re-fetches the limited values.
+  return useSearchResults<RefFilterResult>(el, progress, () =>
+    refFilterURL(router, searchSessionRef.value, filterId.value, props.value, valueQuery.value ? addPrefixWildcard(valueQuery.value) : undefined),
+  )
+}
+
+// useRefFilterMatches fetches only the set of value ids that directly match a filter-pane value search for a
+// reference facet. It shares useRefFilters' URL shape but returns a null URL (fetching nothing) while the
+// value search is empty, so the unfiltered primary facet stays the single source of counts, tree and check
+// states. The backend answers a non-empty search with id-only entries (one per directly matching value id,
+// plus the missing entry when the property's own name matched), which the facet overlays visually on top of
+// its primary results. total is the number of matching ids, or null while no search is active or in flight.
+export function useRefFilterMatches(
+  searchSessionRef: Ref<SearchSessionRef>,
+  filterId: Ref<string>,
+  props: Ref<readonly string[]>,
+  valueQuery: Ref<string>,
+  el: Ref<Element | null>,
+  progress: Ref<number>,
+): {
+  matchedIds: ComputedRef<Set<string>>
+  total: DeepReadonly<Ref<number | null>>
+  error: DeepReadonly<Ref<string | null>>
+  url: DeepReadonly<Ref<string | null>>
+} {
+  const router = useRouter()
+
+  const { results, total, error, url } = useSearchResults<RefFilterResult>(el, progress, () => {
+    if (valueQuery.value === "") {
+      return null
     }
-    // Inactive filter: use prop-based route.
-    if (props.value.length === 2) {
-      // Sub-ref filter: use parentProp + prop route.
-      return router.apiResolve({
-        name: "SearchSubRefFilter",
-        params: { id: searchSessionRef.value.id, parentProp: props.value[0], prop: props.value[1] },
-        query,
-      }).href
-    }
+    return refFilterURL(router, searchSessionRef.value, filterId.value, props.value, addPrefixWildcard(valueQuery.value))
+  })
+
+  const matchedIds = computed(() => new Set(results.value.map((r) => r.id)))
+
+  return { matchedIds, total, error, url }
+}
+
+// hasFilterURL builds the API URL for a has filter facet: the active-filter route when a filter id is set,
+// the sub-has route for a one-prop path, or the top-level has route otherwise. q is the already
+// prefix-wildcarded value search, or undefined for the unfiltered (primary) facet.
+function hasFilterURL(router: Router, session: SearchSessionRef, filterId: string, props: readonly string[], q: string | undefined): string {
+  // TODO: Implement proper versioning.
+  //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
+  //       but the backend does not really use the parameter and always returns the latest version.
+  const query = encodeQuery({ version: `${session.version}`, q })
+  if (filterId) {
+    // Active filter: use filter ID route.
     return router.apiResolve({
-      name: "SearchRefFilter",
-      params: { id: searchSessionRef.value.id, prop: props.value[0] },
+      name: "SearchFilterGet",
+      params: { id: session.id, filter: filterId },
       query,
     }).href
-  })
+  }
+  if (props.length === 1) {
+    // Sub-has filter: use parentProp route.
+    return router.apiResolve({
+      name: "SearchSubHasFilter",
+      params: { id: session.id, parentProp: props[0] },
+      query,
+    }).href
+  }
+  // Inactive top-level filter: use has-based route.
+  return router.apiResolve({
+    name: "SearchHasFilter",
+    params: { id: session.id },
+    query,
+  }).href
 }
 
 export function useHasFilters(
@@ -447,37 +518,44 @@ export function useHasFilters(
 } {
   const router = useRouter()
 
-  return useSearchResults<HasFilterResult>(el, progress, () => {
-    // TODO: Implement proper versioning.
-    //       Currently we pass version as a query parameter for reactivity to detect change and for busting the cache,
-    //       but the backend does not really use the parameter and always returns the latest version.
-    // valueQuery narrows the listed has-properties to those whose display label matches the typed text; it is
-    // sent as the "q" parameter (with a prefix wildcard appended) so a keystroke re-fetches the limited values.
-    const query = encodeQuery({ version: `${searchSessionRef.value.version}`, q: valueQuery.value ? addPrefixWildcard(valueQuery.value) : undefined })
-    const id = filterId.value
-    if (id) {
-      // Active filter: use filter ID route.
-      return router.apiResolve({
-        name: "SearchFilterGet",
-        params: { id: searchSessionRef.value.id, filter: id },
-        query,
-      }).href
+  // valueQuery narrows the listed has-properties to those whose display label matches the typed text; it is
+  // sent as the "q" parameter (with a prefix wildcard appended) so a keystroke re-fetches the limited values.
+  return useSearchResults<HasFilterResult>(el, progress, () =>
+    hasFilterURL(router, searchSessionRef.value, filterId.value, props.value, valueQuery.value ? addPrefixWildcard(valueQuery.value) : undefined),
+  )
+}
+
+// useHasFilterMatches fetches only the set of property ids that directly match a filter-pane value search for
+// a has facet. It shares useHasFilters' URL shape but returns a null URL (fetching nothing) while the value
+// search is empty, so the unfiltered primary facet stays the single source of counts. The backend answers a
+// non-empty search with id-only entries (one per directly matching property id), which the facet overlays
+// visually on top of its primary results. total is the number of matching ids, or null while no search is
+// active or in flight.
+export function useHasFilterMatches(
+  searchSessionRef: Ref<SearchSessionRef>,
+  filterId: Ref<string>,
+  props: Ref<readonly string[]>,
+  valueQuery: Ref<string>,
+  el: Ref<Element | null>,
+  progress: Ref<number>,
+): {
+  matchedIds: ComputedRef<Set<string>>
+  total: DeepReadonly<Ref<number | null>>
+  error: DeepReadonly<Ref<string | null>>
+  url: DeepReadonly<Ref<string | null>>
+} {
+  const router = useRouter()
+
+  const { results, total, error, url } = useSearchResults<HasFilterResult>(el, progress, () => {
+    if (valueQuery.value === "") {
+      return null
     }
-    if (props.value.length === 1) {
-      // Sub-has filter: use parentProp route.
-      return router.apiResolve({
-        name: "SearchSubHasFilter",
-        params: { id: searchSessionRef.value.id, parentProp: props.value[0] },
-        query,
-      }).href
-    }
-    // Inactive top-level filter: use has-based route.
-    return router.apiResolve({
-      name: "SearchHasFilter",
-      params: { id: searchSessionRef.value.id },
-      query,
-    }).href
+    return hasFilterURL(router, searchSessionRef.value, filterId.value, props.value, addPrefixWildcard(valueQuery.value))
   })
+
+  const matchedIds = computed(() => new Set(results.value.map((r) => r.id)))
+
+  return { matchedIds, total, error, url }
 }
 
 export function useAmountHistogramValues(

@@ -309,6 +309,49 @@ export function toggleRefSelection(values: readonly RefValueLike[], id: string, 
   return next
 }
 
+// DIRECT_REF_FILTER_PREFIX marks a reference filter value's "direct" (most-specific) entry. In the rendered
+// value list and the checkbox selection a "direct" entry carries its value id behind this prefix, the same
+// way "__MISSING__" carries the missing selection.
+export const DIRECT_REF_FILTER_PREFIX = "__DIRECT__:"
+
+// refOverlayVisibleIds computes which reference-filter result ids stay visible when a filter-pane value search
+// narrows the facet: the directly matched value ids, every ancestor of a match (from the primary results' paths,
+// so the match's tree path stays), each matched value's "direct" entry, and the missing entry when it matched.
+// The result is a visual overlay over the unfiltered primary results, so counts, tree and check states keep
+// coming from the primary results and only the hidden values are removed from view.
+export function refOverlayVisibleIds(primary: readonly RefValueLike[], matchedIds: ReadonlySet<string>): Set<string> {
+  const byId = new Map<string, RefValueLike>()
+  for (const entry of primary) {
+    byId.set(entry.id, entry)
+  }
+
+  const visible = new Set<string>(matchedIds)
+
+  // Each matched value keeps its whole tree path, so add every ancestor in every path of each match.
+  for (const id of matchedIds) {
+    const entry = byId.get(id)
+    if (!entry) {
+      continue
+    }
+    for (const path of entry.paths ?? []) {
+      for (const ancestor of path) {
+        visible.add(ancestor)
+      }
+    }
+  }
+
+  // A "direct" entry shows only when its own value directly matched, not when that value appears merely as an
+  // ancestor of a match: an ancestor's "direct" entry stands for documents that are that ancestor and no
+  // narrower value, which do not match the typed text.
+  for (const entry of primary) {
+    if (entry.id.startsWith(DIRECT_REF_FILTER_PREFIX) && matchedIds.has(entry.id.slice(DIRECT_REF_FILTER_PREFIX.length))) {
+      visible.add(entry.id)
+    }
+  }
+
+  return visible
+}
+
 // RefFilterValueToken is one rendered entry of a reference filter's selection: a selected value (its id,
 // with direct marking the "most-specific only" variant the facet tree labels "direct"), or the synthetic
 // missing entry. A flat display iterates these to list the whole selection uniformly.
