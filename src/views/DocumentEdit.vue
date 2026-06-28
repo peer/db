@@ -64,7 +64,7 @@ import { localCounter, pairCounters, useLock, useProgress } from "@/progress"
 import { useDocumentFields } from "@/useDocumentFields"
 import { useParentClasses } from "@/useParentClasses"
 import { delay, encodeQuery, makeAddClaimChange } from "@/utils"
-import { focusFirstInvalid, useValidationRegistry } from "@/validation"
+import { focusFirstInput, focusFirstInvalid, useValidationRegistry } from "@/validation"
 
 const props = defineProps<{
   id: string
@@ -184,7 +184,7 @@ const fieldsFormRef = useTemplateRef<{
   anyDirty: boolean
 }>("fieldsFormRef")
 
-const { resetAll, firstEl, allEmpty, anyDirty, anyError, inputs, validateAll, checkpointAll } = useValidationRegistry(() => {
+const { resetAll, firstInputEl, allEmpty, anyDirty, anyError, inputs, validateAll, checkpointAll } = useValidationRegistry(() => {
   // Any registered-input interaction clears stale form-level errors so the
   // user is not staring at an error message after they have moved on.
   sessionError.value = ""
@@ -192,6 +192,11 @@ const { resetAll, firstEl, allEmpty, anyDirty, anyError, inputs, validateAll, ch
 })
 
 let abortController = new AbortController()
+
+// Armed on every (re)load; cleared once initial focus has moved into the
+// FieldsForm. One-shot so later cardinality grow/shrink or tab switches do
+// not steal focus back.
+let pendingInitialFocus = false
 
 function cleanup() {
   abortController.abort()
@@ -458,6 +463,7 @@ watch(
     committedChange.value = 0
     nextChangeToSubmit = 1
     fieldsFormInvalid.value = false
+    pendingInitialFocus = true
 
     loadAndSubscribe().catch((error) => {
       // TODO: Show error state to the user.
@@ -467,6 +473,27 @@ watch(
   // Initialize the first time.
   {
     immediate: true,
+  },
+)
+
+// Once the FieldsForm's per-field inputs have mounted and registered, move
+// keyboard focus into the form. Create sessions land on the first still-
+// empty field (fields pre-filled by claims already in the session are
+// skipped); edit sessions land on the first field regardless of its value.
+watch(
+  () => fieldsFormRef.value?.inputs.size ?? 0,
+  async (size) => {
+    const creating = isCreating.value
+    if (!pendingInitialFocus || size === 0 || creating === null) {
+      return
+    }
+    pendingInitialFocus = false
+    // Let the just-registered inputs finish rendering before focusing.
+    await nextTick()
+    if (abortController.signal.aborted || !fieldsFormRef.value) {
+      return
+    }
+    focusFirstInput(fieldsFormRef.value.inputs, creating)
   },
 )
 
@@ -883,7 +910,7 @@ async function onEditClaim(id: string) {
   // Wait for the new panel's inputs to mount and register, then move focus
   // to the first focusable one so the user can start editing immediately.
   await nextTick()
-  firstEl()?.focus()
+  firstInputEl()?.focus()
   // Record the populated values as the checkpoint so the form is not
   // dirty until the user actually changes something.
   checkpointAll()
@@ -905,7 +932,7 @@ async function onSubClaimAdd(id: string) {
   lockedClaimType.value = null
 
   await nextTick()
-  firstEl()?.focus()
+  firstInputEl()?.focus()
   checkpointAll()
 }
 

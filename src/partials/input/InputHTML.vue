@@ -559,7 +559,7 @@ async function onStartInsertLink() {
   insertSelection.value = { from, to, empty }
   insertingLink.value = true
   await nextTick().then(() => {
-    linkInputRef.value?.el()?.focus()
+    linkInputRef.value?.inputEl()?.focus()
   })
 }
 
@@ -1206,7 +1206,7 @@ function onRemoveLink() {
 // trips the bottom-toolbar focusout handler into releasing the edit pin.
 function onRevertLinkInput() {
   linkInputModel.value = linkInputAnchor.value
-  linkInputRef.value?.el()?.focus()
+  linkInputRef.value?.inputEl()?.focus()
 }
 
 // Label click focuses the InputLink, simulating <label for=...> behavior.
@@ -1216,7 +1216,7 @@ function onRevertLinkInput() {
 function onLabelClick(event: MouseEvent) {
   const target = event.target as HTMLElement | null
   if (target?.closest("a[href], button, input, select, textarea, details, [tabindex]:not([tabindex='-1'])")) return
-  linkInputRef.value?.el()?.focus()
+  linkInputRef.value?.inputEl()?.focus()
 }
 
 function buildKeymap() {

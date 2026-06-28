@@ -101,13 +101,13 @@ const isFile = computed(() => props.field.valueType === VT_FILE)
 // The forwardInteraction indirection wires inner-input interactions
 // through to the parent registry. useValidationRegistry only sets up its
 // own notifyUp when it is given an el (and self-registers internally); we
-// do the self-register manually below so we can use firstEl as the el
-// without the forward-reference dance. To keep typing or focus inside an
-// inner input bubbling up to e.g. InputCardinality.adjustRows, we wire
-// our useRegisterForValidation's returned onInteraction into the
+// do the self-register manually below so we can use firstInputEl as the
+// focus target without the forward-reference dance. To keep typing or focus
+// inside an inner input bubbling up to e.g. InputCardinality.adjustRows, we
+// wire our useRegisterForValidation's returned onInteraction into the
 // sub-registry's onInteraction callback.
 let forwardInteraction: (() => void) | null = null
-const { validateAll, resetAll, revertAll, checkpointAll, anyDirty, allEmpty, inputs, firstEl } = useValidationRegistry(() => {
+const { validateAll, resetAll, revertAll, checkpointAll, anyDirty, allEmpty, inputs, firstInputEl } = useValidationRegistry(() => {
   forwardInteraction?.()
 })
 
@@ -115,10 +115,12 @@ const validatedInput: ValidatedInput = {
   validate: validateAll,
   reset: resetAll,
   revert: revertAll,
-  // Focus target: the first focusable inner input. firstEl is the
+  // Focus target: the first focusable inner input. firstInputEl is the
   // sub-registry's earliest focusable; for an interval row that lands on
-  // the "from" side, for a scalar row on the single input.
-  el: firstEl,
+  // the "from" side, for a scalar row on the single input. The row has no
+  // wrapper of its own, so mainEl is the same element.
+  inputEl: firstInputEl,
+  mainEl: firstInputEl,
   isDirty: anyDirty,
   // "Row empty" for FieldsFormRow is "every inner input empty" - the
   // sub-registry's allEmpty. This matches what InputCardinality wants

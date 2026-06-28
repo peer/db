@@ -471,12 +471,19 @@ export type ValidateFn = (signal?: AbortSignal) => Promise<void>
 export type ValidatorFn<T> = (value: T, options: { signal: AbortSignal; eager: boolean; initial: boolean }) => Promise<ValidationError[]>
 
 // What an input registers with a parent so the parent can validate it and
-// resolve focus targets. el returns the input's default focus target, used
-// by useValidationRegistry to decorate errors that lack their own el before
-// they are returned to the caller (so the resulting ValidationError[] is
-// self-contained for focus resolution). reset restores the input to its
-// initial (empty/default) state; revert restores the input to its recorded
-// checkpoint. useValidationRegistry exposes resetAll / revertAll.
+// resolve focus targets. inputEl returns the focusable control to move
+// keyboard focus to; it is also used by useValidationRegistry to decorate
+// errors that lack their own el before they are returned to the caller (so
+// the resulting ValidationError[] is self-contained for focus resolution).
+// mainEl returns the wrapper element that owns the input, used for identity
+// and containment checks. For a leaf input the two are the same element; for
+// a composite input (e.g. ClaimCardinality, ClaimInput) inputEl descends to
+// the first focusable control among its children while mainEl is the
+// container spanning all of them (ClaimCardinality tests mainEl against
+// document.activeElement to decide whether the slot the user is in may be
+// shrunk). reset restores the input to its initial (empty/default) state;
+// revert restores the input to its recorded checkpoint. useValidationRegistry
+// exposes resetAll / revertAll.
 export type ValidatedInput = {
   validate: ValidateFn
   reset: () => void
@@ -484,7 +491,11 @@ export type ValidatedInput = {
   // isDirty false. Used by the per-field "changed" badge so the user can
   // undo their changes without affecting other fields.
   revert: () => void
-  el: () => HTMLElement | null
+  // The focusable control to move keyboard focus to.
+  inputEl: () => HTMLElement | null
+  // The wrapper element that owns this input. Same element as inputEl for a
+  // leaf input; the container spanning all children for a composite input.
+  mainEl: () => HTMLElement | null
   // Reactive flag: true when the input's current value differs from its
   // recorded checkpoint.
   isDirty: Readonly<Ref<boolean>>

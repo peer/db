@@ -209,7 +209,7 @@ const precisionChanged = computed<boolean>(() => precision.value !== precisionCh
 // Return focus to the reverted field.
 function onRevertTime() {
   timeRef.value?.revert()
-  timeRef.value?.el()?.focus()
+  timeRef.value?.inputEl()?.focus()
 }
 
 function onRevertPrecision() {
@@ -292,8 +292,10 @@ const validatedInput: ValidatedInput = {
     timeAuthoritative.value = timeAuthoritativeCheckpoint.value
   },
   // Focus target is the time input - precision is auto-detected by
-  // default so external focus should land on the primary field.
-  el: () => document.getElementById(timeInputId),
+  // default so external focus should land on the primary field. No distinct
+  // wrapper is needed for this input, so mainEl and inputEl are the same.
+  inputEl: () => document.getElementById(timeInputId),
+  mainEl: () => document.getElementById(timeInputId),
   isDirty: computed<boolean>(() => anyChildDirty.value || precisionChanged.value),
   // Empty iff the canonical time is empty. Precision always has a
   // default value, so it never counts as "empty" on its own.

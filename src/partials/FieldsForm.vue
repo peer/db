@@ -27,7 +27,7 @@ const invalid = defineModel<boolean>("invalid", { default: false })
 // revertAll / checkpointAll explicitly through defineExpose. There are no
 // recursive FieldsForm instances anymore - sub-claim rendering lives in
 // ClaimInput / ClaimCardinality, which provide their own registries.
-const { validateAll, resetAll, revertAll, checkpointAll, anyError, anyDirty, firstEl, inputs } = useValidationRegistry()
+const { validateAll, resetAll, revertAll, checkpointAll, anyError, anyDirty, firstInputEl, inputs } = useValidationRegistry()
 
 // invalid bubbles per-input format errors up to the parent (DocumentEdit).
 // Cardinality-level "field has too few values" is reported by each
@@ -43,7 +43,7 @@ defineExpose({
   resetAll,
   revertAll,
   checkpointAll,
-  firstEl,
+  firstInputEl,
   anyError,
   anyDirty,
   inputs,

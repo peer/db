@@ -120,7 +120,7 @@ const {
   anyDirty: anyChildDirty,
   allEmpty: allChildEmpty,
   inputs: childInputs,
-  firstEl: firstChildEl,
+  firstInputEl: firstChildInputEl,
 } = useValidationRegistry(() => {
   reconcileSlots()
   forwardInteraction?.()
@@ -217,7 +217,7 @@ function reconcileSlots(): void {
   while (slots.value.length > desired) {
     const last = slots.value[slots.value.length - 1]
     if (!slotIsEmpty(last)) break // safety: don't drop a filled tail
-    const lastEl = slotInputs.get(last.key)?.el?.()
+    const lastEl = slotInputs.get(last.key)?.mainEl?.()
     const focused = typeof document !== "undefined" ? document.activeElement : null
     if (focused && lastEl?.contains(focused)) break // keep focused trailing
     slots.value.pop()
@@ -296,7 +296,7 @@ const missing = computed<{ flags: boolean[]; ourErrors: { code: string; el?: HTM
       continue
     }
     flags.push(true)
-    ourErrors.push({ code: "required", el: slotInputs.get(slot.key)?.el?.() ?? undefined })
+    ourErrors.push({ code: "required", el: slotInputs.get(slot.key)?.inputEl?.() ?? undefined })
     need--
   }
   return { flags, ourErrors }
@@ -384,7 +384,12 @@ const validatedInput: ValidatedInput = {
   revert: () => {
     void revertField()
   },
-  el: () => rootRef.value ?? firstChildEl(),
+  // Focus target is the first slot's focusable control, or null until a slot
+  // has mounted (focus helpers then skip past instead of landing on the
+  // non-focusable wrapper). Identity (mainEl) is the cardinality wrapper
+  // spanning all slots, which the outer registry's containment check needs.
+  inputEl: firstChildInputEl,
+  mainEl: () => rootRef.value,
   isDirty: computed(() => slotsDirtyByDiff.value || anyChildDirty.value),
   isEmpty: allChildEmpty,
   errors: computed(() => {

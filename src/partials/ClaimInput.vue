@@ -16,7 +16,7 @@ having to remount this component.
 -->
 
 <script setup lang="ts">
-import type { DeepReadonly, ShallowUnwrapRef } from "vue"
+import type { ComponentPublicInstance, DeepReadonly, ShallowUnwrapRef } from "vue"
 
 import type { Claim, ClaimTypes } from "@/document"
 import type { FieldData, FieldEntryValue } from "@/fields"
@@ -181,6 +181,15 @@ const localIsEmpty = computed(() => {
 // self-registration so the outer registry (ClaimCardinality) can find us.
 const rootRef = useTemplateRef<HTMLElement>("rootRef")
 
+// checkboxRef points at the presence-toggle CheckBox (NONE / UNKNOWN /
+// HAS-without-sub-fields). Those slots have no registered child input, so
+// inputEl resolves the checkbox itself as the focus target.
+const checkboxRef = useTemplateRef<ComponentPublicInstance>("checkboxRef")
+function checkboxInputEl(): HTMLElement | null {
+  const root = checkboxRef.value?.$el as HTMLElement | undefined
+  return root?.querySelector<HTMLInputElement>('input[type="checkbox"]') ?? null
+}
+
 // formRowRef points at the FieldsFormRow ValidatedInput. We call its
 // validate directly (rather than the broader validateChildAll on the
 // sub-registry) when committing this slot's value, so a sub-cardinality
@@ -201,7 +210,7 @@ const {
   anyDirty: anyChildDirty,
   allEmpty: allChildEmpty,
   inputs: childInputs,
-  firstEl,
+  firstInputEl,
 } = useValidationRegistry(() => {
   forwardInteraction?.()
 })
@@ -261,7 +270,14 @@ const validatedInput: ValidatedInput = {
   revert: () => {
     void revertField()
   },
-  el: () => rootRef.value ?? firstEl(),
+  // Focus target: the slot's value input (or its first sub-field), and the
+  // presence checkbox for NONE / UNKNOWN / HAS-without-sub-fields slots,
+  // whose checkbox is not a registered validation input.
+  inputEl: () => (showCheckbox.value ? checkboxInputEl() : firstInputEl()),
+  // Identity is the slot wrapper, not the inner control: ClaimCardinality
+  // tests whether mainEl contains document.activeElement to decide whether
+  // the trailing slot the user is editing may be shrunk.
+  mainEl: () => rootRef.value,
   isDirty: computed(() => localDirty.value || identityDirty.value || anyChildDirty.value),
   isEmpty,
   errors: allErrors(childInputs),
@@ -556,7 +572,7 @@ defineExpose({
       HAS *with* sub-fields skips the checkbox entirely and relies on the
       sub-form to drive presence (lazy create via ensureClaimId).
     -->
-    <CheckBox v-if="showCheckbox" :model-value="modelValue !== null" @update:model-value="onCheckboxChange" />
+    <CheckBox v-if="showCheckbox" ref="checkboxRef" :model-value="modelValue !== null" @update:model-value="onCheckboxChange" />
 
     <!--
       Sub-fields: one ClaimCardinality per sub-field, each with its property

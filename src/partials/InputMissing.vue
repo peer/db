@@ -123,7 +123,7 @@ const {
   validateAll: validateChildAll,
   resetAll: resetChildAll,
   revertAll: revertChildAll,
-  firstEl: firstChildEl,
+  firstInputEl: firstChildEl,
   anyDirty: anyChildDirty,
   allEmpty: allChildEmpty,
   checkpointAll: checkpointChildAll,
@@ -169,7 +169,8 @@ const validatedInput: ValidatedInput = {
     none.value = noneCheckpoint.value
     clearShowRequired()
   },
-  el: firstChildEl,
+  inputEl: firstChildEl,
+  mainEl: firstChildEl,
   isDirty: computed<boolean>(() => {
     if (unknown.value !== unknownCheckpoint.value || none.value !== noneCheckpoint.value) return true
     return anyChildDirty.value

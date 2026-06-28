@@ -51,7 +51,7 @@ export function useRegisterForValidation(input: ValidatedInput): {
 function* iterateErrors(inputs: Iterable<ValidatedInput>): Generator<ValidationError> {
   for (const input of inputs) {
     for (const error of input.errors.value) {
-      yield error.el ? error : { ...error, el: input.el() ?? undefined }
+      yield error.el ? error : { ...error, el: input.inputEl() ?? undefined }
     }
   }
 }
@@ -89,7 +89,7 @@ export function useValidationRegistry(
   resetAll: () => void
   revertAll: () => void
   checkpointAll: () => void
-  firstEl: () => HTMLElement | null
+  firstInputEl: () => HTMLElement | null
   // Read-only view over the registered inputs.
   inputs: ReadonlySet<ValidatedInput>
   anyDirty: Readonly<Ref<boolean>>
@@ -163,7 +163,8 @@ export function useValidationRegistry(
   let notifyUp: (() => void) | null = null
   if (el) {
     const { onInteraction: up } = useRegisterForValidation({
-      el,
+      inputEl: el,
+      mainEl: el,
       validate: validateAll,
       reset: resetAll,
       revert: revertAll,
@@ -186,12 +187,12 @@ export function useValidationRegistry(
     inputs.delete(input)
   })
 
-  // firstEl is the earliest focusable element across registered inputs.
-  function firstEl(): HTMLElement | null {
-    return pickEarliestFocusable(Array.from(inputs, (i) => i.el()))
+  // firstInputEl is the earliest focusable control across registered inputs.
+  function firstInputEl(): HTMLElement | null {
+    return pickEarliestFocusable(Array.from(inputs, (i) => i.inputEl()))
   }
 
-  return { validateAll, resetAll, revertAll, checkpointAll, firstEl, inputs: shallowReadonly(inputs), anyDirty, allEmpty, anyError }
+  return { validateAll, resetAll, revertAll, checkpointAll, firstInputEl, inputs: shallowReadonly(inputs), anyDirty, allEmpty, anyError }
 }
 
 // isFocusable returns true if calling .focus() on el can meaningfully move
@@ -227,11 +228,25 @@ function pickEarliestFocusable(els: Iterable<HTMLElement | null | undefined>): H
 }
 
 // focusFirstInvalid focuses the input whose error appears earliest in the
-// document and is focusable. Errors without their own el fall back to the
-// source input's el. Inputs with no errors are skipped, as are els that
-// are disabled.
+// document and is focusable. Errors carrying their own el keep it; errors
+// without one fall back to the source input's inputEl (its focusable control).
+// Inputs with no errors are skipped, as are els that are disabled.
 export function focusFirstInvalid(inputs: Iterable<ValidatedInput>) {
   pickEarliestFocusable(Array.from(iterateErrors(inputs), (e) => e.el))?.focus()
+}
+
+// focusFirstInput moves keyboard focus to the first registered input in
+// document order, using each input's inputEl (which descends to the actual
+// control for composite inputs). When preferEmpty is set, an empty input is
+// chosen if any exists, so a create-session load lands on the first field not
+// yet filled by claims in the session; if every input is already filled it
+// falls back to the first field. When preferEmpty is off (an edit session) it
+// always lands on the first field whether or not it already holds a value.
+export function focusFirstInput(inputs: Iterable<ValidatedInput>, preferEmpty = false): void {
+  const list = Array.from(inputs)
+  const empties = preferEmpty ? list.filter((input) => input.isEmpty.value) : []
+  const chosen = empties.length > 0 ? empties : list
+  pickEarliestFocusable(chosen.map((input) => input.inputEl()))?.focus()
 }
 
 class ValidationAbortedError extends Error {}
@@ -253,7 +268,9 @@ export function useValidation<T>(
   errors: Ref<ValidationError[]>,
   lock: Ref<number>,
   validatorGetter: () => ValidatorFn<T> | undefined,
-  el: () => HTMLElement | null,
+  // The focusable control. A leaf input's inputEl and mainEl are the same
+  // element, so this getter backs both on the resulting ValidatedInput.
+  inputEl: () => HTMLElement | null,
   reset: () => void,
   // Optional custom emptiness ref. When provided it is exposed as the
   // validated input's isEmpty. Otherwise !model.value is used.
@@ -327,7 +344,7 @@ export function useValidation<T>(
             throw new ValidationAbortedError()
           }
 
-          errors.value = result.map((error) => (error.el ? error : { ...error, el: el() ?? undefined }))
+          errors.value = result.map((error) => (error.el ? error : { ...error, el: inputEl() ?? undefined }))
 
           if (model.value === value) {
             break
@@ -458,7 +475,8 @@ export function useValidation<T>(
     revert: () => {
       model.value = checkpointValue.value
     },
-    el,
+    inputEl,
+    mainEl: inputEl,
     isDirty: computed(() => !equals(model.value, checkpointValue.value)),
     isEmpty: isEmpty ?? computed<boolean>(() => !model.value),
     errors: shallowReadonly(errors),

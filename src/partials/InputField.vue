@@ -33,13 +33,13 @@ function onLegendClick(event: MouseEvent): void {
   // or inside a focusable descendant (e.g. the InputBadges' revert button)
   // keeps its own behavior instead of also moving focus into the input.
   if (target?.closest("a[href], button, input, select, textarea, details, [tabindex]:not([tabindex='-1'])")) return
-  input.value?.el()?.focus()
+  input.value?.inputEl()?.focus()
 }
 
 // Revert the input's pending edit and then return focus to the input.
 function onRevert(): void {
   input.value?.revert()
-  input.value?.el()?.focus()
+  input.value?.inputEl()?.focus()
 }
 </script>
 

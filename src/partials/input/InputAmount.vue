@@ -240,12 +240,12 @@ const precisionChanged = computed<boolean>(() => precisionRef.value?.isDirty ?? 
 // Return focus to the reverted field.
 function onRevertAmount() {
   amountRef.value?.revert()
-  amountRef.value?.el()?.focus()
+  amountRef.value?.inputEl()?.focus()
 }
 
 function onRevertPrecision() {
   precisionRef.value?.revert()
-  precisionRef.value?.el()?.focus()
+  precisionRef.value?.inputEl()?.focus()
 }
 
 // Auto-detect precision from the amount whenever the amount changes
@@ -326,8 +326,10 @@ const validatedInput: ValidatedInput = {
   },
   // Focus target is the amount input - precision is secondary and
   // auto-detected by default, so external focus should land on the
-  // primary field.
-  el: () => document.getElementById(amountInputId),
+  // primary field. No distinct wrapper is needed for this input, so
+  // mainEl and inputEl are the same element.
+  inputEl: () => document.getElementById(amountInputId),
+  mainEl: () => document.getElementById(amountInputId),
   isDirty: anyChildDirty,
   // Empty for InputAmount means the user has not provided an amount
   // string. "0" is intentionally NOT empty - it is a valid value.
