@@ -706,7 +706,7 @@ const WithDocumentD = WithDocument<D>
               label counts those instead.
             -->
             <div v-if="filtersTotal > 0" class="mb-1 text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: filtersTotal }) }}</div>
-            <div v-else-if="hasActiveFilters" class="mb-1 text-sm">{{ t("partials.SearchResultsFeed.filtersActive", { count: activeFiltersCount }) }}</div>
+            <div v-else-if="hasActiveFilters" class="mb-1 text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: activeFiltersCount }) }}</div>
 
             <WithLock :lock="getFilterBoxLock">
               <InputText v-model="filterQuery" class="pd-print-hidden w-full" :aria-label="t('partials.SearchResultsFeed.filtersSearchLabel')" />
