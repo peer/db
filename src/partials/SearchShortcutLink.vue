@@ -19,9 +19,9 @@ const { t } = useI18n({ useScope: "global" })
 </script>
 
 <template>
-  <div class="flex flex-row items-center gap-1 lg:gap-4">
+  <div class="flex flex-row items-center gap-1">
     <ButtonLink class="grow" :to="{ name: 'SearchShortcut', query }">{{ label }}</ButtonLink>
-    <ButtonLink v-if="createQuery" :to="{ name: 'DocumentCreate', query: createQuery }" :title="t('common.buttons.create')" primary>
+    <ButtonLink v-if="createQuery" :to="{ name: 'DocumentCreate', query: createQuery }" :title="t('common.buttons.create')" class="px-3.5">
       <PlusIcon class="size-5" :alt="t('common.buttons.create')" />
     </ButtonLink>
   </div>
