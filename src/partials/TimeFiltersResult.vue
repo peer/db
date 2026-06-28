@@ -12,6 +12,7 @@ import Button from "@/components/Button.vue"
 import CheckBox from "@/components/CheckBox.vue"
 import FilterPropLabel from "@/partials/FilterPropLabel.vue"
 import TimeDisplay from "@/partials/TimeDisplay.vue"
+import TimeRange from "@/partials/TimeRange.vue"
 import { useLocked, useProgress } from "@/progress"
 import { useTimeHistogramValues } from "@/search"
 import { equals, loadingShortHeights, timePrecisionForValue, timeRangeDisplay, timeStringFromFloat64, useInitialLoad, useReportFilterVisibility } from "@/utils"
@@ -160,6 +161,31 @@ const singleValueState = computed({
       base: props.filter?.base ?? [],
       prop: props.filter?.prop ?? [...props.result.props],
       time: value && from.value !== null && to.value !== null ? { gte: from.value, lte: to.value } : {},
+    }
+    if (!equals(props.filter, updatedFilter)) {
+      emit("filterUpdate", updatedFilter.id, updatedFilter)
+    }
+  },
+})
+
+// rangeState reports whether a range (or single value) is selected, and clearing it removes the range. It backs
+// the fallback row shown when the property has no documents to histogram: the active filter excludes its own
+// range, so an empty histogram means the selected range matches nothing, and the row keeps the selection visible
+// at count 0 (like the augmented reference values) so the user sees it and can uncheck it, with no slider to draw.
+const rangeState = computed({
+  get(): boolean {
+    return props.filter?.time?.gte != null
+  },
+  set(value: boolean) {
+    if (abortController.signal.aborted || value) {
+      return
+    }
+
+    const updatedFilter: TimeFilterEntry = {
+      id: props.filter?.id ?? "",
+      base: props.filter?.base ?? [],
+      prop: props.filter?.prop ?? [...props.result.props],
+      time: {},
     }
     if (!equals(props.filter, updatedFilter)) {
       emit("filterUpdate", updatedFilter.id, updatedFilter)
@@ -320,6 +346,7 @@ onBeforeUnmount(() => {
       <li v-else-if="results.length === 1" class="contents">
         <CheckBox :id="'time/' + result.props.join('/') + '/value'" v-model="singleValueState" />
         <div class="flex items-baseline gap-x-1">
+          <!-- v-if here is just to satisfy typing, results.length === 1 already checked that. -->
           <label v-if="singleValueDisplay" :for="'time/' + result.props.join('/') + '/value'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">
             <TimeDisplay :timestamp="singleValueDisplay.timestamp" :precision="singleValueDisplay.precision" />
           </label>
@@ -346,6 +373,21 @@ onBeforeUnmount(() => {
           <TimeDisplay :timestamp="rangeDisplay.to" :precision="rangeDisplay.precision" />
         </div>
         <div ref="sliderEl"></div>
+      </li>
+      <!--
+        When the property has no documents to histogram, a selected range or single value cannot be drawn on the
+        slider, so it is shown here at count 0 (like the augmented reference values): it stays visible so the user
+        sees the selection and can uncheck it to clear the range.
+      -->
+      <li v-if="total === 0 && rangeState" class="contents">
+        <CheckBox :id="'time/' + result.props.join('/') + '/range'" v-model="rangeState" />
+        <div class="flex items-baseline gap-x-1">
+          <label :for="'time/' + result.props.join('/') + '/range'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">
+            <!-- v-if here is just to satisfy typing, rangeState already checked that. -->
+            <TimeRange v-if="filter?.time?.gte != null" :from="filter.time.gte" :to="filter.time.lte" />
+          </label>
+          <label :for="'time/' + result.props.join('/') + '/range'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">(0)</label>
+        </div>
       </li>
       <!--
         The exists row is the only selection which matches documents whose claims have no

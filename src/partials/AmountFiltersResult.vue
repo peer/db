@@ -10,6 +10,7 @@ import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
 import CheckBox from "@/components/CheckBox.vue"
+import AmountRange from "@/partials/AmountRange.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import FilterPropLabel from "@/partials/FilterPropLabel.vue"
 import { useLocked, useProgress } from "@/progress"
@@ -162,6 +163,31 @@ const singleValueState = computed({
       base: props.filter?.base ?? [],
       prop: props.filter?.prop ?? [...props.result.props],
       amount: value && from.value !== null && to.value !== null ? { unit: props.result.unit, gte: from.value, lte: to.value } : { unit: props.result.unit },
+    }
+    if (!equals(props.filter, updatedFilter)) {
+      emit("filterUpdate", updatedFilter.id, updatedFilter)
+    }
+  },
+})
+
+// rangeState reports whether a range (or single value) is selected, and clearing it removes the range. It backs
+// the fallback row shown when the property has no documents to histogram: the active filter excludes its own
+// range, so an empty histogram means the selected range matches nothing, and the row keeps the selection visible
+// at count 0 (like the augmented reference values) so the user sees it and can uncheck it, with no slider to draw.
+const rangeState = computed({
+  get(): boolean {
+    return props.filter?.amount?.gte != null
+  },
+  set(value: boolean) {
+    if (abortController.signal.aborted || value) {
+      return
+    }
+
+    const updatedFilter: AmountFilterEntry = {
+      id: props.filter?.id ?? "",
+      base: props.filter?.base ?? [],
+      prop: props.filter?.prop ?? [...props.result.props],
+      amount: { unit: props.result.unit },
     }
     if (!equals(props.filter, updatedFilter)) {
       emit("filterUpdate", updatedFilter.id, updatedFilter)
@@ -356,6 +382,23 @@ onBeforeUnmount(() => {
           </div>
         </div>
         <div ref="sliderEl"></div>
+      </li>
+      <!--
+        When the property has no documents to histogram, a selected range or single value cannot be drawn on the
+        slider, so it is shown here at count 0 (like the augmented reference values): it stays visible so the user
+        sees the selection and can uncheck it to clear the range.
+      -->
+      <li v-if="total === 0 && rangeState" class="contents">
+        <CheckBox :id="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/range'" v-model="rangeState" />
+        <div class="flex items-baseline gap-x-1">
+          <label :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/range'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">
+            <!-- v-if here is just to satisfy typing, rangeState already checked that. -->
+            <AmountRange v-if="filter?.amount?.gte != null" :from="filter.amount.gte" :to="filter.amount.lte" />
+          </label>
+          <label :for="'amount/' + result.props.join('/') + '/' + (result.unit ?? '') + '/range'" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'"
+            >(0)</label
+          >
+        </div>
       </li>
       <!--
         The exists row is the only selection which matches documents whose claims have no
