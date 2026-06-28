@@ -39,12 +39,12 @@ useValidationRegistry()
     >
       <RouterLink :to="{ name: 'Home' }" class="group shrink-0 rounded-sm outline-none hover:bg-slate-400 active:bg-slate-200">
         <!--
-          When both a full and a compact logo are configured, swap to the compact one below the 64rem
-          viewport width, which matches Tailwind's lg breakpoint, where the navbar has less horizontal room.
+          When both a full and a compact logo are configured, swap to the compact one below the 48rem
+          viewport width, which matches Tailwind's md breakpoint, where the navbar has less horizontal room.
           When only one of them is set, that one is shown as the sole logo.
         -->
         <picture v-if="siteContext.logo && siteContext.logoCompact">
-          <source :srcset="siteContext.logoCompact" media="(width < 64rem)" />
+          <source :srcset="siteContext.logoCompact" media="(width < 48rem)" />
           <img
             :src="siteContext.logo"
             :alt="siteContext.title"
