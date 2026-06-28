@@ -86,6 +86,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 				ToSortKey:     nil,
 				ToPath:        nil,
 				ToFullPath:    nil,
+				ToParent:      nil,
 				ToDisplayPath: nil,
 				ToPathSortKey: nil,
 				IsLeaf:        false,
@@ -156,6 +157,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 				ToSortKey:     nil,
 				ToPath:        nil,
 				ToFullPath:    nil,
+				ToParent:      nil,
 				ToDisplayPath: nil,
 				ToPathSortKey: nil,
 				IsLeaf:        false,
@@ -225,7 +227,7 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 	refProp := identifier.From("refProp")
 	refTarget := identifier.From("refTarget")
 
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:dupl
 		DisplaySort: nil,
 		ID:          identifier.From("queryDoc1"),
 		Display:     nil,
@@ -251,6 +253,7 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 				ToSortKey:     nil,
 				ToPath:        nil,
 				ToFullPath:    nil,
+				ToParent:      nil,
 				ToDisplayPath: nil,
 				ToPathSortKey: nil,
 				IsLeaf:        false,
@@ -264,7 +267,7 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 			SubHas:    nil,
 		},
 	})
-	indexDocument(t, ctx, esClient, index, internalSearch.Document{
+	indexDocument(t, ctx, esClient, index, internalSearch.Document{ //nolint:dupl
 		DisplaySort: nil,
 		ID:          identifier.From("queryDoc2"),
 		Display:     nil,
@@ -290,6 +293,7 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 				ToSortKey:     nil,
 				ToPath:        nil,
 				ToFullPath:    nil,
+				ToParent:      nil,
 				ToDisplayPath: nil,
 				ToPathSortKey: nil,
 				IsLeaf:        false,

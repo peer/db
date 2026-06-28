@@ -24,6 +24,8 @@ import {
   useInitialLoad,
   useLimitResults,
   useReportFilterVisibility,
+  VALUES_NOT_SHOWN_PREFIX,
+  valuesNotShownMarkers,
 } from "@/utils"
 
 type FlatEntry = { node: RefFilterTreeNode; depth: number }
@@ -180,12 +182,45 @@ const checkboxState = computed({
 
 const selectedSet = computed(() => new Set<string>(checkboxState.value))
 
+// markers maps each parent value id that has children truncated by the server cap to its "values not shown"
+// marker node, keyed by the parent id (the marker id is the parent id behind VALUES_NOT_SHOWN_PREFIX). The
+// marker carries the document gap of the not-loaded child values. See valuesNotShownMarkers.
+const markers = computed((): Map<string, RefFilterResult> => {
+  const map = new Map<string, RefFilterResult>()
+  for (const marker of valuesNotShownMarkers(combined.value)) {
+    map.set(marker.id.slice(VALUES_NOT_SHOWN_PREFIX.length), marker)
+  }
+  return map
+})
+
+// appendValueMarkers appends each parent's "values not shown" marker as that parent's last child, at the
+// parent's canonical placement (the node whose key equals its value id, where buildRefTree renders the real
+// children). Diamond duplicates carry no rendered children, so they get no marker.
+function appendValueMarkers(nodes: RefFilterTreeNode[], markerByParent: ReadonlyMap<string, RefFilterResult>): void {
+  for (const node of nodes) {
+    if (node.children.length > 0) {
+      appendValueMarkers(node.children, markerByParent)
+    }
+    if (node.key === node.res.id) {
+      const marker = markerByParent.get(node.res.id)
+      if (marker) {
+        node.children.push({ res: marker, key: marker.id, children: [] })
+      }
+    }
+  }
+}
+
 // Build the static tree from the combined value set (the loaded primary values plus any not-loaded matches).
 // Iteration order is the count-desc order returned by the API, which buildRefTree preserves while placing each
 // value under its deepest already-placed ancestor (duplicated under each parent for diamond hierarchies). The
 // value search only hides values from this tree, it never recomputes it, so the tree and the check states it
-// feeds always cover the whole combined set.
-const tree = computed((): RefFilterTreeNode[] => buildRefTree(combined.value))
+// feeds always cover the whole combined set. Marker nodes for parents with truncated children are then appended
+// as last children so they flow through the flat tree, the row limit and the partial tree like any other node.
+const tree = computed((): RefFilterTreeNode[] => {
+  const roots = buildRefTree(combined.value)
+  appendValueMarkers(roots, markers.value)
+  return roots
+})
 
 // Bottom-up "any of this subtree (including self) is selected" map. A node
 // counts as "selected" for sort purposes when its own id is in the selection
@@ -254,11 +289,18 @@ useReportFilterVisibility(() => !hiddenByQuery.value)
 
 const { limitedResults, hasMore, loadMore } = useLimitResults(visibleFlatTree, FILTERS_INITIAL_LIMIT, FILTERS_INCREASE)
 
+// isValueEntry excludes the synthetic "values not shown" marker rows from value counts. A marker is not a
+// selectable value, so it must not contribute to the distinct-value counts or to displayTotal. The parameter
+// is the minimal structural shape so both mutable and deeply readonly flat entries satisfy it.
+function isValueEntry(e: { node: { res: { id: string } } }): boolean {
+  return !e.node.res.id.startsWith(VALUES_NOT_SHOWN_PREFIX)
+}
+
 // Distinct filter values within the paginated slice. Diamond duplicates (the same
 // value rendered under multiple parents) collapse to one here, so this can trail
 // the slice length. It only drives the SKIP_TO_END decision below: how many
 // distinct options are still hidden behind the row limit.
-const limitedUnique = computed(() => new Set(limitedResults.value.map((e) => e.node.res.id)).size)
+const limitedUnique = computed(() => new Set(limitedResults.value.filter(isValueEntry).map((e) => e.node.res.id)).size)
 
 // effectiveLimited is what we actually render. It mirrors useLimitResults'
 // SKIP_TO_END short-circuit at the unique-options layer: when SKIP_TO_END or
@@ -276,11 +318,13 @@ const effectiveLimited = computed((): FlatEntry[] => {
 // the full tree every value is on screen, so the remaining count must reach zero.
 // Measuring against limitedResults instead would report the diamond-duplicate gap
 // between the slice length and its distinct-value count as phantom values "not shown".
-const shownUnique = computed(() => new Set(effectiveLimited.value.map((e) => e.node.res.id)).size)
+const shownUnique = computed(() => new Set(effectiveLimited.value.filter(isValueEntry).map((e) => e.node.res.id)).size)
 
 // The number of distinct options the user can still reach: the whole facet count from the primary results when
 // not searching, or the distinct count of the currently visible overlay when a value search is active.
-const displayTotal = computed(() => (visibleIds.value === null ? primary.total.value : new Set(visibleFlatTree.value.map((e) => e.node.res.id)).size))
+const displayTotal = computed(() =>
+  visibleIds.value === null ? primary.total.value : new Set(visibleFlatTree.value.filter(isValueEntry).map((e) => e.node.res.id)).size,
+)
 
 const optionsRemaining = computed(() => {
   if (displayTotal.value === null) {

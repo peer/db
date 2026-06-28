@@ -2,6 +2,7 @@ package search_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,6 +13,31 @@ import (
 	internalSearch "gitlab.com/peerdb/peerdb/internal/search"
 	"gitlab.com/peerdb/peerdb/search"
 )
+
+// pathParents returns the immediate-parent value ids for hierarchy paths, matching what the converter stamps
+// as ToParent: for each path "<hierProp>:<root>/.../<self>" the id segment before the last; a self or root
+// path (a single id) contributes none. The result preserves first-seen order and is nil when none has a parent.
+func pathParents(toPath []string) []string {
+	var out []string
+	seen := map[string]bool{}
+	for _, raw := range toPath {
+		_, chain, ok := strings.Cut(raw, ":")
+		if !ok {
+			continue
+		}
+		parts := strings.Split(chain, "/")
+		if len(parts) < 2 {
+			continue
+		}
+		parent := parts[len(parts)-2]
+		if seen[parent] {
+			continue
+		}
+		seen[parent] = true
+		out = append(out, parent)
+	}
+	return out
+}
 
 // prefilterSession returns a session carrying only the given prefilters. PrefilterExcludeFullPaths reads
 // nothing else off the session.
@@ -176,7 +202,7 @@ func hierRefClaim(prop, to identifier.Identifier, toPath, fullPath []string) int
 	return internalSearch.ReferenceClaim{
 		Prop: prop, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
 		To: to, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-		ToPath: toPath, ToFullPath: fullPath, ToDisplayPath: nil, ToPathSortKey: nil,
+		ToPath: toPath, ToFullPath: fullPath, ToParent: pathParents(toPath), ToDisplayPath: nil, ToPathSortKey: nil,
 		IsLeaf: false,
 	}
 }
@@ -273,13 +299,14 @@ func TestRefFilterGetPrefilterExcludeIntegration(t *testing.T) {
 	assert.Equal(t, int64(2), counts[animal.String()])
 
 	// Excluding dog's toFullPath drops dogDoc's records: dog disappears and the ancestors deflate to the
-	// single document (catDoc) that still reaches them.
+	// single document (catDoc) that still reaches them. The child counts respect the same exclusion, so
+	// mammal now has one visible child (cat) and animal one (mammal); cat is a leaf.
 	excluded, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, []string{dogPath}, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: animal.String(), Count: 1, Paths: nil},
-		{ID: mammal.String(), Count: 1, Paths: [][]string{{animal.String()}}},
-		{ID: cat.String(), Count: 1, Paths: [][]string{{animal.String(), mammal.String()}}},
+		{ID: animal.String(), Count: 1, ChildCount: 1, Paths: nil},
+		{ID: mammal.String(), Count: 1, ChildCount: 1, Paths: [][]string{{animal.String()}}},
+		{ID: cat.String(), Count: 1, ChildCount: 0, Paths: [][]string{{animal.String(), mammal.String()}}},
 	}, excluded)
 	assert.Equal(t, "3", metadata["total"])
 }

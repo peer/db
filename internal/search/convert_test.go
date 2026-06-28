@@ -4566,6 +4566,9 @@ func TestConvertReferenceToFullPath(t *testing.T) {
 	assert.Equal(t, leafRec.ToPath, ancestorRec.ToFullPath)
 	// The ancestor's own path is shorter and differs from the stated leaf's ToFullPath.
 	assert.NotEqual(t, ancestorRec.ToPath, ancestorRec.ToFullPath)
+	// The stated value's immediate parent is its ancestor classParent; the root ancestor has no parent.
+	assert.Equal(t, []string{classParent.String()}, leafRec.ToParent)
+	assert.Nil(t, ancestorRec.ToParent)
 }
 
 // TestConvertReferenceSubValueHierarchyExpansion verifies that a reference sub-claim's own target is
@@ -4657,6 +4660,9 @@ func TestConvertReferenceSubValueHierarchyExpansion(t *testing.T) {
 	// Only the stated sub-value's record has ToPath equal to ToFullPath; the ancestor's own path is shorter.
 	assert.Equal(t, leafRec.ToFullPath, leafRec.ToPath)
 	assert.NotEqual(t, ancestorRec.ToPath, ancestorRec.ToFullPath)
+	// The stated sub-value's immediate parent is its ancestor subClassParent; the root ancestor has no parent.
+	assert.Equal(t, []string{subClassParent.String()}, leafRec.ToParent)
+	assert.Nil(t, ancestorRec.ToParent)
 }
 
 // TestConvertReferenceSubRefPropertyPropagation verifies that a reference sub-claim's own property is
@@ -4823,6 +4829,9 @@ func TestFromDocumentSubRefExpansionAndLeaf(t *testing.T) {
 	// The ancestor is not a leaf, and its own (shorter) path differs from the stated leaf's ToFullPath.
 	assert.False(t, ancestorRec.IsLeaf)
 	assert.NotEqual(t, ancestorRec.ToPath, ancestorRec.ToFullPath)
+	// The stated sub-value's immediate parent is its ancestor subClassParent; the root ancestor has no parent.
+	assert.Equal(t, []string{subClassParent.String()}, leafRec.ToParent)
+	assert.Nil(t, ancestorRec.ToParent)
 }
 
 // TestConvertHasSubClaimParentToSentinel verifies that has claims with reference sub-claims

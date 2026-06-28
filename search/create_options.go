@@ -139,9 +139,10 @@ func CreateOptions(
 		}
 		entries = append(entries, classEntry{
 			res: RefFilterResult{
-				ID:    id.String(),
-				Count: counts[id.String()],
-				Paths: ancestorChains(fullPaths),
+				ID:         id.String(),
+				Count:      counts[id.String()],
+				ChildCount: 0,
+				Paths:      ancestorChains(fullPaths),
 			},
 			canCreate: classCreatable(doc),
 		})

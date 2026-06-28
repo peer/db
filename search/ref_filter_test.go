@@ -41,7 +41,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil, ToPathSortKey: nil,
+				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 				IsLeaf: false,
 			}},
 			Has: nil, None: nil, Unknown: nil,
@@ -68,7 +68,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil, ToPathSortKey: nil,
+				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 				IsLeaf: false,
 			}},
 			Has:       nil,
@@ -97,7 +97,7 @@ func TestRefFilterGetIntegration(t *testing.T) {
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-				To: target2, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil, ToPathSortKey: nil,
+				To: target2, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 				IsLeaf: false,
 			}},
 			Has:       nil,
@@ -137,8 +137,8 @@ func TestRefFilterGetIntegration(t *testing.T) {
 
 	// Results are sorted by count descending: target1 (count 2) first, target2 (count 1) second.
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: target1.String(), Count: 2, Paths: nil},
-		{ID: target2.String(), Count: 1, Paths: nil},
+		{ID: target1.String(), Count: 2, ChildCount: 0, Paths: nil},
+		{ID: target2.String(), Count: 1, ChildCount: 0, Paths: nil},
 	}, results)
 	assert.Equal(t, "2", metadata["total"])
 }
@@ -170,7 +170,7 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil, ToPathSortKey: nil,
+				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 				IsLeaf: false,
 			}},
 			Has:       nil,
@@ -199,7 +199,7 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-				To: target2, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil, ToPathSortKey: nil,
+				To: target2, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 				IsLeaf: false,
 			}},
 			Has:       nil,
@@ -223,8 +223,8 @@ func TestRefFilterGetInactiveIntegration(t *testing.T) {
 
 	// Results order is non-deterministic when counts are equal.
 	assert.ElementsMatch(t, []search.RefFilterResult{
-		{ID: target1.String(), Count: 1, Paths: nil},
-		{ID: target2.String(), Count: 1, Paths: nil},
+		{ID: target1.String(), Count: 1, ChildCount: 0, Paths: nil},
+		{ID: target2.String(), Count: 1, ChildCount: 0, Paths: nil},
 	}, results)
 	assert.Equal(t, "2", metadata["total"])
 }
@@ -256,7 +256,7 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil, ToPathSortKey: nil,
+				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 				IsLeaf: false,
 			}},
 			Has:       nil,
@@ -330,8 +330,8 @@ func TestRefFilterGetMissingIntegration(t *testing.T) {
 
 	// Results should include target1 (count 1) and __MISSING__ (count 2), sorted by count descending.
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: search.MissingValueID, Count: 2, Paths: nil},
-		{ID: target1.String(), Count: 1, Paths: nil},
+		{ID: search.MissingValueID, Count: 2, ChildCount: 0, Paths: nil},
+		{ID: target1.String(), Count: 1, ChildCount: 0, Paths: nil},
 	}, results)
 	// Total includes the missing bucket.
 	assert.Equal(t, "2", metadata["total"])
@@ -364,7 +364,7 @@ func TestRefFilterGetNoMissingIntegration(t *testing.T) {
 			Link:       nil,
 			Reference: internalSearch.ReferenceClaims{{
 				Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToDisplayPath: nil, ToPathSortKey: nil,
+				To: target1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: nil, ToFullPath: nil, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 				IsLeaf: false,
 			}},
 			Has:       nil,
@@ -386,7 +386,7 @@ func TestRefFilterGetNoMissingIntegration(t *testing.T) {
 
 	// No missing bucket since all documents have the prop.
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: target1.String(), Count: 1, Paths: nil},
+		{ID: target1.String(), Count: 1, ChildCount: 0, Paths: nil},
 	}, results)
 	assert.Equal(t, "1", metadata["total"])
 }
@@ -443,17 +443,20 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 			Reference: internalSearch.ReferenceClaims{
 				{
 					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-					To: dog, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{dogPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil, ToPathSortKey: nil,
+					To: dog, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
+					ToPath: []string{dogPath}, ToFullPath: []string{dogPath}, ToParent: []string{mammal.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 				{
 					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-					To: mammal, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{mammalPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil, ToPathSortKey: nil,
+					To: mammal, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
+					ToPath: []string{mammalPath}, ToFullPath: []string{dogPath}, ToParent: []string{animal.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 				{
 					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-					To: animal, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{animalPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil, ToPathSortKey: nil,
+					To: animal, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
+					ToPath: []string{animalPath}, ToFullPath: []string{dogPath}, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 			},
@@ -475,11 +478,12 @@ func TestRefFilterGetHierarchyIntegration(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// One source doc per bucket; on equal counts results are ordered by hierarchy
-	// depth ascending, so ancestors precede their descendants.
+	// depth ascending, so ancestors precede their descendants. Each value's ChildCount is its number of
+	// distinct child values: animal has one child (mammal), mammal has one child (dog), dog is a leaf.
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: animal.String(), Count: 1, Paths: nil},
-		{ID: mammal.String(), Count: 1, Paths: [][]string{{animal.String()}}},
-		{ID: dog.String(), Count: 1, Paths: [][]string{{animal.String(), mammal.String()}}},
+		{ID: animal.String(), Count: 1, ChildCount: 1, Paths: nil},
+		{ID: mammal.String(), Count: 1, ChildCount: 1, Paths: [][]string{{animal.String()}}},
+		{ID: dog.String(), Count: 1, ChildCount: 0, Paths: [][]string{{animal.String(), mammal.String()}}},
 	}, results)
 	assert.Equal(t, "3", metadata["total"])
 }
@@ -516,12 +520,14 @@ func TestRefFilterDirectIntegration(t *testing.T) {
 	painterClaims := internalSearch.ReferenceClaims{
 		{
 			Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-			To: painter, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{painterPath}, ToFullPath: []string{painterPath}, ToDisplayPath: nil, ToPathSortKey: nil,
+			To: painter, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
+			ToPath: []string{painterPath}, ToFullPath: []string{painterPath}, ToParent: []string{artist.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
 			IsLeaf: true,
 		},
 		{
 			Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-			To: artist, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{artistPath}, ToFullPath: []string{painterPath}, ToDisplayPath: nil, ToPathSortKey: nil,
+			To: artist, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
+			ToPath: []string{artistPath}, ToFullPath: []string{painterPath}, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 			IsLeaf: false,
 		},
 	}
@@ -532,12 +538,13 @@ func TestRefFilterDirectIntegration(t *testing.T) {
 		{
 			Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
 			To: sculptor, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-			ToPath: []string{sculptorPath}, ToFullPath: []string{sculptorPath}, ToDisplayPath: nil, ToPathSortKey: nil,
+			ToPath: []string{sculptorPath}, ToFullPath: []string{sculptorPath}, ToParent: []string{artist.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
 			IsLeaf: true,
 		},
 		{
 			Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-			To: artist, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{artistPath}, ToFullPath: []string{sculptorPath}, ToDisplayPath: nil, ToPathSortKey: nil,
+			To: artist, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
+			ToPath: []string{artistPath}, ToFullPath: []string{sculptorPath}, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 			IsLeaf: false,
 		},
 	}
@@ -545,7 +552,8 @@ func TestRefFilterDirectIntegration(t *testing.T) {
 	artistClaims := internalSearch.ReferenceClaims{
 		{
 			Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
-			To: artist, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{artistPath}, ToFullPath: []string{artistPath}, ToDisplayPath: nil, ToPathSortKey: nil,
+			To: artist, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
+			ToPath: []string{artistPath}, ToFullPath: []string{artistPath}, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 			IsLeaf: true,
 		},
 	}
@@ -597,12 +605,14 @@ func TestRefFilterDirectIntegration(t *testing.T) {
 
 	// artist aggregates all nine documents; its children (the sculptor value, the artist "direct"
 	// entry, and the painter value) are nested under artist and sorted by count exactly like any
-	// other value, so the "direct" entry (3) interleaves between sculptor (4) and painter (2).
+	// other value, so the "direct" entry (3) interleaves between sculptor (4) and painter (2). artist has two
+	// distinct child values (painter and sculptor), so its ChildCount is 2; the leaves and the synthetic
+	// "direct" entry have none.
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: artist.String(), Count: 9, Paths: nil},
-		{ID: sculptor.String(), Count: 4, Paths: [][]string{{artist.String()}}},
-		{ID: search.DirectRefFilterPrefix + artist.String(), Count: 3, Paths: [][]string{{artist.String()}}},
-		{ID: painter.String(), Count: 2, Paths: [][]string{{artist.String()}}},
+		{ID: artist.String(), Count: 9, ChildCount: 2, Paths: nil},
+		{ID: sculptor.String(), Count: 4, ChildCount: 0, Paths: [][]string{{artist.String()}}},
+		{ID: search.DirectRefFilterPrefix + artist.String(), Count: 3, ChildCount: 0, Paths: [][]string{{artist.String()}}},
+		{ID: painter.String(), Count: 2, ChildCount: 0, Paths: [][]string{{artist.String()}}},
 	}, results)
 	// Three distinct values (artist, painter, sculptor) plus the one "direct" entry.
 	assert.Equal(t, "4", metadata["total"])
@@ -673,7 +683,8 @@ func TestRefFilterGetDiamondIntegration(t *testing.T) {
 				{
 					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
 					To: leaf, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-					ToPath: []string{leafPathA, leafPathB}, ToFullPath: []string{leafPathA, leafPathB}, ToDisplayPath: nil, ToPathSortKey: nil,
+					ToPath: []string{leafPathA, leafPathB}, ToFullPath: []string{leafPathA, leafPathB},
+					ToParent: []string{parentA.String(), parentB.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 			},
@@ -754,37 +765,37 @@ func TestRefFilterGetMultipleInheritanceIntegration(t *testing.T) {
 				{
 					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
 					To: leaf, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{leafViaDeep, leafViaShallow},
-					ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil, ToPathSortKey: nil,
+					ToFullPath: []string{leafViaDeep, leafViaShallow}, ToParent: []string{deepParent.String(), shallowParent.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 				{
 					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
 					To: deepParent, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{deepParentPath},
-					ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil, ToPathSortKey: nil,
+					ToFullPath: []string{leafViaDeep, leafViaShallow}, ToParent: []string{mid2.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 				{
 					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
 					To: shallowParent, ToDisplay: nil, ToNaming: nil, ToSortKey: nil, ToPath: []string{shallowParentPath},
-					ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil, ToPathSortKey: nil,
+					ToFullPath: []string{leafViaDeep, leafViaShallow}, ToParent: []string{root.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 				{
 					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
 					To: mid2, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-					ToPath: []string{mid2Path}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil, ToPathSortKey: nil,
+					ToPath: []string{mid2Path}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToParent: []string{mid1.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 				{
 					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
 					To: mid1, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-					ToPath: []string{mid1Path}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil, ToPathSortKey: nil,
+					ToPath: []string{mid1Path}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToParent: []string{root.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 				{
 					Prop: refProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
 					To: root, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-					ToPath: []string{rootPath}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToDisplayPath: nil, ToPathSortKey: nil,
+					ToPath: []string{rootPath}, ToFullPath: []string{leafViaDeep, leafViaShallow}, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 					IsLeaf: false,
 				},
 			},
@@ -878,7 +889,7 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 					ReferenceClaim: internalSearch.ReferenceClaim{
 						Prop: subProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
 						To: dog, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-						ToPath: []string{dogPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil, ToPathSortKey: nil,
+						ToPath: []string{dogPath}, ToFullPath: []string{dogPath}, ToParent: []string{mammal.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
 						IsLeaf: false,
 					},
 				},
@@ -887,7 +898,7 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 					ReferenceClaim: internalSearch.ReferenceClaim{
 						Prop: subProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
 						To: mammal, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-						ToPath: []string{mammalPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil, ToPathSortKey: nil,
+						ToPath: []string{mammalPath}, ToFullPath: []string{dogPath}, ToParent: []string{animal.String()}, ToDisplayPath: nil, ToPathSortKey: nil,
 						IsLeaf: false,
 					},
 				},
@@ -896,7 +907,7 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 					ReferenceClaim: internalSearch.ReferenceClaim{
 						Prop: subProp, PropDisplay: nil, PropNaming: nil, PropSortKey: nil,
 						To: animal, ToDisplay: nil, ToNaming: nil, ToSortKey: nil,
-						ToPath: []string{animalPath}, ToFullPath: []string{dogPath}, ToDisplayPath: nil, ToPathSortKey: nil,
+						ToPath: []string{animalPath}, ToFullPath: []string{dogPath}, ToParent: nil, ToDisplayPath: nil, ToPathSortKey: nil,
 						IsLeaf: false,
 					},
 				},
@@ -914,14 +925,76 @@ func TestRefFilterGetSubRefHierarchyIntegration(t *testing.T) {
 	results, metadata, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "", nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// On equal counts results are ordered by hierarchy depth ascending, so
-	// ancestors precede their descendants.
+	// On equal counts results are ordered by hierarchy depth ascending, so ancestors precede their
+	// descendants. Each value's ChildCount is its number of distinct child values: animal has one child
+	// (mammal), mammal has one child (dog), dog is a leaf.
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: animal.String(), Count: 1, Paths: nil},
-		{ID: mammal.String(), Count: 1, Paths: [][]string{{animal.String()}}},
-		{ID: dog.String(), Count: 1, Paths: [][]string{{animal.String(), mammal.String()}}},
+		{ID: animal.String(), Count: 1, ChildCount: 1, Paths: nil},
+		{ID: mammal.String(), Count: 1, ChildCount: 1, Paths: [][]string{{animal.String()}}},
+		{ID: dog.String(), Count: 1, ChildCount: 0, Paths: [][]string{{animal.String(), mammal.String()}}},
 	}, results)
 	assert.Equal(t, "3", metadata["total"])
+}
+
+// TestRefFilterGetChildCountMultipleInheritanceIntegration verifies that ChildCount is the exact number of
+// distinct child VALUES a value has, robust to multiple inheritance: dog is a child of both mammal and pet
+// (two hierarchy paths, so toParent = [mammal, pet]); cat is a child of mammal only. Because the count is over
+// distinct child values (not documents), mammal counts two children (dog, cat) and pet counts one (dog), even
+// though dog is shared between them. The single-inheritance case is covered too: mammal is a plain parent with
+// two distinct children.
+func TestRefFilterGetChildCountMultipleInheritanceIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	refProp := identifier.From("refProp")
+	hierProp := identifier.From("hierProp")
+	mammal := identifier.From("mammal")
+	pet := identifier.From("pet")
+	dog := identifier.From("dog")
+	cat := identifier.From("cat")
+
+	// mammal and pet are roots; dog descends from both (a diamond), cat descends from mammal only. Paths follow
+	// the indexed "<hierProp>:<root>/.../<this>" form.
+	mammalPath := hierProp.String() + ":" + mammal.String()
+	petPath := hierProp.String() + ":" + pet.String()
+	dogViaMammal := mammalPath + "/" + dog.String()
+	dogViaPet := petPath + "/" + dog.String()
+	catViaMammal := mammalPath + "/" + cat.String()
+
+	// dogDoc references dog (expanded to dog plus its two parents mammal and pet, as convertReference does).
+	indexDocument(t, ctx, esClient, index, refDoc("dogDoc", internalSearch.ReferenceClaims{
+		hierRefClaim(refProp, dog, []string{dogViaMammal, dogViaPet}, []string{dogViaMammal, dogViaPet}),
+		hierRefClaim(refProp, mammal, []string{mammalPath}, []string{dogViaMammal, dogViaPet}),
+		hierRefClaim(refProp, pet, []string{petPath}, []string{dogViaMammal, dogViaPet}),
+	}))
+	// catDoc references cat (expanded to cat plus its single parent mammal).
+	indexDocument(t, ctx, esClient, index, refDoc("catDoc", internalSearch.ReferenceClaims{
+		hierRefClaim(refProp, cat, []string{catViaMammal}, []string{catViaMammal}),
+		hierRefClaim(refProp, mammal, []string{mammalPath}, []string{catViaMammal}),
+	}))
+	refreshIndex(t, ctx, esClient, index)
+
+	session := createSession(t, ctx, search.SessionData{})
+
+	f := search.RefFilter{}
+	results, _, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	byID := refResultsByID(results)
+	// mammal has two distinct children (dog and cat): a plain single-inheritance parent with two children, and
+	// dog is also the shared child of the diamond.
+	require.Contains(t, byID, mammal.String())
+	assert.Equal(t, int64(2), byID[mammal.String()].ChildCount)
+	// pet has one distinct child (dog), counted exactly once even though dog is also mammal's child.
+	require.Contains(t, byID, pet.String())
+	assert.Equal(t, int64(1), byID[pet.String()].ChildCount)
+	// The leaves have no children.
+	require.Contains(t, byID, dog.String())
+	assert.Equal(t, int64(0), byID[dog.String()].ChildCount)
+	require.Contains(t, byID, cat.String())
+	assert.Equal(t, int64(0), byID[cat.String()].ChildCount)
 }
 
 func TestRefFilterGetValueQueryIntegration(t *testing.T) {
@@ -983,7 +1056,7 @@ func TestRefFilterGetValueQueryIntegration(t *testing.T) {
 	results, metadata, errE := f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "germ*", enabledLanguages, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: germany.String(), Count: 1, Paths: nil},
+		{ID: germany.String(), Count: 1, ChildCount: 0, Paths: nil},
 	}, results)
 	assert.Equal(t, "1", metadata["total"])
 
@@ -992,7 +1065,7 @@ func TestRefFilterGetValueQueryIntegration(t *testing.T) {
 	results, _, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "deutsch*", enabledLanguages, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.RefFilterResult{
-		{ID: germany.String(), Count: 1, Paths: nil},
+		{ID: germany.String(), Count: 1, ChildCount: 0, Paths: nil},
 	}, results)
 
 	// A bare "*" matches everything, including this property's own name, so the whole facet is shown (all
@@ -1000,9 +1073,9 @@ func TestRefFilterGetValueQueryIntegration(t *testing.T) {
 	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "*", enabledLanguages, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []search.RefFilterResult{
-		{ID: germany.String(), Count: 1, Paths: nil},
-		{ID: france.String(), Count: 1, Paths: nil},
-		{ID: search.MissingValueID, Count: 2, Paths: nil},
+		{ID: germany.String(), Count: 1, ChildCount: 0, Paths: nil},
+		{ID: france.String(), Count: 1, ChildCount: 0, Paths: nil},
+		{ID: search.MissingValueID, Count: 2, ChildCount: 0, Paths: nil},
 	}, results)
 	assert.Equal(t, "3", metadata["total"])
 
@@ -1010,9 +1083,9 @@ func TestRefFilterGetValueQueryIntegration(t *testing.T) {
 	results, metadata, errE = f.Get(ctx, getSearchService, session.ToQuery(nil), refProp, nil, "", enabledLanguages, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.ElementsMatch(t, []search.RefFilterResult{
-		{ID: germany.String(), Count: 1, Paths: nil},
-		{ID: france.String(), Count: 1, Paths: nil},
-		{ID: search.MissingValueID, Count: 2, Paths: nil},
+		{ID: germany.String(), Count: 1, ChildCount: 0, Paths: nil},
+		{ID: france.String(), Count: 1, ChildCount: 0, Paths: nil},
+		{ID: search.MissingValueID, Count: 2, ChildCount: 0, Paths: nil},
 	}, results)
 	assert.Equal(t, "3", metadata["total"])
 }
@@ -1050,7 +1123,7 @@ func TestRefFilterGetSubRefParentNameQueryIntegration(t *testing.T) {
 	enabledLanguages := internalSearch.EnabledLanguages(nil)
 	f := search.RefFilter{}
 
-	expected := []search.RefFilterResult{{ID: alice.String(), Count: 1, Paths: nil}}
+	expected := []search.RefFilterResult{{ID: alice.String(), Count: 1, ChildCount: 0, Paths: nil}}
 
 	// Matched by the parent property's name ("has location").
 	results, _, errE := f.GetSubRef(ctx, getSearchService, session.ToQuery(nil), parentProp, subProp, nil, nil, "has location*", enabledLanguages, nil)

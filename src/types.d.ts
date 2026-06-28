@@ -68,6 +68,10 @@ export type SortKey = SortColumn & {
 export type RefFilterResult = {
   id: string
   count: number
+  // childCount is the value's exact number of distinct child values across the whole hierarchy (robust to
+  // multiple inheritance), as computed by the backend. It is compared against how many of the value's children
+  // are actually loaded to detect children truncated by the server's value cap.
+  childCount: number
   paths?: string[][]
 }
 

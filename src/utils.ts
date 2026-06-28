@@ -1,7 +1,7 @@
 import type { ComputedRef, DeepReadonly, InjectionKey, Ref } from "vue"
 
 import type { TimePrecision } from "@/document"
-import type { GetDisplayLabel, Mutable, QueryValues, QueryValuesWithOptional, RefFilter, Result, TreeNode } from "@/types"
+import type { GetDisplayLabel, Mutable, QueryValues, QueryValuesWithOptional, RefFilter, RefFilterResult, Result, TreeNode } from "@/types"
 
 import { Identifier } from "@tozd/identifier"
 import { prng_alea } from "esm-seedrandom"
@@ -126,6 +126,12 @@ export function limitGroupedResults(nodes: DeepReadonly<Result[]>, limit: number
 // entry has no paths. RefFilterResult satisfies this.
 export type RefValueLike = { id: string; paths?: string[][] }
 
+// RefValueWithCounts extends the minimal value shape with the document count and the exact number of
+// distinct child values (childCount) the all-children promotion gate needs. RefFilterResult satisfies it.
+// When count/childCount are absent (older callers and tests), a value is treated as promotable so the
+// prior promotion behavior is preserved.
+export type RefValueWithCounts = RefValueLike & { count?: number; childCount?: number }
+
 // buildRefTree builds a value-hierarchy tree from a flat, count-ordered result list. Iteration order is
 // preserved: for each result, the deepest already-placed ancestor across its paths becomes its parent (one
 // placement per distinct such ancestor, so a value with several parents is duplicated under each), or the
@@ -218,17 +224,51 @@ function refSubtreeIds(id: string, children: ReadonlyMap<string, string[]>): Set
   return out
 }
 
+// isRealChildId reports whether a child id is a real, selectable value rather than a synthetic entry.
+// The "direct" entry and the "values not shown" marker are children of a value in the hierarchy but are
+// not counted as real loaded children when gating the all-children promotion or counting loaded children.
+function isRealChildId(id: string): boolean {
+  return !id.startsWith(DIRECT_REF_FILTER_PREFIX) && !id.startsWith(VALUES_NOT_SHOWN_PREFIX)
+}
+
 // computeRefCheckStates computes the tri-state checkbox state of every reference filter value. A
 // value renders as a full checkmark when its own value is selected, when one of its ancestors is
 // selected (selecting a value selects its whole subtree, including each narrower value and the
 // "direct" entry), or when all of its children are checked. It is indeterminate when it is not
 // fully checked but it or one of its descendants is selected. Selecting a parent and selecting all
 // of its children therefore render identically.
-export function computeRefCheckStates(values: readonly RefValueLike[], selected: ReadonlySet<string>): Map<string, RefCheckState> {
+//
+// The all-children promotion (the "all children checked, so the parent is full" clause) is gated: it
+// fires only when the value is a real value with documents of its own (count > 0) and all of its
+// children are actually loaded (childCount <= realLoadedChildren). So a count-0 augment ancestor and a
+// parent whose children were truncated by the server cap never render full from their children alone,
+// they fall through to indeterminate and stay clickable to fully select. When count/childCount are
+// absent the value is treated as promotable, preserving the prior behavior.
+export function computeRefCheckStates(values: readonly RefValueWithCounts[], selected: ReadonlySet<string>): Map<string, RefCheckState> {
   const children = refChildrenByValue(values)
   const pathsById = new Map<string, string[][]>()
+  const countById = new Map<string, number>()
+  const childCountById = new Map<string, number>()
   for (const value of values) {
     pathsById.set(value.id, value.paths ?? [])
+    if (value.count !== undefined) {
+      countById.set(value.id, value.count)
+    }
+    if (value.childCount !== undefined) {
+      childCountById.set(value.id, value.childCount)
+    }
+  }
+
+  const realLoadedChildren = (id: string): number => (children.get(id) ?? []).filter(isRealChildId).length
+
+  const canPromote = (id: string): boolean => {
+    const count = countById.get(id)
+    const childCount = childCountById.get(id)
+    // Absent counts (older callers and tests) are treated as promotable to preserve the prior behavior.
+    if (count === undefined || childCount === undefined) {
+      return true
+    }
+    return count > 0 && childCount <= realLoadedChildren(id)
   }
 
   const ancestorSelected = (id: string): boolean => (pathsById.get(id) ?? []).some((path) => path.some((ancestor) => selected.has(ancestor)))
@@ -244,7 +284,7 @@ export function computeRefCheckStates(values: readonly RefValueLike[], selected:
     let result = selected.has(id) || ancestorSelected(id)
     if (!result) {
       const childIds = children.get(id)
-      result = childIds !== undefined && childIds.length > 0 && childIds.every(isChecked)
+      result = childIds !== undefined && childIds.length > 0 && canPromote(id) && childIds.every(isChecked)
     }
     checkedMemo.set(id, result)
     return result
@@ -283,7 +323,7 @@ export function computeRefCheckStates(values: readonly RefValueLike[], selected:
 // child behave the same whether the parent was stored explicitly (selected through the UI) or only
 // as the parent value (for example a session created through the API): after the first change both
 // yield the same selection and the same results.
-export function toggleRefSelection(values: readonly RefValueLike[], id: string, selected: ReadonlySet<string>): Set<string> {
+export function toggleRefSelection(values: readonly RefValueWithCounts[], id: string, selected: ReadonlySet<string>): Set<string> {
   const children = refChildrenByValue(values)
   const subtree = refSubtreeIds(id, children)
   const states = computeRefCheckStates(values, selected)
@@ -316,6 +356,47 @@ export const DIRECT_REF_FILTER_PREFIX = "__DIRECT__:"
 
 // MISSING_VALUE_ID is the synthetic id for the "missing" entry, the documents that lack the property.
 export const MISSING_VALUE_ID = "__MISSING__"
+
+// VALUES_NOT_SHOWN_PREFIX marks a "values not shown" marker node, a synthetic, non-selectable child
+// appended under a value whose children were truncated by the server's value cap (the value list is
+// capped by document count, so a high-cardinality parent can have children that were never loaded). A
+// marker node's id is this prefix plus the parent value's id and its count is the document gap (docGap),
+// the number of documents living in the parent's not-loaded child values.
+export const VALUES_NOT_SHOWN_PREFIX = "__MORE__:"
+
+// valuesNotShownMarkers builds the "values not shown" marker nodes for a reference filter value list. For
+// each value P whose exact child-value count (childCount) exceeds how many of its children are actually
+// loaded as real values (realLoadedChildren, excluding the "direct" entry and any marker), it produces one
+// synthetic child node carrying the document gap: count(P) minus the sum of the counts of P's loaded
+// children (including its "direct" entry, excluding the marker), clamped at zero. For single inheritance
+// that gap is exactly the number of documents in P's not-loaded child values. The result is a flat list of
+// marker results; each one is appended under its parent as that parent's last child. It is pure.
+export function valuesNotShownMarkers(results: readonly RefFilterResult[]): RefFilterResult[] {
+  const children = refChildrenByValue(results)
+  const countById = new Map<string, number>()
+  for (const result of results) {
+    countById.set(result.id, result.count)
+  }
+
+  const markers: RefFilterResult[] = []
+  for (const value of results) {
+    const childIds = children.get(value.id) ?? []
+    const realLoaded = childIds.filter(isRealChildId).length
+    if (value.childCount <= realLoaded) {
+      continue
+    }
+    let loadedDocs = 0
+    for (const childId of childIds) {
+      if (childId.startsWith(VALUES_NOT_SHOWN_PREFIX)) {
+        continue
+      }
+      loadedDocs += countById.get(childId) ?? 0
+    }
+    const docGap = Math.max(0, value.count - loadedDocs)
+    markers.push({ id: VALUES_NOT_SHOWN_PREFIX + value.id, count: docGap, childCount: 0 })
+  }
+  return markers
+}
 
 // mergeRefOverlay combines a reference facet's loaded primary values with the values returned by a filter-pane
 // value search into a single value list. Every primary entry is kept in its original order, then every match

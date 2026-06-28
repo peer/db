@@ -44,6 +44,7 @@
       "dataNotAvailable": "data not available",
       "error": "error",
       "valuesNotShown": "1 value not shown. | {count} values not shown.",
+      "valuesNotShownShort": "...",
       "allResults": "All of 1 result shown. | All of {count} results shown.",
       "allResultsOnly": "All of first {first} shown of 1 result found. | All of first {first} shown of {count} results found.",
       "allResultsMoreThan": "All of first {first} shown of more than 1 result found. | All of first {first} shown of more than {count} results found."

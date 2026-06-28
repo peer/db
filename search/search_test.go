@@ -1315,7 +1315,7 @@ func TestJSONSerialization(t *testing.T) {
 
 	t.Run("RefFilterResult", func(t *testing.T) {
 		t.Parallel()
-		rfr := search.RefFilterResult{ID: "test-id", Count: 10, Paths: nil}
+		rfr := search.RefFilterResult{ID: "test-id", Count: 10, ChildCount: 5, Paths: nil}
 		data, errE := x.MarshalWithoutEscapeHTML(rfr)
 		require.NoError(t, errE, "% -+#.1v", errE)
 		var decoded search.RefFilterResult

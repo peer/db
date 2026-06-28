@@ -338,6 +338,10 @@ type ReferenceClaim struct {
 	// While ToPath is the path of this record's own To value, ToFullPath identifies the leaf the
 	// record derives from.
 	ToFullPath []string `json:"toFullPath,omitempty"`
+	// ToParent holds the immediate-parent value id for each of ToPath's chains (the segment before the last).
+	// It is multi-valued because a value can have several parents under multiple inheritance, and absent for a
+	// root value. It lets a terms(toParent) -> cardinality(to) aggregation count a value's distinct children.
+	ToParent []string `json:"toParent,omitempty"`
 	// ToDisplayPath contains per-language display hierarchy paths from root to the target document. Each
 	// path is a string of display labels joined by null bytes. It is not indexed (json:"-"): it is kept in
 	// memory only to fold the hierarchy labels into the searchable text (addDisplayPathLabels) and to build

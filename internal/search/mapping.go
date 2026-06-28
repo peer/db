@@ -459,6 +459,11 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 					idPath,
 				},
 				{
+					// toParent is a value id (a value's immediate parents), so it uses the same relationID mapping as "to".
+					"toParent",
+					relationID,
+				},
+				{
 					"toPathSortKey",
 					sortKey(langs),
 				},
@@ -594,6 +599,11 @@ func buildClaimTypes(langs []string) []claimType { //nolint:maintidx
 				{
 					"toFullPath",
 					idPath,
+				},
+				{
+					// toParent is a value id (a value's immediate parents), so it uses the same relationID mapping as "to".
+					"toParent",
+					relationID,
 				},
 				{
 					"toPathSortKey",

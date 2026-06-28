@@ -55,6 +55,7 @@ declare module "vue-i18n" {
         dataNotAvailable: string
         error: string
         valuesNotShown: string
+        valuesNotShownShort: string
         allResults: string
         allResultsOnly: string
         allResultsMoreThan: string

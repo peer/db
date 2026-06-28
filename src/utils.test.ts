@@ -18,6 +18,7 @@ import {
   timePrecisionForValue,
   timeStringFromFloat64,
   toggleRefSelection,
+  valuesNotShownMarkers,
 } from "@/utils"
 
 // Unix seconds for 2025-03-02 10:30:45 UTC.
@@ -388,13 +389,15 @@ describe("buildRefTree", () => {
 
 // Hierarchy artist > {painter, sculptor}, plus artist's "direct" entry and the top-level
 // "missing" entry. Paths are ancestor chains from root to immediate parent; a "direct" entry and
-// a root value list themselves as the parent of nothing else, "missing" has no paths.
-const ARTIST_VALUES: RefValueLike[] = [
-  { id: "artist" },
-  { id: "painter", paths: [["artist"]] },
-  { id: "sculptor", paths: [["artist"]] },
-  { id: "__DIRECT__:artist", paths: [["artist"]] },
-  { id: "__MISSING__" },
+// a root value list themselves as the parent of nothing else, "missing" has no paths. childCount is
+// the exact number of distinct child values: artist has two real children loaded (painter, sculptor),
+// so its childCount is 2 and all of its children are loaded, exercising the all-children promotion gate.
+const ARTIST_VALUES: RefFilterResult[] = [
+  { id: "artist", count: 9, childCount: 2 },
+  { id: "painter", count: 2, childCount: 0, paths: [["artist"]] },
+  { id: "sculptor", count: 4, childCount: 0, paths: [["artist"]] },
+  { id: "__DIRECT__:artist", count: 3, childCount: 0, paths: [["artist"]] },
+  { id: "__MISSING__", count: 5, childCount: 0 },
 ]
 
 function checkedIds(values: readonly RefValueLike[], selected: Iterable<string>): string[] {
@@ -434,6 +437,42 @@ describe("computeRefCheckStates", () => {
     const selected = ["painter", "__DIRECT__:artist"]
     assert.sameMembers(checkedIds(ARTIST_VALUES, selected), selected)
     assert.sameMembers(indeterminateIds(ARTIST_VALUES, selected), ["artist"])
+  })
+
+  test("a fully loaded parent (childCount == loaded) promotes to full when all children are checked", () => {
+    // artist has count 9 and childCount 2, matching its two loaded real children (painter, sculptor), so the
+    // all-children promotion fires.
+    const selected = ["painter", "sculptor", "__DIRECT__:artist"]
+    assert.isTrue(computeRefCheckStates(ARTIST_VALUES, new Set(selected)).get("artist")?.checked)
+  })
+
+  test("a truncated parent (childCount > loaded) does not promote, it stays indeterminate", () => {
+    // artist claims three distinct children but only two are loaded, so the not-loaded child means the parent
+    // can never be full from its loaded children alone.
+    const values: RefFilterResult[] = [
+      { id: "artist", count: 9, childCount: 3 },
+      { id: "painter", count: 2, childCount: 0, paths: [["artist"]] },
+      { id: "sculptor", count: 4, childCount: 0, paths: [["artist"]] },
+      { id: "__DIRECT__:artist", count: 3, childCount: 0, paths: [["artist"]] },
+    ]
+    const selected = new Set(["painter", "sculptor", "__DIRECT__:artist"])
+    const states = computeRefCheckStates(values, selected)
+    assert.isFalse(states.get("artist")?.checked)
+    assert.isTrue(states.get("artist")?.indeterminate)
+  })
+
+  test("a count-0 augment parent does not promote, it stays indeterminate", () => {
+    // artist holds no documents of its own (count 0), so even with all of its children checked it is not full,
+    // it only renders indeterminate and stays clickable to fully select.
+    const values: RefFilterResult[] = [
+      { id: "artist", count: 0, childCount: 2 },
+      { id: "painter", count: 2, childCount: 0, paths: [["artist"]] },
+      { id: "sculptor", count: 4, childCount: 0, paths: [["artist"]] },
+    ]
+    const selected = new Set(["painter", "sculptor"])
+    const states = computeRefCheckStates(values, selected)
+    assert.isFalse(states.get("artist")?.checked)
+    assert.isTrue(states.get("artist")?.indeterminate)
   })
 })
 
@@ -500,11 +539,11 @@ describe("toggleRefSelection", () => {
 describe("mergeRefOverlay", () => {
   test("a match already in primary keeps the primary data and is not duplicated", () => {
     const primary: RefFilterResult[] = [
-      { id: "art", count: 10 },
-      { id: "painting", count: 4, paths: [["art"]] },
+      { id: "art", count: 10, childCount: 1 },
+      { id: "painting", count: 4, childCount: 0, paths: [["art"]] },
     ]
     // The match carries a different count and extra paths for an id already loaded in primary.
-    const matchResults: RefFilterResult[] = [{ id: "painting", count: 99, paths: [["art"], ["other"]] }]
+    const matchResults: RefFilterResult[] = [{ id: "painting", count: 99, childCount: 0, paths: [["art"], ["other"]] }]
     const combined = mergeRefOverlay(primary, matchResults)
     // The combined list is exactly the primary list: the already-loaded id is not appended again.
     assert.deepEqual(combined, primary)
@@ -516,10 +555,10 @@ describe("mergeRefOverlay", () => {
 
   test("a match not in primary is appended with its match-provided count and paths", () => {
     // sculpture is beyond the loaded primary list, so the combined list must reach it from the match data.
-    const primary: RefFilterResult[] = [{ id: "art", count: 10 }]
+    const primary: RefFilterResult[] = [{ id: "art", count: 10, childCount: 0 }]
     const matchResults: RefFilterResult[] = [
-      { id: "art", count: 10 },
-      { id: "sculpture", count: 2, paths: [["art"]] },
+      { id: "art", count: 10, childCount: 0 },
+      { id: "sculpture", count: 2, childCount: 0, paths: [["art"]] },
     ]
     const combined = mergeRefOverlay(primary, matchResults)
     const sculpture = combined.find((e) => e.id === "sculpture")
@@ -530,18 +569,59 @@ describe("mergeRefOverlay", () => {
 
   test("combined order is primary first, then the not-in-primary matches in match order", () => {
     const primary: RefFilterResult[] = [
-      { id: "a", count: 3 },
-      { id: "b", count: 2 },
+      { id: "a", count: 3, childCount: 0 },
+      { id: "b", count: 2, childCount: 0 },
     ]
     const matchResults: RefFilterResult[] = [
-      { id: "b", count: 2 },
-      { id: "c", count: 1 },
-      { id: "d", count: 1 },
+      { id: "b", count: 2, childCount: 0 },
+      { id: "c", count: 1, childCount: 0 },
+      { id: "d", count: 1, childCount: 0 },
     ]
     const combined = mergeRefOverlay(primary, matchResults)
     assert.deepEqual(
       combined.map((e) => e.id),
       ["a", "b", "c", "d"],
     )
+  })
+})
+
+describe("valuesNotShownMarkers", () => {
+  test("a parent with unloaded children yields a marker carrying the document gap", () => {
+    // artist has five distinct children but only two real ones (painter, sculptor) plus its "direct" entry are
+    // loaded, so a marker is produced. docGap = 100 - (2 + 4 + 3) = 91, where the "direct" entry counts toward
+    // loaded documents but is not counted as a real loaded child.
+    const results: RefFilterResult[] = [
+      { id: "artist", count: 100, childCount: 5 },
+      { id: "painter", count: 2, childCount: 0, paths: [["artist"]] },
+      { id: "sculptor", count: 4, childCount: 0, paths: [["artist"]] },
+      { id: "__DIRECT__:artist", count: 3, childCount: 0, paths: [["artist"]] },
+    ]
+    const markers = valuesNotShownMarkers(results)
+    assert.lengthOf(markers, 1)
+    assert.equal(markers[0].id, "__MORE__:artist")
+    assert.equal(markers[0].count, 91)
+  })
+
+  test("a fully loaded parent yields no marker", () => {
+    const results: RefFilterResult[] = [
+      { id: "artist", count: 9, childCount: 2 },
+      { id: "painter", count: 2, childCount: 0, paths: [["artist"]] },
+      { id: "sculptor", count: 4, childCount: 0, paths: [["artist"]] },
+      { id: "__DIRECT__:artist", count: 3, childCount: 0, paths: [["artist"]] },
+    ]
+    assert.lengthOf(valuesNotShownMarkers(results), 0)
+  })
+
+  test("the direct entry is excluded from the real loaded child count but included in the document gap", () => {
+    // Only one real child (painter) is loaded next to the "direct" entry, while childCount is 2, so a child is
+    // missing and a marker is produced. docGap = 10 - (2 + 3) = 5, with the "direct" entry counted in the sum.
+    const results: RefFilterResult[] = [
+      { id: "artist", count: 10, childCount: 2 },
+      { id: "painter", count: 2, childCount: 0, paths: [["artist"]] },
+      { id: "__DIRECT__:artist", count: 3, childCount: 0, paths: [["artist"]] },
+    ]
+    const markers = valuesNotShownMarkers(results)
+    assert.lengthOf(markers, 1)
+    assert.equal(markers[0].count, 5)
   })
 })

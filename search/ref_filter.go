@@ -49,10 +49,16 @@ type HierarchyPathsResolver = func(ctx context.Context, id identifier.Identifier
 // per parent path the value participates in (multiple entries for diamond hierarchies
 // or when the value sits in more than one value-hierarchy property). The frontend uses
 // these to render filter values as a tree.
+//
+// ChildCount is the value's exact number of distinct child values across the whole hierarchy (robust to
+// multiple inheritance, since it counts child values rather than documents), computed only for the primary
+// (unfiltered-by-value-name) list. It is 0 for a leaf value. The frontend compares it to how many children
+// were actually returned to mark values whose children were truncated by the MaxResultsCount cap.
 type RefFilterResult struct {
-	ID    string     `json:"id"`
-	Count int64      `json:"count"`
-	Paths [][]string `json:"paths,omitempty"`
+	ID         string     `json:"id"`
+	Count      int64      `json:"count"`
+	ChildCount int64      `json:"childCount"`
+	Paths      [][]string `json:"paths,omitempty"`
 }
 
 // parseToPath turns one indexed hierarchy path string into its ancestor chain.
@@ -128,10 +134,41 @@ func bucketsToRefFilterResults(buckets []types.StringTermsBucket, kind string) (
 		results = append(results, RefFilterResult{
 			ID:    key,
 			Count: bucketDocs.DocCount,
-			Paths: collectPaths(pathBuckets),
+			// ChildCount is stamped later (only in the primary, no value search path) by applyChildCounts.
+			ChildCount: 0,
+			Paths:      collectPaths(pathBuckets),
 		})
 	}
 	return results, nil
+}
+
+// parseValueBuckets extracts the value terms buckets ("props") and the distinct-value cardinality ("total")
+// from a value aggregation built by valueAggregation under name (nested -> filter -> "props"/"total"). name is
+// also woven into error messages.
+func parseValueBuckets(aggs map[string]types.Aggregate, name string) ([]types.StringTermsBucket, *types.CardinalityAggregate, errors.E) {
+	nested, errE := internalSearch.AggAs[types.NestedAggregate](aggs, name)
+	if errE != nil {
+		return nil, nil, errE
+	}
+	filter, errE := internalSearch.AggAs[types.FilterAggregate](nested.Aggregations, "filter")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	terms, errE := internalSearch.AggAs[types.StringTermsAggregate](filter.Aggregations, "props")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	buckets, ok := terms.Buckets.([]types.StringTermsBucket)
+	if !ok {
+		errE := errors.New("unexpected bucket type for " + name)
+		errors.Details(errE)["type"] = fmt.Sprintf("%T", terms.Buckets)
+		return nil, nil, errE
+	}
+	total, errE := internalSearch.AggAs[types.CardinalityAggregate](filter.Aggregations, "total")
+	if errE != nil {
+		return nil, nil, errE
+	}
+	return buckets, total, nil
 }
 
 // bucketDirectCount reads a value bucket's "direct" sub-aggregation count: the number of
@@ -197,9 +234,10 @@ func directResults(buckets []types.StringTermsBucket, values []RefFilterResult) 
 			continue
 		}
 		out = append(out, RefFilterResult{
-			ID:    DirectRefFilterPrefix + value.ID,
-			Count: count,
-			Paths: directPaths(value),
+			ID:         DirectRefFilterPrefix + value.ID,
+			Count:      count,
+			ChildCount: 0,
+			Paths:      directPaths(value),
 		})
 	}
 	return out, nil
@@ -264,6 +302,92 @@ func valueAggregation(field string, filterQuery types.QueryVariant) types.Aggreg
 					Terms(esdsl.NewTermsAggregation().Field(field+".toPath").Size(maxHierarchyPathsPerValue)))).
 			AddAggregation("total", esdsl.NewAggregations().
 				Cardinality(esdsl.NewCardinalityAggregation().Field(field+".to").PrecisionThreshold(maxPrecisionThreshold))))
+}
+
+// childCountAggregation counts, per parent value, how many distinct child values it has across the full
+// hierarchy. It is scoped to the same nested+filter as the value aggregation (the property match plus any
+// prefilter toFullPath exclusion, but never a value-name match), groups records by their toParent (a value's
+// immediate-parent ids, multi-valued under multiple inheritance), and for each parent counts the distinct
+// child to values. Counting child values (not documents) makes the count exact even for diamonds. field is
+// the nested path ("claims.ref" or "claims.subRef").
+func childCountAggregation(field string, filterQuery types.QueryVariant) types.AggregationsVariant { //nolint:ireturn
+	return esdsl.NewAggregations().
+		Nested(esdsl.NewNestedAggregation().Path(field)).
+		AddAggregation("filter", esdsl.NewAggregations().
+			Filter(filterQuery).
+			AddAggregation("parents", esdsl.NewAggregations().
+				Terms(esdsl.NewTermsAggregation().Field(field+".toParent").Size(MaxResultsCount)).
+				AddAggregation("children", esdsl.NewAggregations().
+					Cardinality(esdsl.NewCardinalityAggregation().Field(field+".to").PrecisionThreshold(maxPrecisionThreshold)))))
+}
+
+// parseChildCounts unwraps the childCounts aggregation (nested -> filter -> terms "parents" -> cardinality
+// "children") into a map from parent value id to its number of distinct child values. It is built only in the
+// primary (no value search) path, where a value's child count reflects the full hierarchy.
+func parseChildCounts(aggs map[string]types.Aggregate) (map[string]int64, errors.E) {
+	nested, errE := internalSearch.AggAs[types.NestedAggregate](aggs, "childCounts")
+	if errE != nil {
+		return nil, errE
+	}
+	filter, errE := internalSearch.AggAs[types.FilterAggregate](nested.Aggregations, "filter")
+	if errE != nil {
+		return nil, errE
+	}
+	terms, errE := internalSearch.AggAs[types.StringTermsAggregate](filter.Aggregations, "parents")
+	if errE != nil {
+		return nil, errE
+	}
+	buckets, ok := terms.Buckets.([]types.StringTermsBucket)
+	if !ok {
+		errE := errors.New("unexpected bucket type for child counts")
+		errors.Details(errE)["type"] = fmt.Sprintf("%T", terms.Buckets)
+		return nil, errE
+	}
+	out := make(map[string]int64, len(buckets))
+	for _, bucket := range buckets {
+		key, ok := bucket.Key.(string)
+		if !ok {
+			errE := errors.New("unexpected key type for child counts bucket")
+			errors.Details(errE)["type"] = fmt.Sprintf("%T", bucket.Key)
+			return nil, errE
+		}
+		children, errE := internalSearch.AggAs[types.CardinalityAggregate](bucket.Aggregations, "children")
+		if errE != nil {
+			return nil, errE
+		}
+		out[key] = children.Value
+	}
+	return out, nil
+}
+
+// addChildCountsAggregation adds the childCounts aggregation to searchService for the primary (no value search)
+// list, where a value's child count reflects the full hierarchy; during a value search it is a no-op (the
+// frontend reads childCount from the primary list). field is the nested path and filterQuery is the same scope
+// the value aggregation uses.
+func addChildCountsAggregation(searchService *esSearch.Search, field, valueQuery string, filterQuery types.QueryVariant) *esSearch.Search {
+	if valueQuery != "" {
+		return searchService
+	}
+	return searchService.AddAggregation("childCounts", childCountAggregation(field, filterQuery))
+}
+
+// applyPrimaryChildCounts parses the childCounts aggregation and stamps each result whose id is a parent with
+// its number of distinct child values (a leaf, absent from the map, keeps 0). It runs only for the primary (no
+// value search) list and is a no-op during a value search.
+func applyPrimaryChildCounts(aggs map[string]types.Aggregate, results []RefFilterResult, valueQuery string) errors.E {
+	if valueQuery != "" {
+		return nil
+	}
+	childCounts, errE := parseChildCounts(aggs)
+	if errE != nil {
+		return errE
+	}
+	for i := range results {
+		if n, ok := childCounts[results[i].ID]; ok {
+			results[i].ChildCount = n
+		}
+	}
+	return nil
 }
 
 // toTermsQuery matches reference records on the given nested field ("claims.ref" or "claims.subRef") whose
@@ -499,7 +623,7 @@ func mergeSelectedEntries(results []RefFilterResult, selected map[string][][]str
 			results[i].Paths = unionPaths(results[i].Paths, paths)
 			continue
 		}
-		results = append(results, RefFilterResult{ID: id, Count: 0, Paths: paths})
+		results = append(results, RefFilterResult{ID: id, Count: 0, ChildCount: 0, Paths: paths})
 		byID[id] = len(results) - 1
 	}
 
@@ -508,7 +632,7 @@ func mergeSelectedEntries(results []RefFilterResult, selected map[string][][]str
 		if _, ok := byID[id]; ok {
 			continue
 		}
-		results = append(results, RefFilterResult{ID: id, Count: 0, Paths: nil})
+		results = append(results, RefFilterResult{ID: id, Count: 0, ChildCount: 0, Paths: nil})
 		byID[id] = len(results) - 1
 	}
 
@@ -523,17 +647,17 @@ func mergeSelectedEntries(results []RefFilterResult, selected map[string][][]str
 		if present[directID] {
 			continue
 		}
-		value := RefFilterResult{ID: d.ID.String(), Count: 0, Paths: nil}
+		value := RefFilterResult{ID: d.ID.String(), Count: 0, ChildCount: 0, Paths: nil}
 		if i, ok := byID[d.ID.String()]; ok {
 			value = results[i]
 		}
-		results = append(results, RefFilterResult{ID: directID, Count: 0, Paths: directPaths(value)})
+		results = append(results, RefFilterResult{ID: directID, Count: 0, ChildCount: 0, Paths: directPaths(value)})
 		present[directID] = true
 	}
 
 	// Missing entry when missing is selected and not already present (its real-count entry is added earlier).
 	if missing && !present[MissingValueID] {
-		results = append(results, RefFilterResult{ID: MissingValueID, Count: 0, Paths: nil})
+		results = append(results, RefFilterResult{ID: MissingValueID, Count: 0, ChildCount: 0, Paths: nil})
 	}
 
 	return results
@@ -601,7 +725,7 @@ func addMatchedAncestors(results []RefFilterResult, allValues map[string]RefFilt
 		if !ok {
 			continue
 		}
-		results = append(results, RefFilterResult{ID: id, Count: value.Count, Paths: value.Paths})
+		results = append(results, RefFilterResult{ID: id, Count: value.Count, ChildCount: value.ChildCount, Paths: value.Paths})
 		present[id] = true
 		added++
 	}
@@ -755,6 +879,11 @@ func (f *RefFilter) Get(
 		AddAggregation("ref", refAggregation).
 		AddAggregation("missing", missingAggregation)
 
+	// In the primary (no value search) list, count each value's distinct children so the frontend can mark
+	// values whose children were truncated by the MaxResultsCount cap. It is scoped exactly like the value
+	// aggregation (prop match plus any prefilter exclusion) and is a property of the full hierarchy.
+	searchService = addChildCountsAggregation(searchService, "claims.ref", valueQuery, refFilterQuery)
+
 	// During a value search the value aggregation above is narrowed to matching values, which drops their
 	// ancestors. allRef recomputes every value's count and paths without the value-query narrowing, so the
 	// matched values' ancestors can be shown for tree context with their unchanged (no-search) counts.
@@ -792,25 +921,7 @@ func (f *RefFilter) Get(
 	}
 	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
 
-	refNested, errE := internalSearch.AggAs[types.NestedAggregate](res.Aggregations, "ref")
-	if errE != nil {
-		return nil, nil, errE
-	}
-	refFilter, errE := internalSearch.AggAs[types.FilterAggregate](refNested.Aggregations, "filter")
-	if errE != nil {
-		return nil, nil, errE
-	}
-	refTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](refFilter.Aggregations, "props")
-	if errE != nil {
-		return nil, nil, errE
-	}
-	refBuckets, ok := refTerms.Buckets.([]types.StringTermsBucket)
-	if !ok {
-		errE := errors.New("unexpected bucket type for ref")
-		errors.Details(errE)["type"] = fmt.Sprintf("%T", refTerms.Buckets)
-		return nil, nil, errE
-	}
-	refTotal, errE := internalSearch.AggAs[types.CardinalityAggregate](refFilter.Aggregations, "total")
+	refBuckets, refTotal, errE := parseValueBuckets(res.Aggregations, "ref")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -838,6 +949,12 @@ func (f *RefFilter) Get(
 		return nil, nil, errE
 	}
 
+	// Stamp each primary value's exact distinct-child count (computed only in the no value search path).
+	errE = applyPrimaryChildCounts(res.Aggregations, results, valueQuery)
+	if errE != nil {
+		return nil, nil, errE
+	}
+
 	// Append a synthetic "direct" entry under each value that has narrower values present and
 	// has documents for which it is most-specific, so the value reads as an exact aggregate of its
 	// narrower values plus this entry.
@@ -850,7 +967,7 @@ func (f *RefFilter) Get(
 	// Include the missing bucket if there are documents without this property. The missing bucket has no
 	// display label, so it is shown only when the facet is not being narrowed by a value name.
 	if missingCount > 0 && includeMissing {
-		results = append(results, RefFilterResult{ID: MissingValueID, Count: missingCount, Paths: nil})
+		results = append(results, RefFilterResult{ID: MissingValueID, Count: missingCount, ChildCount: 0, Paths: nil})
 	}
 
 	results, addedAncestors, errE := applySelectionOrAncestors(res.Aggregations, results, valueQuery, f, augment, selectedIDs)
@@ -1032,6 +1149,12 @@ func (f *RefFilter) GetSubRef(
 		AddAggregation("subRef", subRefAggregation).
 		AddAggregation("missing", missingAggregation)
 
+	// In the primary (no value search) list, count each value's distinct children so the frontend can mark
+	// values whose children were truncated by the MaxResultsCount cap. It is scoped exactly like the value
+	// aggregation (parentProp, prop, optional parentTo restriction, plus any prefilter exclusion) and is a
+	// property of the full hierarchy.
+	searchService = addChildCountsAggregation(searchService, "claims.subRef", valueQuery, subRefFilterQuery)
+
 	// During a value search, allRef recomputes every value's count and paths without the value-query narrowing
 	// so the matched values' ancestors can be shown for tree context with their unchanged (no-search) counts.
 	// selectedMatch additionally label-matches the augment id set globally so the active filter's selected
@@ -1076,25 +1199,7 @@ func (f *RefFilter) GetSubRef(
 	}
 	metrics.Duration(internalStore.MetricElasticSearchInternal).Duration = time.Duration(res.Took) * time.Millisecond
 
-	subRefNested, errE := internalSearch.AggAs[types.NestedAggregate](res.Aggregations, "subRef")
-	if errE != nil {
-		return nil, nil, errE
-	}
-	subRefFilter, errE := internalSearch.AggAs[types.FilterAggregate](subRefNested.Aggregations, "filter")
-	if errE != nil {
-		return nil, nil, errE
-	}
-	subRefTerms, errE := internalSearch.AggAs[types.StringTermsAggregate](subRefFilter.Aggregations, "props")
-	if errE != nil {
-		return nil, nil, errE
-	}
-	subRefBuckets, ok := subRefTerms.Buckets.([]types.StringTermsBucket)
-	if !ok {
-		errE := errors.New("unexpected bucket type for subRef")
-		errors.Details(errE)["type"] = fmt.Sprintf("%T", subRefTerms.Buckets)
-		return nil, nil, errE
-	}
-	subRefTotal, errE := internalSearch.AggAs[types.CardinalityAggregate](subRefFilter.Aggregations, "total")
+	subRefBuckets, subRefTotal, errE := parseValueBuckets(res.Aggregations, "subRef")
 	if errE != nil {
 		return nil, nil, errE
 	}
@@ -1122,6 +1227,12 @@ func (f *RefFilter) GetSubRef(
 		return nil, nil, errE
 	}
 
+	// Stamp each primary value's exact distinct-child count (computed only in the no value search path).
+	errE = applyPrimaryChildCounts(res.Aggregations, results, valueQuery)
+	if errE != nil {
+		return nil, nil, errE
+	}
+
 	// Append a synthetic "direct" entry under each value that has narrower values present and
 	// has documents for which it is most-specific, so the value reads as an exact aggregate of its
 	// narrower values plus this entry.
@@ -1134,7 +1245,7 @@ func (f *RefFilter) GetSubRef(
 	// Include the missing bucket if there are documents without this sub-reference. The missing bucket has
 	// no display label, so it is shown only when the facet is not being narrowed by a value name.
 	if missingCount > 0 && includeMissing {
-		results = append(results, RefFilterResult{ID: MissingValueID, Count: missingCount, Paths: nil})
+		results = append(results, RefFilterResult{ID: MissingValueID, Count: missingCount, ChildCount: 0, Paths: nil})
 	}
 
 	results, addedAncestors, errE := applySelectionOrAncestors(res.Aggregations, results, valueQuery, f, augment, selectedIDs)

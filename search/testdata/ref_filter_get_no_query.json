@@ -1,4 +1,42 @@
 {
+  "childCounts": {
+    "aggregations": {
+      "filter": {
+        "aggregations": {
+          "parents": {
+            "aggregations": {
+              "children": {
+                "cardinality": {
+                  "field": "claims.ref.to",
+                  "precision_threshold": 40000
+                }
+              }
+            },
+            "terms": {
+              "field": "claims.ref.toParent",
+              "size": 1000
+            }
+          }
+        },
+        "filter": {
+          "bool": {
+            "must": [
+              {
+                "term": {
+                  "claims.ref.prop": {
+                    "value": "Vg7NV61DJJ5HS2nheTZrQE"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "nested": {
+      "path": "claims.ref"
+    }
+  },
   "missing": {
     "filter": {
       "bool": {

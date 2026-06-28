@@ -1763,6 +1763,34 @@ func referencePathAncestors(toPath []string, out map[identifier.Identifier]bool)
 	}
 }
 
+// immediateParents returns the distinct immediate-parent value ids from a value's hierarchy paths: for each
+// path ("<hierProp>:<root>/.../<self>") the id segment before the last. A self/root path (one id) has none.
+// It splits each path the same way referencePathAncestors does (cut on ":", split the remainder on "/"). The
+// result preserves first-seen order and is nil when no path has a parent, mirroring the toPath fields.
+func immediateParents(toPaths []string) []string {
+	var out []string
+	seen := map[string]bool{}
+	for _, raw := range toPaths {
+		_, chain, ok := strings.Cut(raw, ":")
+		if !ok {
+			continue
+		}
+		parts := strings.Split(chain, "/")
+		if len(parts) <= 1 {
+			continue
+		}
+		// Drop the value's own trailing segment; the immediate parent is the last of what remains.
+		ancestors := parts[:len(parts)-1]
+		parent := ancestors[len(ancestors)-1]
+		if seen[parent] {
+			continue
+		}
+		seen[parent] = true
+		out = append(out, parent)
+	}
+	return out
+}
+
 // markReferenceLeaves sets IsLeaf on the document's reference and sub-reference claims. A target
 // is a leaf (most-specific) when no other claim under the same property (and, for sub-refs, the
 // same parent) has it as an ancestor in its hierarchy paths, i.e. the document references the
@@ -3873,6 +3901,7 @@ func (c *Converter) convertSubRefs(
 		ToSortKey     map[string]string
 		ToPath        []string
 		ToFullPath    []string
+		ToParent      []string
 		ToDisplayPath map[string][]string
 		ToPathSortKey map[string][]string
 	}
@@ -3927,6 +3956,7 @@ func (c *Converter) convertSubRefs(
 					ToNaming:      tidInfo.Display.Naming,
 					ToPath:        toPath,
 					ToFullPath:    fullPath,
+					ToParent:      immediateParents(toPath),
 					ToDisplayPath: toDisplayPath,
 					ToPathSortKey: toPathSortKey,
 				})
@@ -3958,6 +3988,7 @@ func (c *Converter) convertSubRefs(
 					ToNaming:      r.ToNaming,
 					ToPath:        r.ToPath,
 					ToFullPath:    r.ToFullPath,
+					ToParent:      r.ToParent,
 					ToDisplayPath: r.ToDisplayPath,
 					ToPathSortKey: r.ToPathSortKey,
 					// Set by markReferenceLeaves once all of the document's sub-ref claims are collected.
@@ -4184,6 +4215,7 @@ func (c *Converter) convertReference(ctx context.Context, claim *document.Refere
 				ToNaming:      tidInfo.Display.Naming,
 				ToPath:        toPath,
 				ToFullPath:    fullPath,
+				ToParent:      immediateParents(toPath),
 				ToDisplayPath: toDisplayPath,
 				ToPathSortKey: toPathSortKey,
 				// Set by markReferenceLeaves once all of the document's reference claims are collected.

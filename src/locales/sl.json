@@ -44,6 +44,7 @@
       "dataNotAvailable": "podatki niso na voljo",
       "error": "napaka",
       "valuesNotShown": "{count} vrednost ni prikazana. | {count} vrednosti nista prikazani. | {count} vrednosti niso prikazane. | {count} vrednosti ni prikazanih.",
+      "valuesNotShownShort": "...",
       "allResults": "Vsi od 1 prikazanega rezultata. | Vsi od {count} prikazanih rezultatov.",
       "allResultsOnly": "Vseh prvih {first} prikazanih od 1 najdenega rezultata. | Vseh prvih {first} prikazanih od {count} najdenih rezultatov.",
       "allResultsMoreThan": "Vseh prvih {first} prikazanih od več kot 1 najdenega rezultata. | Vseh prvih {first} prikazanih od več kot {count} najdenih rezultatov."
