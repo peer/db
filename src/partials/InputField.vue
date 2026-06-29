@@ -52,8 +52,8 @@ const labelId = useId()
 
 const errorMessage = computed<string | null>(() => pickErrorMessage(input.value?.errors ?? [], t))
 
-// The wrapped input's hint, shown only when there is no error to show.
-const hint = computed<string>(() => input.value?.hint ?? "")
+// The wrapped input's hint lines, shown only when there is no error to show.
+const hints = computed<string[]>(() => input.value?.hints ?? [])
 
 // Simulates the click-to-focus behavior of a <label for=...>: a press on a
 // column's label focuses that column's own control. We act on mousedown and
@@ -102,6 +102,8 @@ function onRevert(): void {
       <slot :ref="setInputRef" name="input" :required="required" :invalid="invalid" :aria-describedby="errorMessage ? errorId : undefined" />
     </div>
     <p v-if="errorMessage" :id="errorId" class="col-span-full mt-1 text-sm text-error-600">{{ errorMessage }}</p>
-    <p v-else-if="hint" class="col-span-full mt-1 text-sm text-neutral-500 italic">{{ hint }}</p>
+    <template v-else>
+      <p v-for="(hint, i) in hints" :key="i" class="col-span-full mt-1 text-sm text-neutral-500 italic">{{ hint }}</p>
+    </template>
   </fieldset>
 </template>

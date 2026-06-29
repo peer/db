@@ -133,21 +133,21 @@ const {
   forwardInteraction?.()
 })
 
-// The single wrapped input. Its columns sit before our checkbox column.
-const wrappedInput = computed<ValidatedInput | null>(() => childInputs.values().next().value ?? null)
-
 // Id on the first checkbox.
 const checkboxId = useId()
 
-// One column per wrapped-input column (labels and focus targets forwarded as-is),
-// plus a trailing unlabeled column for the none/unknown checkboxes. When the
-// wrapped input declares no columns, it is treated as a single column focusing
-// its own control.
-const columns = computed<InputColumn[]>(() => [
-  ...(wrappedInput.value?.columns?.value ?? [{ label: "", el: () => wrappedInput.value?.inputEl() ?? null }]),
-  { label: "", el: () => document.getElementById(checkboxId) },
-])
-const hint = computed<string>(() => wrappedInput.value?.hint?.value ?? "")
+// Every wrapped input's columns (labels and focus targets forwarded as-is), in
+// registration order, followed by a trailing unlabeled column for the
+// none/unknown checkboxes. A wrapped input that declares no columns contributes
+// a single column focusing its own control; with no wrapped input at all (e.g.
+// before it mounts) we still render one value column so the grid stays stable.
+const columns = computed<InputColumn[]>(() => {
+  const wrapped = Array.from(childInputs).flatMap((input) => input.columns?.value ?? [{ label: "", el: () => input.inputEl() ?? null }])
+  return [...(wrapped.length ? wrapped : [{ label: "", el: firstChildEl }]), { label: "", el: () => document.getElementById(checkboxId) }]
+})
+
+// Every wrapped input's hint lines, in registration order.
+const hints = computed<string[]>(() => Array.from(childInputs).flatMap((input) => input.hints?.value ?? []))
 
 // The contents root spanning the wrapped input plus the checkbox column, used
 // as mainEl and by onFocusOut.
@@ -207,7 +207,7 @@ const validatedInput: ValidatedInput = {
   }),
   errors,
   columns,
-  hint,
+  hints,
   checkpoint: () => {
     unknownCheckpoint.value = unknown.value
     noneCheckpoint.value = none.value

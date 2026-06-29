@@ -263,7 +263,7 @@ const columns = computed<InputColumn[]>(() => [
 ])
 
 // Input-format hint.
-const hint = computed<string>(() => t("partials.input.InputTime.format"))
+const hints = computed<string[]>(() => [t("partials.input.InputTime.format")])
 
 // The contents root spanning both columns, used as mainEl and by onFocusOut.
 const rootRef = useTemplateRef<HTMLDivElement>("rootRef")
@@ -300,7 +300,7 @@ const validatedInput: ValidatedInput = {
   isEmpty: computed<boolean>(() => !model.value),
   errors: childErrors,
   columns,
-  hint,
+  hints,
   checkpoint: () => {
     checkpointChildAll()
     precisionCheckpointRef.value = precision.value
