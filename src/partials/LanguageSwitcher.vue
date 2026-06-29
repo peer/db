@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue"
+import { ChevronDownIcon } from "@heroicons/vue/20/solid"
+import { onBeforeUnmount, onMounted, ref } from "vue"
 import { useI18n } from "vue-i18n"
 
 import { enabledLanguages } from "@/i18n"
 
-const { locale } = useI18n({ useScope: "global" })
+const { t, locale } = useI18n({ useScope: "global" })
 
-const languages = computed(() => enabledLanguages)
 const showDropdown = ref(false)
 
 async function selectLanguage(lang: string) {
@@ -33,28 +33,23 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div v-if="languages.length > 1" class="pd-language-switcher relative shrink-0">
+  <div v-if="enabledLanguages.length > 1" class="pd-language-switcher relative shrink-0">
     <button
       type="button"
+      :aria-label="t('partials.LanguageSwitcher.selectLanguage')"
       class="flex items-center rounded-sm px-2 py-1.5 text-sm leading-tight font-medium text-gray-700 uppercase outline-none hover:bg-slate-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-slate-200"
       @click="showDropdown = !showDropdown"
     >
       {{ locale.toUpperCase() }}
-      <svg class="ml-1 size-4" viewBox="0 0 20 20" fill="currentColor">
-        <path
-          fill-rule="evenodd"
-          d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-          clip-rule="evenodd"
-        />
-      </svg>
+      <ChevronDownIcon class="ml-1 h-4 w-4" />
     </button>
     <div v-if="showDropdown" class="absolute top-full right-0 z-50 mt-1 min-w-full rounded-sm border border-slate-400 bg-slate-200 shadow-md">
       <button
-        v-for="lang in languages"
+        v-for="lang in enabledLanguages"
         :key="lang"
         type="button"
         class="block w-full px-3 py-1.5 text-left text-sm leading-tight font-medium uppercase outline-none hover:bg-slate-300 focus:ring-2 focus:ring-primary-500 focus:ring-inset active:bg-slate-100"
-        :class="{ 'text-primary-600': lang === locale, 'text-gray-700': lang !== locale }"
+        :class="lang === locale ? 'text-primary-600' : 'text-gray-700'"
         @click="selectLanguage(lang)"
       >
         {{ lang.toUpperCase() }}

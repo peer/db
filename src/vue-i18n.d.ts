@@ -91,6 +91,9 @@ declare module "vue-i18n" {
       }
     }
     partials: {
+      LanguageSwitcher: {
+        selectLanguage: string
+      }
       input: {
         InputHTML: {
           toolbar: {

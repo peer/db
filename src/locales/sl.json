@@ -80,6 +80,9 @@
     }
   },
   "partials": {
+    "LanguageSwitcher": {
+      "selectLanguage": "Izberite jezik"
+    },
     "input": {
       "InputHTML": {
         "toolbar": {
