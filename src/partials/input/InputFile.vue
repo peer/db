@@ -16,7 +16,7 @@ import type { ValidationError, ValidatorFn } from "@/types"
 import type { ComponentPublicInstance } from "vue"
 
 import { Identifier } from "@tozd/identifier"
-import { computed, onBeforeUnmount, ref, useTemplateRef, watch } from "vue"
+import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
@@ -161,13 +161,24 @@ watch(
 // purpose in browsers that keep focus on the Button during the picker.
 let openingPicker = false
 
+// Set right before clearing the value; consumed by the blur the Clear Button
+// dispatches as it unmounts (the uploaded-state UI is removed once the value is
+// empty). The user intentionally cleared the field, so that blur must not fire
+// the required-validation. Cleared on the browse Button re-focus so it can
+// never outlive its purpose.
+let clearing = false
+
 // Run lazy validation when focus leaves either of the visible elements (the
 // browse Button in empty state, or the Clear Button in uploaded state) so
-// the required error appears as soon as the user tabs/clicks away. Skip
-// the one blur caused by opening the file picker.
+// the required error appears as soon as the user tabs/clicks away. Skip the
+// one blur caused by opening the file picker or by clearing the value.
 async function onBlur() {
   if (openingPicker) {
     openingPicker = false
+    return
+  }
+  if (clearing) {
+    clearing = false
     return
   }
   await runValidation()
@@ -175,6 +186,7 @@ async function onBlur() {
 
 function onBrowseFocus() {
   openingPicker = false
+  clearing = false
 }
 
 // AbortController for the currently active upload, or null when idle.
@@ -255,12 +267,20 @@ function onBrowse() {
   fileInputEl.value?.click()
 }
 
-function onClear() {
+async function onClear() {
   if (inactive.value) return
+  clearing = true
   model.value = ""
+  // The user intentionally cleared the field; drop any error now (the required
+  // check returns on the next leave-validation) so it does not flash.
+  errors.value = []
   if (fileInputEl.value) {
     fileInputEl.value.value = ""
   }
+  // The empty-state browse Button mounts once the value is cleared; focus it so
+  // focus is not dropped to the body.
+  await nextTick()
+  ;(browseButtonRef.value?.$el as HTMLElement | null)?.focus()
 }
 
 function onDragOver() {

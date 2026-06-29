@@ -259,6 +259,11 @@ function exitEditMode() {
   editMode.value = false
 }
 
+// Held while clearSelection empties the value and re-focuses the search input,
+// so the focusout the Clear button dispatches as it unmounts does not run the
+// required-validation: the user intentionally cleared the field.
+let clearing = false
+
 // Wired to focusout on a real DOM wrapper (not the Combobox component
 // itself, whose Headless UI root is a Vue Fragment that does not reliably
 // dispatch attribute-attached focusout listeners). Catches Tab-out (or any
@@ -271,6 +276,12 @@ function exitEditMode() {
 // chip back with the same document still picked.
 async function onWrapperFocusout() {
   await nextTick()
+  // A clear is in progress: the value was intentionally emptied and focus is
+  // being moved to the search input, so skip the required-validation (it
+  // returns on the next real leave).
+  if (clearing) {
+    return
+  }
   if (wrapperRef.value?.contains(document.activeElement)) {
     return
   }
@@ -292,10 +303,15 @@ function onSelect(value: Result | null) {
   selectedDocument.value = value
 }
 
-function clearSelection() {
+async function clearSelection() {
+  clearing = true
   query.value = ""
   model.value = ""
   exitEditMode()
+  // Focus the now-empty search input so focus is not dropped to the body.
+  await nextTick()
+  ;(comboboxInputRef.value?.$el as HTMLInputElement | undefined)?.focus()
+  clearing = false
 }
 
 const WithPeerDBDocument = WithDocument<D>
