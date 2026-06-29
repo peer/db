@@ -3,9 +3,15 @@ globals:
     - domain: localhost
       indexPrefix: peerdb
       schema: peerdb
+      languagePriority:
+        en: []
+        sl: []
+        pt: []
+      defaultLanguage: en
       features:
         searchResultsTable: true
         downloadButtons: true
+        indexAncestorProperties: true
       roles:
         admin:
           - canEditDocument
