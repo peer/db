@@ -172,3 +172,42 @@ func TestLevelIndexes(t *testing.T) {
 	assert.Equal(t, []string{"myindex_all"}, s.LevelIndexes())
 	assert.Equal(t, "myindex_all", s.TopIndex())
 }
+
+func TestIsEnabledUILanguage(t *testing.T) {
+	t.Parallel()
+
+	// A site that enables English and Slovenian. "und" appears only in the fallback chains, never as a key.
+	multi := &site.Site{}
+	multi.LanguagePriority = map[string][]string{
+		"en": {"und"},
+		"sl": {"en", "und"},
+	}
+
+	// A site that configures no LanguagePriority enables only DefaultEnabledLanguage ("en").
+	none := &site.Site{}
+
+	tests := []struct {
+		name     string
+		site     *site.Site
+		language string
+		want     bool
+	}{
+		{"enabled key", multi, "sl", true},
+		{"another enabled key", multi, "en", true},
+		{"disabled language", multi, "de", false},
+		{"undetermined is not a UI language", multi, "und", false},
+		{"region subtag is not an exact key", multi, "en-US", false},
+		{"empty is never enabled", multi, "", false},
+		{"no priority enables only the default", none, "en", true},
+		{"no priority rejects a non-default language", none, "sl", false},
+		{"no priority rejects empty", none, "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tt.want, tt.site.IsEnabledUILanguage(tt.language))
+		})
+	}
+}
