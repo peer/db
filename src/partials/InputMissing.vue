@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { ValidatedInput, ValidationError } from "@/types"
+import type { InputColumn, ValidatedInput, ValidationError } from "@/types"
 
-import { computed, ref, useTemplateRef, watch } from "vue"
+import { computed, ref, useId, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
 import CheckBox from "@/components/CheckBox.vue"
@@ -127,10 +127,31 @@ const {
   anyDirty: anyChildDirty,
   allEmpty: allChildEmpty,
   checkpointAll: checkpointChildAll,
+  inputs: childInputs,
 } = useValidationRegistry(() => {
   clearShowRequired()
   forwardInteraction?.()
 })
+
+// The single wrapped input. Its columns sit before our checkbox column.
+const wrappedInput = computed<ValidatedInput | null>(() => childInputs.values().next().value ?? null)
+
+// Id on the first checkbox.
+const checkboxId = useId()
+
+// One column per wrapped-input column (labels and focus targets forwarded as-is),
+// plus a trailing unlabeled column for the none/unknown checkboxes. When the
+// wrapped input declares no columns, it is treated as a single column focusing
+// its own control.
+const columns = computed<InputColumn[]>(() => [
+  ...(wrappedInput.value?.columns?.value ?? [{ label: "", el: () => wrappedInput.value?.inputEl() ?? null }]),
+  { label: "", el: () => document.getElementById(checkboxId) },
+])
+const hint = computed<string>(() => wrappedInput.value?.hint?.value ?? "")
+
+// The contents root spanning the wrapped input plus the checkbox column, used
+// as mainEl and by onFocusOut.
+const rootRef = useTemplateRef<HTMLDivElement>("rootRef")
 
 // Checkpoints for our own dirty / checkpoint machinery. The wrapped
 // input keeps its own checkpoint through the sub-registry.
@@ -169,8 +190,10 @@ const validatedInput: ValidatedInput = {
     none.value = noneCheckpoint.value
     clearShowRequired()
   },
+  // inputEl is the wrapped input's first focusable control; mainEl is the
+  // contents root spanning the wrapped input and the checkbox column.
   inputEl: firstChildEl,
-  mainEl: firstChildEl,
+  mainEl: () => rootRef.value,
   isDirty: computed<boolean>(() => {
     if (unknown.value !== unknownCheckpoint.value || none.value !== noneCheckpoint.value) return true
     return anyChildDirty.value
@@ -183,6 +206,8 @@ const validatedInput: ValidatedInput = {
     return allChildEmpty.value
   }),
   errors,
+  columns,
+  hint,
   checkpoint: () => {
     unknownCheckpoint.value = unknown.value
     noneCheckpoint.value = none.value
@@ -201,7 +226,6 @@ defineExpose(validatedInput)
 // target is still inside us, this is just internal navigation and we
 // skip. A null relatedTarget (focus moved to body or a non-focusable
 // element) is treated as leaving.
-const rootRef = useTemplateRef<HTMLDivElement>("rootRef")
 async function onFocusOut(event: FocusEvent) {
   const next = event.relatedTarget as Node | null
   if (next && rootRef.value?.contains(next)) return
@@ -210,15 +234,16 @@ async function onFocusOut(event: FocusEvent) {
 </script>
 
 <template>
-  <!-- TODO: Change items-center to items-start once we have dynamic column building. -->
-  <div ref="rootRef" class="flex flex-row items-center gap-x-4" @focusout="onFocusOut">
-    <div class="flex min-w-0 grow flex-row">
-      <slot v-bind="$attrs" :invalid="invalid || showRequired" @errors="(v: ValidationError[]) => (innerErrors = v)" />
-    </div>
+  <!--
+    display:contents so the wrapped input's columns and our checkbox column
+    become direct grid items of the enclosing component.
+  -->
+  <div ref="rootRef" class="contents" @focusout="onFocusOut">
+    <slot v-bind="$attrs" :invalid="invalid || showRequired" @errors="(v: ValidationError[]) => (innerErrors = v)" />
     <WithLock :lock="getParentLockRef">
       <div class="flex flex-col">
         <label class="flex items-center gap-1 leading-5"
-          ><CheckBox v-model="isUnknown" :invalid="invalid || showRequired" /><span>{{ t("common.values.unknown") }}</span></label
+          ><CheckBox :id="checkboxId" v-model="isUnknown" :invalid="invalid || showRequired" /><span>{{ t("common.values.unknown") }}</span></label
         >
         <label class="flex items-center gap-1 leading-5"
           ><CheckBox v-model="isNone" :invalid="invalid || showRequired" /><span>{{ t("common.values.none") }}</span></label

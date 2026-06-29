@@ -54,7 +54,6 @@ import InputLink from "@/partials/input/InputLink.vue"
 import InputRef from "@/partials/input/InputRef.vue"
 import InputString from "@/partials/input/InputString.vue"
 import InputTime from "@/partials/input/InputTime.vue"
-import InputErrors from "@/partials/InputErrors.vue"
 import InputField from "@/partials/InputField.vue"
 import InputMissing from "@/partials/InputMissing.vue"
 import NavBar from "@/partials/NavBar.vue"
@@ -1083,184 +1082,169 @@ function canSave(): boolean {
                   <TabPanels as="template">
                     <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
+                      <InputField required :label="t('common.labels.property')" class="mt-4">
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                         </template>
                       </InputField>
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("views.DocumentEdit.labels.identifier") }}</template>
+                      <InputField required :label="t('views.DocumentEdit.labels.identifier')" class="mt-4">
                         <template #input="inputProps">
-                          <InputIdentifier v-bind="inputProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("views.DocumentEdit.labels.string") }}</template>
-                        <template #input="inputProps">
-                          <InputString v-bind="inputProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
+                          <InputIdentifier v-bind="inputProps" v-model="claimValue" />
                         </template>
                       </InputField>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
+                      <InputField required :label="t('common.labels.property')" class="mt-4">
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                         </template>
                       </InputField>
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("views.DocumentEdit.labels.html") }}</template>
+                      <InputField required :label="t('views.DocumentEdit.labels.string')" class="mt-4">
                         <template #input="inputProps">
-                          <InputHTML v-bind="inputProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputErrors v-slot="errorProps">
-                        <InputAmount v-bind="errorProps" v-model="claimValue" v-model:precision="claimAmountPrecision" required class="mt-4 min-w-0 flex-auto grow" />
-                      </InputErrors>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputErrors v-slot="errorProps" class="mt-4">
-                        <InputMissing v-bind="errorProps" v-model:unknown="claimFromUnknown" v-model:none="claimFromNone" required>
-                          <template #default="missingProps">
-                            <InputAmount v-bind="missingProps" v-model="claimFrom" v-model:precision="claimFromAmountPrecision" class="min-w-0 flex-auto grow">
-                              <template #amount-label>{{ t("views.DocumentEdit.labels.from") }}</template>
-                            </InputAmount>
-                          </template>
-                        </InputMissing>
-                      </InputErrors>
-                      <InputErrors v-slot="errorProps" class="mt-4">
-                        <InputMissing v-bind="errorProps" v-model:unknown="claimToUnknown" v-model:none="claimToNone" required>
-                          <template #default="missingProps">
-                            <InputAmount v-bind="missingProps" v-model="claimTo" v-model:precision="claimToAmountPrecision" class="min-w-0 flex-auto grow">
-                              <template #amount-label>{{ t("views.DocumentEdit.labels.to") }}</template>
-                            </InputAmount>
-                          </template>
-                        </InputMissing>
-                      </InputErrors>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputErrors v-slot="errorProps">
-                        <InputTime v-bind="errorProps" v-model="claimValue" v-model:precision="claimTimePrecision" required class="mt-4 min-w-0 flex-auto grow" />
-                      </InputErrors>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputErrors v-slot="errorProps" class="mt-4">
-                        <InputMissing v-bind="errorProps" v-model:unknown="claimFromUnknown" v-model:none="claimFromNone" required>
-                          <template #default="missingProps">
-                            <InputTime v-bind="missingProps" v-model="claimFrom" v-model:precision="claimFromTimePrecision" class="min-w-0 flex-auto grow">
-                              <template #time-label>{{ t("views.DocumentEdit.labels.from") }}</template>
-                            </InputTime>
-                          </template>
-                        </InputMissing>
-                      </InputErrors>
-                      <InputErrors v-slot="errorProps" class="mt-4">
-                        <InputMissing v-bind="errorProps" v-model:unknown="claimToUnknown" v-model:none="claimToNone" required>
-                          <template #default="missingProps">
-                            <InputTime v-bind="missingProps" v-model="claimTo" v-model:precision="claimToTimePrecision" class="min-w-0 flex-auto grow">
-                              <template #time-label>{{ t("views.DocumentEdit.labels.to") }}</template>
-                            </InputTime>
-                          </template>
-                        </InputMissing>
-                      </InputErrors>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("views.DocumentEdit.labels.iri") }}</template>
-                        <template #input="inputProps">
-                          <InputLink v-bind="inputProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
+                          <InputString v-bind="inputProps" v-model="claimValue" />
                         </template>
                       </InputField>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
+                      <InputField required :label="t('common.labels.property')" class="mt-4">
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                        </template>
+                      </InputField>
+                      <InputField required :label="t('views.DocumentEdit.labels.html')" class="mt-4">
+                        <template #input="inputProps">
+                          <InputHTML v-bind="inputProps" v-model="claimValue" />
+                        </template>
+                      </InputField>
+                    </TabPanel>
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <template #input="inputProps">
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                         </template>
                       </InputField>
                       <InputField required class="mt-4">
-                        <template #label>{{ t("views.DocumentEdit.labels.file") }}</template>
+                        <template #input="inputProps">
+                          <InputAmount v-bind="inputProps" v-model="claimValue" v-model:precision="claimAmountPrecision" />
+                        </template>
+                      </InputField>
+                    </TabPanel>
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <template #input="inputProps">
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                        </template>
+                      </InputField>
+                      <InputField required :label="t('views.DocumentEdit.labels.from')" class="mt-4">
+                        <template #input="inputProps">
+                          <InputMissing v-bind="inputProps" v-model:unknown="claimFromUnknown" v-model:none="claimFromNone">
+                            <template #default="missingProps">
+                              <InputAmount v-bind="missingProps" v-model="claimFrom" v-model:precision="claimFromAmountPrecision" />
+                            </template>
+                          </InputMissing>
+                        </template>
+                      </InputField>
+                      <InputField required :label="t('views.DocumentEdit.labels.to')" class="mt-4">
+                        <template #input="inputProps">
+                          <InputMissing v-bind="inputProps" v-model:unknown="claimToUnknown" v-model:none="claimToNone">
+                            <template #default="missingProps">
+                              <InputAmount v-bind="missingProps" v-model="claimTo" v-model:precision="claimToAmountPrecision" />
+                            </template>
+                          </InputMissing>
+                        </template>
+                      </InputField>
+                    </TabPanel>
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <template #input="inputProps">
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                        </template>
+                      </InputField>
+                      <InputField required class="mt-4">
+                        <template #input="inputProps">
+                          <InputTime v-bind="inputProps" v-model="claimValue" v-model:precision="claimTimePrecision" />
+                        </template>
+                      </InputField>
+                    </TabPanel>
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <template #input="inputProps">
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                        </template>
+                      </InputField>
+                      <InputField required :label="t('views.DocumentEdit.labels.from')" class="mt-4">
+                        <template #input="inputProps">
+                          <InputMissing v-bind="inputProps" v-model:unknown="claimFromUnknown" v-model:none="claimFromNone">
+                            <template #default="missingProps">
+                              <InputTime v-bind="missingProps" v-model="claimFrom" v-model:precision="claimFromTimePrecision" />
+                            </template>
+                          </InputMissing>
+                        </template>
+                      </InputField>
+                      <InputField required :label="t('views.DocumentEdit.labels.to')" class="mt-4">
+                        <template #input="inputProps">
+                          <InputMissing v-bind="inputProps" v-model:unknown="claimToUnknown" v-model:none="claimToNone">
+                            <template #default="missingProps">
+                              <InputTime v-bind="missingProps" v-model="claimTo" v-model:precision="claimToTimePrecision" />
+                            </template>
+                          </InputMissing>
+                        </template>
+                      </InputField>
+                    </TabPanel>
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <template #input="inputProps">
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                        </template>
+                      </InputField>
+                      <InputField required :label="t('views.DocumentEdit.labels.iri')" class="mt-4">
+                        <template #input="inputProps">
+                          <InputLink v-bind="inputProps" v-model="claimValue" />
+                        </template>
+                      </InputField>
+                    </TabPanel>
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <template #input="inputProps">
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                        </template>
+                      </InputField>
+                      <InputField required :label="t('views.DocumentEdit.labels.file')" class="mt-4">
                         <template #input="inputProps">
                           <InputFile v-bind="inputProps" v-model="claimValue" />
                         </template>
                       </InputField>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
+                      <InputField required :label="t('common.labels.property')" class="mt-4">
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                         </template>
                       </InputField>
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("views.DocumentEdit.labels.to") }}</template>
+                      <InputField required :label="t('views.DocumentEdit.labels.to')" class="mt-4">
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimValue" />
                         </template>
                       </InputField>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
+                      <InputField required :label="t('common.labels.property')" class="mt-4">
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                         </template>
                       </InputField>
                     </TabPanel>
                     <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
+                      <InputField required :label="t('common.labels.property')" class="mt-4">
                         <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                        </template>
+                      </InputField>
+                    </TabPanel>
+                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                      <InputField required :label="t('common.labels.property')" class="mt-4">
+                        <template #input="inputProps">
+                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                         </template>
                       </InputField>
                     </TabPanel>

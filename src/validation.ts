@@ -66,6 +66,35 @@ export function allErrors(inputs: Iterable<ValidatedInput>): ComputedRef<Validat
   return computed(() => Array.from(iterateErrors(inputs)))
 }
 
+// pickErrorMessage selects the single message to show for a list of errors.
+// The codeMap insertion order is the priority order: when several errors are
+// present, the message for the earliest matching code wins. An error's own
+// userMessage overrides the mapped message. When no code matches, the generic
+// "invalid" message is returned. Returns null when there are no errors.
+//
+// The codeMap values are t() call results (not just keys) so static analysis
+// can pick the translation keys up. Shared by InputErrors and InputField.
+export function pickErrorMessage(errors: ValidationError[], t: (key: string) => string): string | null {
+  if (errors.length === 0) {
+    return null
+  }
+  const codeMap: Record<string, string> = {
+    required: t("common.validation.required"),
+    invalid: t("common.validation.invalid"),
+    requiredPrecision: t("common.validation.requiredPrecision"),
+    invalidPrecision: t("common.validation.invalidPrecision"),
+  }
+  for (const code of Object.keys(codeMap)) {
+    for (const e of errors) {
+      if (e.code === code) {
+        return e.userMessage || codeMap[code]
+      }
+    }
+  }
+  // Fallback when none of the error codes are in the map.
+  return t("common.validation.invalid")
+}
+
 // useValidationRegistry is called to collect validated inputs from all
 // descendant inputs that called useRegisterForValidation. validateAll runs
 // every input's validator in parallel. The results land in each input's

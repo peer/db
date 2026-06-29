@@ -7,12 +7,10 @@ its DOM attributes without flickering how the component looks.
 -->
 
 <script setup lang="ts">
-import type { ComponentPublicInstance, ShallowUnwrapRef } from "vue"
-
 import type { TimePrecision } from "@/document"
-import type { ValidatedInput, ValidationError, ValidatorFn } from "@/types"
+import type { InputColumn, ValidatedInput, ValidationError, ValidatorFn } from "@/types"
 
-import { Listbox, ListboxButton, ListboxLabel, ListboxOption, ListboxOptions } from "@headlessui/vue"
+import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue"
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/vue/20/solid"
 import { computed, ref, useId, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
@@ -28,7 +26,6 @@ import {
   progressiveValidate,
   toCanonicalString,
 } from "@/partials/input/InputTime.format"
-import InputBadges from "@/partials/InputBadges.vue"
 import { useLocked } from "@/progress"
 import { allErrors, useRegisterForValidation, useValidationRegistry } from "@/validation"
 
@@ -68,6 +65,9 @@ const locked = useLocked()
 const inactive = computed(() => locked.value || props.readonly)
 
 const timeInputId = useId()
+// Id on the precision listbox button (the column's focusable control) so
+// clicking the "Precision" label focuses it.
+const precisionButtonId = useId()
 
 const precisionLabels: Record<TimePrecision, string> = {
   G: t("partials.input.InputTime.precision.G"),
@@ -196,26 +196,11 @@ watch(
   },
 )
 
-const timeRef = useTemplateRef<ShallowUnwrapRef<ValidatedInput>>("timeRef")
-const precisionButtonRef = useTemplateRef<ComponentPublicInstance>("precisionButtonRef")
-
-// timeChanged tracks the inner InputText's checkpoint via its exposed
-// ValidatedInput. precisionChanged tracks the precision dropdown via its
-// own local checkpoint ref.
-const timeChanged = computed<boolean>(() => timeRef.value?.isDirty ?? false)
+// precisionChanged tracks the precision dropdown via its own local checkpoint
+// ref. The time and precision are exposed to the parent as a single
+// ValidatedInput, so the "changed" badge and revert are whole-input, not per-column.
 const precisionCheckpointRef = ref<TimePrecision>(precision.value)
 const precisionChanged = computed<boolean>(() => precision.value !== precisionCheckpointRef.value)
-
-// Return focus to the reverted field.
-function onRevertTime() {
-  timeRef.value?.revert()
-  timeRef.value?.inputEl()?.focus()
-}
-
-function onRevertPrecision() {
-  precision.value = precisionCheckpointRef.value
-  ;(precisionButtonRef.value?.$el as HTMLElement | null)?.focus()
-}
 
 // Auto-derive precision from the time whenever the time changes AND the
 // time is the authoritative side. The timeAuthoritative guard prevents
@@ -271,6 +256,18 @@ function onPrecisionSelected(p: TimePrecision) {
   precision.value = p
 }
 
+// Two columns: the time (which grows to fill) and the precision.
+const columns = computed<InputColumn[]>(() => [
+  { label: t("common.labels.time"), el: () => document.getElementById(timeInputId) },
+  { label: t("common.labels.precision"), el: () => document.getElementById(precisionButtonId) },
+])
+
+// Input-format hint.
+const hint = computed<string>(() => t("partials.input.InputTime.format"))
+
+// The contents root spanning both columns, used as mainEl and by onFocusOut.
+const rootRef = useTemplateRef<HTMLDivElement>("rootRef")
+
 const validatedInput: ValidatedInput = {
   validate: async (signal) => {
     triggered.value = true
@@ -291,16 +288,19 @@ const validatedInput: ValidatedInput = {
     precision.value = precisionCheckpointRef.value
     timeAuthoritative.value = timeAuthoritativeCheckpoint.value
   },
-  // Focus target is the time input - precision is auto-detected by
-  // default so external focus should land on the primary field. No distinct
-  // wrapper is needed for this input, so mainEl and inputEl are the same.
+  // inputEl is the time input - precision is auto-detected by default, so
+  // external focus should land on the primary field.
   inputEl: () => document.getElementById(timeInputId),
-  mainEl: () => document.getElementById(timeInputId),
+  // mainEl is the contents root spanning both the time and precision columns,
+  // for containment checks.
+  mainEl: () => rootRef.value,
   isDirty: computed<boolean>(() => anyChildDirty.value || precisionChanged.value),
   // Empty iff the canonical time is empty. Precision always has a
   // default value, so it never counts as "empty" on its own.
   isEmpty: computed<boolean>(() => !model.value),
   errors: childErrors,
+  columns,
+  hint,
   checkpoint: () => {
     checkpointChildAll()
     precisionCheckpointRef.value = precision.value
@@ -319,7 +319,6 @@ defineExpose(validatedInput)
 // is just inter-input navigation (time <-> precision) and we skip. A
 // null relatedTarget (focus moved to body or a non-focusable element)
 // counts as leaving.
-const rootRef = useTemplateRef<HTMLDivElement>("rootRef")
 async function onFocusOut(event: FocusEvent) {
   const next = event.relatedTarget as Node | null
   if (next && rootRef.value?.contains(next)) return
@@ -328,67 +327,56 @@ async function onFocusOut(event: FocusEvent) {
 </script>
 
 <template>
-  <div ref="rootRef" class="pd-inputtime flex flex-col" v-bind="$attrs" @focusout="onFocusOut">
-    <div class="flex flex-row gap-x-1 sm:gap-x-4">
-      <div class="flex grow flex-col">
-        <label :for="timeInputId" class="mb-1 flex flex-row items-center gap-1"
-          ><slot name="time-label">{{ t("common.labels.time") }}</slot
-          ><InputBadges :required="required" :changed="timeChanged" @revert="onRevertTime"
-        /></label>
+  <!--
+    display:contents so the time and precision inputs become direct grid items
+    of the enclosing component, each in its own column.
+  -->
+  <div ref="rootRef" class="pd-inputtime contents" @focusout="onFocusOut">
+    <!-- Fall-through attrs (e.g. aria-describedby pointing at InputField's error) go on the time input, the focusable control. -->
+    <InputText
+      :id="timeInputId"
+      v-bind="$attrs"
+      :model-value="model"
+      :readonly="readonly"
+      :invalid="invalid"
+      :validator="timeValidator"
+      spellcheck="false"
+      autocorrect="off"
+      autocapitalize="none"
+      @update:model-value="onTimeUpdate"
+    />
 
-        <InputText
-          :id="timeInputId"
-          ref="timeRef"
-          :model-value="model"
-          :readonly="readonly"
-          :invalid="invalid"
-          :validator="timeValidator"
-          spellcheck="false"
-          autocorrect="off"
-          autocapitalize="none"
-          @update:model-value="onTimeUpdate"
-        />
+    <Listbox v-model="precision" :disabled="inactive" as="div" class="w-48" @update:model-value="onPrecisionSelected">
+      <div class="relative">
+        <!--
+          We add additional padding on the right (pr-10) on top of InputStyled's
+          default px-3 to make space for the icon.
+        -->
+        <InputStyled :id="precisionButtonId" :as="ListboxButton" :inactive="inactive" :invalid="invalid" class="relative w-full pr-10">
+          <div class="truncate" :title="precisionLabel(precision)">{{ precisionLabel(precision) }}</div>
+
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+            <ChevronUpDownIcon class="size-5 text-gray-400" aria-hidden="true" />
+          </div>
+        </InputStyled>
+
+        <ListboxOptions class="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none">
+          <ListboxOption v-for="tp in timePrecisionWithMax" :key="tp" v-slot="{ active, selected }" :value="tp" as="template">
+            <li class="cursor-pointer p-1 outline-none select-none">
+              <!--
+                We have an additional div so that the ring has the space to be shown.
+                li element has p-1 for ring space, together with py-1 and px-2 we get the effective padding
+                for option content of py-2 and px-3, same what InputText and ListboxButton have.
+              -->
+              <div class="flex flex-row justify-between gap-x-1 rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
+                <div class="truncate" :class="selected ? 'font-medium' : ''" :title="precisionLabel(tp)">{{ precisionLabel(tp) }}</div>
+
+                <CheckIcon v-if="selected" class="size-5 text-primary-600" aria-hidden="true" />
+              </div>
+            </li>
+          </ListboxOption>
+        </ListboxOptions>
       </div>
-
-      <Listbox v-model="precision" :disabled="inactive" as="div" class="flex w-48 flex-col" @update:model-value="onPrecisionSelected">
-        <ListboxLabel class="mb-1 flex flex-row items-center gap-1"
-          ><slot name="precision-label">{{ t("common.labels.precision") }}</slot
-          ><InputBadges :changed="precisionChanged" @revert="onRevertPrecision"
-        /></ListboxLabel>
-
-        <div class="relative">
-          <!--
-            We add additional padding on the right (pr-10) on top of InputStyled's
-            default px-3 to make space for the icon.
-          -->
-          <InputStyled ref="precisionButtonRef" :as="ListboxButton" :inactive="inactive" :invalid="invalid" class="relative w-full pr-10">
-            <div class="truncate" :title="precisionLabel(precision)">{{ precisionLabel(precision) }}</div>
-
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-              <ChevronUpDownIcon class="size-5 text-gray-400" aria-hidden="true" />
-            </div>
-          </InputStyled>
-
-          <ListboxOptions class="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-sm bg-white shadow-sm ring-2 ring-neutral-300 outline-none">
-            <ListboxOption v-for="tp in timePrecisionWithMax" :key="tp" v-slot="{ active, selected }" :value="tp" as="template">
-              <li class="cursor-pointer p-1 outline-none select-none">
-                <!--
-                  We have an additional div so that the ring has the space to be shown.
-                  li element has p-1 for ring space, together with py-1 and px-2 we get the effective padding
-                  for option content of py-2 and px-3, same what InputText and ListboxButton have.
-                -->
-                <div class="flex flex-row justify-between gap-x-1 rounded-sm px-2 py-1" :class="active ? 'ring-2 ring-primary-500' : ''">
-                  <div class="truncate" :class="selected ? 'font-medium' : ''" :title="precisionLabel(tp)">{{ precisionLabel(tp) }}</div>
-
-                  <CheckIcon v-if="selected" class="size-5 text-primary-600" aria-hidden="true" />
-                </div>
-              </li>
-            </ListboxOption>
-          </ListboxOptions>
-        </div>
-      </Listbox>
-    </div>
-
-    <div v-if="childErrors.length === 0" class="pd-inputtime-hint mt-1 text-sm text-neutral-500 italic">{{ t("partials.input.InputTime.format") }}</div>
+    </Listbox>
   </div>
 </template>

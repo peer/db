@@ -508,6 +508,16 @@ export type ValidatorFn<T> = (value: T, options: { signal: AbortSignal; eager: b
 // shrunk). reset restores the input to its initial (empty/default) state;
 // revert restores the input to its recorded checkpoint. useValidationRegistry
 // exposes resetAll / revertAll.
+// One top-level grid column an input renders, declared via ValidatedInput.columns.
+// InputField renders label above the column and, when the label is clicked,
+// moves focus to el (like <label for=...>).
+export type InputColumn = {
+  // Translated plain-text label; "" for a column with no visible label.
+  label: string
+  // The focusable control in this column. May return null before it mounts.
+  el: () => HTMLElement | null
+}
+
 export type ValidatedInput = {
   validate: ValidateFn
   reset: () => void
@@ -528,6 +538,13 @@ export type ValidatedInput = {
   isEmpty: Readonly<Ref<boolean>>
   // The input's current errors.
   errors: Readonly<Ref<ValidationError[]>>
+  // One entry per top-level grid column the input renders, each carrying its
+  // label and focusable el. Absent means a single unlabeled column. The number
+  // of entries signals how many columns the input wants.
+  columns?: Readonly<Ref<InputColumn[]>>
+  // A single translated hint (e.g. an input-format example). "" or absent
+  // means no hint.
+  hint?: Readonly<Ref<string>>
   // Snapshots the input's current value as the checkpoint against which
   // isDirty is compared. Called when an input's controls are shown or
   // when they are reset so subsequent edits show up as dirty.

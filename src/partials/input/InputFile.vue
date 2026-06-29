@@ -31,8 +31,9 @@ import { getParentLock, useLock } from "@/progress"
 import { uploadFile } from "@/upload"
 import { useValidation } from "@/validation"
 
-// Multi-root template, so we route fall-through attrs explicitly onto
-// whichever element is visibly rendered.
+// Multi-root template, so fall-through attrs cannot auto-inherit. We route
+// them (e.g. aria-describedby pointing at InputField's error) explicitly onto
+// the browse button, the focusable control and the validation focus target.
 defineOptions({
   inheritAttrs: false,
 })
@@ -288,7 +289,7 @@ async function onDrop(e: DragEvent) {
     Grid wrapper with a single minmax(0,1fr) column so that long display labels
     actually clip with truncate.
   -->
-  <div v-if="model" v-tw-merge v-bind="$attrs" :aria-invalid="invalid || undefined" class="pd-inputfile relative grid w-full grid-cols-[minmax(0,1fr)]">
+  <div v-if="model" v-tw-merge :aria-invalid="invalid || undefined" class="pd-inputfile relative grid w-full grid-cols-[minmax(0,1fr)]">
     <!--
       pr-23 reserves space on the right for the Clear button overlay so
       the display label does not slide underneath it.
@@ -307,14 +308,14 @@ async function onDrop(e: DragEvent) {
       <Button type="button" class="px-2.5 py-1" @click.prevent="onClear" @blur="onBlur">{{ t("common.buttons.clear") }}</Button>
     </div>
   </div>
-  <div v-else-if="!hasPermission(CAN_EDIT_FILE)" v-tw-merge v-bind="$attrs" class="pd-inputfile text-gray-500 italic">{{
-    t("partials.input.InputFile.noPermission")
-  }}</div>
+  <div v-else-if="!hasPermission(CAN_EDIT_FILE)" v-tw-merge class="pd-inputfile text-gray-500 italic">{{ t("partials.input.InputFile.noPermission") }}</div>
   <template v-else>
-    <div v-tw-merge v-bind="$attrs" class="pd-inputfile flex w-full flex-row gap-2">
+    <!-- Fall-through attrs (e.g. aria-describedby pointing at InputField's error) go on the browse button, the focusable control. -->
+    <div v-tw-merge class="pd-inputfile flex w-full flex-row gap-2">
       <Button
         ref="browseButtonRef"
         type="button"
+        v-bind="$attrs"
         class="min-w-0 flex-1"
         :progress="progress"
         :total="total"
