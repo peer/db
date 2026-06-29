@@ -16,6 +16,10 @@ import (
 // request a specific post-sign-in landing page (eg ?redirect=/d/abc).
 const signInRedirectQueryParam = "redirect"
 
+// uiLanguageCookieName is the cookie the frontend stores the user's chosen UI language in (see the
+// LanguageSwitcher partial). We forward its value to the issuer as the OIDC ui_locales preference.
+const uiLanguageCookieName = "language"
+
 // AuthSignInGet starts the sign-in flow. It hands the caller-supplied redirect
 // off to the per-site Authenticator and then redirects the user to the URL
 // the Authenticator returned.
@@ -34,7 +38,15 @@ func (s *Service) AuthSignInGet(w http.ResponseWriter, req *http.Request, _ waf.
 	ctx := req.Context()
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
-	authURL, errE := site.Authenticator.SignIn(ctx, req.Form.Get(signInRedirectQueryParam))
+	// Forward the user's chosen UI language to the issuer as the OIDC ui_locales preference, but only when it is
+	// one of the site's enabled languages, since the cookie is client-controlled.
+	uiLocales := ""
+	cookie, err := req.Cookie(uiLanguageCookieName)
+	if err == nil && site.IsEnabledUILanguage(cookie.Value) {
+		uiLocales = cookie.Value
+	}
+
+	authURL, errE := site.Authenticator.SignIn(ctx, req.Form.Get(signInRedirectQueryParam), uiLocales)
 	if errE != nil {
 		s.InternalServerErrorWithError(w, req, errE)
 		return

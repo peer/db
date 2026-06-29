@@ -82,8 +82,9 @@ type Authenticator interface {
 		w http.ResponseWriter, req *http.Request, metadataHeaderPrefix string, allowedRoles map[string][]string, visibility []VisibilityLevel,
 	) context.Context
 
-	// SignIn begins a fresh sign-in flow.
-	SignIn(ctx context.Context, redirect string) (authURL string, errE errors.E)
+	// SignIn begins a fresh sign-in flow. uiLocales is the user's preferred UI language (forwarded to the
+	// issuer as the OIDC ui_locales request parameter, empty when unknown) so the issuer can render its UI to match.
+	SignIn(ctx context.Context, redirect, uiLocales string) (authURL string, errE errors.E)
 
 	// Callback finishes a sign-in flow.
 	//
@@ -295,7 +296,8 @@ func signInFlow(
 	ctx context.Context,
 	fs *flowStore,
 	redirect string,
-	authCodeURL func(state, codeVerifier, nonce string) string,
+	uiLocales string,
+	authCodeURL func(state, codeVerifier, nonce, uiLocales string) string,
 ) (string, errors.E) {
 	if fs == nil {
 		return "", errors.New("authenticator has no flow store")
@@ -316,7 +318,7 @@ func signInFlow(
 		return "", errE
 	}
 
-	return authCodeURL(state, codeVerifier, nonce), nil
+	return authCodeURL(state, codeVerifier, nonce, uiLocales), nil
 }
 
 // callbackFlow is the shared body of OIDCAuthenticator.Callback and

@@ -37,7 +37,7 @@ func (f *fakeAuthenticator) Authenticate(
 	return context.WithValue(req.Context(), markerKey{}, f.lastSubjectMarker)
 }
 
-func (*fakeAuthenticator) SignIn(_ context.Context, _ string) (string, errors.E) {
+func (*fakeAuthenticator) SignIn(_ context.Context, _, _ string) (string, errors.E) {
 	return "", errors.New("not implemented")
 }
 

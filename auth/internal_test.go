@@ -41,7 +41,8 @@ type (
 )
 
 func (a *MockAuthenticator) TestingAuthCodeURL(state, codeVerifier, nonce string) string {
-	return a.authCodeURL(state, codeVerifier, nonce)
+	// The mock's authCodeURL ignores ui_locales (it self-redirects), so we pass an empty value.
+	return a.authCodeURL(state, codeVerifier, nonce, "")
 }
 
 func (a *MockAuthenticator) TestingExchangeCode(ctx context.Context, code, codeVerifier, expectedNonce string) (string, time.Time, errors.E) {

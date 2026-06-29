@@ -162,8 +162,8 @@ func NewMockAuthenticator(
 // flow-store code path. The returned URL is a self-redirect to our own
 // callback handler with synthetic code+state, so the issuer is never
 // contacted.
-func (a *MockAuthenticator) SignIn(ctx context.Context, redirect string) (string, errors.E) {
-	return signInFlow(ctx, a.flowStore, redirect, a.authCodeURL)
+func (a *MockAuthenticator) SignIn(ctx context.Context, redirect, uiLocales string) (string, errors.E) {
+	return signInFlow(ctx, a.flowStore, redirect, uiLocales, a.authCodeURL)
 }
 
 // Callback finishes a mock sign-in flow. It validates the callback
@@ -187,7 +187,7 @@ func (a *MockAuthenticator) SignOut(w http.ResponseWriter, req *http.Request) er
 // code+state already filled in. The browser follows it back to our own
 // AuthCallback handler, which consumes the flow row keyed by state and
 // then calls exchangeCode. No external issuer is contacted.
-func (a *MockAuthenticator) authCodeURL(state, _, _ string) string {
+func (a *MockAuthenticator) authCodeURL(state, _, _, _ string) string {
 	base := a.redirectURI()
 	u, err := url.Parse(base)
 	if err != nil {

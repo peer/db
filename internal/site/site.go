@@ -266,6 +266,21 @@ func (s *Site) EnabledLanguages() []string {
 	return slices.Sorted(maps.Keys(enabled))
 }
 
+// IsEnabledUILanguage reports whether language is one of the site's enabled UI languages: a LanguagePriority key,
+// or DefaultEnabledLanguage when no LanguagePriority is configured. It mirrors the frontend's enabledLanguages (and
+// so excludes the undetermined language), so a value forwarded as the OIDC ui_locales preference is one the site
+// actually offers in its interface.
+func (s *Site) IsEnabledUILanguage(language string) bool {
+	if language == "" {
+		return false
+	}
+	if len(s.LanguagePriority) > 0 {
+		_, ok := s.LanguagePriority[language]
+		return ok
+	}
+	return language == internalSearch.DefaultEnabledLanguage
+}
+
 // LevelIndexes returns the ElasticSearch index name for every visibility level, from lowest to highest.
 func (s *Site) LevelIndexes() []string {
 	names := s.LevelNames()

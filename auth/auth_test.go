@@ -774,7 +774,7 @@ func TestMockAuthenticatorSignInCallbackRoundTrip(t *testing.T) {
 	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", func() []string { return []string{"admin"} }, cb)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	authURL, errE := a.SignIn(ctx, "/landing")
+	authURL, errE := a.SignIn(ctx, "/landing", "")
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	u, err := url.Parse(authURL)
@@ -807,7 +807,7 @@ func TestMockAuthenticatorSignInUnsafeRedirectFallsBackToRoot(t *testing.T) {
 	a, errE := auth.NewMockAuthenticator(ctx, dbpool, "example.test", nil, cb)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	authURL, errE := a.SignIn(ctx, "//evil.example/phish")
+	authURL, errE := a.SignIn(ctx, "//evil.example/phish", "")
 	require.NoError(t, errE, "% -+#.1v", errE)
 	u, err := url.Parse(authURL)
 	require.NoError(t, err)
