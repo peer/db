@@ -20,7 +20,7 @@ import type { DeepReadonly, ShallowUnwrapRef } from "vue"
 
 import type { Claim, ClaimTypes } from "@/document"
 import type { FieldData, FieldEntryValue } from "@/fields"
-import type { ValidatedInput } from "@/types"
+import type { InputColumn, ValidatedInput } from "@/types"
 
 import { computed, inject, onBeforeUnmount, onMounted, ref, useId, useTemplateRef, watch } from "vue"
 
@@ -263,6 +263,11 @@ const hasValue = computed<boolean>(() => {
   return !localIsEmpty.value
 })
 
+// Forward the value input's reported columns (empty for presence-only slots
+// with no value input) so the enclosing cardinality can read whether the input
+// renders labels without hardcoding it.
+const columns = computed<InputColumn[]>(() => formRowRef.value?.columns ?? [])
+
 // Compose the ValidatedInput exposed to the outer registry.
 // The framework's revertAll() cascade is fire-and-forget (revertAll is
 // synchronous), so we wrap the async revertField in a void-discarding
@@ -288,6 +293,7 @@ const validatedInput: ValidatedInput = {
   isDirty: computed(() => localDirty.value || identityDirty.value || anyChildDirty.value),
   isEmpty,
   errors: allErrors(childInputs),
+  columns,
   checkpoint: () => {
     checkpointClaim.value = props.modelValue
     checkpointEntry.value = props.modelValue ? getClaimValues(props.modelValue) : emptyFieldEntryValue()

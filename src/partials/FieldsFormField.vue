@@ -16,7 +16,7 @@ import type { FieldData } from "@/fields"
 
 import { computed, provide, useId, useTemplateRef } from "vue"
 
-import { fieldLabelCellKey, getClaimsForField, valueInputHasLabels } from "@/fields"
+import { fieldLabelCellKey, getClaimsForField } from "@/fields"
 import ClaimCardinality from "@/partials/ClaimCardinality.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import InputBadges from "@/partials/InputBadges.vue"
@@ -45,9 +45,11 @@ const initialClaimsForField = computed<readonly DeepReadonly<Claim>[]>(() => {
 
 const cardinalityRef = useTemplateRef<{
   revert: () => Promise<void>
-  // isDirty is exposed as a Ref<boolean> by ClaimCardinality's defineExpose
-  // but the parent-side proxy unwraps it, so we read it as a plain boolean.
+  // isDirty and perEntryRevert are exposed as Refs by ClaimCardinality's
+  // defineExpose but the parent-side proxy unwraps them, so we read them as
+  // plain booleans.
   isDirty: boolean
+  perEntryRevert: boolean
 }>("cardinalityRef")
 
 // labelCellRef points to the field's <th>. We provide it down the tree
@@ -74,8 +76,9 @@ const fieldChanged = computed<boolean>(() => cardinalityRef.value?.isDirty === t
 
 // A repeated field whose value input has no labels of its own shows the
 // changed/revert per entry (under each count, in ClaimCardinality), so the
-// left-cell badge keeps only the required/multiple tags.
-const perEntryRevert = computed<boolean>(() => isMultiple() && !valueInputHasLabels(props.field))
+// left-cell badge keeps only the required/multiple tags. The cardinality decides
+// this (it can read the input's reported columns) and exposes it here.
+const perEntryRevert = computed<boolean>(() => cardinalityRef.value?.perEntryRevert === true)
 
 async function revertField(): Promise<void> {
   if (!cardinalityRef.value) return

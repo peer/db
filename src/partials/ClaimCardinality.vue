@@ -20,13 +20,13 @@ import type { DeepReadonly } from "vue"
 
 import type { Claim } from "@/document"
 import type { FieldData } from "@/fields"
-import type { ValidatedInput } from "@/types"
+import type { InputColumn, ValidatedInput } from "@/types"
 
 import { computed, onBeforeUnmount, provide, ref, shallowReactive, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
 import { AddClaimChange, claimPatchFrom, claimTypeName, RemoveClaimChange } from "@/document"
-import { getClaimValues, makePatchForField, valueInputHasLabels, valueTypeToClaimType } from "@/fields"
+import { getClaimValues, makePatchForField, valueTypeToClaimType } from "@/fields"
 import ClaimInput from "@/partials/ClaimInput.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import InputBadges from "@/partials/InputBadges.vue"
@@ -81,11 +81,19 @@ const isRepeated = computed<boolean>(() => props.field.maxCardinality > 1)
 // A plain repeated value uses the tighter gap-4.
 const entryGapClass = computed<string>(() => (props.field.subFields.length > 0 ? "gap-y-8" : "gap-y-4"))
 
-// When the value input renders its own label row (amount/precision, time/
-// precision, interval bounds) the count cell reserves a matching empty grid row
-// (one line height, plus the label's mb-1 gap) above the count, so the count
-// lines up with the input rather than the labels.
-const hasLabelRow = computed<boolean>(() => valueInputHasLabels(props.field))
+// Whether the value input renders its own label row, read from the columns the
+// slot's input reports (a labeled column means a label row: amount/precision,
+// time/precision, interval bounds). For those the count cell reserves a matching
+// empty grid row (one line height, plus the label's mb-1 gap) above the count,
+// so the count lines up with the input rather than the labels. All slots of a
+// field share the same input type, so the first mounted slot is representative.
+const hasLabelRow = computed<boolean>(() => {
+  for (const input of slotInputs.values()) {
+    const cols = input.columns as unknown as InputColumn[] | undefined
+    return (cols ?? []).some((col) => col.label !== "")
+  }
+  return false
+})
 
 // A repeated field whose value input has no labels of its own (e.g. a repeated
 // string) shows the per-entry changed/revert as a small icon under each count,
@@ -482,6 +490,9 @@ defineExpose({
   // Override with the async revertField so FieldsFormField's Revert
   // button can await it.
   revert: revertField,
+  // So FieldsFormField's left-cell badge can drop its changed/revert for a
+  // repeated label-less field (the revert then lives per entry, under the count).
+  perEntryRevert,
 })
 
 // revertField runs the field-level Revert: re-add removed baseline

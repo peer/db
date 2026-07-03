@@ -27,7 +27,7 @@ component for those.
 import type { DeepReadonly, WritableComputedRef } from "vue"
 
 import type { FieldData, FieldEntryValue } from "@/fields"
-import type { ValidatedInput } from "@/types"
+import type { InputColumn, ValidatedInput } from "@/types"
 
 import { computed, onMounted, watch } from "vue"
 import { useI18n } from "vue-i18n"
@@ -121,6 +121,17 @@ const { validateAll, resetAll, revertAll, checkpointAll, anyDirty, allEmpty, inp
   forwardInteraction?.()
 })
 
+// The value input's reported columns, gathered from the inner inputs (one for a
+// scalar, two InputMissing-wrapped bounds for an interval).
+const columns = computed<InputColumn[]>(() => {
+  const all: InputColumn[] = []
+  for (const input of inputs) {
+    const cols = input.columns?.value
+    if (cols) all.push(...cols)
+  }
+  return all
+})
+
 const validatedInput: ValidatedInput = {
   validate: validateAll,
   reset: resetAll,
@@ -138,6 +149,7 @@ const validatedInput: ValidatedInput = {
   // skip empty rows in values()/entries().
   isEmpty: allEmpty,
   errors: allErrors(inputs),
+  columns,
   checkpoint: checkpointAll,
 }
 
