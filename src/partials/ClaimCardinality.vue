@@ -573,23 +573,24 @@ onBeforeUnmount(() => {
 
 <template>
   <!--
-    Renders one ClaimInput per slot. Repeated fields (maxCardinality > 1) number
-    each slot in a min-content count column (1., 2., ...).
+    Renders one ClaimInput per slot. Each slot (a repeated entry, or the single
+    entry of a non-repeated field) is its own "group" with a gray left rail, so
+    repeated entries read as separate blocks and nesting shows via the rails'
+    indentation. Repeated fields number each slot in a min-content count column.
 
-    A sub-field header (the field label + whole-field changed/revert badge, shown
-    only via showHeader) sits LEFT-aligned above the slots, over the count column,
-    with mb-4 - so a non-top-level field label reads as a field label on the left
-    (aligned with the counts), distinct from the value input's own column labels
-    (which sit above the input with mb-1). Top-level fields render no header
+    The sub-field header (the field label + whole-field badge, shown only via
+    showHeader) sits left-aligned above the slots with mb-4; a transparent
+    rail-width border keeps it aligned with the slots' content (the count), while
+    only the slots carry the visible rail. Top-level fields render no header
     (their label is in FieldsFormField's left cell).
   -->
   <div ref="rootRef" class="flex min-w-0 grow flex-col" @focusout="onFocusOut">
-    <div v-if="showHeader" ref="headerRef" class="mb-4 flex flex-row flex-wrap items-center gap-1">
+    <div v-if="showHeader" ref="headerRef" class="mb-4 flex flex-row flex-wrap items-center gap-1 border-l-4 border-transparent pl-4">
       <span :id="labelId" class="leading-none font-medium text-gray-700"><DocumentRefInline :id="field.propertyId" :link="false" /></span>
       <InputBadges :required="field.minCardinality > 0" :multiple="field.maxCardinality > 1" :changed="isDirty" :revertable="!perEntryRevert" @revert="onHeaderRevert" />
     </div>
-    <div v-if="isRepeated" class="grid grid-cols-[min-content_auto] items-start gap-x-4" :class="entryGapClass">
-      <template v-for="(slot, idx) in slots" :key="slot.key">
+    <div v-if="isRepeated" class="flex flex-col" :class="entryGapClass">
+      <div v-for="(slot, idx) in slots" :key="slot.key" class="grid grid-cols-[min-content_auto] items-start gap-x-4 border-l-4 border-gray-200 pl-4">
         <!--
           When the value input has a label row, the count cell reserves a matching
           empty grid row (one line height) above the count and places the count in
@@ -629,25 +630,25 @@ onBeforeUnmount(() => {
           :label-id="labelId"
           @update:model-value="(claim) => updateSlotClaim(slot.key, claim)"
         />
-      </template>
+      </div>
     </div>
     <template v-else>
-      <ClaimInput
-        v-for="(slot, idx) in slots"
-        :key="slot.key"
-        :ref="(el) => setSlotRef(slot.key, el)"
-        :model-value="slot.claim"
-        :initial-claim="initialClaimForSlot(slot)"
-        :field="field"
-        :parent-claim-id="parentClaimId"
-        :invalid="invalid || (triggered && missing.flags[idx]) || false"
-        :required="triggered && missing.flags[idx]"
-        :is-first="idx === 0"
-        :session="session"
-        :base="base"
-        :label-id="labelId"
-        @update:model-value="(claim) => updateSlotClaim(slot.key, claim)"
-      />
+      <div v-for="(slot, idx) in slots" :key="slot.key" class="border-l-4 border-gray-200 pl-4">
+        <ClaimInput
+          :ref="(el) => setSlotRef(slot.key, el)"
+          :model-value="slot.claim"
+          :initial-claim="initialClaimForSlot(slot)"
+          :field="field"
+          :parent-claim-id="parentClaimId"
+          :invalid="invalid || (triggered && missing.flags[idx]) || false"
+          :required="triggered && missing.flags[idx]"
+          :is-first="idx === 0"
+          :session="session"
+          :base="base"
+          :label-id="labelId"
+          @update:model-value="(claim) => updateSlotClaim(slot.key, claim)"
+        />
+      </div>
     </template>
   </div>
 </template>

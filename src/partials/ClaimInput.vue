@@ -605,7 +605,7 @@ defineExpose({
       sub-claim can sit under it). For HAS the sub-form is always shown;
       ensureClaimId lazily creates the parent on the first sub add.
     -->
-    <div v-if="showSubFields" class="flex flex-col pl-4" :class="subFieldGapClass">
+    <div v-if="showSubFields" class="flex flex-col" :class="subFieldGapClass">
       <!--
         Each sub-field's ClaimCardinality renders its own header (property label +
         whole-sub-field changed/revert badge) above its slots, in the input column
