@@ -23,7 +23,7 @@ import { computed, onBeforeUnmount, readonly, ref, watch } from "vue"
 import { stringifyQuery, useRoute, useRouter } from "vue-router"
 
 import { getURL, getURLDirect, postJSON } from "@/api"
-import { RESERVED_DIRECT_PREFIX, RESERVED_LANGUAGE, RESERVED_MISSING, RESERVED_QUERY, RESERVED_REVERSE } from "@/shortcut"
+import { RESERVED_DIRECT_PREFIX, RESERVED_ID, RESERVED_LANGUAGE, RESERVED_MISSING, RESERVED_QUERY, RESERVED_REVERSE } from "@/shortcut"
 import { addPrefixWildcard, anySignal, encodeQuery } from "@/utils"
 
 export const FILTERS_INITIAL_LIMIT = 10
@@ -51,12 +51,12 @@ export const searchShortcutControllerKey: InjectionKey<SearchShortcutController>
 // queryToPrefilterPayloads maps a search shortcut query (the SearchShortcut route query) to reference
 // prefilter payloads, mirroring the backend parseSearchShortcutQuery: each key is a property (split on
 // ":" for a nested sub-reference), and each value is a target id, the literal "missing" (the missing
-// bucket), or "direct:<id>" (a most-specific target). The reserved "reverse", "language" and "q"
+// bucket), or "direct:<id>" (a most-specific target). The reserved "reverse", "id", "language" and "q"
 // (full-text query) keys are skipped.
 export function queryToPrefilterPayloads(query: QueryValues): PrefilterPayload[] {
   const payloads: PrefilterPayload[] = []
   for (const [key, value] of Object.entries(query)) {
-    if (key === RESERVED_REVERSE || key === RESERVED_LANGUAGE || key === RESERVED_QUERY) {
+    if (key === RESERVED_REVERSE || key === RESERVED_ID || key === RESERVED_LANGUAGE || key === RESERVED_QUERY) {
       continue
     }
     const prop = key.split(":")
@@ -179,6 +179,7 @@ export async function updateSearchSession(
     ...(searchData.prefilters && searchData.prefilters.length > 0 ? { prefilters: searchData.prefilters } : {}),
     ...(searchData.reverse ? { reverse: searchData.reverse } : {}),
     ...(searchData.reverseExpand ? { reverseExpand: searchData.reverseExpand } : {}),
+    ...(searchData.ids && searchData.ids.length > 0 ? { ids: searchData.ids } : {}),
     ...(searchData.sort && searchData.sort.length > 0 ? { sort: searchData.sort } : {}),
   }
   const response = await postJSON<UpdateSearchSessionResponse>(

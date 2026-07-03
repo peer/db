@@ -34,6 +34,7 @@ func TestTimeFilterGetIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -201,6 +202,7 @@ func TestTimeFilterGetSameValuesIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -237,6 +239,7 @@ func TestTimeFilterGetNegativeValuesIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -285,6 +288,7 @@ func TestTimeFilterGetEmptyIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -325,6 +329,7 @@ func TestTimeFilterGetExtendedBoundsIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -388,6 +393,7 @@ func TestTimeFilterGetHardBoundsIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -453,6 +459,7 @@ func TestTimeFilterGetWideRangeIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -608,6 +615,7 @@ func TestTimeFilterGetPointBoundsIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -633,6 +641,7 @@ func TestTimeFilterGetPointBoundsIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	gapQuery := gapSession.ToQueryExcluding(*gapSession.Filters[0].ID, nil)
@@ -674,6 +683,7 @@ func TestTimeFilterGetSingleValueActiveIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, metadata, errE := session.Filters[0].Time.Get(ctx, getSearchService, session.ToQueryExcluding(*session.Filters[0].ID, nil), session.Filters[0].Prop[0])
@@ -804,6 +814,7 @@ func TestTimeFilterGetExistsIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	// The active exists filter round-trips to the counts-only response.

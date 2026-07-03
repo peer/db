@@ -218,6 +218,8 @@
       "determiningFilters": "Ugotavljanje filtrov...",
       "skipToFilters": "Preskoči na filtre",
       "skipToResults": "Preskoči na rezultate",
+      "resultsScoped": "Omejeno na {count} dokument | Omejeno na {count} dokumenta | Omejeno na {count} dokumente | Omejeno na {count} dokumentov",
+      "clearScoped": "Počisti omejitev na dokumente",
       "resultsReferencing": "Rezultati sklicujoči na {label}",
       "resultsReferencingExpanded": "Rezultati sklicujoči na:",
       "expandReferencing": "Razširi",

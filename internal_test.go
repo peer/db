@@ -16,14 +16,14 @@ type TestingShortcutQueryGroup struct {
 	shortcutQueryGroup
 }
 
-func TestingParseShortcutQueryGroups(query url.Values) ([]TestingShortcutQueryGroup, *identifier.Identifier, string, string, errors.E) {
-	groups, reverse, language, fullTextQuery, errE := parseShortcutQueryGroups(query)
+func TestingParseShortcutQueryGroups(query url.Values) ([]TestingShortcutQueryGroup, *identifier.Identifier, []identifier.Identifier, string, string, errors.E) {
+	groups, reverse, ids, language, fullTextQuery, errE := parseShortcutQueryGroups(query)
 	if errE != nil {
-		return nil, nil, "", "", errE
+		return nil, nil, nil, "", "", errE
 	}
 	out := make([]TestingShortcutQueryGroup, 0, len(groups))
 	for key, group := range groups {
 		out = append(out, TestingShortcutQueryGroup{shortcutPropKey: key, shortcutQueryGroup: *group})
 	}
-	return out, reverse, language, fullTextQuery, nil
+	return out, reverse, ids, language, fullTextQuery, nil
 }

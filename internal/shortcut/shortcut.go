@@ -42,6 +42,9 @@ const (
 	SelfValue = "self"
 	// ReverseKey is the key token that scopes a search to documents referencing the value via any property.
 	ReverseKey = "reverse"
+	// IDKey is the key token that scopes a search to documents whose own identifier is one of the entry
+	// values. Unlike ReverseKey it may repeat, one entry per allowed document.
+	IDKey = "id"
 	// MissingValue is the value token that selects a property's "missing" bucket (documents with no claim for it).
 	MissingValue = "missing"
 	// DirectValue is the leading value segment that marks a "direct" (most-specific) target: the following

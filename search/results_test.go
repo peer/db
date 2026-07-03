@@ -112,6 +112,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, metadata, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
@@ -139,6 +140,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &helloSession.SessionData, nil, 0)
@@ -166,6 +168,7 @@ func TestResultsGetIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &goodbyeSession.SessionData, nil, 0)
@@ -183,12 +186,105 @@ func TestResultsGetIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &noResultsSession.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []search.Result{}, results)
 	assert.Equal(t, int64(0), metadata["total"])
+}
+
+func TestResultsGetWithIDsIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	esClient, getSearchService, index := initES(t)
+
+	doc1ID := identifier.From("doc1")
+	doc2ID := identifier.From("doc2")
+	doc3ID := identifier.From("doc3")
+
+	for _, doc := range []struct {
+		ID   identifier.Identifier
+		Text string
+	}{
+		{doc1ID, "hello world"},
+		{doc2ID, "goodbye world"},
+		{doc3ID, "hello there"},
+	} {
+		indexDocument(t, ctx, esClient, index, internalSearch.Document{
+			DisplaySort: nil,
+			ID:          doc.ID,
+			Display:     nil,
+			Text:        map[string][]string{"en": {doc.Text}},
+			Time:        nil,
+			LastUpdated: nil,
+			Counts:      internalSearch.Counts{References: nil, Claims: nil, Score: nil},
+			Claims: internalSearch.ClaimTypes{
+				Identifier: nil,
+				String:     nil,
+				HTML:       nil,
+				Amount:     nil,
+				Time:       nil,
+				Link:       nil,
+				Reference:  nil,
+				Has:        nil,
+				None:       nil,
+				Unknown:    nil,
+				SubRef:     nil,
+				SubAmount:  nil,
+				SubTime:    nil,
+				SubHas:     nil,
+			},
+		})
+	}
+	refreshIndex(t, ctx, esClient, index)
+
+	// IDs scope alone returns exactly the listed documents.
+	session := createSession(t, ctx, search.SessionData{
+		Sort:          nil,
+		Language:      "",
+		View:          "",
+		Query:         "",
+		Filters:       nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
+		IDs:           []identifier.Identifier{doc1ID, doc3ID},
+	})
+
+	results, metadata, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Len(t, results, 2)
+	assert.Equal(t, int64(2), metadata["total"])
+
+	gotIDs := make([]string, 0, len(results))
+	for _, r := range results {
+		gotIDs = append(gotIDs, r.ID)
+	}
+	sort.Strings(gotIDs)
+	expectedIDs := []string{doc1ID.String(), doc3ID.String()}
+	sort.Strings(expectedIDs)
+	assert.Equal(t, expectedIDs, gotIDs)
+
+	// IDs scope combines with a full-text query: only listed documents matching the query.
+	querySession := createSession(t, ctx, search.SessionData{
+		Sort:          nil,
+		Language:      "",
+		View:          "",
+		Query:         "world",
+		Filters:       nil,
+		Prefilters:    nil,
+		Reverse:       nil,
+		ReverseExpand: false,
+		IDs:           []identifier.Identifier{doc1ID, doc3ID},
+	})
+
+	results, metadata, errE = search.ResultsGet(ctx, getSearchService, &querySession.SessionData, nil, 0)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, []search.Result{{Count: nil, Group: nil, ID: doc1ID.String()}}, results)
+	assert.Equal(t, int64(1), metadata["total"])
 }
 
 func TestResultsGetWithRefFilterIntegration(t *testing.T) {
@@ -286,6 +382,7 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
@@ -309,6 +406,7 @@ func TestResultsGetWithRefFilterIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, _, errE = search.ResultsGet(ctx, getSearchService, &noneSession.SessionData, nil, 0)
@@ -461,6 +559,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
@@ -488,6 +587,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, _, errE = search.ResultsGet(ctx, getSearchService, &session2.SessionData, nil, 0)
@@ -513,6 +613,7 @@ func TestResultsGetWithAmountFilterIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, _, errE = search.ResultsGet(ctx, getSearchService, &session3.SessionData, nil, 0)
@@ -661,6 +762,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
@@ -685,6 +787,7 @@ func TestResultsGetWithTimeFilterIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, _, errE = search.ResultsGet(ctx, getSearchService, &session2.SessionData, nil, 0)
@@ -873,6 +976,7 @@ func TestResultsGetWithMultipleFiltersIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &andSession.SessionData, nil, 0)
@@ -927,6 +1031,7 @@ func TestResultsGetTotalGteIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, metadata, errE := search.ResultsGet(ctx, getSearchServiceTracked, &session.SessionData, nil, 0)
@@ -985,6 +1090,7 @@ func TestResultsGetTotalGteRelationIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, metadata, errE := search.ResultsGet(ctx, getSearchServiceLimited, &session.SessionData, nil, 0)
@@ -1023,6 +1129,7 @@ func TestResultsGetScoreBoost(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	// A positive factor must rank the higher-counts.score document first, while the
@@ -1128,6 +1235,7 @@ func TestResultsGetExtraFiltersIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	// Without an access filter, all three documents are returned.
@@ -1216,6 +1324,7 @@ func TestResultsGetSortOrderIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)

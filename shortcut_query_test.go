@@ -25,11 +25,12 @@ func TestParseShortcutQueryGroups(t *testing.T) {
 	t.Run("plain target values", func(t *testing.T) {
 		t.Parallel()
 
-		groups, reverse, language, fullTextQuery, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{
+		groups, reverse, ids, language, fullTextQuery, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{
 			prop.String(): {value1.String(), value2.String()},
 		})
 		require.NoError(t, errE, "% -+#.1v", errE)
 		assert.Nil(t, reverse)
+		assert.Empty(t, ids)
 		assert.Empty(t, language)
 		assert.Empty(t, fullTextQuery)
 		require.Len(t, groups, 1)
@@ -43,7 +44,7 @@ func TestParseShortcutQueryGroups(t *testing.T) {
 	t.Run("missing bucket", func(t *testing.T) {
 		t.Parallel()
 
-		groups, _, _, _, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{prop.String(): {"missing"}})
+		groups, _, _, _, _, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{prop.String(): {"missing"}})
 		require.NoError(t, errE, "% -+#.1v", errE)
 		require.Len(t, groups, 1)
 		assert.Nil(t, groups[0].To)
@@ -54,7 +55,7 @@ func TestParseShortcutQueryGroups(t *testing.T) {
 	t.Run("direct target", func(t *testing.T) {
 		t.Parallel()
 
-		groups, _, _, _, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{prop.String(): {"direct:" + value1.String()}})
+		groups, _, _, _, _, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{prop.String(): {"direct:" + value1.String()}})
 		require.NoError(t, errE, "% -+#.1v", errE)
 		require.Len(t, groups, 1)
 		assert.Nil(t, groups[0].To)
@@ -65,7 +66,7 @@ func TestParseShortcutQueryGroups(t *testing.T) {
 	t.Run("mixed to, direct, and missing", func(t *testing.T) {
 		t.Parallel()
 
-		groups, _, _, _, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{
+		groups, _, _, _, _, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{
 			prop.String(): {value1.String(), "direct:" + value2.String(), "missing", value3.String()},
 		})
 		require.NoError(t, errE, "% -+#.1v", errE)
@@ -78,7 +79,7 @@ func TestParseShortcutQueryGroups(t *testing.T) {
 	t.Run("nested key with direct", func(t *testing.T) {
 		t.Parallel()
 
-		groups, _, _, _, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{
+		groups, _, _, _, _, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{
 			parent.String() + ":" + prop.String(): {"direct:" + value1.String()},
 		})
 		require.NoError(t, errE, "% -+#.1v", errE)
@@ -92,7 +93,7 @@ func TestParseShortcutQueryGroups(t *testing.T) {
 	t.Run("reverse, language, and query", func(t *testing.T) {
 		t.Parallel()
 
-		groups, reverse, language, fullTextQuery, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{
+		groups, reverse, ids, language, fullTextQuery, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{
 			"reverse":  {doc.String()},
 			"language": {"sl"},
 			"q":        {"hello world"},
@@ -101,14 +102,48 @@ func TestParseShortcutQueryGroups(t *testing.T) {
 		assert.Empty(t, groups)
 		require.NotNil(t, reverse)
 		assert.Equal(t, doc, *reverse)
+		assert.Empty(t, ids)
 		assert.Equal(t, "sl", language)
 		assert.Equal(t, "hello world", fullTextQuery)
+	})
+
+	t.Run("id scope", func(t *testing.T) {
+		t.Parallel()
+
+		groups, reverse, ids, _, _, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{
+			"id": {value1.String(), value2.String()},
+		})
+		require.NoError(t, errE, "% -+#.1v", errE)
+		assert.Empty(t, groups)
+		assert.Nil(t, reverse)
+		assert.Equal(t, []identifier.Identifier{value1, value2}, ids)
+	})
+
+	t.Run("id scope with property values", func(t *testing.T) {
+		t.Parallel()
+
+		groups, _, ids, _, _, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{
+			"id":          {value1.String()},
+			prop.String(): {value2.String()},
+		})
+		require.NoError(t, errE, "% -+#.1v", errE)
+		require.Len(t, groups, 1)
+		assert.Equal(t, []search.ToValue{{ID: value2}}, groups[0].To)
+		assert.Equal(t, []identifier.Identifier{value1}, ids)
+	})
+
+	t.Run("invalid id identifier", func(t *testing.T) {
+		t.Parallel()
+
+		_, _, _, _, _, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{"id": {"bogus"}})
+		require.Error(t, errE)
+		assert.ErrorContains(t, errE, `"id" query parameter value is not a valid identifier`)
 	})
 
 	t.Run("invalid direct identifier", func(t *testing.T) {
 		t.Parallel()
 
-		_, _, _, _, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{prop.String(): {"direct:bogus"}})
+		_, _, _, _, _, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{prop.String(): {"direct:bogus"}})
 		require.Error(t, errE)
 		assert.ErrorContains(t, errE, "query parameter direct value is not a valid identifier")
 	})
@@ -116,7 +151,7 @@ func TestParseShortcutQueryGroups(t *testing.T) {
 	t.Run("invalid target identifier", func(t *testing.T) {
 		t.Parallel()
 
-		_, _, _, _, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{prop.String(): {"bogus"}})
+		_, _, _, _, _, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{prop.String(): {"bogus"}})
 		require.Error(t, errE)
 		assert.ErrorContains(t, errE, "query parameter value is not a valid identifier")
 	})
@@ -124,7 +159,7 @@ func TestParseShortcutQueryGroups(t *testing.T) {
 	t.Run("reverse set twice", func(t *testing.T) {
 		t.Parallel()
 
-		_, _, _, _, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{"reverse": {doc.String(), value1.String()}})
+		_, _, _, _, _, errE := peerdb.TestingParseShortcutQueryGroups(url.Values{"reverse": {doc.String(), value1.String()}})
 		require.Error(t, errE)
 		assert.ErrorContains(t, errE, `"reverse" query parameter must be set exactly once`)
 	})

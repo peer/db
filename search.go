@@ -1083,6 +1083,7 @@ func (s *Service) SearchCreatePostAPI(w http.ResponseWriter, req *http.Request, 
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 		Sort:          nil,
 	}
 
@@ -1241,43 +1242,55 @@ func parseShortcutPropKey(prop string) (shortcutPropKey, errors.E) {
 }
 
 // parseShortcutQueryGroups parses search shortcut query parameters into per-property filter groups plus
-// the optional reverse target, the optional language, and the optional full-text query. Each value is a
-// plain identifier (a target), the literal "missing" (the missing bucket), or "direct:<identifier>" (a
-// most-specific target). It is the pure core of parseSearchShortcutQuery and carries no site or session concerns.
-func parseShortcutQueryGroups(query url.Values) (map[shortcutPropKey]*shortcutQueryGroup, *identifier.Identifier, string, string, errors.E) {
+// the optional reverse target, the optional ID scope, the optional language, and the optional full-text
+// query. Each value is a plain identifier (a target), the literal "missing" (the missing bucket), or
+// "direct:<identifier>" (a most-specific target). It is the pure core of parseSearchShortcutQuery and
+// carries no site or session concerns.
+func parseShortcutQueryGroups(query url.Values) (map[shortcutPropKey]*shortcutQueryGroup, *identifier.Identifier, []identifier.Identifier, string, string, errors.E) {
 	groups := map[shortcutPropKey]*shortcutQueryGroup{}
 	var reverse *identifier.Identifier
+	var ids []identifier.Identifier
 	var language string
 	var fullTextQuery string
 	for prop, values := range query {
 		if prop == shortcut.ReverseKey {
 			if len(values) != 1 {
-				return nil, nil, "", "", errors.New(`"reverse" query parameter must be set exactly once`)
+				return nil, nil, nil, "", "", errors.New(`"reverse" query parameter must be set exactly once`)
 			}
 			reverseID, errE := identifier.MaybeString(values[0])
 			if errE != nil {
-				return nil, nil, "", "", errors.WithMessage(errE, `"reverse" query parameter value is not a valid identifier`)
+				return nil, nil, nil, "", "", errors.WithMessage(errE, `"reverse" query parameter value is not a valid identifier`)
 			}
 			reverse = &reverseID
 			continue
 		}
+		if prop == shortcut.IDKey {
+			for _, value := range values {
+				docID, errE := identifier.MaybeString(value)
+				if errE != nil {
+					return nil, nil, nil, "", "", errors.WithMessage(errE, `"id" query parameter value is not a valid identifier`)
+				}
+				ids = append(ids, docID)
+			}
+			continue
+		}
 		if prop == shortcut.LanguageKey {
 			if len(values) != 1 {
-				return nil, nil, "", "", errors.New(`"language" query parameter must be set exactly once`)
+				return nil, nil, nil, "", "", errors.New(`"language" query parameter must be set exactly once`)
 			}
 			language = values[0]
 			continue
 		}
 		if prop == shortcut.QueryKey {
 			if len(values) != 1 {
-				return nil, nil, "", "", errors.New(`"q" query parameter must be set exactly once`)
+				return nil, nil, nil, "", "", errors.New(`"q" query parameter must be set exactly once`)
 			}
 			fullTextQuery = values[0]
 			continue
 		}
 		key, errE := parseShortcutPropKey(prop)
 		if errE != nil {
-			return nil, nil, "", "", errE
+			return nil, nil, nil, "", "", errE
 		}
 		group := groups[key]
 		if group == nil {
@@ -1287,11 +1300,11 @@ func parseShortcutQueryGroups(query url.Values) (map[shortcutPropKey]*shortcutQu
 		for _, value := range values {
 			errE := group.add(value)
 			if errE != nil {
-				return nil, nil, "", "", errE
+				return nil, nil, nil, "", "", errE
 			}
 		}
 	}
-	return groups, reverse, language, fullTextQuery, nil
+	return groups, reverse, ids, language, fullTextQuery, nil
 }
 
 // parseSearchShortcutQuery parses query parameters using the search shortcut grammar
@@ -1299,7 +1312,7 @@ func parseShortcutQueryGroups(query url.Values) (map[shortcutPropKey]*shortcutQu
 func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Session, errors.E) {
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
-	groups, reverse, language, fullTextQuery, errE := parseShortcutQueryGroups(query)
+	groups, reverse, ids, language, fullTextQuery, errE := parseShortcutQueryGroups(query)
 	if errE != nil {
 		return nil, errE
 	}
@@ -1316,6 +1329,7 @@ func parseSearchShortcutQuery(ctx context.Context, query url.Values) (*search.Se
 		Prefilters:    nil,
 		Reverse:       reverse,
 		ReverseExpand: false,
+		IDs:           ids,
 		Sort:          nil,
 	}
 
@@ -1405,6 +1419,9 @@ func (s *Service) createShortcutSession(w http.ResponseWriter, req *http.Request
 //
 // The "reverse" query parameter is special: its value is a document ID that scopes
 // the session to documents which reference that ID via any property.
+//
+// The "id" query parameter is special: each of its values is a document ID and the session is
+// scoped to documents whose own ID is one of them. Unlike "reverse" it may repeat.
 //
 // The "q" query parameter is special: its value sets the session's full-text query, so a shortcut
 // can combine prefilters with a free-text search (for example the query already typed in the navbar).

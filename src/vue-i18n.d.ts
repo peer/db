@@ -229,6 +229,8 @@ declare module "vue-i18n" {
         determiningFilters: string
         skipToFilters: string
         skipToResults: string
+        resultsScoped: string
+        clearScoped: string
         resultsReferencing: string
         resultsReferencingExpanded: string
         expandReferencing: string

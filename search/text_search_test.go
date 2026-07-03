@@ -72,6 +72,7 @@ func TestTextSearchUndWildcardCaseAndDiacritic(t *testing.T) {
 				Prefilters:    nil,
 				Reverse:       nil,
 				ReverseExpand: false,
+				IDs:           nil,
 			})
 			results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 			require.NoError(t, errE, "% -+#.1v", errE)
@@ -129,6 +130,7 @@ func TestTextSearchUndQuotedExactVsFolded(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &quotedSession.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -151,6 +153,7 @@ func TestTextSearchUndQuotedExactVsFolded(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 	results, _, errE = search.ResultsGet(ctx, getSearchService, &quotedFoldedSession.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -201,6 +204,7 @@ func TestTextSearchUndUnquotedFoldsBoth(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -259,6 +263,7 @@ func TestTextSearchStemmedPhraseEnglish(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -330,6 +335,7 @@ func TestTextSearchExactFieldRejectsFolded(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 	results, _, errE := search.ResultsGet(ctx, getSearchService, &session.SessionData, nil, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)

@@ -218,6 +218,8 @@
       "determiningFilters": "Determining filters...",
       "skipToFilters": "Skip to filters",
       "skipToResults": "Skip to results",
+      "resultsScoped": "Scoped to {count} document | Scoped to {count} documents",
+      "clearScoped": "Clear document scope",
       "resultsReferencing": "Results referencing {label}",
       "resultsReferencingExpanded": "Results referencing:",
       "expandReferencing": "Expand",

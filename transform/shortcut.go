@@ -18,8 +18,9 @@ const shortcutMaxValueParts = 2
 // (the value stored in a SEARCH_SHORTCUT or FIELD_VALUES claim). The string is
 // parsed by the shortcut package into "&"-separated key=value entries, and this
 // function applies the shortcut-specific rules: the key may have at most one ":"
-// (and neither side of ":" may be "reverse"), the special "reverse" key is allowed
-// as a whole single-segment key, and the value is validated by validateShortcutValue.
+// (and neither side of ":" may be "reverse" or "id"), the special "reverse" and "id"
+// keys are allowed as whole single-segment keys, and the value is validated by
+// validateShortcutValue.
 func validateShortcut(s string) errors.E {
 	if s == "" {
 		return errors.New("search shortcut must not be empty")
@@ -35,14 +36,20 @@ func validateShortcut(s string) errors.E {
 			return errors.New("search shortcut key must contain at most one ':'")
 		}
 
-		reverse := false
+		// identifierOnly reports that the entry's value must be a single identifier (or the magic
+		// "self" value): true for the "reverse" and "id" keys, whose values are documents rather
+		// than filter selections (so "missing" and "direct:" do not apply).
+		identifierOnly := false
 		switch {
-		case len(entry.Key) == 1 && entry.Key[0].Literal == shortcut.ReverseKey:
-			// Reverse key is used as-is; only the value needs to be a valid identifier.
-			reverse = true
+		case len(entry.Key) == 1 && (entry.Key[0].Literal == shortcut.ReverseKey || entry.Key[0].Literal == shortcut.IDKey):
+			// Reverse and id keys are used as-is; only the value needs to be a valid identifier.
+			identifierOnly = true
 		case len(entry.Key) == shortcutMaxKeyParts:
 			if entry.Key[0].Literal == shortcut.ReverseKey || entry.Key[1].Literal == shortcut.ReverseKey {
 				return errors.New(`"reverse" is not allowed inside a nested key`)
+			}
+			if entry.Key[0].Literal == shortcut.IDKey || entry.Key[1].Literal == shortcut.IDKey {
+				return errors.New(`"id" is not allowed inside a nested key`)
 			}
 			if !entry.Key[0].IsIdentifier() {
 				return errors.New("search shortcut nested key parent is not a valid identifier")
@@ -56,7 +63,7 @@ func validateShortcut(s string) errors.E {
 			}
 		}
 
-		errE := validateShortcutValue(entry.Value, reverse)
+		errE := validateShortcutValue(entry.Value, identifierOnly)
 		if errE != nil {
 			return errE
 		}
@@ -65,24 +72,24 @@ func validateShortcut(s string) errors.E {
 	return nil
 }
 
-// validateShortcutValue validates the value side of a search shortcut entry. A reverse entry's value must
-// be a single identifier or the magic "self" value. A property entry's value may additionally be the magic
-// "missing" value (selecting the missing bucket), or a "direct:<identifier>" pair (selecting the target as
-// a most-specific match), where the identifier may itself be "self".
-func validateShortcutValue(value []shortcut.Segment, reverse bool) errors.E {
+// validateShortcutValue validates the value side of a search shortcut entry. A reverse or id entry's value
+// must be a single identifier or the magic "self" value. A property entry's value may additionally be the
+// magic "missing" value (selecting the missing bucket), or a "direct:<identifier>" pair (selecting the
+// target as a most-specific match), where the identifier may itself be "self".
+func validateShortcutValue(value []shortcut.Segment, identifierOnly bool) errors.E {
 	switch len(value) {
 	case 1:
 		segment := value[0]
 		if segment.IsIdentifier() || segment.Literal == shortcut.SelfValue {
 			return nil
 		}
-		if !reverse && segment.Literal == shortcut.MissingValue {
+		if !identifierOnly && segment.Literal == shortcut.MissingValue {
 			return nil
 		}
 		return errors.New("search shortcut value is not a valid identifier")
 	case shortcutMaxValueParts:
-		if reverse {
-			return errors.New("search shortcut reverse value is not a valid identifier")
+		if identifierOnly {
+			return errors.New("search shortcut value must be a single identifier")
 		}
 		if value[0].Literal != shortcut.DirectValue {
 			return errors.New(`search shortcut multi-segment value must start with "direct"`)

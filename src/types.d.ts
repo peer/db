@@ -193,6 +193,7 @@ export type ShortcutPair = { key: string; value: string }
 // Payload shape for the SearchJustResults POST endpoint built.
 export type JustResultsFilters = {
   reverse?: string
+  ids?: string[]
   filters?: { prop: string[]; ref: { to?: { id: string }[]; direct?: { id: string }[]; missing?: boolean } }[]
 }
 
@@ -206,6 +207,7 @@ export type SearchSession = {
 
 // What the client sends when creating or updating a search session.
 // When reverse is set, the session is scoped to documents referencing that ID via any property.
+// When ids is non-empty, the session is scoped to documents whose own ID is one of the listed values.
 export type SearchSessionData = {
   view?: ViewType
   query?: string
@@ -216,6 +218,7 @@ export type SearchSessionData = {
   // reverseExpand, valid only when reverse is set, is presentational: in the print view it renders the
   // referenced target as its full result card instead of a one-line "results referencing" heading.
   reverseExpand?: boolean
+  ids?: string[]
   // language is the session's UI language. The backend resolves an empty value to the site default and stores it on the session.
   language?: string
   // sort is the effective sort order. Empty means the default order (relevance, time, display label). A
