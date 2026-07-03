@@ -121,15 +121,26 @@ const { validateAll, resetAll, revertAll, checkpointAll, anyDirty, allEmpty, inp
   forwardInteraction?.()
 })
 
-// The value input's reported columns, gathered from the inner inputs (one for a
-// scalar, two InputMissing-wrapped bounds for an interval).
+// The value input's columns, merged across the inner inputs. FieldsFormRow
+// stacks its inputs vertically (a single input for a scalar, "from" above "to"
+// for an interval), so its columns line up top-to-bottom: the merged result has
+// the max column count over the inputs, each column keeping the first non-empty
+// label found at that position (empty if none). A column-less input counts as
+// one unlabeled column (the same fallback InputField/InputMissing use), so it is
+// not skipped.
 const columns = computed<InputColumn[]>(() => {
-  const all: InputColumn[] = []
+  const merged: InputColumn[] = []
   for (const input of inputs) {
-    const cols = input.columns?.value
-    if (cols) all.push(...cols)
+    const cols = input.columns?.value ?? [{ label: "", el: () => input.inputEl() ?? null }]
+    for (let i = 0; i < cols.length; i++) {
+      if (i >= merged.length) {
+        merged.push(cols[i])
+      } else if (merged[i].label === "" && cols[i].label !== "") {
+        merged[i] = cols[i]
+      }
+    }
   }
-  return all
+  return merged
 })
 
 const validatedInput: ValidatedInput = {
