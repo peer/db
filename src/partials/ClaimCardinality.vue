@@ -574,80 +574,64 @@ onBeforeUnmount(() => {
 <template>
   <!--
     Renders one ClaimInput per slot. Repeated fields (maxCardinality > 1) number
-    each slot in a min-content count column (1., 2., ...) so repetition reads
-    differently from sub-field nesting.
+    each slot in a min-content count column (1., 2., ...).
 
     A sub-field header (the field label + whole-field changed/revert badge, shown
-    only via showHeader) sits in the input column above the slots. For repeated
-    fields the slots use a column subgrid so the header and the inputs share the
-    same count column and line up; the header is NOT above the count. Top-level
-    fields render no header (their label is in FieldsFormField's left cell).
+    only via showHeader) sits LEFT-aligned above the slots, over the count column,
+    with mb-4 - so a non-top-level field label reads as a field label on the left
+    (aligned with the counts), distinct from the value input's own column labels
+    (which sit above the input with mb-1). Top-level fields render no header
+    (their label is in FieldsFormField's left cell).
   -->
-  <div ref="rootRef" class="flex min-w-0 grow flex-col gap-y-1" @focusout="onFocusOut">
-    <div v-if="isRepeated" class="grid grid-cols-[min-content_auto] gap-x-4 gap-y-1">
-      <template v-if="showHeader">
-        <div aria-hidden="true"></div>
-        <div ref="headerRef" class="flex flex-row flex-wrap items-center gap-1">
-          <span :id="labelId" class="leading-none font-medium text-gray-700"><DocumentRefInline :id="field.propertyId" :link="false" /></span>
-          <InputBadges
-            :required="field.minCardinality > 0"
-            :multiple="field.maxCardinality > 1"
-            :changed="isDirty"
-            :revertable="!perEntryRevert"
-            @revert="onHeaderRevert"
-          />
+  <div ref="rootRef" class="flex min-w-0 grow flex-col" @focusout="onFocusOut">
+    <div v-if="showHeader" ref="headerRef" class="mb-4 flex flex-row flex-wrap items-center gap-1">
+      <span :id="labelId" class="leading-none font-medium text-gray-700"><DocumentRefInline :id="field.propertyId" :link="false" /></span>
+      <InputBadges :required="field.minCardinality > 0" :multiple="field.maxCardinality > 1" :changed="isDirty" :revertable="!perEntryRevert" @revert="onHeaderRevert" />
+    </div>
+    <div v-if="isRepeated" class="grid grid-cols-[min-content_auto] items-start gap-x-4" :class="entryGapClass">
+      <template v-for="(slot, idx) in slots" :key="slot.key">
+        <!--
+          When the value input has a label row, the count cell reserves a matching
+          empty grid row (one line height) above the count and places the count in
+          the second row, so it lines up with the input. When the input has no
+          labels, the count sits at the top and a per-entry revert icon sits under
+          it. The button is a square the same height as the "changed" badge,
+          rendered unconditionally (just visibility:hidden when the entry is
+          unchanged) so it always reserves the count column's width and the input
+          does not shift when it appears. The mousedown is prevented so clicking it
+          does not blur the value input first (which would commit before revert).
+        -->
+        <div :class="hasLabelRow ? 'grid grid-rows-[1lh_auto] gap-y-1' : 'flex flex-col items-start gap-y-1'">
+          <div class="pt-0.5 leading-none font-medium text-gray-700 italic" :class="{ 'row-start-2': hasLabelRow }">{{ idx + 1 }}.</div>
+          <button
+            v-if="perEntryRevert"
+            type="button"
+            :title="t('common.buttons.revert')"
+            class="flex items-center justify-center rounded-xs bg-primary-300 p-0.5 text-gray-100 shadow-xs outline-none hover:cursor-pointer hover:bg-primary-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500"
+            :class="{ invisible: !slotDirty(slot.key) }"
+            @mousedown.prevent
+            @click="revertSlot(slot.key)"
+          >
+            <ArrowPathSingleCounterclockwiseIcon class="size-3" aria-hidden="true" />
+          </button>
         </div>
+        <ClaimInput
+          :ref="(el) => setSlotRef(slot.key, el)"
+          :model-value="slot.claim"
+          :initial-claim="initialClaimForSlot(slot)"
+          :field="field"
+          :parent-claim-id="parentClaimId"
+          :invalid="invalid || (triggered && missing.flags[idx]) || false"
+          :required="triggered && missing.flags[idx]"
+          :is-first="idx === 0"
+          :session="session"
+          :base="base"
+          :label-id="labelId"
+          @update:model-value="(claim) => updateSlotClaim(slot.key, claim)"
+        />
       </template>
-      <div class="col-span-full grid grid-cols-subgrid items-start" :class="entryGapClass">
-        <template v-for="(slot, idx) in slots" :key="slot.key">
-          <!--
-            When the value input has a label row, the count cell reserves a
-            matching empty grid row (one line height) above the count and places
-            the count in the second row, so it lines up with the input. When the
-            input has no labels, the count sits at the top and a per-entry revert
-            icon sits under it. The button is a square the same height as the
-            "changed" badge, rendered unconditionally (just visibility:hidden when
-            the entry is unchanged) so it always reserves the count column's width
-            and the input does not shift when it appears. The mousedown is
-            prevented so clicking it does not blur the value input first (which
-            would commit before the revert runs).
-          -->
-          <div :class="hasLabelRow ? 'grid grid-rows-[1lh_auto] gap-y-1' : 'flex flex-col items-start gap-y-1'">
-            <div class="pt-0.5 leading-none font-medium text-gray-700 italic" :class="{ 'row-start-2': hasLabelRow }">{{ idx + 1 }}.</div>
-            <button
-              v-if="perEntryRevert"
-              type="button"
-              :title="t('common.buttons.revert')"
-              class="flex items-center justify-center rounded-xs bg-primary-300 p-0.5 text-gray-100 shadow-xs outline-none hover:cursor-pointer hover:bg-primary-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500"
-              :class="{ invisible: !slotDirty(slot.key) }"
-              @mousedown.prevent
-              @click="revertSlot(slot.key)"
-            >
-              <ArrowPathSingleCounterclockwiseIcon class="size-3" aria-hidden="true" />
-            </button>
-          </div>
-          <ClaimInput
-            :ref="(el) => setSlotRef(slot.key, el)"
-            :model-value="slot.claim"
-            :initial-claim="initialClaimForSlot(slot)"
-            :field="field"
-            :parent-claim-id="parentClaimId"
-            :invalid="invalid || (triggered && missing.flags[idx]) || false"
-            :required="triggered && missing.flags[idx]"
-            :is-first="idx === 0"
-            :session="session"
-            :base="base"
-            :label-id="labelId"
-            @update:model-value="(claim) => updateSlotClaim(slot.key, claim)"
-          />
-        </template>
-      </div>
     </div>
     <template v-else>
-      <div v-if="showHeader" ref="headerRef" class="flex flex-row flex-wrap items-center gap-1">
-        <span :id="labelId" class="leading-none font-medium text-gray-700"><DocumentRefInline :id="field.propertyId" :link="false" /></span>
-        <InputBadges :required="field.minCardinality > 0" :multiple="field.maxCardinality > 1" :changed="isDirty" @revert="onHeaderRevert" />
-      </div>
       <ClaimInput
         v-for="(slot, idx) in slots"
         :key="slot.key"
