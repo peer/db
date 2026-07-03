@@ -50,7 +50,16 @@ const cardinalityRef = useTemplateRef<{
   // plain booleans.
   isDirty: boolean
   perEntryRevert: boolean
+  // The field's first focusable input (or null until a slot has mounted).
+  inputEl: () => HTMLElement | null
 }>("cardinalityRef")
+
+// Clicking the field label focuses the field's first input, like a <label for>.
+// mousedown + preventDefault (the @mousedown.prevent in the template) sends focus
+// straight there instead of blurring to the body first.
+function onLabelMousedown(): void {
+  cardinalityRef.value?.inputEl()?.focus()
+}
 
 // labelCellRef points to the field's <th>. We provide it down the tree
 // so ClaimInput's focusout handler can detect focus moving to a control
@@ -96,7 +105,7 @@ async function revertField(): Promise<void> {
     <tr class="contents">
       <th ref="labelCellRef" scope="row" class="text-left font-medium text-gray-700">
         <div class="flex flex-col items-start gap-1">
-          <span :id="labelId" class="pt-0.5 leading-none"><DocumentRefInline :id="field.propertyId" :link="false" /></span>
+          <span :id="labelId" class="pt-0.5 leading-none" @mousedown.prevent="onLabelMousedown"><DocumentRefInline :id="field.propertyId" :link="false" /></span>
           <div class="flex flex-row flex-wrap gap-1">
             <InputBadges :required="isRequired()" :multiple="isMultiple()" :changed="fieldChanged" :revertable="!perEntryRevert" @revert="revertField" />
           </div>

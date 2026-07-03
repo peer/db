@@ -213,6 +213,13 @@ function revertSlot(key: string): void {
   void slotInputs.get(key)?.revert()
 }
 
+// Clicking the sub-field header label focuses the field's first input, like a
+// <label for>. mousedown + preventDefault (the @mousedown.prevent in the
+// template) sends focus straight there instead of blurring to the body first.
+function onLabelMousedown(): void {
+  firstChildInputEl()?.focus()
+}
+
 // Per-slot emptiness reading. Always defer to the ClaimInput's exposed
 // isEmpty: it covers both the committed claim AND the user's local
 // uncommitted edit (and any sub-claim activity). Using slot.claim alone
@@ -594,7 +601,9 @@ onBeforeUnmount(() => {
   -->
   <div ref="rootRef" class="flex min-w-0 grow flex-col" @focusout="onFocusOut">
     <div v-if="showHeader" ref="headerRef" class="mb-4 flex flex-row flex-wrap items-center gap-1 pl-4">
-      <span :id="labelId" class="leading-none font-medium text-gray-700"><DocumentRefInline :id="field.propertyId" :link="false" /></span>
+      <span :id="labelId" class="leading-none font-medium text-gray-700" @mousedown.prevent="onLabelMousedown"
+        ><DocumentRefInline :id="field.propertyId" :link="false"
+      /></span>
       <InputBadges :required="field.minCardinality > 0" :multiple="field.maxCardinality > 1" :changed="isDirty" :revertable="!perEntryRevert" @revert="onHeaderRevert" />
     </div>
     <div v-if="isRepeated" class="flex flex-col" :class="entryGapClass">
