@@ -16,13 +16,13 @@ having to remount this component.
 -->
 
 <script setup lang="ts">
-import type { ComponentPublicInstance, DeepReadonly, ShallowUnwrapRef } from "vue"
+import type { DeepReadonly, ShallowUnwrapRef } from "vue"
 
 import type { Claim, ClaimTypes } from "@/document"
 import type { FieldData, FieldEntryValue } from "@/fields"
 import type { ValidatedInput } from "@/types"
 
-import { computed, inject, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from "vue"
+import { computed, inject, onBeforeUnmount, onMounted, ref, useId, useTemplateRef, watch } from "vue"
 
 import CheckBox from "@/components/CheckBox.vue"
 import { VT_HAS, VT_NONE, VT_UNKNOWN } from "@/core"
@@ -33,6 +33,7 @@ import {
   fieldKey,
   fieldLabelCellKey,
   getClaimValues,
+  isSimpleField,
   getNextChangeNumberKey,
   makeDefaultPatchForField,
   makePatchForField,
@@ -42,9 +43,7 @@ import {
   valueTypeToClaimType,
 } from "@/fields"
 import ClaimCardinality from "@/partials/ClaimCardinality.vue"
-import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import FieldsFormRow from "@/partials/FieldsFormRow.vue"
-import InputErrors from "@/partials/InputErrors.vue"
 import { allErrors, useRegisterForValidation, useValidationRegistry } from "@/validation"
 import { Identifier } from "@tozd/identifier"
 
@@ -71,12 +70,16 @@ const props = withDefaults(
     isFirst?: boolean
     session: string
     base: readonly string[]
+    // Id of this field's label element, threaded down to the value input's
+    // FieldsFormRow so a bare single-column input is named via labelledby.
+    labelId?: string
   }>(),
   {
     parentClaimId: undefined,
     invalid: false,
     required: false,
     isFirst: false,
+    labelId: undefined,
   },
 )
 
@@ -144,7 +147,11 @@ const showSubFields = computed(() => {
   // Only the first slot of a default field shows sub-fields before a value exists (so the single
   // primary entry can be the none/unknown form). Other slots are value-first.
   if (props.field.default && props.isFirst) return true
-  return props.modelValue !== null
+  // Show as soon as the slot has a value locally (on dirty), before the claim is committed on blur,
+  // mirroring how the cardinality grows a new trailing slot on dirty. A sub-claim added before the
+  // commit lazily creates the parent claim via ensureClaimId. Stay shown while a committed claim
+  // exists even if the value is momentarily cleared mid-edit.
+  return hasValue.value || props.modelValue !== null
 })
 
 // Whether to render the presence-toggle checkbox. NONE / UNKNOWN never
@@ -181,13 +188,13 @@ const localIsEmpty = computed(() => {
 // self-registration so the outer registry (ClaimCardinality) can find us.
 const rootRef = useTemplateRef<HTMLElement>("rootRef")
 
-// checkboxRef points at the presence-toggle CheckBox (NONE / UNKNOWN /
-// HAS-without-sub-fields). Those slots have no registered child input, so
-// inputEl resolves the checkbox itself as the focus target.
-const checkboxRef = useTemplateRef<ComponentPublicInstance>("checkboxRef")
+// Id on the presence-toggle CheckBox (NONE / UNKNOWN / HAS-without-sub-fields).
+// Those slots have no registered child input, so inputEl resolves the checkbox
+// itself as the focus target, found by id (CheckBox renders a leading template
+// comment, so its $el is a comment node, not an element to querySelector).
+const checkboxId = useId()
 function checkboxInputEl(): HTMLElement | null {
-  const root = checkboxRef.value?.$el as HTMLElement | undefined
-  return root?.querySelector<HTMLInputElement>('input[type="checkbox"]') ?? null
+  return document.getElementById(checkboxId)
 }
 
 // formRowRef points at the FieldsFormRow ValidatedInput. We call its
@@ -538,6 +545,18 @@ onBeforeUnmount(() => unregisterForFlush(flush))
 // the moment of Add to know what to set under to.
 const ensureClaimIdCallback: () => Promise<string> = ensureClaimId
 
+// Sub-field label ids (so a sub-field's bare value input is named via
+// labelledby). Each sub-field's ClaimCardinality renders its own label + whole-
+// sub-field badge (header) and is passed this id for the label element.
+const subBaseId = useId()
+function subFieldLabelId(subField: DeepReadonly<FieldData>): string {
+  return `${subBaseId}-${fieldKey(subField)}`
+}
+
+// The sub-field group spaces its members like any field group: gap-8 once any
+// sub-field is non-simple (repeats or has its own sub-fields), else gap-4.
+const subFieldGapClass = computed<string>(() => (props.field.subFields.some((subField) => !isSimpleField(subField)) ? "gap-y-8" : "gap-y-4"))
+
 defineExpose({
   ...validatedInput,
   // Override the sync wrapper with the actual async function so direct
@@ -549,7 +568,7 @@ defineExpose({
 </script>
 
 <template>
-  <div ref="rootRef" class="flex min-w-0 grow flex-col gap-y-2" @focusout="onSlotCleanup">
+  <div ref="rootRef" class="flex min-w-0 grow flex-col gap-y-4" @focusout="onSlotCleanup">
     <!--
       Value input. Skipped for presence-only types (HAS / NONE / UNKNOWN);
       for those, see the checkbox / sub-form blocks below.
@@ -561,18 +580,16 @@ defineExpose({
       surfaces/clears the message immediately rather than on the next
       blur.
     -->
-    <InputErrors v-if="!isPresenceOnly" v-slot="errorProps" class="min-w-0 flex-auto grow">
-      <div v-bind="errorProps" class="flex min-w-0 grow flex-col" @focusout="onFocusOut">
-        <FieldsFormRow ref="formRowRef" v-model:entry="local" :field="field" :required="required" :invalid="invalid" />
-      </div>
-    </InputErrors>
+    <div v-if="!isPresenceOnly" class="flex min-w-0 grow flex-col" @focusout="onFocusOut">
+      <FieldsFormRow ref="formRowRef" v-model:entry="local" :field="field" :required="required" :invalid="invalid" :label-id="labelId" />
+    </div>
 
     <!--
       Presence-toggle checkbox for NONE, UNKNOWN, and HAS-without-sub-fields.
       HAS *with* sub-fields skips the checkbox entirely and relies on the
       sub-form to drive presence (lazy create via ensureClaimId).
     -->
-    <CheckBox v-if="showCheckbox" ref="checkboxRef" :model-value="modelValue !== null" @update:model-value="onCheckboxChange" />
+    <CheckBox v-if="showCheckbox" :id="checkboxId" :model-value="modelValue !== null" @update:model-value="onCheckboxChange" />
 
     <!--
       Sub-fields: one ClaimCardinality per sub-field, each with its property
@@ -582,18 +599,24 @@ defineExpose({
       sub-claim can sit under it). For HAS the sub-form is always shown;
       ensureClaimId lazily creates the parent on the first sub add.
     -->
-    <template v-if="showSubFields">
-      <div v-for="subField in field.subFields" :key="fieldKey(subField)" class="flex flex-col gap-y-1 pl-4">
-        <DocumentRefInline :id="subField.propertyId" :link="false" class="leading-none font-medium text-gray-700" />
-        <ClaimCardinality
-          :model-value="extractSubClaims(modelValue, subField)"
-          :initial-claims="extractSubClaims(initialClaim, subField)"
-          :field="subField"
-          :parent-claim-id="ensureClaimIdCallback"
-          :session="session"
-          :base="base"
-        />
-      </div>
-    </template>
+    <div v-if="showSubFields" class="flex flex-col pl-4" :class="subFieldGapClass">
+      <!--
+        Each sub-field's ClaimCardinality renders its own header (property label +
+        whole-sub-field changed/revert badge) above its slots, in the input column
+        so the label lines up with the input rather than the repeat count.
+      -->
+      <ClaimCardinality
+        v-for="subField in field.subFields"
+        :key="fieldKey(subField)"
+        :show-header="true"
+        :model-value="extractSubClaims(modelValue, subField)"
+        :initial-claims="extractSubClaims(initialClaim, subField)"
+        :field="subField"
+        :parent-claim-id="ensureClaimIdCallback"
+        :session="session"
+        :base="base"
+        :label-id="subFieldLabelId(subField)"
+      />
+    </div>
   </div>
 </template>

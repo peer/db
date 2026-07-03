@@ -77,6 +77,15 @@ export interface FieldData {
   default?: "none" | "unknown"
 }
 
+// isSimpleField reports whether a field renders as a single (non-repeating)
+// value with no sub-fields. Spacing in FieldsForm widens around non-simple
+// fields: a group of sibling fields uses gap-8 when any member is non-simple
+// (else gap-4); the repeated entries of a field use gap-8 when the field has
+// sub-fields (else gap-4); sections are separated by gap-12.
+export function isSimpleField(field: DeepReadonly<FieldData>): boolean {
+  return field.maxCardinality <= 1 && field.subFields.length === 0
+}
+
 // fieldSignature encodes a field's identity beyond its propertyId: its value type, default, and
 // the (recursive, order-independent) signature of its sub-fields. Fields that share a propertyId
 // but differ in value type, default, or sub-field structure get distinct signatures.
@@ -331,6 +340,18 @@ export function valueTypeToClaimType(valueTypeId: string): ClaimTypeName {
     return claimType
   }
   throw new Error(`unsupported value type: ${valueTypeId}`)
+}
+
+// Claim types whose value input renders its own per-column labels: amount and
+// time (value + precision columns) and their intervals (from/to bounds). Every
+// other claim type renders a single bare control with no label of its own.
+const LABELED_CLAIM_TYPES = new Set<ClaimTypeName>(["amount", "amountInterval", "time", "timeInterval"])
+
+// valueInputHasLabels reports whether a field's value input renders its own
+// column labels. Used to place a repeated field's count (below those labels when
+// present, at the top otherwise) and to decide where its per-entry revert lives.
+export function valueInputHasLabels(field: DeepReadonly<FieldData>): boolean {
+  return LABELED_CLAIM_TYPES.has(valueTypeToClaimType(field.valueType))
 }
 
 // FieldsFormSaveChange is a fully constructed change object emitted by FieldsForm, ready to be posted.

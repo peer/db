@@ -14,9 +14,9 @@ import type { DeepReadonly } from "vue"
 import type { Claim, ClaimTypes } from "@/document"
 import type { FieldData } from "@/fields"
 
-import { computed, provide, useTemplateRef } from "vue"
+import { computed, provide, useId, useTemplateRef } from "vue"
 
-import { fieldLabelCellKey, getClaimsForField } from "@/fields"
+import { fieldLabelCellKey, getClaimsForField, valueInputHasLabels } from "@/fields"
 import ClaimCardinality from "@/partials/ClaimCardinality.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import InputBadges from "@/partials/InputBadges.vue"
@@ -58,6 +58,10 @@ const cardinalityRef = useTemplateRef<{
 const labelCellRef = useTemplateRef<HTMLElement>("labelCellRef")
 provide(fieldLabelCellKey, () => labelCellRef.value)
 
+// Id of the property-label text, passed to ClaimCardinality so a bare value
+// input is named via aria-labelledby.
+const labelId = useId()
+
 function isRequired(): boolean {
   return props.field.minCardinality > 0
 }
@@ -67,6 +71,11 @@ function isMultiple(): boolean {
 }
 
 const fieldChanged = computed<boolean>(() => cardinalityRef.value?.isDirty === true)
+
+// A repeated field whose value input has no labels of its own shows the
+// changed/revert per entry (under each count, in ClaimCardinality), so the
+// left-cell badge keeps only the required/multiple tags.
+const perEntryRevert = computed<boolean>(() => isMultiple() && !valueInputHasLabels(props.field))
 
 async function revertField(): Promise<void> {
   if (!cardinalityRef.value) return
@@ -84,14 +93,22 @@ async function revertField(): Promise<void> {
     <tr class="contents">
       <th ref="labelCellRef" scope="row" class="text-left font-medium text-gray-700">
         <div class="flex flex-col items-start gap-1">
-          <DocumentRefInline :id="field.propertyId" :link="false" class="pt-0.5 leading-none" />
+          <span :id="labelId" class="pt-0.5 leading-none"><DocumentRefInline :id="field.propertyId" :link="false" /></span>
           <div class="flex flex-row flex-wrap gap-1">
-            <InputBadges :required="isRequired()" :multiple="isMultiple()" :changed="fieldChanged" @revert="revertField" />
+            <InputBadges :required="isRequired()" :multiple="isMultiple()" :changed="fieldChanged" :revertable="!perEntryRevert" @revert="revertField" />
           </div>
         </div>
       </th>
       <td>
-        <ClaimCardinality ref="cardinalityRef" :model-value="claimsForField" :initial-claims="initialClaimsForField" :field="field" :session="session" :base="base" />
+        <ClaimCardinality
+          ref="cardinalityRef"
+          :model-value="claimsForField"
+          :initial-claims="initialClaimsForField"
+          :field="field"
+          :session="session"
+          :base="base"
+          :label-id="labelId"
+        />
       </td>
     </tr>
   </tbody>

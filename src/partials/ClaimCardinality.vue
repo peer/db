@@ -22,18 +22,22 @@ import type { Claim } from "@/document"
 import type { FieldData } from "@/fields"
 import type { ValidatedInput } from "@/types"
 
-import { computed, onBeforeUnmount, ref, shallowReactive, useTemplateRef, watch } from "vue"
+import { computed, onBeforeUnmount, provide, ref, shallowReactive, useTemplateRef, watch } from "vue"
+import { useI18n } from "vue-i18n"
 
 import { AddClaimChange, claimPatchFrom, claimTypeName, RemoveClaimChange } from "@/document"
-import { getClaimValues, makePatchForField, valueTypeToClaimType } from "@/fields"
+import { getClaimValues, makePatchForField, valueInputHasLabels, valueTypeToClaimType } from "@/fields"
 import ClaimInput from "@/partials/ClaimInput.vue"
+import DocumentRefInline from "@/partials/DocumentRefInline.vue"
+import InputBadges from "@/partials/InputBadges.vue"
 import { useLocked } from "@/progress"
 import { allErrors, useRegisterForValidation, useValidationRegistry } from "@/validation"
+import { ArrowPathSingleCounterclockwiseIcon } from "@sidekickicons/vue/20/solid"
 import { Identifier } from "@tozd/identifier"
 
 import { inject as injectFn } from "vue"
 
-import { getNextChangeNumberKey, saveChangeKey } from "@/fields"
+import { fieldLabelCellKey, getNextChangeNumberKey, saveChangeKey } from "@/fields"
 
 const props = withDefaults(
   defineProps<{
@@ -44,12 +48,52 @@ const props = withDefaults(
     invalid?: boolean
     session: string
     base: readonly string[]
+    // Id of the (sub)field's label element, provided down so a bare value input
+    // is named via InputField's labelledby.
+    labelId?: string
+    // When true (sub-fields), render the field's label + whole-field badge as a
+    // header above the slots. Top-level fields render no header (their label
+    // lives in FieldsFormField's left cell).
+    showHeader?: boolean
   }>(),
   {
     parentClaimId: undefined,
     invalid: false,
+    labelId: undefined,
+    showHeader: false,
   },
 )
+
+// When this cardinality renders its own header (sub-fields), the header holds
+// the Revert button, so it acts as the "label cell" for the slots below: their
+// ClaimInputs skip the commit when focus moves to it (avoiding a commit/revert
+// race). Top-level cardinalities pass the FieldsFormField label cell through.
+const parentLabelCell = injectFn(fieldLabelCellKey, () => null)
+const headerRef = useTemplateRef<HTMLElement>("headerRef")
+provide(fieldLabelCellKey, () => (props.showHeader ? headerRef.value : parentLabelCell()))
+
+// A field is repeated when it can hold more than one value; repeated slots are
+// numbered (1., 2., ...) so repetition reads differently from sub-field nesting.
+const isRepeated = computed<boolean>(() => props.field.maxCardinality > 1)
+
+// Repeated entries spread further apart (gap-8) when each entry is non-simple -
+// the field has sub-fields, so every slot renders a value plus sub-field blocks.
+// A plain repeated value uses the tighter gap-4.
+const entryGapClass = computed<string>(() => (props.field.subFields.length > 0 ? "gap-y-8" : "gap-y-4"))
+
+// When the value input renders its own label row (amount/precision, time/
+// precision, interval bounds) the count cell reserves a matching empty grid row
+// (one line height, plus the label's mb-1 gap) above the count, so the count
+// lines up with the input rather than the labels.
+const hasLabelRow = computed<boolean>(() => valueInputHasLabels(props.field))
+
+// A repeated field whose value input has no labels of its own (e.g. a repeated
+// string) shows the per-entry changed/revert as a small icon under each count,
+// rather than a single whole-field changed/revert on the field's label. Fields
+// whose inputs have labels keep the per-input badge next to those labels.
+const perEntryRevert = computed<boolean>(() => isRepeated.value && !hasLabelRow.value)
+
+const { t } = useI18n({ useScope: "global" })
 
 let fallbackNum = 1
 const getNextChangeNumber = injectFn(getNextChangeNumberKey, () => fallbackNum++)
@@ -148,6 +192,17 @@ function setSlotRef(key: string, el: unknown): void {
     return
   }
   slotInputs.set(key, el as ExposedClaimInput)
+}
+
+// Per-slot dirty + revert, used to drive the per-entry revert icon under the
+// count (see perEntryRevert). isDirty is exposed as a Ref by ClaimInput but the
+// parent-side proxy unwraps it, so we read it as a plain boolean.
+function slotDirty(key: string): boolean {
+  return (slotInputs.get(key)?.isDirty as unknown as boolean) === true
+}
+
+function revertSlot(key: string): void {
+  void slotInputs.get(key)?.revert()
 }
 
 // Per-slot emptiness reading. Always defer to the ClaimInput's exposed
@@ -357,6 +412,17 @@ const slotsDirtyByDiff = computed<boolean>(() => {
   return false
 })
 
+// Whole-field dirty: a baseline diff (slot added/removed) or any child slot
+// dirty. Drives the header's changed/revert badge (sub-fields) and is exposed
+// upward (so FieldsFormField's left-cell badge sees it for top-level fields).
+const isDirty = computed<boolean>(() => slotsDirtyByDiff.value || anyChildDirty.value)
+
+// Header Revert (sub-fields): revert the whole (sub)field. Discards the Promise
+// since the badge's event handler is synchronous.
+function onHeaderRevert(): void {
+  void revertField()
+}
+
 // Composite ValidatedInput exposed upward.
 // As with ClaimInput, validatedInput.revert wraps the async revertField
 // in a void-discarding thunk so the framework's revertAll cascade (which
@@ -390,7 +456,7 @@ const validatedInput: ValidatedInput = {
   // spanning all slots, which the outer registry's containment check needs.
   inputEl: firstChildInputEl,
   mainEl: () => rootRef.value,
-  isDirty: computed(() => slotsDirtyByDiff.value || anyChildDirty.value),
+  isDirty,
   isEmpty: allChildEmpty,
   errors: computed(() => {
     const ourErrors = triggered.value ? missing.value.ourErrors : []
@@ -495,21 +561,98 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="rootRef" class="flex min-w-0 grow flex-col gap-y-2" @focusout="onFocusOut">
-    <ClaimInput
-      v-for="(slot, idx) in slots"
-      :key="slot.key"
-      :ref="(el) => setSlotRef(slot.key, el)"
-      :model-value="slot.claim"
-      :initial-claim="initialClaimForSlot(slot)"
-      :field="field"
-      :parent-claim-id="parentClaimId"
-      :invalid="invalid || (triggered && missing.flags[idx]) || false"
-      :required="triggered && missing.flags[idx]"
-      :is-first="idx === 0"
-      :session="session"
-      :base="base"
-      @update:model-value="(claim) => updateSlotClaim(slot.key, claim)"
-    />
+  <!--
+    Renders one ClaimInput per slot. Repeated fields (maxCardinality > 1) number
+    each slot in a min-content count column (1., 2., ...) so repetition reads
+    differently from sub-field nesting.
+
+    A sub-field header (the field label + whole-field changed/revert badge, shown
+    only via showHeader) sits in the input column above the slots. For repeated
+    fields the slots use a column subgrid so the header and the inputs share the
+    same count column and line up; the header is NOT above the count. Top-level
+    fields render no header (their label is in FieldsFormField's left cell).
+  -->
+  <div ref="rootRef" class="flex min-w-0 grow flex-col gap-y-1" @focusout="onFocusOut">
+    <div v-if="isRepeated" class="grid grid-cols-[min-content_auto] gap-x-4 gap-y-1">
+      <template v-if="showHeader">
+        <div aria-hidden="true"></div>
+        <div ref="headerRef" class="flex flex-row flex-wrap items-center gap-1">
+          <span :id="labelId" class="leading-none font-medium text-gray-700"><DocumentRefInline :id="field.propertyId" :link="false" /></span>
+          <InputBadges
+            :required="field.minCardinality > 0"
+            :multiple="field.maxCardinality > 1"
+            :changed="isDirty"
+            :revertable="!perEntryRevert"
+            @revert="onHeaderRevert"
+          />
+        </div>
+      </template>
+      <div class="col-span-full grid grid-cols-subgrid items-start" :class="entryGapClass">
+        <template v-for="(slot, idx) in slots" :key="slot.key">
+          <!--
+            When the value input has a label row, the count cell reserves a
+            matching empty grid row (one line height) above the count and places
+            the count in the second row, so it lines up with the input. When the
+            input has no labels, the count sits at the top and a per-entry revert
+            icon sits under it. The button is a square the same height as the
+            "changed" badge, rendered unconditionally (just visibility:hidden when
+            the entry is unchanged) so it always reserves the count column's width
+            and the input does not shift when it appears. The mousedown is
+            prevented so clicking it does not blur the value input first (which
+            would commit before the revert runs).
+          -->
+          <div :class="hasLabelRow ? 'grid grid-rows-[1lh_auto] gap-y-1' : 'flex flex-col items-start gap-y-1'">
+            <div class="pt-0.5 leading-none font-medium text-gray-700 italic" :class="{ 'row-start-2': hasLabelRow }">{{ idx + 1 }}.</div>
+            <button
+              v-if="perEntryRevert"
+              type="button"
+              :title="t('common.buttons.revert')"
+              class="flex items-center justify-center rounded-xs bg-primary-300 p-0.5 text-gray-100 shadow-xs outline-none hover:cursor-pointer hover:bg-primary-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500"
+              :class="{ invisible: !slotDirty(slot.key) }"
+              @mousedown.prevent
+              @click="revertSlot(slot.key)"
+            >
+              <ArrowPathSingleCounterclockwiseIcon class="size-3" aria-hidden="true" />
+            </button>
+          </div>
+          <ClaimInput
+            :ref="(el) => setSlotRef(slot.key, el)"
+            :model-value="slot.claim"
+            :initial-claim="initialClaimForSlot(slot)"
+            :field="field"
+            :parent-claim-id="parentClaimId"
+            :invalid="invalid || (triggered && missing.flags[idx]) || false"
+            :required="triggered && missing.flags[idx]"
+            :is-first="idx === 0"
+            :session="session"
+            :base="base"
+            :label-id="labelId"
+            @update:model-value="(claim) => updateSlotClaim(slot.key, claim)"
+          />
+        </template>
+      </div>
+    </div>
+    <template v-else>
+      <div v-if="showHeader" ref="headerRef" class="flex flex-row flex-wrap items-center gap-1">
+        <span :id="labelId" class="leading-none font-medium text-gray-700"><DocumentRefInline :id="field.propertyId" :link="false" /></span>
+        <InputBadges :required="field.minCardinality > 0" :multiple="field.maxCardinality > 1" :changed="isDirty" @revert="onHeaderRevert" />
+      </div>
+      <ClaimInput
+        v-for="(slot, idx) in slots"
+        :key="slot.key"
+        :ref="(el) => setSlotRef(slot.key, el)"
+        :model-value="slot.claim"
+        :initial-claim="initialClaimForSlot(slot)"
+        :field="field"
+        :parent-claim-id="parentClaimId"
+        :invalid="invalid || (triggered && missing.flags[idx]) || false"
+        :required="triggered && missing.flags[idx]"
+        :is-first="idx === 0"
+        :session="session"
+        :base="base"
+        :label-id="labelId"
+        @update:model-value="(claim) => updateSlotClaim(slot.key, claim)"
+      />
+    </template>
   </div>
 </template>

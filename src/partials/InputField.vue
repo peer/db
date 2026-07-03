@@ -15,6 +15,13 @@ const props = defineProps<{
   invalid?: boolean
   // When set, overrides the first label coming from the wrapped input.
   label?: string
+  // Id of an external label element that names this input. Used for
+  // aria-labelledby when the input renders no labels of its own (a bare
+  // single-column input whose label lives elsewhere, e.g. FieldsForm's left
+  // cell or a sub-field's label-above).
+  labelledby?: string
+  // Suppress the whole-input changed/revert + required badge on the first label.
+  hideBadge?: boolean
 }>()
 
 const { t } = useI18n({ useScope: "global" })
@@ -39,6 +46,11 @@ const columns = computed<InputColumn[]>(() => input.value?.columns ?? [{ label: 
 const displayColumns = computed<InputColumn[]>(() => columns.value.map((col, i) => (i === 0 && props.label !== undefined ? { ...col, label: props.label } : col)))
 
 const columnCount = computed<number>(() => displayColumns.value.length)
+
+// The label row (and the whole-input badge) is shown only when at least one
+// column has a label. A bare input (no labels) renders just its control and
+// errors; its accessible name comes from the labelledby prop instead.
+const showLabels = computed<boolean>(() => displayColumns.value.some((col) => col.label !== ""))
 
 // The first column grows to fill the available width; the remaining columns
 // (e.g. a precision input, or InputMissing's checkbox column) size to content.
@@ -88,11 +100,13 @@ function onRevert(): void {
     hint). items-start keeps every column aligned at the top regardless of how
     tall any single column's control is.
   -->
-  <fieldset v-tw-merge class="grid items-start gap-x-4" :style="{ gridTemplateColumns }" :aria-labelledby="displayColumns[0]?.label ? labelId : undefined">
-    <div v-for="(col, i) in displayColumns" :key="i" class="mb-1 flex flex-row flex-wrap items-center gap-1" @mousedown="onLabelMousedown($event, col)">
-      <span v-if="col.label" :id="i === 0 ? labelId : undefined">{{ col.label }}</span>
-      <InputBadges v-if="i === 0" :required="required" :changed="input?.isDirty ?? false" @revert="onRevert" />
-    </div>
+  <fieldset v-tw-merge class="grid items-start gap-x-4" :style="{ gridTemplateColumns }" :aria-labelledby="showLabels ? labelId : labelledby || undefined">
+    <template v-if="showLabels">
+      <div v-for="(col, i) in displayColumns" :key="i" class="mb-1 flex flex-row flex-wrap items-center gap-1" @mousedown="onLabelMousedown($event, col)">
+        <span v-if="col.label" :id="i === 0 ? labelId : undefined">{{ col.label }}</span>
+        <InputBadges v-if="i === 0 && !hideBadge" :required="required" :changed="input?.isDirty ?? false" @revert="onRevert" />
+      </div>
+    </template>
     <!--
       Single column: a one-column grid so the control stretches to fill the
       width. Multiple columns: display:contents so the input's top-level

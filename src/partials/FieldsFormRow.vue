@@ -42,7 +42,7 @@ import InputLink from "@/partials/input/InputLink.vue"
 import InputRef from "@/partials/input/InputRef.vue"
 import InputString from "@/partials/input/InputString.vue"
 import InputTime from "@/partials/input/InputTime.vue"
-import InputErrors from "@/partials/InputErrors.vue"
+import InputField from "@/partials/InputField.vue"
 import InputMissing from "@/partials/InputMissing.vue"
 import { allErrors, useRegisterForValidation, useValidationRegistry } from "@/validation"
 
@@ -55,6 +55,10 @@ const props = defineProps<{
   // Presentational red ring on the input. Used for the cardinality-short
   // visual hint, orthogonal to per-input validation errors.
   invalid: boolean
+  // Id of the (sub)field's label element, threaded down from the field's
+  // ClaimCardinality, so a bare single-column input is named via InputField's
+  // labelledby. Undefined when not in a FieldsForm context.
+  labelId?: string
 }>()
 
 // Notify the parent on any user-driven model change. Emitted by every
@@ -90,6 +94,12 @@ const { t } = useI18n({ useScope: "global" })
 
 const claimType = computed(() => valueTypeToClaimType(props.field.valueType))
 const isFile = computed(() => props.field.valueType === VT_FILE)
+
+// When the value input IS the whole field (a single non-repeated value with no
+// sub-fields), its whole-input changed/revert badge duplicates the field-level
+// badge next to the field's label, so InputField hides it. Repeated fields keep
+// a per-slot badge; intervals keep their distinct From/To badges (set below).
+const inputIsWholeField = computed(() => props.field.maxCardinality <= 1 && props.field.subFields.length === 0)
 
 // Sub-registry: every inner input (InputString, InputAmount, InputMissing,
 // etc.) registers here instead of bubbling directly to the ancestor
@@ -168,146 +178,112 @@ function onInput() {
 </script>
 
 <template>
+  <!--
+    Each value input is wrapped in InputField. InputField renders the per-input
+    labels + whole-input changed/revert badge for multi-column inputs
+    (amount/precision, interval bounds), or nothing for single-column inputs
+    (their label and whole-field badge live in FieldsFormField's left cell,
+    referenced via labelledby). required/invalid flow to the inner input
+    through InputField's slot props.
+  -->
   <!-- id -->
-  <InputErrors v-if="claimType === 'id'" v-slot="errorProps" class="min-w-0 flex-auto grow">
-    <InputIdentifier v-bind="errorProps" v-model="value" :required="required" :invalid="invalid" @update:model-value="onInput" />
-  </InputErrors>
+  <InputField v-if="claimType === 'id'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField">
+    <template #input="inputProps">
+      <InputIdentifier v-bind="inputProps" v-model="value" @update:model-value="onInput" />
+    </template>
+  </InputField>
 
   <!-- string -->
-  <InputErrors v-else-if="claimType === 'string'" v-slot="errorProps" class="min-w-0 flex-auto grow">
-    <InputString v-bind="errorProps" v-model="value" :required="required" :invalid="invalid" @update:model-value="onInput" />
-  </InputErrors>
+  <InputField v-else-if="claimType === 'string'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField">
+    <template #input="inputProps">
+      <InputString v-bind="inputProps" v-model="value" @update:model-value="onInput" />
+    </template>
+  </InputField>
 
   <!-- html -->
-  <InputErrors v-else-if="claimType === 'html'" v-slot="errorProps" class="min-w-0 flex-auto grow">
-    <InputHTML v-bind="errorProps" v-model="value" :required="required" :invalid="invalid" @update:model-value="onInput" />
-  </InputErrors>
+  <InputField v-else-if="claimType === 'html'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField">
+    <template #input="inputProps">
+      <InputHTML v-bind="inputProps" v-model="value" @update:model-value="onInput" />
+    </template>
+  </InputField>
 
   <!-- amount -->
-  <InputErrors v-else-if="claimType === 'amount'" v-slot="errorProps" class="min-w-0 flex-auto grow">
-    <InputAmount
-      v-bind="errorProps"
-      v-model="value"
-      v-model:precision="amountPrecision"
-      :required="required"
-      :invalid="invalid"
-      @update:model-value="onInput"
-      @update:precision="onInput"
-    />
-  </InputErrors>
+  <InputField v-else-if="claimType === 'amount'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField">
+    <template #input="inputProps">
+      <InputAmount v-bind="inputProps" v-model="value" v-model:precision="amountPrecision" @update:model-value="onInput" @update:precision="onInput" />
+    </template>
+  </InputField>
 
-  <!--
-    amountInterval - "from" and "to" stack vertically, one per sub-row.
-    The min-w-0/flex-auto/grow on each InputErrors cascades through
-    InputMissing's slot down to InputAmount's root, so the amount input
-    column grows to fill the row width (otherwise InputAmount's root
-    would sit at natural width inside InputMissing's growing slot).
-  -->
-  <div v-else-if="claimType === 'amountInterval'" class="flex min-w-0 flex-auto grow flex-col gap-y-1">
-    <InputErrors v-slot="errorProps" class="min-w-0 flex-auto grow">
-      <InputMissing
-        v-bind="errorProps"
-        v-model:unknown="fromUnknown"
-        v-model:none="fromNone"
-        :required="required"
-        :invalid="invalid"
-        @update:unknown="onInput"
-        @update:none="onInput"
-      >
-        <template #default="missingProps">
-          <InputAmount v-bind="missingProps" v-model="value" v-model:precision="amountPrecision" @update:model-value="onInput" @update:precision="onInput">
-            <template #amount-label>{{ t("partials.FieldsForm.from") }}</template>
-          </InputAmount>
-        </template>
-      </InputMissing>
-    </InputErrors>
-    <InputErrors v-slot="errorProps" class="min-w-0 flex-auto grow">
-      <InputMissing
-        v-bind="errorProps"
-        v-model:unknown="toUnknown"
-        v-model:none="toNone"
-        :required="required"
-        :invalid="invalid"
-        @update:unknown="onInput"
-        @update:none="onInput"
-      >
-        <template #default="missingProps">
-          <InputAmount v-bind="missingProps" v-model="valueTo" v-model:precision="amountPrecisionTo" @update:model-value="onInput" @update:precision="onInput">
-            <template #amount-label>{{ t("partials.FieldsForm.to") }}</template>
-          </InputAmount>
-        </template>
-      </InputMissing>
-    </InputErrors>
+  <!-- amountInterval - "from" and "to" stack vertically, one InputField each. -->
+  <div v-else-if="claimType === 'amountInterval'" class="flex min-w-0 flex-col gap-y-1">
+    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')">
+      <template #input="inputProps">
+        <InputMissing v-bind="inputProps" v-model:unknown="fromUnknown" v-model:none="fromNone" @update:unknown="onInput" @update:none="onInput">
+          <template #default="missingProps">
+            <InputAmount v-bind="missingProps" v-model="value" v-model:precision="amountPrecision" @update:model-value="onInput" @update:precision="onInput" />
+          </template>
+        </InputMissing>
+      </template>
+    </InputField>
+    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.to')">
+      <template #input="inputProps">
+        <InputMissing v-bind="inputProps" v-model:unknown="toUnknown" v-model:none="toNone" @update:unknown="onInput" @update:none="onInput">
+          <template #default="missingProps">
+            <InputAmount v-bind="missingProps" v-model="valueTo" v-model:precision="amountPrecisionTo" @update:model-value="onInput" @update:precision="onInput" />
+          </template>
+        </InputMissing>
+      </template>
+    </InputField>
   </div>
 
   <!-- time -->
-  <InputErrors v-else-if="claimType === 'time'" v-slot="errorProps" class="min-w-0 flex-auto grow">
-    <InputTime
-      v-bind="errorProps"
-      v-model="value"
-      v-model:precision="timePrecision"
-      :required="required"
-      :invalid="invalid"
-      @update:model-value="onInput"
-      @update:precision="onInput"
-    />
-  </InputErrors>
+  <InputField v-else-if="claimType === 'time'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField">
+    <template #input="inputProps">
+      <InputTime v-bind="inputProps" v-model="value" v-model:precision="timePrecision" @update:model-value="onInput" @update:precision="onInput" />
+    </template>
+  </InputField>
 
-  <!--
-    timeInterval - "from" and "to" stack vertically, one per sub-row.
-    See amountInterval above for why min-w-0/flex-auto/grow on
-    InputErrors is needed.
-  -->
-  <div v-else-if="claimType === 'timeInterval'" class="flex min-w-0 flex-auto grow flex-col gap-y-1">
-    <InputErrors v-slot="errorProps" class="min-w-0 flex-auto grow">
-      <InputMissing
-        v-bind="errorProps"
-        v-model:unknown="fromUnknown"
-        v-model:none="fromNone"
-        :required="required"
-        :invalid="invalid"
-        @update:unknown="onInput"
-        @update:none="onInput"
-      >
-        <template #default="missingProps">
-          <InputTime v-bind="missingProps" v-model="value" v-model:precision="timePrecision" @update:model-value="onInput" @update:precision="onInput">
-            <template #time-label>{{ t("partials.FieldsForm.from") }}</template>
-          </InputTime>
-        </template>
-      </InputMissing>
-    </InputErrors>
-    <InputErrors v-slot="errorProps" class="min-w-0 flex-auto grow">
-      <InputMissing
-        v-bind="errorProps"
-        v-model:unknown="toUnknown"
-        v-model:none="toNone"
-        :required="required"
-        :invalid="invalid"
-        @update:unknown="onInput"
-        @update:none="onInput"
-      >
-        <template #default="missingProps">
-          <InputTime v-bind="missingProps" v-model="valueTo" v-model:precision="timePrecisionTo" @update:model-value="onInput" @update:precision="onInput">
-            <template #time-label>{{ t("partials.FieldsForm.to") }}</template>
-          </InputTime>
-        </template>
-      </InputMissing>
-    </InputErrors>
+  <!-- timeInterval - "from" and "to" stack vertically, one InputField each. -->
+  <div v-else-if="claimType === 'timeInterval'" class="flex min-w-0 flex-col gap-y-1">
+    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')">
+      <template #input="inputProps">
+        <InputMissing v-bind="inputProps" v-model:unknown="fromUnknown" v-model:none="fromNone" @update:unknown="onInput" @update:none="onInput">
+          <template #default="missingProps">
+            <InputTime v-bind="missingProps" v-model="value" v-model:precision="timePrecision" @update:model-value="onInput" @update:precision="onInput" />
+          </template>
+        </InputMissing>
+      </template>
+    </InputField>
+    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.to')">
+      <template #input="inputProps">
+        <InputMissing v-bind="inputProps" v-model:unknown="toUnknown" v-model:none="toNone" @update:unknown="onInput" @update:none="onInput">
+          <template #default="missingProps">
+            <InputTime v-bind="missingProps" v-model="valueTo" v-model:precision="timePrecisionTo" @update:model-value="onInput" @update:precision="onInput" />
+          </template>
+        </InputMissing>
+      </template>
+    </InputField>
   </div>
 
   <!-- link (no file affordance) -->
-  <InputErrors v-else-if="claimType === 'link' && !isFile" v-slot="errorProps" class="min-w-0 flex-auto grow">
-    <InputLink v-bind="errorProps" v-model="value" :required="required" :invalid="invalid" @update:model-value="onInput" />
-  </InputErrors>
+  <InputField v-else-if="claimType === 'link' && !isFile" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField">
+    <template #input="inputProps">
+      <InputLink v-bind="inputProps" v-model="value" @update:model-value="onInput" />
+    </template>
+  </InputField>
 
   <!-- link with file value type: render the file-upload affordance instead. -->
-  <InputErrors v-else-if="claimType === 'link' && isFile" v-slot="errorProps" class="min-w-0 flex-auto grow">
-    <InputFile v-bind="errorProps" v-model="value" :required="required" :invalid="invalid" @update:model-value="onInput" />
-  </InputErrors>
+  <InputField v-else-if="claimType === 'link' && isFile" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField">
+    <template #input="inputProps">
+      <InputFile v-bind="inputProps" v-model="value" @update:model-value="onInput" />
+    </template>
+  </InputField>
 
   <!-- ref -->
-  <InputErrors v-else-if="claimType === 'ref'" v-slot="errorProps" class="min-w-0 flex-auto grow">
-    <!-- TODO: Pass "self" prop as the current document's ID. -->
-    <InputRef v-bind="errorProps" v-model="value" :filter="field.values" :required="required" :invalid="invalid" @update:model-value="onInput" />
-  </InputErrors>
+  <InputField v-else-if="claimType === 'ref'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField">
+    <template #input="inputProps">
+      <!-- TODO: Pass "self" prop as the current document's ID. -->
+      <InputRef v-bind="inputProps" v-model="value" :filter="field.values" @update:model-value="onInput" />
+    </template>
+  </InputField>
 </template>
