@@ -104,6 +104,13 @@ const { runValidation, validatedInput } = useValidation(
 
 defineExpose(validatedInput)
 
+// Clicking the group's legend focuses its first radio, like a <label for>.
+// mousedown + preventDefault (the @mousedown.prevent in the template) sends focus
+// straight there instead of blurring to the body first.
+function onLegendMousedown(): void {
+  fieldsetRef.value?.querySelector<HTMLInputElement>('input[type="radio"]')?.focus()
+}
+
 // Focus has actually left the fieldset (not just moved between radios within
 // it). Run lazy validation now so the required error appears as soon as the
 // user tabs/clicks away from an empty required field. The nextTick is needed
@@ -162,7 +169,7 @@ const WithPeerDBDocument = WithDocument<D>
 
 <template>
   <fieldset ref="fieldsetRef" class="pd-inputrefselect" :aria-busy="dataLoading || undefined" @focusout="onFocusout">
-    <legend class="mb-1"><slot /></legend>
+    <legend class="mb-1" :class="inactive ? 'cursor-not-allowed' : 'cursor-pointer'" @mousedown.prevent="onLegendMousedown"><slot /></legend>
     <div class="grid grid-cols-[max-content_auto] gap-x-1 gap-y-0.5">
       <template v-if="dataLoading">
         <template v-for="i in 3" :key="i">
