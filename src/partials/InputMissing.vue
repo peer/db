@@ -242,10 +242,10 @@ async function onFocusOut(event: FocusEvent) {
     <slot v-bind="$attrs" :invalid="invalid || showRequired" @errors="(v: ValidationError[]) => (innerErrors = v)" />
     <WithLock :lock="getParentLockRef">
       <div class="flex flex-col">
-        <label class="flex items-center gap-1 leading-5"
+        <label class="flex cursor-pointer items-center gap-1 leading-5"
           ><CheckBox :id="checkboxId" v-model="isUnknown" :invalid="invalid || showRequired" /><span>{{ t("common.values.unknown") }}</span></label
         >
-        <label class="flex items-center gap-1 leading-5"
+        <label class="flex cursor-pointer items-center gap-1 leading-5"
           ><CheckBox v-model="isNone" :invalid="invalid || showRequired" /><span>{{ t("common.values.none") }}</span></label
         >
       </div>

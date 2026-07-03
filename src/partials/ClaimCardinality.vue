@@ -601,7 +601,7 @@ onBeforeUnmount(() => {
   -->
   <div ref="rootRef" class="flex min-w-0 grow flex-col" @focusout="onFocusOut">
     <div v-if="showHeader" ref="headerRef" class="mb-4 flex flex-row flex-wrap items-center gap-1 pl-4">
-      <span :id="labelId" class="leading-none font-medium text-gray-700" @mousedown.prevent="onLabelMousedown"
+      <span :id="labelId" class="cursor-pointer leading-none font-medium text-gray-700" @mousedown.prevent="onLabelMousedown"
         ><DocumentRefInline :id="field.propertyId" :link="false"
       /></span>
       <InputBadges :required="field.minCardinality > 0" :multiple="field.maxCardinality > 1" :changed="isDirty" :revertable="!perEntryRevert" @revert="onHeaderRevert" />

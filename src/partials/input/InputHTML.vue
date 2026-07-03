@@ -1932,7 +1932,7 @@ watch(
         <!--
           Label column.
         -->
-        <div class="flex shrink-0 flex-col items-start gap-1 pt-0.5" @click="onLabelClick">
+        <div class="flex shrink-0 cursor-pointer flex-col items-start gap-1 pt-0.5" @click="onLabelClick">
           <span class="leading-none text-gray-700">{{ bottomLabel }}</span>
           <div class="flex flex-row flex-wrap gap-1">
             <InputBadges :changed="isLinkInputDirty" @revert="onRevertLinkInput" />

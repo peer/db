@@ -105,7 +105,9 @@ async function revertField(): Promise<void> {
     <tr class="contents">
       <th ref="labelCellRef" scope="row" class="text-left font-medium text-gray-700">
         <div class="flex flex-col items-start gap-1">
-          <span :id="labelId" class="pt-0.5 leading-none" @mousedown.prevent="onLabelMousedown"><DocumentRefInline :id="field.propertyId" :link="false" /></span>
+          <span :id="labelId" class="cursor-pointer pt-0.5 leading-none" @mousedown.prevent="onLabelMousedown"
+            ><DocumentRefInline :id="field.propertyId" :link="false"
+          /></span>
           <div class="flex flex-row flex-wrap gap-1">
             <InputBadges :required="isRequired()" :multiple="isMultiple()" :changed="fieldChanged" :revertable="!perEntryRevert" @revert="revertField" />
           </div>
