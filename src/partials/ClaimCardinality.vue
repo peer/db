@@ -587,13 +587,13 @@ onBeforeUnmount(() => {
     up, so the colour forms a path down the nested rails to the field.
 
     The sub-field header (the field label + whole-field badge, shown only via
-    showHeader) sits left-aligned above the slots with mb-4; a transparent
-    rail-width border keeps it aligned with the slots' content (the count), while
-    only the slots carry the visible rail. Top-level fields render no header
-    (their label is in FieldsFormField's left cell).
+    showHeader) sits left-aligned above the slots with mb-4 and the same pl-4 as
+    the slots, so it aligns with their content (the count); the rail bar is
+    absolutely positioned and does not shift that. Top-level fields render no
+    header (their label is in FieldsFormField's left cell).
   -->
   <div ref="rootRef" class="flex min-w-0 grow flex-col" @focusout="onFocusOut">
-    <div v-if="showHeader" ref="headerRef" class="mb-4 flex flex-row flex-wrap items-center gap-1 border-l-4 border-transparent pl-4">
+    <div v-if="showHeader" ref="headerRef" class="mb-4 flex flex-row flex-wrap items-center gap-1 pl-4">
       <span :id="labelId" class="leading-none font-medium text-gray-700"><DocumentRefInline :id="field.propertyId" :link="false" /></span>
       <InputBadges :required="field.minCardinality > 0" :multiple="field.maxCardinality > 1" :changed="isDirty" :revertable="!perEntryRevert" @revert="onHeaderRevert" />
     </div>
@@ -601,8 +601,8 @@ onBeforeUnmount(() => {
       <div
         v-for="(slot, idx) in slots"
         :key="slot.key"
-        class="grid grid-cols-[min-content_auto] items-start gap-x-4 border-l-4 pl-4 not-has-[[aria-invalid=true]]:focus-within:border-primary-500 has-[[aria-invalid=true]]:border-error-600"
-        :class="slotDirty(slot.key) ? 'border-primary-300' : 'border-neutral-300'"
+        class="relative grid grid-cols-[min-content_auto] items-start gap-x-4 pl-4 before:absolute before:inset-y-0 before:left-0 before:w-1 before:rounded-sm before:content-[''] not-has-[[aria-invalid=true]]:focus-within:before:bg-primary-500 has-[[aria-invalid=true]]:before:bg-error-600"
+        :class="slotDirty(slot.key) ? 'before:bg-primary-300' : 'before:bg-neutral-300'"
       >
         <!--
           When the value input has a label row, the count cell reserves a matching
@@ -649,8 +649,8 @@ onBeforeUnmount(() => {
       <div
         v-for="(slot, idx) in slots"
         :key="slot.key"
-        class="border-l-4 pl-4 not-has-[[aria-invalid=true]]:focus-within:border-primary-500 has-[[aria-invalid=true]]:border-error-600"
-        :class="slotDirty(slot.key) ? 'border-primary-300' : 'border-neutral-300'"
+        class="relative pl-4 before:absolute before:inset-y-0 before:left-0 before:w-1 before:rounded-sm before:content-[''] not-has-[[aria-invalid=true]]:focus-within:before:bg-primary-500 has-[[aria-invalid=true]]:before:bg-error-600"
+        :class="slotDirty(slot.key) ? 'before:bg-primary-300' : 'before:bg-neutral-300'"
       >
         <ClaimInput
           :ref="(el) => setSlotRef(slot.key, el)"
