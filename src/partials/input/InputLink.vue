@@ -5,6 +5,7 @@ import type { ValidatedInput, ValidationError, ValidatorFn } from "@/types"
 
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 import { computed, useTemplateRef } from "vue"
+import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import InputText from "@/components/InputText.vue"
@@ -31,7 +32,13 @@ const model = defineModel<string>({ default: "" })
 
 const emit = defineEmits<{ errors: [ValidationError[]] }>()
 
+const { t } = useI18n({ useScope: "global" })
+
 const router = useRouter()
+
+// An example URL, shown under the input (when there is no error) so the
+// expected format is clear.
+const hints = computed<string[]>(() => [t("partials.input.InputLink.hint")])
 
 const canOpen = computed(() => {
   const trimmed = model.value.trim()
@@ -117,6 +124,7 @@ const validatedInput: ValidatedInput = {
   isEmpty: computed<boolean>(() => inputTextRef.value?.isEmpty ?? true),
   errors: computed<ValidationError[]>(() => inputTextRef.value?.errors ?? []),
   checkpoint: () => inputTextRef.value?.checkpoint(),
+  hints,
 }
 defineExpose(validatedInput)
 </script>

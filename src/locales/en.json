@@ -121,6 +121,9 @@
         "dropOrBrowse": "Drop file here or click to browse",
         "noPermission": "Uploading files not allowed."
       },
+      "InputLink": {
+        "hint": "Example: https://example.com"
+      },
       "InputRef": {
         "invalidValue": "invalid value",
         "noResults": "No results found."

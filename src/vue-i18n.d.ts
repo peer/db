@@ -132,6 +132,9 @@ declare module "vue-i18n" {
           dropOrBrowse: string
           noPermission: string
         }
+        InputLink: {
+          hint: string
+        }
         InputRef: {
           invalidValue: string
           noResults: string

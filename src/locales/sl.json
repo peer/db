@@ -121,6 +121,9 @@
         "dropOrBrowse": "Spustite datoteko sem ali kliknite za brskanje",
         "noPermission": "Nalaganje datotek ni dovoljeno."
       },
+      "InputLink": {
+        "hint": "Primer: https://example.com"
+      },
       "InputRef": {
         "invalidValue": "neveljavna vrednost",
         "noResults": "Ni najdenih rezultatov."
