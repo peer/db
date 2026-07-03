@@ -574,9 +574,17 @@ onBeforeUnmount(() => {
 <template>
   <!--
     Renders one ClaimInput per slot. Each slot (a repeated entry, or the single
-    entry of a non-repeated field) is its own "group" with a gray left rail, so
+    entry of a non-repeated field) is its own "group" with a left rail, so
     repeated entries read as separate blocks and nesting shows via the rails'
     indentation. Repeated fields number each slot in a min-content count column.
+
+    The rail mirrors the input's ring, resolving by priority: error (red) when it
+    contains an invalid input, else primary-500 (blue) when the slot or anything
+    inside it is focused, else primary-300 (the revert button's colour) when the
+    slot is changed, else neutral. The invalid/focus overrides are CSS variants
+    with higher specificity than the changed/neutral base, so invalid > focus >
+    changed. focus-within / has(aria-invalid) / the aggregated dirty all bubble
+    up, so the colour forms a path down the nested rails to the field.
 
     The sub-field header (the field label + whole-field badge, shown only via
     showHeader) sits left-aligned above the slots with mb-4; a transparent
@@ -590,7 +598,12 @@ onBeforeUnmount(() => {
       <InputBadges :required="field.minCardinality > 0" :multiple="field.maxCardinality > 1" :changed="isDirty" :revertable="!perEntryRevert" @revert="onHeaderRevert" />
     </div>
     <div v-if="isRepeated" class="flex flex-col" :class="entryGapClass">
-      <div v-for="(slot, idx) in slots" :key="slot.key" class="grid grid-cols-[min-content_auto] items-start gap-x-4 border-l-4 border-gray-200 pl-4">
+      <div
+        v-for="(slot, idx) in slots"
+        :key="slot.key"
+        class="grid grid-cols-[min-content_auto] items-start gap-x-4 border-l-4 pl-4 not-has-[[aria-invalid=true]]:focus-within:border-primary-500 has-[[aria-invalid=true]]:border-error-600"
+        :class="slotDirty(slot.key) ? 'border-primary-300' : 'border-neutral-300'"
+      >
         <!--
           When the value input has a label row, the count cell reserves a matching
           empty grid row (one line height) above the count and places the count in
@@ -633,7 +646,12 @@ onBeforeUnmount(() => {
       </div>
     </div>
     <template v-else>
-      <div v-for="(slot, idx) in slots" :key="slot.key" class="border-l-4 border-gray-200 pl-4">
+      <div
+        v-for="(slot, idx) in slots"
+        :key="slot.key"
+        class="border-l-4 pl-4 not-has-[[aria-invalid=true]]:focus-within:border-primary-500 has-[[aria-invalid=true]]:border-error-600"
+        :class="slotDirty(slot.key) ? 'border-primary-300' : 'border-neutral-300'"
+      >
         <ClaimInput
           :ref="(el) => setSlotRef(slot.key, el)"
           :model-value="slot.claim"
