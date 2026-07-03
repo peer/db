@@ -103,7 +103,7 @@ function onRevert(): void {
   <fieldset v-tw-merge class="grid items-start gap-x-4" :style="{ gridTemplateColumns }" :aria-labelledby="showLabels ? labelId : labelledby || undefined">
     <template v-if="showLabels">
       <div v-for="(col, i) in displayColumns" :key="i" class="mb-1 flex flex-row flex-wrap items-center gap-1" @mousedown="onLabelMousedown($event, col)">
-        <span v-if="col.label" :id="i === 0 ? labelId : undefined">{{ col.label }}</span>
+        <span v-if="col.label" :id="i === 0 ? labelId : undefined" class="leading-none">{{ col.label }}</span>
         <InputBadges v-if="i === 0 && !hideBadge" :required="required" :changed="input?.isDirty ?? false" @revert="onRevert" />
       </div>
     </template>

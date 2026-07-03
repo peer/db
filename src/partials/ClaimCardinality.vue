@@ -602,8 +602,8 @@ onBeforeUnmount(() => {
           does not shift when it appears. The mousedown is prevented so clicking it
           does not blur the value input first (which would commit before revert).
         -->
-        <div :class="hasLabelRow ? 'grid grid-rows-[1lh_auto] gap-y-1' : 'flex flex-col items-start gap-y-1'">
-          <div class="pt-0.5 leading-none font-medium text-gray-700 italic" :class="{ 'row-start-2': hasLabelRow }">{{ idx + 1 }}.</div>
+        <div :class="hasLabelRow ? 'grid grid-rows-[1lh_auto] gap-y-1 leading-none' : 'flex flex-col items-start gap-y-1'">
+          <div class="pt-0.5 leading-none font-medium text-gray-700" :class="{ 'row-start-2': hasLabelRow }">{{ idx + 1 }}.</div>
           <button
             v-if="perEntryRevert"
             type="button"
