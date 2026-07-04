@@ -218,12 +218,12 @@ watch(model, (value) => {
   if (expected !== null && value === expected) return
   if (!timeAuthoritative.value) return
   if (!value) {
-    // The value was cleared. Reset precision to the entry's empty default ("y")
-    // so a precision auto-inferred from the now-deleted value does not linger and
-    // keep the (value-less) entry comparing non-empty, which would block the
-    // slot's commit-empty removal and light a spurious "changed". A precision the
-    // user picked without ever entering a value is precision-authoritative and
-    // returns at the guard above, so a deliberate precision-only entry is kept.
+    // The value was cleared: a time with no value is not a valid claim, so the
+    // slot must be removed. Reset the leftover precision (auto-inferred, or one
+    // the user deliberately picked - it does not matter) to the entry's empty
+    // default ("y") so it does not keep the value-less entry comparing non-empty.
+    // Otherwise commit() takes the Set/Add path and pushes an invalid, value-less
+    // claim to the server instead of the Remove path.
     if (precision.value !== "y") {
       precision.value = "y"
     }
@@ -258,15 +258,7 @@ watch(precision, (value) => {
 // watcher-driven reformat) bypass these and set the model/precision
 // directly, leaving timeAuthoritative as the user last set it.
 function onTimeUpdate(v: string) {
-  // Only a non-empty edit makes the time the authoritative side (so it drives
-  // precision). Clearing the time leaves the authoritative side as it was: if the
-  // user had picked a precision directly, it stays precision-authoritative, so the
-  // deliberate precision survives the clear and the slot reads as "changed" (only
-  // Revert restores it); if the time was already driving precision, watch(model)
-  // resets the now-leftover precision to its default and the empty slot is removed.
-  if (v !== "") {
-    timeAuthoritative.value = true
-  }
+  timeAuthoritative.value = true
   model.value = v
 }
 

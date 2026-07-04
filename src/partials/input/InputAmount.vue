@@ -242,13 +242,13 @@ const rootRef = useTemplateRef<HTMLDivElement>("rootRef")
 watch(model, (value) => {
   if (!amountAuthoritative.value) return
   if (value.trim() === "") {
-    // The amount was cleared. Reset precision to the entry's empty default ("")
-    // so a precision auto-detected from the now-deleted amount does not linger and
-    // keep the (value-less) entry comparing non-empty, which would block the slot's
-    // commit-empty removal and light a spurious "changed". A precision the user
-    // picked without an amount is precision-authoritative and returns at the guard
-    // above, so a deliberate precision-only entry is kept. An unparseable amount
-    // ("abc") is not empty, so it falls through and keeps its precision.
+    // The amount was cleared: an amount with no value is not a valid claim, so the
+    // slot must be removed. Reset the leftover precision (auto-detected, or one the
+    // user deliberately picked - it does not matter) to the entry's empty default
+    // ("") so it does not keep the value-less entry comparing non-empty. Otherwise
+    // commit() takes the Set/Add path and pushes an invalid, value-less claim to
+    // the server instead of the Remove path. An unparseable amount ("abc") is not
+    // empty, so it falls through and keeps its precision.
     if (precision.value !== "") {
       precision.value = ""
     }
@@ -299,15 +299,7 @@ watch(
 // through the same path - in those cases the flag is already in the
 // correct state for the side that triggered the mutation.
 function onAmountUpdate(v: string) {
-  // Only a non-empty edit makes the amount the authoritative side (so it drives
-  // precision). Clearing the amount leaves the authoritative side as it was: if the
-  // user had picked a precision directly, it stays precision-authoritative, so the
-  // deliberate precision survives the clear and the slot reads as "changed" (only
-  // Revert restores it); if the amount was already driving precision, watch(model)
-  // resets the now-leftover precision to its default and the empty slot is removed.
-  if (v.trim() !== "") {
-    amountAuthoritative.value = true
-  }
+  amountAuthoritative.value = true
   model.value = v
 }
 
