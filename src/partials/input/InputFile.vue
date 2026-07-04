@@ -93,9 +93,9 @@ const isDragOver = ref(false)
 // A file value is invalid if it is empty (when required) or does not resolve
 // through the Vue router to a StorageGet route, i.e. classifyLink does not
 // stamp it with LINK_CLASS_FILE. The required check is skipped on initial
-// (no user interaction yet), but the file-route check is not - a
-// pre-populated value pointing at something that is not a file should
-// surface immediately. While an upload is in flight the model is "" but
+// (no user interaction yet) and while eager, so it flags only on the lazy blur
+// pass; the file-route check is not skipped - a pre-populated value pointing at
+// something that is not a file should surface immediately. While an upload is in flight the model is "" but
 // the user has already provided a file, so we treat that window as
 // "value incoming" and skip the required check. A watcher on the upload
 // state re-runs validation when the upload settles.
@@ -105,7 +105,7 @@ const validator: ValidatorFn<string> = async function (value, options) {
     if (progress.value !== 0) {
       return []
     }
-    if (!props.required || options.initial) {
+    if (!props.required || options.initial || options.eager) {
       return []
     }
     // TODO: Use standard codes.

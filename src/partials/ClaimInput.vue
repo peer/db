@@ -57,11 +57,12 @@ const props = withDefaults(
     // not been committed yet). Undefined for top-level claims.
     parentClaimId?: () => Promise<string>
     invalid?: boolean
-    // Drives the inner input's own "Required value." text via its
-    // validator. Set by ClaimCardinality on slots that the field's
-    // missing-min check has flagged. Toggling this re-runs FieldsFormRow's
-    // inner validators (see the watch in FieldsFormRow), which surfaces
-    // / clears the message as the slot's required state changes.
+    // Marks the slot as one of the field's min-cardinality "designated" slots:
+    // it shows the "required" badge and lets the inner input surface its own
+    // "Required value." (via its validator) when left empty and blurred. Set by
+    // ClaimCardinality; the designation shifts live as slots fill/empty. The
+    // text only appears on the input's own blur (or Save), never on load - see
+    // the clear-only watch in FieldsFormRow.
     required?: boolean
     // Whether this is the first slot of its field. Only the first slot of a default value field
     // offers the "fill sub-fields with no value" affordance (which creates the none/unknown form).

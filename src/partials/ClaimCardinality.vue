@@ -4,8 +4,9 @@ are local state (stable keys), reconciled with props.modelValue (which is
 the doc's current claims for this field) on prop change and updated
 optimistically on per-slot @update:modelValue.
 
-Auto-grow / auto-shrink keeps exactly one trailing-empty slot when under
-maxCardinality. A slot's emptiness is provided by the wrapped ClaimInput
+Auto-grow / auto-shrink keeps one trailing-empty slot when under
+maxCardinality, and never fewer than minCardinality slots so every
+designated (required) slot is visible. A slot's emptiness is provided by the wrapped ClaimInput
 (its isEmpty includes both its own local raw-value emptiness and the
 emptiness of every sub-ClaimCardinality below it, so a HAS slot whose
 sub-claims are dirty does not get auto-shrunk).
@@ -261,10 +262,43 @@ function slotHasValue(slot: Slot): boolean {
 // reconcile pushes a fresh slot for it).
 function reconcileSlots(): void {
   const max = props.field.maxCardinality === Infinity ? Number.MAX_SAFE_INTEGER : props.field.maxCardinality
-  // lastContentIdx: last slot with any content (a value or sub-claims) - these are kept.
-  // lastValueIdx: last slot with a base value - a trailing empty slot is offered only after one of
-  // these. A slot whose only content is sub-claims (a default field's notes-only entry) is kept
-  // but does not grow a further placeholder.
+  const min = props.field.minCardinality
+
+  // Compact: drop empty slots that are neither needed nor being edited, so a
+  // stray empty in the MIDDLE - one the user typed past, or a designated slot a
+  // later value has since made redundant - does not linger between filled rows.
+  // We keep every slot with content (a value or sub-claims), the currently focused
+  // slot (never yank the user out of a row), the first (min - filled) empty slots
+  // (designated to satisfy the min cardinality), and one trailing empty placeholder.
+  // Everything else empty is dropped.
+  const focused = typeof document !== "undefined" ? document.activeElement : null
+  const filledCount = slots.value.reduce((count, slot) => count + (slotIsEmpty(slot) ? 0 : 1), 0)
+  let needEmpty = Math.max(0, min - filledCount)
+  let lastEmptyIdx = -1
+  for (let i = slots.value.length - 1; i >= 0; i--) {
+    if (slotIsEmpty(slots.value[i])) {
+      lastEmptyIdx = i
+      break
+    }
+  }
+  const kept = slots.value.filter((slot, i) => {
+    if (!slotIsEmpty(slot)) return true
+    const el = slotInputs.get(slot.key)?.mainEl?.()
+    if (focused && el?.contains(focused)) return true
+    if (needEmpty > 0) {
+      needEmpty--
+      return true
+    }
+    return i === lastEmptyIdx
+  })
+  if (kept.length !== slots.value.length) {
+    slots.value = kept
+  }
+
+  // Grow: append a trailing empty after the last value (lastValueIdx), keep any
+  // sub-claim-only content slot (lastContentIdx), and top up to at least
+  // minCardinality slots so every designated (required) slot is visible up front
+  // (a fresh 3..6 field shows three empty required inputs), capped at max.
   let lastContentIdx = -1
   let lastValueIdx = -1
   for (let i = slots.value.length - 1; i >= 0; i--) {
@@ -278,22 +312,9 @@ function reconcileSlots(): void {
       break
     }
   }
-  let desired = Math.max(lastContentIdx + 1, lastValueIdx + 2) // keep content slots; one trailing empty after the last value
+  let desired = Math.max(lastContentIdx + 1, lastValueIdx + 2, min)
   if (desired > max) desired = max
   if (desired < 1) desired = Math.min(1, max)
-
-  // Shrink: drop empty trailing slots beyond one. Skip the active-focus
-  // slot so we never yank the user out of the row they are currently in.
-  while (slots.value.length > desired) {
-    const last = slots.value[slots.value.length - 1]
-    if (!slotIsEmpty(last)) break // safety: don't drop a filled tail
-    const lastEl = slotInputs.get(last.key)?.mainEl?.()
-    const focused = typeof document !== "undefined" ? document.activeElement : null
-    if (focused && lastEl?.contains(focused)) break // keep focused trailing
-    slots.value.pop()
-  }
-
-  // Grow: append empty trailing if we're under desired.
   while (slots.value.length < desired) {
     slots.value.push({ key: nextSlotKey(), claim: null, baseline: null })
   }
@@ -324,15 +345,25 @@ watch(slotsIsEmptyVector, () => reconcileSlots(), { flush: "post" })
 // updated claim (Set path with possibly the same id), or null (Remove
 // path).
 //
-// When the slot transitions from a committed claim to null, we drop the
-// slot entirely - that matches the original FieldsFormField behaviour
-// (removeRow on commit-empty) and lets the user clear a field by blanking
-// it instead of leaving an empty-but-mounted row behind.
+// When the slot transitions from a committed claim to null, we normally drop the
+// slot entirely - that matches the original FieldsFormField behaviour (removeRow
+// on commit-empty) and lets the user clear a field by blanking it instead of
+// leaving an empty-but-mounted row behind. The exception is a slot the field
+// still needs to reach its min cardinality: dropping it would replace it with a
+// fresh trailing empty that has lost the slot's "Required value." and touched
+// state, so the requirement would silently stop showing. There we keep the same
+// slot (now empty), so its input holds the required error surfaced on the
+// clearing blur and stays flagged until refilled.
 function updateSlotClaim(slotKey: string, claim: DeepReadonly<Claim> | null): void {
   const idx = slots.value.findIndex((s) => s.key === slotKey)
   if (idx < 0) return
   const slot = slots.value[idx]
   if (slot.claim !== null && claim === null) {
+    const othersNonEmpty = slots.value.reduce((count, other, otherIdx) => count + (otherIdx !== idx && !slotIsEmpty(other) ? 1 : 0), 0)
+    if (othersNonEmpty < props.field.minCardinality) {
+      slot.claim = null
+      return
+    }
     slots.value.splice(idx, 1)
     return
   }
@@ -347,66 +378,36 @@ function initialClaimForSlot(slot: Slot): DeepReadonly<Claim> | null {
   return slot.baseline
 }
 
-// Required-violation computation: if fewer than minCardinality slots
-// are non-empty, mark the first N empty slots invalid. Suppressed when
+// Designated slots: the min slots that satisfy, or are still needed to satisfy,
+// the field's min cardinality. We pick min slots, preferring the filled ones
+// (they contribute) and topping up with the earliest empty ones (still needed).
+// A designated slot passes required=true to its input, which (a) shows the
+// "required" badge and (b) lets the input surface its own "Required value." when
+// the user leaves it empty - there is no field-level trigger, each empty slot
+// reds on its own blur. The designation shifts live: filling a non-designated
+// slot while a designated one is empty moves the designation onto the filled
+// slot and off the empty one. Empty for non-required fields (min <= 0) and while
 // locked (the surrounding form is in a noop state).
-const missing = computed<{ flags: boolean[]; ourErrors: { code: string; el?: HTMLElement }[] }>(() => {
-  if (locked.value) return { flags: [], ourErrors: [] }
+const designated = computed<boolean[]>(() => {
+  if (locked.value) return slots.value.map(() => false)
   const min = props.field.minCardinality
+  if (min <= 0) return slots.value.map(() => false)
   let nonEmptyCount = 0
   for (const slot of slots.value) {
     if (!slotIsEmpty(slot)) nonEmptyCount++
   }
-  let need = min - nonEmptyCount
-  const flags: boolean[] = []
-  const ourErrors: { code: string; el?: HTMLElement }[] = []
-  for (const slot of slots.value) {
-    if (need <= 0 || !slotIsEmpty(slot)) {
-      flags.push(false)
-      continue
+  const needEmpty = Math.max(0, min - nonEmptyCount)
+  let filledSeen = 0
+  let emptySeen = 0
+  return slots.value.map((slot) => {
+    if (!slotIsEmpty(slot)) {
+      filledSeen++
+      return filledSeen <= min
     }
-    flags.push(true)
-    ourErrors.push({ code: "required", el: slotInputs.get(slot.key)?.inputEl?.() ?? undefined })
-    need--
-  }
-  return { flags, ourErrors }
+    emptySeen++
+    return emptySeen <= needEmpty
+  })
 })
-
-// Gate that controls when missing-required is surfaced. Off at mount so
-// a freshly-opened form does not yell "Required value." before the user
-// has interacted with the field. Flipped on when the user blurs out of
-// the cardinality (focus moves to something not inside us) AND there is
-// an actual violation, or when validateAll runs (Save). Auto-clears the
-// moment the field actually satisfies its min cardinality, so a
-// subsequent empty-while-typing does not flash red mid-edit.
-//
-// We gate the auto-clear on minSatisfied rather than on
-// missing.ourErrors.length === 0 because the latter is also "true" in
-// the transient empty-slots window after a Remove (slots is briefly
-// [] before reconcileSlots grows a fresh trailing) - which would
-// inadvertently reset triggered and leave the new slot non-red even
-// though min is still unsatisfied.
-const triggered = ref(false)
-const minSatisfied = computed<boolean>(() => {
-  const min = props.field.minCardinality
-  if (min <= 0) return true
-  let nonEmptyCount = 0
-  for (const slot of slots.value) {
-    if (!slotIsEmpty(slot)) nonEmptyCount++
-  }
-  return nonEmptyCount >= min
-})
-watch(minSatisfied, (satisfied) => {
-  if (satisfied) triggered.value = false
-})
-
-function onFocusOut(event: FocusEvent): void {
-  const next = event.relatedTarget as Node | null
-  if (next && rootRef.value?.contains(next)) return
-  if (missing.value.ourErrors.length > 0) {
-    triggered.value = true
-  }
-}
 
 // slotsDirtyByDiff: the set of baselines represented by current slots
 // differs from slotsCheckpoint. We key by slot.baseline (not slot.claim.id)
@@ -444,11 +445,12 @@ function onHeaderRevert(): void {
 // is synchronous) doesn't choke on the returned Promise. defineExpose
 // overrides with the async version for direct callers.
 const validatedInput: ValidatedInput = {
+  // On Save the cascade validates every child input; each empty designated slot
+  // then surfaces its own "Required value." (its required prop is already true),
+  // so the min-cardinality violation reaches the aggregate without a field-level
+  // error of our own.
   validate: async (signal) => {
     await validateChildAll(signal)
-    if (missing.value.ourErrors.length > 0) {
-      triggered.value = true
-    }
   },
   reset: () => {
     resetChildAll()
@@ -460,7 +462,6 @@ const validatedInput: ValidatedInput = {
       slots.value.push({ key: nextSlotKey(), claim, baseline: baselineById.get(claim.id) ?? null })
     }
     reconcileSlots()
-    triggered.value = false
   },
   revert: () => {
     void revertField()
@@ -473,10 +474,7 @@ const validatedInput: ValidatedInput = {
   mainEl: () => rootRef.value,
   isDirty,
   isEmpty: allChildEmpty,
-  errors: computed(() => {
-    const ourErrors = triggered.value ? missing.value.ourErrors : []
-    return [...ourErrors, ...allErrors(childInputs).value]
-  }),
+  errors: allErrors(childInputs),
   checkpoint: () => {
     // Move the baseline forward to the current claims (mirroring what
     // <DocumentEdit> does after Save). Cascade child checkpoints so each
@@ -599,7 +597,7 @@ onBeforeUnmount(() => {
     absolutely positioned and does not shift that. Top-level fields render no
     header (their label is in FieldsFormField's left cell).
   -->
-  <div ref="rootRef" class="flex min-w-0 grow flex-col" @focusout="onFocusOut">
+  <div ref="rootRef" class="flex min-w-0 grow flex-col">
     <div v-if="showHeader" ref="headerRef" class="mb-4 flex flex-row flex-wrap items-center gap-1 pl-4">
       <span :id="labelId" class="cursor-pointer leading-none font-medium text-gray-700" @mousedown.prevent="onLabelMousedown"
         ><DocumentRefInline :id="field.propertyId" :link="false"
@@ -644,8 +642,8 @@ onBeforeUnmount(() => {
           :initial-claim="initialClaimForSlot(slot)"
           :field="field"
           :parent-claim-id="parentClaimId"
-          :invalid="invalid || (triggered && missing.flags[idx]) || false"
-          :required="triggered && missing.flags[idx]"
+          :invalid="invalid"
+          :required="designated[idx]"
           :is-first="idx === 0"
           :session="session"
           :base="base"
@@ -667,8 +665,8 @@ onBeforeUnmount(() => {
           :initial-claim="initialClaimForSlot(slot)"
           :field="field"
           :parent-claim-id="parentClaimId"
-          :invalid="invalid || (triggered && missing.flags[idx]) || false"
-          :required="triggered && missing.flags[idx]"
+          :invalid="invalid"
+          :required="designated[idx]"
           :is-first="idx === 0"
           :session="session"
           :base="base"

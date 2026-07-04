@@ -125,13 +125,14 @@ const comboboxInputRef = useTemplateRef<ComponentPublicInstance>("comboboxInputR
 
 // A reference is invalid if it is empty (when required) or does not parse as
 // a valid document identifier. The required check is skipped on initial (no
-// user interaction yet), but the identifier-shape check is not - a
-// pre-populated value that is not a valid identifier should surface
-// immediately.
+// user interaction yet) and while eager (typing, clearing) so it flags only on
+// the lazy blur pass, never mid-edit; the identifier-shape check is not skipped -
+// a pre-populated or freshly typed value that is not a valid identifier should
+// surface immediately.
 // eslint-disable-next-line @typescript-eslint/require-await
 const validator: ValidatorFn<string> = async function (value, options) {
   if (value === "") {
-    if (!props.required || options.initial) {
+    if (!props.required || options.initial || options.eager) {
       return []
     }
     // TODO: Use standard codes.

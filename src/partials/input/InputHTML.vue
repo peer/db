@@ -363,13 +363,14 @@ let forceModelSync = false
 const isStructurallyEmpty = ref(true)
 
 // Required-empty when isStructurallyEmpty is true. The required check is
-// skipped on initial so a freshly mounted empty editor is not flagged before
-// the user has interacted. The model value passed in is ignored - emptiness
-// is decided by the doc structure, not by whether the HTML string is "" vs
-// "<p></p>" vs the canonical empty paragraph form.
+// skipped on initial and while eager so a freshly mounted or mid-edit empty
+// editor is flagged only on the lazy blur pass, never before the user leaves it
+// (an eager pass still returns [], so adding content clears the error). The
+// model value passed in is ignored - emptiness is decided by the doc structure,
+// not by whether the HTML string is "" vs "<p></p>" vs the canonical empty form.
 // eslint-disable-next-line @typescript-eslint/require-await
 const validator: ValidatorFn<string> = async function (_value, options) {
-  if (!props.required || options.initial) return []
+  if (!props.required || options.initial || options.eager) return []
   // TODO: Use standard codes.
   return isStructurallyEmpty.value ? [{ code: "required" }] : []
 }

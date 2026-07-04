@@ -74,8 +74,9 @@ const useRouterLink = computed(() => internalPath.value !== null && !linkClasses
 // surrounding whitespace is stripped, etc.). The normalization is gated on
 // !eager so the user is not fighting the input while typing, and on !initial
 // so the field is not mutated before the user has interacted. The required
-// check is also skipped on initial, but URL-parse failure is still reported
-// so a pre-populated invalid link surfaces immediately.
+// check is also skipped on initial and while eager, so it flags only on the lazy
+// blur pass; URL-parse failure is not skipped, so a pre-populated or freshly
+// typed invalid link surfaces immediately.
 // eslint-disable-next-line @typescript-eslint/require-await
 const validator: ValidatorFn<string> = async function (value, options) {
   const trimmed = value.trim()
@@ -83,7 +84,7 @@ const validator: ValidatorFn<string> = async function (value, options) {
     if (!options.eager && !options.initial && trimmed !== model.value) {
       model.value = trimmed
     }
-    if (!props.required || options.initial) {
+    if (!props.required || options.initial || options.eager) {
       return []
     }
     // TODO: Use standard codes.

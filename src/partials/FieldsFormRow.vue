@@ -29,7 +29,7 @@ import type { DeepReadonly, WritableComputedRef } from "vue"
 import type { FieldData, FieldEntryValue } from "@/fields"
 import type { InputColumn, ValidatedInput } from "@/types"
 
-import { computed, onMounted, watch } from "vue"
+import { computed, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
 import { VT_FILE } from "@/core"
@@ -170,30 +170,28 @@ forwardInteraction = notifyOuter
 defineExpose(validatedInput)
 
 // The inner inputs' validators (e.g. InputString) close over props.required,
-// but useValidation only re-runs on model changes, not on prop changes.
-// Watch props.required and re-run validateAll so toggling the prop (from
-// ClaimCardinality flipping the missing-min indicator on) immediately
-// surfaces or clears each input's "Required value." text - instead of
-// waiting for the next model edit or blur.
+// but useValidation re-runs only on model changes, not on prop changes. When a
+// slot stops being designated (required goes false), re-validate so any
+// "Required value." it was showing clears at once. We deliberately do NOT
+// re-validate when required goes true: the "required" badge is driven by the
+// prop alone, while the "Required value." text must wait for the user to leave
+// the empty slot (the input's own @blur), so a slot that just became required
+// (or a freshly-opened form) does not light up before it is touched.
+//
+// flush: "post" is essential: props.required propagates DOWN to the inner input
+// during render, so at the default "pre" timing the input still sees required=true
+// and validateAll would re-assert the very "Required value." we mean to clear
+// (InputTime even sets its own triggered=true in validate()). Running after the
+// render lets the input observe required=false, so it validates clean and clears.
 watch(
   () => props.required,
-  () => {
-    void validateAll()
+  (isRequired) => {
+    if (!isRequired) {
+      void validateAll()
+    }
   },
+  { flush: "post" },
 )
-
-// Also run validation on mount once the inner inputs have registered.
-// Without this, a fresh row mounted with required=true already set (e.g.
-// the cardinality dropped the row the user just cleared and grew a new
-// trailing-empty in its place) would not surface "Required value." until
-// the next user interaction - useValidation's own immediate watch runs
-// with options.initial=true, which the validator skips on purpose to
-// avoid yelling at form-load.
-onMounted(() => {
-  if (props.required) {
-    void validateAll()
-  }
-})
 
 function onInput() {
   emit("input")
