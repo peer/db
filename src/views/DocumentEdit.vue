@@ -272,7 +272,7 @@ provide(getNextChangeNumberKey, () => nextChangeToSubmit++)
 // out-of-order POSTs would conflict. Change numbers are allocated immediately before each
 // saveChange call, so call order matches number order.
 let saveChainTail: Promise<unknown> = Promise.resolve()
-provide(saveChangeKey, (change: object, changeNumber: number): Promise<void> => {
+function queueSaveChange(change: object, changeNumber: number): Promise<void> {
   const run = saveChainTail.then(async () => {
     await postJSON(
       router.apiResolve({
@@ -288,7 +288,8 @@ provide(saveChangeKey, (change: object, changeNumber: number): Promise<void> => 
   // Keep the chain alive even if this POST rejects, so a later change is not blocked forever.
   saveChainTail = run.catch(() => undefined)
   return run
-})
+}
+provide(saveChangeKey, queueSaveChange)
 provide(registerForFlushKey, (instance: FlushFn) => {
   flushRegistry.add(instance)
 })
@@ -528,17 +529,10 @@ async function onSave() {
   }
 
   // Post all flushed changes first (they are valid and have consumed change numbers).
+  // They go through the serialized chain so they cannot overtake changes the flush
+  // itself posted through it.
   for (const { change, changeNumber } of allPendingChanges) {
-    await postJSON(
-      router.apiResolve({
-        name: "DocumentSaveChange",
-        params: { session: props.session },
-        query: encodeQuery({ change: String(changeNumber) }),
-      }).href,
-      change,
-      abortController.signal,
-      null,
-    )
+    await queueSaveChange(change, changeNumber)
     if (abortController.signal.aborted) {
       return
     }
@@ -759,21 +753,11 @@ async function onSubmit() {
   }
 
   try {
+    const num = nextChangeToSubmit++
     const change = editingClaimId.value
       ? new SetClaimChange({ id: editingClaimId.value, patch: makePatch() })
-      : await makeAddClaimChange(doc.value!.base, props.session, committedChange.value + 1, makePatch(), subClaimParentId.value ?? undefined)
-    await postJSON(
-      router.apiResolve({
-        name: "DocumentSaveChange",
-        params: {
-          session: props.session,
-        },
-        query: encodeQuery({ change: String(committedChange.value + 1) }),
-      }).href,
-      change,
-      abortController.signal,
-      null,
-    )
+      : await makeAddClaimChange(doc.value!.base, props.session, num, makePatch(), subClaimParentId.value ?? undefined)
+    await queueSaveChange(change, num)
     if (abortController.signal.aborted) {
       return
     }
@@ -941,19 +925,11 @@ async function onRemoveClaim(id: string) {
   }
 
   try {
-    await postJSON(
-      router.apiResolve({
-        name: "DocumentSaveChange",
-        params: {
-          session: props.session,
-        },
-        query: encodeQuery({ change: String(committedChange.value + 1) }),
-      }).href,
+    await queueSaveChange(
       new RemoveClaimChange({
         id,
       }),
-      abortController.signal,
-      null,
+      nextChangeToSubmit++,
     )
     if (abortController.signal.aborted) {
       return
