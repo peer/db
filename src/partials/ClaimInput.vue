@@ -408,6 +408,13 @@ async function commit(): Promise<void> {
   if (formRowRef.value) {
     await formRowRef.value.validate()
     if (formRowRef.value.errors.length > 0) return
+    // Refuse to Set/Add a value-less claim. We reach the non-empty path because
+    // localIsEmpty counts precision, so a stray precision on an empty value looks
+    // non-empty here; but the value input reporting empty means there is no value
+    // to store, and a claim carrying only a precision is invalid. Bail so such a
+    // claim can never reach the server, even if some path left a precision behind
+    // (the input-level reset on value-clear already empties these rows normally).
+    if (formRowRef.value.isEmpty) return
   }
   const patch = makePatchForField(props.field, local.value)
   if (currentClaim) {
