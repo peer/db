@@ -498,6 +498,12 @@ function cleanupEmptyBase(): Promise<void> {
     if (!allChildEmpty.value || !localIsEmpty.value) {
       return
     }
+    // Committed sub-claims mean removes may still be in flight (see onSlotCleanup);
+    // each landing removal re-triggers this through updateSlotClaim, so the last one
+    // gets to remove the base.
+    if (hasAnySubClaims.value) {
+      return
+    }
     const isLazyBase = (isHas.value && props.field.subFields.length > 0) || (props.field.default !== undefined && claimTypeName(committed) === props.field.default)
     if (!isLazyBase) {
       return
@@ -721,24 +727,46 @@ async function onCompleteChange(): Promise<void> {
   await commit()
 }
 
-// onSlotCleanup runs when focus leaves the whole slot (value input and all sub-fields). For a
-// default field, an entry with no value and no sub-claims is meaningless, so we remove its claim.
-// commit() deliberately leaves this to here: it fires while focus is still inside the value input
-// (and only sees the value side), so removing there would yank a still-empty default entry while
-// the user is mid-edit or about to add a sub-field.
+// onSlotCleanup runs when focus leaves the whole slot (value input and all sub-fields). An entry
+// with no value and no sub-claims is meaningless residue, so we remove its claim here for the
+// entry kinds whose emptiness commit() does not handle. commit() deliberately leaves these to
+// here: it fires while focus is still inside the value input (and only sees the value side), so
+// removing there would yank a still-empty entry while the user is mid-edit or about to add a
+// sub-field.
 async function onSlotCleanup(event: FocusEvent): Promise<void> {
-  // Only the first slot of a default field defers its empty-removal to here (commit() leaves it for
-  // the slot-leave). Non-first slots remove an empty entry directly in commit(), like regular
-  // fields, so the cleanup must not also fire there (it would be a double remove).
-  if (!props.field.default || !props.isFirst) return
+  // Two entry kinds defer their empty-removal to slot-leave: the FIRST slot of a default field
+  // (non-first slots remove an empty entry directly in commit(), like regular fields, so the
+  // cleanup must not also fire there - it would be a double remove), and a HAS base of a field
+  // with sub-fields (commit() never touches presence-only claims, and with sub-fields there is
+  // no checkbox to remove it; such an empty base is always residue of ensureClaimId, see
+  // cleanupEmptyBase).
+  const defersToSlotLeave = (props.field.default !== undefined && props.isFirst) || (isHas.value && props.field.subFields.length > 0)
+  if (!defersToSlotLeave) return
   const next = event.relatedTarget as Node | null
   if (rootRef.value && next instanceof Node && rootRef.value.contains(next)) return // focus stayed in the slot
   const labelCell = getFieldLabelCell()
   if (labelCell && next instanceof Node && labelCell.contains(next)) return // moving to the Revert button
+  // A null relatedTarget is ambiguous, same as in onFocusOut: it may be the unmount blur of a
+  // control inside the slot (e.g. a sub-field's Clear button) with focus restored into the slot
+  // a tick later. Only clean up when focus actually settled outside.
+  if (!next) {
+    await nextTick()
+    if (unmounting) return
+    const active = document.activeElement
+    if (active && active !== document.body && rootRef.value?.contains(active)) return
+  }
   await runSerialized(async () => {
     const committed = currentClaim.value
     if (!committed) return
-    if (!isEmpty.value) return // still has a value or sub-claims
+    if (!isEmpty.value) return // still has a value or mid-edit (uncommitted) sub-fields
+    // Claim-based check on top of the local-state isEmpty: a sub-claim's remove commit
+    // triggered by this same focusout burst may still be in flight (its local state is
+    // already empty), and removing the base claim first would cascade the sub-claim
+    // away on the backend and wedge the session replay on the sub-claim's own remove.
+    // Bail while sub-claims remain committed; once their removal lands, the
+    // sub-cardinality's updateSlotClaim runs cleanupParentIfEmpty, which removes the
+    // then-empty base.
+    if (hasAnySubClaims.value) return
     if (!(await submitChange({ type: "remove", id: committed.id }))) return
     setClaim(null)
   })

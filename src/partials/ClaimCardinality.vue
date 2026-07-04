@@ -409,9 +409,15 @@ function updateSlotClaim(slotKey: string, claim: DeepReadonly<Claim> | null): vo
     const othersNonEmpty = slots.value.reduce((count, other, otherIdx) => count + (otherIdx !== idx && !slotIsEmpty(other) ? 1 : 0), 0)
     if (othersNonEmpty < props.field.minCardinality) {
       slot.claim = null
-      return
+    } else {
+      slots.value.splice(idx, 1)
     }
-    slots.value.splice(idx, 1)
+    // The removal may have left this whole (sub)field claim-less: ask the enclosing
+    // slot to remove its lazily-created base claim. Triggered here, after the removal
+    // committed, rather than from the enclosing slot's focusout cleanup, which runs off
+    // the same focusout burst as the sub-claim's remove commit and so can still observe
+    // the pre-remove state and bail.
+    void cleanupParentIfEmpty()
     return
   }
   slot.claim = claim
