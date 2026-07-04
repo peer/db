@@ -200,10 +200,15 @@ type StringWithLanguage struct {
 }
 
 // Section represents a section of fields of an entity.
+//
+// ID is the section's stable identity (the name used in section struct tags) and Name its
+// translated display names. Both use the NAME property; consumers access them by claim type
+// (identifier claim vs string claims).
 type Section struct {
-	ID          Identifier      `cardinality:"1"   json:"id"              property:"NAME"`
-	OrderInList Amount[float64] `cardinality:"1"   json:"orderInList"     property:"ORDER_IN_LIST"`
-	Field       []Field         `cardinality:"0.." json:"field,omitempty" property:"FIELD"`
+	ID          Identifier           `cardinality:"1"   json:"id"              property:"NAME"`
+	Name        []StringWithLanguage `cardinality:"1.." json:"name"            property:"NAME"`
+	OrderInList Amount[float64]      `cardinality:"1"   json:"orderInList"     property:"ORDER_IN_LIST"`
+	Field       []Field              `cardinality:"0.." json:"field,omitempty" property:"FIELD"`
 }
 
 // Field represents a field of an entity.

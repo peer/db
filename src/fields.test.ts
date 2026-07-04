@@ -3,9 +3,9 @@ import { assert, describe, test } from "vitest"
 
 import type { FieldData } from "@/fields"
 
-import { CARDINALITY, FIELD, FIELDS, HAS_PROPERTY, HAS_VALUE_TYPE, NAME, ORDER_IN_LIST, SECTION, SUB_FIELD, VT_HAS, VT_HTML, VT_REFERENCE } from "@/core"
+import { CARDINALITY, FIELD, FIELDS, HAS_PROPERTY, HAS_VALUE_TYPE, IN_LANGUAGE, NAME, ORDER_IN_LIST, SECTION, SUB_FIELD, VT_HAS, VT_HTML, VT_REFERENCE } from "@/core"
 import { ClaimTypes, HighConfidence } from "@/document"
-import { extractFieldsFromClaims, fieldKey, getClaimsForField, hasFields, makeDefaultPatchForField, mergeFields } from "@/fields"
+import { extractFieldsFromClaims, fieldKey, getClaimsForField, getSectionName, hasFields, makeDefaultPatchForField, mergeFields } from "@/fields"
 
 const propA = Identifier.new().toString()
 const propB = Identifier.new().toString()
@@ -70,14 +70,25 @@ function rawSubField(opts: { propertyId: string; valueType: string; order: strin
   }
 }
 
+// A fake language document ID. It is not in siteContext.languageCodes, so name claims
+// referencing it group under the undetermined language, which every fallback chain ends with.
+const languageDoc = Identifier.new().toString()
+
 function rawIdentifier(prop: string, value: string): object {
   return { id: id(), confidence: HighConfidence, prop: { id: prop }, value }
 }
 
-// Build a raw SECTION has claim with an identifier ID.
+function rawString(prop: string, value: string): object {
+  return { id: id(), confidence: HighConfidence, prop: { id: prop }, string: value, sub: { ref: [rawRef(IN_LANGUAGE, languageDoc)] } }
+}
+
+// Build a raw SECTION has claim. The NAME property holds both the section identifier (an
+// identifier claim) and the translated display name (a string claim); here the display name
+// is derived from the identifier as "<sectionId> name".
 function rawSection(sectionId: string, order: string, fields: object[]): object {
   const sub: Record<string, object[]> = {
     id: [rawIdentifier(NAME, sectionId)],
+    string: [rawString(NAME, `${sectionId} name`)],
     amount: [rawAmount(ORDER_IN_LIST, order)],
   }
   if (fields.length > 0) {
@@ -202,11 +213,18 @@ describe("extractFieldsFromClaims", () => {
     assert.notEqual(result, null)
     assert.equal(result!.fields.length, 0)
     assert.equal(result!.sections.length, 2)
-    // Sections sorted by order.
+    // Sections sorted by order; the display name is picked by language (here via the
+    // undetermined-language fallback, since the test language document is unrecognized).
     assert.equal(result!.sections[0].id, "first")
+    assert.equal(getSectionName(result!.sections[0], "en-US"), "first name")
     assert.equal(result!.sections[0].orderInList, 1)
     assert.equal(result!.sections[1].id, "second")
+    assert.equal(getSectionName(result!.sections[1], "en-US"), "second name")
     assert.equal(result!.sections[1].orderInList, 2)
+  })
+
+  test("section name falls back to the identifier when no name matches", () => {
+    assert.equal(getSectionName({ id: "plain", orderInList: 1, fields: [] }, "en-US"), "plain")
   })
 
   test("extracts cardinality from amount interval claim", async () => {

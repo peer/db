@@ -2,6 +2,7 @@ package transform
 
 import (
 	"cmp"
+	"maps"
 	"reflect"
 	"slices"
 	"strconv"
@@ -30,8 +31,15 @@ import (
 // The mnemonics parameter maps property mnemonic names to property document
 // base IDs. Passing nil for mnemonics short-circuits the function and returns
 // (nil, nil).
+//
+// The sections parameter maps section names (as used in section tags) to their
+// translated names, keyed by language (e.g. "en-GB"). Each section becomes NAME
+// claims (one per language) with the language as an IN_LANGUAGE sub-claim. Every
+// section used by the struct must have its names provided; if one is missing (or
+// sections is nil while the struct uses sections), an error is returned.
 func Fields[T any](
 	mnemonics map[string][]string,
+	sections map[string]map[string]string,
 ) (*internalCore.Fields, errors.E) {
 	if mnemonics == nil {
 		return nil, nil //nolint:nilnil
@@ -53,6 +61,7 @@ func Fields[T any](
 
 	fc := fieldsCollector{
 		mnemonics:    mnemonics,
+		sectionNames: sections,
 		sections:     make(map[string]*sectionData),
 		sectionOrder: 1.0,
 	}
@@ -76,6 +85,7 @@ type sectionData struct {
 // fieldsCollector holds state for the Fields function.
 type fieldsCollector struct {
 	mnemonics    map[string][]string
+	sectionNames map[string]map[string]string
 	sections     map[string]*sectionData
 	sectionOrder float64
 }
@@ -95,8 +105,9 @@ func (fc *fieldsCollector) getOrCreateSection(id string) *sectionData {
 	return sd
 }
 
-// finalizeSections validates that all named sections have defined orders and builds the result.
-// Fields collected under the empty section ID are returned as top-level fields.
+// finalizeSections validates that all named sections have defined orders and provided names,
+// and builds the result. Fields collected under the empty section ID are returned as top-level
+// fields.
 func (fc *fieldsCollector) finalizeSections() (*internalCore.Fields, errors.E) {
 	if len(fc.sections) == 0 {
 		return nil, nil //nolint:nilnil
@@ -105,7 +116,9 @@ func (fc *fieldsCollector) finalizeSections() (*internalCore.Fields, errors.E) {
 	var topFields []internalCore.Field
 	sections := make([]internalCore.Section, 0, len(fc.sections))
 
-	for id, sd := range fc.sections {
+	// Iterate section IDs in sorted order so errors are deterministic.
+	for _, id := range slices.Sorted(maps.Keys(fc.sections)) {
+		sd := fc.sections[id]
 		if id == "" {
 			topFields = sd.fields
 			continue
@@ -115,8 +128,13 @@ func (fc *fieldsCollector) finalizeSections() (*internalCore.Fields, errors.E) {
 			errors.Details(errE)["section"] = id
 			return nil, errE
 		}
+		name, errE := fc.sectionName(id)
+		if errE != nil {
+			return nil, errE
+		}
 		sections = append(sections, internalCore.Section{
 			ID:          internalCore.Identifier(id),
+			Name:        name,
 			OrderInList: sd.order,
 			Field:       sd.fields,
 		})
@@ -138,6 +156,29 @@ func (fc *fieldsCollector) finalizeSections() (*internalCore.Fields, errors.E) {
 		Section: sections,
 		Field:   topFields,
 	}, nil
+}
+
+// sectionName builds the section's NAME values from the translated names provided to Fields:
+// one StringWithLanguage per language (sorted by language for deterministic output), each with
+// the language as an IN_LANGUAGE reference. Errors if no names are provided for the section.
+func (fc *fieldsCollector) sectionName(id string) ([]internalCore.StringWithLanguage, errors.E) {
+	translations := fc.sectionNames[id]
+	if len(translations) == 0 {
+		errE := errors.New("section names not provided")
+		errors.Details(errE)["section"] = id
+		return nil, errE
+	}
+
+	name := make([]internalCore.StringWithLanguage, 0, len(translations))
+	for _, language := range slices.Sorted(maps.Keys(translations)) {
+		name = append(name, internalCore.StringWithLanguage{
+			Value: translations[language],
+			InLanguage: []internalCore.Ref{{
+				ID: []string{internalCore.Namespace, "LANGUAGE", language},
+			}},
+		})
+	}
+	return name, nil
 }
 
 // processLevel processes struct fields, accumulating them into fc.sections.

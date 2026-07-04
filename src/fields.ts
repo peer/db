@@ -42,6 +42,7 @@ import {
   LinkClaim,
   NoneClaim,
   ReferenceClaim,
+  selectClaimsByLanguage,
   StringClaim,
   TimeClaim,
   TimeIntervalClaim,
@@ -101,14 +102,28 @@ export function fieldKey(field: DeepReadonly<FieldData>): string {
   return `${field.path.join("/")}#${fieldSignature(field)}`
 }
 
-// SectionData represents a section of fields with an identifier and ordering.
+// SectionData represents a section of fields with an identifier, translated names, and ordering.
 export interface SectionData {
-  // Section identifier.
+  // Section identifier (the NAME identifier claim). Sections declared by multiple classes
+  // merge when they share the same identifier; also used as the render key.
   id: string
+  // The section claim's sub-claims, holding the NAME string claims (with IN_LANGUAGE
+  // sub-claims) the display name is picked from by language (see getSectionName).
+  claims?: DeepReadonly<ClaimTypes>
   // Numeric order for sorting.
   orderInList: number
   // Fields within this section.
   fields: readonly FieldData[]
+}
+
+// getSectionName picks the section's display name for the given language, using the language
+// fallback chain. When no language in the chain has a name, the section identifier is used.
+export function getSectionName(section: DeepReadonly<SectionData>, language: string): string {
+  const claims = selectClaimsByLanguage(section.claims, "string", NAME, language, (c) => c.length > 0 && !!c[0].string)
+  if (claims && claims.length > 0) {
+    return claims[0].string
+  }
+  return section.id
 }
 
 // FieldsData represents all fields and sections.
@@ -205,7 +220,6 @@ export function extractFieldsFromClaims(claims: DeepReadonly<ClaimTypes> | undef
   const sectionClaims = getClaimsOfTypeWithConfidence(fieldsClaim.sub, "has", SECTION)
   for (const sectionClaim of sectionClaims) {
     const idClaim = getBestClaimOfType(sectionClaim.sub, "id", NAME)
-    const sectionId = idClaim ? idClaim.value : ""
     const orderClaim = getBestClaimOfType(sectionClaim.sub, "amount", ORDER_IN_LIST)
 
     const sectionFields: FieldData[] = []
@@ -219,7 +233,8 @@ export function extractFieldsFromClaims(claims: DeepReadonly<ClaimTypes> | undef
     sectionFields.sort((a, b) => a.orderInList - b.orderInList)
 
     sections.push({
-      id: sectionId,
+      id: idClaim ? idClaim.value : "",
+      claims: sectionClaim.sub,
       orderInList: orderClaim ? parseFloat(orderClaim.amount) || 0 : 0,
       fields: sectionFields,
     })

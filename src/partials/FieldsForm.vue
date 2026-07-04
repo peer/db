@@ -5,8 +5,9 @@ import type { ClaimTypes } from "@/document"
 import type { FieldData, FieldsData } from "@/fields"
 
 import { watch } from "vue"
+import { useI18n } from "vue-i18n"
 
-import { fieldKey, isSimpleField } from "@/fields"
+import { fieldKey, getSectionName, isSimpleField } from "@/fields"
 import FieldsFormField from "@/partials/FieldsFormField.vue"
 import { useValidationRegistry } from "@/validation"
 
@@ -22,6 +23,8 @@ defineProps<{
 }>()
 
 const invalid = defineModel<boolean>("invalid", { default: false })
+
+const { locale } = useI18n({ useScope: "global" })
 
 // Top-level FieldsForm: its consumer (DocumentEdit) calls validateAll /
 // revertAll / checkpointAll explicitly through defineExpose. There are no
@@ -79,7 +82,7 @@ defineExpose({
     </table>
 
     <div v-for="section in sortedByOrder(fieldsData.sections)" :key="'section-' + section.id" class="flex flex-col gap-y-4">
-      <div class="border-b border-slate-200 px-2 pb-1 text-lg font-semibold">{{ section.id }}</div>
+      <div class="border-b border-slate-200 px-2 pb-1 text-lg font-semibold">{{ getSectionName(section, locale) }}</div>
       <table class="flex flex-col" :class="groupGapClass(section.fields)">
         <FieldsFormField
           v-for="field in sortedByOrder(section.fields)"

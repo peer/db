@@ -10,7 +10,7 @@ import { useI18n } from "vue-i18n"
 import Button from "@/components/Button.vue"
 import { IN_LANGUAGE } from "@/core"
 import { ClaimTypes, claimTypeName, getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
-import { fieldKey, getClaimsForField, valueTypeToClaimType } from "@/fields"
+import { fieldKey, getClaimsForField, getSectionName, valueTypeToClaimType } from "@/fields"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import { searchHiddenClaimsKey, searchLoadAllClaimsKey, SKIP_TO_END } from "@/utils"
@@ -195,7 +195,7 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
         <template v-for="section in sortedByOrder(fieldsData.sections)" :key="'section-' + section.id">
           <template v-if="section.fields.some(hasValues)">
             <tr>
-              <th colspan="2" class="border-b border-slate-200 px-2 pt-4 pb-1 text-left text-lg font-semibold">{{ (section as SectionData).id }}</th>
+              <th colspan="2" class="border-b border-slate-200 px-2 pt-4 pb-1 text-left text-lg font-semibold">{{ getSectionName(section as SectionData, locale) }}</th>
             </tr>
             <template v-for="field in sortedByOrder(section.fields)" :key="fieldKey(field)">
               <template v-if="hasValues(field)">
