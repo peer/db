@@ -7,18 +7,18 @@ its DOM attributes without flickering how the component looks.
 -->
 
 <script setup lang="ts">
+import type { DeepReadonly } from "vue"
 import type { ComponentExposed } from "vue-component-type-helpers"
 
-import type { TimePrecision } from "@/document"
-import type { FieldsFormSaveChange, FlushFn } from "@/fields"
-import type { DocumentEditStatus, DocumentEndEditResponse, ValidatedInput, ValidateFn } from "@/types"
+import type { Claim, ClaimTypes, TimePrecision } from "@/document"
+import type { DocumentEditStatus, DocumentEndEditResponse, FieldsFormFlush, SaveChangeResult, SaveChangeSpec, ValidatedInput, ValidateFn } from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { computed, nextTick, onBeforeUnmount, provide, readonly, ref, toRef, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
-import { deleteFromCache, getURL, getURLDirect, postJSON } from "@/api"
+import { deleteFromCache, FetchError, getURL, getURLDirect, postJSON } from "@/api"
 import { CAN_EDIT_DOCUMENT, hasPermission } from "@/auth"
 import Button from "@/components/Button.vue"
 import { INSTANCE_OF, PROPERTY } from "@/core"
@@ -38,8 +38,18 @@ import {
   TimeIntervalClaim,
   UnknownClaim,
 } from "@/document"
-import { changeFrom, RemoveClaimChange, SetClaimChange } from "@/document/patch"
-import { getNextChangeNumberKey, registerForFlushKey, saveChangeKey, unregisterForFlushKey } from "@/fields"
+import { changeFrom } from "@/document/patch"
+import {
+  ChangeDroppedError,
+  getCommittedClaimKey,
+  registerForFlushKey,
+  registerRemoteAddsKey,
+  registerRemoteConflictKey,
+  saveChangeKey,
+  unregisterForFlushKey,
+  unregisterRemoteAddsKey,
+  unregisterRemoteConflictKey,
+} from "@/fields"
 import { classifyLink, LINK_CLASS_FILE } from "@/internal-links"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import DocumentDuplicates from "@/partials/DocumentDuplicates.vue"
@@ -62,8 +72,9 @@ import PropertiesRows from "@/partials/PropertiesRows.vue"
 import { localCounter, pairCounters, useLock, useProgress } from "@/progress"
 import { useDocumentFields } from "@/useDocumentFields"
 import { useParentClasses } from "@/useParentClasses"
-import { delay, encodeQuery, makeAddClaimChange } from "@/utils"
+import { clone, delay, encodeQuery, equals } from "@/utils"
 import { focusFirstInput, focusFirstInvalid, useValidationRegistry } from "@/validation"
+import { Identifier } from "@tozd/identifier"
 
 const props = defineProps<{
   id: string
@@ -95,8 +106,7 @@ const claimToNone = ref(false)
 const claimFormError = ref("")
 const sessionError = ref("")
 // Null in add mode; the claim's ID in edit mode. Drives the form title,
-// the primary button label, and the onSubmit branch (SetClaimChange vs
-// makeAddClaimChange).
+// the primary button label, and the onSubmit branch (set vs add).
 const editingClaimId = ref<string | null>(null)
 // Null when no parent is selected; otherwise the claim's ID under which
 // the new claim will be added. Mutually exclusive with editingClaimId.
@@ -227,7 +237,7 @@ const isCreating = ref<boolean | null>(null)
 const duplicatesRef = useTemplateRef<{ refresh: () => Promise<void> }>("duplicatesRef")
 
 // Debounce the duplicate search so it runs once a field's blur has committed into the doc (a
-// blur fires a saveChange that the poll applies into doc.claims shortly after), and so rapid
+// blur fires a saveChange that the subscription applies into doc.claims shortly after), and so rapid
 // tabbing between fields does not fire a search per field.
 let duplicatesTimer: ReturnType<typeof setTimeout> | null = null
 function onFieldsBlur() {
@@ -255,62 +265,255 @@ onBeforeUnmount(() => {
 // A ref so canSave reactively follows whether anything has been added to
 // the session yet (Save is disabled when the session has no changes).
 const committedChange = ref(0)
-// Tracks the next change number to submit (may be ahead of committedChange when changes are in-flight).
-let nextChangeToSubmit = 1
+// Highest change number known to exist on the server for this session: our own successful
+// posts and anything observed in the changes list. The next change is posted at this + 1.
+let lastServerChange = 0
+// Change numbers this client successfully posted. The subscription uses it to tell our own
+// applied changes apart from remote ones (remote ones drive conflict handling).
+const ownChangeNumbers = new Set<number>()
+// Per claim id, the number of our last committed change targeting it. A remote touch of a
+// claim is not notified while we have a newer committed change the subscription has not applied
+// yet - resyncing from the doc at that moment would regress the slot to the older remote
+// state, and no later notification would correct it (our own changes are not "remote").
+const ownClaimChanges = new Map<string, number>()
+// Number of changes queued or in flight. Drives the pre-endEdit drain on Save and the
+// warning when the tab is closed with unsaved data.
+const pendingChangeCount = ref(0)
 
 const fieldsFormInvalid = ref(false)
 
-// Flush registry: all FieldsForm instances register here so we can flush them before save.
-const flushRegistry = new Set<FlushFn>()
+// Flush registry: all slot inputs register here so we can flush them before save and know
+// whether uncommitted local edits exist when the tab is being closed.
+const flushRegistry = new Set<FieldsFormFlush>()
 
-// Provide shared services for recursive FieldsForm instances.
-provide(getNextChangeNumberKey, () => nextChangeToSubmit++)
+// Handlers notified with the set of claim ids touched by remote changes the subscription
+// applied (including ancestors of every touched claim). Conflict handlers (slots resyncing
+// their claims) run first; add handlers (cardinalities adding slots for remotely added claims)
+// run after the render flush - see loadChanges.
+const remoteConflictHandlers = new Set<(claimIds: ReadonlySet<string>) => void>()
+const remoteAddHandlers = new Set<(claimIds: ReadonlySet<string>) => boolean>()
 
-// Serialize saveChange POSTs so changes reach the server in the order they are emitted, even when
-// a single user action emits several across separate handlers (e.g. removing a sub-claim and then
-// its now-empty default parent). The server requires sequential change numbers, so concurrent
-// out-of-order POSTs would conflict. Change numbers are allocated immediately before each
-// saveChange call, so call order matches number order.
+// How long to wait before retrying a change POST after a transient failure.
+const saveRetryInterval = 1000 // In milliseconds.
+
+// materializeChange builds the raw change object for a spec at the given change number. An
+// add's base and id derive from the number, so they are (re)computed here for every attempt.
+async function materializeChange(spec: SaveChangeSpec, changeNumber: number): Promise<{ change: object; id: string }> {
+  if (spec.type === "add") {
+    const changeBase = [...doc.value!.base, "SESSION", props.session, String(changeNumber)]
+    const id = (await Identifier.from(...changeBase)).toString()
+    const change: { type: string; id: string; base: string[]; patch: object; under?: string } = { type: "add", id, base: changeBase, patch: spec.patch }
+    if (spec.under !== undefined) {
+      change.under = spec.under
+    }
+    return { change, id }
+  }
+  if (spec.type === "remove") {
+    return { change: { type: "remove", id: spec.id }, id: spec.id }
+  }
+  return { change: { type: spec.type, id: spec.id, patch: spec.patch }, id: spec.id }
+}
+
+// changeApplies test-applies the change to a clone of the doc with all committed session
+// changes applied, reporting whether it still applies (its target claim exists, a cast
+// still changes the claim type, an add's parent claim exists, and so on).
+async function changeApplies(change: object): Promise<boolean> {
+  if (!_doc.value) {
+    return false
+  }
+  // clone (lodash cloneDeep) preserves prototypes, so the clone is a real D instance;
+  // the Mutable mapped type just does not carry that through.
+  const target = clone(_doc.value) as unknown as D
+  try {
+    await changeFrom(change).Apply(target)
+    return true
+  } catch {
+    return false
+  }
+}
+
+// postChange posts a change spec, assigning the change number at post time and retrying:
+//   - On a conflict (another editor claimed the number): if the stored operation matches
+//     what we posted, an earlier attempt of ours reached the server despite a network
+//     error and the change is committed. Otherwise the doc is synced with all committed
+//     changes and the change is renumbered and retried when it still applies, or dropped
+//     with ChangeDroppedError when it does not (e.g. its claim was removed concurrently).
+//   - On an invalid change (server-side validation failed): dropped with
+//     ChangeDroppedError. Client-side validation mirrors the backend, so this is a safety
+//     net rather than an expected path.
+//   - On transient failures (network or server errors): retried at the same number after
+//     a pause. If the failed POST actually reached the server, the retry conflicts with
+//     it and the comparison above resolves it as committed.
+async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
+  while (true) {
+    abortController.signal.throwIfAborted()
+    const changeNumber = lastServerChange + 1
+    const { change, id } = await materializeChange(spec, changeNumber)
+    try {
+      await postJSON(
+        router.apiResolve({
+          name: "DocumentSaveChange",
+          params: { session: props.session },
+          query: encodeQuery({ change: String(changeNumber) }),
+        }).href,
+        change,
+        abortController.signal,
+        null,
+      )
+      lastServerChange = changeNumber
+      ownChangeNumbers.add(changeNumber)
+      ownClaimChanges.set(id, changeNumber)
+      return { id }
+    } catch (err) {
+      if (abortController.signal.aborted) {
+        throw err
+      }
+      if (err instanceof FetchError && err.status === 409) {
+        const { doc: existing } = await getURLDirect<object>(
+          router.apiResolve({
+            name: "DocumentGetChange",
+            params: { session: props.session, change: changeNumber },
+          }).href,
+          abortController.signal,
+          null,
+        )
+        if (abortController.signal.aborted) {
+          throw err
+        }
+        // The comparison relies on the change serializing exactly as it was posted: no
+        // key is ever set to undefined (which JSON.stringify would drop) - the patch
+        // builders assign concrete values in every branch and materializeChange adds
+        // optional keys conditionally.
+        if (equals<object>(existing, change)) {
+          lastServerChange = changeNumber
+          ownChangeNumbers.add(changeNumber)
+          ownClaimChanges.set(id, changeNumber)
+          return { id }
+        }
+        lastServerChange = changeNumber
+        await syncChanges()
+        abortController.signal.throwIfAborted()
+        if (!(await changeApplies(change))) {
+          throw new ChangeDroppedError(`change does not apply anymore: ${JSON.stringify(change)}`, { cause: err })
+        }
+        continue
+      }
+      if (err instanceof FetchError && err.status === 400) {
+        throw new ChangeDroppedError(`change rejected by the server: ${JSON.stringify(change)}`, { cause: err })
+      }
+      await delay(saveRetryInterval, abortController.signal)
+      if (abortController.signal.aborted) {
+        throw err
+      }
+    }
+  }
+}
+
+// saveChange queues a change spec. Changes are posted strictly one after another: the
+// server requires change numbers to arrive in sequence and numbers are assigned only at
+// post time, so a conflict retry renumbers just the change currently being posted.
 let saveChainTail: Promise<unknown> = Promise.resolve()
-function queueSaveChange(change: object, changeNumber: number): Promise<void> {
-  const run = saveChainTail.then(async () => {
-    await postJSON(
-      router.apiResolve({
-        name: "DocumentSaveChange",
-        params: { session: props.session },
-        query: encodeQuery({ change: String(changeNumber) }),
-      }).href,
-      change,
-      abortController.signal,
-      null,
-    )
-  })
-  // Keep the chain alive even if this POST rejects, so a later change is not blocked forever.
-  saveChainTail = run.catch(() => undefined)
+function saveChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
+  pendingChangeCount.value += 1
+  const run = saveChainTail.then(() => postChange(spec))
+  // Keep the chain alive even if this change is dropped or fails, so a later change is
+  // not blocked forever.
+  saveChainTail = run
+    .catch(() => undefined)
+    .then(() => {
+      pendingChangeCount.value -= 1
+    })
   return run
 }
-provide(saveChangeKey, queueSaveChange)
-provide(registerForFlushKey, (instance: FlushFn) => {
+provide(saveChangeKey, saveChange)
+
+// drainSaveChanges waits until every queued change has settled, including changes queued
+// while waiting (e.g. by the focusout commit fired by the Save click itself).
+async function drainSaveChanges(): Promise<void> {
+  let tail: Promise<unknown>
+  do {
+    tail = saveChainTail
+    await tail
+  } while (tail !== saveChainTail)
+}
+
+provide(getCommittedClaimKey, (id: string) => (doc.value?.claims.GetByID(id) ?? null) as DeepReadonly<Claim> | null)
+provide(registerForFlushKey, (instance: FieldsFormFlush) => {
   flushRegistry.add(instance)
 })
-provide(unregisterForFlushKey, (instance: FlushFn) => {
+provide(unregisterForFlushKey, (instance: FieldsFormFlush) => {
   flushRegistry.delete(instance)
 })
+provide(registerRemoteConflictKey, (handler: (claimIds: ReadonlySet<string>) => void) => {
+  remoteConflictHandlers.add(handler)
+})
+provide(unregisterRemoteConflictKey, (handler: (claimIds: ReadonlySet<string>) => void) => {
+  remoteConflictHandlers.delete(handler)
+})
+provide(registerRemoteAddsKey, (handler: (claimIds: ReadonlySet<string>) => boolean) => {
+  remoteAddHandlers.add(handler)
+})
+provide(unregisterRemoteAddsKey, (handler: (claimIds: ReadonlySet<string>) => boolean) => {
+  remoteAddHandlers.delete(handler)
+})
 
-// Poll interval in milliseconds.
-const pollInterval = 100
+// Warn before the tab closes while changes are still queued or a slot holds local edits
+// which have not been committed. We cannot reliably flush and post during unload, so the
+// user is prompted to keep the tab open until the data is on the server.
+function onBeforeUnload(event: BeforeUnloadEvent): void {
+  let unsaved = pendingChangeCount.value > 0
+  if (!unsaved) {
+    for (const instance of flushRegistry) {
+      if (instance.hasUncommitted()) {
+        unsaved = true
+        break
+      }
+    }
+  }
+  if (unsaved) {
+    event.preventDefault()
+  }
+}
+window.addEventListener("beforeunload", onBeforeUnload)
+onBeforeUnmount(() => {
+  window.removeEventListener("beforeunload", onBeforeUnload)
+})
+
+// Poll interval.
+const pollInterval = 100 // In milliseconds.
 
 // Resolve field definitions for the document's class(es).
 const docRef = toRef(() => doc.value ?? null)
 const { classDocs, instanceOfClassIds, initialized: classesInitialized } = useParentClasses(docRef, el, busy)
 const { fieldsData: mergedFieldsData, classTabId } = useDocumentFields(classDocs, instanceOfClassIds)
 
-// Applies session changes [fromChange+1 .. latest] to target. Returns the
-// new highest applied change number. Caller owns publishing target into
-// reactive state - this helper deliberately does not touch _doc.value or
-// committedChange, so the initial load can build the doc off-tree and
-// publish it atomically (see loadAndSubscribe).
-async function applyPendingChanges(target: D, fromChange: number): Promise<number> {
+// claimAncestry returns the ids of the claims on the path from a top-level claim down to
+// (and including) the claim with the given id, or null when the container does not hold it.
+function claimAncestry(claims: ClaimTypes | undefined, id: string): string[] | null {
+  if (!claims) {
+    return null
+  }
+  for (const claim of claims.AllClaims()) {
+    if (claim.id === id) {
+      return [claim.id]
+    }
+    const below = claimAncestry(claim.sub, id)
+    if (below) {
+      return [claim.id, ...below]
+    }
+  }
+  return null
+}
+
+// Applies session changes [fromChange+1 .. latest] to target. Returns the new highest
+// applied change number and the ids of claims touched by remote changes (changes this
+// client did not post itself), together with each touched claim's ancestors, so a change
+// deep in a claim tree also resyncs the slots holding the tree. Caller owns publishing
+// target into reactive state - this helper deliberately does not touch _doc.value or
+// committedChange, so the initial load can build the doc off-tree and publish it
+// atomically (see loadAndSubscribe).
+async function applyPendingChanges(target: D, fromChange: number): Promise<{ next: number; remoteTouched: Set<string> }> {
+  const remoteTouched = new Set<string>()
   const { doc: changesList } = await getURLDirect<number[]>(
     router.apiResolve({
       name: "DocumentListChanges",
@@ -322,7 +525,10 @@ async function applyPendingChanges(target: D, fromChange: number): Promise<numbe
     null,
   )
   if (abortController.signal.aborted) {
-    return fromChange
+    return { next: fromChange, remoteTouched }
+  }
+  if (changesList.length > 0 && changesList[0] > lastServerChange) {
+    lastServerChange = changesList[0]
   }
   let current = fromChange
   for (; changesList.length > 0 && current < changesList[0]; current++) {
@@ -339,29 +545,100 @@ async function applyPendingChanges(target: D, fromChange: number): Promise<numbe
       null,
     )
     if (abortController.signal.aborted) {
-      return current
+      return { next: current, remoteTouched }
+    }
+    // A change from another editor: its target claim id, or null for our own changes.
+    const remoteId = !ownChangeNumbers.has(current + 1) && "id" in changeDoc && typeof changeDoc.id === "string" ? changeDoc.id : null
+    const isAdd = "type" in changeDoc && changeDoc.type === "add"
+    // The ancestor chain of a remove/set/cast target has to be resolved BEFORE the change
+    // is applied (a removed claim is no longer in the doc); an add's chain only exists
+    // after.
+    let chain: string[] | null = null
+    if (remoteId !== null && !isAdd) {
+      chain = claimAncestry(target.claims, remoteId)
     }
     const change = changeFrom(changeDoc)
     await change.Apply(target)
+    if (remoteId !== null && isAdd) {
+      chain = claimAncestry(target.claims, remoteId)
+    }
+    if (remoteId !== null) {
+      for (const claimId of chain ?? [remoteId]) {
+        remoteTouched.add(claimId)
+      }
+    }
   }
-  return current
+  // Do not notify about claims we have a newer committed change for which is not applied
+  // yet (the changes list was fetched before it landed) - resyncing from the doc now
+  // would regress the slot to the older remote state, and no later notification would
+  // correct it because our own changes are not "remote". The next poll applies our
+  // change and brings the doc up to date.
+  const applied = changesList.length > 0 ? changesList[0] : 0
+  for (const claimId of [...remoteTouched]) {
+    if ((ownClaimChanges.get(claimId) ?? 0) > applied) {
+      remoteTouched.delete(claimId)
+    }
+  }
+  return { next: current, remoteTouched }
 }
 
-let running = false
-async function loadChanges() {
-  if (running) {
-    return
+// loadChanges applies newly committed changes into the live doc and notifies slots about
+// claims touched by remote changes. A shared in-flight promise deduplicates overlapping
+// calls (the subscription and conflict retries both call it).
+let loadChangesRunning: Promise<void> | null = null
+function loadChanges(): Promise<void> {
+  if (loadChangesRunning) {
+    return loadChangesRunning
   }
-  running = true
-  try {
-    const next = await applyPendingChanges(_doc.value!, committedChange.value)
-    if (abortController.signal.aborted) {
-      return
+  loadChangesRunning = (async () => {
+    try {
+      const { next, remoteTouched } = await applyPendingChanges(_doc.value!, committedChange.value)
+      if (abortController.signal.aborted) {
+        return
+      }
+      committedChange.value = next
+      if (remoteTouched.size > 0) {
+        // Phase one: existing slots resync their claims. Their handlers read committed
+        // state through call-time lookups (getCommittedClaim goes to the doc directly),
+        // so this is correct at any nesting depth regardless of handler order. Phase
+        // two, after the render flush has propagated the resynced claims into every
+        // cardinality's modelValue: cardinalities add slots for remotely added claims.
+        // The adds run in rounds: a slot filled in one round feeds its
+        // sub-cardinalities' modelValue only after the next render flush, so each round
+        // can reveal claims one nesting level deeper. Rounds stop when no cardinality
+        // adds anything (the cap is a runaway backstop far above any real claim depth).
+        for (const handler of remoteConflictHandlers) {
+          handler(remoteTouched)
+        }
+        for (let round = 0; round < 10; round++) {
+          await nextTick()
+          if (abortController.signal.aborted) {
+            return
+          }
+          let added = false
+          for (const handler of remoteAddHandlers) {
+            added = handler(remoteTouched) || added
+          }
+          if (!added) {
+            break
+          }
+        }
+      }
+    } finally {
+      loadChangesRunning = null
     }
-    committedChange.value = next
-  } finally {
-    running = false
+  })()
+  return loadChangesRunning
+}
+
+// syncChanges observes at least everything committed to the session before the call: an
+// in-flight loadChanges may have fetched the changes list before, so it is awaited first
+// and a fresh run started after.
+async function syncChanges(): Promise<void> {
+  if (loadChangesRunning) {
+    await loadChangesRunning.catch(() => undefined)
   }
+  await loadChanges()
 }
 
 async function loadAndSubscribe() {
@@ -427,15 +704,14 @@ async function loadAndSubscribe() {
   // user has already accumulated on a previous load of this same
   // session.
   const localDoc = new D(initialDoc)
-  const pristine = new D(structuredClone(initialDoc))
-  const initialChange = await applyPendingChanges(localDoc, 0)
+  const pristine = new D(clone(initialDoc))
+  const { next: initialChange } = await applyPendingChanges(localDoc, 0)
   if (abortController.signal.aborted) {
     return
   }
   _doc.value = localDoc
   _initialDoc.value = pristine
   committedChange.value = initialChange
-  nextChangeToSubmit = initialChange + 1
 
   // TODO: Use websocket to watch for new changes.
   const timer = setInterval(() => {
@@ -461,7 +737,12 @@ watch(
     _initialDoc.value = null
     isCreating.value = null
     committedChange.value = 0
-    nextChangeToSubmit = 1
+    lastServerChange = 0
+    ownChangeNumbers.clear()
+    ownClaimChanges.clear()
+    // The previous session's queued changes have been aborted above. They settle on their
+    // own (decrementing pendingChangeCount as they do), the chain just starts fresh.
+    saveChainTail = Promise.resolve()
     fieldsFormInvalid.value = false
     pendingInitialFocus = true
 
@@ -520,22 +801,16 @@ async function onSave() {
     }
   }
 
-  // Flush any pending edits from all FieldsForm instances before saving.
-  // Flush returns only valid changes; invalid fields remain and set fieldsFormInvalid.
-  const allPendingChanges: FieldsFormSaveChange[] = []
-  for (const flush of flushRegistry) {
-    const changes = await flush()
-    allPendingChanges.push(...changes)
+  // Flush any pending edits from all slot inputs before saving (each flush commits like
+  // the slot's blur would; invalid values stay in the form and set fieldsFormInvalid),
+  // then wait for every queued change to settle on the server - including changes queued
+  // outside the flush, e.g. by the focusout commit fired by the Save click itself.
+  for (const instance of flushRegistry) {
+    await instance.flush()
   }
-
-  // Post all flushed changes first (they are valid and have consumed change numbers).
-  // They go through the serialized chain so they cannot overtake changes the flush
-  // itself posted through it.
-  for (const { change, changeNumber } of allPendingChanges) {
-    await queueSaveChange(change, changeNumber)
-    if (abortController.signal.aborted) {
-      return
-    }
+  await drainSaveChanges()
+  if (abortController.signal.aborted) {
+    return
   }
 
   // Re-check after flush: validateAll above clears stale state, but flush itself
@@ -753,11 +1028,13 @@ async function onSubmit() {
   }
 
   try {
-    const num = nextChangeToSubmit++
-    const change = editingClaimId.value
-      ? new SetClaimChange({ id: editingClaimId.value, patch: makePatch() })
-      : await makeAddClaimChange(doc.value!.base, props.session, num, makePatch(), subClaimParentId.value ?? undefined)
-    await queueSaveChange(change, num)
+    const patch = makePatch()
+    const spec: SaveChangeSpec = editingClaimId.value
+      ? { type: "set", id: editingClaimId.value, patch }
+      : subClaimParentId.value
+        ? { type: "add", patch, under: subClaimParentId.value }
+        : { type: "add", patch }
+    await saveChange(spec)
     if (abortController.signal.aborted) {
       return
     }
@@ -925,12 +1202,7 @@ async function onRemoveClaim(id: string) {
   }
 
   try {
-    await queueSaveChange(
-      new RemoveClaimChange({
-        id,
-      }),
-      nextChangeToSubmit++,
-    )
+    await saveChange({ type: "remove", id })
     if (abortController.signal.aborted) {
       return
     }
@@ -1006,8 +1278,6 @@ function canSave(): boolean {
                   :fields-data="mergedFieldsData"
                   :claims="doc.claims"
                   :initial-claims="initialDoc?.claims ?? doc.claims"
-                  :base="doc.base"
-                  :session="session"
                 />
                 <!-- Potential duplicates of the document being created, refreshed on every field blur. -->
                 <DocumentDuplicates v-if="isCreating" ref="duplicatesRef" :doc="doc" />

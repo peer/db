@@ -20,6 +20,9 @@ const props = defineProps<{
   required?: boolean
   // Presentational override.
   invalid?: boolean
+  // Disables the missing-state checkboxes (the wrapped input receives its own readonly
+  // binding from the enclosing FieldsFormRow).
+  readonly?: boolean
 }>()
 
 // Two independent v-models, one per checkbox. They are kept mutually
@@ -133,8 +136,20 @@ const {
   forwardInteraction?.()
 })
 
-// Id on the first checkbox.
-const checkboxId = useId()
+// Ids on the checkboxes: the first one is the focus target exposed through columns, and
+// both are focused explicitly on label click (see the labels in the template).
+const unknownCheckboxId = useId()
+const noneCheckboxId = useId()
+
+// Restores the focus which the labels' prevented mousedown suppressed (the prevent also
+// covers direct checkbox clicks, whose mousedown bubbles through the label). With the
+// checkbox focused after a toggle, the widget holds focus, so clicking outside later
+// blurs the slot and commits it; without this, focus would sit outside the slot and a
+// deselected-and-empty bound would never resolve. A checkbox disabled by an immediate
+// commit refuses focus, which is harmless - nothing was blurred either.
+function focusCheckbox(id: string): void {
+  document.getElementById(id)?.focus()
+}
 
 // Every wrapped input's columns (labels and focus targets forwarded as-is), in
 // registration order, followed by a trailing unlabeled column for the
@@ -143,7 +158,7 @@ const checkboxId = useId()
 // before it mounts) we still render one value column so the grid stays stable.
 const columns = computed<InputColumn[]>(() => {
   const wrapped = Array.from(childInputs).flatMap((input) => input.columns?.value ?? [{ label: "", el: () => input.inputEl() ?? null }])
-  return [...(wrapped.length ? wrapped : [{ label: "", el: firstChildEl }]), { label: "", el: () => document.getElementById(checkboxId) }]
+  return [...(wrapped.length ? wrapped : [{ label: "", el: firstChildEl }]), { label: "", el: () => document.getElementById(unknownCheckboxId) }]
 })
 
 // Every wrapped input's hint lines, in registration order.
@@ -240,13 +255,26 @@ async function onFocusOut(event: FocusEvent) {
   -->
   <div ref="rootRef" class="contents" @focusout="onFocusOut">
     <slot v-bind="$attrs" :invalid="invalid || showRequired" @errors="(v: ValidationError[]) => (innerErrors = v)" />
+    <!--
+      The labels prevent mousedown so clicking them does not blur the previously focused
+      element first: a label is not focusable, so that blur would report a null
+      relatedTarget and the enclosing slot could not tell focus is staying inside - it
+      would commit mid-interaction, and the pending read-only flash would then swallow
+      the label's forwarded click. The click itself still toggles the checkbox.
+    -->
     <WithLock :lock="getParentLockRef">
-      <div class="flex flex-col">
-        <label class="flex cursor-pointer items-center gap-1 leading-5"
-          ><CheckBox :id="checkboxId" v-model="isUnknown" :invalid="invalid || showRequired" /><span>{{ t("common.values.unknown") }}</span></label
+      <!--
+        items-start keeps each label sized to its own content, so the clickable area
+        does not extend past the text (the column is as wide as the widest label).
+      -->
+      <div class="flex flex-col items-start">
+        <label class="flex cursor-pointer items-center gap-1 leading-5" @mousedown.prevent @click="focusCheckbox(unknownCheckboxId)"
+          ><CheckBox :id="unknownCheckboxId" v-model="isUnknown" :disabled="readonly" :invalid="invalid || showRequired" /><span>{{
+            t("common.values.unknown")
+          }}</span></label
         >
-        <label class="flex cursor-pointer items-center gap-1 leading-5"
-          ><CheckBox v-model="isNone" :invalid="invalid || showRequired" /><span>{{ t("common.values.none") }}</span></label
+        <label class="flex cursor-pointer items-center gap-1 leading-5" @mousedown.prevent @click="focusCheckbox(noneCheckboxId)"
+          ><CheckBox :id="noneCheckboxId" v-model="isNone" :disabled="readonly" :invalid="invalid || showRequired" /><span>{{ t("common.values.none") }}</span></label
         >
       </div>
     </WithLock>

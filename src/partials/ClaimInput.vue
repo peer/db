@@ -20,32 +20,34 @@ import type { DeepReadonly, ShallowUnwrapRef } from "vue"
 
 import type { Claim, ClaimTypes } from "@/document"
 import type { FieldData, FieldEntryValue } from "@/fields"
-import type { InputColumn, ValidatedInput } from "@/types"
+import type { FieldsFormFlush, InputColumn, SaveChangeResult, SaveChangeSpec, ValidatedInput } from "@/types"
 
-import { computed, inject, onBeforeUnmount, onMounted, ref, useId, useTemplateRef, watch } from "vue"
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, toRaw, useId, useTemplateRef, watch } from "vue"
 
 import CheckBox from "@/components/CheckBox.vue"
 import { VT_HAS, VT_NONE, VT_UNKNOWN } from "@/core"
-import { AddClaimChange, CastClaimChange, claimPatchFrom, claimTypeName, getClaimsOfTypeWithConfidence, RemoveClaimChange, SetClaimChange } from "@/document"
+import { claimPatchFrom, claimTypeName, getClaimsOfTypeWithConfidence } from "@/document"
 import {
+  ChangeDroppedError,
   emptyFieldEntryValue,
   equalFieldEntryValue,
   fieldKey,
   fieldLabelCellKey,
   getClaimValues,
+  getCommittedClaimKey,
   isSimpleField,
-  getNextChangeNumberKey,
   makeDefaultPatchForField,
   makePatchForField,
   registerForFlushKey,
+  registerRemoteConflictKey,
   saveChangeKey,
   unregisterForFlushKey,
+  unregisterRemoteConflictKey,
   valueTypeToClaimType,
 } from "@/fields"
 import ClaimCardinality from "@/partials/ClaimCardinality.vue"
 import FieldsFormRow from "@/partials/FieldsFormRow.vue"
 import { allErrors, useRegisterForValidation, useValidationRegistry } from "@/validation"
-import { Identifier } from "@tozd/identifier"
 
 const props = withDefaults(
   defineProps<{
@@ -69,8 +71,9 @@ const props = withDefaults(
     // Subsequent slots are value-first - their sub-fields appear only once a value is committed -
     // so a trailing placeholder cannot become a second default-form entry.
     isFirst?: boolean
-    session: string
-    base: readonly string[]
+    // Set by an enclosing slot whose own change is still being committed: this whole slot
+    // renders read-only until the ancestor's committed state settles.
+    readonly?: boolean
     // Id of this field's label element, threaded down to the value input's
     // FieldsFormRow so a bare single-column input is named via labelledby.
     labelId?: string
@@ -80,19 +83,27 @@ const props = withDefaults(
     invalid: false,
     required: false,
     isFirst: false,
+    readonly: false,
     labelId: undefined,
   },
 )
 
 const emit = defineEmits<{
   "update:modelValue": [Claim | null]
+  // A user-driven operation removed the slot's claim while focus was inside the slot.
+  // The control focus was on unmounts with the filled state (e.g. InputFile's Clear
+  // button), and when the slot itself is spliced the replacement is a fresh instance,
+  // so a component's own focus restoration cannot reach it - the cardinality restores
+  // focus onto the remaining or replacement input instead.
+  cleared: []
 }>()
 
-let fallbackNum = 1
-const getNextChangeNumber = inject(getNextChangeNumberKey, () => fallbackNum++)
-const saveChange = inject(saveChangeKey, () => Promise.resolve())
+const saveChange = inject(saveChangeKey, (spec: SaveChangeSpec) => Promise.resolve({ id: "id" in spec ? spec.id : "" }))
+const getCommittedClaim = inject(getCommittedClaimKey, () => null)
 const registerForFlush = inject(registerForFlushKey, () => {})
 const unregisterForFlush = inject(unregisterForFlushKey, () => {})
+const registerRemoteConflict = inject(registerRemoteConflictKey, () => {})
+const unregisterRemoteConflict = inject(unregisterRemoteConflictKey, () => {})
 // Lets the slot's focusout detect focus moving to a control inside the
 // field's label cell (i.e. the field-level Revert button). When that's
 // the case we skip the per-slot commit so it does not race the Revert
@@ -104,15 +115,76 @@ const getFieldLabelCell = inject(fieldLabelCellKey, () => null)
 const isHas = computed(() => props.field.valueType === VT_HAS)
 const isPresenceOnly = computed(() => isHas.value || props.field.valueType === VT_NONE || props.field.valueType === VT_UNKNOWN)
 
-// Local raw-value state. Hydrated from modelValue at setup, then owned by
-// the user; subsequent modelValue prop changes (echoes of our own commits,
-// or rare external doc-sync updates) update local only when we are not
-// dirty so a mid-typing external sync does not clobber the user's work.
-const local = ref<FieldEntryValue>(props.modelValue ? getClaimValues(props.modelValue) : emptyFieldEntryValue())
+// Local raw-value state, owned by the user once mounted. It is seeded from the session
+// BASELINE (initialClaim) for the first render and switched to the claim's loaded values
+// in onMounted, before paint: the inner inputs checkpoint themselves at their own setup
+// against the then-current model, so seeding with the baseline anchors their checkpoints
+// (and thereby the per-input changed badges) to the session baseline. Seeding with the
+// loaded values instead would make a mid-session reload look pristine to them even
+// though the values differ from the session's starting point.
+const local = ref<FieldEntryValue>(props.initialClaim ? getClaimValues(props.initialClaim) : emptyFieldEntryValue())
+// True while local still holds the baseline seed. localIsEmpty follows the claim during
+// that window: the baseline values must not make a loaded slot look empty, or the
+// cardinality's compaction (running as other slots register mid-mount) drops it.
+const localSeeded = ref(true)
+onMounted(() => {
+  const loaded = props.modelValue ? getClaimValues(props.modelValue) : emptyFieldEntryValue()
+  if (!equalFieldEntryValue(local.value, loaded)) {
+    local.value = loaded
+  }
+  localSeeded.value = false
+})
+
+// currentClaim mirrors props.modelValue but is also updated synchronously at every
+// commit. Props round-trip through the parent's re-render, so two operations in quick
+// succession (e.g. Save's flush while the focusout commit is still posting) would
+// otherwise both read the pre-commit claim and post the same change twice.
+//
+// A prop value different from currentClaim is an EXTERNAL write to the slot (our own
+// commits come back as the reference we emitted - compared raw, since the slot state
+// wraps it in a reactive proxy): a remote add filling this placeholder slot. The slot
+// takes it over completely, like resyncCommitted does for notified changes - local raw
+// values rehydrate and the user is defocused.
+// TODO: Implement better conflict handling.
+const currentClaim = shallowRef<DeepReadonly<Claim> | null>(props.modelValue)
+watch(
+  () => props.modelValue,
+  (v) => {
+    if (toRaw(v) === toRaw(currentClaim.value)) {
+      return
+    }
+    currentClaim.value = v
+    local.value = v && !isPresenceOnly.value ? getClaimValues(v) : emptyFieldEntryValue()
+    blurIfInside()
+  },
+  { flush: "sync" },
+)
+
+// blurIfInside defocuses the user when their focus is inside this slot. Called after the
+// slot's state has been replaced by an external change, so the blur-triggered commit
+// observes local matching the committed claim and does nothing.
+// TODO: No need once we have better conflict handling.
+function blurIfInside(): void {
+  const focused = document.activeElement
+  if (focused instanceof HTMLElement && rootRef.value?.contains(focused)) {
+    focused.blur()
+  }
+}
+
+// setClaim publishes a new committed claim state both locally (synchronously) and to
+// the parent slot. Local raw values mirror the committed claim, so after every commit
+// the input shows the canonical committed form - including parts the patch defaulted
+// (e.g. an empty interval bound committing as none) or canonicalized. The slot is
+// read-only while its change is in flight, so no user edit can be clobbered here.
+function setClaim(claim: DeepReadonly<Claim> | null): void {
+  currentClaim.value = claim
+  local.value = claim && !isPresenceOnly.value ? getClaimValues(claim) : emptyFieldEntryValue()
+  emit("update:modelValue", claim as Claim | null)
+}
 
 // checkpointClaim is the revert target. Seeded from initialClaim; watched
 // so a parent re-anchor moves it without remount. Updated by checkpoint()
-// to the current modelValue (called from DocumentEdit's checkpointAll).
+// to the current claim (called from DocumentEdit's checkpointAll).
 const checkpointClaim = ref<DeepReadonly<Claim> | null>(props.initialClaim)
 const checkpointEntry = ref<FieldEntryValue>(props.initialClaim ? getClaimValues(props.initialClaim) : emptyFieldEntryValue())
 
@@ -126,7 +198,7 @@ watch(
 )
 
 // Sub-claim extraction: for each sub-field, pull the matching claims out
-// of the current modelValue (and initialClaim) so the sub-ClaimCardinality
+// of the current claim (and initialClaim) so the sub-ClaimCardinality
 // has the right slice.
 function extractSubClaims(claim: DeepReadonly<Claim> | null, subField: DeepReadonly<FieldData>): readonly DeepReadonly<Claim>[] {
   if (!claim || !claim.sub) return []
@@ -152,7 +224,7 @@ const showSubFields = computed(() => {
   // mirroring how the cardinality grows a new trailing slot on dirty. A sub-claim added before the
   // commit lazily creates the parent claim via ensureClaimId. Stay shown while a committed claim
   // exists even if the value is momentarily cleared mid-edit.
-  return hasValue.value || props.modelValue !== null
+  return hasValue.value || currentClaim.value !== null
 })
 
 // Whether to render the presence-toggle checkbox. NONE / UNKNOWN never
@@ -170,9 +242,9 @@ const showCheckbox = computed(() => {
 // attached to this claim's sub. Used by isEmpty (and the commit logic's
 // "don't auto-remove a parent that still has sub-claims" branch).
 const hasAnySubClaims = computed(() => {
-  if (!props.modelValue?.sub) return false
+  if (!currentClaim.value?.sub) return false
   for (const subField of props.field.subFields) {
-    if (extractSubClaims(props.modelValue, subField).length > 0) return true
+    if (extractSubClaims(currentClaim.value, subField).length > 0) return true
   }
   return false
 })
@@ -182,6 +254,9 @@ const hasAnySubClaims = computed(() => {
 // at defaults, so the slot's emptiness is determined by sub-claims alone.
 const localIsEmpty = computed(() => {
   if (isPresenceOnly.value) return true
+  if (localSeeded.value) {
+    return currentClaim.value === null
+  }
   return equalFieldEntryValue(local.value, emptyFieldEntryValue())
 })
 
@@ -235,7 +310,7 @@ const localDirty = computed(() => !equalFieldEntryValue(local.value, checkpointE
 // by id would falsely flag it as dirty and leave "Changed" lit after
 // the user reverts.
 const identityDirty = computed(() => {
-  const hasCurrent = props.modelValue !== null
+  const hasCurrent = currentClaim.value !== null
   const hasBaseline = checkpointClaim.value !== null
   return hasCurrent !== hasBaseline
 })
@@ -245,7 +320,7 @@ const identityDirty = computed(() => {
 const isEmpty = computed<boolean>(() => {
   if (isPresenceOnly.value) {
     // No own value; emptiness is sub-claim emptiness AND no committed claim.
-    if (props.modelValue !== null) return false
+    if (currentClaim.value !== null) return false
     return allChildEmpty.value
   }
   if (!localIsEmpty.value) return false
@@ -263,6 +338,79 @@ const hasValue = computed<boolean>(() => {
   if (isPresenceOnly.value) return !isEmpty.value
   return !localIsEmpty.value
 })
+
+// Number of this slot's changes queued or in flight. While non-zero the whole slot
+// (value input, checkbox, and sub-fields) is read-only - grayed and non-interactive,
+// but selectable - so no further local edits pile up on a claim whose committed state
+// is not settled yet.
+const pendingCount = ref(0)
+const slotReadonly = computed<boolean>(() => props.readonly || pendingCount.value > 0)
+
+// Slot operations (commit, revert, slot cleanup, checkbox toggle, lazy parent create)
+// are serialized so a second trigger (e.g. Save's flush while the focusout commit is
+// still posting) observes the state left behind by the first instead of racing it.
+let operationChain: Promise<unknown> = Promise.resolve()
+function runSerialized<T>(fn: () => Promise<T>): Promise<T> {
+  const run = operationChain.then(fn)
+  operationChain = run.catch(() => undefined)
+  return run
+}
+
+// resyncCommitted replaces the slot's state (claim and local raw values) with the given
+// committed claim. Used when a change is dropped or a remote change wins over local work.
+// When the user is focused inside the slot they are defocused: the state under them has
+// just been replaced, so their in-progress interaction no longer applies.
+function resyncCommitted(claim: DeepReadonly<Claim> | null): void {
+  setClaim(claim)
+  blurIfInside()
+}
+
+// submitChange queues one change and tracks it as pending for this slot. Returns null
+// when the change was dropped (it lost its change number to a concurrent change and does
+// not apply anymore, see ChangeDroppedError); the slot has then already been resynced to
+// the committed state and the caller should stop its flow.
+async function submitChange(spec: SaveChangeSpec): Promise<SaveChangeResult | null> {
+  pendingCount.value += 1
+  try {
+    return await saveChange(spec)
+  } catch (err) {
+    if (err instanceof ChangeDroppedError) {
+      resyncCommitted(spec.type === "add" ? null : getCommittedClaim(spec.id))
+      return null
+    }
+    throw err
+  } finally {
+    pendingCount.value -= 1
+  }
+}
+
+// hasUncommittedLocal reports whether local raw values differ from the committed claim's
+// values (typed but not committed yet). Presence-only slots have no local raw values.
+function hasUncommittedLocal(): boolean {
+  if (isPresenceOnly.value) return false
+  const committedValues = currentClaim.value ? getClaimValues(currentClaim.value) : emptyFieldEntryValue()
+  return !equalFieldEntryValue(local.value, committedValues)
+}
+
+// A remote change touched claims we may hold local state for. Server wins: the slot
+// resyncs to the committed state, discarding uncommitted local edits if any. By
+// notification time the subscription has applied all committed ops for the touched claims, so
+// the committed lookup is current and the own-echo lag that keeps slots from syncing
+// off the doc in general does not apply here. Slots with a queued change are left
+// alone: that change either overrides the remote one or is dropped by the queue's
+// conflict handling, which resyncs through submitChange.
+function onRemoteConflict(claimIds: ReadonlySet<string>): void {
+  const committed = currentClaim.value
+  if (!committed || !claimIds.has(committed.id)) {
+    return
+  }
+  if (pendingCount.value > 0) {
+    return
+  }
+  resyncCommitted(getCommittedClaim(committed.id))
+}
+onMounted(() => registerRemoteConflict(onRemoteConflict))
+onBeforeUnmount(() => unregisterRemoteConflict(onRemoteConflict))
 
 // Forward the value input's reported columns (empty for presence-only slots
 // with no value input) so the enclosing cardinality can read whether the input
@@ -296,8 +444,8 @@ const validatedInput: ValidatedInput = {
   errors: allErrors(childInputs),
   columns,
   checkpoint: () => {
-    checkpointClaim.value = props.modelValue
-    checkpointEntry.value = props.modelValue ? getClaimValues(props.modelValue) : emptyFieldEntryValue()
+    checkpointClaim.value = currentClaim.value
+    checkpointEntry.value = currentClaim.value ? getClaimValues(currentClaim.value) : emptyFieldEntryValue()
     checkpointChildAll()
   },
 }
@@ -310,9 +458,14 @@ forwardInteraction = notifyOuter
 // AddClaimChange knows what to set under to. The lazily-created base is a HAS
 // claim for HAS fields, or the none/unknown default form for a value field
 // with a default (so sub-claims can be attached before a value is entered).
-async function ensureClaimId(): Promise<string> {
-  if (props.modelValue !== null) {
-    return props.modelValue.id
+// Serialized with the slot's other operations so a concurrent commit cannot
+// create the base claim twice.
+function ensureClaimId(): Promise<string> {
+  return runSerialized(doEnsureClaimId)
+}
+async function doEnsureClaimId(): Promise<string> {
+  if (currentClaim.value !== null) {
+    return currentClaim.value.id
   }
   let patch: object
   if (isHas.value) {
@@ -323,25 +476,50 @@ async function ensureClaimId(): Promise<string> {
     throw new Error("ensureClaimId called with no committed claim on a non-HAS slot without a default")
   }
   const newClaim = await addClaimWithParent(patch)
-  emit("update:modelValue", newClaim)
+  if (!newClaim) {
+    throw new Error("lazily created base claim was dropped")
+  }
+  setClaim(newClaim)
   return newClaim.GetID()
 }
 
-// addClaimWithParent posts an AddClaimChange for the given patch and returns the new claim. It
-// resolves the (possibly lazily-created) parent FIRST so the parent gets a lower change number
-// and is posted before this claim: the server requires change numbers to arrive in sequence, so
-// posting a child before its lazily-created parent would otherwise conflict.
-async function addClaimWithParent(patch: object): Promise<Claim> {
+// cleanupEmptyBase removes this slot's claim when it is a lazily-created base left
+// holding nothing: a HAS claim (of a field with sub-fields) or a default (none/unknown)
+// form whose sub-claims are all gone and whose value side is empty. Sub-cardinalities
+// call it when a revert empties them - the base came into existence implicitly with the
+// first sub-claim (ensureClaimId), so its removal mirrors that; otherwise an invisible
+// empty claim would keep the field flagged as changed with no control left to remove it.
+function cleanupEmptyBase(): Promise<void> {
+  return runSerialized(async () => {
+    const committed = currentClaim.value
+    if (!committed) {
+      return
+    }
+    if (!allChildEmpty.value || !localIsEmpty.value) {
+      return
+    }
+    const isLazyBase = (isHas.value && props.field.subFields.length > 0) || (props.field.default !== undefined && claimTypeName(committed) === props.field.default)
+    if (!isLazyBase) {
+      return
+    }
+    if (!(await submitChange({ type: "remove", id: committed.id }))) {
+      return
+    }
+    setClaim(null)
+  })
+}
+
+// addClaimWithParent commits an AddClaimChange for the given patch and returns the new
+// claim (with the id assigned by the change queue), or null when the add was dropped. It
+// resolves the (possibly lazily-created) parent FIRST so the parent is committed before
+// this claim is queued: a sub-claim's under has to reference a committed claim id.
+async function addClaimWithParent(patch: object): Promise<Claim | null> {
   const under = props.parentClaimId ? await props.parentClaimId() : undefined
-  const num = getNextChangeNumber()
-  const changeBase = [...props.base, "SESSION", props.session, String(num)]
-  const newId = (await Identifier.from(...changeBase)).toString()
-  const addChange = new AddClaimChange({ id: newId, base: changeBase, patch })
-  if (under !== undefined) {
-    addChange.under = under
+  const result = await submitChange(under === undefined ? { type: "add", patch } : { type: "add", patch, under })
+  if (!result) {
+    return null
   }
-  await saveChange(addChange, num)
-  return claimPatchFrom(patch).New(newId)
+  return claimPatchFrom(patch).New(result.id)
 }
 
 // commit runs Add / Set / Cast / Remove for the value side of this claim.
@@ -353,16 +531,25 @@ async function addClaimWithParent(patch: object): Promise<Claim> {
 // location is unknown but notes exist). Switching between the two changes the
 // claim type, which a Set cannot do, so we use a Cast to change the type in
 // place while preserving the claim id and its sub-claims.
-async function commit(): Promise<void> {
+function commit(): Promise<void> {
+  // Whether focus is inside the slot has to be captured when the commit is REQUESTED: by
+  // the time the serialized body runs, a cleared value's filled-state controls (e.g.
+  // InputFile's Clear button) may already have unmounted in a render flush, dropping
+  // focus to the body. A remove with focus inside reports cleared so the cardinality
+  // restores focus (see the cleared emit).
+  const hadFocus = rootRef.value?.contains(document.activeElement) ?? false
+  return runSerialized(() => doCommit(hadFocus))
+}
+async function doCommit(hadFocus: boolean): Promise<void> {
   if (isPresenceOnly.value) return
-  const currentClaim = props.modelValue
+  const committed = currentClaim.value
   const valueType = valueTypeToClaimType(props.field.valueType)
 
   // Empty path. Skip validation here on purpose: the user is clearing the input, and a
   // sub-cardinality that would normally fire "Required value." for an empty sub-field must NOT
   // block the remove/cast, otherwise the row gets stuck and stays red.
   if (localIsEmpty.value) {
-    if (!currentClaim) return
+    if (!committed) return
     if (props.field.default) {
       if (props.isFirst) {
         // First slot of a default field - the only entry allowed to be the default form. If
@@ -370,15 +557,14 @@ async function commit(): Promise<void> {
         // preserving them. If nothing remains, removal of the now-empty default claim is handled by
         // onSlotCleanup once focus leaves the whole slot - doing it here would fire while focus is
         // still in the value input and the user may be mid-edit.
-        if (!allChildEmpty.value && claimTypeName(currentClaim) !== props.field.default) {
-          const num = getNextChangeNumber()
+        if (!allChildEmpty.value && claimTypeName(committed) !== props.field.default) {
           const patch = makeDefaultPatchForField(props.field)
-          await saveChange(new CastClaimChange({ id: currentClaim.id, patch }), num)
-          const updated = claimPatchFrom(patch).New(currentClaim.id)
-          if (currentClaim.sub) {
-            updated.sub = currentClaim.sub as unknown as ClaimTypes
+          if (!(await submitChange({ type: "cast", id: committed.id, patch }))) return
+          const updated = claimPatchFrom(patch).New(committed.id)
+          if (committed.sub) {
+            updated.sub = committed.sub as unknown as ClaimTypes
           }
-          emit("update:modelValue", updated)
+          setClaim(updated)
         }
         return
       }
@@ -386,18 +572,25 @@ async function commit(): Promise<void> {
       // the default form (only the first slot may be the default form), and a value claim cannot
       // hold an empty value, so keep it while sub-claims remain (live state), else remove it.
       if (allChildEmpty.value) {
-        const num = getNextChangeNumber()
-        await saveChange(new RemoveClaimChange({ id: currentClaim.id }), num)
-        emit("update:modelValue", null)
+        if (!(await submitChange({ type: "remove", id: committed.id }))) return
+        // Reported BEFORE the removal is published: publishing splices the slot, and an
+        // emit from a component queued for unmount is silently dropped by Vue.
+        if (hadFocus) {
+          emit("cleared")
+        }
+        setClaim(null)
       }
       return
     }
     // Regular (non-default) field: a value claim cannot hold an empty value, so keep it when
     // sub-claims remain, otherwise remove it.
     if (!hasAnySubClaims.value) {
-      const num = getNextChangeNumber()
-      await saveChange(new RemoveClaimChange({ id: currentClaim.id }), num)
-      emit("update:modelValue", null)
+      if (!(await submitChange({ type: "remove", id: committed.id }))) return
+      // Reported BEFORE the removal is published, see above.
+      if (hadFocus) {
+        emit("cleared")
+      }
+      setClaim(null)
     }
     return
   }
@@ -417,38 +610,39 @@ async function commit(): Promise<void> {
     if (formRowRef.value.isEmpty) return
   }
   const patch = makePatchForField(props.field, local.value)
-  if (currentClaim) {
-    if (claimTypeName(currentClaim) !== valueType) {
+  if (committed) {
+    if (claimTypeName(committed) !== valueType) {
       // The committed claim is the default (none/unknown) form and the user has now entered a
       // value. Promote it to the value type, preserving the sub-claims.
-      const num = getNextChangeNumber()
-      await saveChange(new CastClaimChange({ id: currentClaim.id, patch }), num)
-      const updated = claimPatchFrom(patch).New(currentClaim.id)
-      if (currentClaim.sub) {
-        updated.sub = currentClaim.sub as unknown as ClaimTypes
+      if (!(await submitChange({ type: "cast", id: committed.id, patch }))) return
+      const updated = claimPatchFrom(patch).New(committed.id)
+      if (committed.sub) {
+        updated.sub = committed.sub as unknown as ClaimTypes
       }
-      emit("update:modelValue", updated)
+      setClaim(updated)
       return
     }
     // Update existing claim. Only post if values actually changed.
-    if (equalFieldEntryValue(local.value, getClaimValues(currentClaim))) {
+    if (equalFieldEntryValue(local.value, getClaimValues(committed))) {
       return
     }
-    const num = getNextChangeNumber()
-    await saveChange(new SetClaimChange({ id: currentClaim.id, patch }), num)
+    if (!(await submitChange({ type: "set", id: committed.id, patch }))) return
     // Reconstruct the claim with the new values so the parent sees the updated state
     // immediately, without waiting for the next doc sync.
-    const updated = claimPatchFrom(patch).New(currentClaim.id)
-    if (currentClaim.sub) {
-      // Preserve sub-claims through the optimistic update. The DeepReadonly is a type-only
+    const updated = claimPatchFrom(patch).New(committed.id)
+    if (committed.sub) {
+      // Preserve sub-claims through the update. The DeepReadonly is a type-only
       // concern; at runtime ClaimTypes is the same object.
-      updated.sub = currentClaim.sub as unknown as ClaimTypes
+      updated.sub = committed.sub as unknown as ClaimTypes
     }
-    emit("update:modelValue", updated)
+    setClaim(updated)
     return
   }
   // No claim yet. Add.
-  emit("update:modelValue", await addClaimWithParent(patch))
+  const newClaim = await addClaimWithParent(patch)
+  if (newClaim) {
+    setClaim(newClaim)
+  }
 }
 
 async function onFocusOut(event: FocusEvent): Promise<void> {
@@ -464,6 +658,66 @@ async function onFocusOut(event: FocusEvent): Promise<void> {
   // both tab-to and click-to the Revert button.
   const labelCell = getFieldLabelCell()
   if (labelCell && next instanceof Node && labelCell.contains(next)) return
+  // A null relatedTarget is ambiguous: focus may really have left (moved to the body or
+  // a non-focusable element), but Chrome also dispatches such a focusout when a focused
+  // element inside the slot UNMOUNTS mid-interaction (e.g. InputRef's Clear button
+  // unmounting with the chip, before the input restores focus into the now-empty search
+  // input). Wait a tick for any such programmatic focus restore to land and only commit
+  // when focus actually settled outside the slot; committing on the unmount blur would
+  // remove the just-cleared claim (and splice the slot) under the user mid-edit.
+  if (!next) {
+    await nextTick()
+    if (unmounting) return
+    const active = document.activeElement
+    if (active && active !== document.body && rootRef.value?.contains(active)) return
+  }
+  await commit()
+}
+
+// Set while the component tears down, so the deferred focusout check above does not
+// commit from a slot that got unmounted during its tick.
+let unmounting = false
+onBeforeUnmount(() => {
+  unmounting = true
+})
+
+// A missing-state checkbox (unknown/none of an interval bound) was toggled. CHECKING a
+// state is a complete decision, so it commits immediately. Deferring it to blur would
+// leave local diverging from the claim, and a later unrelated focus change would post a
+// surprise set: the slot flashes read-only mid-gesture and a now-disabled checkbox
+// drops focus and eats the click the user is in the middle of. UNCHECKING is different:
+// it is the start of providing a value for the bound, so it stays uncommitted - an
+// immediate commit would just snap the empty bound back to its default missing state
+// and lock the input away from the user. The blur commit resolves a bound left empty.
+async function onMissingChange(side: "from" | "to"): Promise<void> {
+  // While no claim is committed yet, a toggle stays uncommitted like typing does: an
+  // immediate commit would have to materialize the whole interval and would default the
+  // other, untouched bound mid-editing (a surprising "unknown" appearing on To right
+  // after the first click on From). The commit happens once focus leaves the whole
+  // widget (both bounds with their precisions and checkboxes), like for typed values.
+  if (currentClaim.value === null) {
+    return
+  }
+  const l = local.value
+  const boundSet = side === "from" ? l.fromUnknown || l.fromNone : l.toUnknown || l.toNone
+  if (!boundSet) {
+    return
+  }
+  // The commit resolves the WHOLE interval, so it is immediate only when the other
+  // bound is resolved too (a value or a flag). A deselected-and-empty other bound is a
+  // transient state - the user is preparing to type its value - and committing now
+  // would snap its default back on.
+  const otherResolved = side === "from" ? l.toUnknown || l.toNone || !!l.valueTo : l.fromUnknown || l.fromNone || !!l.value
+  if (!otherResolved) {
+    return
+  }
+  await commit()
+}
+
+// The value input made a change which is a complete decision on its own (a finished
+// file upload, a cleared file). There is no natural blur after it (the file dialog and
+// the async upload leave focus where it was), so it commits immediately.
+async function onCompleteChange(): Promise<void> {
   await commit()
 }
 
@@ -481,62 +735,99 @@ async function onSlotCleanup(event: FocusEvent): Promise<void> {
   if (rootRef.value && next instanceof Node && rootRef.value.contains(next)) return // focus stayed in the slot
   const labelCell = getFieldLabelCell()
   if (labelCell && next instanceof Node && labelCell.contains(next)) return // moving to the Revert button
-  const currentClaim = props.modelValue
-  if (!currentClaim) return
-  if (!isEmpty.value) return // still has a value or sub-claims
-  const num = getNextChangeNumber()
-  await saveChange(new RemoveClaimChange({ id: currentClaim.id }), num)
-  emit("update:modelValue", null)
+  await runSerialized(async () => {
+    const committed = currentClaim.value
+    if (!committed) return
+    if (!isEmpty.value) return // still has a value or sub-claims
+    if (!(await submitChange({ type: "remove", id: committed.id }))) return
+    setClaim(null)
+  })
 }
 
 // Checkbox-driven presence: NONE / UNKNOWN and HAS-without-sub-fields use
 // a simple checkbox to add or remove the claim outright.
 async function onCheckboxChange(checked: boolean | undefined): Promise<void> {
   const desired = !!checked
-  const currentHas = props.modelValue !== null
-  if (desired === currentHas) return
-  if (desired) {
-    // Add an empty presence claim.
-    emit("update:modelValue", await addClaimWithParent(makePatchForField(props.field, emptyFieldEntryValue())))
-    return
-  }
-  // Remove the existing claim (sub-claims, if any, cascade with it on the backend).
-  if (!props.modelValue) return
-  const num = getNextChangeNumber()
-  await saveChange(new RemoveClaimChange({ id: props.modelValue.id }), num)
-  emit("update:modelValue", null)
+  // Captured at request time, like in commit above.
+  const checkboxHadFocus = rootRef.value?.contains(document.activeElement) ?? false
+  await runSerialized(async () => {
+    const committed = currentClaim.value
+    if (desired === (committed !== null)) return
+    if (desired) {
+      // Add an empty presence claim.
+      const newClaim = await addClaimWithParent(makePatchForField(props.field, emptyFieldEntryValue()))
+      if (newClaim) {
+        setClaim(newClaim)
+      }
+      return
+    }
+    // Remove the existing claim (sub-claims, if any, cascade with it on the backend).
+    if (!committed) return
+    if (!(await submitChange({ type: "remove", id: committed.id }))) return
+    // Reported BEFORE the removal is published, see doCommit.
+    if (checkboxHadFocus) {
+      emit("cleared")
+    }
+    setClaim(null)
+  })
+}
+
+// revertEntryCallback backs the per-input changed badge's revert (through FieldsFormRow
+// into InputField), so it behaves like the field-level revert: the slot reverts as a
+// whole and the reverting changes are posted right away.
+function revertEntryCallback(): void {
+  void revertField()
 }
 
 // revertField restores this slot to its session-start state via the
 // validation registry's checkpoint, then issues the appropriate
 // Add / Set / Remove to bring the backend in line.
-async function revertField(): Promise<void> {
-  const current = props.modelValue
+function revertField(): Promise<void> {
+  // Captured at request time, like in commit above.
+  const hadFocus = rootRef.value?.contains(document.activeElement) ?? false
+  return runSerialized(() => doRevertField(hadFocus))
+}
+async function doRevertField(hadFocus: boolean): Promise<void> {
+  const committed = currentClaim.value
   const baseline = checkpointClaim.value
   const baselineValue = checkpointEntry.value
   // Restore local raw state from checkpoint first.
   local.value = { ...baselineValue }
   // Now reconcile claim-level state.
-  if (baseline === null && current !== null) {
-    // Slot was added during the session -> remove.
-    const num = getNextChangeNumber()
-    await saveChange(new RemoveClaimChange({ id: current.id }), num)
-    emit("update:modelValue", null)
-  } else if (baseline !== null && current === null) {
-    // Slot was removed during the session -> resurrect with the baseline values.
-    emit("update:modelValue", await addClaimWithParent(makePatchForField(props.field, baselineValue)))
-  } else if (baseline !== null && current !== null) {
-    // Both non-null: if local values diverged from baseline, Set back.
-    const currentValues = getClaimValues(current)
-    if (!equalFieldEntryValue(currentValues, baselineValue)) {
-      const patch = makePatchForField(props.field, baselineValue)
-      const num = getNextChangeNumber()
-      await saveChange(new SetClaimChange({ id: current.id, patch }), num)
-      const updated = claimPatchFrom(patch).New(current.id)
-      if (current.sub) {
-        updated.sub = current.sub as unknown as ClaimTypes
+  if (baseline === null && committed !== null) {
+    // Slot was added during the session -> remove. The removal cascades to the claim's
+    // sub-claims, so the sub-cardinalities must NOT revert-with-changes - their removes
+    // would target already-removed claims and break the session - they just drop their
+    // local slots, after the cleared claim has propagated into their modelValue.
+    if (await submitChange({ type: "remove", id: committed.id })) {
+      // Reported BEFORE the removal is published, see doCommit.
+      if (hadFocus) {
+        emit("cleared")
       }
-      emit("update:modelValue", updated)
+      setClaim(null)
+      await nextTick()
+      resetChildAll()
+    }
+    return
+  }
+  if (baseline !== null && committed === null) {
+    // Slot was removed during the session -> resurrect with the baseline values.
+    const newClaim = await addClaimWithParent(makePatchForField(props.field, baselineValue))
+    if (newClaim) {
+      setClaim(newClaim)
+    }
+  } else if (baseline !== null && committed !== null) {
+    // Both non-null: if local values diverged from baseline, Set back.
+    const committedValues = getClaimValues(committed)
+    if (!equalFieldEntryValue(committedValues, baselineValue)) {
+      const patch = makePatchForField(props.field, baselineValue)
+      if (await submitChange({ type: "set", id: committed.id, patch })) {
+        const updated = claimPatchFrom(patch).New(committed.id)
+        if (committed.sub) {
+          updated.sub = committed.sub as unknown as ClaimTypes
+        }
+        setClaim(updated)
+      }
     }
   }
   // Cascade revert into sub-claims (ClaimCardinality children).
@@ -545,14 +836,15 @@ async function revertField(): Promise<void> {
 
 // Flush: cover the case where Save fires while the user is still in the
 // input. commit() short-circuits on validation errors so an invalid value
-// will not be posted.
-async function flush(): Promise<[]> {
-  await commit()
-  return []
+// will not be posted. hasUncommitted lets DocumentEdit warn before the tab
+// closes with local edits which have not produced their change yet.
+const flushInstance: FieldsFormFlush = {
+  flush: () => commit(),
+  hasUncommitted: hasUncommittedLocal,
 }
 
-onMounted(() => registerForFlush(flush))
-onBeforeUnmount(() => unregisterForFlush(flush))
+onMounted(() => registerForFlush(flushInstance))
+onBeforeUnmount(() => unregisterForFlush(flushInstance))
 
 // Pass-through callback: sub-ClaimCardinality receives this as its
 // parent-claim-id; it forwards to each sub-ClaimInput, which calls it at
@@ -593,9 +885,24 @@ defineExpose({
       FieldsFormRow watches the prop and re-validates so toggling it
       surfaces/clears the message immediately rather than on the next
       blur.
+
+      readonly is on while this slot's changes are queued or in flight (or an
+      ancestor slot's are), so no further edits pile up before the claim's
+      committed state settles.
     -->
     <div v-if="!isPresenceOnly" class="flex min-w-0 grow flex-col" @focusout="onFocusOut">
-      <FieldsFormRow ref="formRowRef" v-model:entry="local" :field="field" :required="required" :invalid="invalid" :label-id="labelId" />
+      <FieldsFormRow
+        ref="formRowRef"
+        v-model:entry="local"
+        :field="field"
+        :required="required"
+        :invalid="invalid"
+        :readonly="slotReadonly"
+        :revert="revertEntryCallback"
+        :label-id="labelId"
+        @missing-change="onMissingChange"
+        @complete-change="onCompleteChange"
+      />
     </div>
 
     <!--
@@ -603,7 +910,7 @@ defineExpose({
       HAS *with* sub-fields skips the checkbox entirely and relies on the
       sub-form to drive presence (lazy create via ensureClaimId).
     -->
-    <CheckBox v-if="showCheckbox" :id="checkboxId" :model-value="modelValue !== null" @update:model-value="onCheckboxChange" />
+    <CheckBox v-if="showCheckbox" :id="checkboxId" :model-value="currentClaim !== null" :disabled="slotReadonly" @update:model-value="onCheckboxChange" />
 
     <!--
       Sub-fields: one ClaimCardinality per sub-field, each with its property
@@ -616,19 +923,19 @@ defineExpose({
     <div v-if="showSubFields" class="flex flex-col" :class="subFieldGapClass">
       <!--
         Each sub-field's ClaimCardinality renders its own header (property label +
-        whole-sub-field changed/revert badge) above its slots, in the input column
+        whole-sub-field badge) above its slots, in the input column
         so the label lines up with the input rather than the repeat count.
       -->
       <ClaimCardinality
         v-for="subField in field.subFields"
         :key="fieldKey(subField)"
         :show-header="true"
-        :model-value="extractSubClaims(modelValue, subField)"
+        :model-value="extractSubClaims(currentClaim, subField)"
         :initial-claims="extractSubClaims(initialClaim, subField)"
         :field="subField"
         :parent-claim-id="ensureClaimIdCallback"
-        :session="session"
-        :base="base"
+        :parent-cleanup="cleanupEmptyBase"
+        :readonly="slotReadonly"
         :label-id="subFieldLabelId(subField)"
       />
     </div>

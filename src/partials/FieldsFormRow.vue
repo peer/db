@@ -29,7 +29,7 @@ import type { DeepReadonly, WritableComputedRef } from "vue"
 import type { FieldData, FieldEntryValue } from "@/fields"
 import type { InputColumn, ValidatedInput } from "@/types"
 
-import { computed, watch } from "vue"
+import { computed, shallowRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
 import { VT_FILE } from "@/core"
@@ -55,26 +55,56 @@ const props = defineProps<{
   // Presentational red ring on the input. Used for the cardinality-short
   // visual hint, orthogonal to per-input validation errors.
   invalid: boolean
+  // Renders every inner input read-only (grayed and non-interactive, but selectable).
+  // Set by ClaimInput while the slot's changes are queued or in flight.
+  readonly?: boolean
+  // Slot-level revert passed through to every InputField, so the per-input changed
+  // badge's revert posts the reverting changes like the field-level revert does (see
+  // the revert prop on InputField).
+  revert?: () => void
   // Id of the (sub)field's label element, threaded down from the field's
   // ClaimCardinality, so a bare single-column input is named via InputField's
   // labelledby. Undefined when not in a FieldsForm context.
   labelId?: string
 }>()
 
-// Notify the parent on any user-driven model change. Emitted by every
-// inner input's @update:model-value handler.
-const emit = defineEmits<{ input: [] }>()
+// input notifies the parent on any user-driven model change; it is emitted by every
+// inner input's @update:model-value handler. missingChange additionally fires when a
+// missing-state checkbox (unknown/none) of the given interval bound is toggled, so the
+// parent can commit a newly checked state immediately instead of waiting for blur.
+// completeChange additionally fires for model changes which are complete decisions on
+// their own (a finished file upload, a cleared file): there is no natural blur after
+// them (focus never left the slot), so the parent commits immediately as well.
+const emit = defineEmits<{ input: []; missingChange: [side: "from" | "to"]; completeChange: [] }>()
 
 // One v-model for the whole entry. Parent (ClaimInput) owns a single
 // reactive FieldEntryValue; each inner input updates its own slice via
 // the computed wrappers below, which spread the entry and emit it back.
 const entry = defineModel<FieldEntryValue>("entry", { default: () => emptyFieldEntryValue() })
 
+// Writes from the inner inputs can come in bursts within one tick (e.g. the missing-state
+// checkboxes keep unknown/none mutually exclusive with two consecutive writes). The entry
+// model only emits upward - until the parent re-renders, entry.value keeps returning the
+// previous object - so a second write would spread the stale base and silently drop the
+// first one. head is the newest written object, used as the base until the parent's next
+// entry value arrives (our own write round-tripping back, or an external replacement,
+// which then wins).
+const head = shallowRef<FieldEntryValue | null>(null)
+watch(
+  () => entry.value,
+  () => {
+    head.value = null
+  },
+  { flush: "sync" },
+)
+
 function fieldRef<K extends keyof FieldEntryValue>(key: K): WritableComputedRef<FieldEntryValue[K]> {
   return computed({
-    get: () => entry.value[key],
+    get: () => (head.value ?? entry.value)[key],
     set: (v) => {
-      entry.value = { ...entry.value, [key]: v }
+      const next = { ...(head.value ?? entry.value), [key]: v }
+      head.value = next
+      entry.value = next
     },
   })
 }
@@ -196,6 +226,16 @@ watch(
 function onInput() {
   emit("input")
 }
+
+function onMissingInput(side: "from" | "to") {
+  emit("input")
+  emit("missingChange", side)
+}
+
+function onCompleteInput() {
+  emit("input")
+  emit("completeChange")
+}
 </script>
 
 <template>
@@ -208,49 +248,84 @@ function onInput() {
     through InputField's slot props.
   -->
   <!-- id -->
-  <InputField v-if="claimType === 'id'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField">
+  <InputField v-if="claimType === 'id'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField" :revert="revert">
     <template #input="inputProps">
-      <InputIdentifier v-bind="inputProps" v-model="value" @update:model-value="onInput" />
+      <InputIdentifier v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- string -->
-  <InputField v-else-if="claimType === 'string'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField">
+  <InputField v-else-if="claimType === 'string'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField" :revert="revert">
     <template #input="inputProps">
-      <InputString v-bind="inputProps" v-model="value" @update:model-value="onInput" />
+      <InputString v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- html -->
-  <InputField v-else-if="claimType === 'html'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField">
+  <InputField v-else-if="claimType === 'html'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField" :revert="revert">
     <template #input="inputProps">
-      <InputHTML v-bind="inputProps" v-model="value" @update:model-value="onInput" />
+      <InputHTML v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- amount -->
-  <InputField v-else-if="claimType === 'amount'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField">
+  <InputField v-else-if="claimType === 'amount'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField" :revert="revert">
     <template #input="inputProps">
-      <InputAmount v-bind="inputProps" v-model="value" v-model:precision="amountPrecision" @update:model-value="onInput" @update:precision="onInput" />
+      <InputAmount
+        v-bind="inputProps"
+        v-model="value"
+        v-model:precision="amountPrecision"
+        :readonly="readonly"
+        @update:model-value="onInput"
+        @update:precision="onInput"
+      />
     </template>
   </InputField>
 
   <!-- amountInterval - "from" and "to" stack vertically, one InputField each. -->
   <div v-else-if="claimType === 'amountInterval'" class="flex min-w-0 flex-col gap-y-1">
-    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')">
+    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')" :revert="revert">
       <template #input="inputProps">
-        <InputMissing v-bind="inputProps" v-model:unknown="fromUnknown" v-model:none="fromNone" @update:unknown="onInput" @update:none="onInput">
+        <InputMissing
+          v-bind="inputProps"
+          v-model:unknown="fromUnknown"
+          v-model:none="fromNone"
+          :readonly="readonly"
+          @update:unknown="onMissingInput('from')"
+          @update:none="onMissingInput('from')"
+        >
           <template #default="missingProps">
-            <InputAmount v-bind="missingProps" v-model="value" v-model:precision="amountPrecision" @update:model-value="onInput" @update:precision="onInput" />
+            <InputAmount
+              v-bind="missingProps"
+              v-model="value"
+              v-model:precision="amountPrecision"
+              :readonly="readonly"
+              @update:model-value="onInput"
+              @update:precision="onInput"
+            />
           </template>
         </InputMissing>
       </template>
     </InputField>
-    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.to')">
+    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.to')" :revert="revert">
       <template #input="inputProps">
-        <InputMissing v-bind="inputProps" v-model:unknown="toUnknown" v-model:none="toNone" @update:unknown="onInput" @update:none="onInput">
+        <InputMissing
+          v-bind="inputProps"
+          v-model:unknown="toUnknown"
+          v-model:none="toNone"
+          :readonly="readonly"
+          @update:unknown="onMissingInput('to')"
+          @update:none="onMissingInput('to')"
+        >
           <template #default="missingProps">
-            <InputAmount v-bind="missingProps" v-model="valueTo" v-model:precision="amountPrecisionTo" @update:model-value="onInput" @update:precision="onInput" />
+            <InputAmount
+              v-bind="missingProps"
+              v-model="valueTo"
+              v-model:precision="amountPrecisionTo"
+              :readonly="readonly"
+              @update:model-value="onInput"
+              @update:precision="onInput"
+            />
           </template>
         </InputMissing>
       </template>
@@ -258,28 +333,56 @@ function onInput() {
   </div>
 
   <!-- time -->
-  <InputField v-else-if="claimType === 'time'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField">
+  <InputField v-else-if="claimType === 'time'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField" :revert="revert">
     <template #input="inputProps">
-      <InputTime v-bind="inputProps" v-model="value" v-model:precision="timePrecision" @update:model-value="onInput" @update:precision="onInput" />
+      <InputTime v-bind="inputProps" v-model="value" v-model:precision="timePrecision" :readonly="readonly" @update:model-value="onInput" @update:precision="onInput" />
     </template>
   </InputField>
 
   <!-- timeInterval - "from" and "to" stack vertically, one InputField each. -->
   <div v-else-if="claimType === 'timeInterval'" class="flex min-w-0 flex-col gap-y-1">
-    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')">
+    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')" :revert="revert">
       <template #input="inputProps">
-        <InputMissing v-bind="inputProps" v-model:unknown="fromUnknown" v-model:none="fromNone" @update:unknown="onInput" @update:none="onInput">
+        <InputMissing
+          v-bind="inputProps"
+          v-model:unknown="fromUnknown"
+          v-model:none="fromNone"
+          :readonly="readonly"
+          @update:unknown="onMissingInput('from')"
+          @update:none="onMissingInput('from')"
+        >
           <template #default="missingProps">
-            <InputTime v-bind="missingProps" v-model="value" v-model:precision="timePrecision" @update:model-value="onInput" @update:precision="onInput" />
+            <InputTime
+              v-bind="missingProps"
+              v-model="value"
+              v-model:precision="timePrecision"
+              :readonly="readonly"
+              @update:model-value="onInput"
+              @update:precision="onInput"
+            />
           </template>
         </InputMissing>
       </template>
     </InputField>
-    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.to')">
+    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.to')" :revert="revert">
       <template #input="inputProps">
-        <InputMissing v-bind="inputProps" v-model:unknown="toUnknown" v-model:none="toNone" @update:unknown="onInput" @update:none="onInput">
+        <InputMissing
+          v-bind="inputProps"
+          v-model:unknown="toUnknown"
+          v-model:none="toNone"
+          :readonly="readonly"
+          @update:unknown="onMissingInput('to')"
+          @update:none="onMissingInput('to')"
+        >
           <template #default="missingProps">
-            <InputTime v-bind="missingProps" v-model="valueTo" v-model:precision="timePrecisionTo" @update:model-value="onInput" @update:precision="onInput" />
+            <InputTime
+              v-bind="missingProps"
+              v-model="valueTo"
+              v-model:precision="timePrecisionTo"
+              :readonly="readonly"
+              @update:model-value="onInput"
+              @update:precision="onInput"
+            />
           </template>
         </InputMissing>
       </template>
@@ -287,24 +390,24 @@ function onInput() {
   </div>
 
   <!-- link (no file affordance) -->
-  <InputField v-else-if="claimType === 'link' && !isFile" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField">
+  <InputField v-else-if="claimType === 'link' && !isFile" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField" :revert="revert">
     <template #input="inputProps">
-      <InputLink v-bind="inputProps" v-model="value" @update:model-value="onInput" />
+      <InputLink v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- link with file value type: render the file-upload affordance instead. -->
-  <InputField v-else-if="claimType === 'link' && isFile" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField">
+  <InputField v-else-if="claimType === 'link' && isFile" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField" :revert="revert">
     <template #input="inputProps">
-      <InputFile v-bind="inputProps" v-model="value" @update:model-value="onInput" />
+      <InputFile v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onCompleteInput" />
     </template>
   </InputField>
 
   <!-- ref -->
-  <InputField v-else-if="claimType === 'ref'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField">
+  <InputField v-else-if="claimType === 'ref'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField" :revert="revert">
     <template #input="inputProps">
       <!-- TODO: Pass "self" prop as the current document's ID. -->
-      <InputRef v-bind="inputProps" v-model="value" :filter="field.values" @update:model-value="onInput" />
+      <InputRef v-bind="inputProps" v-model="value" :readonly="readonly" :filter="field.values" @update:model-value="onInput" />
     </template>
   </InputField>
 </template>

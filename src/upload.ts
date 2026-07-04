@@ -11,8 +11,8 @@ import { delay, encodeQuery } from "@/utils"
 // 10 MB.
 const MAX_PAYLOAD_SIZE = 10 << 20
 
-// Poll interval in milliseconds.
-const POLL_INTERVAL = 1000
+// Poll interval.
+const POLL_INTERVAL = 1000 // In milliseconds.
 
 // Waiting time to switch to the indeterminate progress bar after the upload finishes.
 const SWITCH_TIME_MS = 400 // 300ms (progress bar transition duration) + 100ms extra.

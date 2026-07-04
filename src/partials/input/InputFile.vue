@@ -88,6 +88,7 @@ function getParentLockRef() {
 
 const fileInputEl = useTemplateRef<HTMLInputElement>("fileInputEl")
 const browseButtonRef = useTemplateRef<ComponentPublicInstance>("browseButtonRef")
+const uploadedRef = useTemplateRef<HTMLDivElement>("uploadedRef")
 const isDragOver = ref(false)
 
 // A file value is invalid if it is empty (when required) or does not resolve
@@ -233,6 +234,11 @@ async function onUpload(file: File) {
       return
     }
     model.value = router.resolve({ name: "StorageGet", params: { id: fileId } }).href
+    // Move focus onto the uploaded file's link: the browse button which held focus
+    // unmounts together with the empty state, and the link is what the user acts on
+    // next (inspecting the uploaded file).
+    await nextTick()
+    uploadedRef.value?.querySelector("a")?.focus()
   } catch (err) {
     if (abortController.signal.aborted) {
       return
@@ -240,18 +246,42 @@ async function onUpload(file: File) {
     uploadError.value = true
     console.error("InputFile.onUpload", err)
   } finally {
+    const aborted = abortController.signal.aborted
     progress.value = 0
     total.value = undefined
     lock.value -= 1
     abortController = null
+    if (aborted) {
+      restoreBrowseFocus.value = true
+    }
   }
 }
 
 // Cancel the in-flight upload. Safe to call when no upload
-// is running - it is a no-op then.
+// is running - it is a no-op then. Focus restoration happens through restoreBrowseFocus,
+// requested by onUpload's cleanup.
 function onCancel() {
   abortController?.abort()
 }
+
+// Returns focus to the browse button after a canceled upload. The Cancel button which
+// held focus unmounts with the progress reset, and the browse button refuses focus
+// while the lock (held by the upload itself and then briefly by the upload-transition
+// re-validation) keeps it disabled, so the focus happens once inactive clears; the post
+// flush runs after the render which drops the disabled attribute. An unmount while the
+// request is pending just disposes the watcher.
+const restoreBrowseFocus = ref(false)
+watch(
+  [restoreBrowseFocus, inactive],
+  ([restore, inactiveNow]) => {
+    if (!restore || inactiveNow) return
+    restoreBrowseFocus.value = false
+    // The user may have focused something else in the meantime - do not steal focus.
+    if (document.activeElement !== document.body) return
+    ;(browseButtonRef.value?.$el as HTMLElement | null)?.focus()
+  },
+  { flush: "post" },
+)
 
 async function onFileInputChange() {
   const file = fileInputEl.value?.files?.[0]
@@ -309,7 +339,7 @@ async function onDrop(e: DragEvent) {
     Grid wrapper with a single minmax(0,1fr) column so that long display labels
     actually clip with truncate.
   -->
-  <div v-if="model" v-tw-merge :aria-invalid="invalid || undefined" class="pd-inputfile relative grid w-full grid-cols-[minmax(0,1fr)]">
+  <div v-if="model" ref="uploadedRef" v-tw-merge :aria-invalid="invalid || undefined" class="pd-inputfile relative grid w-full grid-cols-[minmax(0,1fr)]">
     <!--
       pr-23 reserves space on the right for the Clear button overlay so
       the display label does not slide underneath it.

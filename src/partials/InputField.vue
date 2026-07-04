@@ -22,6 +22,12 @@ const props = defineProps<{
   labelledby?: string
   // Suppress the whole-input changed/revert + required badge on the first label.
   hideBadge?: boolean
+  // When set, the badge's revert invokes this instead of restoring the wrapped input's
+  // own checkpoints. ClaimInput passes its slot revert through FieldsFormRow, so the
+  // badge behaves like the field-level revert - posting the reverting changes right
+  // away - rather than a local-only restore which would stay uncommitted until the
+  // next blur and leave the claim-level changed badges standing.
+  revert?: () => void
 }>()
 
 const { t } = useI18n({ useScope: "global" })
@@ -68,9 +74,9 @@ const errorMessage = computed<string | null>(() => pickErrorMessage(input.value?
 const hints = computed<string[]>(() => input.value?.hints ?? [])
 
 // Simulates the click-to-focus behavior of a <label for=...>: a press on a
-// column's label focuses that column's own control. We act on mousedown and
-// preventDefault rather than on click so the currently focused control is not
-// first blurred to the body (the label is not focusable, so the default
+// column's label text focuses that column's own control. We act on mousedown
+// and preventDefault rather than on click so the currently focused control is
+// not first blurred to the body (the label is not focusable, so the default
 // mousedown would move focus to <body> before our focus() ran). Focusing
 // directly means a composite widget sees an internal focus move (relatedTarget
 // still inside it) and does not fire its leave-validation, matching how
@@ -85,9 +91,14 @@ function onLabelMousedown(event: MouseEvent, col: InputColumn): void {
   col.el()?.focus()
 }
 
-// Revert the input's pending edit and then return focus to the input.
+// Revert the input's pending edit and then return focus to the input. The revert prop,
+// when set, takes over from the local checkpoint restore - see its comment.
 function onRevert(): void {
-  input.value?.revert()
+  if (props.revert) {
+    props.revert()
+  } else {
+    input.value?.revert()
+  }
   input.value?.inputEl()?.focus()
 }
 </script>
@@ -102,8 +113,8 @@ function onRevert(): void {
   -->
   <fieldset v-tw-merge class="grid items-start gap-x-4" :style="{ gridTemplateColumns }" :aria-labelledby="showLabels ? labelId : labelledby || undefined">
     <template v-if="showLabels">
-      <div v-for="(col, i) in displayColumns" :key="i" class="mb-1 flex cursor-pointer flex-row flex-wrap items-center gap-1" @mousedown="onLabelMousedown($event, col)">
-        <span v-if="col.label" :id="i === 0 ? labelId : undefined" class="leading-none">{{ col.label }}</span>
+      <div v-for="(col, i) in displayColumns" :key="i" class="mb-1 flex flex-row flex-wrap items-center gap-1">
+        <span v-if="col.label" :id="i === 0 ? labelId : undefined" class="cursor-pointer leading-none" @mousedown="onLabelMousedown($event, col)">{{ col.label }}</span>
         <InputBadges v-if="i === 0 && !hideBadge" :required="required" :changed="input?.isDirty ?? false" @revert="onRevert" />
       </div>
     </template>

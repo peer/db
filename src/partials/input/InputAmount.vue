@@ -291,6 +291,12 @@ watch(
   async () => {
     await precisionRef.value?.validate()
   },
+  // The validator canonicalizes the precision model from the inner input's value, so it
+  // must not run before that input has re-rendered: at "pre" timing an external update
+  // which sets amount and precision together (a claim arriving from another editor)
+  // would validate against the inner input's stale empty value and write it back,
+  // wiping the just-arrived precision.
+  { flush: "post" },
 )
 
 // Route user updates through these handlers so we can flip the

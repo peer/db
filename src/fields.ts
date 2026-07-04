@@ -1,6 +1,7 @@
 import type { DeepReadonly, InjectionKey } from "vue"
 
 import type { Claim, ClaimTypeName, TimePrecision } from "@/document"
+import type { FieldsFormFlush, SaveChangeResult, SaveChangeSpec } from "@/types"
 
 import {
   CARDINALITY,
@@ -357,22 +358,49 @@ export function valueTypeToClaimType(valueTypeId: string): ClaimTypeName {
   throw new Error(`unsupported value type: ${valueTypeId}`)
 }
 
-// FieldsFormSaveChange is a fully constructed change object emitted by FieldsForm, ready to be posted.
-export interface FieldsFormSaveChange {
-  change: object
-  changeNumber: number
-}
-
-// FlushFn is a function that flushes pending changes from a FieldsForm instance.
-export type FlushFn = () => Promise<FieldsFormSaveChange[]>
+// ChangeDroppedError rejects a queued change which was dropped instead of committed:
+// after losing its change number to a concurrent change it no longer applies to the
+// current document, or the server rejected it as invalid. The slot holding the claim
+// resyncs to the committed state when it observes this error.
+export class ChangeDroppedError extends Error {}
 
 // Injection keys for FieldsForm shared services (using Symbol.for for deduplication in dev).
 // See progress.ts for the pattern.
-export const getNextChangeNumberKey: InjectionKey<() => number> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-getNextChangeNumber") : Symbol()
-export const saveChangeKey: InjectionKey<(change: object, changeNumber: number) => Promise<void>> =
+export const saveChangeKey: InjectionKey<(spec: SaveChangeSpec) => Promise<SaveChangeResult>> =
   process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-saveChange") : Symbol()
-export const registerForFlushKey: InjectionKey<(instance: FlushFn) => void> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-registerForFlush") : Symbol()
-export const unregisterForFlushKey: InjectionKey<(instance: FlushFn) => void> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-unregisterForFlush") : Symbol()
+export const registerForFlushKey: InjectionKey<(instance: FieldsFormFlush) => void> =
+  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-registerForFlush") : Symbol()
+export const unregisterForFlushKey: InjectionKey<(instance: FieldsFormFlush) => void> =
+  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-unregisterForFlush") : Symbol()
+
+// getCommittedClaimKey provides a lookup of a claim by id in the document with all
+// committed session changes applied. Slots use it to resync to the committed state after
+// a dropped change or a remote conflict.
+export const getCommittedClaimKey: InjectionKey<(id: string) => DeepReadonly<Claim> | null> =
+  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-getCommittedClaim") : Symbol()
+
+// Remote conflict handlers: DocumentEdit notifies these with the set of claim ids touched
+// by committed changes from other session editors whenever the subscription applies
+// them. The set also contains the ancestor claim ids of every touched claim. Each slot
+// (ClaimInput) holding a touched claim resyncs to the committed state, discarding local
+// work (server wins).
+// TODO: Implement better conflict handling and change comment above.
+export const registerRemoteConflictKey: InjectionKey<(handler: (claimIds: ReadonlySet<string>) => void) => void> =
+  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-registerRemoteConflict") : Symbol()
+export const unregisterRemoteConflictKey: InjectionKey<(handler: (claimIds: ReadonlySet<string>) => void) => void> =
+  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-unregisterRemoteConflict") : Symbol()
+
+// Remote add handlers: notified with the same touched set as the conflict handlers, but
+// only after the render flush has propagated resynced claims into every cardinality's
+// modelValue. Each ClaimCardinality then adds slots for remotely added claims of its
+// field which no slot represents yet, reporting whether it added any. Handlers run in
+// rounds (see loadChanges in DocumentEdit): a filled slot feeds its sub-cardinalities'
+// modelValue only after the next render flush, so each round can reveal claims one
+// nesting level deeper.
+export const registerRemoteAddsKey: InjectionKey<(handler: (claimIds: ReadonlySet<string>) => boolean) => void> =
+  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-registerRemoteAdds") : Symbol()
+export const unregisterRemoteAddsKey: InjectionKey<(handler: (claimIds: ReadonlySet<string>) => boolean) => void> =
+  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-unregisterRemoteAdds") : Symbol()
 
 // fieldLabelCellKey provides the field's label cell element. ClaimInput's
 // focusout handler uses it to skip the per-slot commit when focus is on
@@ -572,7 +600,8 @@ export function isIntervalField(field: FieldData): boolean {
 
 // makePatchForField creates a patch object for a field from a FieldEntryValue.
 // Per-side missing-state flags (fromUnknown/fromNone/toUnknown/toNone) take
-// precedence over a typed value for that side.
+// precedence over a typed value for that side. An interval bound with no value
+// and no flag defaults to unknown.
 export function makePatchForField(field: FieldData, data: FieldEntryValue): object {
   const claimType = valueTypeToClaimType(field.valueType)
   const base = { type: claimType, confidence: HighConfidence, prop: field.propertyId }
@@ -598,7 +627,7 @@ export function makePatchForField(field: FieldData, data: FieldEntryValue): obje
         const fp = parseFloat(data.amountPrecision)
         patch.fromPrecision = isFinite(fp) && fp > 0 ? fp : 1
       } else {
-        patch.fromIsNone = true
+        patch.fromIsUnknown = true
       }
       if (data.toUnknown) {
         patch.toIsUnknown = true
@@ -609,7 +638,7 @@ export function makePatchForField(field: FieldData, data: FieldEntryValue): obje
         const tp = parseFloat(data.amountPrecisionTo)
         patch.toPrecision = isFinite(tp) && tp > 0 ? tp : 1
       } else {
-        patch.toIsNone = true
+        patch.toIsUnknown = true
       }
       return patch
     }
@@ -625,7 +654,7 @@ export function makePatchForField(field: FieldData, data: FieldEntryValue): obje
         patch.from = data.value
         patch.fromPrecision = data.timePrecision
       } else {
-        patch.fromIsNone = true
+        patch.fromIsUnknown = true
       }
       if (data.toUnknown) {
         patch.toIsUnknown = true
@@ -635,7 +664,7 @@ export function makePatchForField(field: FieldData, data: FieldEntryValue): obje
         patch.to = data.valueTo
         patch.toPrecision = data.timePrecisionTo
       } else {
-        patch.toIsNone = true
+        patch.toIsUnknown = true
       }
       return patch
     }

@@ -21,12 +21,12 @@ import type { DeepReadonly } from "vue"
 
 import type { Claim } from "@/document"
 import type { FieldData } from "@/fields"
-import type { InputColumn, ValidatedInput } from "@/types"
+import type { InputColumn, SaveChangeResult, SaveChangeSpec, ValidatedInput } from "@/types"
 
-import { computed, onBeforeUnmount, provide, ref, shallowReactive, useTemplateRef, watch } from "vue"
+import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, shallowReactive, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
-import { AddClaimChange, claimPatchFrom, claimTypeName, RemoveClaimChange } from "@/document"
+import { claimPatchFrom, claimTypeName } from "@/document"
 import { getClaimValues, makePatchForField, valueTypeToClaimType } from "@/fields"
 import ClaimInput from "@/partials/ClaimInput.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
@@ -34,11 +34,10 @@ import InputBadges from "@/partials/InputBadges.vue"
 import { useLocked } from "@/progress"
 import { allErrors, useRegisterForValidation, useValidationRegistry } from "@/validation"
 import { ArrowPathSingleCounterclockwiseIcon } from "@sidekickicons/vue/20/solid"
-import { Identifier } from "@tozd/identifier"
 
 import { inject as injectFn } from "vue"
 
-import { fieldLabelCellKey, getNextChangeNumberKey, saveChangeKey } from "@/fields"
+import { ChangeDroppedError, fieldLabelCellKey, registerRemoteAddsKey, saveChangeKey, unregisterRemoteAddsKey } from "@/fields"
 
 const props = withDefaults(
   defineProps<{
@@ -46,9 +45,17 @@ const props = withDefaults(
     initialClaims: DeepReadonly<readonly Claim[]>
     field: DeepReadonly<FieldData>
     parentClaimId?: () => Promise<string>
+    // parentCleanup asks the enclosing slot to remove its lazily-created base claim
+    // (an empty HAS or a default none/unknown form) once this sub-field's revert has
+    // emptied it. The base came into existence implicitly with the first sub-claim, so
+    // its removal mirrors that; otherwise an invisible empty claim would keep the field
+    // flagged as changed with no control left to remove it. Undefined for top-level
+    // fields.
+    parentCleanup?: () => Promise<void>
     invalid?: boolean
-    session: string
-    base: readonly string[]
+    // Set by an enclosing slot whose own change is still being committed: all slots of
+    // this (sub)field render read-only until the ancestor's committed state settles.
+    readonly?: boolean
     // Id of the (sub)field's label element, provided down so a bare value input
     // is named via InputField's labelledby.
     labelId?: string
@@ -59,7 +66,9 @@ const props = withDefaults(
   }>(),
   {
     parentClaimId: undefined,
+    parentCleanup: undefined,
     invalid: false,
+    readonly: false,
     labelId: undefined,
     showHeader: false,
   },
@@ -104,9 +113,9 @@ const perEntryRevert = computed<boolean>(() => isRepeated.value && !hasLabelRow.
 
 const { t } = useI18n({ useScope: "global" })
 
-let fallbackNum = 1
-const getNextChangeNumber = injectFn(getNextChangeNumberKey, () => fallbackNum++)
-const saveChange = injectFn(saveChangeKey, () => Promise.resolve())
+const saveChange = injectFn(saveChangeKey, (spec: SaveChangeSpec) => Promise.resolve({ id: "id" in spec ? spec.id : "" }))
+const registerRemoteAdds = injectFn(registerRemoteAddsKey, () => {})
+const unregisterRemoteAdds = injectFn(unregisterRemoteAddsKey, () => {})
 
 const locked = useLocked()
 
@@ -210,8 +219,39 @@ function slotDirty(key: string): boolean {
   return (slotInputs.get(key)?.isDirty as unknown as boolean) === true
 }
 
+// Restores focus after a user-driven operation removed a slot's claim while focus was
+// inside the slot (see the cleared emit on ClaimInput): the control focus was on
+// unmounts with the filled state, and a spliced slot is replaced by a fresh trailing
+// instance which the component's own focus restoration cannot reach. Focus the same
+// slot's input when the slot was kept (min-cardinality), else the last slot (the
+// trailing empty replacement). Two ticks: the splice triggers the grow of the trailing
+// slot in a post-flush watcher, and the new input mounts one render later.
+function onSlotCleared(key: string): void {
+  void (async () => {
+    await nextTick()
+    await nextTick()
+    const input = slotInputs.get(key) ?? slotInputs.get(slots.value[slots.value.length - 1]?.key ?? "")
+    input?.inputEl()?.focus()
+  })()
+}
+
 function revertSlot(key: string): void {
-  void slotInputs.get(key)?.revert()
+  void (async () => {
+    await slotInputs.get(key)?.revert()
+    await cleanupParentIfEmpty()
+  })()
+}
+
+// cleanupParentIfEmpty runs the enclosing slot's base cleanup once a revert has left
+// this whole (sub)field without claims.
+async function cleanupParentIfEmpty(): Promise<void> {
+  if (!props.parentCleanup) {
+    return
+  }
+  if (slots.value.some((slot) => slot.claim !== null)) {
+    return
+  }
+  await props.parentCleanup()
 }
 
 // Clicking the sub-field header label focuses the field's first input, like a
@@ -283,6 +323,13 @@ function reconcileSlots(): void {
   }
   const kept = slots.value.filter((slot, i) => {
     if (!slotIsEmpty(slot)) return true
+    // A slot whose claim is still committed is never compacted away even when its local
+    // state is empty (the user just cleared it and the removal commit is in flight):
+    // dropping it would unmount the input mid-commit - Vue silently swallows emits from
+    // unmounted components, losing the cleared report - and would desync the display
+    // from the committed claim if the removal gets dropped. Such a slot leaves through
+    // updateSlotClaim once its claim is actually removed.
+    if (slot.claim !== null) return true
     const el = slotInputs.get(slot.key)?.mainEl?.()
     if (focused && el?.contains(focused)) return true
     if (needEmpty > 0) {
@@ -377,6 +424,51 @@ function updateSlotClaim(slotKey: string, claim: DeepReadonly<Claim> | null): vo
 function initialClaimForSlot(slot: Slot): DeepReadonly<Claim> | null {
   return slot.baseline
 }
+
+// Remote changes may have added claims of this field which no slot represents yet
+// (committed by another editor). Push slots for them; content updates and removals of
+// represented claims are handled by each slot's own ClaimInput. Runs after the render
+// flush (see loadChanges in DocumentEdit), so props.modelValue already reflects the
+// committed doc, including a resynced parent claim for sub-field cardinalities. Own adds
+// can never look remote here: their slots are set at commit time under the same final id
+// the doc echoes.
+function onRemoteAdds(claimIds: ReadonlySet<string>): boolean {
+  const represented = new Set<string>()
+  for (const slot of slots.value) {
+    if (slot.claim) {
+      represented.add(slot.claim.id)
+    }
+  }
+  const baselineById = new Map<string, DeepReadonly<Claim>>()
+  for (const b of slotsCheckpoint.value) {
+    baselineById.set(b.id, b)
+  }
+  let added = false
+  for (const claim of props.modelValue) {
+    if (!claimIds.has(claim.id) || represented.has(claim.id)) {
+      continue
+    }
+    // Fill an existing empty placeholder slot when there is one - locally an add fills
+    // the slot the user typed into, so a remote add reuses the placeholder the same way.
+    // Pushing next to it instead would leave both mounted (the compaction always keeps
+    // one empty), rendering a second input inside the field (visible e.g. on 0..1
+    // fields).
+    const empty = slots.value.find((slot) => slot.claim === null && slotIsEmpty(slot))
+    if (empty) {
+      empty.claim = claim
+      empty.baseline = baselineById.get(claim.id) ?? null
+    } else {
+      slots.value.push({ key: nextSlotKey(), claim, baseline: baselineById.get(claim.id) ?? null })
+    }
+    added = true
+  }
+  if (added) {
+    reconcileSlots()
+  }
+  return added
+}
+onMounted(() => registerRemoteAdds(onRemoteAdds))
+onBeforeUnmount(() => unregisterRemoteAdds(onRemoteAdds))
 
 // Designated slots: the min slots that satisfy, or are still needed to satisfy,
 // the field's min cardinality. We pick min slots, preferring the filled ones
@@ -501,8 +593,9 @@ defineExpose({
 })
 
 // revertField runs the field-level Revert: re-add removed baseline
-// claims, remove session-added claims, then cascade revert into each
-// surviving slot's ClaimInput. We classify slots by slot.baseline, not
+// claims, then revert every claim-holding slot through its own input
+// (which removes session-added claims, sets diverged values back, and
+// cascades into sub-claims). We classify slots by slot.baseline, not
 // by claim id, so a slot resurrected on a previous revert click (its
 // claim has a fresh content-addressed id) is still correctly recognised
 // as representing its original baseline.
@@ -515,50 +608,42 @@ async function revertField(): Promise<void> {
     if (slot.claim && slot.baseline) representedBaselineIds.add(slot.baseline.id)
   }
 
-  // 1) Re-add baseline claims that no current slot represents. Resolve the (possibly lazily-
-  // created) parent FIRST so it gets the lower change number and is posted before this claim;
-  // the server requires change numbers to arrive in sequence.
+  // 1) Re-add baseline claims that no current slot represents. Resolve the (possibly
+  // lazily-created) parent FIRST so it is committed before this claim is queued: the
+  // add's under has to reference a committed claim id. A re-add which gets dropped
+  // (e.g. its parent claim was removed concurrently) is skipped.
   for (const baseline of slotsCheckpoint.value) {
     if (representedBaselineIds.has(baseline.id)) continue
     const under = props.parentClaimId ? await props.parentClaimId() : undefined
-    const num = getNextChangeNumber()
-    const changeBase = [...props.base, "SESSION", props.session, String(num)]
-    const newId = (await Identifier.from(...changeBase)).toString()
     const values = getClaimValues(baseline)
     const patch = makePatchForField(props.field, values)
-    const addChange = new AddClaimChange({ id: newId, base: changeBase, patch })
-    if (under !== undefined) {
-      addChange.under = under
+    let result: SaveChangeResult
+    try {
+      result = await saveChange(under === undefined ? { type: "add", patch } : { type: "add", patch, under })
+    } catch (err) {
+      if (err instanceof ChangeDroppedError) {
+        continue
+      }
+      throw err
     }
-    await saveChange(addChange, num)
-    const newClaim = claimPatchFrom(patch).New(newId)
+    const newClaim = claimPatchFrom(patch).New(result.id)
     slots.value.push({ key: nextSlotKey(), claim: newClaim, baseline })
   }
 
-  // 2) Remove session-added claims (slots whose baseline is null).
-  // Iterate backwards so splicing while iterating doesn't skip entries.
-  for (let i = slots.value.length - 1; i >= 0; i--) {
-    const slot = slots.value[i]
-    if (!slot.claim) continue
-    if (slot.baseline !== null) continue
-    const num = getNextChangeNumber()
-    await saveChange(new RemoveClaimChange({ id: slot.claim.id }), num)
-    slots.value.splice(i, 1)
-  }
-
-  // 3) Cascade revert into surviving slots. Each ClaimInput's revertField
-  // sees its baseline (via initialClaimForSlot -> slot.baseline) and
-  // computes the Add / Set / no-op accordingly. For a slot whose values
-  // already match its baseline (resurrected slot, or untouched
-  // original), this is a no-op.
-  for (const slot of slots.value) {
+  // 2) Revert every claim-holding slot through its own input. Each ClaimInput's
+  // revertField sees its baseline (via initialClaimForSlot -> slot.baseline) and
+  // computes the Remove (session-added slot) / Set (diverged values) / no-op
+  // accordingly, serialized with the slot's other operations so an in-flight commit
+  // cannot race it. Iterate over a snapshot: a removed slot's update splices
+  // slots.value while we go through it.
+  for (const slot of [...slots.value]) {
     if (!slot.claim) continue
     const input = slotInputs.get(slot.key)
     if (!input) continue
     await input.revert()
   }
 
-  // 4) Cleanup: drop leftover empty (claim-less) slots, then let
+  // 3) Cleanup: drop leftover empty (claim-less) slots, then let
   // reconcileSlots grow exactly one trailing empty. The empties cleaned
   // up here include the trailing-empty that the cardinality auto-grew
   // earlier (e.g. after the user cleared a claim and updateSlotClaim
@@ -569,6 +654,10 @@ async function revertField(): Promise<void> {
   // empties between filled slots.
   slots.value = slots.value.filter((s) => s.claim !== null)
   reconcileSlots()
+
+  // 4) When the revert left this whole (sub)field without claims, ask the enclosing
+  // slot to remove its lazily-created base claim too.
+  await cleanupParentIfEmpty()
 }
 
 onBeforeUnmount(() => {
@@ -645,10 +734,10 @@ onBeforeUnmount(() => {
           :invalid="invalid"
           :required="designated[idx]"
           :is-first="idx === 0"
-          :session="session"
-          :base="base"
+          :readonly="readonly"
           :label-id="labelId"
           @update:model-value="(claim) => updateSlotClaim(slot.key, claim)"
+          @cleared="onSlotCleared(slot.key)"
         />
       </div>
     </div>
@@ -668,10 +757,10 @@ onBeforeUnmount(() => {
           :invalid="invalid"
           :required="designated[idx]"
           :is-first="idx === 0"
-          :session="session"
-          :base="base"
+          :readonly="readonly"
           :label-id="labelId"
           @update:model-value="(claim) => updateSlotClaim(slot.key, claim)"
+          @cleared="onSlotCleared(slot.key)"
         />
       </div>
     </template>

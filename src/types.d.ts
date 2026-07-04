@@ -552,6 +552,33 @@ export type ValidatedInput = {
   checkpoint: () => void
 }
 
+// SaveChangeSpec describes a claim change to commit to the edit session. The queue in
+// DocumentEdit assigns the change number at post time and renumbers on conflicts with
+// concurrent editors. An add's claim id derives from the change number, so it is known
+// only once the change is committed and is returned in SaveChangeResult.
+export type SaveChangeSpec =
+  | { type: "add"; patch: object; under?: string }
+  | { type: "set"; id: string; patch: object }
+  | { type: "cast"; id: string; patch: object }
+  | { type: "remove"; id: string }
+
+// SaveChangeResult reports a committed change. For an add, id is the claim's final id
+// (derived from the final change number); for other change types it echoes the target id.
+export type SaveChangeResult = {
+  id: string
+}
+
+// FieldsFormFlush is registered by every slot input so DocumentEdit can flush pending
+// local edits before Save and warn before tab close while local edits are not yet
+// committed to the server.
+export type FieldsFormFlush = {
+  // flush commits the slot's current local edit, like its blur would.
+  flush: () => Promise<void>
+  // hasUncommitted reports whether the slot holds local edits which have not been
+  // committed to its claim (typed but not yet blurred).
+  hasUncommitted: () => boolean
+}
+
 // ListFormatPart is one piece of a locale-formatted list: a literal separator to print verbatim, or a
 // reference (by index) to the element the caller renders at that position.
 export type ListFormatPart = { type: "literal"; value: string } | { type: "element"; index: number }

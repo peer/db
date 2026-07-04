@@ -28,8 +28,6 @@ const props = defineProps<{
   // Pre-session claims for the doc. ClaimCardinality and its slots use
   // this as the baseline for the per-property "changed" badge and Revert.
   initialClaims: DeepReadonly<ClaimTypes>
-  base: DeepReadonly<string[]>
-  session: string
 }>()
 
 // Extract the claims for this specific field (by property id and claim
@@ -114,15 +112,7 @@ async function revertField(): Promise<void> {
         </div>
       </th>
       <td>
-        <ClaimCardinality
-          ref="cardinalityRef"
-          :model-value="claimsForField"
-          :initial-claims="initialClaimsForField"
-          :field="field"
-          :session="session"
-          :base="base"
-          :label-id="labelId"
-        />
+        <ClaimCardinality ref="cardinalityRef" :model-value="claimsForField" :initial-claims="initialClaimsForField" :field="field" :label-id="labelId" />
       </td>
     </tr>
   </tbody>

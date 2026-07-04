@@ -18,8 +18,6 @@ defineProps<{
   // changes in this edit session were applied. Used to detect
   // session-wide "changed" status and to compute revert diffs.
   initialClaims: DeepReadonly<ClaimTypes>
-  base: DeepReadonly<string[]>
-  session: string
 }>()
 
 const invalid = defineModel<boolean>("invalid", { default: false })
@@ -70,29 +68,13 @@ defineExpose({
   -->
   <div class="flex w-full flex-col gap-y-12">
     <table v-if="fieldsData.fields.length > 0" class="flex flex-col" :class="groupGapClass(fieldsData.fields)">
-      <FieldsFormField
-        v-for="field in sortedByOrder(fieldsData.fields)"
-        :key="fieldKey(field)"
-        :field="field"
-        :claims="claims"
-        :initial-claims="initialClaims"
-        :base="base"
-        :session="session"
-      />
+      <FieldsFormField v-for="field in sortedByOrder(fieldsData.fields)" :key="fieldKey(field)" :field="field" :claims="claims" :initial-claims="initialClaims" />
     </table>
 
     <div v-for="section in sortedByOrder(fieldsData.sections)" :key="'section-' + section.id" class="flex flex-col gap-y-4">
       <div class="border-b border-slate-200 px-2 pb-1 text-lg font-semibold">{{ getSectionName(section, locale) }}</div>
       <table class="flex flex-col" :class="groupGapClass(section.fields)">
-        <FieldsFormField
-          v-for="field in sortedByOrder(section.fields)"
-          :key="fieldKey(field)"
-          :field="field"
-          :claims="claims"
-          :initial-claims="initialClaims"
-          :base="base"
-          :session="session"
-        />
+        <FieldsFormField v-for="field in sortedByOrder(section.fields)" :key="fieldKey(field)" :field="field" :claims="claims" :initial-claims="initialClaims" />
       </table>
     </div>
   </div>
