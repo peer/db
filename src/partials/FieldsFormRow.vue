@@ -147,26 +147,19 @@ const { validateAll, resetAll, revertAll, checkpointAll, anyDirty, allEmpty, inp
   forwardInteraction?.()
 })
 
-// The value input's columns, merged across the inner inputs. FieldsFormRow
-// stacks its inputs vertically (a single input for a scalar, "from" above "to"
-// for an interval), so its columns line up top-to-bottom: the merged result has
-// the max column count over the inputs, each column keeping the first non-empty
-// label found at that position (empty if none). A column-less input counts as
-// one unlabeled column (the same fallback InputField/InputMissing use), so it is
-// not skipped.
+// The value input's columns, concatenated across the inner inputs in registration
+// order (a single input's columns for a scalar, "from" then "to" for an interval).
+// The list is a content summary of which columns the row's inputs declare, NOT a
+// claim about their visual arrangement (an interval renders its bounds side by
+// side when they fit and stacked when not), so consumers must not infer geometry
+// from it. A column-less input counts as one unlabeled column (the same fallback
+// InputField/InputMissing use), so it is not skipped.
 const columns = computed<InputColumn[]>(() => {
-  const merged: InputColumn[] = []
+  const all: InputColumn[] = []
   for (const input of inputs) {
-    const cols = input.columns?.value ?? [{ label: "", el: () => input.inputEl() ?? null }]
-    for (let i = 0; i < cols.length; i++) {
-      if (i >= merged.length) {
-        merged.push(cols[i])
-      } else if (merged[i].label === "" && cols[i].label !== "") {
-        merged[i] = cols[i]
-      }
-    }
+    all.push(...(input.columns?.value ?? [{ label: "", el: () => input.inputEl() ?? null }]))
   }
-  return merged
+  return all
 })
 
 const validatedInput: ValidatedInput = {
@@ -289,8 +282,13 @@ function onCompleteInput() {
     </template>
   </InputField>
 
-  <!-- amountInterval - "from" and "to" stack vertically, one InputField each. -->
-  <div v-else-if="claimType === 'amountInterval'" class="flex min-w-0 flex-col gap-y-4">
+  <!--
+    amountInterval - "from" and "to", one InputField each, side by side when both
+    fit at their natural widths, stacked otherwise. flex-wrap decides from the
+    flex base (max-content) sizes, so the bounds never shrink to avoid wrapping;
+    no breakpoint and no observer needed.
+  -->
+  <div v-else-if="claimType === 'amountInterval'" class="flex min-w-0 flex-row flex-wrap items-start gap-x-8 gap-y-4">
     <InputField :required="required" hide-required-badge :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')" :revert="boundRevert('from')">
       <template #input="inputProps">
         <InputMissing
@@ -346,8 +344,8 @@ function onCompleteInput() {
     </template>
   </InputField>
 
-  <!-- timeInterval - "from" and "to" stack vertically, one InputField each. -->
-  <div v-else-if="claimType === 'timeInterval'" class="flex min-w-0 flex-col gap-y-4">
+  <!-- timeInterval - "from" and "to", laid out like amountInterval above. -->
+  <div v-else-if="claimType === 'timeInterval'" class="flex min-w-0 flex-row flex-wrap items-start gap-x-8 gap-y-4">
     <InputField :required="required" hide-required-badge :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')" :revert="boundRevert('from')">
       <template #input="inputProps">
         <InputMissing
