@@ -85,8 +85,8 @@ const labelId = useId()
 
 const errorMessage = computed<string | null>(() => pickErrorMessage(input.value?.errors ?? [], t))
 
-// The wrapped input's hint lines, shown only when there is no error to show
-// and the enclosing cardinality has not hoisted the hint out.
+// The wrapped input's hint lines, shown under the error message (when there is
+// one), unless the enclosing cardinality has hoisted the hint out.
 const hints = computed<string[]>(() => (props.hideHints ? [] : (input.value?.hints ?? [])))
 
 // Simulates the click-to-focus behavior of a <label for=...>: a press on a
@@ -123,9 +123,9 @@ function onRevert(): void {
   <!--
     The wrapped input renders one top-level element per grid column (signaled by
     its labels). This fieldset is the grid: row 1 holds the labels, row 2 the
-    controls, and the last row the error message (or, when there is none, the
-    hint). items-start keeps every column aligned at the top regardless of how
-    tall any single column's control is.
+    controls, and the last rows the error message and the hint. items-start
+    keeps every column aligned at the top regardless of how tall any single
+    column's control is.
   -->
   <!--
     justify-start keeps the auto columns content-sized when the first column is
@@ -148,8 +148,6 @@ function onRevert(): void {
       <slot :ref="setInputRef" name="input" :required="required" :invalid="invalid" :aria-describedby="errorMessage ? errorId : undefined" />
     </div>
     <p v-if="errorMessage" :id="errorId" class="col-span-full mt-1 text-sm text-error-600">{{ errorMessage }}</p>
-    <template v-else>
-      <p v-for="(hint, i) in hints" :key="i" class="col-span-full mt-1 text-sm text-neutral-500 italic">{{ hint }}</p>
-    </template>
+    <p v-for="(hint, i) in hints" :key="i" class="col-span-full mt-1 text-sm text-neutral-500 italic">{{ hint }}</p>
   </fieldset>
 </template>
