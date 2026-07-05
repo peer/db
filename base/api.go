@@ -327,7 +327,7 @@ func (b *B) AppendDocumentChange(ctx context.Context, session identifier.Identif
 
 // ListDocumentChanges returns the sequence numbers of all changes in an edit session.
 func (b *B) ListDocumentChanges(ctx context.Context, session identifier.Identifier) ([]int64, errors.E) {
-	return b.coordinator.List(ctx, session, nil)
+	return b.coordinator.ListDesc(ctx, session, nil)
 }
 
 // GetDocumentChange returns the change data at the given sequence number in an edit session.

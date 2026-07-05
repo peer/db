@@ -817,7 +817,7 @@ func (s *Storage) UploadChunk(ctx context.Context, session identifier.Identifier
 // ListChunks returns a list of chunk IDs for an upload session, ordered from newest to oldest.
 func (s *Storage) ListChunks(ctx context.Context, session identifier.Identifier) ([]int64, errors.E) {
 	// TODO: Support more than 5000 chunks.
-	return s.coordinator.List(ctx, session, nil)
+	return s.coordinator.ListDesc(ctx, session, nil)
 }
 
 // GetChunk retrieves the start position and length of a chunk.

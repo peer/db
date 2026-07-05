@@ -88,7 +88,7 @@ func (b *B) applySessionChanges(
 	ctx context.Context, session identifier.Identifier, changesetBase []string, doc *document.D, fromOperation int64,
 ) (document.Changes, []*store.User, int64, errors.E) {
 	// TODO: Support more than 5000 changes.
-	changesList, errE := b.coordinator.List(ctx, session, nil)
+	changesList, errE := b.coordinator.ListDesc(ctx, session, nil)
 	if errE != nil {
 		return nil, nil, 0, errE
 	}

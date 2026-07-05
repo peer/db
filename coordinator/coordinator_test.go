@@ -295,7 +295,7 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 		}, appended[0])
 	}
 
-	operations, errE := c.List(ctx, session, nil)
+	operations, errE := c.ListDesc(ctx, session, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Equal(t, []int64{4, 3, 2, 1}, operations)
 
@@ -441,7 +441,7 @@ func TestErrors(t *testing.T) {
 	errE = c.End(ctx, session, testutils.DummyData)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
-	ops, errE := c.List(ctx, session, nil)
+	ops, errE := c.ListDesc(ctx, session, nil)
 	assert.True(t, errE == nil || errors.Is(errE, coordinator.ErrAlreadyCompleted), "% -+#.1v", errE)
 	if errE == nil {
 		assert.Equal(t, []int64{1}, ops)
@@ -458,7 +458,7 @@ func TestErrors(t *testing.T) {
 	_, errE = c.GetMetadata(ctx, session, 1)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyCompleted)
 
-	_, errE = c.List(ctx, session, nil)
+	_, errE = c.ListDesc(ctx, session, nil)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyCompleted)
 }
 
@@ -486,11 +486,11 @@ func TestListPagination(t *testing.T) {
 		operations = append(operations, o)
 	}
 
-	page1, errE := c.List(ctx, session, nil)
+	page1, errE := c.ListDesc(ctx, session, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, page1, coordinator.MaxPageLength)
 
-	page2, errE := c.List(ctx, session, &page1[4999])
+	page2, errE := c.ListDesc(ctx, session, &page1[4999])
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.Len(t, page2, 1000)
 
@@ -507,17 +507,17 @@ func TestListPagination(t *testing.T) {
 	appended := appendedChannelContents.Prune()
 	assert.Len(t, appended, 6000)
 
-	_, errE = c.List(ctx, identifier.New(), nil)
+	_, errE = c.ListDesc(ctx, identifier.New(), nil)
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
 
 	// Having no more values is not an error.
-	page3, errE := c.List(ctx, session, &page2[999])
+	page3, errE := c.ListDesc(ctx, session, &page2[999])
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Empty(t, page3)
 
 	// Using unknown before operation is an error.
 	before := int64(10000)
-	_, errE = c.List(ctx, session, &before)
+	_, errE = c.ListDesc(ctx, session, &before)
 	assert.ErrorIs(t, errE, coordinator.ErrOperationNotFound)
 }
 
@@ -567,7 +567,7 @@ func TestCompleteSessionOnError(t *testing.T) {
 	assert.JSONEq(t, `{"errored": true}`, string(completeMetadata))
 
 	// The session's operations were deleted when it completed.
-	_, errE = c.List(ctx, session, nil)
+	_, errE = c.ListDesc(ctx, session, nil)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyCompleted)
 
 	// The callback received the permanent error that failed completion.

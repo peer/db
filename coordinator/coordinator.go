@@ -674,9 +674,9 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	return operation, errE
 }
 
-// List returns up to MaxPageLength operation numbers appended to the session, in decreasing order
+// ListDesc returns up to MaxPageLength operation numbers appended to the session, in decreasing order
 // (newest operations first), before optional operation number, to support keyset pagination.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) List(
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) ListDesc(
 	ctx context.Context, session identifier.Identifier, before *int64,
 ) ([]int64, errors.E) {
 	arguments := []any{
