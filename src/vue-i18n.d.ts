@@ -276,7 +276,7 @@ declare module "vue-i18n" {
         to: string
       }
       TableOfContents: {
-        label: string
+        title: string
       }
       TimeDisplay: {
         relative: {

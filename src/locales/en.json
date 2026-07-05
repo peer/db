@@ -265,7 +265,7 @@
       "to": "To"
     },
     "TableOfContents": {
-      "label": "Table of contents"
+      "title": "Table of Contents"
     },
     "TimeDisplay": {
       "relative": {

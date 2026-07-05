@@ -265,7 +265,7 @@
       "to": "Do"
     },
     "TableOfContents": {
-      "label": "Kazalo vsebine"
+      "title": "Kazalo vsebine"
     },
     "TimeDisplay": {
       "relative": {

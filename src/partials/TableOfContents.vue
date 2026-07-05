@@ -247,7 +247,7 @@ watch(
 </script>
 
 <template>
-  <nav ref="tocRef" :aria-label="t('partials.TableOfContents.label')" class="pd-toc sticky top-[var(--pd-navbar-height)] flex flex-col gap-y-1 py-2">
+  <nav ref="tocRef" :aria-label="t('partials.TableOfContents.title')" class="pd-toc sticky top-[var(--pd-navbar-height)] flex flex-col gap-y-1 py-4">
     <slot />
     <a
       v-for="target in targets"
@@ -255,7 +255,7 @@ watch(
       :href="`#${target.id}`"
       :aria-current="route.hash === `#${target.id}` ? 'location' : undefined"
       :style="{ animationTimeline: timelineName(target.id) }"
-      class="pd-toc-item link block shrink-0 px-2 py-1 text-left text-sm"
+      class="pd-toc-item link block shrink-0 py-1 text-left text-sm"
       @click="onItemClick($event, target.id)"
     >
       {{ target.label }}

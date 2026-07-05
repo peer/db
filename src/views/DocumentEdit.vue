@@ -576,9 +576,24 @@ const tocTargets = computed<{ id: string; label: string }[]>(() => {
     .map((section) => ({ id: sectionElementId(section), label: getSectionName(section, locale.value) }))
 })
 
+// The table of contents renders only on wide viewports (the xl breakpoint and up,
+// 1280px). It is unmounted rather than CSS-hidden: a hidden instance would keep its
+// scroll timelines, visibility tracking, and URL hash updates running.
+const tocMediaQuery = window.matchMedia("(min-width: 1280px)")
+const tocViewportWide = ref(tocMediaQuery.matches)
+function onTocMediaChange(event: MediaQueryListEvent): void {
+  tocViewportWide.value = event.matches
+}
+tocMediaQuery.addEventListener("change", onTocMediaChange)
+onBeforeUnmount(() => {
+  tocMediaQuery.removeEventListener("change", onTocMediaChange)
+})
+
 // The table of contents is shown only while the class tab (the FieldsForm) is
 // visible and the class defines sections.
-const showToc = computed<boolean>(() => !!classTabId.value && !!mergedFieldsData.value && selectedMainTab.value === 0 && tocTargets.value.length > 0)
+const showToc = computed<boolean>(
+  () => tocViewportWide.value && !!classTabId.value && !!mergedFieldsData.value && selectedMainTab.value === 0 && tocTargets.value.length > 0,
+)
 
 // claimAncestry returns the ids of the claims on the path from a top-level claim down to
 // (and including) the claim with the given id, or null when the container does not hold it.
@@ -1340,9 +1355,11 @@ function canSave(): boolean {
     <!--
       The table of contents lives outside the content column, to its left: its
       sticky/scroll machinery keys off its parent (this wrapper) spanning the whole
-      content height. Hidden on narrow screens where a sidebar would crowd the form.
+      content height.
     -->
-    <TableOfContents v-if="hasPermission(CAN_EDIT_DOCUMENT) && doc && classesInitialized && showToc" :targets="tocTargets" class="w-48 shrink-0 max-lg:hidden" />
+    <TableOfContents v-if="hasPermission(CAN_EDIT_DOCUMENT) && doc && classesInitialized && showToc" :targets="tocTargets" class="ml-4 w-48 shrink-0">
+      <div class="font-semibold">{{ t("partials.TableOfContents.title") }}</div>
+    </TableOfContents>
     <div ref="el" class="pd-documentedit flex min-w-0 grow flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4">
       <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
         <template v-if="hasPermission(CAN_EDIT_DOCUMENT) && doc && classesInitialized">
