@@ -519,6 +519,37 @@ func TestListPagination(t *testing.T) {
 	before := int64(10000)
 	_, errE = c.ListDesc(ctx, session, &before)
 	assert.ErrorIs(t, errE, coordinator.ErrOperationNotFound)
+
+	// Ascending pagination over the same session.
+	ascPage1, errE := c.ListAsc(ctx, session, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, ascPage1, coordinator.MaxPageLength)
+
+	ascPage2, errE := c.ListAsc(ctx, session, &ascPage1[4999])
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, ascPage2, 1000)
+
+	allAscPages := make([]int64, 0, len(ascPage1)+len(ascPage2))
+	allAscPages = append(allAscPages, ascPage1...)
+	allAscPages = append(allAscPages, ascPage2...)
+
+	// operations is sorted in decreasing order at this point.
+	slices.Reverse(operations)
+
+	assert.Equal(t, operations, allAscPages)
+
+	_, errE = c.ListAsc(ctx, identifier.New(), nil)
+	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
+
+	// Having no more values is not an error.
+	ascPage3, errE := c.ListAsc(ctx, session, &ascPage2[999])
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Empty(t, ascPage3)
+
+	// Using unknown after operation is an error.
+	after := int64(10000)
+	_, errE = c.ListAsc(ctx, session, &after)
+	assert.ErrorIs(t, errE, coordinator.ErrOperationNotFound)
 }
 
 // TestCompleteSessionOnError verifies that when completion fails with a permanent error, the

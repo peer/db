@@ -674,19 +674,28 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	return operation, errE
 }
 
-// ListDesc returns up to MaxPageLength operation numbers appended to the session, in decreasing order
-// (newest operations first), before optional operation number, to support keyset pagination.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) ListDesc(
-	ctx context.Context, session identifier.Identifier, before *int64,
+// list returns up to MaxPageLength operation numbers appended to the session, ordered by the
+// operation number in the given direction, starting at the optional exclusive cursor
+// operation, to support keyset pagination.
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) list(
+	ctx context.Context, session identifier.Identifier, cursor *int64, ascending bool,
 ) ([]int64, errors.E) {
+	comparison := "<"
+	direction := "DESC"
+	cursorName := "before"
+	if ascending {
+		comparison = ">"
+		direction = "ASC"
+		cursorName = "after"
+	}
 	arguments := []any{
 		session.String(),
 	}
-	beforeCondition := ""
-	if before != nil {
-		arguments = append(arguments, *before)
-		// We want to make sure that before operation really exists.
-		beforeCondition = `AND EXISTS (SELECT 1 FROM "` + c.Prefix + `Operations" WHERE "session"=$1 AND "operation"=$2) AND "operation"<$2`
+	cursorCondition := ""
+	if cursor != nil {
+		arguments = append(arguments, *cursor)
+		// We want to make sure that cursor operation really exists.
+		cursorCondition = `AND EXISTS (SELECT 1 FROM "` + c.Prefix + `Operations" WHERE "session"=$1 AND "operation"=$2) AND "operation"` + comparison + `$2`
 	}
 	var operations []int64
 	errE := internalStore.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
@@ -696,9 +705,9 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 		rows, err := tx.Query(ctx, `
 			SELECT "operation" FROM "`+c.Prefix+`Operations"
 				WHERE "session"=$1
-				`+beforeCondition+`
+				`+cursorCondition+`
 				-- We order by "operation" to enable keyset pagination.
-				ORDER BY "operation" DESC
+				ORDER BY "operation" `+direction+`
 				LIMIT `+maxPageLengthStr, arguments...)
 		if err != nil {
 			return internalStore.WithPgxError(err)
@@ -723,7 +732,7 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 			} else if sessionCompleted {
 				return errors.WithStack(ErrAlreadyCompleted)
 			}
-			if before != nil {
+			if cursor != nil {
 				var exists bool
 				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+c.Prefix+`Operations" WHERE "session"=$1 AND "operation"=$2)`, arguments...).Scan(&exists)
 				if err != nil {
@@ -741,11 +750,27 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 		details["session"] = session.String()
 		details["schema"] = c.schema
 		details["prefix"] = c.Prefix
-		if before != nil {
-			details["before"] = *before
+		if cursor != nil {
+			details[cursorName] = *cursor
 		}
 	}
 	return operations, errE
+}
+
+// ListDesc returns up to MaxPageLength operation numbers appended to the session, in decreasing order
+// (newest operations first), before optional operation number, to support keyset pagination.
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) ListDesc(
+	ctx context.Context, session identifier.Identifier, before *int64,
+) ([]int64, errors.E) {
+	return c.list(ctx, session, before, false)
+}
+
+// ListAsc returns up to MaxPageLength operation numbers appended to the session, in increasing order
+// (oldest operations first), after optional operation number, to support keyset pagination.
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) ListAsc(
+	ctx context.Context, session identifier.Identifier, after *int64,
+) ([]int64, errors.E) {
+	return c.list(ctx, session, after, true)
 }
 
 // GetData returns data and metadata for the operation from the session.

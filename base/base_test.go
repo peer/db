@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -2381,6 +2382,61 @@ func TestAppendDocumentChangeFullValidationCreateSession(t *testing.T) {
 	})
 	_, errE = b.AppendDocumentChange(ctx, session, setJSON, 2)
 	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.EndEditDocument(ctx, session, true)
+	require.NoError(t, errE, "% -+#.1v", errE)
+}
+
+func TestAppendDocumentChangeManyOperations(t *testing.T) {
+	t.Parallel()
+
+	ctx, b := initBase(t)
+
+	doc := newDoc()
+	docID := doc.ID
+	errE := b.InsertOrReplaceDocument(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	confidence := document.HighConfidence
+	propID := identifier.New()
+
+	// Alternating adds and removes keep the document small while the session grows past
+	// MaxPageLength operations. The operations are injected directly through the
+	// coordinator for speed; they are exactly what AppendDocumentChange would accept.
+	var lastClaimID identifier.Identifier
+	total := int64(coordinator.MaxPageLength + 1)
+	for op := int64(1); op <= total; op++ {
+		var changeJSON []byte
+		if op%2 == 1 {
+			changeBase := append(append([]string{}, doc.Base...), "SESSION", session.String(), strconv.FormatInt(op, 10))
+			lastClaimID = identifier.From(changeBase...)
+			changeJSON = marshalChange(t, document.AddClaimChange{ //nolint:exhaustruct
+				ID:   lastClaimID,
+				Base: changeBase,
+				Patch: document.StringClaimPatch{
+					Confidence: &confidence,
+					Prop:       &propID,
+					String:     "value",
+				},
+			})
+		} else {
+			changeJSON = marshalChange(t, document.RemoveClaimChange{ID: lastClaimID})
+		}
+		_, errE = b.TestingAppendDocumentChangeUnvalidated(ctx, session, changeJSON, op)
+		require.NoError(t, errE, "%d % -+#.1v", op, errE)
+	}
+
+	// The next append rebuilds the session document state from scratch (nothing is
+	// cached), paginating over more than MaxPageLength committed operations, and
+	// validates against it: total is odd, so the last operation added a claim and
+	// removing it applies.
+	removeJSON := marshalChange(t, document.RemoveClaimChange{ID: lastClaimID})
+	_, errE = b.AppendDocumentChange(ctx, session, removeJSON, total+1)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, total+1, b.TestingSessionDocsOperation(session))
 
 	errE = b.EndEditDocument(ctx, session, true)
 	require.NoError(t, errE, "% -+#.1v", errE)
