@@ -319,16 +319,17 @@ function onSelect(value: Result | null) {
   searchAbortController.abort()
   // Intentionally not resetting query here: keeping it preserves the user's
   // last typed text, which is restored via display-value the next time edit
-  // mode is entered. Query is only reset on explicit clear, see below.
+  // mode is entered (and on clear). Query is only reset by reset().
   selectedDocument.value = value
 }
 
 async function clearSelection() {
   clearing = true
-  query.value = ""
   model.value = ""
   exitEditMode()
-  // Focus the now-empty search input so focus is not dropped to the body.
+  // The query is kept, so the search input comes back pre-filled with the last typed
+  // text: the prior search is the likely starting point for picking a replacement.
+  // Focus the search input so focus is not dropped to the body.
   await nextTick()
   ;(comboboxInputRef.value?.$el as HTMLInputElement | undefined)?.focus()
   clearing = false
