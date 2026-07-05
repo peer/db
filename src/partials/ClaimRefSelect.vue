@@ -362,7 +362,7 @@ const WithPeerDBDocument = WithDocument<D>
 
 <template>
   <fieldset ref="fieldsetRef" class="pd-claimrefselect" :aria-labelledby="labelId || undefined" @focusout="onFocusout">
-    <div class="grid grid-cols-[max-content_auto] gap-x-1 gap-y-0.5">
+    <ul class="grid grid-cols-[max-content_auto] gap-x-1">
       <!--
         The controls and labels prevent mousedown so clicking them does not blur the
         previously focused element first: that blur's commit would flash the enclosing
@@ -373,7 +373,7 @@ const WithPeerDBDocument = WithDocument<D>
         control afterwards (a control disabled by the immediate commit refuses focus,
         which is harmless - nothing was blurred either).
       -->
-      <template v-for="row in rows" :key="row">
+      <li v-for="row in rows" :key="row" class="contents">
         <RadioButton
           v-if="!multiple"
           :id="`${baseId}-${row}`"
@@ -382,7 +382,6 @@ const WithPeerDBDocument = WithDocument<D>
           :value="row"
           :disabled="inactive"
           :invalid="invalid"
-          class="mx-2"
           @mousedown.prevent
           @click="focusControl(row)"
         />
@@ -392,7 +391,6 @@ const WithPeerDBDocument = WithDocument<D>
           :model-value="selectedTargets.has(row)"
           :disabled="inactive"
           :invalid="invalid"
-          class="mx-2"
           @mousedown.prevent
           @click="focusControl(row)"
           @update:model-value="(v) => toggle(row, !!v)"
@@ -431,11 +429,11 @@ const WithPeerDBDocument = WithDocument<D>
             ><ArrowTopRightOnSquareIcon :alt="t('common.icons.link')" class="inline size-5 align-text-top"
           /></RouterLink>
         </div>
-      </template>
-      <div v-if="rows.length === 0" class="col-span-2 p-2"
-        ><i>{{ t("partials.ClaimRefSelect.noOptions") }}</i></div
+      </li>
+      <li v-if="rows.length === 0" class="col-span-2 p-2"
+        ><i>{{ t("partials.ClaimRefSelect.noOptions") }}</i></li
       >
-    </div>
+    </ul>
     <p v-if="errorMessage" class="mt-1 text-sm text-error-600">{{ errorMessage }}</p>
   </fieldset>
 </template>
