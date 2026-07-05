@@ -76,7 +76,8 @@
       "required": "Obvezna vrednost.",
       "requiredPrecision": "Obvezna natančnost.",
       "invalid": "Neveljavna vrednost.",
-      "invalidPrecision": "Neveljavna natančnost."
+      "invalidPrecision": "Neveljavna natančnost.",
+      "unfinished": "Nedokončana vrednost."
     }
   },
   "partials": {

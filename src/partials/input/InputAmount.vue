@@ -321,9 +321,9 @@ const columns = computed<InputColumn[]>(() => [
 ])
 
 const validatedInput: ValidatedInput = {
-  validate: async (signal) => {
+  validate: async (signal, options) => {
     triggered.value = true
-    await validateChildAll(signal)
+    await validateChildAll(signal, options)
   },
   reset: () => {
     resetChildAll()

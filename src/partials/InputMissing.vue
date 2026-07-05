@@ -174,7 +174,7 @@ const unknownCheckpoint = ref<boolean>(unknown.value)
 const noneCheckpoint = ref<boolean>(none.value)
 
 const validatedInput: ValidatedInput = {
-  validate: async (signal) => {
+  validate: async (signal, options) => {
     // When a missing-state checkbox is checked the wrapped input is
     // locked and its value is intentionally "missing" - skip its
     // validation entirely.
@@ -183,7 +183,7 @@ const validatedInput: ValidatedInput = {
       clearShowRequired()
       return
     }
-    await validateChildAll(signal)
+    await validateChildAll(signal, options)
     if (props.required && allChildEmpty.value) {
       showRequired.value = true
       // TODO: Use standard codes.

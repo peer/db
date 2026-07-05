@@ -483,7 +483,10 @@ export type ValidationError = {
 // into the input's reactive errors field. Callers read it from there after
 // the promise resolves. The optional signal lets callers abort in-flight
 // async validation.
-export type ValidateFn = (signal?: AbortSignal) => Promise<void>
+// options.final marks the run as a final pass (see ValidatorFn's options.final); a
+// form-wide submit (Save) passes it, everything else (blur-driven composite
+// validations, re-validation watchers) leaves it unset.
+export type ValidateFn = (signal?: AbortSignal, options?: { final?: boolean }) => Promise<void>
 
 // A user-supplied rule plugged into an input via its :validator prop. It
 // receives the value directly (instead of reading it off the input's
@@ -503,7 +506,13 @@ export type ValidateFn = (signal?: AbortSignal) => Promise<void>
 // parse failure) so a pre-populated invalid value is surfaced immediately,
 // but should skip the required check (the user has not interacted yet) and
 // skip any model-mutating side effects.
-export type ValidatorFn<T> = (value: T, options: { signal: AbortSignal; eager: boolean; initial: boolean }) => Promise<ValidationError[]>
+//
+// options.final is true when the validate cascade was invoked with final set
+// (the form-wide Save pass does that) and false on every other run (blur,
+// typing, mount, blur-driven composite validations). Validators gate checks
+// on it when a problem should block a submit but not nag during editing
+// (e.g. InputRef's "unfinished" check for typed text without a selection).
+export type ValidatorFn<T> = (value: T, options: { signal: AbortSignal; eager: boolean; initial: boolean; final: boolean }) => Promise<ValidationError[]>
 
 // What an input registers with a parent so the parent can validate it and
 // resolve focus targets. inputEl returns the focusable control to move

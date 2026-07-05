@@ -88,6 +88,7 @@ declare module "vue-i18n" {
         requiredPrecision: string
         invalid: string
         invalidPrecision: string
+        unfinished: string
       }
     }
     partials: {

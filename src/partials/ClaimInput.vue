@@ -288,8 +288,8 @@ function checkboxInputEl(): HTMLElement | null {
 }
 
 // formRowRef points at the FieldsFormRow ValidatedInput. We call its
-// validate directly (rather than the broader validateChildAll on the
-// sub-registry) when committing this slot's value, so a sub-cardinality
+// validate directly (rather than the broader validateChildAll on
+// the sub-registry) when committing this slot's value, so a sub-cardinality
 // "Required value." from an empty required sub-field does NOT block the
 // parent commit. Sub-cardinality validation is reserved for Save time
 // (via the outer revertAll/validateAll cascade).

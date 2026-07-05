@@ -863,7 +863,7 @@ async function onSave() {
   // first invalid input and abort the save - no changes flushed, the session
   // stays open for the user to fix the field.
   if (fieldsFormRef.value) {
-    await fieldsFormRef.value.validateAll(abortController.signal)
+    await fieldsFormRef.value.validateAll(abortController.signal, { final: true })
     if (abortController.signal.aborted) {
       return
     }
@@ -1090,7 +1090,7 @@ async function onSubmit() {
   // Run validation across every registered input in the claim form.
   // If any field surfaces an error, focus the first one and abort the
   // submit so the user can fix it before we hit the backend.
-  await validateAll(abortController.signal)
+  await validateAll(abortController.signal, { final: true })
   if (abortController.signal.aborted) {
     return
   }

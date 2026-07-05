@@ -76,7 +76,8 @@
       "required": "Required value.",
       "requiredPrecision": "Required precision.",
       "invalid": "Invalid value.",
-      "invalidPrecision": "Invalid precision."
+      "invalidPrecision": "Invalid precision.",
+      "unfinished": "Unfinished value."
     }
   },
   "partials": {

@@ -128,15 +128,23 @@ const comboboxInputRef = useTemplateRef<ComponentPublicInstance>("comboboxInputR
 // user interaction yet) and while eager (typing, clearing) so it flags only on
 // the lazy blur pass, never mid-edit; the identifier-shape check is not skipped -
 // a pre-populated or freshly typed value that is not a valid identifier should
-// surface immediately.
+// surface immediately. Typed query text without a selection is "unfinished":
+// the claim stays empty even though the input looks filled, so the user could
+// think something is selected. It surfaces only on the final (Save) pass -
+// mid-editing the user may still be searching - and only when required does
+// not already flag the same emptiness.
 // eslint-disable-next-line @typescript-eslint/require-await
 const validator: ValidatorFn<string> = async function (value, options) {
   if (value === "") {
-    if (!props.required || options.initial || options.eager) {
-      return []
+    if (props.required && !options.initial && !options.eager) {
+      // TODO: Use standard codes.
+      return [{ code: "required" }]
     }
-    // TODO: Use standard codes.
-    return [{ code: "required" }]
+    if (options.final && query.value !== "") {
+      // TODO: Use standard codes.
+      return [{ code: "unfinished" }]
+    }
+    return []
   }
   if (!Identifier.valid(value)) {
     // TODO: Use standard codes.
@@ -166,6 +174,17 @@ const { runValidation, validatedInput } = useValidation(
 )
 
 defineExpose(validatedInput)
+
+// The final (Save) pass surfaces "unfinished" for typed text without a selection; once
+// the user reacts by editing the query (searching again or clearing the text), an eager
+// re-run drops it immediately - the final-gated check does not fire on eager runs. The
+// model watcher cannot do this: the query is not the model, so editing it would
+// otherwise leave the stale error standing.
+watch(query, async () => {
+  if (errors.value.some((error) => error.code === "unfinished")) {
+    await runValidation({ eager: true })
+  }
+})
 
 const mainAbortController = new AbortController()
 let searchAbortController = new AbortController()

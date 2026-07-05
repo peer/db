@@ -546,8 +546,8 @@ const validatedInput: ValidatedInput = {
   // then surfaces its own "Required value." (its required prop is already true),
   // so the min-cardinality violation reaches the aggregate without a field-level
   // error of our own.
-  validate: async (signal) => {
-    await validateChildAll(signal)
+  validate: async (signal, options) => {
+    await validateChildAll(signal, options)
   },
   reset: () => {
     resetChildAll()
