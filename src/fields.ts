@@ -117,6 +117,12 @@ export interface SectionData {
   fields: readonly FieldData[]
 }
 
+// sectionElementId returns the DOM id of a section's rendered header, used as the
+// scroll/hash target of the table of contents.
+export function sectionElementId(section: DeepReadonly<SectionData>): string {
+  return `section-${section.id}`
+}
+
 // getSectionName picks the section's display name for the given language, using the language
 // fallback chain. When no language in the chain has a name, the section identifier is used.
 export function getSectionName(section: DeepReadonly<SectionData>, language: string): string {

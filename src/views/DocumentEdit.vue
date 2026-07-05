@@ -51,10 +51,12 @@ import { changeFrom } from "@/document/patch"
 import {
   ChangeDroppedError,
   getCommittedClaimKey,
+  getSectionName,
   registerForFlushKey,
   registerRemoteAddsKey,
   registerRemoteConflictKey,
   saveChangeKey,
+  sectionElementId,
   unregisterForFlushKey,
   unregisterRemoteAddsKey,
   unregisterRemoteConflictKey,
@@ -78,6 +80,7 @@ import InputMissing from "@/partials/InputMissing.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
+import TableOfContents from "@/partials/TableOfContents.vue"
 import { localCounter, pairCounters, useLock, useProgress } from "@/progress"
 import { useDocumentFields } from "@/useDocumentFields"
 import { useParentClasses } from "@/useParentClasses"
@@ -172,7 +175,7 @@ function claimTypeLabel(type: ClaimType): string {
   }
 }
 
-const { t } = useI18n({ useScope: "global" })
+const { t, locale } = useI18n({ useScope: "global" })
 const router = useRouter()
 
 // We use separate lock for data modification and controls.
@@ -557,6 +560,25 @@ const pollInterval = 100 // In milliseconds.
 const docRef = toRef(() => doc.value ?? null)
 const { classDocs, instanceOfClassIds, initialized: classesInitialized } = useParentClasses(docRef, el, busy)
 const { fieldsData: mergedFieldsData, classTabId } = useDocumentFields(classDocs, instanceOfClassIds)
+
+// The selected index of the main tab group (the class tab is index 0 when present),
+// controlled so the table of contents can show only while the FieldsForm is visible.
+const selectedMainTab = ref(0)
+
+// Table of contents targets: the class tab's sections, in their render order, each
+// pointing at its section header in the FieldsForm (see sectionElementId).
+const tocTargets = computed<{ id: string; label: string }[]>(() => {
+  if (!mergedFieldsData.value) {
+    return []
+  }
+  return [...mergedFieldsData.value.sections]
+    .sort((a, b) => a.orderInList - b.orderInList)
+    .map((section) => ({ id: sectionElementId(section), label: getSectionName(section, locale.value) }))
+})
+
+// The table of contents is shown only while the class tab (the FieldsForm) is
+// visible and the class defines sections.
+const showToc = computed<boolean>(() => !!classTabId.value && !!mergedFieldsData.value && selectedMainTab.value === 0 && tocTargets.value.length > 0)
 
 // claimAncestry returns the ids of the claims on the path from a top-level claim down to
 // (and including) the claim with the given id, or null when the container does not hold it.
@@ -1314,284 +1336,292 @@ function canSave(): boolean {
       </template>
     </NavBar>
   </Teleport>
-  <div ref="el" class="pd-documentedit mt-[var(--pd-navbar-height)] flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4">
-    <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
-      <template v-if="hasPermission(CAN_EDIT_DOCUMENT) && doc && classesInitialized">
-        <!--
+  <div class="mt-[var(--pd-navbar-height)] flex w-full flex-row">
+    <!--
+      The table of contents lives outside the content column, to its left: its
+      sticky/scroll machinery keys off its parent (this wrapper) spanning the whole
+      content height. Hidden on narrow screens where a sidebar would crowd the form.
+    -->
+    <TableOfContents v-if="hasPermission(CAN_EDIT_DOCUMENT) && doc && classesInitialized && showToc" :targets="tocTargets" class="w-48 shrink-0 max-lg:hidden" />
+    <div ref="el" class="pd-documentedit flex min-w-0 grow flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4">
+      <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
+        <template v-if="hasPermission(CAN_EDIT_DOCUMENT) && doc && classesInitialized">
+          <!--
           TODO: Fix how hover interacts with focused tab.
           See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
         -->
-        <TabGroup manual>
-          <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100 contain-inline-size">
-            <Tab
-              v-if="classTabId && mergedFieldsData"
-              :key="classTabId"
-              class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-              ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(4)),transparent)] px-4 py-3 whitespace-nowrap"
-                ><DocumentRefInline :id="classTabId" :link="false" title /></span
-            ></Tab>
-            <Tab
-              :title="t('views.DocumentEdit.tabs.allProperties')"
-              class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-              ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(4)),transparent)] px-4 py-3 whitespace-nowrap">{{
-                t("views.DocumentEdit.tabs.allProperties")
-              }}</span></Tab
-            >
-          </TabList>
-          <h1 v-show="displayLabelComponent?.displayLabel" class="mb-4 text-3xl font-bold drop-shadow-xs"><DisplayLabel ref="displayLabelComponent" :doc="doc" /></h1>
-          <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
-          <TabPanels as="template">
-            <!-- Class-specific tab. -->
-            <TabPanel v-if="classTabId && mergedFieldsData" :key="classTabId" tabindex="-1" class="outline-none">
-              <div @focusout="onFieldsBlur">
-                <FieldsForm
-                  ref="fieldsFormRef"
-                  v-model:invalid="fieldsFormInvalid"
-                  :fields-data="mergedFieldsData"
-                  :claims="doc.claims"
-                  :initial-claims="initialDoc?.claims ?? doc.claims"
-                />
-                <!-- Potential duplicates of the document being created, refreshed on every field blur. -->
-                <DocumentDuplicates v-if="isCreating" ref="duplicatesRef" :doc="doc" />
-              </div>
-            </TabPanel>
-            <!-- "All properties" tab panel. -->
-            <TabPanel tabindex="-1" class="outline-none">
-              <table class="w-full table-auto border-collapse">
-                <thead>
-                  <tr>
-                    <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.property") }}</th>
-                    <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.value") }}</th>
-                    <th class="w-px"></th>
-                    <th class="w-px"></th>
-                    <th class="w-px"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <PropertiesRows
+          <TabGroup manual :selected-index="selectedMainTab" @change="(index) => (selectedMainTab = index)">
+            <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100 contain-inline-size">
+              <Tab
+                v-if="classTabId && mergedFieldsData"
+                :key="classTabId"
+                class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(4)),transparent)] px-4 py-3 whitespace-nowrap"
+                  ><DocumentRefInline :id="classTabId" :link="false" title /></span
+              ></Tab>
+              <Tab
+                :title="t('views.DocumentEdit.tabs.allProperties')"
+                class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(4)),transparent)] px-4 py-3 whitespace-nowrap">{{
+                  t("views.DocumentEdit.tabs.allProperties")
+                }}</span></Tab
+              >
+            </TabList>
+            <h1 v-show="displayLabelComponent?.displayLabel" class="mb-4 text-3xl font-bold drop-shadow-xs"><DisplayLabel ref="displayLabelComponent" :doc="doc" /></h1>
+            <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
+            <TabPanels as="template">
+              <!-- Class-specific tab. -->
+              <TabPanel v-if="classTabId && mergedFieldsData" :key="classTabId" tabindex="-1" class="outline-none">
+                <div @focusout="onFieldsBlur">
+                  <FieldsForm
+                    ref="fieldsFormRef"
+                    v-model:invalid="fieldsFormInvalid"
+                    :fields-data="mergedFieldsData"
                     :claims="doc.claims"
-                    editable
-                    :editing-claim-id="editingClaimId"
-                    :sub-claim-parent-id="subClaimParentId"
-                    @edit-claim="onEditClaim"
-                    @remove-claim="onRemoveClaim"
-                    @sub-claim="onSubClaimAdd"
+                    :initial-claims="initialDoc?.claims ?? doc.claims"
                   />
-                </tbody>
-              </table>
-              <form ref="claimFormRef" @submit.prevent="onSubmit" @reset="onReset">
-                <h2 class="mt-4 text-xl font-medium">{{
-                  editingClaimId ? t("views.DocumentEdit.editClaim") : subClaimParentId ? t("views.DocumentEdit.addSubClaim") : t("views.DocumentEdit.addClaim")
-                }}</h2>
-                <TabGroup :selected-index="selectedClaimTab" @change="onChangeClaimTab">
-                  <TabList class="mt-4 flex border-collapse flex-row border border-gray-200 bg-slate-100 contain-inline-size">
-                    <Tab
-                      v-for="type in claimTypes"
-                      :key="type"
-                      :disabled="claimTypeDisabled(type)"
-                      :title="claimTypeLabel(type)"
-                      class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                      :class="claimTypeDisabled(type) ? 'cursor-not-allowed opacity-50' : 'not-aria-selected:hover:bg-slate-50'"
-                      ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(4)),transparent)] px-4 py-3 whitespace-nowrap">{{
-                        claimTypeLabel(type)
-                      }}</span></Tab
-                    >
-                  </TabList>
-                  <TabPanels as="template">
-                    <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required :label="t('common.labels.property')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
-                        </template>
-                      </InputField>
-                      <InputField required :label="t('views.DocumentEdit.labels.identifier')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputIdentifier v-bind="inputProps" v-model="claimValue" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required :label="t('common.labels.property')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
-                        </template>
-                      </InputField>
-                      <InputField required :label="t('views.DocumentEdit.labels.string')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputString v-bind="inputProps" v-model="claimValue" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required :label="t('common.labels.property')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
-                        </template>
-                      </InputField>
-                      <InputField required :label="t('views.DocumentEdit.labels.html')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputHTML v-bind="inputProps" v-model="claimValue" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required :label="t('common.labels.property')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
-                        </template>
-                      </InputField>
-                      <InputField required class="mt-4">
-                        <template #input="inputProps">
-                          <InputAmount v-bind="inputProps" v-model="claimValue" v-model:precision="claimAmountPrecision" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required :label="t('common.labels.property')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
-                        </template>
-                      </InputField>
-                      <InputField required :label="t('views.DocumentEdit.labels.from')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputMissing v-bind="inputProps" v-model:unknown="claimFromUnknown" v-model:none="claimFromNone">
-                            <template #default="missingProps">
-                              <InputAmount v-bind="missingProps" v-model="claimFrom" v-model:precision="claimFromAmountPrecision" />
-                            </template>
-                          </InputMissing>
-                        </template>
-                      </InputField>
-                      <InputField required :label="t('views.DocumentEdit.labels.to')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputMissing v-bind="inputProps" v-model:unknown="claimToUnknown" v-model:none="claimToNone">
-                            <template #default="missingProps">
-                              <InputAmount v-bind="missingProps" v-model="claimTo" v-model:precision="claimToAmountPrecision" />
-                            </template>
-                          </InputMissing>
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required :label="t('common.labels.property')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
-                        </template>
-                      </InputField>
-                      <InputField required class="mt-4">
-                        <template #input="inputProps">
-                          <InputTime v-bind="inputProps" v-model="claimValue" v-model:precision="claimTimePrecision" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required :label="t('common.labels.property')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
-                        </template>
-                      </InputField>
-                      <InputField required :label="t('views.DocumentEdit.labels.from')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputMissing v-bind="inputProps" v-model:unknown="claimFromUnknown" v-model:none="claimFromNone">
-                            <template #default="missingProps">
-                              <InputTime v-bind="missingProps" v-model="claimFrom" v-model:precision="claimFromTimePrecision" />
-                            </template>
-                          </InputMissing>
-                        </template>
-                      </InputField>
-                      <InputField required :label="t('views.DocumentEdit.labels.to')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputMissing v-bind="inputProps" v-model:unknown="claimToUnknown" v-model:none="claimToNone">
-                            <template #default="missingProps">
-                              <InputTime v-bind="missingProps" v-model="claimTo" v-model:precision="claimToTimePrecision" />
-                            </template>
-                          </InputMissing>
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required :label="t('common.labels.property')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
-                        </template>
-                      </InputField>
-                      <InputField required :label="t('views.DocumentEdit.labels.iri')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputLink v-bind="inputProps" v-model="claimValue" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required :label="t('common.labels.property')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
-                        </template>
-                      </InputField>
-                      <InputField required :label="t('views.DocumentEdit.labels.file')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputFile v-bind="inputProps" v-model="claimValue" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required :label="t('common.labels.property')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
-                        </template>
-                      </InputField>
-                      <InputField required :label="t('views.DocumentEdit.labels.to')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimValue" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required :label="t('common.labels.property')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required :label="t('common.labels.property')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required :label="t('common.labels.property')" class="mt-4">
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                  </TabPanels>
-                </TabGroup>
-                <div v-if="claimFormError" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
-                <div class="mt-4 flex flex-row justify-end gap-4">
-                  <Button type="reset" :disabled="allEmpty && !anyError">{{ t("common.buttons.cancel") }}</Button>
-                  <!--
+                  <!-- Potential duplicates of the document being created, refreshed on every field blur. -->
+                  <DocumentDuplicates v-if="isCreating" ref="duplicatesRef" :doc="doc" />
+                </div>
+              </TabPanel>
+              <!-- "All properties" tab panel. -->
+              <TabPanel tabindex="-1" class="outline-none">
+                <table class="w-full table-auto border-collapse">
+                  <thead>
+                    <tr>
+                      <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.property") }}</th>
+                      <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.value") }}</th>
+                      <th class="w-px"></th>
+                      <th class="w-px"></th>
+                      <th class="w-px"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <PropertiesRows
+                      :claims="doc.claims"
+                      editable
+                      :editing-claim-id="editingClaimId"
+                      :sub-claim-parent-id="subClaimParentId"
+                      @edit-claim="onEditClaim"
+                      @remove-claim="onRemoveClaim"
+                      @sub-claim="onSubClaimAdd"
+                    />
+                  </tbody>
+                </table>
+                <form ref="claimFormRef" @submit.prevent="onSubmit" @reset="onReset">
+                  <h2 class="mt-4 text-xl font-medium">{{
+                    editingClaimId ? t("views.DocumentEdit.editClaim") : subClaimParentId ? t("views.DocumentEdit.addSubClaim") : t("views.DocumentEdit.addClaim")
+                  }}</h2>
+                  <TabGroup :selected-index="selectedClaimTab" @change="onChangeClaimTab">
+                    <TabList class="mt-4 flex border-collapse flex-row border border-gray-200 bg-slate-100 contain-inline-size">
+                      <Tab
+                        v-for="type in claimTypes"
+                        :key="type"
+                        :disabled="claimTypeDisabled(type)"
+                        :title="claimTypeLabel(type)"
+                        class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                        :class="claimTypeDisabled(type) ? 'cursor-not-allowed opacity-50' : 'not-aria-selected:hover:bg-slate-50'"
+                        ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(4)),transparent)] px-4 py-3 whitespace-nowrap">{{
+                          claimTypeLabel(type)
+                        }}</span></Tab
+                      >
+                    </TabList>
+                    <TabPanels as="template">
+                      <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.identifier')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputIdentifier v-bind="inputProps" v-model="claimValue" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.string')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputString v-bind="inputProps" v-model="claimValue" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.html')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputHTML v-bind="inputProps" v-model="claimValue" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                        <InputField required class="mt-4">
+                          <template #input="inputProps">
+                            <InputAmount v-bind="inputProps" v-model="claimValue" v-model:precision="claimAmountPrecision" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.from')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputMissing v-bind="inputProps" v-model:unknown="claimFromUnknown" v-model:none="claimFromNone">
+                              <template #default="missingProps">
+                                <InputAmount v-bind="missingProps" v-model="claimFrom" v-model:precision="claimFromAmountPrecision" />
+                              </template>
+                            </InputMissing>
+                          </template>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.to')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputMissing v-bind="inputProps" v-model:unknown="claimToUnknown" v-model:none="claimToNone">
+                              <template #default="missingProps">
+                                <InputAmount v-bind="missingProps" v-model="claimTo" v-model:precision="claimToAmountPrecision" />
+                              </template>
+                            </InputMissing>
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                        <InputField required class="mt-4">
+                          <template #input="inputProps">
+                            <InputTime v-bind="inputProps" v-model="claimValue" v-model:precision="claimTimePrecision" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.from')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputMissing v-bind="inputProps" v-model:unknown="claimFromUnknown" v-model:none="claimFromNone">
+                              <template #default="missingProps">
+                                <InputTime v-bind="missingProps" v-model="claimFrom" v-model:precision="claimFromTimePrecision" />
+                              </template>
+                            </InputMissing>
+                          </template>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.to')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputMissing v-bind="inputProps" v-model:unknown="claimToUnknown" v-model:none="claimToNone">
+                              <template #default="missingProps">
+                                <InputTime v-bind="missingProps" v-model="claimTo" v-model:precision="claimToTimePrecision" />
+                              </template>
+                            </InputMissing>
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.iri')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputLink v-bind="inputProps" v-model="claimValue" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.file')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputFile v-bind="inputProps" v-model="claimValue" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.to')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimValue" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                    </TabPanels>
+                  </TabGroup>
+                  <div v-if="claimFormError" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
+                  <div class="mt-4 flex flex-row justify-end gap-4">
+                    <Button type="reset" :disabled="allEmpty && !anyError">{{ t("common.buttons.cancel") }}</Button>
+                    <!--
                     We do enable button even when inputs are invalid because we want the user to
                     attempt a add/update and force validation (and focus to first invalid input).
                   -->
-                  <Button type="submit" :disabled="!anyDirty">{{ editingClaimId ? t("common.buttons.update") : t("common.buttons.add") }}</Button>
-                </div>
-              </form>
-            </TabPanel>
-          </TabPanels>
-        </TabGroup>
-        <div v-if="sessionError" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
-        <div class="mt-4 flex flex-row justify-between gap-4">
-          <Button id="documentedit-button-discard" type="button" :progress="saveBusy" @click.prevent="onDiscard">{{ t("common.buttons.discard") }}</Button>
-          <Button id="documentedit-button-save" type="submit" primary :disabled="!canSave()" :progress="saveBusy" @click.prevent="onSave">{{
-            isCreating ? t("common.buttons.create") : t("common.buttons.update")
-          }}</Button>
-        </div>
-      </template>
-      <div v-else-if="!hasPermission(CAN_EDIT_DOCUMENT)" class="my-1 text-center sm:my-4">{{ t("common.status.editingNotAllowed") }}</div>
-      <div v-else-if="!classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
-      <div v-else class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+                    <Button type="submit" :disabled="!anyDirty">{{ editingClaimId ? t("common.buttons.update") : t("common.buttons.add") }}</Button>
+                  </div>
+                </form>
+              </TabPanel>
+            </TabPanels>
+          </TabGroup>
+          <div v-if="sessionError" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
+          <div class="mt-4 flex flex-row justify-between gap-4">
+            <Button id="documentedit-button-discard" type="button" :progress="saveBusy" @click.prevent="onDiscard">{{ t("common.buttons.discard") }}</Button>
+            <Button id="documentedit-button-save" type="submit" primary :disabled="!canSave()" :progress="saveBusy" @click.prevent="onSave">{{
+              isCreating ? t("common.buttons.create") : t("common.buttons.update")
+            }}</Button>
+          </div>
+        </template>
+        <div v-else-if="!hasPermission(CAN_EDIT_DOCUMENT)" class="my-1 text-center sm:my-4">{{ t("common.status.editingNotAllowed") }}</div>
+        <div v-else-if="!classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+        <div v-else class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+      </div>
     </div>
   </div>
   <Teleport to="footer">
