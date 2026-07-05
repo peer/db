@@ -68,6 +68,13 @@ const props = defineProps<{
   // ClaimCardinality, so a bare single-column input is named via InputField's
   // labelledby. Undefined when not in a FieldsForm context.
   labelId?: string
+  // Suppress the inputs' own labels row / hint lines. Set by the enclosing
+  // cardinality on a repeated field's entries: it hoists the shared column labels
+  // above and the shared hint below all entries. hideLabels is not applied to the
+  // interval bounds - their labels carry the per-bound revert badges, so they stay
+  // per entry (only their hints hoist).
+  hideLabels?: boolean
+  hideHints?: boolean
 }>()
 
 // input notifies the parent on any user-driven model change; it is emitted by every
@@ -162,6 +169,21 @@ const columns = computed<InputColumn[]>(() => {
   return all
 })
 
+// The inner inputs' hint lines, deduplicated (the two interval bounds declare the
+// same format hint). The enclosing cardinality renders them once under all entries
+// of a repeated field.
+const hints = computed<string[]>(() => {
+  const all: string[] = []
+  for (const input of inputs) {
+    for (const hint of input.hints?.value ?? []) {
+      if (!all.includes(hint)) {
+        all.push(hint)
+      }
+    }
+  }
+  return all
+})
+
 const validatedInput: ValidatedInput = {
   validate: validateAll,
   reset: resetAll,
@@ -180,6 +202,7 @@ const validatedInput: ValidatedInput = {
   isEmpty: allEmpty,
   errors: allErrors(inputs),
   columns,
+  hints,
   checkpoint: checkpointAll,
 }
 
@@ -248,28 +271,36 @@ function onCompleteInput() {
     input through InputField's slot props.
   -->
   <!-- id -->
-  <InputField v-if="claimType === 'id'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge>
+  <InputField v-if="claimType === 'id'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge :hide-hints="hideHints">
     <template #input="inputProps">
       <InputIdentifier v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- string -->
-  <InputField v-else-if="claimType === 'string'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge>
+  <InputField v-else-if="claimType === 'string'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge :hide-hints="hideHints">
     <template #input="inputProps">
       <InputString v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- html -->
-  <InputField v-else-if="claimType === 'html'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge>
+  <InputField v-else-if="claimType === 'html'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge :hide-hints="hideHints">
     <template #input="inputProps">
       <InputHTML v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- amount -->
-  <InputField v-else-if="claimType === 'amount'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge>
+  <InputField
+    v-else-if="claimType === 'amount'"
+    :required="required"
+    :invalid="invalid"
+    :labelledby="labelId"
+    hide-badge
+    :hide-labels="hideLabels"
+    :hide-hints="hideHints"
+  >
     <template #input="inputProps">
       <InputAmount
         v-bind="inputProps"
@@ -289,7 +320,15 @@ function onCompleteInput() {
     no breakpoint and no observer needed.
   -->
   <div v-else-if="claimType === 'amountInterval'" class="flex min-w-0 flex-row flex-wrap items-start gap-x-8 gap-y-4">
-    <InputField :required="required" hide-required-badge :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')" :revert="boundRevert('from')">
+    <InputField
+      :required="required"
+      hide-required-badge
+      :invalid="invalid"
+      :labelledby="labelId"
+      :label="t('partials.FieldsForm.from')"
+      :revert="boundRevert('from')"
+      :hide-hints="hideHints"
+    >
       <template #input="inputProps">
         <InputMissing
           v-bind="inputProps"
@@ -312,7 +351,15 @@ function onCompleteInput() {
         </InputMissing>
       </template>
     </InputField>
-    <InputField :required="required" hide-required-badge :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.to')" :revert="boundRevert('to')">
+    <InputField
+      :required="required"
+      hide-required-badge
+      :invalid="invalid"
+      :labelledby="labelId"
+      :label="t('partials.FieldsForm.to')"
+      :revert="boundRevert('to')"
+      :hide-hints="hideHints"
+    >
       <template #input="inputProps">
         <InputMissing
           v-bind="inputProps"
@@ -338,7 +385,7 @@ function onCompleteInput() {
   </div>
 
   <!-- time -->
-  <InputField v-else-if="claimType === 'time'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge>
+  <InputField v-else-if="claimType === 'time'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge :hide-labels="hideLabels" :hide-hints="hideHints">
     <template #input="inputProps">
       <InputTime v-bind="inputProps" v-model="value" v-model:precision="timePrecision" :readonly="readonly" @update:model-value="onInput" @update:precision="onInput" />
     </template>
@@ -346,7 +393,15 @@ function onCompleteInput() {
 
   <!-- timeInterval - "from" and "to", laid out like amountInterval above. -->
   <div v-else-if="claimType === 'timeInterval'" class="flex min-w-0 flex-row flex-wrap items-start gap-x-8 gap-y-4">
-    <InputField :required="required" hide-required-badge :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')" :revert="boundRevert('from')">
+    <InputField
+      :required="required"
+      hide-required-badge
+      :invalid="invalid"
+      :labelledby="labelId"
+      :label="t('partials.FieldsForm.from')"
+      :revert="boundRevert('from')"
+      :hide-hints="hideHints"
+    >
       <template #input="inputProps">
         <InputMissing
           v-bind="inputProps"
@@ -369,7 +424,15 @@ function onCompleteInput() {
         </InputMissing>
       </template>
     </InputField>
-    <InputField :required="required" hide-required-badge :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.to')" :revert="boundRevert('to')">
+    <InputField
+      :required="required"
+      hide-required-badge
+      :invalid="invalid"
+      :labelledby="labelId"
+      :label="t('partials.FieldsForm.to')"
+      :revert="boundRevert('to')"
+      :hide-hints="hideHints"
+    >
       <template #input="inputProps">
         <InputMissing
           v-bind="inputProps"
@@ -395,21 +458,21 @@ function onCompleteInput() {
   </div>
 
   <!-- link (no file affordance) -->
-  <InputField v-else-if="claimType === 'link' && !isFile" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge>
+  <InputField v-else-if="claimType === 'link' && !isFile" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge :hide-hints="hideHints">
     <template #input="inputProps">
       <InputLink v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- link with file value type: render the file-upload affordance instead. -->
-  <InputField v-else-if="claimType === 'link' && isFile" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge>
+  <InputField v-else-if="claimType === 'link' && isFile" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge :hide-hints="hideHints">
     <template #input="inputProps">
       <InputFile v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onCompleteInput" />
     </template>
   </InputField>
 
   <!-- ref -->
-  <InputField v-else-if="claimType === 'ref'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge>
+  <InputField v-else-if="claimType === 'ref'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge :hide-hints="hideHints">
     <template #input="inputProps">
       <!-- TODO: Pass "self" prop as the current document's ID. -->
       <InputRef v-bind="inputProps" v-model="value" :readonly="readonly" :filter="field.values" @update:model-value="onInput" />

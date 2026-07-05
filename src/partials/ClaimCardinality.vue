@@ -91,19 +91,46 @@ const isRepeated = computed<boolean>(() => props.field.maxCardinality > 1)
 // A plain repeated value uses the tighter gap-4.
 const entryGapClass = computed<string>(() => (props.field.subFields.length > 0 ? "gap-y-8" : "gap-y-4"))
 
-// Whether the value input renders its own label row, read from the columns the
-// slot's input reports (a labeled column means a label row: amount/precision,
-// time/precision, interval bounds). For those the count cell reserves a matching
-// empty grid row (one line height, plus the label's mb-1 gap) above the count,
-// so the count lines up with the input rather than the labels. All slots of a
-// field share the same input type, so the first mounted slot is representative.
-const hasLabelRow = computed<boolean>(() => {
+// The columns and hints of the slots' value input, read from the first mounted
+// slot (all slots of a field share the same input type). Empty until one mounts.
+const slotColumns = computed<InputColumn[]>(() => {
   for (const input of slotInputs.values()) {
-    const cols = input.columns as unknown as InputColumn[] | undefined
-    return (cols ?? []).some((col) => col.label !== "")
+    return (input.columns as unknown as InputColumn[] | undefined) ?? []
   }
-  return false
+  return []
 })
+const slotHints = computed<string[]>(() => {
+  for (const input of slotInputs.values()) {
+    return (input.hints as unknown as string[] | undefined) ?? []
+  }
+  return []
+})
+
+// Whether the value input renders a label row (a labeled column means one:
+// amount/precision, time/precision, interval bounds).
+const hasLabelRow = computed<boolean>(() => slotColumns.value.some((col) => col.label !== ""))
+
+// Whether the field's value input is an interval (a from/to pair of InputFields).
+// Interval entries keep their own label rows - the per-bound changed/revert badges
+// live there - so a repeated interval hoists only its hint, not its labels.
+const isInterval = computed<boolean>(() => {
+  const claimType = valueTypeToClaimType(props.field.valueType)
+  return claimType === "amountInterval" || claimType === "timeInterval"
+})
+
+// Grid template of the hoisted label row of a repeated field, mirroring
+// InputField's grid so the labels align with the entries' input columns (same
+// container width, same template).
+const labelsGridTemplateColumns = computed<string>(() =>
+  [`minmax(0,${slotColumns.value[0]?.width ?? "1fr"})`, ...Array(Math.max(0, slotColumns.value.length - 1)).fill("auto")].join(" "),
+)
+
+// A press on a hoisted column label focuses that column's control in the first
+// entry, like InputField's own labels do (mousedown-prevented in the template so
+// the currently focused control is not blurred to the body first).
+function onColumnLabelMousedown(col: InputColumn): void {
+  col.el()?.focus()
+}
 
 // A repeated field shows a per-entry changed/revert as a small icon under each
 // count, on top of the whole-field changed/revert on the field's label: the
@@ -695,53 +722,87 @@ onBeforeUnmount(() => {
       /></span>
       <InputBadges :required="field.minCardinality > 0" :multiple="field.maxCardinality > 1" :changed="isDirty" @revert="onHeaderRevert" />
     </div>
-    <div v-if="isRepeated" class="flex flex-col" :class="entryGapClass">
-      <div
-        v-for="(slot, idx) in slots"
-        :key="slot.key"
-        class="relative grid grid-cols-[min-content_auto] items-start gap-x-4 pl-4 before:absolute before:inset-y-0 before:left-0 before:w-1 before:rounded-sm before:content-[''] not-has-[[aria-invalid=true]]:focus-within:before:bg-primary-500 has-[[aria-invalid=true]]:before:bg-error-600"
-        :class="slotDirty(slot.key) ? 'before:bg-primary-300' : 'before:bg-neutral-300'"
-      >
-        <!--
-          When the value input has a label row, the count cell reserves a matching
-          empty grid row (one line height) above the count and places the count in
-          the second row, so it lines up with the input. The per-entry revert icon
-          sits under the count; it needs explicit placement (row 3) because grid
-          auto-placement would otherwise fill the reserved empty first row. The
-          button is a square the same height as the "changed" badge, rendered
-          unconditionally (just visibility:hidden when the entry is unchanged) so
-          it always reserves the count column's width and the input does not shift
-          when it appears. The mousedown is prevented so clicking it does not blur
-          the value input first (which would commit before revert).
-        -->
-        <div :class="hasLabelRow ? 'grid grid-rows-[1lh_auto] justify-items-start gap-y-1 leading-none' : 'flex flex-col items-start gap-y-1'">
-          <div class="pt-0.5 leading-none font-medium text-gray-700" :class="{ 'row-start-2': hasLabelRow }">{{ idx + 1 }}.</div>
-          <button
-            v-if="perEntryRevert"
-            type="button"
-            :title="t('common.buttons.revert')"
-            class="flex items-center justify-center rounded-xs bg-primary-300 p-0.5 text-gray-100 shadow-xs outline-none hover:cursor-pointer hover:bg-primary-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500"
-            :class="{ invisible: !slotDirty(slot.key), 'row-start-3': hasLabelRow }"
-            @mousedown.prevent
-            @click="revertSlot(slot.key)"
-          >
-            <ArrowPathSingleCounterclockwiseIcon class="size-3" aria-hidden="true" />
-          </button>
+    <div v-if="isRepeated" class="flex flex-col">
+      <!--
+        Hoisted label row of a repeated field whose input has labeled columns
+        (amount/precision, time/precision): shown once above all entries, outside
+        their rails. It mirrors the entries' structure - the invisible revert icon
+        stands in for the count column and the label grid uses the same template as
+        the entries' InputField grids - so the labels align with the input columns
+        below. Interval entries keep their own label rows instead (the per-bound
+        revert badges live there). A press on a label focuses the first entry's
+        control in that column, like InputField's own labels. The mb-1 matches the
+        label-to-control spacing inside InputField, tighter than the entry gap.
+      -->
+      <div v-if="!isInterval && hasLabelRow" class="mb-1 grid grid-cols-[min-content_auto] items-start gap-x-4 pl-4">
+        <div class="invisible p-0.5" aria-hidden="true">
+          <ArrowPathSingleCounterclockwiseIcon class="size-3" />
         </div>
-        <ClaimInput
-          :ref="(el) => setSlotRef(slot.key, el)"
-          :model-value="slot.claim"
-          :initial-claim="initialClaimForSlot(slot)"
-          :field="field"
-          :parent-claim-id="parentClaimId"
-          :invalid="invalid"
-          :required="designated[idx]"
-          :is-first="idx === 0"
-          :readonly="readonly"
-          :label-id="labelId"
-          @update:model-value="(claim) => updateSlotClaim(slot.key, claim)"
-          @cleared="onSlotCleared(slot.key)"
-        />
+        <div class="grid items-start justify-start gap-x-4" :style="{ gridTemplateColumns: labelsGridTemplateColumns }">
+          <span v-for="(col, i) in slotColumns" :key="i" class="cursor-pointer leading-none" @mousedown.prevent="onColumnLabelMousedown(col)">{{ col.label }}</span>
+        </div>
+      </div>
+      <div class="flex flex-col" :class="entryGapClass">
+        <div
+          v-for="(slot, idx) in slots"
+          :key="slot.key"
+          class="relative grid grid-cols-[min-content_auto] items-start gap-x-4 pl-4 before:absolute before:inset-y-0 before:left-0 before:w-1 before:rounded-sm before:content-[''] not-has-[[aria-invalid=true]]:focus-within:before:bg-primary-500 has-[[aria-invalid=true]]:before:bg-error-600"
+          :class="slotDirty(slot.key) ? 'before:bg-primary-300' : 'before:bg-neutral-300'"
+        >
+          <!--
+          The count sits at the top, aligned with the entry's first line (the input
+          row, or the label row of an interval entry), with the per-entry revert
+          icon under it. The button is a square the same height as the "changed"
+          badge, rendered unconditionally (just visibility:hidden when the entry is
+          unchanged) so it always reserves the count column's width and the input
+          does not shift when it appears. The mousedown is prevented so clicking it
+          does not blur the value input first (which would commit before revert).
+        -->
+          <div class="flex flex-col items-start gap-y-1">
+            <div class="pt-0.5 leading-none font-medium text-gray-700">{{ idx + 1 }}.</div>
+            <button
+              v-if="perEntryRevert"
+              type="button"
+              :title="t('common.buttons.revert')"
+              class="flex items-center justify-center rounded-xs bg-primary-300 p-0.5 text-gray-100 shadow-xs outline-none hover:cursor-pointer hover:bg-primary-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500"
+              :class="{ invisible: !slotDirty(slot.key) }"
+              @mousedown.prevent
+              @click="revertSlot(slot.key)"
+            >
+              <ArrowPathSingleCounterclockwiseIcon class="size-3" aria-hidden="true" />
+            </button>
+          </div>
+          <ClaimInput
+            :ref="(el) => setSlotRef(slot.key, el)"
+            :model-value="slot.claim"
+            :initial-claim="initialClaimForSlot(slot)"
+            :field="field"
+            :parent-claim-id="parentClaimId"
+            :invalid="invalid"
+            :required="designated[idx]"
+            :is-first="idx === 0"
+            :readonly="readonly"
+            :label-id="labelId"
+            :hide-labels="!isInterval"
+            hide-hints
+            @update:model-value="(claim) => updateSlotClaim(slot.key, claim)"
+            @cleared="onSlotCleared(slot.key)"
+          />
+        </div>
+      </div>
+      <!--
+        The entries' hint, shown once under all of them (their own hints are
+        suppressed through hideHints), outside the rails, aligned with the input
+        columns like the hoisted labels. The mt-1 matches the control-to-hint
+        spacing inside InputField, tighter than the entry gap.
+      -->
+      <div v-if="slotHints.length > 0" class="mt-1 grid grid-cols-[min-content_auto] items-start gap-x-4 pl-4">
+        <div class="invisible p-0.5" aria-hidden="true">
+          <ArrowPathSingleCounterclockwiseIcon class="size-3" />
+        </div>
+        <div>
+          <p v-for="(hint, i) in slotHints" :key="i" class="text-sm text-neutral-500 italic">{{ hint }}</p>
+        </div>
       </div>
     </div>
     <template v-else>

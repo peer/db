@@ -27,6 +27,12 @@ const props = defineProps<{
   // bounds use this: their required lives one level up (on the field label, like
   // for every other input), while the per-bound badge is only the changed/revert.
   hideRequiredBadge?: boolean
+  // Suppress the labels row entirely. The enclosing cardinality sets it on a
+  // repeated field's entries when it hoists the shared column labels above them.
+  hideLabels?: boolean
+  // Suppress the hint lines. The enclosing cardinality sets it on a repeated
+  // field's entries when it renders the shared hint once under all of them.
+  hideHints?: boolean
   // When set, the badge's revert invokes this instead of restoring the wrapped input's
   // own checkpoints. ClaimInput passes its per-bound revert through FieldsFormRow for
   // the interval bounds, so the badge behaves like the field-level revert - posting
@@ -60,9 +66,10 @@ const displayColumns = computed<InputColumn[]>(() => columns.value.map((col, i) 
 const columnCount = computed<number>(() => displayColumns.value.length)
 
 // The label row (and the whole-input badge) is shown only when at least one
-// column has a label. A bare input (no labels) renders just its control and
-// errors; its accessible name comes from the labelledby prop instead.
-const showLabels = computed<boolean>(() => displayColumns.value.some((col) => col.label !== ""))
+// column has a label and the enclosing cardinality has not hoisted the labels
+// out. A label-less input renders just its control and errors; its accessible
+// name comes from the labelledby prop instead.
+const showLabels = computed<boolean>(() => !props.hideLabels && displayColumns.value.some((col) => col.label !== ""))
 
 // The first column grows to fill the available width, up to the max width the
 // wrapped input declares on it. The remaining columns size to content.
@@ -78,8 +85,9 @@ const labelId = useId()
 
 const errorMessage = computed<string | null>(() => pickErrorMessage(input.value?.errors ?? [], t))
 
-// The wrapped input's hint lines, shown only when there is no error to show.
-const hints = computed<string[]>(() => input.value?.hints ?? [])
+// The wrapped input's hint lines, shown only when there is no error to show
+// and the enclosing cardinality has not hoisted the hint out.
+const hints = computed<string[]>(() => (props.hideHints ? [] : (input.value?.hints ?? [])))
 
 // Simulates the click-to-focus behavior of a <label for=...>: a press on a
 // column's label text focuses that column's own control. We act on mousedown

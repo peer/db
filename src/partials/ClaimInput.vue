@@ -77,6 +77,12 @@ const props = withDefaults(
     // Id of this field's label element, threaded down to the value input's
     // FieldsFormRow so a bare single-column input is named via labelledby.
     labelId?: string
+    // Suppress the value input's own labels row / hint lines. Set by the enclosing
+    // cardinality on a repeated field's slots: it hoists the shared column labels
+    // above and the shared hint below all of them (see FieldsFormRow for how the
+    // interval bounds keep their labels).
+    hideLabels?: boolean
+    hideHints?: boolean
   }>(),
   {
     parentClaimId: undefined,
@@ -85,6 +91,8 @@ const props = withDefaults(
     isFirst: false,
     readonly: false,
     labelId: undefined,
+    hideLabels: false,
+    hideHints: false,
   },
 )
 
@@ -426,10 +434,12 @@ function onRemoteConflict(claimIds: ReadonlySet<string>): void {
 onMounted(() => registerRemoteConflict(onRemoteConflict))
 onBeforeUnmount(() => unregisterRemoteConflict(onRemoteConflict))
 
-// Forward the value input's reported columns (empty for presence-only slots
-// with no value input) so the enclosing cardinality can read whether the input
-// renders labels without hardcoding it.
+// Forward the value input's reported columns and hints (empty for presence-only
+// slots with no value input) so the enclosing cardinality can read whether the
+// input renders labels, and render the hoisted label/hint rows of a repeated
+// field, without hardcoding any of it.
 const columns = computed<InputColumn[]>(() => formRowRef.value?.columns ?? [])
+const hints = computed<string[]>(() => formRowRef.value?.hints ?? [])
 
 // Compose the ValidatedInput exposed to the outer registry.
 // The framework's revertAll() cascade is fire-and-forget (revertAll is
@@ -457,6 +467,7 @@ const validatedInput: ValidatedInput = {
   isEmpty,
   errors: allErrors(childInputs),
   columns,
+  hints,
   checkpoint: () => {
     checkpointClaim.value = currentClaim.value
     checkpointEntry.value = currentClaim.value ? getClaimValues(currentClaim.value) : emptyFieldEntryValue()
@@ -982,6 +993,8 @@ defineExpose({
         :readonly="slotReadonly"
         :revert="revertEntryCallback"
         :label-id="labelId"
+        :hide-labels="hideLabels"
+        :hide-hints="hideHints"
         @missing-change="onMissingChange"
         @complete-change="onCompleteChange"
       />
