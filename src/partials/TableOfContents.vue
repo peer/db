@@ -37,7 +37,14 @@ function setupTimelines() {
   const sidebar = tocRef.value
   const sidebarStyle = getComputedStyle(sidebar)
   const sidebarStickyTop = parseFloat(sidebarStyle.top) || 0
-  const sidebarHeight = sidebar.getBoundingClientRect().height
+  // All values computed here are navbar-VISIBLE baselines: the CSS animations add the
+  // live navbar offset themselves. The sidebar's CSS height however includes
+  // var(--pd-navbar-top), growing while the navbar auto-hides, so a measurement taken
+  // during a hidden-navbar moment (e.g. mounting on a media-query change while
+  // scrolled down) must normalize the grown height back by the current offset, or the
+  // offset would be counted twice and push the bottom-stacked items below the viewport.
+  const navbarTop = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--pd-navbar-top")) || 0
+  const sidebarHeight = sidebar.getBoundingClientRect().height + navbarTop
   const paddingTop = parseFloat(sidebarStyle.paddingTop) || 0
   const paddingBottom = parseFloat(sidebarStyle.paddingBottom) || 0
   const sidebarInnerHeight = sidebarHeight - paddingTop - paddingBottom
