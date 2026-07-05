@@ -139,10 +139,24 @@ function onResize() {
   })
 }
 
+// Content keeps loading after mount (labels, lists, images), moving the targets and
+// changing the parent bottom and document height the release range is computed from.
+// A stale release range makes the compensation animation run before sticky actually
+// releases, visibly drifting the whole nav down mid-page until the true page end. So
+// re-measure whenever the parent or the body resizes, not only on window resizes.
+// Both animations run on transform, which does not affect layout, so re-measuring
+// cannot retrigger the observer in a loop.
+let resizeObserver: ResizeObserver | null = null
+
 onMounted(() => {
   setupTimelines()
   updateReleaseRange()
   window.addEventListener("resize", onResize, { passive: true })
+  resizeObserver = new ResizeObserver(onResize)
+  resizeObserver.observe(document.body)
+  if (tocRef.value?.parentElement) {
+    resizeObserver.observe(tocRef.value.parentElement)
+  }
   // Initial-load scroll: if the URL has a matching hash, scroll to it. The route.hash watcher below uses
   // immediate: false so it does not race with router/route resolution on first navigation; this block covers
   // that case. requestAnimationFrame defers one frame so layout is fully settled before measuring.
@@ -154,6 +168,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener("resize", onResize)
+  resizeObserver?.disconnect()
+  resizeObserver = null
   if (resizeRaf !== null) cancelAnimationFrame(resizeRaf)
   cleanupTimelines()
 })
