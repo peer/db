@@ -534,6 +534,11 @@ export type InputColumn = {
   label: string
   // The focusable control in this column. May return null before it mounts.
   el: () => HTMLElement | null
+  // Optional CSS max width for the column. Only the first column grows to fill
+  // the available width; an input whose values are inherently short (amounts,
+  // times) caps it here so the control does not stretch absurdly wide, and the
+  // enclosing grid uses minmax(0,width) instead of minmax(0,1fr) for it.
+  width?: string
 }
 
 export type ValidatedInput = {

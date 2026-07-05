@@ -267,9 +267,10 @@ function onPrecisionSelected(p: TimePrecision) {
   precision.value = p
 }
 
-// Two columns: the time (which grows to fill) and the precision.
+// Two columns: the time (which grows to fill, capped since timestamps are
+// never that long) and the precision.
 const columns = computed<InputColumn[]>(() => [
-  { label: t("common.labels.time"), el: () => document.getElementById(timeInputId) },
+  { label: t("common.labels.time"), el: () => document.getElementById(timeInputId), width: "24rem" },
   { label: t("common.labels.precision"), el: () => document.getElementById(precisionButtonId) },
 ])
 

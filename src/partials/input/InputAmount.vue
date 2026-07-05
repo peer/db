@@ -314,9 +314,10 @@ function onPrecisionUpdate(v: string) {
   precision.value = v
 }
 
-// Two columns: the amount (which grows to fill) and the precision.
+// Two columns: the amount (which grows to fill, capped since numbers are never
+// that long) and the precision.
 const columns = computed<InputColumn[]>(() => [
-  { label: t("common.labels.amount"), el: () => document.getElementById(amountInputId) },
+  { label: t("common.labels.amount"), el: () => document.getElementById(amountInputId), width: "24rem" },
   { label: t("common.labels.precision"), el: () => document.getElementById(precisionInputId) },
 ])
 
@@ -396,7 +397,8 @@ async function onFocusOut(event: FocusEvent) {
 
     <!--
       size="1" collapses the <input>'s intrinsic max-content so it does not drag
-      the precision column wider than its label.
+      the precision column wide; min-w-24 then sets the actual width, enough for
+      typical precisions like 0.0001 without ellipsis.
     -->
     <InputText
       :id="precisionInputId"
@@ -409,6 +411,7 @@ async function onFocusOut(event: FocusEvent) {
       autocorrect="off"
       autocapitalize="none"
       size="1"
+      class="min-w-24"
       @update:model-value="onPrecisionUpdate"
     />
   </div>

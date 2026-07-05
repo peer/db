@@ -59,9 +59,11 @@ const columnCount = computed<number>(() => displayColumns.value.length)
 // errors; its accessible name comes from the labelledby prop instead.
 const showLabels = computed<boolean>(() => displayColumns.value.some((col) => col.label !== ""))
 
-// The first column grows to fill the available width; the remaining columns
-// (e.g. a precision input, or InputMissing's checkbox column) size to content.
-const gridTemplateColumns = computed<string>(() => ["minmax(0,1fr)", ...Array(Math.max(0, columnCount.value - 1)).fill("auto")].join(" "))
+// The first column grows to fill the available width, up to the max width the
+// wrapped input declares on it. The remaining columns size to content.
+const gridTemplateColumns = computed<string>(() =>
+  [`minmax(0,${displayColumns.value[0]?.width ?? "1fr"})`, ...Array(Math.max(0, columnCount.value - 1)).fill("auto")].join(" "),
+)
 
 const errorId = useId()
 
@@ -112,7 +114,12 @@ function onRevert(): void {
     hint). items-start keeps every column aligned at the top regardless of how
     tall any single column's control is.
   -->
-  <fieldset v-tw-merge class="grid items-start gap-x-4" :style="{ gridTemplateColumns }" :aria-labelledby="showLabels ? labelId : labelledby || undefined">
+  <!--
+    justify-start keeps the auto columns content-sized when the first column is
+    capped by the input's declared width: under the default (stretch) content
+    alignment the grid would distribute the leftover free space to the auto tracks.
+  -->
+  <fieldset v-tw-merge class="grid items-start justify-start gap-x-4" :style="{ gridTemplateColumns }" :aria-labelledby="showLabels ? labelId : labelledby || undefined">
     <template v-if="showLabels">
       <div v-for="(col, i) in displayColumns" :key="i" class="mb-1 flex flex-row flex-wrap items-center gap-1">
         <span v-if="col.label" :id="i === 0 ? labelId : undefined" class="cursor-pointer leading-none" @mousedown="onLabelMousedown($event, col)">{{ col.label }}</span>
