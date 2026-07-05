@@ -408,10 +408,10 @@ func TestDocumentEditSession(t *testing.T) {
 	// Verify claim ID is derivable from its base.
 	assert.Equal(t, claimID, identifier.From(changeBase...))
 
-	// List changes.
-	changes, errE := b.ListDocumentChanges(ctx, session)
+	// The last change number.
+	lastChange, errE := b.LastDocumentChange(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, []int64{1}, changes)
+	assert.Equal(t, int64(1), lastChange)
 
 	// Get change data.
 	changeData, errE := b.GetDocumentChange(ctx, session, 1)
@@ -1133,13 +1133,13 @@ func TestFileUpload(t *testing.T) {
 	errE = b.UploadChunk(ctx, session, data[15:], 15)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// List chunks.
-	chunks, errE := b.ListChunks(ctx, session)
+	// The last chunk number.
+	lastChunk, errE := b.LastChunk(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Len(t, chunks, 2)
+	assert.Equal(t, int64(2), lastChunk)
 
 	// Get chunk info.
-	start, length, errE := b.GetChunk(ctx, session, chunks[0])
+	start, length, errE := b.GetChunk(ctx, session, lastChunk)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.GreaterOrEqual(t, start, int64(0))
 	assert.Positive(t, length)
@@ -1331,10 +1331,10 @@ func TestDocumentEditSessionMultipleChanges(t *testing.T) {
 	_, errE = b.AppendDocumentChange(ctx, session, changeJSON, seqNo)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Verify both changes listed.
-	changes, errE := b.ListDocumentChanges(ctx, session)
+	// Verify both changes committed.
+	lastChange, errE := b.LastDocumentChange(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Len(t, changes, 2)
+	assert.Equal(t, int64(2), lastChange)
 
 	// End session.
 	errE = b.EndEditDocument(ctx, session, false)
@@ -1716,7 +1716,7 @@ func TestAppendDocumentChangeWithInvalidJSON(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 }
 
-func TestListDocumentChangesEmpty(t *testing.T) {
+func TestLastDocumentChangeEmpty(t *testing.T) {
 	t.Parallel()
 
 	ctx, b := initBase(t)
@@ -1730,10 +1730,10 @@ func TestListDocumentChangesEmpty(t *testing.T) {
 	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// List changes should return empty list.
-	changes, errE := b.ListDocumentChanges(ctx, session)
+	// Having no changes is not an error.
+	lastChange, errE := b.LastDocumentChange(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Empty(t, changes)
+	assert.Equal(t, int64(0), lastChange)
 
 	// End session (discard since no changes).
 	errE = b.EndEditDocument(ctx, session, true)
@@ -2403,11 +2403,11 @@ func TestAppendDocumentChangeManyOperations(t *testing.T) {
 	confidence := document.HighConfidence
 	propID := identifier.New()
 
-	// Alternating adds and removes keep the document small while the session grows past
-	// MaxPageLength operations. The operations are injected directly through the
+	// Alternating adds and removes keep the document small while the session grows to
+	// several thousand operations. The operations are injected directly through the
 	// coordinator for speed; they are exactly what AppendDocumentChange would accept.
 	var lastClaimID identifier.Identifier
-	total := int64(coordinator.MaxPageLength + 1)
+	total := int64(5001)
 	for op := int64(1); op <= total; op++ {
 		var changeJSON []byte
 		if op%2 == 1 {
@@ -2430,9 +2430,8 @@ func TestAppendDocumentChangeManyOperations(t *testing.T) {
 	}
 
 	// The next append rebuilds the session document state from scratch (nothing is
-	// cached), paginating over more than MaxPageLength committed operations, and
-	// validates against it: total is odd, so the last operation added a claim and
-	// removing it applies.
+	// cached), replaying all committed operations, and validates against it: total is
+	// odd, so the last operation added a claim and removing it applies.
 	removeJSON := marshalChange(t, document.RemoveClaimChange{ID: lastClaimID})
 	_, errE = b.AppendDocumentChange(ctx, session, removeJSON, total+1)
 	require.NoError(t, errE, "% -+#.1v", errE)

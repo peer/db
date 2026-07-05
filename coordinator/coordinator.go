@@ -24,12 +24,6 @@ import (
 )
 
 const (
-	// MaxPageLength is the maximum number of results that can be returned in a single page.
-	MaxPageLength    = 5000
-	maxPageLengthStr = "5000"
-)
-
-const (
 	// Our PostgreSQL error codes.
 	errorCodeSessionNotFound  = "P1020"
 	errorCodeAlreadyEnded     = "P1021"
@@ -674,53 +668,26 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 	return operation, errE
 }
 
-// list returns up to MaxPageLength operation numbers appended to the session, ordered by the
-// operation number in the given direction, starting at the optional exclusive cursor
-// operation, to support keyset pagination.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) list(
-	ctx context.Context, session identifier.Identifier, cursor *int64, ascending bool,
-) ([]int64, errors.E) {
-	comparison := "<"
-	direction := "DESC"
-	cursorName := "before"
-	if ascending {
-		comparison = ">"
-		direction = "ASC"
-		cursorName = "after"
-	}
-	arguments := []any{
-		session.String(),
-	}
-	cursorCondition := ""
-	if cursor != nil {
-		arguments = append(arguments, *cursor)
-		// We want to make sure that cursor operation really exists.
-		cursorCondition = `AND EXISTS (SELECT 1 FROM "` + c.Prefix + `Operations" WHERE "session"=$1 AND "operation"=$2) AND "operation"` + comparison + `$2`
-	}
-	var operations []int64
+// LastOperation returns the number of the latest operation appended to the session, or 0 when
+// there are none.
+//
+// Operations are numbered sequentially without gaps starting at 1, so the session's operations
+// are exactly 1 through the returned number. This is a contract of the coordinator, enforced by
+// how appending assigns numbers, and callers (including clients of APIs exposing this) rely on
+// it to address individual operations.
+func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) LastOperation(
+	ctx context.Context, session identifier.Identifier,
+) (int64, errors.E) {
+	var operation int64
 	errE := internalStore.RetryTransaction(ctx, c.dbpool, pgx.ReadOnly, func(ctx context.Context, tx pgx.Tx) errors.E {
 		// Initialize in the case transaction is retried.
-		operations = make([]int64, 0, MaxPageLength)
+		operation = 0
 
-		rows, err := tx.Query(ctx, `
-			SELECT "operation" FROM "`+c.Prefix+`Operations"
-				WHERE "session"=$1
-				`+cursorCondition+`
-				-- We order by "operation" to enable keyset pagination.
-				ORDER BY "operation" `+direction+`
-				LIMIT `+maxPageLengthStr, arguments...)
+		err := tx.QueryRow(ctx, `SELECT COALESCE(MAX("operation"), 0) FROM "`+c.Prefix+`Operations" WHERE "session"=$1`, session.String()).Scan(&operation)
 		if err != nil {
 			return internalStore.WithPgxError(err)
 		}
-		var o int64
-		_, err = pgx.ForEachRow(rows, []any{&o}, func() error {
-			operations = append(operations, o)
-			return nil
-		})
-		if err != nil {
-			return internalStore.WithPgxError(err)
-		}
-		if len(operations) == 0 {
+		if operation == 0 {
 			// TODO: Is there a better way to check without doing another query?
 			var sessionCompleted bool
 			err = tx.QueryRow(ctx, `SELECT "completeMetadata" IS NOT NULL FROM "`+c.Prefix+`Sessions" WHERE "session"=$1`, session.String()).Scan(&sessionCompleted)
@@ -732,15 +699,6 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 			} else if sessionCompleted {
 				return errors.WithStack(ErrAlreadyCompleted)
 			}
-			if cursor != nil {
-				var exists bool
-				err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM "`+c.Prefix+`Operations" WHERE "session"=$1 AND "operation"=$2)`, arguments...).Scan(&exists)
-				if err != nil {
-					return internalStore.WithPgxError(err)
-				} else if !exists {
-					return errors.WithStack(ErrOperationNotFound)
-				}
-			}
 			// There is nothing wrong with having no operations.
 		}
 		return nil
@@ -750,27 +708,8 @@ func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, Comple
 		details["session"] = session.String()
 		details["schema"] = c.schema
 		details["prefix"] = c.Prefix
-		if cursor != nil {
-			details[cursorName] = *cursor
-		}
 	}
-	return operations, errE
-}
-
-// ListDesc returns up to MaxPageLength operation numbers appended to the session, in decreasing order
-// (newest operations first), before optional operation number, to support keyset pagination.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) ListDesc(
-	ctx context.Context, session identifier.Identifier, before *int64,
-) ([]int64, errors.E) {
-	return c.list(ctx, session, before, false)
-}
-
-// ListAsc returns up to MaxPageLength operation numbers appended to the session, in increasing order
-// (oldest operations first), after optional operation number, to support keyset pagination.
-func (c *Coordinator[Data, OperationMetadata, BeginMetadata, EndMetadata, CompleteData, CompleteMetadata]) ListAsc(
-	ctx context.Context, session identifier.Identifier, after *int64,
-) ([]int64, errors.E) {
-	return c.list(ctx, session, after, true)
+	return operation, errE
 }
 
 // GetData returns data and metadata for the operation from the session.

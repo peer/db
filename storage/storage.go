@@ -513,10 +513,17 @@ func (s *Storage) completeStorageSession(ctx context.Context, session identifier
 		}, nil
 	}
 
-	// TODO: Support more than 5000 chunks.
-	chunksList, errE := s.ListChunks(ctx, session)
+	lastChunk, errE := s.LastChunk(ctx, session)
 	if errE != nil {
 		return nil, errE
+	}
+
+	// Chunks are numbered sequentially without gaps starting at 1. The list goes from the
+	// newest chunk to the oldest, which assembleChunks relies on when resolving chunks
+	// with the same start.
+	chunksList := make([]int64, 0, lastChunk)
+	for c := lastChunk; c >= 1; c-- {
+		chunksList = append(chunksList, c)
 	}
 
 	// We assemble the uploaded chunks into a temporary file on disk and then store it.
@@ -814,10 +821,10 @@ func (s *Storage) UploadChunk(ctx context.Context, session identifier.Identifier
 	return errE
 }
 
-// ListChunks returns a list of chunk IDs for an upload session, ordered from newest to oldest.
-func (s *Storage) ListChunks(ctx context.Context, session identifier.Identifier) ([]int64, errors.E) {
-	// TODO: Support more than 5000 chunks.
-	return s.coordinator.ListDesc(ctx, session, nil)
+// LastChunk returns the sequence number of the latest chunk uploaded to the session, 0 when
+// there are none. Chunks are numbered sequentially without gaps starting at 1.
+func (s *Storage) LastChunk(ctx context.Context, session identifier.Identifier) (int64, errors.E) {
+	return s.coordinator.LastOperation(ctx, session)
 }
 
 // GetChunk retrieves the start position and length of a chunk.
@@ -864,14 +871,15 @@ func (s *Storage) validateChunks(ctx context.Context, session identifier.Identif
 		return errE
 	}
 
-	// TODO: Support more than 5000 chunks.
-	chunksList, errE := s.ListChunks(ctx, session)
+	lastChunk, errE := s.LastChunk(ctx, session)
 	if errE != nil {
 		return errE
 	}
 
-	chunks := make([]chunkPos, 0, len(chunksList))
-	for _, c := range chunksList {
+	// Chunks are numbered sequentially without gaps starting at 1. They are iterated from
+	// the newest to the oldest, matching assembleChunks.
+	chunks := make([]chunkPos, 0, lastChunk)
+	for c := lastChunk; c >= 1; c-- {
 		start, length, errE := s.GetChunk(ctx, session, c)
 		if errE != nil {
 			errors.Details(errE)["chunk"] = c

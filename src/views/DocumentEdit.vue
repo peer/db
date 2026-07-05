@@ -11,7 +11,16 @@ import type { DeepReadonly } from "vue"
 import type { ComponentExposed } from "vue-component-type-helpers"
 
 import type { Claim, ClaimTypes, TimePrecision } from "@/document"
-import type { DocumentEditStatus, DocumentEndEditResponse, FieldsFormFlush, SaveChangeResult, SaveChangeSpec, ValidatedInput, ValidateFn } from "@/types"
+import type {
+  DocumentEditStatus,
+  DocumentEndEditResponse,
+  FieldsFormFlush,
+  LastOperationResponse,
+  SaveChangeResult,
+  SaveChangeSpec,
+  ValidatedInput,
+  ValidateFn,
+} from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { computed, nextTick, onBeforeUnmount, provide, readonly, ref, toRef, useTemplateRef, watch } from "vue"
@@ -576,9 +585,9 @@ function claimAncestry(claims: ClaimTypes | undefined, id: string): string[] | n
 // atomically (see loadAndSubscribe).
 async function applyPendingChanges(target: D, fromChange: number): Promise<{ next: number; remoteTouched: Set<string> }> {
   const remoteTouched = new Set<string>()
-  const { doc: changesList } = await getURLDirect<number[]>(
+  const { doc: lastChangeResponse } = await getURLDirect<LastOperationResponse>(
     router.apiResolve({
-      name: "DocumentListChanges",
+      name: "DocumentLastChange",
       params: {
         session: props.session,
       },
@@ -589,11 +598,12 @@ async function applyPendingChanges(target: D, fromChange: number): Promise<{ nex
   if (abortController.signal.aborted) {
     return { next: fromChange, remoteTouched }
   }
-  if (changesList.length > 0 && changesList[0] > lastServerChange) {
-    lastServerChange = changesList[0]
+  const lastChange = lastChangeResponse.lastOperation
+  if (lastChange > lastServerChange) {
+    lastServerChange = lastChange
   }
   let current = fromChange
-  for (; changesList.length > 0 && current < changesList[0]; current++) {
+  for (; current < lastChange; current++) {
     const { doc: changeDoc } = await getURL<object>(
       router.apiResolve({
         name: "DocumentGetChange",
@@ -635,7 +645,7 @@ async function applyPendingChanges(target: D, fromChange: number): Promise<{ nex
   // would regress the slot to the older remote state, and no later notification would
   // correct it because our own changes are not "remote". The next poll applies our
   // change and brings the doc up to date.
-  const applied = changesList.length > 0 ? changesList[0] : 0
+  const applied = lastChange
   for (const claimId of [...remoteTouched]) {
     if ((ownClaimChanges.get(claimId) ?? 0) > applied) {
       remoteTouched.delete(claimId)

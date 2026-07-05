@@ -336,6 +336,14 @@ export type StorageUploadStatus = {
   errored?: boolean
 }
 
+// LastOperationResponse is the response shape of the APIs which return the sequence number
+// of the latest operation in a coordinator session. lastOperation is 0 when there are none.
+// Operations are numbered sequentially without gaps starting at 1, so the session's operations
+// are exactly 1 through lastOperation.
+export type LastOperationResponse = {
+  lastOperation: number
+}
+
 // DocumentEditStatus is the response shape of GET /d/edit/:id/:session (DocumentEdit API).
 // For active sessions, base is always set; version is absent for create sessions and
 // present for edit sessions.

@@ -87,49 +87,35 @@ type documentChangeMetadata struct {
 func (b *B) applySessionChanges(
 	ctx context.Context, session identifier.Identifier, changesetBase []string, doc *document.D, fromOperation int64,
 ) (document.Changes, []*store.User, int64, errors.E) {
-	var changes document.Changes
-	var changeUsers []*store.User
-	lastOperation := fromOperation
-	// Operations are fetched in ascending pages starting past fromOperation; a page
-	// shorter than MaxPageLength is the last one.
-	for {
-		var after *int64
-		if lastOperation > 0 {
-			afterOperation := lastOperation
-			after = &afterOperation
-		}
-		page, errE := b.coordinator.ListAsc(ctx, session, after)
-		if errE != nil {
-			return nil, nil, 0, errE
-		}
-		if changes == nil {
-			changes = make(document.Changes, 0, len(page))
-			changeUsers = make([]*store.User, 0, len(page))
-		}
-		for _, ch := range page {
-			data, changeMetadata, errE := b.coordinator.GetData(ctx, session, ch)
-			if errE != nil {
-				errors.Details(errE)["change"] = ch
-				return nil, nil, 0, errE
-			}
-			change, errE := document.ChangeUnmarshalJSON(data)
-			if errE != nil {
-				errE = errors.WrapWith(errE, coordinator.ErrInvalidSessionData)
-				errors.Details(errE)["change"] = ch
-				return nil, nil, 0, errE
-			}
-			changes = append(changes, change)
-			changeUsers = append(changeUsers, changeMetadata.User)
-			lastOperation = ch
-		}
-		if len(page) < coordinator.MaxPageLength {
-			break
-		}
+	lastOperation, errE := b.coordinator.LastOperation(ctx, session)
+	if errE != nil {
+		return nil, nil, 0, errE
+	}
+	if lastOperation <= fromOperation {
+		return nil, nil, fromOperation, nil
 	}
 
-	// Operations are contiguous, so the collected changes are operations fromOperation+1
-	// onward.
-	errE := changes.Validate(changesetBase, fromOperation)
+	// Operations are numbered sequentially without gaps, so the committed operations past
+	// fromOperation are exactly fromOperation+1 through lastOperation.
+	changes := make(document.Changes, 0, lastOperation-fromOperation)
+	changeUsers := make([]*store.User, 0, lastOperation-fromOperation)
+	for ch := fromOperation + 1; ch <= lastOperation; ch++ {
+		data, changeMetadata, errE := b.coordinator.GetData(ctx, session, ch)
+		if errE != nil {
+			errors.Details(errE)["change"] = ch
+			return nil, nil, 0, errE
+		}
+		change, errE := document.ChangeUnmarshalJSON(data)
+		if errE != nil {
+			errE = errors.WrapWith(errE, coordinator.ErrInvalidSessionData)
+			errors.Details(errE)["change"] = ch
+			return nil, nil, 0, errE
+		}
+		changes = append(changes, change)
+		changeUsers = append(changeUsers, changeMetadata.User)
+	}
+
+	errE = changes.Validate(changesetBase, fromOperation)
 	if errE != nil {
 		return nil, nil, 0, errors.WrapWith(errE, coordinator.ErrInvalidSessionData)
 	}

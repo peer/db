@@ -234,11 +234,11 @@ func (s *Service) setRoutes() { //nolint:maintidx
 				},
 			},
 		},
-		"DocumentListChanges": {
-			Path: "/d/listChanges/:session",
+		"DocumentLastChange": {
+			Path: "/d/lastChange/:session",
 			API: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{
-					http.MethodGet: s.DocumentListChangesGetAPI,
+					http.MethodGet: s.DocumentLastChangeGetAPI,
 				},
 			},
 		},
@@ -348,11 +348,11 @@ func (s *Service) setRoutes() { //nolint:maintidx
 				},
 			},
 		},
-		"StorageListChunks": {
-			Path: "/f/listChunks/:session",
+		"StorageLastChunk": {
+			Path: "/f/lastChunk/:session",
 			API: waf.RouteOptions{
 				Handlers: map[string]waf.Handler{
-					http.MethodGet: s.StorageListChunksGetAPI,
+					http.MethodGet: s.StorageLastChunkGetAPI,
 				},
 			},
 		},

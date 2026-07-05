@@ -325,9 +325,11 @@ func (b *B) AppendDocumentChange(ctx context.Context, session identifier.Identif
 	return operation, nil
 }
 
-// ListDocumentChanges returns the sequence numbers of all changes in an edit session.
-func (b *B) ListDocumentChanges(ctx context.Context, session identifier.Identifier) ([]int64, errors.E) {
-	return b.coordinator.ListDesc(ctx, session, nil)
+// LastDocumentChange returns the sequence number of the latest change appended to an edit
+// session, 0 when there are none. Changes are numbered sequentially without gaps starting at
+// 1, so the session's changes are exactly 1 through the returned number.
+func (b *B) LastDocumentChange(ctx context.Context, session identifier.Identifier) (int64, errors.E) {
+	return b.coordinator.LastOperation(ctx, session)
 }
 
 // GetDocumentChange returns the change data at the given sequence number in an edit session.
@@ -373,9 +375,10 @@ func (b *B) UploadChunk(ctx context.Context, session identifier.Identifier, chun
 	return b.files.UploadChunk(ctx, session, chunk, start)
 }
 
-// ListChunks returns the sequence numbers of all uploaded chunks in a file upload session.
-func (b *B) ListChunks(ctx context.Context, session identifier.Identifier) ([]int64, errors.E) {
-	return b.files.ListChunks(ctx, session)
+// LastChunk returns the sequence number of the latest chunk uploaded to a file upload session,
+// 0 when there are none. Chunks are numbered sequentially without gaps starting at 1.
+func (b *B) LastChunk(ctx context.Context, session identifier.Identifier) (int64, errors.E) {
+	return b.files.LastChunk(ctx, session)
 }
 
 // GetChunk returns the byte offset and length of a chunk in a file upload session.
