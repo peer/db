@@ -105,11 +105,10 @@ const hasLabelRow = computed<boolean>(() => {
   return false
 })
 
-// A repeated field whose value input has no labels of its own (e.g. a repeated
-// string) shows the per-entry changed/revert as a small icon under each count,
-// rather than a single whole-field changed/revert on the field's label. Fields
-// whose inputs have labels keep the per-input badge next to those labels.
-const perEntryRevert = computed<boolean>(() => isRepeated.value && !hasLabelRow.value)
+// A repeated field shows a per-entry changed/revert as a small icon under each
+// count, on top of the whole-field changed/revert on the field's label: the
+// label-level revert reverts every entry, the count-level one only its entry.
+const perEntryRevert = computed<boolean>(() => isRepeated.value)
 
 const { t } = useI18n({ useScope: "global" })
 
@@ -593,9 +592,6 @@ defineExpose({
   // Override with the async revertField so FieldsFormField's Revert
   // button can await it.
   revert: revertField,
-  // So FieldsFormField's left-cell badge can drop its changed/revert for a
-  // repeated label-less field (the revert then lives per entry, under the count).
-  perEntryRevert,
 })
 
 // revertField runs the field-level Revert: re-add removed baseline
@@ -697,7 +693,7 @@ onBeforeUnmount(() => {
       <span :id="labelId" class="cursor-pointer leading-none font-medium text-gray-700" @mousedown.prevent="onLabelMousedown"
         ><DocumentRefInline :id="field.propertyId" :link="false"
       /></span>
-      <InputBadges :required="field.minCardinality > 0" :multiple="field.maxCardinality > 1" :changed="isDirty" :revertable="!perEntryRevert" @revert="onHeaderRevert" />
+      <InputBadges :required="field.minCardinality > 0" :multiple="field.maxCardinality > 1" :changed="isDirty" @revert="onHeaderRevert" />
     </div>
     <div v-if="isRepeated" class="flex flex-col" :class="entryGapClass">
       <div
@@ -709,22 +705,23 @@ onBeforeUnmount(() => {
         <!--
           When the value input has a label row, the count cell reserves a matching
           empty grid row (one line height) above the count and places the count in
-          the second row, so it lines up with the input. When the input has no
-          labels, the count sits at the top and a per-entry revert icon sits under
-          it. The button is a square the same height as the "changed" badge,
-          rendered unconditionally (just visibility:hidden when the entry is
-          unchanged) so it always reserves the count column's width and the input
-          does not shift when it appears. The mousedown is prevented so clicking it
-          does not blur the value input first (which would commit before revert).
+          the second row, so it lines up with the input. The per-entry revert icon
+          sits under the count; it needs explicit placement (row 3) because grid
+          auto-placement would otherwise fill the reserved empty first row. The
+          button is a square the same height as the "changed" badge, rendered
+          unconditionally (just visibility:hidden when the entry is unchanged) so
+          it always reserves the count column's width and the input does not shift
+          when it appears. The mousedown is prevented so clicking it does not blur
+          the value input first (which would commit before revert).
         -->
-        <div :class="hasLabelRow ? 'grid grid-rows-[1lh_auto] gap-y-1 leading-none' : 'flex flex-col items-start gap-y-1'">
+        <div :class="hasLabelRow ? 'grid grid-rows-[1lh_auto] justify-items-start gap-y-1 leading-none' : 'flex flex-col items-start gap-y-1'">
           <div class="pt-0.5 leading-none font-medium text-gray-700" :class="{ 'row-start-2': hasLabelRow }">{{ idx + 1 }}.</div>
           <button
             v-if="perEntryRevert"
             type="button"
             :title="t('common.buttons.revert')"
             class="flex items-center justify-center rounded-xs bg-primary-300 p-0.5 text-gray-100 shadow-xs outline-none hover:cursor-pointer hover:bg-primary-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500"
-            :class="{ invisible: !slotDirty(slot.key) }"
+            :class="{ invisible: !slotDirty(slot.key), 'row-start-3': hasLabelRow }"
             @mousedown.prevent
             @click="revertSlot(slot.key)"
           >

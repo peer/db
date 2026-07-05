@@ -206,6 +206,20 @@ function extractSubClaims(claim: DeepReadonly<Claim> | null, subField: DeepReado
   return getClaimsOfTypeWithConfidence(claim.sub, t, subField.propertyId)
 }
 
+// currentSubClaims returns the current claim's sub-claims for a sub-field, read from the
+// COMMITTED doc state of the claim when the doc holds it. The local claim object is only
+// a snapshot from creation/last set: sub-claims committed through the sub-cardinalities
+// are never attached to it, and removed ones never leave it. Reading it directly would
+// show a lazily-created base as sub-less even after sub-claims committed (a remount would
+// then seed empty sub-forms over them, and typing would duplicate the sub-claims under
+// the same base), and would keep removed sub-claims forever on a loaded claim (blocking
+// the empty-base cleanup).
+function currentSubClaims(subField: DeepReadonly<FieldData>): readonly DeepReadonly<Claim>[] {
+  const committed = currentClaim.value
+  if (!committed) return []
+  return extractSubClaims(getCommittedClaim(committed.id) ?? committed, subField)
+}
+
 // Whether the sub-ClaimCardinality should be rendered for this slot.
 // For HAS with sub-fields we always render (the user only edits HAS
 // *through* its sub-claims, which lazy-create the HAS itself). A value field
@@ -238,16 +252,16 @@ const showCheckbox = computed(() => {
   return false
 })
 
-// hasAnySubClaims is true when any sub-field has at least one claim
-// attached to this claim's sub. Used by isEmpty (and the commit logic's
-// "don't auto-remove a parent that still has sub-claims" branch).
-const hasAnySubClaims = computed(() => {
-  if (!currentClaim.value?.sub) return false
+// hasAnySubClaims is true when any sub-field has at least one committed claim attached
+// to this claim's sub. Used by the commit/cleanup logic's "don't auto-remove a parent
+// that still has sub-claims" branches. A function, not a computed: callers read it at
+// operation time and the committed doc it consults is not reactive.
+function hasAnySubClaims(): boolean {
   for (const subField of props.field.subFields) {
-    if (extractSubClaims(currentClaim.value, subField).length > 0) return true
+    if (currentSubClaims(subField).length > 0) return true
   }
   return false
-})
+}
 
 // localIsEmpty: every relevant local raw field is at its default. For HAS
 // (and NONE/UNKNOWN) presence-only types the local raw values are always
@@ -501,7 +515,7 @@ function cleanupEmptyBase(): Promise<void> {
     // Committed sub-claims mean removes may still be in flight (see onSlotCleanup);
     // each landing removal re-triggers this through updateSlotClaim, so the last one
     // gets to remove the base.
-    if (hasAnySubClaims.value) {
+    if (hasAnySubClaims()) {
       return
     }
     const isLazyBase = (isHas.value && props.field.subFields.length > 0) || (props.field.default !== undefined && claimTypeName(committed) === props.field.default)
@@ -590,7 +604,7 @@ async function doCommit(hadFocus: boolean): Promise<void> {
     }
     // Regular (non-default) field: a value claim cannot hold an empty value, so keep it when
     // sub-claims remain, otherwise remove it.
-    if (!hasAnySubClaims.value) {
+    if (!hasAnySubClaims()) {
       if (!(await submitChange({ type: "remove", id: committed.id }))) return
       // Reported BEFORE the removal is published, see above.
       if (hadFocus) {
@@ -766,7 +780,7 @@ async function onSlotCleanup(event: FocusEvent): Promise<void> {
     // Bail while sub-claims remain committed; once their removal lands, the
     // sub-cardinality's updateSlotClaim runs cleanupParentIfEmpty, which removes the
     // then-empty base.
-    if (hasAnySubClaims.value) return
+    if (hasAnySubClaims()) return
     if (!(await submitChange({ type: "remove", id: committed.id }))) return
     setClaim(null)
   })
@@ -800,16 +814,12 @@ async function onCheckboxChange(checked: boolean | undefined): Promise<void> {
   })
 }
 
-// revertEntryCallback backs the per-input changed badge's revert (through FieldsFormRow
-// into InputField), so it behaves like the field-level revert: the reverting changes are
-// posted right away. An interval bound's badge passes its side so only that bound
-// reverts (see revertBound); other badges revert the slot as a whole.
-function revertEntryCallback(side?: "from" | "to"): void {
-  if (side === undefined) {
-    void revertField()
-  } else {
-    void revertBound(side)
-  }
+// revertEntryCallback backs the interval bounds' changed badges (through FieldsFormRow
+// into InputField): each bound reverts independently and posts the reverting changes
+// right away (see revertBound). They are the only per-input badges; whole-slot reverts
+// come from the levels above (field label, cardinality count, or sub-field header).
+function revertEntryCallback(side: "from" | "to"): void {
+  void revertBound(side)
 }
 
 // revertField restores this slot to its session-start state via the
@@ -1002,7 +1012,7 @@ defineExpose({
         v-for="subField in field.subFields"
         :key="fieldKey(subField)"
         :show-header="true"
-        :model-value="extractSubClaims(currentClaim, subField)"
+        :model-value="currentSubClaims(subField)"
         :initial-claims="extractSubClaims(initialClaim, subField)"
         :field="subField"
         :parent-claim-id="ensureClaimIdCallback"

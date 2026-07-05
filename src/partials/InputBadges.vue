@@ -2,19 +2,11 @@
 import { ArrowPathSingleCounterclockwiseIcon } from "@sidekickicons/vue/20/solid"
 import { useI18n } from "vue-i18n"
 
-withDefaults(
-  defineProps<{
-    required?: boolean
-    multiple?: boolean
-    changed?: boolean
-    // When false the changed/revert control is not rendered at all (only the
-    // required/multiple tags remain). FieldsForm sets this on a repeated
-    // label-less field's main label, where the changed/revert lives per entry
-    // (under the count) instead.
-    revertable?: boolean
-  }>(),
-  { revertable: true },
-)
+defineProps<{
+  required?: boolean
+  multiple?: boolean
+  changed?: boolean
+}>()
 
 const emit = defineEmits<{
   (e: "revert"): void
@@ -40,7 +32,6 @@ const { t } = useI18n({ useScope: "global" })
     edits.
   -->
   <button
-    v-if="revertable"
     type="button"
     :title="t('common.buttons.revert')"
     class="flex flex-row items-center gap-1 rounded-xs bg-primary-300 px-1.5 py-0.5 text-xs leading-none text-gray-100 shadow-xs outline-none hover:cursor-pointer hover:bg-primary-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500"

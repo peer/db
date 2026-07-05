@@ -43,11 +43,9 @@ const initialClaimsForField = computed<readonly DeepReadonly<Claim>[]>(() => {
 
 const cardinalityRef = useTemplateRef<{
   revert: () => Promise<void>
-  // isDirty and perEntryRevert are exposed as Refs by ClaimCardinality's
-  // defineExpose but the parent-side proxy unwraps them, so we read them as
-  // plain booleans.
+  // isDirty is exposed as a Ref by ClaimCardinality's defineExpose but the
+  // parent-side proxy unwraps it, so we read it as a plain boolean.
   isDirty: boolean
-  perEntryRevert: boolean
   // The field's first focusable input (or null until a slot has mounted).
   inputEl: () => HTMLElement | null
 }>("cardinalityRef")
@@ -81,12 +79,6 @@ function isMultiple(): boolean {
 
 const fieldChanged = computed<boolean>(() => cardinalityRef.value?.isDirty === true)
 
-// A repeated field whose value input has no labels of its own shows the
-// changed/revert per entry (under each count, in ClaimCardinality), so the
-// left-cell badge keeps only the required/multiple tags. The cardinality decides
-// this (it can read the input's reported columns) and exposes it here.
-const perEntryRevert = computed<boolean>(() => cardinalityRef.value?.perEntryRevert === true)
-
 async function revertField(): Promise<void> {
   if (!cardinalityRef.value) return
   await cardinalityRef.value.revert()
@@ -107,7 +99,7 @@ async function revertField(): Promise<void> {
             ><DocumentRefInline :id="field.propertyId" :link="false"
           /></span>
           <div class="flex flex-row flex-wrap gap-1">
-            <InputBadges :required="isRequired()" :multiple="isMultiple()" :changed="fieldChanged" :revertable="!perEntryRevert" @revert="revertField" />
+            <InputBadges :required="isRequired()" :multiple="isMultiple()" :changed="fieldChanged" @revert="revertField" />
           </div>
         </div>
       </th>

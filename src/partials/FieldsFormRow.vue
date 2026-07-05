@@ -58,11 +58,12 @@ const props = defineProps<{
   // Renders every inner input read-only (grayed and non-interactive, but selectable).
   // Set by ClaimInput while the slot's changes are queued or in flight.
   readonly?: boolean
-  // Slot-level revert passed through to every InputField, so the per-input changed
-  // badge's revert posts the reverting changes like the field-level revert does (see
-  // the revert prop on InputField). The interval InputFields bind their bound's side
-  // (via boundRevert) so each bound's badge reverts only its own bound.
-  revert?: (side?: "from" | "to") => void
+  // Per-bound revert for the interval InputFields, bound to their side via boundRevert,
+  // so each bound's changed badge reverts only its own bound and posts the reverting
+  // changes right away (see the revert prop on InputField). Non-interval inputs render
+  // no badge of their own (hide-badge): the whole-entry changed/revert lives one level
+  // up (the field label, the cardinality count, or the sub-field header).
+  revert?: (side: "from" | "to") => void
   // Id of the (sub)field's label element, threaded down from the field's
   // ClaimCardinality, so a bare single-column input is named via InputField's
   // labelledby. Undefined when not in a FieldsForm context.
@@ -125,12 +126,6 @@ const { t } = useI18n({ useScope: "global" })
 
 const claimType = computed(() => valueTypeToClaimType(props.field.valueType))
 const isFile = computed(() => props.field.valueType === VT_FILE)
-
-// When the value input IS the whole field (a single non-repeated value with no
-// sub-fields), its whole-input changed/revert badge duplicates the field-level
-// badge next to the field's label, so InputField hides it. Repeated fields keep
-// a per-slot badge; intervals keep their distinct From/To badges (set below).
-const inputIsWholeField = computed(() => props.field.maxCardinality <= 1 && props.field.subFields.length === 0)
 
 // Sub-registry: every inner input (InputString, InputAmount, InputMissing,
 // etc.) registers here instead of bubbling directly to the ancestor
@@ -252,35 +247,36 @@ function onCompleteInput() {
 <template>
   <!--
     Each value input is wrapped in InputField. InputField renders the per-input
-    labels + whole-input changed/revert badge for multi-column inputs
-    (amount/precision, interval bounds), or nothing for single-column inputs
-    (their label and whole-field badge live in FieldsFormField's left cell,
-    referenced via labelledby). required/invalid flow to the inner input
-    through InputField's slot props.
+    labels for multi-column inputs (amount/precision, interval bounds), or
+    nothing for single-column inputs (their label lives in FieldsFormField's
+    left cell, referenced via labelledby). Only the interval bounds carry a
+    changed/revert badge of their own (per bound); for everything else the
+    changed/revert lives one level up. required/invalid flow to the inner
+    input through InputField's slot props.
   -->
   <!-- id -->
-  <InputField v-if="claimType === 'id'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField" :revert="revert">
+  <InputField v-if="claimType === 'id'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge>
     <template #input="inputProps">
       <InputIdentifier v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- string -->
-  <InputField v-else-if="claimType === 'string'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField" :revert="revert">
+  <InputField v-else-if="claimType === 'string'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge>
     <template #input="inputProps">
       <InputString v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- html -->
-  <InputField v-else-if="claimType === 'html'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField" :revert="revert">
+  <InputField v-else-if="claimType === 'html'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge>
     <template #input="inputProps">
       <InputHTML v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- amount -->
-  <InputField v-else-if="claimType === 'amount'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField" :revert="revert">
+  <InputField v-else-if="claimType === 'amount'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge>
     <template #input="inputProps">
       <InputAmount
         v-bind="inputProps"
@@ -344,7 +340,7 @@ function onCompleteInput() {
   </div>
 
   <!-- time -->
-  <InputField v-else-if="claimType === 'time'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField" :revert="revert">
+  <InputField v-else-if="claimType === 'time'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge>
     <template #input="inputProps">
       <InputTime v-bind="inputProps" v-model="value" v-model:precision="timePrecision" :readonly="readonly" @update:model-value="onInput" @update:precision="onInput" />
     </template>
@@ -401,21 +397,21 @@ function onCompleteInput() {
   </div>
 
   <!-- link (no file affordance) -->
-  <InputField v-else-if="claimType === 'link' && !isFile" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField" :revert="revert">
+  <InputField v-else-if="claimType === 'link' && !isFile" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge>
     <template #input="inputProps">
       <InputLink v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- link with file value type: render the file-upload affordance instead. -->
-  <InputField v-else-if="claimType === 'link' && isFile" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField" :revert="revert">
+  <InputField v-else-if="claimType === 'link' && isFile" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge>
     <template #input="inputProps">
       <InputFile v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onCompleteInput" />
     </template>
   </InputField>
 
   <!-- ref -->
-  <InputField v-else-if="claimType === 'ref'" :required="required" :invalid="invalid" :labelledby="labelId" :hide-badge="inputIsWholeField" :revert="revert">
+  <InputField v-else-if="claimType === 'ref'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge>
     <template #input="inputProps">
       <!-- TODO: Pass "self" prop as the current document's ID. -->
       <InputRef v-bind="inputProps" v-model="value" :readonly="readonly" :filter="field.values" @update:model-value="onInput" />

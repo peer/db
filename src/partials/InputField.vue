@@ -23,10 +23,11 @@ const props = defineProps<{
   // Suppress the whole-input changed/revert + required badge on the first label.
   hideBadge?: boolean
   // When set, the badge's revert invokes this instead of restoring the wrapped input's
-  // own checkpoints. ClaimInput passes its slot revert through FieldsFormRow, so the
-  // badge behaves like the field-level revert - posting the reverting changes right
-  // away - rather than a local-only restore which would stay uncommitted until the
-  // next blur and leave the claim-level changed badges standing.
+  // own checkpoints. ClaimInput passes its per-bound revert through FieldsFormRow for
+  // the interval bounds, so the badge behaves like the field-level revert - posting
+  // the reverting changes right away - rather than a local-only restore which would
+  // stay uncommitted until the next blur and leave the claim-level changed badges
+  // standing.
   revert?: () => void
 }>()
 
