@@ -801,10 +801,15 @@ async function onCheckboxChange(checked: boolean | undefined): Promise<void> {
 }
 
 // revertEntryCallback backs the per-input changed badge's revert (through FieldsFormRow
-// into InputField), so it behaves like the field-level revert: the slot reverts as a
-// whole and the reverting changes are posted right away.
-function revertEntryCallback(): void {
-  void revertField()
+// into InputField), so it behaves like the field-level revert: the reverting changes are
+// posted right away. An interval bound's badge passes its side so only that bound
+// reverts (see revertBound); other badges revert the slot as a whole.
+function revertEntryCallback(side?: "from" | "to"): void {
+  if (side === undefined) {
+    void revertField()
+  } else {
+    void revertBound(side)
+  }
 }
 
 // revertField restores this slot to its session-start state via the
@@ -860,6 +865,45 @@ async function doRevertField(hadFocus: boolean): Promise<void> {
   }
   // Cascade revert into sub-claims (ClaimCardinality children).
   revertChildAll()
+}
+
+// revertBound restores a single interval bound's local raw state to the checkpoint,
+// leaving the other bound as the user has it, then commits the resulting interval like a
+// blur would, so the revert is posted right away, like the field-level revert. The
+// commit is skipped while the other bound is unresolved (no value and no missing flag):
+// committing then would default the unresolved bound to unknown mid-edit (see
+// onMissingChange), so the resolution is left to the natural blur commit.
+function revertBound(side: "from" | "to"): Promise<void> {
+  // Captured at request time, like in commit above.
+  const hadFocus = rootRef.value?.contains(document.activeElement) ?? false
+  return runSerialized(() => doRevertBound(side, hadFocus))
+}
+async function doRevertBound(side: "from" | "to", hadFocus: boolean): Promise<void> {
+  const baselineValue = checkpointEntry.value
+  const restored = { ...local.value }
+  if (side === "from") {
+    restored.value = baselineValue.value
+    restored.amountPrecision = baselineValue.amountPrecision
+    restored.timePrecision = baselineValue.timePrecision
+    restored.fromUnknown = baselineValue.fromUnknown
+    restored.fromNone = baselineValue.fromNone
+  } else {
+    restored.valueTo = baselineValue.valueTo
+    restored.amountPrecisionTo = baselineValue.amountPrecisionTo
+    restored.timePrecisionTo = baselineValue.timePrecisionTo
+    restored.toUnknown = baselineValue.toUnknown
+    restored.toNone = baselineValue.toNone
+  }
+  local.value = restored
+  // Let the restored values propagate into the inner inputs before committing, so the
+  // bound's changed badge clears and the commit's row validation observes them.
+  await nextTick()
+  const empty = equalFieldEntryValue(restored, emptyFieldEntryValue())
+  const fromResolved = !!restored.value || restored.fromUnknown || restored.fromNone
+  const toResolved = !!restored.valueTo || restored.toUnknown || restored.toNone
+  if (empty || (fromResolved && toResolved)) {
+    await doCommit(hadFocus)
+  }
 }
 
 // Flush: cover the case where Save fires while the user is still in the

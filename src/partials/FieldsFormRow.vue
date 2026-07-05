@@ -60,8 +60,9 @@ const props = defineProps<{
   readonly?: boolean
   // Slot-level revert passed through to every InputField, so the per-input changed
   // badge's revert posts the reverting changes like the field-level revert does (see
-  // the revert prop on InputField).
-  revert?: () => void
+  // the revert prop on InputField). The interval InputFields bind their bound's side
+  // (via boundRevert) so each bound's badge reverts only its own bound.
+  revert?: (side?: "from" | "to") => void
   // Id of the (sub)field's label element, threaded down from the field's
   // ClaimCardinality, so a bare single-column input is named via InputField's
   // labelledby. Undefined when not in a FieldsForm context.
@@ -223,6 +224,16 @@ watch(
   { flush: "post" },
 )
 
+// boundRevert binds the slot-level revert to one interval side. Undefined when no
+// revert was given, so InputField falls back to its local checkpoint restore.
+function boundRevert(side: "from" | "to"): (() => void) | undefined {
+  const revert = props.revert
+  if (!revert) {
+    return undefined
+  }
+  return () => revert(side)
+}
+
 function onInput() {
   emit("input")
 }
@@ -284,7 +295,7 @@ function onCompleteInput() {
 
   <!-- amountInterval - "from" and "to" stack vertically, one InputField each. -->
   <div v-else-if="claimType === 'amountInterval'" class="flex min-w-0 flex-col gap-y-4">
-    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')" :revert="revert">
+    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')" :revert="boundRevert('from')">
       <template #input="inputProps">
         <InputMissing
           v-bind="inputProps"
@@ -307,7 +318,7 @@ function onCompleteInput() {
         </InputMissing>
       </template>
     </InputField>
-    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.to')" :revert="revert">
+    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.to')" :revert="boundRevert('to')">
       <template #input="inputProps">
         <InputMissing
           v-bind="inputProps"
@@ -341,7 +352,7 @@ function onCompleteInput() {
 
   <!-- timeInterval - "from" and "to" stack vertically, one InputField each. -->
   <div v-else-if="claimType === 'timeInterval'" class="flex min-w-0 flex-col gap-y-4">
-    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')" :revert="revert">
+    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')" :revert="boundRevert('from')">
       <template #input="inputProps">
         <InputMissing
           v-bind="inputProps"
@@ -364,7 +375,7 @@ function onCompleteInput() {
         </InputMissing>
       </template>
     </InputField>
-    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.to')" :revert="revert">
+    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.to')" :revert="boundRevert('to')">
       <template #input="inputProps">
         <InputMissing
           v-bind="inputProps"
