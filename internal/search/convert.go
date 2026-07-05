@@ -2177,9 +2177,9 @@ func (c *Converter) FromDocument(
 	// cached copy is mutated.
 	augmented := doc
 	if len(inverseRelations) > 0 || len(c.fieldEmbedSpecs) > 0 {
-		augmentedCopy, ok := deepcopy.Copy(doc).(*document.D)
-		if !ok {
-			return nil, errors.New("deep copy returned unexpected type")
+		augmentedCopy, errE := doc.Clone()
+		if errE != nil {
+			return nil, errE
 		}
 		augmented = augmentedCopy
 		errE = c.addEmbeddedClaims(ctx, augmented)

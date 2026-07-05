@@ -72,7 +72,7 @@ import PropertiesRows from "@/partials/PropertiesRows.vue"
 import { localCounter, pairCounters, useLock, useProgress } from "@/progress"
 import { useDocumentFields } from "@/useDocumentFields"
 import { useParentClasses } from "@/useParentClasses"
-import { clone, delay, encodeQuery, equals } from "@/utils"
+import { delay, encodeQuery, equals } from "@/utils"
 import { focusFirstInput, focusFirstInvalid, useValidationRegistry } from "@/validation"
 import { Identifier } from "@tozd/identifier"
 
@@ -325,9 +325,7 @@ async function changeApplies(change: object, changeNumber: number): Promise<bool
     return false
   }
   const changesetBase = [...doc.value!.base, "SESSION", props.session]
-  // clone (lodash cloneDeep) preserves prototypes, so the clone is a real D instance;
-  // the Mutable mapped type just does not carry that through.
-  const target = clone(_doc.value) as unknown as D
+  const target = _doc.value.Clone()
   try {
     const c = changeFrom(change)
     await c.Validate(changesetBase, changeNumber)
@@ -761,15 +759,14 @@ async function loadAndSubscribe() {
   // a tab-mount race where the class tab is registered late and
   // ends up at a non-selected index.
   //
-  // We also keep a pristine D instance constructed from the same raw
-  // JSON (deep-cloned so applyPendingChanges below cannot mutate it
-  // through shared object references) as _initialDoc - that one
-  // remains the baseline for the per-property "changed" badge and
-  // Revert in FieldsForm, regardless of how many session changes the
-  // user has already accumulated on a previous load of this same
-  // session.
+  // We also keep a pristine deep copy of the just-constructed document
+  // (so applyPendingChanges below cannot mutate it through shared
+  // object references) as _initialDoc - that one remains the baseline
+  // for the per-property "changed" badge and Revert in FieldsForm,
+  // regardless of how many session changes the user has already
+  // accumulated on a previous load of this same session.
   const localDoc = new D(initialDoc)
-  const pristine = new D(clone(initialDoc))
+  const pristine = localDoc.Clone()
   const { next: initialChange } = await applyPendingChanges(localDoc, 0)
   if (abortController.signal.aborted) {
     return

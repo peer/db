@@ -5,8 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mohae/deepcopy"
-	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 
 	"gitlab.com/peerdb/peerdb/document"
@@ -113,15 +111,4 @@ func (c *sessionDocCache) Delete(session identifier.Identifier) {
 	defer c.mu.Unlock()
 
 	delete(c.entries, session)
-}
-
-// cloneDocument returns a deep copy of doc.
-//
-// TODO: Move cloneDocument to D.Clone() and use it around the codebase.
-func cloneDocument(doc *document.D) (*document.D, errors.E) {
-	docCopy, ok := deepcopy.Copy(doc).(*document.D)
-	if !ok {
-		return nil, errors.New("deep copy returned unexpected type")
-	}
-	return docCopy, nil
 }

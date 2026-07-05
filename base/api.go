@@ -284,7 +284,7 @@ func (b *B) AppendDocumentChange(ctx context.Context, session identifier.Identif
 		// operation (catch up by applying just the committed operations past it).
 		var from *document.D
 		if doc != nil {
-			from, errE = cloneDocument(doc)
+			from, errE = doc.Clone()
 			if errE != nil {
 				return 0, errE
 			}
@@ -304,7 +304,7 @@ func (b *B) AppendDocumentChange(ctx context.Context, session identifier.Identif
 
 	// The cached state is shared, so the change is applied to a clone. A successful apply is
 	// the validation that the change fits the state produced by the previous operation.
-	validated, errE := cloneDocument(doc)
+	validated, errE := doc.Clone()
 	if errE != nil {
 		return 0, errE
 	}

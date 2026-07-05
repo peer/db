@@ -1670,9 +1670,9 @@ func (b *Bridge) produceLevels(
 				// iteration there is nothing left that needs an untouched baseDoc.
 				docL = baseDoc
 			} else {
-				docCopy, ok := deepcopy.Copy(baseDoc).(*document.D)
-				if !ok {
-					return nil, metadata, parentChangesets, false, errors.New("deep copy returned unexpected type")
+				docCopy, errE := baseDoc.Clone()
+				if errE != nil {
+					return nil, metadata, parentChangesets, false, errE
 				}
 				docL = docCopy
 			}

@@ -4,6 +4,7 @@ import type { Reference } from "@/document/types"
 import { Identifier } from "@tozd/identifier"
 
 import { ClaimTypes } from "@/document/claims"
+import { clone } from "@/utils"
 
 // CoreDocument contains the core fields present in all PeerDB documents.
 class CoreDocument {
@@ -39,6 +40,14 @@ export class D extends CoreDocument implements ClaimsContainer {
     }
     // Wrap raw JSON claims (from Object.assign) or initialize empty.
     this.claims = new ClaimTypes(this.claims ?? {})
+  }
+
+  // Clone returns a deep copy of the document.
+  Clone(): D {
+    // clone preserves prototypes, so the clone is a real D instance holding real Claim instances
+    // (the Mutable mapped type just does not carry that through), and it unwraps a document held
+    // in reactive state to its raw target first.
+    return clone(this) as unknown as D
   }
 
   GetByID(id: string): Claim | undefined {
