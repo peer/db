@@ -23,10 +23,17 @@ const props = withDefaults(
     // When limited is true, fields whose property repeats show only the first few claim values, with a
     // "Show all" button to reveal the rest. Used in compact contexts like search result cards.
     limited?: boolean
+    // True when this instance renders the sub-fields of a claim (the recursive calls set it). It
+    // changes where this instance places its OWN sub-field tables: a top-level instance puts them
+    // in the value column (sub-fields sit under the field's value, slightly indented), while a
+    // nested instance spans them across both columns (deeper sub-fields sit under the sub-field's
+    // label, slightly indented, with their values landing slightly right of its value).
+    nested?: boolean
   }>(),
   {
     sections: false,
     limited: false,
+    nested: false,
   },
 )
 
@@ -164,22 +171,48 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
       <template v-for="field in sortedByOrder(fieldsData.fields)" :key="fieldKey(field)">
         <template v-if="hasValues(field)">
           <template v-for="(claim, cIndex) in displayedClaimsForField(field)" :key="claim.GetID()">
-            <tr>
+            <!--
+              A HAS claim renders no value of its own, so its sub-fields table sits
+              directly in the value cell of the label row: the first sub-field row
+              aligns with the field's label instead of leaving an empty value line
+              above it. The cell has no padding of its own so the nested table's
+              label cells (px-2, like this table's value cells) align exactly with
+              the values of sibling fields: with no value above them these are
+              nested fields, not sub-fields of a value, so they get no indent.
+            -->
+            <tr v-if="claimTypeName(claim) === 'has' && field.subFields.length > 0 && claim.sub">
               <td v-if="cIndex === 0" class="w-1/5 px-2 py-1 align-top font-medium text-gray-700">
                 <DocumentRefInline :id="field.propertyId" :link="false" />
               </td>
               <td v-else></td>
-              <td class="px-2 py-1 text-gray-700">
-                <ClaimValue :claim="claim" :type="claimTypeName(claim)" />
+              <td class="p-0 align-top">
+                <FieldsView :fields-data="{ sections: [], fields: field.subFields }" :claims="getSubClaims(claim.GetID())" :limited="limited" nested />
               </td>
             </tr>
-            <!-- Sub-fields for this claim value (recursive). -->
-            <tr v-if="field.subFields.length > 0 && claim.sub">
-              <td></td>
-              <td class="px-2 py-0">
-                <FieldsView :fields-data="{ sections: [], fields: field.subFields }" :claims="getSubClaims(claim.GetID())" :limited="limited" />
-              </td>
-            </tr>
+            <template v-else>
+              <tr>
+                <td v-if="cIndex === 0" class="w-1/5 px-2 py-1 align-top font-medium text-gray-700">
+                  <DocumentRefInline :id="field.propertyId" :link="false" />
+                </td>
+                <td v-else></td>
+                <td class="px-2 py-1 align-top text-gray-700">
+                  <ClaimValue :claim="claim" :type="claimTypeName(claim)" />
+                </td>
+              </tr>
+              <!--
+                Sub-fields for this claim value (recursive). In a top-level instance the
+                sub-table sits in the value column (under the field's value, indented
+                slightly right by this cell's px-2). In a nested instance it spans both
+                columns instead, so deeper sub-fields indent under the sub-field's LABEL
+                rather than its value, their own values landing slightly right of it.
+              -->
+              <tr v-if="field.subFields.length > 0 && claim.sub">
+                <td v-if="!nested"></td>
+                <td :colspan="nested ? 2 : 1" class="px-2 py-0 align-top">
+                  <FieldsView :fields-data="{ sections: [], fields: field.subFields }" :claims="getSubClaims(claim.GetID())" :limited="limited" nested />
+                </td>
+              </tr>
+            </template>
           </template>
           <tr v-if="hiddenClaimsCount(field) > 0">
             <td></td>
@@ -200,22 +233,34 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
             <template v-for="field in sortedByOrder(section.fields)" :key="fieldKey(field)">
               <template v-if="hasValues(field)">
                 <template v-for="(claim, cIndex) in displayedClaimsForField(field)" :key="claim.GetID()">
-                  <tr>
+                  <!-- A HAS claim's sub-fields table sits directly in the label row's value cell, un-indented, see above. -->
+                  <tr v-if="claimTypeName(claim) === 'has' && field.subFields.length > 0 && claim.sub">
                     <td v-if="cIndex === 0" class="w-1/5 px-2 py-1 align-top font-medium text-gray-700">
                       <DocumentRefInline :id="field.propertyId" :link="false" />
                     </td>
                     <td v-else></td>
-                    <td class="px-2 py-1 text-gray-700">
-                      <ClaimValue :claim="claim" :type="claimTypeName(claim)" />
+                    <td class="p-0 align-top">
+                      <FieldsView :fields-data="{ sections: [], fields: field.subFields }" :claims="getSubClaims(claim.GetID())" :limited="limited" nested />
                     </td>
                   </tr>
-                  <!-- Sub-fields for this claim value (recursive). -->
-                  <tr v-if="field.subFields.length > 0 && claim.sub">
-                    <td></td>
-                    <td class="px-2 py-0">
-                      <FieldsView :fields-data="{ sections: [], fields: field.subFields }" :claims="getSubClaims(claim.GetID())" :limited="limited" />
-                    </td>
-                  </tr>
+                  <template v-else>
+                    <tr>
+                      <td v-if="cIndex === 0" class="w-1/5 px-2 py-1 align-top font-medium text-gray-700">
+                        <DocumentRefInline :id="field.propertyId" :link="false" />
+                      </td>
+                      <td v-else></td>
+                      <td class="px-2 py-1 align-top text-gray-700">
+                        <ClaimValue :claim="claim" :type="claimTypeName(claim)" />
+                      </td>
+                    </tr>
+                    <!-- Sub-fields for this claim value (recursive), see above. -->
+                    <tr v-if="field.subFields.length > 0 && claim.sub">
+                      <td v-if="!nested"></td>
+                      <td :colspan="nested ? 2 : 1" class="px-2 py-0 align-top">
+                        <FieldsView :fields-data="{ sections: [], fields: field.subFields }" :claims="getSubClaims(claim.GetID())" :limited="limited" nested />
+                      </td>
+                    </tr>
+                  </template>
                 </template>
                 <tr v-if="hiddenClaimsCount(field) > 0">
                   <td></td>
