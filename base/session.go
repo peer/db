@@ -75,6 +75,114 @@ type documentChangeMetadata struct {
 	User *store.User `json:"user,omitempty"`
 }
 
+// applySessionChanges fetches the session's committed operations past fromOperation,
+// validates them, and applies them in order to doc. It returns the collected changes, the
+// users who appended them, and the number of the last committed operation (fromOperation when
+// there are no further ones).
+//
+// Operations are validated when they are appended, so validation and apply failures here mean
+// the session data itself is broken. Such failures are deterministic and are wrapped with
+// coordinator.ErrInvalidSessionData, which cancels the complete-session job instead of
+// retrying it when called from completion.
+func (b *B) applySessionChanges(
+	ctx context.Context, session identifier.Identifier, changesetBase []string, doc *document.D, fromOperation int64,
+) (document.Changes, []*store.User, int64, errors.E) {
+	// TODO: Support more than 5000 changes.
+	changesList, errE := b.coordinator.List(ctx, session, nil)
+	if errE != nil {
+		return nil, nil, 0, errE
+	}
+
+	// changesList is sorted from newest to oldest change, but we want the opposite as we have forward patches.
+	slices.Reverse(changesList)
+
+	changes := make(document.Changes, 0, len(changesList))
+	changeUsers := make([]*store.User, 0, len(changesList))
+	lastOperation := fromOperation
+	for _, ch := range changesList {
+		if ch <= fromOperation {
+			continue
+		}
+		data, changeMetadata, errE := b.coordinator.GetData(ctx, session, ch)
+		if errE != nil {
+			errors.Details(errE)["change"] = ch
+			return nil, nil, 0, errE
+		}
+		change, errE := document.ChangeUnmarshalJSON(data)
+		if errE != nil {
+			errE = errors.WrapWith(errE, coordinator.ErrInvalidSessionData)
+			errors.Details(errE)["change"] = ch
+			return nil, nil, 0, errE
+		}
+		changes = append(changes, change)
+		changeUsers = append(changeUsers, changeMetadata.User)
+		lastOperation = ch
+	}
+
+	// Operations are contiguous, so the collected changes are operations fromOperation+1
+	// onward.
+	errE = changes.Validate(changesetBase, fromOperation)
+	if errE != nil {
+		return nil, nil, 0, errors.WrapWith(errE, coordinator.ErrInvalidSessionData)
+	}
+
+	errE = changes.Apply(doc)
+	if errE != nil {
+		return nil, nil, 0, errors.WrapWith(errE, coordinator.ErrInvalidSessionData)
+	}
+
+	return changes, changeUsers, lastOperation, nil
+}
+
+// rebuildSessionDocument returns the session's document state with all committed operations
+// applied, together with the number of the last committed operation (fromOperation when there
+// are no further ones).
+//
+// With a nil from it rebuilds from scratch: the session's parent document (or an empty
+// document for a create session) with all committed operations applied. With a non-nil from,
+// which is the session's state after fromOperation (the caller owns it and it may be mutated),
+// only the operations past fromOperation are applied.
+func (b *B) rebuildSessionDocument(
+	ctx context.Context, session identifier.Identifier, beginMetadata *DocumentBeginMetadata, from *document.D, fromOperation int64,
+) (*document.D, int64, errors.E) {
+	doc := from
+	if doc == nil {
+		fromOperation = 0
+		if beginMetadata.Version != nil {
+			// Edit session: load parent document at the session's begin version.
+			docJSON, _, _, _, errE := b.documents.Get(ctx, beginMetadata.DocumentID, *beginMetadata.Version)
+			if errE != nil {
+				return nil, 0, errE
+			}
+			doc = new(document.D)
+			errE = x.UnmarshalWithoutUnknownFields(docJSON, doc)
+			if errE != nil {
+				return nil, 0, errE
+			}
+		} else {
+			// Create session: start from an empty document with the pre-allocated id/base.
+			doc = &document.D{
+				CoreDocument: document.CoreDocument{
+					ID:   beginMetadata.DocumentID,
+					Base: slices.Clone(beginMetadata.Base),
+				},
+			}
+		}
+	}
+
+	// doc.Base should be equal to beginMetadata.Base. We use doc.Base here on purpose, to
+	// validate that use of beginMetadata.Base in AppendDocumentChange matches.
+	changesetBase := slices.Clone(doc.Base)
+	changesetBase = append(changesetBase, "SESSION", session.String())
+
+	_, _, lastOperation, errE := b.applySessionChanges(ctx, session, changesetBase, doc, fromOperation)
+	if errE != nil {
+		return nil, 0, errE
+	}
+
+	return doc, lastOperation, nil
+}
+
 func (b *B) completeDocumentSession(ctx context.Context, session identifier.Identifier) (*documentCompleteData, errors.E) {
 	beginMetadata, endMetadata, _, errE := b.coordinator.Get(ctx, session)
 	if errE != nil {
@@ -90,49 +198,6 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 			ParentVersion: store.Version{},
 			Metadata:      nil,
 		}, nil
-	}
-
-	// TODO: Support more than 5000 changes.
-	changesList, errE := b.coordinator.List(ctx, session, nil)
-	if errE != nil {
-		return nil, errE
-	}
-
-	// changesList is sorted from newest to oldest change, but we want the opposite as we have forward patches.
-	slices.Reverse(changesList)
-
-	// If there are no changes, treat the session as discarded.
-	if len(changesList) == 0 {
-		return &documentCompleteData{
-			BeginMetadata: beginMetadata,
-			EndMetadata:   endMetadata,
-			Changes:       nil,
-			Document:      nil,
-			ParentVersion: store.Version{},
-			Metadata:      nil,
-		}, nil
-	}
-
-	changes := make(document.Changes, 0, len(changesList))
-	// changeUsers collects the begin user and every per-change user. The end
-	// user is intentionally excluded (it belongs on CommitMetadata.User).
-	// internalStore.SortedUniqueUsers drops nils, so unauthenticated participants are skipped.
-	changeUsers := make([]*store.User, 0, len(changesList)+1)
-	changeUsers = append(changeUsers, beginMetadata.User)
-	for _, ch := range changesList {
-		data, changeMetadata, errE := b.coordinator.GetData(ctx, session, ch)
-		if errE != nil {
-			errors.Details(errE)["change"] = ch
-			return nil, errE
-		}
-		change, errE := document.ChangeUnmarshalJSON(data)
-		if errE != nil {
-			errE = errors.WrapWith(errE, coordinator.ErrInvalidSessionData)
-			errors.Details(errE)["change"] = ch
-			return nil, errE
-		}
-		changes = append(changes, change)
-		changeUsers = append(changeUsers, changeMetadata.User)
 	}
 
 	var doc document.D
@@ -169,16 +234,21 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 	base := slices.Clone(doc.Base)
 	base = append(base, "SESSION", session.String())
 
-	// Validation and apply failures are deterministic, so they are wrapped with
-	// ErrInvalidSessionData to cancel the complete-session job instead of retrying it.
-	errE = changes.Validate(base)
+	changes, changeUsers, _, errE := b.applySessionChanges(ctx, session, base, &doc, 0)
 	if errE != nil {
-		return nil, errors.WrapWith(errE, coordinator.ErrInvalidSessionData)
+		return nil, errE
 	}
 
-	errE = changes.Apply(&doc)
-	if errE != nil {
-		return nil, errors.WrapWith(errE, coordinator.ErrInvalidSessionData)
+	// If there are no changes, treat the session as discarded.
+	if len(changes) == 0 {
+		return &documentCompleteData{
+			BeginMetadata: beginMetadata,
+			EndMetadata:   endMetadata,
+			Changes:       nil,
+			Document:      nil,
+			ParentVersion: store.Version{},
+			Metadata:      nil,
+		}, nil
 	}
 
 	docJSON, errE := x.MarshalWithoutEscapeHTML(doc)
@@ -186,11 +256,18 @@ func (b *B) completeDocumentSession(ctx context.Context, session identifier.Iden
 		return nil, errE
 	}
 
+	// The users are the begin user and every per-change user; the end user is intentionally
+	// excluded (it belongs on CommitMetadata.User). internalStore.SortedUniqueUsers drops
+	// nils, so unauthenticated participants are skipped.
+	users := make([]*store.User, 0, len(changeUsers)+1)
+	users = append(users, beginMetadata.User)
+	users = append(users, changeUsers...)
+
 	// Compute new metadata, carrying over system-managed fields from the parent version
 	// (no-op when oldMetadata is nil, which is the create-session case).
 	newMetadata := &store.DocumentMetadata{
 		At:               endMetadata.At,
-		Users:            internalStore.SortedUniqueUsers(changeUsers),
+		Users:            internalStore.SortedUniqueUsers(users),
 		InverseRelations: nil,
 		Embedding:        nil,
 	}

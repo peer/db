@@ -314,41 +314,106 @@ async function materializeChange(spec: SaveChangeSpec, changeNumber: number): Pr
   return { change: { type: spec.type, id: spec.id, patch: spec.patch }, id: spec.id }
 }
 
-// changeApplies test-applies the change to a clone of the doc with all committed session
-// changes applied, reporting whether it still applies (its target claim exists, a cast
-// still changes the claim type, an add's parent claim exists, and so on).
-async function changeApplies(change: object): Promise<boolean> {
+// changeApplies runs the same validation the backend runs on append: the change has to
+// be valid on its own at the given change number (Change.Validate, which for an add also
+// binds its base and id to the session and the number) and has to test-apply cleanly to
+// a clone of the doc (its target claim exists, a cast still changes the claim type, an
+// add's parent claim exists, and so on). The caller is responsible for the doc being at
+// the state after the change's preceding change (see postChange).
+async function changeApplies(change: object, changeNumber: number): Promise<boolean> {
   if (!_doc.value) {
     return false
   }
+  const changesetBase = [...doc.value!.base, "SESSION", props.session]
   // clone (lodash cloneDeep) preserves prototypes, so the clone is a real D instance;
   // the Mutable mapped type just does not carry that through.
   const target = clone(_doc.value) as unknown as D
   try {
-    await changeFrom(change).Apply(target)
+    const c = changeFrom(change)
+    await c.Validate(changesetBase, changeNumber)
+    await c.Apply(target)
     return true
   } catch {
     return false
   }
 }
 
-// postChange posts a change spec, assigning the change number at post time and retrying:
+// Serializes every application of committed changes into the live doc (the poll's
+// loadChanges and postChange's own-change application), so no change is ever applied to
+// the doc twice.
+let docApplyChain: Promise<unknown> = Promise.resolve()
+function runDocApplySerialized<T>(fn: () => Promise<T>): Promise<T> {
+  const run = docApplyChain.then(fn)
+  // Keep the chain alive even if this task fails (a then on a rejected promise skips its
+  // callback, so every later task would be skipped forever); the caller still observes
+  // the failure through the returned promise.
+  docApplyChain = run.catch(() => undefined)
+  return run
+}
+
+// applyOwnChange applies a change this client just committed into the live doc, so the
+// doc reaches the state after the change without refetching it. Skipped when the doc is
+// not exactly at the state before the change (then the poll path applies it instead).
+async function applyOwnChange(changeNumber: number, change: object): Promise<void> {
+  await runDocApplySerialized(async () => {
+    if (abortController.signal.aborted) {
+      return
+    }
+    if (!_doc.value || committedChange.value !== changeNumber - 1) {
+      return
+    }
+    try {
+      await changeFrom(change).Apply(_doc.value)
+      committedChange.value = changeNumber
+    } catch (error) {
+      // The change was validated against this exact state before it was posted, so this
+      // is unreachable in practice. The doc stays at the previous change; the poll
+      // refetches and applies from there.
+      console.error("DocumentEdit.applyOwnChange", error)
+    }
+  })
+}
+
+// postChange posts a change spec, assigning the change number at post time and retrying.
+//
+// Every attempt is fully validated first, mirroring the backend's apply-on-append
+// validation: the doc is brought to the state after the preceding change (the state the
+// backend validates against) and the change has to apply cleanly to it, else it is
+// dropped with ChangeDroppedError. Then:
 //   - On a conflict (another editor claimed the number): if the stored operation matches
 //     what we posted, an earlier attempt of ours reached the server despite a network
-//     error and the change is committed. Otherwise the doc is synced with all committed
-//     changes and the change is renumbered and retried when it still applies, or dropped
-//     with ChangeDroppedError when it does not (e.g. its claim was removed concurrently).
+//     error and the change is committed. Otherwise the change is renumbered and the loop
+//     revalidates it against the synced doc, dropping it when it no longer applies
+//     (e.g. its claim was removed concurrently).
 //   - On an invalid change (server-side validation failed): dropped with
-//     ChangeDroppedError. Client-side validation mirrors the backend, so this is a safety
-//     net rather than an expected path.
+//     ChangeDroppedError. Client-side validation above mirrors the backend, so this is a
+//     safety net rather than an expected path.
 //   - On transient failures (network or server errors): retried at the same number after
 //     a pause. If the failed POST actually reached the server, the retry conflicts with
 //     it and the comparison above resolves it as committed.
 async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
   while (true) {
     abortController.signal.throwIfAborted()
+    // Bring the doc to the state after the last known committed change. In the common
+    // case the doc is already there: our own posts apply through applyOwnChange, and the
+    // poll keeps committedChange at lastServerChange otherwise.
+    if (committedChange.value < lastServerChange) {
+      try {
+        await syncChanges()
+      } catch (err) {
+        abortController.signal.throwIfAborted()
+        console.error("DocumentEdit.postChange sync", err)
+        await delay(saveRetryInterval, abortController.signal)
+        continue
+      }
+      abortController.signal.throwIfAborted()
+    }
     const changeNumber = lastServerChange + 1
     const { change, id } = await materializeChange(spec, changeNumber)
+    if (!(await changeApplies(change, changeNumber))) {
+      // TODO: Implement better conflict handling instead of just dropping it.
+      throw new ChangeDroppedError(`change does not apply: ${JSON.stringify(change)}`)
+    }
     try {
       await postJSON(
         router.apiResolve({
@@ -363,6 +428,7 @@ async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
       lastServerChange = changeNumber
       ownChangeNumbers.add(changeNumber)
       ownClaimChanges.set(id, changeNumber)
+      await applyOwnChange(changeNumber, change)
       return { id }
     } catch (err) {
       if (abortController.signal.aborted) {
@@ -388,14 +454,12 @@ async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
           lastServerChange = changeNumber
           ownChangeNumbers.add(changeNumber)
           ownClaimChanges.set(id, changeNumber)
+          await applyOwnChange(changeNumber, change)
           return { id }
         }
+        // Lost the number to a concurrent editor: the loop syncs the doc, renumbers, and
+        // revalidates, dropping the change when it no longer applies.
         lastServerChange = changeNumber
-        await syncChanges()
-        abortController.signal.throwIfAborted()
-        if (!(await changeApplies(change))) {
-          throw new ChangeDroppedError(`change does not apply anymore: ${JSON.stringify(change)}`, { cause: err })
-        }
         continue
       }
       if (err instanceof FetchError && err.status === 400) {
@@ -584,13 +648,14 @@ async function applyPendingChanges(target: D, fromChange: number): Promise<{ nex
 
 // loadChanges applies newly committed changes into the live doc and notifies slots about
 // claims touched by remote changes. A shared in-flight promise deduplicates overlapping
-// calls (the subscription and conflict retries both call it).
+// calls (the subscription and conflict retries both call it), and the body runs under
+// docApplyChain so it cannot interleave with applyOwnChange.
 let loadChangesRunning: Promise<void> | null = null
 function loadChanges(): Promise<void> {
   if (loadChangesRunning) {
     return loadChangesRunning
   }
-  loadChangesRunning = (async () => {
+  loadChangesRunning = runDocApplySerialized(async () => {
     try {
       const { next, remoteTouched } = await applyPendingChanges(_doc.value!, committedChange.value)
       if (abortController.signal.aborted) {
@@ -627,7 +692,7 @@ function loadChanges(): Promise<void> {
     } finally {
       loadChangesRunning = null
     }
-  })()
+  })
   return loadChangesRunning
 }
 

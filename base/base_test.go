@@ -1657,13 +1657,16 @@ func TestDocumentEditSessionCompletionWithApplyError(t *testing.T) {
 	session, version, errE := b.BeginEditDocumentLatest(ctx, docID)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	// Append a RemoveClaimChange for a non-existent claim.
-	// Validate() returns nil for RemoveClaimChange, but Apply() will fail.
+	// Append a RemoveClaimChange for a non-existent claim. AppendDocumentChange rejects such
+	// a change (it does not apply to the session's document state), so it is injected directly
+	// through the coordinator, to simulate what would happen if change comes in regardless.
 	changeJSON := marshalChange(t, document.RemoveClaimChange{
 		ID: identifier.New(),
 	})
 	seqNo := int64(1)
 	_, errE = b.AppendDocumentChange(ctx, session, changeJSON, seqNo)
+	assert.ErrorIs(t, errE, base.ErrInvalidChange)
+	_, errE = b.TestingAppendDocumentChangeUnvalidated(ctx, session, changeJSON, seqNo)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// End session. The async completion fails during Apply, which is a permanent error, so the on-error
@@ -2173,4 +2176,212 @@ func TestGetEditDocumentSessionCompleted(t *testing.T) {
 	_, _, newVersion, _, errE := b.GetDocumentLatest(ctx, docID) //nolint:dogsled
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.NotEqual(t, version.Changeset, newVersion.Changeset)
+}
+
+func TestAppendDocumentChangeFullValidation(t *testing.T) {
+	t.Parallel()
+
+	ctx, b := initBase(t)
+
+	doc := newDoc()
+	docID := doc.ID
+	errE := b.InsertOrReplaceDocument(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	confidence := document.HighConfidence
+	propID := identifier.New()
+	changeBase := append(append([]string{}, doc.Base...), "SESSION", session.String(), "1")
+	claimID := identifier.From(changeBase...)
+	addJSON := marshalChange(t, document.AddClaimChange{ //nolint:exhaustruct
+		ID:   claimID,
+		Base: changeBase,
+		Patch: document.StringClaimPatch{
+			Confidence: &confidence,
+			Prop:       &propID,
+			String:     "value",
+		},
+	})
+	removeJSON := marshalChange(t, document.RemoveClaimChange{ID: claimID})
+
+	// A change which does not apply to the session's document state is rejected:
+	// the claim does not exist yet.
+	_, errE = b.AppendDocumentChange(ctx, session, removeJSON, 1)
+	assert.ErrorIs(t, errE, base.ErrInvalidChange)
+
+	// The add applies.
+	_, errE = b.AppendDocumentChange(ctx, session, addJSON, 1)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// A set on the added claim applies: it is validated against the state produced by
+	// the previous operation, served from the session document cache.
+	setJSON := marshalChange(t, document.SetClaimChange{
+		ID:    claimID,
+		Patch: document.StringClaimPatch{String: "updated"},
+	})
+	_, errE = b.AppendDocumentChange(ctx, session, setJSON, 2)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The remove now applies.
+	_, errE = b.AppendDocumentChange(ctx, session, removeJSON, 3)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// Removing the same claim again does not apply (the doubled remove which used to
+	// wedge session completion) and is rejected.
+	_, errE = b.AppendDocumentChange(ctx, session, removeJSON, 4)
+	assert.ErrorIs(t, errE, base.ErrInvalidChange)
+
+	// A stale sequence number is a conflict (the client renumbers and retries), not a
+	// validation failure, even when the change would not validate either.
+	_, errE = b.AppendDocumentChange(ctx, session, removeJSON, 3)
+	assert.ErrorIs(t, errE, coordinator.ErrConflict)
+
+	errE = b.EndEditDocument(ctx, session, true)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// The session's cache entry is dropped when the session ends.
+	assert.Equal(t, 0, b.TestingSessionDocsLen())
+}
+
+func TestAppendDocumentChangeValidationCache(t *testing.T) {
+	t.Parallel()
+
+	ctx, b := initBase(t)
+
+	doc := newDoc()
+	docID := doc.ID
+	errE := b.InsertOrReplaceDocument(ctx, doc)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	session, _, errE := b.BeginEditDocumentLatest(ctx, docID)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	confidence := document.HighConfidence
+	propID := identifier.New()
+	changeBase := append(append([]string{}, doc.Base...), "SESSION", session.String(), "1")
+	claimID := identifier.From(changeBase...)
+	addJSON := marshalChange(t, document.AddClaimChange{ //nolint:exhaustruct
+		ID:   claimID,
+		Base: changeBase,
+		Patch: document.StringClaimPatch{
+			Confidence: &confidence,
+			Prop:       &propID,
+			String:     "value",
+		},
+	})
+	_, errE = b.AppendDocumentChange(ctx, session, addJSON, 1)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, 1, b.TestingSessionDocsLen())
+
+	// With the cache entry dropped, the state is rebuilt from the database (parent
+	// document plus replay of committed session operations), cached again, and the
+	// dependent change still validates.
+	b.TestingSessionDocsDelete(session)
+	assert.Equal(t, 0, b.TestingSessionDocsLen())
+	setJSON := marshalChange(t, document.SetClaimChange{
+		ID:    claimID,
+		Patch: document.StringClaimPatch{String: "updated"},
+	})
+	_, errE = b.AppendDocumentChange(ctx, session, setJSON, 2)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, 1, b.TestingSessionDocsLen())
+
+	// An expired entry stays usable until the sweep removes it: expiry bounds memory use,
+	// it does not invalidate the state (operations are immutable).
+	b.TestingSessionDocsExpire()
+	assert.Equal(t, 1, b.TestingSessionDocsLen())
+	set2JSON := marshalChange(t, document.SetClaimChange{
+		ID:    claimID,
+		Patch: document.StringClaimPatch{String: "again"},
+	})
+	_, errE = b.AppendDocumentChange(ctx, session, set2JSON, 3)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(3), b.TestingSessionDocsOperation(session))
+
+	// The sweep removes expired entries.
+	b.TestingSessionDocsExpire()
+	b.TestingSessionDocsSweep()
+	assert.Equal(t, 0, b.TestingSessionDocsLen())
+
+	// An entry behind the last committed operation catches up by applying just the
+	// missing operations: the operation below is committed behind the cache's back, so
+	// the entry (rebuilt at operation 3 by this append) is one behind for the next one.
+	set3JSON := marshalChange(t, document.SetClaimChange{
+		ID:    claimID,
+		Patch: document.StringClaimPatch{String: "behind"},
+	})
+	_, errE = b.AppendDocumentChange(ctx, session, set3JSON, 4)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(4), b.TestingSessionDocsOperation(session))
+	set4JSON := marshalChange(t, document.SetClaimChange{
+		ID:    claimID,
+		Patch: document.StringClaimPatch{String: "concurrent"},
+	})
+	_, errE = b.TestingAppendDocumentChangeUnvalidated(ctx, session, set4JSON, 5)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(4), b.TestingSessionDocsOperation(session))
+	set5JSON := marshalChange(t, document.SetClaimChange{
+		ID:    claimID,
+		Patch: document.StringClaimPatch{String: "caught up"},
+	})
+	_, errE = b.AppendDocumentChange(ctx, session, set5JSON, 6)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(6), b.TestingSessionDocsOperation(session))
+
+	// A cached state at or past the sequence number reports the conflict without
+	// rebuilding the state.
+	_, errE = b.AppendDocumentChange(ctx, session, set5JSON, 6)
+	assert.ErrorIs(t, errE, coordinator.ErrConflict)
+
+	// A change which does not apply is rejected on the rebuilt state, too.
+	b.TestingSessionDocsDelete(session)
+	removeOtherJSON := marshalChange(t, document.RemoveClaimChange{ID: identifier.New()})
+	_, errE = b.AppendDocumentChange(ctx, session, removeOtherJSON, 7)
+	assert.ErrorIs(t, errE, base.ErrInvalidChange)
+
+	errE = b.EndEditDocument(ctx, session, true)
+	require.NoError(t, errE, "% -+#.1v", errE)
+}
+
+func TestAppendDocumentChangeFullValidationCreateSession(t *testing.T) {
+	t.Parallel()
+
+	ctx, b := initBase(t)
+
+	docBase := []string{"example.com", "DOCUMENT", identifier.New().String()}
+	session, errE := b.BeginCreateDocument(ctx, docBase)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	// A create session starts from an empty document, so a remove cannot apply.
+	removeUnknownJSON := marshalChange(t, document.RemoveClaimChange{ID: identifier.New()})
+	_, errE = b.AppendDocumentChange(ctx, session, removeUnknownJSON, 1)
+	assert.ErrorIs(t, errE, base.ErrInvalidChange)
+
+	confidence := document.HighConfidence
+	propID := identifier.New()
+	changeBase := append(append([]string{}, docBase...), "SESSION", session.String(), "1")
+	claimID := identifier.From(changeBase...)
+	addJSON := marshalChange(t, document.AddClaimChange{ //nolint:exhaustruct
+		ID:   claimID,
+		Base: changeBase,
+		Patch: document.StringClaimPatch{
+			Confidence: &confidence,
+			Prop:       &propID,
+			String:     "value",
+		},
+	})
+	_, errE = b.AppendDocumentChange(ctx, session, addJSON, 1)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	setJSON := marshalChange(t, document.SetClaimChange{
+		ID:    claimID,
+		Patch: document.StringClaimPatch{String: "updated"},
+	})
+	_, errE = b.AppendDocumentChange(ctx, session, setJSON, 2)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	errE = b.EndEditDocument(ctx, session, true)
+	require.NoError(t, errE, "% -+#.1v", errE)
 }
