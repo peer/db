@@ -291,7 +291,7 @@ function onCompleteInput() {
 
   <!-- amountInterval - "from" and "to" stack vertically, one InputField each. -->
   <div v-else-if="claimType === 'amountInterval'" class="flex min-w-0 flex-col gap-y-4">
-    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')" :revert="boundRevert('from')">
+    <InputField :required="required" hide-required-badge :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')" :revert="boundRevert('from')">
       <template #input="inputProps">
         <InputMissing
           v-bind="inputProps"
@@ -314,7 +314,7 @@ function onCompleteInput() {
         </InputMissing>
       </template>
     </InputField>
-    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.to')" :revert="boundRevert('to')">
+    <InputField :required="required" hide-required-badge :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.to')" :revert="boundRevert('to')">
       <template #input="inputProps">
         <InputMissing
           v-bind="inputProps"
@@ -348,7 +348,7 @@ function onCompleteInput() {
 
   <!-- timeInterval - "from" and "to" stack vertically, one InputField each. -->
   <div v-else-if="claimType === 'timeInterval'" class="flex min-w-0 flex-col gap-y-4">
-    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')" :revert="boundRevert('from')">
+    <InputField :required="required" hide-required-badge :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')" :revert="boundRevert('from')">
       <template #input="inputProps">
         <InputMissing
           v-bind="inputProps"
@@ -371,7 +371,7 @@ function onCompleteInput() {
         </InputMissing>
       </template>
     </InputField>
-    <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.to')" :revert="boundRevert('to')">
+    <InputField :required="required" hide-required-badge :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.to')" :revert="boundRevert('to')">
       <template #input="inputProps">
         <InputMissing
           v-bind="inputProps"

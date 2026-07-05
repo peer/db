@@ -22,6 +22,11 @@ const props = defineProps<{
   labelledby?: string
   // Suppress the whole-input changed/revert + required badge on the first label.
   hideBadge?: boolean
+  // Suppress only the required badge, keeping the changed/revert one. The required
+  // state still flows to the wrapped input through the slot props. The interval
+  // bounds use this: their required lives one level up (on the field label, like
+  // for every other input), while the per-bound badge is only the changed/revert.
+  hideRequiredBadge?: boolean
   // When set, the badge's revert invokes this instead of restoring the wrapped input's
   // own checkpoints. ClaimInput passes its per-bound revert through FieldsFormRow for
   // the interval bounds, so the badge behaves like the field-level revert - posting
@@ -123,7 +128,7 @@ function onRevert(): void {
     <template v-if="showLabels">
       <div v-for="(col, i) in displayColumns" :key="i" class="mb-1 flex flex-row flex-wrap items-center gap-1">
         <span v-if="col.label" :id="i === 0 ? labelId : undefined" class="cursor-pointer leading-none" @mousedown="onLabelMousedown($event, col)">{{ col.label }}</span>
-        <InputBadges v-if="i === 0 && !hideBadge" :required="required" :changed="input?.isDirty ?? false" @revert="onRevert" />
+        <InputBadges v-if="i === 0 && !hideBadge" :required="required && !hideRequiredBadge" :changed="input?.isDirty ?? false" @revert="onRevert" />
       </div>
     </template>
     <!--
