@@ -283,7 +283,7 @@ function onCompleteInput() {
   </InputField>
 
   <!-- amountInterval - "from" and "to" stack vertically, one InputField each. -->
-  <div v-else-if="claimType === 'amountInterval'" class="flex min-w-0 flex-col gap-y-1">
+  <div v-else-if="claimType === 'amountInterval'" class="flex min-w-0 flex-col gap-y-4">
     <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')" :revert="revert">
       <template #input="inputProps">
         <InputMissing
@@ -340,7 +340,7 @@ function onCompleteInput() {
   </InputField>
 
   <!-- timeInterval - "from" and "to" stack vertically, one InputField each. -->
-  <div v-else-if="claimType === 'timeInterval'" class="flex min-w-0 flex-col gap-y-1">
+  <div v-else-if="claimType === 'timeInterval'" class="flex min-w-0 flex-col gap-y-4">
     <InputField :required="required" :invalid="invalid" :labelledby="labelId" :label="t('partials.FieldsForm.from')" :revert="revert">
       <template #input="inputProps">
         <InputMissing
