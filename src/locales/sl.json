@@ -129,9 +129,6 @@
         "invalidValue": "neveljavna vrednost",
         "noResults": "Ni najdenih rezultatov."
       },
-      "InputRefSelect": {
-        "noOptions": "Ni razpoložljivih možnosti."
-      },
       "InputTime": {
         "format": "Oblika: LLLL-MM-DD UU:MM:SS",
         "precision": {
@@ -167,6 +164,9 @@
           "subseconds": "Manj kot sekunde morajo imeti 3, 6 ali 9 števk."
         }
       }
+    },
+    "ClaimRefSelect": {
+      "noOptions": "Ni razpoložljivih možnosti."
     },
     "Footer": {
       "poweredBy": "Poganja {linkName}"

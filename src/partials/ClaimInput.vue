@@ -483,8 +483,11 @@ forwardInteraction = notifyOuter
 // AddClaimChange knows what to set under to. The lazily-created base is a HAS
 // claim for HAS fields, or the none/unknown default form for a value field
 // with a default (so sub-claims can be attached before a value is entered).
-// Serialized with the slot's other operations so a concurrent commit cannot
-// create the base claim twice.
+// For other value fields the slot's own typed-but-uncommitted value is
+// committed instead: a sub-claim interaction may deliberately keep focus in
+// the value input (preventing the blur commit, see ClaimRefSelect), yet its
+// add needs the parent claim to exist. Serialized with the slot's other
+// operations so a concurrent commit cannot create the base claim twice.
 function ensureClaimId(): Promise<string> {
   return runSerialized(doEnsureClaimId)
 }
@@ -498,7 +501,14 @@ async function doEnsureClaimId(): Promise<string> {
   } else if (props.field.default) {
     patch = makeDefaultPatchForField(props.field)
   } else {
-    throw new Error("ensureClaimId called with no committed claim on a non-HAS slot without a default")
+    await doCommit(false)
+    // The cast defeats the narrowing from the null check above: doCommit sets
+    // currentClaim when it commits the value.
+    const committed = currentClaim.value as DeepReadonly<Claim> | null
+    if (committed !== null) {
+      return committed.id
+    }
+    throw new Error("ensureClaimId called with no committable value on a non-HAS slot without a default")
   }
   const newClaim = await addClaimWithParent(patch)
   if (!newClaim) {
@@ -523,7 +533,7 @@ function cleanupEmptyBase(): Promise<void> {
     if (!allChildEmpty.value || !localIsEmpty.value) {
       return
     }
-    // Committed sub-claims mean removes may still be in flight (see onSlotCleanup);
+    // Committed sub-claims mean removes may still be in flight (see cleanupResidue);
     // each landing removal re-triggers this through updateSlotClaim, so the last one
     // gets to remove the base.
     if (hasAnySubClaims()) {
@@ -586,7 +596,7 @@ async function doCommit(hadFocus: boolean): Promise<void> {
         // First slot of a default field - the only entry allowed to be the default form. If
         // sub-claims remain (live state), demote a value claim to its default (none/unknown) form,
         // preserving them. If nothing remains, removal of the now-empty default claim is handled by
-        // onSlotCleanup once focus leaves the whole slot - doing it here would fire while focus is
+        // cleanupResidue once focus leaves the whole slot - doing it here would fire while focus is
         // still in the value input and the user may be mid-edit.
         if (!allChildEmpty.value && claimTypeName(committed) !== props.field.default) {
           const patch = makeDefaultPatchForField(props.field)
@@ -676,12 +686,19 @@ async function doCommit(hadFocus: boolean): Promise<void> {
   }
 }
 
-async function onFocusOut(event: FocusEvent): Promise<void> {
-  const target = event.currentTarget as Node | null
+// onSlotFocusOut runs when focus leaves the whole slot (the value input and all
+// sub-fields): it commits the value input's local state and then cleans up residue
+// entries. Moving from the value input into the slot's own sub-fields deliberately
+// does NOT commit: the commit's pending phase would flash the slot read-only and a
+// disabled control ejects the focus the user just moved onto it (the first Tab into
+// a sub-field checkbox would visibly do nothing); a sub-claim interaction needing
+// the parent claim flushes the value itself, see ensureClaimId.
+async function onSlotFocusOut(event: FocusEvent): Promise<void> {
   const next = event.relatedTarget as Node | null
-  // Focus moved to another element inside this slot's root (e.g. between
-  // "from" and "to" inputs in an interval): not yet done editing.
-  if (target && next && target.contains(next)) return
+  // Focus moved to another element inside this slot's root (e.g. between the
+  // "from" and "to" inputs of an interval, or into a sub-field): not yet done
+  // editing this entry.
+  if (rootRef.value && next instanceof Node && rootRef.value.contains(next)) return
   // Focus moved to a control inside the field's label cell - that's
   // the Revert button. The Revert action posts the reverse-diff itself
   // and must not race with a stale-data commit, so skip the commit. Mouse
@@ -703,6 +720,7 @@ async function onFocusOut(event: FocusEvent): Promise<void> {
     if (active && active !== document.body && rootRef.value?.contains(active)) return
   }
   await commit()
+  await cleanupResidue()
 }
 
 // Set while the component tears down, so the deferred focusout check above does not
@@ -752,13 +770,10 @@ async function onCompleteChange(): Promise<void> {
   await commit()
 }
 
-// onSlotCleanup runs when focus leaves the whole slot (value input and all sub-fields). An entry
-// with no value and no sub-claims is meaningless residue, so we remove its claim here for the
-// entry kinds whose emptiness commit() does not handle. commit() deliberately leaves these to
-// here: it fires while focus is still inside the value input (and only sees the value side), so
-// removing there would yank a still-empty entry while the user is mid-edit or about to add a
-// sub-field.
-async function onSlotCleanup(event: FocusEvent): Promise<void> {
+// cleanupResidue removes the slot's claim on slot-leave when it is meaningless residue: an
+// entry with no value and no sub-claims, for the entry kinds whose emptiness commit() does
+// not handle (commit() only sees the value side and never touches presence-only claims).
+async function cleanupResidue(): Promise<void> {
   // Two entry kinds defer their empty-removal to slot-leave: the FIRST slot of a default field
   // (non-first slots remove an empty entry directly in commit(), like regular fields, so the
   // cleanup must not also fire there - it would be a double remove), and a HAS base of a field
@@ -767,19 +782,6 @@ async function onSlotCleanup(event: FocusEvent): Promise<void> {
   // cleanupEmptyBase).
   const defersToSlotLeave = (props.field.default !== undefined && props.isFirst) || (isHas.value && props.field.subFields.length > 0)
   if (!defersToSlotLeave) return
-  const next = event.relatedTarget as Node | null
-  if (rootRef.value && next instanceof Node && rootRef.value.contains(next)) return // focus stayed in the slot
-  const labelCell = getFieldLabelCell()
-  if (labelCell && next instanceof Node && labelCell.contains(next)) return // moving to the Revert button
-  // A null relatedTarget is ambiguous, same as in onFocusOut: it may be the unmount blur of a
-  // control inside the slot (e.g. a sub-field's Clear button) with focus restored into the slot
-  // a tick later. Only clean up when focus actually settled outside.
-  if (!next) {
-    await nextTick()
-    if (unmounting) return
-    const active = document.activeElement
-    if (active && active !== document.body && rootRef.value?.contains(active)) return
-  }
   await runSerialized(async () => {
     const committed = currentClaim.value
     if (!committed) return
@@ -967,7 +969,7 @@ defineExpose({
 </script>
 
 <template>
-  <div ref="rootRef" class="flex min-w-0 grow flex-col gap-y-4" @focusout="onSlotCleanup">
+  <div ref="rootRef" class="flex min-w-0 grow flex-col gap-y-4" @focusout="onSlotFocusOut">
     <!--
       Value input. Skipped for presence-only types (HAS / NONE / UNKNOWN);
       for those, see the checkbox / sub-form blocks below.
@@ -983,7 +985,7 @@ defineExpose({
       ancestor slot's are), so no further edits pile up before the claim's
       committed state settles.
     -->
-    <div v-if="!isPresenceOnly" class="flex min-w-0 grow flex-col" @focusout="onFocusOut">
+    <div v-if="!isPresenceOnly" class="flex min-w-0 grow flex-col">
       <FieldsFormRow
         ref="formRowRef"
         v-model:entry="local"

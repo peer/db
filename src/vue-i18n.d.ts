@@ -140,9 +140,6 @@ declare module "vue-i18n" {
           invalidValue: string
           noResults: string
         }
-        InputRefSelect: {
-          noOptions: string
-        }
         InputTime: {
           format: string
           precision: {
@@ -178,6 +175,9 @@ declare module "vue-i18n" {
             subseconds: string
           }
         }
+      }
+      ClaimRefSelect: {
+        noOptions: string
       }
       Footer: {
         poweredBy: string

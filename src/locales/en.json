@@ -129,9 +129,6 @@
         "invalidValue": "invalid value",
         "noResults": "No results found."
       },
-      "InputRefSelect": {
-        "noOptions": "No options available."
-      },
       "InputTime": {
         "format": "Format: YYYY-MM-DD HH:MM:SS",
         "precision": {
@@ -167,6 +164,9 @@
           "subseconds": "Subseconds need to have 3, 6, or 9 digits."
         }
       }
+    },
+    "ClaimRefSelect": {
+      "noOptions": "No options available."
     },
     "Footer": {
       "poweredBy": "Powered by {linkName}"

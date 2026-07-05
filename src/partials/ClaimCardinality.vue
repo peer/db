@@ -21,17 +21,21 @@ import type { DeepReadonly } from "vue"
 
 import type { Claim } from "@/document"
 import type { FieldData } from "@/fields"
-import type { InputColumn, SaveChangeResult, SaveChangeSpec, ValidatedInput } from "@/types"
+import type { InputColumn, Result, SaveChangeResult, SaveChangeSpec, ValidatedInput } from "@/types"
 
-import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, shallowReactive, useTemplateRef, watch } from "vue"
+import { computed, nextTick, onBeforeMount, onBeforeUnmount, onMounted, provide, ref, shallowReactive, shallowRef, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
+import { useRouter } from "vue-router"
 
+import { postJSON } from "@/api"
 import { claimPatchFrom, claimTypeName } from "@/document"
 import { getClaimValues, makePatchForField, valueTypeToClaimType } from "@/fields"
 import ClaimInput from "@/partials/ClaimInput.vue"
+import ClaimRefSelect from "@/partials/ClaimRefSelect.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import InputBadges from "@/partials/InputBadges.vue"
-import { useLocked } from "@/progress"
+import { useLocked, useProgress } from "@/progress"
+import { shortcutToFilters } from "@/shortcut"
 import { allErrors, useRegisterForValidation, useValidationRegistry } from "@/validation"
 import { ArrowPathSingleCounterclockwiseIcon } from "@sidekickicons/vue/20/solid"
 
@@ -136,6 +140,71 @@ function onColumnLabelMousedown(col: InputColumn): void {
 // count, on top of the whole-field changed/revert on the field's label: the
 // label-level revert reverts every entry, the count-level one only its entry.
 const perEntryRevert = computed<boolean>(() => isRepeated.value)
+
+// Select mode: a reference field without sub-fields and without a default shows
+// ALL candidate documents as deselectable radio buttons (single value) or
+// checkboxes (repeated), managed by a single ClaimRefSelect instead of the slots,
+// when the field's filtered candidate set is small enough for the user to see
+// every choice at once. The check runs once on mount: an empty-query search
+// constrained by the field's filter returning at most SELECT_MODE_MAX results.
+// The endpoint returns the first page of far more than SELECT_MODE_MAX results,
+// so such a short response is the complete candidate set. Sub-field-bearing and
+// default-form fields keep the combobox slots: their entries carry more than the
+// reference itself.
+const SELECT_MODE_MAX = 10
+
+const selectEligible = computed<boolean>(
+  () => valueTypeToClaimType(props.field.valueType) === "ref" && props.field.subFields.length === 0 && props.field.default === undefined,
+)
+
+// The candidate documents when in select mode, null otherwise (or while the check
+// is still in flight, see modeResolved).
+const refOptions = shallowRef<Result[] | null>(null)
+
+// Gates rendering of eligible ref fields until the select-mode check resolves, so
+// the field does not flash the combobox slots before switching to the list.
+const modeResolved = ref(!selectEligible.value)
+
+const router = useRouter()
+const progress = useProgress()
+const modeAbortController = new AbortController()
+onBeforeUnmount(() => modeAbortController.abort())
+
+onBeforeMount(async () => {
+  if (!selectEligible.value) {
+    return
+  }
+  progress.value += 1
+  try {
+    // shortcutToFilters throws on filters referencing "self" (no self document is
+    // available here) and on parse errors; such fields keep the combobox slots.
+    const filters = props.field.values ? await shortcutToFilters(props.field.values) : null
+    const results = await postJSON<Result[]>(
+      router.apiResolve({ name: "SearchJustResults" }).href,
+      { query: "", ...(filters ?? {}) },
+      modeAbortController.signal,
+      progress,
+    )
+    if (modeAbortController.signal.aborted) {
+      return
+    }
+    if (results.length <= SELECT_MODE_MAX) {
+      refOptions.value = results
+    }
+  } catch (err) {
+    if (modeAbortController.signal.aborted) {
+      return
+    }
+    console.error("ClaimCardinality.selectMode", err)
+  } finally {
+    modeResolved.value = true
+    progress.value -= 1
+  }
+})
+
+// The single ClaimRefSelect of select mode; its defineExpose overrides
+// ValidatedInput.revert with the async version so revertField can await it.
+const claimRefSelectRef = useTemplateRef<{ revert: () => Promise<void> }>("claimRefSelectRef")
 
 const { t } = useI18n({ useScope: "global" })
 
@@ -465,6 +534,11 @@ function initialClaimForSlot(slot: Slot): DeepReadonly<Claim> | null {
 // can never look remote here: their slots are set at commit time under the same final id
 // the doc echoes.
 function onRemoteAdds(claimIds: ReadonlySet<string>): boolean {
+  // In select mode the ClaimRefSelect adopts remote changes itself, through its
+  // modelValue watcher.
+  if (refOptions.value !== null) {
+    return false
+  }
   const represented = new Set<string>()
   for (const slot of slots.value) {
     if (slot.claim) {
@@ -555,7 +629,10 @@ const slotsDirtyByDiff = computed<boolean>(() => {
 // Whole-field dirty: a baseline diff (slot added/removed) or any child slot
 // dirty. Drives the header's changed/revert badge (sub-fields) and is exposed
 // upward (so FieldsFormField's left-cell badge sees it for top-level fields).
-const isDirty = computed<boolean>(() => slotsDirtyByDiff.value || anyChildDirty.value)
+// In select mode there are no slots and the ClaimRefSelect tracks its own
+// baseline diff, so only the registry's dirty counts (the slot diff would
+// falsely flag every baseline claim as removed).
+const isDirty = computed<boolean>(() => (refOptions.value !== null ? anyChildDirty.value : slotsDirtyByDiff.value || anyChildDirty.value))
 
 // Header Revert (sub-fields): revert the whole (sub)field. Discards the Promise
 // since the badge's event handler is synchronous.
@@ -578,6 +655,9 @@ const validatedInput: ValidatedInput = {
   },
   reset: () => {
     resetChildAll()
+    if (refOptions.value !== null) {
+      return
+    }
     // Rebuild slots from current modelValue + one trailing empty.
     slots.value = []
     const baselineById = new Map<string, DeepReadonly<Claim>>()
@@ -629,6 +709,13 @@ defineExpose({
 // claim has a fresh content-addressed id) is still correctly recognised
 // as representing its original baseline.
 async function revertField(): Promise<void> {
+  // In select mode the single ClaimRefSelect owns all of the field's claims and
+  // reconciles them back to its checkpoint itself.
+  if (refOptions.value !== null) {
+    await claimRefSelectRef.value?.revert()
+    return
+  }
+
   // Snapshot which baselines are already represented before any of our
   // mutations. The new (resurrected) slots we push below get
   // baseline:set so the next-click revert correctly classifies them.
@@ -722,7 +809,33 @@ onBeforeUnmount(() => {
       /></span>
       <InputBadges :required="field.minCardinality > 0" :multiple="field.maxCardinality > 1" :changed="isDirty" @revert="onHeaderRevert" />
     </div>
-    <div v-if="isRepeated" class="flex flex-col">
+    <!--
+      Select mode: all of the field's claims are managed by one ClaimRefSelect (no
+      slots and no per-entry counts; the field-level badge and revert cover the
+      whole selection). The rail wrapper matches the slots' one: dirty comes from
+      the registry (the ClaimRefSelect is its only registered input here) and the
+      invalid/focus overrides bubble up via CSS.
+    -->
+    <div
+      v-if="refOptions !== null"
+      class="relative pl-4 before:absolute before:inset-y-0 before:left-0 before:w-1 before:rounded-sm before:content-[''] not-has-[[aria-invalid=true]]:focus-within:before:bg-primary-500 has-[[aria-invalid=true]]:before:bg-error-600"
+      :class="anyChildDirty ? 'before:bg-primary-300' : 'before:bg-neutral-300'"
+    >
+      <ClaimRefSelect
+        ref="claimRefSelectRef"
+        :model-value="modelValue"
+        :initial-claims="initialClaims"
+        :field="field"
+        :options="refOptions"
+        :multiple="isRepeated"
+        :parent-claim-id="parentClaimId"
+        :parent-cleanup="parentCleanup"
+        :invalid="invalid"
+        :readonly="readonly"
+        :label-id="labelId"
+      />
+    </div>
+    <div v-else-if="modeResolved && isRepeated" class="flex flex-col">
       <!--
         Hoisted label row of a repeated field whose input has labeled columns
         (amount/precision, time/precision): shown once above all entries, outside
@@ -805,7 +918,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </div>
-    <template v-else>
+    <template v-else-if="modeResolved">
       <div
         v-for="(slot, idx) in slots"
         :key="slot.key"
