@@ -195,16 +195,14 @@ func (i *Interval[T]) Validate() errors.E {
 type StringWithLanguage struct {
 	Value string `json:"value" value:""`
 
-	// We set "order" to hide the field. It should not be set manually.
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"-" property:"IN_LANGUAGE" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE"`
+	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"1" property:"IN_LANGUAGE" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE"`
 }
 
 // RawHTMLWithLanguage represents raw HTML with language information.
 type RawHTMLWithLanguage struct {
 	Value RawHTML `json:"value" value:""`
 
-	// We set "order" to hide the field. It should not be set manually.
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"-" property:"IN_LANGUAGE" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE"`
+	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"1" property:"IN_LANGUAGE" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE"`
 }
 
 // Section represents a section of fields of an entity.

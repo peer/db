@@ -77,40 +77,35 @@ type DocumentFields struct {
 type AmountWithUnit[T AmountType] struct {
 	Value Amount[T] `json:"value" value:""`
 
-	// We set "order" to hide the field. It should not be set manually.
-	InUnit []Ref `cardinality:"0.." json:"inUnit,omitempty" order:"-" property:"IN_UNIT" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,UNIT"`
+	InUnit []Ref `cardinality:"0.." json:"inUnit,omitempty" order:"1" property:"IN_UNIT" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,UNIT"`
 }
 
 // AmountIntervalWithUnit represents an amount interval with its unit.
 type AmountIntervalWithUnit[T AmountType] struct {
 	Value Interval[Amount[T]] `json:"value" value:""`
 
-	// We set "order" to hide the field. It should not be set manually.
-	InUnit []Ref `cardinality:"0.." json:"inUnit,omitempty" order:"-" property:"IN_UNIT" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,UNIT"`
+	InUnit []Ref `cardinality:"0.." json:"inUnit,omitempty" order:"1" property:"IN_UNIT" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,UNIT"`
 }
 
 // TimeWithLocation represents a time with location information.
 type TimeWithLocation struct {
 	Value Time `json:"value" value:""`
 
-	// We set "order" to hide the field. It should not be set manually.
-	InLocation []Identifier `cardinality:"0.." json:"inLocation,omitempty" order:"-" property:"IN_LOCATION"`
+	InLocation []Identifier `cardinality:"0.." json:"inLocation,omitempty" order:"1" property:"IN_LOCATION"`
 }
 
 // TimeIntervalWithLocation represents a time interval with location information.
 type TimeIntervalWithLocation struct {
 	Value Interval[Time] `json:"value" value:""`
 
-	// We set "order" to hide the field. It should not be set manually.
-	InLocation []Identifier `cardinality:"0.." json:"inLocation,omitempty" order:"-" property:"IN_LOCATION"`
+	InLocation []Identifier `cardinality:"0.." json:"inLocation,omitempty" order:"1" property:"IN_LOCATION"`
 }
 
 // HTMLWithLanguage represents HTML with language information.
 type HTMLWithLanguage struct {
 	Value HTML `json:"value" value:""`
 
-	// We set "order" to hide the field. It should not be set manually.
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"-" property:"IN_LANGUAGE" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE"`
+	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"1" property:"IN_LANGUAGE" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE"`
 }
 
 // RawHTMLWithLanguage represents raw HTML with language information.
@@ -122,14 +117,6 @@ type SearchShortcut struct {
 
 	Name           []StringWithLanguage `cardinality:"0.."  json:"name,omitempty"           property:"NAME"`
 	CreateShortcut string               `cardinality:"0..1" json:"createShortcut,omitempty" property:"CREATE_SHORTCUT"`
-}
-
-// LinkWithMediaType represents link (URL, URI or IRI) with its media type.
-type LinkWithMediaType struct {
-	Value Link `json:"value" value:""`
-
-	// We set "order" to hide the field. It should not be set manually.
-	MediaType []Identifier `cardinality:"0.." json:"mediaType,omitempty" order:"-" property:"MEDIA_TYPE"`
 }
 
 // PropertyFields contains fields specific to properties.
