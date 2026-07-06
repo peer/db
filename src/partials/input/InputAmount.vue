@@ -9,13 +9,12 @@ its DOM attributes without flickering how the component looks.
 <script setup lang="ts">
 import type { ShallowUnwrapRef } from "vue"
 
-import type { ValidatedInput, ValidationError, ValidatorFn } from "@/types"
+import type { InputColumn, ValidatedInput, ValidationError, ValidatorFn } from "@/types"
 
 import { computed, ref, useId, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
 import InputText from "@/components/InputText.vue"
-import InputBadges from "@/partials/InputBadges.vue"
 import { allErrors, useRegisterForValidation, useValidationRegistry } from "@/validation"
 
 // Mirrors document.go's amountRegex: optional sign, digits, optional
@@ -228,31 +227,33 @@ watch(
   },
 )
 
-// Per-field template refs let us drive the "changed" badge and revert
-// button on each label independently (instead of having one combined
-// revert that would touch both sides at once).
+// Per-field template refs back the cross-field validation below. The amount
+// and precision are exposed to the parent as a single ValidatedInput, so the
+// "changed" badge and revert are whole-input, not per-column.
 const amountRef = useTemplateRef<ShallowUnwrapRef<ValidatedInput>>("amountRef")
 const precisionRef = useTemplateRef<ShallowUnwrapRef<ValidatedInput>>("precisionRef")
 
-const amountChanged = computed<boolean>(() => amountRef.value?.isDirty ?? false)
-const precisionChanged = computed<boolean>(() => precisionRef.value?.isDirty ?? false)
-
-// Return focus to the reverted field.
-function onRevertAmount() {
-  amountRef.value?.revert()
-  amountRef.value?.inputEl()?.focus()
-}
-
-function onRevertPrecision() {
-  precisionRef.value?.revert()
-  precisionRef.value?.inputEl()?.focus()
-}
+// The contents root spanning both columns, used as mainEl and by onFocusOut.
+const rootRef = useTemplateRef<HTMLDivElement>("rootRef")
 
 // Auto-detect precision from the amount whenever the amount changes
 // AND the amount is the authoritative side. The amountAuthoritative
 // guard prevents looping with the precision watcher below.
 watch(model, (value) => {
   if (!amountAuthoritative.value) return
+  if (value.trim() === "") {
+    // The amount was cleared: an amount with no value is not a valid claim, so the
+    // slot must be removed. Reset the leftover precision (auto-detected, or one the
+    // user deliberately picked - it does not matter) to the entry's empty default
+    // ("") so it does not keep the value-less entry comparing non-empty. Otherwise
+    // commit() takes the Set/Add path and pushes an invalid, value-less claim to
+    // the server instead of the Remove path. An unparseable amount ("abc") is not
+    // empty, so it falls through and keeps its precision.
+    if (precision.value !== "") {
+      precision.value = ""
+    }
+    return
+  }
   const parsed = parseAmount(value.trim())
   if (!parsed) return
   const newPrecision = detectedPrecisionString(parsed.decimals)
@@ -290,6 +291,12 @@ watch(
   async () => {
     await precisionRef.value?.validate()
   },
+  // The validator canonicalizes the precision model from the inner input's value, so it
+  // must not run before that input has re-rendered: at "pre" timing an external update
+  // which sets amount and precision together (a claim arriving from another editor)
+  // would validate against the inner input's stale empty value and write it back,
+  // wiping the just-arrived precision.
+  { flush: "post" },
 )
 
 // Route user updates through these handlers so we can flip the
@@ -307,10 +314,18 @@ function onPrecisionUpdate(v: string) {
   precision.value = v
 }
 
+// Two columns: the amount (which grows to fill, capped since numbers are never
+// that long) and the precision.
+const columns = computed<InputColumn[]>(() => [
+  { label: t("common.labels.amount"), el: () => document.getElementById(amountInputId), width: "24rem" },
+  // The fixed width matches the input's min-w-24 below.
+  { label: t("common.labels.precision"), el: () => document.getElementById(precisionInputId), width: "6rem" },
+])
+
 const validatedInput: ValidatedInput = {
-  validate: async (signal) => {
+  validate: async (signal, options) => {
     triggered.value = true
-    await validateChildAll(signal)
+    await validateChildAll(signal, options)
   },
   reset: () => {
     resetChildAll()
@@ -324,17 +339,18 @@ const validatedInput: ValidatedInput = {
     revertChildAll()
     amountAuthoritative.value = amountAuthoritativeCheckpoint.value
   },
-  // Focus target is the amount input - precision is secondary and
-  // auto-detected by default, so external focus should land on the
-  // primary field. No distinct wrapper is needed for this input, so
-  // mainEl and inputEl are the same element.
+  // inputEl is the amount input - precision is secondary and auto-detected
+  // by default, so external focus should land on the primary field.
   inputEl: () => document.getElementById(amountInputId),
-  mainEl: () => document.getElementById(amountInputId),
+  // mainEl is the contents root spanning both the amount and precision
+  // columns, for containment checks.
+  mainEl: () => rootRef.value,
   isDirty: anyChildDirty,
   // Empty for InputAmount means the user has not provided an amount
   // string. "0" is intentionally NOT empty - it is a valid value.
   isEmpty: computed<boolean>(() => !model.value),
   errors: childErrors,
+  columns,
   checkpoint: () => {
     checkpointChildAll()
     amountAuthoritativeCheckpoint.value = amountAuthoritative.value
@@ -352,7 +368,6 @@ defineExpose(validatedInput)
 // is just inter-input navigation (amount <-> precision) and we skip.
 // A null relatedTarget (focus moved to body or a non-focusable element)
 // counts as leaving.
-const rootRef = useTemplateRef<HTMLDivElement>("rootRef")
 async function onFocusOut(event: FocusEvent) {
   const next = event.relatedTarget as Node | null
   if (next && rootRef.value?.contains(next)) return
@@ -361,50 +376,44 @@ async function onFocusOut(event: FocusEvent) {
 </script>
 
 <template>
-  <div ref="rootRef" class="pd-inputamount flex flex-row gap-x-1 sm:gap-x-4" v-bind="$attrs" @focusout="onFocusOut">
-    <div class="flex grow flex-col">
-      <label :for="amountInputId" class="mb-1 flex flex-row items-center gap-1"
-        ><slot name="amount-label">{{ t("common.labels.amount") }}</slot
-        ><InputBadges :required="required" :changed="amountChanged" @revert="onRevertAmount"
-      /></label>
+  <!--
+    display:contents so the amount and precision inputs become direct grid items
+    of the enclosing component, each in its own column.
+  -->
+  <div ref="rootRef" class="pd-inputamount contents" @focusout="onFocusOut">
+    <!-- Fall-through attrs (e.g. aria-describedby pointing at InputField's error) go on the primary input, the focusable control. -->
+    <InputText
+      :id="amountInputId"
+      ref="amountRef"
+      v-bind="$attrs"
+      :model-value="model"
+      :readonly="readonly"
+      :invalid="invalid"
+      :validator="amountValidator"
+      spellcheck="false"
+      autocorrect="off"
+      autocapitalize="none"
+      @update:model-value="onAmountUpdate"
+    />
 
-      <InputText
-        :id="amountInputId"
-        ref="amountRef"
-        :model-value="model"
-        :readonly="readonly"
-        :invalid="invalid"
-        :validator="amountValidator"
-        spellcheck="false"
-        autocorrect="off"
-        autocapitalize="none"
-        @update:model-value="onAmountUpdate"
-      />
-    </div>
-
-    <div class="flex flex-col">
-      <label :for="precisionInputId" class="mb-1 flex flex-row items-center gap-1"
-        ><slot name="precision-label">{{ t("common.labels.precision") }}</slot
-        ><InputBadges :changed="precisionChanged" @revert="onRevertPrecision"
-      /></label>
-
-      <!--
-        size="1" collapses the <input>'s intrinsic max-content so it
-        does not drag the precision column wider than its label.
-      -->
-      <InputText
-        :id="precisionInputId"
-        ref="precisionRef"
-        :model-value="precision"
-        :readonly="readonly"
-        :invalid="invalid"
-        :validator="precisionValidator"
-        spellcheck="false"
-        autocorrect="off"
-        autocapitalize="none"
-        size="1"
-        @update:model-value="onPrecisionUpdate"
-      />
-    </div>
+    <!--
+      size="1" collapses the <input>'s intrinsic max-content so it does not drag
+      the precision column wide; min-w-24 then sets the actual width, enough for
+      typical precisions like 0.0001 without ellipsis.
+    -->
+    <InputText
+      :id="precisionInputId"
+      ref="precisionRef"
+      :model-value="precision"
+      :readonly="readonly"
+      :invalid="invalid"
+      :validator="precisionValidator"
+      spellcheck="false"
+      autocorrect="off"
+      autocapitalize="none"
+      size="1"
+      class="min-w-24"
+      @update:model-value="onPrecisionUpdate"
+    />
   </div>
 </template>

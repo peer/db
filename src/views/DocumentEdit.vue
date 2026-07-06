@@ -7,18 +7,27 @@ its DOM attributes without flickering how the component looks.
 -->
 
 <script setup lang="ts">
+import type { DeepReadonly } from "vue"
 import type { ComponentExposed } from "vue-component-type-helpers"
 
-import type { TimePrecision } from "@/document"
-import type { FieldsFormSaveChange, FlushFn } from "@/fields"
-import type { DocumentEditStatus, DocumentEndEditResponse, ValidatedInput, ValidateFn } from "@/types"
+import type { Claim, ClaimTypes, TimePrecision } from "@/document"
+import type {
+  DocumentEditStatus,
+  DocumentEndEditResponse,
+  FieldsFormFlush,
+  LastOperationResponse,
+  SaveChangeResult,
+  SaveChangeSpec,
+  ValidatedInput,
+  ValidateFn,
+} from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { computed, nextTick, onBeforeUnmount, provide, readonly, ref, toRef, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
-import { deleteFromCache, getURL, getURLDirect, postJSON } from "@/api"
+import { deleteFromCache, FetchError, getURL, getURLDirect, postJSON } from "@/api"
 import { CAN_EDIT_DOCUMENT, hasPermission } from "@/auth"
 import Button from "@/components/Button.vue"
 import { INSTANCE_OF, PROPERTY } from "@/core"
@@ -38,8 +47,20 @@ import {
   TimeIntervalClaim,
   UnknownClaim,
 } from "@/document"
-import { changeFrom, RemoveClaimChange, SetClaimChange } from "@/document/patch"
-import { getNextChangeNumberKey, registerForFlushKey, saveChangeKey, unregisterForFlushKey } from "@/fields"
+import { changeFrom } from "@/document/patch"
+import {
+  ChangeDroppedError,
+  getCommittedClaimKey,
+  getSectionName,
+  registerForFlushKey,
+  registerRemoteAddsKey,
+  registerRemoteConflictKey,
+  saveChangeKey,
+  sectionElementId,
+  unregisterForFlushKey,
+  unregisterRemoteAddsKey,
+  unregisterRemoteConflictKey,
+} from "@/fields"
 import { classifyLink, LINK_CLASS_FILE } from "@/internal-links"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
 import DocumentDuplicates from "@/partials/DocumentDuplicates.vue"
@@ -54,17 +75,18 @@ import InputLink from "@/partials/input/InputLink.vue"
 import InputRef from "@/partials/input/InputRef.vue"
 import InputString from "@/partials/input/InputString.vue"
 import InputTime from "@/partials/input/InputTime.vue"
-import InputErrors from "@/partials/InputErrors.vue"
 import InputField from "@/partials/InputField.vue"
 import InputMissing from "@/partials/InputMissing.vue"
 import NavBar from "@/partials/NavBar.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import PropertiesRows from "@/partials/PropertiesRows.vue"
+import TableOfContents from "@/partials/TableOfContents.vue"
 import { localCounter, pairCounters, useLock, useProgress } from "@/progress"
 import { useDocumentFields } from "@/useDocumentFields"
 import { useParentClasses } from "@/useParentClasses"
-import { delay, encodeQuery, makeAddClaimChange } from "@/utils"
+import { delay, encodeQuery, equals } from "@/utils"
 import { focusFirstInput, focusFirstInvalid, useValidationRegistry } from "@/validation"
+import { Identifier } from "@tozd/identifier"
 
 const props = defineProps<{
   id: string
@@ -96,8 +118,7 @@ const claimToNone = ref(false)
 const claimFormError = ref("")
 const sessionError = ref("")
 // Null in add mode; the claim's ID in edit mode. Drives the form title,
-// the primary button label, and the onSubmit branch (SetClaimChange vs
-// makeAddClaimChange).
+// the primary button label, and the onSubmit branch (set vs add).
 const editingClaimId = ref<string | null>(null)
 // Null when no parent is selected; otherwise the claim's ID under which
 // the new claim will be added. Mutually exclusive with editingClaimId.
@@ -154,7 +175,7 @@ function claimTypeLabel(type: ClaimType): string {
   }
 }
 
-const { t } = useI18n({ useScope: "global" })
+const { t, locale } = useI18n({ useScope: "global" })
 const router = useRouter()
 
 // We use separate lock for data modification and controls.
@@ -228,7 +249,7 @@ const isCreating = ref<boolean | null>(null)
 const duplicatesRef = useTemplateRef<{ refresh: () => Promise<void> }>("duplicatesRef")
 
 // Debounce the duplicate search so it runs once a field's blur has committed into the doc (a
-// blur fires a saveChange that the poll applies into doc.claims shortly after), and so rapid
+// blur fires a saveChange that the subscription applies into doc.claims shortly after), and so rapid
 // tabbing between fields does not fire a search per field.
 let duplicatesTimer: ReturnType<typeof setTimeout> | null = null
 function onFieldsBlur() {
@@ -256,64 +277,354 @@ onBeforeUnmount(() => {
 // A ref so canSave reactively follows whether anything has been added to
 // the session yet (Save is disabled when the session has no changes).
 const committedChange = ref(0)
-// Tracks the next change number to submit (may be ahead of committedChange when changes are in-flight).
-let nextChangeToSubmit = 1
+// Highest change number known to exist on the server for this session: our own successful
+// posts and anything observed in the changes list. The next change is posted at this + 1.
+let lastServerChange = 0
+// Change numbers this client successfully posted. The subscription uses it to tell our own
+// applied changes apart from remote ones (remote ones drive conflict handling).
+const ownChangeNumbers = new Set<number>()
+// Per claim id, the number of our last committed change targeting it. A remote touch of a
+// claim is not notified while we have a newer committed change the subscription has not applied
+// yet - resyncing from the doc at that moment would regress the slot to the older remote
+// state, and no later notification would correct it (our own changes are not "remote").
+const ownClaimChanges = new Map<string, number>()
+// Number of changes queued or in flight. Drives the pre-endEdit drain on Save and the
+// warning when the tab is closed with unsaved data.
+const pendingChangeCount = ref(0)
 
 const fieldsFormInvalid = ref(false)
 
-// Flush registry: all FieldsForm instances register here so we can flush them before save.
-const flushRegistry = new Set<FlushFn>()
+// Flush registry: all slot inputs register here so we can flush them before save and know
+// whether uncommitted local edits exist when the tab is being closed.
+const flushRegistry = new Set<FieldsFormFlush>()
 
-// Provide shared services for recursive FieldsForm instances.
-provide(getNextChangeNumberKey, () => nextChangeToSubmit++)
+// Handlers notified with the set of claim ids touched by remote changes the subscription
+// applied (including ancestors of every touched claim). Conflict handlers (slots resyncing
+// their claims) run first; add handlers (cardinalities adding slots for remotely added claims)
+// run after the render flush - see loadChanges.
+const remoteConflictHandlers = new Set<(claimIds: ReadonlySet<string>) => void>()
+const remoteAddHandlers = new Set<(claimIds: ReadonlySet<string>) => boolean>()
 
-// Serialize saveChange POSTs so changes reach the server in the order they are emitted, even when
-// a single user action emits several across separate handlers (e.g. removing a sub-claim and then
-// its now-empty default parent). The server requires sequential change numbers, so concurrent
-// out-of-order POSTs would conflict. Change numbers are allocated immediately before each
-// saveChange call, so call order matches number order.
-let saveChainTail: Promise<unknown> = Promise.resolve()
-provide(saveChangeKey, (change: object, changeNumber: number): Promise<void> => {
-  const run = saveChainTail.then(async () => {
-    await postJSON(
-      router.apiResolve({
-        name: "DocumentSaveChange",
-        params: { session: props.session },
-        query: encodeQuery({ change: String(changeNumber) }),
-      }).href,
-      change,
-      abortController.signal,
-      null,
-    )
-  })
-  // Keep the chain alive even if this POST rejects, so a later change is not blocked forever.
-  saveChainTail = run.catch(() => undefined)
+// How long to wait before retrying a change POST after a transient failure.
+const saveRetryInterval = 1000 // In milliseconds.
+
+// materializeChange builds the raw change object for a spec at the given change number. An
+// add's base and id derive from the number, so they are (re)computed here for every attempt.
+async function materializeChange(spec: SaveChangeSpec, changeNumber: number): Promise<{ change: object; id: string }> {
+  if (spec.type === "add") {
+    const changeBase = [...doc.value!.base, "SESSION", props.session, String(changeNumber)]
+    const id = (await Identifier.from(...changeBase)).toString()
+    const change: { type: string; id: string; base: string[]; patch: object; under?: string } = { type: "add", id, base: changeBase, patch: spec.patch }
+    if (spec.under !== undefined) {
+      change.under = spec.under
+    }
+    return { change, id }
+  }
+  if (spec.type === "remove") {
+    return { change: { type: "remove", id: spec.id }, id: spec.id }
+  }
+  return { change: { type: spec.type, id: spec.id, patch: spec.patch }, id: spec.id }
+}
+
+// changeApplies runs the same validation the backend runs on append: the change has to
+// be valid on its own at the given change number (Change.Validate, which for an add also
+// binds its base and id to the session and the number) and has to test-apply cleanly to
+// a clone of the doc (its target claim exists, a cast still changes the claim type, an
+// add's parent claim exists, and so on). The caller is responsible for the doc being at
+// the state after the change's preceding change (see postChange).
+async function changeApplies(change: object, changeNumber: number): Promise<boolean> {
+  if (!_doc.value) {
+    return false
+  }
+  const changesetBase = [...doc.value!.base, "SESSION", props.session]
+  const target = _doc.value.Clone()
+  try {
+    const c = changeFrom(change)
+    await c.Validate(changesetBase, changeNumber)
+    await c.Apply(target)
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Serializes every application of committed changes into the live doc (the poll's
+// loadChanges and postChange's own-change application), so no change is ever applied to
+// the doc twice.
+let docApplyChain: Promise<unknown> = Promise.resolve()
+function runDocApplySerialized<T>(fn: () => Promise<T>): Promise<T> {
+  const run = docApplyChain.then(fn)
+  // Keep the chain alive even if this task fails (a then on a rejected promise skips its
+  // callback, so every later task would be skipped forever); the caller still observes
+  // the failure through the returned promise.
+  docApplyChain = run.catch(() => undefined)
   return run
-})
-provide(registerForFlushKey, (instance: FlushFn) => {
+}
+
+// applyOwnChange applies a change this client just committed into the live doc, so the
+// doc reaches the state after the change without refetching it. Skipped when the doc is
+// not exactly at the state before the change (then the poll path applies it instead).
+async function applyOwnChange(changeNumber: number, change: object): Promise<void> {
+  await runDocApplySerialized(async () => {
+    if (abortController.signal.aborted) {
+      return
+    }
+    if (!_doc.value || committedChange.value !== changeNumber - 1) {
+      return
+    }
+    try {
+      await changeFrom(change).Apply(_doc.value)
+      committedChange.value = changeNumber
+    } catch (error) {
+      // The change was validated against this exact state before it was posted, so this
+      // is unreachable in practice. The doc stays at the previous change; the poll
+      // refetches and applies from there.
+      console.error("DocumentEdit.applyOwnChange", error)
+    }
+  })
+}
+
+// postChange posts a change spec, assigning the change number at post time and retrying.
+//
+// Every attempt is fully validated first, mirroring the backend's apply-on-append
+// validation: the doc is brought to the state after the preceding change (the state the
+// backend validates against) and the change has to apply cleanly to it, else it is
+// dropped with ChangeDroppedError. Then:
+//   - On a conflict (another editor claimed the number): if the stored operation matches
+//     what we posted, an earlier attempt of ours reached the server despite a network
+//     error and the change is committed. Otherwise the change is renumbered and the loop
+//     revalidates it against the synced doc, dropping it when it no longer applies
+//     (e.g. its claim was removed concurrently).
+//   - On an invalid change (server-side validation failed): dropped with
+//     ChangeDroppedError. Client-side validation above mirrors the backend, so this is a
+//     safety net rather than an expected path.
+//   - On transient failures (network or server errors): retried at the same number after
+//     a pause. If the failed POST actually reached the server, the retry conflicts with
+//     it and the comparison above resolves it as committed.
+async function postChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
+  while (true) {
+    abortController.signal.throwIfAborted()
+    // Bring the doc to the state after the last known committed change. In the common
+    // case the doc is already there: our own posts apply through applyOwnChange, and the
+    // poll keeps committedChange at lastServerChange otherwise.
+    if (committedChange.value < lastServerChange) {
+      try {
+        await syncChanges()
+      } catch (err) {
+        abortController.signal.throwIfAborted()
+        console.error("DocumentEdit.postChange sync", err)
+        await delay(saveRetryInterval, abortController.signal)
+        continue
+      }
+      abortController.signal.throwIfAborted()
+    }
+    const changeNumber = lastServerChange + 1
+    const { change, id } = await materializeChange(spec, changeNumber)
+    if (!(await changeApplies(change, changeNumber))) {
+      // TODO: Implement better conflict handling instead of just dropping it.
+      throw new ChangeDroppedError(`change does not apply: ${JSON.stringify(change)}`)
+    }
+    try {
+      await postJSON(
+        router.apiResolve({
+          name: "DocumentSaveChange",
+          params: { session: props.session },
+          query: encodeQuery({ change: String(changeNumber) }),
+        }).href,
+        change,
+        abortController.signal,
+        null,
+      )
+      lastServerChange = changeNumber
+      ownChangeNumbers.add(changeNumber)
+      ownClaimChanges.set(id, changeNumber)
+      await applyOwnChange(changeNumber, change)
+      return { id }
+    } catch (err) {
+      if (abortController.signal.aborted) {
+        throw err
+      }
+      if (err instanceof FetchError && err.status === 409) {
+        const { doc: existing } = await getURLDirect<object>(
+          router.apiResolve({
+            name: "DocumentGetChange",
+            params: { session: props.session, change: changeNumber },
+          }).href,
+          abortController.signal,
+          null,
+        )
+        if (abortController.signal.aborted) {
+          throw err
+        }
+        // The comparison relies on the change serializing exactly as it was posted: no
+        // key is ever set to undefined (which JSON.stringify would drop) - the patch
+        // builders assign concrete values in every branch and materializeChange adds
+        // optional keys conditionally.
+        if (equals<object>(existing, change)) {
+          lastServerChange = changeNumber
+          ownChangeNumbers.add(changeNumber)
+          ownClaimChanges.set(id, changeNumber)
+          await applyOwnChange(changeNumber, change)
+          return { id }
+        }
+        // Lost the number to a concurrent editor: the loop syncs the doc, renumbers, and
+        // revalidates, dropping the change when it no longer applies.
+        lastServerChange = changeNumber
+        continue
+      }
+      if (err instanceof FetchError && err.status === 400) {
+        throw new ChangeDroppedError(`change rejected by the server: ${JSON.stringify(change)}`, { cause: err })
+      }
+      await delay(saveRetryInterval, abortController.signal)
+      if (abortController.signal.aborted) {
+        throw err
+      }
+    }
+  }
+}
+
+// saveChange queues a change spec. Changes are posted strictly one after another: the
+// server requires change numbers to arrive in sequence and numbers are assigned only at
+// post time, so a conflict retry renumbers just the change currently being posted.
+let saveChainTail: Promise<unknown> = Promise.resolve()
+function saveChange(spec: SaveChangeSpec): Promise<SaveChangeResult> {
+  pendingChangeCount.value += 1
+  const run = saveChainTail.then(() => postChange(spec))
+  // Keep the chain alive even if this change is dropped or fails, so a later change is
+  // not blocked forever.
+  saveChainTail = run
+    .catch(() => undefined)
+    .then(() => {
+      pendingChangeCount.value -= 1
+    })
+  return run
+}
+provide(saveChangeKey, saveChange)
+
+// drainSaveChanges waits until every queued change has settled, including changes queued
+// while waiting (e.g. by the focusout commit fired by the Save click itself).
+async function drainSaveChanges(): Promise<void> {
+  let tail: Promise<unknown>
+  do {
+    tail = saveChainTail
+    await tail
+  } while (tail !== saveChainTail)
+}
+
+provide(getCommittedClaimKey, (id: string) => (doc.value?.claims.GetByID(id) ?? null) as DeepReadonly<Claim> | null)
+provide(registerForFlushKey, (instance: FieldsFormFlush) => {
   flushRegistry.add(instance)
 })
-provide(unregisterForFlushKey, (instance: FlushFn) => {
+provide(unregisterForFlushKey, (instance: FieldsFormFlush) => {
   flushRegistry.delete(instance)
 })
+provide(registerRemoteConflictKey, (handler: (claimIds: ReadonlySet<string>) => void) => {
+  remoteConflictHandlers.add(handler)
+})
+provide(unregisterRemoteConflictKey, (handler: (claimIds: ReadonlySet<string>) => void) => {
+  remoteConflictHandlers.delete(handler)
+})
+provide(registerRemoteAddsKey, (handler: (claimIds: ReadonlySet<string>) => boolean) => {
+  remoteAddHandlers.add(handler)
+})
+provide(unregisterRemoteAddsKey, (handler: (claimIds: ReadonlySet<string>) => boolean) => {
+  remoteAddHandlers.delete(handler)
+})
 
-// Poll interval in milliseconds.
-const pollInterval = 100
+// Warn before the tab closes while changes are still queued or a slot holds local edits
+// which have not been committed. We cannot reliably flush and post during unload, so the
+// user is prompted to keep the tab open until the data is on the server.
+function onBeforeUnload(event: BeforeUnloadEvent): void {
+  let unsaved = pendingChangeCount.value > 0
+  if (!unsaved) {
+    for (const instance of flushRegistry) {
+      if (instance.hasUncommitted()) {
+        unsaved = true
+        break
+      }
+    }
+  }
+  if (unsaved) {
+    event.preventDefault()
+  }
+}
+window.addEventListener("beforeunload", onBeforeUnload)
+onBeforeUnmount(() => {
+  window.removeEventListener("beforeunload", onBeforeUnload)
+})
+
+// Poll interval.
+const pollInterval = 100 // In milliseconds.
 
 // Resolve field definitions for the document's class(es).
 const docRef = toRef(() => doc.value ?? null)
 const { classDocs, instanceOfClassIds, initialized: classesInitialized } = useParentClasses(docRef, el, busy)
 const { fieldsData: mergedFieldsData, classTabId } = useDocumentFields(classDocs, instanceOfClassIds)
 
-// Applies session changes [fromChange+1 .. latest] to target. Returns the
-// new highest applied change number. Caller owns publishing target into
-// reactive state - this helper deliberately does not touch _doc.value or
-// committedChange, so the initial load can build the doc off-tree and
-// publish it atomically (see loadAndSubscribe).
-async function applyPendingChanges(target: D, fromChange: number): Promise<number> {
-  const { doc: changesList } = await getURLDirect<number[]>(
+// The selected index of the main tab group (the class tab is index 0 when present),
+// controlled so the table of contents can show only while the FieldsForm is visible.
+const selectedMainTab = ref(0)
+
+// Table of contents targets: the class tab's sections, in their render order, each
+// pointing at its section header in the FieldsForm (see sectionElementId).
+const tocTargets = computed<{ id: string; label: string }[]>(() => {
+  if (!mergedFieldsData.value) {
+    return []
+  }
+  return [...mergedFieldsData.value.sections]
+    .sort((a, b) => a.orderInList - b.orderInList)
+    .map((section) => ({ id: sectionElementId(section), label: getSectionName(section, locale.value) }))
+})
+
+// The table of contents renders only on wide viewports (the xl breakpoint and up,
+// 1280px). It is unmounted rather than CSS-hidden: a hidden instance would keep its
+// scroll timelines, visibility tracking, and URL hash updates running.
+const tocMediaQuery = window.matchMedia("(min-width: 1280px)")
+const tocViewportWide = ref(tocMediaQuery.matches)
+function onTocMediaChange(event: MediaQueryListEvent): void {
+  tocViewportWide.value = event.matches
+}
+tocMediaQuery.addEventListener("change", onTocMediaChange)
+onBeforeUnmount(() => {
+  tocMediaQuery.removeEventListener("change", onTocMediaChange)
+})
+
+// The table of contents is shown only while the class tab (the FieldsForm) is
+// visible and the class defines sections.
+const showToc = computed<boolean>(
+  () => tocViewportWide.value && !!classTabId.value && !!mergedFieldsData.value && selectedMainTab.value === 0 && tocTargets.value.length > 0,
+)
+
+// claimAncestry returns the ids of the claims on the path from a top-level claim down to
+// (and including) the claim with the given id, or null when the container does not hold it.
+function claimAncestry(claims: ClaimTypes | undefined, id: string): string[] | null {
+  if (!claims) {
+    return null
+  }
+  for (const claim of claims.AllClaims()) {
+    if (claim.id === id) {
+      return [claim.id]
+    }
+    const below = claimAncestry(claim.sub, id)
+    if (below) {
+      return [claim.id, ...below]
+    }
+  }
+  return null
+}
+
+// Applies session changes [fromChange+1 .. latest] to target. Returns the new highest
+// applied change number and the ids of claims touched by remote changes (changes this
+// client did not post itself), together with each touched claim's ancestors, so a change
+// deep in a claim tree also resyncs the slots holding the tree. Caller owns publishing
+// target into reactive state - this helper deliberately does not touch _doc.value or
+// committedChange, so the initial load can build the doc off-tree and publish it
+// atomically (see loadAndSubscribe).
+async function applyPendingChanges(target: D, fromChange: number): Promise<{ next: number; remoteTouched: Set<string> }> {
+  const remoteTouched = new Set<string>()
+  const { doc: lastChangeResponse } = await getURLDirect<LastOperationResponse>(
     router.apiResolve({
-      name: "DocumentListChanges",
+      name: "DocumentLastChange",
       params: {
         session: props.session,
       },
@@ -322,10 +633,14 @@ async function applyPendingChanges(target: D, fromChange: number): Promise<numbe
     null,
   )
   if (abortController.signal.aborted) {
-    return fromChange
+    return { next: fromChange, remoteTouched }
+  }
+  const lastChange = lastChangeResponse.lastOperation
+  if (lastChange > lastServerChange) {
+    lastServerChange = lastChange
   }
   let current = fromChange
-  for (; changesList.length > 0 && current < changesList[0]; current++) {
+  for (; current < lastChange; current++) {
     const { doc: changeDoc } = await getURL<object>(
       router.apiResolve({
         name: "DocumentGetChange",
@@ -339,29 +654,101 @@ async function applyPendingChanges(target: D, fromChange: number): Promise<numbe
       null,
     )
     if (abortController.signal.aborted) {
-      return current
+      return { next: current, remoteTouched }
+    }
+    // A change from another editor: its target claim id, or null for our own changes.
+    const remoteId = !ownChangeNumbers.has(current + 1) && "id" in changeDoc && typeof changeDoc.id === "string" ? changeDoc.id : null
+    const isAdd = "type" in changeDoc && changeDoc.type === "add"
+    // The ancestor chain of a remove/set/cast target has to be resolved BEFORE the change
+    // is applied (a removed claim is no longer in the doc); an add's chain only exists
+    // after.
+    let chain: string[] | null = null
+    if (remoteId !== null && !isAdd) {
+      chain = claimAncestry(target.claims, remoteId)
     }
     const change = changeFrom(changeDoc)
     await change.Apply(target)
+    if (remoteId !== null && isAdd) {
+      chain = claimAncestry(target.claims, remoteId)
+    }
+    if (remoteId !== null) {
+      for (const claimId of chain ?? [remoteId]) {
+        remoteTouched.add(claimId)
+      }
+    }
   }
-  return current
+  // Do not notify about claims we have a newer committed change for which is not applied
+  // yet (the changes list was fetched before it landed) - resyncing from the doc now
+  // would regress the slot to the older remote state, and no later notification would
+  // correct it because our own changes are not "remote". The next poll applies our
+  // change and brings the doc up to date.
+  const applied = lastChange
+  for (const claimId of [...remoteTouched]) {
+    if ((ownClaimChanges.get(claimId) ?? 0) > applied) {
+      remoteTouched.delete(claimId)
+    }
+  }
+  return { next: current, remoteTouched }
 }
 
-let running = false
-async function loadChanges() {
-  if (running) {
-    return
+// loadChanges applies newly committed changes into the live doc and notifies slots about
+// claims touched by remote changes. A shared in-flight promise deduplicates overlapping
+// calls (the subscription and conflict retries both call it), and the body runs under
+// docApplyChain so it cannot interleave with applyOwnChange.
+let loadChangesRunning: Promise<void> | null = null
+function loadChanges(): Promise<void> {
+  if (loadChangesRunning) {
+    return loadChangesRunning
   }
-  running = true
-  try {
-    const next = await applyPendingChanges(_doc.value!, committedChange.value)
-    if (abortController.signal.aborted) {
-      return
+  loadChangesRunning = runDocApplySerialized(async () => {
+    try {
+      const { next, remoteTouched } = await applyPendingChanges(_doc.value!, committedChange.value)
+      if (abortController.signal.aborted) {
+        return
+      }
+      committedChange.value = next
+      if (remoteTouched.size > 0) {
+        // Phase one: existing slots resync their claims. Their handlers read committed
+        // state through call-time lookups (getCommittedClaim goes to the doc directly),
+        // so this is correct at any nesting depth regardless of handler order. Phase
+        // two, after the render flush has propagated the resynced claims into every
+        // cardinality's modelValue: cardinalities add slots for remotely added claims.
+        // The adds run in rounds: a slot filled in one round feeds its
+        // sub-cardinalities' modelValue only after the next render flush, so each round
+        // can reveal claims one nesting level deeper. Rounds stop when no cardinality
+        // adds anything (the cap is a runaway backstop far above any real claim depth).
+        for (const handler of remoteConflictHandlers) {
+          handler(remoteTouched)
+        }
+        for (let round = 0; round < 10; round++) {
+          await nextTick()
+          if (abortController.signal.aborted) {
+            return
+          }
+          let added = false
+          for (const handler of remoteAddHandlers) {
+            added = handler(remoteTouched) || added
+          }
+          if (!added) {
+            break
+          }
+        }
+      }
+    } finally {
+      loadChangesRunning = null
     }
-    committedChange.value = next
-  } finally {
-    running = false
+  })
+  return loadChangesRunning
+}
+
+// syncChanges observes at least everything committed to the session before the call: an
+// in-flight loadChanges may have fetched the changes list before, so it is awaited first
+// and a fresh run started after.
+async function syncChanges(): Promise<void> {
+  if (loadChangesRunning) {
+    await loadChangesRunning.catch(() => undefined)
   }
+  await loadChanges()
 }
 
 async function loadAndSubscribe() {
@@ -419,23 +806,21 @@ async function loadAndSubscribe() {
   // a tab-mount race where the class tab is registered late and
   // ends up at a non-selected index.
   //
-  // We also keep a pristine D instance constructed from the same raw
-  // JSON (deep-cloned so applyPendingChanges below cannot mutate it
-  // through shared object references) as _initialDoc - that one
-  // remains the baseline for the per-property "changed" badge and
-  // Revert in FieldsForm, regardless of how many session changes the
-  // user has already accumulated on a previous load of this same
-  // session.
+  // We also keep a pristine deep copy of the just-constructed document
+  // (so applyPendingChanges below cannot mutate it through shared
+  // object references) as _initialDoc - that one remains the baseline
+  // for the per-property "changed" badge and Revert in FieldsForm,
+  // regardless of how many session changes the user has already
+  // accumulated on a previous load of this same session.
   const localDoc = new D(initialDoc)
-  const pristine = new D(structuredClone(initialDoc))
-  const initialChange = await applyPendingChanges(localDoc, 0)
+  const pristine = localDoc.Clone()
+  const { next: initialChange } = await applyPendingChanges(localDoc, 0)
   if (abortController.signal.aborted) {
     return
   }
   _doc.value = localDoc
   _initialDoc.value = pristine
   committedChange.value = initialChange
-  nextChangeToSubmit = initialChange + 1
 
   // TODO: Use websocket to watch for new changes.
   const timer = setInterval(() => {
@@ -461,7 +846,12 @@ watch(
     _initialDoc.value = null
     isCreating.value = null
     committedChange.value = 0
-    nextChangeToSubmit = 1
+    lastServerChange = 0
+    ownChangeNumbers.clear()
+    ownClaimChanges.clear()
+    // The previous session's queued changes have been aborted above. They settle on their
+    // own (decrementing pendingChangeCount as they do), the chain just starts fresh.
+    saveChainTail = Promise.resolve()
     fieldsFormInvalid.value = false
     pendingInitialFocus = true
 
@@ -510,7 +900,7 @@ async function onSave() {
   // first invalid input and abort the save - no changes flushed, the session
   // stays open for the user to fix the field.
   if (fieldsFormRef.value) {
-    await fieldsFormRef.value.validateAll(abortController.signal)
+    await fieldsFormRef.value.validateAll(abortController.signal, { final: true })
     if (abortController.signal.aborted) {
       return
     }
@@ -520,29 +910,16 @@ async function onSave() {
     }
   }
 
-  // Flush any pending edits from all FieldsForm instances before saving.
-  // Flush returns only valid changes; invalid fields remain and set fieldsFormInvalid.
-  const allPendingChanges: FieldsFormSaveChange[] = []
-  for (const flush of flushRegistry) {
-    const changes = await flush()
-    allPendingChanges.push(...changes)
+  // Flush any pending edits from all slot inputs before saving (each flush commits like
+  // the slot's blur would; invalid values stay in the form and set fieldsFormInvalid),
+  // then wait for every queued change to settle on the server - including changes queued
+  // outside the flush, e.g. by the focusout commit fired by the Save click itself.
+  for (const instance of flushRegistry) {
+    await instance.flush()
   }
-
-  // Post all flushed changes first (they are valid and have consumed change numbers).
-  for (const { change, changeNumber } of allPendingChanges) {
-    await postJSON(
-      router.apiResolve({
-        name: "DocumentSaveChange",
-        params: { session: props.session },
-        query: encodeQuery({ change: String(changeNumber) }),
-      }).href,
-      change,
-      abortController.signal,
-      null,
-    )
-    if (abortController.signal.aborted) {
-      return
-    }
+  await drainSaveChanges()
+  if (abortController.signal.aborted) {
+    return
   }
 
   // Re-check after flush: validateAll above clears stale state, but flush itself
@@ -750,7 +1127,7 @@ async function onSubmit() {
   // Run validation across every registered input in the claim form.
   // If any field surfaces an error, focus the first one and abort the
   // submit so the user can fix it before we hit the backend.
-  await validateAll(abortController.signal)
+  await validateAll(abortController.signal, { final: true })
   if (abortController.signal.aborted) {
     return
   }
@@ -760,21 +1137,13 @@ async function onSubmit() {
   }
 
   try {
-    const change = editingClaimId.value
-      ? new SetClaimChange({ id: editingClaimId.value, patch: makePatch() })
-      : await makeAddClaimChange(doc.value!.base, props.session, committedChange.value + 1, makePatch(), subClaimParentId.value ?? undefined)
-    await postJSON(
-      router.apiResolve({
-        name: "DocumentSaveChange",
-        params: {
-          session: props.session,
-        },
-        query: encodeQuery({ change: String(committedChange.value + 1) }),
-      }).href,
-      change,
-      abortController.signal,
-      null,
-    )
+    const patch = makePatch()
+    const spec: SaveChangeSpec = editingClaimId.value
+      ? { type: "set", id: editingClaimId.value, patch }
+      : subClaimParentId.value
+        ? { type: "add", patch, under: subClaimParentId.value }
+        : { type: "add", patch }
+    await saveChange(spec)
     if (abortController.signal.aborted) {
       return
     }
@@ -942,20 +1311,7 @@ async function onRemoveClaim(id: string) {
   }
 
   try {
-    await postJSON(
-      router.apiResolve({
-        name: "DocumentSaveChange",
-        params: {
-          session: props.session,
-        },
-        query: encodeQuery({ change: String(committedChange.value + 1) }),
-      }).href,
-      new RemoveClaimChange({
-        id,
-      }),
-      abortController.signal,
-      null,
-    )
+    await saveChange({ type: "remove", id })
     if (abortController.signal.aborted) {
       return
     }
@@ -995,301 +1351,294 @@ function canSave(): boolean {
       </template>
     </NavBar>
   </Teleport>
-  <div ref="el" class="pd-documentedit mt-[var(--pd-navbar-height)] flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4">
-    <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
-      <template v-if="hasPermission(CAN_EDIT_DOCUMENT) && doc && classesInitialized">
-        <!--
+  <div class="mt-[var(--pd-navbar-height)] flex w-full flex-row">
+    <!--
+      The table of contents lives outside the content column, to its left: its
+      sticky/scroll machinery keys off its parent (this wrapper) spanning the whole
+      content height.
+    -->
+    <TableOfContents v-if="hasPermission(CAN_EDIT_DOCUMENT) && doc && classesInitialized && showToc" :targets="tocTargets" class="ml-4 w-48 shrink-0">
+      <div class="font-semibold">{{ t("partials.TableOfContents.title") }}</div>
+    </TableOfContents>
+    <div ref="el" class="pd-documentedit flex min-w-0 grow flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4">
+      <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
+        <template v-if="hasPermission(CAN_EDIT_DOCUMENT) && doc && classesInitialized">
+          <!--
           TODO: Fix how hover interacts with focused tab.
           See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
         -->
-        <TabGroup manual>
-          <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100 contain-inline-size">
-            <Tab
-              v-if="classTabId && mergedFieldsData"
-              :key="classTabId"
-              class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-              ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(4)),transparent)] px-4 py-3 whitespace-nowrap"
-                ><DocumentRefInline :id="classTabId" :link="false" title /></span
-            ></Tab>
-            <Tab
-              :title="t('views.DocumentEdit.tabs.allProperties')"
-              class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-              ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(4)),transparent)] px-4 py-3 whitespace-nowrap">{{
-                t("views.DocumentEdit.tabs.allProperties")
-              }}</span></Tab
-            >
-          </TabList>
-          <h1 v-show="displayLabelComponent?.displayLabel" class="mb-4 text-3xl font-bold drop-shadow-xs"><DisplayLabel ref="displayLabelComponent" :doc="doc" /></h1>
-          <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
-          <TabPanels as="template">
-            <!-- Class-specific tab. -->
-            <TabPanel v-if="classTabId && mergedFieldsData" :key="classTabId" tabindex="-1" class="outline-none">
-              <div @focusout="onFieldsBlur">
-                <FieldsForm
-                  ref="fieldsFormRef"
-                  v-model:invalid="fieldsFormInvalid"
-                  :fields-data="mergedFieldsData"
-                  :claims="doc.claims"
-                  :initial-claims="initialDoc?.claims ?? doc.claims"
-                  :base="doc.base"
-                  :session="session"
-                />
-                <!-- Potential duplicates of the document being created, refreshed on every field blur. -->
-                <DocumentDuplicates v-if="isCreating" ref="duplicatesRef" :doc="doc" />
-              </div>
-            </TabPanel>
-            <!-- "All properties" tab panel. -->
-            <TabPanel tabindex="-1" class="outline-none">
-              <table class="w-full table-auto border-collapse">
-                <thead>
-                  <tr>
-                    <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.property") }}</th>
-                    <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.value") }}</th>
-                    <th class="w-px"></th>
-                    <th class="w-px"></th>
-                    <th class="w-px"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <PropertiesRows
+          <TabGroup manual :selected-index="selectedMainTab" @change="(index) => (selectedMainTab = index)">
+            <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100 contain-inline-size">
+              <Tab
+                v-if="classTabId && mergedFieldsData"
+                :key="classTabId"
+                class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(4)),transparent)] px-4 py-3 whitespace-nowrap"
+                  ><DocumentRefInline :id="classTabId" :link="false" title /></span
+              ></Tab>
+              <Tab
+                :title="t('views.DocumentEdit.tabs.allProperties')"
+                class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(4)),transparent)] px-4 py-3 whitespace-nowrap">{{
+                  t("views.DocumentEdit.tabs.allProperties")
+                }}</span></Tab
+              >
+            </TabList>
+            <h1 v-show="displayLabelComponent?.displayLabel" class="mb-4 text-3xl font-bold drop-shadow-xs"><DisplayLabel ref="displayLabelComponent" :doc="doc" /></h1>
+            <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
+            <TabPanels as="template">
+              <!-- Class-specific tab. -->
+              <TabPanel v-if="classTabId && mergedFieldsData" :key="classTabId" tabindex="-1" class="outline-none">
+                <div @focusout="onFieldsBlur">
+                  <FieldsForm
+                    ref="fieldsFormRef"
+                    v-model:invalid="fieldsFormInvalid"
+                    :fields-data="mergedFieldsData"
                     :claims="doc.claims"
-                    editable
-                    :editing-claim-id="editingClaimId"
-                    :sub-claim-parent-id="subClaimParentId"
-                    @edit-claim="onEditClaim"
-                    @remove-claim="onRemoveClaim"
-                    @sub-claim="onSubClaimAdd"
+                    :initial-claims="initialDoc?.claims ?? doc.claims"
                   />
-                </tbody>
-              </table>
-              <form ref="claimFormRef" @submit.prevent="onSubmit" @reset="onReset">
-                <h2 class="mt-4 text-xl font-medium">{{
-                  editingClaimId ? t("views.DocumentEdit.editClaim") : subClaimParentId ? t("views.DocumentEdit.addSubClaim") : t("views.DocumentEdit.addClaim")
-                }}</h2>
-                <TabGroup :selected-index="selectedClaimTab" @change="onChangeClaimTab">
-                  <TabList class="mt-4 flex border-collapse flex-row border border-gray-200 bg-slate-100 contain-inline-size">
-                    <Tab
-                      v-for="type in claimTypes"
-                      :key="type"
-                      :disabled="claimTypeDisabled(type)"
-                      :title="claimTypeLabel(type)"
-                      class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
-                      :class="claimTypeDisabled(type) ? 'cursor-not-allowed opacity-50' : 'not-aria-selected:hover:bg-slate-50'"
-                      ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(4)),transparent)] px-4 py-3 whitespace-nowrap">{{
-                        claimTypeLabel(type)
-                      }}</span></Tab
-                    >
-                  </TabList>
-                  <TabPanels as="template">
-                    <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("views.DocumentEdit.labels.identifier") }}</template>
-                        <template #input="inputProps">
-                          <InputIdentifier v-bind="inputProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("views.DocumentEdit.labels.string") }}</template>
-                        <template #input="inputProps">
-                          <InputString v-bind="inputProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("views.DocumentEdit.labels.html") }}</template>
-                        <template #input="inputProps">
-                          <InputHTML v-bind="inputProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputErrors v-slot="errorProps">
-                        <InputAmount v-bind="errorProps" v-model="claimValue" v-model:precision="claimAmountPrecision" required class="mt-4 min-w-0 flex-auto grow" />
-                      </InputErrors>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputErrors v-slot="errorProps" class="mt-4">
-                        <InputMissing v-bind="errorProps" v-model:unknown="claimFromUnknown" v-model:none="claimFromNone" required>
-                          <template #default="missingProps">
-                            <InputAmount v-bind="missingProps" v-model="claimFrom" v-model:precision="claimFromAmountPrecision" class="min-w-0 flex-auto grow">
-                              <template #amount-label>{{ t("views.DocumentEdit.labels.from") }}</template>
-                            </InputAmount>
+                  <!-- Potential duplicates of the document being created, refreshed on every field blur. -->
+                  <DocumentDuplicates v-if="isCreating" ref="duplicatesRef" :doc="doc" />
+                </div>
+              </TabPanel>
+              <!-- "All properties" tab panel. -->
+              <TabPanel tabindex="-1" class="outline-none">
+                <table class="w-full table-auto border-collapse">
+                  <thead>
+                    <tr>
+                      <th class="border-r border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.property") }}</th>
+                      <th class="border-l border-slate-200 px-2 py-1 text-left font-bold">{{ t("common.labels.value") }}</th>
+                      <th class="w-px"></th>
+                      <th class="w-px"></th>
+                      <th class="w-px"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <PropertiesRows
+                      :claims="doc.claims"
+                      editable
+                      :editing-claim-id="editingClaimId"
+                      :sub-claim-parent-id="subClaimParentId"
+                      @edit-claim="onEditClaim"
+                      @remove-claim="onRemoveClaim"
+                      @sub-claim="onSubClaimAdd"
+                    />
+                  </tbody>
+                </table>
+                <form ref="claimFormRef" @submit.prevent="onSubmit" @reset="onReset">
+                  <h2 class="mt-4 text-xl font-medium">{{
+                    editingClaimId ? t("views.DocumentEdit.editClaim") : subClaimParentId ? t("views.DocumentEdit.addSubClaim") : t("views.DocumentEdit.addClaim")
+                  }}</h2>
+                  <TabGroup :selected-index="selectedClaimTab" @change="onChangeClaimTab">
+                    <TabList class="mt-4 flex border-collapse flex-row border border-gray-200 bg-slate-100 contain-inline-size">
+                      <Tab
+                        v-for="type in claimTypes"
+                        :key="type"
+                        :disabled="claimTypeDisabled(type)"
+                        :title="claimTypeLabel(type)"
+                        class="min-w-0 overflow-hidden border-r border-gray-200 leading-tight font-medium uppercase outline-none select-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
+                        :class="claimTypeDisabled(type) ? 'cursor-not-allowed opacity-50' : 'not-aria-selected:hover:bg-slate-50'"
+                        ><span class="block [mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(4)),transparent)] px-4 py-3 whitespace-nowrap">{{
+                          claimTypeLabel(type)
+                        }}</span></Tab
+                      >
+                    </TabList>
+                    <TabPanels as="template">
+                      <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                           </template>
-                        </InputMissing>
-                      </InputErrors>
-                      <InputErrors v-slot="errorProps" class="mt-4">
-                        <InputMissing v-bind="errorProps" v-model:unknown="claimToUnknown" v-model:none="claimToNone" required>
-                          <template #default="missingProps">
-                            <InputAmount v-bind="missingProps" v-model="claimTo" v-model:precision="claimToAmountPrecision" class="min-w-0 flex-auto grow">
-                              <template #amount-label>{{ t("views.DocumentEdit.labels.to") }}</template>
-                            </InputAmount>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.identifier')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputIdentifier v-bind="inputProps" v-model="claimValue" />
                           </template>
-                        </InputMissing>
-                      </InputErrors>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputErrors v-slot="errorProps">
-                        <InputTime v-bind="errorProps" v-model="claimValue" v-model:precision="claimTimePrecision" required class="mt-4 min-w-0 flex-auto grow" />
-                      </InputErrors>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputErrors v-slot="errorProps" class="mt-4">
-                        <InputMissing v-bind="errorProps" v-model:unknown="claimFromUnknown" v-model:none="claimFromNone" required>
-                          <template #default="missingProps">
-                            <InputTime v-bind="missingProps" v-model="claimFrom" v-model:precision="claimFromTimePrecision" class="min-w-0 flex-auto grow">
-                              <template #time-label>{{ t("views.DocumentEdit.labels.from") }}</template>
-                            </InputTime>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
                           </template>
-                        </InputMissing>
-                      </InputErrors>
-                      <InputErrors v-slot="errorProps" class="mt-4">
-                        <InputMissing v-bind="errorProps" v-model:unknown="claimToUnknown" v-model:none="claimToNone" required>
-                          <template #default="missingProps">
-                            <InputTime v-bind="missingProps" v-model="claimTo" v-model:precision="claimToTimePrecision" class="min-w-0 flex-auto grow">
-                              <template #time-label>{{ t("views.DocumentEdit.labels.to") }}</template>
-                            </InputTime>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.string')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputString v-bind="inputProps" v-model="claimValue" />
                           </template>
-                        </InputMissing>
-                      </InputErrors>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("views.DocumentEdit.labels.iri") }}</template>
-                        <template #input="inputProps">
-                          <InputLink v-bind="inputProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("views.DocumentEdit.labels.file") }}</template>
-                        <template #input="inputProps">
-                          <InputFile v-bind="inputProps" v-model="claimValue" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("views.DocumentEdit.labels.to") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimValue" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                    <TabPanel tabindex="-1" class="flex flex-col outline-none">
-                      <InputField required class="mt-4">
-                        <template #label>{{ t("common.labels.property") }}</template>
-                        <template #input="inputProps">
-                          <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" class="min-w-0 flex-auto grow" />
-                        </template>
-                      </InputField>
-                    </TabPanel>
-                  </TabPanels>
-                </TabGroup>
-                <div v-if="claimFormError" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
-                <div class="mt-4 flex flex-row justify-end gap-4">
-                  <Button type="reset" :disabled="allEmpty && !anyError">{{ t("common.buttons.cancel") }}</Button>
-                  <!--
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.html')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputHTML v-bind="inputProps" v-model="claimValue" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                        <InputField required class="mt-4">
+                          <template #input="inputProps">
+                            <InputAmount v-bind="inputProps" v-model="claimValue" v-model:precision="claimAmountPrecision" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.from')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputMissing v-bind="inputProps" v-model:unknown="claimFromUnknown" v-model:none="claimFromNone">
+                              <template #default="missingProps">
+                                <InputAmount v-bind="missingProps" v-model="claimFrom" v-model:precision="claimFromAmountPrecision" />
+                              </template>
+                            </InputMissing>
+                          </template>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.to')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputMissing v-bind="inputProps" v-model:unknown="claimToUnknown" v-model:none="claimToNone">
+                              <template #default="missingProps">
+                                <InputAmount v-bind="missingProps" v-model="claimTo" v-model:precision="claimToAmountPrecision" />
+                              </template>
+                            </InputMissing>
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                        <InputField required class="mt-4">
+                          <template #input="inputProps">
+                            <InputTime v-bind="inputProps" v-model="claimValue" v-model:precision="claimTimePrecision" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.from')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputMissing v-bind="inputProps" v-model:unknown="claimFromUnknown" v-model:none="claimFromNone">
+                              <template #default="missingProps">
+                                <InputTime v-bind="missingProps" v-model="claimFrom" v-model:precision="claimFromTimePrecision" />
+                              </template>
+                            </InputMissing>
+                          </template>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.to')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputMissing v-bind="inputProps" v-model:unknown="claimToUnknown" v-model:none="claimToNone">
+                              <template #default="missingProps">
+                                <InputTime v-bind="missingProps" v-model="claimTo" v-model:precision="claimToTimePrecision" />
+                              </template>
+                            </InputMissing>
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.iri')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputLink v-bind="inputProps" v-model="claimValue" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.file')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputFile v-bind="inputProps" v-model="claimValue" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                        <InputField required :label="t('views.DocumentEdit.labels.to')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimValue" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                      <TabPanel tabindex="-1" class="flex flex-col outline-none">
+                        <InputField required :label="t('common.labels.property')" class="mt-4">
+                          <template #input="inputProps">
+                            <InputRef v-bind="inputProps" v-model="claimProp" :filter="PROPERTY_FILTER" />
+                          </template>
+                        </InputField>
+                      </TabPanel>
+                    </TabPanels>
+                  </TabGroup>
+                  <div v-if="claimFormError" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
+                  <div class="mt-4 flex flex-row justify-end gap-4">
+                    <Button type="reset" :disabled="allEmpty && !anyError">{{ t("common.buttons.cancel") }}</Button>
+                    <!--
                     We do enable button even when inputs are invalid because we want the user to
                     attempt a add/update and force validation (and focus to first invalid input).
                   -->
-                  <Button type="submit" :disabled="!anyDirty">{{ editingClaimId ? t("common.buttons.update") : t("common.buttons.add") }}</Button>
-                </div>
-              </form>
-            </TabPanel>
-          </TabPanels>
-        </TabGroup>
-        <div v-if="sessionError" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
-        <div class="mt-4 flex flex-row justify-between gap-4">
-          <Button id="documentedit-button-discard" type="button" :progress="saveBusy" @click.prevent="onDiscard">{{ t("common.buttons.discard") }}</Button>
-          <Button id="documentedit-button-save" type="submit" primary :disabled="!canSave()" :progress="saveBusy" @click.prevent="onSave">{{
-            isCreating ? t("common.buttons.create") : t("common.buttons.update")
-          }}</Button>
-        </div>
-      </template>
-      <div v-else-if="!hasPermission(CAN_EDIT_DOCUMENT)" class="my-1 text-center sm:my-4">{{ t("common.status.editingNotAllowed") }}</div>
-      <div v-else-if="!classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
-      <div v-else class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+                    <Button type="submit" :disabled="!anyDirty">{{ editingClaimId ? t("common.buttons.update") : t("common.buttons.add") }}</Button>
+                  </div>
+                </form>
+              </TabPanel>
+            </TabPanels>
+          </TabGroup>
+          <div v-if="sessionError" class="mt-4 text-error-600">{{ t("common.errors.unexpected") }}</div>
+          <div class="mt-4 flex flex-row justify-between gap-4">
+            <Button id="documentedit-button-discard" type="button" :progress="saveBusy" @click.prevent="onDiscard">{{ t("common.buttons.discard") }}</Button>
+            <Button id="documentedit-button-save" type="submit" primary :disabled="!canSave()" :progress="saveBusy" @click.prevent="onSave">{{
+              isCreating ? t("common.buttons.create") : t("common.buttons.update")
+            }}</Button>
+          </div>
+        </template>
+        <div v-else-if="!hasPermission(CAN_EDIT_DOCUMENT)" class="my-1 text-center sm:my-4">{{ t("common.status.editingNotAllowed") }}</div>
+        <div v-else-if="!classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+        <div v-else class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
+      </div>
     </div>
   </div>
   <Teleport to="footer">

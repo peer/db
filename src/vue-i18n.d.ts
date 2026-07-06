@@ -88,6 +88,7 @@ declare module "vue-i18n" {
         requiredPrecision: string
         invalid: string
         invalidPrecision: string
+        unfinished: string
       }
     }
     partials: {
@@ -132,12 +133,12 @@ declare module "vue-i18n" {
           dropOrBrowse: string
           noPermission: string
         }
+        InputLink: {
+          hint: string
+        }
         InputRef: {
           invalidValue: string
           noResults: string
-        }
-        InputRefSelect: {
-          noOptions: string
         }
         InputTime: {
           format: string
@@ -174,6 +175,9 @@ declare module "vue-i18n" {
             subseconds: string
           }
         }
+      }
+      ClaimRefSelect: {
+        noOptions: string
       }
       Footer: {
         poweredBy: string
@@ -226,6 +230,8 @@ declare module "vue-i18n" {
         determiningFilters: string
         skipToFilters: string
         skipToResults: string
+        resultsScoped: string
+        clearScoped: string
         resultsReferencing: string
         resultsReferencingExpanded: string
         expandReferencing: string
@@ -270,7 +276,7 @@ declare module "vue-i18n" {
         to: string
       }
       TableOfContents: {
-        label: string
+        title: string
       }
       TimeDisplay: {
         relative: {

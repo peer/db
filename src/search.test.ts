@@ -10,8 +10,8 @@ describe("queryToPrefilterPayloads", () => {
     assert.deepEqual(payloads, [{ prop: ["prop"], to: [{ id: "a" }, { id: "c" }], direct: [{ id: "b" }], missing: true }])
   })
 
-  test("splits nested keys on ':' and skips reverse/language", () => {
-    const payloads = queryToPrefilterPayloads({ "parent:prop": ["x"], reverse: ["doc"], language: ["sl"] })
+  test("splits nested keys on ':' and skips reverse/id/language", () => {
+    const payloads = queryToPrefilterPayloads({ "parent:prop": ["x"], reverse: ["doc"], id: ["doc1", "doc2"], language: ["sl"] })
     assert.deepEqual(payloads, [{ prop: ["parent", "prop"], to: [{ id: "x" }], direct: [], missing: false }])
   })
 

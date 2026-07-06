@@ -182,6 +182,7 @@ func TestFiltersGetIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	filterResults, metadata, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", search.PrefilterExcludes{})
@@ -318,6 +319,7 @@ func TestFiltersGetWithQueryIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", search.PrefilterExcludes{})
@@ -413,6 +415,7 @@ func TestFiltersGetAmountTimeValueDisplayQueryIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	// hasFacet reports whether a facet of the given type for the given prop is in the results.
@@ -534,6 +537,7 @@ func TestFiltersGetSubAmountTimeValueDisplayQueryIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	// hasSubFacet reports whether a sub-facet (keyed by parentProp + prop) of the given type is in the results.
@@ -621,6 +625,7 @@ func TestFiltersGetAmountMissingUnitIntegration(t *testing.T) {
 		Prefilters:    nil,
 		Reverse:       nil,
 		ReverseExpand: false,
+		IDs:           nil,
 	})
 
 	filterResults, _, errE := search.FiltersGet(ctx, getSearchService, session, nil, "", search.PrefilterExcludes{})

@@ -68,12 +68,14 @@ func (c Changes) Apply(doc *D) errors.E {
 	return nil
 }
 
-// Validate validates all changes in the slice.
-func (c Changes) Validate(base []string) errors.E {
+// Validate validates all changes in the slice, numbering them as operations
+// startOperation+1 onward.
+func (c Changes) Validate(base []string, startOperation int64) errors.E {
 	for i, change := range c {
-		errE := change.Validate(base, int64(i+1))
+		operation := startOperation + int64(i) + 1
+		errE := change.Validate(base, operation)
 		if errE != nil {
-			errors.Details(errE)["change"] = i + 1
+			errors.Details(errE)["change"] = operation
 			return errE
 		}
 	}
@@ -205,13 +207,14 @@ var (
 // ClaimPatch represents a modification that can be applied to create or update a claim.
 type ClaimPatch interface {
 	New(id identifier.Identifier) (Claim, errors.E)
+
+	// Apply applies the patch to the given claim. It always internally calls Validate.
 	Apply(claim Claim) errors.E
 
 	// Validate checks the patch on its own, without access to the target claim: at least
 	// one field has to be set and fields which are set have to be valid by themselves.
-	// This allows rejecting an invalid patch already when it is appended to an edit
-	// session, instead of when the session completes. Completeness is checked by New and
-	// constraints which need the target claim are checked by Apply.
+	// Completeness is checked by New and constraints which need the target claim are
+	// checked by Apply.
 	Validate() errors.E
 }
 
@@ -320,8 +323,7 @@ func (c AddClaimChange) Validate(base []string, operation int64) errors.E {
 		return errE
 	}
 	// Constructing the claim from the patch checks that the patch is complete; validating it checks
-	// the resulting claim is valid. This rejects an invalid add already when it is appended to an edit
-	// session, instead of when the session completes.
+	// the resulting claim is valid.
 	newClaim, errE := c.Patch.New(c.ID)
 	if errE != nil {
 		return errE
@@ -397,7 +399,7 @@ func (c SetClaimChange) Apply(doc *D) errors.E {
 // Validate validates the set claim change.
 func (c SetClaimChange) Validate(_ []string, _ int64) errors.E {
 	// Patches in set changes can be partial, so only the fields which are set are
-	// checked here. The full result is validated by Apply when the session completes.
+	// checked here. The full result is validated by Apply.
 	return c.Patch.Validate()
 }
 

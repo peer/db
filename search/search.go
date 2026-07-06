@@ -626,6 +626,9 @@ func (k SortKey) isFilter() bool {
 //
 // When Reverse is set, the session is scoped to documents which have a ref claim
 // (for any property) whose "to" target equals Reverse.
+//
+// When IDs is non-empty, the session is scoped to documents whose own ID is one
+// of the listed values.
 type SessionData struct {
 	View     ViewType `json:"view,omitempty"`
 	Query    string   `json:"query,omitempty"`
@@ -638,7 +641,8 @@ type SessionData struct {
 	Reverse    *identifier.Identifier `json:"reverse,omitempty"`
 	// ReverseExpand, valid only when Reverse is set, is purely presentational: in the print view it renders
 	// the referenced target as its full result card instead of a one-line "results referencing" heading.
-	ReverseExpand bool `json:"reverseExpand,omitempty"`
+	ReverseExpand bool                    `json:"reverseExpand,omitempty"`
+	IDs           []identifier.Identifier `json:"ids,omitempty"`
 	// Sort is the effective sort order: an ordered list of columns. Empty means the default order
 	// (relevance, then time, then display label). A leading run of group=true ref columns groups results.
 	Sort []SortKey `json:"sort,omitempty"`
@@ -789,6 +793,17 @@ func reverseScopeQuery(id identifier.Identifier) types.QueryVariant { //nolint:i
 	).MinimumShouldMatch(esdsl.NewMinimumShouldMatch().Int(1))
 }
 
+// idsScopeQuery returns a query matching documents whose own ID is one of ids. It queries
+// the indexed id field rather than the internal _id field because a document may have
+// multiple IDs, and the id field can then hold all of them.
+func idsScopeQuery(ids []identifier.Identifier) types.QueryVariant { //nolint:ireturn
+	values := make([]types.FieldValueVariant, 0, len(ids))
+	for _, id := range ids {
+		values = append(values, esdsl.NewFieldValue().String(id.String()))
+	}
+	return esdsl.NewTermsQuery().AddTermsQuery("id", esdsl.NewTermsQueryField().FieldValues(values...))
+}
+
 // withFilters returns musts as a bool query, adding any non-nil filters as filter clauses.
 //
 // When there are no scoring (must) clauses the documents are selected purely by membership, and we
@@ -832,7 +847,7 @@ func (s *SessionData) ToQuery(enabledLanguages []string, extraFilters ...types.Q
 		musts = append(musts, s.filterQuery(&s.Filters[i], nil))
 	}
 
-	filters := make([]types.QueryVariant, 0, len(extraFilters)+len(s.Prefilters)+1)
+	filters := make([]types.QueryVariant, 0, len(extraFilters)+len(s.Prefilters)+2) //nolint:mnd
 	filters = append(filters, extraFilters...)
 
 	// Prefilters constrain the result set like filters but go into the filter clause, so
@@ -846,6 +861,12 @@ func (s *SessionData) ToQuery(enabledLanguages []string, extraFilters ...types.Q
 	// and does not contribute to _score.
 	if s.Reverse != nil {
 		filters = append(filters, reverseScopeQuery(*s.Reverse))
+	}
+
+	// IDs scope results to an explicit document set. It is a pure membership constraint,
+	// so it goes in the filter clause and does not contribute to _score.
+	if len(s.IDs) > 0 {
+		filters = append(filters, idsScopeQuery(s.IDs))
 	}
 
 	return withFilters(musts, filters)
@@ -871,7 +892,7 @@ func (s *SessionData) ToQueryExcluding( //nolint:ireturn
 		musts = append(musts, s.filterQuery(&s.Filters[i], &excludeFilterID))
 	}
 
-	filters := make([]types.QueryVariant, 0, len(extraFilters)+len(s.Prefilters)+1)
+	filters := make([]types.QueryVariant, 0, len(extraFilters)+len(s.Prefilters)+2) //nolint:mnd
 	filters = append(filters, extraFilters...)
 
 	// Prefilters constrain the result set like filters but go into the filter clause, so
@@ -889,6 +910,12 @@ func (s *SessionData) ToQueryExcluding( //nolint:ireturn
 	// and does not contribute to _score.
 	if s.Reverse != nil {
 		filters = append(filters, reverseScopeQuery(*s.Reverse))
+	}
+
+	// IDs scope results to an explicit document set. It is a pure membership constraint,
+	// so it goes in the filter clause and does not contribute to _score.
+	if len(s.IDs) > 0 {
+		filters = append(filters, idsScopeQuery(s.IDs))
 	}
 
 	return withFilters(musts, filters)

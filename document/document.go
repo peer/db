@@ -3,6 +3,7 @@ package document
 import (
 	"iter"
 
+	"github.com/mohae/deepcopy"
 	"gitlab.com/tozd/go/errors"
 	"gitlab.com/tozd/identifier"
 )
@@ -53,6 +54,15 @@ func (d D) Reference() Reference {
 	return Reference{
 		ID: d.ID,
 	}
+}
+
+// Clone returns a deep copy of the document.
+func (d *D) Clone() (*D, errors.E) {
+	clone, ok := deepcopy.Copy(d).(*D)
+	if !ok {
+		return nil, errors.New("deep copy returned unexpected type")
+	}
+	return clone, nil
 }
 
 // Visit applies a visitor to the document's claims.

@@ -155,10 +155,21 @@ func (s *Service) StorageUploadChunkPostAPI(w http.ResponseWriter, req *http.Req
 	s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
 }
 
-// StorageListChunksGetAPI handles GET requests to list all uploaded chunks for a file upload session.
+// lastOperationResponse is the response shape of the APIs which return the sequence number
+// of the latest operation in a coordinator session. 0 when there are none. Operations are
+// numbered sequentially without gaps starting at 1, so the session's operations are exactly
+// 1 through lastOperation.
+type lastOperationResponse struct {
+	LastOperation int64 `json:"lastOperation"`
+}
+
+// StorageLastChunkGetAPI handles GET requests to get the sequence number of the latest chunk
+// uploaded to a file upload session, 0 when there are none. Chunks are numbered sequentially
+// without gaps starting at 1, so the session's chunks are exactly 1 through the returned
+// number.
 //
 //nolint:dupl
-func (s *Service) StorageListChunksGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
+func (s *Service) StorageLastChunkGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
 	errE := s.HasPermission(ctx, auth.CanEditFile)
@@ -175,11 +186,11 @@ func (s *Service) StorageListChunksGetAPI(w http.ResponseWriter, req *http.Reque
 
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
-	chunks, errE := site.Base.ListChunks(ctx, session)
+	lastChunk, errE := site.Base.LastChunk(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, coordinator.ErrAlreadyEnded) {
+	} else if errors.Is(errE, coordinator.ErrAlreadyCompleted) {
 		s.NotFoundWithError(w, req, errE)
 		return
 	} else if errors.Is(errE, store.ErrAccessDenied) {
@@ -190,7 +201,7 @@ func (s *Service) StorageListChunksGetAPI(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	s.WriteJSON(w, req, chunks, nil)
+	s.WriteJSON(w, req, lastOperationResponse{LastOperation: lastChunk}, nil)
 }
 
 type storageGetChunkResponse struct {

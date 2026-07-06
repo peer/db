@@ -1,11 +1,14 @@
 import type { DeepReadonly, InjectionKey } from "vue"
 
 import type { Claim, ClaimTypeName, TimePrecision } from "@/document"
+import type { FieldsFormFlush, SaveChangeResult, SaveChangeSpec } from "@/types"
 
 import {
   CARDINALITY,
   FIELD,
+  FIELD_CONTEXT,
   FIELD_DEFAULT,
+  FIELD_INSTRUCTION,
   FIELD_VALUES,
   FIELDS,
   HAS_PROPERTY,
@@ -42,6 +45,7 @@ import {
   LinkClaim,
   NoneClaim,
   ReferenceClaim,
+  selectClaimsByLanguage,
   StringClaim,
   TimeClaim,
   TimeIntervalClaim,
@@ -75,6 +79,29 @@ export interface FieldData {
   // may be stored as a NoneClaim/UnknownClaim (carrying any sub-claims) instead of a value
   // claim.
   default?: "none" | "unknown"
+  // The field claim's sub-claims, holding among others the FIELD_INSTRUCTION HTML claims
+  // (with IN_LANGUAGE sub-claims) the instructions are picked from by language (see
+  // getFieldInstructions).
+  claims?: DeepReadonly<ClaimTypes>
+  // FIELD_CONTEXT values: opaque context identifiers from the field's configuration.
+  // The read-only views skip fields with the "edit" context (see fieldShownInView).
+  context?: readonly string[]
+}
+
+// fieldShownInView reports whether the read-only views render the field. A field
+// marked with the "edit" context should be available only for editing, so only the
+// edit form renders it.
+export function fieldShownInView(field: DeepReadonly<FieldData>): boolean {
+  return !field.context?.includes("edit")
+}
+
+// isSimpleField reports whether a field renders as a single (non-repeating)
+// value with no sub-fields. Spacing in FieldsForm widens around non-simple
+// fields: a group of sibling fields uses gap-8 when any member is non-simple
+// (else gap-4); the repeated entries of a field use gap-8 when the field has
+// sub-fields (else gap-4); sections are separated by gap-12.
+export function isSimpleField(field: DeepReadonly<FieldData>): boolean {
+  return field.maxCardinality <= 1 && field.subFields.length === 0
 }
 
 // fieldSignature encodes a field's identity beyond its propertyId: its value type, default, and
@@ -92,14 +119,34 @@ export function fieldKey(field: DeepReadonly<FieldData>): string {
   return `${field.path.join("/")}#${fieldSignature(field)}`
 }
 
-// SectionData represents a section of fields with an identifier and ordering.
+// SectionData represents a section of fields with an identifier, translated names, and ordering.
 export interface SectionData {
-  // Section identifier.
+  // Section identifier (the NAME identifier claim). Sections declared by multiple classes
+  // merge when they share the same identifier; also used as the render key.
   id: string
+  // The section claim's sub-claims, holding the NAME string claims (with IN_LANGUAGE
+  // sub-claims) the display name is picked from by language (see getSectionName).
+  claims?: DeepReadonly<ClaimTypes>
   // Numeric order for sorting.
   orderInList: number
   // Fields within this section.
   fields: readonly FieldData[]
+}
+
+// sectionElementId returns the DOM id of a section's rendered header, used as the
+// scroll/hash target of the table of contents.
+export function sectionElementId(section: DeepReadonly<SectionData>): string {
+  return `section-${section.id}`
+}
+
+// getSectionName picks the section's display name for the given language, using the language
+// fallback chain. When no language in the chain has a name, the section identifier is used.
+export function getSectionName(section: DeepReadonly<SectionData>, language: string): string {
+  const claims = selectClaimsByLanguage(section.claims, "string", NAME, language, (c) => c.length > 0 && !!c[0].string)
+  if (claims && claims.length > 0) {
+    return claims[0].string
+  }
+  return section.id
 }
 
 // FieldsData represents all fields and sections.
@@ -156,6 +203,8 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
 
   const valueClaim = getBestClaimOfType(claimsTypes, "string", FIELD_VALUES)
 
+  const contextClaims = getClaimsOfTypeWithConfidence(claimsTypes, "string", FIELD_CONTEXT)
+
   const defaultRef = getBestClaimOfType(claimsTypes, "ref", FIELD_DEFAULT)
   let fieldDefault: "none" | "unknown" | undefined
   if (defaultRef?.to.id === VT_NONE) {
@@ -174,7 +223,17 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
     path: thisPath,
     values: valueClaim?.string || undefined,
     default: fieldDefault,
+    claims: claimsTypes,
+    context: contextClaims.length > 0 ? contextClaims.map((claim) => claim.string) : undefined,
   }
+}
+
+// getFieldInstructions returns the field's instructions for the given language, using the
+// language fallback chain: the FIELD_INSTRUCTION HTML claims from the field's configuration,
+// longer form guidance shown after the value input's hints. Returns an empty array when the
+// field has no instructions.
+export function getFieldInstructions(field: DeepReadonly<FieldData>, language: string): DeepReadonly<HTMLClaim>[] {
+  return selectClaimsByLanguage(field.claims, "html", FIELD_INSTRUCTION, language, (c) => c.length > 0 && !!c[0].html) ?? []
 }
 
 // extractFieldsFromClaims extracts FieldsData from a class document's claims.
@@ -196,7 +255,6 @@ export function extractFieldsFromClaims(claims: DeepReadonly<ClaimTypes> | undef
   const sectionClaims = getClaimsOfTypeWithConfidence(fieldsClaim.sub, "has", SECTION)
   for (const sectionClaim of sectionClaims) {
     const idClaim = getBestClaimOfType(sectionClaim.sub, "id", NAME)
-    const sectionId = idClaim ? idClaim.value : ""
     const orderClaim = getBestClaimOfType(sectionClaim.sub, "amount", ORDER_IN_LIST)
 
     const sectionFields: FieldData[] = []
@@ -210,7 +268,8 @@ export function extractFieldsFromClaims(claims: DeepReadonly<ClaimTypes> | undef
     sectionFields.sort((a, b) => a.orderInList - b.orderInList)
 
     sections.push({
-      id: sectionId,
+      id: idClaim ? idClaim.value : "",
+      claims: sectionClaim.sub,
       orderInList: orderClaim ? parseFloat(orderClaim.amount) || 0 : 0,
       fields: sectionFields,
     })
@@ -333,22 +392,49 @@ export function valueTypeToClaimType(valueTypeId: string): ClaimTypeName {
   throw new Error(`unsupported value type: ${valueTypeId}`)
 }
 
-// FieldsFormSaveChange is a fully constructed change object emitted by FieldsForm, ready to be posted.
-export interface FieldsFormSaveChange {
-  change: object
-  changeNumber: number
-}
-
-// FlushFn is a function that flushes pending changes from a FieldsForm instance.
-export type FlushFn = () => Promise<FieldsFormSaveChange[]>
+// ChangeDroppedError rejects a queued change which was dropped instead of committed:
+// after losing its change number to a concurrent change it no longer applies to the
+// current document, or the server rejected it as invalid. The slot holding the claim
+// resyncs to the committed state when it observes this error.
+export class ChangeDroppedError extends Error {}
 
 // Injection keys for FieldsForm shared services (using Symbol.for for deduplication in dev).
 // See progress.ts for the pattern.
-export const getNextChangeNumberKey: InjectionKey<() => number> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-getNextChangeNumber") : Symbol()
-export const saveChangeKey: InjectionKey<(change: object, changeNumber: number) => Promise<void>> =
+export const saveChangeKey: InjectionKey<(spec: SaveChangeSpec) => Promise<SaveChangeResult>> =
   process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-saveChange") : Symbol()
-export const registerForFlushKey: InjectionKey<(instance: FlushFn) => void> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-registerForFlush") : Symbol()
-export const unregisterForFlushKey: InjectionKey<(instance: FlushFn) => void> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-unregisterForFlush") : Symbol()
+export const registerForFlushKey: InjectionKey<(instance: FieldsFormFlush) => void> =
+  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-registerForFlush") : Symbol()
+export const unregisterForFlushKey: InjectionKey<(instance: FieldsFormFlush) => void> =
+  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-unregisterForFlush") : Symbol()
+
+// getCommittedClaimKey provides a lookup of a claim by id in the document with all
+// committed session changes applied. Slots use it to resync to the committed state after
+// a dropped change or a remote conflict.
+export const getCommittedClaimKey: InjectionKey<(id: string) => DeepReadonly<Claim> | null> =
+  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-getCommittedClaim") : Symbol()
+
+// Remote conflict handlers: DocumentEdit notifies these with the set of claim ids touched
+// by committed changes from other session editors whenever the subscription applies
+// them. The set also contains the ancestor claim ids of every touched claim. Each slot
+// (ClaimInput) holding a touched claim resyncs to the committed state, discarding local
+// work (server wins).
+// TODO: Implement better conflict handling and change comment above.
+export const registerRemoteConflictKey: InjectionKey<(handler: (claimIds: ReadonlySet<string>) => void) => void> =
+  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-registerRemoteConflict") : Symbol()
+export const unregisterRemoteConflictKey: InjectionKey<(handler: (claimIds: ReadonlySet<string>) => void) => void> =
+  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-unregisterRemoteConflict") : Symbol()
+
+// Remote add handlers: notified with the same touched set as the conflict handlers, but
+// only after the render flush has propagated resynced claims into every cardinality's
+// modelValue. Each ClaimCardinality then adds slots for remotely added claims of its
+// field which no slot represents yet, reporting whether it added any. Handlers run in
+// rounds (see loadChanges in DocumentEdit): a filled slot feeds its sub-cardinalities'
+// modelValue only after the next render flush, so each round can reveal claims one
+// nesting level deeper.
+export const registerRemoteAddsKey: InjectionKey<(handler: (claimIds: ReadonlySet<string>) => boolean) => void> =
+  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-registerRemoteAdds") : Symbol()
+export const unregisterRemoteAddsKey: InjectionKey<(handler: (claimIds: ReadonlySet<string>) => boolean) => void> =
+  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-unregisterRemoteAdds") : Symbol()
 
 // fieldLabelCellKey provides the field's label cell element. ClaimInput's
 // focusout handler uses it to skip the per-slot commit when focus is on
@@ -548,7 +634,8 @@ export function isIntervalField(field: FieldData): boolean {
 
 // makePatchForField creates a patch object for a field from a FieldEntryValue.
 // Per-side missing-state flags (fromUnknown/fromNone/toUnknown/toNone) take
-// precedence over a typed value for that side.
+// precedence over a typed value for that side. An interval bound with no value
+// and no flag defaults to unknown.
 export function makePatchForField(field: FieldData, data: FieldEntryValue): object {
   const claimType = valueTypeToClaimType(field.valueType)
   const base = { type: claimType, confidence: HighConfidence, prop: field.propertyId }
@@ -574,7 +661,7 @@ export function makePatchForField(field: FieldData, data: FieldEntryValue): obje
         const fp = parseFloat(data.amountPrecision)
         patch.fromPrecision = isFinite(fp) && fp > 0 ? fp : 1
       } else {
-        patch.fromIsNone = true
+        patch.fromIsUnknown = true
       }
       if (data.toUnknown) {
         patch.toIsUnknown = true
@@ -585,7 +672,7 @@ export function makePatchForField(field: FieldData, data: FieldEntryValue): obje
         const tp = parseFloat(data.amountPrecisionTo)
         patch.toPrecision = isFinite(tp) && tp > 0 ? tp : 1
       } else {
-        patch.toIsNone = true
+        patch.toIsUnknown = true
       }
       return patch
     }
@@ -601,7 +688,7 @@ export function makePatchForField(field: FieldData, data: FieldEntryValue): obje
         patch.from = data.value
         patch.fromPrecision = data.timePrecision
       } else {
-        patch.fromIsNone = true
+        patch.fromIsUnknown = true
       }
       if (data.toUnknown) {
         patch.toIsUnknown = true
@@ -611,7 +698,7 @@ export function makePatchForField(field: FieldData, data: FieldEntryValue): obje
         patch.to = data.valueTo
         patch.toPrecision = data.timePrecisionTo
       } else {
-        patch.toIsNone = true
+        patch.toIsUnknown = true
       }
       return patch
     }

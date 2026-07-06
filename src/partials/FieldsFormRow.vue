@@ -27,9 +27,9 @@ component for those.
 import type { DeepReadonly, WritableComputedRef } from "vue"
 
 import type { FieldData, FieldEntryValue } from "@/fields"
-import type { ValidatedInput } from "@/types"
+import type { InputColumn, ValidatedInput } from "@/types"
 
-import { computed, onMounted, watch } from "vue"
+import { computed, shallowRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
 import { VT_FILE } from "@/core"
@@ -42,7 +42,7 @@ import InputLink from "@/partials/input/InputLink.vue"
 import InputRef from "@/partials/input/InputRef.vue"
 import InputString from "@/partials/input/InputString.vue"
 import InputTime from "@/partials/input/InputTime.vue"
-import InputErrors from "@/partials/InputErrors.vue"
+import InputField from "@/partials/InputField.vue"
 import InputMissing from "@/partials/InputMissing.vue"
 import { allErrors, useRegisterForValidation, useValidationRegistry } from "@/validation"
 
@@ -55,22 +55,65 @@ const props = defineProps<{
   // Presentational red ring on the input. Used for the cardinality-short
   // visual hint, orthogonal to per-input validation errors.
   invalid: boolean
+  // Renders every inner input read-only (grayed and non-interactive, but selectable).
+  // Set by ClaimInput while the slot's changes are queued or in flight.
+  readonly?: boolean
+  // Per-bound revert for the interval InputFields, bound to their side via boundRevert,
+  // so each bound's changed badge reverts only its own bound and posts the reverting
+  // changes right away (see the revert prop on InputField). Non-interval inputs render
+  // no badge of their own (hide-badge): the whole-entry changed/revert lives one level
+  // up (the field label, the cardinality count, or the sub-field header).
+  revert?: (side: "from" | "to") => void
+  // Id of the (sub)field's label element, threaded down from the field's
+  // ClaimCardinality, so a bare single-column input is named via InputField's
+  // labelledby. Undefined when not in a FieldsForm context.
+  labelId?: string
+  // Suppress the inputs' own labels row. Set by the enclosing cardinality on a
+  // repeated field's entries: it hoists the shared column labels above all entries.
+  // Not applied to the interval bounds - their labels carry the per-bound revert
+  // badges, so they stay per entry. Hints are always suppressed on the inner
+  // InputFields (hide-hints): the cardinality renders them below the whole field,
+  // combined with the field's instructions, outside the rails.
+  hideLabels?: boolean
 }>()
 
-// Notify the parent on any user-driven model change. Emitted by every
-// inner input's @update:model-value handler.
-const emit = defineEmits<{ input: [] }>()
+// input notifies the parent on any user-driven model change; it is emitted by every
+// inner input's @update:model-value handler. missingChange additionally fires when a
+// missing-state checkbox (unknown/none) of the given interval bound is toggled, so the
+// parent can commit a newly checked state immediately instead of waiting for blur.
+// completeChange additionally fires for model changes which are complete decisions on
+// their own (a finished file upload, a cleared file): there is no natural blur after
+// them (focus never left the slot), so the parent commits immediately as well.
+const emit = defineEmits<{ input: []; missingChange: [side: "from" | "to"]; completeChange: [] }>()
 
 // One v-model for the whole entry. Parent (ClaimInput) owns a single
 // reactive FieldEntryValue; each inner input updates its own slice via
 // the computed wrappers below, which spread the entry and emit it back.
 const entry = defineModel<FieldEntryValue>("entry", { default: () => emptyFieldEntryValue() })
 
+// Writes from the inner inputs can come in bursts within one tick (e.g. the missing-state
+// checkboxes keep unknown/none mutually exclusive with two consecutive writes). The entry
+// model only emits upward - until the parent re-renders, entry.value keeps returning the
+// previous object - so a second write would spread the stale base and silently drop the
+// first one. head is the newest written object, used as the base until the parent's next
+// entry value arrives (our own write round-tripping back, or an external replacement,
+// which then wins).
+const head = shallowRef<FieldEntryValue | null>(null)
+watch(
+  () => entry.value,
+  () => {
+    head.value = null
+  },
+  { flush: "sync" },
+)
+
 function fieldRef<K extends keyof FieldEntryValue>(key: K): WritableComputedRef<FieldEntryValue[K]> {
   return computed({
-    get: () => entry.value[key],
+    get: () => (head.value ?? entry.value)[key],
     set: (v) => {
-      entry.value = { ...entry.value, [key]: v }
+      const next = { ...(head.value ?? entry.value), [key]: v }
+      head.value = next
+      entry.value = next
     },
   })
 }
@@ -111,6 +154,36 @@ const { validateAll, resetAll, revertAll, checkpointAll, anyDirty, allEmpty, inp
   forwardInteraction?.()
 })
 
+// The value input's columns, concatenated across the inner inputs in registration
+// order (a single input's columns for a scalar, "from" then "to" for an interval).
+// The list is a content summary of which columns the row's inputs declare, NOT a
+// claim about their visual arrangement (an interval renders its bounds side by
+// side when they fit and stacked when not), so consumers must not infer geometry
+// from it. A column-less input counts as one unlabeled column (the same fallback
+// InputField/InputMissing use), so it is not skipped.
+const columns = computed<InputColumn[]>(() => {
+  const all: InputColumn[] = []
+  for (const input of inputs) {
+    all.push(...(input.columns?.value ?? [{ label: "", el: () => input.inputEl() ?? null }]))
+  }
+  return all
+})
+
+// The inner inputs' hint lines, deduplicated (the two interval bounds declare the
+// same format hint). The enclosing cardinality renders them once under all entries
+// of a repeated field.
+const hints = computed<string[]>(() => {
+  const all: string[] = []
+  for (const input of inputs) {
+    for (const hint of input.hints?.value ?? []) {
+      if (!all.includes(hint)) {
+        all.push(hint)
+      }
+    }
+  }
+  return all
+})
+
 const validatedInput: ValidatedInput = {
   validate: validateAll,
   reset: resetAll,
@@ -128,6 +201,8 @@ const validatedInput: ValidatedInput = {
   // skip empty rows in values()/entries().
   isEmpty: allEmpty,
   errors: allErrors(inputs),
+  columns,
+  hints,
   checkpoint: checkpointAll,
 }
 
@@ -137,177 +212,262 @@ forwardInteraction = notifyOuter
 defineExpose(validatedInput)
 
 // The inner inputs' validators (e.g. InputString) close over props.required,
-// but useValidation only re-runs on model changes, not on prop changes.
-// Watch props.required and re-run validateAll so toggling the prop (from
-// ClaimCardinality flipping the missing-min indicator on) immediately
-// surfaces or clears each input's "Required value." text - instead of
-// waiting for the next model edit or blur.
+// but useValidation re-runs only on model changes, not on prop changes. When a
+// slot stops being designated (required goes false), re-validate so any
+// "Required value." it was showing clears at once. We deliberately do NOT
+// re-validate when required goes true: the "required" badge is driven by the
+// prop alone, while the "Required value." text must wait for the user to leave
+// the empty slot (the input's own @blur), so a slot that just became required
+// (or a freshly-opened form) does not light up before it is touched.
+//
+// flush: "post" is essential: props.required propagates DOWN to the inner input
+// during render, so at the default "pre" timing the input still sees required=true
+// and validateAll would re-assert the very "Required value." we mean to clear
+// (InputTime even sets its own triggered=true in validate()). Running after the
+// render lets the input observe required=false, so it validates clean and clears.
 watch(
   () => props.required,
-  () => {
-    void validateAll()
+  (isRequired) => {
+    if (!isRequired) {
+      void validateAll()
+    }
   },
+  { flush: "post" },
 )
 
-// Also run validation on mount once the inner inputs have registered.
-// Without this, a fresh row mounted with required=true already set (e.g.
-// the cardinality dropped the row the user just cleared and grew a new
-// trailing-empty in its place) would not surface "Required value." until
-// the next user interaction - useValidation's own immediate watch runs
-// with options.initial=true, which the validator skips on purpose to
-// avoid yelling at form-load.
-onMounted(() => {
-  if (props.required) {
-    void validateAll()
+// boundRevert binds the slot-level revert to one interval side. Undefined when no
+// revert was given, so InputField falls back to its local checkpoint restore.
+function boundRevert(side: "from" | "to"): (() => void) | undefined {
+  const revert = props.revert
+  if (!revert) {
+    return undefined
   }
-})
+  return () => revert(side)
+}
 
 function onInput() {
   emit("input")
 }
+
+function onMissingInput(side: "from" | "to") {
+  emit("input")
+  emit("missingChange", side)
+}
+
+function onCompleteInput() {
+  emit("input")
+  emit("completeChange")
+}
 </script>
 
 <template>
+  <!--
+    Each value input is wrapped in InputField. InputField renders the per-input
+    labels for multi-column inputs (amount/precision, interval bounds), or
+    nothing for single-column inputs (their label lives in FieldsFormField's
+    left cell, referenced via labelledby). Only the interval bounds carry a
+    changed/revert badge of their own (per bound); for everything else the
+    changed/revert lives one level up. required/invalid flow to the inner
+    input through InputField's slot props.
+  -->
   <!-- id -->
-  <InputErrors v-if="claimType === 'id'" v-slot="errorProps" class="min-w-0 flex-auto grow">
-    <InputIdentifier v-bind="errorProps" v-model="value" :required="required" :invalid="invalid" @update:model-value="onInput" />
-  </InputErrors>
+  <InputField v-if="claimType === 'id'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
+    <template #input="inputProps">
+      <InputIdentifier v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
+    </template>
+  </InputField>
 
   <!-- string -->
-  <InputErrors v-else-if="claimType === 'string'" v-slot="errorProps" class="min-w-0 flex-auto grow">
-    <InputString v-bind="errorProps" v-model="value" :required="required" :invalid="invalid" @update:model-value="onInput" />
-  </InputErrors>
+  <InputField v-else-if="claimType === 'string'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
+    <template #input="inputProps">
+      <InputString v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
+    </template>
+  </InputField>
 
   <!-- html -->
-  <InputErrors v-else-if="claimType === 'html'" v-slot="errorProps" class="min-w-0 flex-auto grow">
-    <InputHTML v-bind="errorProps" v-model="value" :required="required" :invalid="invalid" @update:model-value="onInput" />
-  </InputErrors>
+  <InputField v-else-if="claimType === 'html'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
+    <template #input="inputProps">
+      <InputHTML v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
+    </template>
+  </InputField>
 
   <!-- amount -->
-  <InputErrors v-else-if="claimType === 'amount'" v-slot="errorProps" class="min-w-0 flex-auto grow">
-    <InputAmount
-      v-bind="errorProps"
-      v-model="value"
-      v-model:precision="amountPrecision"
-      :required="required"
-      :invalid="invalid"
-      @update:model-value="onInput"
-      @update:precision="onInput"
-    />
-  </InputErrors>
+  <InputField v-else-if="claimType === 'amount'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints :hide-labels="hideLabels">
+    <template #input="inputProps">
+      <InputAmount
+        v-bind="inputProps"
+        v-model="value"
+        v-model:precision="amountPrecision"
+        :readonly="readonly"
+        @update:model-value="onInput"
+        @update:precision="onInput"
+      />
+    </template>
+  </InputField>
 
   <!--
-    amountInterval - "from" and "to" stack vertically, one per sub-row.
-    The min-w-0/flex-auto/grow on each InputErrors cascades through
-    InputMissing's slot down to InputAmount's root, so the amount input
-    column grows to fill the row width (otherwise InputAmount's root
-    would sit at natural width inside InputMissing's growing slot).
+    amountInterval - "from" and "to", one InputField each, side by side when both
+    fit at their natural widths, stacked otherwise. flex-wrap decides from the
+    flex base (max-content) sizes, so the bounds never shrink to avoid wrapping;
+    no breakpoint and no observer needed.
   -->
-  <div v-else-if="claimType === 'amountInterval'" class="flex min-w-0 flex-auto grow flex-col gap-y-1">
-    <InputErrors v-slot="errorProps" class="min-w-0 flex-auto grow">
-      <InputMissing
-        v-bind="errorProps"
-        v-model:unknown="fromUnknown"
-        v-model:none="fromNone"
-        :required="required"
-        :invalid="invalid"
-        @update:unknown="onInput"
-        @update:none="onInput"
-      >
-        <template #default="missingProps">
-          <InputAmount v-bind="missingProps" v-model="value" v-model:precision="amountPrecision" @update:model-value="onInput" @update:precision="onInput">
-            <template #amount-label>{{ t("partials.FieldsForm.from") }}</template>
-          </InputAmount>
-        </template>
-      </InputMissing>
-    </InputErrors>
-    <InputErrors v-slot="errorProps" class="min-w-0 flex-auto grow">
-      <InputMissing
-        v-bind="errorProps"
-        v-model:unknown="toUnknown"
-        v-model:none="toNone"
-        :required="required"
-        :invalid="invalid"
-        @update:unknown="onInput"
-        @update:none="onInput"
-      >
-        <template #default="missingProps">
-          <InputAmount v-bind="missingProps" v-model="valueTo" v-model:precision="amountPrecisionTo" @update:model-value="onInput" @update:precision="onInput">
-            <template #amount-label>{{ t("partials.FieldsForm.to") }}</template>
-          </InputAmount>
-        </template>
-      </InputMissing>
-    </InputErrors>
+  <div v-else-if="claimType === 'amountInterval'" class="flex min-w-0 flex-row flex-wrap items-start gap-x-8 gap-y-4">
+    <InputField
+      :required="required"
+      hide-required-badge
+      :invalid="invalid"
+      :labelledby="labelId"
+      :label="t('partials.FieldsForm.from')"
+      :revert="boundRevert('from')"
+      hide-hints
+    >
+      <template #input="inputProps">
+        <InputMissing
+          v-bind="inputProps"
+          v-model:unknown="fromUnknown"
+          v-model:none="fromNone"
+          :readonly="readonly"
+          @update:unknown="onMissingInput('from')"
+          @update:none="onMissingInput('from')"
+        >
+          <template #default="missingProps">
+            <InputAmount
+              v-bind="missingProps"
+              v-model="value"
+              v-model:precision="amountPrecision"
+              :readonly="readonly"
+              @update:model-value="onInput"
+              @update:precision="onInput"
+            />
+          </template>
+        </InputMissing>
+      </template>
+    </InputField>
+    <InputField
+      :required="required"
+      hide-required-badge
+      :invalid="invalid"
+      :labelledby="labelId"
+      :label="t('partials.FieldsForm.to')"
+      :revert="boundRevert('to')"
+      hide-hints
+    >
+      <template #input="inputProps">
+        <InputMissing
+          v-bind="inputProps"
+          v-model:unknown="toUnknown"
+          v-model:none="toNone"
+          :readonly="readonly"
+          @update:unknown="onMissingInput('to')"
+          @update:none="onMissingInput('to')"
+        >
+          <template #default="missingProps">
+            <InputAmount
+              v-bind="missingProps"
+              v-model="valueTo"
+              v-model:precision="amountPrecisionTo"
+              :readonly="readonly"
+              @update:model-value="onInput"
+              @update:precision="onInput"
+            />
+          </template>
+        </InputMissing>
+      </template>
+    </InputField>
   </div>
 
   <!-- time -->
-  <InputErrors v-else-if="claimType === 'time'" v-slot="errorProps" class="min-w-0 flex-auto grow">
-    <InputTime
-      v-bind="errorProps"
-      v-model="value"
-      v-model:precision="timePrecision"
-      :required="required"
-      :invalid="invalid"
-      @update:model-value="onInput"
-      @update:precision="onInput"
-    />
-  </InputErrors>
+  <InputField v-else-if="claimType === 'time'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints :hide-labels="hideLabels">
+    <template #input="inputProps">
+      <InputTime v-bind="inputProps" v-model="value" v-model:precision="timePrecision" :readonly="readonly" @update:model-value="onInput" @update:precision="onInput" />
+    </template>
+  </InputField>
 
-  <!--
-    timeInterval - "from" and "to" stack vertically, one per sub-row.
-    See amountInterval above for why min-w-0/flex-auto/grow on
-    InputErrors is needed.
-  -->
-  <div v-else-if="claimType === 'timeInterval'" class="flex min-w-0 flex-auto grow flex-col gap-y-1">
-    <InputErrors v-slot="errorProps" class="min-w-0 flex-auto grow">
-      <InputMissing
-        v-bind="errorProps"
-        v-model:unknown="fromUnknown"
-        v-model:none="fromNone"
-        :required="required"
-        :invalid="invalid"
-        @update:unknown="onInput"
-        @update:none="onInput"
-      >
-        <template #default="missingProps">
-          <InputTime v-bind="missingProps" v-model="value" v-model:precision="timePrecision" @update:model-value="onInput" @update:precision="onInput">
-            <template #time-label>{{ t("partials.FieldsForm.from") }}</template>
-          </InputTime>
-        </template>
-      </InputMissing>
-    </InputErrors>
-    <InputErrors v-slot="errorProps" class="min-w-0 flex-auto grow">
-      <InputMissing
-        v-bind="errorProps"
-        v-model:unknown="toUnknown"
-        v-model:none="toNone"
-        :required="required"
-        :invalid="invalid"
-        @update:unknown="onInput"
-        @update:none="onInput"
-      >
-        <template #default="missingProps">
-          <InputTime v-bind="missingProps" v-model="valueTo" v-model:precision="timePrecisionTo" @update:model-value="onInput" @update:precision="onInput">
-            <template #time-label>{{ t("partials.FieldsForm.to") }}</template>
-          </InputTime>
-        </template>
-      </InputMissing>
-    </InputErrors>
+  <!-- timeInterval - "from" and "to", laid out like amountInterval above. -->
+  <div v-else-if="claimType === 'timeInterval'" class="flex min-w-0 flex-row flex-wrap items-start gap-x-8 gap-y-4">
+    <InputField
+      :required="required"
+      hide-required-badge
+      :invalid="invalid"
+      :labelledby="labelId"
+      :label="t('partials.FieldsForm.from')"
+      :revert="boundRevert('from')"
+      hide-hints
+    >
+      <template #input="inputProps">
+        <InputMissing
+          v-bind="inputProps"
+          v-model:unknown="fromUnknown"
+          v-model:none="fromNone"
+          :readonly="readonly"
+          @update:unknown="onMissingInput('from')"
+          @update:none="onMissingInput('from')"
+        >
+          <template #default="missingProps">
+            <InputTime
+              v-bind="missingProps"
+              v-model="value"
+              v-model:precision="timePrecision"
+              :readonly="readonly"
+              @update:model-value="onInput"
+              @update:precision="onInput"
+            />
+          </template>
+        </InputMissing>
+      </template>
+    </InputField>
+    <InputField
+      :required="required"
+      hide-required-badge
+      :invalid="invalid"
+      :labelledby="labelId"
+      :label="t('partials.FieldsForm.to')"
+      :revert="boundRevert('to')"
+      hide-hints
+    >
+      <template #input="inputProps">
+        <InputMissing
+          v-bind="inputProps"
+          v-model:unknown="toUnknown"
+          v-model:none="toNone"
+          :readonly="readonly"
+          @update:unknown="onMissingInput('to')"
+          @update:none="onMissingInput('to')"
+        >
+          <template #default="missingProps">
+            <InputTime
+              v-bind="missingProps"
+              v-model="valueTo"
+              v-model:precision="timePrecisionTo"
+              :readonly="readonly"
+              @update:model-value="onInput"
+              @update:precision="onInput"
+            />
+          </template>
+        </InputMissing>
+      </template>
+    </InputField>
   </div>
 
   <!-- link (no file affordance) -->
-  <InputErrors v-else-if="claimType === 'link' && !isFile" v-slot="errorProps" class="min-w-0 flex-auto grow">
-    <InputLink v-bind="errorProps" v-model="value" :required="required" :invalid="invalid" @update:model-value="onInput" />
-  </InputErrors>
+  <InputField v-else-if="claimType === 'link' && !isFile" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
+    <template #input="inputProps">
+      <InputLink v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
+    </template>
+  </InputField>
 
   <!-- link with file value type: render the file-upload affordance instead. -->
-  <InputErrors v-else-if="claimType === 'link' && isFile" v-slot="errorProps" class="min-w-0 flex-auto grow">
-    <InputFile v-bind="errorProps" v-model="value" :required="required" :invalid="invalid" @update:model-value="onInput" />
-  </InputErrors>
+  <InputField v-else-if="claimType === 'link' && isFile" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
+    <template #input="inputProps">
+      <InputFile v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onCompleteInput" />
+    </template>
+  </InputField>
 
   <!-- ref -->
-  <InputErrors v-else-if="claimType === 'ref'" v-slot="errorProps" class="min-w-0 flex-auto grow">
-    <!-- TODO: Pass "self" prop as the current document's ID. -->
-    <InputRef v-bind="errorProps" v-model="value" :filter="field.values" :required="required" :invalid="invalid" @update:model-value="onInput" />
-  </InputErrors>
+  <InputField v-else-if="claimType === 'ref'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
+    <template #input="inputProps">
+      <!-- TODO: Pass "self" prop as the current document's ID. -->
+      <InputRef v-bind="inputProps" v-model="value" :readonly="readonly" :filter="field.values" @update:model-value="onInput" />
+    </template>
+  </InputField>
 </template>

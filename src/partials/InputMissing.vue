@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { ValidatedInput, ValidationError } from "@/types"
+import type { InputColumn, ValidatedInput, ValidationError } from "@/types"
 
-import { computed, ref, useTemplateRef, watch } from "vue"
+import { computed, ref, useId, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 
 import CheckBox from "@/components/CheckBox.vue"
@@ -20,6 +20,9 @@ const props = defineProps<{
   required?: boolean
   // Presentational override.
   invalid?: boolean
+  // Disables the missing-state checkboxes (the wrapped input receives its own readonly
+  // binding from the enclosing FieldsFormRow).
+  readonly?: boolean
 }>()
 
 // Two independent v-models, one per checkbox. They are kept mutually
@@ -127,10 +130,43 @@ const {
   anyDirty: anyChildDirty,
   allEmpty: allChildEmpty,
   checkpointAll: checkpointChildAll,
+  inputs: childInputs,
 } = useValidationRegistry(() => {
   clearShowRequired()
   forwardInteraction?.()
 })
+
+// Ids on the checkboxes: the first one is the focus target exposed through columns, and
+// both are focused explicitly on label click (see the labels in the template).
+const unknownCheckboxId = useId()
+const noneCheckboxId = useId()
+
+// Restores the focus which the labels' prevented mousedown suppressed (the prevent also
+// covers direct checkbox clicks, whose mousedown bubbles through the label). With the
+// checkbox focused after a toggle, the widget holds focus, so clicking outside later
+// blurs the slot and commits it; without this, focus would sit outside the slot and a
+// deselected-and-empty bound would never resolve. A checkbox disabled by an immediate
+// commit refuses focus, which is harmless - nothing was blurred either.
+function focusCheckbox(id: string): void {
+  document.getElementById(id)?.focus()
+}
+
+// Every wrapped input's columns (labels and focus targets forwarded as-is), in
+// registration order, followed by a trailing unlabeled column for the
+// none/unknown checkboxes. A wrapped input that declares no columns contributes
+// a single column focusing its own control; with no wrapped input at all (e.g.
+// before it mounts) we still render one value column so the grid stays stable.
+const columns = computed<InputColumn[]>(() => {
+  const wrapped = Array.from(childInputs).flatMap((input) => input.columns?.value ?? [{ label: "", el: () => input.inputEl() ?? null }])
+  return [...(wrapped.length ? wrapped : [{ label: "", el: firstChildEl }]), { label: "", el: () => document.getElementById(unknownCheckboxId) }]
+})
+
+// Every wrapped input's hint lines, in registration order.
+const hints = computed<string[]>(() => Array.from(childInputs).flatMap((input) => input.hints?.value ?? []))
+
+// The contents root spanning the wrapped input plus the checkbox column, used
+// as mainEl and by onFocusOut.
+const rootRef = useTemplateRef<HTMLDivElement>("rootRef")
 
 // Checkpoints for our own dirty / checkpoint machinery. The wrapped
 // input keeps its own checkpoint through the sub-registry.
@@ -138,7 +174,7 @@ const unknownCheckpoint = ref<boolean>(unknown.value)
 const noneCheckpoint = ref<boolean>(none.value)
 
 const validatedInput: ValidatedInput = {
-  validate: async (signal) => {
+  validate: async (signal, options) => {
     // When a missing-state checkbox is checked the wrapped input is
     // locked and its value is intentionally "missing" - skip its
     // validation entirely.
@@ -147,7 +183,7 @@ const validatedInput: ValidatedInput = {
       clearShowRequired()
       return
     }
-    await validateChildAll(signal)
+    await validateChildAll(signal, options)
     if (props.required && allChildEmpty.value) {
       showRequired.value = true
       // TODO: Use standard codes.
@@ -169,8 +205,10 @@ const validatedInput: ValidatedInput = {
     none.value = noneCheckpoint.value
     clearShowRequired()
   },
+  // inputEl is the wrapped input's first focusable control; mainEl is the
+  // contents root spanning the wrapped input and the checkbox column.
   inputEl: firstChildEl,
-  mainEl: firstChildEl,
+  mainEl: () => rootRef.value,
   isDirty: computed<boolean>(() => {
     if (unknown.value !== unknownCheckpoint.value || none.value !== noneCheckpoint.value) return true
     return anyChildDirty.value
@@ -183,6 +221,8 @@ const validatedInput: ValidatedInput = {
     return allChildEmpty.value
   }),
   errors,
+  columns,
+  hints,
   checkpoint: () => {
     unknownCheckpoint.value = unknown.value
     noneCheckpoint.value = none.value
@@ -201,7 +241,6 @@ defineExpose(validatedInput)
 // target is still inside us, this is just internal navigation and we
 // skip. A null relatedTarget (focus moved to body or a non-focusable
 // element) is treated as leaving.
-const rootRef = useTemplateRef<HTMLDivElement>("rootRef")
 async function onFocusOut(event: FocusEvent) {
   const next = event.relatedTarget as Node | null
   if (next && rootRef.value?.contains(next)) return
@@ -210,18 +249,32 @@ async function onFocusOut(event: FocusEvent) {
 </script>
 
 <template>
-  <!-- TODO: Change items-center to items-start once we have dynamic column building. -->
-  <div ref="rootRef" class="flex flex-row items-center gap-x-4" @focusout="onFocusOut">
-    <div class="flex min-w-0 grow flex-row">
-      <slot v-bind="$attrs" :invalid="invalid || showRequired" @errors="(v: ValidationError[]) => (innerErrors = v)" />
-    </div>
+  <!--
+    display:contents so the wrapped input's columns and our checkbox column
+    become direct grid items of the enclosing component.
+  -->
+  <div ref="rootRef" class="contents" @focusout="onFocusOut">
+    <slot v-bind="$attrs" :invalid="invalid || showRequired" @errors="(v: ValidationError[]) => (innerErrors = v)" />
+    <!--
+      The labels prevent mousedown so clicking them does not blur the previously focused
+      element first: a label is not focusable, so that blur would report a null
+      relatedTarget and the enclosing slot could not tell focus is staying inside - it
+      would commit mid-interaction, and the pending read-only flash would then swallow
+      the label's forwarded click. The click itself still toggles the checkbox.
+    -->
     <WithLock :lock="getParentLockRef">
-      <div class="flex flex-col">
-        <label class="flex items-center gap-1 leading-5"
-          ><CheckBox v-model="isUnknown" :invalid="invalid || showRequired" /><span>{{ t("common.values.unknown") }}</span></label
+      <!--
+        items-start keeps each label sized to its own content, so the clickable area
+        does not extend past the text (the column is as wide as the widest label).
+      -->
+      <div class="flex flex-col items-start">
+        <label class="flex cursor-pointer items-center gap-1 leading-5" @mousedown.prevent @click="focusCheckbox(unknownCheckboxId)"
+          ><CheckBox :id="unknownCheckboxId" v-model="isUnknown" :disabled="readonly" :invalid="invalid || showRequired" /><span>{{
+            t("common.values.unknown")
+          }}</span></label
         >
-        <label class="flex items-center gap-1 leading-5"
-          ><CheckBox v-model="isNone" :invalid="invalid || showRequired" /><span>{{ t("common.values.none") }}</span></label
+        <label class="flex cursor-pointer items-center gap-1 leading-5" @mousedown.prevent @click="focusCheckbox(noneCheckboxId)"
+          ><CheckBox :id="noneCheckboxId" v-model="isNone" :disabled="readonly" :invalid="invalid || showRequired" /><span>{{ t("common.values.none") }}</span></label
         >
       </div>
     </WithLock>

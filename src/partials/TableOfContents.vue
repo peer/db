@@ -37,7 +37,14 @@ function setupTimelines() {
   const sidebar = tocRef.value
   const sidebarStyle = getComputedStyle(sidebar)
   const sidebarStickyTop = parseFloat(sidebarStyle.top) || 0
-  const sidebarHeight = sidebar.getBoundingClientRect().height
+  // All values computed here are navbar-VISIBLE baselines: the CSS animations add the
+  // live navbar offset themselves. The sidebar's CSS height however includes
+  // var(--pd-navbar-top), growing while the navbar auto-hides, so a measurement taken
+  // during a hidden-navbar moment (e.g. mounting on a media-query change while
+  // scrolled down) must normalize the grown height back by the current offset, or the
+  // offset would be counted twice and push the bottom-stacked items below the viewport.
+  const navbarTop = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--pd-navbar-top")) || 0
+  const sidebarHeight = sidebar.getBoundingClientRect().height + navbarTop
   const paddingTop = parseFloat(sidebarStyle.paddingTop) || 0
   const paddingBottom = parseFloat(sidebarStyle.paddingBottom) || 0
   const sidebarInnerHeight = sidebarHeight - paddingTop - paddingBottom
@@ -139,10 +146,24 @@ function onResize() {
   })
 }
 
+// Content keeps loading after mount (labels, lists, images), moving the targets and
+// changing the parent bottom and document height the release range is computed from.
+// A stale release range makes the compensation animation run before sticky actually
+// releases, visibly drifting the whole nav down mid-page until the true page end. So
+// re-measure whenever the parent or the body resizes, not only on window resizes.
+// Both animations run on transform, which does not affect layout, so re-measuring
+// cannot retrigger the observer in a loop.
+let resizeObserver: ResizeObserver | null = null
+
 onMounted(() => {
   setupTimelines()
   updateReleaseRange()
   window.addEventListener("resize", onResize, { passive: true })
+  resizeObserver = new ResizeObserver(onResize)
+  resizeObserver.observe(document.body)
+  if (tocRef.value?.parentElement) {
+    resizeObserver.observe(tocRef.value.parentElement)
+  }
   // Initial-load scroll: if the URL has a matching hash, scroll to it. The route.hash watcher below uses
   // immediate: false so it does not race with router/route resolution on first navigation; this block covers
   // that case. requestAnimationFrame defers one frame so layout is fully settled before measuring.
@@ -154,6 +175,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener("resize", onResize)
+  resizeObserver?.disconnect()
+  resizeObserver = null
   if (resizeRaf !== null) cancelAnimationFrame(resizeRaf)
   cleanupTimelines()
 })
@@ -231,7 +254,7 @@ watch(
 </script>
 
 <template>
-  <nav ref="tocRef" :aria-label="t('partials.TableOfContents.label')" class="pd-toc sticky top-[var(--pd-navbar-height)] flex flex-col gap-y-1 py-2">
+  <nav ref="tocRef" :aria-label="t('partials.TableOfContents.title')" class="pd-toc sticky top-[var(--pd-navbar-height)] flex flex-col gap-y-1 py-4">
     <slot />
     <a
       v-for="target in targets"
@@ -239,7 +262,7 @@ watch(
       :href="`#${target.id}`"
       :aria-current="route.hash === `#${target.id}` ? 'location' : undefined"
       :style="{ animationTimeline: timelineName(target.id) }"
-      class="pd-toc-item link block shrink-0 px-2 py-1 text-left text-sm"
+      class="pd-toc-item link block shrink-0 py-1 text-left text-sm"
       @click="onItemClick($event, target.id)"
     >
       {{ target.label }}

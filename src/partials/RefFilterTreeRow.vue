@@ -82,10 +82,10 @@ const inputId = computed(() => "ref/" + props.propsKey + "/" + props.node.key)
           </WithDocumentD>
           <label :for="inputId" :class="locked ? 'cursor-not-allowed text-gray-600' : 'cursor-pointer'">({{ node.res.count }})</label>
           <!--
-          tabindex="-1" keeps the open-link icon out of the keyboard tab
-          order so Tab jumps between filters without stopping
-          on each row's icon. Mouse users can still click it.
-        -->
+            tabindex="-1" keeps the open-link icon out of the keyboard tab
+            order so Tab jumps between filters without stopping
+            on each row's icon. Mouse users can still click it.
+          -->
           <RouterLink :to="{ name: 'DocumentGet', params: { id: node.res.id } }" class="link" tabindex="-1"
             ><ArrowTopRightOnSquareIcon :alt="t('common.icons.link')" class="inline size-5 align-text-top"
           /></RouterLink>

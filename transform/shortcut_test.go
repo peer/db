@@ -10,6 +10,7 @@ import (
 	"gitlab.com/peerdb/peerdb/transform"
 )
 
+//nolint:maintidx
 func TestValidateShortcut(t *testing.T) {
 	t.Parallel()
 
@@ -132,6 +133,42 @@ func TestValidateShortcut(t *testing.T) {
 		require.NoError(t, errE, "% -+#.1v", errE)
 	})
 
+	t.Run("id key with base58 identifier", func(t *testing.T) {
+		t.Parallel()
+
+		id := identifier.New().String()
+		errE := transform.TestingValidateShortcut("id=" + id)
+		require.NoError(t, errE, "% -+#.1v", errE)
+	})
+
+	t.Run("id key with multi-part identifier", func(t *testing.T) {
+		t.Parallel()
+
+		errE := transform.TestingValidateShortcut("id=ns.example.com,DOC")
+		require.NoError(t, errE, "% -+#.1v", errE)
+	})
+
+	t.Run("id key with self value", func(t *testing.T) {
+		t.Parallel()
+
+		errE := transform.TestingValidateShortcut("id=self")
+		require.NoError(t, errE, "% -+#.1v", errE)
+	})
+
+	t.Run("repeated id key", func(t *testing.T) {
+		t.Parallel()
+
+		errE := transform.TestingValidateShortcut("id=ns.example.com,A&id=ns.example.com,B")
+		require.NoError(t, errE, "% -+#.1v", errE)
+	})
+
+	t.Run("id key with property values", func(t *testing.T) {
+		t.Parallel()
+
+		errE := transform.TestingValidateShortcut("id=ns.example.com,A&ns.example.com,KIND=ns.example.com,OPT_A")
+		require.NoError(t, errE, "% -+#.1v", errE)
+	})
+
 	t.Run("reverse with missing value", func(t *testing.T) {
 		t.Parallel()
 
@@ -146,7 +183,24 @@ func TestValidateShortcut(t *testing.T) {
 		id := identifier.New().String()
 		errE := transform.TestingValidateShortcut("reverse=direct:" + id)
 		require.Error(t, errE)
-		assert.EqualError(t, errE, "search shortcut reverse value is not a valid identifier")
+		assert.EqualError(t, errE, "search shortcut value must be a single identifier")
+	})
+
+	t.Run("id with missing value", func(t *testing.T) {
+		t.Parallel()
+
+		errE := transform.TestingValidateShortcut("id=missing")
+		require.Error(t, errE)
+		assert.EqualError(t, errE, "search shortcut value is not a valid identifier")
+	})
+
+	t.Run("id with direct value", func(t *testing.T) {
+		t.Parallel()
+
+		id := identifier.New().String()
+		errE := transform.TestingValidateShortcut("id=direct:" + id)
+		require.Error(t, errE)
+		assert.EqualError(t, errE, "search shortcut value must be a single identifier")
 	})
 
 	t.Run("multi-segment value not starting with direct", func(t *testing.T) {
@@ -212,6 +266,14 @@ func TestValidateShortcut(t *testing.T) {
 		errE := transform.TestingValidateShortcut("reverse:ns.example.com,X=ns.example.com,Y")
 		require.Error(t, errE)
 		assert.EqualError(t, errE, `"reverse" is not allowed inside a nested key`)
+	})
+
+	t.Run("id inside nested key", func(t *testing.T) {
+		t.Parallel()
+
+		errE := transform.TestingValidateShortcut("id:ns.example.com,X=ns.example.com,Y")
+		require.Error(t, errE)
+		assert.EqualError(t, errE, `"id" is not allowed inside a nested key`)
 	})
 
 	t.Run("invalid identifier in value", func(t *testing.T) {

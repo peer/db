@@ -61,6 +61,7 @@ const $emit = defineEmits<{
   downloadFiles: []
   reverseClear: []
   reverseExpandUpdate: [expand: boolean]
+  idsClear: []
   prefiltersClear: []
   sortUpdate: [sort: SortKey[]]
 }>()
@@ -501,10 +502,15 @@ const WithDocumentD = WithDocument<D>
       <!-- Print-only: the active filters (prefilters first) listed under the status line, which acts as their heading. -->
       <SearchPrintFilters :filters="printFilters" class="pd-print-only" />
 
+      <!-- Print-only: the ID scope (results limited to an explicit document set). -->
+      <div v-if="searchSession.ids && searchSession.ids.length > 0" class="pd-print-only mx-1">
+        {{ t("partials.SearchResultsFeed.resultsScoped", { count: searchSession.ids.length }) }}
+      </div>
+
       <!--
-        Print-only: the reverse scope (documents referencing a target), shown above the filters list. When
-        reverseExpand is set it shows the target's full result card instead of the one-line heading. The
-        expand/collapse controls are preview-only (interactive), so a real print just shows the chosen form.
+        Print-only: the reverse scope (documents referencing a target). When reverseExpand is set it shows
+        the target's full result card instead of the one-line heading. The expand/collapse controls are
+        preview-only (interactive), so a real print just shows the chosen form.
       -->
       <div v-if="searchSession.reverse" class="pd-print-only">
         <!-- Collapsed: the referenced target inline, with a control to expand it into its full card. -->
@@ -632,6 +638,18 @@ const WithDocumentD = WithDocument<D>
       </div>
 
       <template v-else>
+        <div v-if="searchSession.ids && searchSession.ids.length > 0" class="text-sm">
+          <Button
+            type="button"
+            class="float-right ml-2 px-2.5 py-1"
+            :title="t('partials.SearchResultsFeed.clearScoped')"
+            :aria-label="t('partials.SearchResultsFeed.clearScoped')"
+            @click.prevent="$emit('idsClear')"
+            >{{ t("common.buttons.clear") }}</Button
+          >
+          {{ t("partials.SearchResultsFeed.resultsScoped", { count: searchSession.ids.length }) }}
+        </div>
+
         <div v-if="searchSession.reverse" class="text-sm">
           <Button
             type="button"

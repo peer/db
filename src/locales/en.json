@@ -76,7 +76,8 @@
       "required": "Required value.",
       "requiredPrecision": "Required precision.",
       "invalid": "Invalid value.",
-      "invalidPrecision": "Invalid precision."
+      "invalidPrecision": "Invalid precision.",
+      "unfinished": "Unfinished value."
     }
   },
   "partials": {
@@ -121,12 +122,12 @@
         "dropOrBrowse": "Drop file here or click to browse",
         "noPermission": "Uploading files not allowed."
       },
+      "InputLink": {
+        "hint": "Example: https://example.com"
+      },
       "InputRef": {
         "invalidValue": "invalid value",
         "noResults": "No results found."
-      },
-      "InputRefSelect": {
-        "noOptions": "No options available."
       },
       "InputTime": {
         "format": "Format: YYYY-MM-DD HH:MM:SS",
@@ -163,6 +164,9 @@
           "subseconds": "Subseconds need to have 3, 6, or 9 digits."
         }
       }
+    },
+    "ClaimRefSelect": {
+      "noOptions": "No options available."
     },
     "Footer": {
       "poweredBy": "Powered by {linkName}"
@@ -215,6 +219,8 @@
       "determiningFilters": "Determining filters...",
       "skipToFilters": "Skip to filters",
       "skipToResults": "Skip to results",
+      "resultsScoped": "Scoped to {count} document | Scoped to {count} documents",
+      "clearScoped": "Clear document scope",
       "resultsReferencing": "Results referencing {label}",
       "resultsReferencingExpanded": "Results referencing:",
       "expandReferencing": "Expand",
@@ -259,7 +265,7 @@
       "to": "To"
     },
     "TableOfContents": {
-      "label": "Table of contents"
+      "title": "Table of Contents"
     },
     "TimeDisplay": {
       "relative": {

@@ -80,7 +80,7 @@ func TestPatchJSON(t *testing.T) {
 			Base: base,
 		},
 	}
-	errE = changes.Validate(base)
+	errE = changes.Validate(base, 0)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	errE = changes.Apply(doc)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -1499,7 +1499,7 @@ func TestChangesValidateError(t *testing.T) {
 			},
 		},
 	}
-	errE := changes.Validate(base)
+	errE := changes.Validate(base, 0)
 	assert.EqualError(t, errE, "invalid ID")
 }
 

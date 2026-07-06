@@ -498,10 +498,12 @@ func (s *Service) DocumentSaveChangePostAPI(w http.ResponseWriter, req *http.Req
 	s.WriteJSON(w, req, []byte(`{"success":true}`), nil)
 }
 
-// DocumentListChangesGetAPI handles GET requests to list all changes in an edit session.
+// DocumentLastChangeGetAPI handles GET requests to get the sequence number of the latest
+// change in an edit session, 0 when there are none. Changes are numbered sequentially without
+// gaps starting at 1, so the session's changes are exactly 1 through the returned number.
 //
 //nolint:dupl
-func (s *Service) DocumentListChangesGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
+func (s *Service) DocumentLastChangeGetAPI(w http.ResponseWriter, req *http.Request, params waf.Params) {
 	ctx := req.Context()
 
 	errE := s.HasPermission(ctx, auth.CanEditDocument)
@@ -518,12 +520,11 @@ func (s *Service) DocumentListChangesGetAPI(w http.ResponseWriter, req *http.Req
 
 	site := waf.MustGetSite[*internalSite.Site](ctx)
 
-	// TODO: Support more than 5000 changes.
-	changes, errE := site.Base.ListDocumentChanges(ctx, session)
+	lastChange, errE := site.Base.LastDocumentChange(ctx, session)
 	if errors.Is(errE, coordinator.ErrSessionNotFound) {
 		s.NotFoundWithError(w, req, errE)
 		return
-	} else if errors.Is(errE, coordinator.ErrAlreadyEnded) {
+	} else if errors.Is(errE, coordinator.ErrAlreadyCompleted) {
 		s.NotFoundWithError(w, req, errE)
 		return
 	} else if errors.Is(errE, store.ErrAccessDenied) {
@@ -534,7 +535,7 @@ func (s *Service) DocumentListChangesGetAPI(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	s.WriteJSON(w, req, changes, nil)
+	s.WriteJSON(w, req, lastOperationResponse{LastOperation: lastChange}, nil)
 }
 
 // DocumentGetChangeGetAPI handles GET requests to retrieve a specific change from an edit session.

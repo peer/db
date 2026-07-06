@@ -43,7 +43,7 @@ export function changeFrom(obj: object): Change {
 }
 
 // Changes is a slice of Change operations to apply to a document.
-export class Changes implements Change {
+export class Changes {
   changes: Change[]
 
   constructor(...objs: object[]) {
@@ -57,10 +57,11 @@ export class Changes implements Change {
     }
   }
 
-  // Validate validates all changes in the slice.
-  async Validate(base: string[]): Promise<void> {
+  // Validate validates all changes in the slice, numbering them as operations
+  // startOperation+1 onward.
+  async Validate(base: string[], startOperation: number): Promise<void> {
     for (const [i, change] of this.changes.entries()) {
-      await change.Validate(base, i + 1)
+      await change.Validate(base, startOperation + i + 1)
     }
   }
 
@@ -113,14 +114,14 @@ export interface Change {
 // ClaimPatch represents a modification that can be applied to create or update a claim.
 interface ClaimPatch {
   New(id: string): Claim
+
+  // Apply applies the patch to the given claim. It always internally calls Validate.
   Apply(claim: Claim): Promise<void>
 
   // Validate checks the patch on its own, without access to the target claim: at least
   // one field has to be set and fields which are set have to be valid by themselves.
-  // This allows rejecting an invalid patch already when it is appended to an edit
-  // session, instead of when the session completes. Completeness is checked by New and
-  // constraints which need the target claim are checked by Apply. Mirrors the backend's
-  // ClaimPatch.Validate.
+  // Completeness is checked by New and constraints which need the target claim are
+  // checked by Apply.
   Validate(): void
 }
 
@@ -219,8 +220,7 @@ export class AddClaimChange implements Change {
       throw new Error(`invalid ID: expected ${expectedID}, id ${this.id}`)
     }
     // Constructing the claim from the patch checks that the patch is complete; validating it checks
-    // the resulting claim is valid. This rejects an invalid add already when it is appended to an edit
-    // session, instead of when the session completes.
+    // the resulting claim is valid.
     await this.patch.New(this.id).Validate()
   }
 }
@@ -261,7 +261,7 @@ export class SetClaimChange implements Change {
   // eslint-disable-next-line @typescript-eslint/require-await
   async Validate(base: string[], operation: number): Promise<void> {
     // Patches in set changes can be partial, so only the fields which are set are
-    // checked here. The full result is validated by Apply when the session completes.
+    // checked here. The full result is validated by Apply.
     this.patch.Validate()
   }
 }

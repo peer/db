@@ -2,6 +2,7 @@ package transform
 
 import (
 	"cmp"
+	"maps"
 	"reflect"
 	"slices"
 	"strconv"
@@ -30,8 +31,25 @@ import (
 // The mnemonics parameter maps property mnemonic names to property document
 // base IDs. Passing nil for mnemonics short-circuits the function and returns
 // (nil, nil).
+//
+// The sections parameter maps section names (as used in section tags) to their
+// translated names, keyed by language (e.g. "en-GB"). Each section becomes NAME
+// claims (one per language) with the language as an IN_LANGUAGE sub-claim. Every
+// section used by the struct must have its names provided; if one is missing (or
+// sections is nil while the struct uses sections), an error is returned.
+//
+// The instructions parameter maps field paths to their translated instructions
+// (raw HTML strings, expected to be formatted as paragraphs), keyed by language
+// (e.g. "en-GB"). A field path is the dot-joined Go field names from the root of T
+// down to the field, including embedded structs by their field name (which for
+// anonymous fields is the type name), e.g. "TempTestFields.tempSectionGamma.GammaText";
+// sub-field paths continue through the nested struct's fields. Each instruction
+// becomes a FIELD_INSTRUCTION claim (one per language) with the language as an
+// IN_LANGUAGE sub-claim. A path not matching any field is an error.
 func Fields[T any](
 	mnemonics map[string][]string,
+	sections map[string]map[string]string,
+	instructions map[string]map[string]string,
 ) (*internalCore.Fields, errors.E) {
 	if mnemonics == nil {
 		return nil, nil //nolint:nilnil
@@ -52,14 +70,27 @@ func Fields[T any](
 	}
 
 	fc := fieldsCollector{
-		mnemonics:    mnemonics,
-		sections:     make(map[string]*sectionData),
-		sectionOrder: 1.0,
+		mnemonics:        mnemonics,
+		sectionNames:     sections,
+		sections:         make(map[string]*sectionData),
+		sectionOrder:     1.0,
+		instructions:     instructions,
+		usedInstructions: make(map[string]bool),
 	}
 
 	errE := fc.processLevel(t, "", []string{}, []reflect.Type{t})
 	if errE != nil {
 		return nil, errE
+	}
+
+	// A provided instruction not consumed by any field means its path does not
+	// match a field (a typo or a stale path after a rename), so it is an error.
+	for _, path := range slices.Sorted(maps.Keys(instructions)) {
+		if !fc.usedInstructions[path] {
+			errE := errors.New("instruction field path not found")
+			errors.Details(errE)["field"] = path
+			return nil, errE
+		}
 	}
 
 	return fc.finalizeSections()
@@ -75,9 +106,12 @@ type sectionData struct {
 
 // fieldsCollector holds state for the Fields function.
 type fieldsCollector struct {
-	mnemonics    map[string][]string
-	sections     map[string]*sectionData
-	sectionOrder float64
+	mnemonics        map[string][]string
+	sectionNames     map[string]map[string]string
+	sections         map[string]*sectionData
+	sectionOrder     float64
+	instructions     map[string]map[string]string
+	usedInstructions map[string]bool
 }
 
 // getOrCreateSection returns the sectionData for the given ID, creating it if needed.
@@ -95,8 +129,9 @@ func (fc *fieldsCollector) getOrCreateSection(id string) *sectionData {
 	return sd
 }
 
-// finalizeSections validates that all named sections have defined orders and builds the result.
-// Fields collected under the empty section ID are returned as top-level fields.
+// finalizeSections validates that all named sections have defined orders and provided names,
+// and builds the result. Fields collected under the empty section ID are returned as top-level
+// fields.
 func (fc *fieldsCollector) finalizeSections() (*internalCore.Fields, errors.E) {
 	if len(fc.sections) == 0 {
 		return nil, nil //nolint:nilnil
@@ -105,7 +140,9 @@ func (fc *fieldsCollector) finalizeSections() (*internalCore.Fields, errors.E) {
 	var topFields []internalCore.Field
 	sections := make([]internalCore.Section, 0, len(fc.sections))
 
-	for id, sd := range fc.sections {
+	// Iterate section IDs in sorted order so errors are deterministic.
+	for _, id := range slices.Sorted(maps.Keys(fc.sections)) {
+		sd := fc.sections[id]
 		if id == "" {
 			topFields = sd.fields
 			continue
@@ -115,8 +152,13 @@ func (fc *fieldsCollector) finalizeSections() (*internalCore.Fields, errors.E) {
 			errors.Details(errE)["section"] = id
 			return nil, errE
 		}
+		name, errE := fc.sectionName(id)
+		if errE != nil {
+			return nil, errE
+		}
 		sections = append(sections, internalCore.Section{
 			ID:          internalCore.Identifier(id),
+			Name:        name,
 			OrderInList: sd.order,
 			Field:       sd.fields,
 		})
@@ -138,6 +180,29 @@ func (fc *fieldsCollector) finalizeSections() (*internalCore.Fields, errors.E) {
 		Section: sections,
 		Field:   topFields,
 	}, nil
+}
+
+// sectionName builds the section's NAME values from the translated names provided to Fields:
+// one StringWithLanguage per language (sorted by language for deterministic output), each with
+// the language as an IN_LANGUAGE reference. Errors if no names are provided for the section.
+func (fc *fieldsCollector) sectionName(id string) ([]internalCore.StringWithLanguage, errors.E) {
+	translations := fc.sectionNames[id]
+	if len(translations) == 0 {
+		errE := errors.New("section names not provided")
+		errors.Details(errE)["section"] = id
+		return nil, errE
+	}
+
+	name := make([]internalCore.StringWithLanguage, 0, len(translations))
+	for _, language := range slices.Sorted(maps.Keys(translations)) {
+		name = append(name, internalCore.StringWithLanguage{
+			Value: translations[language],
+			InLanguage: []internalCore.Ref{{
+				ID: []string{internalCore.Namespace, "LANGUAGE", language},
+			}},
+		})
+	}
+	return name, nil
 }
 
 // processLevel processes struct fields, accumulating them into fc.sections.
@@ -184,6 +249,11 @@ func (fc *fieldsCollector) processLevel(
 			}
 			if field.Tag.Get("order") != "" {
 				errE := errors.New("order tag cannot be used with value tag")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return errE
+			}
+			if field.Tag.Get("context") != "" {
+				errE := errors.New("context tag cannot be used with value tag")
 				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
 				return errE
 			}
@@ -309,6 +379,11 @@ func (fc *fieldsCollector) processSubFields(
 			}
 			if field.Tag.Get("order") != "" {
 				errE := errors.New("order tag cannot be used with value tag")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return nil, errE
+			}
+			if field.Tag.Get("context") != "" {
+				errE := errors.New("context tag cannot be used with value tag")
 				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
 				return nil, errE
 			}
@@ -490,8 +565,34 @@ func (fc *fieldsCollector) makeField(
 		SubField:        subFields,
 		InverseProperty: inverseProperty,
 		Embed:           embed,
+		Context:         parseContextTag(structField),
 		Default:         defaultRef,
+		Instruction:     fc.fieldInstruction(fieldPath),
 	}, nil
+}
+
+// fieldInstruction builds the field's instruction values from the translated instructions
+// provided to Fields, looked up by the field's dot-joined path: one RawHTMLWithLanguage per
+// language (sorted by language for deterministic output), each with the language as an
+// IN_LANGUAGE reference. Returns nil when no instructions are provided for the field.
+func (fc *fieldsCollector) fieldInstruction(fieldPath []string) []internalCore.RawHTMLWithLanguage {
+	path := strings.Join(fieldPath, ".")
+	translations := fc.instructions[path]
+	if len(translations) == 0 {
+		return nil
+	}
+	fc.usedInstructions[path] = true
+
+	instruction := make([]internalCore.RawHTMLWithLanguage, 0, len(translations))
+	for _, language := range slices.Sorted(maps.Keys(translations)) {
+		instruction = append(instruction, internalCore.RawHTMLWithLanguage{
+			Value: internalCore.RawHTML(translations[language]),
+			InLanguage: []internalCore.Ref{{
+				ID: []string{internalCore.Namespace, "LANGUAGE", language},
+			}},
+		})
+	}
+	return instruction
 }
 
 // collectSubFields extracts sub-field descriptions from a struct type.
@@ -749,6 +850,26 @@ func parseValuesTag(field reflect.StructField) ([]string, errors.E) {
 	}
 
 	return values, nil
+}
+
+// parseContextTag parses the "context" struct tag into a slice of opaque context
+// identifiers, separated by ",". Transform does not interpret them; consumers
+// decide what they mean.
+func parseContextTag(field reflect.StructField) []string {
+	tag := field.Tag.Get("context")
+	if tag == "" {
+		return nil
+	}
+	entries := strings.Split(tag, ",")
+	contexts := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		contexts = append(contexts, entry)
+	}
+	return contexts
 }
 
 // parseStructValueFieldValues looks inside a struct type for a value:"" field

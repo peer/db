@@ -193,6 +193,7 @@ export type ShortcutPair = { key: string; value: string }
 // Payload shape for the SearchJustResults POST endpoint built.
 export type JustResultsFilters = {
   reverse?: string
+  ids?: string[]
   filters?: { prop: string[]; ref: { to?: { id: string }[]; direct?: { id: string }[]; missing?: boolean } }[]
 }
 
@@ -206,6 +207,7 @@ export type SearchSession = {
 
 // What the client sends when creating or updating a search session.
 // When reverse is set, the session is scoped to documents referencing that ID via any property.
+// When ids is non-empty, the session is scoped to documents whose own ID is one of the listed values.
 export type SearchSessionData = {
   view?: ViewType
   query?: string
@@ -216,6 +218,7 @@ export type SearchSessionData = {
   // reverseExpand, valid only when reverse is set, is presentational: in the print view it renders the
   // referenced target as its full result card instead of a one-line "results referencing" heading.
   reverseExpand?: boolean
+  ids?: string[]
   // language is the session's UI language. The backend resolves an empty value to the site default and stores it on the session.
   language?: string
   // sort is the effective sort order. Empty means the default order (relevance, time, display label). A
@@ -331,6 +334,14 @@ export type StorageUploadStatus = {
   id?: string
   discarded?: boolean
   errored?: boolean
+}
+
+// LastOperationResponse is the response shape of the APIs which return the sequence number
+// of the latest operation in a coordinator session. lastOperation is 0 when there are none.
+// Operations are numbered sequentially without gaps starting at 1, so the session's operations
+// are exactly 1 through lastOperation.
+export type LastOperationResponse = {
+  lastOperation: number
 }
 
 // DocumentEditStatus is the response shape of GET /d/edit/:id/:session (DocumentEdit API).
@@ -472,7 +483,10 @@ export type ValidationError = {
 // into the input's reactive errors field. Callers read it from there after
 // the promise resolves. The optional signal lets callers abort in-flight
 // async validation.
-export type ValidateFn = (signal?: AbortSignal) => Promise<void>
+// options.final marks the run as a final pass (see ValidatorFn's options.final); a
+// form-wide submit (Save) passes it, everything else (blur-driven composite
+// validations, re-validation watchers) leaves it unset.
+export type ValidateFn = (signal?: AbortSignal, options?: { final?: boolean }) => Promise<void>
 
 // A user-supplied rule plugged into an input via its :validator prop. It
 // receives the value directly (instead of reading it off the input's
@@ -492,7 +506,13 @@ export type ValidateFn = (signal?: AbortSignal) => Promise<void>
 // parse failure) so a pre-populated invalid value is surfaced immediately,
 // but should skip the required check (the user has not interacted yet) and
 // skip any model-mutating side effects.
-export type ValidatorFn<T> = (value: T, options: { signal: AbortSignal; eager: boolean; initial: boolean }) => Promise<ValidationError[]>
+//
+// options.final is true when the validate cascade was invoked with final set
+// (the form-wide Save pass does that) and false on every other run (blur,
+// typing, mount, blur-driven composite validations). Validators gate checks
+// on it when a problem should block a submit but not nag during editing
+// (e.g. InputRef's "unfinished" check for typed text without a selection).
+export type ValidatorFn<T> = (value: T, options: { signal: AbortSignal; eager: boolean; initial: boolean; final: boolean }) => Promise<ValidationError[]>
 
 // What an input registers with a parent so the parent can validate it and
 // resolve focus targets. inputEl returns the focusable control to move
@@ -508,6 +528,25 @@ export type ValidatorFn<T> = (value: T, options: { signal: AbortSignal; eager: b
 // shrunk). reset restores the input to its initial (empty/default) state;
 // revert restores the input to its recorded checkpoint. useValidationRegistry
 // exposes resetAll / revertAll.
+// One top-level grid column an input renders, declared via ValidatedInput.columns.
+export type InputColumn = {
+  // Translated plain-text label; "" for a column with no visible label.
+  label: string
+  // The focusable control in this column. May return null before it mounts.
+  el: () => HTMLElement | null
+  // Optional CSS width for the column. The first column grows to fill the
+  // available width and this caps it (the enclosing grid uses minmax(0,width)
+  // instead of minmax(0,1fr)): an input whose values are inherently short
+  // (amounts, times) does not stretch absurdly wide. Later columns use the
+  // value VERBATIM as the track size (a fixed width, or a minmax()/min()
+  // expression) instead of the content-sized auto. Declaring it makes every
+  // track deterministic, so a repeated field's hoisted label row (a separate
+  // grid from the entries, see ClaimCardinality) resolves to exactly the
+  // entries' tracks at every container width; a content-sized track would
+  // resolve differently for a text label than for a control.
+  width?: string
+}
+
 export type ValidatedInput = {
   validate: ValidateFn
   reset: () => void
@@ -528,10 +567,44 @@ export type ValidatedInput = {
   isEmpty: Readonly<Ref<boolean>>
   // The input's current errors.
   errors: Readonly<Ref<ValidationError[]>>
+  // One entry per top-level grid column the input renders, each carrying its
+  // label and focusable el. Absent means a single unlabeled column. The number
+  // of entries signals how many columns the input wants.
+  columns?: Readonly<Ref<InputColumn[]>>
+  // Translated hint lines (e.g. an input-format example). Empty
+  // or absent means no hints.
+  hints?: Readonly<Ref<string[]>>
   // Snapshots the input's current value as the checkpoint against which
   // isDirty is compared. Called when an input's controls are shown or
   // when they are reset so subsequent edits show up as dirty.
   checkpoint: () => void
+}
+
+// SaveChangeSpec describes a claim change to commit to the edit session. The queue in
+// DocumentEdit assigns the change number at post time and renumbers on conflicts with
+// concurrent editors. An add's claim id derives from the change number, so it is known
+// only once the change is committed and is returned in SaveChangeResult.
+export type SaveChangeSpec =
+  | { type: "add"; patch: object; under?: string }
+  | { type: "set"; id: string; patch: object }
+  | { type: "cast"; id: string; patch: object }
+  | { type: "remove"; id: string }
+
+// SaveChangeResult reports a committed change. For an add, id is the claim's final id
+// (derived from the final change number); for other change types it echoes the target id.
+export type SaveChangeResult = {
+  id: string
+}
+
+// FieldsFormFlush is registered by every slot input so DocumentEdit can flush pending
+// local edits before Save and warn before tab close while local edits are not yet
+// committed to the server.
+export type FieldsFormFlush = {
+  // flush commits the slot's current local edit, like its blur would.
+  flush: () => Promise<void>
+  // hasUncommitted reports whether the slot holds local edits which have not been
+  // committed to its claim (typed but not yet blurred).
+  hasUncommitted: () => boolean
 }
 
 // ListFormatPart is one piece of a locale-formatted list: a literal separator to print verbatim, or a

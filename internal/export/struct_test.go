@@ -37,7 +37,6 @@ func makeTestMnemonics() map[string]identifier.Identifier {
 		"FIELDS":                   internalCore.FieldsPropID,
 		"SUBPROPERTY_OF":           internalCore.SubpropertyOfPropID,
 		"INVERSE_PROPERTY_OF":      internalCore.InversePropertyOfPropID,
-		"INSTRUCTION":              internalCore.InstructionPropID,
 		"IDENTIFIER_LINK_TEMPLATE": internalCore.IdentifierLinkTemplatePropID,
 		"CODE":                     internalCore.CodePropID,
 	}

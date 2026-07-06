@@ -16,7 +16,7 @@ import type { ValidationError, ValidatorFn } from "@/types"
 import type { ComponentPublicInstance } from "vue"
 
 import { Identifier } from "@tozd/identifier"
-import { computed, onBeforeUnmount, ref, useTemplateRef, watch } from "vue"
+import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
@@ -31,8 +31,9 @@ import { getParentLock, useLock } from "@/progress"
 import { uploadFile } from "@/upload"
 import { useValidation } from "@/validation"
 
-// Multi-root template, so we route fall-through attrs explicitly onto
-// whichever element is visibly rendered.
+// Multi-root template, so fall-through attrs cannot auto-inherit. We route
+// them (e.g. aria-describedby pointing at InputField's error) explicitly onto
+// the browse button, the focusable control and the validation focus target.
 defineOptions({
   inheritAttrs: false,
 })
@@ -87,14 +88,15 @@ function getParentLockRef() {
 
 const fileInputEl = useTemplateRef<HTMLInputElement>("fileInputEl")
 const browseButtonRef = useTemplateRef<ComponentPublicInstance>("browseButtonRef")
+const uploadedRef = useTemplateRef<HTMLDivElement>("uploadedRef")
 const isDragOver = ref(false)
 
 // A file value is invalid if it is empty (when required) or does not resolve
 // through the Vue router to a StorageGet route, i.e. classifyLink does not
 // stamp it with LINK_CLASS_FILE. The required check is skipped on initial
-// (no user interaction yet), but the file-route check is not - a
-// pre-populated value pointing at something that is not a file should
-// surface immediately. While an upload is in flight the model is "" but
+// (no user interaction yet) and while eager, so it flags only on the lazy blur
+// pass; the file-route check is not skipped - a pre-populated value pointing at
+// something that is not a file should surface immediately. While an upload is in flight the model is "" but
 // the user has already provided a file, so we treat that window as
 // "value incoming" and skip the required check. A watcher on the upload
 // state re-runs validation when the upload settles.
@@ -104,7 +106,7 @@ const validator: ValidatorFn<string> = async function (value, options) {
     if (progress.value !== 0) {
       return []
     }
-    if (!props.required || options.initial) {
+    if (!props.required || options.initial || options.eager) {
       return []
     }
     // TODO: Use standard codes.
@@ -160,13 +162,24 @@ watch(
 // purpose in browsers that keep focus on the Button during the picker.
 let openingPicker = false
 
+// Set right before clearing the value; consumed by the blur the Clear Button
+// dispatches as it unmounts (the uploaded-state UI is removed once the value is
+// empty). The user intentionally cleared the field, so that blur must not fire
+// the required-validation. Cleared on the browse Button re-focus so it can
+// never outlive its purpose.
+let clearing = false
+
 // Run lazy validation when focus leaves either of the visible elements (the
 // browse Button in empty state, or the Clear Button in uploaded state) so
-// the required error appears as soon as the user tabs/clicks away. Skip
-// the one blur caused by opening the file picker.
+// the required error appears as soon as the user tabs/clicks away. Skip the
+// one blur caused by opening the file picker or by clearing the value.
 async function onBlur() {
   if (openingPicker) {
     openingPicker = false
+    return
+  }
+  if (clearing) {
+    clearing = false
     return
   }
   await runValidation()
@@ -174,6 +187,7 @@ async function onBlur() {
 
 function onBrowseFocus() {
   openingPicker = false
+  clearing = false
 }
 
 // AbortController for the currently active upload, or null when idle.
@@ -220,6 +234,11 @@ async function onUpload(file: File) {
       return
     }
     model.value = router.resolve({ name: "StorageGet", params: { id: fileId } }).href
+    // Move focus onto the uploaded file's link: the browse button which held focus
+    // unmounts together with the empty state, and the link is what the user acts on
+    // next (inspecting the uploaded file).
+    await nextTick()
+    uploadedRef.value?.querySelector("a")?.focus()
   } catch (err) {
     if (abortController.signal.aborted) {
       return
@@ -227,18 +246,42 @@ async function onUpload(file: File) {
     uploadError.value = true
     console.error("InputFile.onUpload", err)
   } finally {
+    const aborted = abortController.signal.aborted
     progress.value = 0
     total.value = undefined
     lock.value -= 1
     abortController = null
+    if (aborted) {
+      restoreBrowseFocus.value = true
+    }
   }
 }
 
 // Cancel the in-flight upload. Safe to call when no upload
-// is running - it is a no-op then.
+// is running - it is a no-op then. Focus restoration happens through restoreBrowseFocus,
+// requested by onUpload's cleanup.
 function onCancel() {
   abortController?.abort()
 }
+
+// Returns focus to the browse button after a canceled upload. The Cancel button which
+// held focus unmounts with the progress reset, and the browse button refuses focus
+// while the lock (held by the upload itself and then briefly by the upload-transition
+// re-validation) keeps it disabled, so the focus happens once inactive clears; the post
+// flush runs after the render which drops the disabled attribute. An unmount while the
+// request is pending just disposes the watcher.
+const restoreBrowseFocus = ref(false)
+watch(
+  [restoreBrowseFocus, inactive],
+  ([restore, inactiveNow]) => {
+    if (!restore || inactiveNow) return
+    restoreBrowseFocus.value = false
+    // The user may have focused something else in the meantime - do not steal focus.
+    if (document.activeElement !== document.body) return
+    ;(browseButtonRef.value?.$el as HTMLElement | null)?.focus()
+  },
+  { flush: "post" },
+)
 
 async function onFileInputChange() {
   const file = fileInputEl.value?.files?.[0]
@@ -254,12 +297,20 @@ function onBrowse() {
   fileInputEl.value?.click()
 }
 
-function onClear() {
+async function onClear() {
   if (inactive.value) return
+  clearing = true
   model.value = ""
+  // The user intentionally cleared the field; drop any error now (the required
+  // check returns on the next leave-validation) so it does not flash.
+  errors.value = []
   if (fileInputEl.value) {
     fileInputEl.value.value = ""
   }
+  // The empty-state browse Button mounts once the value is cleared; focus it so
+  // focus is not dropped to the body.
+  await nextTick()
+  ;(browseButtonRef.value?.$el as HTMLElement | null)?.focus()
 }
 
 function onDragOver() {
@@ -288,7 +339,7 @@ async function onDrop(e: DragEvent) {
     Grid wrapper with a single minmax(0,1fr) column so that long display labels
     actually clip with truncate.
   -->
-  <div v-if="model" v-tw-merge v-bind="$attrs" :aria-invalid="invalid || undefined" class="pd-inputfile relative grid w-full grid-cols-[minmax(0,1fr)]">
+  <div v-if="model" ref="uploadedRef" v-tw-merge :aria-invalid="invalid || undefined" class="pd-inputfile relative grid w-full grid-cols-[minmax(0,1fr)]">
     <!--
       pr-23 reserves space on the right for the Clear button overlay so
       the display label does not slide underneath it.
@@ -307,14 +358,14 @@ async function onDrop(e: DragEvent) {
       <Button type="button" class="px-2.5 py-1" @click.prevent="onClear" @blur="onBlur">{{ t("common.buttons.clear") }}</Button>
     </div>
   </div>
-  <div v-else-if="!hasPermission(CAN_EDIT_FILE)" v-tw-merge v-bind="$attrs" class="pd-inputfile text-gray-500 italic">{{
-    t("partials.input.InputFile.noPermission")
-  }}</div>
+  <div v-else-if="!hasPermission(CAN_EDIT_FILE)" v-tw-merge class="pd-inputfile text-gray-500 italic">{{ t("partials.input.InputFile.noPermission") }}</div>
   <template v-else>
-    <div v-tw-merge v-bind="$attrs" class="pd-inputfile flex w-full flex-row gap-2">
+    <!-- Fall-through attrs (e.g. aria-describedby pointing at InputField's error) go on the browse button, the focusable control. -->
+    <div v-tw-merge class="pd-inputfile flex w-full flex-row gap-2">
       <Button
         ref="browseButtonRef"
         type="button"
+        v-bind="$attrs"
         class="min-w-0 flex-1"
         :progress="progress"
         :total="total"

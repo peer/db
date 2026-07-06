@@ -76,7 +76,8 @@
       "required": "Obvezna vrednost.",
       "requiredPrecision": "Obvezna natančnost.",
       "invalid": "Neveljavna vrednost.",
-      "invalidPrecision": "Neveljavna natančnost."
+      "invalidPrecision": "Neveljavna natančnost.",
+      "unfinished": "Nedokončana vrednost."
     }
   },
   "partials": {
@@ -121,12 +122,12 @@
         "dropOrBrowse": "Spustite datoteko sem ali kliknite za brskanje",
         "noPermission": "Nalaganje datotek ni dovoljeno."
       },
+      "InputLink": {
+        "hint": "Primer: https://example.com"
+      },
       "InputRef": {
         "invalidValue": "neveljavna vrednost",
         "noResults": "Ni najdenih rezultatov."
-      },
-      "InputRefSelect": {
-        "noOptions": "Ni razpoložljivih možnosti."
       },
       "InputTime": {
         "format": "Oblika: LLLL-MM-DD UU:MM:SS",
@@ -163,6 +164,9 @@
           "subseconds": "Manj kot sekunde morajo imeti 3, 6 ali 9 števk."
         }
       }
+    },
+    "ClaimRefSelect": {
+      "noOptions": "Ni razpoložljivih možnosti."
     },
     "Footer": {
       "poweredBy": "Poganja {linkName}"
@@ -215,6 +219,8 @@
       "determiningFilters": "Ugotavljanje filtrov...",
       "skipToFilters": "Preskoči na filtre",
       "skipToResults": "Preskoči na rezultate",
+      "resultsScoped": "Omejeno na {count} dokument | Omejeno na {count} dokumenta | Omejeno na {count} dokumente | Omejeno na {count} dokumentov",
+      "clearScoped": "Počisti omejitev na dokumente",
       "resultsReferencing": "Rezultati sklicujoči na {label}",
       "resultsReferencingExpanded": "Rezultati sklicujoči na:",
       "expandReferencing": "Razširi",
@@ -259,7 +265,7 @@
       "to": "Do"
     },
     "TableOfContents": {
-      "label": "Kazalo vsebine"
+      "title": "Kazalo vsebine"
     },
     "TimeDisplay": {
       "relative": {

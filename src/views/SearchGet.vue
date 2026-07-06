@@ -136,6 +136,7 @@ async function applyPrefilters(payloads: PrefilterPayload[] | null) {
     filters: searchSession.value.filters,
     reverse: searchSession.value.reverse,
     reverseExpand: searchSession.value.reverseExpand,
+    ids: searchSession.value.ids,
     prefilters,
     language: searchSession.value.language,
     sort: searchSession.value.sort,
@@ -165,6 +166,7 @@ watch(locale, async () => {
     filters: searchSession.value.filters,
     reverse: searchSession.value.reverse,
     reverseExpand: searchSession.value.reverseExpand,
+    ids: searchSession.value.ids,
     prefilters: searchSession.value.prefilters,
     language: locale.value,
     sort: searchSession.value.sort,
@@ -180,6 +182,7 @@ async function onFiltersUpdate(updatedFilters: Filter[]) {
     filters: updatedFilters.length > 0 ? updatedFilters : undefined,
     reverse: searchSession.value!.reverse,
     reverseExpand: searchSession.value!.reverseExpand,
+    ids: searchSession.value!.ids,
     prefilters: searchSession.value!.prefilters,
     language: searchSession.value!.language,
     sort: searchSession.value!.sort,
@@ -232,6 +235,7 @@ async function onQueryChange(query: string) {
     filters: searchSession.value!.filters,
     reverse: searchSession.value!.reverse,
     reverseExpand: searchSession.value!.reverseExpand,
+    ids: searchSession.value!.ids,
     prefilters: searchSession.value!.prefilters,
     language: searchSession.value!.language,
     sort: searchSession.value!.sort,
@@ -247,6 +251,7 @@ async function onViewChange(view: ViewType) {
     filters: searchSession.value!.filters,
     reverse: searchSession.value!.reverse,
     reverseExpand: searchSession.value!.reverseExpand,
+    ids: searchSession.value!.ids,
     prefilters: searchSession.value!.prefilters,
     language: searchSession.value!.language,
     sort: searchSession.value!.sort,
@@ -262,6 +267,23 @@ async function onReverseClear() {
     filters: searchSession.value!.filters,
     reverse: undefined,
     reverseExpand: undefined,
+    ids: searchSession.value!.ids,
+    prefilters: searchSession.value!.prefilters,
+    language: searchSession.value!.language,
+    sort: searchSession.value!.sort,
+  })
+}
+
+async function onIdsClear() {
+  // Checking abortController is done inside onSearchSessionUpdate.
+
+  await onSearchSessionUpdate({
+    view: searchSession.value!.view,
+    query: searchSession.value!.query,
+    filters: searchSession.value!.filters,
+    reverse: searchSession.value!.reverse,
+    reverseExpand: searchSession.value!.reverseExpand,
+    ids: undefined,
     prefilters: searchSession.value!.prefilters,
     language: searchSession.value!.language,
     sort: searchSession.value!.sort,
@@ -277,6 +299,7 @@ async function onPrefiltersClear() {
     filters: searchSession.value!.filters,
     reverse: searchSession.value!.reverse,
     reverseExpand: searchSession.value!.reverseExpand,
+    ids: searchSession.value!.ids,
     prefilters: undefined,
     language: searchSession.value!.language,
   })
@@ -291,6 +314,7 @@ async function onSortUpdate(sort: SortKey[]) {
     filters: searchSession.value!.filters,
     reverse: searchSession.value!.reverse,
     reverseExpand: searchSession.value!.reverseExpand,
+    ids: searchSession.value!.ids,
     prefilters: searchSession.value!.prefilters,
     language: searchSession.value!.language,
     sort: sort.length > 0 ? sort : undefined,
@@ -306,6 +330,7 @@ async function onReverseExpandUpdate(reverseExpand: boolean) {
     filters: searchSession.value!.filters,
     reverse: searchSession.value!.reverse,
     reverseExpand,
+    ids: searchSession.value!.ids,
     prefilters: searchSession.value!.prefilters,
     language: searchSession.value!.language,
     sort: searchSession.value!.sort,
@@ -358,6 +383,7 @@ async function onDownloadFiles() {
       @download-files="onDownloadFiles"
       @reverse-clear="onReverseClear"
       @reverse-expand-update="onReverseExpandUpdate"
+      @ids-clear="onIdsClear"
       @prefilters-clear="onPrefiltersClear"
       @sort-update="onSortUpdate"
     />

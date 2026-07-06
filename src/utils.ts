@@ -42,6 +42,21 @@ export function addPrefixWildcard(query: string): string {
   return query
 }
 
+// escapeHtml escapes a plain text string for embedding into an HTML fragment.
+export function escapeHtml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+}
+
+// inputColumnsGridTemplate builds the grid-template-columns for an input's declared
+// columns: the first column fills the available width up to its declared width, later
+// columns are fixed at theirs (auto when undeclared). Used by InputField for the input
+// grid itself and by ClaimCardinality for a repeated field's hoisted label row: the two
+// are separate grids, so they only stay aligned because the same template resolves to
+// the same tracks at the same container width (see InputColumn.width).
+export function inputColumnsGridTemplate(columns: readonly { width?: string }[]): string {
+  return columns.map((col, i) => (i === 0 ? `minmax(0,${col.width ?? "1fr"})` : (col.width ?? "auto"))).join(" ")
+}
+
 // If the last increase would be equal or less than this number, just skip to the end.
 export const SKIP_TO_END = 2
 

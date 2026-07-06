@@ -43,6 +43,24 @@ func fieldsTestMnemonics() map[string][]string {
 	}
 }
 
+// fieldsTestSectionNames returns a sections names map for the given section IDs,
+// with a single English name of the form "<id> name".
+func fieldsTestSectionNames(ids ...string) map[string]map[string]string {
+	sections := map[string]map[string]string{}
+	for _, id := range ids {
+		sections[id] = map[string]string{"en-GB": id + " name"}
+	}
+	return sections
+}
+
+// expectedSectionName returns the NAME values fieldsTestSectionNames produces for a section ID.
+func expectedSectionName(id string) []core.StringWithLanguage {
+	return []core.StringWithLanguage{{
+		Value:      id + " name",
+		InLanguage: []core.Ref{{ID: []string{core.Namespace, "LANGUAGE", "en-GB"}}},
+	}}
+}
+
 type SimpleFields struct {
 	Name string `cardinality:"1.."  json:"name" property:"NAME"`
 	Age  *int   `cardinality:"0..1" json:"age"  property:"AGE"`
@@ -434,7 +452,7 @@ func TestFieldsSimple(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[SimpleFields](mnemonics)
+	result, errE := transform.Fields[SimpleFields](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Empty(t, result.Section)
@@ -468,7 +486,7 @@ func TestFieldsWithSection(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithSection](mnemonics)
+	result, errE := transform.Fields[FieldsWithSection](mnemonics, fieldsTestSectionNames("my-section"), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Top-level: one section and one field (Bar).
@@ -478,6 +496,7 @@ func TestFieldsWithSection(t *testing.T) {
 	// Section (order 1).
 	section := result.Section[0]
 	assert.Equal(t, "my-section", string(section.ID))
+	assert.Equal(t, expectedSectionName("my-section"), section.Name)
 	assert.Equal(t, core.Amount[float64]{Amount: 1, Precision: 1}, section.OrderInList)
 
 	// Bar field (order 1, top-level fields have their own counter).
@@ -496,7 +515,7 @@ func TestFieldsMultipleSections(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[MultipleSections](mnemonics)
+	result, errE := transform.Fields[MultipleSections](mnemonics, fieldsTestSectionNames("section-a", "section-b"), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Empty(t, result.Field)
@@ -505,6 +524,7 @@ func TestFieldsMultipleSections(t *testing.T) {
 	// Section A.
 	sA := result.Section[0]
 	assert.Equal(t, "section-a", string(sA.ID))
+	assert.Equal(t, expectedSectionName("section-a"), sA.Name)
 	assert.Equal(t, core.Amount[float64]{Amount: 1, Precision: 1}, sA.OrderInList)
 	require.Len(t, sA.Field, 2)
 	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "HTML"}}, sA.Field[0].ValueType)
@@ -517,6 +537,7 @@ func TestFieldsMultipleSections(t *testing.T) {
 	// Section B.
 	sB := result.Section[1]
 	assert.Equal(t, "section-b", string(sB.ID))
+	assert.Equal(t, expectedSectionName("section-b"), sB.Name)
 	assert.Equal(t, core.Amount[float64]{Amount: 2, Precision: 1}, sB.OrderInList)
 	require.Len(t, sB.Field, 1)
 	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "TIME"}}, sB.Field[0].ValueType)
@@ -527,7 +548,7 @@ func TestFieldsWithEmbedded(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithEmbedded](mnemonics)
+	result, errE := transform.Fields[FieldsWithEmbedded](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Empty(t, result.Section)
@@ -545,7 +566,7 @@ func TestFieldsAllTypes(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[AllTypeFields](mnemonics)
+	result, errE := transform.Fields[AllTypeFields](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Empty(t, result.Section)
@@ -582,7 +603,7 @@ func TestFieldsStringTypes(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithStringTypes](mnemonics)
+	result, errE := transform.Fields[FieldsWithStringTypes](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 4)
@@ -597,7 +618,7 @@ func TestFieldsBoolNone(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithBoolNone](mnemonics)
+	result, errE := transform.Fields[FieldsWithBoolNone](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 1)
@@ -609,7 +630,7 @@ func TestFieldsBoolUnknown(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithBoolUnknown](mnemonics)
+	result, errE := transform.Fields[FieldsWithBoolUnknown](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 1)
@@ -621,7 +642,7 @@ func TestFieldsBoolHas(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithBoolHas](mnemonics)
+	result, errE := transform.Fields[FieldsWithBoolHas](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 1)
@@ -633,7 +654,7 @@ func TestFieldsFileType(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithFileType](mnemonics)
+	result, errE := transform.Fields[FieldsWithFileType](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 1)
@@ -645,7 +666,7 @@ func TestFieldsCoreFile(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithCoreFile](mnemonics)
+	result, errE := transform.Fields[FieldsWithCoreFile](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 1)
@@ -657,7 +678,7 @@ func TestFieldsRefWithValues(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[RefFieldWithValues](mnemonics)
+	result, errE := transform.Fields[RefFieldWithValues](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 2)
@@ -677,7 +698,7 @@ func TestFieldsValuesOnNonRefError(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	_, errE := transform.Fields[FieldsWithValuesOnNonRef](mnemonics)
+	_, errE := transform.Fields[FieldsWithValuesOnNonRef](mnemonics, nil, nil)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "values tag can only be used with core.Ref field type")
 }
@@ -687,7 +708,7 @@ func TestFieldsValuesOnValueField(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithValuesOnValue](mnemonics)
+	result, errE := transform.Fields[FieldsWithValuesOnValue](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 1)
@@ -701,7 +722,7 @@ func TestFieldsValuesOnNonRefValueError(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	_, errE := transform.Fields[FieldsWithValuesOnNonRefValue](mnemonics)
+	_, errE := transform.Fields[FieldsWithValuesOnNonRefValue](mnemonics, nil, nil)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "values tag can only be used with core.Ref field type")
 }
@@ -711,7 +732,7 @@ func TestFieldsInversePropertyOnValueError(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	_, errE := transform.Fields[FieldsWithInverseOnValue](mnemonics)
+	_, errE := transform.Fields[FieldsWithInverseOnValue](mnemonics, nil, nil)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "inverseProperty tag cannot be used with value tag")
 }
@@ -721,7 +742,7 @@ func TestFieldsSectionOnValueError(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	_, errE := transform.Fields[FieldsWithSectionOnValue](mnemonics)
+	_, errE := transform.Fields[FieldsWithSectionOnValue](mnemonics, nil, nil)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "section tag cannot be used with value tag")
 }
@@ -731,7 +752,7 @@ func TestFieldsOrderOnValueError(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	_, errE := transform.Fields[FieldsWithOrderOnValue](mnemonics)
+	_, errE := transform.Fields[FieldsWithOrderOnValue](mnemonics, nil, nil)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "order tag cannot be used with value tag")
 }
@@ -741,7 +762,7 @@ func TestFieldsValueStruct(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithValueStruct](mnemonics)
+	result, errE := transform.Fields[FieldsWithValueStruct](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 1)
@@ -754,7 +775,7 @@ func TestFieldsWithDocumentID(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithDocumentID](mnemonics)
+	result, errE := transform.Fields[FieldsWithDocumentID](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// documentid field is skipped, only Name field remains.
@@ -767,7 +788,7 @@ func TestFieldsWithSkippedField(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithSkippedField](mnemonics)
+	result, errE := transform.Fields[FieldsWithSkippedField](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// property:"-" field is skipped.
@@ -779,7 +800,7 @@ func TestFieldsNestedSectionsError(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	_, errE := transform.Fields[FieldsWithNestedSections](mnemonics)
+	_, errE := transform.Fields[FieldsWithNestedSections](mnemonics, nil, nil)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "sections cannot be nested inside sections")
 }
@@ -789,7 +810,7 @@ func TestFieldsSectionWithEmbedded(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithSectionEmbedded](mnemonics)
+	result, errE := transform.Fields[FieldsWithSectionEmbedded](mnemonics, fieldsTestSectionNames("embedded-section"), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Section, 1)
@@ -798,6 +819,7 @@ func TestFieldsSectionWithEmbedded(t *testing.T) {
 	// Section has 2 fields: embedded First + Second.
 	section := result.Section[0]
 	assert.Equal(t, "embedded-section", string(section.ID))
+	assert.Equal(t, expectedSectionName("embedded-section"), section.Name)
 	require.Len(t, section.Field, 2)
 	assert.Equal(t, core.Amount[float64]{Amount: 1, Precision: 1}, section.Field[0].OrderInList)
 	assert.Equal(t, core.Ref{ID: mnemonics["FIRST"]}, section.Field[0].Property)
@@ -809,7 +831,7 @@ func TestFieldsMnemonicNotFound(t *testing.T) {
 	t.Parallel()
 
 	// Empty mnemonics.
-	_, errE := transform.Fields[SimpleFields](map[string][]string{})
+	_, errE := transform.Fields[SimpleFields](map[string][]string{}, nil, nil)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "mnemonic not found")
 }
@@ -821,7 +843,7 @@ func TestFieldsEmptyStruct(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[EmptyFields](mnemonics)
+	result, errE := transform.Fields[EmptyFields](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	assert.Nil(t, result)
 }
@@ -831,7 +853,7 @@ func TestFieldsNotStruct(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	_, errE := transform.Fields[string](mnemonics)
+	_, errE := transform.Fields[string](mnemonics, nil, nil)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "expected struct")
 }
@@ -841,7 +863,7 @@ func TestFieldsCardinality(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithDefaultCardinality](mnemonics)
+	result, errE := transform.Fields[FieldsWithDefaultCardinality](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 3)
@@ -874,7 +896,7 @@ func TestFieldsOrderTag(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithOrderTag](mnemonics)
+	result, errE := transform.Fields[FieldsWithOrderTag](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 3)
@@ -897,7 +919,7 @@ func TestFieldsOrderSkip(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithOrderSkip](mnemonics)
+	result, errE := transform.Fields[FieldsWithOrderSkip](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// Skipped field (order:"-") should not appear.
@@ -915,7 +937,7 @@ func TestFieldsSectionOrderTag(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithSectionOrder](mnemonics)
+	result, errE := transform.Fields[FieldsWithSectionOrder](mnemonics, fieldsTestSectionNames("ordered-section"), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Section, 1)
@@ -923,6 +945,7 @@ func TestFieldsSectionOrderTag(t *testing.T) {
 
 	// Section has explicit order 99.
 	assert.Equal(t, "ordered-section", string(result.Section[0].ID))
+	assert.Equal(t, expectedSectionName("ordered-section"), result.Section[0].Name)
 	assert.Equal(t, core.Amount[float64]{Amount: 99, Precision: 1}, result.Section[0].OrderInList)
 
 	// Bar gets auto-increment (1.0, since section used explicit order).
@@ -934,7 +957,7 @@ func TestFieldsSubFields(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithSubFields](mnemonics)
+	result, errE := transform.Fields[FieldsWithSubFields](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 1)
@@ -956,7 +979,7 @@ func TestFieldsSubFieldsNoValue(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithNestedNoValue](mnemonics)
+	result, errE := transform.Fields[FieldsWithNestedNoValue](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 1)
@@ -977,7 +1000,7 @@ func TestFieldsSubFieldsSkipped(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithSkippedSubField](mnemonics)
+	result, errE := transform.Fields[FieldsWithSkippedSubField](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 1)
@@ -994,7 +1017,7 @@ func TestFieldsSubFieldsAllSkipped(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithAllSubFieldsSkipped](mnemonics)
+	result, errE := transform.Fields[FieldsWithAllSubFieldsSkipped](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 1)
@@ -1009,7 +1032,7 @@ func TestFieldsSubFieldsWithOrder(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithOrderedSubFields](mnemonics)
+	result, errE := transform.Fields[FieldsWithOrderedSubFields](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 1)
@@ -1029,7 +1052,7 @@ func TestFieldsSubFieldsSlice(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithSliceSubFields](mnemonics)
+	result, errE := transform.Fields[FieldsWithSliceSubFields](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 1)
@@ -1046,7 +1069,7 @@ func TestFieldsRecursionDetected(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	_, errE := transform.Fields[FieldsWithRecursion](mnemonics)
+	_, errE := transform.Fields[FieldsWithRecursion](mnemonics, nil, nil)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "recursive struct type detected")
 }
@@ -1057,7 +1080,7 @@ func TestFieldsSharedSubStruct(t *testing.T) {
 	mnemonics := fieldsTestMnemonics()
 
 	// Two sibling fields using the same struct type should not trigger recursion.
-	result, errE := transform.Fields[FieldsWithSharedSubStruct](mnemonics)
+	result, errE := transform.Fields[FieldsWithSharedSubStruct](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 2)
@@ -1074,7 +1097,7 @@ func TestFieldsInverseProperty(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithInverseProperty](mnemonics)
+	result, errE := transform.Fields[FieldsWithInverseProperty](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 2)
@@ -1096,7 +1119,7 @@ func TestFieldsEmbed(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithEmbed](mnemonics)
+	result, errE := transform.Fields[FieldsWithEmbed](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Field, 2)
@@ -1117,7 +1140,7 @@ func TestFieldsStandaloneFieldSection(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithStandaloneFieldSection](mnemonics)
+	result, errE := transform.Fields[FieldsWithStandaloneFieldSection](mnemonics, fieldsTestSectionNames("standalone"), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	// One section and one top-level field.
@@ -1127,6 +1150,7 @@ func TestFieldsStandaloneFieldSection(t *testing.T) {
 	// Section contains First and Second.
 	section := result.Section[0]
 	assert.Equal(t, "standalone", string(section.ID))
+	assert.Equal(t, expectedSectionName("standalone"), section.Name)
 	assert.Equal(t, core.Amount[float64]{Amount: 1, Precision: 1}, section.OrderInList)
 	require.Len(t, section.Field, 2)
 	assert.Equal(t, core.Ref{ID: mnemonics["FIRST"]}, section.Field[0].Property)
@@ -1141,7 +1165,7 @@ func TestFieldsSectionOverride(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithSectionOverride](mnemonics)
+	result, errE := transform.Fields[FieldsWithSectionOverride](mnemonics, fieldsTestSectionNames("main", "other"), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Empty(t, result.Field)
@@ -1150,12 +1174,14 @@ func TestFieldsSectionOverride(t *testing.T) {
 	// "main" section gets First (default from embedded struct).
 	main := result.Section[0]
 	assert.Equal(t, "main", string(main.ID))
+	assert.Equal(t, expectedSectionName("main"), main.Name)
 	require.Len(t, main.Field, 1)
 	assert.Equal(t, core.Ref{ID: mnemonics["FIRST"]}, main.Field[0].Property)
 
 	// "other" section gets Second (overridden by field's section tag).
 	other := result.Section[1]
 	assert.Equal(t, "other", string(other.ID))
+	assert.Equal(t, expectedSectionName("other"), other.Name)
 	require.Len(t, other.Field, 1)
 	assert.Equal(t, core.Ref{ID: mnemonics["SECOND"]}, other.Field[0].Property)
 }
@@ -1165,9 +1191,52 @@ func TestFieldsUndefinedSectionOrder(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	_, errE := transform.Fields[FieldsWithUndefinedSectionOrder](mnemonics)
+	_, errE := transform.Fields[FieldsWithUndefinedSectionOrder](mnemonics, nil, nil)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "section order not defined")
+}
+
+func TestFieldsSectionNamesNotProvided(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+
+	// Sections used but the sections argument is nil.
+	_, errE := transform.Fields[FieldsWithSection](mnemonics, nil, nil)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "section names not provided")
+
+	// Sections used but this section is missing from the sections argument.
+	_, errE = transform.Fields[FieldsWithSection](mnemonics, fieldsTestSectionNames("some-other-section"), nil)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "section names not provided")
+
+	// Sections used but this section's names are empty.
+	_, errE = transform.Fields[FieldsWithSection](mnemonics, map[string]map[string]string{"my-section": {}}, nil)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "section names not provided")
+}
+
+func TestFieldsSectionNamesMultipleLanguages(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+
+	result, errE := transform.Fields[FieldsWithSection](mnemonics, map[string]map[string]string{
+		"my-section": {"sl-SI": "Moj razdelek", "en-GB": "My section"},
+	}, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+
+	require.Len(t, result.Section, 1)
+	assert.Equal(t, "my-section", string(result.Section[0].ID))
+	// Names are sorted by language for deterministic output.
+	assert.Equal(t, []core.StringWithLanguage{{
+		Value:      "My section",
+		InLanguage: []core.Ref{{ID: []string{core.Namespace, "LANGUAGE", "en-GB"}}},
+	}, {
+		Value:      "Moj razdelek",
+		InLanguage: []core.Ref{{ID: []string{core.Namespace, "LANGUAGE", "sl-SI"}}},
+	}}, result.Section[0].Name)
 }
 
 func TestFieldsDuplicateSectionDef(t *testing.T) {
@@ -1175,7 +1244,7 @@ func TestFieldsDuplicateSectionDef(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	_, errE := transform.Fields[FieldsWithDuplicateSectionDef](mnemonics)
+	_, errE := transform.Fields[FieldsWithDuplicateSectionDef](mnemonics, nil, nil)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "section defined more than once")
 }
@@ -1185,7 +1254,7 @@ func TestFieldsSubFieldSectionError(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	_, errE := transform.Fields[FieldsWithSubFieldSection](mnemonics)
+	_, errE := transform.Fields[FieldsWithSubFieldSection](mnemonics, nil, nil)
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "sub-fields cannot have sections")
 }
@@ -1195,7 +1264,7 @@ func TestFieldsMixedSectionFields(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithMixedSectionFields](mnemonics)
+	result, errE := transform.Fields[FieldsWithMixedSectionFields](mnemonics, fieldsTestSectionNames("mixed"), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	assert.Empty(t, result.Field)
@@ -1204,6 +1273,7 @@ func TestFieldsMixedSectionFields(t *testing.T) {
 	// Both First (from embedded) and Second (standalone) are in "mixed" section.
 	section := result.Section[0]
 	assert.Equal(t, "mixed", string(section.ID))
+	assert.Equal(t, expectedSectionName("mixed"), section.Name)
 	require.Len(t, section.Field, 2)
 	assert.Equal(t, core.Ref{ID: mnemonics["FIRST"]}, section.Field[0].Property)
 	assert.Equal(t, core.Ref{ID: mnemonics["SECOND"]}, section.Field[1].Property)
@@ -1218,7 +1288,7 @@ func TestFieldsSectionWithEmbeddedAndOrder(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[FieldsWithSectionEmbeddedOrder](mnemonics)
+	result, errE := transform.Fields[FieldsWithSectionEmbeddedOrder](mnemonics, fieldsTestSectionNames("sec"), nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	require.Len(t, result.Section, 1)
@@ -1227,6 +1297,7 @@ func TestFieldsSectionWithEmbeddedAndOrder(t *testing.T) {
 	// Section "sec" with fields from embedded struct and direct fields.
 	section := result.Section[0]
 	assert.Equal(t, "sec", string(section.ID))
+	assert.Equal(t, expectedSectionName("sec"), section.Name)
 	require.Len(t, section.Field, 3)
 
 	// First comes from EmbeddedInsideSection with explicit order 10.
@@ -1263,7 +1334,7 @@ func TestFieldsDefault(t *testing.T) {
 
 	mnemonics := fieldsTestMnemonics()
 
-	result, errE := transform.Fields[DefaultFields](mnemonics)
+	result, errE := transform.Fields[DefaultFields](mnemonics, nil, nil)
 	require.NoError(t, errE, "% -+#.1v", errE)
 	require.NotNil(t, result)
 	require.Len(t, result.Field, 3)
@@ -1286,4 +1357,78 @@ func TestFieldsDefault(t *testing.T) {
 	assert.Equal(t, core.Ref{ID: mnemonics["CODE"]}, code.Property)
 	require.NotNil(t, code.Default)
 	assert.Equal(t, core.Ref{ID: []string{core.Namespace, "VALUE_TYPE", "NONE"}}, *code.Default)
+}
+
+func TestFieldsInstructions(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+
+	// Instructions attach to top-level fields, section fields, and sub-fields by their
+	// dot-joined Go field path; values are sorted by language for deterministic output.
+	result, errE := transform.Fields[FieldsWithSection](mnemonics, fieldsTestSectionNames("my-section"), map[string]map[string]string{
+		"NestedSection.Something": {"sl-SI": "<p>Navodilo.</p>", "en-GB": "<p>Instruction.</p>"},
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Section, 1)
+	require.Len(t, result.Section[0].Field, 1)
+	assert.Equal(t, []core.RawHTMLWithLanguage{{
+		Value:      "<p>Instruction.</p>",
+		InLanguage: []core.Ref{{ID: []string{core.Namespace, "LANGUAGE", "en-GB"}}},
+	}, {
+		Value:      "<p>Navodilo.</p>",
+		InLanguage: []core.Ref{{ID: []string{core.Namespace, "LANGUAGE", "sl-SI"}}},
+	}}, result.Section[0].Field[0].Instruction)
+
+	// A sub-field path continues through the nested struct's fields.
+	subResult, errE := transform.Fields[FieldsWithValueStruct](mnemonics, nil, map[string]map[string]string{
+		"Data.Name": {"en-GB": "<p>Sub-field instruction.</p>"},
+	})
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, subResult.Field, 1)
+	require.Len(t, subResult.Field[0].SubField, 1)
+	assert.Equal(t, []core.RawHTMLWithLanguage{{
+		Value:      "<p>Sub-field instruction.</p>",
+		InLanguage: []core.Ref{{ID: []string{core.Namespace, "LANGUAGE", "en-GB"}}},
+	}}, subResult.Field[0].SubField[0].Instruction)
+	assert.Nil(t, subResult.Field[0].Instruction)
+
+	// A path not matching any field is an error.
+	_, errE = transform.Fields[SimpleFields](mnemonics, nil, map[string]map[string]string{
+		"NoSuchField": {"en-GB": "<p>Lost.</p>"},
+	})
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "instruction field path not found")
+}
+
+type FieldsWithContext struct {
+	Name string `cardinality:"1.."  context:"edit"        json:"name" property:"NAME"`
+	Age  *int   `cardinality:"0..1" context:"edit, other" json:"age"  property:"AGE"`
+}
+
+type ContextValueStruct struct {
+	Value core.Amount[int] `context:"edit" json:"value" value:""`
+
+	Name string `json:"name" property:"NAME"`
+}
+
+type FieldsWithContextOnValue struct {
+	Data ContextValueStruct `cardinality:"1" json:"data" property:"DATA"`
+}
+
+func TestFieldsContext(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+
+	result, errE := transform.Fields[FieldsWithContext](mnemonics, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Field, 2)
+	assert.Equal(t, []string{"edit"}, result.Field[0].Context)
+	assert.Equal(t, []string{"edit", "other"}, result.Field[1].Context)
+
+	// The context tag cannot be used on value fields.
+	_, errE = transform.Fields[FieldsWithContextOnValue](mnemonics, nil, nil)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "context tag cannot be used with value tag")
 }

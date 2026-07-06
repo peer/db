@@ -540,7 +540,7 @@ func TestSessionToQueryPanicsOnInvalidFilter(t *testing.T) {
 		f.Ref = nil
 		f.Amount = nil
 		f.Time = nil
-		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "", Filters: []search.Filter{f}, Prefilters: nil, Reverse: nil, ReverseExpand: false}
+		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "", Filters: []search.Filter{f}, Prefilters: nil, Reverse: nil, ReverseExpand: false, IDs: nil}
 		_ = data.ToQuery(nil)
 	})
 }
@@ -552,10 +552,20 @@ func TestSessionValidate(t *testing.T) {
 		t.Parallel()
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		s := &search.Session{
-			SessionData: search.SessionData{Sort: nil, Language: "", View: search.ViewFeed, Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
-			ID:          identifier.From(base...),
-			Base:        base,
-			Version:     0,
+			SessionData: search.SessionData{
+				Sort:          nil,
+				Language:      "",
+				View:          search.ViewFeed,
+				Query:         "test",
+				Filters:       nil,
+				Prefilters:    nil,
+				Reverse:       nil,
+				ReverseExpand: false,
+				IDs:           nil,
+			},
+			ID:      identifier.From(base...),
+			Base:    base,
+			Version: 0,
 		}
 		err := s.Validate(siteContext(t.Context()))
 		require.NoError(t, err)
@@ -565,7 +575,7 @@ func TestSessionValidate(t *testing.T) {
 	t.Run("BaseTooShort", func(t *testing.T) {
 		t.Parallel()
 		s := &search.Session{
-			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
+			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false, IDs: nil},
 			ID:          identifier.From("short"),
 			Base:        []string{"short"},
 			Version:     0,
@@ -580,7 +590,7 @@ func TestSessionValidate(t *testing.T) {
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		wrongID := identifier.New()
 		s := &search.Session{
-			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
+			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false, IDs: nil},
 			ID:          wrongID,
 			Base:        base,
 			Version:     0,
@@ -594,7 +604,7 @@ func TestSessionValidate(t *testing.T) {
 		t.Parallel()
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		s := &search.Session{
-			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
+			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false, IDs: nil},
 			ID:          identifier.From(base...),
 			Base:        base,
 			Version:     0,
@@ -608,10 +618,20 @@ func TestSessionValidate(t *testing.T) {
 		t.Parallel()
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		s := &search.Session{
-			SessionData: search.SessionData{Sort: nil, Language: "", View: search.ViewTable, Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
-			ID:          identifier.From(base...),
-			Base:        base,
-			Version:     0,
+			SessionData: search.SessionData{
+				Sort:          nil,
+				Language:      "",
+				View:          search.ViewTable,
+				Query:         "test",
+				Filters:       nil,
+				Prefilters:    nil,
+				Reverse:       nil,
+				ReverseExpand: false,
+				IDs:           nil,
+			},
+			ID:      identifier.From(base...),
+			Base:    base,
+			Version: 0,
 		}
 		err := s.Validate(siteContext(t.Context()))
 		require.NoError(t, err)
@@ -622,7 +642,7 @@ func TestSessionValidate(t *testing.T) {
 		t.Parallel()
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		s := &search.Session{
-			SessionData: search.SessionData{Sort: nil, Language: "", View: "grid", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
+			SessionData: search.SessionData{Sort: nil, Language: "", View: "grid", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false, IDs: nil},
 			ID:          identifier.From(base...),
 			Base:        base,
 			Version:     0,
@@ -648,6 +668,7 @@ func TestSessionValidate(t *testing.T) {
 				Prefilters:    nil,
 				Reverse:       nil,
 				ReverseExpand: false,
+				IDs:           nil,
 			},
 			ID:      identifier.From(base...),
 			Base:    base,
@@ -674,6 +695,7 @@ func TestSessionValidate(t *testing.T) {
 				Prefilters:    nil,
 				Reverse:       nil,
 				ReverseExpand: false,
+				IDs:           nil,
 			},
 			ID:      identifier.From(base...),
 			Base:    base,
@@ -687,7 +709,7 @@ func TestSessionValidate(t *testing.T) {
 		t.Parallel()
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		s := &search.Session{
-			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
+			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false, IDs: nil},
 			ID:          identifier.From(base...),
 			Base:        base,
 			Version:     0,
@@ -702,7 +724,7 @@ func TestSessionDataValidate(t *testing.T) {
 
 	t.Run("DefaultView", func(t *testing.T) {
 		t.Parallel()
-		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false}
+		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false, IDs: nil}
 		err := data.Validate(siteContext(t.Context()), false)
 		require.NoError(t, err)
 		assert.Equal(t, search.ViewFeed, data.View)
@@ -710,7 +732,7 @@ func TestSessionDataValidate(t *testing.T) {
 
 	t.Run("InvalidView", func(t *testing.T) {
 		t.Parallel()
-		data := search.SessionData{Sort: nil, Language: "", View: "grid", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false}
+		data := search.SessionData{Sort: nil, Language: "", View: "grid", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false, IDs: nil}
 		err := data.Validate(siteContext(t.Context()), false)
 		require.Error(t, err)
 		assert.EqualError(t, err, "invalid view")
@@ -730,6 +752,7 @@ func TestSessionDataValidate(t *testing.T) {
 			Prefilters:    nil,
 			Reverse:       nil,
 			ReverseExpand: false,
+			IDs:           nil,
 		}
 		err := data.Validate(siteContext(t.Context()), false)
 		require.NoError(t, err)
@@ -748,6 +771,7 @@ func TestSessionDataValidate(t *testing.T) {
 			Prefilters:    nil,
 			Reverse:       nil,
 			ReverseExpand: false,
+			IDs:           nil,
 		}
 		err := data.Validate(siteContext(t.Context()), false)
 		require.Error(t, err)
@@ -756,7 +780,7 @@ func TestSessionDataValidate(t *testing.T) {
 
 	t.Run("ReverseExpandWithoutReverse", func(t *testing.T) {
 		t.Parallel()
-		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: true}
+		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: true, IDs: nil}
 		err := data.Validate(siteContext(t.Context()), false)
 		require.Error(t, err)
 		assert.EqualError(t, err, "reverseExpand is set without reverse")
@@ -765,7 +789,7 @@ func TestSessionDataValidate(t *testing.T) {
 	t.Run("ReverseExpandWithReverse", func(t *testing.T) {
 		t.Parallel()
 		reverse := identifier.From("target")
-		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: &reverse, ReverseExpand: true}
+		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: &reverse, ReverseExpand: true, IDs: nil}
 		err := data.Validate(siteContext(t.Context()), false)
 		require.NoError(t, err)
 	})
@@ -783,11 +807,11 @@ func TestSessionToQuery(t *testing.T) {
 	}{
 		{
 			Name:        "QueryOnly",
-			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "hello", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
+			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "hello", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false, IDs: nil},
 		},
 		{
 			Name:        "Empty",
-			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
+			SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false, IDs: nil},
 		},
 		{
 			Name: "QueryAndFilter",
@@ -801,6 +825,7 @@ func TestSessionToQuery(t *testing.T) {
 				Prefilters:    nil,
 				Reverse:       nil,
 				ReverseExpand: false,
+				IDs:           nil,
 			},
 		},
 	}
@@ -831,6 +856,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 			Prefilters:    nil,
 			Reverse:       &reverseID,
 			ReverseExpand: false,
+			IDs:           nil,
 		}
 		q := data.ToQuery(nil)
 		assertQueryGolden(t, q)
@@ -849,6 +875,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 			Prefilters:    nil,
 			Reverse:       &reverseID,
 			ReverseExpand: false,
+			IDs:           nil,
 		}
 		q := data.ToQuery(nil)
 		j := testutils.QueryJSON(t, q)
@@ -869,6 +896,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 			Prefilters:    nil,
 			Reverse:       &reverseID,
 			ReverseExpand: false,
+			IDs:           nil,
 		}
 		q := data.ToQueryExcluding(*filter.ID, nil)
 		j := testutils.QueryJSON(t, q)
@@ -880,7 +908,7 @@ func TestSessionToQueryReverse(t *testing.T) {
 
 	t.Run("NoReverse", func(t *testing.T) {
 		t.Parallel()
-		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false}
+		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false, IDs: nil}
 		q := data.ToQuery(nil)
 		assertQueryGolden(t, q)
 	})
@@ -895,7 +923,17 @@ func TestSessionToQueryPrefilters(t *testing.T) {
 	t.Run("PrefilterGoesIntoFilterClause", func(t *testing.T) {
 		t.Parallel()
 		prefilter := makeTestFilter(prop, &search.RefFilter{Direct: nil, To: []search.ToValue{{ID: value}}, Missing: false}, nil, nil)
-		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "", Filters: nil, Prefilters: []search.Filter{prefilter}, Reverse: nil, ReverseExpand: false}
+		data := search.SessionData{
+			Sort:          nil,
+			Language:      "",
+			View:          "",
+			Query:         "",
+			Filters:       nil,
+			Prefilters:    []search.Filter{prefilter},
+			Reverse:       nil,
+			ReverseExpand: false,
+			IDs:           nil,
+		}
 		assertQueryGolden(t, data.ToQuery(nil))
 	})
 
@@ -956,6 +994,7 @@ func TestSessionToQueryPrefilterParentToAcrossSets(t *testing.T) {
 			Prefilters:    []search.Filter{makeTopRefFilter()},
 			Reverse:       nil,
 			ReverseExpand: false,
+			IDs:           nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		// The sub-claim filter is restricted by the top-level ref prefilter on the same parentProp.
@@ -972,6 +1011,7 @@ func TestSessionToQueryPrefilterParentToAcrossSets(t *testing.T) {
 			Prefilters:    []search.Filter{makeSubRefFilter()},
 			Reverse:       nil,
 			ReverseExpand: false,
+			IDs:           nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		// The sub-claim prefilter is restricted by the top-level ref filter on the same parentProp.
@@ -987,7 +1027,7 @@ func TestSessionDataValidateReverse(t *testing.T) {
 
 	t.Run("ReverseSet", func(t *testing.T) {
 		t.Parallel()
-		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: &reverseID, ReverseExpand: false}
+		data := search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: &reverseID, ReverseExpand: false, IDs: nil}
 		err := data.Validate(siteContext(t.Context()), false)
 		require.NoError(t, err)
 	})
@@ -996,10 +1036,20 @@ func TestSessionDataValidateReverse(t *testing.T) {
 		t.Parallel()
 		base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 		s := search.Session{
-			SessionData: search.SessionData{Sort: nil, Language: "", View: search.ViewFeed, Query: "", Filters: nil, Prefilters: nil, Reverse: &reverseID, ReverseExpand: false},
-			ID:          identifier.From(base...),
-			Base:        base,
-			Version:     0,
+			SessionData: search.SessionData{
+				Sort:          nil,
+				Language:      "",
+				View:          search.ViewFeed,
+				Query:         "",
+				Filters:       nil,
+				Prefilters:    nil,
+				Reverse:       &reverseID,
+				ReverseExpand: false,
+				IDs:           nil,
+			},
+			ID:      identifier.From(base...),
+			Base:    base,
+			Version: 0,
 		}
 		data, errE := x.MarshalWithoutEscapeHTML(s)
 		require.NoError(t, errE, "% -+#.1v", errE)
@@ -1018,7 +1068,7 @@ func TestCreateSession(t *testing.T) {
 
 	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 	s := &search.Session{
-		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test search", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
+		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test search", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false, IDs: nil},
 		ID:          identifier.From(base...),
 		Base:        base,
 		Version:     0,
@@ -1041,7 +1091,7 @@ func TestCreateSessionValidationError(t *testing.T) {
 
 	// Base with only one element triggers validation error.
 	s := &search.Session{
-		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
+		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false, IDs: nil},
 		ID:          identifier.From("bad"),
 		Base:        []string{"bad"},
 		Version:     0,
@@ -1059,7 +1109,7 @@ func TestUpdateSession(t *testing.T) {
 	// First create a session.
 	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 	s := &search.Session{
-		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "original", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
+		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "original", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false, IDs: nil},
 		ID:          identifier.From(base...),
 		Base:        base,
 		Version:     0,
@@ -1071,10 +1121,20 @@ func TestUpdateSession(t *testing.T) {
 
 	// Update it.
 	updated := &search.Session{
-		SessionData: search.SessionData{Sort: nil, Language: "", View: search.ViewTable, Query: "updated", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
-		ID:          id,
-		Base:        base,
-		Version:     1,
+		SessionData: search.SessionData{
+			Sort:          nil,
+			Language:      "",
+			View:          search.ViewTable,
+			Query:         "updated",
+			Filters:       nil,
+			Prefilters:    nil,
+			Reverse:       nil,
+			ReverseExpand: false,
+			IDs:           nil,
+		},
+		ID:      id,
+		Base:    base,
+		Version: 1,
 	}
 	errE = search.UpdateSession(siteContext(ctx), updated)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -1093,7 +1153,7 @@ func TestUpdateSessionMissingBase(t *testing.T) {
 
 	// Session with no base at all fails validation.
 	s := &search.Session{ //nolint:exhaustruct
-		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
+		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false, IDs: nil},
 		Version:     0,
 	}
 	errE := search.UpdateSession(siteContext(ctx), s)
@@ -1108,7 +1168,7 @@ func TestUpdateSessionValidationError(t *testing.T) {
 
 	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 	s := &search.Session{
-		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "original", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
+		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "original", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false, IDs: nil},
 		ID:          identifier.From(base...),
 		Base:        base,
 		Version:     0,
@@ -1118,10 +1178,20 @@ func TestUpdateSessionValidationError(t *testing.T) {
 	id := s.ID
 
 	updated := &search.Session{
-		SessionData: search.SessionData{Sort: nil, Language: "", View: "invalid", Query: "updated", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
-		ID:          id,
-		Base:        base,
-		Version:     1,
+		SessionData: search.SessionData{
+			Sort:          nil,
+			Language:      "",
+			View:          "invalid",
+			Query:         "updated",
+			Filters:       nil,
+			Prefilters:    nil,
+			Reverse:       nil,
+			ReverseExpand: false,
+			IDs:           nil,
+		},
+		ID:      id,
+		Base:    base,
+		Version: 1,
 	}
 	errE = search.UpdateSession(siteContext(ctx), updated)
 	require.Error(t, errE)
@@ -1135,7 +1205,7 @@ func TestGetSession(t *testing.T) {
 
 	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 	s := &search.Session{
-		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
+		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false, IDs: nil},
 		ID:          identifier.From(base...),
 		Base:        base,
 		Version:     0,
@@ -1160,7 +1230,7 @@ func TestGetSessionFromID(t *testing.T) {
 
 	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 	s := &search.Session{
-		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
+		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "test", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false, IDs: nil},
 		ID:          identifier.From(base...),
 		Base:        base,
 		Version:     0,
@@ -1193,10 +1263,20 @@ func TestCreateAndUpdateSessionRoundTrip(t *testing.T) {
 
 	base := []string{"test.example.com", "SEARCH", identifier.New().String()}
 	s := &search.Session{
-		SessionData: search.SessionData{Sort: nil, Language: "", View: search.ViewFeed, Query: "initial", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
-		ID:          identifier.From(base...),
-		Base:        base,
-		Version:     0,
+		SessionData: search.SessionData{
+			Sort:          nil,
+			Language:      "",
+			View:          search.ViewFeed,
+			Query:         "initial",
+			Filters:       nil,
+			Prefilters:    nil,
+			Reverse:       nil,
+			ReverseExpand: false,
+			IDs:           nil,
+		},
+		ID:      identifier.From(base...),
+		Base:    base,
+		Version: 0,
 	}
 	errE := search.CreateSession(siteContext(ctx), s)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -1213,6 +1293,7 @@ func TestCreateAndUpdateSessionRoundTrip(t *testing.T) {
 			Prefilters:    nil,
 			Reverse:       nil,
 			ReverseExpand: false,
+			IDs:           nil,
 		},
 		ID:      id,
 		Base:    base,
@@ -1222,7 +1303,7 @@ func TestCreateAndUpdateSessionRoundTrip(t *testing.T) {
 	require.NoError(t, errE, "% -+#.1v", errE)
 
 	s3 := &search.Session{
-		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "updated again", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false},
+		SessionData: search.SessionData{Sort: nil, Language: "", View: "", Query: "updated again", Filters: nil, Prefilters: nil, Reverse: nil, ReverseExpand: false, IDs: nil},
 		ID:          id,
 		Base:        base,
 		Version:     2,
@@ -1274,6 +1355,7 @@ func TestGetFilterByID(t *testing.T) {
 			Prefilters:    nil,
 			Reverse:       nil,
 			ReverseExpand: false,
+			IDs:           nil,
 		},
 	}
 
@@ -1363,6 +1445,7 @@ func TestJSONSerialization(t *testing.T) {
 				Prefilters:    nil,
 				Reverse:       nil,
 				ReverseExpand: false,
+				IDs:           nil,
 			},
 			ID: id, Base: base, Version: 3,
 		}
@@ -1503,6 +1586,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			Prefilters:    nil,
 			Reverse:       nil,
 			ReverseExpand: false,
+			IDs:           nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.Contains(t, j, `"claims.subRef.to":{"value":"`+a.String()+`"}`)
@@ -1523,6 +1607,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			Prefilters:    nil,
 			Reverse:       nil,
 			ReverseExpand: false,
+			IDs:           nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
@@ -1544,6 +1629,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			Prefilters:    nil,
 			Reverse:       nil,
 			ReverseExpand: false,
+			IDs:           nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.Contains(t, j, `"claims.subRef.parentTo":{"value":"`+l1.String()+`"}`)
@@ -1564,6 +1650,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			Prefilters:    nil,
 			Reverse:       nil,
 			ReverseExpand: false,
+			IDs:           nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.NotContains(t, j, `"claims.subRef.parentTo"`)
@@ -1585,6 +1672,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			Prefilters:    nil,
 			Reverse:       nil,
 			ReverseExpand: false,
+			IDs:           nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.NotContains(t, j, `"claims.subRef.parentTo"`)
@@ -1603,6 +1691,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			Prefilters:    nil,
 			Reverse:       nil,
 			ReverseExpand: false,
+			IDs:           nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQueryExcluding(*parentRef.ID, nil))
 		assert.NotContains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
@@ -1623,6 +1712,7 @@ func TestSessionToQueryCrossFilter(t *testing.T) {
 			Prefilters:    nil,
 			Reverse:       nil,
 			ReverseExpand: false,
+			IDs:           nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQueryExcluding(*subRef.ID, nil))
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
@@ -1908,6 +1998,7 @@ func TestSessionToQueryCrossFilterAllTypes(t *testing.T) {
 			Prefilters:    nil,
 			Reverse:       nil,
 			ReverseExpand: false,
+			IDs:           nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
@@ -1929,6 +2020,7 @@ func TestSessionToQueryCrossFilterAllTypes(t *testing.T) {
 			Prefilters:    nil,
 			Reverse:       nil,
 			ReverseExpand: false,
+			IDs:           nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)
@@ -1950,6 +2042,7 @@ func TestSessionToQueryCrossFilterAllTypes(t *testing.T) {
 			Prefilters:    nil,
 			Reverse:       nil,
 			ReverseExpand: false,
+			IDs:           nil,
 		}
 		j := testutils.QueryJSON(t, data.ToQuery(nil))
 		assert.Contains(t, j, `"claims.ref.to":{"value":"`+l1.String()+`"}`)

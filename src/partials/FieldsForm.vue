@@ -2,11 +2,12 @@
 import type { DeepReadonly } from "vue"
 
 import type { ClaimTypes } from "@/document"
-import type { FieldsData } from "@/fields"
+import type { FieldData, FieldsData } from "@/fields"
 
 import { watch } from "vue"
+import { useI18n } from "vue-i18n"
 
-import { fieldKey } from "@/fields"
+import { fieldKey, getSectionName, isSimpleField, sectionElementId } from "@/fields"
 import FieldsFormField from "@/partials/FieldsFormField.vue"
 import { useValidationRegistry } from "@/validation"
 
@@ -17,11 +18,11 @@ defineProps<{
   // changes in this edit session were applied. Used to detect
   // session-wide "changed" status and to compute revert diffs.
   initialClaims: DeepReadonly<ClaimTypes>
-  base: DeepReadonly<string[]>
-  session: string
 }>()
 
 const invalid = defineModel<boolean>("invalid", { default: false })
+
+const { locale } = useI18n({ useScope: "global" })
 
 // Top-level FieldsForm: its consumer (DocumentEdit) calls validateAll /
 // revertAll / checkpointAll explicitly through defineExpose. There are no
@@ -38,6 +39,13 @@ function sortedByOrder<T extends { orderInList: number }>(items: readonly T[]): 
   return [...items].sort((a, b) => a.orderInList - b.orderInList)
 }
 
+// A group of sibling fields uses wider spacing (gap-8) once any member is
+// non-simple (repeats or has sub-fields); otherwise the fields are simple and
+// sit close together (gap-4).
+function groupGapClass(fields: readonly DeepReadonly<FieldData>[]): string {
+  return fields.some((field) => !isSimpleField(field)) ? "gap-y-8" : "gap-y-4"
+}
+
 defineExpose({
   validateAll,
   resetAll,
@@ -52,41 +60,28 @@ defineExpose({
 
 <template>
   <!--
-    Semantic table for property/value pairs, but laid out with flex + grid:
-      - <table> is display: flex column with gap-y-4, so each FieldsFormField
-        (a <tbody>) is one flex item separated from its neighbours.
-      - Each FieldsFormField's <tbody> is its own grid (2 cols: label / content),
-        with tight gap-y-1 inside the field.
-      - <tr>s use display: contents (Tailwind "contents") so their <th>/<td>
-        children participate in the tbody's grid directly.
-    Section header sits between tbodies as its own flex item.
+    Property/value rows laid out with flex + grid. The <table>/<tbody> elements
+    are display:flex/grid (not real table layout): each field group is its own
+    flex <table> of FieldsFormField <tbody>s. Spacing follows field "simplicity":
+    a group uses gap-8 once any field is non-simple (repeats or has sub-fields),
+    else gap-4; sections are separated by gap-12.
   -->
-  <table class="flex w-full flex-col gap-y-4">
-    <FieldsFormField
-      v-for="field in sortedByOrder(fieldsData.fields)"
-      :key="fieldKey(field)"
-      :field="field"
-      :claims="claims"
-      :initial-claims="initialClaims"
-      :base="base"
-      :session="session"
-    />
+  <div class="flex w-full flex-col gap-y-12">
+    <table v-if="fieldsData.fields.length > 0" class="flex flex-col" :class="groupGapClass(fieldsData.fields)">
+      <FieldsFormField v-for="field in sortedByOrder(fieldsData.fields)" :key="fieldKey(field)" :field="field" :claims="claims" :initial-claims="initialClaims" />
+    </table>
 
-    <template v-for="section in sortedByOrder(fieldsData.sections)" :key="'section-' + section.id">
-      <thead class="block">
-        <tr class="block">
-          <th colspan="2" class="block border-b border-slate-200 px-2 pb-1 text-left text-lg font-semibold">{{ section.id }}</th>
-        </tr>
-      </thead>
-      <FieldsFormField
-        v-for="field in sortedByOrder(section.fields)"
-        :key="fieldKey(field)"
-        :field="field"
-        :claims="claims"
-        :initial-claims="initialClaims"
-        :base="base"
-        :session="session"
-      />
-    </template>
-  </table>
+    <div v-for="section in sortedByOrder(fieldsData.sections)" :key="'section-' + section.id" class="flex flex-col gap-y-4">
+      <!--
+        The id makes the header a scroll/hash target of the table of contents. The
+        heading role lets assistive technology jump between sections.
+      -->
+      <div :id="sectionElementId(section)" role="heading" aria-level="2" class="border-b border-slate-200 px-2 pb-1 text-lg font-semibold">
+        {{ getSectionName(section, locale) }}
+      </div>
+      <table class="flex flex-col" :class="groupGapClass(section.fields)">
+        <FieldsFormField v-for="field in sortedByOrder(section.fields)" :key="fieldKey(field)" :field="field" :claims="claims" :initial-claims="initialClaims" />
+      </table>
+    </div>
+  </div>
 </template>

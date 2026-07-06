@@ -237,15 +237,28 @@ func (b *B) BeginCreateDocument(ctx context.Context, base []string) (identifier.
 var ErrInvalidChange = errors.Base("invalid change")
 
 // AppendDocumentChange appends a change to an edit session at the given sequence number.
+//
+// The change is fully validated before it is appended: besides being well-formed on its own,
+// it has to apply cleanly to the document state produced by the session's previous operation.
+// That state comes from an in-process cache of per-session document states (see
+// sessionDocCache); on a cache miss it is rebuilt from the database by replaying the session's
+// committed operations onto the parent document. Operations are contiguous (the append itself
+// enforces that seqNo is exactly one past the last committed operation), so when the append
+// succeeds, the validated state was necessarily the true predecessor state; any staleness
+// surfaces as ErrConflict and the client renumbers and retries.
 func (b *B) AppendDocumentChange(ctx context.Context, session identifier.Identifier, data json.RawMessage, seqNo int64) (int64, errors.E) {
 	change, errE := document.ChangeUnmarshalJSON(data)
 	if errE != nil {
 		return 0, errors.WrapWith(errE, ErrInvalidChange)
 	}
 
-	beginMetadata, _, _, errE := b.coordinator.Get(ctx, session)
+	beginMetadata, endMetadata, _, errE := b.coordinator.Get(ctx, session)
 	if errE != nil {
 		return 0, errE
+	} else if endMetadata != nil {
+		// The append itself would fail the same way, but we check early to not rebuild
+		// the session document state for a session which cannot accept operations.
+		return 0, errors.WithStack(coordinator.ErrAlreadyEnded)
 	}
 
 	changesetBase := slices.Clone(beginMetadata.Base)
@@ -256,15 +269,67 @@ func (b *B) AppendDocumentChange(ctx context.Context, session identifier.Identif
 		return 0, errors.WrapWith(errE, ErrInvalidChange)
 	}
 
-	return b.coordinator.Append(ctx, session, data, &documentChangeMetadata{
+	doc, cachedOperation := b.sessionDocs.Get(session)
+	if doc != nil && cachedOperation >= seqNo {
+		// Operations are immutable and contiguous, so a cached state at or past seqNo proves
+		// the sequence number is already taken and the append below would conflict anyway.
+		// We report the conflict without validating against a wrong state: the client's
+		// conflict recovery renumbers and retries, while a validation error would make it
+		// drop the change.
+		return 0, errors.WithStack(coordinator.ErrConflict)
+	}
+	if doc == nil || cachedOperation != seqNo-1 {
+		// The cache has no entry for the session (rebuild the state from scratch: the parent
+		// document plus all committed operations) or its entry is behind the previous
+		// operation (catch up by applying just the committed operations past it).
+		var from *document.D
+		if doc != nil {
+			from, errE = doc.Clone()
+			if errE != nil {
+				return 0, errE
+			}
+		}
+		rebuilt, lastOperation, errE := b.rebuildSessionDocument(ctx, session, beginMetadata, from, cachedOperation)
+		if errE != nil {
+			return 0, errE
+		}
+		b.sessionDocs.Store(session, rebuilt, lastOperation)
+		if lastOperation != seqNo-1 {
+			// The sequence number is not the next one, so the append below would conflict
+			// anyway. See the conflict comment above.
+			return 0, errors.WithStack(coordinator.ErrConflict)
+		}
+		doc = rebuilt
+	}
+
+	// The cached state is shared, so the change is applied to a clone. A successful apply is
+	// the validation that the change fits the state produced by the previous operation.
+	validated, errE := doc.Clone()
+	if errE != nil {
+		return 0, errE
+	}
+	errE = change.Apply(validated)
+	if errE != nil {
+		return 0, errors.WrapWith(errE, ErrInvalidChange)
+	}
+
+	operation, errE := b.coordinator.Append(ctx, session, data, &documentChangeMetadata{
 		At:   store.Time(time.Now().UTC()),
 		User: store.UserFromContext(ctx),
 	}, &seqNo)
+	if errE != nil {
+		return 0, errE
+	}
+
+	b.sessionDocs.Store(session, validated, seqNo)
+	return operation, nil
 }
 
-// ListDocumentChanges returns the sequence numbers of all changes in an edit session.
-func (b *B) ListDocumentChanges(ctx context.Context, session identifier.Identifier) ([]int64, errors.E) {
-	return b.coordinator.List(ctx, session, nil)
+// LastDocumentChange returns the sequence number of the latest change appended to an edit
+// session, 0 when there are none. Changes are numbered sequentially without gaps starting at
+// 1, so the session's changes are exactly 1 through the returned number.
+func (b *B) LastDocumentChange(ctx context.Context, session identifier.Identifier) (int64, errors.E) {
+	return b.coordinator.LastOperation(ctx, session)
 }
 
 // GetDocumentChange returns the change data at the given sequence number in an edit session.
@@ -275,11 +340,16 @@ func (b *B) GetDocumentChange(ctx context.Context, session identifier.Identifier
 
 // EndEditDocument ends an edit session, committing or discarding its changes.
 func (b *B) EndEditDocument(ctx context.Context, session identifier.Identifier, discard bool) errors.E {
-	return b.coordinator.End(ctx, session, &documentEndMetadata{
+	errE := b.coordinator.End(ctx, session, &documentEndMetadata{
 		At:        store.Time(time.Now().UTC()),
 		Discarded: discard,
 		User:      store.UserFromContext(ctx),
 	})
+	if errE == nil {
+		// No further operations can be appended to an ended session.
+		b.sessionDocs.Delete(session)
+	}
+	return errE
 }
 
 // GetEditDocumentSession returns the begin metadata of the edit session, a flag indicating
@@ -305,9 +375,10 @@ func (b *B) UploadChunk(ctx context.Context, session identifier.Identifier, chun
 	return b.files.UploadChunk(ctx, session, chunk, start)
 }
 
-// ListChunks returns the sequence numbers of all uploaded chunks in a file upload session.
-func (b *B) ListChunks(ctx context.Context, session identifier.Identifier) ([]int64, errors.E) {
-	return b.files.ListChunks(ctx, session)
+// LastChunk returns the sequence number of the latest chunk uploaded to a file upload session,
+// 0 when there are none. Chunks are numbered sequentially without gaps starting at 1.
+func (b *B) LastChunk(ctx context.Context, session identifier.Identifier) (int64, errors.E) {
+	return b.files.LastChunk(ctx, session)
 }
 
 // GetChunk returns the byte offset and length of a chunk in a file upload session.

@@ -120,6 +120,11 @@ type B struct {
 	listener *internalStore.Listener
 	river    *internalStore.River
 
+	// sessionDocs caches per edit session the latest committed document state, used by
+	// AppendDocumentChange to validate the next operation against the state produced by
+	// the previous one.
+	sessionDocs *sessionDocCache
+
 	// languageCodes maps a language document ID to its primary language subtag (e.g., "en").
 	// It is captured from the converter in Start and surfaced via LanguageCodes.
 	languageCodes map[identifier.Identifier]string
@@ -197,6 +202,7 @@ func (b *B) Init(
 	b.bridge = bridge
 	b.listener = listener
 	b.river = r
+	b.sessionDocs = newSessionDocCache()
 
 	return nil
 }
@@ -304,6 +310,9 @@ func (b *B) Start(ctx context.Context, documents []StartDocument) (func(), error
 	if errE != nil {
 		return nil, errE
 	}
+
+	// The session document cache sweep runs until ctx is cancelled.
+	b.sessionDocs.Start(ctx)
 
 	onShutdown := func() {
 		// Wait for the client to stop.

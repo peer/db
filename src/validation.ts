@@ -66,6 +66,36 @@ export function allErrors(inputs: Iterable<ValidatedInput>): ComputedRef<Validat
   return computed(() => Array.from(iterateErrors(inputs)))
 }
 
+// pickErrorMessage selects the single message to show for a list of errors.
+// The codeMap insertion order is the priority order: when several errors are
+// present, the message for the earliest matching code wins. An error's own
+// userMessage overrides the mapped message. When no code matches, the generic
+// "invalid" message is returned. Returns null when there are no errors.
+//
+// The codeMap values are t() call results (not just keys) so static analysis
+// can pick the translation keys up. Shared by InputErrors and InputField.
+export function pickErrorMessage(errors: ValidationError[], t: (key: string) => string): string | null {
+  if (errors.length === 0) {
+    return null
+  }
+  const codeMap: Record<string, string> = {
+    required: t("common.validation.required"),
+    invalid: t("common.validation.invalid"),
+    requiredPrecision: t("common.validation.requiredPrecision"),
+    invalidPrecision: t("common.validation.invalidPrecision"),
+    unfinished: t("common.validation.unfinished"),
+  }
+  for (const code of Object.keys(codeMap)) {
+    for (const e of errors) {
+      if (e.code === code) {
+        return e.userMessage || codeMap[code]
+      }
+    }
+  }
+  // Fallback when none of the error codes are in the map.
+  return t("common.validation.invalid")
+}
+
 // useValidationRegistry is called to collect validated inputs from all
 // descendant inputs that called useRegisterForValidation. validateAll runs
 // every input's validator in parallel. The results land in each input's
@@ -103,9 +133,9 @@ export function useValidationRegistry(
   // which is a Ref<boolean>) on access, breaking the type.
   const inputs = shallowReactive(new Set<ValidatedInput>())
 
-  const validateAll: ValidateFn = async function (signal?: AbortSignal): Promise<void> {
+  const validateAll: ValidateFn = async function (signal?: AbortSignal, options?: { final?: boolean }): Promise<void> {
     try {
-      await Promise.all(Array.from(inputs, (input) => input.validate(signal)))
+      await Promise.all(Array.from(inputs, (input) => input.validate(signal, options)))
     } catch (err) {
       if (signal?.aborted) {
         return
@@ -276,11 +306,11 @@ export function useValidation<T>(
   // validated input's isEmpty. Otherwise !model.value is used.
   isEmpty?: Readonly<Ref<boolean>> | null,
 ): {
-  runValidation: (options?: { signal?: AbortSignal; eager?: boolean; initial?: boolean }) => Promise<void>
+  runValidation: (options?: { signal?: AbortSignal; eager?: boolean; initial?: boolean; final?: boolean }) => Promise<void>
   validatedInput: ValidatedInput
 } {
   let validateAbortController: AbortController | null = null
-  let inFlight: { value: T; validator: ValidatorFn<T>; eager: boolean; initial: boolean; promise: Promise<void> } | null = null
+  let inFlight: { value: T; validator: ValidatorFn<T>; eager: boolean; initial: boolean; final: boolean; promise: Promise<void> } | null = null
 
   onBeforeUnmount(() => {
     validateAbortController?.abort()
@@ -293,17 +323,25 @@ export function useValidation<T>(
   // writes the result to errors.value. On abort the IIFE throws
   // ValidationAbortedError so callers awaiting inFlight.promise can
   // distinguish validator aborts from real validator errors.
-  function internalValidation(options?: { signal?: AbortSignal; eager?: boolean; initial?: boolean }): Promise<void> | null {
+  function internalValidation(options?: { signal?: AbortSignal; eager?: boolean; initial?: boolean; final?: boolean }): Promise<void> | null {
     const validator = validatorGetter()
     if (!validator) return null
     const initialValue = model.value
     const eager = options?.eager ?? false
     const initial = options?.initial ?? false
+    const final = options?.final ?? false
 
     // Already running the validator for this exact (value, validator, mode): join the in-flight call.
     // We do not assume a result from one mode is strictly stronger than another, because a validator's
     // behavior under each mode is opaque to us. Any mode mismatch starts a new run.
-    if (inFlight && inFlight.value === initialValue && inFlight.validator === validator && inFlight.eager === eager && inFlight.initial === initial) {
+    if (
+      inFlight &&
+      inFlight.value === initialValue &&
+      inFlight.validator === validator &&
+      inFlight.eager === eager &&
+      inFlight.initial === initial &&
+      inFlight.final === final
+    ) {
       return inFlight.promise
     }
 
@@ -333,7 +371,7 @@ export function useValidation<T>(
           try {
             // We do not reuse passed options object, but reconstruct it so that
             // it is a new object and we control exactly what is being passed.
-            result = await validator(value, { signal, eager, initial })
+            result = await validator(value, { signal, eager, initial, final })
           } catch (err) {
             if (signal.aborted) {
               throw new ValidationAbortedError()
@@ -366,7 +404,7 @@ export function useValidation<T>(
       }
     })()
 
-    inFlight = { value: initialValue, validator, eager, initial, promise }
+    inFlight = { value: initialValue, validator, eager, initial, final, promise }
 
     return promise
   }
@@ -375,14 +413,16 @@ export function useValidation<T>(
   // validation run (joining an in-flight one for the same value/mode) and
   // resolves once errors.value reflects the result. Validator-aborts caused
   // by a newer call (e.g. model change during the await) re-enter the loop
-  // to wait for the new run. Real validator errors propagate.
-  async function validate(additionalSignal?: AbortSignal): Promise<void> {
+  // to wait for the new run. Real validator errors propagate. The final
+  // option is forwarded to the validator, so checks gated on it surface only
+  // on cascades invoked with it (the Save pass).
+  async function validate(additionalSignal?: AbortSignal, options?: { final?: boolean }): Promise<void> {
     while (true) {
       if (additionalSignal?.aborted) {
         return
       }
 
-      const waitFor = internalValidation({ signal: additionalSignal })
+      const waitFor = internalValidation({ signal: additionalSignal, final: options?.final })
       if (!waitFor) {
         // No work to do: validator absent.
         return
@@ -416,7 +456,7 @@ export function useValidation<T>(
   // side effects (e.g. while the user is mid-typing). options.initial
   // forwards to the validator so it can skip both side effects and the
   // required check on the first run before any user interaction.
-  async function runValidation(options?: { signal?: AbortSignal; eager?: boolean; initial?: boolean }): Promise<void> {
+  async function runValidation(options?: { signal?: AbortSignal; eager?: boolean; initial?: boolean; final?: boolean }): Promise<void> {
     const waitFor = internalValidation(options)
     if (!waitFor) {
       // runValidation declined to run.

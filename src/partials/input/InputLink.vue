@@ -5,11 +5,13 @@ import type { ValidatedInput, ValidationError, ValidatorFn } from "@/types"
 
 import { ArrowTopRightOnSquareIcon } from "@heroicons/vue/20/solid"
 import { computed, useTemplateRef } from "vue"
+import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 
 import InputText from "@/components/InputText.vue"
 import { classifyLink, LINK_CLASS_INTERNAL, LINK_CLASS_INTERNAL_NOVIEW } from "@/internal-links"
 import { normalizeUrl, parseUrl } from "@/utils"
+import { useRegisterForValidation, useValidationRegistry } from "@/validation"
 
 const props = withDefaults(
   defineProps<{
@@ -31,7 +33,13 @@ const model = defineModel<string>({ default: "" })
 
 const emit = defineEmits<{ errors: [ValidationError[]] }>()
 
+const { t } = useI18n({ useScope: "global" })
+
 const router = useRouter()
+
+// An example URL, shown under the input (when there is no error) so the
+// expected format is clear.
+const hints = computed<string[]>(() => [t("partials.input.InputLink.hint")])
 
 const canOpen = computed(() => {
   const trimmed = model.value.trim()
@@ -67,8 +75,9 @@ const useRouterLink = computed(() => internalPath.value !== null && !linkClasses
 // surrounding whitespace is stripped, etc.). The normalization is gated on
 // !eager so the user is not fighting the input while typing, and on !initial
 // so the field is not mutated before the user has interacted. The required
-// check is also skipped on initial, but URL-parse failure is still reported
-// so a pre-populated invalid link surfaces immediately.
+// check is also skipped on initial and while eager, so it flags only on the lazy
+// blur pass; URL-parse failure is not skipped, so a pre-populated or freshly
+// typed invalid link surfaces immediately.
 // eslint-disable-next-line @typescript-eslint/require-await
 const validator: ValidatorFn<string> = async function (value, options) {
   const trimmed = value.trim()
@@ -76,7 +85,7 @@ const validator: ValidatorFn<string> = async function (value, options) {
     if (!options.eager && !options.initial && trimmed !== model.value) {
       model.value = trimmed
     }
-    if (!props.required || options.initial) {
+    if (!props.required || options.initial || options.eager) {
       return []
     }
     // TODO: Use standard codes.
@@ -102,12 +111,21 @@ const validator: ValidatorFn<string> = async function (value, options) {
   return []
 }
 
+// The inner InputText registers into this local registry rather than into the
+// enclosing registry: the enclosing one would otherwise see the hint-less inner
+// input instead of this wrapper (registered below), and the wrapper's hints would
+// never reach the enclosing row's hoisted hints. Child interactions forward outward.
+let forwardInteraction: (() => void) | null = null
+useValidationRegistry(() => {
+  forwardInteraction?.()
+})
+
 // Forward the inner InputText's ValidatedInput so the parent sees this
 // wrapper as a regular validated input.
 const inputTextRef = useTemplateRef<ShallowUnwrapRef<ValidatedInput>>("inputTextRef")
 const validatedInput: ValidatedInput = {
-  validate: async (signal) => {
-    await inputTextRef.value?.validate(signal)
+  validate: async (signal, options) => {
+    await inputTextRef.value?.validate(signal, options)
   },
   reset: () => inputTextRef.value?.reset(),
   revert: () => inputTextRef.value?.revert(),
@@ -117,7 +135,10 @@ const validatedInput: ValidatedInput = {
   isEmpty: computed<boolean>(() => inputTextRef.value?.isEmpty ?? true),
   errors: computed<ValidationError[]>(() => inputTextRef.value?.errors ?? []),
   checkpoint: () => inputTextRef.value?.checkpoint(),
+  hints,
 }
+const { onInteraction: notifyOuter } = useRegisterForValidation(validatedInput)
+forwardInteraction = notifyOuter
 defineExpose(validatedInput)
 </script>
 

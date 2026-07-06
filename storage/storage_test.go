@@ -144,9 +144,9 @@ func TestHappyPath(t *testing.T) {
 	errE = s.UploadChunk(ctx, session, []byte("foo"), 2)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	chunks, errE := s.ListChunks(ctx, session)
+	lastChunk, errE := s.LastChunk(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, []int64{4, 3, 2, 1}, chunks)
+	assert.Equal(t, int64(4), lastChunk)
 
 	start, length, errE := s.GetChunk(ctx, session, 1)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -418,7 +418,7 @@ func TestEndUploadHashMismatch(t *testing.T) {
 	assert.Nil(t, cm.ID)
 
 	// The uploaded chunks were deleted when the session completed.
-	_, errE = s.ListChunks(ctx, session)
+	_, errE = s.LastChunk(ctx, session)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyCompleted)
 
 	// The file was not stored.

@@ -25,12 +25,13 @@ const model = defineModel<string>({ default: "" })
 
 const emit = defineEmits<{ errors: [ValidationError[]] }>()
 
-// A string invalid if it is empty after trimming. The required check is
-// skipped on initial so a freshly mounted empty field is not flagged before
-// the user has interacted.
+// A string is invalid if it is empty after trimming. The required check is
+// skipped on initial and while eager (mounting, typing, clearing) so the field
+// is flagged only once the user leaves it empty (the lazy blur pass), never
+// mid-edit; an eager pass still returns [], so filling clears the error at once.
 // eslint-disable-next-line @typescript-eslint/require-await
 const validator: ValidatorFn<string> = async function (value, options) {
-  if (!props.required || options.initial) {
+  if (!props.required || options.initial || options.eager) {
     return []
   }
   // TODO: Use standard codes.
@@ -41,8 +42,8 @@ const validator: ValidatorFn<string> = async function (value, options) {
 // wrapper as a regular validated input.
 const inputTextRef = useTemplateRef<ShallowUnwrapRef<ValidatedInput>>("inputTextRef")
 const validatedInput: ValidatedInput = {
-  validate: async (signal) => {
-    await inputTextRef.value?.validate(signal)
+  validate: async (signal, options) => {
+    await inputTextRef.value?.validate(signal, options)
   },
   reset: () => inputTextRef.value?.reset(),
   revert: () => inputTextRef.value?.revert(),

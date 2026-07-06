@@ -50,6 +50,14 @@ describe("parseShortcut", () => {
   test("throws when 'reverse' is the nested side of a key", () => {
     expect(() => parseShortcut("ns.example.com,X:reverse=ns.example.com,Y")).toThrowError(/"reverse" is not allowed/)
   })
+
+  test("throws when 'id' is the parent of a nested key", () => {
+    expect(() => parseShortcut("id:ns.example.com,X=ns.example.com,Y")).toThrowError(/"id" is not allowed/)
+  })
+
+  test("throws when 'id' is the nested side of a key", () => {
+    expect(() => parseShortcut("ns.example.com,X:id=ns.example.com,Y")).toThrowError(/"id" is not allowed/)
+  })
 })
 
 describe("resolveShortcutID", () => {
@@ -169,6 +177,30 @@ describe("shortcutToFilters", () => {
     const prop = (await Identifier.from("ns.example.com", "KIND")).toString()
     assert.deepEqual(payload.filters, [{ prop: [prop], ref: { direct: [{ id: self }] } }])
   })
+
+  test("collects repeated 'id' keys into the ids scope", async () => {
+    const payload = await shortcutToFilters("id=ns.example.com,A&id=ns.example.com,B")
+    const a = (await Identifier.from("ns.example.com", "A")).toString()
+    const b = (await Identifier.from("ns.example.com", "B")).toString()
+    assert.deepEqual(payload, { ids: [a, b] })
+  })
+
+  test("combines ids and filters in one payload", async () => {
+    const payload = await shortcutToFilters("id=ns.example.com,A&ns.example.com,KIND=ns.example.com,B")
+    const a = (await Identifier.from("ns.example.com", "A")).toString()
+    const prop = (await Identifier.from("ns.example.com", "KIND")).toString()
+    const b = (await Identifier.from("ns.example.com", "B")).toString()
+    assert.deepEqual(payload, {
+      ids: [a],
+      filters: [{ prop: [prop], ref: { to: [{ id: b }] } }],
+    })
+  })
+
+  test("supports id with self", async () => {
+    const self = Identifier.new().toString()
+    const payload = await shortcutToFilters("id=self", self)
+    assert.deepEqual(payload, { ids: [self] })
+  })
 })
 
 describe("shortcutToQuery", () => {
@@ -199,6 +231,13 @@ describe("shortcutToQuery", () => {
     const query = await shortcutToQuery("reverse=ns.example.com,DOC")
     const value = (await Identifier.from("ns.example.com", "DOC")).toString()
     assert.deepEqual(query, { reverse: [value] })
+  })
+
+  test("preserves 'id' as the literal key and groups its values", async () => {
+    const query = await shortcutToQuery("id=ns.example.com,A&id=ns.example.com,B")
+    const a = (await Identifier.from("ns.example.com", "A")).toString()
+    const b = (await Identifier.from("ns.example.com", "B")).toString()
+    assert.deepEqual(query, { id: [a, b] })
   })
 
   test("substitutes 'self' with the supplied self ID", async () => {

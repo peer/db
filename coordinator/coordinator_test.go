@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -295,9 +294,9 @@ func testHappyPath[Data, Metadata any](t *testing.T, d testCase[Data, Metadata],
 		}, appended[0])
 	}
 
-	operations, errE := c.List(ctx, session, nil)
+	lastOperation, errE := c.LastOperation(ctx, session)
 	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Equal(t, []int64{4, 3, 2, 1}, operations)
+	assert.Equal(t, int64(4), lastOperation)
 
 	data, metadata, errE := c.GetData(ctx, session, 1)
 	require.NoError(t, errE, "% -+#.1v", errE)
@@ -441,10 +440,10 @@ func TestErrors(t *testing.T) {
 	errE = c.End(ctx, session, testutils.DummyData)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyEnded)
 
-	ops, errE := c.List(ctx, session, nil)
+	lastOp, errE := c.LastOperation(ctx, session)
 	assert.True(t, errE == nil || errors.Is(errE, coordinator.ErrAlreadyCompleted), "% -+#.1v", errE)
 	if errE == nil {
-		assert.Equal(t, []int64{1}, ops)
+		assert.Equal(t, int64(1), lastOp)
 	}
 
 	// Wait for the River job to complete the session (operations are deleted after Complete).
@@ -458,11 +457,11 @@ func TestErrors(t *testing.T) {
 	_, errE = c.GetMetadata(ctx, session, 1)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyCompleted)
 
-	_, errE = c.List(ctx, session, nil)
+	_, errE = c.LastOperation(ctx, session)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyCompleted)
 }
 
-func TestListPagination(t *testing.T) {
+func TestLastOperation(t *testing.T) {
 	t.Parallel()
 
 	ctx, c, appendedChannelContents, _ := initDatabase[json.RawMessage, json.RawMessage](
@@ -474,51 +473,32 @@ func TestListPagination(t *testing.T) {
 		nil,
 	)
 
-	operations := []int64{} //nolint:prealloc
-
 	session, errE := c.Begin(ctx, testutils.DummyData)
 	require.NoError(t, errE, "% -+#.1v", errE)
 
-	for i := range 6000 {
+	// Having no operations is not an error.
+	lastOperation, errE := c.LastOperation(ctx, session)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	assert.Equal(t, int64(0), lastOperation)
+
+	// Operations are numbered sequentially without gaps starting at 1, so the latest
+	// operation's number follows every append.
+	for i := range 10 {
 		o, errE := c.Append(ctx, session, testutils.DummyData, testutils.DummyData, nil)
 		require.NoError(t, errE, "%d % -+#.1v", i, errE)
+		assert.Equal(t, int64(i+1), o)
 
-		operations = append(operations, o)
+		lastOperation, errE = c.LastOperation(ctx, session)
+		require.NoError(t, errE, "%d % -+#.1v", i, errE)
+		assert.Equal(t, o, lastOperation)
 	}
 
-	page1, errE := c.List(ctx, session, nil)
-	require.NoError(t, errE, "% -+#.1v", errE)
-	require.Len(t, page1, coordinator.MaxPageLength)
-
-	page2, errE := c.List(ctx, session, &page1[4999])
-	require.NoError(t, errE, "% -+#.1v", errE)
-	require.Len(t, page2, 1000)
-
-	allPages := make([]int64, 0, len(page1)+len(page2))
-	allPages = append(allPages, page1...)
-	allPages = append(allPages, page2...)
-
-	slices.Sort(operations)
-	slices.Reverse(operations)
-
-	assert.Equal(t, operations, allPages)
-
-	require.Eventually(t, func() bool { return appendedChannelContents.Len() >= 6000 }, 30*time.Second, 10*time.Millisecond)
+	require.Eventually(t, func() bool { return appendedChannelContents.Len() >= 10 }, 30*time.Second, 10*time.Millisecond)
 	appended := appendedChannelContents.Prune()
-	assert.Len(t, appended, 6000)
+	assert.Len(t, appended, 10)
 
-	_, errE = c.List(ctx, identifier.New(), nil)
+	_, errE = c.LastOperation(ctx, identifier.New())
 	assert.ErrorIs(t, errE, coordinator.ErrSessionNotFound)
-
-	// Having no more values is not an error.
-	page3, errE := c.List(ctx, session, &page2[999])
-	require.NoError(t, errE, "% -+#.1v", errE)
-	assert.Empty(t, page3)
-
-	// Using unknown before operation is an error.
-	before := int64(10000)
-	_, errE = c.List(ctx, session, &before)
-	assert.ErrorIs(t, errE, coordinator.ErrOperationNotFound)
 }
 
 // TestCompleteSessionOnError verifies that when completion fails with a permanent error, the
@@ -567,7 +547,7 @@ func TestCompleteSessionOnError(t *testing.T) {
 	assert.JSONEq(t, `{"errored": true}`, string(completeMetadata))
 
 	// The session's operations were deleted when it completed.
-	_, errE = c.List(ctx, session, nil)
+	_, errE = c.LastOperation(ctx, session)
 	assert.ErrorIs(t, errE, coordinator.ErrAlreadyCompleted)
 
 	// The callback received the permanent error that failed completion.

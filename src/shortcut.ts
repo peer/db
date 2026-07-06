@@ -6,6 +6,9 @@ import { encodeQuery } from "@/utils"
 
 // Reserved tokens in the search shortcut grammar.
 export const RESERVED_REVERSE = "reverse"
+// RESERVED_ID is the key whose values are document IDs the search is scoped to (documents whose own ID
+// is one of them). Unlike "reverse" it may repeat, one entry per allowed document.
+export const RESERVED_ID = "id"
 const RESERVED_SELF = "self"
 // RESERVED_MISSING is the value token that selects a property's "missing" bucket.
 export const RESERVED_MISSING = "missing"
@@ -48,7 +51,7 @@ function requireSelf(self?: string): string {
 // transform/shortcut.go:
 //   - first "=" separates a non-empty key from a non-empty value,
 //   - the key contains at most one ":" (nested "parent:prop" form),
-//   - "reverse" is not allowed inside a nested key.
+//   - "reverse" and "id" are not allowed inside a nested key.
 // Throws on the first violation.
 export function parseShortcut(s: string): ShortcutPair[] {
   if (s === "") {
@@ -69,6 +72,9 @@ export function parseShortcut(s: string): ShortcutPair[] {
     if (keyParts.length === 2 && (keyParts[0] === RESERVED_REVERSE || keyParts[1] === RESERVED_REVERSE)) {
       throw new Error(`"reverse" is not allowed inside a nested key: ${key}`)
     }
+    if (keyParts.length === 2 && (keyParts[0] === RESERVED_ID || keyParts[1] === RESERVED_ID)) {
+      throw new Error(`"id" is not allowed inside a nested key: ${key}`)
+    }
     pairs.push({ key, value })
   }
   return pairs
@@ -76,9 +82,10 @@ export function parseShortcut(s: string): ShortcutPair[] {
 
 // resolvedPair is one shortcut pair with every identifier token already substituted to its canonical
 // 22-character form (and "self" substituted with the supplied self ID). Reverse pairs have prop = [] and
-// reverse = true. kind classifies a property pair's value: a plain target ("to"), a most-specific target
-// ("direct"), or the missing bucket ("missing", for which value is unused).
-type resolvedPair = { reverse: boolean; prop: string[]; kind: "to" | "direct" | "missing"; value: string }
+// reverse = true; ID pairs have prop = [] and id = true. kind classifies a property pair's value: a plain
+// target ("to"), a most-specific target ("direct"), or the missing bucket ("missing", for which value is
+// unused).
+type resolvedPair = { reverse: boolean; id: boolean; prop: string[]; kind: "to" | "direct" | "missing"; value: string }
 
 // resolveShortcut parses a search shortcut string and resolves every identifier token into resolvedPair
 // entries. The "self" value is substituted with the supplied self ID; if self is undefined and the shortcut
@@ -90,7 +97,12 @@ async function resolveShortcut(s: string, self?: string): Promise<resolvedPair[]
   for (const { key, value } of pairs) {
     if (key === RESERVED_REVERSE) {
       const resolvedValue = value === RESERVED_SELF ? requireSelf(self) : await resolveShortcutID(value)
-      resolved.push({ reverse: true, prop: [], kind: "to", value: resolvedValue })
+      resolved.push({ reverse: true, id: false, prop: [], kind: "to", value: resolvedValue })
+      continue
+    }
+    if (key === RESERVED_ID) {
+      const resolvedValue = value === RESERVED_SELF ? requireSelf(self) : await resolveShortcutID(value)
+      resolved.push({ reverse: false, id: true, prop: [], kind: "to", value: resolvedValue })
       continue
     }
     const prop: string[] = []
@@ -101,7 +113,7 @@ async function resolveShortcut(s: string, self?: string): Promise<resolvedPair[]
       prop.push(await resolveShortcutID(key))
     }
     if (value === RESERVED_MISSING) {
-      resolved.push({ reverse: false, prop, kind: "missing", value: "" })
+      resolved.push({ reverse: false, id: false, prop, kind: "missing", value: "" })
       continue
     }
     let kind: "to" | "direct" = "to"
@@ -111,7 +123,7 @@ async function resolveShortcut(s: string, self?: string): Promise<resolvedPair[]
       token = value.slice(RESERVED_DIRECT_PREFIX.length)
     }
     const resolvedValue = token === RESERVED_SELF ? requireSelf(self) : await resolveShortcutID(token)
-    resolved.push({ reverse: false, prop, kind, value: resolvedValue })
+    resolved.push({ reverse: false, id: false, prop, kind, value: resolvedValue })
   }
   return resolved
 }
@@ -120,7 +132,8 @@ async function resolveShortcut(s: string, self?: string): Promise<resolvedPair[]
 // suitable for the SearchJustResults POST endpoint. The "self" value is substituted with the supplied self
 // ID; if self is undefined and the shortcut references "self", an Error is thrown. Values for the same
 // property are grouped into a single filter, OR-ed across its "to", "direct", and "missing" selections.
-// Filters are ordered by first appearance.
+// Filters are ordered by first appearance. All "id" values are collected into the ids scope (documents
+// whose own ID is one of them).
 export async function shortcutToFilters(s: string, self?: string): Promise<JustResultsFilters> {
   const payload: JustResultsFilters = {}
   const filters: NonNullable<JustResultsFilters["filters"]> = []
@@ -128,6 +141,11 @@ export async function shortcutToFilters(s: string, self?: string): Promise<JustR
   for (const r of await resolveShortcut(s, self)) {
     if (r.reverse) {
       payload.reverse = r.value
+      continue
+    }
+    if (r.id) {
+      payload.ids = payload.ids ?? []
+      payload.ids.push(r.value)
       continue
     }
     const key = r.prop.join(":")
@@ -155,14 +173,14 @@ export async function shortcutToFilters(s: string, self?: string): Promise<JustR
 
 // shortcutToQuery parses a search shortcut string and resolves every identifier token into a URL query map
 // suitable for routing to the SearchShortcut view (which posts the same shortcut grammar as URL params).
-// Plain keys map to "<resolved>", nested keys to "<resolvedParent>:<resolvedProp>", and reverse maps to the
-// "reverse" key. A value is "<resolved>", "missing", or "direct:<resolved>". The "self" value is
-// substituted with the supplied self ID; if self is undefined and the shortcut references "self", an Error
-// is thrown.
+// Plain keys map to "<resolved>", nested keys to "<resolvedParent>:<resolvedProp>", reverse maps to the
+// "reverse" key, and id to the "id" key. A value is "<resolved>", "missing", or "direct:<resolved>". The
+// "self" value is substituted with the supplied self ID; if self is undefined and the shortcut references
+// "self", an Error is thrown.
 export async function shortcutToQuery(s: string, self?: string): Promise<QueryValues> {
   const filter: Record<string, string[]> = {}
   for (const r of await resolveShortcut(s, self)) {
-    const k = r.reverse ? RESERVED_REVERSE : r.prop.join(":")
+    const k = r.reverse ? RESERVED_REVERSE : r.id ? RESERVED_ID : r.prop.join(":")
     let v = r.value
     if (r.kind === "missing") {
       v = RESERVED_MISSING
