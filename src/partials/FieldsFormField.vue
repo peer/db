@@ -87,17 +87,22 @@ async function revertField(): Promise<void> {
 
 <template>
   <!--
-    Semantic <tbody> laid out as a 2-column CSS grid (1/5 label, rest
-    content). <tr>s use display: contents (Tailwind "contents") so their
-    <th>/<td> children participate directly in the grid. The gap-x-3 keeps
-    the label text as far from the rails at the value cell's left edge as
-    the value content is from them: the rails' pl-4 minus the w-1 rail bar
-    itself leaves 12px right of the bar.
+    Semantic <tbody> laid out as a 2-column CSS grid (1/5 label, rest content)
+    from the md breakpoint up. Below it the row stacks into one column: the
+    label (with the badges inline to its right) sits above the field like a
+    sub-field header does, gap-4 to the field and pl-4 so it aligns over the
+    field's content (like ClaimCardinality's showHeader). With nothing left
+    of the rails then, the rows' horizontal padding also drops away.
+    <tr>s use display: contents (Tailwind "contents") so their <th>/<td>
+    children participate directly in the grid. The gap-x-3 keeps the label
+    text as far from the rails at the value cell's left edge as the value
+    content is from them: the rails' pl-4 minus the w-1 rail bar itself
+    leaves 12px right of the bar.
   -->
-  <tbody class="grid grid-cols-[20%_1fr] items-start gap-x-3 gap-y-1 px-2">
+  <tbody class="grid grid-cols-1 gap-y-4 md:grid-cols-[20%_1fr] md:items-start md:gap-x-3 md:gap-y-1 md:px-2">
     <tr class="contents">
-      <th ref="labelCellRef" scope="row" class="text-left font-medium text-gray-700">
-        <div class="flex flex-col items-start gap-1">
+      <th ref="labelCellRef" scope="row" class="pl-4 text-left font-medium text-gray-700 md:pl-0">
+        <div class="flex flex-row flex-wrap items-center gap-1 md:flex-col md:items-start">
           <span :id="labelId" class="cursor-pointer pt-0.5 leading-none" @mousedown.prevent="onLabelMousedown"
             ><DocumentRefInline :id="field.propertyId" :link="false"
           /></span>
