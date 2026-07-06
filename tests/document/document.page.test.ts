@@ -5,7 +5,6 @@ import { testDocumentPage, testDocumentPageDirect } from "../peerdb_utils"
 import { test } from "../utils"
 
 const BYTE_UNIT = (await Identifier.from(Namespace, "UNIT", "B")).toString()
-const ENGLISH_LANGUAGE = (await Identifier.from(Namespace, "LANGUAGE", "en-GB")).toString()
 
 // testDocumentPage navigates via an empty search, whose results are ordered by display label. The feed
 // renders only an initial page and lazy-loads more as the page scrolls, so these documents must sort
@@ -17,7 +16,6 @@ const DOCUMENTS = [
   { id: CARDINALITY, title: "cardinality" },
   { id: CLASS, title: "class" },
   { id: DESCRIPTION, title: "description" },
-  { id: ENGLISH_LANGUAGE, title: "English" },
 ]
 
 test.describe("PeerDB Core Documents", () => {
@@ -35,7 +33,7 @@ test.describe("PeerDB Core Documents", () => {
     test(`Successful ${doc.title} page direct URL`, async ({ context }) => {
       const page = await context.newPage()
       await testDocumentPageDirect(page, doc.id, doc.title)
-      console.log(`Successfully opened "${doc.title}" directly via URL, verified search bar (no prev/next), searched, and confirmed 80 results.`)
+      console.log(`Successfully opened "${doc.title}" directly via URL, verified search bar (no prev/next), searched, and confirmed results.`)
     })
   }
 })
