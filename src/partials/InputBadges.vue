@@ -30,14 +30,20 @@ const { t } = useI18n({ useScope: "global" })
     input directly below in a column flex - at a stable minimum width that
     always accommodates the badge, instead of growing/shrinking as the user
     edits.
+
+    In a narrow "labels" container (a column label row too tight for the full
+    badge, see InputField) the badge collapses to the revert icon alone so it
+    does not overflow the column. Outside any labels container (field labels,
+    sub-field headers) the query never matches and the full badge shows.
   -->
   <button
     type="button"
     :title="t('common.buttons.revert')"
-    class="flex flex-row items-center gap-1 rounded-xs bg-primary-300 px-1.5 py-0.5 text-xs leading-none text-gray-100 shadow-xs outline-none hover:cursor-pointer hover:bg-primary-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500"
+    class="flex flex-row items-center gap-1 rounded-xs bg-primary-300 px-1.5 py-0.5 text-xs leading-none text-gray-100 shadow-xs outline-none hover:cursor-pointer hover:bg-primary-400 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 active:bg-primary-500 @max-[12rem]/labels:px-0.5"
     :class="{ invisible: !changed }"
     @click="emit('revert')"
   >
-    {{ t("common.labels.changed") }}<ArrowPathSingleCounterclockwiseIcon class="size-3" aria-hidden="true" />
+    <span class="@max-[12rem]/labels:hidden">{{ t("common.labels.changed") }}</span
+    ><ArrowPathSingleCounterclockwiseIcon class="size-3" aria-hidden="true" />
   </button>
 </template>

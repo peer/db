@@ -136,7 +136,14 @@ function onRevert(): void {
   -->
   <fieldset v-tw-merge class="grid items-start justify-start gap-x-4" :style="{ gridTemplateColumns }" :aria-labelledby="showLabels ? labelId : labelledby || undefined">
     <template v-if="showLabels">
-      <div v-for="(col, i) in displayColumns" :key="i" class="mb-1 flex flex-row flex-wrap items-center gap-1">
+      <!--
+        The label and its badges stay on one row (no wrap: the always-reserved
+        changed badge wrapping under the label would hold a mostly empty line
+        open between the label and the control). The first cell is the "labels"
+        container the badges collapse against when the column gets too narrow
+        for the full badge (see InputBadges).
+      -->
+      <div v-for="(col, i) in displayColumns" :key="i" class="mb-1 flex flex-row items-center gap-1" :class="{ '@container/labels': i === 0 }">
         <span v-if="col.label" :id="i === 0 ? labelId : undefined" class="cursor-pointer leading-none" @mousedown="onLabelMousedown($event, col)">{{ col.label }}</span>
         <InputBadges v-if="i === 0 && !hideBadge" :required="required && !hideRequiredBadge" :changed="input?.isDirty ?? false" @revert="onRevert" />
       </div>
