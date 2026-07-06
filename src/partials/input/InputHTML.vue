@@ -1556,17 +1556,17 @@ watch(
       ref="toolbarEl"
       role="toolbar"
       :aria-label="t('partials.input.InputHTML.toolbar.label')"
-      class="sticky top-[calc(var(--pd-navbar-height)+var(--pd-navbar-top,0px))] z-10 flex flex-wrap items-center gap-1 rounded-t-sm border-b border-neutral-200 bg-slate-100 px-1 py-1"
+      class="sticky top-[calc(var(--pd-navbar-height)+var(--pd-navbar-top,0px))] z-10 rounded-t-sm border-b border-neutral-200 bg-slate-100 px-0.5 py-0.5 text-[0px] leading-[2.5rem]"
       @keydown="onToolbarKeyDown"
       @focusin="onToolbarFocusIn"
     >
       <!--
         History pill.
       -->
-      <div class="flex items-center gap-1 rounded-sm bg-slate-200 px-1 py-1">
+      <span class="mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
           :disabled="isInactive || !canUndo"
           :aria-label="t('partials.input.InputHTML.toolbar.undo')"
           :title="t('partials.input.InputHTML.toolbar.undo')"
@@ -1576,7 +1576,7 @@ watch(
         </button>
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
           :disabled="isInactive || !canRedo"
           :aria-label="t('partials.input.InputHTML.toolbar.redo')"
           :title="t('partials.input.InputHTML.toolbar.redo')"
@@ -1584,15 +1584,15 @@ watch(
         >
           <ArrowUturnRightIcon class="size-6" aria-hidden="true" />
         </button>
-      </div>
+      </span>
 
       <!--
         Block type pill.
       -->
-      <div class="flex items-center gap-1 rounded-sm bg-slate-200 px-1 py-1">
+      <span class="mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
           :disabled="isInactive || !isTextblockSelection"
           :aria-pressed="blockType === 'p'"
           :aria-label="t('partials.input.InputHTML.toolbar.paragraph')"
@@ -1603,7 +1603,7 @@ watch(
         </button>
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
           :disabled="isInactive || !isTextblockSelection"
           :aria-pressed="blockType === 'h1'"
           :aria-label="t('partials.input.InputHTML.toolbar.heading', { level: 1 })"
@@ -1614,7 +1614,7 @@ watch(
         </button>
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
           :disabled="isInactive || !isTextblockSelection"
           :aria-pressed="blockType === 'h2'"
           :aria-label="t('partials.input.InputHTML.toolbar.heading', { level: 2 })"
@@ -1625,7 +1625,7 @@ watch(
         </button>
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
           :disabled="isInactive || !isTextblockSelection"
           :aria-pressed="blockType === 'h3'"
           :aria-label="t('partials.input.InputHTML.toolbar.heading', { level: 3 })"
@@ -1636,7 +1636,7 @@ watch(
         </button>
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
           :disabled="isInactive || !isTextblockSelection"
           :aria-pressed="blockType === 'h4'"
           :aria-label="t('partials.input.InputHTML.toolbar.heading', { level: 4 })"
@@ -1647,7 +1647,7 @@ watch(
         </button>
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
           :disabled="isInactive || !isTextblockSelection"
           :aria-pressed="blockType === 'pre'"
           :aria-label="t('partials.input.InputHTML.toolbar.preformatted')"
@@ -1658,7 +1658,7 @@ watch(
         </button>
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
           :disabled="isInactive || !isTextblockSelection"
           :aria-pressed="currentLevelList === 'bullet'"
           :aria-label="t('partials.input.InputHTML.toolbar.bulletList')"
@@ -1669,7 +1669,7 @@ watch(
         </button>
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
           :disabled="isInactive || !isTextblockSelection"
           :aria-pressed="currentLevelList === 'ordered'"
           :aria-label="t('partials.input.InputHTML.toolbar.orderedList')"
@@ -1680,7 +1680,7 @@ watch(
         </button>
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
           :disabled="isInactive || !isTextblockSelection"
           :aria-pressed="isBlockquote"
           :aria-label="t('partials.input.InputHTML.toolbar.blockquote')"
@@ -1689,13 +1689,13 @@ watch(
         >
           <BlockquoteIcon class="size-6" aria-hidden="true" />
         </button>
-      </div>
+      </span>
 
       <!-- Formatting pill. -->
-      <div class="flex items-center gap-1 rounded-sm bg-slate-200 px-1 py-1">
+      <span class="mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
           :disabled="isInactive || !marksAllowedHere"
           :aria-pressed="activeMarks.bold"
           :aria-label="t('partials.input.InputHTML.toolbar.bold')"
@@ -1706,7 +1706,7 @@ watch(
         </button>
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
           :disabled="isInactive || !italicAllowedHere"
           :aria-pressed="activeMarks.italic"
           :aria-label="t('partials.input.InputHTML.toolbar.italic')"
@@ -1717,7 +1717,7 @@ watch(
         </button>
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
           :disabled="isInactive || !marksAllowedHere"
           :aria-pressed="activeMarks.underline"
           :aria-label="t('partials.input.InputHTML.toolbar.underline')"
@@ -1728,7 +1728,7 @@ watch(
         </button>
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
           :disabled="isInactive || !marksAllowedHere"
           :aria-pressed="activeMarks.strikethrough"
           :aria-label="t('partials.input.InputHTML.toolbar.strikethrough')"
@@ -1739,7 +1739,7 @@ watch(
         </button>
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 not-aria-pressed:hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:not-aria-pressed:hover:bg-transparent aria-pressed:bg-white aria-pressed:shadow-xs disabled:aria-pressed:bg-slate-100"
           :disabled="isInactive || !marksAllowedHere"
           :aria-pressed="activeMarks.monospace"
           :aria-label="t('partials.input.InputHTML.toolbar.monospace')"
@@ -1748,15 +1748,15 @@ watch(
         >
           <CodeBracketIcon class="size-6" aria-hidden="true" />
         </button>
-      </div>
+      </span>
 
       <!--
         Indent / outdent pill.
       -->
-      <div class="flex items-center gap-1 rounded-sm bg-slate-200 px-1 py-1">
+      <span class="mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
           :disabled="isInactive || !canOutdent"
           :aria-label="t('partials.input.InputHTML.toolbar.outdent')"
           :title="t('partials.input.InputHTML.toolbar.outdent')"
@@ -1766,7 +1766,7 @@ watch(
         </button>
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
           :disabled="isInactive || !canIndent"
           :aria-label="t('partials.input.InputHTML.toolbar.indent')"
           :title="t('partials.input.InputHTML.toolbar.indent')"
@@ -1774,15 +1774,15 @@ watch(
         >
           <IndentIcon class="size-6" aria-hidden="true" />
         </button>
-      </div>
+      </span>
 
       <!--
         Inserts pill.
       -->
-      <div class="flex items-center gap-1 rounded-sm bg-slate-200 px-1 py-1">
+      <span class="mx-0.5 rounded-sm bg-slate-200 box-decoration-clone py-[18px]">
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
           :disabled="isInactive || !canInsertLinkButton || uploadingFile !== null"
           :aria-label="t('partials.input.InputHTML.toolbar.link')"
           :title="t('partials.input.InputHTML.toolbar.link')"
@@ -1790,27 +1790,20 @@ watch(
         >
           <LinkIcon class="size-6" aria-hidden="true" />
         </button>
-        <template v-if="hasPermission(CAN_EDIT_FILE)">
-          <button
-            type="button"
-            class="rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
-            :disabled="isInactive || !canApplyLinkMark || uploadingFile !== null || isLinkInputDirty"
-            :aria-label="t('partials.input.InputHTML.toolbar.attachFile')"
-            :title="t('partials.input.InputHTML.toolbar.attachFile')"
-            @click.prevent="onAttachFile"
-          >
-            <PaperClipIcon class="size-6" aria-hidden="true" />
-          </button>
-          <!--
-            Hidden file input the Attach button triggers programmatically.
-            translate="no" mirrors the contenteditable root so any browser
-            translation layer leaves the filename alone.
-          -->
-          <input ref="fileInputRef" type="file" multiple class="hidden" @change="onFilePicked" />
-        </template>
+        <button
+          v-if="hasPermission(CAN_EDIT_FILE)"
+          type="button"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
+          :disabled="isInactive || !canApplyLinkMark || uploadingFile !== null || isLinkInputDirty"
+          :aria-label="t('partials.input.InputHTML.toolbar.attachFile')"
+          :title="t('partials.input.InputHTML.toolbar.attachFile')"
+          @click.prevent="onAttachFile"
+        >
+          <PaperClipIcon class="size-6" aria-hidden="true" />
+        </button>
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
           :disabled="isInactive || !canInsertHorizontalRule || !isTextblockSelection"
           :aria-label="t('partials.input.InputHTML.toolbar.horizontalRule')"
           :title="t('partials.input.InputHTML.toolbar.horizontalRule')"
@@ -1820,7 +1813,7 @@ watch(
         </button>
         <button
           type="button"
-          class="rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
+          class="m-0.5 rounded-sm px-2 py-0.5 align-middle outline-none first:ml-1 last:mr-1 hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:text-gray-500 disabled:hover:bg-transparent"
           :disabled="isInactive || !canInsertHardBreak || !isTextblockSelection"
           :aria-label="t('partials.input.InputHTML.toolbar.lineBreak')"
           :title="t('partials.input.InputHTML.toolbar.lineBreak')"
@@ -1828,7 +1821,15 @@ watch(
         >
           <ArrowTurnDownLeftIcon class="size-6" aria-hidden="true" />
         </button>
-      </div>
+      </span>
+      <!--
+        Hidden file input the Attach button triggers programmatically. Kept outside
+        the pill (it renders nothing) so the pill's last child stays its last
+        button (see the last:mr-1 inset). translate="no" mirrors the
+        contenteditable root so any browser translation layer leaves the filename
+        alone.
+      -->
+      <input v-if="hasPermission(CAN_EDIT_FILE)" ref="fileInputRef" type="file" multiple class="hidden" @change="onFilePicked" />
     </div>
 
     <!--
