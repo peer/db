@@ -271,7 +271,8 @@ function onPrecisionSelected(p: TimePrecision) {
 // never that long) and the precision.
 const columns = computed<InputColumn[]>(() => [
   { label: t("common.labels.time"), el: () => document.getElementById(timeInputId), width: "24rem" },
-  { label: t("common.labels.precision"), el: () => document.getElementById(precisionButtonId) },
+  // The fixed width matches the Listbox's w-48 below.
+  { label: t("common.labels.precision"), el: () => document.getElementById(precisionButtonId), width: "12rem" },
 ])
 
 // Input-format hint.

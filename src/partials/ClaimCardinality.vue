@@ -37,7 +37,7 @@ import InputBadges from "@/partials/InputBadges.vue"
 import { useInternalLinksClick, useTransformedHtml } from "@/internal-links"
 import { useLocked, useProgress } from "@/progress"
 import { shortcutToFilters } from "@/shortcut"
-import { escapeHtml } from "@/utils"
+import { escapeHtml, inputColumnsGridTemplate } from "@/utils"
 import { allErrors, useRegisterForValidation, useValidationRegistry } from "@/validation"
 import { ArrowPathSingleCounterclockwiseIcon } from "@sidekickicons/vue/20/solid"
 
@@ -126,12 +126,11 @@ const isInterval = computed<boolean>(() => {
   return claimType === "amountInterval" || claimType === "timeInterval"
 })
 
-// Grid template of the hoisted label row of a repeated field, mirroring
-// InputField's grid so the labels align with the entries' input columns (same
-// container width, same template).
-const labelsGridTemplateColumns = computed<string>(() =>
-  [`minmax(0,${slotColumns.value[0]?.width ?? "1fr"})`, ...Array(Math.max(0, slotColumns.value.length - 1)).fill("auto")].join(" "),
-)
+// Grid template of the hoisted label row of a repeated field, built by the same
+// function as the entries' InputField grids: separate grids, but the same fully
+// deterministic template at the same container width resolves to the same tracks
+// (see InputColumn.width), so the labels align with the input columns below.
+const labelsGridTemplateColumns = computed<string>(() => inputColumnsGridTemplate(slotColumns.value))
 
 // A press on a hoisted column label focuses that column's control in the first
 // entry, like InputField's own labels do (mousedown-prevented in the template so

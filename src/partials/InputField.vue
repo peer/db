@@ -7,6 +7,7 @@ import { computed, shallowRef, useId } from "vue"
 import { useI18n } from "vue-i18n"
 
 import InputBadges from "@/partials/InputBadges.vue"
+import { inputColumnsGridTemplate } from "@/utils"
 import { pickErrorMessage } from "@/validation"
 
 const props = defineProps<{
@@ -75,9 +76,7 @@ const showLabels = computed<boolean>(() => !props.hideLabels && displayColumns.v
 
 // The first column grows to fill the available width, up to the max width the
 // wrapped input declares on it. The remaining columns size to content.
-const gridTemplateColumns = computed<string>(() =>
-  [`minmax(0,${displayColumns.value[0]?.width ?? "1fr"})`, ...Array(Math.max(0, columnCount.value - 1)).fill("auto")].join(" "),
-)
+const gridTemplateColumns = computed<string>(() => inputColumnsGridTemplate(displayColumns.value))
 
 const errorId = useId()
 

@@ -318,7 +318,8 @@ function onPrecisionUpdate(v: string) {
 // that long) and the precision.
 const columns = computed<InputColumn[]>(() => [
   { label: t("common.labels.amount"), el: () => document.getElementById(amountInputId), width: "24rem" },
-  { label: t("common.labels.precision"), el: () => document.getElementById(precisionInputId) },
+  // The fixed width matches the input's min-w-24 below.
+  { label: t("common.labels.precision"), el: () => document.getElementById(precisionInputId), width: "6rem" },
 ])
 
 const validatedInput: ValidatedInput = {
