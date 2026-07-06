@@ -78,7 +78,7 @@ function countFilters(): number {
 <template>
   <div class="pd-searchresultsheader flex flex-row gap-x-1 sm:gap-x-4">
     <div
-      class="flex w-full flex-row items-center justify-between gap-x-1 rounded-sm bg-slate-200 px-2 py-1 sm:gap-x-4 sm:px-4 sm:py-2 print:bg-transparent print:px-1 print:py-0"
+      class="pd-searchresultsheader-status flex w-full flex-row items-center justify-between gap-x-1 rounded-sm bg-slate-200 px-2 py-1 sm:gap-x-4 sm:px-4 sm:py-2 print:bg-transparent print:px-1 print:py-0"
     >
       <div v-if="searchTotal === null && searchSession.query">
         <i18n-t keypath="partials.SearchResultsHeader.searchingQueryFiltersInProgress" :plural="countFilters()" scope="global">
@@ -107,9 +107,9 @@ function countFilters(): number {
       </template>
     </div>
 
-    <div v-if="sortable" class="pd-print-hidden flex shrink-0 items-center rounded-sm bg-slate-200 px-1 py-1">
+    <div v-if="sortable && !siteContext.features.disableSearchSort" class="pd-print-hidden flex shrink-0 items-center rounded-sm bg-slate-200 px-1 py-1">
       <button
-        class="h-full rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
+        class="pd-searchresultsheader-button h-full rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
         type="button"
         :title="t('partials.SearchResultsHeader.sort')"
         @click.prevent="$emit('sortOpen')"
@@ -126,9 +126,9 @@ function countFilters(): number {
       @update:model-value="(v) => $emit('viewChange', v)"
     />
 
-    <div v-if="printable" class="pd-print-hidden flex shrink-0 items-center rounded-sm bg-slate-200 px-1 py-1">
+    <div v-if="printable && !siteContext.features.disablePrintView" class="pd-print-hidden flex shrink-0 items-center rounded-sm bg-slate-200 px-1 py-1">
       <button
-        class="h-full rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
+        class="pd-searchresultsheader-button h-full rounded-sm px-2 py-0.5 outline-none hover:bg-slate-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
         type="button"
         :title="t('partials.SearchResultsHeader.print')"
         @click.prevent="$emit('printOpen')"
@@ -142,7 +142,7 @@ function countFilters(): number {
       class="pd-print-hidden flex shrink-0 items-center gap-1 rounded-sm bg-slate-200 px-1 py-1"
     >
       <button
-        class="h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
+        class="pd-searchresultsheader-button h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
         :class="{
           'cursor-not-allowed text-gray-500': isDownloading, // Disabled style.
           'hover:bg-slate-100': !isDownloading, // Enabled style.
@@ -155,7 +155,7 @@ function countFilters(): number {
       </button>
       <button
         v-if="directoryPickerSupported"
-        class="h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
+        class="pd-searchresultsheader-button h-full rounded-sm px-2 py-0.5 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1"
         :class="{
           'cursor-not-allowed text-gray-500': isDownloading, // Disabled style.
           'hover:bg-slate-100': !isDownloading, // Enabled style.

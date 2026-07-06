@@ -3,6 +3,7 @@ import type { Ref, StyleValue, TemplateRef } from "vue"
 import { computed, ref, useTemplateRef, watchEffect } from "vue"
 
 import { getConfig } from "@/config"
+import siteContext from "@/context"
 
 const prefersReducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)")
 const prefersReducedMotion = ref(prefersReducedMotionQuery.matches)
@@ -20,20 +21,38 @@ export function useNavbarSearchQuery(): Ref<string> {
   return navbarSearchQuery
 }
 
-// Whether the navbar is in fixed mode (always at viewport top) rather than auto-hide. Reactive so callers
-// can react to config or reduced-motion changes. Shared by useNavbar itself and any consumer that needs to
-// account for a permanently-visible navbar (e.g. computing scroll-to-anchor offsets).
-export function useFixedNavbar(): Ref<boolean> {
+export type NavbarMode = "auto" | "fixed" | "static"
+
+// The navbar positioning mode. The site's navbarPosition feature decides it: "static" keeps the navbar in
+// the document flow at the page top (it also satisfies the reduced-motion preference since nothing moves),
+// "fixed" keeps it at the viewport top, and unset means auto-hide, upgraded to fixed by the provided config
+// or the reduced-motion preference. Reactive so callers can react to config or reduced-motion changes.
+export function useNavbarMode(): Ref<NavbarMode> {
   const config = getConfig()
-  return computed(() => !!config.value.fixedNavbar || prefersReducedMotion.value)
+  return computed(() => {
+    if (siteContext.features.navbarPosition === "static") {
+      return "static"
+    }
+    if (siteContext.features.navbarPosition === "fixed" || !!config.value.fixedNavbar || prefersReducedMotion.value) {
+      return "fixed"
+    }
+    return "auto"
+  })
+}
+
+// Whether the navbar is in fixed mode (always at viewport top). Shared by useNavbar itself and any consumer
+// that needs to account for a permanently-visible navbar (e.g. computing scroll-to-anchor offsets).
+export function useFixedNavbar(): Ref<boolean> {
+  const mode = useNavbarMode()
+  return computed(() => mode.value === "fixed")
 }
 
 export function useNavbar(): { navbar: TemplateRef<HTMLElement>; attrs: Ref<{ style: StyleValue; class: { "animate-navbar": boolean } }> } {
-  const fixedNavbar = useFixedNavbar()
+  const navbarMode = useNavbarMode()
 
   const navbar = useTemplateRef<HTMLElement>("navbar")
   const attrs = ref<{
-    style: { position: "absolute" | "fixed"; top: string }
+    style: { position: "absolute" | "fixed" | "static"; top: string }
     class: { "animate-navbar": boolean }
   }>({
     style: { position: "absolute", top: "0px" },
@@ -100,7 +119,24 @@ export function useNavbar(): { navbar: TemplateRef<HTMLElement>; attrs: Ref<{ st
     attrs.value.style.top = "0px"
     attrs.value.class["animate-navbar"] = false
 
-    if (fixedNavbar.value) {
+    if (navbarMode.value === "static") {
+      attrs.value.style.position = "static"
+      // The in-flow navbar pushes content down by itself, so content does not need the top margin.
+      document.documentElement.style.setProperty("--pd-navbar-offset", "0px")
+      // The navbar scrolls with the page, so followers still need its published viewport top.
+      window.addEventListener("scroll", publishNavbarTop, { passive: true })
+      window.addEventListener("scrollend", publishNavbarTop, { passive: true })
+      publishNavbarTop()
+      onCleanup(() => {
+        window.removeEventListener("scroll", publishNavbarTop)
+        window.removeEventListener("scrollend", publishNavbarTop)
+        document.documentElement.style.removeProperty("--pd-navbar-offset")
+        document.documentElement.style.removeProperty("--pd-navbar-top")
+      })
+      return
+    }
+
+    if (navbarMode.value === "fixed") {
       attrs.value.style.position = "fixed"
       // Fixed navbar always sits at viewport top:0, so nothing to follow.
       document.documentElement.style.setProperty("--pd-navbar-top", "0px")

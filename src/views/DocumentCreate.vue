@@ -174,7 +174,7 @@ async function onCreate(classId: string) {
   <Teleport to="header">
     <NavBar />
   </Teleport>
-  <div class="pd-documentcreate mt-[var(--pd-navbar-height)] flex w-full flex-col p-1 sm:p-4 xl:px-16">
+  <div class="pd-documentcreate mt-[var(--pd-navbar-offset)] flex w-full flex-col p-1 sm:p-4 xl:px-16">
     <div v-if="!loaded" class="my-1 sm:my-4">{{ t("common.status.loading") }}</div>
     <div v-else-if="tree.length === 0" class="my-1 sm:my-4">{{ t("views.DocumentCreate.noClasses") }}</div>
     <div v-else class="flex w-full flex-col gap-y-2 sm:gap-y-4">

@@ -285,6 +285,14 @@ export type SiteContext = {
   features: {
     searchResultsTable?: boolean
     downloadButtons?: boolean
+    // The navbar positioning mode: "fixed" keeps the navbar at the viewport top, "static" leaves
+    // it in the document flow at the page top, and unset means the default auto-hide behavior.
+    navbarPosition?: "fixed" | "static"
+    disableSearchSort?: boolean
+    disablePrintView?: boolean
+    // Hides the session's prefilters from the UI (the "results limited to" notice in the filters
+    // sidebar and the prefilter entries in the print layout).
+    hidePrefilters?: boolean
   }
   roles?: {
     [roleName: string]: string[]

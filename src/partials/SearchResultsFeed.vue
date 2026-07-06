@@ -10,6 +10,7 @@ import { computed, onBeforeUnmount, onMounted, provide, reactive, ref, toRaw, to
 import { useI18n } from "vue-i18n"
 
 import Button from "@/components/Button.vue"
+import siteContext from "@/context"
 import InputText from "@/components/InputText.vue"
 import WithDocument from "@/components/WithDocument.vue"
 import WithLock from "@/components/WithLock.vue"
@@ -26,6 +27,7 @@ import SearchResultsPager from "@/partials/SearchResultsPager.vue"
 import SearchSortDialog from "@/partials/SearchSortDialog.vue"
 import TimeDisplay from "@/partials/TimeDisplay.vue"
 import { useBusy } from "@/progress"
+import { getSearchHeaderComponents } from "@/registry/search-header"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, filterResultKey, useFilters, useLocationAt } from "@/search"
 import {
   clone,
@@ -163,7 +165,10 @@ const now = ref(nowTimestamp())
 let clockTimer: ReturnType<typeof setInterval> | null = null
 
 // The active filters listed in the print layout: prefilters first, then regular filters.
-const printFilters = computed(() => [...(props.searchSession.prefilters ?? []), ...(props.searchSession.filters ?? [])])
+const printFilters = computed(() => [
+  ...(siteContext.features.hidePrefilters ? [] : (props.searchSession.prefilters ?? [])),
+  ...(props.searchSession.filters ?? []),
+])
 onMounted(() => {
   clockTimer = setInterval(() => {
     now.value = nowTimestamp()
@@ -461,7 +466,7 @@ const WithDocumentD = WithDocument<D>
     <div
       id="search-results"
       tabindex="-1"
-      class="flex-auto basis-3/4 flex-col gap-y-1 rounded-sm [--pd-indent:calc(var(--spacing)*4)] focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:flex sm:gap-y-4 sm:[--pd-indent:calc(var(--spacing)*6)]"
+      class="pd-searchresults flex-auto basis-3/4 flex-col gap-y-1 rounded-sm [--pd-indent:calc(var(--spacing)*4)] focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:flex sm:gap-y-4 sm:[--pd-indent:calc(var(--spacing)*6)]"
       :class="filtersEnabled ? 'hidden' : 'flex'"
     >
       <!-- Print row: the close and show-all buttons (preview only, left) and a live timestamp (right). -->
@@ -484,6 +489,8 @@ const WithDocumentD = WithDocument<D>
         </button>
         <div class="ml-auto text-sm text-slate-600"><TimeDisplay :timestamp="now" precision="s" :toggle="false" /></div>
       </div>
+
+      <component :is="component" v-for="(component, i) in getSearchHeaderComponents().value" :key="i" :search-session="searchSession" />
 
       <SearchResultsHeader
         :search-session="searchSession"
@@ -623,7 +630,7 @@ const WithDocumentD = WithDocument<D>
       id="search-filters"
       ref="filtersEl"
       tabindex="-1"
-      class="pd-print-hidden flex-auto basis-1/4 flex-col gap-y-1 rounded-sm focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:flex sm:gap-y-4"
+      class="pd-searchfilters pd-print-hidden flex-auto basis-1/4 flex-col gap-y-1 rounded-sm focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 focus-visible:outline-none sm:flex sm:gap-y-4"
       :class="filtersEnabled ? 'flex' : 'hidden'"
       :data-url="filtersURL"
     >
@@ -678,7 +685,7 @@ const WithDocumentD = WithDocument<D>
           </i18n-t>
         </div>
 
-        <div v-if="searchSession.prefilters && searchSession.prefilters.length > 0" class="text-sm">
+        <div v-if="searchSession.prefilters && searchSession.prefilters.length > 0 && !siteContext.features.hidePrefilters" class="text-sm">
           <Button
             type="button"
             class="float-right ml-2 px-2.5 py-1"
@@ -727,7 +734,7 @@ const WithDocumentD = WithDocument<D>
             <div v-else-if="hasActiveFilters" class="mb-1 text-sm">{{ t("partials.SearchResultsFeed.filtersAvailable", { count: activeFiltersCount }) }}</div>
 
             <WithLock :lock="getFilterBoxLock">
-              <InputText v-model="filterQuery" class="pd-print-hidden w-full" :aria-label="t('partials.SearchResultsFeed.filtersSearchLabel')" />
+              <InputText v-model="filterQuery" class="pd-searchfilters-search pd-print-hidden w-full" :aria-label="t('partials.SearchResultsFeed.filtersSearchLabel')" />
             </WithLock>
           </div>
 
@@ -742,7 +749,7 @@ const WithDocumentD = WithDocument<D>
             />
           </template>
 
-          <Button v-if="filtersHasMore" ref="filtersMoreButton" primary class="w-1/2 min-w-fit self-center" @click.prevent="filtersLoadMore">{{
+          <Button v-if="filtersHasMore" ref="filtersMoreButton" primary class="pd-searchfilters-more w-1/2 min-w-fit self-center" @click.prevent="filtersLoadMore">{{
             t("partials.SearchResultsFeed.moreFilters")
           }}</Button>
 

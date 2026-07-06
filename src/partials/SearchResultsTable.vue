@@ -20,6 +20,7 @@ import FiltersResult from "@/partials/FiltersResult.vue"
 import Footer from "@/partials/Footer.vue"
 import SearchResultsHeader from "@/partials/SearchResultsHeader.vue"
 import { useBusy } from "@/progress"
+import { getSearchHeaderComponents } from "@/registry/search-header"
 import { FILTERS_INCREASE, FILTERS_INITIAL_LIMIT, filterResultKey, useFilters, useLocationAt } from "@/search"
 import { useTruncationTracking } from "@/truncation"
 import { encodeQuery, loadingWidth, useLimitResults, useOnScrollOrResize } from "@/utils"
@@ -261,6 +262,8 @@ function onCloseFilterModal() {
           One would assume that w-full is needed to make the container div as wide as the
           body inside which then the footer horizontally shifts.
   -->
+  <component :is="component" v-for="(component, i) in getSearchHeaderComponents().value" :key="i" :search-session="searchSession" />
+
   <div class="pd-searchresultstable-header sticky left-0 z-20 w-0">
     <SearchResultsHeader
       class="w-container p-1 sm:p-4"

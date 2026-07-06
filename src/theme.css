@@ -89,6 +89,12 @@
 */
 :root {
   --pd-navbar-height: calc(var(--spacing) * 12);
+  /*
+    The top margin content uses to clear the navbar. It follows the navbar height while the navbar is out of
+    the document flow (auto-hide and fixed modes); the static navbar mode zeroes it (from useNavbar) because
+    the in-flow navbar pushes content down by itself.
+  */
+  --pd-navbar-offset: var(--pd-navbar-height);
 }
 
 @media (min-width: 640px) {

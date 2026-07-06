@@ -7,7 +7,7 @@ import type { DocumentBeginEditResponse, QueryValues } from "@/types"
 
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/vue"
 import { ChevronLeftIcon, ChevronRightIcon, PencilIcon, TrashIcon } from "@heroicons/vue/20/solid"
-import { computed, onBeforeUnmount, ref, toRef, useTemplateRef, watch, watchEffect } from "vue"
+import { computed, onBeforeUnmount, provide, ref, toRef, useTemplateRef, watch, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
@@ -21,6 +21,7 @@ import WithLock from "@/components/WithLock.vue"
 import siteContext from "@/context"
 import { CONTENT, CREATE_SHORTCUT, INSTANCE_OF, NAME, PAGE, SEARCH_SHORTCUT } from "@/core"
 import { getBestClaimOfType, getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
+import { documentNavigationKey } from "@/document-navigation"
 import { decodeMetadata } from "@/metadata"
 import ClaimValueHtml from "@/partials/claimvalue/ClaimValueHtml.vue"
 import DisplayLabel from "@/partials/DisplayLabel.vue"
@@ -34,6 +35,7 @@ import PropertiesRows from "@/partials/PropertiesRows.vue"
 import SearchShortcutLink from "@/partials/SearchShortcutLink.vue"
 import { getParentLock, localCounter, lockScope, useProgress } from "@/progress"
 import { getDocumentComponents } from "@/registry/document"
+import { getDocumentHeaderComponents } from "@/registry/document-header"
 import { useSearch, useSearchSession } from "@/search"
 import { createShortcutToQuery, shortcutToQuery } from "@/shortcut"
 import { useDocumentFields } from "@/useDocumentFields"
@@ -152,6 +154,14 @@ const prevNext = computed<{ previous: string | null; next: string | null }>(() =
   return res
 })
 
+// Expose the search session and the neighboring results to registered document components, so
+// downstream sites can render their own navigation between results (e.g. previous/next links
+// inside the page instead of the navbar buttons).
+provide(documentNavigationKey, {
+  searchSessionId: computed(() => searchSession.value?.id ?? null),
+  prevNext,
+})
+
 function afterClick() {
   document.getElementById("search-input-text")?.focus()
 }
@@ -191,6 +201,41 @@ const documentTabs = computed(() => {
 // Side links (search shortcuts + "referenced by") render inside this panel
 // when available, otherwise inside the "all properties" panel.
 const hasFieldsViewPanel = computed(() => !isPage.value && documentTabs.value.length === 0 && classTabId.value !== null && mergedFieldsData.value !== null)
+
+// Tab slugs in the template's tab order, used to reflect the active tab in the URL. Registry and
+// class tabs use their class document id as the slug; the fixed tabs use stable names, so links
+// can target them (e.g. ?tab=properties or ?tab=history).
+const tabSlugs = computed(() => {
+  const slugs: string[] = []
+  if (isPage.value) {
+    slugs.push("content")
+  }
+  for (const documentTab of documentTabs.value) {
+    slugs.push(documentTab.id)
+  }
+  if (hasFieldsViewPanel.value && classTabId.value) {
+    slugs.push(classTabId.value)
+  }
+  slugs.push("properties", "history")
+  return slugs
+})
+
+// The active tab follows the "tab" query parameter (the first tab when absent or unknown), and
+// selecting a tab updates the parameter in place, so tabs can be linked and survive reloads.
+const selectedTabIndex = computed(() => {
+  const tab = Array.isArray(route.query.tab) ? route.query.tab[0] : route.query.tab
+  if (!tab) {
+    return 0
+  }
+  const index = tabSlugs.value.indexOf(tab)
+  return index >= 0 ? index : 0
+})
+
+function onTabChange(index: number) {
+  const tab = index > 0 ? tabSlugs.value[index] : undefined
+  //eslint-disable-next-line @typescript-eslint/no-floating-promises
+  router.replace({ query: { ...route.query, tab } })
+}
 
 type SearchShortcut = { name: string; raw: string; createRaw: string | null }
 type ResolvedShortcut = { name: string; query: QueryValues; count: string | null; createQuery: QueryValues | null }
@@ -488,10 +533,12 @@ async function onDelete() {
   </Teleport>
   <div
     ref="el"
-    class="pd-documentget mt-[var(--pd-navbar-height)] flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4"
+    class="pd-documentget mt-[var(--pd-navbar-offset)] flex w-full flex-col gap-y-1 border-t border-transparent p-1 sm:gap-y-4 sm:p-4"
     :data-url="withDocument?.url"
   >
-    <div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
+    <!-- Registered document header components render above the card, on every tab. -->
+    <component :is="component" v-for="(component, i) in getDocumentHeaderComponents().value" :id="id" :key="i" />
+    <div class="pd-documentget-card rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
       <WithDocumentD :id="id" ref="withDocument" name="DocumentGet" :version="reqVersion">
         <template #default="{ doc }">
           <div v-if="!classesInitialized" class="my-1 text-center sm:my-4">{{ t("common.status.loading") }}</div>
@@ -499,8 +546,8 @@ async function onDelete() {
             TODO: Fix how hover interacts with focused tab.
             See: https://github.com/tailwindlabs/tailwindcss/discussions/10123
           -->
-          <TabGroup v-else manual>
-            <TabList class="-m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100">
+          <TabGroup v-else manual :selected-index="selectedTabIndex" @change="onTabChange">
+            <TabList class="pd-documentget-tabs -m-4 mb-4 flex border-collapse flex-row rounded-t border-b border-gray-200 bg-slate-100">
               <!-- The page content tab. The page title is shown as the h1 heading below. -->
               <Tab
                 v-if="isPage"
@@ -528,7 +575,9 @@ async function onDelete() {
                 >{{ t("views.DocumentGet.tabs.history") }}</Tab
               >
             </TabList>
-            <h1 v-show="displayLabelComponent?.displayLabel" class="mb-4 text-3xl font-bold drop-shadow-xs"><DisplayLabel ref="displayLabelComponent" :doc="doc" /></h1>
+            <h1 v-show="displayLabelComponent?.displayLabel" class="pd-documentget-title mb-4 text-3xl font-bold drop-shadow-xs"
+              ><DisplayLabel ref="displayLabelComponent" :doc="doc"
+            /></h1>
             <!-- We explicitly disable tabbing. See: https://github.com/tailwindlabs/headlessui/discussions/1433 -->
             <TabPanels as="template">
               <!-- Page content tab panel: the document's content rendered as prose, in the current language. -->

@@ -40,12 +40,25 @@ type Build struct {
 	Revision       string `json:"revision,omitempty"`
 }
 
-// SiteFeatures contains enabled feature flags.
+// SiteFeatures contains feature flags. Zero values keep the default behavior, so optional
+// features use positive flags (opt-in) while default-on features use disable flags (opt-out).
 //
 //nolint:revive
 type SiteFeatures struct {
 	SearchResultsTable bool `json:"searchResultsTable,omitempty" yaml:"searchResultsTable,omitempty"`
 	DownloadButtons    bool `json:"downloadButtons,omitempty"    yaml:"downloadButtons,omitempty"`
+	DisableSearchSort  bool `json:"disableSearchSort,omitempty"  yaml:"disableSearchSort,omitempty"`
+	DisablePrintView   bool `json:"disablePrintView,omitempty"   yaml:"disablePrintView,omitempty"`
+
+	// HidePrefilters hides the session's prefilters from the UI (the "results limited to" notice
+	// with its clear button in the filters sidebar and the prefilter entries in the print layout),
+	// for sites where prefilters are a navigation concept (e.g. tabs) rather than a removable filter.
+	HidePrefilters bool `json:"hidePrefilters,omitempty" yaml:"hidePrefilters,omitempty"`
+
+	// NavbarPosition is the navbar positioning mode: "fixed" keeps the navbar at the viewport top,
+	// "static" leaves it in the document flow at the page top, and empty means the default
+	// auto-hide behavior (hidden while scrolling down, shown when scrolling up).
+	NavbarPosition string `json:"navbarPosition,omitempty" yaml:"navbarPosition,omitempty"`
 
 	// IndexAncestorProperties enables claim propagation to transitive super-properties
 	// when indexing: a claim for property X is also indexed for every ancestor of X

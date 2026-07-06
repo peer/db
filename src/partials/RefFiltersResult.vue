@@ -397,7 +397,7 @@ function onToggle(node: RefFilterTreeNode) {
         @click.prevent="clearFilter"
         >{{ t("common.buttons.clear") }}</Button
       >
-      <span class="mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props" /></span>
+      <span class="pd-filterresult-title mb-1.5 text-lg leading-none"><FilterPropLabel :prop-ids="result.props" /></span>
       ({{ result.count }})
     </div>
     <ul ref="el" role="group" :aria-labelledby="labelId" class="flex flex-col">
@@ -415,9 +415,13 @@ function onToggle(node: RefFilterTreeNode) {
         <RefFilterTreeRow v-for="node in partialTree" :key="node.key" :node="node" :props-key="propsKey" :check-states="checkStates" :on-toggle="onToggle" />
       </template>
     </ul>
-    <Button v-if="!loading && hasMore && moreRowsAvailable && optionsRemaining > 0" primary class="mt-2 w-1/2 min-w-fit self-center" @click.prevent="loadMore">{{
-      t("common.buttons.loadCountMore", { count: optionsRemaining })
-    }}</Button>
+    <Button
+      v-if="!loading && hasMore && moreRowsAvailable && optionsRemaining > 0"
+      primary
+      class="pd-filterresult-more mt-2 w-1/2 min-w-fit self-center"
+      @click.prevent="loadMore"
+      >{{ t("common.buttons.loadCountMore", { count: optionsRemaining }) }}</Button
+    >
     <div v-else-if="!loading && optionsRemaining > 0" class="mt-2 text-center text-sm">
       {{ t("common.status.valuesNotShown", { count: optionsRemaining }) }}
     </div>

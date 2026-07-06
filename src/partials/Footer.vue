@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { creditsDisabled, getFooterEndComponents, getFooterStartComponents } from "@/registry/footer"
+import { creditsDisabled, getFooterBlockComponents, getFooterEndComponents, getFooterStartComponents } from "@/registry/footer"
 
 // We want all fallthrough attributes to be passed to the footer element and not the container.
 defineOptions({
@@ -8,6 +8,7 @@ defineOptions({
 
 const footerStartComponents = getFooterStartComponents()
 const footerEndComponents = getFooterEndComponents()
+const footerBlockComponents = getFooterBlockComponents()
 </script>
 
 <template>
@@ -17,7 +18,10 @@ const footerEndComponents = getFooterEndComponents()
           body inside which then the footer horizontally shifts.
   -->
   <div class="pd-footer sticky left-0 z-30 w-0">
-    <div v-bind="$attrs" class="w-container flex justify-between gap-x-2 p-2 leading-none sm:gap-x-4 sm:p-4">
+    <div v-for="(c, i) in footerBlockComponents" :key="i" class="w-container">
+      <component :is="c" />
+    </div>
+    <div v-bind="$attrs" class="pd-footer-bar w-container flex justify-between gap-x-2 p-2 leading-none sm:gap-x-4 sm:p-4">
       <ul class="flex gap-x-2 sm:gap-x-4">
         <li v-for="(c, i) in footerStartComponents" :key="i">
           <component :is="c" />

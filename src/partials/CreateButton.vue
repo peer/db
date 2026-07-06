@@ -9,7 +9,7 @@ const { t } = useI18n({ useScope: "global" })
 </script>
 
 <template>
-  <ButtonLink v-if="hasPermission(CAN_EDIT_DOCUMENT)" :to="{ name: 'DocumentCreate' }" primary>
+  <ButtonLink v-if="hasPermission(CAN_EDIT_DOCUMENT)" :to="{ name: 'DocumentCreate' }" primary class="pd-navbar-create">
     <PlusIcon class="size-5 sm:hidden" :alt="t('common.buttons.create')" />
     <span class="hidden sm:inline">{{ t("common.buttons.create") }}</span>
   </ButtonLink>

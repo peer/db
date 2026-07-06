@@ -103,7 +103,7 @@ async function onSubmit() {
   -->
   <form id="navbarsearch-teleport-end" class="pd-navbar-search contents" novalidate @submit.prevent="onSubmit()">
     <InputText id="search-input-text" v-model="searchQuery" class="pd-searchinput max-w-xl min-w-0 grow" />
-    <Button type="submit" primary>
+    <Button type="submit" primary class="pd-navbar-search-button">
       <MagnifyingGlassIcon class="size-5 sm:hidden" :alt="t('common.buttons.search')" />
       <span class="hidden sm:inline">{{ t("common.buttons.search") }}</span>
     </Button>

@@ -1351,7 +1351,7 @@ function canSave(): boolean {
       </template>
     </NavBar>
   </Teleport>
-  <div class="mt-[var(--pd-navbar-height)] flex w-full flex-row">
+  <div class="mt-[var(--pd-navbar-offset)] flex w-full flex-row">
     <!--
       The table of contents lives outside the content column, to its left: its
       sticky/scroll machinery keys off its parent (this wrapper) spanning the whole
