@@ -6,7 +6,6 @@ globals:
       languagePriority:
         en: []
         sl: []
-        pt: []
       defaultLanguage: en
       features:
         searchResultsTable: true
