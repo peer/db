@@ -92,10 +92,12 @@ provide(fieldLabelCellKey, () => (props.showHeader ? headerRef.value : parentLab
 // numbered (1., 2., ...) so repetition reads differently from sub-field nesting.
 const isRepeated = computed<boolean>(() => props.field.maxCardinality > 1)
 
-// Repeated entries spread further apart (gap-8) when each entry is non-simple -
-// the field has sub-fields, so every slot renders a value plus sub-field blocks.
-// A plain repeated value uses the tighter gap-4.
-const entryGapClass = computed<string>(() => (props.field.subFields.length > 0 ? "gap-y-8" : "gap-y-4"))
+// Repeated entries spread further apart (mt-8 on every entry but the first) when
+// each entry is non-simple - the field has sub-fields, so every slot renders a
+// value plus sub-field blocks. A plain repeated value uses the tighter mt-4. A
+// margin instead of a container gap because the entries are rows of the shared
+// repeated-layout grid, whose other rows (labels, hints) use tighter spacing.
+const entryGapClass = computed<string>(() => (props.field.subFields.length > 0 ? "mt-8" : "mt-4"))
 
 // The columns and hints of the slots' value input, read from the first mounted
 // slot (all slots of a field share the same input type). Empty until one mounts.
@@ -224,6 +226,12 @@ const hintsAndInstructionsHtml = useTransformedHtml(
   computed(() => slotHints.value.map((hint) => `<p>${escapeHtml(hint)}</p>`).join("") + instructions.value.map((instruction) => instruction.html).join("")),
 )
 const onInternalLinksClick = useInternalLinksClick()
+
+// Classes of the prose element rendering the combined block, shared by its two
+// render sites (a subgrid row of the repeated layout, and below the single-value
+// and select layouts). The prose body colour is lightened like hints were and
+// italics are forced.
+const hintsAndInstructionsClasses = "prose prose-sm max-w-none min-w-0 italic prose-gray [--tw-prose-body:var(--color-neutral-500)]"
 
 const saveChange = injectFn(saveChangeKey, (spec: SaveChangeSpec) => Promise.resolve({ id: "id" in spec ? spec.id : "" }))
 const registerRemoteAdds = injectFn(registerRemoteAddsKey, () => {})
@@ -852,32 +860,37 @@ onBeforeUnmount(() => {
         :label-id="labelId"
       />
     </div>
-    <div v-else-if="modeResolved && isRepeated" class="flex flex-col">
+    <!--
+      Repeated layout: one shared grid whose first (min-content) column holds the
+      entries' counts with their per-entry revert buttons; the label row, every
+      entry, and the hint/instruction row are subgrid rows spanning both columns,
+      so the count column is a single track sized by its widest cell and the
+      second column stays aligned across all rows even when counts grow to
+      multiple digits. Every row carries the same pl-4 (the rails' content
+      offset), keeping the tracks' edge insets uniform.
+    -->
+    <div v-else-if="modeResolved && isRepeated" class="grid grid-cols-[min-content_auto] gap-x-4">
       <!--
         Hoisted label row of a repeated field whose input has labeled columns
         (amount/precision, time/precision): shown once above all entries, outside
-        their rails. It mirrors the entries' structure - the invisible revert icon
-        stands in for the count column and the label grid uses the same template as
-        the entries' InputField grids - so the labels align with the input columns
-        below. Interval entries keep their own label rows instead (the per-bound
-        revert badges live there). A press on a label focuses the first entry's
-        control in that column, like InputField's own labels. The mb-1 matches the
-        label-to-control spacing inside InputField, tighter than the entry gap.
+        their rails, with an empty cell standing in for the count column. The label
+        grid uses the same template as the entries' InputField grids, so the labels
+        align with the input columns below. Interval entries keep their own label
+        rows instead (the per-bound revert badges live there). A press on a label
+        focuses the first entry's control in that column, like InputField's own
+        labels. The mb-1 matches the label-to-control spacing inside InputField,
+        tighter than the entry gap.
       -->
-      <div v-if="!isInterval && hasLabelRow" class="mb-1 grid grid-cols-[min-content_auto] items-start gap-x-4 pl-4">
-        <div class="invisible p-0.5" aria-hidden="true">
-          <ArrowPathSingleCounterclockwiseIcon class="size-3" />
-        </div>
+      <div v-if="!isInterval && hasLabelRow" class="col-span-2 mb-1 grid grid-cols-subgrid items-start pl-4">
+        <div></div>
         <div class="grid items-start justify-start gap-x-4" :style="{ gridTemplateColumns: labelsGridTemplateColumns }">
           <span v-for="(col, i) in slotColumns" :key="i" class="cursor-pointer leading-none" @mousedown.prevent="onColumnLabelMousedown(col)">{{ col.label }}</span>
         </div>
       </div>
-      <div class="flex flex-col" :class="entryGapClass">
+      <template v-for="(slot, idx) in slots" :key="slot.key">
         <div
-          v-for="(slot, idx) in slots"
-          :key="slot.key"
-          class="relative grid grid-cols-[min-content_auto] items-start gap-x-4 pl-4 before:absolute before:inset-y-0 before:left-0 before:w-1 before:rounded-sm before:content-[''] not-has-[[aria-invalid=true]]:focus-within:before:bg-primary-500 has-[[aria-invalid=true]]:before:bg-error-600"
-          :class="slotDirty(slot.key) ? 'before:bg-primary-300' : 'before:bg-neutral-300'"
+          class="relative col-span-2 grid grid-cols-subgrid items-start pl-4 before:absolute before:inset-y-0 before:left-0 before:w-1 before:rounded-sm before:content-[''] not-has-[[aria-invalid=true]]:focus-within:before:bg-primary-500 has-[[aria-invalid=true]]:before:bg-error-600"
+          :class="[slotDirty(slot.key) ? 'before:bg-primary-300' : 'before:bg-neutral-300', idx > 0 ? entryGapClass : '']"
         >
           <!--
           The count sits at the top, aligned with the entry's first line (the input
@@ -918,6 +931,13 @@ onBeforeUnmount(() => {
             @cleared="onSlotCleared(slot.key)"
           />
         </div>
+      </template>
+      <!-- The hints/instructions block (see below), as a subgrid row of the repeated layout. -->
+      <div v-if="slotHints.length > 0 || instructions.length > 0" class="col-span-2 mt-1 grid grid-cols-subgrid items-start pl-4">
+        <div></div>
+        <!-- eslint-disable vue/no-v-html -->
+        <div :class="hintsAndInstructionsClasses" @click="onInternalLinksClick" v-html="hintsAndInstructionsHtml"></div>
+        <!-- eslint-enable vue/no-v-html -->
       </div>
     </div>
     <template v-else-if="modeResolved">
@@ -946,27 +966,15 @@ onBeforeUnmount(() => {
     <!--
       The field's hints and instructions, combined into one prose block shown once at
       the bottom of the whole field, outside the rails (the inputs' own hints are
-      always suppressed by FieldsFormRow): each hint is its own paragraph, followed by the
-      instructions' paragraphs, so the gap between any two paragraphs is uniform. In
-      the hoisted repeated layout the invisible revert icon stands in for the count
-      column so the block aligns with the entries' inputs. The prose body colour is
-      lightened like hints are and italics are forced. The mt-1 matches the
-      control-to-hint spacing previously inside InputField, tighter than the entry gap.
+      always suppressed by FieldsFormRow): each hint is its own paragraph, followed by
+      the instructions' paragraphs, so the gap between any two paragraphs is uniform.
+      This is the single-value and select layouts' render site; the repeated layout
+      renders the same block as a subgrid row above, aligned with the entries' inputs.
+      The mt-1 matches the control-to-hint spacing previously inside InputField.
     -->
-    <div
-      v-if="slotHints.length > 0 || instructions.length > 0"
-      class="mt-1"
-      :class="refOptions === null && isRepeated ? 'grid grid-cols-[min-content_auto] items-start gap-x-4 pl-4' : 'pl-4'"
-    >
-      <div v-if="refOptions === null && isRepeated" class="invisible p-0.5" aria-hidden="true">
-        <ArrowPathSingleCounterclockwiseIcon class="size-3" />
-      </div>
+    <div v-if="(slotHints.length > 0 || instructions.length > 0) && (refOptions !== null || !isRepeated)" class="mt-1 pl-4">
       <!-- eslint-disable vue/no-v-html -->
-      <div
-        class="prose prose-sm max-w-none min-w-0 italic prose-gray [--tw-prose-body:var(--color-neutral-500)]"
-        @click="onInternalLinksClick"
-        v-html="hintsAndInstructionsHtml"
-      ></div>
+      <div :class="hintsAndInstructionsClasses" @click="onInternalLinksClick" v-html="hintsAndInstructionsHtml"></div>
       <!-- eslint-enable vue/no-v-html -->
     </div>
   </div>
