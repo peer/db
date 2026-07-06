@@ -3,8 +3,6 @@ package peerdb
 import (
 	"context"
 	"net"
-	"net/http"
-	"strings"
 
 	internalSite "gitlab.com/peerdb/peerdb/internal/site"
 
@@ -18,15 +16,6 @@ import (
 // of the request.
 func WithFallbackDBContext(ctx context.Context, schema, name string) context.Context {
 	return internalStore.WithFallbackDBContext(ctx, schema, name)
-}
-
-func hasConnectionUpgrade(req *http.Request) bool {
-	for value := range strings.SplitSeq(req.Header.Get("Connection"), ",") {
-		if strings.ToLower(strings.TrimSpace(value)) == "upgrade" {
-			return true
-		}
-	}
-	return false
 }
 
 // Same as in zerolog/hlog/hlog.go.

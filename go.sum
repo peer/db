@@ -329,8 +329,8 @@ gitlab.com/tozd/go/zerolog v0.11.5-0.20260611093043-190c71b8bcda h1:+TbzXG0qt0u8
 gitlab.com/tozd/go/zerolog v0.11.5-0.20260611093043-190c71b8bcda/go.mod h1:ka0DToFzoMewpADCf2otD0CtpylPLxmF4pibklyoolA=
 gitlab.com/tozd/identifier v0.8.2 h1:OO35kXje84CYhWQIX3UYedLJZmi11ZvcpffD7pQajAI=
 gitlab.com/tozd/identifier v0.8.2/go.mod h1:Rdf6KMUKO3OxjKoNYvlPxEqxNKyNfuXc67uc/2d4VeY=
-gitlab.com/tozd/waf v0.24.1-0.20260611104638-49c13c820954 h1:Xb0/++ZK1uLqvkKUFvudWX8ITPNx3xCH6SPQeksj8dM=
-gitlab.com/tozd/waf v0.24.1-0.20260611104638-49c13c820954/go.mod h1:EpuSld0Ve3wE4MbjfOmgNIiE5uJFLGa9uxbGNc70VDw=
+gitlab.com/tozd/waf v0.24.1-0.20260706220440-2f388181964d h1:UGzr/uk7AM77ZJAW2JqobTQ6oY/37aGVyUBWpPzyBOQ=
+gitlab.com/tozd/waf v0.24.1-0.20260706220440-2f388181964d/go.mod h1:EpuSld0Ve3wE4MbjfOmgNIiE5uJFLGa9uxbGNc70VDw=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
 go.opentelemetry.io/auto/sdk v1.2.1/go.mod h1:KRTj+aOaElaLi+wW1kO/DZRXwkF4C5xPbEe3ZiIhN7Y=
 go.opentelemetry.io/otel v1.44.0 h1:JjwHmHpA4iZ3wBxluu2fbbE7j4kqlE8jXyAyPXH7HqU=

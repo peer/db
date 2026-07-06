@@ -9,7 +9,7 @@ import (
 // HomeGet is a GET/HEAD HTTP request handler which returns HTML frontend for the home page.
 func (s *Service) HomeGet(w http.ResponseWriter, req *http.Request, _ waf.Params) {
 	// During development Vite creates WebSocket connection. We always proxy it.
-	if s.ProxyStaticTo != "" && hasConnectionUpgrade(req) {
+	if s.ProxyStaticTo != "" && waf.HasConnectionUpgrade(req) {
 		s.Proxy(w, req)
 		return
 	}
