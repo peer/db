@@ -192,17 +192,21 @@ func (i *Interval[T]) Validate() errors.E {
 }
 
 // StringWithLanguage represents string with language information.
+//
+//nolint:lll
 type StringWithLanguage struct {
 	Value string `json:"value" value:""`
 
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"1" property:"IN_LANGUAGE" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE"`
+	InLanguage []Ref `cardinality:"0.." context:"edit" json:"inLanguage,omitempty" order:"1" property:"IN_LANGUAGE" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE"`
 }
 
 // RawHTMLWithLanguage represents raw HTML with language information.
+//
+//nolint:lll
 type RawHTMLWithLanguage struct {
 	Value RawHTML `json:"value" value:""`
 
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"1" property:"IN_LANGUAGE" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE"`
+	InLanguage []Ref `cardinality:"0.." context:"edit" json:"inLanguage,omitempty" order:"1" property:"IN_LANGUAGE" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE"`
 }
 
 // Section represents a section of fields of an entity.
@@ -229,6 +233,7 @@ type Field struct {
 	SubField        []Field               `cardinality:"0.."  json:"subField,omitempty"        property:"SUB_FIELD"`
 	InverseProperty *Ref                  `cardinality:"0..1" json:"inverseProperty,omitempty" property:"INVERSE_PROPERTY"  values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
 	Embed           []string              `cardinality:"0.."  json:"embed,omitempty"           property:"EMBED_PROPERTY"`
+	Context         []string              `cardinality:"0.."  json:"context,omitempty"         property:"FIELD_CONTEXT"`
 	Default         *Ref                  `cardinality:"0..1" json:"default,omitempty"         property:"FIELD_DEFAULT"     values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,VALUE_TYPE"`
 	Instruction     []RawHTMLWithLanguage `cardinality:"0.."  json:"instruction,omitempty"     property:"FIELD_INSTRUCTION"`
 }

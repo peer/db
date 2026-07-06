@@ -1400,3 +1400,35 @@ func TestFieldsInstructions(t *testing.T) {
 	require.Error(t, errE)
 	assert.EqualError(t, errE, "instruction field path not found")
 }
+
+type FieldsWithContext struct {
+	Name string `cardinality:"1.."  context:"edit"        json:"name" property:"NAME"`
+	Age  *int   `cardinality:"0..1" context:"edit, other" json:"age"  property:"AGE"`
+}
+
+type ContextValueStruct struct {
+	Value core.Amount[int] `context:"edit" json:"value" value:""`
+
+	Name string `json:"name" property:"NAME"`
+}
+
+type FieldsWithContextOnValue struct {
+	Data ContextValueStruct `cardinality:"1" json:"data" property:"DATA"`
+}
+
+func TestFieldsContext(t *testing.T) {
+	t.Parallel()
+
+	mnemonics := fieldsTestMnemonics()
+
+	result, errE := transform.Fields[FieldsWithContext](mnemonics, nil, nil)
+	require.NoError(t, errE, "% -+#.1v", errE)
+	require.Len(t, result.Field, 2)
+	assert.Equal(t, []string{"edit"}, result.Field[0].Context)
+	assert.Equal(t, []string{"edit", "other"}, result.Field[1].Context)
+
+	// The context tag cannot be used on value fields.
+	_, errE = transform.Fields[FieldsWithContextOnValue](mnemonics, nil, nil)
+	require.Error(t, errE)
+	assert.EqualError(t, errE, "context tag cannot be used with value tag")
+}

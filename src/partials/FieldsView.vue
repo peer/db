@@ -10,7 +10,7 @@ import { useI18n } from "vue-i18n"
 import Button from "@/components/Button.vue"
 import { IN_LANGUAGE } from "@/core"
 import { ClaimTypes, claimTypeName, getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
-import { fieldKey, getClaimsForField, getSectionName, valueTypeToClaimType } from "@/fields"
+import { fieldKey, fieldShownInView, getClaimsForField, getSectionName, valueTypeToClaimType } from "@/fields"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import { searchHiddenClaimsKey, searchLoadAllClaimsKey, SKIP_TO_END } from "@/utils"
@@ -92,6 +92,12 @@ function hasValues(field: FieldData): boolean {
   return claimsForField(field).length > 0
 }
 
+// Whether the field renders here: it must have claim values and not be an
+// edit-only field (context "edit", see fieldShownInView).
+function shown(field: FieldData): boolean {
+  return fieldShownInView(field) && hasValues(field)
+}
+
 // The claim values to render for a field. When limited and the field is not expanded, repeating values
 // are capped at LIMITED_CLAIMS so the remaining ones stay hidden behind the "Show all" button. If capping
 // would leave only SKIP_TO_END or fewer values hidden, all values are shown instead of the button. The print
@@ -121,7 +127,7 @@ const hasHiddenClaims = computed(() => {
       fields.push(...section.fields)
     }
   }
-  return fields.some((field) => hiddenClaimsCount(field) > 0)
+  return fields.some((field) => shown(field) && hiddenClaimsCount(field) > 0)
 })
 
 // Emit each transition as a +1/-1 delta, guarded by reported so this instance is only ever counted once, and on
@@ -154,11 +160,11 @@ function getSubClaims(claimId: string): ClaimTypes {
   return new ClaimTypes(claim?.sub ?? {})
 }
 
-// Check if any top-level field has values.
-const hasAnyFieldValues = computed(() => props.fieldsData.fields.some(hasValues))
+// Check if any top-level field is shown.
+const hasAnyFieldValues = computed(() => props.fieldsData.fields.some(shown))
 
-// Check if any section field has values.
-const hasAnySectionValues = computed(() => props.fieldsData.sections.some((s) => s.fields.some(hasValues)))
+// Check if any section field is shown.
+const hasAnySectionValues = computed(() => props.fieldsData.sections.some((s) => s.fields.some(shown)))
 
 // Check if there's anything to display.
 const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && hasAnySectionValues.value))
@@ -169,7 +175,7 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
     <tbody>
       <!-- Top-level fields first (sorted by orderInList). -->
       <template v-for="field in sortedByOrder(fieldsData.fields)" :key="fieldKey(field)">
-        <template v-if="hasValues(field)">
+        <template v-if="shown(field)">
           <template v-for="(claim, cIndex) in displayedClaimsForField(field)" :key="claim.GetID()">
             <!--
               A HAS claim renders no value of its own, so its sub-fields table sits
@@ -226,7 +232,7 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
       <!-- Sections (sorted by orderInList), only if sections prop is true. -->
       <template v-if="sections">
         <template v-for="section in sortedByOrder(fieldsData.sections)" :key="'section-' + section.id">
-          <template v-if="section.fields.some(hasValues)">
+          <template v-if="section.fields.some(shown)">
             <tr>
               <!--
                 The heading role (replacing the cell's columnheader role, which this
@@ -238,7 +244,7 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
               </th>
             </tr>
             <template v-for="field in sortedByOrder(section.fields)" :key="fieldKey(field)">
-              <template v-if="hasValues(field)">
+              <template v-if="shown(field)">
                 <template v-for="(claim, cIndex) in displayedClaimsForField(field)" :key="claim.GetID()">
                   <!-- A HAS claim's sub-fields table sits directly in the label row's value cell, un-indented, see above. -->
                   <tr v-if="claimTypeName(claim) === 'has' && field.subFields.length > 0 && claim.sub">

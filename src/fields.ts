@@ -6,6 +6,7 @@ import type { FieldsFormFlush, SaveChangeResult, SaveChangeSpec } from "@/types"
 import {
   CARDINALITY,
   FIELD,
+  FIELD_CONTEXT,
   FIELD_DEFAULT,
   FIELD_INSTRUCTION,
   FIELD_VALUES,
@@ -82,6 +83,16 @@ export interface FieldData {
   // (with IN_LANGUAGE sub-claims) the instructions are picked from by language (see
   // getFieldInstructions).
   claims?: DeepReadonly<ClaimTypes>
+  // FIELD_CONTEXT values: opaque context identifiers from the field's configuration.
+  // The read-only views skip fields with the "edit" context (see fieldShownInView).
+  context?: readonly string[]
+}
+
+// fieldShownInView reports whether the read-only views render the field. A field
+// marked with the "edit" context should be available only for editing, so only the
+// edit form renders it.
+export function fieldShownInView(field: DeepReadonly<FieldData>): boolean {
+  return !field.context?.includes("edit")
 }
 
 // isSimpleField reports whether a field renders as a single (non-repeating)
@@ -192,6 +203,8 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
 
   const valueClaim = getBestClaimOfType(claimsTypes, "string", FIELD_VALUES)
 
+  const contextClaims = getClaimsOfTypeWithConfidence(claimsTypes, "string", FIELD_CONTEXT)
+
   const defaultRef = getBestClaimOfType(claimsTypes, "ref", FIELD_DEFAULT)
   let fieldDefault: "none" | "unknown" | undefined
   if (defaultRef?.to.id === VT_NONE) {
@@ -211,6 +224,7 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
     values: valueClaim?.string || undefined,
     default: fieldDefault,
     claims: claimsTypes,
+    context: contextClaims.length > 0 ? contextClaims.map((claim) => claim.string) : undefined,
   }
 }
 

@@ -252,6 +252,11 @@ func (fc *fieldsCollector) processLevel(
 				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
 				return errE
 			}
+			if field.Tag.Get("context") != "" {
+				errE := errors.New("context tag cannot be used with value tag")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return errE
+			}
 			continue
 		}
 
@@ -374,6 +379,11 @@ func (fc *fieldsCollector) processSubFields(
 			}
 			if field.Tag.Get("order") != "" {
 				errE := errors.New("order tag cannot be used with value tag")
+				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
+				return nil, errE
+			}
+			if field.Tag.Get("context") != "" {
+				errE := errors.New("context tag cannot be used with value tag")
 				errors.Details(errE)["field"] = strings.Join(newFieldPath, ".")
 				return nil, errE
 			}
@@ -555,6 +565,7 @@ func (fc *fieldsCollector) makeField(
 		SubField:        subFields,
 		InverseProperty: inverseProperty,
 		Embed:           embed,
+		Context:         parseContextTag(structField),
 		Default:         defaultRef,
 		Instruction:     fc.fieldInstruction(fieldPath),
 	}, nil
@@ -839,6 +850,26 @@ func parseValuesTag(field reflect.StructField) ([]string, errors.E) {
 	}
 
 	return values, nil
+}
+
+// parseContextTag parses the "context" struct tag into a slice of opaque context
+// identifiers, separated by ",". Transform does not interpret them; consumers
+// decide what they mean.
+func parseContextTag(field reflect.StructField) []string {
+	tag := field.Tag.Get("context")
+	if tag == "" {
+		return nil
+	}
+	entries := strings.Split(tag, ",")
+	contexts := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		contexts = append(contexts, entry)
+	}
+	return contexts
 }
 
 // parseStructValueFieldValues looks inside a struct type for a value:"" field

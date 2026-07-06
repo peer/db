@@ -17,6 +17,7 @@ export const DISPLAY_LABEL_TEMPLATE = (await Identifier.from(Namespace, "DISPLAY
 export const DISTINCT_FROM = (await Identifier.from(Namespace, "DISTINCT_FROM")).toString()
 export const EMBED_PROPERTY = (await Identifier.from(Namespace, "EMBED_PROPERTY")).toString()
 export const FIELD = (await Identifier.from(Namespace, "FIELD")).toString()
+export const FIELD_CONTEXT = (await Identifier.from(Namespace, "FIELD_CONTEXT")).toString()
 export const FIELD_DEFAULT = (await Identifier.from(Namespace, "FIELD_DEFAULT")).toString()
 export const FIELD_INSTRUCTION = (await Identifier.from(Namespace, "FIELD_INSTRUCTION")).toString()
 export const FIELD_VALUES = (await Identifier.from(Namespace, "FIELD_VALUES")).toString()

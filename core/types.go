@@ -77,14 +77,14 @@ type DocumentFields struct {
 type AmountWithUnit[T AmountType] struct {
 	Value Amount[T] `json:"value" value:""`
 
-	InUnit []Ref `cardinality:"0.." json:"inUnit,omitempty" order:"1" property:"IN_UNIT" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,UNIT"`
+	InUnit []Ref `cardinality:"0.." context:"edit" json:"inUnit,omitempty" order:"1" property:"IN_UNIT" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,UNIT"`
 }
 
 // AmountIntervalWithUnit represents an amount interval with its unit.
 type AmountIntervalWithUnit[T AmountType] struct {
 	Value Interval[Amount[T]] `json:"value" value:""`
 
-	InUnit []Ref `cardinality:"0.." json:"inUnit,omitempty" order:"1" property:"IN_UNIT" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,UNIT"`
+	InUnit []Ref `cardinality:"0.." context:"edit" json:"inUnit,omitempty" order:"1" property:"IN_UNIT" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,UNIT"`
 }
 
 // TimeWithLocation represents a time with location information.
@@ -102,10 +102,12 @@ type TimeIntervalWithLocation struct {
 }
 
 // HTMLWithLanguage represents HTML with language information.
+//
+//nolint:lll
 type HTMLWithLanguage struct {
 	Value HTML `json:"value" value:""`
 
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"1" property:"IN_LANGUAGE" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE"`
+	InLanguage []Ref `cardinality:"0.." context:"edit" json:"inLanguage,omitempty" order:"1" property:"IN_LANGUAGE" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE"`
 }
 
 // RawHTMLWithLanguage represents raw HTML with language information.
