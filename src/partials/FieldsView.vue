@@ -228,7 +228,14 @@ const hasContent = computed(() => hasAnyFieldValues.value || (props.sections && 
         <template v-for="section in sortedByOrder(fieldsData.sections)" :key="'section-' + section.id">
           <template v-if="section.fields.some(hasValues)">
             <tr>
-              <th colspan="2" class="border-b border-slate-200 px-2 pt-4 pb-1 text-left text-lg font-semibold">{{ getSectionName(section as SectionData, locale) }}</th>
+              <!--
+                The heading role (replacing the cell's columnheader role, which this
+                section separator is not anyway) lets assistive technology jump
+                between sections.
+              -->
+              <th colspan="2" role="heading" aria-level="2" class="border-b border-slate-200 px-2 pt-4 pb-1 text-left text-lg font-semibold">
+                {{ getSectionName(section as SectionData, locale) }}
+              </th>
             </tr>
             <template v-for="field in sortedByOrder(section.fields)" :key="fieldKey(field)">
               <template v-if="hasValues(field)">

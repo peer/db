@@ -72,8 +72,13 @@ defineExpose({
     </table>
 
     <div v-for="section in sortedByOrder(fieldsData.sections)" :key="'section-' + section.id" class="flex flex-col gap-y-4">
-      <!-- The id makes the header a scroll/hash target of the table of contents. -->
-      <div :id="sectionElementId(section)" class="border-b border-slate-200 px-2 pb-1 text-lg font-semibold">{{ getSectionName(section, locale) }}</div>
+      <!--
+        The id makes the header a scroll/hash target of the table of contents. The
+        heading role lets assistive technology jump between sections.
+      -->
+      <div :id="sectionElementId(section)" role="heading" aria-level="2" class="border-b border-slate-200 px-2 pb-1 text-lg font-semibold">
+        {{ getSectionName(section, locale) }}
+      </div>
       <table class="flex flex-col" :class="groupGapClass(section.fields)">
         <FieldsFormField v-for="field in sortedByOrder(section.fields)" :key="fieldKey(field)" :field="field" :claims="claims" :initial-claims="initialClaims" />
       </table>
