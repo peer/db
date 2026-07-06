@@ -11,6 +11,7 @@ import { useRouter } from "vue-router"
 import InputText from "@/components/InputText.vue"
 import { classifyLink, LINK_CLASS_INTERNAL, LINK_CLASS_INTERNAL_NOVIEW } from "@/internal-links"
 import { normalizeUrl, parseUrl } from "@/utils"
+import { useRegisterForValidation, useValidationRegistry } from "@/validation"
 
 const props = withDefaults(
   defineProps<{
@@ -110,6 +111,15 @@ const validator: ValidatorFn<string> = async function (value, options) {
   return []
 }
 
+// The inner InputText registers into this local registry rather than into the
+// enclosing registry: the enclosing one would otherwise see the hint-less inner
+// input instead of this wrapper (registered below), and the wrapper's hints would
+// never reach the enclosing row's hoisted hints. Child interactions forward outward.
+let forwardInteraction: (() => void) | null = null
+useValidationRegistry(() => {
+  forwardInteraction?.()
+})
+
 // Forward the inner InputText's ValidatedInput so the parent sees this
 // wrapper as a regular validated input.
 const inputTextRef = useTemplateRef<ShallowUnwrapRef<ValidatedInput>>("inputTextRef")
@@ -127,6 +137,8 @@ const validatedInput: ValidatedInput = {
   checkpoint: () => inputTextRef.value?.checkpoint(),
   hints,
 }
+const { onInteraction: notifyOuter } = useRegisterForValidation(validatedInput)
+forwardInteraction = notifyOuter
 defineExpose(validatedInput)
 </script>
 

@@ -68,13 +68,13 @@ const props = defineProps<{
   // ClaimCardinality, so a bare single-column input is named via InputField's
   // labelledby. Undefined when not in a FieldsForm context.
   labelId?: string
-  // Suppress the inputs' own labels row / hint lines. Set by the enclosing
-  // cardinality on a repeated field's entries: it hoists the shared column labels
-  // above and the shared hint below all entries. hideLabels is not applied to the
-  // interval bounds - their labels carry the per-bound revert badges, so they stay
-  // per entry (only their hints hoist).
+  // Suppress the inputs' own labels row. Set by the enclosing cardinality on a
+  // repeated field's entries: it hoists the shared column labels above all entries.
+  // Not applied to the interval bounds - their labels carry the per-bound revert
+  // badges, so they stay per entry. Hints are always suppressed on the inner
+  // InputFields (hide-hints): the cardinality renders them below the whole field,
+  // combined with the field's instructions, outside the rails.
   hideLabels?: boolean
-  hideHints?: boolean
 }>()
 
 // input notifies the parent on any user-driven model change; it is emitted by every
@@ -271,36 +271,28 @@ function onCompleteInput() {
     input through InputField's slot props.
   -->
   <!-- id -->
-  <InputField v-if="claimType === 'id'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge :hide-hints="hideHints">
+  <InputField v-if="claimType === 'id'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
       <InputIdentifier v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- string -->
-  <InputField v-else-if="claimType === 'string'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge :hide-hints="hideHints">
+  <InputField v-else-if="claimType === 'string'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
       <InputString v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- html -->
-  <InputField v-else-if="claimType === 'html'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge :hide-hints="hideHints">
+  <InputField v-else-if="claimType === 'html'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
       <InputHTML v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- amount -->
-  <InputField
-    v-else-if="claimType === 'amount'"
-    :required="required"
-    :invalid="invalid"
-    :labelledby="labelId"
-    hide-badge
-    :hide-labels="hideLabels"
-    :hide-hints="hideHints"
-  >
+  <InputField v-else-if="claimType === 'amount'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints :hide-labels="hideLabels">
     <template #input="inputProps">
       <InputAmount
         v-bind="inputProps"
@@ -327,7 +319,7 @@ function onCompleteInput() {
       :labelledby="labelId"
       :label="t('partials.FieldsForm.from')"
       :revert="boundRevert('from')"
-      :hide-hints="hideHints"
+      hide-hints
     >
       <template #input="inputProps">
         <InputMissing
@@ -358,7 +350,7 @@ function onCompleteInput() {
       :labelledby="labelId"
       :label="t('partials.FieldsForm.to')"
       :revert="boundRevert('to')"
-      :hide-hints="hideHints"
+      hide-hints
     >
       <template #input="inputProps">
         <InputMissing
@@ -385,7 +377,7 @@ function onCompleteInput() {
   </div>
 
   <!-- time -->
-  <InputField v-else-if="claimType === 'time'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge :hide-labels="hideLabels" :hide-hints="hideHints">
+  <InputField v-else-if="claimType === 'time'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints :hide-labels="hideLabels">
     <template #input="inputProps">
       <InputTime v-bind="inputProps" v-model="value" v-model:precision="timePrecision" :readonly="readonly" @update:model-value="onInput" @update:precision="onInput" />
     </template>
@@ -400,7 +392,7 @@ function onCompleteInput() {
       :labelledby="labelId"
       :label="t('partials.FieldsForm.from')"
       :revert="boundRevert('from')"
-      :hide-hints="hideHints"
+      hide-hints
     >
       <template #input="inputProps">
         <InputMissing
@@ -431,7 +423,7 @@ function onCompleteInput() {
       :labelledby="labelId"
       :label="t('partials.FieldsForm.to')"
       :revert="boundRevert('to')"
-      :hide-hints="hideHints"
+      hide-hints
     >
       <template #input="inputProps">
         <InputMissing
@@ -458,21 +450,21 @@ function onCompleteInput() {
   </div>
 
   <!-- link (no file affordance) -->
-  <InputField v-else-if="claimType === 'link' && !isFile" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge :hide-hints="hideHints">
+  <InputField v-else-if="claimType === 'link' && !isFile" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
       <InputLink v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onInput" />
     </template>
   </InputField>
 
   <!-- link with file value type: render the file-upload affordance instead. -->
-  <InputField v-else-if="claimType === 'link' && isFile" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge :hide-hints="hideHints">
+  <InputField v-else-if="claimType === 'link' && isFile" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
       <InputFile v-bind="inputProps" v-model="value" :readonly="readonly" @update:model-value="onCompleteInput" />
     </template>
   </InputField>
 
   <!-- ref -->
-  <InputField v-else-if="claimType === 'ref'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge :hide-hints="hideHints">
+  <InputField v-else-if="claimType === 'ref'" :required="required" :invalid="invalid" :labelledby="labelId" hide-badge hide-hints>
     <template #input="inputProps">
       <!-- TODO: Pass "self" prop as the current document's ID. -->
       <InputRef v-bind="inputProps" v-model="value" :readonly="readonly" :filter="field.values" @update:model-value="onInput" />

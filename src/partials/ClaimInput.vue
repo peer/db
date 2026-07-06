@@ -77,12 +77,10 @@ const props = withDefaults(
     // Id of this field's label element, threaded down to the value input's
     // FieldsFormRow so a bare single-column input is named via labelledby.
     labelId?: string
-    // Suppress the value input's own labels row / hint lines. Set by the enclosing
-    // cardinality on a repeated field's slots: it hoists the shared column labels
-    // above and the shared hint below all of them (see FieldsFormRow for how the
-    // interval bounds keep their labels).
+    // Suppress the value input's own labels row. Set by the enclosing cardinality
+    // on a repeated field's slots: it hoists the shared column labels above all of
+    // them (see FieldsFormRow for how the interval bounds keep their labels).
     hideLabels?: boolean
-    hideHints?: boolean
   }>(),
   {
     parentClaimId: undefined,
@@ -92,7 +90,6 @@ const props = withDefaults(
     readonly: false,
     labelId: undefined,
     hideLabels: false,
-    hideHints: false,
   },
 )
 
@@ -996,7 +993,6 @@ defineExpose({
         :revert="revertEntryCallback"
         :label-id="labelId"
         :hide-labels="hideLabels"
-        :hide-hints="hideHints"
         @missing-change="onMissingChange"
         @complete-change="onCompleteChange"
       />

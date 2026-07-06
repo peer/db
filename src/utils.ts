@@ -42,6 +42,11 @@ export function addPrefixWildcard(query: string): string {
   return query
 }
 
+// escapeHtml escapes a plain text string for embedding into an HTML fragment.
+export function escapeHtml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+}
+
 // If the last increase would be equal or less than this number, just skip to the end.
 export const SKIP_TO_END = 2
 

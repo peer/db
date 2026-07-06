@@ -7,6 +7,7 @@ import {
   CARDINALITY,
   FIELD,
   FIELD_DEFAULT,
+  FIELD_INSTRUCTION,
   FIELD_VALUES,
   FIELDS,
   HAS_PROPERTY,
@@ -77,6 +78,10 @@ export interface FieldData {
   // may be stored as a NoneClaim/UnknownClaim (carrying any sub-claims) instead of a value
   // claim.
   default?: "none" | "unknown"
+  // The field claim's sub-claims, holding among others the FIELD_INSTRUCTION HTML claims
+  // (with IN_LANGUAGE sub-claims) the instructions are picked from by language (see
+  // getFieldInstructions).
+  claims?: DeepReadonly<ClaimTypes>
 }
 
 // isSimpleField reports whether a field renders as a single (non-repeating)
@@ -205,7 +210,16 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
     path: thisPath,
     values: valueClaim?.string || undefined,
     default: fieldDefault,
+    claims: claimsTypes,
   }
+}
+
+// getFieldInstructions returns the field's instructions for the given language, using the
+// language fallback chain: the FIELD_INSTRUCTION HTML claims from the field's configuration,
+// longer form guidance shown after the value input's hints. Returns an empty array when the
+// field has no instructions.
+export function getFieldInstructions(field: DeepReadonly<FieldData>, language: string): DeepReadonly<HTMLClaim>[] {
+  return selectClaimsByLanguage(field.claims, "html", FIELD_INSTRUCTION, language, (c) => c.length > 0 && !!c[0].html) ?? []
 }
 
 // extractFieldsFromClaims extracts FieldsData from a class document's claims.

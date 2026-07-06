@@ -30,8 +30,10 @@ const props = defineProps<{
   // Suppress the labels row entirely. The enclosing cardinality sets it on a
   // repeated field's entries when it hoists the shared column labels above them.
   hideLabels?: boolean
-  // Suppress the hint lines. The enclosing cardinality sets it on a repeated
-  // field's entries when it renders the shared hint once under all of them.
+  // Suppress the hint lines. FieldsFormRow always sets it: in the fields form the
+  // hints render once under the whole field (combined with the field's
+  // instructions, see ClaimCardinality). Without it (the claim-type forms of the
+  // "All properties" tab) hints render inline, under the errors.
   hideHints?: boolean
   // When set, the badge's revert invokes this instead of restoring the wrapped input's
   // own checkpoints. ClaimInput passes its per-bound revert through FieldsFormRow for

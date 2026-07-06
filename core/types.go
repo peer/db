@@ -114,12 +114,7 @@ type HTMLWithLanguage struct {
 }
 
 // RawHTMLWithLanguage represents raw HTML with language information.
-type RawHTMLWithLanguage struct {
-	Value RawHTML `json:"value" value:""`
-
-	// We set "order" to hide the field. It should not be set manually.
-	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"-" property:"IN_LANGUAGE" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE"`
-}
+type RawHTMLWithLanguage = internalCore.RawHTMLWithLanguage
 
 // SearchShortcut represents a search shortcut with its name.
 type SearchShortcut struct {
@@ -146,7 +141,6 @@ type PropertyFields struct {
 	AlternativeName        []StringWithLanguage  `cardinality:"0.."  json:"alternativeName,omitempty"        property:"ALTERNATIVE_NAME"`
 	Mnemonic               string                `cardinality:"0..1" json:"mnemonic,omitempty"               property:"MNEMONIC"`
 	Description            []RawHTMLWithLanguage `cardinality:"0.."  json:"description,omitempty"            property:"DESCRIPTION"`
-	Instruction            []RawHTMLWithLanguage `cardinality:"0.."  json:"instruction,omitempty"            property:"INSTRUCTION"`
 	IdentifierLinkTemplate string                `cardinality:"0..1" json:"identifierLinkTemplate,omitempty" property:"IDENTIFIER_LINK_TEMPLATE"`
 	SubpropertyOf          []Ref                 `cardinality:"0.."  json:"subpropertyOf,omitempty"          property:"SUBPROPERTY_OF"           values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
 	InversePropertyOf      *Ref                  `cardinality:"0..1" json:"inversePropertyOf,omitempty"      property:"INVERSE_PROPERTY_OF"      values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`

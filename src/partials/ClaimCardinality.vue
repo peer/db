@@ -29,13 +29,15 @@ import { useRouter } from "vue-router"
 
 import { postJSON } from "@/api"
 import { claimPatchFrom, claimTypeName } from "@/document"
-import { getClaimValues, makePatchForField, valueTypeToClaimType } from "@/fields"
+import { getClaimValues, getFieldInstructions, makePatchForField, valueTypeToClaimType } from "@/fields"
 import ClaimInput from "@/partials/ClaimInput.vue"
 import ClaimRefSelect from "@/partials/ClaimRefSelect.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import InputBadges from "@/partials/InputBadges.vue"
+import { useInternalLinksClick, useTransformedHtml } from "@/internal-links"
 import { useLocked, useProgress } from "@/progress"
 import { shortcutToFilters } from "@/shortcut"
+import { escapeHtml } from "@/utils"
 import { allErrors, useRegisterForValidation, useValidationRegistry } from "@/validation"
 import { ArrowPathSingleCounterclockwiseIcon } from "@sidekickicons/vue/20/solid"
 
@@ -206,7 +208,22 @@ onBeforeMount(async () => {
 // ValidatedInput.revert with the async version so revertField can await it.
 const claimRefSelectRef = useTemplateRef<{ revert: () => Promise<void> }>("claimRefSelectRef")
 
-const { t } = useI18n({ useScope: "global" })
+const { t, locale } = useI18n({ useScope: "global" })
+
+// The field's instructions in the current language: longer form guidance (HTML
+// paragraphs) from the field's configuration, shown once at the bottom of the
+// whole field, after the value inputs' hints.
+const instructions = computed(() => getFieldInstructions(props.field, locale.value))
+
+// The hints and instructions combined into one HTML fragment: each hint becomes its
+// own (escaped) paragraph, followed by the instructions' HTML. All paragraphs end up
+// direct children of the single prose element rendering this, so the gap between any
+// two paragraphs (and the zeroed first/last margins) is uniform. The instructions go
+// through the internal-links transformation like any HTML claim (see ClaimValueHtml).
+const hintsAndInstructionsHtml = useTransformedHtml(
+  computed(() => slotHints.value.map((hint) => `<p>${escapeHtml(hint)}</p>`).join("") + instructions.value.map((instruction) => instruction.html).join("")),
+)
+const onInternalLinksClick = useInternalLinksClick()
 
 const saveChange = injectFn(saveChangeKey, (spec: SaveChangeSpec) => Promise.resolve({ id: "id" in spec ? spec.id : "" }))
 const registerRemoteAdds = injectFn(registerRemoteAddsKey, () => {})
@@ -897,24 +914,9 @@ onBeforeUnmount(() => {
             :readonly="readonly"
             :label-id="labelId"
             :hide-labels="!isInterval"
-            hide-hints
             @update:model-value="(claim) => updateSlotClaim(slot.key, claim)"
             @cleared="onSlotCleared(slot.key)"
           />
-        </div>
-      </div>
-      <!--
-        The entries' hint, shown once under all of them (their own hints are
-        suppressed through hideHints), outside the rails, aligned with the input
-        columns like the hoisted labels. The mt-1 matches the control-to-hint
-        spacing inside InputField, tighter than the entry gap.
-      -->
-      <div v-if="slotHints.length > 0" class="mt-1 grid grid-cols-[min-content_auto] items-start gap-x-4 pl-4">
-        <div class="invisible p-0.5" aria-hidden="true">
-          <ArrowPathSingleCounterclockwiseIcon class="size-3" />
-        </div>
-        <div>
-          <p v-for="(hint, i) in slotHints" :key="i" class="text-sm text-neutral-500 italic">{{ hint }}</p>
         </div>
       </div>
     </div>
@@ -941,5 +943,31 @@ onBeforeUnmount(() => {
         />
       </div>
     </template>
+    <!--
+      The field's hints and instructions, combined into one prose block shown once at
+      the bottom of the whole field, outside the rails (the inputs' own hints are
+      always suppressed by FieldsFormRow): each hint is its own paragraph, followed by the
+      instructions' paragraphs, so the gap between any two paragraphs is uniform. In
+      the hoisted repeated layout the invisible revert icon stands in for the count
+      column so the block aligns with the entries' inputs. The prose body colour is
+      lightened like hints are and italics are forced. The mt-1 matches the
+      control-to-hint spacing previously inside InputField, tighter than the entry gap.
+    -->
+    <div
+      v-if="slotHints.length > 0 || instructions.length > 0"
+      class="mt-1"
+      :class="refOptions === null && isRepeated ? 'grid grid-cols-[min-content_auto] items-start gap-x-4 pl-4' : 'pl-4'"
+    >
+      <div v-if="refOptions === null && isRepeated" class="invisible p-0.5" aria-hidden="true">
+        <ArrowPathSingleCounterclockwiseIcon class="size-3" />
+      </div>
+      <!-- eslint-disable vue/no-v-html -->
+      <div
+        class="prose prose-sm max-w-none min-w-0 italic prose-gray [--tw-prose-body:var(--color-neutral-500)]"
+        @click="onInternalLinksClick"
+        v-html="hintsAndInstructionsHtml"
+      ></div>
+      <!-- eslint-enable vue/no-v-html -->
+    </div>
   </div>
 </template>

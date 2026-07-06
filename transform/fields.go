@@ -37,9 +37,19 @@ import (
 // claims (one per language) with the language as an IN_LANGUAGE sub-claim. Every
 // section used by the struct must have its names provided; if one is missing (or
 // sections is nil while the struct uses sections), an error is returned.
+//
+// The instructions parameter maps field paths to their translated instructions
+// (raw HTML strings, expected to be formatted as paragraphs), keyed by language
+// (e.g. "en-GB"). A field path is the dot-joined Go field names from the root of T
+// down to the field, including embedded structs by their field name (which for
+// anonymous fields is the type name), e.g. "TempTestFields.tempSectionGamma.GammaText";
+// sub-field paths continue through the nested struct's fields. Each instruction
+// becomes a FIELD_INSTRUCTION claim (one per language) with the language as an
+// IN_LANGUAGE sub-claim. A path not matching any field is an error.
 func Fields[T any](
 	mnemonics map[string][]string,
 	sections map[string]map[string]string,
+	instructions map[string]map[string]string,
 ) (*internalCore.Fields, errors.E) {
 	if mnemonics == nil {
 		return nil, nil //nolint:nilnil
@@ -60,15 +70,27 @@ func Fields[T any](
 	}
 
 	fc := fieldsCollector{
-		mnemonics:    mnemonics,
-		sectionNames: sections,
-		sections:     make(map[string]*sectionData),
-		sectionOrder: 1.0,
+		mnemonics:        mnemonics,
+		sectionNames:     sections,
+		sections:         make(map[string]*sectionData),
+		sectionOrder:     1.0,
+		instructions:     instructions,
+		usedInstructions: make(map[string]bool),
 	}
 
 	errE := fc.processLevel(t, "", []string{}, []reflect.Type{t})
 	if errE != nil {
 		return nil, errE
+	}
+
+	// A provided instruction not consumed by any field means its path does not
+	// match a field (a typo or a stale path after a rename), so it is an error.
+	for _, path := range slices.Sorted(maps.Keys(instructions)) {
+		if !fc.usedInstructions[path] {
+			errE := errors.New("instruction field path not found")
+			errors.Details(errE)["field"] = path
+			return nil, errE
+		}
 	}
 
 	return fc.finalizeSections()
@@ -84,10 +106,12 @@ type sectionData struct {
 
 // fieldsCollector holds state for the Fields function.
 type fieldsCollector struct {
-	mnemonics    map[string][]string
-	sectionNames map[string]map[string]string
-	sections     map[string]*sectionData
-	sectionOrder float64
+	mnemonics        map[string][]string
+	sectionNames     map[string]map[string]string
+	sections         map[string]*sectionData
+	sectionOrder     float64
+	instructions     map[string]map[string]string
+	usedInstructions map[string]bool
 }
 
 // getOrCreateSection returns the sectionData for the given ID, creating it if needed.
@@ -532,7 +556,32 @@ func (fc *fieldsCollector) makeField(
 		InverseProperty: inverseProperty,
 		Embed:           embed,
 		Default:         defaultRef,
+		Instruction:     fc.fieldInstruction(fieldPath),
 	}, nil
+}
+
+// fieldInstruction builds the field's instruction values from the translated instructions
+// provided to Fields, looked up by the field's dot-joined path: one RawHTMLWithLanguage per
+// language (sorted by language for deterministic output), each with the language as an
+// IN_LANGUAGE reference. Returns nil when no instructions are provided for the field.
+func (fc *fieldsCollector) fieldInstruction(fieldPath []string) []internalCore.RawHTMLWithLanguage {
+	path := strings.Join(fieldPath, ".")
+	translations := fc.instructions[path]
+	if len(translations) == 0 {
+		return nil
+	}
+	fc.usedInstructions[path] = true
+
+	instruction := make([]internalCore.RawHTMLWithLanguage, 0, len(translations))
+	for _, language := range slices.Sorted(maps.Keys(translations)) {
+		instruction = append(instruction, internalCore.RawHTMLWithLanguage{
+			Value: internalCore.RawHTML(translations[language]),
+			InLanguage: []internalCore.Ref{{
+				ID: []string{internalCore.Namespace, "LANGUAGE", language},
+			}},
+		})
+	}
+	return instruction
 }
 
 // collectSubFields extracts sub-field descriptions from a struct type.

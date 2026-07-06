@@ -199,6 +199,14 @@ type StringWithLanguage struct {
 	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"-" property:"IN_LANGUAGE" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE"`
 }
 
+// RawHTMLWithLanguage represents raw HTML with language information.
+type RawHTMLWithLanguage struct {
+	Value RawHTML `json:"value" value:""`
+
+	// We set "order" to hide the field. It should not be set manually.
+	InLanguage []Ref `cardinality:"0.." json:"inLanguage,omitempty" order:"-" property:"IN_LANGUAGE" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE"`
+}
+
 // Section represents a section of fields of an entity.
 //
 // ID is the section's stable identity (the name used in section struct tags) and Name its
@@ -215,15 +223,16 @@ type Section struct {
 //
 //nolint:lll
 type Field struct {
-	Property        Ref                   `cardinality:"1"    json:"property"                  property:"HAS_PROPERTY"     values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
-	ValueType       Ref                   `cardinality:"1"    json:"valueType"                 property:"HAS_VALUE_TYPE"   values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,VALUE_TYPE"`
+	Property        Ref                   `cardinality:"1"    json:"property"                  property:"HAS_PROPERTY"      values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
+	ValueType       Ref                   `cardinality:"1"    json:"valueType"                 property:"HAS_VALUE_TYPE"    values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,VALUE_TYPE"`
 	OrderInList     Amount[float64]       `cardinality:"1"    json:"orderInList"               property:"ORDER_IN_LIST"`
 	Cardinality     Interval[Amount[int]] `cardinality:"1"    json:"cardinality"               property:"CARDINALITY"`
 	Values          []string              `cardinality:"0.."  json:"values,omitempty"          property:"FIELD_VALUES"`
 	SubField        []Field               `cardinality:"0.."  json:"subField,omitempty"        property:"SUB_FIELD"`
-	InverseProperty *Ref                  `cardinality:"0..1" json:"inverseProperty,omitempty" property:"INVERSE_PROPERTY" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
+	InverseProperty *Ref                  `cardinality:"0..1" json:"inverseProperty,omitempty" property:"INVERSE_PROPERTY"  values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,PROPERTY"`
 	Embed           []string              `cardinality:"0.."  json:"embed,omitempty"           property:"EMBED_PROPERTY"`
-	Default         *Ref                  `cardinality:"0..1" json:"default,omitempty"         property:"FIELD_DEFAULT"    values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,VALUE_TYPE"`
+	Default         *Ref                  `cardinality:"0..1" json:"default,omitempty"         property:"FIELD_DEFAULT"     values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,VALUE_TYPE"`
+	Instruction     []RawHTMLWithLanguage `cardinality:"0.."  json:"instruction,omitempty"     property:"FIELD_INSTRUCTION"`
 }
 
 // Fields represents a list of fields of an entity.
