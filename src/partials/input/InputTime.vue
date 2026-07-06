@@ -271,8 +271,11 @@ function onPrecisionSelected(p: TimePrecision) {
 // never that long) and the precision.
 const columns = computed<InputColumn[]>(() => [
   { label: t("common.labels.time"), el: () => document.getElementById(timeInputId), width: "24rem" },
-  // The fixed width matches the Listbox's w-48 below.
-  { label: t("common.labels.precision"), el: () => document.getElementById(precisionButtonId), width: "12rem" },
+  // At full width the track matches the Listbox's natural 12rem; under pressure its
+  // cap falls with the container (roughly a 2:1 time:precision split) down to half,
+  // with the label inside truncating: the precision prefix alone mostly tells which
+  // one it is, so giving the time input the space is the better trade.
+  { label: t("common.labels.precision"), el: () => document.getElementById(precisionButtonId), width: "minmax(6rem,min(12rem,33%))" },
 ])
 
 // Input-format hint.
@@ -359,7 +362,7 @@ async function onFocusOut(event: FocusEvent) {
       @update:model-value="onTimeUpdate"
     />
 
-    <Listbox v-model="precision" :disabled="inactive" as="div" class="w-48" @update:model-value="onPrecisionSelected">
+    <Listbox v-model="precision" :disabled="inactive" as="div" class="w-full" @update:model-value="onPrecisionSelected">
       <div class="relative">
         <!--
           We add additional padding on the right (pr-10) on top of InputStyled's

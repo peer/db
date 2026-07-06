@@ -537,11 +537,12 @@ export type InputColumn = {
   // Optional CSS width for the column. The first column grows to fill the
   // available width and this caps it (the enclosing grid uses minmax(0,width)
   // instead of minmax(0,1fr)): an input whose values are inherently short
-  // (amounts, times) does not stretch absurdly wide. Later columns use it as
-  // a FIXED track width instead of the content-sized auto. Declaring it makes
-  // every track deterministic, so a repeated field's hoisted label row (a
-  // separate grid from the entries, see ClaimCardinality) resolves to exactly
-  // the entries' tracks at every container width; a content-sized track would
+  // (amounts, times) does not stretch absurdly wide. Later columns use the
+  // value VERBATIM as the track size (a fixed width, or a minmax()/min()
+  // expression) instead of the content-sized auto. Declaring it makes every
+  // track deterministic, so a repeated field's hoisted label row (a separate
+  // grid from the entries, see ClaimCardinality) resolves to exactly the
+  // entries' tracks at every container width; a content-sized track would
   // resolve differently for a text label than for a control.
   width?: string
 }
