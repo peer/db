@@ -27,7 +27,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "SUBENTITY_OF",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
@@ -97,7 +96,6 @@ func Properties() ([]any, errors.E) {
 			}},
 			Mnemonic:               "INSTANCE_OF",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SUBENTITY_OF"},
@@ -129,7 +127,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "SUBCLASS_OF",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SUBENTITY_OF"},
@@ -161,7 +158,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "SUBPROPERTY_OF",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SUBENTITY_OF"},
@@ -193,7 +189,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "INVERSE_PROPERTY_OF",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
@@ -223,7 +218,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "ABSTRACT_CLASS",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
@@ -253,7 +247,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "DISTINCT_FROM",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf:          nil,
 			// "distinct from" is symmetric, so it is its own inverse.
@@ -286,7 +279,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "NAMING",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
@@ -316,7 +308,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "NAME",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
@@ -348,7 +339,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "SHORT_NAME",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
@@ -380,7 +370,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "ALTERNATIVE_NAME",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
@@ -412,7 +401,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "TITLE",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
@@ -444,7 +432,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "DESCRIPTION",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
@@ -474,43 +461,12 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "CONTENT",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "CONTENT"},
-			InstanceOf: []Ref{{
-				ID: []string{Namespace, "PROPERTY"},
-			}},
-		},
-	})
-
-	documents = append(documents, &Property{
-		PropertyFields: PropertyFields{
-			Name: []StringWithLanguage{{
-				Value: "instruction",
-				InLanguage: []Ref{{
-					ID: []string{Namespace, "LANGUAGE", "en-GB"},
-				}},
-			}, {
-				Value: "navodilo",
-				InLanguage: []Ref{{
-					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
-				}},
-			}},
-			ShortName:              nil,
-			AlternativeName:        nil,
-			Mnemonic:               "INSTRUCTION",
-			Description:            nil,
-			Instruction:            nil,
-			IdentifierLinkTemplate: "",
-			SubpropertyOf:          nil,
-			InversePropertyOf:      nil,
-		},
-		DocumentFields: DocumentFields{
-			ID: []string{Namespace, "INSTRUCTION"},
 			InstanceOf: []Ref{{
 				ID: []string{Namespace, "PROPERTY"},
 			}},
@@ -534,7 +490,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "MNEMONIC",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
@@ -566,7 +521,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "IN_LANGUAGE",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
@@ -606,7 +560,6 @@ func Properties() ([]any, errors.E) {
 			}},
 			Mnemonic:               "IN_LOCATION",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
@@ -646,7 +599,6 @@ func Properties() ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
@@ -676,7 +628,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "DEFAULT_VARIANT",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
@@ -706,7 +657,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "SELECTED_VARIANT",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
@@ -746,7 +696,6 @@ func Properties() ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
@@ -786,7 +735,6 @@ func Properties() ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
@@ -816,7 +764,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "CODE",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "NAMING"},
@@ -883,7 +830,6 @@ func Properties() ([]any, errors.E) {
 			}},
 			Mnemonic:               "MEDIA_TYPE",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
@@ -948,7 +894,6 @@ func Properties() ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
@@ -978,7 +923,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "SETTING",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf:          nil,
 			InversePropertyOf:      nil,
@@ -1008,7 +952,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "SECTION",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
@@ -1040,7 +983,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "FIELD",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
@@ -1072,7 +1014,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "FIELD_VALUES",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
@@ -1081,6 +1022,68 @@ func Properties() ([]any, errors.E) {
 		},
 		DocumentFields: DocumentFields{
 			ID: []string{Namespace, "FIELD_VALUES"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
+				Value: "field context",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "kontekst polja",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:              nil,
+			AlternativeName:        nil,
+			Mnemonic:               "FIELD_CONTEXT",
+			Description:            nil,
+			IdentifierLinkTemplate: "",
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "SETTING"},
+			}},
+			InversePropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "FIELD_CONTEXT"},
+			InstanceOf: []Ref{{
+				ID: []string{Namespace, "PROPERTY"},
+			}},
+		},
+	})
+
+	documents = append(documents, &Property{
+		PropertyFields: PropertyFields{
+			Name: []StringWithLanguage{{
+				Value: "field instruction",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "en-GB"},
+				}},
+			}, {
+				Value: "navodilo polja",
+				InLanguage: []Ref{{
+					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
+				}},
+			}},
+			ShortName:              nil,
+			AlternativeName:        nil,
+			Mnemonic:               "FIELD_INSTRUCTION",
+			Description:            nil,
+			IdentifierLinkTemplate: "",
+			SubpropertyOf: []Ref{{
+				ID: []string{Namespace, "SETTING"},
+			}},
+			InversePropertyOf: nil,
+		},
+		DocumentFields: DocumentFields{
+			ID: []string{Namespace, "FIELD_INSTRUCTION"},
 			InstanceOf: []Ref{{
 				ID: []string{Namespace, "PROPERTY"},
 			}},
@@ -1114,7 +1117,6 @@ func Properties() ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
@@ -1156,7 +1158,6 @@ func Properties() ([]any, errors.E) {
 					ID: []string{Namespace, "LANGUAGE", "sl-SI"},
 				}},
 			}},
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
@@ -1188,7 +1189,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "HAS_PROPERTY",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
@@ -1220,7 +1220,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "HAS_VALUE_TYPE",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
@@ -1252,7 +1251,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "SUB_FIELD",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
@@ -1284,7 +1282,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "FIELD_DEFAULT",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
@@ -1316,7 +1313,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "SEARCH_SHORTCUT",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
@@ -1348,7 +1344,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "CREATE_SHORTCUT",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
@@ -1380,7 +1375,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "FIELDS",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
@@ -1412,7 +1406,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "INVERSE_PROPERTY",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
@@ -1444,7 +1437,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "EMBED_PROPERTY",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
@@ -1476,7 +1468,6 @@ func Properties() ([]any, errors.E) {
 			AlternativeName:        nil,
 			Mnemonic:               "CARDINALITY",
 			Description:            nil,
-			Instruction:            nil,
 			IdentifierLinkTemplate: "",
 			SubpropertyOf: []Ref{{
 				ID: []string{Namespace, "SETTING"},
