@@ -89,9 +89,12 @@ async function revertField(): Promise<void> {
   <!--
     Semantic <tbody> laid out as a 2-column CSS grid (1/5 label, rest
     content). <tr>s use display: contents (Tailwind "contents") so their
-    <th>/<td> children participate directly in the grid.
+    <th>/<td> children participate directly in the grid. The gap-x-3 keeps
+    the label text as far from the rails at the value cell's left edge as
+    the value content is from them: the rails' pl-4 minus the w-1 rail bar
+    itself leaves 12px right of the bar.
   -->
-  <tbody class="grid grid-cols-[20%_1fr] items-start gap-y-1 px-2">
+  <tbody class="grid grid-cols-[20%_1fr] items-start gap-x-3 gap-y-1 px-2">
     <tr class="contents">
       <th ref="labelCellRef" scope="row" class="text-left font-medium text-gray-700">
         <div class="flex flex-col items-start gap-1">
