@@ -880,55 +880,57 @@ export function cardinalityViolations(
 // sub-claims. Kept structural (not the Claim class) so raw JSON claims and reactive proxies both fit.
 type ClaimLike = { id: string; sub?: DeepReadonly<ClaimTypes> | null }
 
-// claimsEquivalent reports whether two claim sets hold the same claims, keyed by id at every level
-// and independent of a claim's position in its type array. Drives net-change detection: an edit
-// session whose posted changes cancel out (e.g. an edit and its Revert) compares equal to its
-// baseline and has nothing to save. Order-independence must be recursive: a Revert may restore a
-// claim's sub-claims in a different array order than the baseline, so comparing whole claims with a
-// deep (order-sensitive) equals would falsely report a change. We instead key sub-claims by id too
-// (see claimEquivalent) and compare each claim's own value fields with a deep equals that excludes
-// sub. That structural compare (not a JSON string compare) also handles a claim reconstructed
-// locally after a cast serializing its keys in a different order than the server-loaded one.
+// claimsEquivalent reports whether two claim sets hold the same claims. It mirrors the backend's
+// fillChangedProperties / claimValueStates: every claim (top-level and nested) is flattened into an
+// id-keyed map, and two claims are equal when their own value fields match with their sub-claims
+// excluded (the sub-claims are in the flat map in their own right and compared there). This makes
+// the comparison order-independent at every level - a claim's position in its type array, and a
+// nested claim's position under its parent, do not matter - so a Revert that restores sub-claims in
+// a different array order still compares equal. Drives net-change detection: an edit session whose
+// posted changes cancel out (edit + Revert) equals its baseline and has nothing to save.
+//
+// Because the flat compare only looks at each claim's own value keyed by id, it is blind to a
+// re-parenting that keeps the same claim ids and the same per-claim values but moves a sub-claim
+// under a different parent. In principle such a structural change should count for net-change
+// detection, but the edit protocol cannot produce it: a claim's parent is fixed by the "under" of
+// its add and is immutable afterwards (the change types are add/remove/set/cast on a claim by id,
+// with no move). "Moving" a sub-claim is therefore remove (old id) + add (new id), which changes
+// the id set and is detected here. So the only case the flat compare under-detects is unreachable,
+// which is also why the backend can rely on it for indexing (a move that preserves every claim's
+// own value changes no property's indexed values; reference/structure concerns are handled by
+// separate mechanisms there, e.g. collectChangedReferenceTargets).
 export function claimsEquivalent(a: DeepReadonly<ClaimTypes> | undefined | null, b: DeepReadonly<ClaimTypes> | undefined | null): boolean {
-  // We iterate the (possibly reactive) claims directly rather than through toRaw: a reactive caller
-  // (canSave) must track claim reads so it re-runs when the doc changes, and the deep equals
-  // compares reactive proxies correctly by reading their values.
-  const index = (claims: DeepReadonly<ClaimTypes> | undefined | null): Map<string, ClaimLike> => {
-    const m = new Map<string, ClaimLike>()
+  const flatten = (claims: DeepReadonly<ClaimTypes> | undefined | null, out: Map<string, ClaimLike>): void => {
     if (!claims) {
-      return m
+      return
     }
+    // We iterate the (possibly reactive) claims directly rather than through toRaw: a reactive
+    // caller (canSave) must track claim reads so it re-runs when the doc changes, and the deep
+    // equals below compares reactive proxies correctly by reading their values.
     for (const list of Object.values(claims)) {
       if (!Array.isArray(list)) {
         continue
       }
       for (const claim of list as ClaimLike[]) {
-        m.set(claim.id, claim)
+        out.set(claim.id, claim)
+        flatten(claim.sub ?? null, out)
       }
     }
-    return m
   }
-  const indexA = index(a)
-  const indexB = index(b)
-  if (indexA.size !== indexB.size) {
+  const flatA = new Map<string, ClaimLike>()
+  const flatB = new Map<string, ClaimLike>()
+  flatten(a, flatA)
+  flatten(b, flatB)
+  if (flatA.size !== flatB.size) {
     return false
   }
-  for (const [id, claim] of indexA) {
-    const other = indexB.get(id)
-    if (other === undefined || !claimEquivalent(claim, other)) {
+  for (const [id, claim] of flatA) {
+    const other = flatB.get(id)
+    // Compare each claim's own value with sub excluded (spreading normalizes sub to undefined on
+    // both sides so equals ignores it), like the backend's claimValueKey marshaling with sub cleared.
+    if (other === undefined || !equals({ ...claim, sub: undefined }, { ...other, sub: undefined })) {
       return false
     }
   }
   return true
-}
-
-// claimEquivalent compares two claims with the same id: their own value fields via a deep equals
-// with sub excluded (spreading normalizes sub to undefined on both sides so equals ignores it),
-// then their sub-claims recursively through claimsEquivalent so nested claim arrays are compared
-// id-keyed and order-independent, like the top level.
-function claimEquivalent(a: ClaimLike, b: ClaimLike): boolean {
-  if (!equals({ ...a, sub: undefined }, { ...b, sub: undefined })) {
-    return false
-  }
-  return claimsEquivalent(a.sub ?? null, b.sub ?? null)
 }
