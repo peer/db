@@ -645,7 +645,7 @@ func (s *Service) DocumentDeletePostAPI(w http.ResponseWriter, req *http.Request
 
 	ctx := req.Context()
 
-	errE := s.HasPermission(ctx, auth.CanEditDocument)
+	errE := s.HasPermission(ctx, auth.CanDeleteDocument)
 	if errE != nil {
 		s.ForbiddenWithError(w, req, errE)
 		return

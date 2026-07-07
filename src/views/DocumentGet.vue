@@ -12,7 +12,7 @@ import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
 import { deleteFromCache, headURLDirect, postJSON } from "@/api"
-import { CAN_CHANGES_DOCUMENT, CAN_EDIT_DOCUMENT, hasPermission } from "@/auth"
+import { CAN_CHANGES_DOCUMENT, CAN_DELETE_DOCUMENT, CAN_EDIT_DOCUMENT, hasPermission } from "@/auth"
 import Button from "@/components/Button.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
 import InputTextLink from "@/components/InputTextLink.vue"
@@ -526,7 +526,7 @@ async function onDelete() {
             <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
           </Button>
         </WithLock>
-        <WithLock v-if="hasPermission(CAN_EDIT_DOCUMENT)" :lock="getDeleteLock">
+        <WithLock v-if="hasPermission(CAN_DELETE_DOCUMENT)" :lock="getDeleteLock">
           <Button :progress="deleteBusy" type="button" primary @click.prevent="onDelete">
             <TrashIcon class="size-5 sm:hidden" :alt="t('common.buttons.delete')" />
             <span class="hidden sm:inline">{{ t("common.buttons.delete") }}</span>
