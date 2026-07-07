@@ -55,6 +55,11 @@ type SiteFeatures struct {
 	// for sites where prefilters are a navigation concept (e.g. tabs) rather than a removable filter.
 	HidePrefilters bool `json:"hidePrefilters,omitempty" yaml:"hidePrefilters,omitempty"`
 
+	// HideNavbarDocumentActions hides the edit and delete buttons from the document view navbar, for
+	// sites that render these actions inside the page instead (through the document actions provided
+	// to registered document components). The actions are always provided regardless of this flag.
+	HideNavbarDocumentActions bool `json:"hideNavbarDocumentActions,omitempty" yaml:"hideNavbarDocumentActions,omitempty"`
+
 	// NavbarPosition is the navbar positioning mode: "fixed" keeps the navbar at the viewport top,
 	// "static" leaves it in the document flow at the page top, and empty means the default
 	// auto-hide behavior (hidden while scrolling down, shown when scrolling up).

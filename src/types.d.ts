@@ -293,6 +293,9 @@ export type SiteContext = {
     // Hides the session's prefilters from the UI (the "results limited to" notice in the filters
     // sidebar and the prefilter entries in the print layout).
     hidePrefilters?: boolean
+    // Hides the edit and delete buttons from the document view navbar, for sites that render these
+    // actions inside the page instead (through the document actions provided to document components).
+    hideNavbarDocumentActions?: boolean
   }
   roles?: {
     [roleName: string]: string[]

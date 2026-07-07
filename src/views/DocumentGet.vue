@@ -21,6 +21,7 @@ import WithLock from "@/components/WithLock.vue"
 import siteContext from "@/context"
 import { CONTENT, CREATE_SHORTCUT, INSTANCE_OF, NAME, PAGE, SEARCH_SHORTCUT } from "@/core"
 import { getBestClaimOfType, getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
+import { documentActionsKey } from "@/document-actions"
 import { documentNavigationKey } from "@/document-navigation"
 import { decodeMetadata } from "@/metadata"
 import ClaimValueHtml from "@/partials/claimvalue/ClaimValueHtml.vue"
@@ -160,6 +161,17 @@ const prevNext = computed<{ previous: string | null; next: string | null }>(() =
 provide(documentNavigationKey, {
   searchSessionId: computed(() => searchSession.value?.id ?? null),
   prevNext,
+})
+
+// Expose the edit and delete actions to registered document components, so downstream sites can
+// render these controls inside the page (see hideNavbarDocumentActions to also hide the navbar buttons).
+provide(documentActionsKey, {
+  canEdit: computed(() => hasPermission(CAN_EDIT_DOCUMENT)),
+  canDelete: computed(() => hasPermission(CAN_DELETE_DOCUMENT)),
+  editBusy,
+  deleteBusy,
+  edit: onEdit,
+  delete: onDelete,
 })
 
 function afterClick() {
@@ -521,18 +533,24 @@ async function onDelete() {
         <NavBarSearch v-else />
       </template>
       <template #end>
-        <WithLock v-if="hasPermission(CAN_EDIT_DOCUMENT)" :lock="getEditLock">
-          <Button :progress="editBusy" type="button" primary @click.prevent="onEdit">
-            <PencilIcon class="size-5 sm:hidden" :alt="t('common.buttons.edit')" />
-            <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
-          </Button>
-        </WithLock>
-        <WithLock v-if="hasPermission(CAN_DELETE_DOCUMENT)" :lock="getDeleteLock">
-          <Button :progress="deleteBusy" type="button" primary @click.prevent="onDelete">
-            <TrashIcon class="size-5 sm:hidden" :alt="t('common.buttons.delete')" />
-            <span class="hidden sm:inline">{{ t("common.buttons.delete") }}</span>
-          </Button>
-        </WithLock>
+        <!--
+          The edit and delete buttons are shown in the navbar unless the site opts to render them
+          inside the page instead (via the document actions provided to document components).
+        -->
+        <template v-if="!siteContext.features.hideNavbarDocumentActions">
+          <WithLock v-if="hasPermission(CAN_EDIT_DOCUMENT)" :lock="getEditLock">
+            <Button :progress="editBusy" type="button" primary @click.prevent="onEdit">
+              <PencilIcon class="size-5 sm:hidden" :alt="t('common.buttons.edit')" />
+              <span class="hidden sm:inline">{{ t("common.buttons.edit") }}</span>
+            </Button>
+          </WithLock>
+          <WithLock v-if="hasPermission(CAN_DELETE_DOCUMENT)" :lock="getDeleteLock">
+            <Button :progress="deleteBusy" type="button" primary @click.prevent="onDelete">
+              <TrashIcon class="size-5 sm:hidden" :alt="t('common.buttons.delete')" />
+              <span class="hidden sm:inline">{{ t("common.buttons.delete") }}</span>
+            </Button>
+          </WithLock>
+        </template>
       </template>
     </NavBar>
   </Teleport>
