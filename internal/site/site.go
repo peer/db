@@ -102,6 +102,8 @@ type Site struct {
 	// the allowlist of roles a token may bind to a request: any role a
 	// token claims that is not a key here is dropped at authentication
 	// time so it cannot leak into auth.Roles or the Roles response header.
+	// Permissions under the reserved empty name (auth.RoleEveryone) apply
+	// to every caller, authenticated or not.
 	Roles map[string][]string `json:"roles,omitempty" yaml:"roles,omitempty"`
 
 	// Visibility is the ordered list of visibility levels, from the lowest
@@ -203,9 +205,10 @@ func (s *Site) Validate() error {
 }
 
 // validateVisibility checks the Visibility configuration: level names must be unique and non-empty, every
-// role assigned to a level must be a defined role (a key in Roles), and no role may appear in more than one
-// level. Roles that are in no level and an empty Visibility are both allowed. In the latter case, Visibility
-// is set to a default "all" level with empty roles. That default level is both the floor and the top, so
+// role assigned to a level must be a defined real role (a key in Roles other than the reserved
+// auth.RoleEveryone name), and no role may appear in more than one level. Roles that are in no level and an
+// empty Visibility are both allowed. In the latter case, Visibility is set to a default "all" level with
+// empty roles. That default level is both the floor and the top, so
 // every request resolves to it and ReadIndex never denies a no-levels site. A level with no roles must be the
 // first (lowest) or the last (highest) level: as the first level it is the floor, granted to every request;
 // as the last level it is granted to no request by role (no role matches it), but defines the unfiltered top
@@ -238,6 +241,14 @@ func (s *Site) validateVisibility() errors.E {
 			return errE
 		}
 		for _, role := range level.Roles {
+			// The reserved auth.RoleEveryone name is not a real role. A level granted to
+			// everyone is expressed as a level with no roles instead.
+			if role == auth.RoleEveryone {
+				errE := errors.New("visibility level references the reserved everyone role")
+				errors.Details(errE)["domain"] = s.Domain
+				errors.Details(errE)["level"] = level.Name
+				return errE
+			}
 			if _, ok := s.Roles[role]; !ok {
 				errE := errors.New("visibility level references an unknown role")
 				errors.Details(errE)["domain"] = s.Domain

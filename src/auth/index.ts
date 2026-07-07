@@ -33,6 +33,12 @@ export const currentIdentityId = computed(() => currentUserInfo.value?.subject ?
 // currentUsername is the currentUserInfo's username.
 export const currentUsername = computed(() => currentUserInfo.value?.username ?? "")
 
+// ROLE_EVERYONE is a reserved role name under which sites can declare permissions which apply
+// to every caller, authenticated or not. It is not a real role and never appears in currentRoles.
+//
+// Keep in sync with auth/permissions.go.
+export const ROLE_EVERYONE = ""
+
 // PeerDB permissions.
 //
 // Keep in sync with auth/permissions.go.
@@ -51,12 +57,16 @@ export function hasRole(role: string): boolean {
   return currentRoles.value.includes(role)
 }
 
-// hasPermission returns true if the current user has the given permission.
-// In sync with auth/permissions.go.
+// hasPermission returns true if the current user has the given permission, either through the
+// reserved ROLE_EVERYONE entry (which applies to every caller, authenticated or not) or through
+// one of the caller's roles. In sync with auth/permissions.go.
 export function hasPermission(permission: Permission): boolean {
   const roles = siteContext.roles
   if (!roles) {
     return false
+  }
+  if (roles[ROLE_EVERYONE]?.includes(permission)) {
+    return true
   }
   for (const role of currentRoles.value) {
     if (roles[role]?.includes(permission)) {
