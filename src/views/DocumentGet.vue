@@ -12,7 +12,7 @@ import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 
 import { deleteFromCache, headURLDirect, postJSON } from "@/api"
-import { CAN_EDIT_DOCUMENT, hasPermission } from "@/auth"
+import { CAN_CHANGES_DOCUMENT, CAN_EDIT_DOCUMENT, hasPermission } from "@/auth"
 import Button from "@/components/Button.vue"
 import ButtonLink from "@/components/ButtonLink.vue"
 import InputTextLink from "@/components/InputTextLink.vue"
@@ -216,7 +216,11 @@ const tabSlugs = computed(() => {
   if (hasFieldsViewPanel.value && classTabId.value) {
     slugs.push(classTabId.value)
   }
-  slugs.push("properties", "history")
+  slugs.push("properties")
+  // The history API requires this permission, so the tab is shown only to callers who can use it.
+  if (hasPermission(CAN_CHANGES_DOCUMENT)) {
+    slugs.push("history")
+  }
   return slugs
 })
 
@@ -569,8 +573,9 @@ async function onDelete() {
                 class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
                 >{{ t("views.DocumentGet.tabs.allProperties") }}</Tab
               >
-              <!-- The History tab is shown for every document. -->
+              <!-- The history API requires this permission, so the tab is shown only to callers who can use it. -->
               <Tab
+                v-if="hasPermission(CAN_CHANGES_DOCUMENT)"
                 class="border-r border-gray-200 px-4 py-3 leading-tight font-medium uppercase outline-none select-none first:rounded-tl not-aria-selected:hover:bg-slate-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 aria-selected:bg-white"
                 >{{ t("views.DocumentGet.tabs.history") }}</Tab
               >
@@ -643,7 +648,7 @@ async function onDelete() {
                 </div>
               </TabPanel>
               <!-- "History" tab panel. The panel (and thus the data fetch) is mounted only when the tab is selected. -->
-              <TabPanel tabindex="-1" class="outline-none">
+              <TabPanel v-if="hasPermission(CAN_CHANGES_DOCUMENT)" tabindex="-1" class="outline-none">
                 <DocumentHistory :id="id" />
               </TabPanel>
             </TabPanels>
