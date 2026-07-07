@@ -15,8 +15,10 @@ import type { Claim, ClaimTypes } from "@/document"
 import type { FieldData } from "@/fields"
 
 import { computed, provide, useId, useTemplateRef } from "vue"
+import { useRouter } from "vue-router"
 
 import { fieldLabelCellKey, getClaimsForField } from "@/fields"
+import { classifyLink, LINK_CLASS_FILE } from "@/internal-links"
 import ClaimCardinality from "@/partials/ClaimCardinality.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import InputBadges from "@/partials/InputBadges.vue"
@@ -30,15 +32,23 @@ const props = defineProps<{
   initialClaims: DeepReadonly<ClaimTypes>
 }>()
 
+const router = useRouter()
+
+// Routes link claims between sibling LINK and FILE fields sharing a property
+// (see getClaimsForField).
+function isFileLink(iri: string): boolean {
+  return classifyLink(iri, router).includes(LINK_CLASS_FILE)
+}
+
 // Extract the claims for this specific field (by property id and claim
 // type). The two computeds are bound through to ClaimCardinality so the
 // per-field slot state stays reactive on doc updates.
 const claimsForField = computed<readonly DeepReadonly<Claim>[]>(() => {
-  return getClaimsForField(props.claims, props.field)
+  return getClaimsForField(props.claims, props.field, isFileLink)
 })
 
 const initialClaimsForField = computed<readonly DeepReadonly<Claim>[]>(() => {
-  return getClaimsForField(props.initialClaims, props.field)
+  return getClaimsForField(props.initialClaims, props.field, isFileLink)
 })
 
 const cardinalityRef = useTemplateRef<{

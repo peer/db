@@ -6,11 +6,13 @@ import type { FieldData, FieldsData, SectionData } from "@/fields"
 
 import { computed, inject, onBeforeUnmount, ref, watch } from "vue"
 import { useI18n } from "vue-i18n"
+import { useRouter } from "vue-router"
 
 import Button from "@/components/Button.vue"
 import { IN_LANGUAGE } from "@/core"
 import { ClaimTypes, claimTypeName, getClaimsOfTypeWithConfidence, selectClaimsByLanguage } from "@/document"
 import { fieldKey, fieldShownInView, getClaimsForField, getSectionName, valueTypeToClaimType } from "@/fields"
+import { classifyLink, LINK_CLASS_FILE } from "@/internal-links"
 import ClaimValue from "@/partials/ClaimValue.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
 import { searchHiddenClaimsKey, searchLoadAllClaimsKey, SKIP_TO_END } from "@/utils"
@@ -68,9 +70,17 @@ function sortedByOrder<T extends { orderInList: number }>(items: readonly T[]): 
   return [...items].sort((a, b) => a.orderInList - b.orderInList)
 }
 
+const router = useRouter()
+
+// Routes link claims between sibling LINK and FILE fields sharing a property
+// (see getClaimsForField).
+function isFileLink(iri: string): boolean {
+  return classifyLink(iri, router).includes(LINK_CLASS_FILE)
+}
+
 // Check if any claims for a field have IN_LANGUAGE sub-claims in the actual data.
 function hasLanguageClaims(field: FieldData): boolean {
-  const claims = getClaimsForField(normalizedClaims.value, field)
+  const claims = getClaimsForField(normalizedClaims.value, field, isFileLink)
   return claims.some((claim) => claim.sub && getClaimsOfTypeWithConfidence(claim.sub, "ref", IN_LANGUAGE).length > 0)
 }
 
@@ -84,7 +94,7 @@ function claimsForField(field: FieldData): DeepReadonly<Claim>[] {
     const claims = selectClaimsByLanguage(normalizedClaims.value, claimType, field.propertyId, locale.value, (c) => c.length > 0)
     return claims ?? []
   }
-  return getClaimsForField(normalizedClaims.value, field)
+  return getClaimsForField(normalizedClaims.value, field, isFileLink)
 }
 
 // Check if a field has any claim values.

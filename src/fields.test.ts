@@ -3,8 +3,24 @@ import { assert, describe, test } from "vitest"
 
 import type { FieldData } from "@/fields"
 
-import { CARDINALITY, FIELD, FIELDS, HAS_PROPERTY, HAS_VALUE_TYPE, IN_LANGUAGE, NAME, ORDER_IN_LIST, SECTION, SUB_FIELD, VT_HAS, VT_HTML, VT_REFERENCE } from "@/core"
-import { ClaimTypes, HighConfidence } from "@/document"
+import {
+  CARDINALITY,
+  FIELD,
+  FIELDS,
+  HAS_PROPERTY,
+  HAS_VALUE_TYPE,
+  IN_LANGUAGE,
+  NAME,
+  ORDER_IN_LIST,
+  SECTION,
+  SUB_FIELD,
+  VT_FILE,
+  VT_HAS,
+  VT_HTML,
+  VT_LINK,
+  VT_REFERENCE,
+} from "@/core"
+import { ClaimTypes, HighConfidence, LinkClaim } from "@/document"
 import { extractFieldsFromClaims, fieldKey, getClaimsForField, getSectionName, hasFields, makeDefaultPatchForField, mergeFields } from "@/fields"
 
 const propA = Identifier.new().toString()
@@ -199,6 +215,23 @@ describe("extractFieldsFromClaims", () => {
     assert.equal(result!.fields[0].valueType, valueTypeAmount)
     assert.equal(result!.fields[1].propertyId, propB)
     assert.equal(result!.fields[1].orderInList, 2)
+  })
+
+  test("marks sibling LINK and FILE fields sharing a propertyId", async () => {
+    const ct = await makeClaimsWithFields(
+      [],
+      [
+        rawField({ propertyId: propA, valueType: VT_LINK, order: "1" }),
+        rawField({ propertyId: propA, valueType: VT_FILE, order: "2" }),
+        rawField({ propertyId: propB, valueType: VT_LINK, order: "3" }),
+      ],
+    )
+    const result = extractFieldsFromClaims(ct)
+    assert.notEqual(result, null)
+    assert.equal(result!.fields.length, 3)
+    assert.equal(result!.fields[0].fileLinkSibling, true)
+    assert.equal(result!.fields[1].fileLinkSibling, true)
+    assert.equal(result!.fields[2].fileLinkSibling, undefined)
   })
 
   test("extracts sections with fields sorted by orderInList", async () => {
@@ -456,6 +489,17 @@ describe("mergeFields", () => {
     ])
     assert.equal(result.fields.length, 1)
   })
+
+  test("marks sibling LINK and FILE fields sharing a propertyId, also across classes", () => {
+    const result = mergeFields([
+      { sections: [], fields: [makeField(propA, VT_LINK)] },
+      { sections: [], fields: [makeField(propA, VT_FILE), makeField(propB, VT_LINK)] },
+    ])
+    assert.equal(result.fields.length, 3)
+    const marked = result.fields.filter((f) => f.fileLinkSibling)
+    assert.equal(marked.length, 2)
+    assert.ok(marked.every((f) => f.propertyId === propA))
+  })
 })
 
 describe("fieldKey", () => {
@@ -504,6 +548,44 @@ describe("getClaimsForField", () => {
 
   test("returns empty for null claims", () => {
     assert.equal(getClaimsForField(null, selectionField()).length, 0)
+  })
+})
+
+describe("getClaimsForField sibling LINK and FILE fields", () => {
+  const imageProp = Identifier.new().toString()
+  const fileIri = "https://example.com/f/abc"
+  const linkIri = "https://example.com/image.jpg"
+  const isFileLink = (iri: string) => iri === fileIri
+
+  function rawLink(prop: string, iri: string): object {
+    return { id: id(), confidence: HighConfidence, prop: { id: prop }, iri }
+  }
+
+  function imageClaims(): ClaimTypes {
+    return new ClaimTypes({ link: [rawLink(imageProp, fileIri), rawLink(imageProp, linkIri)] })
+  }
+
+  test("routes file links to the FILE field and other links to the LINK field", () => {
+    const linkField: FieldData = { ...makeField(imageProp, VT_LINK), fileLinkSibling: true }
+    const fileField: FieldData = { ...makeField(imageProp, VT_FILE), fileLinkSibling: true }
+
+    const linkClaims = getClaimsForField(imageClaims(), linkField, isFileLink)
+    assert.equal(linkClaims.length, 1)
+    assert.equal((linkClaims[0] as LinkClaim).iri, linkIri)
+
+    const fileClaims = getClaimsForField(imageClaims(), fileField, isFileLink)
+    assert.equal(fileClaims.length, 1)
+    assert.equal((fileClaims[0] as LinkClaim).iri, fileIri)
+  })
+
+  test("does not route for fields without the sibling flag", () => {
+    assert.equal(getClaimsForField(imageClaims(), makeField(imageProp, VT_LINK), isFileLink).length, 2)
+    assert.equal(getClaimsForField(imageClaims(), makeField(imageProp, VT_FILE), isFileLink).length, 2)
+  })
+
+  test("does not route without the isFileLink predicate", () => {
+    const linkField: FieldData = { ...makeField(imageProp, VT_LINK), fileLinkSibling: true }
+    assert.equal(getClaimsForField(imageClaims(), linkField).length, 2)
   })
 })
 

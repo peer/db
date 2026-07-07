@@ -86,6 +86,11 @@ export interface FieldData {
   // FIELD_CONTEXT values: opaque context identifiers from the field's configuration.
   // The read-only views skip fields with the "edit" context (see fieldShownInView).
   context?: readonly string[]
+  // Set when a LINK field and a FILE field share the same property at the same level (sibling
+  // fields). Both value types produce link claims under the same property, so this flag makes
+  // getClaimsForField route each claim to exactly one of the two fields by whether its IRI is
+  // a file link (see the isFileLink parameter there).
+  fileLinkSibling?: boolean
 }
 
 // fieldShownInView reports whether the read-only views render the field. A field
@@ -157,6 +162,36 @@ export interface FieldsData {
   fields: readonly FieldData[]
 }
 
+// markFileLinkSiblings sets fileLinkSibling on sibling fields (fields in the same level's list)
+// which share a property while one of them has the LINK and another the FILE value type. Both
+// value types produce link claims under the same property, so such siblings need claims routed
+// between them (see getClaimsForField). Fields without such a sibling are left unmarked and
+// keep matching all link claims of their property.
+function markFileLinkSiblings(fields: readonly FieldData[]): void {
+  const kindsByProperty = new Map<string, { link: boolean; file: boolean }>()
+  for (const field of fields) {
+    if (field.valueType !== VT_LINK && field.valueType !== VT_FILE) {
+      continue
+    }
+    const kinds = kindsByProperty.get(field.propertyId) ?? { link: false, file: false }
+    if (field.valueType === VT_LINK) {
+      kinds.link = true
+    } else {
+      kinds.file = true
+    }
+    kindsByProperty.set(field.propertyId, kinds)
+  }
+  for (const field of fields) {
+    if (field.valueType !== VT_LINK && field.valueType !== VT_FILE) {
+      continue
+    }
+    const kinds = kindsByProperty.get(field.propertyId)
+    if (kinds && kinds.link && kinds.file) {
+      field.fileLinkSibling = true
+    }
+  }
+}
+
 // extractFieldData extracts FieldData from claims. parentPath is the path from the root.
 function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, parentPath: string[]): FieldData | null {
   if (!claimsTypes) {
@@ -200,6 +235,7 @@ function extractFieldData(claimsTypes: DeepReadonly<ClaimTypes> | undefined, par
     }
   }
   subFields.sort((a, b) => a.orderInList - b.orderInList)
+  markFileLinkSiblings(subFields)
 
   const valueClaim = getBestClaimOfType(claimsTypes, "string", FIELD_VALUES)
 
@@ -266,6 +302,7 @@ export function extractFieldsFromClaims(claims: DeepReadonly<ClaimTypes> | undef
       }
     }
     sectionFields.sort((a, b) => a.orderInList - b.orderInList)
+    markFileLinkSiblings(sectionFields)
 
     sections.push({
       id: idClaim ? idClaim.value : "",
@@ -286,6 +323,7 @@ export function extractFieldsFromClaims(claims: DeepReadonly<ClaimTypes> | undef
 
   sections.sort((a, b) => a.orderInList - b.orderInList)
   fields.sort((a, b) => a.orderInList - b.orderInList)
+  markFileLinkSiblings(fields)
 
   return { sections, fields }
 }
@@ -338,6 +376,13 @@ export function mergeFields(allFields: FieldsData[]): FieldsData {
 
   mergedSections.sort((a, b) => a.orderInList - b.orderInList)
   mergedFields.sort((a, b) => a.orderInList - b.orderInList)
+
+  // Merging can bring together sibling LINK and FILE fields declared by different classes,
+  // so mark the merged lists again.
+  for (const section of mergedSections) {
+    markFileLinkSiblings(section.fields)
+  }
+  markFileLinkSiblings(mergedFields)
 
   return { sections: mergedSections, fields: mergedFields }
 }
@@ -595,7 +640,18 @@ function isValuelessClaimType(claimType: ClaimTypeName): boolean {
 // carrying one of the field's sub-field properties. A valueless claim has no value of its own,
 // so its sub-claims are what identify it; this keeps sibling fields that share a propertyId
 // from matching each other's claims.
-export function getClaimsForField(claims: DeepReadonly<ClaimTypes> | undefined | null, field: DeepReadonly<FieldData>): DeepReadonly<Claim>[] {
+//
+// Sibling LINK and FILE fields sharing a property (see FieldData.fileLinkSibling) both hold
+// link claims, so their claims are routed by the claim's IRI: file links go to the FILE field
+// and all other links to the LINK field. The isFileLink predicate decides whether an IRI is a
+// file link (classifyLink reporting LINK_CLASS_FILE); it needs the router, so callers rendering
+// such fields must provide it. Without the predicate no routing happens and both siblings match
+// all link claims of the property.
+export function getClaimsForField(
+  claims: DeepReadonly<ClaimTypes> | undefined | null,
+  field: DeepReadonly<FieldData>,
+  isFileLink?: (iri: string) => boolean,
+): DeepReadonly<Claim>[] {
   const valueType = valueTypeToClaimType(field.valueType)
   const claimTypes = new Set<ClaimTypeName>([valueType])
   if (field.default === "none") {
@@ -610,6 +666,9 @@ export function getClaimsForField(claims: DeepReadonly<ClaimTypes> | undefined |
       if (isValuelessClaimType(claimType) && field.subFields.length > 0 && !claimMatchesFieldSubFields(claim, field)) {
         continue
       }
+      if (claimType === "link" && field.fileLinkSibling && isFileLink && isFileLink((claim as DeepReadonly<LinkClaim>).iri) !== (field.valueType === VT_FILE)) {
+        continue
+      }
       result.push(claim)
     }
   }
@@ -618,11 +677,15 @@ export function getClaimsForField(claims: DeepReadonly<ClaimTypes> | undefined |
 
 // getExistingClaimValues finds existing claims for a field and returns their IDs
 // and full FieldEntryValue state.
-export function getExistingClaimValues(claims: DeepReadonly<ClaimTypes> | undefined | null, field: FieldData): ExistingClaimValue[] {
+export function getExistingClaimValues(
+  claims: DeepReadonly<ClaimTypes> | undefined | null,
+  field: FieldData,
+  isFileLink?: (iri: string) => boolean,
+): ExistingClaimValue[] {
   if (!claims) {
     return []
   }
-  const existing = getClaimsForField(claims, field)
+  const existing = getClaimsForField(claims, field, isFileLink)
   return existing.map((claim) => ({ claimId: claim.GetID(), ...getClaimValues(claim) }))
 }
 
