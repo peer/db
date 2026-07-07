@@ -42,9 +42,16 @@ const router = createRouter({
     if (to.name === "SearchGet") {
       return false
     }
-    // Hash navigation is handled by component-level watchers (e.g. TableOfContents) so
-    // they can apply navbar-aware offsets and smooth scrolling.
+    // Hash navigation is handled by component-level watchers (e.g. the edit view table of contents)
+    // so they can apply navbar-aware offsets and smooth scrolling.
     if (to.hash) {
+      return false
+    }
+    // Same-page navigations that only change the hash or query (e.g. the table of contents
+    // scroll-spy replacing the hash, or a tab switch) must preserve the current scroll position,
+    // otherwise the scroll-spy fights the user by yanking the page back to the top. path excludes
+    // the query and hash, so an equal path means the same route and params.
+    if (to.path === from.path) {
       return false
     }
     if (savedPosition) {
