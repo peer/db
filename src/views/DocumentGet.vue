@@ -235,10 +235,11 @@ const selectedTabIndex = computed(() => {
   return index >= 0 ? index : 0
 })
 
+// Selecting a tab pushes a history entry, so the back button returns to the previously selected tab.
 function onTabChange(index: number) {
   const tab = index > 0 ? tabSlugs.value[index] : undefined
   //eslint-disable-next-line @typescript-eslint/no-floating-promises
-  router.replace({ query: { ...route.query, tab } })
+  router.push({ query: { ...route.query, tab } })
 }
 
 type SearchShortcut = { name: string; raw: string; createRaw: string | null }
