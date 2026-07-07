@@ -47,6 +47,9 @@ const (
 	IDKey = "id"
 	// MissingValue is the value token that selects a property's "missing" bucket (documents with no claim for it).
 	MissingValue = "missing"
+	// LanguagesValue is the value token for the id key that a caller expands to the identifiers of the
+	// site's currently enabled languages (so "id=languages" restricts a reference to those languages).
+	LanguagesValue = "languages"
 	// DirectValue is the leading value segment that marks a "direct" (most-specific) target: the following
 	// segment, separated by PathSeparator, is the target identifier.
 	DirectValue = "direct"

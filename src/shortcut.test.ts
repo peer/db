@@ -201,6 +201,13 @@ describe("shortcutToFilters", () => {
     const payload = await shortcutToFilters("id=self", self)
     assert.deepEqual(payload, { ids: [self] })
   })
+
+  test("expands 'id=languages' to the enabled language ids", async () => {
+    const en = (await Identifier.from("core.peerdb.org", "LANGUAGE", "en-GB")).toString()
+    const sl = (await Identifier.from("core.peerdb.org", "LANGUAGE", "sl-SI")).toString()
+    const payload = await shortcutToFilters("id=languages")
+    assert.deepEqual(new Set(payload.ids), new Set([en, sl]))
+  })
 })
 
 describe("shortcutToQuery", () => {

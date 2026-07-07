@@ -107,7 +107,7 @@ type TimeIntervalWithLocation struct {
 type HTMLWithLanguage struct {
 	Value HTML `json:"value" value:""`
 
-	InLanguage []Ref `cardinality:"0.." context:"edit" json:"inLanguage,omitempty" order:"1" property:"IN_LANGUAGE" values:"core.peerdb.org,INSTANCE_OF=core.peerdb.org,LANGUAGE"`
+	InLanguage []Ref `cardinality:"0.." context:"edit" json:"inLanguage,omitempty" order:"1" property:"IN_LANGUAGE" values:"id=languages"`
 }
 
 // RawHTMLWithLanguage represents raw HTML with language information.

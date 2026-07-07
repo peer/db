@@ -155,6 +155,20 @@ func TestValidateShortcut(t *testing.T) {
 		require.NoError(t, errE, "% -+#.1v", errE)
 	})
 
+	t.Run("id key with languages value", func(t *testing.T) {
+		t.Parallel()
+
+		errE := transform.TestingValidateShortcut("id=languages")
+		require.NoError(t, errE, "% -+#.1v", errE)
+	})
+
+	t.Run("languages value is rejected outside the id key", func(t *testing.T) {
+		t.Parallel()
+
+		errE := transform.TestingValidateShortcut("reverse=languages")
+		require.Error(t, errE)
+	})
+
 	t.Run("repeated id key", func(t *testing.T) {
 		t.Parallel()
 

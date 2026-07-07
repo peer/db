@@ -2,6 +2,7 @@ import type { JustResultsFilters, QueryValues, ShortcutPair } from "@/types"
 
 import { Identifier } from "@tozd/identifier"
 
+import siteContext from "@/context"
 import { encodeQuery } from "@/utils"
 
 // Reserved tokens in the search shortcut grammar.
@@ -10,6 +11,9 @@ export const RESERVED_REVERSE = "reverse"
 // is one of them). Unlike "reverse" it may repeat, one entry per allowed document.
 export const RESERVED_ID = "id"
 const RESERVED_SELF = "self"
+// RESERVED_LANGUAGES is the value token for the id key that expands to the identifiers of the site's
+// currently enabled languages (so "id=languages" restricts a reference to those languages).
+const RESERVED_LANGUAGES = "languages"
 // RESERVED_MISSING is the value token that selects a property's "missing" bucket.
 export const RESERVED_MISSING = "missing"
 // RESERVED_DIRECT_PREFIX prefixes a value to select its identifier as a "direct" (most-specific) match.
@@ -44,6 +48,21 @@ function requireSelf(self?: string): string {
     throw new Error(`search shortcut uses "self" but no self ID was provided`)
   }
   return self
+}
+
+// enabledLanguageIds returns the identifiers of the site's currently enabled languages: the language
+// documents whose code is one of the enabled languages (the languagePriority keys). "id=languages"
+// expands to these.
+function enabledLanguageIds(): string[] {
+  const languageCodes = siteContext.languageCodes ?? {}
+  const languagePriority = siteContext.languagePriority ?? {}
+  const ids: string[] = []
+  for (const [id, code] of Object.entries(languageCodes)) {
+    if (code in languagePriority) {
+      ids.push(id)
+    }
+  }
+  return ids
 }
 
 // parseShortcut splits a search shortcut string into raw key/value pairs and
@@ -101,6 +120,12 @@ async function resolveShortcut(s: string, self?: string): Promise<resolvedPair[]
       continue
     }
     if (key === RESERVED_ID) {
+      if (value === RESERVED_LANGUAGES) {
+        for (const languageID of enabledLanguageIds()) {
+          resolved.push({ reverse: false, id: true, prop: [], kind: "to", value: languageID })
+        }
+        continue
+      }
       const resolvedValue = value === RESERVED_SELF ? requireSelf(self) : await resolveShortcutID(value)
       resolved.push({ reverse: false, id: true, prop: [], kind: "to", value: resolvedValue })
       continue
