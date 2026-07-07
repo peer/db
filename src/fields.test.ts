@@ -19,9 +19,22 @@ import {
   VT_HTML,
   VT_LINK,
   VT_REFERENCE,
+  VT_STRING,
 } from "@/core"
 import { ClaimTypes, HighConfidence, LinkClaim } from "@/document"
-import { extractFieldsFromClaims, fieldKey, getClaimsForField, getSectionName, hasFields, makeDefaultPatchForField, mergeFields } from "@/fields"
+import {
+  cardinalityViolations,
+  claimsEquivalent,
+  computeCardinalityFills,
+  extractFieldsFromClaims,
+  fieldIsRequired,
+  fieldKey,
+  getClaimsForField,
+  getSectionName,
+  hasFields,
+  makeDefaultPatchForField,
+  mergeFields,
+} from "@/fields"
 
 const propA = Identifier.new().toString()
 const propB = Identifier.new().toString()
@@ -551,6 +564,15 @@ describe("getClaimsForField", () => {
   })
 })
 
+describe("fieldIsRequired", () => {
+  test("required only for a positive min cardinality without a default", () => {
+    assert.equal(fieldIsRequired(makeField(propA, valueTypeString)), false)
+    assert.equal(fieldIsRequired({ ...makeField(propA, valueTypeString), minCardinality: 1 }), true)
+    assert.equal(fieldIsRequired({ ...makeField(propA, valueTypeString), minCardinality: 1, default: "none" }), false)
+    assert.equal(fieldIsRequired({ ...makeField(propA, VT_REFERENCE), minCardinality: 2, default: "unknown" }), false)
+  })
+})
+
 describe("getClaimsForField sibling LINK and FILE fields", () => {
   const imageProp = Identifier.new().toString()
   const fileIri = "https://example.com/f/abc"
@@ -590,7 +612,7 @@ describe("getClaimsForField sibling LINK and FILE fields", () => {
 })
 
 describe("getClaimsForField default fields", () => {
-  test("a value field with default:unknown also matches unknown claims carrying its sub-field", () => {
+  test("a value field with default:unknown matches unknown claims with and without sub-claims", () => {
     const studioProp = Identifier.new().toString()
     const notesProp = Identifier.new().toString()
     const claims = new ClaimTypes({
@@ -604,13 +626,23 @@ describe("getClaimsForField default fields", () => {
           prop: { id: studioProp },
           sub: { html: [{ id: id(), confidence: HighConfidence, prop: { id: notesProp }, html: "<p>n</p>" }] },
         },
-        // A bare unknown claim with no matching sub-field is excluded.
+        // A bare unknown claim: the default form of the field itself, so it matches even
+        // without sub-claims (the sub-field filter applies only to non-default valueless claims).
         { id: id(), confidence: HighConfidence, prop: { id: studioProp } },
       ],
     })
     const studioField: FieldData = { ...makeField(studioProp, VT_REFERENCE, [makeField(notesProp, VT_HTML)]), default: "unknown" }
-    // The ref (known) claim plus the unknown claim with notes; the bare unknown is excluded.
-    assert.equal(getClaimsForField(claims, studioField).length, 2)
+    assert.equal(getClaimsForField(claims, studioField).length, 3)
+  })
+
+  test("a value field with default:none matches a bare none claim despite having sub-fields", () => {
+    const nameProp = Identifier.new().toString()
+    const variationProp = Identifier.new().toString()
+    const claims = new ClaimTypes({
+      none: [{ id: id(), confidence: HighConfidence, prop: { id: nameProp } }],
+    })
+    const nameField: FieldData = { ...makeField(nameProp, VT_STRING, [makeField(variationProp, VT_STRING)]), default: "none" }
+    assert.equal(getClaimsForField(claims, nameField).length, 1)
   })
 
   test("a value field without a default does not match unknown/none claims", () => {
@@ -634,5 +666,131 @@ describe("makeDefaultPatchForField", () => {
 
   test("throws for a field without a default", () => {
     assert.throws(() => makeDefaultPatchForField(makeField(Identifier.new().toString(), VT_REFERENCE)))
+  })
+})
+
+describe("computeCardinalityFills", () => {
+  test("fills the missing count of default form claims to reach min cardinality", () => {
+    const prop = Identifier.new().toString()
+    const field: FieldData = { ...makeField(prop, VT_REFERENCE), minCardinality: 2, default: "unknown" }
+    // One existing claim, min 2 -> one fill.
+    const claims = new ClaimTypes({ ref: [rawRef(prop, Identifier.new().toString())] })
+    const fills = computeCardinalityFills([field], claims)
+    assert.equal(fills.length, 1)
+    assert.deepEqual(fills[0].patch, { type: "unknown", confidence: HighConfidence, prop })
+    assert.equal(fills[0].under, undefined)
+    assert.equal(fills[0].children.length, 0)
+  })
+
+  test("does not fill a field without a default", () => {
+    const prop = Identifier.new().toString()
+    const field: FieldData = { ...makeField(prop, VT_REFERENCE), minCardinality: 1 }
+    assert.equal(computeCardinalityFills([field], new ClaimTypes({})).length, 0)
+  })
+
+  test("does not fill a default field already at min", () => {
+    const prop = Identifier.new().toString()
+    const field: FieldData = { ...makeField(prop, VT_REFERENCE), minCardinality: 1, default: "none" }
+    const claims = new ClaimTypes({ none: [{ id: id(), confidence: HighConfidence, prop: { id: prop } }] })
+    assert.equal(computeCardinalityFills([field], claims).length, 0)
+  })
+
+  test("fills a required sub-field under each existing parent claim", () => {
+    const parentProp = Identifier.new().toString()
+    const subProp = Identifier.new().toString()
+    const subField: FieldData = { ...makeField(subProp, VT_REFERENCE, []), minCardinality: 1, default: "unknown" }
+    const parentField: FieldData = makeField(parentProp, VT_REFERENCE, [subField])
+    // A parent claim with no sub-claim for the required-with-default sub-field.
+    const parentClaimId = id()
+    const claims = new ClaimTypes({ ref: [{ id: parentClaimId, confidence: HighConfidence, prop: { id: parentProp }, to: { id: id() } }] })
+    const fills = computeCardinalityFills([parentField], claims)
+    assert.equal(fills.length, 1)
+    assert.deepEqual(fills[0].patch, { type: "unknown", confidence: HighConfidence, prop: subProp })
+    assert.equal(fills[0].under, parentClaimId)
+  })
+
+  test("a top-level default fill carries fills for its own required sub-fields as children", () => {
+    const parentProp = Identifier.new().toString()
+    const subProp = Identifier.new().toString()
+    const subField: FieldData = { ...makeField(subProp, VT_REFERENCE, []), minCardinality: 1, default: "none" }
+    const parentField: FieldData = { ...makeField(parentProp, VT_REFERENCE, [subField]), minCardinality: 1, default: "unknown" }
+    const fills = computeCardinalityFills([parentField], new ClaimTypes({}))
+    assert.equal(fills.length, 1)
+    assert.equal(fills[0].under, undefined)
+    assert.equal(fills[0].children.length, 1)
+    assert.deepEqual(fills[0].children[0].patch, { type: "none", confidence: HighConfidence, prop: subProp })
+    assert.equal(fills[0].children[0].under, undefined)
+  })
+})
+
+describe("cardinalityViolations", () => {
+  test("reports an under-min field regardless of its default", () => {
+    const prop = Identifier.new().toString()
+    const field: FieldData = { ...makeField(prop, VT_REFERENCE), minCardinality: 1, default: "none" }
+    const violations = cardinalityViolations([field], new ClaimTypes({}))
+    assert.equal(violations.length, 1)
+    assert.equal(violations[0].propertyId, prop)
+    assert.equal(violations[0].min, 1)
+    assert.equal(violations[0].count, 0)
+  })
+
+  test("no violation once the default form claim is present", () => {
+    const prop = Identifier.new().toString()
+    const field: FieldData = { ...makeField(prop, VT_REFERENCE), minCardinality: 1, default: "none" }
+    const claims = new ClaimTypes({ none: [{ id: id(), confidence: HighConfidence, prop: { id: prop } }] })
+    assert.equal(cardinalityViolations([field], claims).length, 0)
+  })
+
+  test("checks sub-fields under each parent claim", () => {
+    const parentProp = Identifier.new().toString()
+    const subProp = Identifier.new().toString()
+    const subField: FieldData = { ...makeField(subProp, VT_REFERENCE, []), minCardinality: 1 }
+    const parentField: FieldData = makeField(parentProp, VT_REFERENCE, [subField])
+    const claims = new ClaimTypes({ ref: [{ id: id(), confidence: HighConfidence, prop: { id: parentProp }, to: { id: id() } }] })
+    const violations = cardinalityViolations([parentField], claims)
+    assert.equal(violations.length, 1)
+    assert.equal(violations[0].propertyId, subProp)
+  })
+})
+
+describe("claimsEquivalent", () => {
+  test("true for the same claim set and false when content or ids differ", () => {
+    const prop = Identifier.new().toString()
+    const claimId = id()
+    const to = id()
+    const a = new ClaimTypes({ ref: [{ id: claimId, confidence: HighConfidence, prop: { id: prop }, to: { id: to } }] })
+    const b = new ClaimTypes({ ref: [{ id: claimId, confidence: HighConfidence, prop: { id: prop }, to: { id: to } }] })
+    assert.equal(claimsEquivalent(a, b), true)
+    // Same id, different target -> changed.
+    const c = new ClaimTypes({ ref: [{ id: claimId, confidence: HighConfidence, prop: { id: prop }, to: { id: id() } }] })
+    assert.equal(claimsEquivalent(a, c), false)
+    // Different id set -> changed.
+    const d = new ClaimTypes({ ref: [{ id: id(), confidence: HighConfidence, prop: { id: prop }, to: { id: to } }] })
+    assert.equal(claimsEquivalent(a, d), false)
+  })
+
+  test("true for two empty claim sets and for null against empty", () => {
+    assert.equal(claimsEquivalent(new ClaimTypes({}), new ClaimTypes({})), true)
+    assert.equal(claimsEquivalent(null, new ClaimTypes({})), true)
+    assert.equal(claimsEquivalent(undefined, null), true)
+  })
+
+  test("compares sub-claims id-keyed and order-independent, and deep into their values", () => {
+    const prop = Identifier.new().toString()
+    const subProp = Identifier.new().toString()
+    const parentId = id()
+    const sub1 = id()
+    const sub2 = id()
+    const subA = { id: sub1, confidence: HighConfidence, prop: { id: subProp }, value: "x" }
+    const subB = { id: sub2, confidence: HighConfidence, prop: { id: subProp }, value: "y" }
+    // A none claim carrying two identifier sub-claims, in a given array order.
+    const withSubs = (subs: object[]) => new ClaimTypes({ none: [{ id: parentId, confidence: HighConfidence, prop: { id: prop }, sub: { id: subs } }] })
+
+    // Same sub-claims, reversed array order -> still equivalent (order-independent).
+    assert.equal(claimsEquivalent(withSubs([subA, subB]), withSubs([subB, subA])), true)
+    // A sub-claim value differs -> not equivalent.
+    assert.equal(claimsEquivalent(withSubs([subA, subB]), withSubs([subA, { ...subB, value: "CHANGED" }])), false)
+    // A sub-claim added -> not equivalent.
+    assert.equal(claimsEquivalent(withSubs([subA, subB]), withSubs([subA, subB, { id: id(), confidence: HighConfidence, prop: { id: subProp }, value: "z" }])), false)
   })
 })

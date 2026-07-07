@@ -17,7 +17,7 @@ import type { FieldData } from "@/fields"
 import { computed, provide, useId, useTemplateRef } from "vue"
 import { useRouter } from "vue-router"
 
-import { fieldLabelCellKey, getClaimsForField } from "@/fields"
+import { fieldIsRequired, fieldLabelCellKey, getClaimsForField } from "@/fields"
 import { classifyLink, LINK_CLASS_FILE } from "@/internal-links"
 import ClaimCardinality from "@/partials/ClaimCardinality.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
@@ -80,7 +80,7 @@ provide(fieldLabelCellKey, () => labelCellRef.value)
 const labelId = useId()
 
 function isRequired(): boolean {
-  return props.field.minCardinality > 0
+  return fieldIsRequired(props.field)
 }
 
 function isMultiple(): boolean {

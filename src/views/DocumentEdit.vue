@@ -11,6 +11,7 @@ import type { DeepReadonly } from "vue"
 import type { ComponentExposed } from "vue-component-type-helpers"
 
 import type { Claim, ClaimTypes, TimePrecision } from "@/document"
+import type { CardinalityFill, FieldData, FieldsData } from "@/fields"
 import type {
   DocumentEditStatus,
   DocumentEndEditResponse,
@@ -49,7 +50,10 @@ import {
 } from "@/document"
 import { changeFrom } from "@/document/patch"
 import {
+  cardinalityViolations,
   ChangeDroppedError,
+  claimsEquivalent,
+  computeCardinalityFills,
   getCommittedClaimKey,
   getSectionName,
   registerForFlushKey,
@@ -887,6 +891,47 @@ watch(
   },
 )
 
+// isFileLink routes link claims between sibling LINK and FILE fields sharing a property (see
+// getClaimsForField), passed to the cardinality helpers so their getClaimsForField calls agree
+// with the form's.
+function isFileLink(iri: string): boolean {
+  return classifyLink(iri, router).includes(LINK_CLASS_FILE)
+}
+
+// flattenFields returns every top-level field of the merged fields data (section fields plus
+// standalone fields). The cardinality helpers recurse into sub-fields themselves.
+function flattenFields(data: DeepReadonly<FieldsData>): DeepReadonly<FieldData>[] {
+  const fields: DeepReadonly<FieldData>[] = [...data.fields]
+  for (const section of data.sections) {
+    fields.push(...section.fields)
+  }
+  return fields
+}
+
+// executeFills posts the default form claims of a fill tree, parent before child (a child claim
+// is added under the id assigned to its parent), and returns the ids added, parents before
+// children, so a revert can remove them children-first. parentId is the id assigned to the fill
+// whose children these are, or undefined at the top level (where each fill carries its own
+// under). A dropped add skips its subtree.
+async function executeFills(fills: readonly CardinalityFill[], parentId: string | undefined): Promise<string[]> {
+  const added: string[] = []
+  for (const fill of fills) {
+    const under = fill.under ?? parentId
+    let result: SaveChangeResult
+    try {
+      result = await saveChange(under === undefined ? { type: "add", patch: fill.patch } : { type: "add", patch: fill.patch, under })
+    } catch (err) {
+      if (err instanceof ChangeDroppedError) {
+        continue
+      }
+      throw err
+    }
+    added.push(result.id)
+    added.push(...(await executeFills(fill.children, result.id)))
+  }
+  return added
+}
+
 async function onSave() {
   if (abortController.signal.aborted) {
     return
@@ -927,6 +972,40 @@ async function onSave() {
   // the valid changes posted above.
   if (fieldsFormInvalid.value) {
     return
+  }
+
+  // Fill default form claims to satisfy min cardinality: a field with a default is not required
+  // of the user (fieldIsRequired), so a document may reach save short on such fields (e.g. a
+  // person left with no last name). We add exactly the missing default (none/unknown) form claims
+  // now, then validate strictly - the check ignores defaults, so a still-unsatisfied field means
+  // the fill logic missed it, and we revert the fills and abort rather than save a malformed
+  // document. Non-default under-min fields never reach here (validateAll's required check catches
+  // them above). Only the class-tab form is filled; the All-properties tab manages claims itself.
+  if (fieldsFormRef.value && mergedFieldsData.value && doc.value) {
+    const fields = flattenFields(mergedFieldsData.value)
+    const addedFillIds = await executeFills(computeCardinalityFills(fields, doc.value.claims, isFileLink), undefined)
+    await drainSaveChanges()
+    if (abortController.signal.aborted) {
+      return
+    }
+    const violations = cardinalityViolations(fields, doc.value.claims, isFileLink)
+    if (violations.length > 0) {
+      console.error("DocumentEdit.onSave cardinality violations after fill", violations)
+      // Roll back the fills children-first (added lists parents before children) so a partly
+      // filled document is not left behind, then surface the error and keep the session open.
+      for (const id of [...addedFillIds].reverse()) {
+        try {
+          await saveChange({ type: "remove", id })
+        } catch (err) {
+          if (!(err instanceof ChangeDroppedError)) {
+            throw err
+          }
+        }
+      }
+      await drainSaveChanges()
+      sessionError.value = "cardinality"
+      return
+    }
   }
 
   // Stop polling for changes before ending the session by aborting and creating a fresh controller.
@@ -1333,13 +1412,22 @@ function onChangeClaimTab(index: number) {
 }
 
 function canSave(): boolean {
-  // Save commits the edit session's changes - nothing to commit, nothing to save.
-  // We do enable button even when inputs are invalid because we want the user to
-  // attempt a save and force validation (and focus to first invalid input).
-  // FieldsForm defers existing-claim deletes to flush, so a session whose only
-  // pending change is an emptied claim row has committedChange === 0 but
-  // anyDirty === true; treat that as savable too.
-  return committedChange.value > 0 || (fieldsFormRef.value?.anyDirty ?? false)
+  // Save commits the edit session's changes - nothing changed, nothing to save. We compare the
+  // live doc against the pristine baseline rather than counting posted changes, so a session
+  // whose changes net out (e.g. an edit and its Revert) correctly reports nothing to save. This
+  // covers both the field form and the All-properties tab, since both mutate doc.claims.
+  if (!claimsEquivalent(doc.value?.claims, initialDoc.value?.claims)) {
+    return true
+  }
+  // The committed doc matches the baseline, but a slot may hold a typed-but-not-yet-committed
+  // value (the user is still in the input, so no blur has posted it into doc.claims yet). Save
+  // flushes those, so enable the button when any slot reports uncommitted local edits.
+  for (const instance of flushRegistry) {
+    if (instance.hasUncommitted()) {
+      return true
+    }
+  }
+  return false
 }
 </script>
 

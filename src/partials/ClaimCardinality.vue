@@ -29,7 +29,7 @@ import { useRouter } from "vue-router"
 
 import { postJSON } from "@/api"
 import { claimPatchFrom, claimTypeName } from "@/document"
-import { getClaimValues, getFieldInstructions, makePatchForField, valueTypeToClaimType } from "@/fields"
+import { fieldIsRequired, getClaimValues, getFieldInstructions, makePatchForField, valueTypeToClaimType } from "@/fields"
 import ClaimInput from "@/partials/ClaimInput.vue"
 import ClaimRefSelect from "@/partials/ClaimRefSelect.vue"
 import DocumentRefInline from "@/partials/DocumentRefInline.vue"
@@ -478,7 +478,14 @@ function reconcileSlots(): void {
       break
     }
   }
-  let desired = Math.max(lastContentIdx + 1, lastValueIdx + 2, min)
+  // A default field's entry may be a default (none/unknown) form claim carrying only sub-claims
+  // and no base value (e.g. a studio at an unknown location with a period). Such an entry is
+  // still a real value the user may want to follow with another, so grow a trailing placeholder
+  // past the last content slot, and keep one showing even when the field is empty (so a second
+  // default-form entry can always be started). Non-default fields grow only past the last base
+  // value (a sub-claim-only entry there is a HAS base or transient and gets no placeholder).
+  const trailing = props.field.default !== undefined ? Math.max(lastContentIdx + 2, 1) : lastValueIdx + 2
+  let desired = Math.max(lastContentIdx + 1, trailing, min)
   if (desired > max) desired = max
   if (desired < 1) desired = Math.min(1, max)
   while (slots.value.length < desired) {
@@ -608,12 +615,13 @@ onBeforeUnmount(() => unregisterRemoteAdds(onRemoteAdds))
 // the user leaves it empty - there is no field-level trigger, each empty slot
 // reds on its own blur. The designation shifts live: filling a non-designated
 // slot while a designated one is empty moves the designation onto the filled
-// slot and off the empty one. Empty for non-required fields (min <= 0) and while
-// locked (the surrounding form is in a noop state).
+// slot and off the empty one. Empty for non-required fields (min <= 0, or a field with a
+// default, whose pre-open slot stores the default form when left empty, see fieldIsRequired)
+// and while locked (the surrounding form is in a noop state).
 const designated = computed<boolean[]>(() => {
   if (locked.value) return slots.value.map(() => false)
   const min = props.field.minCardinality
-  if (min <= 0) return slots.value.map(() => false)
+  if (min <= 0 || !fieldIsRequired(props.field)) return slots.value.map(() => false)
   let nonEmptyCount = 0
   for (const slot of slots.value) {
     if (!slotIsEmpty(slot)) nonEmptyCount++
@@ -831,7 +839,7 @@ onBeforeUnmount(() => {
       <span :id="labelId" class="cursor-pointer leading-none font-medium text-gray-700" @mousedown.prevent="onLabelMousedown"
         ><DocumentRefInline :id="field.propertyId" :link="false"
       /></span>
-      <InputBadges :required="field.minCardinality > 0" :multiple="field.maxCardinality > 1" :changed="isDirty" @revert="onHeaderRevert" />
+      <InputBadges :required="fieldIsRequired(field)" :multiple="field.maxCardinality > 1" :changed="isDirty" @revert="onHeaderRevert" />
     </div>
     <!--
       Select mode: all of the field's claims are managed by one ClaimRefSelect (no
@@ -922,7 +930,6 @@ onBeforeUnmount(() => {
             :parent-claim-id="parentClaimId"
             :invalid="invalid"
             :required="designated[idx]"
-            :is-first="idx === 0"
             :readonly="readonly"
             :label-id="labelId"
             :hide-labels="!isInterval"
@@ -954,7 +961,6 @@ onBeforeUnmount(() => {
           :parent-claim-id="parentClaimId"
           :invalid="invalid"
           :required="designated[idx]"
-          :is-first="idx === 0"
           :readonly="readonly"
           :label-id="labelId"
           @update:model-value="(claim) => updateSlotClaim(slot.key, claim)"

@@ -3,6 +3,8 @@ import type { DeepReadonly, InjectionKey } from "vue"
 import type { Claim, ClaimTypeName, TimePrecision } from "@/document"
 import type { FieldsFormFlush, SaveChangeResult, SaveChangeSpec } from "@/types"
 
+import { equals } from "@/utils"
+
 import {
   CARDINALITY,
   FIELD,
@@ -107,6 +109,15 @@ export function fieldShownInView(field: DeepReadonly<FieldData>): boolean {
 // sub-fields (else gap-4); sections are separated by gap-12.
 export function isSimpleField(field: DeepReadonly<FieldData>): boolean {
   return field.maxCardinality <= 1 && field.subFields.length === 0
+}
+
+// fieldIsRequired reports whether the edit form treats the field as required: a positive min
+// cardinality demands user-entered values only when the field has no default. With a default,
+// the save flow fills the missing count with default (none/unknown) form claims (see
+// computeCardinalityFills), so nothing is required of the user and no required badge or
+// "Required value." validation is shown.
+export function fieldIsRequired(field: DeepReadonly<FieldData>): boolean {
+  return field.minCardinality > 0 && field.default === undefined
 }
 
 // fieldSignature encodes a field's identity beyond its propertyId: its value type, default, and
@@ -639,7 +650,10 @@ function isValuelessClaimType(claimType: ClaimTypeName): boolean {
 // For valueless claim types (HAS/NONE/UNKNOWN) on a field with sub-fields, we keep only claims
 // carrying one of the field's sub-field properties. A valueless claim has no value of its own,
 // so its sub-claims are what identify it; this keeps sibling fields that share a propertyId
-// from matching each other's claims.
+// from matching each other's claims. Claims of the field's own default claim type are exempt:
+// they belong to the value field (sibling HAS-meta fields never match NONE/UNKNOWN claims), and
+// a default form claim legitimately carries no sub-claims at all (a field left empty stores a
+// bare default form claim, see ClaimInput's eager default claim).
 //
 // Sibling LINK and FILE fields sharing a property (see FieldData.fileLinkSibling) both hold
 // link claims, so their claims are routed by the claim's IRI: file links go to the FILE field
@@ -663,7 +677,7 @@ export function getClaimsForField(
   const result: DeepReadonly<Claim>[] = []
   for (const claimType of claimTypes) {
     for (const claim of getClaimsOfTypeWithConfidence(claims, claimType, field.propertyId) as DeepReadonly<Claim>[]) {
-      if (isValuelessClaimType(claimType) && field.subFields.length > 0 && !claimMatchesFieldSubFields(claim, field)) {
+      if (claimType !== field.default && isValuelessClaimType(claimType) && field.subFields.length > 0 && !claimMatchesFieldSubFields(claim, field)) {
         continue
       }
       if (claimType === "link" && field.fileLinkSibling && isFileLink && isFileLink((claim as DeepReadonly<LinkClaim>).iri) !== (field.valueType === VT_FILE)) {
@@ -787,4 +801,134 @@ export function makeDefaultPatchForField(field: DeepReadonly<FieldData>): object
     throw new Error("field has no default")
   }
   return { type: field.default, confidence: HighConfidence, prop: field.propertyId }
+}
+
+// CardinalityFill describes one default form claim the save flow adds so that a field with a
+// default satisfies its min cardinality (see computeCardinalityFills).
+export interface CardinalityFill {
+  // Patch for the default (none/unknown) form claim (see makeDefaultPatchForField).
+  patch: object
+  // Id of the existing claim to add this claim under. Undefined for a top-level fill and for
+  // a fill nested under another fill (the executor uses the id of the just-posted parent).
+  under?: string
+  // Fills for the added claim's own sub-fields with defaults; they must be added under the
+  // claim created from patch, whose id exists only once patch is posted.
+  children: CardinalityFill[]
+}
+
+// computeCardinalityFills returns the default form claims to add so that every given field with
+// a default satisfies its min cardinality: for each such field with fewer claims than its min,
+// the missing count of bare default form claims. It recurses into sub-fields, both under every
+// existing claim of a field and under every added fill. Fields without a default are never
+// filled; the strict check reports them instead (see cardinalityViolations).
+export function computeCardinalityFills(
+  fields: readonly DeepReadonly<FieldData>[],
+  claims: DeepReadonly<ClaimTypes> | undefined | null,
+  isFileLink?: (iri: string) => boolean,
+): CardinalityFill[] {
+  const fills: CardinalityFill[] = []
+  for (const field of fields) {
+    const existing = getClaimsForField(claims ?? null, field, isFileLink)
+    if (field.default !== undefined) {
+      for (let i = existing.length; i < field.minCardinality; i++) {
+        // A fresh bare default form claim, itself filled for its own sub-fields (none exist yet).
+        fills.push({ patch: makeDefaultPatchForField(field), under: undefined, children: computeCardinalityFills(field.subFields, null, isFileLink) })
+      }
+    }
+    for (const claim of existing) {
+      for (const fill of computeCardinalityFills(field.subFields, claim.sub ?? null, isFileLink)) {
+        // A fill directly below this claim gets its id; deeper fills already carry theirs.
+        fills.push(fill.under === undefined ? { ...fill, under: claim.GetID() } : fill)
+      }
+    }
+  }
+  return fills
+}
+
+// CardinalityViolation reports a field whose claim count does not reach its min cardinality.
+export interface CardinalityViolation {
+  propertyId: string
+  path: readonly string[]
+  min: number
+  count: number
+}
+
+// cardinalityViolations returns every given field (recursively, sub-fields checked under each of
+// the parent field's claims) whose claim count is below its min cardinality. The check is
+// strict: a field's default gives it no pass. The save flow fills defaults first (see
+// computeCardinalityFills), so a violation reported for a default field means the fill logic
+// failed and the save must not proceed.
+export function cardinalityViolations(
+  fields: readonly DeepReadonly<FieldData>[],
+  claims: DeepReadonly<ClaimTypes> | undefined | null,
+  isFileLink?: (iri: string) => boolean,
+): CardinalityViolation[] {
+  const violations: CardinalityViolation[] = []
+  for (const field of fields) {
+    const existing = getClaimsForField(claims ?? null, field, isFileLink)
+    if (existing.length < field.minCardinality) {
+      violations.push({ propertyId: field.propertyId, path: field.path, min: field.minCardinality, count: existing.length })
+    }
+    for (const claim of existing) {
+      violations.push(...cardinalityViolations(field.subFields, claim.sub ?? null, isFileLink))
+    }
+  }
+  return violations
+}
+
+// A claim as claimsEquivalent inspects it: an id, its own value fields, and optional nested
+// sub-claims. Kept structural (not the Claim class) so raw JSON claims and reactive proxies both fit.
+type ClaimLike = { id: string; sub?: DeepReadonly<ClaimTypes> | null }
+
+// claimsEquivalent reports whether two claim sets hold the same claims, keyed by id at every level
+// and independent of a claim's position in its type array. Drives net-change detection: an edit
+// session whose posted changes cancel out (e.g. an edit and its Revert) compares equal to its
+// baseline and has nothing to save. Order-independence must be recursive: a Revert may restore a
+// claim's sub-claims in a different array order than the baseline, so comparing whole claims with a
+// deep (order-sensitive) equals would falsely report a change. We instead key sub-claims by id too
+// (see claimEquivalent) and compare each claim's own value fields with a deep equals that excludes
+// sub. That structural compare (not a JSON string compare) also handles a claim reconstructed
+// locally after a cast serializing its keys in a different order than the server-loaded one.
+export function claimsEquivalent(a: DeepReadonly<ClaimTypes> | undefined | null, b: DeepReadonly<ClaimTypes> | undefined | null): boolean {
+  // We iterate the (possibly reactive) claims directly rather than through toRaw: a reactive caller
+  // (canSave) must track claim reads so it re-runs when the doc changes, and the deep equals
+  // compares reactive proxies correctly by reading their values.
+  const index = (claims: DeepReadonly<ClaimTypes> | undefined | null): Map<string, ClaimLike> => {
+    const m = new Map<string, ClaimLike>()
+    if (!claims) {
+      return m
+    }
+    for (const list of Object.values(claims)) {
+      if (!Array.isArray(list)) {
+        continue
+      }
+      for (const claim of list as ClaimLike[]) {
+        m.set(claim.id, claim)
+      }
+    }
+    return m
+  }
+  const indexA = index(a)
+  const indexB = index(b)
+  if (indexA.size !== indexB.size) {
+    return false
+  }
+  for (const [id, claim] of indexA) {
+    const other = indexB.get(id)
+    if (other === undefined || !claimEquivalent(claim, other)) {
+      return false
+    }
+  }
+  return true
+}
+
+// claimEquivalent compares two claims with the same id: their own value fields via a deep equals
+// with sub excluded (spreading normalizes sub to undefined on both sides so equals ignores it),
+// then their sub-claims recursively through claimsEquivalent so nested claim arrays are compared
+// id-keyed and order-independent, like the top level.
+function claimEquivalent(a: ClaimLike, b: ClaimLike): boolean {
+  if (!equals({ ...a, sub: undefined }, { ...b, sub: undefined })) {
+    return false
+  }
+  return claimsEquivalent(a.sub ?? null, b.sub ?? null)
 }

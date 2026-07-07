@@ -66,11 +66,6 @@ const props = withDefaults(
     // text only appears on the input's own blur (or Save), never on load - see
     // the clear-only watch in FieldsFormRow.
     required?: boolean
-    // Whether this is the first slot of its field. Only the first slot of a default value field
-    // offers the "fill sub-fields with no value" affordance (which creates the none/unknown form).
-    // Subsequent slots are value-first - their sub-fields appear only once a value is committed -
-    // so a trailing placeholder cannot become a second default-form entry.
-    isFirst?: boolean
     // Set by an enclosing slot whose own change is still being committed: this whole slot
     // renders read-only until the ancestor's committed state settles.
     readonly?: boolean
@@ -86,7 +81,6 @@ const props = withDefaults(
     parentClaimId: undefined,
     invalid: false,
     required: false,
-    isFirst: false,
     readonly: false,
     labelId: undefined,
     hideLabels: false,
@@ -236,9 +230,10 @@ function currentSubClaims(subField: DeepReadonly<FieldData>): readonly DeepReado
 const showSubFields = computed(() => {
   if (props.field.subFields.length === 0) return false
   if (isHas.value) return true
-  // Only the first slot of a default field shows sub-fields before a value exists (so the single
-  // primary entry can be the none/unknown form). Other slots are value-first.
-  if (props.field.default && props.isFirst) return true
+  // Every slot of a default field shows sub-fields before a value exists: any entry may be the
+  // none/unknown form (e.g. several studios at unknown locations distinguished by their periods),
+  // created lazily through its sub-claims via ensureClaimId.
+  if (props.field.default) return true
   // Show as soon as the slot has a value locally (on dirty), before the claim is committed on blur,
   // mirroring how the cardinality grows a new trailing slot on dirty. A sub-claim added before the
   // commit lazily creates the parent claim via ensureClaimId. Stay shown while a committed claim
@@ -589,34 +584,22 @@ async function doCommit(hadFocus: boolean): Promise<void> {
   if (localIsEmpty.value) {
     if (!committed) return
     if (props.field.default) {
-      if (props.isFirst) {
-        // First slot of a default field - the only entry allowed to be the default form. If
-        // sub-claims remain (live state), demote a value claim to its default (none/unknown) form,
-        // preserving them. If nothing remains, removal of the now-empty default claim is handled by
-        // cleanupResidue once focus leaves the whole slot - doing it here would fire while focus is
-        // still in the value input and the user may be mid-edit.
-        if (!allChildEmpty.value && claimTypeName(committed) !== props.field.default) {
-          const patch = makeDefaultPatchForField(props.field)
-          if (!(await submitChange({ type: "cast", id: committed.id, patch }))) return
-          const updated = claimPatchFrom(patch).New(committed.id)
-          if (committed.sub) {
-            updated.sub = committed.sub as unknown as ClaimTypes
-          }
-          setClaim(updated)
+      // A default field's entry whose value is emptied while sub-claims remain (live state) is
+      // demoted to its default (none/unknown) form, preserving them: such an entry stores the
+      // default in place of the value (e.g. a studio at an unknown location with a period).
+      // When nothing remains, removal of the now-empty default claim is handled by
+      // cleanupResidue once focus leaves the whole slot - doing it here would fire while focus
+      // is still in the value input and the user may be mid-edit. Min cardinality is not a
+      // concern here: a document may violate it mid-edit, and the save flow fills default form
+      // claims to satisfy it (see computeCardinalityFills).
+      if (!allChildEmpty.value && claimTypeName(committed) !== props.field.default) {
+        const patch = makeDefaultPatchForField(props.field)
+        if (!(await submitChange({ type: "cast", id: committed.id, patch }))) return
+        const updated = claimPatchFrom(patch).New(committed.id)
+        if (committed.sub) {
+          updated.sub = committed.sub as unknown as ClaimTypes
         }
-        return
-      }
-      // Non-first slot of a default field: value-first, like a regular field. It must NOT demote to
-      // the default form (only the first slot may be the default form), and a value claim cannot
-      // hold an empty value, so keep it while sub-claims remain (live state), else remove it.
-      if (allChildEmpty.value) {
-        if (!(await submitChange({ type: "remove", id: committed.id }))) return
-        // Reported BEFORE the removal is published: publishing splices the slot, and an
-        // emit from a component queued for unmount is silently dropped by Vue.
-        if (hadFocus) {
-          emit("cleared")
-        }
-        setClaim(null)
+        setClaim(updated)
       }
       return
     }
@@ -771,13 +754,15 @@ async function onCompleteChange(): Promise<void> {
 // entry with no value and no sub-claims, for the entry kinds whose emptiness commit() does
 // not handle (commit() only sees the value side and never touches presence-only claims).
 async function cleanupResidue(): Promise<void> {
-  // Two entry kinds defer their empty-removal to slot-leave: the FIRST slot of a default field
-  // (non-first slots remove an empty entry directly in commit(), like regular fields, so the
-  // cleanup must not also fire there - it would be a double remove), and a HAS base of a field
-  // with sub-fields (commit() never touches presence-only claims, and with sub-fields there is
-  // no checkbox to remove it; such an empty base is always residue of ensureClaimId, see
-  // cleanupEmptyBase).
-  const defersToSlotLeave = (props.field.default !== undefined && props.isFirst) || (isHas.value && props.field.subFields.length > 0)
+  // Two entry kinds defer their empty-removal to slot-leave: any slot of a default field (its
+  // empty default form claim carries no value, so commit() leaves it, and it is residue once its
+  // sub-claims are gone too), and a HAS base of a field with sub-fields (commit() never touches
+  // presence-only claims, and with sub-fields there is no checkbox to remove it; such an empty
+  // base is always residue of ensureClaimId, see cleanupEmptyBase). A default field whose min
+  // cardinality is thereby left unsatisfied is not a concern here: a document may violate min
+  // cardinality mid-edit, and the save flow fills default form claims to satisfy it (see
+  // computeCardinalityFills).
+  const defersToSlotLeave = props.field.default !== undefined || (isHas.value && props.field.subFields.length > 0)
   if (!defersToSlotLeave) return
   await runSerialized(async () => {
     const committed = currentClaim.value
@@ -870,9 +855,24 @@ async function doRevertField(hadFocus: boolean): Promise<void> {
       setClaim(newClaim)
     }
   } else if (baseline !== null && committed !== null) {
-    // Both non-null: if local values diverged from baseline, Set back.
-    const committedValues = getClaimValues(committed)
-    if (!equalFieldEntryValue(committedValues, baselineValue)) {
+    const baselineType = claimTypeName(baseline)
+    const committedType = claimTypeName(committed)
+    if (baselineType !== committedType) {
+      // The claim's type changed during the session: a default field's entry was cast between its
+      // value form and its default (none/unknown) form (e.g. a value entered on a baseline none
+      // claim, or a value cleared to the default form). Cast back to the baseline's type. Building
+      // a value Set here would be wrong when the baseline is the default form - its empty value
+      // would make an incomplete value patch - so cast to the default form patch in that case.
+      const patch = baselineType === props.field.default ? makeDefaultPatchForField(props.field) : makePatchForField(props.field, baselineValue)
+      if (await submitChange({ type: "cast", id: committed.id, patch })) {
+        const updated = claimPatchFrom(patch).New(committed.id)
+        if (committed.sub) {
+          updated.sub = committed.sub as unknown as ClaimTypes
+        }
+        setClaim(updated)
+      }
+    } else if (!equalFieldEntryValue(getClaimValues(committed), baselineValue)) {
+      // Same type: if local values diverged from baseline, Set back.
       const patch = makePatchForField(props.field, baselineValue)
       if (await submitChange({ type: "set", id: committed.id, patch })) {
         const updated = claimPatchFrom(patch).New(committed.id)
