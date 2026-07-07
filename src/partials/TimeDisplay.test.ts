@@ -1,6 +1,17 @@
 import { assert, describe, test } from "vitest"
 
-import { calculateTimeUnits, formatAbsoluteParts, formatYearParts, getPrecisionIndex, getRelativeTimeInfo, isPrecise, parseTimestamp } from "@/partials/TimeDisplay.utils"
+import {
+  calculateTimeUnits,
+  convertParsedToUtc,
+  formatAbsoluteLocalizedParts,
+  formatAbsoluteParts,
+  formatYearParts,
+  getPrecisionIndex,
+  getRelativeTimeInfo,
+  isPrecise,
+  parseTimestamp,
+  zonedEpochMs,
+} from "@/partials/TimeDisplay.utils"
 
 describe("parseTimestamp", () => {
   test("parses full date-time", () => {
@@ -420,5 +431,85 @@ describe("getRelativeTimeInfo", () => {
     const result = getRelativeTimeInfo(1000 * 365 * 24 * 60 * 60 * 1000)
     assert.equal(result.unit, "kiloYears")
     assert.equal(result.count, 1)
+  })
+})
+
+describe("formatAbsoluteLocalizedParts", () => {
+  function localizedText(timestamp: string, precision: Parameters<typeof formatAbsoluteLocalizedParts>[1], locale: string, timeZone?: string): string {
+    const parsed = parseTimestamp(timestamp)
+    assert.isNotNull(parsed)
+    return formatAbsoluteLocalizedParts(parsed, precision, locale, timeZone)
+      .map((p) => p.text)
+      .join("")
+  }
+
+  test("formats day precision per locale without timezone shifts", () => {
+    assert.equal(localizedText("2020-06-17 10:02:37", "d", "sl"), "17. 6. 2020")
+    assert.equal(localizedText("2020-06-17 10:02:37", "d", "en-GB"), "17/06/2020")
+    // Calendar dates render as stored even with a location.
+    assert.equal(localizedText("2020-06-17 00:00:00", "d", "en-GB", "Asia/Tokyo"), "17/06/2020")
+  })
+
+  test("formats month precision as month name and year", () => {
+    assert.equal(localizedText("2020-06-01 00:00:00", "m", "sl"), "junij 2020")
+    assert.equal(localizedText("2020-06-01 00:00:00", "m", "en"), "June 2020")
+  })
+
+  test("formats second precision with the time in the timezone of the environment", () => {
+    // The same instant expressed in a location and in UTC must render identically, whatever the
+    // timezone of the environment is (Europe/Ljubljana is UTC+2 in June).
+    assert.equal(localizedText("2020-06-17 12:02:37", "s", "en-GB", "Europe/Ljubljana"), localizedText("2020-06-17 10:02:37", "s", "en-GB"))
+    const text = localizedText("2020-06-17 10:02:37", "s", "en-GB")
+    assert.match(text, /\d{2}:\d{2}:\d{2}/)
+  })
+
+  test("falls back to the plain rendering for year and coarser precisions", () => {
+    const parsed = parseTimestamp("2020-01-01 00:00:00")
+    assert.isNotNull(parsed)
+    assert.deepEqual(formatAbsoluteLocalizedParts(parsed, "y", "sl"), formatAbsoluteParts(parsed, "y"))
+    const coarse = parseTimestamp("2000-01-01 00:00:00")
+    assert.isNotNull(coarse)
+    assert.deepEqual(formatAbsoluteLocalizedParts(coarse, "100y", "sl"), formatAbsoluteParts(coarse, "100y"))
+  })
+
+  test("falls back to the plain rendering for years outside the Date range", () => {
+    const parsed = parseTimestamp("1000000-01-01 00:00:00")
+    assert.isNotNull(parsed)
+    assert.deepEqual(formatAbsoluteLocalizedParts(parsed, "d", "sl"), formatAbsoluteParts(parsed, "d"))
+  })
+})
+
+describe("zonedEpochMs", () => {
+  test("interprets wall time in the given timezone", () => {
+    const summer = parseTimestamp("2020-06-17 12:02:37")
+    assert.isNotNull(summer)
+    // Europe/Ljubljana is UTC+2 in June.
+    assert.equal(zonedEpochMs(summer, "Europe/Ljubljana"), Date.UTC(2020, 5, 17, 10, 2, 37))
+    const winter = parseTimestamp("2020-01-17 12:02:37")
+    assert.isNotNull(winter)
+    // Europe/Ljubljana is UTC+1 in January.
+    assert.equal(zonedEpochMs(winter, "Europe/Ljubljana"), Date.UTC(2020, 0, 17, 11, 2, 37))
+  })
+
+  test("returns null for an unknown timezone", () => {
+    const parsed = parseTimestamp("2020-06-17 12:02:37")
+    assert.isNotNull(parsed)
+    assert.isNull(zonedEpochMs(parsed, "Not/AZone"))
+  })
+})
+
+describe("convertParsedToUtc", () => {
+  test("converts wall time in a timezone to UTC fields", () => {
+    const parsed = parseTimestamp("2020-06-17 00:30:00")
+    assert.isNotNull(parsed)
+    const utc = convertParsedToUtc(parsed, "Asia/Tokyo")
+    assert.isNotNull(utc)
+    // Asia/Tokyo is UTC+9, so the date rolls back to the previous day.
+    assert.equal(utc.parts.year, 2020)
+    assert.equal(utc.parts.month, 6)
+    assert.equal(utc.parts.day, 16)
+    assert.equal(utc.parts.hours, 15)
+    assert.equal(utc.parts.minutes, 30)
+    assert.equal(utc.parts.seconds, 0)
   })
 })

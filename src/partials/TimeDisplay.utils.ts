@@ -283,3 +283,168 @@ export function getRelativeTimeInfo(diffMs: number): {
     nextUpdateMs: 1000,
   }
 }
+
+/**
+ * Returns the millisecond epoch of the parsed wall-clock fields interpreted as UTC, or null when
+ * the year is outside the JavaScript Date range.
+ */
+function wallEpochMs(parsed: ParsedTime): number | null {
+  const year = parseInt(parsed.yearStr, 10)
+  if (!Number.isFinite(year) || year < -271820 || year > 275759) {
+    return null
+  }
+  const date = new Date(0)
+  date.setUTCFullYear(year, parsed.hasMonth ? parsed.parts.month - 1 : 0, parsed.hasDay ? parsed.parts.day : 1)
+  date.setUTCHours(parsed.hasHours ? parsed.parts.hours : 0, parsed.hasHours ? parsed.parts.minutes : 0, parsed.hasSeconds ? parsed.parts.seconds : 0, 0)
+  const ms = date.getTime()
+  return Number.isFinite(ms) ? ms : null
+}
+
+/**
+ * Returns the UTC offset of the IANA timezone at the given epoch in milliseconds, or null when the
+ * timezone is unknown or the epoch cannot be formatted.
+ */
+function tzOffsetMs(timeZone: string, epochMs: number): number | null {
+  let parts: Intl.DateTimeFormatPart[]
+  try {
+    parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      era: "short",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(epochMs)
+  } catch {
+    return null
+  }
+  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value
+  let year = parseInt(get("year") ?? "", 10)
+  if (get("era") === "BC") {
+    year = 1 - year
+  }
+  const month = parseInt(get("month") ?? "", 10)
+  const day = parseInt(get("day") ?? "", 10)
+  const hours = parseInt(get("hour") ?? "", 10)
+  const minutes = parseInt(get("minute") ?? "", 10)
+  const seconds = parseInt(get("second") ?? "", 10)
+  if (![year, month, day, hours, minutes, seconds].every(Number.isFinite)) {
+    return null
+  }
+  const date = new Date(0)
+  date.setUTCFullYear(year, month - 1, day)
+  date.setUTCHours(hours, minutes, seconds, 0)
+  return date.getTime() - epochMs
+}
+
+/**
+ * Returns the millisecond epoch of the parsed wall-clock fields interpreted in the given IANA
+ * timezone (time claims carry their timezone in an IN_LOCATION sub claim; without one the claim is
+ * in UTC). Returns null when the timezone is unknown or the timestamp is out of the Date range.
+ * The offset is resolved iteratively so daylight saving transitions map correctly.
+ */
+export function zonedEpochMs(parsed: ParsedTime, timeZone: string): number | null {
+  const wall = wallEpochMs(parsed)
+  if (wall === null) {
+    return null
+  }
+  const offset = tzOffsetMs(timeZone, wall)
+  if (offset === null) {
+    return null
+  }
+  let epoch = wall - offset
+  const adjustedOffset = tzOffsetMs(timeZone, epoch)
+  if (adjustedOffset === null) {
+    return null
+  }
+  if (adjustedOffset !== offset) {
+    epoch = wall - adjustedOffset
+  }
+  return epoch
+}
+
+/**
+ * Converts parsed wall-clock fields known to be in the given IANA timezone into the equivalent
+ * parsed fields in UTC, preserving subseconds (offsets are whole minutes). Returns null when the
+ * conversion is not possible; callers should then fall back to the unconverted fields.
+ */
+export function convertParsedToUtc(parsed: ParsedTime, timeZone: string): ParsedTime | null {
+  const epoch = zonedEpochMs(parsed, timeZone)
+  if (epoch === null) {
+    return null
+  }
+  const date = new Date(epoch)
+  const year = date.getUTCFullYear()
+  return {
+    parts: {
+      year,
+      month: date.getUTCMonth() + 1,
+      day: date.getUTCDate(),
+      hours: date.getUTCHours(),
+      minutes: date.getUTCMinutes(),
+      seconds: date.getUTCSeconds(),
+      nanoseconds: parsed.parts.nanoseconds,
+    },
+    yearStr: (year < 0 ? "-" : "") + String(Math.abs(year)).padStart(4, "0"),
+    hasMonth: true,
+    hasDay: true,
+    hasHours: true,
+    hasSeconds: parsed.hasSeconds,
+    subsecondsLen: parsed.subsecondsLen,
+  }
+}
+
+/**
+ * Formats an absolute timestamp into a localized display part using Intl.DateTimeFormat while
+ * respecting the claim precision: year precision renders only the year, month precision the month
+ * name and year, day precision the locale date, and hour or finer precisions also the time to the
+ * claim precision. Subsecond digits are not rendered. Precisions coarser than a year and years
+ * outside the JavaScript Date range fall back to the plain rendering.
+ *
+ * Day and coarser precisions are calendar dates and render the stored fields without any timezone
+ * conversion. Hour and finer precisions are instants: the fields are interpreted in the given IANA
+ * timezone (UTC without one) and displayed in the timezone of the browser.
+ */
+export function formatAbsoluteLocalizedParts(parsed: ParsedTime, precision: TimePrecision, locale: string, timeZone?: string): DisplayTimePart[] {
+  const precisionIndex = getPrecisionIndex(precision)
+  if (precisionIndex <= getPrecisionIndex("y")) {
+    return formatAbsoluteParts(parsed, precision)
+  }
+
+  const options: Intl.DateTimeFormatOptions = { year: "numeric" }
+  if (isPrecise("d", precision)) {
+    options.month = "numeric"
+    options.day = "numeric"
+  } else if (isPrecise("m", precision)) {
+    options.month = "long"
+  }
+
+  let epoch: number | null
+  if (precisionIndex < getPrecisionIndex("h")) {
+    epoch = wallEpochMs(parsed)
+    options.timeZone = "UTC"
+  } else {
+    epoch = timeZone ? zonedEpochMs(parsed, timeZone) : wallEpochMs(parsed)
+    if (isPrecise("h", precision)) {
+      options.hour = "numeric"
+    }
+    if (isPrecise("min", precision)) {
+      options.minute = "2-digit"
+    }
+    if (isPrecise("s", precision)) {
+      options.second = "2-digit"
+    }
+  }
+  if (epoch === null) {
+    return formatAbsoluteParts(parsed, precision)
+  }
+
+  try {
+    return [{ text: new Intl.DateTimeFormat(locale, options).format(epoch), precise: true }]
+  } catch {
+    return formatAbsoluteParts(parsed, precision)
+  }
+}

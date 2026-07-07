@@ -5,7 +5,15 @@ import { computed, onBeforeUnmount, ref, watchEffect } from "vue"
 import { useI18n } from "vue-i18n"
 
 import { timeFloat64 } from "@/document/time"
-import { formatAbsoluteParts, getRelativeTimeInfo, parseTimestamp } from "@/partials/TimeDisplay.utils"
+import {
+  convertParsedToUtc,
+  formatAbsoluteLocalizedParts,
+  formatAbsoluteParts,
+  getPrecisionIndex,
+  getRelativeTimeInfo,
+  parseTimestamp,
+  zonedEpochMs,
+} from "@/partials/TimeDisplay.utils"
 
 const props = withDefaults(
   defineProps<{
@@ -18,14 +26,23 @@ const props = withDefaults(
     // Whether clicking toggles between the formats. Disable when the display is wrapped
     // in another clickable element (e.g., a label) which should receive the click.
     toggle?: boolean
+    // Format the absolute display with Intl.DateTimeFormat in the current UI language instead of
+    // the plain ISO-like rendering, still respecting the claim precision.
+    localized?: boolean
+    // IANA timezone the timestamp is in (from an IN_LOCATION sub claim of the time claim). Without
+    // it the timestamp is in UTC. Only timestamps with hour or finer precision are converted;
+    // day and coarser precisions are calendar dates and render as stored.
+    location?: string
   }>(),
   {
     format: "absolute",
     toggle: true,
+    localized: false,
+    location: undefined,
   },
 )
 
-const { t } = useI18n({ useScope: "global" })
+const { t, locale } = useI18n({ useScope: "global" })
 
 // Current display format, can be toggled by the user.
 const currentFormat = ref(props.format)
@@ -36,8 +53,23 @@ let updateTimer: ReturnType<typeof setTimeout> | null = null
 // Current time for relative calculations, updated reactively.
 const now = ref(Date.now())
 
-// Parse the timestamp to float64 seconds since the Unix epoch.
+// Parse timestamp components for absolute display.
+const parsed = computed(() => parseTimestamp(props.timestamp))
+
+// Whether the timestamp has to be converted from its location to UTC: only instants (hour or
+// finer precision) with a location are converted, calendar dates render as stored.
+const convertsFromLocation = computed(() => {
+  return !!props.location && getPrecisionIndex(props.precision) >= getPrecisionIndex("h")
+})
+
+// Parse the timestamp to float64 seconds since the Unix epoch, interpreting it in its location.
 const timestampSeconds = computed(() => {
+  if (parsed.value && convertsFromLocation.value) {
+    const epoch = zonedEpochMs(parsed.value, props.location!)
+    if (epoch !== null) {
+      return epoch / 1000
+    }
+  }
   try {
     return timeFloat64(props.timestamp, 0)
   } catch {
@@ -45,15 +77,23 @@ const timestampSeconds = computed(() => {
   }
 })
 
-// Parse timestamp components for absolute display.
-const parsed = computed(() => parseTimestamp(props.timestamp))
+// Timestamp components converted to UTC for the plain absolute display.
+const parsedUtc = computed(() => {
+  if (parsed.value && convertsFromLocation.value) {
+    return convertParsedToUtc(parsed.value, props.location!) ?? parsed.value
+  }
+  return parsed.value
+})
 
-// Format absolute time with grayed out imprecise parts.
+// Format absolute time with grayed out imprecise parts, or localized when requested.
 const absoluteDisplay = computed(() => {
-  if (!parsed.value) {
+  if (!parsed.value || !parsedUtc.value) {
     return { parts: [] }
   }
-  return { parts: formatAbsoluteParts(parsed.value, props.precision) }
+  if (props.localized) {
+    return { parts: formatAbsoluteLocalizedParts(parsed.value, props.precision, locale.value, props.location) }
+  }
+  return { parts: formatAbsoluteParts(parsedUtc.value, props.precision) }
 })
 
 // Calculate relative time difference.
