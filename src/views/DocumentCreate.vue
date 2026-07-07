@@ -85,6 +85,15 @@ async function loadClasses() {
 
     classes.value = doc.classes
     loaded.value = true
+
+    // When exactly one creatable class is offered (for example under a "limit" that resolves to a
+    // single class), skip the picker and create it directly. The navigation replaces this view in
+    // history, so the back button does not land here and immediately create another document.
+    const creatable = doc.classes.filter((c) => c.canCreate)
+    if (creatable.length === 1) {
+      await onCreate(creatable[0].id, true)
+      return
+    }
   } catch (err) {
     if (abortController.signal.aborted || requested !== limit.value) {
       return
@@ -121,7 +130,9 @@ async function saveRefClaim(createResponse: DocumentCreateResponse, change: numb
   )
 }
 
-async function onCreate(classId: string) {
+// replace navigates to the editor with router.replace instead of push, used by the automatic
+// single-class create so the create view is not left in the browser history.
+async function onCreate(classId: string, replace = false) {
   if (abortController.signal.aborted) {
     return
   }
@@ -152,13 +163,18 @@ async function onCreate(classId: string) {
     }
 
     // Navigate to edit page.
-    await router.push({
+    const to = {
       name: "DocumentEdit",
       params: {
         id: createResponse.id,
         session: createResponse.session,
       },
-    })
+    }
+    if (replace) {
+      await router.replace(to)
+    } else {
+      await router.push(to)
+    }
   } catch (err) {
     if (abortController.signal.aborted) {
       return
