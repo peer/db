@@ -102,8 +102,6 @@ type TimeIntervalWithLocation struct {
 }
 
 // HTMLWithLanguage represents HTML with language information.
-//
-//nolint:lll
 type HTMLWithLanguage struct {
 	Value HTML `json:"value" value:""`
 

@@ -192,8 +192,6 @@ func (i *Interval[T]) Validate() errors.E {
 }
 
 // StringWithLanguage represents string with language information.
-//
-//nolint:lll
 type StringWithLanguage struct {
 	Value string `json:"value" value:""`
 
@@ -201,8 +199,6 @@ type StringWithLanguage struct {
 }
 
 // RawHTMLWithLanguage represents raw HTML with language information.
-//
-//nolint:lll
 type RawHTMLWithLanguage struct {
 	Value RawHTML `json:"value" value:""`
 
