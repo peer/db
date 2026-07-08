@@ -64,6 +64,7 @@ func TestSearchVisibilityReadRouting(t *testing.T) {
 						Schema:               "",
 						Title:                "Example Site",
 						Logo:                 nil,
+						Favicon:              internalSite.Favicon{},
 						LanguagePriority:     nil,
 						DefaultLanguage:      "",
 						LanguageCodes:        nil,

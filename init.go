@@ -124,6 +124,7 @@ func InitSites(globals *Globals) errors.E {
 			Schema:               globals.Postgres.Schema,
 			Title:                "",
 			Logo:                 nil,
+			Favicon:              internalSite.Favicon{},
 			LanguagePriority:     nil,
 			DefaultLanguage:      "",
 			LanguageCodes:        nil,

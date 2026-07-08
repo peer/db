@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ .Title }}</title>
+    {{ if .Favicon.Href }}<link rel="icon"{{ if .Favicon.Type }} type="{{ .Favicon.Type }}"{{ end }} href="{{ .Favicon.Href }}" />{{ end }}
     <style>
       body{margin: 0; container-type: inline-size;}
       .text-gray-900{color: oklch(21% 0.034 264.665)}

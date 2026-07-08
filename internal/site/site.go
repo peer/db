@@ -71,6 +71,14 @@ type SiteFeatures struct {
 	IndexAncestorProperties bool `json:"-" yaml:"indexAncestorProperties,omitempty"`
 }
 
+// Favicon configures the site favicon rendered into the page head. When Href is set, a
+// <link rel="icon"> pointing at it is emitted in index.html. Type is the optional value of
+// the link's type attribute (the icon's MIME type, e.g. "image/svg+xml"); it is omitted when empty.
+type Favicon struct {
+	Href string `json:"href,omitempty" yaml:"href,omitempty"`
+	Type string `json:"type,omitempty" yaml:"type,omitempty"`
+}
+
 // SiteAuthConfig contains per-site configuration for OIDC-based authentication.
 // Each site has its own client because the redirect URI is per-domain and
 // most OIDC providers register redirect URIs as fixed strings rather than
@@ -89,13 +97,16 @@ type Site struct {
 
 	Build *Build `json:"build,omitempty" yaml:"-"`
 
-	IndexPrefix string `json:"-"                    yaml:"indexPrefix,omitempty"`
-	Schema      string `json:"-"                    yaml:"schema,omitempty"`
-	Title       string `json:"title,omitempty"      yaml:"title,omitempty"`
+	IndexPrefix string `json:"-"               yaml:"indexPrefix,omitempty"`
+	Schema      string `json:"-"               yaml:"schema,omitempty"`
+	Title       string `json:"title,omitempty" yaml:"title,omitempty"`
 	// Logo maps a minimum viewport width (a CSS length, e.g. "0", "48rem", "768px") to the logo path
 	// used from that width up; the largest matching entry wins, the smallest is the fallback, and the
 	// largest is also used as the full logo (e.g. the home page hero).
 	Logo map[string]string `json:"logo,omitempty" yaml:"logo,omitempty"`
+	// Favicon, when its Href is set, is rendered as a <link rel="icon"> in index.html. It is only used
+	// server-side for that rendering, so it is not exposed to the frontend in the site context.
+	Favicon Favicon `json:"-" yaml:"favicon,omitempty"`
 
 	LanguagePriority map[string][]string `json:"languagePriority,omitempty" yaml:"languagePriority,omitempty"`
 	DefaultLanguage  string              `json:"defaultLanguage,omitempty"  yaml:"defaultLanguage,omitempty"`

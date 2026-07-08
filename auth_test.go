@@ -124,6 +124,7 @@ func TestBasicAuthWithSiteContext(t *testing.T) {
 						Schema:               "",
 						Title:                tt.siteTitle,
 						Logo:                 nil,
+						Favicon:              internalSite.Favicon{},
 						LanguagePriority:     nil,
 						DefaultLanguage:      "",
 						LanguageCodes:        nil,
