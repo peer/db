@@ -165,10 +165,7 @@ const now = ref(nowTimestamp())
 let clockTimer: ReturnType<typeof setInterval> | null = null
 
 // The active filters listed in the print layout: prefilters first, then regular filters.
-const printFilters = computed(() => [
-  ...(siteContext.features.hidePrefilters ? [] : (props.searchSession.prefilters ?? [])),
-  ...(props.searchSession.filters ?? []),
-])
+const printFilters = computed(() => [...(siteContext.features.hidePrefilters ? [] : (props.searchSession.prefilters ?? [])), ...(props.searchSession.filters ?? [])])
 onMounted(() => {
   clockTimer = setInterval(() => {
     now.value = nowTimestamp()

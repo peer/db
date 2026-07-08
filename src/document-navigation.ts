@@ -14,8 +14,7 @@ export type DocumentNavigation = {
 
 // During development, Vite can optimize dependencies and can duplicate imports and thus symbols.
 // So we use Symbol.for to make sure that symbols are deduplicated. Also symbol name is useful for debugging.
-export const documentNavigationKey: InjectionKey<DocumentNavigation> =
-  process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-document-navigation") : Symbol()
+export const documentNavigationKey: InjectionKey<DocumentNavigation> = process.env.NODE_ENV !== "production" ? Symbol.for("peerdb-document-navigation") : Symbol()
 
 // useDocumentNavigation returns the navigation info provided by the DocumentGet view, or null
 // outside of it.
