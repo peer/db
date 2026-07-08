@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import ProgressBar from "@/components/ProgressBar.vue"
-import siteContext from "@/context"
+import siteContext, { logoVariants } from "@/context"
 import { useNavbar } from "@/navbar"
 import CreateButton from "@/partials/CreateButton.vue"
 import LanguageSwitcher from "@/partials/LanguageSwitcher.vue"
+import NavBarMenu from "@/partials/NavBarMenu.vue"
 import NavBarSearch from "@/partials/NavBarSearch.vue"
 import SignInButton from "@/partials/SignInButton.vue"
 import { getParentProgress } from "@/progress"
@@ -14,6 +15,12 @@ const { attrs: navbarAttrs } = useNavbar()
 
 const navbarComponents = getNavbarComponents()
 const parentProgress = getParentProgress()
+
+// The configured logos ordered smallest to largest by their minimum viewport width. The smallest is
+// the <img> fallback; the larger ones become <source> entries (largest min-width first, so the first
+// match wins). Empty when no logo is configured, in which case the title is shown as text.
+const logos = logoVariants()
+const logoSources = logos.slice(1).reverse()
 
 // Sink validation registry: navbar-internal inputs (the search box and
 // other navbar widgets) register here rather than bubbling up to whichever
@@ -39,26 +46,19 @@ useValidationRegistry()
     >
       <RouterLink :to="{ name: 'Home' }" class="group shrink-0 rounded-sm outline-none hover:bg-slate-400 active:bg-slate-200">
         <!--
-          When both a full and a compact logo are configured, swap to the compact one below the 80rem
-          viewport width, which matches Tailwind's xl breakpoint, where the navbar has less horizontal room.
-          When only one of them is set, that one is shown as the sole logo.
+          The logo is chosen from the configured min-width variants: each larger variant is a source that
+          takes over from its width up (largest listed first so the first match wins), and the smallest is
+          the img fallback. When no logo is configured the title is shown as text.
         -->
-        <picture v-if="siteContext.logo && siteContext.logoCompact">
-          <source :srcset="siteContext.logoCompact" media="(width < 80rem)" />
+        <picture v-if="logos.length">
+          <source v-for="variant in logoSources" :key="variant.minWidth" :srcset="variant.src" :media="`(min-width: ${variant.minWidth})`" />
           <img
-            :src="siteContext.logo"
+            :src="logos[0].src"
             :alt="siteContext.title"
             :title="siteContext.title"
             class="pd-navbar-logo h-10 group-focus:ring-2 group-focus:ring-primary-500 group-focus:ring-offset-1"
           />
         </picture>
-        <img
-          v-else-if="siteContext.logo || siteContext.logoCompact"
-          :src="siteContext.logo || siteContext.logoCompact"
-          :alt="siteContext.title"
-          :title="siteContext.title"
-          class="pd-navbar-logo h-10 group-focus:ring-2 group-focus:ring-primary-500 group-focus:ring-offset-1"
-        />
         <h1 v-else class="pd-navbar-logo text-4xl font-bold drop-shadow-xs group-focus:ring-2 group-focus:ring-primary-500 group-focus:ring-offset-1">{{
           siteContext.title
         }}</h1>
@@ -72,11 +72,18 @@ useValidationRegistry()
         so a single gap (matching gap-x-1 sm:gap-x-4) separates the left and right groups. The trailing buttons stay direct
         flex children, so they keep shrinking proportionally with the rest of the navbar when space is tight.
       -->
-      <div class="-mr-1 ml-auto sm:-mr-4"></div>
+      <div class="pd-navbar-spacer -mr-1 ml-auto sm:-mr-4"></div>
       <slot name="end" />
       <CreateButton />
-      <LanguageSwitcher />
-      <SignInButton />
+      <!--
+        On narrow viewports the language switcher and sign-in button fold into a single menu so the
+        navbar stays on one row; the create button stays inline. Above the breakpoint NavBarMenu
+        renders them directly (no wrapping element), so they remain direct navbar children.
+      -->
+      <NavBarMenu>
+        <LanguageSwitcher />
+        <SignInButton />
+      </NavBarMenu>
     </div>
   </div>
 </template>

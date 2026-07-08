@@ -43,4 +43,34 @@ function parseUserInfo(): UserInfo | null {
 export const initialRoles: string[] = parseRoles()
 export const initialUserInfo: UserInfo | null = parseUserInfo()
 
+// A logo variant: a logo path and the minimum viewport width (a CSS length) from which it is used.
+export interface LogoVariant {
+  minWidth: string
+  src: string
+}
+
+// cssLengthToPx converts a logo breakpoint ("0", "48rem", "768px", "40em") to a pixel number for
+// ordering. Unknown or missing units are treated as pixels.
+function cssLengthToPx(length: string): number {
+  const match = /^\s*([\d.]+)\s*(px|rem|em)?\s*$/.exec(length)
+  if (!match) {
+    return 0
+  }
+  const value = Number.parseFloat(match[1])
+  return match[2] === "rem" || match[2] === "em" ? value * 16 : value
+}
+
+// logoVariants returns the configured logos ordered by their minimum viewport width ascending, so the
+// first is the fallback (smallest) and the last is the full logo (largest). It is empty when no logo
+// is configured, in which case callers fall back to showing the site title.
+export function logoVariants(): LogoVariant[] {
+  const logo = siteContext.logo
+  if (!logo) {
+    return []
+  }
+  return Object.entries(logo)
+    .map(([minWidth, src]) => ({ minWidth, src }))
+    .sort((a, b) => cssLengthToPx(a.minWidth) - cssLengthToPx(b.minWidth))
+}
+
 export default siteContext

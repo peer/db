@@ -89,11 +89,13 @@ type Site struct {
 
 	Build *Build `json:"build,omitempty" yaml:"-"`
 
-	IndexPrefix string `json:"-"                     yaml:"indexPrefix,omitempty"`
-	Schema      string `json:"-"                     yaml:"schema,omitempty"`
-	Title       string `json:"title,omitempty"       yaml:"title,omitempty"`
-	Logo        string `json:"logo,omitempty"        yaml:"logo,omitempty"`
-	LogoCompact string `json:"logoCompact,omitempty" yaml:"logoCompact,omitempty"`
+	IndexPrefix string `json:"-"                    yaml:"indexPrefix,omitempty"`
+	Schema      string `json:"-"                    yaml:"schema,omitempty"`
+	Title       string `json:"title,omitempty"      yaml:"title,omitempty"`
+	// Logo maps a minimum viewport width (a CSS length, e.g. "0", "48rem", "768px") to the logo path
+	// used from that width up; the largest matching entry wins, the smallest is the fallback, and the
+	// largest is also used as the full logo (e.g. the home page hero).
+	Logo map[string]string `json:"logo,omitempty" yaml:"logo,omitempty"`
 
 	LanguagePriority map[string][]string `json:"languagePriority,omitempty" yaml:"languagePriority,omitempty"`
 	DefaultLanguage  string              `json:"defaultLanguage,omitempty"  yaml:"defaultLanguage,omitempty"`

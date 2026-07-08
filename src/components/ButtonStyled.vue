@@ -49,7 +49,7 @@ defineOptions({
     :is="as"
     v-tw-merge
     v-bind="$attrs"
-    class="pd-buttonstyled relative rounded-sm px-6 py-2.5 text-center leading-tight font-medium whitespace-nowrap uppercase shadow-sm outline-none select-none focus:ring-2 focus:ring-offset-1 navbar:min-w-[calc(--spacing(5)_+_--spacing(3.5)*2)] navbar:overflow-hidden navbar:px-0"
+    class="pd-buttonstyled relative rounded-sm px-6 py-2.5 text-center leading-tight font-medium whitespace-nowrap uppercase shadow-sm outline-none select-none focus:ring-2 focus:ring-offset-1 navbar:px-0"
     :class="{
       'cursor-not-allowed': inactive,
       'bg-primary-300 text-gray-100': primary && inactive,
@@ -70,14 +70,13 @@ defineOptions({
     }"
   >
     <!--
-      The label is wrapped so that inside the navbar (navbar: variant) it becomes a block whose
-      trailing edge is faded out when the label does not fit. Its px-3.5 hosts the fade, so it
-      stays invisible until the label overflows. The button's navbar floor (min-width) is derived
-      from that same px-3.5 plus a size-5 icon, so a fully shrunk button still shows an icon's worth
-      of width. Everywhere else the wrapper is display: contents and thus layout neutral, so button
-      content (including flex layouts) behaves like there is no wrapper.
+      Inside the navbar (navbar: variant) the label wrapper becomes a block carrying the button's
+      horizontal padding (the button itself drops it with navbar:px-0), so navbar buttons stay compact.
+      Everywhere else the wrapper is display: contents and thus layout neutral, so button content
+      (including flex layouts) behaves like there is no wrapper. Navbar buttons keep their full text
+      width: they do not shrink below it, so the label never needs to be clipped or faded.
     -->
-    <span class="pd-buttonstyled-label contents navbar:block navbar:[mask-image:linear-gradient(to_right,black_calc(100%_-_--spacing(3.5)),transparent)] navbar:px-3.5"
+    <span class="pd-buttonstyled-label contents navbar:block navbar:px-3.5"
       ><slot
     /></span>
   </component>

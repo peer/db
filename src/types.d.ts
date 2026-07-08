@@ -273,8 +273,12 @@ export type SiteContext = {
     revision?: string
   }
   title?: string
-  logo?: string
-  logoCompact?: string
+  // Maps a minimum viewport width (a CSS length, e.g. "0", "48rem") to the logo path used from that
+  // width up; the largest matching entry wins, the smallest is the fallback, and the largest is also
+  // used as the full logo (e.g. the home page hero). See logoVariants in @/context.
+  logo?: {
+    [minWidth: string]: string
+  }
   languagePriority?: {
     [language: string]: string[]
   }

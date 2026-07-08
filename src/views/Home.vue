@@ -5,7 +5,7 @@ import { useRouter } from "vue-router"
 
 import Button from "@/components/Button.vue"
 import InputText from "@/components/InputText.vue"
-import siteContext from "@/context"
+import siteContext, { logoVariants } from "@/context"
 import Footer from "@/partials/Footer.vue"
 import HomeNavBar from "@/partials/HomeNavBar.vue"
 import { useBusy } from "@/progress"
@@ -14,6 +14,9 @@ import { createSearchSession } from "@/search"
 
 const { t, locale } = useI18n({ useScope: "global" })
 const router = useRouter()
+
+// The home hero uses the full (largest) logo variant; the title is shown when no logo is configured.
+const heroLogo = logoVariants().at(-1)?.src ?? null
 
 // Data loading and controls for data loading.
 const busy = useBusy()
@@ -64,7 +67,7 @@ const homeComponent = getHomeComponent()
         it slightly smaller than the input box, which is what we want (~80% of the input box width).
       -->
       <RouterLink :to="{ name: 'SearchShortcut' }" class="mb-10 flex w-full max-w-2xl justify-center self-center p-4 sm:w-4/5 md:w-2/3 lg:w-1/2">
-        <img v-if="siteContext.logo" :src="siteContext.logo" :alt="siteContext.title" :title="siteContext.title" class="logo max-h-48 max-w-full" />
+        <img v-if="heroLogo" :src="heroLogo" :alt="siteContext.title" :title="siteContext.title" class="logo max-h-48 max-w-full" />
         <h1 v-else class="text-5xl font-bold drop-shadow-xs">{{ siteContext.title }}</h1>
       </RouterLink>
     </div>
