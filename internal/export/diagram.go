@@ -15,6 +15,7 @@ import (
 
 	"gitlab.com/peerdb/peerdb/core"
 	internalCore "gitlab.com/peerdb/peerdb/internal/core"
+	internalShortcut "gitlab.com/peerdb/peerdb/internal/shortcut"
 )
 
 // diagramSkipIDs returns the set of class identifiers that should be omitted
@@ -805,7 +806,9 @@ func diagramStructValuesTag(t reflect.Type) (string, bool) {
 
 // parseDiagramValuesTargets parses a values-tag string (search shortcut grammar)
 // and returns the target entity names for INSTANCE_OF=class clauses that
-// resolve to entries in idToName. INSTANCE_OF clauses whose target class is
+// resolve to entries in idToName. The "id=languages" sentinel is treated as an
+// edge to the LANGUAGE class, since it restricts a reference to the site's
+// enabled languages (all instances of LANGUAGE). Clauses whose target class is
 // not part of the diagram are logged at warn level - this is the canonical
 // "FK row without an outgoing edge" case.
 func parseDiagramValuesTargets(
@@ -830,18 +833,28 @@ func parseDiagramValuesTargets(
 				continue
 			}
 			key, value := part[:eq], part[eq+1:]
-			keyID, ok := resolveDiagramValuesID(key)
-			if !ok || keyID != internalCore.InstanceOfPropID {
-				continue
+
+			var valueID identifier.Identifier
+			switch {
+			case key == internalShortcut.IDKey && value == internalShortcut.LanguagesValue:
+				// The "id=languages" sentinel expands to the site's enabled languages,
+				// which are all instances of the LANGUAGE class, so the edge targets LANGUAGE.
+				valueID = internalCore.LanguageClassID
+			default:
+				keyID, ok := resolveDiagramValuesID(key)
+				if !ok || keyID != internalCore.InstanceOfPropID {
+					continue
+				}
+				valueID, ok = resolveDiagramValuesID(value)
+				if !ok {
+					logger.Warn().
+						Str("property", propertyName).
+						Str("value", value).
+						Msg("values tag clause has unparseable target identifier; skipping")
+					continue
+				}
 			}
-			valueID, ok := resolveDiagramValuesID(value)
-			if !ok {
-				logger.Warn().
-					Str("property", propertyName).
-					Str("value", value).
-					Msg("values tag clause has unparseable target identifier; skipping")
-				continue
-			}
+
 			name, ok := idToName[valueID]
 			if !ok {
 				// Target class is intentionally excluded (e.g. by --skip-core);
