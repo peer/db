@@ -766,6 +766,19 @@ export function loadingWidth(seed: string): string {
   return widthClasses[Math.floor(widthClasses.length * rand.quick())]
 }
 
+// capitalizeFirstLetter upper-cases the first letter of a string, keeping the rest unchanged. It
+// operates on the first code point so multi-unit characters stay intact. The locale drives the case
+// mapping. We do this in JavaScript because the CSS first-letter pseudo element does not reliably
+// apply in Firefox because Vue also injects empty text fragments.
+// See: https://github.com/orgs/vuejs/discussions/15055
+export function capitalizeFirstLetter(label: string, locale: string | string[]): string {
+  if (label.length === 0) {
+    return label
+  }
+  const first = Array.from(label)[0]
+  return first.toLocaleUpperCase(locale) + label.slice(first.length)
+}
+
 export function loadingLongWidth(seed: string): string {
   const rand = prng_alea(seed)
   return widthLongClasses[Math.floor(widthLongClasses.length * rand.quick())]

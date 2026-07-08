@@ -10,6 +10,7 @@ import {
   amountStringFromFloat64,
   amountValueDecimals,
   buildRefTree,
+  capitalizeFirstLetter,
   computeRefCheckStates,
   mergeRefOverlay,
   parseUrl,
@@ -622,5 +623,27 @@ describe("valuesNotShownMarkers", () => {
     const markers = valuesNotShownMarkers(results)
     assert.lengthOf(markers, 1)
     assert.equal(markers[0].count, 5)
+  })
+})
+
+describe("capitalizeFirstLetter", () => {
+  test("upper-cases the first letter and keeps the rest unchanged", () => {
+    assert.equal(capitalizeFirstLetter("izdajatelj", "sl"), "Izdajatelj")
+    assert.equal(capitalizeFirstLetter("datum spremembe", "sl"), "Datum spremembe")
+    assert.equal(capitalizeFirstLetter("in language", "en"), "In language")
+  })
+
+  test("handles diacritics, already-capitalized text, and the empty string", () => {
+    assert.equal(capitalizeFirstLetter("čas", "sl"), "Čas")
+    assert.equal(capitalizeFirstLetter("ključna beseda", "sl"), "Ključna beseda")
+    assert.equal(capitalizeFirstLetter("ABC", "en"), "ABC")
+    assert.equal(capitalizeFirstLetter("", "en"), "")
+  })
+
+  test("uses the passed locale for the case mapping", () => {
+    // Turkish upper-cases dotless/dotted "i" differently, so the locale must drive the mapping.
+    assert.equal(capitalizeFirstLetter("istanbul", "en"), "Istanbul")
+    assert.equal(capitalizeFirstLetter("istanbul", "tr"), "İstanbul")
+    assert.equal(capitalizeFirstLetter("čas", "sl"), "Čas")
   })
 })
