@@ -76,8 +76,6 @@ defineOptions({
       (including flex layouts) behaves like there is no wrapper. Navbar buttons keep their full text
       width: they do not shrink below it, so the label never needs to be clipped or faded.
     -->
-    <span class="pd-buttonstyled-label contents navbar:block navbar:px-3.5"
-      ><slot
-    /></span>
+    <span class="pd-buttonstyled-label contents navbar:block navbar:px-3.5"><slot /></span>
   </component>
 </template>
